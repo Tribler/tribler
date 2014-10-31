@@ -12,7 +12,7 @@ from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import blockingCallFromThread
-from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
+from Tribler.community.tunnel.community import TunnelCommunity
 
 class TestTunnelCommunity(TestGuiAsServer):
 
@@ -39,10 +39,10 @@ class TestTunnelCommunity(TestGuiAsServer):
             self.Call(1, do_asserts)
 
         def do_progress(download, start_time):
-            self.CallConditional(60,
+            self.CallConditional(120,
                 lambda: download.get_progress() == 1.0,
                 lambda: take_screenshot(time.time() - start_time),
-                'Anonymous download should be finished in 60 seconds (%.1f%% downloaded)' % (download.get_progress() * 100),
+                'Anonymous download should be finished in 120 seconds (%.1f%% downloaded)' % (download.get_progress() * 100),
                 on_fail
             )
 
@@ -64,14 +64,14 @@ class TestTunnelCommunity(TestGuiAsServer):
         class FakeSocks():
             def circuit_dead(self, circuit_id):
                 pass
+            def start(self):
+                pass
             def stop(self):
                 pass
             def on_incoming_from_tunnel(self, community, circuit, origin, data):
                 this.assert_(data == "4242", "Data is not 4242, it is '%s'" % data)
                 this.assert_(origin == ("127.0.0.1", 12345), "Origin is not 127.0.0.1:12345, it is '%s:%d'" % (origin[0], origin[1]))
                 got_data.set()
-
-        fakesocks = FakeSocks()
 
         def exit_data(community, circuit_id, sock_addr, destination, data):
             self.assert_(data == "42", "Data is not 42, it is '%s'" % data)
@@ -85,20 +85,19 @@ class TestTunnelCommunity(TestGuiAsServer):
             first_circuit = tunnel_community.active_circuits().values()[0]
             first_circuit.tunnel_data(("127.0.0.1", 12345), "42")
 
-            self.CallConditional(30, lambda: got_data.is_set(), self.quit)
+            self.CallConditional(30, got_data.is_set, self.quit)
 
         def replace_socks(tunnel_communities):
             for tunnel_community in tunnel_communities:
-                tunnel_community.socks_server = fakesocks
                 tunnel_community.exit_data = lambda circuit_id, sock_addr, destination, data, community = tunnel_community: exit_data(community, circuit_id, sock_addr, destination, data)
                 tunnel_community.circuits_needed[3] = 4
 
             self.CallConditional(30, lambda: bool(tunnel_communities[-1].active_circuits().values()),
                                      lambda: start_test(tunnel_communities))
 
-        self.startTest(replace_socks)
+        self.startTest(replace_socks, FakeSocks())
 
-    def startTest(self, callback, min_timeout=5):
+    def startTest(self, callback, socks=None, min_timeout=5):
         self.getStateDir()  # getStateDir copies the bootstrap file into the statedir
 
         def setup_proxies():
@@ -147,12 +146,7 @@ class TestTunnelCommunity(TestGuiAsServer):
             def load_community(session):
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
-
-                tunnel_settings = TunnelSettings()
-                tunnel_settings.socks_listen_port = 0
-                tunnel_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, (session, tunnel_settings), load=True)[0]
-
-                return tunnel_community
+                return dispersy.define_auto_load(TunnelCommunity, dispersy_member, (session, None, socks), load=True)[0]
 
             return blockingCallFromThread(reactor, load_community, session)
 

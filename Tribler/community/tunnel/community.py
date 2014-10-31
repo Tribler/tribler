@@ -35,8 +35,6 @@ from Tribler.dispersy.message import Message, DropMessage
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.util import call_on_reactor_thread
 from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
-from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
-from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
 
 class CircuitRequestCache(NumberCache):
@@ -213,8 +211,9 @@ class TunnelCommunity(Community):
                              '43e8807e6f86ef2f0a784fbc8fa21f8bc49a82ae'.decode('hex'),
                              'e79efd8853cef1640b93c149d7b0f067f6ccf221'.decode('hex')]
         self.bittorrent_peers = {}
+        self.tribler_session = self.settings = self.socks_server = self.libtorrent_test = None
 
-    def initialize(self, session=None, settings=None):
+    def initialize(self, session=None, settings=None, socks_server=None):
         super(TunnelCommunity, self).initialize()
 
         self.tribler_session = session
@@ -231,8 +230,8 @@ class TunnelCommunity(Community):
         self.register_task("do_circuits", LoopingCall(self.do_circuits)).start(5, now=True)
         self.register_task("do_ping", LoopingCall(self.do_ping)).start(PING_INTERVAL)
 
-        self.socks_server = Socks5Server(self, session.get_tunnel_community_socks5_listen_port()
-                                         if session else self.settings.socks_listen_port)
+        self.socks_server = socks_server or Socks5Server(self, session.get_tunnel_community_socks5_listen_port()
+                                                         if session else self.settings.socks_listen_port)
         self.socks_server.start()
 
         if self.tribler_session and self.tribler_session.get_libtorrent():
@@ -300,6 +299,8 @@ class TunnelCommunity(Community):
         return [DefaultConversion(self), TunnelConversion(self)]
 
     def unload_community(self):
+        super(TunnelCommunity, self).unload_community()
+
         self.socks_server.stop()
 
         # Remove all circuits/relays/exitsockets
@@ -309,8 +310,6 @@ class TunnelCommunity(Community):
             self.remove_relay(circuit_id, destroy=True)
         for circuit_id in self.exit_sockets.keys():
             self.remove_exit_socket(circuit_id, destroy=True)
-
-        super(TunnelCommunity, self).unload_community()
 
     @property
     def crypto(self):
@@ -455,14 +454,14 @@ class TunnelCommunity(Community):
 
         for cid in to_remove:
             if cid in self.relay_from_to:
-                self._logger.error(("TunnelCommunity: removing relay %d " + additional_info) % cid)
+                self._logger.error("TunnelCommunity: removing relay %d %s", cid, additional_info)
                 # Remove the relay
                 del self.relay_from_to[cid]
                 # Remove old session key
                 if cid in self.relay_session_keys:
                     del self.relay_session_keys[cid]
             else:
-                self._logger.error(("TunnelCommunity: could not remove relay %d " + additional_info) % circuit_id)
+                self._logger.error("TunnelCommunity: could not remove relay %d %s", circuit_id, additional_info)
 
     def remove_exit_socket(self, circuit_id, additional_info='', destroy=False):
         if circuit_id in self.exit_sockets:
@@ -471,14 +470,14 @@ class TunnelCommunity(Community):
             # Close socket
             exit_socket = self.exit_sockets.pop(circuit_id)
             if exit_socket.enabled:
-                self._logger.error(("TunnelCommunity: removing exit socket %d " + additional_info) % circuit_id)
+                self._logger.error("TunnelCommunity: removing exit socket %d %s", circuit_id, additional_info)
                 exit_socket.close()
                 # Remove old session key
                 if circuit_id in self.relay_session_keys:
                     del self.relay_session_keys[circuit_id]
             return
 
-        self._logger.error(("TunnelCommunity: could not remove exit socket %d " + additional_info) % circuit_id)
+        self._logger.error("TunnelCommunity: could not remove exit socket %d %s", circuit_id, additional_info)
 
     def destroy_circuit(self, circuit_id, reason=0):
         if circuit_id in self.circuits:
@@ -545,7 +544,7 @@ class TunnelCommunity(Community):
         return self.send_packet(candidates, u'data', packet)
 
     def send_packet(self, candidates, message_type, packet):
-        self.dispersy._endpoint.send(candidates, [packet], prefix=self.data_prefix if message_type == u"data" else None)
+        self.dispersy.endpoint.send(candidates, [packet], prefix=self.data_prefix if message_type == u"data" else None)
         self.statistics.increase_msg_count(u"outgoing", message_type, len(candidates))
         self._logger.debug("TunnelCommunity: send %s to %s candidates: %s", message_type, len(candidates), map(str, candidates))
         return len(packet)
