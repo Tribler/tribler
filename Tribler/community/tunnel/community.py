@@ -15,7 +15,7 @@ from Crypto.Util.number import bytes_to_long, long_to_bytes
 
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.community.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR,
-                                      PING_INTERVAL, ENDPOINT)
+                                      PING_INTERVAL, EXIT_NODE)
 from Tribler.community.tunnel.conversion import TunnelConversion
 from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, CreatedPayload, ExtendPayload,
                                               ExtendedPayload, PongPayload, PingPayload, DestroyPayload,
@@ -508,7 +508,7 @@ class TunnelCommunity(Community):
             self._logger.error("TunnelCommunity: destroy_exit_socket %s %s", circuit_id, sock_addr)
 
     def active_circuits(self, hops=None):
-        return {cid: c for cid, c in self.circuits.iteritems()
+        return {cid: c for cid, c in self.circuits.items()
                 if c.state == CIRCUIT_STATE_READY and (hops is None or hops == len(c.hops))}
 
     def is_relay(self, circuit_id):
@@ -625,7 +625,7 @@ class TunnelCommunity(Community):
 
         if circuit.state == CIRCUIT_STATE_EXTENDING:
             candidate_list_enc = message.payload.candidate_list
-            _, candidate_list = decode(self.crypto.decrypt_str(hop.session_keys[ENDPOINT], candidate_list_enc))
+            _, candidate_list = decode(self.crypto.decrypt_str(hop.session_keys[EXIT_NODE], candidate_list_enc))
 
             for ignore_candidate in [self.my_member.public_key] + [hop.public_key for hop in circuit.hops]:
                 if ignore_candidate in candidate_list:
@@ -704,7 +704,7 @@ class TunnelCommunity(Community):
                 self._logger.error(str(e))
                 continue
 
-            self.directions[circuit_id] = ENDPOINT
+            self.directions[circuit_id] = EXIT_NODE
             self._logger.info('TunnelCommunity: we joined circuit %d with neighbour %s', circuit_id, candidate.sock_addr)
             dh_secret, dh_first_part = self.crypto.generate_diffie_secret()
 
@@ -724,7 +724,7 @@ class TunnelCommunity(Community):
                 from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
                 self.notifier.notify(NTFY_ANONTUNNEL, NTFY_JOINED, candidate.sock_addr, circuit_id)
 
-            candidate_list_enc = self.crypto.encrypt_str(self.relay_session_keys[circuit_id][ENDPOINT], encode(candidates.keys()))
+            candidate_list_enc = self.crypto.encrypt_str(self.relay_session_keys[circuit_id][EXIT_NODE], encode(candidates.keys()))
             self.send_cell([candidate], u"created", (circuit_id, long_to_bytes(dh_first_part), candidate_list_enc))
 
     def on_created(self, messages):
@@ -780,7 +780,7 @@ class TunnelCommunity(Community):
             self.relay_session_keys[new_circuit_id] = self.relay_session_keys[circuit_id]
 
             self.directions[new_circuit_id] = ORIGINATOR
-            self.directions[circuit_id] = ENDPOINT
+            self.directions[circuit_id] = EXIT_NODE
 
             self.remove_exit_socket(circuit_id)
 
@@ -928,7 +928,7 @@ class TunnelCommunity(Community):
     def crypto_out(self, circuit_id, content):
         if circuit_id in self.circuits:
             for hop in reversed(self.circuits[circuit_id].hops):
-                content = self.crypto.encrypt_str(hop.session_keys[ENDPOINT], content)
+                content = self.crypto.encrypt_str(hop.session_keys[EXIT_NODE], content)
             return content
         elif circuit_id in self.relay_session_keys:
             return self.crypto.encrypt_str(self.relay_session_keys[circuit_id][ORIGINATOR], content)
@@ -940,16 +940,16 @@ class TunnelCommunity(Community):
                 content = self.crypto.decrypt_str(hop.session_keys[ORIGINATOR], content)
             return content
         elif circuit_id in self.relay_session_keys:
-            return self.crypto.decrypt_str(self.relay_session_keys[circuit_id][ENDPOINT], content)
+            return self.crypto.decrypt_str(self.relay_session_keys[circuit_id][EXIT_NODE], content)
         raise CryptoException("Don't know how to decrypt incoming message for circuit_id %d" % circuit_id)
 
     def crypto_relay(self, circuit_id, content):
         direction = self.directions[circuit_id]
         if direction == ORIGINATOR:
             return self.crypto.encrypt_str(self.relay_session_keys[circuit_id][direction], content)
-        elif direction == ENDPOINT:
+        elif direction == EXIT_NODE:
             return self.crypto.decrypt_str(self.relay_session_keys[circuit_id][direction], content)
-        raise CryptoException("Direction must be either ORIGINATOR or ENDPOINT")
+        raise CryptoException("Direction must be either ORIGINATOR or EXIT_NODE")
 
     def increase_bytes_sent(self, obj, num_bytes):
         if isinstance(obj, Circuit):
