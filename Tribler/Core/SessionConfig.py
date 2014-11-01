@@ -91,21 +91,23 @@ class SessionConfigInterface(object):
     # Auxiliar functions
     #
 
-    def _obtain_port(self, *keys):
+    def _obtain_port(self, section, option):
         """ Fetch a port setting from the config file and in case it's set to -1 (random), look for a free port and assign it to
                 this particular setting.
         """
-        settings_port = self.sessconfig.get(*keys)
-        path = '~'.join(keys)
+        settings_port = self.sessconfig.get(section, option)
+        path = section + '~' + option
         in_selected_ports = path in self.selected_ports
 
         if in_selected_ports or settings_port == -1:
-            if not in_selected_ports:
-                self.selected_ports[path] = get_random_port()
-
-                self._logger.debug(u"Get random port %d for [%s]", self.selected_ports[path], path)
-            return self.selected_ports[path]
+            return self._get_random_port(path)
         return settings_port
+
+    def _get_random_port(self, path):
+        if path not in self.selected_ports:
+            self.selected_ports[path] = get_random_port()
+            self._logger.debug(u"Get random port %d for [%s]", self.selected_ports[path], path)
+        return self.selected_ports[path]
 
     def set_state_dir(self, statedir):
         """ Set the directory to store the Session's state in.
@@ -159,11 +161,13 @@ class SessionConfigInterface(object):
         """
         self.selected_ports['~'.join(('general', 'minport'))] = port
 
-    def set_tunnel_community_socks5_listen_port(self, port):
-        self.sessconfig.set(u'tunnel_community', u'socks5_listen_port', port)
+    def set_tunnel_community_socks5_listen_ports(self, ports):
+        self.sessconfig.set(u'tunnel_community', u'socks5_listen_ports', ports)
 
-    def get_tunnel_community_socks5_listen_port(self):
-        return self._obtain_port(u'tunnel_community', u'socks5_listen_port')
+    def get_tunnel_community_socks5_listen_ports(self):
+        ports = self.sessconfig.get(u'tunnel_community', u'socks5_listen_ports')
+        path = u'tunnel_community~socks5_listen_ports~'
+        return [self._get_random_port(path + unicode(index)) if port < 0 else port for index, port in enumerate(ports)]
 
     def get_listen_port(self):
         """ Returns the current UDP/TCP listen port.
@@ -235,7 +239,7 @@ class SessionConfigInterface(object):
     def set_anon_proxy_settings(self, ptype, server=None, auth=None):
         """
         @param ptype Integer (0 = no proxy server, 1 = SOCKS4, 2 = SOCKS5, 3 = SOCKS5 + auth, 4 = HTTP, 5 = HTTP + auth)
-        @param server (host, port) tuple or None
+        @param server (host, [ports]) tuple or None
         @param auth (username, password) tuple or None
         """
         self.sessconfig.set(u'libtorrent', u'anon_proxytype', ptype)

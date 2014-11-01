@@ -100,7 +100,7 @@ class Tunnel(object):
 
     def start_tribler(self):
         config = SessionStartupConfig()
-        config.set_state_dir(os.path.join(BASE_DIR, ".Tribler-%d") % self.settings.socks_listen_port)
+        config.set_state_dir(os.path.join(BASE_DIR, ".Tribler-%d") % self.settings.socks_listen_ports[0])
         config.set_torrent_checking(False)
         config.set_multicast_local_peer_discovery(False)
         config.set_megacache(False)
@@ -274,7 +274,11 @@ def main(argv):
         sys.exit(1)
 
     settings = TunnelSettings()
-    settings.socks_listen_port = socks5_port or random.randint(1000, 65535)
+    if socks5_port is not None:
+        settings.socks_listen_ports = range(socks5_port, socks5_port + 5)
+    else:
+        settings.socks_listen_ports = [random.randint(1000, 65535) for _ in range(5)]
+
     tunnel = Tunnel(settings, crawl_keypair_filename, swift_port)
     StandardIO(LineHandler(tunnel, profile))
     tunnel.run()

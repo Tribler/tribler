@@ -155,7 +155,7 @@ class TunnelSettings(object):
 
     def __init__(self):
         self.crypto = TunnelCrypto()
-        self.socks_listen_port = 1080
+        self.socks_listen_ports = range(1080, 1085)
 
         self.min_circuits = 4
         self.max_circuits = 8
@@ -230,8 +230,8 @@ class TunnelCommunity(Community):
         self.register_task("do_circuits", LoopingCall(self.do_circuits)).start(5, now=True)
         self.register_task("do_ping", LoopingCall(self.do_ping)).start(PING_INTERVAL)
 
-        self.socks_server = socks_server or Socks5Server(self, session.get_tunnel_community_socks5_listen_port()
-                                                         if session else self.settings.socks_listen_port)
+        self.socks_server = socks_server or Socks5Server(self, session.get_tunnel_community_socks5_listen_ports()
+                                                         if session else self.settings.socks_listen_ports)
         self.socks_server.start()
 
         if self.tribler_session and self.tribler_session.get_libtorrent():

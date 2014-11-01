@@ -92,7 +92,7 @@ class TestTunnelCommunity(TestGuiAsServer):
                 tunnel_community.exit_data = lambda circuit_id, sock_addr, destination, data, community = tunnel_community: exit_data(community, circuit_id, sock_addr, destination, data)
                 tunnel_community.circuits_needed[3] = 4
 
-            self.CallConditional(30, lambda: bool(tunnel_communities[-1].active_circuits().values()),
+            self.CallConditional(30, lambda: bool(tunnel_communities[-1].active_circuits()),
                                      lambda: start_test(tunnel_communities))
 
         self.startTest(replace_socks, FakeSocks())

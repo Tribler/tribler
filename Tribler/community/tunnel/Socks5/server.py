@@ -276,19 +276,18 @@ class Socks5Connection(Protocol):
 
 class Socks5Server(object):
 
-    def __init__(self, community, start_port=1080):
+    def __init__(self, community, socks5_ports):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.community = community
-        self.start_port = start_port
+        self.socks5_ports = socks5_ports
         self.twisted_ports = []
         self.sessions = []
 
     def start(self):
-        for i in range(1, 6):
+        for i, port in enumerate(self.socks5_ports):
             factory = Factory()
-            factory.buildProtocol = lambda addr, hops = i: self.buildProtocol(addr, hops)
-            port = self.start_port + i - 1
+            factory.buildProtocol = lambda addr, hops = i + 1: self.buildProtocol(addr, hops)
             self.twisted_ports.append(reactor.listenTCP(port, factory))
 
     def stop(self):

@@ -59,7 +59,7 @@ sessdefaults['general']['live_aux_seeders'] = []
 
 # Tunnel community section
 sessdefaults['tunnel_community'] = OrderedDict()
-sessdefaults['tunnel_community']['socks5_listen_port'] = -1
+sessdefaults['tunnel_community']['socks5_listen_ports'] = [-1] * 5
 
 # Mainline DHT settings
 sessdefaults['mainline_dht'] = OrderedDict()

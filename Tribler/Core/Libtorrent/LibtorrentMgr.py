@@ -130,8 +130,8 @@ class LibtorrentMgr(object):
             proxy_settings = self.trsession.get_libtorrent_proxy_settings()
         else:
             proxy_settings = list(self.trsession.get_anon_proxy_settings())
-            proxy_host, proxy_port = proxy_settings[1]
-            proxy_settings[1] = (proxy_host, proxy_port + hops - 1)
+            proxy_host, proxy_ports = proxy_settings[1]
+            proxy_settings[1] = (proxy_host, proxy_ports[hops - 1])
         self.set_proxy_settings(ltsession, *(proxy_settings))
 
         if hops == 0:
