@@ -213,7 +213,7 @@ class TunnelCommunity(Community):
         self.bittorrent_peers = {}
         self.tribler_session = self.settings = self.socks_server = self.libtorrent_test = None
 
-    def initialize(self, session=None, settings=None, socks_server=None):
+    def initialize(self, session=None, settings=None):
         super(TunnelCommunity, self).initialize()
 
         self.tribler_session = session
@@ -230,8 +230,8 @@ class TunnelCommunity(Community):
         self.register_task("do_circuits", LoopingCall(self.do_circuits)).start(5, now=True)
         self.register_task("do_ping", LoopingCall(self.do_ping)).start(PING_INTERVAL)
 
-        self.socks_server = socks_server or Socks5Server(self, session.get_tunnel_community_socks5_listen_ports()
-                                                         if session else self.settings.socks_listen_ports)
+        self.socks_server = Socks5Server(self, session.get_tunnel_community_socks5_listen_ports()
+                                         if session else self.settings.socks_listen_ports)
         self.socks_server.start()
 
         if self.tribler_session and self.tribler_session.get_libtorrent():
