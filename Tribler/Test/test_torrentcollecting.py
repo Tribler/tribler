@@ -4,18 +4,13 @@
 import os
 import sys
 import time
-from shutil import move
 import threading
-from traceback import print_exc
 
 from Tribler.Test.test_as_server import TestAsServer, BASE_DIR
 
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Swift.SwiftDef import SwiftDef
-
-from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 
 class TestTorrentCollecting(TestAsServer):
@@ -69,15 +64,17 @@ class TestTorrentCollecting(TestAsServer):
 
         event = threading.Event()
         starttime = time.time()
-        self.session2.lm.rtorrent_handler.download_torrent(candidate, infohash, roothash, lambda filename: event.set(), prio=1, timeout=60)
+        self.session2.lm.rtorrent_handler.download_torrent(candidate, infohash,
+                                                           lambda filename: event.set(), priority=1, timeout=60)
 
         assert event.wait(60)
         print >> sys.stderr, "took", time.time() - starttime
 
     def seeder_state_callback(self, ds):
         d = ds.get_download()
-        print >> sys.stderr, long(time.time()), "test: seeder:", `d.get_def().get_name()`, dlstatus_strings[ds.get_status()], ds.get_progress()
+        print >> sys.stderr, long(time.time()), "test: seeder:", repr(d.get_def().get_name()),\
+            dlstatus_strings[ds.get_status()], ds.get_progress()
 
         if ds.get_status() == DLSTATUS_SEEDING:
             self.seeding_event.set()
-        return (1.0, False)
+        return 1.0, False

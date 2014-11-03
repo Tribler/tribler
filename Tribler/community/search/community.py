@@ -500,7 +500,7 @@ class SearchCommunity(Community):
 
                     # low_prio changes, hence we need to import it here
                     from Tribler.Core.RemoteTorrentHandler import LOW_PRIO_COLLECTING
-                    self._rtorrent_handler.download_torrent(candidate, infohash, roothash, prio=LOW_PRIO_COLLECTING, timeout=CANDIDATE_WALK_LIFETIME)
+                    self._rtorrent_handler.download_torrent(candidate, infohash, priority=LOW_PRIO_COLLECTING, timeout=CANDIDATE_WALK_LIFETIME)
 
         sock_addrs = [message.candidate.sock_addr for message in messages]
         for taste_buddy in self.taste_buddies:

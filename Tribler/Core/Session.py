@@ -518,7 +518,7 @@ class Session(SessionConfigInterface):
         if not self.lm.rtorrent_handler:
             raise OperationNotEnabledByConfigurationException()
 
-        self.lm.rtorrent_handler.download_torrent(None, infohash, roothash, usercallback, prio)
+        self.lm.rtorrent_handler.download_torrent(None, infohash, usercallback, prio)
 
     def download_torrentfile_from_peer(self, candidate, infohash=None, roothash=None, usercallback=None, prio=0):
         """ Ask the designated peer to send us the torrentfile for the torrent
@@ -536,7 +536,7 @@ class Session(SessionConfigInterface):
         if not self.lm.rtorrent_handler:
             raise OperationNotEnabledByConfigurationException()
 
-        self.lm.rtorrent_handler.download_torrent(candidate, infohash, roothash, usercallback, prio)
+        self.lm.rtorrent_handler.download_torrent(candidate, infohash, usercallback, prio)
 
     def download_torrentmessage_from_peer(self, candidate, infohash, usercallback, prio=0):
         """ Ask the designated peer to send us the torrentmessage for the torrent
