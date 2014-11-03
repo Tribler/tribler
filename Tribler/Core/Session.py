@@ -503,7 +503,7 @@ class Session(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def download_torrentfile(self, infohash=None, roothash=None, usercallback=None, prio=0):
+    def download_torrentfile(self, infohash=None, usercallback=None, prio=0):
         """ Try to download the torrentfile without a known source.
         A possible source could be the DHT.
         If the torrent is succesfully
@@ -520,7 +520,7 @@ class Session(SessionConfigInterface):
 
         self.lm.rtorrent_handler.download_torrent(None, infohash, usercallback, prio)
 
-    def download_torrentfile_from_peer(self, candidate, infohash=None, roothash=None, usercallback=None, prio=0):
+    def download_torrentfile_from_peer(self, candidate, infohash=None, usercallback=None, prio=0):
         """ Ask the designated peer to send us the torrentfile for the torrent
         identified by the passed infohash. If the torrent is succesfully
         received, the usercallback method is called with the infohash as first

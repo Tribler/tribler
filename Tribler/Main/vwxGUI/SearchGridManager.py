@@ -196,14 +196,14 @@ class TorrentManager:
             return False
 
         if torrent.query_candidates is None or len(torrent.query_candidates) == 0:
-            self.session.download_torrentfile(torrent.infohash, torrent.swift_torrent_hash, callback, prio)
+            self.session.download_torrentfile(torrent.infohash, callback, prio)
 
         else:
             # only add to requestedTorrents if we have peers
             self.requestedTorrents.add(torrent.infohash)
 
             for candidate in torrent.query_candidates:
-                self.session.download_torrentfile_from_peer(candidate, torrent.infohash, torrent.swift_torrent_hash, callback, prio)
+                self.session.download_torrentfile_from_peer(candidate, torrent.infohash, callback, prio)
 
         return True
 
