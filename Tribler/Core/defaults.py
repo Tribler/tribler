@@ -59,7 +59,7 @@ sessdefaults['general']['live_aux_seeders'] = []
 
 # Tunnel community section
 sessdefaults['tunnel_community'] = OrderedDict()
-sessdefaults['tunnel_community']['socks5_listen_port'] = -1
+sessdefaults['tunnel_community']['socks5_listen_ports'] = [-1] * 5
 
 # Mainline DHT settings
 sessdefaults['mainline_dht'] = OrderedDict()
@@ -144,7 +144,7 @@ dldefaults['downloadconfig']['max_upload_rate'] = 0
 dldefaults['downloadconfig']['max_download_rate'] = 0
 dldefaults['downloadconfig']['super_seeder'] = 0
 dldefaults['downloadconfig']['mode'] = 0
-dldefaults['downloadconfig']['anon_mode'] = False
+dldefaults['downloadconfig']['hops'] = 0
 dldefaults['downloadconfig']['selected_files'] = []
 dldefaults['downloadconfig']['correctedfilename'] = None
 dldefaults['downloadconfig']['swiftlistenport'] = None

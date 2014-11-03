@@ -10,7 +10,7 @@ from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED, DLSTATUS_SEEDING, DLSTATUS_HASHCHECKING,
                                      DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE,
-                                     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_METADATA)
+                                     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_METADATA, DLSTATUS_CIRCUITS)
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.Core.osutils import is_android
@@ -105,7 +105,7 @@ class MergedDs(object):
         return getattr(self.dslist[0], name)
 
     def get_status(self):
-        order = [DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_STOPPED]
+        order = [DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING, DLSTATUS_CIRCUITS, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_STOPPED]
         status1, status2 = self.dslist[0].get_status(), self.dslist[1].get_status()
 
         def return_in_order(status1, status2, order):
@@ -236,6 +236,9 @@ class Torrent(Helper):
         stateList = []
         if self.ds:
             status = self.ds.get_status()
+            if status == DLSTATUS_CIRCUITS:
+                stateList.append('circuits')
+
             if status == DLSTATUS_STOPPED:
                 stateList.append('stopped')
 

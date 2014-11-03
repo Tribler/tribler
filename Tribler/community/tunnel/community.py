@@ -15,7 +15,7 @@ from Crypto.Util.number import bytes_to_long, long_to_bytes
 
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.community.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR,
-                                      PING_INTERVAL, ENDPOINT)
+                                      PING_INTERVAL, EXIT_NODE)
 from Tribler.community.tunnel.conversion import TunnelConversion
 from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, CreatedPayload, ExtendPayload,
                                               ExtendedPayload, PongPayload, PingPayload, DestroyPayload,
@@ -35,7 +35,6 @@ from Tribler.dispersy.message import Message, DropMessage
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.util import call_on_reactor_thread
 from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
-from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 
 
 class CircuitRequestCache(NumberCache):
@@ -155,11 +154,10 @@ class TunnelExitSocket(DatagramProtocol):
 class TunnelSettings(object):
 
     def __init__(self):
-        self.circuit_length = 3
         self.crypto = TunnelCrypto()
-        self.socks_listen_port = 1080
-        self.min_circuits_for_session = 4
+        self.socks_listen_ports = range(1080, 1085)
 
+        self.min_circuits = 4
         self.max_circuits = 8
         self.max_relays_or_exits = 100
 
@@ -176,18 +174,19 @@ class RoundRobin(object):
         self.community = community
         self.index = -1
 
-    def has_options(self):
-        return len(self.community.active_circuits) > 0
+    def has_options(self, hops):
+        return len(self.community.active_circuits(hops)) > 0
 
-    def select(self):
-        circuit_ids = sorted(self.community.active_circuits.keys())
+    def select(self, hops):
+        active_circuits = self.community.active_circuits(hops)
+        circuit_ids = sorted(active_circuits.keys())
 
         if not circuit_ids:
             return None
 
         self.index = (self.index + 1) % len(circuit_ids)
         circuit_id = circuit_ids[self.index]
-        return self.community.active_circuits[circuit_id]
+        return active_circuits[circuit_id]
 
 
 class TunnelCommunity(Community):
@@ -202,6 +201,7 @@ class TunnelCommunity(Community):
         self.relay_session_keys = {}
         self.waiting_for = set()
         self.exit_sockets = {}
+        self.circuits_needed = {}
         self.notifier = None
         self.made_anon_session = False
         self.selection_strategy = RoundRobin(self)
@@ -211,6 +211,7 @@ class TunnelCommunity(Community):
                              '43e8807e6f86ef2f0a784fbc8fa21f8bc49a82ae'.decode('hex'),
                              'e79efd8853cef1640b93c149d7b0f067f6ccf221'.decode('hex')]
         self.bittorrent_peers = {}
+        self.tribler_session = self.settings = self.socks_server = self.libtorrent_test = None
 
     def initialize(self, session=None, settings=None):
         super(TunnelCommunity, self).initialize()
@@ -219,7 +220,6 @@ class TunnelCommunity(Community):
         self.settings = settings if settings else TunnelSettings()
 
         assert isinstance(self.settings.crypto, TunnelCrypto)
-        assert self.settings.circuit_length > 0
 
         self.crypto.initialize(self)
 
@@ -230,9 +230,12 @@ class TunnelCommunity(Community):
         self.register_task("do_circuits", LoopingCall(self.do_circuits)).start(5, now=True)
         self.register_task("do_ping", LoopingCall(self.do_ping)).start(PING_INTERVAL)
 
-        self.socks_server = Socks5Server(self, session.get_tunnel_community_socks5_listen_port()
-                                         if session else self.settings.socks_listen_port)
+        self.socks_server = Socks5Server(self, session.get_tunnel_community_socks5_listen_ports()
+                                         if session else self.settings.socks_listen_ports)
         self.socks_server.start()
+
+        if self.tribler_session and self.tribler_session.get_libtorrent():
+            self.tribler_session.get_libtorrent_process().tunnel_community = self
 
     def start_download_test(self):
         if self.tribler_session:
@@ -245,8 +248,6 @@ class TunnelCommunity(Community):
                     self._logger.debug("Scheduling Anonymous LibTorrent download")
                     self.register_task("start_test", reactor.callLater(60, lambda : reactor.callInThread(self.libtorrent_test.start)))
                     return True
-
-        self.settings.max_circuits = 0
         return False
 
     @classmethod
@@ -298,6 +299,8 @@ class TunnelCommunity(Community):
         return [DefaultConversion(self), TunnelConversion(self)]
 
     def unload_community(self):
+        super(TunnelCommunity, self).unload_community()
+
         self.socks_server.stop()
 
         # Remove all circuits/relays/exitsockets
@@ -307,8 +310,6 @@ class TunnelCommunity(Community):
             self.remove_relay(circuit_id, destroy=True)
         for circuit_id in self.exit_sockets.keys():
             self.remove_exit_socket(circuit_id, destroy=True)
-
-        super(TunnelCommunity, self).unload_community()
 
     @property
     def crypto(self):
@@ -332,30 +333,23 @@ class TunnelCommunity(Community):
         return circuit_id
 
     def do_circuits(self):
-        circuit_needed = self.settings.max_circuits - len(self.circuits)
-        self._logger.debug("TunnelCommunity: want %d circuits", circuit_needed)
+        for circuit_length, num_circuits in self.circuits_needed.items():
+            num_to_build = num_circuits - sum([1 for c in self.circuits.itervalues() if c.goal_hops == circuit_length])
+            self._logger.debug("TunnelCommunity: want %d circuits of length %d", num_to_build, circuit_length)
 
-        for _ in range(circuit_needed):
-            candidate = None
-            hops = set([c.first_hop for c in self.circuits.values()])
-            for c in self.dispersy_yield_verified_candidates():
-                if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec):
-                    candidate = c
-                    break
+            for _ in range(num_to_build):
+                candidate = None
+                hops = set([c.first_hop for c in self.circuits.values()])
+                for c in self.dispersy_yield_verified_candidates():
+                    if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec):
+                        candidate = c
+                        break
 
-            if candidate is not None:
-                try:
-                    self.create_circuit(candidate, self.settings.circuit_length)
-                except:
-                    self._logger.exception("Error creating circuit while running __discover")
-
-        if self.tribler_session and not self.made_anon_session and len(self.active_circuits) >= self.settings.min_circuits_for_session:
-            try:
-                ltmgr = self.tribler_session.get_libtorrent_process()
-                ltmgr.create_anonymous_session()
-            except OperationNotEnabledByConfigurationException:
-                pass
-            self.made_anon_session = True
+                if candidate:
+                    try:
+                        self.create_circuit(candidate, circuit_length)
+                    except:
+                        self._logger.exception("Error creating circuit while running __discover")
 
         self.do_remove()
 
@@ -431,7 +425,7 @@ class TunnelCommunity(Community):
                 ltmgr = self.tribler_session.lm.ltmgr
 
                 affected_torrents = {d: affected_peers.intersection(peer.ip for peer in d.handle.get_peer_info())
-                                     for d, s in ltmgr.torrents.values() if s == ltmgr.ltsession_anon}
+                                     for d, s in ltmgr.torrents.values() if s == ltmgr.get_session(d.get_hops())}
 
                 for download, peers in affected_torrents.iteritems():
                     if peers:
@@ -460,14 +454,14 @@ class TunnelCommunity(Community):
 
         for cid in to_remove:
             if cid in self.relay_from_to:
-                self._logger.error(("TunnelCommunity: removing relay %d " + additional_info) % cid)
+                self._logger.error("TunnelCommunity: removing relay %d %s", cid, additional_info)
                 # Remove the relay
                 del self.relay_from_to[cid]
                 # Remove old session key
                 if cid in self.relay_session_keys:
                     del self.relay_session_keys[cid]
             else:
-                self._logger.error(("TunnelCommunity: could not remove relay %d " + additional_info) % circuit_id)
+                self._logger.error("TunnelCommunity: could not remove relay %d %s", circuit_id, additional_info)
 
     def remove_exit_socket(self, circuit_id, additional_info='', destroy=False):
         if circuit_id in self.exit_sockets:
@@ -476,14 +470,14 @@ class TunnelCommunity(Community):
             # Close socket
             exit_socket = self.exit_sockets.pop(circuit_id)
             if exit_socket.enabled:
-                self._logger.error(("TunnelCommunity: removing exit socket %d " + additional_info) % circuit_id)
+                self._logger.error("TunnelCommunity: removing exit socket %d %s", circuit_id, additional_info)
                 exit_socket.close()
                 # Remove old session key
                 if circuit_id in self.relay_session_keys:
                     del self.relay_session_keys[circuit_id]
             return
 
-        self._logger.error(("TunnelCommunity: could not remove exit socket %d " + additional_info) % circuit_id)
+        self._logger.error("TunnelCommunity: could not remove exit socket %d %s", circuit_id, additional_info)
 
     def destroy_circuit(self, circuit_id, reason=0):
         if circuit_id in self.circuits:
@@ -513,9 +507,9 @@ class TunnelCommunity(Community):
             self.send_destroy(Candidate(sock_addr, False), circuit_id, reason)
             self._logger.error("TunnelCommunity: destroy_exit_socket %s %s", circuit_id, sock_addr)
 
-    @property
-    def active_circuits(self):
-        return {cid: c for cid, c in self.circuits.iteritems() if c.state == CIRCUIT_STATE_READY}
+    def active_circuits(self, hops=None):
+        return {cid: c for cid, c in self.circuits.items()
+                if c.state == CIRCUIT_STATE_READY and (hops is None or hops == len(c.hops))}
 
     def is_relay(self, circuit_id):
         return circuit_id > 0 and circuit_id in self.relay_from_to and not circuit_id in self.waiting_for
@@ -550,7 +544,7 @@ class TunnelCommunity(Community):
         return self.send_packet(candidates, u'data', packet)
 
     def send_packet(self, candidates, message_type, packet):
-        self.dispersy._endpoint.send(candidates, [packet], prefix=self.data_prefix if message_type == u"data" else None)
+        self.dispersy.endpoint.send(candidates, [packet], prefix=self.data_prefix if message_type == u"data" else None)
         self.statistics.increase_msg_count(u"outgoing", message_type, len(candidates))
         self._logger.debug("TunnelCommunity: send %s to %s candidates: %s", message_type, len(candidates), map(str, candidates))
         return len(packet)
@@ -631,7 +625,7 @@ class TunnelCommunity(Community):
 
         if circuit.state == CIRCUIT_STATE_EXTENDING:
             candidate_list_enc = message.payload.candidate_list
-            _, candidate_list = decode(self.crypto.decrypt_str(hop.session_keys[ENDPOINT], candidate_list_enc))
+            _, candidate_list = decode(self.crypto.decrypt_str(hop.session_keys[EXIT_NODE], candidate_list_enc))
 
             for ignore_candidate in [self.my_member.public_key] + [hop.public_key for hop in circuit.hops]:
                 if ignore_candidate in candidate_list:
@@ -710,7 +704,7 @@ class TunnelCommunity(Community):
                 self._logger.error(str(e))
                 continue
 
-            self.directions[circuit_id] = ENDPOINT
+            self.directions[circuit_id] = EXIT_NODE
             self._logger.info('TunnelCommunity: we joined circuit %d with neighbour %s', circuit_id, candidate.sock_addr)
             dh_secret, dh_first_part = self.crypto.generate_diffie_secret()
 
@@ -730,7 +724,7 @@ class TunnelCommunity(Community):
                 from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
                 self.notifier.notify(NTFY_ANONTUNNEL, NTFY_JOINED, candidate.sock_addr, circuit_id)
 
-            candidate_list_enc = self.crypto.encrypt_str(self.relay_session_keys[circuit_id][ENDPOINT], encode(candidates.keys()))
+            candidate_list_enc = self.crypto.encrypt_str(self.relay_session_keys[circuit_id][EXIT_NODE], encode(candidates.keys()))
             self.send_cell([candidate], u"created", (circuit_id, long_to_bytes(dh_first_part), candidate_list_enc))
 
     def on_created(self, messages):
@@ -786,7 +780,7 @@ class TunnelCommunity(Community):
             self.relay_session_keys[new_circuit_id] = self.relay_session_keys[circuit_id]
 
             self.directions[new_circuit_id] = ORIGINATOR
-            self.directions[circuit_id] = ENDPOINT
+            self.directions[circuit_id] = EXIT_NODE
 
             self.remove_exit_socket(circuit_id)
 
@@ -851,7 +845,7 @@ class TunnelCommunity(Community):
 
     def do_ping(self):
         # Ping circuits. Pings are only sent to the first hop, subsequent hops will relay the ping.
-        for circuit in self.active_circuits.values():
+        for circuit in self.active_circuits().values():
             if circuit.goal_hops > 0:
                 cache = self.request_cache.add(PingRequestCache(self, circuit))
                 self.increase_bytes_sent(circuit, self.send_cell([Candidate(circuit.first_hop, False)], u"ping", (circuit.circuit_id, cache.number)))
@@ -934,7 +928,7 @@ class TunnelCommunity(Community):
     def crypto_out(self, circuit_id, content):
         if circuit_id in self.circuits:
             for hop in reversed(self.circuits[circuit_id].hops):
-                content = self.crypto.encrypt_str(hop.session_keys[ENDPOINT], content)
+                content = self.crypto.encrypt_str(hop.session_keys[EXIT_NODE], content)
             return content
         elif circuit_id in self.relay_session_keys:
             return self.crypto.encrypt_str(self.relay_session_keys[circuit_id][ORIGINATOR], content)
@@ -946,16 +940,16 @@ class TunnelCommunity(Community):
                 content = self.crypto.decrypt_str(hop.session_keys[ORIGINATOR], content)
             return content
         elif circuit_id in self.relay_session_keys:
-            return self.crypto.decrypt_str(self.relay_session_keys[circuit_id][ENDPOINT], content)
+            return self.crypto.decrypt_str(self.relay_session_keys[circuit_id][EXIT_NODE], content)
         raise CryptoException("Don't know how to decrypt incoming message for circuit_id %d" % circuit_id)
 
     def crypto_relay(self, circuit_id, content):
         direction = self.directions[circuit_id]
         if direction == ORIGINATOR:
             return self.crypto.encrypt_str(self.relay_session_keys[circuit_id][direction], content)
-        elif direction == ENDPOINT:
+        elif direction == EXIT_NODE:
             return self.crypto.decrypt_str(self.relay_session_keys[circuit_id][direction], content)
-        raise CryptoException("Direction must be either ORIGINATOR or ENDPOINT")
+        raise CryptoException("Direction must be either ORIGINATOR or EXIT_NODE")
 
     def increase_bytes_sent(self, obj, num_bytes):
         if isinstance(obj, Circuit):

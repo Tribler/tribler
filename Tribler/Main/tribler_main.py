@@ -477,7 +477,6 @@ class ABCApp():
             from Tribler.community.channel.preview import PreviewChannelCommunity
             from Tribler.community.metadata.community import MetadataCommunity
             from Tribler.community.tunnel.community import TunnelCommunity
-            from Tribler.community.tunnel.Socks5.server import Socks5Server
 
             # make sure this is only called once
             session.remove_observer(define_communities)
@@ -507,7 +506,7 @@ class ABCApp():
                 dispersy.define_auto_load(TunnelCommunity, dispersy_member, load=True,
                                           kargs={'session': session})[0]
 
-                session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_tunnel_community_socks5_listen_port()))
+                session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_tunnel_community_socks5_listen_ports()))
 
 
             diff = time() - now
@@ -937,7 +936,8 @@ class ABCApp():
 
         # Remove anonymous test download
         for download in self.utility.session.get_downloads():
-            if download.get_anon_mode() and os.path.basename(download.get_dest_dir()) == "anon_test":
+            if download.get_def().get_def_type() == 'torrent' and download.get_anon_mode() and \
+               os.path.basename(download.get_dest_dir()) == "anon_test":
                 self.utility.session.remove_download(download)
 
         # write all persistent data to disk
