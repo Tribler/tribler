@@ -253,7 +253,7 @@ class LineHandler(LineReceiver):
 
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
-            dscfg.set_anon_mode(True)
+            dscfg.set_hops(2)
             dscfg.set_dest_dir(cur_path)
 
             anon_tunnel.session.uch.perform_usercallback(lambda: anon_tunnel.session.start_download(tdef, dscfg))
@@ -268,7 +268,7 @@ class LineHandler(LineReceiver):
 
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
-            dscfg.set_anon_mode(True)
+            dscfg.set_hops(2)
             dscfg.set_dest_dir(os.path.join(os.getcwd(), 'downloader%s' % anon_tunnel.session.get_swift_tunnel_listen_port()))
 
             def start_download():
