@@ -4,7 +4,7 @@ The aim of Tribler is giving anonymous access to online streaming videos. We are
 
 Tribler currently offers a Youtube-style service. For instance, Bittorrent-compatible streaming, fast search, thumbnail previews and comments. For the past 9 years we have been building a very robust Peer-to-Peer system. Today Tribler is robust: "the only way to take Tribler down is to take The Internet down" (but a single software bug could end everything).
 
-We implemented and enhanced the Tor protocol specification plus merged them with Bittorrent streaming.
+We implemented and enhanced the _Tor protocol specifications_ plus merged them with Bittorrent streaming.
 More info: https://github.com/Tribler/tribler/wiki
 Tribler includes our own experimental Tor-like onion routing network, detailed specs: https://github.com/Tribler/tribler/wiki/Anonymous-Downloading-and-Streaming-specifications
 
