@@ -27,7 +27,7 @@ from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS,
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto
 from Tribler.dispersy.util import blockingCallFromThread
-from Tribler.dispersy.endpoint import RawserverEndpoint, TunnelEndpoint
+from Tribler.dispersy.endpoint import RawserverEndpoint
 
 
 try:
@@ -86,7 +86,6 @@ class TriblerLaunchMany(Thread):
                                        failfunc=self.rawserver_fatalerrorfunc,
                                        errorfunc=self.rawserver_nonfatalerrorfunc)
 
-            self.listen_port = self.session.get_listen_port()
             self.shutdownstarttime = None
 
             self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
@@ -164,17 +163,21 @@ class TriblerLaunchMany(Thread):
 
             # Dispersy
             self.session.dispersy_member = None
+            self.tftp_handler = None
             if self.session.get_dispersy():
                 from Tribler.dispersy.dispersy import Dispersy
 
                 # set communication endpoint
-                if self.session.get_dispersy_tunnel_over_swift() and self.swift_process:
-                    endpoint = TunnelEndpoint(self.swift_process)
-                else:
-                    endpoint = RawserverEndpoint(self.rawserver, self.session.get_dispersy_port())
+                endpoint = RawserverEndpoint(self.rawserver, self.session.get_dispersy_port())
 
                 working_directory = unicode(self.session.get_state_dir())
                 self.dispersy = Dispersy(endpoint, working_directory, crypto=ElgamalCrypto())
+
+                # register TFTP service
+                from Tribler.Core.Service.TFTP.handler import TftpHandler
+                self.tftp_handler = TftpHandler(self.session, self.session.get_torrent_collecting_dir(), endpoint,
+                                                "fffffffd".decode('hex'))
+                self.tftp_handler.initialize()
 
             self.mainline_dht = None
             self.ltmgr = None
@@ -702,6 +705,9 @@ class TriblerLaunchMany(Thread):
                 self._logger.info("lmc: Dispersy successfully shutdown in %.2f seconds", diff)
             else:
                 self._logger.info("lmc: Dispersy failed to shutdown in %.2f seconds", diff)
+
+        if self.tftp_handler is not None:
+            self.tftp_handler.shutdown()
 
         if self.session.get_megacache():
             self.misc_db.delInstance()
