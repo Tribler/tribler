@@ -65,7 +65,6 @@ class TestTunnelCommunity(TestGuiAsServer):
             this.assert_(data == "4242", "Data is not 4242, it is '%s'" % data)
             this.assert_(origin == ("127.0.0.1", 12345), "Origin is not 127.0.0.1:12345, it is '%s:%d'" % (origin[0], origin[1]))
             got_data.set()
-            socks_server.on_incoming_from_tunnel(community, circuit, origin, data)
 
         def exit_data(community, circuit_id, sock_addr, destination, data):
             self.assert_(data == "42", "Data is not 42, it is '%s'" % data)
