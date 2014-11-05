@@ -19,6 +19,7 @@ SMALL_ICON_MAX_DIM = 32
 
 logger = logging.getLogger(__name__)
 
+
 class GuiImageManager(object):
 
     __single = None
@@ -33,13 +34,14 @@ class GuiImageManager(object):
 
         self.IMAGE_SUBDIR = os.path.join(tribler_path, u"Tribler", u"Main", u"vwxGUI", u"images")
         self.DEFAULT_SUBDIR = os.path.join(self.IMAGE_SUBDIR, u"default")
-        self.FLAG_SUBDIR    = os.path.join(self.IMAGE_SUBDIR, u"flags")
+        self.FLAG_SUBDIR = os.path.join(self.IMAGE_SUBDIR, u"flags")
 
         # load all images
         self._default_dict = {}
-        self._flag_dict    = {}
-        self._other_dict   = {}
-        self.__loadAllImages()
+        self._flag_dict = {}
+        self._other_dict = {}
+
+        self._load_all_images()
 
         self._icons = {}
 
@@ -54,7 +56,7 @@ class GuiImageManager(object):
         GuiImageManager.__single = None
 
     @warnWxThread
-    def __loadAllImages(self):
+    def _load_all_images(self):
         """
         Loads and initiailizes all images, including:
         (1) default images (don't know why they are called default),
@@ -64,10 +66,10 @@ class GuiImageManager(object):
         """
         self._logger.debug(u"Loading images.")
 
-        self.__initDefaultImages()
-        self.__initFlagImages()
+        self._init_default_images()
+        self._init_flag_images()
 
-    def __initDefaultImages(self):
+    def _init_default_images(self):
         """
         Loads the default images from files.
         """
@@ -92,16 +94,18 @@ class GuiImageManager(object):
             "MARKING": {}
         }
         for default_image_info in DEFAULT_IMAGE_INFO_LIST:
-            name     = default_image_info[0]
+            name = default_image_info[0]
             filename = default_image_info[1]
 
             image_path = os.path.join(self.DEFAULT_SUBDIR, filename)
             if not os.path.exists(image_path):
-                self._logger.warn(u"Default image doesn't exist %s", image_path)
-                continue
+                msg = u"Default image is not a file %s", image_path
+                self._logger.error(msg)
+                raise Exception(msg)
             if not os.path.isfile(image_path):
-                self._logger.warn(u"Default image is not a file %s", image_path)
-                continue
+                msg = u"Default image is not a file %s", image_path
+                self._logger.error(msg)
+                raise Exception(msg)
 
             bitmap = wx.Bitmap(image_path)
             big_image = bitmap.ConvertToImage()
@@ -112,18 +116,20 @@ class GuiImageManager(object):
             self._default_dict[name][ICON_MAX_DIM] = wx.BitmapFromImage(big_image)
             self._default_dict[name][SMALL_ICON_MAX_DIM] = wx.BitmapFromImage(small_image)
 
-    def __initFlagImages(self):
+    def _init_flag_images(self):
         """
         Loads the country flags from files.
         """
         self._logger.debug(u"Start loading country flag images.")
 
         if not os.path.exists(self.FLAG_SUBDIR):
-            self._logger.warn(u"Flags dir doesn't exist %s", self.FLAG_SUBDIR)
-            return
+            msg = u"Flags dir doesn't exist %s" % self.FLAG_SUBDIR
+            self._logger.error(msg)
+            raise Exception(msg)
         if not os.path.isdir(self.FLAG_SUBDIR):
-            self._logger.warn(u"Not a dir %s", self.FLAG_SUBDIR)
-            return
+            msg = u"Not a dir %s" % self.FLAG_SUBDIR
+            self._logger.error(msg)
+            raise Exception(msg)
 
         # For OS X, we do not use the country flags due to a wx bug
         if sys.platform != "darwin":
@@ -131,17 +137,23 @@ class GuiImageManager(object):
                 flag_path = os.path.join(self.FLAG_SUBDIR, flag)
 
                 if not os.path.isfile(flag_path):
-                    continue
+                    msg = u"Not a file %s" % flag_path
+                    self._logger.error(msg)
+                    raise Exception(msg)
                 if not flag.endswith(u".png"):
-                    self._logger.warn(u"SKIP, Not a PNG file %s", flag_path)
-                    continue
+                    msg = u"Not a PNG file %s" % flag_path
+                    self._logger.error(msg)
+                    raise Exception(msg)
 
                 bitmap = wx.Bitmap(flag_path, wx.BITMAP_TYPE_ANY)
 
                 # Size check for flag images.
                 if bitmap.GetWidth() != 16 or bitmap.GetHeight() != 11:
-                    self._logger.warn(u"Country flag[%s] is of size [%dx%d], NOT [%dx%d].",
-                        flag, bitmap.GetWidth(), bitmap.GetHeight(), 16, 11)
+                    msg = u"Country flag[%s] is of size [%dx%d], NOT [%dx%d]." %\
+                          (flag, bitmap.GetWidth(), bitmap.GetHeight(), 16, 11)
+                    self._logger.error(msg)
+                    raise Exception(msg)
+
                 self._flag_dict[os.path.splitext(flag)[0].lower()] = bitmap
 
     @warnWxThread
@@ -156,7 +168,9 @@ class GuiImageManager(object):
             dimension = dimension or ICON_MAX_DIM
             image = self._default_dict[name].get(dimension, None)
             if image is None:
-                self._logger.warn(u"Default image is not loaded [%s].", name)
+                msg = u"Default image is not loaded [%s]." % name
+                self._logger.error(msg)
+                raise Exception(msg)
 
         # other image
         else:
@@ -166,9 +180,13 @@ class GuiImageManager(object):
                 # lazy load
                 image_path = os.path.join(self.IMAGE_SUBDIR, name)
                 if not os.path.exists(image_path):
-                    self._logger.warn(u"Image[%s] doesn't exist.", image_path)
+                    msg = u"Image[%s] doesn't exist." % image_path
+                    self._logger.error(msg)
+                    raise Exception(msg)
                 elif not os.path.isfile(image_path):
-                    self._logger.warn(u"Image[%s] is not a file.", image_path)
+                    msg = u"Image[%s] is not a file." % image_path
+                    self._logger.error(msg)
+                    raise Exception(msg)
                 else:
                     image = wx.Bitmap(image_path, wx.BITMAP_TYPE_ANY)
                     self._other_dict[name] = image
