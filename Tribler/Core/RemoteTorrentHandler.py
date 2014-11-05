@@ -492,7 +492,7 @@ class Requester(object):
 
                     # check if still needed
                     if time() > timeout:
-                        self._logger.debug(u"timeout for infohash %s", infohash)
+                        self._logger.debug(u"timeout for infohash %s", hexlify(infohash))
 
                         if infohash in self.sources:
                             del self.sources[infohash]
