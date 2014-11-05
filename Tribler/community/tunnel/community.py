@@ -648,6 +648,10 @@ class TunnelCommunity(Community):
                 self._logger.error('TunnelCommunity: ignoring create for circuit %d from %s (too many relays %d)', circuit_id, candidate.sock_addr, len(self.relay_from_to) + len(self.exit_sockets))
                 continue
 
+            if self._request_cache.has(u"anon-created", circuit_id):
+                self._logger.error('TunnelCommunity: circuit_id collision in on_create (%d)', circuit_id)
+                continue
+
             try:
                 dh_second_part = self.crypto.hybrid_decrypt_str(self.my_member._ec, message.payload.key)
             except CryptoException, e:
