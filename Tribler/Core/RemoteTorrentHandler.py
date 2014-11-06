@@ -561,9 +561,9 @@ class TftpTorrentRequester(Requester):
     def tftp_failure_callback(self, file_path, error_code, error_msg):
         # failed to download through TFTP
         self._logger.debug(u"Failed to download through TFTP, try to download through magnet link.")
-        if self.magnet_requester:
-            magnet_lambda = lambda ih = self.infohash: self.magnet_requester.add_request(ih, None)
-            self.schedule_task(magnet_lambda, t=self.MAGNET_TIMEOUT * self.priority)
+        #if self.magnet_requester:
+        #    magnet_lambda = lambda ih = self.infohash: self.magnet_requester.add_request(ih, None)
+        #    self.schedule_task(magnet_lambda, t=self.MAGNET_TIMEOUT * self.priority)
 
     def _do_fetch(self, filename, infohash, candidates):
         attempting_download = False
