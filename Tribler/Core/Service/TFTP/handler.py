@@ -1,11 +1,19 @@
 import os
 import logging
+from collections import deque
+from binascii import hexlify
+from time import time
+from threading import RLock
 
 from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
 from Tribler.dispersy.candidate import Candidate
 
-from .session import TftpClientSession, TftpServerSession, DEFAULT_BLOCK_SIZE, DEFAULT_TIMEOUT
-from .packet import encode_packet, OPCODE_RRQ, OPCODE_WRQ
+from .session import Session, DEFAULT_BLOCK_SIZE, DEFAULT_TIMEOUT
+from .packet import (encode_packet, decode_packet, OPCODE_RRQ, OPCODE_WRQ, OPCODE_ACK, OPCODE_DATA, OPCODE_OACK,
+                     OPCODE_ERROR, ERROR_DICT)
+from .exception import InvalidPacketException
+
+MAX_INT32 = 2 ** 16 - 1
 
 
 class TftpHandler(TaskManager):
@@ -47,7 +55,7 @@ class TftpHandler(TaskManager):
 
         self._timeout_check_interval = 2
 
-        self._session_id_list = []
+        self._session_lock = RLock()
         self._session_dict = {}
 
     def initialize(self):
@@ -56,7 +64,7 @@ class TftpHandler(TaskManager):
         self.endpoint.listen_to(self.prefix, self.data_came_in)
         # start a looping call that checks timeout
         self.register_task("tftp timeout check",
-                           LoopingCall(self.check_timeout)).start(self._timeout_check_interval, now=True)
+                           LoopingCall(self._check_timeout)).start(self._timeout_check_interval, now=True)
 
     def shutdown(self):
         """ Shuts down the TFTP service.
@@ -64,36 +72,6 @@ class TftpHandler(TaskManager):
         self.cancel_all_pending_tasks()
 
         self._session_dict = None
-
-    def check_timeout(self):
-        """ A scheduled task that checks for timeout.
-        """
-        # TODO: make a nicer way to check if we are shutting down
-        if self._session_dict is None:
-            return
-
-        for key, session in self._session_dict.items():
-            if session.check_timeout():
-                # fail as timeout
-                del self._session_dict[key]
-                session.close()
-                session.failure_callback(session.file_path, 0, "Timeout")
-
-    def upload_file(self, file_name, file_path, ip, port, success_callback=None, failure_callback=None):
-        """ Uploads a file to a remote host.
-        :param file_name: The file name of the file to be uploaded.
-        :param file_path: The file path of the file to be uploaded.
-        :param ip:        The IP of the remote host.
-        :param port:      The port of the remote host.
-        """
-        session = TftpClientSession(self, (ip, port),
-                                    request_opcode=OPCODE_WRQ,
-                                    file_name=file_name,
-                                    file_path=file_path,
-                                    block_size=self.block_size,
-                                    success_callback=success_callback, failure_callback=failure_callback)
-        session.start()
-        self._session_dict[(ip, port)] = session
 
     def download_file(self, file_name, ip, port, success_callback=None, failure_callback=None):
         """ Downloads a file from a remote host.
@@ -121,10 +99,10 @@ class TftpHandler(TaskManager):
         """ A scheduled task that checks for timeout.
         """
         # TODO: make a nicer way to check if we are shutting down
-        with self._session_lock:
-            if self._session_dict is None:
-                return
+        if self._session_dict is None:
+            return
 
+        with self._session_lock:
             for key, session_queue in self._session_dict.items():
                 # only check the first session (the active one)
                 session = session_queue[0]
@@ -185,18 +163,13 @@ class TftpHandler(TaskManager):
                     self._logger.debug(u"Start the next session %s", session)
                     session_queue[0].next_func()
                 else:
-                    if session.failure_callback:
-                        session.failure_callback(session.error_code, session.error_msg)
+                    del self._session_dict[addr]
 
             # call callbacks
-            if session.is_done:
-                self._logger.debug(u"%s finished", session)
-                if session.success_callback is not None:
-                    session.success_callback(session.file_data)
-            elif session.is_failed:
-                self._logger.debug(u"%s failed", session)
-                if session.failure_callback is not None:
-                    session.failure_callback(session.file_data)
+            if session.is_done and session.success_callback is not None:
+                session.success_callback(session.file_data)
+            elif session.is_failed and session.failure_callback is not None:
+                session.failure_callback(session.file_data)
 
     def _handle_new_request(self, ip, port, packet):
         """ Handles a new request.
@@ -298,11 +271,134 @@ class TftpHandler(TaskManager):
         if session.is_client:
             self._handle_packet_as_receiver(session, packet)
         else:
-            # create a new session for it
-            session = TftpServerSession(self, (ip, port))
-            session.process_packet_buff(data)
+            self._handle_packet_as_sender(session, packet)
 
-            if session.failed:
-                pass
+    def _handle_packet_as_receiver(self, session, packet):
+        """ Processes an incoming packet as a receiver.
+        :param packet: The incoming packet dictionary.
+        """
+        # check if it is an ERROR packet
+        if packet['opcode'] == OPCODE_ERROR:
+            self._logger.error(u"[RECV %s] Got ERROR message: code = %s, msg = %s",
+                               session, packet['error_code'], packet['error_msg'])
+            self._handle_error(session, 0)  # Error
+            return
+
+        # if this is the first packet, check OACK
+        if packet['opcode'] == OPCODE_OACK:
+            if session.last_received_packet is None:
+                if session.request == OPCODE_RRQ:
+                    # send ACK
+                    self._send_ack_packet(session, session.block_number)
+                    session.block_number += 1
+                    session.file_data = ""
+
             else:
-                self._session_dict[(ip, port)] = session
+                self._logger.error(u"[RECV %s]: Got OPCODE %s which is not expected", session, packet['opcode'])
+                self._handle_error(session, 4)  # illegal TFTP operation
+            return
+
+        # expect a DATA
+        if packet['opcode'] != OPCODE_DATA:
+            self._logger.error(u"[RECV %s] Got OPCODE %s while expecting %s", session, packet['opcode'], OPCODE_DATA)
+            self._handle_error(session, 4)  # illegal TFTP operation
+            return
+
+        # check block_number
+        if packet['block_number'] != session.block_number:
+            self._logger.error(u"[RECV %s] Got ACK with block# %s while expecting %s",
+                               session, packet['block_number'], session.block_number)
+            self._handle_error(session, 0)  # TODO: check error code
+            return
+
+        # save data
+        session.file_data += packet['data']
+        self._send_ack_packet(session, session.block_number)
+        session.block_number += 1
+
+        # check if it is the end
+        if len(packet['data']) < session.block_size:
+            session.is_done = True
+            self._logger.info(u"[RECV %s] transfer finished", self)
+
+    def _handle_packet_as_sender(self, session, packet):
+        """ Processes an incoming packet as a sender.
+        :param packet: The incoming packet dictionary.
+        """
+        # expect an ACK packet
+        if packet['opcode'] != OPCODE_ACK:
+            self._logger.error(u"[SEND %s] got OPCODE(%s) while expecting %s", session, packet['opcode'], OPCODE_ACK)
+            self._handle_error(session, 4)  # illegal TFTP operation
+            return
+
+        # check block number
+        if packet['block_number'] != session.block_number:
+            self._logger.error(u"[SEND %s] got ACK with block# %s while expecting %s",
+                               session, packet['block_number'], session.block_number)
+            self._handle_error(session, 0)  # TODO: check error code
+            return
+
+        data = self._get_next_data(session)
+        if session.is_done:
+            self._logger.info(u"[SEND %s] finished", session)
+        else:
+            # send DATA
+            self._send_data_packet(session, session.block_number, data)
+
+    def _handle_error(self, session, error_code, error_msg=""):
+        """ Handles an error during packet processing.
+        :param error_code: The error code.
+        """
+        session.is_failed = True
+        msg = ERROR_DICT.get(error_code, error_msg)
+        self._send_error_packet(session, error_code, msg)
+
+    def _send_packet(self, session, packet):
+        packet_buff = encode_packet(packet)
+        extra_msg = u" block_number = %s" % packet['block_number'] if packet.get('block_number') is not None else ""
+        extra_msg += u" block_size = %s" % len(packet['data']) if packet.get('data') is not None else ""
+
+        self._logger.debug(u"SEND OP[%s] -> %s %s %s",
+                           packet['opcode'], session.address[0], session.address[1], extra_msg)
+        self.endpoint.send_packet(Candidate(session.address, False), packet_buff, prefix=self.prefix)
+
+        # update information
+        session.last_contact_time = time()
+        session.last_sent_packet = packet
+
+    def _send_request_packet(self, session):
+        assert session.request == OPCODE_RRQ, u"Invalid request_opcode %s" % repr(session.request)
+
+        packet = {'opcode': session.request,
+                  'file_name': session.file_name.encode('utf8'),
+                  'options': {'blksize': session.block_size,
+                              'timeout': session.timeout,
+                              }}
+        self._send_packet(session, packet)
+
+    def _send_data_packet(self, session, block_number, data):
+        packet = {'opcode': OPCODE_DATA,
+                  'block_number': block_number,
+                  'data': data}
+        self._send_packet(session, packet)
+
+    def _send_ack_packet(self, session, block_number):
+        packet = {'opcode': OPCODE_ACK,
+                  'block_number': block_number}
+        self._send_packet(session, packet)
+
+    def _send_error_packet(self, session, error_code, error_msg):
+        packet = {'opcode': OPCODE_ERROR,
+                  'error_code': error_code,
+                  'error_msg': error_msg
+                  }
+        self._send_packet(session, packet)
+
+    def _send_oack_packet(self, session):
+        packet = {'opcode': OPCODE_OACK,
+                  'block_number': session.block_number,
+                  'options': {'blksize': session.block_size,
+                              'timeout': session.timeout,
+                              'tsize': session.file_size,
+                              }}
+        self._send_packet(session, packet)

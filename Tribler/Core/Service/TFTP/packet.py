@@ -1,4 +1,5 @@
 import struct
+from binascii import hexlify
 
 from .exception import InvalidStringException, InvalidPacketException, InvalidOptionException
 
@@ -11,9 +12,8 @@ OPCODE_ACK = 4
 OPCODE_ERROR = 5
 OPCODE_OACK = 6
 
-# supported modes and options
-MODES = ("netascii", "octet", "mail")
-OPTIONS = ("blksize", "timeout", "tsize", "infohash")
+# supported options
+OPTIONS = ("blksize", "timeout", "tsize")
 
 # error codes and messages
 ERROR_DICT = {
@@ -76,7 +76,7 @@ def _decode_options(packet, buff, start_idx):
 
         # blksize, timeout, and tsize are all integers
         try:
-            if k in ('blksize', 'timeout', 'tsize'):
+            if k in OPTIONS:
                 packet['options'][k] = int(v)
             else:
                 packet['options'][k] = v
@@ -92,13 +92,8 @@ def _decode_rrq_wrq(packet, packet_buff):
     """
     # get file_name and mode
     file_name, idx = _get_string(packet_buff, 2)
-    mode, idx = _get_string(packet_buff, idx)
-
-    if mode not in MODES:
-        raise InvalidPacketException(u"Empty mode[%s]" % repr(mode))
 
     packet['file_name'] = file_name
-    packet['mode'] = mode
 
     # get options
     _decode_options(packet, packet_buff, idx)
@@ -113,7 +108,7 @@ def _decode_data(packet, packet_buff):
     """
     # get block number and data
     if len(packet_buff) < 4:
-        raise InvalidPacketException(u"DATA packet too small [%s]" % repr(packet_buff))
+        raise InvalidPacketException(u"DATA packet too small (<4): %s" % repr(packet_buff))
     block_number, = struct.unpack_from("!H", packet_buff, 2)
     data = packet_buff[4:]
 
@@ -131,7 +126,7 @@ def _decode_ack(packet, packet_buff):
     """
     # get block number and data
     if len(packet_buff) != 4:
-        raise InvalidPacketException(u"ACK packet has invalid size [%s]" % repr(packet_buff))
+        raise InvalidPacketException(u"ACK packet has invalid size (!=4): %s" % hexlify(packet_buff))
     block_number, = struct.unpack_from("!H", packet_buff, 2)
 
     packet['block_number'] = block_number
@@ -147,14 +142,14 @@ def _decode_error(packet, packet_buff):
     """
     # get block number and data
     if len(packet_buff) < 5:
-        raise InvalidPacketException(u"ERROR packet too small [%s]" % repr(packet_buff))
+        raise InvalidPacketException(u"ERROR packet too small (<5): %s" % hexlify(packet_buff))
     error_code, = struct.unpack_from("!H", packet_buff, 2)
     error_msg, idx = _get_string(packet_buff, 4)
 
     if not error_msg:
-        raise InvalidPacketException(u"ERROR packet has empty error message [%s]" % repr(packet_buff))
+        raise InvalidPacketException(u"ERROR packet has empty error message: %s" % hexlify(packet_buff))
     if idx != len(packet_buff):
-        raise InvalidPacketException(u"Invalid ERROR packet [%s]" % repr(packet_buff))
+        raise InvalidPacketException(u"Invalid ERROR packet: %s" % hexlify(packet_buff))
 
     packet['error_code'] = error_code
     packet['error_msg'] = error_msg
@@ -194,11 +189,11 @@ def decode_packet(packet_buff):
     """
     # get the opcode
     if len(packet_buff) < 2:
-        raise InvalidPacketException(u"Packet too small[%s]" % repr(packet_buff))
+        raise InvalidPacketException(u"Packet too small (<2): %s" % hexlify(packet_buff))
     opcode, = struct.unpack_from("!H", packet_buff, 0)
 
     if opcode not in PACKET_DECODE_DICT:
-        raise InvalidPacketException(u"Invalid opcode[%s]" % opcode)
+        raise InvalidPacketException(u"Invalid opcode: %s" % opcode)
 
     # decode the packet
     packet = {'opcode': opcode}
@@ -214,7 +209,6 @@ def encode_packet(packet):
     packet_buff = struct.pack("!H", packet['opcode'])
     if packet['opcode'] in (OPCODE_RRQ, OPCODE_WRQ):
         packet_buff += packet['file_name'] + "\x00"
-        packet_buff += packet['mode'] + "\x00"
 
         for k, v in packet['options'].iteritems():
             packet_buff += "%s\x00%s\x00" % (k, v)
