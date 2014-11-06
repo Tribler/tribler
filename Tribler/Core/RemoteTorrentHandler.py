@@ -378,10 +378,6 @@ class RemoteTorrentHandler(TaskManager):
             del self.callbacks[key]
 
             if actualTorrentFileName:
-                for requester in self.trequesters.values():
-                    if requester.is_being_requested(key):
-                        requester.remove_request(key)
-
                 for requester in self.drequesters.values():
                     if requester.is_being_requested(key):
                         requester.remove_request(key)
