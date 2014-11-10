@@ -263,7 +263,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             if not self.cew_scheduled:
                 self.ltmgr = self.session.lm.ltmgr
                 dht_ok = not isinstance(self.tdef, TorrentDefNoMetainfo) or self.ltmgr.is_dht_ready()
-                session_ok = self.ltmgr.session_startup_progress(self.get_hops()) == 1
+                session_ok = self.ltmgr.tunnels_ready(self) == 1
 
                 if not self.ltmgr or not dht_ok or not session_ok:
                     self._logger.info("LibtorrentDownloadImpl: LTMGR/DHT/session not ready, rescheduling create_engine_wrapper")
@@ -892,7 +892,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 if self.dlstate != DLSTATUS_CIRCUITS:
                     progress = self.progressbeforestop
                 else:
-                    progress = self.ltmgr.session_startup_progress(self.get_hops())
+                    progress = self.ltmgr.tunnels_ready(self)
                 ds = DownloadState(self, self.dlstate, self.error, progress)
             else:
                 (status, stats, seeding_stats, logmsgs) = self.network_get_stats(getpeerlist)

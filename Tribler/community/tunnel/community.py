@@ -257,7 +257,7 @@ class RoundRobin(object):
         return len(self.community.active_data_circuits(hops)) > 0
 
     def select(self, destination, hops):
-        if destination[1] == 1024:
+        if destination and destination[1] == 1024:
             circuit_id = self.community.ip_to_circuit_id(destination[0])
             circuit = self.community.circuits.get(circuit_id, None)
 
@@ -448,7 +448,7 @@ class TunnelCommunity(Community):
 
             for _ in range(num_to_build):
                 try:
-                    self.create_circuit(self.settings.circuit_length)
+                    self.create_circuit(circuit_length)
                 except:
                     self._logger.exception("Error creating circuit while running do_circuits")
 
@@ -1197,7 +1197,7 @@ class TunnelCommunity(Community):
         def callback(circuit):
             if not circuit:
                 # Failed to make circuit, reschedule
-                reactor.callLater(5, self.create_introduction_points, info_hash, amount=1)
+                self.register_task("create_ip", reactor.callLater(5, self.create_introduction_points, info_hash))
                 return
 
             # We got a circuit, now let's create a introduction point
@@ -1222,7 +1222,7 @@ class TunnelCommunity(Community):
             def circuit_callback(circuit):
                 if not circuit:
                     # Failed to make circuit, reschedule
-                    reactor.callLater(5, keys_callback, ip_key, service_key, sock_addr)
+                    self.register_task("create_rp", reactor.callLater(5, keys_callback, ip_key, service_key, sock_addr))
                     return
 
                 # Now that we have a circuit + the required info, let's create a rendezvous point
@@ -1242,17 +1242,23 @@ class TunnelCommunity(Community):
             self.create_circuit(2, CIRCUIT_TYPE_RP, circuit_callback)
 
         def request_keys(circuit):
+            if not circuit:
+                # Failed to make circuit, reschedule
+                self.register_task("create_rk", reactor.callLater(5, self.create_rendezvous_point, info_hash,
+                                                                  sock_addr, finished_callback))
+                return
+
             self._logger.error("TunnelCommunity: sending keys-request to %s", sock_addr)
             cache = self.request_cache.add(KeysRequestCache(self, lambda i, s, a=sock_addr: keys_callback(i, s, a)))
             meta = self.get_meta_message(u'keys-request')
             message = meta.impl(distribution=(self.global_time,), payload=(cache.number, info_hash))
             circuit.tunnel_data(sock_addr, TUNNEL_PREFIX + message.packet)
 
-        circuit = self.selection_strategy.select(sock_addr)
+        circuit = self.selection_strategy.select(None, 2)
         if circuit:
             request_keys(circuit)
         else:
-            self.create_circuit(2, request_keys)
+            self.create_circuit(2, callback=request_keys)
 
     def check_intro_established(self, messages):
         for message in messages:
@@ -1443,7 +1449,7 @@ class TunnelCommunity(Community):
         def callback(circuit):
             if not circuit:
                 # Failed to make circuit, reschedule
-                reactor.callLater(5, self.send_intro1_over_new_tunnel, rp)
+                self.register_task("send_intro1", reactor.callLater(5, self.send_intro1_over_new_tunnel, rp))
                 return
 
             cache = self.request_cache.add(Introduce1RequestCache(self, circuit))
@@ -1468,7 +1474,9 @@ class TunnelCommunity(Community):
         def callback(circuit):
             if not circuit:
                 # Failed to make circuit, reschedule
-                reactor.callLater(5, self.send_rendezvous1_over_new_tunnel, identifier, rendezvous_point, cookie, dh_first_part)
+                self.register_task("send_rendezvous1", reactor.callLater(5, self.send_rendezvous1_over_new_tunnel,
+                                                                         identifier, rendezvous_point, cookie,
+                                                                         dh_first_part))
                 return
 
             self._logger.error("TunnelCommunity: send rendezvous1 over tunnel %s with cookie %s",

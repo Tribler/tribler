@@ -175,11 +175,17 @@ class LibtorrentMgr(object):
 
         return self.ltsessions[hops]
 
-    def session_startup_progress(self, hops=0):
+    def tunnels_ready(self, download):
+        hops = download.get_hops()
         if hops > 0:
             if self.tunnel_community:
-                self.tunnel_community.circuits_needed[hops] = self.tunnel_community.settings.max_circuits
-                return min(1, len(self.tunnel_community.active_data_circuits(hops)) / float(self.tunnel_community.settings.min_circuits))
+                if download.get_def().is_anonymous():
+                    self.tunnel_community.circuits_needed[hops] = 1
+                    return bool(self.tunnel_community.active_data_circuits(hops))
+                else:
+                    self.tunnel_community.circuits_needed[hops] = self.tunnel_community.settings.max_circuits
+                    return min(1, len(self.tunnel_community.active_data_circuits(hops)) /
+                                  float(self.tunnel_community.settings.min_circuits))
             return 0
         return 1
 
