@@ -1,5 +1,7 @@
 import os
 import logging
+from tempfile import mkstemp
+from tarfile import TarFile
 from collections import deque
 from binascii import hexlify
 from time import time
@@ -14,6 +16,9 @@ from .packet import (encode_packet, decode_packet, OPCODE_RRQ, OPCODE_WRQ, OPCOD
 from .exception import InvalidPacketException
 
 MAX_INT32 = 2 ** 16 - 1
+
+DIR_SEPARATOR = u":"
+DIR_PREFIX = u"dir" + DIR_SEPARATOR
 
 
 class TftpHandler(TaskManager):
@@ -191,34 +196,14 @@ class TftpHandler(TaskManager):
             return
 
         file_name = packet['file_name'].decode('utf8')
-        file_path = os.path.join(self.root_dir, file_name)
         block_size = packet['options']['blksize']
         timeout = packet['options']['timeout']
 
-        # check if file exists
-        if not os.path.exists(file_path):
-            self._logger.warn(u"[READ %s:%s] file doesn't exist: %s", ip, port, file_path)
-            # TODO: send back error
-            return
-        elif not os.path.isfile(file_path):
-            self._logger.warn(u"[READ %s:%s] not a file: %s", ip, port, file_path)
-            # TODO: send back error
-            return
-
-        # read the file into memory
-        f = None
-        try:
-            f = open(file_path, 'rb')
-            file_data = f.read()
-        except (OSError, IOError) as e:
-            self._logger.error(u"[READ %s:%s] failed to read file [%s]: %s", ip, port, file_path, e)
-            # TODO: send back error
-            return
-        finally:
-            if f is not None:
-                f.close()
-
-        file_size = len(file_data)
+        # read the file/directory into memory
+        if file_name.startswith(DIR_PREFIX):
+            file_data, file_size = self._load_directory(ip, port, file_name)
+        else:
+            file_data, file_size = self._load_file(ip, port, file_name)
 
         with self._session_lock:
             # create a session object
@@ -236,6 +221,71 @@ class TftpHandler(TaskManager):
             else:
                 # save the next function that this session should call so that we can do it later.
                 self.next_func = lambda s = session: self._send_oack_packet(s)
+
+    def _load_file(self, ip, port, file_name, file_path=None):
+        """ Loads a file into memory.
+        :param file_name: The path of the file.
+        """
+        # the _load_directory also uses this method to load zip file.
+        if file_path is None:
+            file_path = os.path.join(self.root_dir, file_name)
+
+        # check if file exists
+        if not os.path.exists(file_path):
+            msg = u"file doesn't exist: %s" % file_path
+            self._logger.warn(u"[READ %s:%s] %s", ip, port, msg)
+            # TODO: send back error
+            raise OSError(msg)
+        elif not os.path.isfile(file_path):
+            msg = u"not a file: %s" % file_path
+            self._logger.warn(u"[READ %s:%s] %s", ip, port, msg)
+            # TODO: send back error
+            raise OSError(msg)
+
+        # read the file into memory
+        f = None
+        try:
+            f = open(file_path, 'rb')
+            file_data = f.read()
+        except (OSError, IOError) as e:
+            self._logger.error(u"[READ %s:%s] failed to read file [%s]: %s", ip, port, file_path, e)
+            # TODO: send back error
+            raise e
+        finally:
+            if f is not None:
+                f.close()
+        file_size = len(file_data)
+        return file_data, file_size
+
+    def _load_directory(self, ip, port, file_name):
+        """ Loads a directory and all files, and compress using gzip to transfer.
+        :param file_name: The directory name.
+        """
+        dir_name = file_name.split(DIR_SEPARATOR, 1)[1]
+        dir_path = os.path.join(self.root_dir, dir_name)
+
+        # check if file exists
+        if not os.path.exists(dir_path):
+            msg = u"directory doesn't exist: %s" % file_name
+            self._logger.warn(u"[READ %s:%s] %s", ip, port, msg)
+            # TODO: send back error
+            raise OSError(msg)
+        elif not os.path.isdir(dir_path):
+            msg = u"not a directory: %s" % file_name
+            self._logger.warn(u"[READ %s:%s] %s", ip, port, msg)
+            # TODO: send back error
+            raise OSError(msg)
+
+        # create a temporary gzip file and compress the whole directory
+        tmpfile_no, tmpfile_path = mkstemp(suffix=u"_tribler_tftpdir", prefix=u"tmp_")
+        os.close(tmpfile_no)
+
+        tar_file = TarFile.open(tmpfile_path, "w")
+        tar_file.add(dir_path, arcname=dir_name, recursive=True)
+        tar_file.close()
+
+        # load the zip file as binary
+        return self._load_file(ip, port, tmpfile_path)
 
     def _get_next_data(self, session):
         """ Gets the next block of data to be uploaded. This method is only used for data uploading.
