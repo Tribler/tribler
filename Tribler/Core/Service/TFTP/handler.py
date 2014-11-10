@@ -68,7 +68,7 @@ class TftpHandler(TaskManager):
         """
         self.endpoint.listen_to(self.prefix, self.data_came_in)
         # start a looping call that checks timeout
-        self.register_task("tftp timeout check",
+        self.register_task(u"tftp timeout check",
                            LoopingCall(self._check_timeout)).start(self._timeout_check_interval, now=True)
 
     def shutdown(self):
@@ -78,7 +78,7 @@ class TftpHandler(TaskManager):
 
         self._session_dict = None
 
-    def download_file(self, file_name, ip, port, success_callback=None, failure_callback=None):
+    def download_file(self, file_name, ip, port, extra_info=None, success_callback=None, failure_callback=None):
         """ Downloads a file from a remote host.
         :param file_name: The file name of the file to be downloaded.
         :param ip:        The IP of the remote host.
@@ -87,7 +87,7 @@ class TftpHandler(TaskManager):
         :param failure_callback: The failure callback.
         """
         self._logger.debug(u"Start downloading %s from %s:%s", file_name, ip, port)
-        session = Session(True, (ip, port), OPCODE_RRQ, file_name, '', None,
+        session = Session(True, (ip, port), OPCODE_RRQ, file_name, '', None, extra_info=extra_info,
                           success_callback=success_callback, failure_callback=failure_callback)
 
         with self._session_lock:
@@ -171,10 +171,14 @@ class TftpHandler(TaskManager):
                     del self._session_dict[addr]
 
             # call callbacks
-            if session.is_done and session.success_callback is not None:
-                session.success_callback(session.file_data)
-            elif session.is_failed and session.failure_callback is not None:
-                session.failure_callback(session.file_data)
+            if session.is_done:
+                self._logger.debug(u"%s finished", session)
+                if session.success_callback is not None:
+                    session.success_callback(session.address, session.file_name, session.file_data, session.extra_info)
+            elif session.is_failed:
+                self._logger.debug(u"%s failed", session)
+                if session.failure_callback is not None:
+                    session.failure_callback(session.address, session.file_name, session.extra_info)
 
     def _handle_new_request(self, ip, port, packet):
         """ Handles a new request.
@@ -266,12 +270,12 @@ class TftpHandler(TaskManager):
 
         # check if file exists
         if not os.path.exists(dir_path):
-            msg = u"directory doesn't exist: %s" % file_name
+            msg = u"directory doesn't exist: %s" % dir_path
             self._logger.warn(u"[READ %s:%s] %s", ip, port, msg)
             # TODO: send back error
             raise OSError(msg)
         elif not os.path.isdir(dir_path):
-            msg = u"not a directory: %s" % file_name
+            msg = u"not a directory: %s" % dir_path
             self._logger.warn(u"[READ %s:%s] %s", ip, port, msg)
             # TODO: send back error
             raise OSError(msg)
