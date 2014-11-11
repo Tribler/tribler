@@ -81,8 +81,6 @@ CREATE TABLE Torrent (
   num_leechers     integer,
   comment          text,
   dispersy_id      integer,
-  swift_hash        text,
-  swift_torrent_hash text,
   last_tracker_check    integer DEFAULT 0,
   tracker_check_retries integer DEFAULT 0,
   next_tracker_check    integer DEFAULT 0
@@ -91,10 +89,6 @@ CREATE TABLE Torrent (
 CREATE UNIQUE INDEX infohash_idx
   ON Torrent
   (infohash);
-
-CREATE UNIQUE INDEX Torrent_swift_torrent_hash_idx
-  ON Torrent
-  (swift_torrent_hash);
 
 ----------------------------------------
 
@@ -384,12 +378,12 @@ INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
 INSERT INTO TorrentSource VALUES (0, '', 'Unknown');
 INSERT INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
 
-INSERT INTO MyInfo VALUES ('version', 22);
+INSERT INTO MyInfo VALUES ('version', 23);
 
 INSERT INTO MetaDataTypes ('name') VALUES ('name');
 INSERT INTO MetaDataTypes ('name') VALUES ('description');
-INSERT INTO MetaDataTypes ('name') VALUES ('swift-url');
-INSERT INTO MetaDataTypes ('name') VALUES ('swift-thumbnails');
+INSERT INTO MetaDataTypes ('name') VALUES ('url');
+INSERT INTO MetaDataTypes ('name') VALUES ('thumbnails');
 INSERT INTO MetaDataTypes ('name') VALUES ('video-info');
 
 INSERT INTO TrackerInfo (tracker) VALUES ('no-DHT');
