@@ -16,7 +16,8 @@ from twisted.internet.task import LoopingCall
 
 from Crypto.Util.number import bytes_to_long, long_to_bytes
 
-from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
+from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED
+from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 from Tribler.Core.Utilities.encoding import encode, decode
 
 from Tribler.community.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR,
@@ -288,7 +289,7 @@ class TunnelCommunity(Community):
         self.forward_from_to = {}
         self.waiting_for = set()
         self.exit_sockets = {}
-        self.circuits_needed = {}
+        self.circuits_needed = {2:1}
         self.notifier = None
         self.made_anon_session = False
         self.selection_strategy = RoundRobin(self)
@@ -304,6 +305,9 @@ class TunnelCommunity(Community):
         self.my_rendezvous_points = {}
         self.intro_point_for = {}
         self.rendezvous_point_for = {}
+        self.download_states = {}
+        self.rp_blacklist = defaultdict(dict)
+        self.last_rp_creation = {}
 
         self.trsession = self.settings = self.socks_server = self.libtorrent_test = None
 
@@ -323,6 +327,7 @@ class TunnelCommunity(Community):
 
         self.register_task("do_circuits", LoopingCall(self.do_circuits)).start(5, now=True)
         self.register_task("do_ping", LoopingCall(self.do_ping)).start(PING_INTERVAL)
+        self.register_task("clean_rp_blacklist", LoopingCall(self.clean_rp_blacklist)).start(10)
 
         self.socks_server = Socks5Server(self, session.get_tunnel_community_socks5_listen_ports()
                                          if session else self.settings.socks_listen_ports)
@@ -522,7 +527,7 @@ class TunnelCommunity(Community):
                 torrent.add_peer(peer)
             del self.bittorrent_peers[torrent]
 
-    def remove_circuit(self, circuit_id, additional_info='', destroy=False):
+    def remove_circuit(self, circuit_id, additional_info='', destroy=False, rebuild=False):
         assert isinstance(circuit_id, (long, int)), type(circuit_id)
 
         if circuit_id in self.circuits:
@@ -542,17 +547,15 @@ class TunnelCommunity(Community):
 
             # Remove & rebuild introduction/rendezvous points
             if circuit_id in self.my_intro_points:
-                self._logger.error("TunnelCommunity: removed introduction point")
+                self._logger.error("TunnelCommunity: removed introduction point %s", ', rebuilding' if rebuild else '')
                 ip = self.my_intro_points.pop(circuit_id)
-                if ltmgr:
-                    ltmgr.build_introduction_point(ip.info_hash)
-                    self._logger.error("TunnelCommunity: rebuilding introduction point")
+                if rebuild:
+                    self.create_introduction_points(ip.info_hash)
             if circuit_id in self.my_rendezvous_points:
-                self._logger.error("TunnelCommunity: removed rendezvous point")
+                self._logger.error("TunnelCommunity: removed rendezvous point %s", ', rebuilding' if rebuild else '')
                 rp = self.my_rendezvous_points.pop(circuit_id)
-                if ltmgr:
-                    ltmgr.build_rendezvous_points(rp.info_hash, [rp.intro_point[:2]])
-                    self._logger.error("TunnelCommunity: rebuilding rendezvous point")
+                if rebuild:
+                    self.create_rendezvous_points(rp.info_hash)
 
             circuit.destroy()
 
@@ -1191,13 +1194,57 @@ class TunnelCommunity(Community):
     def circuit_id_to_ip(self, circuit_id):
         return socket.inet_ntoa(struct.pack("!I", circuit_id))
 
-    @call_on_reactor_thread
+    def clean_rp_blacklist(self):
+        for info_hash, peers in self.rp_blacklist.items():
+            for sock_addr, ts in peers.items():
+                if time.time() - ts > 60:
+                    self.rp_blacklist[info_hash].pop(sock_addr)
+
+    def monitor_downloads(self, dslist):
+        # Monitor downloads with anonymous flag set, and build rendezvous/introduction points when needed.
+        new_states = {}
+        for ds in dslist:
+            download = ds.get_download()
+            tdef = download.get_def()
+            if tdef.get_def_type() == 'torrent' and tdef.is_anonymous():
+                new_states[tdef.get_infohash()] = ds.get_status()
+
+        for info_hash in set(new_states.keys() + self.download_states.keys()):
+            new_state = new_states.get(info_hash, None)
+            old_state = self.download_states.get(info_hash, None)
+            state_changed = new_state != old_state
+
+            # Every 300s force a DHT check to discover new introduction points
+            force_rendezvous = (time.time() - self.last_rp_creation.get(info_hash, 0)) >= 300
+
+            if (state_changed or force_rendezvous) and new_state == DLSTATUS_DOWNLOADING:
+                self.create_rendezvous_points(info_hash)
+
+            elif state_changed and new_state == DLSTATUS_SEEDING:
+                self.create_introduction_points(info_hash)
+
+            elif state_changed and new_state in [DLSTATUS_STOPPED, None]:
+                for cid, p in self.my_rendezvous_points.items() + self.my_intro_points.items():
+                    if p.info_hash == info_hash:
+                        self.remove_circuit(cid, 'download stopped', destroy=True, rebuild=False)
+
+        self.download_states = new_states
+
     def create_introduction_points(self, info_hash, amount=1):
+        self._logger.error("Creating introduction point")
+        self._create_introduction_points(info_hash, amount)
+
+        # Ensures that libtorrent tries to make an outgoing connection so that the socks5 server
+        # knows on which UDP port libtorrent is listening.
+        self.trsession.get_download(info_hash).add_peer(('1.1.1.1' , 1024))
+
+    @call_on_reactor_thread
+    def _create_introduction_points(self, info_hash, amount=1):
 
         def callback(circuit):
             if not circuit:
                 # Failed to make circuit, reschedule
-                self.register_task("create_ip", reactor.callLater(5, self.create_introduction_points, info_hash))
+                self.register_task("create_ip", reactor.callLater(5, self._create_introduction_points, info_hash))
                 return
 
             # We got a circuit, now let's create a introduction point
@@ -1215,8 +1262,32 @@ class TunnelCommunity(Community):
         for _ in range(0, amount):
             self.create_circuit(2, CIRCUIT_TYPE_IP, callback)
 
+    def create_rendezvous_points(self, info_hash):
+        def add_peer(circuit_id, download):
+            download.add_peer((self.circuit_id_to_ip(circuit_id), 1024))
+
+        def dht_callback(ih, peers, _):
+            if not peers:
+                return
+
+            exclude = [rp.intro_point[:2] for rp in self.my_rendezvous_points.values()] + \
+                      self.rp_blacklist[ih].keys()
+
+            for peer in set(peers):
+                if peer not in exclude:
+                    self._logger.error("Creating rendezvous point for introduction point %s", peer)
+                    self._create_rendezvous_point(ih, peer, lambda c, d=self.trsession.get_download(ih): add_peer(c, d))
+                    # Blacklist this sock_addr for a period of at least 60s
+                    self.rp_blacklist[ih][peer] = time.time()
+
+        self.last_rp_creation[info_hash] = time.time()
+
+        # Get introduction points from the DHT, create rendezvous the points, and add the resulting
+        # circuit_ids to the libtorrent download
+        self.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), dht_callback)
+
     @call_on_reactor_thread
-    def create_rendezvous_point(self, info_hash, sock_addr, finished_callback):
+    def _create_rendezvous_point(self, info_hash, sock_addr, finished_callback):
 
         def keys_callback(ip_key, service_key, sock_addr):
             def circuit_callback(circuit):
@@ -1244,7 +1315,7 @@ class TunnelCommunity(Community):
         def request_keys(circuit):
             if not circuit:
                 # Failed to make circuit, reschedule
-                self.register_task("create_rk", reactor.callLater(5, self.create_rendezvous_point, info_hash,
+                self.register_task("create_rk", reactor.callLater(5, self._create_rendezvous_point, info_hash,
                                                                   sock_addr, finished_callback))
                 return
 
@@ -1258,7 +1329,7 @@ class TunnelCommunity(Community):
         if circuit:
             request_keys(circuit)
         else:
-            self.create_circuit(2, callback=request_keys)
+            self._logger.error("TunnelCommunity: no circuit for keys-request")
 
     def check_intro_established(self, messages):
         for message in messages:

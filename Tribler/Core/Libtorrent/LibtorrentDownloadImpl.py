@@ -337,10 +337,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
             self.handle.resolve_countries(True)
 
-            # If the torrent is anonymous, monitor the state so that we can create intro/rendezvous points when needed.
-            if self.tdef.is_anonymous():
-                self.set_state_callback(self.monitor_anonymous_download, delay=5.0)
-
         else:
             self._logger.info("Could not add torrent to LibtorrentManager %s", self.tdef.get_name_as_unicode())
 
@@ -352,23 +348,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
     def get_anon_mode(self):
         return self.get_hops() > 0
-
-    def monitor_anonymous_download(self, ds):
-        # Every 300s force a DHT check to discover new introduction points
-        force_rendezvous = (time.time() - self.last_rendezvous_creation) >= 300
-
-        if (self.dlstate_prev != self.dlstate or force_rendezvous) and self.dlstate == DLSTATUS_DOWNLOADING:
-            # When the state changes to downloading, build rendezvous points
-            self.ltmgr.build_rendezvous_points(self.tdef.get_id())
-            self.dlstate_prev = self.dlstate
-            self.last_rendezvous_creation = time.time()
-
-        if self.dlstate_prev != self.dlstate and self.dlstate == DLSTATUS_SEEDING:
-            # When the state changes to seeding, build an introduction point
-            self.ltmgr.build_introduction_point(self.tdef.get_id())
-            self.dlstate_prev = self.dlstate
-
-        return (5.0, False)
 
     def set_vod_mode(self, enable=True):
         self._logger.debug("LibtorrentDownloadImpl: set_vod_mode for %s (enable = %s)", self.handle.name(), enable)

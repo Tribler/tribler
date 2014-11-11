@@ -189,46 +189,6 @@ class LibtorrentMgr(object):
             return 0
         return 1
 
-    def build_rendezvous_points(self, info_hash, redo_intro_points=[]):
-        tc = (c for c in self.trsession.lm.dispersy.get_communities() if isinstance(c, TunnelCommunity)).next()
-
-        if tc:
-            for intro_point in redo_intro_points:
-                if intro_point in self.connected_intro_points[info_hash]:
-                    self.connected_intro_points[info_hash].remove(intro_point)
-
-            def add_peer(circuit_id):
-                with self.torlock:
-                    info_hash_hex = binascii.hexlify(info_hash)
-                    if info_hash_hex in self.torrents:
-                        self.torrents[info_hash_hex][0].add_peer((tc.circuit_id_to_ip(circuit_id), 1024))
-
-            def dht_callback(ih, peers, source):
-                for peer in (peers or []):
-                    if peer not in self.connected_intro_points[info_hash]:
-                        self._logger.error("Creating rendezvous point for introduction point %s", peer)
-                        tc.create_rendezvous_point(ih, peer, add_peer)
-                        self.connected_intro_points[info_hash].append(peer)
-
-            # Get introduction points from the DHT, create rendezvous the points, and add the resulting
-            # circuit_ids to the libtorrent download
-            self.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), dht_callback)
-
-    def build_introduction_point(self, info_hash):
-        tc = (c for c in self.trsession.lm.dispersy.get_communities() if isinstance(c, TunnelCommunity)).next()
-
-        if tc:
-            # Create an introduction point
-            self._logger.error("Creating introduction point")
-            tc.create_introduction_points(info_hash)
-
-            # Ensures that libtorrent tries to make an outgoing connection so that the socks5 server
-            # knows on which UDP port libtorrent is listening.
-            with self.torlock:
-                info_hash_hex = binascii.hexlify(info_hash)
-                if info_hash_hex in self.torrents:
-                    self.torrents[info_hash_hex][0].add_peer(('1.1.1.1' , 1024))
-
     def shutdown(self):
         # Save DHT state
         dhtstate_file = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME), 'w')

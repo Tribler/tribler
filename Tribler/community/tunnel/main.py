@@ -7,6 +7,7 @@ import argparse
 import threading
 import cherrypy
 
+from traceback import print_exc
 from collections import defaultdict, deque
 
 from twisted.internet.task import LoopingCall
@@ -133,6 +134,16 @@ class Tunnel(object):
             self.session.set_anon_proxy_settings(2, ("127.0.0.1", self.session.get_tunnel_community_socks5_listen_ports()))
 
         blockingCallFromThread(reactor, start_community)
+
+        self.session.set_download_states_callback(self.download_states_callback, False)
+
+    def download_states_callback(self, dslist):
+        try:
+            self.community.monitor_downloads(dslist)
+        except:
+            print_exc()
+
+        return (1.0, [])
 
     def stop(self):
         self.session.uch.perform_usercallback(self._stop)

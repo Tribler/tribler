@@ -168,6 +168,7 @@ class ABCApp():
         self.dispersy = None
         # BARTER_COMMUNITY will be set when both Dispersy and the EffortCommunity are available
         self.barter_community = None
+        self.tunnel_community = None
 
         self.seedingmanager = None
         self.i2is = None
@@ -499,12 +500,10 @@ class ABCApp():
 
             if not self.is_unit_testing and time() < self.utility.read_config('version_info').get('first_run', 0) + 8553600:
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
-                dispersy_member = dispersy.get_member(
-                    private_key=dispersy.crypto.key_to_bin(keypair),
-                )
+                dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair),)
 
-                dispersy.define_auto_load(TunnelCommunity, dispersy_member, load=True,
-                                          kargs={'session': session})[0]
+                self.tunnel_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, load=True,
+                                                                  kargs={'session': session})[0]
 
                 session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_tunnel_community_socks5_listen_ports()))
 
@@ -700,6 +699,9 @@ class ABCApp():
                             self._logger.debug("tribler: SW %s %s %s", dlstatus_strings[state], safename, ds.get_current_speed(UPLOAD))
                         else:
                             self._logger.debug("tribler: BT %s %s %s", dlstatus_strings[state], cdef.get_name(), ds.get_current_speed(UPLOAD))
+
+            if self.tunnel_community:
+                self.tunnel_community.monitor_downloads(dslist)
 
         except:
             print_exc()
