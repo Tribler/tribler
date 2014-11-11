@@ -2,6 +2,7 @@
 from os import path
 from random import shuffle
 from time import time
+from binascii import hexlify
 from traceback import print_exc
 
 from twisted.internet.task import LoopingCall
@@ -30,7 +31,6 @@ from Tribler.dispersy.resolution import PublicResolution
 
 
 DEBUG = False
-SWIFT_INFOHASHES = 0
 CREATE_TORRENT_COLLECT_INTERVAL = 5
 
 
@@ -218,7 +218,7 @@ class SearchCommunity(Community):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
 
         if DEBUG:
-            self._logger.debug("SearchCommunity: sending introduction request to %s", destination)
+            self._logger.debug(u"SearchCommunity: sending introduction request to %s", destination)
 
         advice = True
         if not is_fast_walker:
@@ -328,7 +328,7 @@ class SearchCommunity(Community):
                 self.log_incomming_searches(message.candidate.sock_addr, keywords)
 
             results = []
-            dbresults = self._torrent_db.searchNames(keywords, local=False, keys=['infohash', 'T.name', 'T.length', 'T.num_files', 'T.category_id', 'T.creation_date', 'T.num_seeders', 'T.num_leechers', 'swift_hash', 'swift_torrent_hash'])
+            dbresults = self._torrent_db.searchNames(keywords, local=False, keys=['infohash', 'T.name', 'T.length', 'T.num_files', 'T.category_id', 'T.creation_date', 'T.num_seeders', 'T.num_leechers'])
             if len(dbresults) > 0:
                 for dbresult in dbresults:
                     channel_details = dbresult[-10:]
@@ -340,10 +340,6 @@ class SearchCommunity(Community):
                     dbresult[5] = long(dbresult[5])
                     dbresult[6] = int(dbresult[6] or 0)
                     dbresult[7] = int(dbresult[7] or 0)
-                    if dbresult[8]:
-                        dbresult[8] = str(dbresult[8])
-                    if dbresult[9]:
-                        dbresult[9] = str(dbresult[9])
 
                     if channel_details[1]:
                         channel_details[1] = str(channel_details[1])
@@ -373,7 +369,8 @@ class SearchCommunity(Community):
                 search_request = self._request_cache.get(u"search", message.payload.identifier)
                 if search_request:
                     if DEBUG:
-                        self._logger.debug("SearchCommunity: got search response for %s %s %s", search_request.keywords, len(message.payload.results), message.candidate)
+                        self._logger.debug(u"SearchCommunity: got search response for %s %s %s",
+                                           search_request.keywords, len(message.payload.results), message.candidate)
 
                     if len(message.payload.results) > 0:
                         self._torrent_db.on_search_response(message.payload.results)
@@ -386,14 +383,15 @@ class SearchCommunity(Community):
                         channels = self._get_unknown_channels(channels)
 
                         if DEBUG:
-                            self._logger.debug("SearchCommunity: joining %d preview communities" % len(channels))
+                            self._logger.debug(u"SearchCommunity: joining %d preview communities", len(channels))
 
                         for cid in channels:
                             community = self._get_channel_community(cid)
                             community.disp_create_missing_channel(message.candidate, includeSnapshot=False)
                 else:
                     if DEBUG:
-                        self._logger.debug("SearchCommunity: got search response identifier not found %s", message.payload.identifier)
+                        self._logger.debug(u"SearchCommunity: got search response identifier not found %s",
+                                           message.payload.identifier)
 
             # ensure that no commits occur
             raise IgnoreCommits()
@@ -473,34 +471,30 @@ class SearchCommunity(Community):
             self.request_cache.pop(u"ping", message.payload.identifier)
 
     def _process_collect_request_response(self, messages):
-        toInsert = {}
-        toCollect = {}
-        toPopularity = {}
+        to_insert_list = []
+        to_collect_dict = {}
         for message in messages:
-            if message.payload.hashtype == SWIFT_INFOHASHES:
-                for swift_torrent_hash, infohash, seeders, leechers, ago in message.payload.torrents:
-                    toInsert[infohash] = [infohash, swift_torrent_hash]
-                    toPopularity[infohash] = [seeders, leechers, time() - (ago * 60)]
-                    toCollect.setdefault(infohash, []).append(message.candidate)
+            for infohash, seeders, leechers, ago in message.payload.torrents:
+                to_insert_list.append(infohash)
+                to_collect_dict.setdefault(infohash, []).append(message.candidate)
 
-        if len(toInsert) > 0:
-            toInsert = toInsert.values()
-            while toInsert:
-                self._torrent_db.on_torrent_collect_response(toInsert[:50])
-                toInsert = toInsert[50:]
+        if len(to_insert_list) > 0:
+            while to_insert_list:
+                self._torrent_db.on_torrent_collect_response(to_insert_list[:50])
+                to_insert_list = to_insert_list[50:]
 
-        hashes = [hash_ for hash_ in toCollect.keys() if hash_]
-        if hashes:
-            hashesToCollect = self._torrent_db.selectSwiftTorrentsToCollect(hashes)
-            for infohash, roothash in hashesToCollect[:5]:
-                for candidate in toCollect[infohash]:
-                    if DEBUG:
-                        from Tribler.Core.CacheDB.sqlitecachedb import bin2str
-                        self._logger.debug("SearchCommunity: requesting .torrent after receiving ping/pong %s %s %s", candidate, bin2str(infohash), bin2str(roothash))
+        infohashes = [infohash_ for infohash_ in to_collect_dict if infohash_]
+        if infohashes:
+            infohashes_to_collect = self._torrent_db.select_torrents_to_collect(infohashes)
+            for infohash in infohashes_to_collect[:5]:
+                for candidate in to_collect_dict[infohash]:
+                    self._logger.debug(u"requesting .torrent after receiving ping/pong %s %s",
+                                       candidate, hexlify(infohash))
 
                     # low_prio changes, hence we need to import it here
                     from Tribler.Core.RemoteTorrentHandler import LOW_PRIO_COLLECTING
-                    self._rtorrent_handler.download_torrent(candidate, infohash, priority=LOW_PRIO_COLLECTING, timeout=CANDIDATE_WALK_LIFETIME)
+                    self._rtorrent_handler.download_torrent(candidate, infohash, priority=LOW_PRIO_COLLECTING,
+                                                            timeout=CANDIDATE_WALK_LIFETIME)
 
         sock_addrs = [message.candidate.sock_addr for message in messages]
         for taste_buddy in self.taste_buddies:
@@ -520,10 +514,10 @@ class SearchCommunity(Community):
             # create torrent-collect-request/response message
             meta = self.get_meta_message(meta_name)
             message = meta.impl(authentication=(self._my_member,),
-                                distribution=(self.global_time,), destination=(candidate,), payload=(identifier, SWIFT_INFOHASHES, torrents))
+                                distribution=(self.global_time,), destination=(candidate,), payload=(identifier, torrents))
 
             self._dispersy._forward([message])
-            self._logger.debug("SearchCommunity: send %s to %s", meta_name, candidate)
+            self._logger.debug(u"send %s to %s", meta_name, candidate)
 
     def __get_torrents(self, limit):
         cache_timeout = CANDIDATE_WALK_LIFETIME
@@ -531,30 +525,32 @@ class SearchCommunity(Community):
             return self.torrent_cache[1]
 
         # we want roughly 1/3 random, 2/3 recent
-        limitRecent = int(limit * 0.66)
-        limitRandom = limit - limitRecent
+        limit_recent = int(limit * 0.66)
+        limit_random = limit - limit_recent
 
-        torrents = self._torrent_db.getRecentlyCollectedSwiftHashes(limit=limitRecent) or []
-        if len(torrents) == limitRecent:
-            leastRecent = torrents[-1][5]
-            randomTorrents = self._torrent_db.getRandomlyCollectedSwiftHashes(leastRecent, limit=limitRandom) or []
+        torrents = self._torrent_db.getRecentlyCollectedTorrents(limit=limit_recent) or []
+        if len(torrents) == limit_recent:
+            # index 4 is insert_time
+            least_recent = torrents[-1][4]
+            random_torrents = self._torrent_db.getRandomlyCollectedTorrents(least_recent, limit=limit_random) or []
         else:
-            randomTorrents = []
+            random_torrents = []
 
         # combine random and recent + shuffle to obscure categories
-        torrents = [tor[:5] for tor in torrents] + randomTorrents
+        torrents = [tor[:4] for tor in torrents] + random_torrents
         shuffle(torrents)
 
         # fix leechers, seeders to max 2**16 (shift values +2 to accomodate -2 and -1 values)
         max_value = (2 ** 16) - 1
         for torrent in torrents:
+            # index 1 and 2 are num_seeders and num_leechers respectively
+            torrent[1] = min(max_value, (torrent[1] or -1) + 2)
             torrent[2] = min(max_value, (torrent[2] or -1) + 2)
-            torrent[3] = min(max_value, (torrent[3] or -1) + 2)
 
-            # convert to minutes
-            torrent[4] /= 60
-            if torrent[4] > max_value or torrent[4] < 0:
-                torrent[4] = max_value
+            # index 3 is last_tracker_check, convert to minutes
+            torrent[3] /= 60
+            if torrent[3] > max_value or torrent[3] < 0:
+                torrent[3] = max_value
 
         self.torrent_cache = (time(), torrents)
         return torrents
@@ -579,7 +575,6 @@ class SearchCommunity(Community):
             except:
                 print_exc()
         return False
-
 
     def on_torrent(self, messages):
         for message in messages:
@@ -607,7 +602,7 @@ class SearchCommunity(Community):
         try:
             return self._dispersy.get_community(cid, True)
         except CommunityNotFoundException:
-            self._logger.debug("join preview community %s", cid.encode("HEX"))
+            self._logger.debug(u"join preview community %s", cid.encode("HEX"))
             return PreviewChannelCommunity.init_community(self._dispersy, self._dispersy.get_member(mid=cid), self._my_member, self.integrate_with_tribler)
 
     def _get_packets_from_infohashes(self, cid, infohashes):
@@ -651,7 +646,7 @@ class SearchCommunity(Community):
         try:
             packet, _ = self._dispersy.database.execute(u"SELECT sync.packet, sync.id FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
         except StopIteration:
-            raise RuntimeError("Unknown dispersy_id")
+            raise RuntimeError(u"Unknown dispersy_id")
 
         return str(packet)
 

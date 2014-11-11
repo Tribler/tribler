@@ -11,12 +11,11 @@ from traceback import print_exc
 import wx
 
 from Tribler.Category.Category import Category
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread, forceDBThread
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.Search.Bundler import Bundler
 from Tribler.Core.Search.Reranking import DefaultTorrentReranker
 from Tribler.Core.Search.SearchManager import split_into_keywords
-from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
@@ -113,35 +112,12 @@ class TorrentManager:
         if torrent_filename and os.path.isfile(torrent_filename):
             return torrent_filename
 
-        # .torrent not found
-        if torrent.swift_torrent_hash:
-            sdef = SwiftDef(torrent.swift_torrent_hash)
-            torrent_filename = torrent_filename = os.path.join(self.col_torrent_dir, sdef.get_roothash_as_hex())
-
-            if os.path.isfile(torrent_filename):
-                try:
-                    tdef = TorrentDef.load(torrent_filename)
-
-                    @forceDBThread
-                    def do_db():
-                        if self.torrent_db.hasTorrent(torrent.infohash):
-                            self.torrent_db.updateTorrent(torrent.infohash, torrent_file_name=torrent_filename)
-                        else:
-                            self.torrent_db._addTorrentToDB(tdef, source="BC", extra_info={'filename': torrent_filename, 'status': 'good'})
-                    do_db()
-
-                    torrent.torrent_file_name = torrent_filename
-                    return torrent_filename
-
-                except ValueError:
-                    pass  # bad bedecoded torrent, ie not complete yet
-
         if not retried:
             # reload torrent to see if database contains any changes
-            dict = self.torrent_db.getTorrent(torrent.infohash, keys=['torrent_id', 'swift_torrent_hash', 'torrent_file_name'], include_mypref=False)
+            dict = self.torrent_db.getTorrent(torrent.infohash, keys=['torrent_id', 'torrent_file_name'],
+                                              include_mypref=False)
             if dict:
                 torrent.update_torrent_id(dict['torrent_id'])
-                torrent.swift_torrent_hash = dict['swift_torrent_hash']
                 torrent.torrent_file_name = dict['torrent_file_name']
                 return self.getCollectedFilename(torrent, retried=True)
 
@@ -166,8 +142,8 @@ class TorrentManager:
         if self.downloadTorrentfileFromPeers(torrent, callback, duplicate=True, prio=prio):
             candidates = torrent.query_candidates
             if candidates and len(candidates) > 0:
-                return (True, "from peers")
-            return (True, "from the dht")
+                return True, "from peers"
+            return True, "from the dht"
         return False
 
     def downloadTorrentfileFromPeers(self, torrent, callback, duplicate=True, prio=0):
@@ -251,12 +227,12 @@ class TorrentManager:
         if "click_position" in torrent:
             clicklog["click_position"] = torrent["click_position"]
 
-        sdef = SwiftDef(torrent.swift_hash, "127.0.0.1:%d" % self.session.get_swift_dht_listen_port()) if torrent.swift_hash else None
-        tdef = TorrentDefNoMetainfo(torrent.infohash, torrent.name) if not isinstance(torrent_filename, basestring) else None
+        tdef = TorrentDefNoMetainfo(torrent.infohash, torrent.name) \
+            if not isinstance(torrent_filename, basestring) else None
 
         # Api download
         def do_gui():
-            d = self.guiUtility.frame.startDownload(torrent_filename, sdef=sdef, tdef=tdef, destdir=dest, clicklog=clicklog, name=name, vodmode=vodmode, selectedFiles=selectedFiles)  # # remove name=name
+            d = self.guiUtility.frame.startDownload(torrent_filename, tdef=tdef, destdir=dest, clicklog=clicklog, name=name, vodmode=vodmode, selectedFiles=selectedFiles)  # # remove name=name
             if d:
                 if secret:
                     self.torrent_db.setSecret(torrent.infohash, secret)
@@ -332,9 +308,12 @@ class TorrentManager:
             return torrent
 
     def getTorrentByInfohash(self, infohash):
-        dict = self.torrent_db.getTorrent(infohash, keys=['C.torrent_id', 'infohash', 'swift_hash', 'swift_torrent_hash', 'name', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers'])
+        dict = self.torrent_db.getTorrent(infohash, keys=['C.torrent_id', 'infohash', 'name', 'torrent_file_name',
+                                                          'length', 'category_id', 'status_id', 'num_seeders',
+                                                          'num_leechers'])
         if dict:
-            t = Torrent(dict['C.torrent_id'], dict['infohash'], dict['swift_hash'], dict['swift_torrent_hash'], dict['name'], dict['torrent_file_name'], dict['length'], dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'], None)
+            t = Torrent(dict['C.torrent_id'], dict['infohash'], dict['name'], dict['torrent_file_name'], dict['length'],
+                        dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'], None)
             t.misc_db = self.misc_db
             t.torrent_db = self.torrent_db
             t.channelcast_db = self.channelcast_db
@@ -603,14 +582,6 @@ class TorrentManager:
                             item.query_candidates = set()
                         item.query_candidates.update(remoteItem.query_candidates)
 
-                        if item.swift_hash is None:
-                            item.swift_hash = remoteItem.swift_hash
-                            hitsModified.add(item.infohash)
-
-                        if item.swift_torrent_hash is None:
-                            item.swift_torrent_hash = remoteItem.swift_torrent_hash
-                            hitsModified.add(item.infohash)
-
                         if remoteItem.hasChannel():
                             if isinstance(item, RemoteTorrent):
                                 self.hits.remove(item)  # Replace this item with a new result with a channel
@@ -783,20 +754,16 @@ class TorrentManager:
                 return_dict[hit.infohash] = 0
         return return_dict
 
-
     @call_on_reactor_thread
     def modifyTorrent(self, torrent, modifications):
         for community in self.dispersy.get_communities():
             if isinstance(community, MetadataCommunity):
-                community.create_metadata_message(torrent.infohash,
-                    torrent.swift_hash, modifications)
+                community.create_metadata_message(torrent.infohash, torrent.swift_hash, modifications)
                 break
 
-
     def getTorrentModifications(self, torrent):
-        message_list = self.metadata_db.getMetadataMessageList(
-            torrent.infohash, torrent.swift_hash,
-            columns=("message_id",))
+        message_list = self.metadata_db.getMetadataMessageList(torrent.infohash, torrent.swift_hash,
+                                                               columns=("message_id",))
         if not message_list:
             return []
 
@@ -851,7 +818,8 @@ class TorrentManager:
 
         return result
 
-class LibraryManager:
+
+class LibraryManager(object):
     # Code to make this a singleton
     __single = None
 
@@ -1138,17 +1106,10 @@ class LibraryManager:
     def _getDownloads(self, torrent):
         downloads = []
         for curdownload in self.session.get_downloads():
-            id = curdownload.get_def().get_id()
-            if id == torrent.infohash or id == torrent.swift_hash:
+            infohash = curdownload.get_def().get_id()
+            if infohash == torrent.infohash:
                 downloads.append(curdownload)
         return downloads
-
-    def updateTorrent(self, infohash, roothash):
-        self.torrent_db.updateTorrent(infohash, swift_hash=roothash)
-
-        # Niels 09-01-2013: we need to commit now to prevent possibly forgetting the link between this torrent and the roothash
-        dispersy = self.session.lm.dispersy
-        startWorker(None, dispersy.database.commit)
 
     def deleteTorrent(self, torrent, removecontent=False):
         if torrent.dslist:
@@ -1157,11 +1118,7 @@ class LibraryManager:
             dslist = [None, None]
 
         for i, ds in enumerate(dslist):
-            if i == 0:
-                id = torrent.infohash
-            else:
-                id = torrent.swift_hash
-            self.deleteTorrentDS(ds, id, removecontent)
+            self.deleteTorrentDS(ds, torrent.infohash, removecontent)
 
     def deleteTorrentDS(self, ds, infohash, removecontent=False):
         if not ds is None:
@@ -1171,14 +1128,14 @@ class LibraryManager:
         elif infohash:
             self.deleteTorrentDownload(None, infohash, removecontent)
 
-    def deleteTorrentDownload(self, download, id, removecontent=False, removestate=True):
+    def deleteTorrentDownload(self, download, infohash, removecontent=False, removestate=True):
         if download:
             self.session.remove_download(download, removecontent=removecontent, removestate=removestate)
         else:
-            self.session.remove_download_by_id(id, removecontent, removestate)
+            self.session.remove_download_by_id(infohash, removecontent, removestate)
 
-        if id:
-            self.user_download_choice.remove_download_state(id)
+        if infohash:
+            self.user_download_choice.remove_download_state(infohash)
 
     def stopVideoIfEqual(self, download, reset_playlist=False):
         videoplayer = self._get_videoplayer()
@@ -1260,9 +1217,9 @@ class LibraryManager:
         return [len(self.hits), self.hits]
 
     def getTorrentFromInfohash(self, infohash):
-        dict = self.torrent_db.getTorrent(infohash, keys=['C.torrent_id', 'infohash', 'swift_hash', 'swift_torrent_hash', 'name', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers'])
+        dict = self.torrent_db.getTorrent(infohash, keys=['C.torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers'])
         if dict and dict['myDownloadHistory']:
-            t = LibraryTorrent(dict['C.torrent_id'], dict['infohash'], dict['swift_hash'], dict['swift_torrent_hash'], dict['name'], dict['torrent_file_name'], dict['length'], dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'], None)
+            t = LibraryTorrent(dict['C.torrent_id'], dict['infohash'], dict['name'], dict['torrent_file_name'], dict['length'], dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'], None)
             t.misc_db = self.misc_db
             t.torrent_db = self.torrent_db
             t.channelcast_db = self.channelcast_db
@@ -1288,7 +1245,7 @@ class LibraryManager:
             self.gridmgr.refresh()
 
 
-class ChannelManager:
+class ChannelManager(object):
     # Code to make this a singleton
     __single = None
 

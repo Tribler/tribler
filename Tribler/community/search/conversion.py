@@ -157,7 +157,7 @@ class SearchConversion(BinaryConversion):
             if len(result) < 11:
                 raise DropPacket("Invalid result length")
 
-            infohash, swarmname, length, nrfiles, categorykeys, creation_date, seeders, leechers, swift_hash, swift_torrent_hash, cid = result[:11]
+            infohash, swarmname, length, nrfiles, categorykeys, creation_date, seeders, leechers, cid = result[:9]
 
             if not isinstance(infohash, str):
                 raise DropPacket("Invalid infohash type")
@@ -187,20 +187,6 @@ class SearchConversion(BinaryConversion):
 
             if not isinstance(leechers, int):
                 raise DropPacket("Invalid leechers type '%s'" % type(leechers))
-
-            if swift_hash:
-                if not isinstance(swift_hash, str):
-                    raise DropPacket("Invalid swift_hash type '%s'" % type(swift_hash))
-
-                if len(swift_hash) != 20:
-                    raise DropPacket("Invalid swift_hash length")
-
-            if swift_torrent_hash:
-                if not isinstance(swift_torrent_hash, str):
-                    raise DropPacket("Invalid swift_torrent_hash type")
-
-                if len(swift_torrent_hash) != 20:
-                    raise DropPacket("Invalid swift_torrent_hash length")
 
             if cid:
                 if not isinstance(cid, str):

@@ -600,15 +600,6 @@ class TorrentListItem(DoubleLineListItemWithButtons):
                     self._MoveDownload(torrent.ds, new_dir)
 
     def _MoveDownload(self, download_state, new_dir):
-        def modify_config(download):
-            self.guiutility.library_manager.deleteTorrentDownload(download, None, removestate=False)
-
-            cdef = download.get_def()
-            dscfg = DownloadStartupConfig(download.dlconfig)
-            dscfg.set_dest_dir(new_dir)
-
-            return cdef, dscfg
-
         def rename_or_merge(old, new):
             if os.path.exists(old):
                 if os.path.exists(new):
@@ -644,13 +635,6 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         else:
             dslist = [download_state]
 
-        # Remove Swift downloads
-        to_start = []
-        for ds in dslist:
-            download = ds.get_download()
-            if download.get_def().get_def_type() == 'swift':
-                to_start.append(modify_config(download))
-
         # Move torrents
         storage_moved = False
         for ds in dslist:
@@ -666,11 +650,6 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             self._logger.info("Moving from %s to %s newdir %s", old, new, new_dir)
             movelambda = lambda: rename_or_merge(old, new)
             self.guiutility.utility.session.lm.rawserver.add_task(movelambda, 0.0)
-
-        # Start Swift downloads again..
-        for cdef, dscfg in to_start:
-            startlambda = lambda cdef = cdef, dscfg = dscfg: self.guiutility.utility.session.start_download(cdef, dscfg)
-            self.guiutility.utility.session.lm.rawserver.add_task(startlambda, 0.0)
 
     def OnDClick(self, event):
         self.guiutility.frame.top_bg.OnDownload(None, [self.original_data])

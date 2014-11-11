@@ -276,13 +276,13 @@ class Session(SessionConfigInterface):
         # locking by lm
         return self.lm.get_downloads()
 
-    def get_download(self, hash):
+    def get_download(self, infohash):
         """
         Returns the Download object for this hash.
         @return A Donwload Object.
         """
         # locking by lm
-        return self.lm.get_download(hash)
+        return self.lm.get_download(infohash)
 
     def remove_download(self, d, removecontent=False, removestate=True, hidden=False):
         """
@@ -298,11 +298,8 @@ class Session(SessionConfigInterface):
         # locking by lm
         if d.get_def().get_def_type() == "torrent":
             self.lm.remove(d, removecontent=removecontent, removestate=removestate, hidden=hidden)
-        else:
-            # SWIFTPROC
-            self.lm.swift_remove(d, removecontent=removecontent, removestate=removestate, hidden=hidden)
 
-    def remove_download_by_id(self, id, removecontent=False, removestate=True):
+    def remove_download_by_id(self, infohash, removecontent=False, removestate=True):
         """
         @param infohash The Download to remove
         @param removecontent Whether to delete the already downloaded content
@@ -313,12 +310,12 @@ class Session(SessionConfigInterface):
         """
         downloadList = self.get_downloads()
         for download in downloadList:
-            if download.get_def().get_id() == id:
+            if download.get_def().get_id() == infohash:
                 self.remove_download(download, removecontent, removestate)
                 return
 
-        self.lm.remove_id(id)
-        self.uch.perform_removestate_callback(id, [])
+        self.lm.remove_id(infohash)
+        self.uch.perform_removestate_callback(infohash, [])
 
     def set_download_states_callback(self, usercallback, getpeerlist=None):
         """

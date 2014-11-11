@@ -324,16 +324,10 @@ class TriblerLaunchMany(Thread):
         if not hidden:
             self.remove_id(infohash)
 
-    def remove_id(self, hash):
-        # this is a bit tricky, as we do not know if this "id" is a roothash or infohash
-        # however a restart will re-add the preference to mypreference if we remove the wrong one
+    def remove_id(self, infohash):
         @forceDBThread
-        def do_db(torrent_db, mypref_db, hash):
-            torrent_id = self.torrent_db.getTorrentID(hash)
-            if torrent_id:
-                self.mypref_db.deletePreference(torrent_id)
-
-            torrent_id = self.torrent_db.getTorrentIDRoot(hash)
+        def do_db(torrent_db, mypref_db, infohash):
+            torrent_id = self.torrent_db.getTorrentID(infohash)
             if torrent_id:
                 self.mypref_db.deletePreference(torrent_id)
 
@@ -342,19 +336,13 @@ class TriblerLaunchMany(Thread):
 
     def get_downloads(self):
         """ Called by any thread """
-        self.sesslock.acquire()
-        try:
+        with self.sesslock:
             return self.downloads.values()  # copy, is mutable
-        finally:
-            self.sesslock.release()
 
-    def get_download(self, hash):
+    def get_download(self, infohash):
         """ Called by any thread """
-        self.sesslock.acquire()
-        try:
-            return self.downloads.get(hash, None)
-        finally:
-            self.sesslock.release()
+        with self.sesslock:
+            return self.downloads.get(infohash, None)
 
     def download_exists(self, infohash):
         self.sesslock.acquire()
@@ -533,16 +521,14 @@ class TriblerLaunchMany(Thread):
             return None
 
     def resume_download(self, filename, initialdlstatus=None, initialdlstatus_dict={}, setupDelay=0):
-        tdef = sdef = dscfg = pstate = None
+        tdef = dscfg = pstate = None
 
         try:
             pstate = self.load_download_pstate(filename)
 
             # SWIFTPROC
             metainfo = pstate.get('state', 'metainfo')
-            if SwiftDef.is_swift_url(metainfo):
-                sdef = SwiftDef.load_from_url(metainfo)
-            elif 'infohash' in metainfo:
+            if 'infohash' in metainfo:
                 tdef = TorrentDefNoMetainfo(metainfo['infohash'], metainfo['name'], metainfo.get('url', None))
             else:
                 tdef = TorrentDef.load_from_dict(metainfo)
@@ -550,14 +536,6 @@ class TriblerLaunchMany(Thread):
             if pstate.has_option('downloadconfig', 'saveas') and \
                     isinstance(pstate.get('downloadconfig', 'saveas'), tuple):
                 pstate.set('downloadconfig', 'saveas', pstate.get('downloadconfig', 'saveas')[-1])
-
-            if pstate.get('downloadconfig', 'name'):
-                sdef.set_name(pstate.get('downloadconfig', 'name'))
-            if sdef and sdef.get_tracker().startswith("127.0.0.1:"):
-                current_port = int(sdef.get_tracker().split(":")[1])
-                if current_port != self.session.get_swift_dht_listen_port():
-                    self._logger.info("Modified SwiftDef to new tracker port")
-                    sdef.set_tracker("127.0.0.1:%d" % self.session.get_swift_dht_listen_port())
 
             dscfg = DownloadStartupConfig(pstate)
 
@@ -567,16 +545,11 @@ class TriblerLaunchMany(Thread):
             _, file = os.path.split(filename)
 
             infohash = binascii.unhexlify(file[:-6])
-            torrent = self.torrent_db.getTorrent(infohash, keys=['name', 'torrent_file_name', 'swift_torrent_hash'],
+            torrent = self.torrent_db.getTorrent(infohash, keys=['name', 'torrent_file_name'],
                                                  include_mypref=False)
             torrentfile = None
             if torrent:
                 torrent_dir = self.session.get_torrent_collecting_dir()
-
-                if torrent['swift_torrent_hash']:
-                    sdef = SwiftDef(torrent['swift_torrent_hash'])
-                    save_name = sdef.get_roothash_as_hex()
-                    torrentfile = os.path.join(torrent_dir, save_name)
 
                 if torrentfile and not os.path.isfile(torrentfile):
                     # normal torrentfile is not present, see if readable torrent is there
@@ -602,16 +575,12 @@ class TriblerLaunchMany(Thread):
         else:
             self._logger.debug("tlm: load_checkpoint: resumedata len %d", len(pstate.get('state', 'engineresumedata')))
 
-        if (tdef or sdef) and dscfg:
+        if tdef and dscfg:
             if dscfg.get_dest_dir() != '':  # removed torrent ignoring
                 try:
-                    if not self.download_exists((tdef or sdef).get_id()):
-                        if tdef:
-                            initialdlstatus = initialdlstatus_dict.get(tdef.get_id(), initialdlstatus)
-                            self.add(tdef, dscfg, pstate, initialdlstatus, setupDelay=setupDelay)
-                        else:
-                            initialdlstatus = initialdlstatus_dict.get(sdef.get_id(), initialdlstatus)
-                            self.swift_add(sdef, dscfg, pstate, initialdlstatus)
+                    if not self.download_exists(tdef.get_id()):
+                        initialdlstatus = initialdlstatus_dict.get(tdef.get_id(), initialdlstatus)
+                        self.add(tdef, dscfg, pstate, initialdlstatus, setupDelay=setupDelay)
                     else:
                         self._logger.info("tlm: not resuming checkpoint because download has already been added")
 
@@ -829,71 +798,6 @@ class TriblerLaunchMany(Thread):
         except Exception as e:
             print_exc()
             self.rawserver_nonfatalerrorfunc(e)
-
-    # SWIFTPROC
-    def swift_add(self, sdef, dscfg, pstate=None, initialdlstatus=None, hidden=False):
-        """ Called by any thread """
-        d = None
-        self.sesslock.acquire()
-        try:
-            if self.spm is None:
-                raise OperationNotEnabledByConfigurationException()
-
-            roothash = sdef.get_roothash()
-
-            # Check if running or saved on disk
-            if roothash in self.downloads:
-                raise DuplicateDownloadException()
-
-            from Tribler.Core.Swift.SwiftDownloadImpl import SwiftDownloadImpl
-            d = SwiftDownloadImpl(self.session, sdef)
-
-            # Store in list of Downloads, always.
-            self.downloads[roothash] = d
-            d.setup(dscfg, pstate, initialdlstatus, None)
-
-        finally:
-            self.sesslock.release()
-
-        @forceDBThread
-        def do_db(torrent_db, mypref_db, roothash, sdef, d):
-            torrent_id = torrent_db.addOrGetTorrentIDRoot(roothash, sdef.get_name())
-
-            # TODO: if user renamed the dest_path for single-file-torrent
-            dest_path = d.get_dest_dir()
-            data = {'destination_path': dest_path}
-            mypref_db.addMyPreference(torrent_id, data)
-
-        if d and not hidden and self.session.get_megacache():
-            do_db(self.torrent_db, self.mypref_db, roothash, sdef, d)
-
-        return d
-
-    def swift_remove(self, d, removecontent=False, removestate=True, hidden=False):
-        """ Called by any thread """
-        self.sesslock.acquire()
-        try:
-            # SWIFTPROC: remove before stop_remove, to ensure that content
-            # removal works (for torrents, stopping is delegate to network
-            # so all this code happens fast before actual removal. For swift not.
-            roothash = d.get_def().get_roothash()
-            if roothash in self.downloads:
-                del self.downloads[roothash]
-
-            d.stop_remove(True, removestate=removestate, removecontent=removecontent)
-
-        finally:
-            self.sesslock.release()
-
-        @forceDBThread
-        def do_db(torrent_db, my_prefdb, roothash):
-            torrent_id = self.torrent_db.getTorrentIDRoot(roothash)
-
-            if torrent_id:
-                self.mypref_db.deletePreference(torrent_id)
-
-        if not hidden and self.session.get_megacache():
-            do_db(self.torrent_db, self.mypref_db, roothash)
 
     def get_external_ip(self):
         """ Returns the external IP address of this Session, i.e., by which

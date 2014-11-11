@@ -14,7 +14,6 @@ from traceback import print_exc
 
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core import NoDispersyRLock
 
 try:
@@ -205,19 +204,11 @@ class TorrentChecking(Thread):
 
         # get trackers from its .torrent file
         result = None
-        torrent = self._torrentdb.getTorrent(infohash,
-                                             ['torrent_file_name', 'swift_torrent_hash'],
-                                             include_mypref=False)
+        torrent = self._torrentdb.getTorrent(infohash,  ['torrent_file_name'], include_mypref=False)
         if torrent:
             if torrent.get('torrent_file_name', False) and os.path.isfile(torrent['torrent_file_name']):
                 result = torrent['torrent_file_name']
 
-            elif torrent.get('swift_torrent_hash', False):
-                sdef = SwiftDef(torrent['swift_torrent_hash'])
-                torrent_filename = os.path.join(self._tor_col_dir, sdef.get_roothash_as_hex())
-
-                if os.path.isfile(torrent_filename):
-                    result = torrent_filename
         if result:
             try:
                 torrent = TorrentDef.load(result)

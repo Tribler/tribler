@@ -402,7 +402,7 @@ class TTLSearchCommunity(Community):
 
     def _get_results(self, keywords, bloomfilter, local):
         results = []
-        dbresults = self._torrent_db.searchNames(keywords, local=local, keys=['infohash', 'T.name', 'T.length', 'T.num_files', 'T.category_id', 'T.creation_date', 'T.num_seeders', 'T.num_leechers', 'swift_hash', 'swift_torrent_hash'])
+        dbresults = self._torrent_db.searchNames(keywords, local=local, keys=['infohash', 'T.name', 'T.length', 'T.num_files', 'T.category_id', 'T.creation_date', 'T.num_seeders', 'T.num_leechers'])
         if len(dbresults) > 0:
             for dbresult in dbresults:
                 if not (bloomfilter and dbresult[0] in bloomfilter):
@@ -416,10 +416,6 @@ class TTLSearchCommunity(Community):
                     dbresult[5] = long(dbresult[5])
                     dbresult[6] = int(dbresult[6] or 0)
                     dbresult[7] = int(dbresult[7] or 0)
-                    if dbresult[8]:
-                        dbresult[8] = str(dbresult[8])
-                    if dbresult[9]:
-                        dbresult[9] = str(dbresult[9])
 
                     if channel_details[1]:
                         channel_details[1] = str(channel_details[1])

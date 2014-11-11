@@ -409,11 +409,6 @@ class GUIUtility(object):
                 self.frame.top_bg.searchField.Clear()
                 self.ShowPage('my_files')
 
-        elif input.startswith(SWIFT_URL_SCHEME) or input.startswith("ppsp://"):
-            if self.frame.startDownloadFromSwift(str(input)):
-                self.frame.top_bg.searchField.Clear()
-                self.ShowPage('my_files')
-
         else:
             keywords = split_into_keywords(input)
             keywords = [keyword for keyword in keywords if len(keyword) > 1]

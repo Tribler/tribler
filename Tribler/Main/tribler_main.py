@@ -1055,8 +1055,6 @@ class ABCApp(object):
             def start_asked_download():
                 if torrentfilename.startswith("magnet:"):
                     self.frame.startDownloadFromMagnet(torrentfilename)
-                elif torrentfilename.startswith("tswift://") or torrentfilename.startswith("ppsp://"):
-                    self.frame.startDownloadFromSwift(torrentfilename)
                 else:
                     self.frame.startDownload(torrentfilename)
                 self.guiUtility.ShowPage('my_files')
@@ -1131,9 +1129,6 @@ class ABCApp(object):
                     shutil.move(specpn + '.mbinmap', metapath + '.mbinmap')
                 except:
                     print_exc()
-
-            # 4. Start Swift download via GUI Thread
-            wx.CallAfter(self.frame.startReseedSwiftDownload, tdef, storagepath, sdef)
 
             # 5. Call the callback to notify
             if callback:

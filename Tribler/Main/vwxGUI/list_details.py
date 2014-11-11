@@ -885,8 +885,6 @@ class TorrentDetails(AbstractDetails):
 
         if not curTorrent.exactCopy(newTorrent):
             # replace current torrent
-            curTorrent.swift_hash = newTorrent.swift_hash
-            curTorrent.swift_torrent_hash = newTorrent.swift_torrent_hash
             curTorrent.torrent_file_name = newTorrent.torrent_file_name
 
             curTorrent.name = newTorrent.name
@@ -1082,8 +1080,6 @@ class LibraryDetails(TorrentDetails):
     def getHashes(self):
         hashes = []
         if self.torrent:
-            if self.torrent.swift_hash:
-                hashes.append(self.torrent.swift_hash)
             if self.torrent.infohash:
                 hashes.append(self.torrent.infohash)
         return hashes
