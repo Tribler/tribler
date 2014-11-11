@@ -9,6 +9,10 @@ import socket
 import sys
 
 from Tribler.Core import NoDispersyRLock
+
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDb
+from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
+
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
 from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
@@ -93,6 +97,8 @@ class Session(SessionConfigInterface):
         set_and_create_dir(scfg.get_swift_meta_dir(), scfg.set_swift_meta_dir, os.path.join(scfg.get_state_dir(), STATEDIR_SWIFTRESEED_DIR))
         set_and_create_dir(scfg.get_peer_icon_path(), scfg.set_peer_icon_path, os.path.join(scfg.get_state_dir(), STATEDIR_PEERICON_DIR))
 
+        create_dir(os.path.join(scfg.get_state_dir(), u"sqlite"))
+
         create_dir(os.path.join(scfg.get_state_dir(), STATEDIR_DLPSTATE_DIR))
 
         if scfg.get_nickname() == '__default_name__':
@@ -160,6 +166,20 @@ class Session(SessionConfigInterface):
 
         # Checkpoint startup config
         self.save_pstate_sessconfig()
+
+        self.sqlite_db = None
+
+    def prestart(self):
+        """ Pre-starts the session. We check the currently version and upgrades if needed
+        before we start everything else.
+        """
+        # initialize the database
+        self.sqlite_db = SQLiteCacheDb(self)
+        self.sqlite_db.initialize()
+
+        # check and upgrade
+        upgrader = TriblerUpgrader(self.sqlite_db)
+        upgrader.check_and_upgrade()
 
     #
     # Class methods
