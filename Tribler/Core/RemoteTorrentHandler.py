@@ -178,7 +178,7 @@ class RemoteTorrentHandler(TaskManager):
             requester.add_request(infohash, candidate, timeout)
             self._logger.info(u"adding torrent request: %s %s %s", hexlify(infohash or ''), candidate, priority)
 
-    def get_torrent_name(self, infohash):
+    def get_torrent_filename(self, infohash):
         return u"%s.torrent" % hexlify(infohash)
 
     def has_torrent(self, infohash, callback):
@@ -209,7 +209,7 @@ class RemoteTorrentHandler(TaskManager):
     def _save_torrent(self, tdef, callback=None):
         # save torrent file to collected_torrent directory
         infohash = tdef.get_infohash()
-        des_file_path = os.path.join(self.tor_col_dir, self.get_torrent_name(infohash))
+        des_file_path = os.path.join(self.tor_col_dir, self.get_torrent_filename(infohash))
         tdef.save(des_file_path)
 
         @call_on_reactor_thread
@@ -301,7 +301,6 @@ class RemoteTorrentHandler(TaskManager):
                 callback(infohash)
 
     def notify_possible_torrent_infohash(self, infohash, torrent_file_name=None):
-        print >> sys.stderr, "%s , %s" % (infohash, self.torrent_callbacks)
         for key in self.torrent_callbacks:
             if key == infohash:
                 handle_lambda = lambda k = key, f = torrent_file_name: self._handleCallback(k, f)
@@ -479,12 +478,11 @@ class TorrentMessageRequester(Requester):
 
     def do_fetch(self, infohash, candidates):
         attempting_download = False
-        if self.remote_torrent_handler.searchcommunity:
-            self._logger.debug(u"requesting torrent message %s %s", hexlify(infohash), candidates)
+        self._logger.debug(u"requesting torrent message %s %s", hexlify(infohash), candidates)
 
-            for candidate in candidates:
-                self._create_search_community_torrent_request(infohash, candidate)
-                attempting_download = True
+        for candidate in candidates:
+            self._create_search_community_torrent_request(infohash, candidate)
+            attempting_download = True
 
         return attempting_download
 
@@ -558,7 +556,7 @@ class TftpRequester(Requester):
         if metadata_type:
             file_name = u"dir:" + self.remote_torrent_handler.get_metadata_dir(metadata_type, infohash)
         else:
-            file_name = self.remote_torrent_handler.get_torrent_name(infohash)
+            file_name = self.remote_torrent_handler.get_torrent_filename(infohash)
 
         self.session.lm.tftp_handler.download_file(file_name, ip, port, extra_info={'infohash': infohash},
                                                    success_callback=self._tftp_success_callback,
