@@ -23,7 +23,7 @@ from twisted.internet.task import LoopingCall
 
 from Notifier import Notifier
 from Tribler.Category.Category import Category
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDb, bin2str, str2bin
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.Search.SearchManager import split_into_keywords, filter_keywords
 from Tribler.Core.TorrentDef import TorrentDef
@@ -129,7 +129,7 @@ class MiscDBHandler(BasicDBHandler):
     def __init__(self):
         if MiscDBHandler._single:
             raise RuntimeError("MiscDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
+        db = SQLiteCacheDb.getInstance()
         BasicDBHandler.__init__(self, db, None)
 
         self.initialize()
@@ -208,7 +208,7 @@ class MetadataDBHandler(BasicDBHandler):
     def __init__(self):
         if MetadataDBHandler._single:
             raise RuntimeError("MetadataDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
+        db = SQLiteCacheDb.getInstance()
         BasicDBHandler.__init__(self, db, None)
         self.category = Category.getInstance()
         self.misc_db = MiscDBHandler.getInstance()
@@ -323,7 +323,7 @@ class PeerDBHandler(BasicDBHandler):
     def __init__(self):
         if PeerDBHandler._single:
             raise RuntimeError("PeerDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
+        db = SQLiteCacheDb.getInstance()
         BasicDBHandler.__init__(self, db, 'Peer')
 
         self.permid_id = LimitedOrderedDict(DEFAULT_ID_CACHE_SIZE)
@@ -462,7 +462,7 @@ class TorrentDBHandler(BasicDBHandler):
         if TorrentDBHandler._single is not None:
             raise RuntimeError("TorrentDBHandler is singleton")
 
-        db = SQLiteCacheDB.getInstance()
+        db = SQLiteCacheDb.getInstance()
         BasicDBHandler.__init__(self, db, 'Torrent')  # # self,db,torrent
 
         self.torrent_dir = None
@@ -1687,7 +1687,7 @@ class TorrentDBHandler(BasicDBHandler):
                 return 1
             return 0
 
-        cursor = self._db.getCursor()
+        cursor = self._db.get_cursor()
         connection = cursor.getconnection()
         connection.createcollation("leven", levcollate)
 
@@ -1714,7 +1714,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
     def __init__(self):
         if MyPreferenceDBHandler._single is not None:
             raise RuntimeError("MyPreferenceDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
+        db = SQLiteCacheDb.getInstance()
         BasicDBHandler.__init__(self, db, 'MyPreference')  # # self,db,'MyPreference'
 
         self.status_good = MiscDBHandler.getInstance().torrentStatusName2Id(u'good')
@@ -1872,7 +1872,7 @@ class VoteCastDBHandler(BasicDBHandler):
 
     def __init__(self):
         try:
-            db = SQLiteCacheDB.getInstance()
+            db = SQLiteCacheDb.getInstance()
             BasicDBHandler.__init__(self, db, 'VoteCast')
             self._logger.debug("votecast: DB made")
         except:
@@ -1994,7 +1994,7 @@ class ChannelCastDBHandler(BasicDBHandler):
 
     def __init__(self):
         try:
-            db = SQLiteCacheDB.getInstance()
+            db = SQLiteCacheDb.getInstance()
             BasicDBHandler.__init__(self, db, '_Channels')
             self._logger.debug("Channels: DB made")
         except:
@@ -2974,7 +2974,7 @@ class UserEventLogDBHandler(BasicDBHandler):
     def __init__(self):
         if UserEventLogDBHandler._single is not None:
             raise RuntimeError("UserEventLogDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
+        db = SQLiteCacheDb.getInstance()
         BasicDBHandler.__init__(self, db, 'UserEventLog')
 
         self.count = -1
@@ -3022,7 +3022,7 @@ class BundlerPreferenceDBHandler(BasicDBHandler):
     def __init__(self):
         if BundlerPreferenceDBHandler._single is not None:
             raise RuntimeError("BundlerPreferenceDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
+        db = SQLiteCacheDb.getInstance()
         BasicDBHandler.__init__(self, db, 'BundlerPreference')
 
     def storePreference(self, keywords, bundle_mode):
