@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # This must be done in the first python file that is started.
 #
 import urllib
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDb
 import shutil
 original_open_https = urllib.URLopener.open_https
 import M2Crypto  # Not a useless import! See above.
@@ -142,7 +142,7 @@ ALLOW_MULTIPLE = False
 #
 
 
-class ABCApp():
+class ABCApp(object):
 
     def __init__(self, params, installdir, is_unit_testing=False):
         assert not isInIOThread(), "isInIOThread() seems to not be working correctly"
@@ -177,7 +177,10 @@ class ABCApp():
         self.webUI = None
         self.utility = None
 
-        self.gui_image_manager = GuiImageManager.getInstance(installdir)
+        # Stage 1 start
+        session = self.InitStage1(installdir)
+
+        # Stage 2: show the splash window and start the session
         self.splash = None
         try:
             bm = self.gui_image_manager.getImage(u'splash.png')
@@ -189,7 +192,7 @@ class ABCApp():
             self._logger.info("Tribler is using %s as working directory", self.installdir)
 
             self.splash.tick('Starting API')
-            s = self.startAPI(self.splash.tick)
+            s = self.startAPI(session, self.splash.tick)
 
             self._logger.info("Tribler is expecting swift in %s", self.sconfig.get_swift_path())
 
@@ -344,6 +347,88 @@ class ABCApp():
 
             self.onError(e)
 
+    def InitStage1(self, installdir):
+        """ Stage 1 start: pre-start the session to handle upgrade.
+        """
+        self.gui_image_manager = GuiImageManager.getInstance(installdir)
+
+        # Start Tribler Session
+        defaultConfig = SessionStartupConfig()
+        state_dir = defaultConfig.get_state_dir()
+        if not state_dir:
+            state_dir = Session.get_default_state_dir()
+        cfgfilename = Session.get_default_config_filename(state_dir)
+
+        self._logger.debug(u"Session config %s", cfgfilename)
+        try:
+            self.sconfig = SessionStartupConfig.load(cfgfilename)
+        except:
+            try:
+                self.sconfig = convertSessionConfig(os.path.join(state_dir, 'sessconfig.pickle'), cfgfilename)
+                convertMainConfig(state_dir, os.path.join(state_dir, 'abc.conf'), os.path.join(state_dir, 'tribler.conf'))
+            except:
+                self.sconfig = SessionStartupConfig()
+                self.sconfig.set_state_dir(state_dir)
+
+        self.sconfig.set_install_dir(self.installdir)
+
+        self.sconfig.set_dispersy_tunnel_over_swift(True)
+
+        # Arno, 2010-03-31: Hard upgrade to 50000 torrents collected
+        self.sconfig.set_torrent_collecting_max_torrents(50000)
+
+        # Arno, 2012-05-21: Swift part II
+        swiftbinpath = os.path.join(self.sconfig.get_install_dir(), "swift")
+        if sys.platform == "darwin":
+            if not os.path.exists(swiftbinpath):
+                swiftbinpath = os.path.join(os.getcwdu(), "..", "MacOS", "swift")
+                self.sconfig.set_swift_path(swiftbinpath)
+
+        dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())
+        self._logger.debug("main: Download config %s", dlcfgfilename)
+        try:
+            defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
+        except:
+            try:
+                defaultDLConfig = convertDefaultDownloadConfig(os.path.join(state_dir, 'dlconfig.pickle'), dlcfgfilename)
+            except:
+                defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+
+        if not defaultDLConfig.get_dest_dir():
+            defaultDLConfig.set_dest_dir(get_default_dest_dir())
+        if not os.path.isdir(defaultDLConfig.get_dest_dir()):
+            try:
+                os.makedirs(defaultDLConfig.get_dest_dir())
+            except:
+                # Could not create directory, ask user to select a different location
+                dlg = wx.DirDialog(None, "Could not find download directory, please select a new location to store your downloads", style=wx.DEFAULT_DIALOG_STYLE)
+                dlg.SetPath(get_default_dest_dir())
+                if dlg.ShowModal() == wx.ID_OK:
+                    new_dest_dir = dlg.GetPath()
+                    defaultDLConfig.set_dest_dir(new_dest_dir)
+                    defaultDLConfig.save(dlcfgfilename)
+                    self.sconfig.set_torrent_collecting_dir(os.path.join(new_dest_dir, STATEDIR_TORRENTCOLL_DIR))
+                    self.sconfig.set_swift_meta_dir(os.path.join(new_dest_dir, STATEDIR_SWIFTRESEED_DIR))
+                    self.sconfig.save(cfgfilename)
+                else:
+                    # Quit
+                    self.onError = lambda e: self._logger.error("tribler: quitting due to non-existing destination directory")
+                    raise Exception()
+
+        # Setting torrent collection dir based on default download dir
+        if not self.sconfig.get_torrent_collecting_dir():
+            self.sconfig.set_torrent_collecting_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR))
+        if not self.sconfig.get_swift_meta_dir():
+            self.sconfig.set_swift_meta_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR))
+
+        session = Session(self.sconfig)
+
+        # check and upgrade
+        session.prestart()
+        TriblerUpgradeDialog()
+
+        return session
+
     def _frame_and_ready(self):
         return self.ready and self.frame and self.frame.ready
 
@@ -387,82 +472,7 @@ class ABCApp():
 
         startWorker(wx_thread, db_thread, delay=5.0)
 
-    def startAPI(self, progress):
-        # Start Tribler Session
-        defaultConfig = SessionStartupConfig()
-        state_dir = defaultConfig.get_state_dir()
-        if not state_dir:
-            state_dir = Session.get_default_state_dir()
-        cfgfilename = Session.get_default_config_filename(state_dir)
-
-        progress('Loading sessionconfig')
-        self._logger.debug("main: Session config %s", cfgfilename)
-        try:
-            self.sconfig = SessionStartupConfig.load(cfgfilename)
-        except:
-            try:
-                self.sconfig = convertSessionConfig(os.path.join(state_dir, 'sessconfig.pickle'), cfgfilename)
-                convertMainConfig(state_dir, os.path.join(state_dir, 'abc.conf'), os.path.join(state_dir, 'tribler.conf'))
-            except:
-                self.sconfig = SessionStartupConfig()
-                self.sconfig.set_state_dir(state_dir)
-
-        self.sconfig.set_install_dir(self.installdir)
-
-        self.sconfig.set_dispersy_tunnel_over_swift(True)
-
-        # Arno, 2010-03-31: Hard upgrade to 50000 torrents collected
-        self.sconfig.set_torrent_collecting_max_torrents(50000)
-
-        # Arno, 2012-05-21: Swift part II
-        swiftbinpath = os.path.join(self.sconfig.get_install_dir(), "swift")
-        if sys.platform == "darwin":
-            if not os.path.exists(swiftbinpath):
-                swiftbinpath = os.path.join(os.getcwdu(), "..", "MacOS", "swift")
-                self.sconfig.set_swift_path(swiftbinpath)
-
-        progress('Loading downloadconfig')
-        dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())
-        self._logger.debug("main: Download config %s", dlcfgfilename)
-        try:
-            defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
-        except:
-            try:
-                defaultDLConfig = convertDefaultDownloadConfig(os.path.join(state_dir, 'dlconfig.pickle'), dlcfgfilename)
-            except:
-                defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-
-        if not defaultDLConfig.get_dest_dir():
-            defaultDLConfig.set_dest_dir(get_default_dest_dir())
-        if not os.path.isdir(defaultDLConfig.get_dest_dir()):
-            try:
-                os.makedirs(defaultDLConfig.get_dest_dir())
-            except:
-                # Could not create directory, ask user to select a different location
-                dlg = wx.DirDialog(None, "Could not find download directory, please select a new location to store your downloads", style=wx.DEFAULT_DIALOG_STYLE)
-                dlg.SetPath(get_default_dest_dir())
-                if dlg.ShowModal() == wx.ID_OK:
-                    new_dest_dir = dlg.GetPath()
-                    defaultDLConfig.set_dest_dir(new_dest_dir)
-                    defaultDLConfig.save(dlcfgfilename)
-                    self.sconfig.set_torrent_collecting_dir(os.path.join(new_dest_dir, STATEDIR_TORRENTCOLL_DIR))
-                    self.sconfig.set_swift_meta_dir(os.path.join(new_dest_dir, STATEDIR_SWIFTRESEED_DIR))
-                    self.sconfig.save(cfgfilename)
-                else:
-                    # Quit
-                    self.onError = lambda e: self._logger.error("tribler: quitting due to non-existing destination directory")
-                    raise Exception()
-
-        # Setting torrent collection dir based on default download dir
-        if not self.sconfig.get_torrent_collecting_dir():
-            self.sconfig.set_torrent_collecting_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR))
-        if not self.sconfig.get_swift_meta_dir():
-            self.sconfig.set_swift_meta_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR))
-
-
-        progress('Creating session/Checking database (may take a minute)')
-        session = Session(self.sconfig)
-
+    def startAPI(self, session, progress):
         @call_on_reactor_thread
         def define_communities(*args):
             assert isInIOThread()
@@ -992,9 +1002,9 @@ class ABCApp():
         DefaultDownloadStartupConfig.delInstance()
         GuiImageManager.delInstance()
 
-        if SQLiteCacheDB.hasInstance():
-            SQLiteCacheDB.getInstance().close_all()
-            SQLiteCacheDB.delInstance()
+        if SQLiteCacheDb.hasInstance():
+            SQLiteCacheDb.getInstance().close_all()
+            SQLiteCacheDb.delInstance()
 
         return 0
 
