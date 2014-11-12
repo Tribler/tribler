@@ -6,7 +6,6 @@ import copy
 import logging
 import os
 import socket
-import sys
 
 from Tribler.Core import NoDispersyRLock
 
@@ -19,9 +18,9 @@ from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupCon
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException
 from Tribler.Core.osutils import get_appstate_dir, is_android
 from Tribler.Core.simpledefs import (STATEDIR_TORRENTCOLL_DIR, STATEDIR_PEERICON_DIR, STATEDIR_DLPSTATE_DIR,
-                                     STATEDIR_SESSCONFIG, NTFY_MISC, NTFY_PEERS,
+                                     STATEDIR_SESSCONFIG, NTFY_MISC, NTFY_PEERS, NTFY_BUNDLERPREFERENCE,
                                      NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_UPDATE,
-                                     NTFY_INSERT, NTFY_DELETE, NTFY_METADATA)
+                                     NTFY_USEREVENTLOG, NTFY_INSERT, NTFY_DELETE, NTFY_METADATA)
 
 GOTM2CRYPTO = False
 try:
@@ -157,10 +156,12 @@ class Session(SessionConfigInterface):
         # initialize the database
         self.sqlite_db = SQLiteCacheDb(self)
         self.sqlite_db.initialize()
+        self.sqlite_db.initial_begin()
 
         # check and upgrade
         upgrader = TriblerUpgrader(self, self.sqlite_db)
         upgrader.check_and_upgrade()
+        return upgrader
 
     #
     # Class methods
@@ -409,26 +410,27 @@ class Session(SessionConfigInterface):
             raise OperationNotEnabledByConfigurationException()
 
         # Called by any thread
-        self.sesslock.acquire()
-        try:
-            if subject == NTFY_MISC:
-                return self.lm.misc_db
-            elif subject == NTFY_METADATA:
-                return self.lm.metadata_db
-            elif subject == NTFY_PEERS:
-                return self.lm.peer_db
-            elif subject == NTFY_TORRENTS:
-                return self.lm.torrent_db
-            elif subject == NTFY_MYPREFERENCES:
-                return self.lm.mypref_db
-            elif subject == NTFY_VOTECAST:
-                return self.lm.votecast_db
-            elif subject == NTFY_CHANNELCAST:
-                return self.lm.channelcast_db
-            else:
-                raise ValueError('Cannot open DB subject: ' + subject)
-        finally:
-            self.sesslock.release()
+        #with self.sesslock:
+        if subject == NTFY_MISC:
+            return self.lm.misc_db
+        elif subject == NTFY_METADATA:
+            return self.lm.metadata_db
+        elif subject == NTFY_PEERS:
+            return self.lm.peer_db
+        elif subject == NTFY_TORRENTS:
+            return self.lm.torrent_db
+        elif subject == NTFY_MYPREFERENCES:
+            return self.lm.mypref_db
+        elif subject == NTFY_VOTECAST:
+            return self.lm.votecast_db
+        elif subject == NTFY_CHANNELCAST:
+            return self.lm.channelcast_db
+        elif subject == NTFY_USEREVENTLOG:
+            return self.lm.ue_db
+        elif subject == NTFY_BUNDLERPREFERENCE:
+            return self.lm.bundlerpref_db
+        else:
+            raise ValueError(u"Cannot open DB subject: %s" % subject)
 
     def close_dbhandler(self, dbhandler):
         """ Closes the given database connection """
@@ -476,6 +478,8 @@ class Session(SessionConfigInterface):
         # Arno, 2010-08-09: now shutdown after gracetime
         self.uch.shutdown()
 
+        self.sqlite_db.close()
+
     def has_shutdown(self):
         """ Whether the Session has completely shutdown, i.e., its internal
         threads are finished and it is safe to quit the process the Session
@@ -509,7 +513,7 @@ class Session(SessionConfigInterface):
         if not self.lm.rtorrent_handler:
             raise OperationNotEnabledByConfigurationException()
 
-        self.lm.rtorrent_handler.download_torrent(None, infohash, usercallback, prio)
+        self.lm.rtorrent_handler.download_torrent(None, infohash, user_callback=usercallback, priority=prio)
 
     def download_torrentfile_from_peer(self, candidate, infohash=None, usercallback=None, prio=0):
         """ Ask the designated peer to send us the torrentfile for the torrent
@@ -527,7 +531,7 @@ class Session(SessionConfigInterface):
         if not self.lm.rtorrent_handler:
             raise OperationNotEnabledByConfigurationException()
 
-        self.lm.rtorrent_handler.download_torrent(candidate, infohash, usercallback, prio)
+        self.lm.rtorrent_handler.download_torrent(candidate, infohash, user_callback=usercallback, priority=prio)
 
     def download_torrentmessage_from_peer(self, candidate, infohash, usercallback, prio=0):
         """ Ask the designated peer to send us the torrentmessage for the torrent

@@ -29,13 +29,15 @@ DEFAULT_BUSY_TIMEOUT = 10000
 
 TRHEADING_DEBUG = False
 
+forceDBThread = call_on_reactor_thread
+forceAndReturnDBThread = blocking_call_on_reactor_thread
+
 
 class CorruptedDatabaseError(Exception):
     pass
 
 
 def bin2str(bin_data):
-    # Full BASE64-encoded
     return encodestring(bin_data).replace("\n", "")
 
 
@@ -43,10 +45,10 @@ def str2bin(str_data):
     return decodestring(str_data)
 
 
-class SQLiteDbBase(TaskManager):
+class SQLiteCacheDb(TaskManager):
 
     def __init__(self, session, busytimeout=DEFAULT_BUSY_TIMEOUT):
-        super(SQLiteDbBase, self).__init__()
+        super(SQLiteCacheDb, self).__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -60,13 +62,15 @@ class SQLiteDbBase(TaskManager):
 
         self._version = None
 
-        self.show_execute = False
+        self._should_commit = False
+        self._show_execute = False
 
     @property
     def version(self):
         """The version of this database."""
         return self._version
 
+    @blocking_call_on_reactor_thread
     def initialize(self, db_path=None):
         """ Initializes the database. If the database doesn't exist, we create a new one. Otherwise, we check the
             version and upgrade to the latest version.
@@ -79,6 +83,15 @@ class SQLiteDbBase(TaskManager):
 
         # open a connection to the database
         self._open_connection(sqlite_db_path, sql_script_path)
+
+    def close(self):
+        self.cancel_all_pending_tasks()
+        with self._cursor_lock:
+            for thread_name, cursor in self._cursor_table.iteritems():
+                cursor.close()
+            self._cursor_table = None
+            self._connection.close()
+            self._connection = None
 
     def _open_connection(self, db_path, sql_script_path):
         """ Opens a connection to the database. If the database doesn't exist, we create a new one and run the
@@ -161,6 +174,7 @@ class SQLiteDbBase(TaskManager):
         try:
             version_str, = cursor.execute(u"SELECT value FROM MyInfo WHERE entry == 'version'").next()
             self._version = int(version_str)
+            self._logger.info(u"Current database version is %s", self._version)
         except (StopIteration, SQLError) as e:
             msg = u"Failed to load database version: %s" % e
             raise CorruptedDatabaseError(msg)
@@ -173,32 +187,73 @@ class SQLiteDbBase(TaskManager):
                 self._cursor_table[thread_name] = self._connection.cursor()
             return self._cursor_table[thread_name]
 
-    def close_all(self):
-        with self._cursor_lock:
-            for thread_name, cursor in self._cursor_table.iteritems():
-                cursor.close()
-            self._cursor_table = None
-            self._connection.close()
-            self._connection = None
+    @blocking_call_on_reactor_thread
+    def initial_begin(self):
+        try:
+            self._logger.info(u"Beginning the first transaction...")
+            self.execute(u"BEGIN;")
 
-    def write_db_version(self, version):
+        except:
+            self._logger.exception(u"Failed to begin the first transaction")
+            raise
+        self._should_commit = False
+
+    @blocking_call_on_reactor_thread
+    def write_version(self, version):
         assert isinstance(version, int), u"Invalid version type: %s is not int" % type(version)
         assert version <= LATEST_DB_VERSION, u"Invalid version value: %s > the latest %s" % (version, LATEST_DB_VERSION)
 
         sql = u"UPDATE MyInfo SET value = ? WHERE entry == 'version'"
         self.execute_write(sql, (version,))
+        self.commit_now()
         self._version = version
 
-    def show_sql(self, switch):
-        # temporary show the sql executed
-        self.show_execute = switch
+    @call_on_reactor_thread
+    def commit_now(self, vacuum=False, exiting=False):
+        if self._should_commit and isInIOThread():
+            try:
+                self._logger.info(u"Start committing...")
+                self.execute(u"COMMIT;")
+            except:
+                self._logger.exception(u"COMMIT FAILED")
+                raise
+            self._should_commit = False
+
+            if vacuum:
+                self._logger.info(u"Start vacuuming...")
+                self.execute(u"VACUUM;")
+
+            if not exiting:
+                try:
+                    self._logger.info(u"Beginning another transaction...")
+                    self.execute(u"BEGIN;")
+                except:
+                    self._logger.exception(u"Failed to execute BEGIN")
+                    raise
+            else:
+                self._logger.info(u"Exiting, not beginning another transaction")
+
+        elif vacuum:
+            self.execute(u"VACUUM;")
+
+    def clean_db(self, vacuum=False, exiting=False):
+        self.execute_write(u"DELETE FROM TorrentFiles WHERE torrent_id IN (SELECT torrent_id FROM CollectedTorrent)")
+        self.execute_write(u"DELETE FROM Torrent WHERE name IS NULL"
+                           u" AND torrent_id NOT IN (SELECT torrent_id FROM _ChannelTorrents)")
+
+        if vacuum:
+            self.commit_now(vacuum, exiting=exiting)
+
+    def set_show_sql(self, switch):
+        self._show_execute = switch
 
     # --------- generic functions -------------
 
-    def _execute(self, sql, args=None):
+    @blocking_call_on_reactor_thread
+    def execute(self, sql, args=None):
         cur = self.get_cursor()
 
-        if self.show_execute:
+        if self._show_execute:
             thread_name = currentThread().getName()
             self._logger.info(u"===%s===\n%s\n-----\n%s\n======\n", thread_name, sql, args)
 
@@ -214,37 +269,41 @@ class SQLiteDbBase(TaskManager):
 
             else:
                 thread_name = currentThread().getName()
-                self._logger.exception(u"cachedb: ===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n", thread_name, type(sql), sql, args)
+                self._logger.exception(u"cachedb: ===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n",
+                                       thread_name, type(sql), sql, args)
 
             raise msg
 
+    @blocking_call_on_reactor_thread
     def executemany(self, sql, args=None):
-        cur = self.get_cursor()
+        self._should_commit = True
 
-        if self.show_execute:
+        cur = self.get_cursor()
+        if self._show_execute:
             thread_name = currentThread().getName()
-            self._logger.info(u'===%s===\n%s\n-----\n%s\n======\n', thread_name, sql, args)
+            self._logger.info(u"===%s===\n%s\n-----\n%s\n======\n", thread_name, sql, args)
 
         try:
             if args is None:
-                return cur.executemany(sql)
+                result = cur.executemany(sql)
             else:
-                return cur.executemany(sql, args)
+                result = cur.executemany(sql, args)
+
+            return result
 
         except Exception as msg:
-            if str(msg).startswith(u"BusyError"):
-                self._logger.error(u"cachedb: busylock error")
-            else:
-                thread_name = currentThread().getName()
-                self._logger.exception(u'===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n', thread_name, type(sql), sql, args)
-
+            thread_name = currentThread().getName()
+            self._logger.exception(u"===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n",
+                                   thread_name, type(sql), sql, args)
             raise msg
 
     def execute_read(self, sql, args=None):
-        return self._execute(sql, args)
+        return self.execute(sql, args)
 
     def execute_write(self, sql, args=None):
-        self._execute(sql, args)
+        self._should_commit = True
+
+        self.execute(sql, args)
 
     def insert_or_ignore(self, table_name, **argv):
         if len(argv) == 1:
@@ -287,7 +346,7 @@ class SQLiteDbBase(TaskManager):
                     arg.append(v)
             sql = sql[:-1]
             if where is not None:
-                sql += u' where %s' % where
+                sql += u' WHERE %s' % where
             self.execute_write(sql, arg)
 
     def delete(self, table_name, **argv):
@@ -309,6 +368,7 @@ class SQLiteDbBase(TaskManager):
         result = self.fetchone(num_rec_sql)
         return result
 
+    @blocking_call_on_reactor_thread
     def fetchone(self, sql, args=None):
         find = self.execute_read(sql, args)
         if not find:
@@ -326,6 +386,7 @@ class SQLiteDbBase(TaskManager):
         else:
             return find[0]
 
+    @blocking_call_on_reactor_thread
     def fetchall(self, sql, args=None):
         res = self.execute_read(sql, args)
         if res is not None:
@@ -337,7 +398,6 @@ class SQLiteDbBase(TaskManager):
     def getOne(self, table_name, value_name, where=None, conj=u"AND", **kw):
         """ value_name could be a string, a tuple of strings, or '*'
         """
-
         if isinstance(value_name, tuple):
             value_names = u",".join(value_name)
         elif isinstance(value_name, list):
@@ -352,10 +412,10 @@ class SQLiteDbBase(TaskManager):
         else:
             table_names = table_name
 
-        sql = u'select %s from %s' % (value_names, table_names)
+        sql = u'SELECT %s FROM %s' % (value_names, table_names)
 
         if where or kw:
-            sql += u' where '
+            sql += u' WHERE '
         if where:
             sql += where
             if kw:
@@ -378,7 +438,8 @@ class SQLiteDbBase(TaskManager):
         # print >> sys.stderr, 'SQL: %s %s' % (sql, arg)
         return self.fetchone(sql, arg)
 
-    def getAll(self, table_name, value_name, where=None, group_by=None, having=None, order_by=None, limit=None, offset=None, conj=u"AND", **kw):
+    def getAll(self, table_name, value_name, where=None, group_by=None, having=None, order_by=None, limit=None,
+               offset=None, conj=u"AND", **kw):
         """ value_name could be a string, or a tuple of strings
             order by is represented as order_by
             group by is represented as group_by
@@ -397,10 +458,10 @@ class SQLiteDbBase(TaskManager):
         else:
             table_names = table_name
 
-        sql = u'select %s from %s' % (value_names, table_names)
+        sql = u'SELECT %s FROM %s' % (value_names, table_names)
 
         if where or kw:
-            sql += u' where '
+            sql += u' WHERE '
         if where:
             sql += where
             if kw:
@@ -412,7 +473,7 @@ class SQLiteDbBase(TaskManager):
                     operator = v[0]
                     arg.append(v[1])
                 else:
-                    operator = "="
+                    operator = u"="
                     arg.append(v)
 
                 sql += u' %s %s ?' % (k, operator)
@@ -422,140 +483,19 @@ class SQLiteDbBase(TaskManager):
             arg = None
 
         if group_by is not None:
-            sql += u' group by ' + group_by
+            sql += u' GROUP BY ' + group_by
         if having is not None:
-            sql += u' having ' + having
+            sql += u' HAVING ' + having
         if order_by is not None:
-            sql += u' order by ' + order_by  # you should add desc after order_by to reversely sort, i.e, 'last_seen desc' as order_by
+            # you should add desc after order_by to reversely sort, i.e, 'last_seen desc' as order_by
+            sql += u' ORDER BY ' + order_by
         if limit is not None:
-            sql += u' limit %d' % limit
+            sql += u' LIMIT %d' % limit
         if offset is not None:
-            sql += u' offset %d' % offset
+            sql += u' OFFSET %d' % offset
 
         try:
             return self.fetchall(sql, arg) or []
         except Exception as msg:
             self._logger.exception(u"Wrong getAll sql statement: %s", sql)
             raise Exception(msg)
-
-
-forceDBThread = call_on_reactor_thread
-forceAndReturnDBThread = blocking_call_on_reactor_thread
-
-
-class SQLiteCacheDb(SQLiteDbBase):
-
-    def __init__(self, *args, **kargs):
-        super(SQLiteCacheDb, self).__init__(*args, **kargs)
-        self._should_commit = False
-
-    @blocking_call_on_reactor_thread
-    def initial_begin(self):
-        try:
-            self._logger.info(u"Beginning the first transaction...")
-            self._execute(u"BEGIN;")
-
-        except:
-            self._logger.exception(u"Failed to begin the first transaction")
-            raise
-        self._should_commit = False
-
-    @call_on_reactor_thread
-    def commit_now(self, vacuum=False, exiting=False):
-        if self._should_commit and isInIOThread():
-            try:
-                self._logger.info(u"Start committing...")
-                self._execute(u"COMMIT;")
-            except:
-                self._logger.exception(u"COMMIT FAILED")
-                raise
-            self._should_commit = False
-
-            if vacuum:
-                self._logger.info(u"Start vacuuming...")
-                self._execute(u"VACUUM;")
-
-            if not exiting:
-                try:
-                    self._logger.info(u"Beginning another transaction...")
-                    self._execute(u"BEGIN;")
-                except:
-                    self._logger.exception(u"Failed to execute BEGIN")
-                    raise
-            else:
-                self._logger.info(u"Exiting, not beginning another transaction")
-
-        elif vacuum:
-            self._execute(u"VACUUM;")
-
-    @blocking_call_on_reactor_thread
-    def execute_write(self, sql, args=None):
-        self._should_commit = True
-
-        self._execute(sql, args)
-
-    @blocking_call_on_reactor_thread
-    def executemany(self, sql, args):
-        self._should_commit = True
-
-        return self._executemany(sql, args)
-
-    def clean_db(self, vacuum=False, exiting=False):
-        self.execute_write(u"DELETE FROM TorrentFiles WHERE torrent_id IN (SELECT torrent_id FROM CollectedTorrent)")
-        self.execute_write(u"DELETE FROM Torrent WHERE name IS NULL"
-                           u" AND torrent_id NOT IN (SELECT torrent_id FROM _ChannelTorrents)")
-
-        if vacuum:
-            self.commitNow(vacuum, exiting=exiting)
-
-    @blocking_call_on_reactor_thread
-    def fetchone(self, sql, args=None):
-        return super(SQLiteCacheDb, self).fetchone(sql, args)
-
-    @blocking_call_on_reactor_thread
-    def fetchall(self, sql, args=None):
-        return super(SQLiteCacheDb, self).fetchall(sql, args)
-
-    @blocking_call_on_reactor_thread
-    def _execute(self, sql, args=None):
-        cur = self.get_cursor()
-
-        if self.show_execute:
-            thread_name = currentThread().getName()
-            self._logger.info(u"===%s===\n%s\n-----\n%s\n======\n", thread_name, sql, args)
-
-        try:
-            if args is None:
-                result = cur.execute(sql)
-            else:
-                result = cur.execute(sql, args)
-
-            return result
-
-        except Exception as msg:
-            thread_name = currentThread().getName()
-            self._logger.exception(u"===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n",
-                                   thread_name, type(sql), sql, args)
-            raise msg
-
-    @blocking_call_on_reactor_thread
-    def _executemany(self, sql, args=None):
-        cur = self.get_cursor()
-
-        if self.show_execute:
-            thread_name = currentThread().getName()
-            self._logger.info(u"===%s===\n%s\n-----\n%s\n======\n", thread_name, sql, args)
-
-        try:
-            if args is None:
-                result = cur.executemany(sql)
-            else:
-                result = cur.executemany(sql, args)
-
-            return result
-
-        except Exception as msg:
-            thread_name = currentThread().getName()
-            self._logger.exception(u"===%s===\nSQL Type: %s\n-----\n%s\n-----\n%s\n======\n",
-                                   thread_name, type(sql), sql, args)
-            raise msg

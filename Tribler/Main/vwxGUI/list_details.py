@@ -12,13 +12,11 @@ import tempfile
 import shutil
 
 from Tribler.Core.osutils import startfile
-from Tribler.Core.simpledefs import DLSTATUS_ALLOCATING_DISKSPACE, \
-    DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, \
-    DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, \
-    DLSTATUS_METADATA, UPLOAD, DOWNLOAD, NTFY_TORRENTS, \
-    NTFY_VIDEO_ENDED, DLMODE_VOD
+from Tribler.Core.simpledefs import (DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING,
+                                     DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
+                                     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_METADATA, UPLOAD, DOWNLOAD, NTFY_TORRENTS,
+                                     NTFY_USEREVENTLOG, NTFY_VIDEO_ENDED, DLMODE_VOD)
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.Video.VideoUtility import limit_resolution
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
@@ -26,19 +24,16 @@ from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 
 from Tribler.community.channel.community import ChannelCommunity
 
-from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, \
-    CollectedTorrent, Channel, Playlist
-from Tribler.Main.vwxGUI import warnWxThread, forceWxThread, startWorker, \
-    GRADIENT_LGREY, GRADIENT_DGREY, THUMBNAIL_FILETYPES, GUI_PRI_DISPERSY, \
-    DEFAULT_BACKGROUND, FILTER_GREY, SEPARATOR_GREY, DOWNLOADING_COLOUR, \
-    SEEDING_COLOUR, TRIBLER_RED, LIST_LIGHTBLUE, format_time
+from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, Channel, Playlist
+from Tribler.Main.vwxGUI import (warnWxThread, forceWxThread, startWorker, GRADIENT_LGREY, GRADIENT_DGREY,
+                                 THUMBNAIL_FILETYPES, GUI_PRI_DISPERSY, DEFAULT_BACKGROUND, FILTER_GREY, SEPARATOR_GREY,
+                                 DOWNLOADING_COLOUR, SEEDING_COLOUR, TRIBLER_RED, LIST_LIGHTBLUE, format_time)
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.vwxGUI.widgets import LinkStaticText, EditText, \
-    SelectableListCtrl, _set_font, BetterText as StaticText, \
-    MaxBetterText, NotebookPanel, SimpleNotebook, ProgressButton, \
-    FancyPanel, TransparentText, LinkText, StaticBitmaps, \
-    TransparentStaticBitmap, Graph, ProgressBar
+from Tribler.Main.vwxGUI.widgets import (LinkStaticText, EditText, SelectableListCtrl, _set_font,
+                                         BetterText as StaticText, MaxBetterText, NotebookPanel, SimpleNotebook,
+                                         ProgressButton, FancyPanel, TransparentText, LinkText, StaticBitmaps,
+                                         TransparentStaticBitmap, Graph, ProgressBar)
 
 from Tribler.Main.Utility.utility import eta_value, size_format, speed_format
 
@@ -134,10 +129,10 @@ class TorrentDetails(AbstractDetails):
 
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
-        self.uelog = UserEventLogDBHandler.getInstance()
+        self.uelog = self.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
 
         self.parent = parent
-        self.torrent = Torrent('0', '0', '0', '0', '', '', 0, 0, 0, 0, 0, None)
+        self.torrent = Torrent('0', '0', '', '', 0, 0, 0, 0, 0, None)
         self.state = -1
         self.timeouttimer = None
 
@@ -1450,6 +1445,7 @@ class LibraryDetails(TorrentDetails):
         TorrentDetails.__del__(self)
         self.guiutility.library_manager.set_want_peers(self.getHashes(), enable=False)
 
+
 class ChannelDetails(AbstractDetails):
 
     def __init__(self, parent):
@@ -1458,7 +1454,7 @@ class ChannelDetails(AbstractDetails):
 
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
-        self.uelog = UserEventLogDBHandler.getInstance()
+        self.uelog = self.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
 
         self.parent = parent
         self.channel = None
@@ -1548,7 +1544,7 @@ class PlaylistDetails(AbstractDetails):
 
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
-        self.uelog = UserEventLogDBHandler.getInstance()
+        self.uelog = self.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
 
         self.parent = parent
         self.playlist = None
@@ -1696,7 +1692,7 @@ class AbstractInfoPanel(FancyPanel):
 
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
-        self.uelog = UserEventLogDBHandler.getInstance()
+        self.uelog = self.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
 
         self.parent = parent
         self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)

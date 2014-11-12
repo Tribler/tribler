@@ -4,8 +4,6 @@
 # Note for Developers: Please write a unittest in Tribler/Test/test_sqlitecachedbhandler.py
 # for any function you add to database.
 # Please reuse the functions in sqlitecachedb as much as possible
-import binascii
-import sys
 import logging
 import os
 import threading
@@ -14,31 +12,23 @@ from binascii import hexlify
 from copy import deepcopy
 from random import sample
 from struct import unpack_from
-from threading import RLock, Lock
+from threading import Lock
 from time import time
 from traceback import print_exc
+from collections import OrderedDict
 
 from twisted.internet.task import LoopingCall
 
-from Notifier import Notifier
-from Tribler.Category.Category import Category
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDb, bin2str, str2bin
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+from Tribler.Core.CacheDB.Notifier import Notifier
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.Search.SearchManager import split_into_keywords, filter_keywords
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.simpledefs import (INFOHASH_LENGTH, NTFY_PEERS, NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_CREATE,
                                      NTFY_MODIFIED, NTFY_TRACKERINFO, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_TORRENTS,
-                                     NTFY_CHANNELCAST, NTFY_COMMENTS, NTFY_PLAYLISTS, NTFY_MODIFICATIONS,
+                                     NTFY_CHANNELCAST, NTFY_COMMENTS, NTFY_PLAYLISTS, NTFY_MODIFICATIONS, NTFY_MISC,
                                      NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_STATE)
 from Tribler.dispersy.taskmanager import TaskManager
-
-
-try:
-    # python 2.7 only...
-    from collections import OrderedDict
-except ImportError:
-    from Tribler.dispersy.python27_ordereddict import OrderedDict
 
 try:
     WindowsError
@@ -73,44 +63,24 @@ class LimitedOrderedDict(OrderedDict):
 
 
 class BasicDBHandler(TaskManager):
-    _singleton_lock = RLock()
-    _single = None
 
-    def __init__(self, db, table_name):
+    def __init__(self, session, table_name):
         super(BasicDBHandler, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self._db = db
+        self.session = session
+        self._db = self.session.sqlite_db
         self.table_name = table_name
         self.notifier = Notifier.getInstance()
 
-    @classmethod
-    def getInstance(cls, *args, **kargs):
-        with cls._singleton_lock:
-            if not cls._single:
-                cls._single = cls(*args, **kargs)
-            return cls._single
-
-    @classmethod
-    def delInstance(cls):
-        with cls._singleton_lock:
-            if cls._single:
-                # cancel all pending tasks
-                cls._single.cancel_all_pending_tasks()
-                cls._single = None
-
-    @classmethod
-    def hasInstance(cls):
-        return cls._single is not None
+    def initialize(self, *args, **kwargs):
+        """
+        Initializes this DBHandler.
+        """
+        pass
 
     def close(self):
         self.cancel_all_pending_tasks()
-
-        try:
-            self._db.close()
-        except:
-            if SHOW_ERROR:
-                print_exc()
 
     def size(self):
         return self._db.size(self.table_name)
@@ -124,11 +94,8 @@ class BasicDBHandler(TaskManager):
 
 class MiscDBHandler(BasicDBHandler):
 
-    def __init__(self, db):
-        if MiscDBHandler._single:
-            raise RuntimeError(u"MiscDBHandler is singleton")
-
-        super(MiscDBHandler, self).__init__(db, None)
+    def __init__(self, session):
+        super(MiscDBHandler, self).__init__(session, None)
 
         self._torrent_status_name2id_dict = None
         self._torrent_status_id2name_dict = None
@@ -137,9 +104,7 @@ class MiscDBHandler(BasicDBHandler):
         self._torrent_source_name2id_dict = None
         self._torrent_source_id2name_dict = None
 
-        self.initialize()
-
-    def initialize(self):
+    def initialize(self, *args, **kwargs):
         # initialize TorrentStatus name-ID tables
         self._torrent_status_name2id_dict = {u'unknown': 0, u'good': 1, u'dead': 2}
         sql = u'SELECT LOWER(name), status_id FROM TorrentStatus'
@@ -148,7 +113,7 @@ class MiscDBHandler(BasicDBHandler):
 
         self._torrent_status_id2name_dict = \
             dict([(x, y) for (y, x) in self._torrent_status_name2id_dict.iteritems()])
-        self._torrent_status_id2name_dict[None] = 'unknown'
+        self._torrent_status_id2name_dict[None] = u"unknown"
 
         # initialize Category name-ID tables
         self._category_name2id_dict = {u'Video': 1, u'VideoClips': 2, u'Audio': 3, u'Compressed': 4, u'Document': 5,
@@ -200,7 +165,7 @@ class MiscDBHandler(BasicDBHandler):
 
     def _addSource(self, source):
         desc = u''
-        if source.startswith('http') and source.endswith('xml'):
+        if source.startswith(u"http") and source.endswith(u"xml"):
             desc = u'RSS'
         self._db.insert(u'TorrentSource', name=source, description=desc)
         source_id = self._db.getOne(u'TorrentSource', u'source_id', name=source)
@@ -209,15 +174,23 @@ class MiscDBHandler(BasicDBHandler):
 
 class MetadataDBHandler(BasicDBHandler):
 
-    def __init__(self, db):
-        if MetadataDBHandler._single:
-            raise RuntimeError("MetadataDBHandler is singleton")
+    def __init__(self, session):
+        super(MetadataDBHandler, self).__init__(session, None)
 
-        super(MetadataDBHandler, self).__init__(db, None)
+        self.category = None
+        self.misc_db = None
+        self.torrent_db = None
 
-        self.category = Category.getInstance()
-        self.misc_db = MiscDBHandler.getInstance()
-        self.torrent_db = TorrentDBHandler.getInstance()
+    def initialize(self, *args, **kwargs):
+        self.category = self.session.lm.cat
+        self.misc_db = self.session.open_dbhandler(NTFY_MISC)
+        self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+
+    def close(self):
+        super(MetadataDBHandler, self).close()
+        self.category = None
+        self.misc_db = None
+        self.torrent_db = None
 
     def getMetadataMessageList(self, infohash, roothash, columns):
         """
@@ -227,8 +200,8 @@ class MetadataDBHandler(BasicDBHandler):
         infohash_str = bin2str(infohash) if infohash else None
         roothash_str = bin2str(roothash) if roothash else None
 
-        column_str = ",".join(columns)
-        sql = "SELECT %s FROM MetadataMessage WHERE infohash = ? OR roothash = ?" % column_str
+        column_str = u",".join(columns)
+        sql = u"SELECT %s FROM MetadataMessage WHERE infohash = ? OR roothash = ?" % column_str
         raw_result_list = self._db.fetchall(sql, (infohash_str, roothash_str))
 
         processed_result_list = []
@@ -266,7 +239,7 @@ class MetadataDBHandler(BasicDBHandler):
         infohash_str = bin2str(infohash) if infohash else None
         roothash_str = bin2str(roothash) if roothash else None
 
-        sql = """INSERT INTO MetadataMessage(dispersy_id, this_global_time,
+        sql = u"""INSERT INTO MetadataMessage(dispersy_id, this_global_time,
                 this_mid, infohash, roothash, previous_mid, previous_global_time)
             VALUES(?, ?, ?, ?, ?, ?, ?);
             SELECT last_insert_rowid();
@@ -283,15 +256,15 @@ class MetadataDBHandler(BasicDBHandler):
         """
         Adds metadata data in batch.
         """
-        sql = "INSERT INTO MetadataData(message_id, data_key, data_value) VALUES(?, ?, ?)"
+        sql = u"INSERT INTO MetadataData(message_id, data_key, data_value) VALUES(?, ?, ?)"
         self._db.executemany(sql, value_tuple_list)
 
     def deleteMetadataMessage(self, dispersy_id):
-        sql = "DELETE FROM MetadataMessage WHERE dispersy_id = ?"
+        sql = u"DELETE FROM MetadataMessage WHERE dispersy_id = ?"
         self._db.execute_write(sql, (dispersy_id,))
 
     def getMetdataDateByInfohash(self, infohash):
-        sql = """
+        sql = u"""
         SELECT data.data_key, data.data_value
         FROM MetadataMessage as msg, MetadataData as data
         WHERE msg.infohash = ? AND msg.message_id = data.message_id
@@ -300,16 +273,16 @@ class MetadataDBHandler(BasicDBHandler):
         return result
 
     def getMetadataData(self, message_id):
-        sql = "SELECT data_key, data_value FROM MetadataData WHERE message_id = ?"
+        sql = u"SELECT data_key, data_value FROM MetadataData WHERE message_id = ?"
         result = self._db.fetchall(sql, (message_id,))
         return result
 
     def getThumbnailTorrents(self, keys, limit=20):
-        sql = "SELECT " + ", ".join(keys) + " FROM Torrent, MetadataData, MetadataMessage WHERE MetadataData.message_id = MetadataMessage.message_id AND MetadataMessage.infohash = Torrent.infohash AND data_key='swift-thumbs' AND Torrent.name <> '' AND Torrent.name IS NOT NULL " + self.category.get_family_filter_sql(self.misc_db.categoryName2Id) + " GROUP BY MetadataMessage.infohash ORDER BY this_global_time DESC LIMIT ?"
+        sql = u"SELECT " + u", ".join(keys) + u" FROM Torrent, MetadataData, MetadataMessage WHERE MetadataData.message_id = MetadataMessage.message_id AND MetadataMessage.infohash = Torrent.infohash AND data_key='swift-thumbs' AND Torrent.name <> '' AND Torrent.name IS NOT NULL " + self.category.get_family_filter_sql(self.misc_db.categoryName2Id) + " GROUP BY MetadataMessage.infohash ORDER BY this_global_time DESC LIMIT ?"
         return self._getThumbnailTorrents(sql, keys, limit)
 
     def getNotCollectedThumbnailTorrents(self, keys, limit=20):
-        sql = "SELECT " + ", ".join(keys) + " FROM MetadataData, MetadataMessage LEFT JOIN Torrent on MetadataMessage.infohash = Torrent.infohash WHERE MetadataData.message_id = MetadataMessage.message_id AND data_key='swift-thumbs' AND Torrent.name = '' OR Torrent.name IS NULL GROUP BY MetadataMessage.infohash ORDER BY this_global_time DESC LIMIT ?"
+        sql = u"SELECT " + u", ".join(keys) + u" FROM MetadataData, MetadataMessage LEFT JOIN Torrent on MetadataMessage.infohash = Torrent.infohash WHERE MetadataData.message_id = MetadataMessage.message_id AND data_key='swift-thumbs' AND Torrent.name = '' OR Torrent.name IS NULL GROUP BY MetadataMessage.infohash ORDER BY this_global_time DESC LIMIT ?"
         return self._getThumbnailTorrents(sql, keys, limit)
 
     def _getThumbnailTorrents(self, sql, keys, limit=20):
@@ -326,11 +299,8 @@ class MetadataDBHandler(BasicDBHandler):
 
 class PeerDBHandler(BasicDBHandler):
 
-    def __init__(self, db):
-        if PeerDBHandler._single:
-            raise RuntimeError("PeerDBHandler is singleton")
-
-        super(PeerDBHandler, self).__init__(db, u"Peer")
+    def __init__(self, session):
+        super(PeerDBHandler, self).__init__(session, u"Peer")
 
         self.permid_id = LimitedOrderedDict(DEFAULT_ID_CACHE_SIZE)
 
@@ -452,7 +422,6 @@ class PeerDBHandler(BasicDBHandler):
         if peer_id is None:
             return
 
-        deleted = False
         if peer_id is not None:
             self._db.delete(u"Peer", peer_id=peer_id)
             deleted = not self.hasPeer(permid, check_db=True)
@@ -464,11 +433,8 @@ class PeerDBHandler(BasicDBHandler):
 
 class TorrentDBHandler(BasicDBHandler):
 
-    def __init__(self, db):
-        if TorrentDBHandler._single is not None:
-            raise RuntimeError("TorrentDBHandler is singleton")
-
-        super(TorrentDBHandler, self).__init__(db, u"Torrent")
+    def __init__(self, session):
+        super(TorrentDBHandler, self).__init__(session, u"Torrent")
 
         self.torrent_dir = None
 
@@ -485,21 +451,33 @@ class TorrentDBHandler(BasicDBHandler):
                                        'creation_date', 'num_files', 'thumbnail', 'insert_time', 'secret',
                                        'relevance', 'source_id', 'category_id', 'status_id',
                                        'num_seeders', 'num_leechers', 'comment']
-        self.category = Category.getInstance()
 
-        self.misc_db = MiscDBHandler.getInstance()
-        self.mypref_db = self.votecast_db = self.channelcast_db = self._rtorrent_handler = None
+        self.category = None
+        self.misc_db = self.mypref_db = self.votecast_db = self.channelcast_db = self._rtorrent_handler = None
 
         self.infohash_id = LimitedOrderedDict(DEFAULT_ID_CACHE_SIZE)
 
-    def register(self, torrent_dir):
-        self.torrent_dir = torrent_dir
+    def initialize(self, *args, **kwargs):
+        super(TorrentDBHandler, self).initialize(*args, **kwargs)
+        self.torrent_dir = os.path.abspath(self.session.get_torrent_collecting_dir())
 
-        self.misc_db = MiscDBHandler.getInstance()
-        self.mypref_db = MyPreferenceDBHandler.getInstance()
-        self.votecast_db = VoteCastDBHandler.getInstance()
-        self.channelcast_db = ChannelCastDBHandler.getInstance()
-        self._rtorrent_handler = RemoteTorrentHandler.getInstance()
+        self.category = self.session.lm.cat
+        self.misc_db = self.session.open_dbhandler(NTFY_MISC)
+        self.mypref_db = self.session.open_dbhandler(NTFY_MYPREFERENCES)
+        self.votecast_db = self.session.open_dbhandler(NTFY_VOTECAST)
+        self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
+        self._rtorrent_handler = self.session.lm.rtorrent_handler
+
+    def close(self):
+        super(TorrentDBHandler, self).close()
+        self.torrent_dir = None
+
+        self.category = None
+        self.misc_db = None
+        self.mypref_db = None
+        self.votecast_db = None
+        self.channelcast_db = None
+        self._rtorrent_handler = None
 
     def getTorrentID(self, infohash):
         return self.getTorrentIDS([infohash, ])[0]
@@ -824,7 +802,7 @@ class TorrentDBHandler(BasicDBHandler):
         for infohash in infohash_list:
             if infohash in info_dict:
                 continue
-            to_be_inserted.append(infohash,)
+            to_be_inserted.append((infohash,))
 
         if len(to_be_inserted) > 0:
             sql = u"INSERT OR IGNORE INTO Torrent (infohash) VALUES (?)"
@@ -836,7 +814,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         torrents = [(bin2str(torrent[0]), torrent[1], torrent[2], torrent[3], self.misc_db.categoryName2Id(torrent[4]),
                      torrent[5]) for torrent in torrents]
-        infohash = [torrent[0] for torrent in torrents]
+        infohash = [(torrent[0],) for torrent in torrents]
 
         sql = u"SELECT torrent_id, infohash, torrent_file_name, name FROM Torrent WHERE infohash == ?"
         results = self._db.executemany(sql, infohash) or []
@@ -886,8 +864,8 @@ class TorrentDBHandler(BasicDBHandler):
             try:
                 self._db.executemany(sql, insert)
 
-                were_inserted = [inserted[5] for inserted in insert]
-                sql = u"SELECT torrent_id, name FROM Torrent WHERE infohash = ?"
+                were_inserted = [(inserted[5],) for inserted in insert]
+                sql = u"SELECT torrent_id, name FROM Torrent WHERE infohash == ?"
                 to_be_indexed = to_be_indexed + list(self._db.executemany(sql, were_inserted))
             except:
                 print_exc()
@@ -1308,7 +1286,6 @@ class TorrentDBHandler(BasicDBHandler):
         insert_files = []
         for torrent_file_name, torrent_id, relevance, weight in res_list:
             torrent_path = os.path.join(torrent_dir, torrent_file_name)
-            print >> sys.stderr, "!!!!!!!!!!! torrent_path = %s" % torrent_path
 
             if os.path.exists(torrent_path):
                 try:
@@ -1554,24 +1531,23 @@ class TorrentDBHandler(BasicDBHandler):
 
 class MyPreferenceDBHandler(BasicDBHandler):
 
-    def __init__(self):
-        if MyPreferenceDBHandler._single is not None:
-            raise RuntimeError("MyPreferenceDBHandler is singleton")
-        db = SQLiteCacheDb.getInstance()
-        BasicDBHandler.__init__(self, db, 'MyPreference')  # # self,db,'MyPreference'
+    def __init__(self, session):
+        super(MyPreferenceDBHandler, self).__init__(session, u"MyPreference")
 
-        self.status_good = MiscDBHandler.getInstance().torrentStatusName2Id(u'good')
         self.rlock = threading.RLock()
-        self.loadData()
 
-        self._torrent_db = TorrentDBHandler.getInstance()
-
-    def loadData(self):
-        """ Arno, 2010-02-04: Brute force update method for the self.recent_
-        caches, because people don't seem to understand that caches need
-        to be kept consistent with the database. Caches are evil in the first place.
-        """
         self.recent_preflist = self.recent_preflist_with_clicklog = self.recent_preflist_with_swarmsize = None
+        self.status_good = None
+        self._torrent_db = None
+
+    def initialize(self, *args, **kwargs):
+        self.status_good = self.session.open_dbhandler(NTFY_MISC).torrentStatusName2Id(u'good')
+        self._torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+
+    def close(self):
+        super(MyPreferenceDBHandler, self).close()
+        self.status_good = None
+        self._torrent_db = None
 
     def getMyPrefList(self, order_by=None):
         res = self.getAll('torrent_id', order_by=order_by)
@@ -1713,25 +1689,28 @@ class MyPreferenceDBHandler(BasicDBHandler):
 
 class VoteCastDBHandler(BasicDBHandler):
 
-    def __init__(self):
-        try:
-            db = SQLiteCacheDb.getInstance()
-            BasicDBHandler.__init__(self, db, 'VoteCast')
-            self._logger.debug("votecast: DB made")
-        except:
-            self._logger.error("votecast: couldn't make the table")
+    def __init__(self, session):
+        super(VoteCastDBHandler, self).__init__(session, u"VoteCast")
 
         self.my_votes = None
 
         self.voteLock = Lock()
         self.updatedChannels = set()
-        db.register_task("flush to database", LoopingCall(self._flush_to_database)).start(VOTECAST_FLUSH_DB_INTERVAL, now=False)
 
-    def registerSession(self, session):
-        self.session = session
+        self.peer_db = None
+        self.channelcast_db = None
 
-        self.peer_db = PeerDBHandler.getInstance()
-        self.channelcast_db = ChannelCastDBHandler.getInstance()
+    def initialize(self, *args, **kwargs):
+        self.peer_db = self.session.open_dbhandler(NTFY_PEERS)
+        self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
+        self.session.sqlite_db.register_task(u"flush to database",
+                                             LoopingCall(self._flush_to_database)).start(VOTECAST_FLUSH_DB_INTERVAL,
+                                                                                         now=False)
+
+    def close(self):
+        super(VoteCastDBHandler, self).close()
+        self.peer_db = None
+        self.channelcast_db = None
 
     def on_votes_from_dispersy(self, votes):
         insert_vote = "INSERT OR REPLACE INTO _ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
@@ -1835,31 +1814,31 @@ class VoteCastDBHandler(BasicDBHandler):
 
 class ChannelCastDBHandler(BasicDBHandler):
 
-    def __init__(self):
-        try:
-            db = SQLiteCacheDb.getInstance()
-            BasicDBHandler.__init__(self, db, '_Channels')
-            self._logger.debug("Channels: DB made")
-        except:
-            self._logger.error("Channels: couldn't make the table")
+    def __init__(self, session):
+        super(ChannelCastDBHandler, self).__init__(session, u"_Channels")
 
         self._channel_id = None
         self.my_dispersy_cid = None
 
+        self.modification_types = None
+        self.id2modification = None
+
+        self.peer_db = None
+        self.votecast_db = None
+        self.torrent_db = None
+
+    def initialize(self, *args, **kwargs):
         self.modification_types = dict(self._db.fetchall("SELECT name, id FROM MetaDataTypes"))
         self.id2modification = dict([(v, k) for k, v in self.modification_types.iteritems()])
 
         self._channel_id = self.getMyChannelId()
-        self._logger.debug("Channels: my channel is %s", self._channel_id)
+        self._logger.debug(u"Channels: my channel is %s", self._channel_id)
 
-    def registerSession(self, session):
-        self.session = session
+        self.peer_db = self.session.open_dbhandler(NTFY_PEERS)
+        self.votecast_db = self.session.open_dbhandler(NTFY_VOTECAST)
+        self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
 
-        self.peer_db = PeerDBHandler.getInstance()
-        self.votecast_db = VoteCastDBHandler.getInstance()
-        self.torrent_db = TorrentDBHandler.getInstance()
-
-        def updateNrTorrents():
+        def update_nr_torrents():
             rows = self.getChannelNrTorrents(50)
             update = "UPDATE _Channels SET nr_torrents = ? WHERE id = ?"
             self._db.executemany(update, rows)
@@ -1868,7 +1847,19 @@ class ChannelCastDBHandler(BasicDBHandler):
             update = "UPDATE _Channels SET nr_torrents = ?, modified = ? WHERE id = ?"
             self._db.executemany(update, rows)
 
-        self.register_task("updateNrTorrents", LoopingCall(updateNrTorrents)).start(300, now=False)
+        self.register_task(u"update_nr_torrents", LoopingCall(update_nr_torrents)).start(300, now=False)
+
+    def close(self):
+        super(ChannelCastDBHandler, self).close()
+        self._channel_id = None
+        self.my_dispersy_cid = None
+
+        self.modification_types = None
+        self.id2modification = None
+
+        self.peer_db = None
+        self.votecast_db = None
+        self.torrent_db = None
 
     # dispersy helper functions
     def _get_my_dispersy_cid(self):
@@ -2801,11 +2792,8 @@ class UserEventLogDBHandler(BasicDBHandler):
     # when this maximum is reached, approx. 50% of the entries are deleted.
     MAX_EVENTS = 2 * 10000
 
-    def __init__(self):
-        if UserEventLogDBHandler._single is not None:
-            raise RuntimeError("UserEventLogDBHandler is singleton")
-        db = SQLiteCacheDb.getInstance()
-        BasicDBHandler.__init__(self, db, 'UserEventLog')
+    def __init__(self, session):
+        super(UserEventLogDBHandler, self).__init__(session, u"UserEventLog")
 
         self.count = -1
 
@@ -2849,21 +2837,18 @@ class BundlerPreferenceDBHandler(BasicDBHandler):
     storing a chosen bundle method for a particular query.
     """
 
-    def __init__(self):
-        if BundlerPreferenceDBHandler._single is not None:
-            raise RuntimeError("BundlerPreferenceDBHandler is singleton")
-        db = SQLiteCacheDb.getInstance()
-        BasicDBHandler.__init__(self, db, 'BundlerPreference')
+    def __init__(self, session):
+        super(BundlerPreferenceDBHandler, self).__init__(session, u"BundlerPreference")
 
     def storePreference(self, keywords, bundle_mode):
         query = ' '.join(sorted(set(keywords)))
-        self._db.execute_write('INSERT OR REPLACE INTO BundlerPreference (query, bundle_mode) VALUES (?,?)',
+        self._db.execute_write(u"INSERT OR REPLACE INTO BundlerPreference (query, bundle_mode) VALUES (?,?)",
                                (query, bundle_mode))
 
     def getPreference(self, keywords):
         # returns None if query not in db
         query = ' '.join(sorted(set(keywords)))
-        return self.getOne('bundle_mode', query=query)
+        return self.getOne(u"bundle_mode", query=query)
 
 
 def ranksfind(ranks, key):

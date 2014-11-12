@@ -30,6 +30,7 @@ if __debug__:
 
 logger = logging.getLogger(__name__)
 
+
 def warnDispersyThread(func):
     def invoke_func(*args, **kwargs):
         if not isInIOThread():
@@ -42,24 +43,37 @@ def warnDispersyThread(func):
     invoke_func.__name__ = func.__name__
     return invoke_func
 
+
 class ChannelCommunity(Community):
 
     """
     Each user owns zero or more ChannelCommunities that other can join and use to discuss.
     """
-    def initialize(self, integrate_with_tribler=True):
+    def __init__(self, *args, **kwargs):
+        super(ChannelCommunity, self).__init__(*args, **kwargs)
+
         self._channel_id = None
-        self.integrate_with_tribler = integrate_with_tribler
+
+        self.tribler_session = None
+        self.integrate_with_tribler = None
+
+        self._peer_db = None
+        self._channelcast_db = None
+
+        self._modification_types = None
+
+    def initialize(self, tribler_session=None):
+        self.tribler_session = tribler_session
+        self.integrate_with_tribler = tribler_session is not None
 
         super(ChannelCommunity, self).initialize()
-        self._logger = logging.getLogger(self.__class__.__name__)
 
         if self.integrate_with_tribler:
-            from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, PeerDBHandler
+            from Tribler.Core.simpledefs import NTFY_PEERS, NTFY_CHANNELCAST
 
             # tribler channelcast database
-            self._peer_db = PeerDBHandler.getInstance()
-            self._channelcast_db = ChannelCastDBHandler.getInstance()
+            self._peer_db = tribler_session.open_dbhandler(NTFY_PEERS)
+            self._channelcast_db = tribler_session.open_dbhandler(NTFY_CHANNELCAST)
 
             # tribler channel_id
             self._channel_id = self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ? and (peer_id <> -1 or peer_id ISNULL)", (buffer(self._master_member.mid),))
@@ -624,7 +638,7 @@ class ChannelCommunity(Community):
                             def callback(_, message=message):
                                 self.on_messages([message])
                             logger.debug("Will try to download swift-thumbnails with roothash %s from %s", hex_roothash.encode("HEX"), message.candidate.sock_addr[0])
-                            th_handler.download_metadata("thumbs", message.candidate, roothash, infohash, timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
+                            th_handler.download_metadata("thumbs", message.candidate, infohash, timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
                             continue
 
             yield message

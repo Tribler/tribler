@@ -13,8 +13,8 @@ from Tribler import LIBRARYNAME
 
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.Search.SearchManager import split_into_keywords
+from Tribler.Core.simpledefs import NTFY_USEREVENTLOG
 
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
@@ -622,7 +622,7 @@ class GUIUtility(object):
                     wx.CallAfter(self.Notify, "Channel marked as favourite", "Marked channel '%s' as favourite" % channel.name, icon='favourite')
                     if event:
                         button.Enable(True)
-                    UserEventLogDBHandler.getInstance().addEvent(message="User marked a channel as favorite", type=2)
+                    self.utility.session.open_dbhandler(NTFY_USEREVENTLOG).addEvent(message="User marked a channel as favorite", type=2)
                     self.RefreshChannel(channel.id)
                 add_vote()
             elif event:

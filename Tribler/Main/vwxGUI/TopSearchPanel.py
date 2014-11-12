@@ -5,8 +5,8 @@ import logging
 import wx.animate
 
 from Tribler import LIBRARYNAME
+from Tribler.Core.simpledefs import NTFY_USEREVENTLOG, NTFY_TORRENTS
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler, TorrentDBHandler
 
 from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent, Torrent
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker
@@ -48,8 +48,8 @@ class TopSearchPanel(FancyPanel):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.installdir = self.utility.getPath()
-        self.uelog = UserEventLogDBHandler.getInstance()
-        self.tdb = None
+        self.uelog = self.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
+        self.tdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
         self.collectedTorrents = {}
 
         FancyPanel.__init__(self, parent, border=wx.BOTTOM)
@@ -240,8 +240,6 @@ class TopSearchPanel(FancyPanel):
 
         """autocompletes term."""
         if len(term) > 1:
-            if self.tdb is None:
-                self.tdb = TorrentDBHandler.getInstance()
             return self.tdb.getAutoCompleteTerms(term, max_terms=7)
         return []
 

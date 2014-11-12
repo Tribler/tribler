@@ -2,9 +2,8 @@ import time
 import logging
 
 from Tribler.Core.Session import Session
-from Tribler.Core.CacheDB.Notifier import NTFY_TRACKERINFO, NTFY_INSERT
+from Tribler.Core.CacheDB.Notifier import NTFY_TORRENTS, NTFY_TRACKERINFO, NTFY_INSERT
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, forceAndReturnDBThread
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 from Tribler.Core import NoDispersyRLock
 
 # some default configurations
@@ -16,11 +15,11 @@ DEFAULT_DEAD_TRACKER_RETRY_INTERVAL = 60  # A "dead" tracker will be retired
 
 class TrackerInfoCache(object):
 
-    def __init__(self, max_failures=DEFAULT_MAX_TRACKER_FAILURES,
+    def __init__(self, session, max_failures=DEFAULT_MAX_TRACKER_FAILURES,
                  dead_tracker_recheck_interval=60):
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self._torrentdb = TorrentDBHandler.getInstance()
+        self._torrentdb = session.open_dbhandler(NTFY_TORRENTS)
         self._tracker_info_dict = dict()
 
         self._tracker_update_request_dict = dict()

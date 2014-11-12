@@ -9,19 +9,15 @@ import logging
 import binascii
 from datetime import timedelta
 
-from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, DLSTATUS_METADATA, \
-    DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK
+from Tribler.Core.simpledefs import (DOWNLOAD, UPLOAD, DLSTATUS_METADATA, DLSTATUS_HASHCHECKING, NTFY_USEREVENTLOG,
+                                     DLSTATUS_WAITING4HASHCHECK)
 from Tribler.Core.osutils import startfile
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
 
-from Tribler.Main.vwxGUI import warnWxThread, GRADIENT_DGREY, SEPARATOR_GREY, \
-    LIST_AT_HIGHLIST, LIST_SELECTED, LIST_EXPANDED, format_time, \
-    LIST_DARKBLUE, LIST_DESELECTED, THUMBNAIL_FILETYPES
+from Tribler.Main.vwxGUI import (warnWxThread, GRADIENT_DGREY, SEPARATOR_GREY, LIST_AT_HIGHLIST, LIST_SELECTED,
+                                 LIST_EXPANDED, format_time, LIST_DARKBLUE, LIST_DESELECTED, THUMBNAIL_FILETYPES)
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-from Tribler.Main.vwxGUI.widgets import _set_font, TagText, ActionButton, \
-    ProgressButton, MaxBetterText, FancyPanel
+from Tribler.Main.vwxGUI.widgets import _set_font, TagText, ActionButton, ProgressButton, MaxBetterText, FancyPanel
 from Tribler.Main.vwxGUI.list_body import ListItem
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM
@@ -555,7 +551,8 @@ class TorrentListItem(DoubleLineListItemWithButtons):
                 added.append(torrent)
 
         if added:
-            UserEventLogDBHandler.getInstance().addEvent(message="MyChannel: %d manual add(s) from library" % len(added), type=2)
+            ue_db = self.guiutility.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
+            ue_db.addEvent(message="MyChannel: %d manual add(s) from library" % len(added), type=2)
 
             # remote channel link to force reload
             for torrent in added:

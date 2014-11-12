@@ -315,10 +315,10 @@ class TunnelCommunity(Community):
 
         self.trsession = self.settings = self.socks_server = self.libtorrent_test = None
 
-    def initialize(self, session=None, settings=None):
+    def initialize(self, tribler_session=None, settings=None):
         super(TunnelCommunity, self).initialize()
 
-        self.trsession = session
+        self.trsession = tribler_session
         self.settings = settings if settings else TunnelSettings()
 
         assert isinstance(self.settings.crypto, TunnelCrypto)
@@ -333,8 +333,8 @@ class TunnelCommunity(Community):
         self.register_task("do_ping", LoopingCall(self.do_ping)).start(PING_INTERVAL)
         self.register_task("clean_rp_blacklist", LoopingCall(self.clean_rp_blacklist)).start(10)
 
-        self.socks_server = Socks5Server(self, session.get_tunnel_community_socks5_listen_ports()
-                                         if session else self.settings.socks_listen_ports)
+        self.socks_server = Socks5Server(self, tribler_session.get_tunnel_community_socks5_listen_ports()
+                                         if tribler_session else self.settings.socks_listen_ports)
         self.socks_server.start()
 
         if self.trsession:

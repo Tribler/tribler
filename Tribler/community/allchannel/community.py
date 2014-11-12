@@ -110,34 +110,47 @@ class AllChannelCommunity(Community):
                     self.on_votecast,
                     self.undo_votecast,
                     batch=BatchConfiguration(max_window=batch_delay))
-                ]
+        ]
 
-    def initialize(self, integrate_with_tribler=True, auto_join_channel=False):
-        super(AllChannelCommunity, self).initialize()
+    def __init__(self, *args, **kwargs):
+        super(AllChannelCommunity, self).__init__(*args, **kwargs)
 
         self._blocklist = {}
         self._searchCallbacks = {}
         self._recentlyRequested = []
-        self.integrate_with_tribler = integrate_with_tribler
+
+        self.tribler_session = None
+        self.integrate_with_tribler = None
+        self.auto_join_channel = None
+
+        self._channelcast_db = None
+        self._votecast_db = None
+        self._peer_db = None
+
+    def initialize(self, tribler_session=None, auto_join_channel=False):
+        super(AllChannelCommunity, self).initialize()
+
+        self.tribler_session = tribler_session
+        self.integrate_with_tribler = tribler_session is not None
         self.auto_join_channel = auto_join_channel
 
         if self.integrate_with_tribler:
-            from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, VoteCastDBHandler, PeerDBHandler
+            from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_VOTECAST, NTFY_PEERS
 
             # tribler channelcast database
-            self._channelcast_db = ChannelCastDBHandler.getInstance()
-            self._votecast_db = VoteCastDBHandler.getInstance()
-            self._peer_db = PeerDBHandler.getInstance()
+            self._channelcast_db = tribler_session.open_dbhandler(NTFY_CHANNELCAST)
+            self._votecast_db = tribler_session.open_dbhandler(NTFY_VOTECAST)
+            self._peer_db = tribler_session.open_dbhandler(NTFY_PEERS)
 
         else:
             self._channelcast_db = ChannelCastDBStub(self._dispersy)
             self._votecast_db = VoteCastDBStub(self._dispersy)
             self._peer_db = PeerDBStub(self._dispersy)
 
-        self.register_task("channelcast",
+        self.register_task(u"channelcast",
                            LoopingCall(self.create_channelcast)).start(CHANNELCAST_FIRST_MESSAGE, now=True)
 
-        self.register_task("unload preview",
+        self.register_task(u"unload preview",
                            LoopingCall(self.unload_preview)).start(UNLOAD_COMMUNITY_INTERVAL, now=False)
 
     def initiate_conversions(self):
@@ -466,10 +479,12 @@ class AllChannelCommunity(Community):
         except CommunityNotFoundException:
             if self.auto_join_channel:
                 self._logger.info("join channel community %s", cid.encode("HEX"))
-                return ChannelCommunity.init_community(self._dispersy, self._dispersy.get_member(mid=cid), self._my_member, self.integrate_with_tribler)
+                return ChannelCommunity.init_community(self._dispersy, self._dispersy.get_member(mid=cid),
+                                                       self._my_member, tribler_session=self.tribler_session)
             else:
                 self._logger.info("join preview community %s", cid.encode("HEX"))
-                return PreviewChannelCommunity.init_community(self._dispersy, self._dispersy.get_member(mid=cid), self._my_member, self.integrate_with_tribler)
+                return PreviewChannelCommunity.init_community(self._dispersy, self._dispersy.get_member(mid=cid),
+                                                              self._my_member, tribler_session=self.tribler_session)
 
     def unload_preview(self):
         cleanpoint = time() - 300

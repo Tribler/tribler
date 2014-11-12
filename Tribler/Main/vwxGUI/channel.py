@@ -15,10 +15,9 @@ from Tribler.Main.vwxGUI.widgets import _set_font, NotebookPanel, SimpleNotebook
 
 from Tribler.Category.Category import Category
 
-from Tribler.Core.simpledefs import NTFY_MISC
+from Tribler.Core.simpledefs import NTFY_MISC, NTFY_USEREVENTLOG
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 
 from Tribler.Main.vwxGUI import (CHANNEL_MAX_NON_FAVORITE, warnWxThread, LIST_GREY, LIST_LIGHTBLUE, LIST_DESELECTED,
@@ -1122,7 +1121,7 @@ class ManageChannel(AbstractDetails):
         self.rss_url = None
 
         self.guiutility = GUIUtility.getInstance()
-        self.uelog = UserEventLogDBHandler.getInstance()
+        self.uelog = self.guiutility.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
         self.torrentfeed = RssParser.getInstance()
         self.channelsearch_manager = self.guiutility.channelsearch_manager
 

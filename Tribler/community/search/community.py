@@ -31,6 +31,7 @@ from Tribler.dispersy.resolution import PublicResolution
 
 
 DEBUG = False
+SWIFT_INFOHASHES = 0
 CREATE_TORRENT_COLLECT_INTERVAL = 5
 
 
@@ -56,24 +57,44 @@ class SearchCommunity(Community):
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
-    def initialize(self, integrate_with_tribler=True, log_incomming_searches=False):
-        self.integrate_with_tribler = integrate_with_tribler
-        self.log_incomming_searches = log_incomming_searches
+    def __init__(self, *args, **kwargs):
+        super(SearchCommunity, self).__init__(*args, **kwargs)
+        self.tribler_session = None
+        self.integrate_with_tribler = None
+        self.log_incomming_searches = None
         self.taste_buddies = []
+
+        self._channelcast_db = None
+        self._misc_db = None
+        self._torrent_db = None
+        self._mypref_db = None
+        self._notifier = None
+
+        self._rtorrent_handler = None
+
+        self.taste_bloom_filter = None
+        self.taste_bloom_filter_key = None
+
+        self.torrent_cache = None
+
+    def initialize(self, tribler_session=None, log_incomming_searches=False):
+        self.tribler_session = tribler_session
+        self.integrate_with_tribler = tribler_session is not None
+        self.log_incomming_searches = log_incomming_searches
 
         super(SearchCommunity, self).initialize()
         # To always connect to a peer uncomment/modify the following line
         # self.taste_buddies.append([1, time(), Candidate(("127.0.0.1", 1234), False))
 
         if self.integrate_with_tribler:
-            from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, TorrentDBHandler, MyPreferenceDBHandler, MiscDBHandler
+            from Tribler.Core.simpledefs import NTFY_MISC, NTFY_CHANNELCAST, NTFY_TORRENTS, NTFY_MYPREFERENCES
             from Tribler.Core.CacheDB.Notifier import Notifier
 
             # tribler channelcast database
-            self._channelcast_db = ChannelCastDBHandler.getInstance()
-            self._misc_db = MiscDBHandler.getInstance()
-            self._torrent_db = TorrentDBHandler.getInstance()
-            self._mypref_db = MyPreferenceDBHandler.getInstance()
+            self._channelcast_db = tribler_session.open_dbhandler(NTFY_CHANNELCAST)
+            self._misc_db = tribler_session.open_dbhandler(NTFY_MISC)
+            self._torrent_db = tribler_session.open_dbhandler(NTFY_TORRENTS)
+            self._mypref_db = tribler_session.open_dbhandler(NTFY_MYPREFERENCES)
             self._notifier = Notifier.getInstance()
 
             # torrent collecting
@@ -84,12 +105,7 @@ class SearchCommunity(Community):
             self._mypref_db = None
             self._notifier = None
 
-        self.taste_bloom_filter = None
-        self.taste_bloom_filter_key = None
-
-        self.torrent_cache = None
-
-        self.register_task("create torrent collect requests",
+        self.register_task(u"create torrent collect requests",
                            LoopingCall(self.create_torrent_collect_requests)).start(CREATE_TORRENT_COLLECT_INTERVAL,
                                                                                     now=True)
 
@@ -146,7 +162,7 @@ class SearchCommunity(Community):
         ]
 
     def _initialize_meta_messages(self):
-        Community._initialize_meta_messages(self)
+        super(SearchCommunity, self)._initialize_meta_messages()
 
         ori = self._meta_messages[u"dispersy-introduction-request"]
         new = Message(self, ori.name, ori.authentication, ori.resolution, ori.distribution, ori.destination, TasteIntroPayload(), ori.check_callback, ori.handle_callback)
@@ -208,8 +224,8 @@ class SearchCommunity(Community):
 
     def __calc_similarity(self, candidate, myPrefs, hisPrefs, overlap):
         if myPrefs > 0 and hisPrefs > 0:
-            myRoot = 1.0 / (myPrefs ** .5)
-            sim = overlap * (myRoot * (1.0 / (hisPrefs ** .5)))
+            my_root = 1.0 / (myPrefs ** .5)
+            sim = overlap * (my_root * (1.0 / (hisPrefs ** .5)))
             return [sim, time(), candidate]
 
         return [0, time(), candidate]
@@ -249,9 +265,9 @@ class SearchCommunity(Community):
 
         meta_request = self.get_meta_message(u"dispersy-introduction-request")
         request = meta_request.impl(authentication=(self.my_member,),
-                                   distribution=(self.global_time,),
-                                destination=(destination,),
-                                payload=payload)
+                                    distribution=(self.global_time,),
+                                    destination=(destination,),
+                                    payload=payload)
 
         self._logger.debug(u"%s %s sending introduction request to %s", self.cid.encode("HEX"), type(self), destination)
 
@@ -419,7 +435,7 @@ class SearchCommunity(Community):
 
             if requested_packets:
                 self._dispersy._send_packets([message.candidate], requested_packets,
-                    self, u"-caused by on-torrent-request-")
+                                             self, u"-caused by on-torrent-request-")
 
             if DEBUG:
                 self._logger.debug(u"got request for %s torrents from %s", len(requested_packets), message.candidate)
@@ -437,11 +453,11 @@ class SearchCommunity(Community):
             return 10.5
 
         def on_timeout(self):
-            refreshIf = time() - CANDIDATE_WALK_LIFETIME
+            refresh_if = time() - CANDIDATE_WALK_LIFETIME
             remove = None
             for taste_buddy in self.community.taste_buddies:
                 if taste_buddy[2] == self.candidate:
-                    if taste_buddy[1] < refreshIf:
+                    if taste_buddy[1] < refresh_if:
                         remove = taste_buddy
                     break
 
@@ -451,9 +467,9 @@ class SearchCommunity(Community):
 
     def create_torrent_collect_requests(self, candidates=None):
         if candidates is None:
-            refreshIf = time() - CANDIDATE_WALK_LIFETIME
+            refresh_if = time() - CANDIDATE_WALK_LIFETIME
             # determine to which peers we need to send a ping
-            candidates = [candidate for _, prev, candidate in self.taste_buddies if prev < refreshIf]
+            candidates = [candidate for _, prev, candidate in self.taste_buddies if prev < refresh_if]
 
         if len(candidates) > 0:
             self._create_pingpong(u"torrent-collect-request", candidates)
@@ -474,10 +490,16 @@ class SearchCommunity(Community):
     def _process_collect_request_response(self, messages):
         to_insert_list = []
         to_collect_dict = {}
+        to_popularity_dict = {}
         for message in messages:
-            for infohash, seeders, leechers, ago in message.payload.torrents:
-                to_insert_list.append(infohash)
-                to_collect_dict.setdefault(infohash, []).append(message.candidate)
+            if message.payload.hashtype == SWIFT_INFOHASHES:
+                for swift_torrent_hash, infohash, seeders, leechers, ago in message.payload.torrents:
+                    if not infohash:
+                        continue
+                    elif infohash not in to_insert_list:
+                        to_insert_list.append(infohash)
+                    to_popularity_dict[infohash] = [seeders, leechers, time() - (ago * 60)]
+                    to_collect_dict.setdefault(infohash, []).append(message.candidate)
 
         if len(to_insert_list) > 0:
             while to_insert_list:
@@ -515,7 +537,8 @@ class SearchCommunity(Community):
             # create torrent-collect-request/response message
             meta = self.get_meta_message(meta_name)
             message = meta.impl(authentication=(self._my_member,),
-                                distribution=(self.global_time,), destination=(candidate,), payload=(identifier, torrents))
+                                distribution=(self.global_time,), destination=(candidate,),
+                                payload=(identifier, SWIFT_INFOHASHES, torrents))
 
             self._dispersy._forward([message])
             self._logger.debug(u"send %s to %s", meta_name, candidate)
@@ -537,21 +560,25 @@ class SearchCommunity(Community):
         else:
             random_torrents = []
 
+        # FIXME: add dummy swift hashes
+        torrents = [[tor[0], tor[0], tor[1], tor[2], tor[3]] for tor in torrents]
+        random_torrents = [[tor[0], tor[0], tor[1], tor[2], tor[3]] for tor in random_torrents]
+
         # combine random and recent + shuffle to obscure categories
-        torrents = [tor[:4] for tor in torrents] + random_torrents
+        torrents = torrents + random_torrents
         shuffle(torrents)
 
         # fix leechers, seeders to max 2**16 (shift values +2 to accomodate -2 and -1 values)
         max_value = (2 ** 16) - 1
         for torrent in torrents:
-            # index 1 and 2 are num_seeders and num_leechers respectively
-            torrent[1] = min(max_value, (torrent[1] or -1) + 2)
+            # index 2 and 3 are num_seeders and num_leechers respectively
             torrent[2] = min(max_value, (torrent[2] or -1) + 2)
+            torrent[3] = min(max_value, (torrent[3] or -1) + 2)
 
-            # index 3 is last_tracker_check, convert to minutes
-            torrent[3] /= 60
-            if torrent[3] > max_value or torrent[3] < 0:
-                torrent[3] = max_value
+            # index 4 is last_tracker_check, convert to minutes
+            torrent[4] /= 60
+            if torrent[4] > max_value or torrent[4] < 0:
+                torrent[4] = max_value
 
         self.torrent_cache = (time(), torrents)
         return torrents
@@ -564,8 +591,9 @@ class SearchCommunity(Community):
 
                 meta = self.get_meta_message(u"torrent")
                 message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.claim_global_time(),),
-                            payload=(torrentdef.get_infohash(), long(time()), torrentdef.get_name_as_unicode(), tuple(files), torrentdef.get_trackers_as_single_tuple()))
+                                    distribution=(self.claim_global_time(),),
+                                    payload=(torrentdef.get_infohash(), long(time()), torrentdef.get_name_as_unicode(),
+                                             tuple(files), torrentdef.get_trackers_as_single_tuple()))
 
                 self._dispersy.store_update_forward([message], store, update, forward)
                 self._torrent_db.updateTorrent(torrentdef.get_infohash(), notify=False, dispersy_id=message.packet_id)
@@ -592,7 +620,7 @@ class SearchCommunity(Community):
         assert all(len(cid) == 20 for cid in cids)
 
         parameters = u",".join(["?"] * len(cids))
-        known_cids = self._channelcast_db._db.fetchall(u"SELECT dispersy_cid FROM Channels WHERE dispersy_cid in (" + parameters + ")", map(buffer, cids))
+        known_cids = self._channelcast_db._db.fetchall(u"SELECT dispersy_cid FROM Channels WHERE dispersy_cid in (" + parameters + u")", map(buffer, cids))
         known_cids = map(str, known_cids)
         return [cid for cid in cids if cid not in known_cids]
 
@@ -604,7 +632,8 @@ class SearchCommunity(Community):
             return self._dispersy.get_community(cid, True)
         except CommunityNotFoundException:
             self._logger.debug(u"join preview community %s", cid.encode("HEX"))
-            return PreviewChannelCommunity.init_community(self._dispersy, self._dispersy.get_member(mid=cid), self._my_member, self.integrate_with_tribler)
+            return PreviewChannelCommunity.init_community(self._dispersy, self._dispersy.get_member(mid=cid),
+                                                          self._my_member, tribler_session=self.tribler_session)
 
     def _get_packets_from_infohashes(self, cid, infohashes):
         packets = []

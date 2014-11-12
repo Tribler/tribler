@@ -8,7 +8,6 @@ CREATE TABLE MetadataMessage (
   this_global_time       INTEGER NOT NULL,
   this_mid               TEXT NOT NULL,
   infohash               TEXT NOT NULL,
-  roothash               TEXT,
   previous_mid           TEXT,
   previous_global_time   INTEGER
 );
@@ -382,8 +381,8 @@ INSERT INTO MyInfo VALUES ('version', 23);
 
 INSERT INTO MetaDataTypes ('name') VALUES ('name');
 INSERT INTO MetaDataTypes ('name') VALUES ('description');
-INSERT INTO MetaDataTypes ('name') VALUES ('url');
-INSERT INTO MetaDataTypes ('name') VALUES ('thumbnails');
+INSERT INTO MetaDataTypes ('name') VALUES ('swift-url');
+INSERT INTO MetaDataTypes ('name') VALUES ('swift-thumbnails');
 INSERT INTO MetaDataTypes ('name') VALUES ('video-info');
 
 INSERT INTO TrackerInfo (tracker) VALUES ('no-DHT');

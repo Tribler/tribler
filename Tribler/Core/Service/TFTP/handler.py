@@ -5,10 +5,12 @@ from tarfile import TarFile
 from collections import deque
 from binascii import hexlify
 from time import time
-from threading import RLock
+
+from twisted.internet import reactor
 
 from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
 from Tribler.dispersy.candidate import Candidate
+from Tribler.dispersy.util import call_on_reactor_thread
 
 from .session import Session, DEFAULT_BLOCK_SIZE, DEFAULT_TIMEOUT
 from .packet import (encode_packet, decode_packet, OPCODE_RRQ, OPCODE_WRQ, OPCODE_ACK, OPCODE_DATA, OPCODE_OACK,
@@ -60,8 +62,7 @@ class TftpHandler(TaskManager):
 
         self._timeout_check_interval = 2
 
-        self._session_lock = RLock()
-        self._session_dict = {}
+        self._session_queue = deque()
 
     def initialize(self):
         """ Initializes the TFTP service. We create a UDP socket and a server session.
@@ -76,8 +77,9 @@ class TftpHandler(TaskManager):
         """
         self.cancel_all_pending_tasks()
 
-        self._session_dict = None
+        self._session_queue = None
 
+    @call_on_reactor_thread
     def download_file(self, file_name, ip, port, extra_info=None, success_callback=None, failure_callback=None):
         """ Downloads a file from a remote host.
         :param file_name: The file name of the file to be downloaded.
@@ -86,46 +88,47 @@ class TftpHandler(TaskManager):
         :param success_callback: The success callback.
         :param failure_callback: The failure callback.
         """
-        self._logger.debug(u"Start downloading %s from %s:%s", file_name, ip, port)
+        self._logger.debug(u"start downloading %s from %s:%s", file_name, ip, port)
         session = Session(True, (ip, port), OPCODE_RRQ, file_name, '', None, extra_info=extra_info,
                           success_callback=success_callback, failure_callback=failure_callback)
 
-        with self._session_lock:
-            if (ip, port) not in self._session_dict:
-                self._session_dict[(ip, port)] = deque()
-            self._session_dict[(ip, port)].append(session)
+        self._session_queue.append(session)
 
-            if session == self._session_dict[(ip, port)][0]:
-                self._send_request_packet(session)
-            else:
-                session.next_func = lambda s = session: self._send_request_packet(s)
+        if session == self._session_queue[0]:
+            self._logger.debug(u"directly start %s", session)
+            self._send_request_packet(session)
+        else:
+            session.next_func = lambda s = session: self._send_request_packet(s)
+            self._logger.debug(u"%s will be started later", session)
 
     def _check_timeout(self):
         """ A scheduled task that checks for timeout.
         """
         # TODO: make a nicer way to check if we are shutting down
-        if self._session_dict is None:
+        if not self._session_queue:
             return
 
-        with self._session_lock:
-            for key, session_queue in self._session_dict.items():
-                # only check the first session (the active one)
-                session = session_queue[0]
-                if session.last_contact_time + session.timeout > time():
-                    # fail as timeout
-                    session_queue.popleft()
-                    self._session_dict[key] = session_queue
-                    if session.failure_callback is not None:
-                        session.failure_callback(session.file_name, 0, "Timeout")
+        self._logger.debug(u"checking timeout...")
 
-                    # start next session in the queue
-                    if not session_queue:
-                        del self._session_dict[key]
-                        return
+        session = self._session_queue[0]
+        # only check the first session (the active one)
+        if session.last_contact_time + session.timeout > time():
+            # fail as timeout
+            self._session_queue.popleft()
+            if session.failure_callback:
+                self.register_task(u"tftp_callback",
+                                   reactor.callLater(0, session.failure_callback, session.address,
+                                                     session.file_name, "timeout", session.extra_info))
 
-                    session = session_queue[0]
-                    session.next_func()
+        # start next session in the queue
+        if not self._session_queue:
+            return
 
+        session = self._session_queue[0]
+        self._logger.debug(u"starting next session: %s", session)
+        self.register_task(u"tftp_next_task", reactor.callLater(0, session.next_func))
+
+    @call_on_reactor_thread
     def data_came_in(self, addr, data):
         """ The callback function that the RawServer will call when there is incoming data.
         :param addr: The (IP, port) address tuple of the sender.
@@ -138,8 +141,7 @@ class TftpHandler(TaskManager):
         try:
             packet = decode_packet(data)
         except InvalidPacketException as e:
-            self._logger.error(u"Invalid packet from [%s:%s], packet=[%s], error=%s",
-                               ip, port, hexlify(data), e)
+            self._logger.error(u"Invalid packet from [%s:%s], packet=[%s], error=%s", ip, port, hexlify(data), e)
             return
 
         # a new request
@@ -148,37 +150,31 @@ class TftpHandler(TaskManager):
 
         # a response
         else:
-            with self._session_lock:
-                session_queue = self._session_dict.get(addr, None)
-            if not session_queue:
-                self._logger.error(u"Got empty session list for %s:%s", ip, port)
-                return
-
-            session = session_queue[0]
+            session = self._session_queue[0]
             self._process_packet(session, packet)
 
             if not session.is_done and not session.is_failed:
                 return
 
             # remove this session from list and start the next one
-            with self._session_lock:
-                session_queue.popleft()
-                self._session_dict[addr] = session_queue
-                if session_queue:
-                    self._logger.debug(u"Start the next session %s", session)
-                    session_queue[0].next_func()
-                else:
-                    del self._session_dict[addr]
+            self._session_queue.popleft()
+            if self._session_queue:
+                self._logger.debug(u"Start the next session %s", session)
+                self._session_queue[0].next_func()
 
             # call callbacks
             if session.is_done:
                 self._logger.debug(u"%s finished", session)
                 if session.success_callback is not None:
-                    session.success_callback(session.address, session.file_name, session.file_data, session.extra_info)
+                    self.register_task(u"tftp_callback",
+                                       reactor.callLater(0, session.success_callback, session.address,
+                                                         session.file_name, session.file_data, session.extra_info))
             elif session.is_failed:
                 self._logger.debug(u"%s failed", session)
                 if session.failure_callback is not None:
-                    session.failure_callback(session.address, session.file_name, session.extra_info)
+                    self.register_task(u"tftp_callback",
+                                       reactor.callLater(0, session.failure_callback, session.address,
+                                                         session.file_name, "download failed", session.extra_info))
 
     def _handle_new_request(self, ip, port, packet):
         """ Handles a new request.
@@ -209,22 +205,20 @@ class TftpHandler(TaskManager):
         else:
             file_data, file_size = self._load_file(ip, port, file_name)
 
-        with self._session_lock:
-            # create a session object
-            session = Session(False, (ip, port), packet['opcode'], file_name, file_data, file_size,
-                              block_size=block_size, timeout=timeout)
+        # create a session object
+        session = Session(False, (ip, port), packet['opcode'], file_name, file_data, file_size,
+                          block_size=block_size, timeout=timeout)
 
-            if (ip, port) not in self._session_dict:
-                self._session_dict[(ip, port)] = deque()
-            self._session_dict[(ip, port)].append(session)
+        self._session_queue.append(session)
+        self._logger.debug(u"got new request: %s", session)
 
-            # if this session is the first one, we handle it. Otherwise, we delay it.
-            if session == self._session_dict[(ip, port)][0]:
-                # send back OACK now
-                self._send_oack_packet(session)
-            else:
-                # save the next function that this session should call so that we can do it later.
-                self.next_func = lambda s = session: self._send_oack_packet(s)
+        # if this session is the first one, we handle it. Otherwise, we delay it.
+        if session == self._session_queue[0]:
+            # send back OACK now
+            self._send_oack_packet(session)
+        else:
+            # save the next function that this session should call so that we can do it later.
+            session.next_func = lambda s = session: self._send_oack_packet(s)
 
     def _load_file(self, ip, port, file_name, file_path=None):
         """ Loads a file into memory.

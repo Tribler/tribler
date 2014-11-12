@@ -72,7 +72,7 @@ class SearchResponsePayload(Payload):
                     assert isinstance(result, tuple), type(result)
                     assert len(result) > 10
 
-                    infohash, swarmname, length, nrfiles, categorykeys, creation_date, seeders, leechers, cid = result[:11]
+                    infohash, swarmname, length, nrfiles, categorykeys, creation_date, seeders, leechers, swift_hash, swift_torrent_hash, cid = result[:11]
                     assert isinstance(infohash, str), type(infohash)
                     assert len(infohash) == 20
                     assert isinstance(swarmname, unicode), type(swarmname)
@@ -83,6 +83,10 @@ class SearchResponsePayload(Payload):
                     assert isinstance(creation_date, long), type(creation_date)
                     assert isinstance(seeders, int), type(seeders)
                     assert isinstance(leechers, int), type(leechers)
+                    assert not swift_hash or isinstance(swift_hash, str), type(swift_hash)
+                    assert not swift_hash or len(swift_hash) == 20, swift_hash
+                    assert not swift_torrent_hash or isinstance(swift_torrent_hash, str), type(swift_torrent_hash)
+                    assert not swift_torrent_hash or len(swift_torrent_hash) == 20, swift_torrent_hash
                     assert not cid or isinstance(cid, str), type(cid)
                     assert not cid or len(cid) == 20, cid
 
@@ -126,11 +130,13 @@ class TorrentCollectRequestPayload(Payload):
 
     class Implementation(Payload.Implementation):
 
-        def __init__(self, meta, identifier, torrents):
+        def __init__(self, meta, identifier, hashtype, torrents):
             if __debug__:
                 assert isinstance(identifier, int), type(identifier)
                 assert isinstance(torrents, list), type(torrents)
-                for infohash, seeders, leechers, ago in torrents:
+                for hash, infohash, seeders, leechers, ago in torrents:
+                    assert isinstance(hash, str)
+                    assert len(hash) == 20, "%d, %s" % (len(hash), hash)
                     assert isinstance(infohash, str)
                     assert len(infohash) == 20, "%d, %s" % (len(infohash), infohash)
                     assert isinstance(seeders, int)
@@ -142,14 +148,22 @@ class TorrentCollectRequestPayload(Payload):
                     assert isinstance(ago, int)
                     assert 0 <= ago < 2 ** 16, ago
 
+                assert isinstance(hashtype, int), type(hashtype)
+                assert 0 <= hashtype < 2 ** 16, hashtype
+
             super(TorrentCollectRequestPayload.Implementation, self).__init__(meta)
 
             self._identifier = identifier
+            self._hashtype = hashtype
             self._torrents = torrents
 
         @property
         def identifier(self):
             return self._identifier
+
+        @property
+        def hashtype(self):
+            return self._hashtype
 
         @property
         def torrents(self):

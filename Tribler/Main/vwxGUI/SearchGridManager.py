@@ -538,22 +538,22 @@ class TorrentManager:
 
             channels = {}
             for a in results:
-                channel_details = a[-10:]
+                channel_details = a[18:]
                 if channel_details[0] and channel_details[0] not in channels:
                     channels[channel_details[0]] = create_channel(channel_details)
 
             def create_torrent(a):
-                channel = channels.get(a[-10], False)
+                channel = channels.get(a[18], False)
                 if channel and (channel.isFavorite() or channel.isMyChannel()):
-                    t = ChannelTorrent(*a[:-12] + [channel, None])
+                    t = ChannelTorrent(*a[:16] + [channel, None])
                 else:
-                    t = Torrent(*a[:11] + [False])
+                    t = Torrent(*a[:9] + [False])
 
                 t.misc_db = self.misc_db
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
                 t.metadata_db = self.metadata_db
-                t.assignRelevance(a[-11])
+                t.assignRelevance(a[17])
                 return t
 
             results = map(create_torrent, results)
@@ -647,9 +647,14 @@ class TorrentManager:
 
                     channel = channeldict.get(result[-1], False)
                     if channel:
-                        remoteHit = RemoteChannelTorrent(-1, result[0], result[8], result[9], result[1], result[2], category_id, self.misc_db.torrentStatusName2Id(u'good'), result[6], result[7], channel, set([candidate]))
+                        remoteHit = RemoteChannelTorrent(-1, result[0], result[1], result[2], category_id,
+                                                         self.misc_db.torrentStatusName2Id(u'good'),
+                                                         result[6], result[7], channel=channel,
+                                                         query_candidates={candidate})
                     else:
-                        remoteHit = RemoteTorrent(-1, result[0], result[8], result[9], result[1], result[2], category_id, self.misc_db.torrentStatusName2Id(u'good'), result[6], result[7], set([candidate]))
+                        remoteHit = RemoteTorrent(-1, result[0], result[1], result[2], category_id,
+                                                  self.misc_db.torrentStatusName2Id(u'good'), result[6], result[7],
+                                                  query_candidates={candidate})
 
                     # Guess matches
                     keywordset = set(keywords)
@@ -789,12 +794,7 @@ class TorrentManager:
         # handle the downloaded thumbnails
         if extraInfo['thumbnail-file-list']:
             from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
-            result = TorrentStateManager.getInstance()._create_metadata_roothash_and_contenthash(extraInfo['thumbnail-tempdir'], torrent)
-            if result:
-                roothash_hex, contenthash_hex = result
-                modifications.append(('swift-thumbs', json.dumps((None, roothash_hex, contenthash_hex))))
-
-            self.modifyTorrent(torrent, modifications)
+            result = TorrentStateManager.getInstance().create_and_seed_metadata_thumbnail(extraInfo['thumbnail-tempdir'][0], torrent, modifications)
 
         return True
 

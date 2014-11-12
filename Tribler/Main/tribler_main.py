@@ -15,9 +15,10 @@
 import sys
 import logging
 
-from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
+from Tribler.Main.Utility.compat import (convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig,
+                                         convertDownloadCheckpoints)
 from Tribler.Core.version import version_id, commit_id, build_date
-from Tribler.Core.osutils import fix_filebasename, get_free_space
+from Tribler.Core.osutils import get_free_space
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,6 @@ logger = logging.getLogger(__name__)
 #
 import urllib
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDb
-import shutil
 original_open_https = urllib.URLopener.open_https
 import M2Crypto  # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
@@ -41,14 +41,12 @@ urllib.URLopener.open_https = original_open_https
 import Tribler.Debug.console
 
 import os
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
 from Tribler.dispersy.util import attach_profiler, call_on_reactor_thread
 from Tribler.community.bartercast3.community import MASTER_MEMBER_PUBLIC_KEY_DIGEST as BARTER_MASTER_MEMBER_PUBLIC_KEY_DIGEST
 from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from random import randint
-from threading import currentThread, Thread
 try:
     prctlimported = True
     import prctl
@@ -71,6 +69,7 @@ from traceback import print_exc
 import urllib2
 import tempfile
 
+from Tribler.Main.vwxGUI.TriblerUpgradeDialog import TriblerUpgradeDialog
 from Tribler.Main.vwxGUI.MainFrame import MainFrame  # py2exe needs this import
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame
@@ -84,25 +83,23 @@ from Tribler.Main.Utility.Feeds.rssparser import RssParser
 from Tribler.Category.Category import Category
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager
 from Tribler.Policies.SeedingManager import GlobalSeedingManager
-from Tribler.Utilities.Instance2Instance import Instance2InstanceClient, \
-    Instance2InstanceServer, InstanceConnectionHandler
+from Tribler.Utilities.Instance2Instance import (Instance2InstanceClient, Instance2InstanceServer,
+                                                 InstanceConnectionHandler)
 from Tribler.Utilities.SingleInstanceChecker import SingleInstanceChecker
 
-from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, NTFY_MODIFIED, NTFY_INSERT, \
-    NTFY_REACHABLE, NTFY_ACTIVITIES, NTFY_UPDATE, NTFY_CREATE, NTFY_CHANNELCAST, \
-    NTFY_STATE, NTFY_VOTECAST, NTFY_MYPREFERENCES, NTFY_TORRENTS, NTFY_COMMENTS, \
-    NTFY_PLAYLISTS, NTFY_DELETE, NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_PEERS, \
-    NTFY_MARKINGS, NTFY_FINISHED, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, \
-    NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE, STATEDIR_TORRENTCOLL_DIR, \
-    dlstatus_strings, \
-    DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_DOWNLOADING, \
-    DLSTATUS_SEEDING, DLSTATUS_STOPPED, NTFY_DISPERSY, NTFY_STARTED
+from Tribler.Core.simpledefs import (UPLOAD, DOWNLOAD, NTFY_MODIFIED, NTFY_INSERT, NTFY_REACHABLE, NTFY_ACTIVITIES,
+                                     NTFY_UPDATE, NTFY_CREATE, NTFY_CHANNELCAST, NTFY_STATE, NTFY_VOTECAST,
+                                     NTFY_MYPREFERENCES, NTFY_TORRENTS, NTFY_COMMENTS, NTFY_PLAYLISTS, NTFY_DELETE,
+                                     NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_PEERS, NTFY_MARKINGS, NTFY_FINISHED,
+                                     NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, NTFY_MAGNET_STARTED,
+                                     NTFY_MAGNET_CLOSE, STATEDIR_TORRENTCOLL_DIR, dlstatus_strings,
+                                     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING,
+                                     DLSTATUS_STOPPED, NTFY_DISPERSY, NTFY_STARTED)
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.DownloadConfig import get_default_dest_dir
 
-from Tribler.Core.Statistics.Status.Status import get_status_holder, \
-    delete_status_holders
+from Tribler.Core.Statistics.Status.Status import get_status_holder, delete_status_holders
 from Tribler.Core.Statistics.Status.NullReporter import NullReporter
 
 from Tribler.Core.Video.VideoPlayer import return_feasible_playback_modes, PLAYBACKMODE_INTERNAL
@@ -178,7 +175,6 @@ class ABCApp(object):
         # Stage 1 start
         session = self.InitStage1(installdir)
 
-        # Stage 2: show the splash window and start the session
         self.splash = None
         try:
             bm = self.gui_image_manager.getImage(u'splash.png')
@@ -188,6 +184,8 @@ class ABCApp(object):
 
             self._logger.info('Client Starting Up.')
             self._logger.info("Tribler is using %s as working directory", self.installdir)
+
+            # Stage 2: show the splash window and start the session
 
             self.splash.tick('Starting API')
             s = self.startAPI(session, self.splash.tick)
@@ -408,8 +406,19 @@ class ABCApp(object):
         session = Session(self.sconfig)
 
         # check and upgrade
-        session.prestart()
-        TriblerUpgradeDialog()
+        upgrader = session.prestart()
+        if not upgrader.is_done:
+            upgrade_dialog = TriblerUpgradeDialog(upgrader)
+            result = upgrade_dialog.ShowModal()
+            upgrade_dialog.Destroy()
+            if result != 1:
+                result = wx.MessageDialog(None, u"Failed to upgrade tribler. We suggest to delete all tribler data.",
+                                          u"Failed to upgrade tribler", wx.YES_NO | wx.ICON_ERROR)
+                if result == wx.ID_YES:
+                    pass
+                elif result == wx.ID_NO:
+                    pass
+                exit(0)
 
         return session
 
@@ -442,7 +451,7 @@ class ABCApp(object):
         startWorker(None, self.loadSessionCheckpoint, delay=5.0, workerType="guiTaskQueue")
 
         # initialize the torrent feed thread
-        channelcast = ChannelCastDBHandler.getInstance()
+        channelcast = s.open_dbhandler(NTFY_CHANNELCAST)
 
         def db_thread():
             return channelcast.getMyChannelId()
@@ -477,24 +486,24 @@ class ABCApp(object):
 
             dispersy.attach_progress_handler(self.progressHandler)
 
+            default_kwargs = {'tribler_session': session}
             # must be called on the Dispersy thread
-            dispersy.define_auto_load(SearchCommunity, session.dispersy_member, load=True)
-            dispersy.define_auto_load(AllChannelCommunity, session.dispersy_member, load=True)
+            dispersy.define_auto_load(SearchCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
+            dispersy.define_auto_load(AllChannelCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
 
             # load metadata community
-            #dispersy.define_auto_load(MetadataCommunity, session.dispersy_member, load=True)
-            dispersy.define_auto_load(ChannelCommunity, session.dispersy_member, load=True)
-            dispersy.define_auto_load(PreviewChannelCommunity, session.dispersy_member)
+            dispersy.define_auto_load(MetadataCommunity, session.dispersy_member, load=True)
+            dispersy.define_auto_load(ChannelCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
+            dispersy.define_auto_load(PreviewChannelCommunity, session.dispersy_member, kargs=default_kwargs)
 
             if not self.is_unit_testing:
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair),)
 
                 self.tunnel_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, load=True,
-                                                                  kargs={'session': session})[0]
+                                                                  kargs=default_kwargs)[0]
 
                 session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_tunnel_community_socks5_listen_ports()))
-
 
             diff = time() - now
             self._logger.info("tribler: communities are ready in %.2f seconds", diff)
@@ -947,6 +956,13 @@ class ABCApp(object):
             # Niels: lets add a max waiting time for this session shutdown.
             session_shutdown_start = time()
 
+            try:
+                self._logger.info("main: ONEXIT cleaning database")
+                peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
+                peerdb._db.clean_db(randint(0, 24) == 0, exiting=True)
+            except:
+                print_exc()
+
             self.utility.session.shutdown(hacksessconfcheckpoint=False)
 
             # Arno, 2012-07-12: Shutdown should be quick
@@ -962,13 +978,6 @@ class ABCApp(object):
                 sleep(3)
             self._logger.info("main: ONEXIT Session is shutdown")
 
-            try:
-                self._logger.info("main: ONEXIT cleaning database")
-                peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
-                peerdb._db.clean_db(randint(0, 24) == 0, exiting=True)
-            except:
-                print_exc()
-
         print >> sys.stderr, "ONEXIT deleting instances"
 
         Session.del_instance()
@@ -976,10 +985,6 @@ class ABCApp(object):
         GUIDBProducer.delInstance()
         DefaultDownloadStartupConfig.delInstance()
         GuiImageManager.delInstance()
-
-        if SQLiteCacheDb.hasInstance():
-            SQLiteCacheDb.getInstance().close_all()
-            SQLiteCacheDb.delInstance()
 
         return 0
 

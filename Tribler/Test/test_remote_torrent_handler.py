@@ -103,7 +103,7 @@ class TestRemoteTorrentHandler(TestAsServer):
             timeout = 10
 
             candidate = Candidate(("127.0.0.1", self.session1_port), False)
-            self.session2.lm.rtorrent_handler.download_metadata(self.metadata_type, candidate, self.infohash,
+            self.session2.lm.rtorrent_handler.download_metadata(candidate, self.infohash, self.metadata_subpath,
                                                                 usercallback=do_check_download)
             self.CallConditional(timeout, self.download_event.is_set, do_check_download,
                                  u"Failed to download metadata within %s seconds" % timeout)
@@ -116,8 +116,9 @@ class TestRemoteTorrentHandler(TestAsServer):
 
         infohash_str = "41aea20908363a80d44234e8fef07fab506cd3b4"
         self.infohash = infohash_str.decode('hex')
-        self.metadata_type = "thumbs"
-        self.metadata_dir = u"%s-%s" % (infohash_str, self.metadata_type)
+        self.metadata_dir = u"%s" % infohash_str
+
+        self.metadata_subpath = os.path.join(self.metadata_dir, u"421px-Pots_10k_100k.jpeg")
 
         # copy file to the uploader's torrent_collecting_dir
         src_dir_path = os.path.join(BASE_DIR, u"data", self.metadata_dir)
