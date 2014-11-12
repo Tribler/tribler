@@ -24,6 +24,7 @@ import threading
 import time
 from traceback import print_exc, print_stack
 import urllib
+import copy
 
 from Tribler.Category.Category import Category
 
@@ -32,7 +33,8 @@ from Tribler.Core.simpledefs import dlstatus_strings, NTFY_MYPREFERENCES, \
     DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_SEEDING, \
     NTFY_ACT_NEW_VERSION, NTFY_ACT_NONE, NTFY_ACT_ACTIVE, NTFY_ACT_UPNP, \
     NTFY_ACT_REACHABLE, NTFY_ACT_MEET, NTFY_ACT_GET_EXT_IP_FROM_PEERS, \
-    NTFY_ACT_GOT_METADATA, NTFY_ACT_RECOMMEND, NTFY_ACT_DISK_FULL
+    NTFY_ACT_GOT_METADATA, NTFY_ACT_RECOMMEND, NTFY_ACT_DISK_FULL, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK, \
+    DOWNLOAD
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Swift.SwiftDef import SwiftDef
@@ -539,6 +541,16 @@ class MainFrame(wx.Frame):
                     cdef = tdef
                     monitorSwiftProgress = False
 
+            if not vodmode and not isinstance(tdef, TorrentDefNoMetainfo) and not tdef.is_anonymous() and hops > 0:
+                monitorHiddenSerivcesProgress = True
+                # Set anonymous flag
+                metainfo = copy.deepcopy(tdef.metainfo)
+                metainfo['info']['anonymous'] = 1
+                orig_tdef = tdef
+                cdef = tdef = TorrentDef._create(metainfo)
+            else:
+                monitorHiddenSerivcesProgress = False
+
             dscfg.set_hops(hops)
 
             if not cancelDownload:
@@ -589,6 +601,10 @@ class MainFrame(wx.Frame):
 
                     if monitorSwiftProgress:
                         state_lambda = lambda ds, vodmode = vodmode, torrentfilename = torrentfilename, dscfg = dscfg, selectedFile = selectedFile, selectedFiles = selectedFiles: self.monitorSwiftProgress(ds, vodmode, torrentfilename, dscfg, selectedFile, selectedFiles)
+                        result.set_state_callback(state_lambda, delay=15.0)
+
+                    if monitorHiddenSerivcesProgress:
+                        state_lambda = lambda ds, tdef = orig_tdef, dscfg = dscfg, selectedFiles = selectedFiles: self.monitorHiddenSerivcesProgress(ds, tdef, dscfg, selectedFiles)
                         result.set_state_callback(state_lambda, delay=15.0)
 
                 if clicklog is not None:
@@ -681,6 +697,20 @@ class MainFrame(wx.Frame):
                 dscfg = dscfg.copy()
                 dscfg.set_selected_files(selectedFiles or [])
                 self.utility.session.start_download(cdef, dscfg)
+        return (0, False)
+
+    def monitorHiddenSerivcesProgress(self, ds, tdef, dscfg, selectedFiles):
+        if ds.get_status() in [DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]:
+            return (5.0, True)
+
+        if ds.get_current_speed(DOWNLOAD) == 0:
+            download = ds.get_download()
+            self.utility.session.remove_download(download)
+
+            self._logger.error("Switching from hidden services to exit nodes")
+            dscfg = dscfg.copy()
+            dscfg.set_selected_files(selectedFiles or [])
+            self.utility.session.start_download(tdef, dscfg)
         return (0, False)
 
     @forceWxThread

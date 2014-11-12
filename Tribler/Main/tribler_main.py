@@ -14,9 +14,12 @@
 
 import sys
 import logging
+import copy
+
 from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
 from Tribler.Core.version import version_id, commit_id, build_date
 from Tribler.Core.osutils import fix_filebasename, get_free_space
+from Tribler.Core.TorrentDef import TorrentDef
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +103,7 @@ from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, NTFY_MODIFIED, NTFY_INSERT
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
-from Tribler.Core.DownloadConfig import get_default_dest_dir
+from Tribler.Core.DownloadConfig import get_default_dest_dir, DownloadStartupConfig
 
 from Tribler.Core.Statistics.Status.Status import get_status_holder, \
     delete_status_holders
@@ -855,6 +858,19 @@ class ABCApp():
 
         if self._frame_and_ready():
             self.guiUtility.torrentstate_manager.torrentFinished(objectID)
+
+        download = self.utility.session.get_download(objectID)
+        if download and download.get_anon_mode() and not download.get_def().is_anonymous():
+            dscfg = DownloadStartupConfig(download.dlconfig.copy())
+
+            # Set anonymous flag
+            metainfo = copy.deepcopy(download.get_def().metainfo)
+            metainfo['info']['anonymous'] = 1
+            tdef = TorrentDef._create(metainfo)
+
+            self._logger.error("Seeding torrent with hidden services")
+            self.utility.session.remove_download(download)
+            self.utility.session.start_download(tdef, dscfg)
 
     def sesscb_ntfy_magnet(self, subject, changetype, objectID, *args):
         if changetype == NTFY_MAGNET_STARTED:
