@@ -159,7 +159,7 @@ class Session(SessionConfigInterface):
         self.sqlite_db.initialize()
 
         # check and upgrade
-        upgrader = TriblerUpgrader(self.sqlite_db)
+        upgrader = TriblerUpgrader(self, self.sqlite_db)
         upgrader.check_and_upgrade()
 
     #

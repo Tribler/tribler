@@ -15,7 +15,6 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_react
 
 from Tribler import LIBRARYNAME
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION
-from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 
 
 DB_SCRIPT_NAME = u"schema_sdb_v%s.sql" % str(LATEST_DB_VERSION)

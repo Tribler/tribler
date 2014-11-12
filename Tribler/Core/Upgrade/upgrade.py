@@ -1,6 +1,7 @@
 import logging
 
 from Tribler.Core.CacheDB.db_versions import LOWEST_SUPPORTED_DB_VERSION, LATEST_DB_VERSION
+from Tribler.Core.Upgrade.upgrade64 import TorrentMigrator64
 
 # Database versions:
 #   *earlier versions are no longer supported
@@ -20,19 +21,23 @@ class DatabaseUpgradeError(Exception):
 
 class TriblerUpgrader(object):
 
-    def __init__(self, db):
+    def __init__(self, session, db):
         self._logger = logging.getLogger(self.__class__.__name__)
+        self.session = session
         self.db = db
 
-        self._current_status = u"Checking Tribler version..."
+        self.current_status = u"Checking Tribler version..."
 
-    @property
-    def current_status(self):
-        return self._current_status
+    def update_status(self, status_text):
+        self.current_status = status_text
 
     def check_and_upgrade(self):
         """ Checks the database version and upgrade if it is not the latest version.
         """
+        if self.db.version == LATEST_DB_VERSION:
+            self._logger.info(u"Tribler is in the latest version, no need to upgrade")
+            return
+
         # check if we support the version
         if self.db.version < LOWEST_SUPPORTED_DB_VERSION:
             msg = u"Version no longer supported: %s < %s" % (self.db.version, LOWEST_SUPPORTED_DB_VERSION)
@@ -49,22 +54,33 @@ class TriblerUpgrader(object):
     def _start_upgrade(self):
         # version 17 -> 18
         if self.db.version == 17:
-            self._current_status = u"Upgrading database from v%s to v%s..." % (17, 18)
+            self._upgrade_17_to_18()
 
-            self.db.execute(u"""
+        # version 18 -> 22
+        if self.db.version == 18:
+            self._upgrade_18_to_22()
+
+        # version 22 -> 23
+        if self.db.version == 22:
+            migrator = TorrentMigrator64(self.session, self.db, status_update_func=self.update_status)
+            migrator.start_migrate()
+
+    def _upgrade_17_to_18(self):
+        self.current_status = u"Upgrading database from v%s to v%s..." % (17, 18)
+
+        self.db.execute(u"""
 DROP TABLE IF EXISTS BarterCast;
 DROP INDEX IF EXISTS bartercast_idx;
 INSERT INTO MetaDataTypes ('name') VALUES ('swift-thumbnails');
 INSERT INTO MetaDataTypes ('name') VALUES ('video-info');
 """)
-            # update database version
-            self.db.write_version(18)
+        # update database version
+        self.db.write_version(18)
 
-        # version 18 -> 22
-        if self.db.version == 18:
-            self._current_status = u"Upgrading database from v%s to v%s..." % (18, 22)
+    def _upgrade_18_to_22(self):
+        self.current_status = u"Upgrading database from v%s to v%s..." % (18, 22)
 
-            self.db.execute(u"""
+        self.db.execute(u"""
 DROP INDEX IF EXISTS Torrent_swift_hash_idx;
 
 DROP VIEW Friend;
@@ -115,21 +131,5 @@ DROP TABLE IF EXISTS ClicklogSearch;
 DROP INDEX IF EXISTS idx_search_term;
 DROP INDEX IF EXISTS idx_search_torrent;
 """)
-            # update database version
-            self.db.write_version(22)
-
-        # version 22 -> 23
-        if self.db.version == 22:
-            self._current_status = u"Upgrading database from v%s to v%s..." % (22, 23)
-
-            self.db.execute(u"""
-DROP TABLE IF EXISTS BarterCast;
-DROP INDEX IF EXISTS bartercast_idx;
-
---- clean up Torrent table
-
-DROP INDEX Torrent_swift_torrent_hash_idx;
-""")
-
-            # update database version
-            self.db.write_version(23)
+        # update database version
+        self.db.write_version(22)
