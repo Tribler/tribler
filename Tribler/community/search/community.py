@@ -222,19 +222,19 @@ class SearchCommunity(Community):
 
         advice = True
         if not is_fast_walker:
-            myPreferences = sorted(self._mypref_db.getMyPrefListInfohash(limit=500))
-            num_preferences = len(myPreferences)
+            my_preferences = sorted(self._mypref_db.getMyPrefListInfohash(limit=500))
+            num_preferences = len(my_preferences)
 
-            myPref_key = ",".join(map(bin2str, myPreferences))
-            if myPref_key != self.taste_bloom_filter_key:
+            my_pref_key = u",".join(map(bin2str, my_preferences))
+            if my_pref_key != self.taste_bloom_filter_key:
                 if num_preferences > 0:
                     # no prefix changing, we want false positives (make sure it is a single char)
-                    self.taste_bloom_filter = BloomFilter(0.005, len(myPreferences), prefix=' ')
-                    self.taste_bloom_filter.add_keys(myPreferences)
+                    self.taste_bloom_filter = BloomFilter(0.005, len(my_preferences), prefix=' ')
+                    self.taste_bloom_filter.add_keys(my_preferences)
                 else:
                     self.taste_bloom_filter = None
 
-                self.taste_bloom_filter_key = myPref_key
+                self.taste_bloom_filter_key = my_pref_key
 
             taste_bloom_filter = self.taste_bloom_filter
 
@@ -253,7 +253,7 @@ class SearchCommunity(Community):
                                 destination=(destination,),
                                 payload=payload)
 
-        self._logger.debug("%s %s sending introduction request to %s", self.cid.encode("HEX"), type(self), destination)
+        self._logger.debug(u"%s %s sending introduction request to %s", self.cid.encode("HEX"), type(self), destination)
 
         self._dispersy._forward([request])
         return request
@@ -262,28 +262,29 @@ class SearchCommunity(Community):
         super(SearchCommunity, self).on_introduction_request(messages)
 
         if any(message.payload.taste_bloom_filter for message in messages):
-            myPreferences = self._mypref_db.getMyPrefListInfohash(limit=500)
+            my_preferences = self._mypref_db.getMyPrefListInfohash(limit=500)
         else:
-            myPreferences = []
+            my_preferences = []
 
-        newTasteBuddies = []
+        new_taste_buddies = []
         for message in messages:
             taste_bloom_filter = message.payload.taste_bloom_filter
             num_preferences = message.payload.num_preferences
             if taste_bloom_filter:
-                overlap = sum(infohash in taste_bloom_filter for infohash in myPreferences)
+                overlap = sum(infohash in taste_bloom_filter for infohash in my_preferences)
             else:
                 overlap = 0
 
-            newTasteBuddies.append(self.__calc_similarity(message.candidate, len(myPreferences), num_preferences, overlap))
+            new_taste_buddies.append(self.__calc_similarity(message.candidate, len(my_preferences), num_preferences, overlap))
 
-        if len(newTasteBuddies) > 0:
-            self.add_taste_buddies(newTasteBuddies)
+        if len(new_taste_buddies) > 0:
+            self.add_taste_buddies(new_taste_buddies)
 
         if self._notifier:
             from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACTIVITIES, NTFY_INSERT
             for message in messages:
-                self._notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET, "%s:%d" % message.candidate.sock_addr)
+                self._notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_MEET,
+                                      "%s:%d" % message.candidate.sock_addr)
 
     class SearchRequest(RandomNumberCache):
 
@@ -303,7 +304,7 @@ class SearchCommunity(Community):
         candidates = self.get_connections()
         if len(candidates) > 0:
             if DEBUG:
-                self._logger.debug("SearchCommunity: sending search request for %s to %s", keywords, map(str, candidates))
+                self._logger.debug(u"sending search request for %s to %s", keywords, map(str, candidates))
 
             # register callback/fetch identifier
             cache = self._request_cache.add(SearchCommunity.SearchRequest(self._request_cache, keywords, callback))
@@ -322,7 +323,7 @@ class SearchCommunity(Community):
             keywords = message.payload.keywords
 
             if DEBUG:
-                self._logger.debug("SearchCommunity: got search request for %s", keywords)
+                self._logger.debug(u"got search request for %s", keywords)
 
             if self.log_incomming_searches:
                 self.log_incomming_searches(message.candidate.sock_addr, keywords)
@@ -347,7 +348,7 @@ class SearchCommunity(Community):
 
                     results.append(tuple(dbresult))
             elif DEBUG:
-                self._logger.debug("SearchCommunity: no results")
+                self._logger.debug(u"no results")
 
             self._create_search_response(message.payload.identifier, results, message.candidate)
 
@@ -359,7 +360,7 @@ class SearchCommunity(Community):
         self._dispersy._forward([message])
 
         if DEBUG:
-            self._logger.debug("SearchCommunity: returning %s results to %s", len(results), candidate)
+            self._logger.debug(u"returning %s results to %s", len(results), candidate)
 
     def on_search_response(self, messages):
         # _get_channel_community could cause multiple commits, using this with clause this is reduced to only one.
@@ -408,7 +409,7 @@ class SearchCommunity(Community):
 
         if DEBUG:
             nr_requests = sum([len(cid_torrents) for cid_torrents in torrentdict.values()])
-            self._logger.debug("SearchCommunity: requesting %s TorrentMessages from %s", nr_requests, candidate)
+            self._logger.debug(u"requesting %s TorrentMessages from %s", nr_requests, candidate)
 
     def on_torrent_request(self, messages):
         for message in messages:
@@ -418,10 +419,10 @@ class SearchCommunity(Community):
 
             if requested_packets:
                 self._dispersy._send_packets([message.candidate], requested_packets,
-                    self, "-caused by on-torrent-request-")
+                    self, u"-caused by on-torrent-request-")
 
             if DEBUG:
-                self._logger.debug("SearchCommunity: got request for %s torrents from %s", len(requested_packets), message.candidate)
+                self._logger.debug(u"got request for %s torrents from %s", len(requested_packets), message.candidate)
 
     class PingRequestCache(RandomNumberCache):
 
@@ -445,7 +446,7 @@ class SearchCommunity(Community):
                     break
 
             if remove:
-                self._logger.debug("SearchCommunity: no response on ping, removing from taste_buddies %s", self.candidate)
+                self._logger.debug(u"no response on ping, removing from taste_buddies %s", self.candidate)
                 self.community.taste_buddies.remove(remove)
 
     def create_torrent_collect_requests(self, candidates=None):

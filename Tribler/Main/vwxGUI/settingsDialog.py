@@ -11,8 +11,7 @@ import atexit
 import time
 import logging
 
-from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, \
-    STATEDIR_TORRENTCOLL_DIR, STATEDIR_SWIFTRESEED_DIR
+from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.osutils import get_picture_dir
@@ -179,7 +178,6 @@ class SettingsDialog(wx.Dialog):
         valport = self._firewall_value.GetValue()
         if valport != str(self.utility.session.get_listen_port()):
             scfg.set_listen_port(int(valport))
-            scfg.set_swift_tunnel_listen_port(int(valport) - 2)
             scfg.set_dispersy_port(int(valport) - 1)
             self.saveDefaultDownloadConfig(scfg)
 
@@ -349,10 +347,6 @@ class SettingsDialog(wx.Dialog):
                 target.set_torrent_collecting_dir(os.path.join(defaultdestdir, STATEDIR_TORRENTCOLL_DIR))
             except:
                 self._logger.exception("Could not set target torrent collecting dir")
-            try:
-                target.set_swift_meta_dir(os.path.join(defaultdestdir, STATEDIR_SWIFTRESEED_DIR))
-            except:
-                self._logger.exception("Could not set target swift meta dir")
 
         scfg.save(cfgfilename)
 

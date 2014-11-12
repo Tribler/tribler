@@ -19,7 +19,7 @@ from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupCon
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException
 from Tribler.Core.osutils import get_appstate_dir, is_android
 from Tribler.Core.simpledefs import (STATEDIR_TORRENTCOLL_DIR, STATEDIR_PEERICON_DIR, STATEDIR_DLPSTATE_DIR,
-                                     STATEDIR_SWIFTRESEED_DIR, STATEDIR_SESSCONFIG, NTFY_MISC, NTFY_PEERS,
+                                     STATEDIR_SESSCONFIG, NTFY_MISC, NTFY_PEERS,
                                      NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_UPDATE,
                                      NTFY_INSERT, NTFY_DELETE, NTFY_METADATA)
 
@@ -94,7 +94,6 @@ class Session(SessionConfigInterface):
 
         set_and_create_dir(scfg.get_state_dir(), scfg.set_state_dir, Session.get_default_state_dir())
         set_and_create_dir(scfg.get_torrent_collecting_dir(), scfg.set_torrent_collecting_dir, os.path.join(scfg.get_state_dir(), STATEDIR_TORRENTCOLL_DIR))
-        set_and_create_dir(scfg.get_swift_meta_dir(), scfg.set_swift_meta_dir, os.path.join(scfg.get_state_dir(), STATEDIR_SWIFTRESEED_DIR))
         set_and_create_dir(scfg.get_peer_icon_path(), scfg.set_peer_icon_path, os.path.join(scfg.get_state_dir(), STATEDIR_PEERICON_DIR))
 
         create_dir(os.path.join(scfg.get_state_dir(), u"sqlite"))
@@ -103,17 +102,6 @@ class Session(SessionConfigInterface):
 
         if scfg.get_nickname() == '__default_name__':
             scfg.set_nickname(socket.gethostname())
-
-        # SWIFTPROC
-        if scfg.get_swift_path() is None or not os.path.exists(scfg.get_swift_path()):
-            if sys.platform == "win32":
-                swift_path = os.path.join(scfg.get_install_dir(), "swift.exe")
-            elif is_android(strict=True):
-                swift_path = os.path.join(os.environ['ANDROID_PRIVATE'], 'swift')
-            else:
-                swift_path = os.path.join(scfg.get_install_dir(), "swift")
-            self._logger.info("Changing swift_path config var from '%s' to '%s'", str(scfg.get_swift_path()), swift_path)
-            scfg.set_swift_path(swift_path)
 
         if GOTM2CRYPTO:
             permidmod.init()
@@ -149,13 +137,6 @@ class Session(SessionConfigInterface):
         self.get_dispersy_port()
         self.get_mainline_dht_listen_port()
         self.get_videoplayer_port()
-
-        self.get_swift_tunnel_listen_port()
-        self.get_swift_tunnel_cmdgw_listen_port()
-        self.get_swift_tunnel_httpgw_listen_port()
-
-        self.get_swift_cmd_listen_port()
-        self.get_swift_dht_listen_port()
 
         self.get_anon_listen_port()
         self.get_tunnel_community_socks5_listen_ports()
@@ -225,7 +206,7 @@ class Session(SessionConfigInterface):
     #
     # Public methods
     #
-    def start_download(self, cdef, dcfg=None, initialdlstatus=None, hidden=False):
+    def start_download(self, tdef, dcfg=None, initialdlstatus=None, hidden=False):
         """
         Creates a Download object and adds it to the session. The passed
         ContentDef and DownloadStartupConfig are copied into the new Download
@@ -234,7 +215,7 @@ class Session(SessionConfigInterface):
         If a checkpointed version of the Download is found, that is restarted
         overriding the saved DownloadStartupConfig if "dcfg" is not None.
 
-        @param cdef  A finalized TorrentDef or a SwiftDef
+        @param tdef  A finalized TorrentDef
         @param dcfg DownloadStartupConfig or None, in which case
         a new DownloadStartupConfig() is created with its default settings
         and the result becomes the runtime config of this Download.
@@ -245,17 +226,10 @@ class Session(SessionConfigInterface):
         @return Download
         """
         # locking by lm
-        if cdef.get_def_type() == "torrent":
-            if self.get_libtorrent():
-                return self.lm.add(cdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
-            raise OperationNotEnabledByConfigurationException()
-
-        else:
-            # SWIFTPROC
-            if self.get_swift_proc():
-                return self.lm.swift_add(cdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
-
-            raise OperationNotEnabledByConfigurationException()
+        assert tdef.get_def_type() == "torrent"
+        if self.get_libtorrent():
+            return self.lm.add(tdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
+        raise OperationNotEnabledByConfigurationException()
 
     def resume_download_from_file(self, filename):
         """
@@ -578,12 +552,6 @@ class Session(SessionConfigInterface):
             raise OperationNotEnabledByConfigurationException()
 
         return self.lm.dispersy
-
-    def get_swift_process(self):
-        if not self.get_swift_proc():
-            raise OperationNotEnabledByConfigurationException()
-
-        return self.lm.swift_process
 
     def get_libtorrent_process(self):
         if not self.get_libtorrent():

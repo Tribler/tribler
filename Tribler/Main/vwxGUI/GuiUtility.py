@@ -12,7 +12,6 @@ from time import time
 from Tribler import LIBRARYNAME
 
 from Tribler.Category.Category import Category
-from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.Search.SearchManager import split_into_keywords

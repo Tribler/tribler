@@ -16,7 +16,6 @@ from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.RawServer.RawServer import RawServer
 from Tribler.Core.ServerPortHandler import MultiHandler
-from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
@@ -134,33 +133,6 @@ class TriblerLaunchMany(Thread):
             if self.session.get_videoplayer():
                 self.videoplayer = VideoPlayer(self.session)
 
-            # SWIFTPROC
-            swift_path = self.session.get_swift_path()
-            swift_exists = self.session.get_swift_proc() and \
-                (os.path.exists(swift_path) or os.path.exists(swift_path + '.exe'))
-            if swift_exists:
-                from Tribler.Core.Swift.SwiftProcessMgr import SwiftProcessMgr
-
-                self.spm = SwiftProcessMgr(self.session.get_swift_path(),
-                                           self.session.get_swift_tunnel_cmdgw_listen_port(),
-                                           self.session.get_swift_downloads_per_process(),
-                                           self.session.get_swift_tunnel_listen_port(), self.sesslock)
-                try:
-                    self.swift_process = self.spm.get_or_create_sp(self.session.get_swift_working_dir(),
-                                                                   self.session.get_torrent_collecting_dir(),
-                                                                   self.session.get_swift_tunnel_listen_port(),
-                                                                   self.session.get_swift_tunnel_httpgw_listen_port(),
-                                                                   self.session.get_swift_tunnel_cmdgw_listen_port())
-                    self.upnp_ports.append((self.session.get_swift_tunnel_listen_port(), 'UDP'))
-
-                except OSError, (ErrorNumber, ErrorMessage):
-                    # could not find/run swift
-                    self._logger.error("lmc: could not start a swift process (Err#%s: %s)", (ErrorNumber, ErrorMessage))
-
-            else:
-                self.spm = None
-                self.swift_process = None
-
             # Dispersy
             self.session.dispersy_member = None
             self.tftp_handler = None
@@ -219,15 +191,13 @@ class TriblerLaunchMany(Thread):
             # notify dispersy finished loading
             self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
 
-        if self.spm:
-            from Tribler.Core.DecentralizedTracking import mainlineDHT
-            try:
-                self.mainline_dht = mainlineDHT.init(('127.0.0.1', self.session.get_mainline_dht_listen_port()),
-                                                     self.session.get_state_dir(),
-                                                     self.session.get_swift_cmd_listen_port())
-                self.upnp_ports.append((self.session.get_mainline_dht_listen_port(), 'UDP'))
-            except:
-                print_exc()
+        from Tribler.Core.DecentralizedTracking import mainlineDHT
+        try:
+            self.mainline_dht = mainlineDHT.init(('127.0.0.1', self.session.get_mainline_dht_listen_port()),
+                                                 self.session.get_state_dir())
+            self.upnp_ports.append((self.session.get_mainline_dht_listen_port(), 'UDP'))
+        except:
+            print_exc()
 
         if self.session.get_libtorrent():
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
@@ -690,10 +660,6 @@ class TriblerLaunchMany(Thread):
             self.cat.delInstance()
             self.term.delInstance()
 
-        # SWIFTPROC
-        if self.spm is not None:
-            self.spm.early_shutdown()
-
         if self.mainline_dht:
             from Tribler.Core.DecentralizedTracking import mainlineDHT
             mainlineDHT.deinit(self.mainline_dht)
@@ -701,15 +667,6 @@ class TriblerLaunchMany(Thread):
     def network_shutdown(self):
         try:
             self._logger.info("tlm: network_shutdown")
-
-            # Arno, 2012-07-04: Obsolete, each thread must close the DBHandler
-            # it uses in its own shutdown procedure. There is no global close
-            # of all per-thread cursors/connections.
-            #
-            # cachedb.done()
-            # SWIFTPROC
-            if self.spm is not None:
-                self.spm.network_shutdown()
 
             ts = enumerate_threads()
             self._logger.info("tlm: Number of threads still running %d", len(ts))
@@ -822,8 +779,7 @@ class TriblerLaunchMany(Thread):
                                                    'anon_proxyserver', 'anon_proxytype', 'anon_proxyauth',
                                                    'anon_listen_port']) or \
              (section == 'torrent_collecting' and name in ['stop_collecting_threshold']) or \
-             (section == 'tunnel_community' and name in ['socks5_listen_port']) or \
-             (section == 'swift' and name in ['swiftmetadir']):
+             (section == 'tunnel_community' and name in ['socks5_listen_port']):
             return True
         else:
             return False

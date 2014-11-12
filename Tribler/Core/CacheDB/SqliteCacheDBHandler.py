@@ -866,7 +866,7 @@ class TorrentDBHandler(BasicDBHandler):
                     update.append((swarmname, length, nrfiles, categoryid, creation_date, infohash, source_id, status_id, tid))
                     to_be_indexed.append((tid, swarmname))
 
-                elif infohash and infohash not in infohash_tid:  # or infohash
+                elif infohash and infohash not in infohash_tid:
                     update_infohash.append((infohash, tid))
             else:
                 insert.append((swarmname, length, nrfiles, categoryid, creation_date, infohash, source_id, status_id))
@@ -886,8 +886,8 @@ class TorrentDBHandler(BasicDBHandler):
             try:
                 self._db.executemany(sql, insert)
 
-                were_inserted = [(inserted[5], inserted[7]) for inserted in insert]
-                sql = u"SELECT torrent_id, name FROM Torrent WHERE infohash = ? or swift_hash = ?"
+                were_inserted = [inserted[5] for inserted in insert]
+                sql = u"SELECT torrent_id, name FROM Torrent WHERE infohash = ?"
                 to_be_indexed = to_be_indexed + list(self._db.executemany(sql, were_inserted))
             except:
                 print_exc()
@@ -1580,12 +1580,12 @@ class MyPreferenceDBHandler(BasicDBHandler):
     def getMyPrefListInfohash(self, returnDeleted=True, limit=None):
         # Arno, 2012-08-01: having MyPreference (the shorter list) first makes
         # this faster.
-        sql = 'select infohash, swift_hash from MyPreference, Torrent where Torrent.torrent_id == MyPreference.torrent_id'
+        sql = u"SELECT infohash FROM MyPreference, Torrent WHERE Torrent.torrent_id == MyPreference.torrent_id"
         if not returnDeleted:
-            sql += ' AND destination_path != ""'
+            sql += u' AND destination_path != ""'
 
         if limit:
-            sql += ' ORDER BY creation_time DESC LIMIT %d' % limit
+            sql += u" ORDER BY creation_time DESC LIMIT %d" % limit
 
         res = self._db.fetchall(sql)
         res = [item for sublist in res for item in sublist]
@@ -1595,7 +1595,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
         # get the full {torrent_id:(create_time,progress,destdir)}
         value_name = ('torrent_id', 'creation_time', 'progress', 'destination_path')
         if torrent_id is not None:
-            where = 'torrent_id=%s' % torrent_id
+            where = 'torrent_id == %s' % torrent_id
         else:
             where = None
         res = self.getAll(value_name, where)
@@ -2523,8 +2523,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         if torrent:
             torrent = list(torrent)
             fix_value('infohash', torrent)
-            fix_value('swift_hash', torrent)
-            fix_value('swift_torrent_hash', torrent)
         return torrent
 
     def __fixTorrents(self, keys, results):
@@ -2537,8 +2535,6 @@ class ChannelCastDBHandler(BasicDBHandler):
                         result[key_index] = str2bin(result[key_index])
                         results[i] = result
         fix_value('infohash')
-        fix_value('swift_hash')
-        fix_value('swift_torrent_hash')
         return results
 
     def getPlaylistsFromChannelId(self, channel_id, keys):

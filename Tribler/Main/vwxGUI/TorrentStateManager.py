@@ -13,9 +13,7 @@ try:
 except ImportError, e:
     prctlimported = False
 
-from Tribler.Core.Swift.SwiftDef import SwiftDef
-from Tribler.Core.Video.VideoUtility import get_videoinfo, preferred_timecodes, \
-    limit_resolution, get_thumbnail
+from Tribler.Core.Video.VideoUtility import get_videoinfo, preferred_timecodes, limit_resolution, get_thumbnail
 
 
 class TorrentStateManager(object):
@@ -106,26 +104,9 @@ class TorrentStateManager(object):
             open(mfplaceholder_path, "a").close()
             thumb_filenames.append(mfplaceholder_path)
 
-        # Create SwiftDef.
-        sdef = SwiftDef()
-        sdef.set_tracker("127.0.0.1:%d" % session.get_swift_dht_listen_port())
-        for thumbfile in thumb_filenames:
-            if os.path.exists(thumbfile):
-                xi = os.path.relpath(thumbfile, torcoldir)
-                sdef.add_content(thumbfile, xi)
+        # TODO
 
-        specpn = sdef.finalize(session.get_swift_path(), destdir=torcoldir)
-        hex_roothash = sdef.get_roothash_as_hex()
-
-        try:
-            swift_filename = os.path.join(torcoldir, hex_roothash)
-            shutil.move(specpn, swift_filename)
-            shutil.move(specpn + '.mhash', swift_filename + '.mhash')
-            shutil.move(specpn + '.mbinmap', swift_filename + '.mbinmap')
-        except:
-            self._logger.exception(u"Failed to move swift files: specpn=%s, swift_filename=%s", specpn, swift_filename)
-
-        return hex_roothash, contenthash_hex
+        return
 
     def _create_and_seed_metadata(self, videofile, torrent):
         if prctlimported:

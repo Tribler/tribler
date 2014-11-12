@@ -94,11 +94,9 @@ from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, NTFY_MODIFIED, NTFY_INSERT
     NTFY_PLAYLISTS, NTFY_DELETE, NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_PEERS, \
     NTFY_MARKINGS, NTFY_FINISHED, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, \
     NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE, STATEDIR_TORRENTCOLL_DIR, \
-    STATEDIR_SWIFTRESEED_DIR, \
     dlstatus_strings, \
     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_DOWNLOADING, \
     DLSTATUS_SEEDING, DLSTATUS_STOPPED, NTFY_DISPERSY, NTFY_STARTED
-from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.DownloadConfig import get_default_dest_dir
@@ -193,8 +191,6 @@ class ABCApp(object):
 
             self.splash.tick('Starting API')
             s = self.startAPI(session, self.splash.tick)
-
-            self._logger.info("Tribler is expecting swift in %s", self.sconfig.get_swift_path())
 
             self.utility = Utility(self.installdir, s.get_state_dir())
             self.utility.app = self
@@ -372,17 +368,8 @@ class ABCApp(object):
 
         self.sconfig.set_install_dir(self.installdir)
 
-        self.sconfig.set_dispersy_tunnel_over_swift(True)
-
         # Arno, 2010-03-31: Hard upgrade to 50000 torrents collected
         self.sconfig.set_torrent_collecting_max_torrents(50000)
-
-        # Arno, 2012-05-21: Swift part II
-        swiftbinpath = os.path.join(self.sconfig.get_install_dir(), "swift")
-        if sys.platform == "darwin":
-            if not os.path.exists(swiftbinpath):
-                swiftbinpath = os.path.join(os.getcwdu(), "..", "MacOS", "swift")
-                self.sconfig.set_swift_path(swiftbinpath)
 
         dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())
         self._logger.debug("main: Download config %s", dlcfgfilename)
@@ -408,7 +395,6 @@ class ABCApp(object):
                     defaultDLConfig.set_dest_dir(new_dest_dir)
                     defaultDLConfig.save(dlcfgfilename)
                     self.sconfig.set_torrent_collecting_dir(os.path.join(new_dest_dir, STATEDIR_TORRENTCOLL_DIR))
-                    self.sconfig.set_swift_meta_dir(os.path.join(new_dest_dir, STATEDIR_SWIFTRESEED_DIR))
                     self.sconfig.save(cfgfilename)
                 else:
                     # Quit
@@ -418,8 +404,6 @@ class ABCApp(object):
         # Setting torrent collection dir based on default download dir
         if not self.sconfig.get_torrent_collecting_dir():
             self.sconfig.set_torrent_collecting_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR))
-        if not self.sconfig.get_swift_meta_dir():
-            self.sconfig.set_swift_meta_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_SWIFTRESEED_DIR))
 
         session = Session(self.sconfig)
 
@@ -613,15 +597,15 @@ class ABCApp(object):
 
     def sesscb_states_callback(self, dslist):
         if not self.ready:
-            return (5.0, [])
+            return 5.0, []
 
         wantpeers = []
         self.ratestatecallbackcount += 1
         if DEBUG:
             torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
             peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
-            self._logger.debug("main: Stats: Total torrents found %s peers %s" % \
-                (repr(torrentdb.size()), repr(peerdb.size())))
+            self._logger.debug(u"main: Stats: Total torrents found %s peers %s",
+                               repr(torrentdb.size()), repr(peerdb.size()))
 
         try:
             # Print stats on Console
@@ -672,10 +656,6 @@ class ABCApp(object):
                             notifier = Notifier.getInstance()
                             notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, hash, safename)
 
-                            # Arno, 2012-05-04: Swift reseeding
-                            # if self.utility.read_config('swiftreseed') == 1 and cdef.get_def_type() == 'torrent' and not download.get_selected_files():
-                            #    self.sesscb_reseed_via_swift(download)
-
                             doCheckpoint = True
 
             self.prevActiveDownloads = newActiveDownloads
@@ -690,19 +670,14 @@ class ABCApp(object):
                 adjustspeeds = True
 
             if adjustspeeds:
-                swift_dslist = [ds for ds in no_collected_list if ds.get_download().get_def().get_def_type() == 'swift']
-                self.ratelimiter.add_downloadstatelist(swift_dslist)
                 self.ratelimiter.adjust_speeds()
 
                 if DEBUG_DOWNLOADS:
                     for ds in dslist:
-                        cdef = ds.get_download().get_def()
+                        tdef = ds.get_download().get_def()
                         state = ds.get_status()
-                        if cdef.get_def_type() == 'swift':
-                            safename = cdef.get_name()
-                            self._logger.debug("tribler: SW %s %s %s", dlstatus_strings[state], safename, ds.get_current_speed(UPLOAD))
-                        else:
-                            self._logger.debug("tribler: BT %s %s %s", dlstatus_strings[state], cdef.get_name(), ds.get_current_speed(UPLOAD))
+                        self._logger.debug(u"tribler: BT %s %s %s", dlstatus_strings[state], tdef.get_name(),
+                                           ds.get_current_speed(UPLOAD))
 
                 if self.tunnel_community:
                     self.tunnel_community.monitor_downloads(dslist)
@@ -711,7 +686,7 @@ class ABCApp(object):
             print_exc()
 
         self.lastwantpeers = wantpeers
-        return (1.0, wantpeers)
+        return 1.0, wantpeers
 
     def loadSessionCheckpoint(self):
         # Niels: first remove all "swift" torrent collect checkpoints
@@ -1060,82 +1035,6 @@ class ABCApp(object):
                 self.guiUtility.ShowPage('my_files')
 
             wx.CallAfter(start_asked_download)
-
-    def sesscb_reseed_via_swift(self, td, callback=None):
-        # Arno, 2012-05-07: root hash calculation may take long time, halting
-        # SessionCallbackThread meaning download statuses won't be updated.
-        # Offload to diff thread.
-        #
-        t = Thread(target=self.workerthread_reseed_via_swift_run, args=(td, callback), name="SwiftRootHashCalculator")
-        t.start()
-        # apparently daemon by default
-
-    def workerthread_reseed_via_swift_run(self, td, callback=None):
-        # Open issues:
-        # * how to display these "parallel" downloads in GUI?
-        # * make swift reseed user configurable (see 'swiftreseed' in utility.py
-        # * roothash calc on separate thread?
-        # * Update pymDHT to one with swift interface.
-        # * Save (infohash,roothash) pair such that when BT download is removed
-        #   the other is (kept/deleted/...) too.
-        #
-        try:
-            if prctlimported:
-                prctl.set_name(currentThread().getName())
-
-            # 1. Get torrent info
-            tdef = td.get_def()
-            destdir = td.get_dest_dir()
-
-            # renaming swarmname for now not supported in swift
-            if td.correctedinfoname != fix_filebasename(tdef.get_name_as_unicode()):
-                return
-
-            # 2. Convert to swift def
-            sdef = SwiftDef()
-            # RESEEDTODO: set to swift inf of pymDHT
-            sdef.set_tracker("127.0.0.1:%d" % self.sconfig.get_swift_dht_listen_port())
-            iotuples = td.get_dest_files()
-            for i, o in iotuples:
-                # print >>sys.stderr,"python: add_content",i,o
-                if len(iotuples) == 1:
-                    sdef.add_content(o)  # single file .torrent
-                else:
-                    xi = os.path.join(tdef.get_name_as_unicode(), i)
-                    sdef.add_content(o, xi)  # multi-file .torrent
-
-            specpn = sdef.finalize(self.sconfig.get_swift_path(), destdir=destdir)
-
-            # 3. Save swift files to metadata dir
-            metadir = self.sconfig.get_swift_meta_dir()
-            if len(iotuples) == 1:
-                storagepath = iotuples[0][1]  # Point to file on disk
-                metapath = os.path.join(metadir, os.path.split(storagepath)[1])
-
-                try:
-                    shutil.move(storagepath + '.mhash', metapath + '.mhash')
-                    shutil.move(storagepath + '.mbinmap', metapath + '.mbinmap')
-                except:
-                    print_exc()
-
-            else:
-                storagepath = destdir  # Point to dest dir
-                metapath = os.path.join(metadir, sdef.get_roothash_as_hex())
-
-                # Reuse .mhash and .mbinmap (happens automatically for single-file)
-                try:
-                    shutil.move(specpn, metapath + '.mfspec')
-                    shutil.move(specpn + '.mhash', metapath + '.mhash')
-                    shutil.move(specpn + '.mbinmap', metapath + '.mbinmap')
-                except:
-                    print_exc()
-
-            # 5. Call the callback to notify
-            if callback:
-                callback(sdef)
-        except:
-            print_exc()
-            raise
 
 
 #
