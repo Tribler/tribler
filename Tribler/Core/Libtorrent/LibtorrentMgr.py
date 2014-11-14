@@ -283,14 +283,14 @@ class LibtorrentMgr(object):
         if handle:
             if handle.is_valid():
                 infohash = str(handle.info_hash())
-                with self.torlock:
-                    if infohash in self.torrents:
-                        self.torrents[infohash][0].process_alert(alert, alert_type)
-                    elif infohash in self.metainfo_requests:
-                        if type(alert) == lt.metadata_received_alert:
-                            self.got_metainfo(infohash)
-                    else:
-                        self._logger.debug("LibtorrentMgr: could not find torrent %s", infohash)
+                torrent = self.torrents.get(infohash, None)
+                if torrent is not None:
+                    torrent[0].process_alert(alert, alert_type)
+                elif infohash in self.metainfo_requests:
+                    if type(alert) == lt.metadata_received_alert:
+                        self.got_metainfo(infohash)
+                else:
+                    self._logger.debug("LibtorrentMgr: could not find torrent %s", infohash)
             else:
                 self._logger.debug("LibtorrentMgr: alert for invalid torrent")
 
@@ -333,9 +333,8 @@ class LibtorrentMgr(object):
         infohash_bin = infohash_or_magnet if not magnet else parse_magnetlink(magnet)[1]
         infohash = binascii.hexlify(infohash_bin)
 
-        with self.torlock:
-            if infohash in self.torrents:
-                return
+        if infohash in self.torrents:
+            return
 
         with self.metainfo_lock:
             self._logger.debug('LibtorrentMgr: get_metainfo %s %s %s', infohash_or_magnet, callback, timeout)
