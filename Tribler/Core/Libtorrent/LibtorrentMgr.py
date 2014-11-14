@@ -116,6 +116,11 @@ class LibtorrentMgr(object):
             ltsession = lt.session(flags=0)
             ltsession.add_extension(lt.create_ut_metadata_plugin)
             ltsession.add_extension(lt.create_smart_ban_plugin)
+            # Start DHT
+            ltsession.start_dht(None)
+            ltsession.add_dht_router('router.bittorrent.com', 6881)
+            ltsession.add_dht_router('router.utorrent.com', 6881)
+            ltsession.add_dht_router('router.bitcomet.com', 6881)
 
         ltsession.set_settings(settings)
         ltsession.set_alert_mask(lt.alert.category_t.stats_notification |
