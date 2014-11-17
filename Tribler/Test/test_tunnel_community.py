@@ -5,14 +5,15 @@ import sys
 import time
 
 from threading import Event
-
+from traceback import print_exc
 from twisted.internet import reactor
 
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import blockingCallFromThread
-from Tribler.community.tunnel.community import TunnelCommunity
+from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
+
 
 class TestTunnelCommunity(TestGuiAsServer):
 
@@ -87,10 +88,77 @@ class TestTunnelCommunity(TestGuiAsServer):
                 tunnel_community.exit_data = lambda circuit_id, sock_addr, destination, data, community = tunnel_community: exit_data(community, circuit_id, sock_addr, destination, data)
             tunnel_communities[-1].circuits_needed[3] = 4
 
-            self.CallConditional(30, lambda: len(tunnel_communities[-1].active_circuits()) == 4,
+            self.CallConditional(30, lambda: len(tunnel_communities[-1].active_data_circuits()) == 4,
                                      lambda: start_test(tunnel_communities))
 
         self.startTest(replace_socks)
+
+    def test_hidden_services(self):
+        def take_second_screenshot():
+            self.screenshot()
+            self.quit()
+
+        def take_screenshot(download_time):
+            self.screenshot("After an anonymous libtorrent download (took %.2f s)" % download_time)
+            self.guiUtility.ShowPage('networkgraph')
+            self.Call(1, take_second_screenshot)
+
+        def on_fail(expected, reason, do_assert):
+            dispersy = self.session.lm.dispersy
+            tunnel_community = next(c for c in dispersy.get_communities() if isinstance(c, TunnelCommunity))
+
+            self.guiUtility.ShowPage('networkgraph')
+
+            def do_asserts():
+                self.assert_(len(tunnel_community.circuits) >= 4, "At least 4 circuits should have been created", False)
+                self.assert_(expected, reason, do_assert)
+
+            self.Call(1, do_asserts)
+
+        def do_progress(download, start_time):
+            self.CallConditional(120,
+                lambda: download.get_progress() == 1.0,
+                lambda: take_screenshot(time.time() - start_time),
+                'Anonymous download should be finished in 120 seconds (%.1f%% downloaded)' % (download.get_progress() * 100),
+                on_fail
+            )
+
+        def do_create_local_torrent(tunnel_communities):
+            def download_states_callback(dslist):
+                try:
+                    tunnel_communities[0].monitor_downloads(dslist)
+                except:
+                    print_exc()
+                return (1.0, [])
+
+            seeder_session = self.sessions[0]
+            seeder_session.set_anon_proxy_settings(2, ("127.0.0.1", seeder_session.get_tunnel_community_socks5_listen_ports()))
+            seeder_session.set_download_states_callback(download_states_callback, False)
+
+            from Tribler.Core.TorrentDef import TorrentDef
+            tdef = TorrentDef()
+            tdef.add_content(os.path.join(BASE_DIR, "data", "video.avi"))
+            tdef.set_tracker("http://fake.net/announce")
+            tdef.set_private()  # disable dht
+            tdef.set_anonymous(True)
+            tdef.finalize()
+            tf = os.path.join(seeder_session.get_state_dir(), "gen.torrent")
+            tdef.save(tf)
+
+            from Tribler.Core.DownloadConfig import DownloadStartupConfig
+            dscfg = DownloadStartupConfig()
+            dscfg.set_dest_dir(os.path.join(BASE_DIR, "data"))  # basedir of the file we are seeding
+            dscfg.set_hops(3)
+            d = seeder_session.start_download(tdef, dscfg)
+            d.set_state_callback(self.seeder_state_callback)
+
+            start_time = time.time()
+            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=3)
+
+            self.guiUtility.ShowPage('my_files')
+            do_progress(download, start_time)
+
+        self.startTest(do_create_local_torrent)
 
     def startTest(self, callback, min_timeout=5):
         self.getStateDir()  # getStateDir copies the bootstrap file into the statedir
@@ -124,6 +192,8 @@ class TestTunnelCommunity(TestGuiAsServer):
 
             self.setUpPreSession()
             config = self.config.copy()
+            config.set_libtorrent(True)
+            config.set_swift_path(os.path.join('..', '..', 'swift.exe'))
             config.set_swift_proc(True)
             config.set_dispersy(True)
             config.set_state_dir(self.getStateDir(index))
@@ -141,7 +211,9 @@ class TestTunnelCommunity(TestGuiAsServer):
             def load_community(session):
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
-                return dispersy.define_auto_load(TunnelCommunity, dispersy_member, (session, None), load=True)[0]
+                settings = TunnelSettings()
+                settings.do_test = False
+                return dispersy.define_auto_load(TunnelCommunity, dispersy_member, (session, settings), load=True)[0]
 
             return blockingCallFromThread(reactor, load_community, session)
 

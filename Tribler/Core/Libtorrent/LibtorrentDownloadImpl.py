@@ -191,7 +191,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         # Libtorrent status
         self.dlstates = [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_METADATA, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING]
         self.dlstate = DLSTATUS_WAITING4HASHCHECK
-        self.dlstate_prev = self.dlstate
         self.length = 0
         self.progress = 0.0
         self.bufferprogress = 0.0
@@ -203,7 +202,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.pause_after_next_hashcheck = False
         self.checkpoint_after_next_hashcheck = False
         self.tracker_status = {}  # {url: [num_peers, status_str]}
-        self.last_rendezvous_creation = 0
 
         self.prebuffsize = 5 * 1024 * 1024
         self.endbuffsize = 0

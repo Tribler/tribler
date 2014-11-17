@@ -6,9 +6,9 @@ import logging
 import threading
 import libtorrent as lt
 
-from collections import defaultdict
 from copy import deepcopy
 from shutil import rmtree
+from collections import defaultdict
 
 from Tribler.Core.version import version_id
 from Tribler.Core.exceptions import DuplicateDownloadException
