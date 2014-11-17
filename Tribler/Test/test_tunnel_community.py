@@ -13,6 +13,7 @@ from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import blockingCallFromThread
 from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
+from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 
 
 class TestTunnelCommunity(TestGuiAsServer):
@@ -52,10 +53,12 @@ class TestTunnelCommunity(TestGuiAsServer):
         def do_create_local_torrent(_):
             tf = self.setupSeeder()
             start_time = time.time()
-            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=3)
+            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(),
+                                                           hops=3, try_hidden_services=False)
 
             self.guiUtility.ShowPage('my_files')
             self.Call(5, lambda : download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
+
             do_progress(download, start_time)
 
         self.startTest(do_create_local_torrent)
@@ -77,7 +80,7 @@ class TestTunnelCommunity(TestGuiAsServer):
         def start_test(tunnel_communities):
             # assuming that the last tunnel community is that loaded by the tribler gui
             tunnel_community = tunnel_communities[-1]
-            first_circuit = tunnel_community.active_data_circuits.values()[0]
+            first_circuit = tunnel_community.active_data_circuits().values()[0]
             first_circuit.tunnel_data(("127.0.0.1", 12345), "42")
             self.CallConditional(30, got_data.is_set, self.quit)
 
@@ -123,18 +126,28 @@ class TestTunnelCommunity(TestGuiAsServer):
                 on_fail
             )
 
-        def do_create_local_torrent(tunnel_communities):
+        def start_download(tf):
+            start_time = time.time()
+            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(),
+                                                           hops=3, try_hidden_services=True)
+            self.guiUtility.ShowPage('my_files')
+            do_progress(download, start_time)
+
+        def setup_seeder(tunnel_communities):
+            # Setup the first session to be the seeder
             def download_states_callback(dslist):
                 try:
                     tunnel_communities[0].monitor_downloads(dslist)
                 except:
                     print_exc()
                 return (1.0, [])
-
+            tunnel_communities[0].settings.min_circuits = 0
+            tunnel_communities[0].settings.max_circuits = 0
             seeder_session = self.sessions[0]
             seeder_session.set_anon_proxy_settings(2, ("127.0.0.1", seeder_session.get_tunnel_community_socks5_listen_ports()))
             seeder_session.set_download_states_callback(download_states_callback, False)
 
+            # Create an anonymous torrent
             from Tribler.Core.TorrentDef import TorrentDef
             tdef = TorrentDef()
             tdef.add_content(os.path.join(BASE_DIR, "data", "video.avi"))
@@ -145,6 +158,7 @@ class TestTunnelCommunity(TestGuiAsServer):
             tf = os.path.join(seeder_session.get_state_dir(), "gen.torrent")
             tdef.save(tf)
 
+            # Start seeding
             from Tribler.Core.DownloadConfig import DownloadStartupConfig
             dscfg = DownloadStartupConfig()
             dscfg.set_dest_dir(os.path.join(BASE_DIR, "data"))  # basedir of the file we are seeding
@@ -152,13 +166,20 @@ class TestTunnelCommunity(TestGuiAsServer):
             d = seeder_session.start_download(tdef, dscfg)
             d.set_state_callback(self.seeder_state_callback)
 
-            start_time = time.time()
-            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=3)
+            # Wait for the introduction point to announce itself to the DHT
+            dht = Event()
+            def dht_announce(info_hash, community):
+                def cb(info_hash, peers, source):
+                    print >> sys.stderr, "announced %s to the DHT" % info_hash.encode('hex')
+                    dht.set()
+                port = community.trsession.get_swift_tunnel_listen_port()
+                community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb, bt_port=port)
+            for community in tunnel_communities:
+                community.dht_announce = lambda ih, com = community: dht_announce(ih, com)
+            self.CallConditional(60, dht.is_set, lambda: self.Call(10, lambda: start_download(tf)),
+                                'Introduction point did not get announced')
 
-            self.guiUtility.ShowPage('my_files')
-            do_progress(download, start_time)
-
-        self.startTest(do_create_local_torrent)
+        self.startTest(setup_seeder)
 
     def startTest(self, callback, min_timeout=5):
         self.getStateDir()  # getStateDir copies the bootstrap file into the statedir
@@ -172,6 +193,7 @@ class TestTunnelCommunity(TestGuiAsServer):
             for community in self.lm.dispersy.get_communities():
                 if isinstance(community, TunnelCommunity):
                     tunnel_communities.append(community)
+                    community.settings.min_circuits = 3
                     # Cancel 50 MB test download
                     community.cancel_pending_task("start_test")
 

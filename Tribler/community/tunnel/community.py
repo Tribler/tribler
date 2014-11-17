@@ -321,7 +321,7 @@ class TunnelCommunity(Community):
 
         self.crypto.initialize(self)
 
-        self._dispersy.endpoint.listen_to(self.data_prefix, self.on_data)
+        self.dispersy.endpoint.listen_to(self.data_prefix, self.on_data)
 
         self.start_download_test()
 
@@ -413,8 +413,6 @@ class TunnelCommunity(Community):
         return [DefaultConversion(self), TunnelConversion(self)]
 
     def unload_community(self):
-        super(TunnelCommunity, self).unload_community()
-
         self.socks_server.stop()
 
         # Remove all circuits/relays/exitsockets
@@ -424,6 +422,8 @@ class TunnelCommunity(Community):
             self.remove_relay(circuit_id, destroy=True)
         for circuit_id in self.exit_sockets.keys():
             self.remove_exit_socket(circuit_id, destroy=True)
+
+        super(TunnelCommunity, self).unload_community()
 
     @property
     def crypto(self):
@@ -868,7 +868,7 @@ class TunnelCommunity(Community):
                     self.increase_bytes_received(self.circuits[circuit_id], len(message.packet))
 
         if decrypted_packets:
-            self._dispersy.on_incoming_packets(decrypted_packets, cache=False)
+            self.dispersy.on_incoming_packets(decrypted_packets, cache=False)
 
     def on_create(self, messages):
         for message in messages:
@@ -1012,7 +1012,7 @@ class TunnelCommunity(Community):
 
                 if data[:TUNNEL_PREFIX_LENGHT] == TUNNEL_PREFIX and len(data) > 22:
                     self._logger.error("Giving incoming data packet to dispersy")
-                    self._dispersy.on_incoming_packets([(Candidate(origin, False), data[TUNNEL_PREFIX_LENGHT:])], False)
+                    self.dispersy.on_incoming_packets([(Candidate(origin, False), data[TUNNEL_PREFIX_LENGHT:])], False)
                 else:
                     anon_seed = self.circuits[circuit_id].ctype == CIRCUIT_TYPE_RENDEZVOUS
                     self.socks_server.on_incoming_from_tunnel(self, self.circuits[circuit_id], origin, data, anon_seed)
@@ -1231,7 +1231,7 @@ class TunnelCommunity(Community):
         self.download_states = new_states
 
     def create_introduction_points(self, info_hash, amount=1):
-        self._logger.error("Creating introduction point")
+        self._logger.error('Creating introduction point')
         self._create_introduction_points(info_hash, amount)
 
         # Ensures that libtorrent tries to make an outgoing connection so that the socks5 server
@@ -1381,18 +1381,7 @@ class TunnelCommunity(Community):
                                    "service_key %s", message.candidate, circuit_id,
                                    self._readable_binary_string(message.payload.service_key))
                 self.send_cell([message.candidate], u"intro-established", (circuit_id, message.payload.identifier))
-
-                # DHT announce
-                if self.trsession:
-                    def cb(info_hash, peers, source):
-                        self._logger.error("TunnelCommunity: announced %s to the DHT", info_hash.encode('hex'))
-
-                    from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
-                    self.trsession.lm.mainline_dht.get_peers(message.payload.info_hash, Id(message.payload.info_hash),
-                                                           cb, bt_port=self.trsession.get_swift_tunnel_listen_port())
-                else:
-                    self._logger.error("TunnelCommunity: need a Tribler session to announce to the DHT")
-
+                self.dht_announce(message.payload.info_hash)
             else:
                 self._logger.error("TunnelCommunity: got establish-intro but no exit socket found")
 
@@ -1563,3 +1552,14 @@ class TunnelCommunity(Community):
 
         # Create circuit for intro1
         self.create_circuit(2, CIRCUIT_TYPE_RENDEZVOUS, callback, required_exit=rendezvous_point)
+
+    def dht_announce(self, info_hash):
+        # DHT announce
+        if self.trsession:
+            def cb(info_hash, peers, source):
+                self._logger.error("TunnelCommunity: announced %s to the DHT", info_hash.encode('hex'))
+
+            port = self.trsession.get_swift_tunnel_listen_port()
+            self.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb, bt_port=port)
+        else:
+            self._logger.error("TunnelCommunity: need a Tribler session to announce to the DHT")

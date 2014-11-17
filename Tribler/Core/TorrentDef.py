@@ -1189,3 +1189,6 @@ class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
 
     def copy(self):
         return TorrentDefNoMetainfo(self.infohash, self.name)
+
+    def is_anonymous(self):
+        return False

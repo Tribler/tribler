@@ -859,18 +859,18 @@ class ABCApp():
         if self._frame_and_ready():
             self.guiUtility.torrentstate_manager.torrentFinished(objectID)
 
-        download = self.utility.session.get_download(objectID)
-        if download and download.get_anon_mode() and not download.get_def().is_anonymous():
-            dscfg = DownloadStartupConfig(download.dlconfig.copy())
-
-            # Set anonymous flag
-            metainfo = copy.deepcopy(download.get_def().metainfo)
-            metainfo['info']['anonymous'] = 1
-            tdef = TorrentDef._create(metainfo)
-
-            self._logger.error("Seeding torrent with hidden services")
-            self.utility.session.remove_download(download)
-            self.utility.session.start_download(tdef, dscfg)
+#        download = self.utility.session.get_download(objectID)
+#        if download and download.get_anon_mode() and not download.get_def().is_anonymous():
+#            dscfg = DownloadStartupConfig(download.dlconfig.copy())
+#
+#            # Set anonymous flag
+#            metainfo = copy.deepcopy(download.get_def().metainfo)
+#            metainfo['info']['anonymous'] = 1
+#            tdef = TorrentDef._create(metainfo)
+#
+#            self._logger.error("Seeding torrent with hidden services")
+#            self.utility.session.remove_download(download)
+#            self.utility.session.start_download(tdef, dscfg)
 
     def sesscb_ntfy_magnet(self, subject, changetype, objectID, *args):
         if changetype == NTFY_MAGNET_STARTED:

@@ -454,7 +454,7 @@ class MainFrame(wx.Frame):
         return False
 
     def startDownload(self, torrentfilename=None, destdir=None, sdef=None, tdef=None, cmdline=False, clicklog=None,
-                      name=None, vodmode=False, hops=0, fixtorrent=False, selectedFiles=None,
+                      name=None, vodmode=False, hops=0, try_hidden_services=False, fixtorrent=False, selectedFiles=None,
                       correctedFilename=None, hidden=False):
         self._logger.debug("mainframe: startDownload: %s %s %s %s %s %s", torrentfilename, destdir, sdef, tdef, vodmode, selectedFiles)
 
@@ -541,7 +541,8 @@ class MainFrame(wx.Frame):
                     cdef = tdef
                     monitorSwiftProgress = False
 
-            if not vodmode and not isinstance(tdef, TorrentDefNoMetainfo) and not tdef.is_anonymous() and hops > 0:
+            if try_hidden_services and not vodmode and not isinstance(tdef, TorrentDefNoMetainfo) and \
+               not tdef.is_anonymous() and hops > 0:
                 monitorHiddenSerivcesProgress = True
                 # Set anonymous flag
                 metainfo = copy.deepcopy(tdef.metainfo)
