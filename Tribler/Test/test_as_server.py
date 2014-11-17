@@ -18,7 +18,6 @@ from threading import enumerate as enumerate_threads
 
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 
 from nose.twistedtools import reactor
 
@@ -31,7 +30,6 @@ from Tribler.Core import defaults
 defaults.sessdefaults['general']['state_dir'] = STATE_DIR
 defaults.sessdefaults['general']['minport'] = -1
 defaults.sessdefaults['general']['maxport'] = -1
-defaults.sessdefaults['swift']['swifttunnellistenport'] = -1
 defaults.sessdefaults['dispersy']['dispersy_port'] = -1
 
 defaults.dldefaults["downloadconfig"]["saveas"] = DEST_DIR
@@ -39,6 +37,7 @@ defaults.dldefaults["downloadconfig"]["saveas"] = DEST_DIR
 DEBUG = False
 
 OUTPUT_DIR = os.environ.get('OUTPUT_DIR', 'output')
+
 
 class AbstractServer(unittest.TestCase):
 
@@ -120,12 +119,15 @@ class TestAsServer(AbstractServer):
     """
 
     def setUp(self):
-        AbstractServer.setUp(self, annotate=False)
+        super(TestAsServer, self).setUp(annotate=False)
         self.setUpPreSession()
 
         self.quitting = False
 
         self.session = Session(self.config)
+        upgrader = self.session.prestart()
+        while not upgrader.is_done and not upgrader.has_error:
+            time.sleep(0.1)
         self.session.start()
 
         self.hisport = self.session.get_listen_port()
@@ -143,7 +145,6 @@ class TestAsServer(AbstractServer):
         self.config.set_multicast_local_peer_discovery(False)
         self.config.set_megacache(False)
         self.config.set_dispersy(False)
-        self.config.set_swift_proc(False)
         self.config.set_mainline_dht(False)
         self.config.set_torrent_collecting(False)
         self.config.set_libtorrent(False)
@@ -166,11 +167,7 @@ class TestAsServer(AbstractServer):
         for t in ts:
             print >> sys.stderr, "test_as_server: Thread still running", t.getName(), "daemon", t.isDaemon(), "instance:", t
 
-        if SQLiteCacheDB.hasInstance():
-            SQLiteCacheDB.getInstance().close_all()
-            SQLiteCacheDB.delInstance()
-
-        AbstractServer.tearDown(self, annotate=False)
+        super(TestAsServer, self).tearDown(annotate=False)
 
     def _shutdown_session(self, session):
         session_shutdown_start = time.time()
