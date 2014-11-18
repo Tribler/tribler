@@ -12,7 +12,7 @@ class TriblerUpgradeDialog(wx.Dialog):
         self._ui_update_interval = ui_update_interval
 
         # create layout
-        self._text = wx.StaticText(self, label=u"Starting to upgrade...")
+        self._text = wx.StaticText(self, label=u"Upgrading Tribler data...")
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
         vbox = wx.BoxSizer(wx.VERTICAL)
@@ -31,13 +31,10 @@ class TriblerUpgradeDialog(wx.Dialog):
     def on_close(self, event):
         # stop and remove the timer
         self._timer.Stop()
-        result = 1 if self._upgrader.is_done else 0
-        self.EndModal(result)
+        self.EndModal(int(self._upgrader.has_error))
 
     def on_timer(self, event):
         # updates the UI
         self._text.SetLabel(self._upgrader.current_status)
         if self._upgrader.is_done:
-            self.Close()
-        if self._upgrader.has_error:
             self.Close()
