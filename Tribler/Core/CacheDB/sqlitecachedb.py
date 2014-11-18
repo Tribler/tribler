@@ -54,6 +54,7 @@ class SQLiteCacheDb(TaskManager):
 
         self.session = session
 
+        self.sqlite_db_path = ''
         self._cursor_lock = RLock()
         self._cursor_table = {}
 
@@ -75,14 +76,21 @@ class SQLiteCacheDb(TaskManager):
         """ Initializes the database. If the database doesn't exist, we create a new one. Otherwise, we check the
             version and upgrade to the latest version.
         """
-        if db_path is None:
-            sqlite_db_path = os.path.join(self.session.get_state_dir(), DB_FILE_RELATIVE_PATH)
-        else:
-            sqlite_db_path = db_path
+        self.sqlite_db_path = db_path if db_path else os.path.join(self.session.get_state_dir(), DB_FILE_RELATIVE_PATH)
+
         sql_script_path = os.path.join(self.session.get_install_dir(), DB_SCRIPT_RELATIVE_PATH)
 
         # open a connection to the database
-        self._open_connection(sqlite_db_path, sql_script_path)
+        self._open_connection(self.sqlite_db_path, sql_script_path)
+
+    def close(self):
+        self.cancel_all_pending_tasks()
+        with self._cursor_lock:
+            for cursor in self._cursor_table.itervalues():
+                cursor.close()
+            self._cursor_table = {}
+            self._connection.close()
+            self._connection = None
 
     def close(self):
         self.cancel_all_pending_tasks()
