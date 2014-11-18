@@ -409,17 +409,14 @@ class ABCApp(object):
         upgrader = session.prestart()
         if not upgrader.is_done:
             upgrade_dialog = TriblerUpgradeDialog(upgrader)
-            result = upgrade_dialog.ShowModal()
+            failed = upgrade_dialog.ShowModal()
             upgrade_dialog.Destroy()
-            if result != 1:
-                result = wx.MessageDialog(None, u"Failed to upgrade tribler. We suggest to delete all tribler data.",
-                                          u"Failed to upgrade tribler", wx.YES_NO | wx.ICON_ERROR)
-                if result == wx.ID_YES:
-                    pass
-                elif result == wx.ID_NO:
-                    pass
-                exit(0)
-
+            if failed:
+                wx.MessageDialog(None, "Failed to upgrade the on disk data.\n\n"
+                             "Tribler has backed up the old data and will now start from scratch.\n\n"
+                             "Get in contact with the Tribler team if you want to help debugging this issue.\n\n"
+                             "Error was: %s" % upgrader.current_status,
+                             "Data format upgrade failed", wx.OK | wx.CENTRE | wx.ICON_EXCLAMATION).ShowModal()
         return session
 
     def _frame_and_ready(self):
