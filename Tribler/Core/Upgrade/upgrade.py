@@ -1,8 +1,11 @@
 import logging
+import os
 
 from Tribler.dispersy.util import call_on_reactor_thread
 from Tribler.Core.CacheDB.db_versions import LOWEST_SUPPORTED_DB_VERSION, LATEST_DB_VERSION
 from Tribler.Core.Upgrade.upgrade64 import TorrentMigrator64
+from Tribler.dispersy.util import call_on_reactor_thread
+
 
 # Database versions:
 #   *earlier versions are no longer supported
@@ -66,18 +69,45 @@ class TriblerUpgrader(object):
         self.is_done = True
 
     def _start_upgrade(self):
-        # version 17 -> 18
-        if self.db.version == 17:
-            self._upgrade_17_to_18()
+        # We don't support migrating from older than v6.0, just move the DB away.
+        if self.db.version < 17:
+            self.update_status(u"Data is too old.")
+            self.has_error = True
+        else:
+            # version 17 -> 18
+            if self.db.version == 17:
+                self._upgrade_17_to_18()
 
-        # version 18 -> 22
-        if self.db.version == 18:
-            self._upgrade_18_to_22()
+            # version 18 -> 22
+            if self.db.version == 18:
+                self._upgrade_18_to_22()
 
-        # version 22 -> 23
-        if self.db.version == 22:
-            migrator = TorrentMigrator64(self.session, self.db, status_update_func=self.update_status)
-            migrator.start_migrate()
+            # version 22 -> 23
+            if self.db.version == 22:
+                # TODO(emilon): TorrentMigrator64 shouldn't upgrade the database
+                # as it breaks the case where the DB version is older than 17.
+                migrator = TorrentMigrator64(self.session, self.db, status_update_func=self.update_status)
+                migrator.start_migrate()
+
+            # check if database version matches
+            if self.db.version != LATEST_DB_VERSION:
+                self.update_status(u"Database upgrade failure (%s -> %safename)" % (self.db.version, LATEST_DB_VERSION))
+                self.has_error = True
+
+        if self.has_error:
+            self._stash_database_away()
+        else:
+            self.current_status = u"Done."
+
+        self.is_done = True
+
+    def _stash_database_away(self):
+        self.db.close()
+        old_dir = os.path.dirname(self.db.sqlite_db_path)
+        new_dir = u'%s_backup_%d' % (old_dir, LATEST_DB_VERSION)
+        os.rename(old_dir, new_dir)
+        os.makedirs(old_dir)
+        self.db.initialize()
 
         # check if database version matches
         if self.db.version != LATEST_DB_VERSION:
