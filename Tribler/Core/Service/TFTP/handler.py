@@ -119,6 +119,8 @@ class TftpHandler(TaskManager):
                 self.register_task(u"tftp_callback",
                                    reactor.callLater(0, session.failure_callback, session.address,
                                                      session.file_name, "timeout", session.extra_info))
+        else:
+            return
 
         # start next session in the queue
         if not self._session_queue:
@@ -150,6 +152,10 @@ class TftpHandler(TaskManager):
 
         # a response
         else:
+            if not self._session_queue:
+                self._logger.warn(u"empty session queue, dropping packet [%s] from %s:%s",
+                                  packet, ip, port)
+
             session = self._session_queue[0]
             self._process_packet(session, packet)
 

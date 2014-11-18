@@ -432,9 +432,10 @@ class Requester(object):
                 self.queue.task_done()
 
             if made_request or not self.can_request():
-                self.remote_torrent_handler.schedule_task(self._do_request, t=self.REQUEST_INTERVAL * self.priority)
+                self.remote_torrent_handler.schedule_task(u"request_%s" % hexlify(infohash), self._do_request,
+                                                          delay_time=self.REQUEST_INTERVAL * self.priority)
             else:
-                self.remote_torrent_handler.schedule_task(self._do_request)
+                self.remote_torrent_handler.schedule_task(u"request_%s" % hexlify(infohash), self._do_request)
         except Queue.Empty:
             pass
 
@@ -645,10 +646,11 @@ class MagnetRequester(Requester):
             self.requests_on_disk += 1
 
         else:
+            infohash_str = hexlify(infohash)
             @call_on_reactor_thread
             def construct_magnet():
                 # try magnet link
-                magnetlink = "magnet:?xt=urn:btih:" + hexlify(infohash)
+                magnetlink = "magnet:?xt=urn:btih:" + infohash_str
 
                 if self.remote_torrent_handler.torrent_db:
                     # see if we know any trackers for this magnet
@@ -657,14 +659,14 @@ class MagnetRequester(Requester):
                         if tracker != 'no-DHT' and tracker != 'DHT':
                             magnetlink += "&tr=" + urllib.quote_plus(tracker)
 
-                self._logger.debug(u"requesting magnet %s %s %s", hexlify(infohash), self.priority, magnetlink)
+                self._logger.debug(u"requesting magnet %s %s %s", infohash_str, self.priority, magnetlink)
 
                 TorrentDef.retrieve_from_magnet(magnetlink, self._torrentdef_retrieved, self.MAGNET_RETRIEVE_TIMEOUT,
                                                 max_connections=30 if self.priority == 0 else 10, silent=True)
             construct_magnet()
 
             failed_lambda = lambda ih = infohash: self._torrentdef_failed(ih)
-            self.remote_torrent_handler.schedule_task(u"magnet_request", failed_lambda,
+            self.remote_torrent_handler.schedule_task(u"magnet_request_%s" % infohash_str, failed_lambda,
                                                       delay_time=self.MAGNET_RETRIEVE_TIMEOUT)
             return True
 
