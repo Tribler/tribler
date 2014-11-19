@@ -83,21 +83,13 @@ class SQLiteCacheDb(TaskManager):
         # open a connection to the database
         self._open_connection(self.sqlite_db_path, sql_script_path)
 
+    @blocking_call_on_reactor_thread
     def close(self):
         self.cancel_all_pending_tasks()
         with self._cursor_lock:
             for cursor in self._cursor_table.itervalues():
                 cursor.close()
             self._cursor_table = {}
-            self._connection.close()
-            self._connection = None
-
-    def close(self):
-        self.cancel_all_pending_tasks()
-        with self._cursor_lock:
-            for thread_name, cursor in self._cursor_table.iteritems():
-                cursor.close()
-            self._cursor_table = None
             self._connection.close()
             self._connection = None
 

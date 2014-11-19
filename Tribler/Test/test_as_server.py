@@ -77,18 +77,18 @@ class AbstractServer(unittest.TestCase):
         self.setUpCleanup()
 
     def getStateDir(self, nr=0):
-        dir = STATE_DIR + (str(nr) if nr else '')
-        if not os.path.exists(dir):
-            os.mkdir(dir)
-        if os.path.isfile("bootstraptribler.txt"):
-            shutil.copy("bootstraptribler.txt", os.path.join(dir, "bootstraptribler.txt"))
-        return dir
+        state_dir = STATE_DIR + (str(nr) if nr else '')
+        if not os.path.exists(state_dir):
+            os.mkdir(state_dir)
+        if os.path.isfile(u"bootstraptribler.txt"):
+            shutil.copy(u"bootstraptribler.txt", os.path.join(state_dir, u"bootstraptribler.txt"))
+        return state_dir
 
     def getDestDir(self, nr=0):
-        dir = DEST_DIR + (str(nr) if nr else '')
-        if not os.path.exists(dir):
-            os.mkdir(dir)
-        return dir
+        dest_dir = DEST_DIR + (str(nr) if nr else '')
+        if not os.path.exists(dest_dir):
+            os.mkdir(dest_dir)
+        return dest_dir
 
     def annotate(self, annotation, start=True, destdir=OUTPUT_DIR):
         if not os.path.exists(destdir):
@@ -97,7 +97,7 @@ class AbstractServer(unittest.TestCase):
         if start:
             self.annotate_dict[annotation] = time.time()
         else:
-            filename = os.path.join(destdir, "annotations.txt")
+            filename = os.path.join(destdir, u"annotations.txt")
             if os.path.exists(filename):
                 f = open(filename, 'a')
             else:
@@ -106,7 +106,7 @@ class AbstractServer(unittest.TestCase):
 
             AbstractServer._annotate_counter += 1
             _annotation = re.sub('[^a-zA-Z0-9_]', '_', annotation)
-            _annotation = '%d_' % AbstractServer._annotate_counter + _annotation
+            _annotation = u"%d_" % AbstractServer._annotate_counter + _annotation
 
             print >> f, _annotation, self.annotate_dict[annotation], time.time()
             f.close()
