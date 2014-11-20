@@ -25,6 +25,7 @@ class MetadataCommunity(Community):
 
         self._metadata_db = None
         self._torrent_db = None
+        self._rth = None
 
     def initialize(self, tribler_session=None):
         self.tribler_session = tribler_session
@@ -40,8 +41,6 @@ class MetadataCommunity(Community):
 
         else:
             self._metadata_db = MetadataDBStub(self._dispersy)
-            self._torrent_db = None
-            self._rth = None
 
         super(MetadataCommunity, self).initialize()
 
@@ -232,7 +231,6 @@ class MetadataCommunity(Community):
         assert isinstance(unique, set)
         assert isinstance(times, dict)
         assert isinstance(message, Message.Implementation)
-
         # check UNIQUE
         key = (message.authentication.member.database_id, message.distribution.global_time)
         if key in unique:
@@ -308,7 +306,7 @@ class MetadataCommunity(Community):
         to_clear_set = set()
         value_list = []
         for message in messages:
-            to_clear_set.add((message.payload.infohash, message.payload.roothash))
+            to_clear_set.add(message.payload.infohash)
 
             dispersy_id = message.packet_id
             this_global_time = message.distribution.global_time
@@ -317,8 +315,7 @@ class MetadataCommunity(Community):
             # insert new metadata message
             message_id = self._metadata_db.addAndGetIDMetadataMessage(
                 dispersy_id, this_global_time, this_mid,
-                message.payload.infohash, message.payload.roothash,
-                message.payload.prev_mid, message.payload.prev_global_time)
+                message.payload.infohash, message.payload.prev_mid, message.payload.prev_global_time)
 
             # new metadata data to insert
             for key, value in message.payload.data_list:
@@ -328,9 +325,9 @@ class MetadataCommunity(Community):
 
         # STEP 2: cleanup and update metadataData
         sync_id_list = []
-        for to_clear_infohash, to_clear_roothash in to_clear_set:
+        for to_clear_infohash in to_clear_set:
             message_list = self._metadata_db.getMetadataMessageList(
-                to_clear_infohash, to_clear_roothash,
+                to_clear_infohash,
                 ("previous_global_time", "previous_mid", "this_global_time", "this_mid", "dispersy_id"))
 
             # compare previous pointers

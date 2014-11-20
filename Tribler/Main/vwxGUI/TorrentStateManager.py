@@ -13,6 +13,7 @@ try:
 except ImportError, e:
     prctlimported = False
 
+from Tribler.Core.simpledefs import NTFY_METADATA
 from Tribler.Core.Video.VideoUtility import get_videoinfo, preferred_timecodes, limit_resolution, get_thumbnail
 
 
@@ -20,13 +21,14 @@ class TorrentStateManager(object):
     # Code to make this a singleton
     __single = None
 
-    def __init__(self):
+    def __init__(self, session):
         if TorrentStateManager.__single:
             raise RuntimeError("TorrentStateManager is singleton")
         TorrentStateManager.__single = self
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
+        self.session = session
         self.torrent_manager = None
         self.library_manager = None
         self.channelsearch_manager = None
@@ -66,9 +68,6 @@ class TorrentStateManager(object):
         t.start()
 
     def create_and_seed_metadata_thumbnail(self, thumbnail_file, torrent, modifications, thumb_timecodes=None):
-        from Tribler.Core.Session import Session
-        session = Session.get_instance()
-
         if not os.path.isfile(thumbnail_file):
             self._logger.error(u"not a file: %s, %s", thumbnail_file)
             return
@@ -80,7 +79,6 @@ class TorrentStateManager(object):
             if fmt not in ("jpeg", "png"):
                 self._logger.error(u"not a JPEG or PNG: %s, %s", img.format, thumbnail_file)
                 return
-            img.close()
 
             with open(thumbnail_file, "rb") as f:
                 data = f.read()
@@ -88,8 +86,8 @@ class TorrentStateManager(object):
             file_name = u"%s.%s" % (thumbnail_hash_str, fmt)
 
             sub_file_path = os.path.join(hexlify(torrent.infohash), file_name)
-            sub_dir_path = os.path.join(session.get_torrent_collecting_dir(), hexlify(torrent.infohash))
-            file_path = os.path.join(session.get_torrent_collecting_dir(), sub_file_path)
+            sub_dir_path = os.path.join(self.session.get_torrent_collecting_dir(), hexlify(torrent.infohash))
+            file_path = os.path.join(self.session.get_torrent_collecting_dir(), sub_file_path)
 
             if not os.path.exists(sub_dir_path):
                 os.mkdir(sub_dir_path)
@@ -113,16 +111,13 @@ class TorrentStateManager(object):
             prctl.set_name(u"Tribler" + currentThread().getName())
 
         # skip if we already have a video-info
-        # TODO: find a way to get session and the MetadataDBHandler
-        metadata_db_handler = None
+        metadata_db_handler = self.session.open_dbhandler(NTFY_METADATA)
         result_list = metadata_db_handler.getMetdataDateByInfohash(torrent.infohash)
         if result_list:
             for key, _ in result_list:
                 if key == u"video-info":
                     return
 
-        from Tribler.Core.Session import Session
-        self.session = Session.get_instance()
         videoanalyser = self.session.get_video_analyser_path()
 
         self._logger.debug(u"going to seed metadata for torrent %s", torrent.name)

@@ -7,21 +7,22 @@ from unittest.case import skip
 
 from twisted.internet import reactor
 
+from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import (TorrentDBHandler, MyPreferenceDBHandler, BasicDBHandler,
                                                        PeerDBHandler, MiscDBHandler)
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, SQLiteCacheDb
 from Tribler.Core.Session import Session
+from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.bak_tribler_sdb import FILES_DIR, init_bak_tribler_sdb
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 S_TORRENT_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_single.torrent')
 M_TORRENT_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_multiple.torrent')
 
 BUSYTIMEOUT = 5000
-SQLiteCacheDB.DEBUG = False
 DEBUG = False
 
 # ------------------------------------------------------------
@@ -39,27 +40,42 @@ def teardown():
 class AbstractDB(AbstractServer):
 
     def setUp(self):
-        AbstractServer.setUp(self)
+        super(AbstractDB, self).setUp()
+
+        # dummy session
+        self.config = SessionStartupConfig()
+        self.config.set_state_dir(self.getStateDir())
+        self.config.set_torrent_checking(False)
+        self.config.set_multicast_local_peer_discovery(False)
+        self.config.set_megacache(False)
+        self.config.set_dispersy(False)
+        self.config.set_mainline_dht(False)
+        self.config.set_torrent_collecting(False)
+        self.config.set_libtorrent(False)
+        self.config.set_dht_torrent_collecting(False)
+        self.config.set_videoplayer(False)
+        self.session = Session(self.config, ignore_singleton=True)
 
         dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', destination_path=self.getStateDir(), overwrite=True)
-        self.sqlitedb = SQLiteCacheDB.getInstance()
-        blockingCallFromThread(reactor, self.sqlitedb.initDB, dbpath, busytimeout=BUSYTIMEOUT)
-        self.sqlitedb.waitForUpdateComplete()
+        self.sqlitedb = SQLiteCacheDb(self.session, busytimeout=BUSYTIMEOUT)
+        self.sqlitedb.initialize(dbpath)
+        self.session.sqlite_db = self.sqlitedb
 
     @blocking_call_on_reactor_thread
     def tearDown(self):
-        if SQLiteCacheDB.hasInstance():
-            SQLiteCacheDB.getInstance().close_all()
-            SQLiteCacheDB.delInstance()
+        self.sqlitedb.close()
+        self.sqlitedb = None
+        self.session.del_instance()
+        self.session = None
 
-        AbstractServer.tearDown(self)
+        super(AbstractDB, self).tearDown(self)
 
 
 class TestSqliteBasicDBHandler(AbstractDB):
 
     def setUp(self):
-        AbstractDB.setUp(self)
-        self.db = BasicDBHandler(self.sqlitedb, 'Peer')
+        super(TestSqliteBasicDBHandler, self).setUp()
+        self.db = BasicDBHandler(self.session, u"Peer")
 
     @blocking_call_on_reactor_thread
     def test_size(self):
@@ -70,21 +86,22 @@ class TestSqliteBasicDBHandler(AbstractDB):
 class TestSqlitePeerDBHandler(AbstractDB):
 
     def setUp(self):
-        AbstractDB.setUp(self)
+        super(TestSqlitePeerDBHandler, self).setUp()
 
         self.p1 = str2bin('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAAA6SYI4NHxwQ8P7P8QXgWAP+v8SaMVzF5+fSUHdAMrs6NvL5Epe1nCNSdlBHIjNjEiC5iiwSFZhRLsr')
         self.p2 = str2bin('MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAABo69alKy95H7RHzvDCsolAurKyrVvtDdT9/DzNAGvky6YejcK4GWQXBkIoQGQgxVEgIn8dwaR9B+3U')
         fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
 
-        self.pdb = PeerDBHandler.getInstance()
+        self.pdb = PeerDBHandler(self.session)
 
         hp = self.pdb.hasPeer(fake_permid_x)
         assert not hp
 
     @blocking_call_on_reactor_thread
     def tearDown(self):
-        PeerDBHandler.delInstance()
-        AbstractDB.tearDown(self)
+        self.pdb.close()
+        self.pdb = None
+        super(TestSqlitePeerDBHandler, self).tearDown()
 
     @blocking_call_on_reactor_thread
     def test_getList(self):
@@ -143,23 +160,26 @@ class TestSqlitePeerDBHandler(AbstractDB):
 class TestTorrentDBHandler(AbstractDB):
 
     def setUp(self):
-        AbstractDB.setUp(self)
+        super(TestTorrentDBHandler, self).setUp()
 
-        assert not MiscDBHandler.hasInstance()
-        assert not TorrentDBHandler.hasInstance()
-
-        self.misc_db = MiscDBHandler.getInstance()
-        self.tdb = TorrentDBHandler.getInstance()
+        self.misc_db = MiscDBHandler(self.session)
+        self.misc_db.initialize()
+        self.tdb = TorrentDBHandler(self.session)
         self.tdb.torrent_dir = FILES_DIR
-        self.tdb.mypref_db = MyPreferenceDBHandler.getInstance()
+        self.tdb.category = Category.getInstance()
+        self.tdb.misc_db = self.misc_db
+        self.tdb.mypref_db = MyPreferenceDBHandler(self.session)
 
     @blocking_call_on_reactor_thread
     def tearDown(self):
-        MiscDBHandler.delInstance()
-        TorrentDBHandler.delInstance()
-        MyPreferenceDBHandler.delInstance()
+        self.tdb.mypref_db.close()
+        self.tdb.mypref_db = None
+        self.tdb.close()
+        self.tdb = None
+        self.misc_db.close()
+        self.misc_db = None
 
-        AbstractDB.tearDown(self)
+        super(TestTorrentDBHandler, self).tearDown()
 
     @blocking_call_on_reactor_thread
     def test_hasTorrent(self):
@@ -329,24 +349,30 @@ class TestTorrentDBHandler(AbstractDB):
 class TestMyPreferenceDBHandler(AbstractDB):
 
     def setUp(self):
-        AbstractDB.setUp(self)
+        super(TestMyPreferenceDBHandler, self).setUp()
 
-        self.mdb = MyPreferenceDBHandler.getInstance()
-        self.mdb.loadData()
-        self.tdb = TorrentDBHandler.getInstance()
+        self.misc_db = MiscDBHandler(self.session)
+        self.misc_db.initialize()
+        self.tdb = TorrentDBHandler(self.session)
+        self.mdb = MyPreferenceDBHandler(self.session)
+        self.mdb.status_good = self.misc_db.torrentStatusName2Id(u'good')
+        self.mdb._torrent_db = self.tdb
 
     @blocking_call_on_reactor_thread
     def tearDown(self):
-        MiscDBHandler.delInstance()
-        MyPreferenceDBHandler.delInstance()
-        TorrentDBHandler.delInstance()
+        self.misc_db.close()
+        self.misc_db = None
+        self.mdb.close()
+        self.mdb = None
+        self.tdb.close()
+        self.tdb = None
 
-        AbstractDB.tearDown(self)
+        super(TestMyPreferenceDBHandler, self).tearDown()
 
     @blocking_call_on_reactor_thread
     def test_getPrefList(self):
         pl = self.mdb.getMyPrefListInfohash()
-        assert len(pl) == 24
+        assert len(pl) == 12
 
     @blocking_call_on_reactor_thread
     def test_getRecentLivePrefList(self):
@@ -413,7 +439,7 @@ class TestMyPreferenceDBHandler(AbstractDB):
         preflist = self.mdb.getMyPrefListInfohash()
         for p in preflist:
             assert not p or len(p) == 20, len(p)
-        assert len(preflist) == 24
+        assert len(preflist) == 12, u"preflist length = %s" % len(preflist)
 
     @blocking_call_on_reactor_thread
     def test_getMyPrefStats(self):

@@ -7,8 +7,6 @@ from time import time
 import binascii
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 
-DEBUG = True
-
 
 class TestLibtorrentDownload(TestGuiAsServer):
 
@@ -141,8 +139,8 @@ class TestLibtorrentDownload(TestGuiAsServer):
             playlist = self.guiUtility.frame.actlist.expandedPanel_videoplayer
 
             do_check = lambda: len(playlist.links) == len(videofiles) and \
-                               playlist.tdef.get_id() == VideoPlayer.getInstance().get_vod_download().get_def().get_id() and \
-                               playlist.fileindex == VideoPlayer.getInstance().get_vod_fileindex()
+                playlist.tdef.get_id() == VideoPlayer.getInstance().get_vod_download().get_def().get_id() and \
+                playlist.fileindex == VideoPlayer.getInstance().get_vod_fileindex()
 
             self.CallConditional(10, do_check, lambda: self.Call(5, lambda: take_screenshot(buffer_complete)), "playlist set incorrectly")
 

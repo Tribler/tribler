@@ -48,7 +48,7 @@ SEARCHMODE_NONE = 3
 VOTE_LIMIT = -5
 
 
-class TorrentManager:
+class TorrentManager(object):
     # Code to make this a singleton
     __single = None
 
@@ -763,12 +763,11 @@ class TorrentManager:
     def modifyTorrent(self, torrent, modifications):
         for community in self.dispersy.get_communities():
             if isinstance(community, MetadataCommunity):
-                community.create_metadata_message(torrent.infohash, torrent.swift_hash, modifications)
+                community.create_metadata_message(torrent.infohash, modifications)
                 break
 
     def getTorrentModifications(self, torrent):
-        message_list = self.metadata_db.getMetadataMessageList(torrent.infohash, torrent.swift_hash,
-                                                               columns=("message_id",))
+        message_list = self.metadata_db.getMetadataMessageList(torrent.infohash, columns=("message_id",))
         if not message_list:
             return []
 
@@ -1681,7 +1680,8 @@ class ChannelManager(object):
 
     @call_on_reactor_thread
     def createChannel(self, name, description):
-        community = ChannelCommunity.create_community(self.dispersy, self.session.dispersy_member)
+        community = ChannelCommunity.create_community(self.dispersy, self.session.dispersy_member,
+                                                      tribler_session=self.session)
         community.set_channel_mode(ChannelCommunity.CHANNEL_OPEN)
         community.create_channel(name, description)
 

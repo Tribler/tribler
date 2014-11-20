@@ -253,11 +253,8 @@ class RssParser(Thread):
                                     'description': description,
                                     'thumbnail-tempdir': tempdir,
                                     'thumbnail-file-list': [image_path for image_url, image_path in image_list]}
-                                if self.remote_th.is_registered():
-                                    callback = lambda key = key, torrent=torrent, extra_info=extra_info: processCallbacks(key, torrent, extra_info)
-                                    self.remote_th.save_torrent(torrent, callback)
-                                else:
-                                    processCallbacks(key, torrent, extra_info)
+                                callback = lambda key = key, torrent=torrent, extra_info=extra_info: processCallbacks(key, torrent, extra_info)
+                                self.remote_th.save_torrent(torrent, callback)
 
                                 time.sleep(RSS_CHECK_FREQUENCY)
 

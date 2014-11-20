@@ -22,9 +22,9 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 from nose.twistedtools import reactor
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
-STATE_DIR = os.path.join(BASE_DIR, "test_.Tribler")
-DEST_DIR = os.path.join(BASE_DIR, "test_TriblerDownloads")
-FILES_DIR = os.path.abspath(os.path.join(BASE_DIR, 'data'))
+STATE_DIR = os.path.join(BASE_DIR, u"test_.Tribler")
+DEST_DIR = os.path.join(BASE_DIR, u"test_TriblerDownloads")
+FILES_DIR = os.path.abspath(os.path.join(BASE_DIR, u"data"))
 
 from Tribler.Core import defaults
 defaults.sessdefaults['general']['state_dir'] = STATE_DIR

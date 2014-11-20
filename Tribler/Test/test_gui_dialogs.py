@@ -30,6 +30,7 @@ class TestGuiDialogs(TestGuiAsServer):
             self.screenshot('Screenshot of SettingsDialog', window=dialog)
 
             saved_event = Event()
+
             class FakeEvent():
                 def __init__(self, event):
                     self.event = event
@@ -68,11 +69,13 @@ class TestGuiDialogs(TestGuiAsServer):
             self.frame.top_bg.OnDelete()
 
         def download_object_ready():
-            self.CallConditional(10, lambda: infohash in self.frame.librarylist.list.items, item_shown_in_list, 'no download in librarylist')
+            self.CallConditional(10, lambda: infohash in self.frame.librarylist.list.items, item_shown_in_list,
+                                 'no download in librarylist')
 
         def do_downloadfromfile():
             self.guiUtility.showLibrary()
-            self.frame.startDownload(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"), self.getDestDir())
+            self.frame.startDownload(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"),
+                                     self.getDestDir())
 
             self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready)
 
@@ -156,7 +159,8 @@ class TestGuiDialogs(TestGuiAsServer):
 
             self.managechannel.Save()
 
-            self.CallConditional(60, lambda: self.frame.managechannel.channel, do_add_dialog, 'Channel instance did not arrive at managechannel')
+            self.CallConditional(60, lambda: self.frame.managechannel.channel, do_add_dialog,
+                                 'Channel instance did not arrive at managechannel')
 
         def disable_dispersy():
             from Tribler.dispersy.endpoint import NullEndpoint
@@ -214,7 +218,8 @@ class TestGuiDialogs(TestGuiAsServer):
                 self.frame.channellist.GetManager().refresh()
                 return False
 
-            self.CallConditional(300, has_connections_or_channel, do_search, 'did not connect to more than 10 peers within 300s')
+            self.CallConditional(300, has_connections_or_channel, do_search,
+                                 'did not connect to more than 10 peers within 300s')
 
         self.startTest(wait_for_channel)
 

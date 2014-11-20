@@ -21,7 +21,7 @@ from unittest.case import skip
 DEBUG = True
 
 
-class MagnetHelpers:
+class MagnetHelpers(object):
 
     def __init__(self, tdef):
         # the metadata that we will transfer
@@ -137,6 +137,7 @@ class MagnetHelpers:
                 break
             assert not (response[0] == EXTEND and response[1] == 3)
 
+
 class TestMagnet(TestAsServer):
 
     def setUpPreSession(self):
@@ -153,8 +154,8 @@ class TestMagnet(TestAsServer):
             assert TorrentDef.retrieve_from_magnet('magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', torrentdef_retrieved, timeout=120)
             assert event.wait(120)
 
-
         self.startTest(do_transfer)
+
 
 class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
 
@@ -292,8 +293,9 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
             self.seeder_setup_complete.set()
 
         d = ds.get_download()
-        print >> sys.stderr, "test: seeder:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress()
-        return (1.0, False)
+        print >> sys.stderr, "test: seeder:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()],\
+            ds.get_progress()
+        return 1.0, False
 
     def test_good_request(self):
         conn = BTConnection("localhost", self.session.get_listen_port(), user_infohash=self.tdef.get_infohash())
@@ -329,7 +331,7 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
 
     def test_bad_request(self):
         self.bad_request_and_disconnect({"msg_type": 0, "piece": len(self.metadata_list)})
-        self.bad_request_and_disconnect({"msg_type": 0, "piece":-1})
+        self.bad_request_and_disconnect({"msg_type": 0, "piece": -1})
         self.bad_request_and_disconnect({"msg_type": 0, "piece": "1"})
         self.bad_request_and_disconnect({"msg_type": 0, "piece": [1, 2]})
         self.bad_request_and_disconnect({"msg_type": 0, "PIECE": 1})

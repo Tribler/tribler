@@ -24,7 +24,7 @@ class TestSeeding(TestAsServer):
     """
     def setUp(self):
         """ override TestAsServer """
-        TestAsServer.setUp(self)
+        super(TestSeeding, self).setUp()
 
         self.session2 = None
         self.seeding_event = threading.Event()
@@ -32,7 +32,8 @@ class TestSeeding(TestAsServer):
 
     def setUpPreSession(self):
         """ override TestAsServer """
-        TestAsServer.setUpPreSession(self)
+        super(TestSeeding, self).setUpPreSession()
+
         self.config.set_libtorrent(True)
 
         self.config2 = self.config.copy()  # not really necess
@@ -49,7 +50,7 @@ class TestSeeding(TestAsServer):
             self._shutdown_session(self.session2)
             time.sleep(10)
 
-        TestAsServer.tearDown(self)
+        super(TestSeeding, self).tearDown()
 
     def setup_seeder(self, filename='video.avi'):
         self.tdef = TorrentDef()
@@ -73,12 +74,13 @@ class TestSeeding(TestAsServer):
 
     def seeder_state_callback(self, ds):
         d = ds.get_download()
-        print >> sys.stderr, "test: seeder:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress()
+        print >> sys.stderr, "test: seeder:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()],\
+            ds.get_progress()
 
         if ds.get_status() == DLSTATUS_SEEDING:
             self.seeding_event.set()
 
-        return (1.0, False)
+        return 1.0, False
 
     def test_normal_torrent(self):
         self.setup_seeder()
@@ -104,7 +106,11 @@ class TestSeeding(TestAsServer):
     def subtest_download(self):
         """ Now download the file via another Session """
         self.session2 = Session(self.config2, ignore_singleton=True)
+        upgrader = self.session2.prestart()
+        while not upgrader.is_done:
+            time.sleep(0.1)
         self.session2.start()
+        time.sleep(1)
 
         time.sleep(5)
 
@@ -120,7 +126,8 @@ class TestSeeding(TestAsServer):
 
     def downloader_state_callback(self, ds):
         d = ds.get_download()
-        print >> sys.stderr, "test: download:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress()
+        print >> sys.stderr, "test: download:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()],\
+            ds.get_progress()
 
         if ds.get_status() == DLSTATUS_SEEDING:
             # File is in
@@ -134,5 +141,5 @@ class TestSeeding(TestAsServer):
 
             self.assert_(realdata == expdata)
             self.downloading_event.set()
-            return (1.0, True)
-        return (1.0, False)
+            return 1.0, True
+        return 1.0, False

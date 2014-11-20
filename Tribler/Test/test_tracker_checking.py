@@ -3,9 +3,8 @@ from time import sleep
 
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_MYPREFERENCES
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, \
-    MyPreferenceDBHandler
 
 from Tribler.Test.test_as_server import BASE_DIR, TestAsServer
 
@@ -13,16 +12,16 @@ from Tribler.Test.test_as_server import BASE_DIR, TestAsServer
 class TestTorrentChecking(TestAsServer):
 
     def setUp(self):
-        TestAsServer.setUp(self)
+        super(TestTorrentChecking, self).setUp()
 
-        self.tdb = TorrentDBHandler.getInstance()
-        self.tdb.mypref_db = MyPreferenceDBHandler.getInstance()
+        self.tdb = self.session.open_dbhandler(NTFY_TORRENTS)
+        self.tdb.mypref_db = self.session.open_dbhandler(NTFY_MYPREFERENCES)
 
         self.torrentChecking = TorrentChecking.getInstance()
         self.torrentChecking.setTorrentSelectionInterval(5)
 
     def setUpPreSession(self):
-        TestAsServer.setUpPreSession(self)
+        super(TestTorrentChecking, self).setUpPreSession()
         self.config.set_torrent_checking(True)
         self.config.set_megacache(True)
         self.config.set_torrent_checking_period(5.0)

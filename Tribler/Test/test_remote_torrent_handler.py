@@ -46,7 +46,8 @@ class TestRemoteTorrentHandler(TestAsServer):
             timeout = 10
 
             candidate = Candidate(("127.0.0.1", self.session1_port), False)
-            self.session2.lm.rtorrent_handler.download_torrent(candidate, self.infohash, usercallback=do_check_download)
+            self.session2.lm.rtorrent_handler.download_torrent(candidate, self.infohash,
+                                                               user_callback=do_check_download)
             self.CallConditional(timeout, self.download_event.is_set, do_check_download,
                                  u"Failed to download torrent within %s seconds" % timeout)
 

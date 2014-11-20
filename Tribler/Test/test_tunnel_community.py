@@ -16,6 +16,7 @@ from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
 from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 
 
+
 class TestTunnelCommunity(TestGuiAsServer):
 
     def test_anon_download(self):
@@ -215,13 +216,13 @@ class TestTunnelCommunity(TestGuiAsServer):
             self.setUpPreSession()
             config = self.config.copy()
             config.set_libtorrent(True)
-            config.set_swift_path(os.path.join('..', '..', 'swift.exe'))
-            config.set_swift_proc(True)
             config.set_dispersy(True)
             config.set_state_dir(self.getStateDir(index))
-            config.set_dispersy_tunnel_over_swift(True)
 
             session = Session(config, ignore_singleton=True)
+            upgrader = session.prestart()
+            while not upgrader.is_done:
+                time.sleep(0.1)
             session.start()
             self.sessions.append(session)
 
@@ -252,6 +253,9 @@ class TestTunnelCommunity(TestGuiAsServer):
         self.config2 = self.config.copy()
         self.config2.set_state_dir(self.getStateDir(2))
         self.session2 = Session(self.config2, ignore_singleton=True)
+        upgrader = self.session2.prestart()
+        while not upgrader.is_done:
+            time.sleep(0.1)
         self.session2.start()
 
         tdef = TorrentDef()
@@ -272,7 +276,7 @@ class TestTunnelCommunity(TestGuiAsServer):
     def seeder_state_callback(self, ds):
         d = ds.get_download()
         print >> sys.stderr, "test: seeder:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress()
-        return (5.0, False)
+        return 5.0, False
 
     def setUp(self):
         with open("bootstraptribler.txt", "w") as f:

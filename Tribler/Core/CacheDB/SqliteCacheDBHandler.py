@@ -192,17 +192,16 @@ class MetadataDBHandler(BasicDBHandler):
         self.misc_db = None
         self.torrent_db = None
 
-    def getMetadataMessageList(self, infohash, roothash, columns):
+    def getMetadataMessageList(self, infohash, columns):
         """
         Gets a list of metadata messages with the given hash-type and
         hash-value.
         """
         infohash_str = bin2str(infohash) if infohash else None
-        roothash_str = bin2str(roothash) if roothash else None
 
         column_str = u",".join(columns)
-        sql = u"SELECT %s FROM MetadataMessage WHERE infohash = ? OR roothash = ?" % column_str
-        raw_result_list = self._db.fetchall(sql, (infohash_str, roothash_str))
+        sql = u"SELECT %s FROM MetadataMessage WHERE infohash = ?" % column_str
+        raw_result_list = self._db.fetchall(sql, (infohash_str,))
 
         processed_result_list = []
         if raw_result_list:
@@ -214,8 +213,6 @@ class MetadataDBHandler(BasicDBHandler):
                         this_result.append(None)
 
                     elif column == "infohash":
-                        this_result.append(str2bin(raw_result[idx]))
-                    elif column == "roothash":
                         this_result.append(str2bin(raw_result[idx]))
                     elif column == "this_mid":
                         this_result.append(str(raw_result[idx]))
@@ -229,7 +226,7 @@ class MetadataDBHandler(BasicDBHandler):
         return processed_result_list
 
     def addAndGetIDMetadataMessage(self, dispersy_id, this_global_time, this_mid,
-            infohash, roothash, prev_mid=None, prev_global_time=None):
+            infohash, prev_mid=None, prev_global_time=None):
         """
         Adds a Metadata message and get its message ID.
         """
@@ -237,16 +234,13 @@ class MetadataDBHandler(BasicDBHandler):
         prev_mid_str = buffer(prev_mid) if prev_mid else None
 
         infohash_str = bin2str(infohash) if infohash else None
-        roothash_str = bin2str(roothash) if roothash else None
 
         sql = u"""INSERT INTO MetadataMessage(dispersy_id, this_global_time,
-                this_mid, infohash, roothash, previous_mid, previous_global_time)
-            VALUES(?, ?, ?, ?, ?, ?, ?);
+                this_mid, infohash, previous_mid, previous_global_time)
+            VALUES(?, ?, ?, ?, ?, ?);
             SELECT last_insert_rowid();
         """
-        values = (dispersy_id, this_global_time, this_mid_str,
-            infohash_str, roothash_str,
-            prev_mid_str, prev_global_time)
+        values = (dispersy_id, this_global_time, this_mid_str, infohash_str, prev_mid_str, prev_global_time)
 
         result = self._db.fetchone(sql, values)
         self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
