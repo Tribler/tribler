@@ -1,7 +1,7 @@
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDb
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
@@ -22,7 +22,7 @@ class TestSqliteCacheDB(AbstractServer):
         self.config.set_videoplayer(False)
         self.session = Session(self.config, ignore_singleton=True)
 
-        self.sqlite_test = SQLiteCacheDb(self.session)
+        self.sqlite_test = SQLiteCacheDB(self.session)
         self.db_path = u":memory:"
         self.sqlite_test.initialize(self.db_path)
 

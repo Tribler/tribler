@@ -32,7 +32,6 @@ logger = logging.getLogger(__name__)
 # This must be done in the first python file that is started.
 #
 import urllib
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDb
 original_open_https = urllib.URLopener.open_https
 import M2Crypto  # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https

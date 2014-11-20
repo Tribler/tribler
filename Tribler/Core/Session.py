@@ -9,7 +9,7 @@ import socket
 
 from Tribler.Core import NoDispersyRLock
 
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDb
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
@@ -154,7 +154,7 @@ class Session(SessionConfigInterface):
         before we start everything else.
         """
         # initialize the database
-        self.sqlite_db = SQLiteCacheDb(self)
+        self.sqlite_db = SQLiteCacheDB(self)
         self.sqlite_db.initialize()
         self.sqlite_db.initial_begin()
 

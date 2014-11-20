@@ -45,10 +45,10 @@ def str2bin(str_data):
     return decodestring(str_data)
 
 
-class SQLiteCacheDb(TaskManager):
+class SQLiteCacheDB(TaskManager):
 
     def __init__(self, session, busytimeout=DEFAULT_BUSY_TIMEOUT):
-        super(SQLiteCacheDb, self).__init__()
+        super(SQLiteCacheDB, self).__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
