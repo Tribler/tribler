@@ -479,6 +479,7 @@ class Session(SessionConfigInterface):
         self.uch.shutdown()
 
         self.sqlite_db.close()
+        self.sqlite_db = None
 
     def has_shutdown(self):
         """ Whether the Session has completely shutdown, i.e., its internal

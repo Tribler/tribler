@@ -647,27 +647,20 @@ class MagnetRequester(Requester):
 
         else:
             infohash_str = hexlify(infohash)
-            @call_on_reactor_thread
-            def construct_magnet():
-                # try magnet link
-                magnetlink = "magnet:?xt=urn:btih:" + infohash_str
+            # try magnet link
+            magnetlink = "magnet:?xt=urn:btih:" + infohash_str
 
-                if self.remote_torrent_handler.torrent_db:
-                    # see if we know any trackers for this magnet
-                    trackers = self.remote_torrent_handler.torrent_db.getTrackerListByInfohash(infohash)
-                    for tracker in trackers:
-                        if tracker != 'no-DHT' and tracker != 'DHT':
-                            magnetlink += "&tr=" + urllib.quote_plus(tracker)
+            if self.remote_torrent_handler.torrent_db:
+                # see if we know any trackers for this magnet
+                trackers = self.remote_torrent_handler.torrent_db.getTrackerListByInfohash(infohash)
+                for tracker in trackers:
+                    if tracker not in (u"no-DHT", u"DHT"):
+                        magnetlink += "&tr=" + urllib.quote_plus(tracker)
 
-                self._logger.debug(u"requesting magnet %s %s %s", infohash_str, self.priority, magnetlink)
+            self._logger.debug(u"requesting magnet %s %s %s", infohash_str, self.priority, magnetlink)
 
-                TorrentDef.retrieve_from_magnet(magnetlink, self._torrentdef_retrieved, self.MAGNET_RETRIEVE_TIMEOUT,
-                                                max_connections=30 if self.priority == 0 else 10, silent=True)
-            construct_magnet()
-
-            failed_lambda = lambda ih = infohash: self._torrentdef_failed(ih)
-            self.remote_torrent_handler.schedule_task(u"magnet_request_%s" % infohash_str, failed_lambda,
-                                                      delay_time=self.MAGNET_RETRIEVE_TIMEOUT)
+            TorrentDef.retrieve_from_magnet(magnetlink, self._torrentdef_retrieved, timeout=self.MAGNET_RETRIEVE_TIMEOUT,
+                                            timeout_callback=self._torrentdef_failed, silent=True)
             return True
 
     @call_on_reactor_thread
