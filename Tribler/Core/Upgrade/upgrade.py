@@ -43,7 +43,7 @@ class TriblerUpgrader(object):
         """
         if self.db.version == LATEST_DB_VERSION:
             self._logger.info(u"tribler is in the latest version, no need to upgrade")
-            self.is_done = True
+            self.failed = False
         else:
             # upgrade
             try:
