@@ -126,8 +126,9 @@ class TestAsServer(AbstractServer):
 
         self.session = Session(self.config)
         upgrader = self.session.prestart()
-        while not upgrader.is_done and not upgrader.has_error:
+        while not upgrader.is_done:
             time.sleep(0.1)
+        assert not upgrader.failed, upgrader.current_status
         self.session.start()
 
         self.hisport = self.session.get_listen_port()

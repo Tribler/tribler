@@ -82,8 +82,9 @@ class TestRemoteTorrentHandler(TestAsServer):
 
         self.session2 = Session(self.config2, ignore_singleton=True)
         upgrader = self.session2.prestart()
-        while not upgrader.is_done and not upgrader.has_error:
+        while not upgrader.is_done:
             sleep(0.1)
+        assert not upgrader.failed, upgrader.current_status
         self.session2.start()
         sleep(1)
 
@@ -146,8 +147,9 @@ class TestRemoteTorrentHandler(TestAsServer):
 
         self.session2 = Session(self.config2, ignore_singleton=True)
         upgrader = self.session2.prestart()
-        while not upgrader.is_done and not upgrader.has_error:
+        while not upgrader.is_done:
             sleep(0.1)
+        assert not upgrader.failed, upgrader.current_status
         self.session2.start()
         sleep(1)
 
