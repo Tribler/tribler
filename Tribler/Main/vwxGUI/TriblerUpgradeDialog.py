@@ -31,7 +31,7 @@ class TriblerUpgradeDialog(wx.Dialog):
     def on_close(self, event):
         # stop and remove the timer
         self._timer.Stop()
-        self.EndModal(int(self._upgrader.has_error))
+        self.EndModal(int(self._upgrader.failed))
 
     def on_timer(self, event):
         # updates the UI

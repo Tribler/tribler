@@ -32,7 +32,7 @@ class TriblerUpgrader(object):
 
         self.current_status = u"Checking Tribler version..."
         self.is_done = False
-        self.has_error = False
+        self.failed = True
 
     def update_status(self, status_text):
         self.current_status = status_text
@@ -44,60 +44,39 @@ class TriblerUpgrader(object):
         if self.db.version == LATEST_DB_VERSION:
             self._logger.info(u"tribler is in the latest version, no need to upgrade")
             self.is_done = True
-            return
-
-        # check if we support the version
-        if self.db.version < LOWEST_SUPPORTED_DB_VERSION:
-            self._logger.error(u"version no longer supported: %s < %s", self.db.version, LOWEST_SUPPORTED_DB_VERSION)
-            self.has_error = True
-            return
-
-        # start upgrade
-        try:
-            self._start_upgrade()
-        except Exception as e:
-            self._logger.error(u"failed to upgrade: %s", e)
-            self.has_error = True
-            return
-
-        # make sure that after upgrade, we have the latest database version
-        if self.db.version != LATEST_DB_VERSION:
-            self._logger.error(u"final version doesn't match: %s != %s", self.db.version, LATEST_DB_VERSION)
-            self.has_error = True
-            return
-
-        self.is_done = True
-
-    def _start_upgrade(self):
-        # We don't support migrating from older than v6.0, just move the DB away.
-        if self.db.version < 17:
-            self.update_status(u"Data is too old.")
-            self.has_error = True
         else:
-            # version 17 -> 18
-            if self.db.version == 17:
-                self._upgrade_17_to_18()
+            # upgrade
+            try:
+                # version 17 -> 18
+                if self.db.version == 17:
+                    self._upgrade_17_to_18()
 
-            # version 18 -> 22
-            if self.db.version == 18:
-                self._upgrade_18_to_22()
+                # version 18 -> 22
+                if self.db.version == 18:
+                    self._upgrade_18_to_22()
 
-            # version 22 -> 23
-            if self.db.version == 22:
-                # TODO(emilon): TorrentMigrator64 shouldn't upgrade the database
-                # as it breaks the case where the DB version is older than 17.
-                migrator = TorrentMigrator64(self.session, self.db, status_update_func=self.update_status)
-                migrator.start_migrate()
+                # version 22 -> 23
+                if self.db.version == 22:
+                    # TODO(emilon): TorrentMigrator64 shouldn't upgrade the database
+                    # as it breaks the case where the DB version is older than 17.
+                    migrator = TorrentMigrator64(self.session, self.db, status_update_func=self.update_status)
+                    migrator.start_migrate()
 
-            # check if database version matches
-            if self.db.version != LATEST_DB_VERSION:
-                self.update_status(u"Database upgrade failure (%s -> %safename)" % (self.db.version, LATEST_DB_VERSION))
-                self.has_error = True
+                # check if we managed to upgrade to the latest DB version.
+                if self.db.version == LATEST_DB_VERSION:
+                    self.current_status = u"Done."
+                    self.failed = False
+                else:
+                    if self.db.version < LOWEST_SUPPORTED_DB_VERSION:
+                        self.update_status(u"Data is too old (%s)" % self.db.version)
+                    else:
+                        self.update_status(u"Database upgrade failed (%s -> %s)" % (self.db.version, LATEST_DB_VERSION))
 
-        if self.has_error:
+            except Exception as e:
+                self._logger.error(u"failed to upgrade: %s", e)
+
+        if self.failed:
             self._stash_database_away()
-        else:
-            self.current_status = u"Done."
 
         self.is_done = True
 
@@ -108,14 +87,6 @@ class TriblerUpgrader(object):
         os.rename(old_dir, new_dir)
         os.makedirs(old_dir)
         self.db.initialize()
-
-        # check if database version matches
-        if self.db.version != LATEST_DB_VERSION:
-            msg = u"Failed to upgrade the latest version %s, current version: %s" % (self.db.version, LATEST_DB_VERSION)
-            raise DatabaseUpgradeError(msg)
-
-        self.current_status = u"Done."
-        self.is_done = True
 
     def _upgrade_17_to_18(self):
         self.current_status = u"Upgrading database from v%s to v%s..." % (17, 18)
