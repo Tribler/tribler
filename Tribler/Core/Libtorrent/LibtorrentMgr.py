@@ -15,6 +15,7 @@ from Tribler.Core import NoDispersyRLock
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.simpledefs import NTFY_MAGNET_STARTED, NTFY_TORRENTS, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 DEBUG = False
 DHTSTATE_FILENAME = "ltdht.state"
@@ -72,7 +73,7 @@ class LibtorrentMgr(object):
 
         self.upnp_mappings = {}
 
-        self.tunnel_community = None
+        self._tunnel_community = None
 
         # make tmp-dir to be used for dht collection
         self.metadata_tmpdir = os.path.join(self.trsession.get_state_dir(), METAINFO_TMPDIR)
@@ -93,6 +94,18 @@ class LibtorrentMgr(object):
     def hasInstance():
         return LibtorrentMgr.__single is not None
     hasInstance = staticmethod(hasInstance)
+
+    @property
+    @blocking_call_on_reactor_thread
+    def tunnel_community(self):
+        if not self._tunnel_community:
+            from Tribler.community.tunnel.community import TunnelCommunity
+            for community in self.trsession.lm.dispersy.get_communities():
+                if isinstance(community, TunnelCommunity):
+                    self._tunnel_community = community
+                    break
+
+        return self._tunnel_community
 
     def create_session(self, hops=0):
         settings = lt.session_settings()
