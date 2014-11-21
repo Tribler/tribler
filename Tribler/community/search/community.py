@@ -42,18 +42,18 @@ class SearchCommunity(Community):
     """
     @classmethod
     def get_master_members(cls, dispersy):
-# generated: Mon May  7 17:43:59 2012
-# curve: high <<< NID_sect571r1 >>>
+# generated: Mon Nov 24 10:37:11 2014
+# curve: NID_sect571r1
 # len: 571 bits ~ 144 bytes signature
-# pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000405c09348b2243e53fa190f17fc8c9843d61fc67e8ea22d7b031913ffc912897b57be780c06213dbf937d87e3ef1d48bf8f76e03d5ec40b1cdb877d9fa1ec1f133a412601c262d9ef01840ffc49d6131b1df9e1eac41a8ff6a1730d4541a64e733ed7cee415b220e4a0d2e8ace5099520bf8896e09cac3800a62974f5574910d75166d6529dbaf016e78090afbfaf8373
-# pub-sha1 2782dc9253cef6cc9272ee8ed675c63743c4eb3a
-#-----BEGIN PUBLIC KEY-----
-# MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQFwJNIsiQ+U/oZDxf8jJhD1h/Gfo6i
-# LXsDGRP/yRKJe1e+eAwGIT2/k32H4+8dSL+PduA9XsQLHNuHfZ+h7B8TOkEmAcJi
-# 2e8BhA/8SdYTGx354erEGo/2oXMNRUGmTnM+187kFbIg5KDS6KzlCZUgv4iW4Jys
-# OACmKXT1V0kQ11Fm1lKduvAW54CQr7+vg3M=
-#-----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000405c09348b2243e53fa190f17fc8c9843d61fc67e8ea22d7b031913ffc912897b57be780c06213dbf937d87e3ef1d48bf8f76e03d5ec40b1cdb877d9fa1ec1f133a412601c262d9ef01840ffc49d6131b1df9e1eac41a8ff6a1730d4541a64e733ed7cee415b220e4a0d2e8ace5099520bf8896e09cac3800a62974f5574910d75166d6529dbaf016e78090afbfaf8373".decode("HEX")
+# pub: 170 3081a7301006072a8648ce3d020106052b810400270381920004034a9031d07ed6d5d98b0a98cacd4bef2e19125ea7635927708babefa8e66deeb6cb4e78cc0efda39a581a679032a95ebc4a0fbdf913aa08af31f14753839b620cb5547c6e6cf42f03629b1b3dc199a3b1a262401c7ae615e87a1cf13109c7fb532f45c492ba927787257bf994e989a15fb16f20751649515fc58d87e0c861ca5b467a5c450bf57f145743d794057e75
+# pub-sha1 fb04df93369587ec8fd9b74559186fa356cffda8
+# -----BEGIN PUBLIC KEY-----
+# MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQDSpAx0H7W1dmLCpjKzUvvLhkSXqdj
+# WSdwi6vvqOZt7rbLTnjMDv2jmlgaZ5AyqV68Sg+9+ROqCK8x8UdTg5tiDLVUfG5s
+# 9C8DYpsbPcGZo7GiYkAceuYV6Hoc8TEJx/tTL0XEkrqSd4cle/mU6YmhX7FvIHUW
+# SVFfxY2H4MhhyltGelxFC/V/FFdD15QFfnU=
+# -----END PUBLIC KEY-----
+        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004034a9031d07ed6d5d98b0a98cacd4bef2e19125ea7635927708babefa8e66deeb6cb4e78cc0efda39a581a679032a95ebc4a0fbdf913aa08af31f14753839b620cb5547c6e6cf42f03629b1b3dc199a3b1a262401c7ae615e87a1cf13109c7fb532f45c492ba927787257bf994e989a15fb16f20751649515fc58d87e0c861ca5b467a5c450bf57f145743d794057e75".decode("HEX")
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
@@ -493,7 +493,7 @@ class SearchCommunity(Community):
         to_popularity_dict = {}
         for message in messages:
             if message.payload.hashtype == SWIFT_INFOHASHES:
-                for swift_torrent_hash, infohash, seeders, leechers, ago in message.payload.torrents:
+                for infohash, seeders, leechers, ago in message.payload.torrents:
                     if not infohash:
                         continue
                     elif infohash not in to_insert_list:
@@ -560,9 +560,8 @@ class SearchCommunity(Community):
         else:
             random_torrents = []
 
-        # FIXME: add dummy swift hashes
-        torrents = [[tor[0], tor[0], tor[1], tor[2], tor[3]] for tor in torrents]
-        random_torrents = [[tor[0], tor[0], tor[1], tor[2], tor[3]] for tor in random_torrents]
+        torrents = [[tor[0], tor[1], tor[2], tor[3]] for tor in torrents]
+        random_torrents = [[tor[0], tor[1], tor[2], tor[3]] for tor in random_torrents]
 
         # combine random and recent + shuffle to obscure categories
         torrents = torrents + random_torrents
@@ -571,14 +570,14 @@ class SearchCommunity(Community):
         # fix leechers, seeders to max 2**16 (shift values +2 to accomodate -2 and -1 values)
         max_value = (2 ** 16) - 1
         for torrent in torrents:
-            # index 2 and 3 are num_seeders and num_leechers respectively
+            # index 1 and 2 are num_seeders and num_leechers respectively
+            torrent[1] = min(max_value, (torrent[1] or -1) + 2)
             torrent[2] = min(max_value, (torrent[2] or -1) + 2)
-            torrent[3] = min(max_value, (torrent[3] or -1) + 2)
 
-            # index 4 is last_tracker_check, convert to minutes
-            torrent[4] /= 60
-            if torrent[4] > max_value or torrent[4] < 0:
-                torrent[4] = max_value
+            # index 3 is last_tracker_check, convert to minutes
+            torrent[3] /= 60
+            if torrent[3] > max_value or torrent[3] < 0:
+                torrent[3] = max_value
 
         self.torrent_cache = (time(), torrents)
         return torrents
