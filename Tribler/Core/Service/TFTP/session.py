@@ -35,6 +35,7 @@ class Session(object):
         self.last_contact_time = time()
         self.last_received_packet = None
         self.last_sent_packet = None
+        self.is_waiting_for_last_ack = False
 
         # extra information
         self.is_done = False

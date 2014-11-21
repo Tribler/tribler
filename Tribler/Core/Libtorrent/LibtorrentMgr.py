@@ -368,7 +368,7 @@ class LibtorrentMgr(object):
         if not self.is_dht_ready() and timeout > 5:
             self._logger.info("LibtorrentMgr: DHT not ready, rescheduling get_metainfo")
             self.trsession.lm.rawserver.add_task(lambda i=infohash_or_magnet, c=callback, t=timeout - 5,
-                                                 n=notify: self.get_metainfo(i, c, t, n), 5)
+                                                 tcb=timeout_callback, n=notify: self.get_metainfo(i, c, t, tcb, n), 5)
             return
 
         magnet = infohash_or_magnet if infohash_or_magnet.startswith('magnet') else None
@@ -400,7 +400,7 @@ class LibtorrentMgr(object):
 
                 self.metainfo_requests[infohash] = {'handle': handle,
                                                     'callbacks': [callback],
-                                                    'timeout_callbacks': timeout_callback if timeout_callback else [],
+                                                    'timeout_callbacks': [timeout_callback] if timeout_callback else [],
                                                     'notify': notify}
                 self.trsession.lm.rawserver.add_task(lambda: self.got_metainfo(infohash, timeout=True), timeout)
 
@@ -454,7 +454,7 @@ class LibtorrentMgr(object):
 
                     elif timeout_callbacks and timeout:
                         for callback in timeout_callbacks:
-                            self.trsession.uch.perform_usercallback(lambda cb=callback, ih=infohash: cb(ih))
+                            self.trsession.uch.perform_usercallback(lambda cb=callback, ih=infohash_bin: cb(ih))
 
                 if handle:
                     self.get_session().remove_torrent(handle, 1)

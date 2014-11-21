@@ -1331,7 +1331,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         mainsql += """, FullTextIndex
                     LEFT OUTER JOIN _ChannelTorrents C ON T.torrent_id = C.torrent_id
-                    WHERE t.torrent_id = FullTextIndex.rowid AND C.deleted_at IS NULL AND FullTextIndex MATCH ?
+                    WHERE t.name IS NOT NULL AND t.torrent_id = FullTextIndex.rowid AND C.deleted_at IS NULL AND FullTextIndex MATCH ?
                     """
 
         if not local:
@@ -1351,9 +1351,9 @@ class TorrentDBHandler(BasicDBHandler):
                 channels.add(result[-2])
 
         if len(channels) > 0:
-            # Channels consist of a tuple (id, dispersy_cid, name, description, nr_torrents, nr_favorites, nr_spam, my_vote, modified)
+            # results are tuples of (id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam)
             for channel in self.channelcast_db.getChannels(channels):
-                if channel[1] != '-1':
+                if channel[3] != '-1':
                     channel_dict[channel[0]] = channel
 
         t3 = time()
@@ -1364,7 +1364,7 @@ class TorrentDBHandler(BasicDBHandler):
         # step 1, merge torrents keep one with best channel
         for result in results:
             channel_id = result[-2]
-            channel = channel_dict.get(channel_id, False)
+            channel = channel_dict.get(channel_id, None)
 
             infohash = result[infohash_index]
             if channel:

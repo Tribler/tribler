@@ -146,8 +146,12 @@ class TftpHandler(TaskManager):
             self._logger.error(u"Invalid packet from [%s:%s], packet=[%s], error=%s", ip, port, hexlify(data), e)
             return
 
+        if packet['opcode'] == OPCODE_WRQ:
+            self._logger.error(u"WRQ is not supported from [%s:%s], packet=[%s]", ip, port, repr(packet))
+            return
+
         # a new request
-        if packet['opcode'] in (OPCODE_RRQ, OPCODE_WRQ):
+        if packet['opcode'] == OPCODE_RRQ:
             self._handle_new_request(ip, port, packet)
 
         # a response
@@ -155,6 +159,7 @@ class TftpHandler(TaskManager):
             if not self._session_queue:
                 self._logger.warn(u"empty session queue, dropping packet [%s] from %s:%s",
                                   packet, ip, port)
+                return
 
             session = self._session_queue[0]
             self._process_packet(session, packet)
@@ -305,7 +310,7 @@ class TftpHandler(TaskManager):
             session.last_read_count = len(data)
 
         if session.last_read_count < session.block_size:
-            session.is_done = True
+            session.is_waiting_for_last_ack = True
         session.last_read_count = len(data)
 
         return data
@@ -392,12 +397,14 @@ class TftpHandler(TaskManager):
             self._handle_error(session, 0)  # TODO: check error code
             return
 
-        data = self._get_next_data(session)
-        if session.is_done:
+        if session.is_waiting_for_last_ack:
+            session.is_done = True
             self._logger.info(u"[SEND %s] finished", session)
-        else:
-            # send DATA
-            self._send_data_packet(session, session.block_number, data)
+            return
+
+        data = self._get_next_data(session)
+        # send DATA
+        self._send_data_packet(session, session.block_number, data)
 
     def _handle_error(self, session, error_code, error_msg=""):
         """ Handles an error during packet processing.

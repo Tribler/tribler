@@ -75,8 +75,8 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.config2.set_megacache(True)
         self.config2.set_torrent_collecting(True)
 
-        self.session2_state_dir = self.session.get_state_dir() + "2"
-        self.session2_torrent_collecting_dir = self.session.get_torrent_collecting_dir() + "2"
+        self.session2_state_dir = self.session.get_state_dir() + u"2"
+        self.session2_torrent_collecting_dir = self.session.get_torrent_collecting_dir() + u"2"
 
         self.config2.set_state_dir(self.session2_state_dir)
         self.config2.set_torrent_collecting_dir(self.session2_torrent_collecting_dir)
@@ -155,4 +155,5 @@ class TestRemoteTorrentHandler(TestAsServer):
         sleep(1)
 
         print >> sys.stderr, u"Downloader's torrent_collect_dir = %s" % self.session2.get_torrent_collecting_dir()
-        print >> sys.stderr, u"Uploader port: %s, Downloader port: %s" % (self.session1_port, self.session2.get_dispersy_port())
+        print >> sys.stderr, u"Uploader port: %s, Downloader port: %s" % (self.session1_port,
+                                                                          self.session2.get_dispersy_port())

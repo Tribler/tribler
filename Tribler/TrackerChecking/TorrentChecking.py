@@ -110,6 +110,7 @@ class TorrentChecking(Thread):
         if not self._should_stop:
             self._should_stop = True
             self._interrupt_socket.interrupt()
+            self.join()
 
     def addGuiRequest(self, gui_torrent):
         # enqueue a new GUI request

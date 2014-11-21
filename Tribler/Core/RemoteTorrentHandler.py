@@ -341,6 +341,8 @@ class Requester(object):
         """
         Starts pending requests.
         """
+        if self._remote_torrent_handler.is_pending_task_active(self._name):
+            return
         if self._pending_request_queue:
             self.schedule_task(self._do_request, delay_time=Requester.REQUEST_INTERVAL * self._priority)
 
@@ -444,6 +446,7 @@ class MagnetRequester(Requester):
         while self._pending_request_queue:
             if len(self._running_requests) >= self.MAX_CONCURRENT:
                 self._logger.debug(u"max concurrency %s reached, request later", self.MAX_CONCURRENT)
+                return
 
             infohash = self._pending_request_queue.popleft()
             infohash_str = hexlify(infohash)
@@ -487,7 +490,10 @@ class MagnetRequester(Requester):
         """
         The callback that will be called by LibtorrentMgr when a download failed.
         """
-        assert infohash in self._running_requests
+        if infohash not in self._running_requests:
+            self._logger.debug(u"++ failed INFOHASH: %s", hexlify(infohash))
+            for ih in self._running_requests:
+                self._logger.debug(u"++ INFOHASH in running_requests: %s", hexlify(ih))
 
         self._logger.debug(u"failed to retrieve torrent %s through magnet", hexlify(infohash))
         self._running_requests.remove(infohash)

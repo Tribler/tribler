@@ -618,27 +618,29 @@ class ChannelCommunity(Community):
                 yield DelayMessageByProof(message)
                 continue
 
-            if message.payload.modification_on.name == u"torrent" and message.payload.modification_type == "swift-thumbnails":
+            if message.payload.modification_on.name == u"torrent" and message.payload.modification_type == u"swift-thumbnails":
                 try:
-                    hex_roothash = json.loads(message.payload.modification_value)[1]
+                    data = json.loads(message.payload.modification_value)
+                    thumbnail_subpath = data[1]
+                    thumbnail_hashstr = data[2]
                 except:
                     yield DropMessage(message, "Not compatible json format")
                     continue
                 else:
-                    roothash = binascii.unhexlify(hex_roothash)
                     modifying_dispersy_id = message.payload.modification_on.packet_id
                     torrent_id = self._channelcast_db._db.fetchone(u"SELECT torrent_id FROM _ChannelTorrents WHERE dispersy_id = ?", (modifying_dispersy_id,))
                     infohash = self._channelcast_db._db.fetchone(u"SELECT infohash FROM Torrent WHERE torrent_id = ?", (torrent_id,))
                     if infohash:
                         infohash = str2bin(infohash)
-                        logger.debug("Incoming swift-thumbnails with roothash %s from %s", hex_roothash.encode("HEX"), message.candidate.sock_addr[0])
+                        logger.debug("Incoming swift-thumbnails with infohash %s from %s", infohash.encode("HEX"), message.candidate.sock_addr[0])
 
-                        if not th_handler.has_metadata("thumbs", infohash):
+                        if not th_handler.has_metadata("thumbs", infohash, thumbnail_subpath):
                             @call_on_reactor_thread
                             def callback(_, message=message):
                                 self.on_messages([message])
-                            logger.debug("Will try to download swift-thumbnails with roothash %s from %s", hex_roothash.encode("HEX"), message.candidate.sock_addr[0])
-                            th_handler.download_metadata("thumbs", message.candidate, infohash, timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
+                            logger.debug("Will try to download swift-thumbnails with infohash %s from %s", infohash.encode("HEX"), message.candidate.sock_addr[0])
+                            th_handler.download_metadata("thumbs", message.candidate, infohash, thumbnail_subpath,
+                                                         timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
                             continue
 
             yield message
