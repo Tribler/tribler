@@ -11,7 +11,8 @@ __author__ = 'chris'
 class Circuit(object):
     """ Circuit data structure storing the id, state and hops """
 
-    def __init__(self, circuit_id, goal_hops=0, first_hop=None, proxy=None, ctype=CIRCUIT_TYPE_DATA, callback=None):
+    def __init__(self, circuit_id, goal_hops=0, first_hop=None, proxy=None,
+                 ctype=CIRCUIT_TYPE_DATA, callback=None, required_exit=None):
         """
         Instantiate a new Circuit data structure
         :type proxy: TunnelCommunity
@@ -40,6 +41,7 @@ class Circuit(object):
         self.proxy = proxy
         self.ctype = ctype
         self.callback = callback
+        self.required_exit = required_exit
 
     @property
     def hops(self):

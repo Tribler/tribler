@@ -180,7 +180,8 @@ class LibtorrentMgr(object):
         if hops > 0:
             if self.tunnel_community:
                 if download.get_def().is_anonymous():
-                    self.tunnel_community.circuits_needed[hops] = 1
+                    current_hops = self.tunnel_community.circuits_needed.get(hops, 0)
+                    self.tunnel_community.circuits_needed[hops] = max(1, current_hops)
                     return bool(self.tunnel_community.active_data_circuits(hops))
                 else:
                     self.tunnel_community.circuits_needed[hops] = self.tunnel_community.settings.max_circuits
