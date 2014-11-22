@@ -606,7 +606,7 @@ class MainFrame(wx.Frame):
 
                     if monitorHiddenSerivcesProgress:
                         state_lambda = lambda ds, tdef = orig_tdef, dscfg = dscfg, selectedFiles = selectedFiles: self.monitorHiddenSerivcesProgress(ds, tdef, dscfg, selectedFiles)
-                        result.set_state_callback(state_lambda, delay=15.0)
+                        result.set_state_callback(state_lambda, delay=20.0)
 
                 if clicklog is not None:
                     mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)

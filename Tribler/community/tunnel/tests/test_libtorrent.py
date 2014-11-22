@@ -98,13 +98,20 @@ class LibtorrentTest(object):
         assert path.exists(torrent_path), torrent_path
         tdef = TorrentDef.load(torrent_path)
         tdef.set_private()  # disable dht
+
         defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
         dscfg = defaultDLConfig.copy()
 
-        dscfg.set_hops(3)
-        dscfg.set_dest_dir(destination_dir)
+        try:
+            # If we want to attempt to use hidden services, we need to use MainFrame.startDownload
+            from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+            self.download = GUIUtility.getInstance().frame.startDownload(tdef=tdef, destdir=destination_dir,
+                                                                         hops=2, try_hidden_services=True)
+        except:
+            dscfg.set_dest_dir(destination_dir)
+            dscfg.set_hops(2)
+            self.download = self.tribler_session.start_download(tdef, dscfg)
 
-        self.download = self.tribler_session.start_download(tdef, dscfg)
         self.download.set_state_callback(state_call(), delay=1)
 
         for peer in hosts:
