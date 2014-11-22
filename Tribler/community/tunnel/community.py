@@ -292,7 +292,7 @@ class TunnelCommunity(Community):
         self.forward_from_to = {}
         self.waiting_for = set()
         self.exit_sockets = {}
-        self.circuits_needed = {2:1}
+        self.circuits_needed = {}
         self.notifier = None
         self.made_anon_session = False
         self.selection_strategy = RoundRobin(self)
@@ -551,12 +551,12 @@ class TunnelCommunity(Community):
                 self._logger.error("TunnelCommunity: removed introduction point %s", ', rebuilding' if rebuild else '')
                 ip = self.my_intro_points.pop(circuit_id)
                 if rebuild:
-                    self.create_introduction_points(ip.info_hash)
+                    self.create_introduction_points(ip.info_hash, ip.circuit.goal_hops)
             if circuit_id in self.my_rendezvous_points:
                 self._logger.error("TunnelCommunity: removed rendezvous point %s", ', rebuilding' if rebuild else '')
                 rp = self.my_rendezvous_points.pop(circuit_id)
                 if rebuild:
-                    self.create_rendezvous_points(rp.info_hash)
+                    self.create_rendezvous_points(rp.info_hash, rp.circuit.goal_hops)
 
             circuit.destroy()
 
@@ -1204,11 +1204,15 @@ class TunnelCommunity(Community):
     def monitor_downloads(self, dslist):
         # Monitor downloads with anonymous flag set, and build rendezvous/introduction points when needed.
         new_states = {}
+        hops = {}
+
         for ds in dslist:
             download = ds.get_download()
             tdef = download.get_def()
+            info_hash = tdef.get_infohash()
+            hops[info_hash] = download.get_hops()
             if tdef.get_def_type() == 'torrent' and tdef.is_anonymous():
-                new_states[tdef.get_infohash()] = ds.get_status()
+                new_states[info_hash] = ds.get_status()
 
         for info_hash in set(new_states.keys() + self.download_states.keys()):
             new_state = new_states.get(info_hash, None)
@@ -1219,10 +1223,10 @@ class TunnelCommunity(Community):
             force_rendezvous = (time.time() - self.last_rp_creation.get(info_hash, 0)) >= 300
 
             if (state_changed or force_rendezvous) and new_state == DLSTATUS_DOWNLOADING:
-                self.create_rendezvous_points(info_hash)
+                self.create_rendezvous_points(info_hash, hops=hops.get(info_hash, 2))
 
             elif state_changed and new_state == DLSTATUS_SEEDING:
-                self.create_introduction_points(info_hash)
+                self.create_introduction_points(info_hash, hops=hops.get(info_hash, 2))
 
             elif state_changed and new_state in [DLSTATUS_STOPPED, None]:
                 for cid, p in self.my_rendezvous_points.items() + self.my_intro_points.items():
@@ -1231,16 +1235,16 @@ class TunnelCommunity(Community):
 
         self.download_states = new_states
 
-    def create_introduction_points(self, info_hash, amount=1):
+    def create_introduction_points(self, info_hash, hops, amount=1):
         self._logger.error('Creating %d introduction point(s)', amount)
-        self._create_introduction_points(info_hash, amount)
+        self._create_introduction_points(info_hash, hops, amount)
 
         # Ensures that libtorrent tries to make an outgoing connection so that the socks5 server
         # knows on which UDP port libtorrent is listening.
         self.trsession.get_download(info_hash).add_peer(('1.1.1.1' , 1024))
 
     @call_on_reactor_thread
-    def _create_introduction_points(self, info_hash, amount=1):
+    def _create_introduction_points(self, info_hash, hops, amount=1):
 
         def callback(circuit):
             # We got a circuit, now let's create a introduction point
@@ -1256,9 +1260,9 @@ class TunnelCommunity(Community):
 
         # Create circuits for introduction points
         for _ in range(0, amount):
-            self.create_circuit(2, CIRCUIT_TYPE_IP, callback, max_retries=5)
+            self.create_circuit(hops, CIRCUIT_TYPE_IP, callback, max_retries=5)
 
-    def create_rendezvous_points(self, info_hash):
+    def create_rendezvous_points(self, info_hash, hops):
         def add_peer(circuit_id, download):
             download.add_peer((self.circuit_id_to_ip(circuit_id), 1024))
 
@@ -1272,7 +1276,8 @@ class TunnelCommunity(Community):
             for peer in set(peers):
                 if peer not in exclude:
                     self._logger.error("Creating rendezvous point for introduction point %s", peer)
-                    self._create_rendezvous_point(ih, peer, lambda c, d=self.trsession.get_download(ih): add_peer(c, d))
+                    download = self.trsession.get_download(ih)
+                    self._create_rendezvous_point(ih, peer, hops, lambda c, d=download: add_peer(c, d))
                     # Blacklist this sock_addr for a period of at least 60s
                     self.rp_blacklist[ih][peer] = time.time()
 
@@ -1283,7 +1288,7 @@ class TunnelCommunity(Community):
         self.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), dht_callback)
 
     @call_on_reactor_thread
-    def _create_rendezvous_point(self, info_hash, sock_addr, finished_callback):
+    def _create_rendezvous_point(self, info_hash, sock_addr, hops, finished_callback):
 
         def keys_callback(ip_key, service_key, sock_addr):
             def circuit_callback(circuit):
@@ -1301,7 +1306,7 @@ class TunnelCommunity(Community):
                                    self._readable_binary_string(rp.cookie))
 
             # Create a circuit for the rendezvous points
-            self.create_circuit(2, CIRCUIT_TYPE_RP, circuit_callback, max_retries=5)
+            self.create_circuit(hops, CIRCUIT_TYPE_RP, circuit_callback, max_retries=5)
 
         def request_keys(circuit):
             self._logger.error("TunnelCommunity: sending keys-request to %s", sock_addr)
@@ -1310,7 +1315,7 @@ class TunnelCommunity(Community):
             message = meta.impl(distribution=(self.global_time,), payload=(cache.number, info_hash))
             circuit.tunnel_data(sock_addr, TUNNEL_PREFIX + message.packet)
 
-        circuit = self.selection_strategy.select(None, 2)
+        circuit = self.selection_strategy.select(None, hops)
         if circuit:
             request_keys(circuit)
         else:
@@ -1356,16 +1361,17 @@ class TunnelCommunity(Community):
         for message in messages:
             circuit_id = message.payload.circuit_id
             if circuit_id in self.exit_sockets:
+                candidate = message.candidate
                 if self.exit_sockets[circuit_id].enabled:
                     self._logger.error("TunnelCommunity: got establish-intro from %s but exit socket is enabled, " +
-                                       "aborting.", message.candidate)
+                                       "aborting.", candidate)
                     continue
                 self.remove_exit_socket(circuit_id, 'exit socket becomes introduction point')
-                self.intro_point_for[message.payload.service_key] = (circuit_id, message.payload.info_hash, message.candidate)
+                self.intro_point_for[message.payload.service_key] = (circuit_id, message.payload.info_hash, candidate)
                 self._logger.error("TunnelCommunity: establish-intro received from %s. Circuit %s associated with " +
-                                   "service_key %s", message.candidate, circuit_id,
+                                   "service_key %s", candidate, circuit_id,
                                    self._readable_binary_string(message.payload.service_key))
-                self.send_cell([message.candidate], u"intro-established", (circuit_id, message.payload.identifier))
+                self.send_cell([candidate], u"intro-established", (circuit_id, message.payload.identifier))
                 self.dht_announce(message.payload.info_hash)
             else:
                 self._logger.error("TunnelCommunity: got establish-intro but no exit socket found")
@@ -1449,9 +1455,9 @@ class TunnelCommunity(Community):
             # TODO: check for replay attack
 
             # Decrypt using hybrid crypto
-            sk = self.my_intro_points[message.payload.circuit_id].service_key
-            decrypt = lambda item, sk = sk: self.crypto.hybrid_decrypt_str(sk, item)
-            self.send_rendezvous1_over_new_tunnel(message.payload.identifier,
+            ip = self.my_intro_points[message.payload.circuit_id]
+            decrypt = lambda item, sk = ip.service_key: self.crypto.hybrid_decrypt_str(sk, item)
+            self.send_rendezvous1_over_new_tunnel(ip, message.payload.identifier,
                                                   decode(decrypt(message.payload.rendezvous_point))[1],
                                                   decrypt(message.payload.cookie), decrypt(message.payload.key))
 
@@ -1507,9 +1513,10 @@ class TunnelCommunity(Community):
             self.send_cell([Candidate(circuit.first_hop, False)], u'intro1', tuple(payload))
 
         # Create circuit for intro1
-        self.create_circuit(2, CIRCUIT_TYPE_INTRODUCE, callback, max_retries=5, required_exit=rp.intro_point)
+        hops = rp.circuit.goal_hops
+        self.create_circuit(hops, CIRCUIT_TYPE_INTRODUCE, callback, max_retries=5, required_exit=rp.intro_point)
 
-    def send_rendezvous1_over_new_tunnel(self, identifier, rendezvous_point, cookie, dh_first_part):
+    def send_rendezvous1_over_new_tunnel(self, ip, identifier, rendezvous_point, cookie, dh_first_part):
 
         def callback(circuit):
             self._logger.error("TunnelCommunity: send rendezvous1 over tunnel %s with cookie %s",
@@ -1524,7 +1531,8 @@ class TunnelCommunity(Community):
             self.send_cell([Candidate(circuit.first_hop, False)], u'rendezvous1', payload)
 
         # Create circuit for intro1
-        self.create_circuit(2, CIRCUIT_TYPE_RENDEZVOUS, callback, max_retries=5, required_exit=rendezvous_point)
+        hops = ip.circuit.goal_hops
+        self.create_circuit(hops, CIRCUIT_TYPE_RENDEZVOUS, callback, max_retries=5, required_exit=rendezvous_point)
 
     def dht_announce(self, info_hash):
         # DHT announce

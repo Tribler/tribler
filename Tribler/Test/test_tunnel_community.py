@@ -129,7 +129,7 @@ class TestTunnelCommunity(TestGuiAsServer):
         def start_download(tf):
             start_time = time.time()
             download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(),
-                                                           hops=3, try_hidden_services=True)
+                                                           hops=2, try_hidden_services=True)
             self.guiUtility.ShowPage('my_files')
             do_progress(download, start_time)
 
@@ -162,7 +162,7 @@ class TestTunnelCommunity(TestGuiAsServer):
             from Tribler.Core.DownloadConfig import DownloadStartupConfig
             dscfg = DownloadStartupConfig()
             dscfg.set_dest_dir(os.path.join(BASE_DIR, "data"))  # basedir of the file we are seeding
-            dscfg.set_hops(3)
+            dscfg.set_hops(2)
             d = seeder_session.start_download(tdef, dscfg)
             d.set_state_callback(self.seeder_state_callback)
 
@@ -176,7 +176,7 @@ class TestTunnelCommunity(TestGuiAsServer):
                 community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb, bt_port=port)
             for community in tunnel_communities:
                 community.dht_announce = lambda ih, com = community: dht_announce(ih, com)
-            self.CallConditional(60, dht.is_set, lambda: self.Call(10, lambda: start_download(tf)),
+            self.CallConditional(60, dht.is_set, lambda: self.Call(15, lambda: start_download(tf)),
                                 'Introduction point did not get announced')
 
         self.startTest(setup_seeder)
