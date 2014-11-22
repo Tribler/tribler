@@ -498,7 +498,7 @@ class TunnelCommunity(Community):
         hops = set([c.first_hop for c in self.circuits.values()])
         for c in self.dispersy_yield_verified_candidates():
             if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec) and \
-               (not required_exit or c.sock_addr != required_exit[:2]):
+               (not required_exit or c.sock_addr != tuple(required_exit[:2])):
                 first_hop = c
                 break
 
