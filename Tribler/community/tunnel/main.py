@@ -143,7 +143,7 @@ class Tunnel(object):
         except:
             print_exc()
 
-        return (1.0, [])
+        return (4.0, [])
 
     def stop(self):
         self.session.uch.perform_usercallback(self._stop)
