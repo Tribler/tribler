@@ -22,9 +22,6 @@ from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
 from Tribler.Core.Utilities.Crypto import sha
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.Libtorrent import checkHandleAndSynchronize, waitForHandleAndSynchronize
-from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
-
-from Tribler.community.tunnel.community import TunnelCommunity
 
 if sys.platform == "win32":
     try:

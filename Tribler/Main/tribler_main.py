@@ -14,12 +14,10 @@
 
 import sys
 import logging
-import copy
 
 from Tribler.Main.Utility.compat import convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig, convertDownloadCheckpoints
 from Tribler.Core.version import version_id, commit_id, build_date
 from Tribler.Core.osutils import fix_filebasename, get_free_space
-from Tribler.Core.TorrentDef import TorrentDef
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +101,7 @@ from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, NTFY_MODIFIED, NTFY_INSERT
 from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
-from Tribler.Core.DownloadConfig import get_default_dest_dir, DownloadStartupConfig
+from Tribler.Core.DownloadConfig import get_default_dest_dir
 
 from Tribler.Core.Statistics.Status.Status import get_status_holder, \
     delete_status_holders
