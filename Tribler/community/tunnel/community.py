@@ -1025,7 +1025,7 @@ class TunnelCommunity(Community):
                 self.circuits[circuit_id].beat_heart()
                 self.increase_bytes_received(self.circuits[circuit_id], len(packet))
 
-                if data[:TUNNEL_PREFIX_LENGHT] == TUNNEL_PREFIX and len(data) > 22:
+                if TunnelConversion.could_be_dispersy(data):
                     self._logger.error("Giving incoming data packet to dispersy")
                     self.dispersy.on_incoming_packets([(Candidate(origin, False), data[TUNNEL_PREFIX_LENGHT:])], False)
                 else:

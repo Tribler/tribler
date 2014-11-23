@@ -4,6 +4,7 @@ from socket import inet_ntoa, inet_aton, error as socket_error
 from Tribler.Core.Utilities.bencode import bdecode
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
+from Tribler.dispersy.endpoint import TUNNEL_PREFIX, TUNNEL_PREFIX_LENGHT
 
 ADDRESS_TYPE_IPV4 = 0x01
 ADDRESS_TYPE_DOMAIN_NAME = 0x02
@@ -456,8 +457,6 @@ class TunnelConversion(BinaryConversion):
 
     @staticmethod
     def could_be_utp(data):
-        return True
-
         if len(data) < 20:
             return False
         byte1, byte2 = unpack_from('!BB', data)
@@ -488,7 +487,12 @@ class TunnelConversion(BinaryConversion):
         return False
 
     @staticmethod
+    def could_be_dispersy(data):
+        return data[:TUNNEL_PREFIX_LENGHT] == TUNNEL_PREFIX and len(data) > 22
+
+    @staticmethod
     def is_allowed(data):
         return (TunnelConversion.could_be_utp(data) or
                 TunnelConversion.could_be_udp_tracker(data) or
-                TunnelConversion.could_be_dht(data))
+                TunnelConversion.could_be_dht(data) or
+                TunnelConversion.could_be_dispersy(data))
