@@ -351,8 +351,22 @@ class TunnelCommunity(Community):
 
     @classmethod
     def get_master_members(cls, dispersy):
-        # Community id for testing.
-        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004070f1ae7cc17921a3ccb8ed65c144a8a63a1af30aa473253f0233314d8865ea6368090f541262c2a6d9ca1b11fa26b6c056957014a04fdc25f1d30b3644aaeeae972c6f872abe0f703d9e627f863c25ec8f4090e6bdfb93b7f6614abed0e5600a56321a4fb1372727fffba4a26cc4e4be701dd99f888c1e941cb6c00d5229a56bb5ec8688b98ae62a7d400df298e2e08".decode("HEX")
+        # generated: Sun Nov 23 11:34:51 2014
+        # curve: NID_sect571r1
+        # len: 571 bits ~ 144 bytes signature
+        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000407f32364f340a840228
+        # 98d43275a60e6455f9121c09a7f03f159878d0caeadca7fe92b88f08e542015f04947c5bb3a8d18c
+        # d8440f14457d2556391de18d78a0f4774285907d86b05068267b2629d2611d74ddd5814f45508d95
+        # 9bd29c298c58ef95d1ad817242d373bed2bae9a745ba5854529f172211e0a6d2bd276a4256bf4133
+        # c0d408e835f614d9331faf214546e
+        # pub-sha1 e91d0cd4ca8e02fc65be47a8bb19223428bedcc3
+        #-----BEGIN PUBLIC KEY-----
+        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQH8yNk80CoQCKJjUMnWmDmRV+RIcCa
+        # fwPxWYeNDK6tyn/pK4jwjlQgFfBJR8W7Oo0YzYRA8URX0lVjkd4Y14oPR3QoWQfY
+        # awUGgmeyYp0mEddN3VgU9FUI2Vm9KcKYxY75XRrYFyQtNzvtK66adFulhUUp8XIh
+        # HgptK9J2pCVr9BM8DUCOg19hTZMx+vIUVG4=
+        #-----END PUBLIC KEY-----
+        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000407f32364f340a84022898d43275a60e6455f9121c09a7f03f159878d0caeadca7fe92b88f08e542015f04947c5bb3a8d18cd8440f14457d2556391de18d78a0f4774285907d86b05068267b2629d2611d74ddd5814f45508d959bd29c298c58ef95d1ad817242d373bed2bae9a745ba5854529f172211e0a6d2bd276a4256bf4133c0d408e835f614d9331faf214546e".decode("HEX")
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
