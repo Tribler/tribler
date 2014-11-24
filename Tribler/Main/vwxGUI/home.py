@@ -14,7 +14,7 @@ from time import strftime, time
 from traceback import print_exc
 
 from Tribler.Category.Category import Category
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL, \
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_TUNNEL, \
     NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, NTFY_EXTENDED_FOR
 from Tribler.Core.Session import Session
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler, \
@@ -618,10 +618,10 @@ class NetworkGraphPanel(wx.Panel):
         self.circuit_timer.Start(5000)
 
         if self.fullscreen:
-            self.session.add_observer(self.OnExtended, NTFY_ANONTUNNEL, [NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN])
-            self.session.add_observer(self.OnSelect, NTFY_ANONTUNNEL, [NTFY_SELECT])
-            self.session.add_observer(self.OnJoined, NTFY_ANONTUNNEL, [NTFY_JOINED])
-            self.session.add_observer(self.OnExtendedFor, NTFY_ANONTUNNEL, [NTFY_EXTENDED_FOR])
+            self.session.add_observer(self.OnExtended, NTFY_TUNNEL, [NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN])
+            self.session.add_observer(self.OnSelect, NTFY_TUNNEL, [NTFY_SELECT])
+            self.session.add_observer(self.OnJoined, NTFY_TUNNEL, [NTFY_JOINED])
+            self.session.add_observer(self.OnExtendedFor, NTFY_TUNNEL, [NTFY_EXTENDED_FOR])
 
     def AddComponents(self):
         self.graph_panel = wx.Panel(self, -1)

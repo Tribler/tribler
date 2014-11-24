@@ -1,5 +1,5 @@
 """
-The AnonTunnel community package
+The Tunnel community package
 
 Defines a ProxyCommunity which discovers other proxies and offers an API to
 create and reserve circuits. A basic SOCKS5 server is included which reserves

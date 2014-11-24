@@ -14,6 +14,7 @@ from twisted.internet.task import LoopingCall
 from Crypto.Util.number import bytes_to_long, long_to_bytes
 
 from Tribler.Core.Utilities.encoding import encode, decode
+
 from Tribler.community.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR,
                                       PING_INTERVAL, EXIT_NODE)
 from Tribler.community.tunnel.conversion import TunnelConversion
@@ -234,20 +235,17 @@ class TunnelCommunity(Community):
                                          if session else self.settings.socks_listen_ports)
         self.socks_server.start()
 
-        if self.tribler_session and self.tribler_session.get_libtorrent():
-            self.tribler_session.get_libtorrent_process().tunnel_community = self
-
-    def start_download_test(self):
         if self.tribler_session:
             from Tribler.Core.CacheDB.Notifier import Notifier
             self.notifier = Notifier.getInstance()
 
-            if self.tribler_session.get_libtorrent():
-                self.libtorrent_test = LibtorrentTest(self, self.tribler_session)
-                if not self.libtorrent_test.has_completed_before():
-                    self._logger.debug("Scheduling Anonymous LibTorrent download")
-                    self.register_task("start_test", reactor.callLater(60, lambda : reactor.callInThread(self.libtorrent_test.start)))
-                    return True
+    def start_download_test(self):
+        if self.tribler_session and self.tribler_session.get_libtorrent():
+            self.libtorrent_test = LibtorrentTest(self, self.tribler_session)
+            if not self.libtorrent_test.has_completed_before():
+                self._logger.debug("Scheduling Anonymous LibTorrent download")
+                self.register_task("start_test", reactor.callLater(60, lambda : reactor.callInThread(self.libtorrent_test.start)))
+                return True
         return False
 
     @classmethod
@@ -657,8 +655,8 @@ class TunnelCommunity(Community):
             return
 
         if self.notifier:
-            from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_CREATED, NTFY_EXTENDED
-            self.notifier.notify(NTFY_ANONTUNNEL, NTFY_CREATED if len(circuit.hops) == 1 else NTFY_EXTENDED, circuit)
+            from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_CREATED, NTFY_EXTENDED
+            self.notifier.notify(NTFY_TUNNEL, NTFY_CREATED if len(circuit.hops) == 1 else NTFY_EXTENDED, circuit)
 
     def on_cell(self, messages):
         decrypted_packets = []
@@ -725,8 +723,8 @@ class TunnelCommunity(Community):
             self.exit_sockets[circuit_id] = TunnelExitSocket(circuit_id, self, candidate.sock_addr)
 
             if self.notifier:
-                from Tribler.Core.simpledefs import NTFY_ANONTUNNEL, NTFY_JOINED
-                self.notifier.notify(NTFY_ANONTUNNEL, NTFY_JOINED, candidate.sock_addr, circuit_id)
+                from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_JOINED
+                self.notifier.notify(NTFY_TUNNEL, NTFY_JOINED, candidate.sock_addr, circuit_id)
 
             candidate_list_enc = self.crypto.encrypt_str(self.relay_session_keys[circuit_id][EXIT_NODE], encode(candidates.keys()))
             self.send_cell([candidate], u"created", (circuit_id, long_to_bytes(dh_first_part), candidate_list_enc))
