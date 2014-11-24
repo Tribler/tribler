@@ -7,6 +7,7 @@ import argparse
 import threading
 import cherrypy
 
+from traceback import print_exc
 from collections import defaultdict, deque
 
 from twisted.internet.task import LoopingCall
@@ -19,6 +20,8 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Core.permid import read_keypair
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 try:
     import yappi
@@ -108,7 +111,7 @@ class Tunnel(object):
         config.set_swift_proc(True)
         config.set_mainline_dht(False)
         config.set_torrent_collecting(False)
-        config.set_libtorrent(False)
+        config.set_libtorrent(True)
         config.set_dht_torrent_collecting(False)
         config.set_videoplayer(False)
         config.set_dispersy_tunnel_over_swift(True)
@@ -126,9 +129,21 @@ class Tunnel(object):
             else:
                 member = self.dispersy.get_new_member(u"NID_secp160k1")
                 cls = TunnelCommunity
-            self.community = self.dispersy.define_auto_load(cls, member, (None, self.settings), load=True)[0]
+            self.community = self.dispersy.define_auto_load(cls, member, (self.session, self.settings), load=True)[0]
+
+            self.session.set_anon_proxy_settings(2, ("127.0.0.1", self.session.get_tunnel_community_socks5_listen_ports()))
 
         blockingCallFromThread(reactor, start_community)
+
+        self.session.set_download_states_callback(self.download_states_callback, False)
+
+    def download_states_callback(self, dslist):
+        try:
+            self.community.monitor_downloads(dslist)
+        except:
+            print_exc()
+
+        return (4.0, [])
 
     def stop(self):
         self.session.uch.perform_usercallback(self._stop)
@@ -226,6 +241,56 @@ class LineHandler(LineReceiver):
                                                              circuit.bytes_down / 1024.0 / 1024.0,
                                                              circuit.bytes_up / 1024.0 / 1024.0)
 
+        elif line.startswith('s'):
+            cur_path = os.getcwd()
+            line_split = line.split(' ')
+            filename = 'test_file' if len(line_split) == 1 else line_split[1]
+
+            if not os.path.exists(filename):
+                print "Creating torrent..",
+                with open(filename, 'wb') as fp:
+                    fp.write(os.urandom(50 * 1024 * 1024))
+                tdef = TorrentDef()
+                tdef.add_content(os.path.join(cur_path, filename))
+                tdef.set_tracker("udp://fake.net/announce")
+                tdef.set_private()
+                tdef.set_anonymous()
+                tdef.finalize()
+                tdef.save(os.path.join(cur_path, filename + '.torrent'))
+            else:
+                print "Loading torrent..",
+                tdef = TorrentDef.load(filename + '.torrent')
+            print "done"
+
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            dscfg = defaultDLConfig.copy()
+            dscfg.set_hops(2)
+            dscfg.set_dest_dir(cur_path)
+
+            anon_tunnel.session.uch.perform_usercallback(lambda: anon_tunnel.session.start_download(tdef, dscfg))
+
+        elif line.startswith('d'):
+            line_split = line.split(' ')
+            filename = 'test_file' if len(line_split) == 1 else line_split[1]
+
+            print "Loading torrent..",
+            tdef = TorrentDef.load(filename + '.torrent')
+            print "done"
+
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            dscfg = defaultDLConfig.copy()
+            dscfg.set_hops(2)
+            dscfg.set_dest_dir(os.path.join(os.getcwd(), 'downloader%s' % anon_tunnel.session.get_swift_tunnel_listen_port()))
+
+            def start_download():
+                def cb(ds):
+                    print 'Download', tdef.get_id().encode('hex')[:10], '@', ds.get_current_speed('down'), ds.get_progress(), ds.get_status(), sum(ds.get_num_seeds_peers())
+                    return 1.0, False
+                download = anon_tunnel.session.start_download(tdef, dscfg)
+                download.set_state_callback(cb, delay=1)
+
+            anon_tunnel.session.uch.perform_usercallback(start_download)
+
         elif line == 'q':
             anon_tunnel.stop()
             return
@@ -278,7 +343,7 @@ def main(argv):
         settings.socks_listen_ports = range(socks5_port, socks5_port + 5)
     else:
         settings.socks_listen_ports = [random.randint(1000, 65535) for _ in range(5)]
-
+    settings.do_test = False
     tunnel = Tunnel(settings, crawl_keypair_filename, swift_port)
     StandardIO(LineHandler(tunnel, profile))
     tunnel.run()

@@ -67,6 +67,13 @@ class AbstractServer(unittest.TestCase):
         if annotate:
             self.annotate(self._testMethodName, start=False)
 
+        delayed_calls = reactor.getDelayedCalls()
+        if delayed_calls:
+            print >> sys.stderr, "The reactor was dirty:"
+            for dc in delayed_calls:
+                print >> sys.stderr, ">     %s" % dc
+        self.assertFalse(delayed_calls, "The reactor was dirty when tearing down the test")
+
     def tearDownCleanup(self):
         self.setUpCleanup()
 
@@ -164,13 +171,6 @@ class TestAsServer(AbstractServer):
             SQLiteCacheDB.delInstance()
 
         AbstractServer.tearDown(self, annotate=False)
-
-        delayed_calls = reactor.getDelayedCalls()
-        if delayed_calls:
-            print >> sys.stderr, "The reactor was dirty:"
-            for dc in delayed_calls:
-                print >> sys.stderr, ">     %s" % dc
-        self.assertFalse(delayed_calls, "The reactor was dirty when tearing down the test")
 
     def _shutdown_session(self, session):
         session_shutdown_start = time.time()

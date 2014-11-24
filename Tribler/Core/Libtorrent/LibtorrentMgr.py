@@ -2,12 +2,13 @@
 import os
 import time
 import binascii
+import logging
 import threading
 import libtorrent as lt
 
-import logging
 from copy import deepcopy
 from shutil import rmtree
+from collections import defaultdict
 
 from Tribler.Core.version import version_id
 from Tribler.Core.exceptions import DuplicateDownloadException
@@ -16,6 +17,9 @@ from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.simpledefs import NTFY_MAGNET_STARTED, NTFY_TORRENTS, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
+
+from Tribler.community.tunnel.community import TunnelCommunity
 
 DEBUG = False
 DHTSTATE_FILENAME = "ltdht.state"
@@ -74,6 +78,7 @@ class LibtorrentMgr(object):
         self.upnp_mappings = {}
 
         self._tunnel_community = None
+        self.connected_intro_points = defaultdict(list)
 
         # make tmp-dir to be used for dht collection
         self.metadata_tmpdir = os.path.join(self.trsession.get_state_dir(), METAINFO_TMPDIR)
@@ -170,11 +175,18 @@ class LibtorrentMgr(object):
 
         return self.ltsessions[hops]
 
-    def session_startup_progress(self, hops=0):
+    def tunnels_ready(self, download):
+        hops = download.get_hops()
         if hops > 0:
             if self.tunnel_community:
-                self.tunnel_community.circuits_needed[hops] = self.tunnel_community.settings.max_circuits
-                return min(1, len(self.tunnel_community.active_circuits(hops)) / float(self.tunnel_community.settings.min_circuits))
+                if download.get_def().is_anonymous():
+                    current_hops = self.tunnel_community.circuits_needed.get(hops, 0)
+                    self.tunnel_community.circuits_needed[hops] = max(1, current_hops)
+                    return bool(self.tunnel_community.active_data_circuits(hops))
+                else:
+                    self.tunnel_community.circuits_needed[hops] = self.tunnel_community.settings.max_circuits
+                    return min(1, len(self.tunnel_community.active_data_circuits(hops)) /
+                                  float(self.tunnel_community.settings.min_circuits))
             return 0
         return 1
 

@@ -2,7 +2,8 @@ import time
 
 from M2Crypto.EC import EC_pub
 
-from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING
+from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING, \
+                                     CIRCUIT_TYPE_DATA
 
 __author__ = 'chris'
 
@@ -10,7 +11,8 @@ __author__ = 'chris'
 class Circuit(object):
     """ Circuit data structure storing the id, state and hops """
 
-    def __init__(self, circuit_id, goal_hops=0, first_hop=None, proxy=None):
+    def __init__(self, circuit_id, goal_hops=0, first_hop=None, proxy=None,
+                 ctype=CIRCUIT_TYPE_DATA, callback=None, required_exit=None):
         """
         Instantiate a new Circuit data structure
         :type proxy: TunnelCommunity
@@ -37,6 +39,9 @@ class Circuit(object):
         self.bytes_up = self.bytes_down = 0
 
         self.proxy = proxy
+        self.ctype = ctype
+        self.callback = callback
+        self.required_exit = required_exit
 
     @property
     def hops(self):
@@ -152,3 +157,24 @@ class RelayRoute(object):
         self.creation_time = time.time()
         self.last_incoming = time.time()
         self.bytes_up = self.bytes_down = 0
+
+
+class IntroductionPoint(object):
+
+    def __init__(self, circuit, info_hash, service_key, serivce_key_public_bin):
+        self.circuit = circuit
+        self.info_hash = info_hash
+        self.service_key = service_key
+        self.service_key_public_bin = serivce_key_public_bin
+
+
+class RendezvousPoint(object):
+
+    def __init__(self, circuit, info_hash, cookie, service_key, intro_point, finished_callback):
+        self.circuit = circuit
+        self.info_hash = info_hash
+        self.cookie = cookie
+        self.service_key = service_key
+        self.intro_point = intro_point
+        self.rendezvous_point = None
+        self.finished_callback = finished_callback

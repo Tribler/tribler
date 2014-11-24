@@ -1,10 +1,10 @@
 import logging
-from Tribler.community.tunnel.Socks5 import conversion
 
 from twisted.internet import reactor
-from twisted.internet.protocol import Protocol, DatagramProtocol, connectionDone, \
-    Factory
-from Tribler.community.tunnel import CIRCUIT_STATE_READY
+from twisted.internet.protocol import Protocol, DatagramProtocol, connectionDone, Factory
+
+from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP
+from Tribler.community.tunnel.Socks5 import conversion
 
 
 class ConnectionState(object):
@@ -227,7 +227,7 @@ class Socks5Connection(Protocol):
 
     def select(self, destination):
         if not destination in self.destinations:
-            selected_circuit = self.selection_strategy.select(self.hops)
+            selected_circuit = self.selection_strategy.select(destination, self.hops)
             if not selected_circuit:
                 return None
 
@@ -252,8 +252,8 @@ class Socks5Connection(Protocol):
 
         return affected_destinations
 
-    def on_incoming_from_tunnel(self, community, circuit, origin, data):
-        if circuit in self.destinations.values():
+    def on_incoming_from_tunnel(self, community, circuit, origin, data, force=False):
+        if circuit in self.destinations.values() or force:
             self.destinations[origin] = circuit
 
             if self._udp_socket:
@@ -319,6 +319,9 @@ class Socks5Server(object):
 
         return affected_destinations
 
-    def on_incoming_from_tunnel(self, community, circuit, origin, data):
-        if not any(session.on_incoming_from_tunnel(community, circuit, origin, data) for session in self.sessions):
+    def on_incoming_from_tunnel(self, community, circuit, origin, data, force=False):
+        if circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
+            origin = (community.circuit_id_to_ip(circuit.circuit_id), 1024)
+
+        if not any([session.on_incoming_from_tunnel(community, circuit, origin, data, force) for session in self.sessions]):
             self._logger.error("No session accepted this data from %s:%d", *origin)
