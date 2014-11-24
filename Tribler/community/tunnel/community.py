@@ -1557,7 +1557,7 @@ class TunnelCommunity(Community):
             def cb(info_hash, peers, source):
                 self._logger.error("TunnelCommunity: announced %s to the DHT", info_hash.encode('hex'))
 
-            port = self.trsession.get_swift_tunnel_listen_port()
+            port = self.trsession.get_dispersy_port()
             self.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb, bt_port=port)
         else:
             self._logger.error("TunnelCommunity: need a Tribler session to announce to the DHT")

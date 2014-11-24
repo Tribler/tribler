@@ -173,7 +173,7 @@ class TestTunnelCommunity(TestGuiAsServer):
                 def cb(info_hash, peers, source):
                     print >> sys.stderr, "announced %s to the DHT" % info_hash.encode('hex')
                     dht.set()
-                port = community.trsession.get_swift_tunnel_listen_port()
+                port = community.trsession.get_dispersy_port()
                 community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb, bt_port=port)
             for community in tunnel_communities:
                 community.dht_announce = lambda ih, com = community: dht_announce(ih, com)
