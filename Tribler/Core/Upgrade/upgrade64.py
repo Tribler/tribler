@@ -9,10 +9,10 @@
 # Created: Thu Nov  6 18:13:34 2014 (+0100)
 
 import logging
-import md5
 import os
 from binascii import hexlify
 from shutil import rmtree, move
+from sqlite3 import Connection
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
@@ -211,6 +211,9 @@ CREATE TABLE IF NOT EXISTS MetadataData (
 );
 """)
 
+        # cleanup all SearchCommunity and MetadataCommunity data in dispersy database
+        self._update_dispersy()
+
         # update database version
         self.db.write_version(23)
 
@@ -274,7 +277,7 @@ CREATE TABLE IF NOT EXISTS MetadataData (
 
     def _delete_swift_reseeds(self):
         """
-        Delete the reseeds dir, not used anymore.
+        Deletes the reseeds dir, not used anymore.
         """
         reseeds_path = os.path.join(self.torrent_collecting_dir, u"swift_reseeds")
         if os.path.exists(reseeds_path):
@@ -285,7 +288,7 @@ CREATE TABLE IF NOT EXISTS MetadataData (
 
     def _delete_swift_files(self):
         """
-        Delete all partial swift downloads, also clean up obsolete .mhash and .mbinmap files.
+        Deletes all partial swift downloads, also clean up obsolete .mhash and .mbinmap files.
         """
         def update_status():
             progress = 1.0
@@ -308,7 +311,7 @@ CREATE TABLE IF NOT EXISTS MetadataData (
 
     def _rename_torrent_files(self):
         """
-        Rename all the torrent files to INFOHASH.torrent and delete unparseable ones.
+        Renames all the torrent files to INFOHASH.torrent and delete unparseable ones.
         """
         def update_status():
             progress = 1.0
@@ -325,7 +328,7 @@ CREATE TABLE IF NOT EXISTS MetadataData (
                     os.rename(file_path, os.path.join(self.tmp_migration_dir, hexlify(tdef.infohash) + u".torrent"))
                     self.torrent_files_migrated += 1
                 except Exception as e:
-                    #self._logger.error(u"Torrent file %s is corrupted, dropping it: %s", file_path, str(e))
+                    self._logger.error(u"dropping corrupted torrent file %s: %s", file_path, str(e))
                     os.unlink(file_path)
                     self.torrent_files_dropped += 1
                 self.total_torrent_files_processed += 1
@@ -336,10 +339,42 @@ CREATE TABLE IF NOT EXISTS MetadataData (
 
     def _delete_all_directories(self):
         """
-        Delets all directories in the torrent collecting directory.
+        Deletes all directories in the torrent collecting directory.
         """
         self.status_update_func(u"Deleting all directories in torrent collecting directory...")
         for root, dirs, files in os.walk(self.torrent_collecting_dir):
             for d in dirs:
                 dir_path = os.path.join(root, d)
                 rmtree(dir_path, ignore_errors=True)
+
+    def _update_dispersy(self):
+        """
+        Cleans up all SearchCommunity and MetadataCommunity stuff in dispersy database.
+        """
+        db_path = os.path.join(self.session.get_state_dir(), u"sqlite", u"dispersy.db")
+        if not os.path.isfile(db_path):
+            return
+
+        communities_to_delete = (u"SearchCommunity", u"MetadataCommunity")
+
+        connection = Connection(db_path)
+        cursor = connection.cursor()
+
+        data_updated = False
+        for community in communities_to_delete:
+            try:
+                result = list(cursor.execute(u"SELECT id FROM community WHERE classification == ?", (community,)))
+
+                for community_id, in result:
+                    self._logger.info(u"deleting all data for community %s...", community_id)
+                    cursor.execute(u"DELETE FROM community WHERE id == ?", (community_id,))
+                    cursor.execute(u"DELETE FROM meta_message WHERE community == ?", (community_id,))
+                    cursor.execute(u"DELETE FROM sync WHERE community == ?", (community_id,))
+                    data_updated = True
+            except StopIteration:
+                continue
+
+        if data_updated:
+            connection.commit()
+        cursor.close()
+        connection.close()
