@@ -5,17 +5,16 @@ from tarfile import TarFile
 from collections import deque
 from binascii import hexlify
 from time import time
-
 from twisted.internet import reactor
 
 from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import call_on_reactor_thread
-
 from .session import Session, DEFAULT_BLOCK_SIZE, DEFAULT_TIMEOUT
 from .packet import (encode_packet, decode_packet, OPCODE_RRQ, OPCODE_WRQ, OPCODE_ACK, OPCODE_DATA, OPCODE_OACK,
                      OPCODE_ERROR, ERROR_DICT)
 from .exception import InvalidPacketException
+
 
 MAX_INT32 = 2 ** 16 - 1
 

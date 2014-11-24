@@ -9,7 +9,6 @@ import sys
 import time as timemod
 from threading import Event, Thread, enumerate as enumerate_threads, currentThread
 from traceback import print_exc
-
 from twisted.internet import reactor
 
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
@@ -168,7 +167,7 @@ class TriblerLaunchMany(Thread):
                 self.dispersy = Dispersy(endpoint, working_directory, crypto=ElgamalCrypto())
 
                 # register TFTP service
-                from Tribler.Core.Service.TFTP.handler import TftpHandler
+                from Tribler.Core.TFTP.handler import TftpHandler
                 self.tftp_handler = TftpHandler(self.session, self.session.get_torrent_collecting_dir(), endpoint,
                                                 "fffffffd".decode('hex'))
                 self.tftp_handler.initialize()
