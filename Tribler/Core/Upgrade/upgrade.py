@@ -4,7 +4,6 @@ import os
 from Tribler.dispersy.util import call_on_reactor_thread
 from Tribler.Core.CacheDB.db_versions import LOWEST_SUPPORTED_DB_VERSION, LATEST_DB_VERSION
 from Tribler.Core.Upgrade.upgrade64 import TorrentMigrator64
-from Tribler.dispersy.util import call_on_reactor_thread
 
 
 # Database versions:
@@ -68,12 +67,18 @@ class TriblerUpgrader(object):
                     self.failed = False
                 else:
                     if self.db.version < LOWEST_SUPPORTED_DB_VERSION:
-                        self.update_status(u"Data is too old (%s)" % self.db.version)
+                        msg = u"Database is too old %s < %s" % (self.db.version, LOWEST_SUPPORTED_DB_VERSION)
+                        self.update_status(msg)
+                        raise VersionNoLongerSupportedError(msg)
                     else:
-                        self.update_status(u"Database upgrade failed (%s -> %s)" % (self.db.version, LATEST_DB_VERSION))
+                        msg = u"Database upgrade failed: %s -> %s" % (self.db.version, LATEST_DB_VERSION)
+                        self.update_status(msg)
+                        raise DatabaseUpgradeError(msg)
 
             except Exception as e:
+                self.failed = True
                 self._logger.error(u"failed to upgrade: %s", e)
+                raise
 
         if self.failed:
             self._stash_database_away()
