@@ -498,9 +498,9 @@ class TunnelCommunity(Community):
         # Remove exit sockets that are too old / have transferred too many bytes.
         for circuit_id, exit_socket in self.exit_sockets.items():
             if exit_socket.creation_time < time.time() - self.settings.max_time:
-                self.remove_exit_socket(circuit_id, 'too old', destroy=True)
+                self.remove_exit_socket(circuit_id, 'too old')
             elif exit_socket.bytes_up + exit_socket.bytes_down > self.settings.max_traffic:
-                self.remove_exit_socket(circuit_id, 'traffic limit exceeded', destroy=True)
+                self.remove_exit_socket(circuit_id, 'traffic limit exceeded')
 
     def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None, max_retries=0, required_exit=None):
         retry_lambda = first_hop = None

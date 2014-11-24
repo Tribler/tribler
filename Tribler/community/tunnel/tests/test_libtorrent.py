@@ -119,7 +119,7 @@ class LibtorrentTest(object):
                         download.add_peer(peer)
                     download.set_state_callback(state_call(), delay=4)
 
-            self.tribler_session.lm.rawserver.add_task(check_fallback_download, delay=30)
+            self.tribler_session.lm.rawserver.add_task(check_fallback_download, delay=40)
 
         except:
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
