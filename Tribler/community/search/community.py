@@ -350,14 +350,15 @@ class SearchCommunity(Community):
                 for dbresult in dbresults:
                     channel_details = dbresult[-10:]
 
-                    dbresult = list(dbresult[:10])
-                    dbresult[2] = long(dbresult[2])
-                    dbresult[3] = int(dbresult[3])
-                    dbresult[4] = [self._misc_db.categoryId2Name(dbresult[4]), ]
-                    dbresult[5] = long(dbresult[5])
-                    dbresult[6] = int(dbresult[6] or 0)
-                    dbresult[7] = int(dbresult[7] or 0)
+                    dbresult = list(dbresult[:8])
+                    dbresult[2] = long(dbresult[2])  # length
+                    dbresult[3] = int(dbresult[3])  # num_files
+                    dbresult[4] = [self._misc_db.categoryId2Name(dbresult[4]), ]  # category_keys
+                    dbresult[5] = long(dbresult[5])  # creation_date
+                    dbresult[6] = int(dbresult[6] or 0)  # num_seeders
+                    dbresult[7] = int(dbresult[7] or 0)  # num_leechers
 
+                    # cid
                     if channel_details[1]:
                         channel_details[1] = str(channel_details[1])
                     dbresult.append(channel_details[1])

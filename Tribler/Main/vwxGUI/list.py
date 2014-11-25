@@ -1641,16 +1641,13 @@ class LibraryList(SizeList):
                    {'name': 'Connections', 'width': '15em', 'autoRefresh': False},
                    {'name': 'Ratio', 'width': '15em', 'fmt': self._format_ratio, 'autoRefresh': False},
                    {'name': 'Time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
-                   {'name': 'Swift ratio', 'width': '15em', 'fmt': self._format_ratio, 'autoRefresh': False},
-                   {'name': 'Swift time seeding', 'width': '30em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
                    {'name': 'Anonymous', 'width': '15em', 'autoRefresh': False}]
 
-        columns = self.guiutility.SetColumnInfo(LibraryListItem, columns, hide_defaults=[2, 7, 8, 9, 10])
+        columns = self.guiutility.SetColumnInfo(LibraryListItem, columns, hide_defaults=[2, 7, 8])
         ColumnsManager.getInstance().setColumns(LibraryListItem, columns)
 
         gui_image_manager = GuiImageManager.getInstance()
 
-        self.hasSwift = gui_image_manager.getImage(u"swift.png")
         self.hasTorrent = gui_image_manager.getImage(u"bittorrent.png")
         SizeList.__init__(self, None, LIST_GREY, [0, 0], False, parent=parent)
 
@@ -1675,10 +1672,6 @@ class LibraryList(SizeList):
 
     def _format_ratio(self, value):
         return "%.2f" % value
-
-    def _swift_icon(self, item):
-        # Always return icon, toggle icon from RefreshItems
-        return self.hasSwift, None, "Using Swift for this download", None, False
 
     def _torrent_icon(self, item):
         # Always return icon, toggle icon from RefreshItems
@@ -1820,24 +1813,7 @@ class LibraryList(SizeList):
 
                 tooltip = ''
                 if ds:
-                    torrent_ds, swift_ds = item.original_data.dslist
-
-                    # Set Swift seeding time and ratio
-                    if swift_ds and swift_ds.get_seeding_statistics():
-                        seeding_stats = swift_ds.get_seeding_statistics()
-                        dl = seeding_stats['total_down']
-                        ul = seeding_stats['total_up']
-
-                        if dl == 0:
-                            if ul != 0:
-                                ratio = sys.maxsize
-                            else:
-                                ratio = 0
-                        else:
-                            ratio = 1.0 * ul / dl
-
-                        item.RefreshColumn(9, ratio)
-                        item.RefreshColumn(10, seeding_stats['time_seeding'])
+                    torrent_ds = item.original_data.dslist
 
                     # Set torrent seeding time and ratio
                     if torrent_ds and torrent_ds.get_seeding_statistics():
@@ -1885,7 +1861,7 @@ class LibraryList(SizeList):
                 item.RefreshColumn(6, seeds + peers)
                 item.SetToolTipColumn(6, "Connected to %d Seeders and %d Leechers." % (seeds, peers) if ds else '')
 
-                item.RefreshColumn(11, 'Yes' if ds and ds.get_download() and ds.get_download().get_anon_mode() else 'No')
+                item.RefreshColumn(9, 'Yes' if ds and ds.get_download() and ds.get_download().get_anon_mode() else 'No')
 
                 # For updating torrent icons
                 torrent_ds, swift_ds = item.original_data.dslist

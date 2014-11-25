@@ -893,7 +893,7 @@ class LibraryListItem(TorrentListItem):
         pass
 
     def GetIcons(self):
-        return [self.parent_list.parent_list._torrent_icon(self), self.parent_list.parent_list._swift_icon(self)]
+        return [self.parent_list.parent_list._torrent_icon(self)]
 
     def GetContextMenu(self):
         menu = TorrentListItem.GetContextMenu(self)
@@ -902,6 +902,7 @@ class LibraryListItem(TorrentListItem):
 
     def OnDClick(self, event):
         pass
+
 
 class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
 

@@ -700,9 +700,10 @@ class ChannelCommunity(Community):
                 if message_name == u"torrent":
                     channeltorrent_id = channeltorrentDict[modifying_dispersy_id]
 
-                    latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
-                    if not latest or latest.packet_id == dispersy_id:
-                        self._channelcast_db.on_torrent_modification_from_dispersy(channeltorrent_id, modification_type, modification_value)
+                    if channeltorrent_id:
+                        latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
+                        if not latest or latest.packet_id == dispersy_id:
+                            self._channelcast_db.on_torrent_modification_from_dispersy(channeltorrent_id, modification_type, modification_value)
 
                 elif message_name == u"playlist":
                     playlist_id = playlistDict[modifying_dispersy_id]

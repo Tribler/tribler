@@ -56,8 +56,6 @@ class Utility(object):
                             # WebUI
                             'use_webui': 0,
                             'webui_port': 8080,
-                            # Swift reseed
-                            'swiftreseed': 1,
                             'showsaveas': 1,
                             'i2ilistenport': 57891,
                             'mintray': 2 if sys.platform == 'win32' else 0,

@@ -10,13 +10,12 @@ import logging
 from traceback import print_exc
 from time import time
 
-from Tribler.Main.vwxGUI import warnWxThread, LIST_SELECTED, LIST_EXPANDED, \
-    LIST_DARKBLUE, LIST_DESELECTED, DEFAULT_BACKGROUND, LIST_ITEM_BATCH_SIZE, \
-    LIST_AUTOSIZEHEADER, LIST_HIGHTLIGHT, LIST_RATE_LIMIT, LIST_ITEM_MAX_SIZE
+from Tribler.Main.vwxGUI import (warnWxThread, LIST_SELECTED, LIST_EXPANDED, LIST_DARKBLUE, LIST_DESELECTED,
+                                 DEFAULT_BACKGROUND, LIST_ITEM_BATCH_SIZE, LIST_AUTOSIZEHEADER, LIST_HIGHTLIGHT,
+                                 LIST_RATE_LIMIT, LIST_ITEM_MAX_SIZE)
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.vwxGUI.widgets import BetterText as StaticText, \
-    _set_font, ActionButton
+from Tribler.Main.vwxGUI.widgets import BetterText as StaticText, _set_font, ActionButton
 
 
 class ListItem(wx.Panel):

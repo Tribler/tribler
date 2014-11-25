@@ -673,7 +673,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         if not torrentdef.is_multifile_torrent():
             swarmname, _ = os.path.splitext(swarmname)
-        self._indexTorrent(torrent_id, swarmname, torrentdef.get_files_as_unicode(), source in ['BC', 'SWIFT', 'DISP_SC'])
+        self._indexTorrent(torrent_id, swarmname, torrentdef.get_files_as_unicode(), source in ['BC', 'DISP_SC'])
 
         self._addTorrentTracker(torrent_id, torrentdef, extra_info)
         return torrent_id
@@ -1351,9 +1351,9 @@ class TorrentDBHandler(BasicDBHandler):
                 channels.add(result[-2])
 
         if len(channels) > 0:
-            # results are tuples of (id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam)
+            # results are tuples of (id, str(dispersy_cid), name, description, nr_torrents, nr_favorites, nr_spam, my_vote, modified, id == self._channel_id)
             for channel in self.channelcast_db.getChannels(channels):
-                if channel[3] != '-1':
+                if channel[1] != '-1':
                     channel_dict[channel[0]] = channel
 
         t3 = time()
