@@ -2,14 +2,11 @@
 # see LICENSE.txt for license information
 import os
 import sys
-import logging
 from random import gauss
 
 from Tribler.Core.version import version_id
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-
-logger = logging.getLogger(__name__)
 
 
 #

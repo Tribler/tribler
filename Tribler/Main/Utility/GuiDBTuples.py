@@ -16,9 +16,6 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.Core.osutils import is_android
 
 
-logger = logging.getLogger(__name__)
-
-
 # Niels: from http://wiki.python.org/moin/PythonDecoratorLibrary#Memoize
 
 
