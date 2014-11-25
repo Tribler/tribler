@@ -1353,22 +1353,34 @@ class TunnelCommunity(Community):
 
     def check_intro1(self, messages):
         for message in messages:
-            # TODO: check if we know this infohash?
+            service_key = message.payload.service_key
+            if service_key not in self.intro_point_for:
+                yield DropMessage(message, "intro1 has unknown service_key")
+                continue
             yield message
 
     def check_intro2(self, messages):
         for message in messages:
-            # TODO: check if we got the message from a circuit with type CIRCUIT_TYPE_IP
+            circuit = self.circuits.get(message.payload.circuit_id, None)
+            if not circuit or circuit.ctype != CIRCUIT_TYPE_IP:
+                yield DropMessage(message, "got intro2 with invalid circuit_id")
+                continue
             yield message
 
     def check_rendezvous1(self, messages):
         for message in messages:
-            # TODO: check if we know this rendezvous cookie
+            cookie = message.payload.cookie
+            if cookie not in self.rendezvous_point_for:
+                yield DropMessage(message, "rendezvous1 has unknown cookie")
+                continue
             yield message
 
     def check_rendezvous2(self, messages):
         for message in messages:
-            # TODO: check if we got the message from a circuit with type CIRCUIT_TYPE_RP
+            circuit = self.circuits.get(message.payload.circuit_id, None)
+            if not circuit or circuit.ctype != CIRCUIT_TYPE_RP:
+                yield DropMessage(message, "got rendezvous2 with invalid circuit_id")
+                continue
             yield message
 
     def on_establish_intro(self, messages):
@@ -1449,20 +1461,15 @@ class TunnelCommunity(Community):
         for message in messages:
             circuit_id = message.payload.circuit_id
             service_key = message.payload.service_key
-            if service_key in self.intro_point_for:
-                relay_circuit_id, _, relay_candidate = self.intro_point_for[service_key]
-                self._logger.error("TunnelCommunity: got intro1 with rendezvous cookie %s via tunnel %s from %s",
-                                   self._readable_binary_string(message.payload.cookie), circuit_id, message.candidate)
-                self.remove_exit_socket(circuit_id, 'intro1 received')
+            relay_circuit_id, _, relay_candidate = self.intro_point_for[service_key]
+            self._logger.error("TunnelCommunity: got intro1 with rendezvous cookie %s via tunnel %s from %s",
+                               self._readable_binary_string(message.payload.cookie), circuit_id, message.candidate)
+            self.remove_exit_socket(circuit_id, 'intro1 received')
 
-                payload = (relay_circuit_id, message.payload.identifier, message.payload.key,
-                           message.payload.cookie, message.payload.rendezvous_point)
-                self.send_cell([relay_candidate], u"intro2", payload)
-                self._logger.error("TunnelCommunity: relayed intro1 as an intro2 message into tunnel %s",
-                                   relay_circuit_id)
-            else:
-                self._logger.error("TunnelCommunity: got intro1 from %s with service_key %s but no associated " +
-                                   "socket found", message.candidate, self._readable_binary_string(service_key))
+            payload = (relay_circuit_id, message.payload.identifier, message.payload.key,
+                       message.payload.cookie, message.payload.rendezvous_point)
+            self.send_cell([relay_candidate], u"intro2", payload)
+            self._logger.error("TunnelCommunity: relayed intro1 as an intro2 message into tunnel %s", relay_circuit_id)
 
     def on_intro2(self, messages):
         for message in messages:
@@ -1479,24 +1486,19 @@ class TunnelCommunity(Community):
         for message in messages:
             circuit_id = message.payload.circuit_id
             cookie = message.payload.cookie
-            if cookie in self.rendezvous_point_for:
-                relay_circuit_id, relay_candidate = self.rendezvous_point_for[cookie]
-                self._logger.error("TunnelCommunity: got rendezvous1 with valid rendezvous cookie %s via tunnel %s " +
-                                   "from %s", self._readable_binary_string(cookie), circuit_id, message.candidate)
+            relay_circuit_id, relay_candidate = self.rendezvous_point_for[cookie]
+            self._logger.error("TunnelCommunity: got rendezvous1 with valid rendezvous cookie %s via tunnel %s " +
+                               "from %s", self._readable_binary_string(cookie), circuit_id, message.candidate)
 
-                self.remove_exit_socket(circuit_id, 'rendezvous1 received')
+            self.remove_exit_socket(circuit_id, 'rendezvous1 received')
 
-                payload = (relay_circuit_id, message.payload.identifier, message.payload.key)
-                self.send_cell([relay_candidate], u"rendezvous2", payload)
-                self._logger.error("TunnelCommunity: relayed rendezvous1 as rendezvous2 into %s", relay_circuit_id)
+            payload = (relay_circuit_id, message.payload.identifier, message.payload.key)
+            self.send_cell([relay_candidate], u"rendezvous2", payload)
+            self._logger.error("TunnelCommunity: relayed rendezvous1 as rendezvous2 into %s", relay_circuit_id)
 
-                self.forward_from_to[circuit_id] = RelayRoute(relay_circuit_id, relay_candidate.sock_addr)
-                self.forward_from_to[relay_circuit_id] = RelayRoute(circuit_id, message.candidate.sock_addr)
-                self._logger.error("TunnelCommunity: connected circuits %s and %s", circuit_id, relay_circuit_id)
-
-            else:
-                self._logger.error("TunnelCommunity: got rendezvous1 from %s with rendezvous cookie %s but no " +
-                                   "associated socket found", message.candidate, self._readable_binary_string(cookie))
+            self.forward_from_to[circuit_id] = RelayRoute(relay_circuit_id, relay_candidate.sock_addr)
+            self.forward_from_to[relay_circuit_id] = RelayRoute(circuit_id, message.candidate.sock_addr)
+            self._logger.error("TunnelCommunity: connected circuits %s and %s", circuit_id, relay_circuit_id)
 
     def on_rendezvous2(self, messages):
         for message in messages:
