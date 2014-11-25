@@ -14,7 +14,7 @@ OPCODE_ERROR = 5
 OPCODE_OACK = 6
 
 # supported options
-OPTIONS = ("blksize", "timeout", "tsize")
+OPTIONS = ("blksize", "timeout", "tsize", "checksum")
 
 # error codes and messages
 ERROR_DICT = {
@@ -77,7 +77,7 @@ def _decode_options(packet, buff, start_idx):
 
         # blksize, timeout, and tsize are all integers
         try:
-            if k in OPTIONS:
+            if k in ("blksize", "timeout", "tsize"):
                 packet['options'][k] = int(v)
             else:
                 packet['options'][k] = v

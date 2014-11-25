@@ -11,7 +11,7 @@ DEFAULT_MAX_RETRIES = 2
 
 class Session(object):
 
-    def __init__(self, is_client, address, request, file_name, file_data, file_size, extra_info=None,
+    def __init__(self, is_client, address, request, file_name, file_data, file_size, checksum, extra_info=None,
                  block_size=DEFAULT_BLOCK_SIZE, timeout=DEFAULT_TIMEOUT,
                  success_callback=None, failure_callback=None,
                  max_retries=DEFAULT_MAX_RETRIES):
@@ -21,6 +21,7 @@ class Session(object):
         self.file_name = file_name
         self.file_data = file_data
         self.file_size = file_size
+        self.checksum = checksum
 
         self.extra_info = extra_info
 
