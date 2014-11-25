@@ -82,6 +82,7 @@ class RemoteTorrentHandler(TaskManager):
         for priority in (0, 1):
             self.magnet_requesters[priority] = MagnetRequester(self.session, self, priority)
             self.torrent_requesters[priority] = TftpRequester(self.session, self, priority)
+            self.torrent_message_requesters[priority] = TorrentMessageRequester(self.session, self, priority)
 
         self.metadata_requester = TftpRequester(self.session, self, 0)
 
@@ -184,9 +185,6 @@ class RemoteTorrentHandler(TaskManager):
         if user_callback:
             callback = lambda ih = infohash: user_callback(ih)
             self.torrent_callbacks.setdefault(infohash, set()).add(callback)
-
-        if priority not in self.torrent_message_requesters:
-            self.torrent_message_requesters[priority] = TorrentMessageRequester(self.session, self, priority)
 
         requester = self.torrent_message_requesters[priority]
 
@@ -582,7 +580,7 @@ class TftpRequester(Requester):
         infohash = extra_info.get(u"infohash")
         thumbnail_subpath = extra_info.get(u"thumbnail_subpath")
         key = (infohash, thumbnail_subpath) if thumbnail_subpath else infohash
-        assert key == self._current_active_request
+        assert key == self._current_active_request, "key = %s, self._current_active_request = %s" % (key, self._current_active_request)
 
         self._requests_succeeded += 1
         self._total_bandwidth += len(file_data)
@@ -612,7 +610,7 @@ class TftpRequester(Requester):
         infohash = extra_info.get(u"infohash")
         thumbnail_subpath = extra_info.get(u"thumbnail_subpath")
         key = (infohash, thumbnail_subpath) if thumbnail_subpath else infohash
-        assert key == self._current_active_request
+        assert key == self._current_active_request, "key = %s, self._current_active_request = %s" % (key, self._current_active_request)
 
         self._requests_failed += 1
 

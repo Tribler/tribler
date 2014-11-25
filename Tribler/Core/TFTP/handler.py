@@ -159,14 +159,13 @@ class TftpHandler(TaskManager):
         # a response
         else:
             if not self._session_queue:
-                self._logger.warn(u"empty session queue, dropping packet [%s] from %s:%s",
-                                  packet, ip, port)
+                self._logger.warn(u"empty session queue, dropping packet [%s] from %s:%s", packet, ip, port)
                 return
 
             session = self._session_queue[0]
             self._logger.debug(u"%s start processing packet: %s", session, packet)
             for s in self._session_queue:
-                self._logger.debug(u"!! current session queue: %s", s)
+                self._logger.debug(u"--- current session queue: %s", s)
             self._process_packet(session, packet)
 
             if not session.is_done and not session.is_failed:
