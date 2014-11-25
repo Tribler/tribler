@@ -45,6 +45,11 @@ class TriblerUpgrader(object):
                 db_migrator = DBUpgrader(self.session, self.db, status_update_func=self.update_status)
                 db_migrator.start_migrate()
 
+                # Import all the torrent files not in the database, we do this in
+                # case we have some unhandled torrent files left due to
+                # bugs/crashes, etc.
+                db_migrator.reimport_torrents()
+
                 self.failed = False
             except Exception as e:
                 self._logger.error(u"failed to upgrade: %s", e)

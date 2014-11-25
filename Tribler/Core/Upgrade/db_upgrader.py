@@ -10,8 +10,11 @@
 import logging
 import os
 from binascii import hexlify
+from glob import iglob
 from sqlite3 import Connection
 
+from Tribler.Category.Category import Category
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MiscDBHandler
 from Tribler.Core.CacheDB.db_versions import LOWEST_SUPPORTED_DB_VERSION, LATEST_DB_VERSION
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Core.TorrentDef import TorrentDef
@@ -315,3 +318,26 @@ CREATE TABLE IF NOT EXISTS MetadataData (
 
         # update database version
         self.db.write_version(23)
+
+    def reimport_torrents(self):
+        """Import all torrent files in the collected torrent dir, all the files already in the database will be ignored.
+        """
+        # TODO(emilon): That's a freakishly ugly hack.
+        torrent_db_handler = TorrentDBHandler(self.session)
+        torrent_db_handler.misc_db = MiscDBHandler(self.session)
+        torrent_db_handler.misc_db.initialize()
+        torrent_db_handler.category = Category.getInstance()
+
+        try:
+            for torrent_file in iglob(os.path.join(self.torrent_collecting_dir, "*.torrent")):
+                torrentdef = TorrentDef.load(torrent_file)
+                if torrentdef.is_finalized():
+                    infohash = torrentdef.get_infohash()
+                    if not torrent_db_handler.hasTorrent(infohash):
+                        self.status_update_func(u"Registering recovered torrent: %s" % hexlify(infohash))
+                        torrent_db_handler._addTorrentToDB(torrentdef, source="BC", extra_info={"filename":torrent_file})
+
+        finally:
+            torrent_db_handler.close()
+            Category.delInstance()
+            self.db.commit_now()
