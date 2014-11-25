@@ -1813,7 +1813,7 @@ class LibraryList(SizeList):
 
                 tooltip = ''
                 if ds:
-                    torrent_ds = item.original_data.dslist
+                    torrent_ds = item.original_data.dslist[0]
 
                     # Set torrent seeding time and ratio
                     if torrent_ds and torrent_ds.get_seeding_statistics():
@@ -1864,13 +1864,10 @@ class LibraryList(SizeList):
                 item.RefreshColumn(9, 'Yes' if ds and ds.get_download() and ds.get_download().get_anon_mode() else 'No')
 
                 # For updating torrent icons
-                torrent_ds, swift_ds = item.original_data.dslist
+                torrent_ds, = item.original_data.dslist
                 torrent_enabled = bool(torrent_ds) and torrent_ds.get_download().get_def().get_def_type() == 'torrent' and \
                                   torrent_ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]
-                swift_enabled = bool(swift_ds) and swift_ds.get_download().get_def().get_def_type() == 'swift' and \
-                                swift_ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]
                 item.icons[0].Show(torrent_enabled)
-                item.icons[1].Show(swift_enabled)
 
                 self.oldDS[infohash] = ds
 

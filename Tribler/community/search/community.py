@@ -396,7 +396,7 @@ class SearchCommunity(Community):
                     search_request.callback(search_request.keywords, message.payload.results, message.candidate)
 
                     # see if we need to join some channels
-                    channels = set([result[10] for result in message.payload.results if result[10]])
+                    channels = set([result[8] for result in message.payload.results if result[8]])
                     if channels:
                         channels = self._get_unknown_channels(channels)
 
