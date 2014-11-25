@@ -82,7 +82,7 @@ class DBUpgrader(object):
         if not os.path.isfile(db_path):
             return
 
-        communities_to_delete = (u"SearchCommunity", u"MetadataCommunity")
+        communities_to_delete = (u"SearchCommunity", u"MetadataCommunity", u"TunnelCommunity")
 
         connection = Connection(db_path)
         cursor = connection.cursor()
