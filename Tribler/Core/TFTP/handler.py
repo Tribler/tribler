@@ -153,6 +153,7 @@ class TftpHandler(TaskManager):
 
         # a new request
         if packet['opcode'] == OPCODE_RRQ:
+            self._logger.debug(u"start handling new request: %s", packet)
             self._handle_new_request(ip, port, packet)
 
         # a response
@@ -163,10 +164,15 @@ class TftpHandler(TaskManager):
                 return
 
             session = self._session_queue[0]
+            self._logger.debug(u"%s start processing packet: %s", session, packet)
+            for s in self._session_queue:
+                self._logger.debug(u"!! current session queue: %s", s)
             self._process_packet(session, packet)
 
             if not session.is_done and not session.is_failed:
                 return
+
+            self._logger.debug(u"session is_done = %s, is_failed = %s", session.is_done, session.is_failed)
 
             # remove this session from list and start the next one
             self._session_queue.popleft()

@@ -8,14 +8,12 @@ from threading import Event
 
 from Tribler.Test.test_as_server import TestAsServer, BASE_DIR
 from Tribler.dispersy.candidate import Candidate
+from Tribler.dispersy.util import call_on_reactor_thread
 
 
 class TestRemoteTorrentHandler(TestAsServer):
     """ Tests the download_torrent() method of TestRemoteTorrentHandler.
     """
-
-    def startTest(self, callback):
-        super(TestRemoteTorrentHandler, self).startTest(callback)
 
     def setUpPreSession(self):
         super(TestRemoteTorrentHandler, self).setUpPreSession()
@@ -25,31 +23,39 @@ class TestRemoteTorrentHandler(TestAsServer):
         self._shutdown_session(self.session2)
         self.session2 = None
         rmtree(self.session2_state_dir)
-        rmtree(self.session2_torrent_collecting_dir)
         super(TestRemoteTorrentHandler, self).tearDown()
 
     def test_torrentdownload(self):
         print >> sys.stderr, u"Start torrent download test..."
 
         def do_check_download(torrent_file=None):
-            des_file_path = os.path.join(self.session2.get_torrent_collecting_dir(), self.file_name)
+            des_file_path = os.path.join(self.session2.get_torrent_collecting_dir(), self.file_name1)
             self.assertTrue(os.path.exists(des_file_path) and os.path.isfile(des_file_path),
-                            u"Failed to download torrent file.")
+                            u"Failed to download torrent file 1.")
 
-            print >> sys.stderr, u"Torrent file downloaded successfully."
-            self.quit()
+            des_file_path = os.path.join(self.session2.get_torrent_collecting_dir(), self.file_name2)
+            self.assertTrue(os.path.exists(des_file_path) and os.path.isfile(des_file_path),
+                            u"Failed to download torrent file 2.")
+
+            print >> sys.stderr, u"Torrent files 1 and 2 downloaded successfully."
             self.download_event.set()
+            self.quit()
 
         def do_start_download():
             self.setup_torrentdownloader()
 
-            timeout = 10
+            @call_on_reactor_thread
+            def _start_download():
+                candidate = Candidate(("127.0.0.1", self.session1_port), False)
+                self.session2.lm.rtorrent_handler.download_torrent(candidate, self.infohash1)
+                self.session2.lm.rtorrent_handler.download_torrent(candidate, self.infohash2,
+                                                                   user_callback=do_check_download)
 
-            candidate = Candidate(("127.0.0.1", self.session1_port), False)
-            self.session2.lm.rtorrent_handler.download_torrent(candidate, self.infohash,
-                                                               user_callback=do_check_download)
-            self.CallConditional(timeout, self.download_event.is_set, do_check_download,
-                                 u"Failed to download torrent within %s seconds" % timeout)
+            _start_download()
+
+            timeout = 10
+            self.CallConditional(timeout, self.download_event.is_set,
+                                 do_check_download, u"Failed to download torrent within %s seconds" % timeout)
 
         self.startTest(do_start_download)
 
@@ -57,15 +63,25 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.download_event = Event()
         self.session1_port = self.session.get_dispersy_port()
 
-        infohash_str = "41aea20908363a80d44234e8fef07fab506cd3b4"
-        self.infohash = infohash_str.decode('hex')
-        self.file_name = u"%s.torrent" % infohash_str
+        infohash1_str = "41aea20908363a80d44234e8fef07fab506cd3b4"
+        infohash2_str = "45a647b1120ed9fe7f793e17585efb4b0efdf1a5"
+
+        self.infohash1 = infohash1_str.decode('hex')
+        self.file_name1 = u"%s.torrent" % infohash1_str
+
+        self.infohash2 = infohash2_str.decode('hex')
+        self.file_name2 = u"%s.torrent" % infohash2_str
 
         # copy file to the uploader's torrent_collecting_dir
-        src_file_path = os.path.join(BASE_DIR, u"data", self.file_name)
-        des_file_path = os.path.join(self.session.get_torrent_collecting_dir(), self.file_name)
+        src_file_path1 = os.path.join(BASE_DIR, u"data", self.file_name1)
+        des_file_path1 = os.path.join(self.session.get_torrent_collecting_dir(), self.file_name1)
+        copyfile(src_file_path1, des_file_path1)
+
+        src_file_path2 = os.path.join(BASE_DIR, u"data", self.file_name2)
+        des_file_path2 = os.path.join(self.session.get_torrent_collecting_dir(), self.file_name2)
+        copyfile(src_file_path2, des_file_path2)
+
         print >> sys.stderr, u"Uploader's torrent_collect_dir = %s" % self.session.get_torrent_collecting_dir()
-        copyfile(src_file_path, des_file_path)
 
         from Tribler.Core.Session import Session
 
@@ -76,10 +92,7 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.config2.set_torrent_collecting(True)
 
         self.session2_state_dir = self.session.get_state_dir() + u"2"
-        self.session2_torrent_collecting_dir = self.session.get_torrent_collecting_dir() + u"2"
-
         self.config2.set_state_dir(self.session2_state_dir)
-        self.config2.set_torrent_collecting_dir(self.session2_torrent_collecting_dir)
 
         self.session2 = Session(self.config2, ignore_singleton=True)
         upgrader = self.session2.prestart()
@@ -140,11 +153,8 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.config2.set_megacache(True)
         self.config2.set_torrent_collecting(True)
 
-        self.session2_state_dir = self.session.get_state_dir() + "2"
-        self.session2_torrent_collecting_dir = self.session.get_torrent_collecting_dir() + "2"
-
+        self.session2_state_dir = self.session.get_state_dir() + u"2"
         self.config2.set_state_dir(self.session2_state_dir)
-        self.config2.set_torrent_collecting_dir(self.session2_torrent_collecting_dir)
 
         self.session2 = Session(self.config2, ignore_singleton=True)
         upgrader = self.session2.prestart()
