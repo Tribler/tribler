@@ -1,7 +1,9 @@
+*.bak
 *.pyc
 *.pyo
 *~
 .ropeproject
+/*.log
 /.Tribler
 /.dir-locals.el
 /.gdb_history
