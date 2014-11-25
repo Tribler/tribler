@@ -69,7 +69,7 @@ class TorrentStateManager(object):
 
     def create_and_seed_metadata_thumbnail(self, thumbnail_file, torrent, modifications, thumb_timecodes=None):
         if not os.path.isfile(thumbnail_file):
-            self._logger.error(u"not a file: %s, %s", thumbnail_file)
+            self._logger.error(u"not a file: %s", thumbnail_file)
             return
 
         # validate the thumbnail file and save to torrent collecting directory

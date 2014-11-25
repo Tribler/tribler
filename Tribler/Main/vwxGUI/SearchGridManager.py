@@ -784,16 +784,15 @@ class TorrentManager(object):
 
         modifications = []
         for key, value in extraInfo.iteritems():
-            if key == 'thumbnail-tempdir':
-                continue
-            elif key == 'thumbnail-file-list':
+            if key == 'thumbnail-file':
                 continue
             modifications.append((key, value))
 
         # handle the downloaded thumbnails
-        if extraInfo['thumbnail-file-list']:
+        if extraInfo['thumbnail-file']:
             from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
-            result = TorrentStateManager.getInstance().create_and_seed_metadata_thumbnail(extraInfo['thumbnail-tempdir'][0], torrent, modifications)
+            TorrentStateManager.getInstance().create_and_seed_metadata_thumbnail(extraInfo['thumbnail-file'],
+                                                                                 torrent, modifications)
 
         return True
 

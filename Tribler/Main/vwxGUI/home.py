@@ -941,7 +941,7 @@ class ArtworkPanel(wx.Panel):
         torrents = delayedResult.get()
 
         for torrent in torrents:
-            thumb_path = os.path.join(self.utility.session.get_torrent_collecting_dir(), 'thumbs-%s' % binascii.hexlify(torrent.infohash))
+            thumb_path = os.path.join(self.utility.session.get_torrent_collecting_dir(), binascii.hexlify(torrent.infohash))
             if os.path.isdir(thumb_path):
                 if not self.guiutility.getFamilyFilter() or not self.IsXXX(torrent, thumb_path):
                     data.append((torrent.infohash, [torrent.name], torrent, ThumbnailListItemNoTorrent))

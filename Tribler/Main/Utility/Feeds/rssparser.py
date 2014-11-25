@@ -242,6 +242,8 @@ class RssParser(Thread):
                                 urls_already_seen.add(torrent_url)
                                 urls_already_seen.write()
 
+                                thumbnail_file = os.path.join(tempdir, image_list[0][1])
+
                                 def processCallbacks(key, torrent, extra_info):
                                     for callback in self.key_callbacks[key]:
                                         try:
@@ -250,10 +252,9 @@ class RssParser(Thread):
                                             self._logger.exception(u"Failed to process torrent callback.")
 
                                 extra_info = {'title': title,
-                                    'description': description,
-                                    'thumbnail-tempdir': tempdir,
-                                    'thumbnail-file-list': [image_path for image_url, image_path in image_list]}
-                                callback = lambda key = key, torrent=torrent, extra_info=extra_info: processCallbacks(key, torrent, extra_info)
+                                              'description': description,
+                                              'thumbnail-file': thumbnail_file}
+                                callback = lambda k = key, t=torrent, ei=extra_info: processCallbacks(k, t, ei)
                                 self.remote_th.save_torrent(torrent, callback)
 
                                 time.sleep(RSS_CHECK_FREQUENCY)
