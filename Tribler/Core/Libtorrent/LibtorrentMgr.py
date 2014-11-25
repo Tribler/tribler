@@ -52,7 +52,6 @@ class LibtorrentMgr(object):
 
         self.external_ip = None
 
-        self.torlock = NoDispersyRLock()
         self.torrents = {}
 
         self.metainfo_requests = {}
@@ -263,10 +262,9 @@ class LibtorrentMgr(object):
 
             handle = ltsession.add_torrent(encode_atp(atp))
             infohash = str(handle.info_hash())
-            with self.torlock:
-                if infohash in self.torrents:
-                    raise DuplicateDownloadException()
-                self.torrents[infohash] = (torrentdl, ltsession)
+            if infohash in self.torrents:
+                raise DuplicateDownloadException()
+            self.torrents[infohash] = (torrentdl, ltsession)
 
             self._logger.debug("LibtorrentMgr: added torrent %s", infohash)
 
@@ -276,13 +274,12 @@ class LibtorrentMgr(object):
         handle = torrentdl.handle
         if handle and handle.is_valid():
             infohash = str(handle.info_hash())
-            with self.torlock:
-                if infohash in self.torrents:
-                    self.torrents[infohash][1].remove_torrent(handle, int(removecontent))
-                    del self.torrents[infohash]
-                    self._logger.debug("LibtorrentMgr: remove torrent %s", infohash)
-                else:
-                    self._logger.debug("LibtorrentMgr: cannot remove torrent %s because it does not exists", infohash)
+            if infohash in self.torrents:
+                self.torrents[infohash][1].remove_torrent(handle, int(removecontent))
+                del self.torrents[infohash]
+                self._logger.debug("LibtorrentMgr: remove torrent %s", infohash)
+            else:
+                self._logger.debug("LibtorrentMgr: cannot remove torrent %s because it does not exists", infohash)
         else:
             self._logger.debug("LibtorrentMgr: cannot remove invalid torrent")
 
@@ -322,14 +319,13 @@ class LibtorrentMgr(object):
         if handle:
             if handle.is_valid():
                 infohash = str(handle.info_hash())
-                with self.torlock:
-                    if infohash in self.torrents:
-                        self.torrents[infohash][0].process_alert(alert, alert_type)
-                    elif infohash in self.metainfo_requests:
-                        if type(alert) == lt.metadata_received_alert:
-                            self.got_metainfo(infohash)
-                    else:
-                        self._logger.debug("LibtorrentMgr: could not find torrent %s", infohash)
+                if infohash in self.torrents:
+                    self.torrents[infohash][0].process_alert(alert, alert_type)
+                elif infohash in self.metainfo_requests:
+                    if type(alert) == lt.metadata_received_alert:
+                        self.got_metainfo(infohash)
+                else:
+                    self._logger.debug("LibtorrentMgr: could not find torrent %s", infohash)
             else:
                 self._logger.debug("LibtorrentMgr: alert for invalid torrent")
 
@@ -375,9 +371,8 @@ class LibtorrentMgr(object):
         infohash_bin = infohash_or_magnet if not magnet else parse_magnetlink(magnet)[1]
         infohash = binascii.hexlify(infohash_bin)
 
-        with self.torlock:
-            if infohash in self.torrents:
-                return
+        if infohash in self.torrents:
+            return
 
         with self.metainfo_lock:
             self._logger.debug('LibtorrentMgr: get_metainfo %s %s %s', infohash_or_magnet, callback, timeout)
