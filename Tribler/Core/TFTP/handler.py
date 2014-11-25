@@ -15,7 +15,7 @@ from Tribler.dispersy.util import call_on_reactor_thread
 from .session import Session, DEFAULT_BLOCK_SIZE, DEFAULT_TIMEOUT
 from .packet import (encode_packet, decode_packet, OPCODE_RRQ, OPCODE_WRQ, OPCODE_ACK, OPCODE_DATA, OPCODE_OACK,
                      OPCODE_ERROR, ERROR_DICT)
-from .exception import InvalidPacketException
+from .exception import InvalidPacketException, FileNotFound
 
 
 MAX_INT32 = 2 ** 16 - 1
@@ -218,11 +218,24 @@ class TftpHandler(TaskManager):
         timeout = packet['options']['timeout']
 
         # read the file/directory into memory
-        if file_name.startswith(DIR_PREFIX):
-            file_data, file_size = self._load_directory(ip, port, file_name)
-        else:
-            file_data, file_size = self._load_file(ip, port, file_name)
-        checksum = b64encode(sha1(file_data).digest())
+        try:
+            if file_name.startswith(DIR_PREFIX):
+                file_data, file_size = self._load_directory(ip, port, file_name)
+            else:
+                file_data, file_size = self._load_file(ip, port, file_name)
+            checksum = b64encode(sha1(file_data).digest())
+        except FileNotFound as e:
+            self._logger.error(u"[READ %s:%s] file/dir not found: %s", ip, port, e)
+            dummy_session = Session(False, (ip, port), packet['opcode'], file_name, None, None, None,
+                                    block_size=block_size, timeout=timeout)
+            self._handle_error(dummy_session, 1)
+            return
+        except Exception as e:
+            self._logger.error(u"[READ %s:%s] failed to load file/dir: %s", ip, port, e)
+            dummy_session = Session(False, (ip, port), packet['opcode'], file_name, None, None, None,
+                                    block_size=block_size, timeout=timeout)
+            self._handle_error(dummy_session, 2)
+            return
 
         # create a session object
         session = Session(False, (ip, port), packet['opcode'], file_name, file_data, file_size, checksum,
@@ -250,14 +263,10 @@ class TftpHandler(TaskManager):
         # check if file exists
         if not os.path.exists(file_path):
             msg = u"file doesn't exist: %s" % file_path
-            self._logger.warn(u"[READ %s:%s] %s", ip, port, msg)
-            # TODO(lipu): send back error
-            raise OSError(msg)
+            raise FileNotFound(msg)
         elif not os.path.isfile(file_path):
             msg = u"not a file: %s" % file_path
-            self._logger.warn(u"[READ %s:%s] %s", ip, port, msg)
-            # TODO(lipu): send back error
-            raise OSError(msg)
+            raise FileNotFound(msg)
 
         # read the file into memory
         f = None
@@ -265,9 +274,8 @@ class TftpHandler(TaskManager):
             f = open(file_path, 'rb')
             file_data = f.read()
         except (OSError, IOError) as e:
-            self._logger.error(u"[READ %s:%s] failed to read file [%s]: %s", ip, port, file_path, e)
-            # TODO(lipu): send back error
-            raise e
+            msg = u"failed to read file [%s]: %s" % (file_path, e)
+            raise Exception(msg)
         finally:
             if f is not None:
                 f.close()
@@ -284,14 +292,10 @@ class TftpHandler(TaskManager):
         # check if file exists
         if not os.path.exists(dir_path):
             msg = u"directory doesn't exist: %s" % dir_path
-            self._logger.warn(u"[READ %s:%s] %s", ip, port, msg)
-            # TODO(lipu): send back error
-            raise OSError(msg)
+            raise FileNotFound(msg)
         elif not os.path.isdir(dir_path):
             msg = u"not a directory: %s" % dir_path
-            self._logger.warn(u"[READ %s:%s] %s", ip, port, msg)
-            # TODO(lipu): send back error
-            raise OSError(msg)
+            raise FileNotFound(msg)
 
         # create a temporary gzip file and compress the whole directory
         tmpfile_no, tmpfile_path = mkstemp(suffix=u"_tribler_tftpdir", prefix=u"tmp_")

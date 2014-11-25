@@ -14,3 +14,9 @@ class InvalidOptionException(Exception):
     """ Indicates an invalid option.
     """
     pass
+
+
+class FileNotFound(OSError):
+    """ Indicates that a file is not found.
+    """
+    pass
