@@ -248,38 +248,39 @@ CREATE TABLE IF NOT EXISTS _tmp_Torrent (
 """)
 
                 # migrate Torrent table
-                keys = (u"torrent_id", u"infohash", u"name", u"torrent_file_name", u"length", u"creation_date", u"num_files",
-                        u"thumbnail", u"insert_time", u"secret", u"relevance", u"source_id", u"category_id", u"status_id",
-                        u"num_seeders", u"num_leechers", u"comment", u"dispersy_id", u"last_tracker_check",
-                        u"tracker_check_retries", u"next_tracker_check")
-                keys_str = u", ".join(keys)
-                results = self.db.execute(u"SELECT %s FROM Torrent;" % keys_str)
+                keys = (u"torrent_id", u"infohash", u"name", u"torrent_file_name", u"length", u"creation_date",
+                        u"num_files", u"thumbnail", u"insert_time", u"secret", u"relevance", u"source_id",
+                        u"category_id", u"status_id", u"num_seeders", u"num_leechers", u"comment", u"dispersy_id",
+                        u"last_tracker_check", u"tracker_check_retries", u"next_tracker_check")
 
                 keys_str = u", ".join(keys)
                 values_str = u"?," * len(keys)
                 insert_stmt = u"INSERT INTO _tmp_Torrent(%s) VALUES(%s)" % (keys_str, values_str[:-1])
                 current_count = 0
+
+                results = self.db.execute(u"SELECT %s FROM Torrent;" % keys_str)
+                new_torrents = []
                 for torrent in results:
                     torrent_id, infohash, name, torrent_file_name = torrent[:4]
 
                     filepath = os.path.join(self.torrent_collecting_dir, hexlify(str2bin(infohash)) + u".torrent")
 
-                    # check if torrent matches
+                    # Check if we have the actual .torrent
                     torrent_file_name = None
                     if os.path.exists(filepath):
+                        torrent_file_name = filepath
                         tdef = TorrentDef.load(filepath)
-                        if tdef.get_name_as_unicode() == name:
-                            torrent_file_name = filepath
+                        # Use the name on the .torrent file instead of the one stored in the database.
+                        name = tdef.get_name_as_unicode() or name
 
-                    new_torrent = [torrent_id, infohash, name, torrent_file_name]
-                    for d in torrent[4:]:
-                        new_torrent.append(d)
-                    new_torrent = tuple(new_torrent)
-
-                    self.db.execute(insert_stmt, new_torrent)
+                    new_torrents.append((torrent_id, infohash, name, torrent_file_name) + torrent[4:])
 
                     current_count += 1
                     self.status_update_func(u"Upgrading database, %s records upgraded..." % current_count)
+
+                self.status_update_func(u"All torrent entries processed, inserting in database...")
+                self.db.executemany(insert_stmt, new_torrents)
+                self.status_update_func(u"All updated torrent entries inserted.")
 
                 self.db.execute(u"""
 DROP TABLE IF EXISTS Torrent;
