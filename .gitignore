@@ -15,14 +15,9 @@
 /Tribler/Test/test_.Tribler/
 /Tribler/Test/test_.Tribler2
 /Tribler/Test/test_TriblerDownloads2
-/Tribler/Test/video.avi.mbinmap
-/Tribler/Test/video.avi.mhash
 /bootstraptribler.txt
 /core
 /debian/files
-/debian/tribler-swift.debhelper.log
-/debian/tribler-swift.substvars
-/debian/tribler-swift/
 /debian/tribler.debhelper.log
 /debian/tribler.postinst.debhelper
 /debian/tribler.postrm.debhelper
@@ -30,7 +25,5 @@
 /debian/tribler.substvars
 /debian/tribler/
 /output
-/swift
-/swift.exe
 \#*\#
 flycheck_*
