@@ -207,13 +207,6 @@ class ABCApp():
                 version_info['first_run'] = int(time())
                 version_info['version_id'] = version_id
                 self.utility.write_config('version_info', version_info)
-                # Ensure that we redo the anonymous download test
-                anon_file = os.path.join(s.get_state_dir(), 'anon_test.txt')
-                if os.path.exists(anon_file):
-                    try:
-                        os.remove(anon_file)
-                    except:
-                        self._logger.error('Failed to remove %s', anon_file)
 
             self.splash.tick('Starting session and upgrading database (it may take a while)')
             s.start()
@@ -499,7 +492,7 @@ class ABCApp():
             dispersy.define_auto_load(ChannelCommunity, session.dispersy_member, load=True)
             dispersy.define_auto_load(PreviewChannelCommunity, session.dispersy_member)
 
-            if not self.is_unit_testing and time() < self.utility.read_config('version_info').get('first_run', 0) + 8553600:
+            if not self.is_unit_testing:
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair),)
 
@@ -936,6 +929,13 @@ class ABCApp():
         self._logger.info("main: ONEXIT")
         self.ready = False
         self.done = True
+
+        # Remove anonymous test download
+        for download in self.utility.session.get_downloads():
+            tdef = download.get_def()
+            if tdef.get_def_type() == 'torrent' and not tdef.is_anonymous() and download.get_anon_mode() and \
+               os.path.basename(download.get_dest_dir()) == "anon_test":
+                self.utility.session.remove_download(download)
 
         # write all persistent data to disk
         if self.i2is:
