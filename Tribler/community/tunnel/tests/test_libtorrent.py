@@ -8,7 +8,7 @@ from os import path
 from platform import system
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
-
+from Tribler.Main.vwxGUI import forceWxThread
 
 class LibtorrentTest(object):
 
@@ -42,12 +42,11 @@ class LibtorrentTest(object):
     def has_completed_before(self):
         return os.path.isfile(os.path.join(self.tribler_session.get_state_dir(), "anon_test.txt"))
 
+    @forceWxThread
     def start(self):
         import wx
-        from Tribler.Core.TorrentDef import TorrentDef
         from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING
-        from Tribler.Main.globals import DefaultDownloadStartupConfig
-        from Tribler.Main.vwxGUI import forceWxThread
+        from Tribler.Core.TorrentDef import TorrentDef
 
         hosts = [("95.211.198.147", 51413), ("95.211.198.142", 51413),
                  ("95.211.198.140", 51413), ("95.211.198.141", 51413)]
@@ -89,45 +88,42 @@ class LibtorrentTest(object):
 
             return _callback
 
-        if self.has_completed_before():
-            self._logger.warning("Skipping Anon Test since it has been run before")
+        # Load torrent
+        torrent_path = "anon_test.torrent"
+        if system() == "Linux" and path.exists("/usr/share/tribler/anon_test.torrent"):
+            torrent_path = "/usr/share/tribler/anon_test.torrent"
+
+        assert path.exists(torrent_path), torrent_path
+        from Tribler.Core.TorrentDef import TorrentDef
+        tdef = TorrentDef.load(torrent_path)
+        tdef.set_private()  # disable dht
+
+        if self.has_completed_before() or self.tribler_session.get_download(tdef.get_infohash()):
+            self._logger.error("Skipping Anon Test since it has been run before")
             return False
 
         destination_dir = os.path.join(self.tribler_session.get_state_dir(), "anon_test")
 
         shutil.rmtree(destination_dir, ignore_errors=True)
 
-        torrent_path = "anon_test.torrent"
-        if system() == "Linux" and path.exists("/usr/share/tribler/anon_test.torrent"):
-            torrent_path = "/usr/share/tribler/anon_test.torrent"
-
-        assert path.exists(torrent_path), torrent_path
-        tdef = TorrentDef.load(torrent_path)
-        tdef.set_private()  # disable dht
-
+        frame = None
         try:
             # If we want to attempt to use hidden services, we need to use MainFrame.startDownload
             from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-            download = GUIUtility.getInstance().frame.startDownload(tdef=tdef, destdir=destination_dir,
-                                                                    hops=2, try_hidden_services=True)
-            download.set_state_callback(state_call(), delay=4)
-
-            def check_fallback_download():
-                download = self.tribler_session.get_download(tdef.get_infohash())
-                if download:
-                    for peer in hosts:
-                        download.add_peer(peer)
-                    download.set_state_callback(state_call(), delay=4)
-
-            self.tribler_session.lm.rawserver.add_task(check_fallback_download, delay=40)
+            frame = GUIUtility.getInstance().frame
 
         except:
-            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-            dscfg = defaultDLConfig.copy()
-            dscfg.set_dest_dir(destination_dir)
-            dscfg.set_hops(2)
-            download = self.tribler_session.start_download(tdef, dscfg)
-            download.set_state_callback(state_call(), delay=4)
+            self._logger.error("Could not execute startDownload. Running Tribler without the GUI?")
+            return
 
-            for peer in hosts:
-                download.add_peer(peer)
+        download = frame.startDownload(tdef=tdef, destdir=destination_dir, hops=2, try_hidden_services=True)
+        download.set_state_callback(state_call(), delay=4)
+
+        def check_fallback_download():
+            download = self.tribler_session.get_download(tdef.get_infohash())
+            if download:
+                for peer in hosts:
+                    download.add_peer(peer)
+                download.set_state_callback(state_call(), delay=4)
+
+        self.tribler_session.lm.rawserver.add_task(check_fallback_download, delay=50)
