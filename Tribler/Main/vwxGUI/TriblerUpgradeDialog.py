@@ -1,23 +1,30 @@
 import wx
+import textwrap
 
 
 class TriblerUpgradeDialog(wx.Dialog):
 
     UI_UPDATE_INTERVAL = 50  # in milliseconds
 
-    def __init__(self, upgrader, ui_update_interval=UI_UPDATE_INTERVAL):
-        super(TriblerUpgradeDialog, self).__init__(parent=None, size=(400, 100))
+    def __init__(self, gui_image_manager, upgrader, ui_update_interval=UI_UPDATE_INTERVAL):
+        super(TriblerUpgradeDialog, self).__init__(parent=None, title=u"Tribler Upgrade",
+                                                   size=(400, 100), style=wx.CAPTION)
 
         self._upgrader = upgrader
         self._ui_update_interval = ui_update_interval
 
         # create layout
+        self._bitmap = gui_image_manager.getImage(u'upgrade.png')
+        self._static_bitmap = wx.StaticBitmap(self, bitmap=self._bitmap)
+
         self._text = wx.StaticText(self, label=u"Upgrading Tribler data...")
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
         vbox = wx.BoxSizer(wx.VERTICAL)
+
+        hsizer.Add(self._static_bitmap, 0, wx.ALL | wx.ALIGN_CENTER | wx.RIGHT, 10)
         hsizer.Add(self._text, 0, wx.ALL | wx.ALIGN_CENTER)
-        vbox.Add(hsizer, 1, wx.ALL | wx.ALIGN_CENTER, 5)
+        vbox.Add(hsizer, 1, wx.ALL | wx.ALIGN_CENTER, 2)
 
         self.SetSizer(vbox)
 
@@ -35,6 +42,6 @@ class TriblerUpgradeDialog(wx.Dialog):
 
     def on_timer(self, event):
         # updates the UI
-        self._text.SetLabel(self._upgrader.current_status)
+        self._text.SetLabel(u"\n".join(textwrap.wrap(self._upgrader.current_status, 40)))
         if self._upgrader.is_done:
             self.Close()

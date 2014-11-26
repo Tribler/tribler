@@ -407,7 +407,7 @@ class ABCApp(object):
         # check and upgrade
         upgrader = session.prestart()
         if not upgrader.is_done:
-            upgrade_dialog = TriblerUpgradeDialog(upgrader)
+            upgrade_dialog = TriblerUpgradeDialog(self.gui_image_manager, upgrader)
             failed = upgrade_dialog.ShowModal()
             upgrade_dialog.Destroy()
             if failed:
