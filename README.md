@@ -13,7 +13,7 @@ Tribler includes our own experimental Tor-like onion routing network, detailed s
 We make use of submodules, so remember using the --recursive argument when cloning this repo.
 
 ### Debian/Ubuntu/Mint
-sudo apt-get install scons build-essential libevent-dev python-libtorrent python-twisted python-apsw python-wxgtk2.8 python-netifaces python-m2crypto vlc python-pyasn1 python-gmpy libssl-dev python-requests
+sudo apt-get install python-libtorrent python-twisted python-apsw python-wxgtk2.8 python-netifaces python-m2crypto vlc python-pyasn1 python-gmpy python-requests
 
 ### Windows and OSX 
 TODO
@@ -30,14 +30,6 @@ or, if you don't have added your ssh key to your github account:
 
 ```bash
 git clone --recursive  https://github.com/Tribler/tribler.git
-```
-Then build swift and copy the binary where Tribler expects it to be:
-
-```bash
-cd  tribler/Tribler/SwiftEngine
-scons #or scons -j8 if you have 8 cores on your machine.
-cp swift ../..
-cd ../..
 ```
 
 Done!
