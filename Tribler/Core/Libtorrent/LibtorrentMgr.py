@@ -12,14 +12,11 @@ from collections import defaultdict
 
 from Tribler.Core.version import version_id
 from Tribler.Core.exceptions import DuplicateDownloadException
-from Tribler.Core import NoDispersyRLock
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.simpledefs import NTFY_MAGNET_STARTED, NTFY_TORRENTS, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
-from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 
-from Tribler.community.tunnel.community import TunnelCommunity
 
 DEBUG = False
 DHTSTATE_FILENAME = "ltdht.state"
@@ -260,7 +257,11 @@ class LibtorrentMgr(object):
                 if handle:
                     ltsession.remove_torrent(handle, 0)
 
-            handle = ltsession.add_torrent(encode_atp(atp))
+            encoded_atp = encode_atp(atp)
+            try:
+                handle = ltsession.add_torrent(encoded_atp)
+            except Exception as e:
+                self._logger.error("Failed to add torrent, error: %s, encoded_atp: %s", encoded_atp)
             infohash = str(handle.info_hash())
             if infohash in self.torrents:
                 raise DuplicateDownloadException()
