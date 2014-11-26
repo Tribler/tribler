@@ -42,25 +42,13 @@ class LibtorrentMgr(object):
         self.trsession = trsession
         self.ltsessions = {}
         self.notifier = Notifier.getInstance()
+        self.dht_ready = False
 
         main_ltsession = self.get_session()
 
         self.set_upload_rate_limit(-1)
         self.set_download_rate_limit(-1)
         self.upnp_mapper = main_ltsession.start_upnp()
-
-        # Start DHT
-        self.dht_ready = False
-        try:
-            dht_state = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME)).read()
-            main_ltsession.start_dht(lt.bdecode(dht_state))
-        except:
-            self._logger.error("LibtorrentMgr: could not restore dht state, starting from scratch")
-            main_ltsession.start_dht(None)
-
-        main_ltsession.add_dht_router('router.bittorrent.com', 6881)
-        main_ltsession.add_dht_router('router.utorrent.com', 6881)
-        main_ltsession.add_dht_router('router.bitcomet.com', 6881)
 
         self.external_ip = None
 
@@ -134,11 +122,6 @@ class LibtorrentMgr(object):
             ltsession = lt.session(flags=0)
             ltsession.add_extension(lt.create_ut_metadata_plugin)
             ltsession.add_extension(lt.create_smart_ban_plugin)
-            # Start DHT
-            ltsession.start_dht(None)
-            ltsession.add_dht_router('router.bittorrent.com', 6881)
-            ltsession.add_dht_router('router.utorrent.com', 6881)
-            ltsession.add_dht_router('router.bitcomet.com', 6881)
 
         ltsession.set_settings(settings)
         ltsession.set_alert_mask(lt.alert.category_t.stats_notification |
@@ -157,13 +140,25 @@ class LibtorrentMgr(object):
             proxy_settings[1] = (proxy_host, proxy_ports[hops - 1])
         self.set_proxy_settings(ltsession, *(proxy_settings))
 
+        # Set listen port & start the DHT
         if hops == 0:
             listen_port = self.trsession.get_listen_port()
             ltsession.listen_on(listen_port, listen_port + 10)
             if listen_port != ltsession.listen_port():
                 self.trsession.set_listen_port_runtime(ltsession.listen_port())
+            try:
+                dht_state = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME)).read()
+                ltsession.start_dht(lt.bdecode(dht_state))
+            except:
+                self._logger.error("LibtorrentMgr: could not restore dht state, starting from scratch")
+                ltsession.start_dht(None)
         else:
             ltsession.listen_on(self.trsession.get_anon_listen_port(), self.trsession.get_anon_listen_port() + 20)
+            ltsession.start_dht(None)
+
+        ltsession.add_dht_router('router.bittorrent.com', 6881)
+        ltsession.add_dht_router('router.utorrent.com', 6881)
+        ltsession.add_dht_router('router.bitcomet.com', 6881)
 
         self._logger.error("Started libtorrent session for %d hops on port %d", hops, ltsession.listen_port())
 
