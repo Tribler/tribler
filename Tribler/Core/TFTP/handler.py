@@ -112,7 +112,7 @@ class TftpHandler(TaskManager):
 
         session = self._session_queue[0]
         # only check the first session (the active one)
-        if session.last_contact_time + session.timeout > time():
+        if session.last_contact_time + session.timeout < time():
             # fail as timeout
             self._logger.info(u"%s timed out", session)
             self._session_queue.popleft()

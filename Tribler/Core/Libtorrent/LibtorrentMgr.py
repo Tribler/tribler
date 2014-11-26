@@ -17,7 +17,6 @@ from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.simpledefs import NTFY_MAGNET_STARTED, NTFY_TORRENTS, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
-
 DEBUG = False
 DHTSTATE_FILENAME = "ltdht.state"
 METAINFO_CACHE_PERIOD = 5 * 60
@@ -261,7 +260,7 @@ class LibtorrentMgr(object):
             try:
                 handle = ltsession.add_torrent(encoded_atp)
             except Exception as e:
-                self._logger.error("Failed to add torrent, error: %s, encoded_atp: %s", encoded_atp)
+                self._logger.error("Failed to add torrent, error: %s, encoded_atp: %s", e, encoded_atp)
                 raise e
             infohash = str(handle.info_hash())
             if infohash in self.torrents:

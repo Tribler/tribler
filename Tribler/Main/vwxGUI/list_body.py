@@ -258,6 +258,7 @@ class ListItem(wx.Panel):
             print >> sys.stderr, "RefreshColumn ERROR %s" % e
             print >> sys.stderr, "RefreshColumn ERROR %s" % self.__class__.__name__
             print >> sys.stderr, "RefreshColumn ERROR columnindex = %s, len(self.columns) = %s, self.columns = %s" % (columnindex, len(self.columns), self.columns)
+            raise e
 
         prevdata = self.data[columnindex]
         self.data[columnindex] = data

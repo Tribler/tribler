@@ -266,19 +266,23 @@ class RemoteTorrentHandler(TaskManager):
                 items.sort()
                 return "%s: " % qname + ",".join(map(lambda a: "%d/%d" % a, items))
             return ''
-        return ", ".join([qstring for qstring in [getQueueSize("TQueue", self.torrent_requesters), getQueueSize("DQueue", self.magnet_requesters), getQueueSize("MQueue", self.torrent_message_requesters)] if qstring])
+        return ", ".join([qstring for qstring in [getQueueSize("TFTP", self.torrent_requesters),
+                                                  getQueueSize("DHY", self.magnet_requesters),
+                                                  getQueueSize("Msg", self.torrent_message_requesters)] if qstring])
 
     def getQueueSuccess(self):
         def getQueueSuccess(qname, requesters):
             sum_requests = sum_success = sum_fail = sum_on_disk = 0
             for requester in requesters.itervalues():
-                sum_requests += 0
+                sum_requests += requester.pending_request_queue_size
                 sum_success += requester.requests_succeeded
                 sum_fail += requester.requests_failed
                 sum_on_disk += 0
 
             return "%s: %d/%d" % (qname, sum_success, sum_requests), "%s: success %d, pending %d, on disk %d, failed %d" % (qname, sum_success, sum_requests - sum_success - sum_fail, sum_on_disk, sum_fail)
-        return [(qstring, qtooltip) for qstring, qtooltip in [getQueueSuccess("TQueue", self.torrent_requesters), getQueueSuccess("DQueue", self.magnet_requesters), getQueueSuccess("MQueue", self.torrent_message_requesters)] if qstring]
+        return [(qstring, qtooltip) for qstring, qtooltip in [getQueueSuccess("TFTP", self.torrent_requesters),
+                                                              getQueueSuccess("DHT", self.magnet_requesters),
+                                                              getQueueSuccess("Msg", self.torrent_message_requesters)] if qstring]
 
     def getBandwidthSpent(self):
         def getQueueBW(qname, requesters):
@@ -580,7 +584,7 @@ class TftpRequester(Requester):
         infohash = extra_info.get(u"infohash")
         thumbnail_subpath = extra_info.get(u"thumbnail_subpath")
         key = (infohash, thumbnail_subpath) if thumbnail_subpath else infohash
-        assert key == self._current_active_request, "key = %s, self._current_active_request = %s" % (hexlify(key), hexlify(self._current_active_request))
+        assert key == self._current_active_request, "key = %s, self._current_active_request = %s" % (key, self._current_active_request)
 
         self._requests_succeeded += 1
         self._total_bandwidth += len(file_data)
@@ -610,7 +614,7 @@ class TftpRequester(Requester):
         infohash = extra_info.get(u"infohash")
         thumbnail_subpath = extra_info.get(u"thumbnail_subpath")
         key = (infohash, thumbnail_subpath) if thumbnail_subpath else infohash
-        assert key == self._current_active_request, "key = %s, self._current_active_request = %s" % (hexlify(key), hexlify(self._current_active_request))
+        assert key == self._current_active_request, "key = %s, self._current_active_request = %s" % (key, self._current_active_request)
 
         self._requests_failed += 1
 

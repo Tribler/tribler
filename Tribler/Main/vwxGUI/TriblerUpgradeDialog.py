@@ -22,7 +22,7 @@ class TriblerUpgradeDialog(wx.Dialog):
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
         vbox = wx.BoxSizer(wx.VERTICAL)
 
-        hsizer.Add(self._static_bitmap, 0, wx.ALL | wx.ALIGN_CENTER | wx.RIGHT, 10)
+        hsizer.Add(self._static_bitmap, 0, wx.ALL | wx.ALIGN_CENTER, 10)
         hsizer.Add(self._text, 0, wx.ALL | wx.ALIGN_CENTER)
         vbox.Add(hsizer, 1, wx.ALL | wx.ALIGN_CENTER, 2)
 

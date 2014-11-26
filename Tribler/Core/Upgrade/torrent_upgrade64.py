@@ -187,7 +187,7 @@ class TorrentMigrator64(object):
         """
         Deletes all directories in the torrent collecting directory.
         """
-        self.status_update_func(u"Deleting all directories in torrent collecting directory...")
+        self.status_update_func(u"Checking all directories in torrent collecting directory...")
         for root, dirs, files in os.walk(self.torrent_collecting_dir):
             for d in dirs:
                 dir_path = os.path.join(root, d)
