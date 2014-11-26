@@ -119,7 +119,6 @@ setup(
         'optimize': 0 if __debug__ else 2,
         'resources':
             [(LIBRARYNAME + "/Category", [LIBRARYNAME + "/Category/category.conf"]),
-             (LIBRARYNAME + "/Core/Tag", [LIBRARYNAME + "/Core/Tag/stop_snowball.filter"]),
              (LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core", [LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core/bootstrap_stable"]),
              (LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core", [LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core/bootstrap_unstable"]),
              LIBRARYNAME + "/readme.txt",

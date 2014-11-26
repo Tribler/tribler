@@ -51,15 +51,6 @@ ln -s /Applications dist/installdir/Applications
 
 touch dist/installdir
 
-# Swift
-rm -f swift
-cd Tribler/SwiftEngine
-make -f Makefile.mac clean ||: # TODO: This should be fixed on the Makefile, not here
-make -f Makefile.mac -j2
-cp swift ../..
-cd ../..
-cp swift dist/installdir/Tribler.app/Contents/MacOS/
-
 #Copy logger.conf
 cp logger.conf dist/installdir/Tribler.app/Contents/Resources/
 
