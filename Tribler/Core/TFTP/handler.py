@@ -61,7 +61,7 @@ class TftpHandler(TaskManager):
         self._block_size = block_size
         self._timeout = timeout
 
-        self._timeout_check_interval = 2
+        self._timeout_check_interval = 1
 
         self._session_queue = deque()
 
