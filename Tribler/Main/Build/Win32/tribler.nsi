@@ -104,9 +104,7 @@ Section "!Main EXE" SecMain
  File logger.conf
  File tribler.exe
  File ffmpeg.exe
- File swift.exe
  File /r vlc
- File swift.exe
  File tools\*.bat
  Delete "$INSTDIR\*.pyd"
  File *.pyd
@@ -121,9 +119,6 @@ Section "!Main EXE" SecMain
  File Tribler\*.sql
  CreateDirectory "$INSTDIR\Tribler\Core"
  CreateDirectory "$INSTDIR\Tribler\Core\Statistics"
- CreateDirectory "$INSTDIR\Tribler\Core\Tag"
- SetOutPath "$INSTDIR\Tribler\Core\Tag"
- File Tribler\Core\Tag\*.filter
 
   ; Main client specific
  CreateDirectory "$INSTDIR\Tribler"
@@ -195,7 +190,6 @@ Section "!Main EXE" SecMain
 
  ; Add an application to the firewall exception list - All Networks - All IP Version - Enabled
  SimpleFC::AddApplication "Tribler" "$INSTDIR\${PRODUCT}.exe" 0 2 "" 1
- SimpleFC::AddApplication "TriblerSwift" "$INSTDIR\swift.exe" 0 2 "" 1
  ; Pop $0 ; return error(1)/success(0)
 
 SectionEnd
@@ -297,7 +291,6 @@ Section "Uninstall"
 
  ; Remove an application from the firewall exception list
  SimpleFC::RemoveApplication "$INSTDIR\${PRODUCT}.exe"
- SimpleFC::RemoveApplication "$INSTDIR\swift.exe"
  ; Pop $0 ; return error(1)/success(0)
 
 SectionEnd
