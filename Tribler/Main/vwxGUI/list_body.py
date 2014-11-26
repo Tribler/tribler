@@ -252,7 +252,13 @@ class ListItem(wx.Panel):
 
     def RefreshColumn(self, columnindex, data):
         new_controls = has_changed = False
-        column = self.columns[columnindex]
+        try:
+            column = self.columns[columnindex]
+        except Exception as e:
+            print >> sys.stderr, "RefreshColumn ERROR %s" % e
+            print >> sys.stderr, "RefreshColumn ERROR %s" % self.__class__.__name__
+            print >> sys.stderr, "RefreshColumn ERROR columnindex = %s, len(self.columns) = %s, self.columns = %s" % (columnindex, len(self.columns), self.columns)
+
         prevdata = self.data[columnindex]
         self.data[columnindex] = data
 

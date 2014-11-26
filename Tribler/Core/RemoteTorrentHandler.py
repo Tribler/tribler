@@ -580,7 +580,7 @@ class TftpRequester(Requester):
         infohash = extra_info.get(u"infohash")
         thumbnail_subpath = extra_info.get(u"thumbnail_subpath")
         key = (infohash, thumbnail_subpath) if thumbnail_subpath else infohash
-        assert key == self._current_active_request, "key = %s, self._current_active_request = %s" % (key, self._current_active_request)
+        assert key == self._current_active_request, "key = %s, self._current_active_request = %s" % (hexlify(key), hexlify(self._current_active_request))
 
         self._requests_succeeded += 1
         self._total_bandwidth += len(file_data)
@@ -610,7 +610,7 @@ class TftpRequester(Requester):
         infohash = extra_info.get(u"infohash")
         thumbnail_subpath = extra_info.get(u"thumbnail_subpath")
         key = (infohash, thumbnail_subpath) if thumbnail_subpath else infohash
-        assert key == self._current_active_request, "key = %s, self._current_active_request = %s" % (key, self._current_active_request)
+        assert key == self._current_active_request, "key = %s, self._current_active_request = %s" % (hexlify(key), hexlify(self._current_active_request))
 
         self._requests_failed += 1
 

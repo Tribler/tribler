@@ -67,7 +67,6 @@ class TorrentMigrator64(object):
         if os.path.exists(self.tmp_migration_tcd_file):
             os.unlink(self.tmp_migration_tcd_file)
 
-
     def _migrate_torrent_collecting_dir(self):
         """
         Migrates the torrent collecting directory.
@@ -113,7 +112,7 @@ class TorrentMigrator64(object):
         """
         for root, _, files in os.walk(self.torrent_collecting_dir):
             for name in files:
-                if name.endswith(u".mhash") or name.endswith(u".mhash") or name.startswith(u"tmp_"):
+                if name.endswith(u".mbinmap") or name.endswith(u".mhash") or name.startswith(u"tmp_"):
                     self.total_swift_file_count += 1
                 else:
                     self.total_torrent_file_count += 1

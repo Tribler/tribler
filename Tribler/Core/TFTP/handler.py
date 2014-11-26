@@ -61,7 +61,7 @@ class TftpHandler(TaskManager):
         self._block_size = block_size
         self._timeout = timeout
 
-        self._timeout_check_interval = 1
+        self._timeout_check_interval = 0.5
 
         self._session_queue = deque()
 
@@ -177,13 +177,13 @@ class TftpHandler(TaskManager):
             # call callbacks
             if session.is_failed:
                 self._logger.info(u"%s failed", session)
-                if session.failure_callback is not None:
+                if session.failure_callback:
                     self.register_task(u"tftp_callback",
                                        reactor.callLater(0, session.failure_callback, session.address,
                                                          session.file_name, "download failed", session.extra_info))
             elif session.is_done:
                 self._logger.info(u"%s finished", session)
-                if session.success_callback is not None:
+                if session.success_callback:
                     self.register_task(u"tftp_callback",
                                        reactor.callLater(0, session.success_callback, session.address,
                                                          session.file_name, session.file_data, session.extra_info))
@@ -321,6 +321,7 @@ class TftpHandler(TaskManager):
         """ processes an incoming packet.
         :param packet: The incoming packet dictionary.
         """
+        session.last_contact_time = time()
         # check if it is an ERROR packet
         if packet['opcode'] == OPCODE_ERROR:
             self._logger.error(u"%s got ERROR message: code = %s, msg = %s",

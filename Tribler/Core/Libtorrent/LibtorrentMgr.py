@@ -262,6 +262,7 @@ class LibtorrentMgr(object):
                 handle = ltsession.add_torrent(encoded_atp)
             except Exception as e:
                 self._logger.error("Failed to add torrent, error: %s, encoded_atp: %s", encoded_atp)
+                raise e
             infohash = str(handle.info_hash())
             if infohash in self.torrents:
                 raise DuplicateDownloadException()
