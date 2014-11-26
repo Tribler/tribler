@@ -5,16 +5,14 @@ from time import time
 DEFAULT_BLOCK_SIZE = 512
 
 # default timeout and maximum retries
-DEFAULT_TIMEOUT = 3
-DEFAULT_MAX_RETRIES = 2
+DEFAULT_TIMEOUT = 2
 
 
 class Session(object):
 
     def __init__(self, is_client, address, request, file_name, file_data, file_size, checksum, extra_info=None,
                  block_size=DEFAULT_BLOCK_SIZE, timeout=DEFAULT_TIMEOUT,
-                 success_callback=None, failure_callback=None,
-                 max_retries=DEFAULT_MAX_RETRIES):
+                 success_callback=None, failure_callback=None):
         self.is_client = is_client
         self.address = address
         self.request = request
@@ -31,18 +29,13 @@ class Session(object):
         self.success_callback = success_callback
         self.failure_callback = failure_callback
 
-        self.last_read_count = None
-
         self.last_contact_time = time()
         self.last_received_packet = None
         self.last_sent_packet = None
         self.is_waiting_for_last_ack = False
 
-        # extra information
         self.is_done = False
         self.is_failed = False
-        self.max_retries = max_retries
-        self.retry_count = 0
 
         self.next_func = None
 

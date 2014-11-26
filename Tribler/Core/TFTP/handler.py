@@ -55,11 +55,11 @@ class TftpHandler(TaskManager):
             self._logger.critical(msg)
             raise Exception(msg)
 
-        self.endpoint = endpoint
-        self.prefix = prefix
+        self._endpoint = endpoint
+        self._prefix = prefix
 
-        self.block_size = block_size
-        self.timeout = timeout
+        self._block_size = block_size
+        self._timeout = timeout
 
         self._timeout_check_interval = 2
 
@@ -68,7 +68,7 @@ class TftpHandler(TaskManager):
     def initialize(self):
         """ Initializes the TFTP service. We create a UDP socket and a server session.
         """
-        self.endpoint.listen_to(self.prefix, self.data_came_in)
+        self._endpoint.listen_to(self._prefix, self.data_came_in)
         # start a looping call that checks timeout
         self.register_task(u"tftp timeout check",
                            LoopingCall(self._check_timeout)).start(self._timeout_check_interval, now=True)
@@ -91,6 +91,7 @@ class TftpHandler(TaskManager):
         """
         self._logger.debug(u"start downloading %s from %s:%s", file_name, ip, port)
         session = Session(True, (ip, port), OPCODE_RRQ, file_name, '', None, None, extra_info=extra_info,
+                          block_size=self._block_size, timeout=self._timeout,
                           success_callback=success_callback, failure_callback=failure_callback)
 
         self._session_queue.append(session)
@@ -105,7 +106,7 @@ class TftpHandler(TaskManager):
     def _check_timeout(self):
         """ A scheduled task that checks for timeout.
         """
-        # TODO(lipu): make a nicer way to check if we are shutting down
+        # TODO(lipu): find a nicer way to check if we are shutting down
         if not self._session_queue:
             return
 
@@ -138,7 +139,6 @@ class TftpHandler(TaskManager):
         :param data: The data received.
         """
         ip, port = addr
-        self._logger.debug(u"GOT packet [%s] from %s:%s", len(data), ip, port)
 
         # decode the packet
         try:
@@ -151,6 +151,7 @@ class TftpHandler(TaskManager):
             self._logger.error(u"WRQ is not supported from [%s:%s], packet=[%s]", ip, port, repr(packet))
             return
 
+        self._logger.debug(u"GOT packet opcode[%s] from %s:%s", packet['opcode'], ip, port)
         # a new request
         if packet['opcode'] == OPCODE_RRQ:
             self._logger.debug(u"start handling new request: %s", packet)
@@ -163,31 +164,26 @@ class TftpHandler(TaskManager):
                 return
 
             session = self._session_queue[0]
-            self._logger.debug(u"%s start processing packet: %s", session, packet)
-            for s in self._session_queue:
-                self._logger.debug(u"--- current session queue: %s", s)
             self._process_packet(session, packet)
 
             if not session.is_done and not session.is_failed:
                 return
 
-            self._logger.debug(u"session is_done = %s, is_failed = %s", session.is_done, session.is_failed)
-
             # remove this session from list and start the next one
             self._session_queue.popleft()
             if self._session_queue:
-                self._logger.debug(u"Start the next session %s", session)
+                self._logger.debug(u"Start the next session %s", self._session_queue[0])
                 self._session_queue[0].next_func()
 
             # call callbacks
             if session.is_failed:
-                self._logger.debug(u"%s failed", session)
+                self._logger.info(u"%s failed", session)
                 if session.failure_callback is not None:
                     self.register_task(u"tftp_callback",
                                        reactor.callLater(0, session.failure_callback, session.address,
                                                          session.file_name, "download failed", session.extra_info))
             elif session.is_done:
-                self._logger.debug(u"%s finished", session)
+                self._logger.info(u"%s finished", session)
                 if session.success_callback is not None:
                     self.register_task(u"tftp_callback",
                                        reactor.callLater(0, session.success_callback, session.address,
@@ -219,9 +215,9 @@ class TftpHandler(TaskManager):
         # read the file/directory into memory
         try:
             if file_name.startswith(DIR_PREFIX):
-                file_data, file_size = self._load_directory(ip, port, file_name)
+                file_data, file_size = self._load_directory(file_name)
             else:
-                file_data, file_size = self._load_file(ip, port, file_name)
+                file_data, file_size = self._load_file(file_name)
             checksum = b64encode(sha1(file_data).digest())
         except FileNotFound as e:
             self._logger.error(u"[READ %s:%s] file/dir not found: %s", ip, port, e)
@@ -251,7 +247,7 @@ class TftpHandler(TaskManager):
             # save the next function that this session should call so that we can do it later.
             session.next_func = lambda s = session: self._send_oack_packet(s)
 
-    def _load_file(self, ip, port, file_name, file_path=None):
+    def _load_file(self, file_name, file_path=None):
         """ Loads a file into memory.
         :param file_name: The path of the file.
         """
@@ -281,7 +277,7 @@ class TftpHandler(TaskManager):
         file_size = len(file_data)
         return file_data, file_size
 
-    def _load_directory(self, ip, port, file_name):
+    def _load_directory(self, file_name):
         """ Loads a directory and all files, and compress using gzip to transfer.
         :param file_name: The directory name.
         """
@@ -305,24 +301,20 @@ class TftpHandler(TaskManager):
         tar_file.close()
 
         # load the zip file as binary
-        return self._load_file(ip, port, tmpfile_path)
+        return self._load_file(file_name, file_path=tmpfile_path)
 
     def _get_next_data(self, session):
         """ Gets the next block of data to be uploaded. This method is only used for data uploading.
         :return The data to transfer.
         """
         start_idx = session.block_number * session.block_size
-        end_idx = start_idx + self.block_size
+        end_idx = start_idx + session.block_size
         data = session.file_data[start_idx:end_idx]
         session.block_number += 1
 
         # check if we are done
-        if session.last_read_count is None:
-            session.last_read_count = len(data)
-
-        if session.last_read_count < session.block_size:
+        if len(data) < session.block_size:
             session.is_waiting_for_last_ack = True
-        session.last_read_count = len(data)
 
         return data
 
@@ -334,7 +326,7 @@ class TftpHandler(TaskManager):
         if packet['opcode'] == OPCODE_ERROR:
             self._logger.error(u"%s got ERROR message: code = %s, msg = %s",
                                session, packet['error_code'], packet['error_msg'])
-            self._handle_error(session, 0)  # Error
+            session.is_failed = True
             return
 
         # client is the receiver, server is the sender
@@ -347,27 +339,22 @@ class TftpHandler(TaskManager):
         """ Processes an incoming packet as a receiver.
         :param packet: The incoming packet dictionary.
         """
-        # check if it is an ERROR packet
-        if packet['opcode'] == OPCODE_ERROR:
-            self._logger.error(u"[RECV %s] Got ERROR message: code = %s, msg = %s",
-                               session, packet['error_code'], packet['error_msg'])
-            self._handle_error(session, 0)  # Error
-            return
-
         # if this is the first packet, check OACK
         if packet['opcode'] == OPCODE_OACK:
             if session.last_received_packet is None:
                 # check options
                 if session.block_size != packet['options']['blksize']:
-                    self._logger.error(u"[RECV %s] OACK blksize mismatch: %s != %s (expected)",
-                                       session, session.block_size, packet['options']['blksize'])
-                    self._handle_error(session, 0)  # Error
+                    msg = "%s OACK blksize mismatch: %s != %s (expected)" %\
+                          (session, session.block_size, packet['options']['blksize'])
+                    self._logger.error(msg)
+                    self._handle_error(session, 0, error_msg=msg)  # Error: blksize mismatch
                     return
 
                 if session.timeout != packet['options']['timeout']:
-                    self._logger.error(u"[RECV %s] OACK timeout mismatch: %s != %s (expected)",
-                                       session, session.timeout, packet['options']['timeout'])
-                    self._handle_error(session, 0)  # Error
+                    msg = "%s OACK timeout mismatch: %s != %s (expected)" %\
+                          (session, session.timeout, packet['options']['timeout'])
+                    self._logger.error(msg)
+                    self._handle_error(session, 0, error_msg=msg)  # Error: timeout mismatch
                     return
 
                 session.file_size = packet['options']['tsize']
@@ -380,21 +367,24 @@ class TftpHandler(TaskManager):
                     session.file_data = ""
 
             else:
-                self._logger.error(u"[RECV %s]: Got OPCODE %s which is not expected", session, packet['opcode'])
+                self._logger.error(u"%s Got OPCODE %s which is not expected", session, packet['opcode'])
                 self._handle_error(session, 4)  # illegal TFTP operation
             return
 
         # expect a DATA
         if packet['opcode'] != OPCODE_DATA:
-            self._logger.error(u"[RECV %s] Got OPCODE %s while expecting %s", session, packet['opcode'], OPCODE_DATA)
+            self._logger.error(u"%s Got OPCODE %s while expecting %s", session, packet['opcode'], OPCODE_DATA)
             self._handle_error(session, 4)  # illegal TFTP operation
             return
 
+        self._logger.debug(u"%s Got data, #block = %s size = %s", session, packet['block_number'], len(packet['data']))
+
         # check block_number
         if packet['block_number'] != session.block_number:
-            self._logger.error(u"[RECV %s] Got ACK with block# %s while expecting %s",
-                               session, packet['block_number'], session.block_number)
-            self._handle_error(session, 0)  # TODO(lipu): check error code
+            msg = "%s Got ACK with block# %s while expecting %s" %\
+                  (session, packet['block_number'], session.block_number)
+            self._logger.error(msg)
+            self._handle_error(session, 0, error_msg=msg)  # Error: block_number mismatch
             return
 
         # save data
@@ -404,7 +394,7 @@ class TftpHandler(TaskManager):
 
         # check if it is the end
         if len(packet['data']) < session.block_size:
-            self._logger.info(u"[RECV %s] transfer finished. checking data integrity...", self)
+            self._logger.info(u"%s transfer finished. checking data integrity...", session)
             # check file size and checksum
             if session.file_size != len(session.file_data):
                 self._logger.error(u"%s file size %s doesn't match expectation %s",
@@ -421,7 +411,6 @@ class TftpHandler(TaskManager):
                 return
 
             session.is_done = True
-            self._logger.info(u"[RECV %s] transfer finished", self)
 
     def _handle_packet_as_sender(self, session, packet):
         """ Processes an incoming packet as a sender.
@@ -429,20 +418,20 @@ class TftpHandler(TaskManager):
         """
         # expect an ACK packet
         if packet['opcode'] != OPCODE_ACK:
-            self._logger.error(u"[SEND %s] got OPCODE(%s) while expecting %s", session, packet['opcode'], OPCODE_ACK)
+            self._logger.error(u"%s got OPCODE(%s) while expecting %s", session, packet['opcode'], OPCODE_ACK)
             self._handle_error(session, 4)  # illegal TFTP operation
             return
 
         # check block number
         if packet['block_number'] != session.block_number:
-            self._logger.error(u"[SEND %s] got ACK with block# %s while expecting %s",
-                               session, packet['block_number'], session.block_number)
-            self._handle_error(session, 0)  # TODO(lipu): check error code
+            msg = "%s got ACK with block# %s while expecting %s" %\
+                  (session, packet['block_number'], session.block_number)
+            self._logger.error(msg)
+            self._handle_error(session, 0, error_msg=msg)  # Error: block_number mismatch
             return
 
         if session.is_waiting_for_last_ack:
             session.is_done = True
-            self._logger.info(u"[SEND %s] finished", session)
             return
 
         data = self._get_next_data(session)
@@ -454,7 +443,7 @@ class TftpHandler(TaskManager):
         :param error_code: The error code.
         """
         session.is_failed = True
-        msg = ERROR_DICT.get(error_code, error_msg)
+        msg = error_msg if error_msg else ERROR_DICT.get(error_code, error_msg)
         self._send_error_packet(session, error_code, msg)
 
     def _send_packet(self, session, packet):
@@ -462,9 +451,9 @@ class TftpHandler(TaskManager):
         extra_msg = u" block_number = %s" % packet['block_number'] if packet.get('block_number') is not None else ""
         extra_msg += u" block_size = %s" % len(packet['data']) if packet.get('data') is not None else ""
 
-        self._logger.debug(u"SEND OP[%s] -> %s %s %s",
+        self._logger.debug(u"SEND OP[%s] -> %s:%s %s",
                            packet['opcode'], session.address[0], session.address[1], extra_msg)
-        self.endpoint.send_packet(Candidate(session.address, False), packet_buff, prefix=self.prefix)
+        self._endpoint.send_packet(Candidate(session.address, False), packet_buff, prefix=self._prefix)
 
         # update information
         session.last_contact_time = time()
