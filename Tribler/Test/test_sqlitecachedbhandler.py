@@ -10,7 +10,7 @@ from twisted.internet import reactor
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import (TorrentDBHandler, MyPreferenceDBHandler, BasicDBHandler,
                                                        PeerDBHandler, MiscDBHandler)
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, SQLiteCacheDb
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, SQLiteCacheDB
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
@@ -57,7 +57,7 @@ class AbstractDB(AbstractServer):
         self.session = Session(self.config, ignore_singleton=True)
 
         dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', destination_path=self.getStateDir(), overwrite=True)
-        self.sqlitedb = SQLiteCacheDb(self.session, busytimeout=BUSYTIMEOUT)
+        self.sqlitedb = SQLiteCacheDB(self.session, busytimeout=BUSYTIMEOUT)
         self.sqlitedb.initialize(dbpath)
         self.session.sqlite_db = self.sqlitedb
 
