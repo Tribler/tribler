@@ -72,9 +72,10 @@ class CreatedRequestCache(NumberCache):
         self.circuit_id = circuit_id
         self.candidate = candidate
         self.candidates = candidates
+        self.community = community
 
     def on_timeout(self):
-        self.remove_exit_socket(self.circuit_id)
+        self.community.remove_exit_socket(self.circuit_id)
 
 
 class PingRequestCache(RandomNumberCache):
