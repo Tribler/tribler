@@ -8,14 +8,12 @@ import libtorrent as lt
 
 from copy import deepcopy
 from shutil import rmtree
-from collections import defaultdict
 
 from Tribler.Core.version import version_id
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.simpledefs import NTFY_MAGNET_STARTED, NTFY_TORRENTS, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 DEBUG = False
 DHTSTATE_FILENAME = "ltdht.state"
@@ -60,9 +58,6 @@ class LibtorrentMgr(object):
 
         self.upnp_mappings = {}
 
-        self._tunnel_community = None
-        self.connected_intro_points = defaultdict(list)
-
         # make tmp-dir to be used for dht collection
         self.metadata_tmpdir = os.path.join(self.trsession.get_state_dir(), METAINFO_TMPDIR)
         if not os.path.exists(self.metadata_tmpdir):
@@ -82,18 +77,6 @@ class LibtorrentMgr(object):
     def hasInstance():
         return LibtorrentMgr.__single is not None
     hasInstance = staticmethod(hasInstance)
-
-    @property
-    @blocking_call_on_reactor_thread
-    def tunnel_community(self):
-        if not self._tunnel_community:
-            from Tribler.community.tunnel.community import TunnelCommunity
-            for community in self.trsession.lm.dispersy.get_communities():
-                if isinstance(community, TunnelCommunity):
-                    self._tunnel_community = community
-                    break
-
-        return self._tunnel_community
 
     def create_session(self, hops=0):
         settings = lt.session_settings()
@@ -168,15 +151,16 @@ class LibtorrentMgr(object):
     def tunnels_ready(self, download):
         hops = download.get_hops()
         if hops > 0:
-            if self.tunnel_community:
+            tunnel_community = self.trsession.lm.tunnel_community
+            if tunnel_community:
                 if download.get_def().is_anonymous():
-                    current_hops = self.tunnel_community.circuits_needed.get(hops, 0)
-                    self.tunnel_community.circuits_needed[hops] = max(1, current_hops)
-                    return bool(self.tunnel_community.active_data_circuits(hops))
+                    current_hops = tunnel_community.circuits_needed.get(hops, 0)
+                    tunnel_community.circuits_needed[hops] = max(1, current_hops)
+                    return bool(tunnel_community.active_data_circuits(hops))
                 else:
-                    self.tunnel_community.circuits_needed[hops] = self.tunnel_community.settings.max_circuits
-                    return min(1, len(self.tunnel_community.active_data_circuits(hops)) /
-                                  float(self.tunnel_community.settings.min_circuits))
+                    tunnel_community.circuits_needed[hops] = tunnel_community.settings.max_circuits
+                    return min(1, len(tunnel_community.active_data_circuits(hops)) /
+                                  float(tunnel_community.settings.min_circuits))
             return 0
         return 1
 
