@@ -112,24 +112,36 @@ class TftpHandler(TaskManager):
 
         session = self._session_queue[0]
         # only check the first session (the active one)
-        if session.last_contact_time + session.timeout < time():
-            # fail as timeout
-            self._logger.info(u"%s timed out", session)
+        if self._check_session_timeout(session):
             self._session_queue.popleft()
-            if session.failure_callback:
-                self.register_task(u"tftp_callback",
-                                   reactor.callLater(0, session.failure_callback, session.address,
-                                                     session.file_name, "timeout", session.extra_info))
         else:
             return
 
         # start next session in the queue
-        if not self._session_queue:
-            return
+        while self._session_queue:
+            session = self._session_queue[0]
 
-        session = self._session_queue[0]
-        self._logger.debug(u"starting next session: %s", session)
-        self.register_task(u"tftp_next_task", reactor.callLater(0, session.next_func))
+            # check timeout for client sessions
+            if session.is_client and self._check_session_timeout(session):
+                self._session_queue.popleft()
+                continue
+
+            self._logger.debug(u"starting next session: %s", session)
+            self.register_task(u"tftp_next_task", reactor.callLater(0, session.next_func))
+            break
+
+    def _check_session_timeout(self, session):
+        is_timeout = False
+        # only check the first session (the active one)
+        if session.last_contact_time + session.timeout < time():
+            # fail as timeout
+            is_timeout = True
+            self._logger.info(u"%s timed out", session)
+            if session.failure_callback:
+                self.register_task(u"tftp_callback",
+                                   reactor.callLater(0, session.failure_callback, session.address,
+                                                     session.file_name, "timeout", session.extra_info))
+        return is_timeout
 
     @call_on_reactor_thread
     def data_came_in(self, addr, data):
@@ -168,8 +180,16 @@ class TftpHandler(TaskManager):
             if not session.is_done and not session.is_failed:
                 return
 
-            # remove this session from list and start the next one
+            # remove this session from list
             self._session_queue.popleft()
+            # remove the timed out client sessions
+            while self._session_queue:
+                next_session = self._session_queue[0]
+                if next_session.is_client and self._check_session_timeout(next_session):
+                    self._session_queue.popleft()
+                    continue
+                break
+            # start the next one if any
             if self._session_queue:
                 self._logger.debug(u"Start the next session %s", self._session_queue[0])
                 self._session_queue[0].next_func()
