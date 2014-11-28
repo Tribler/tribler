@@ -809,6 +809,8 @@ class TorrentManager(object):
     def getNotCollectedThumbnailTorrents(self, limit=20):
         result = []
         for t in self.metadata_db.getNotCollectedThumbnailTorrents(TUMBNAILTORRENT_REQ_COLUMNS, limit=limit):
+            if t[0] is None:
+                continue
             t = Torrent(*(list(t) + [None]))
             t.misc_db = self.misc_db
             t.torrent_db = self.torrent_db
