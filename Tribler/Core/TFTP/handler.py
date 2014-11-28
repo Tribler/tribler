@@ -122,7 +122,7 @@ class TftpHandler(TaskManager):
             session = self._session_queue[0]
 
             # check timeout for client sessions
-            if session.is_client and self._check_session_timeout(session):
+            if not session.is_client and self._check_session_timeout(session):
                 self._session_queue.popleft()
                 continue
 
@@ -185,7 +185,7 @@ class TftpHandler(TaskManager):
             # remove the timed out client sessions
             while self._session_queue:
                 next_session = self._session_queue[0]
-                if next_session.is_client and self._check_session_timeout(next_session):
+                if not next_session.is_client and self._check_session_timeout(next_session):
                     self._session_queue.popleft()
                     continue
                 break

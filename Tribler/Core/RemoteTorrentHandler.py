@@ -81,10 +81,11 @@ class RemoteTorrentHandler(TaskManager):
 
         for priority in (0, 1):
             self.magnet_requesters[priority] = MagnetRequester(self.session, self, priority)
-            self.torrent_requesters[priority] = TftpRequester(self.session, self, priority)
+            self.torrent_requesters[priority] = TftpRequester(u"tftp_torrent_%s" % priority,
+                                                              self.session, self, priority)
             self.torrent_message_requesters[priority] = TorrentMessageRequester(self.session, self, priority)
 
-        self.metadata_requester = TftpRequester(self.session, self, 0)
+        self.metadata_requester = TftpRequester(u"tftp_metadata_%s" % 0, self.session, self, 0)
 
     def shutdown(self):
         self.cancel_all_pending_tasks()
@@ -507,16 +508,14 @@ class MagnetRequester(Requester):
 
 class TftpRequester(Requester):
 
-    def __init__(self, session, remote_torrent_handler, priority):
-        super(TftpRequester, self).__init__(u"tftp_requester", session, remote_torrent_handler, priority)
+    def __init__(self, name, session, remote_torrent_handler, priority):
+        super(TftpRequester, self).__init__(name, session, remote_torrent_handler, priority)
 
         self._current_active_request = None
         self._untried_sources = {}
         self._tried_sources = {}
 
     def add_request(self, key, candidate, timeout=None):
-        queue_was_empty = len(self._pending_request_queue) == 0
-
         ip, port = candidate.sock_addr
         if isinstance(key, tuple):
             key_str = u"[%s, %s]" % (hexlify(key[0]), key[1])
@@ -539,10 +538,13 @@ class TftpRequester(Requester):
             self._untried_sources[key] = deque([candidate])
             self._tried_sources[key] = deque()
 
-        if queue_was_empty:
+        # start pending tasks if there is no task running
+        if not self._current_active_request:
             self._start_pending_requests()
 
     def _do_request(self):
+        assert self._current_active_request is None, "self._current_active_request = %s" % repr(self._current_active_request)
+
         # starts to download a torrent
         key = self._pending_request_queue.popleft()
 
@@ -623,6 +625,7 @@ class TftpRequester(Requester):
             self._logger.debug(u"scheduling next try for %s", hexlify(infohash))
 
             self._pending_request_queue.appendleft(self._current_active_request)
+            self._current_active_request = None
             self.schedule_task(self._do_request)
 
         else:
