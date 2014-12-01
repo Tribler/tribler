@@ -117,6 +117,11 @@ class LibtorrentTest(object):
             return
 
         download = frame.startDownload(tdef=tdef, destdir=destination_dir, hops=2, try_hidden_services=True)
+
+        if not download:
+            self._logger.error("Could not start test download")
+            return
+
         download.set_state_callback(state_call(), delay=4)
 
         def check_fallback_download():
