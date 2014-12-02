@@ -95,6 +95,7 @@ class TriblerLaunchMany(Thread):
         self.mainline_dht = None
         self.ltmgr = None
         self.torrent_checking = None
+        self.tunnel_community = None
 
     def register(self, session, sesslock):
         if not self.registered:

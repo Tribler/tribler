@@ -289,7 +289,6 @@ class TunnelCommunity(Community):
         self.directions = {}
         self.relay_from_to = {}
         self.relay_session_keys = {}
-        self.forward_from_to = {}
         self.waiting_for = set()
         self.exit_sockets = {}
         self.circuits_needed = {}
@@ -339,6 +338,7 @@ class TunnelCommunity(Community):
         if self.trsession:
             from Tribler.Core.CacheDB.Notifier import Notifier
             self.notifier = Notifier.getInstance()
+            self.trsession.lm.tunnel_community = self
 
     def start_download_test(self):
         if self.trsession and self.trsession.get_libtorrent() and self.settings.do_test:
@@ -721,7 +721,11 @@ class TunnelCommunity(Community):
 
             plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
             try:
-                encrypted = self.crypto_relay(circuit_id, encrypted)
+                if next_relay.rendezvous_relay:
+                    decrypted = self.crypto_in(circuit_id, encrypted)
+                    encrypted = self.crypto_out(next_relay.circuit_id, decrypted)
+                else:
+                    encrypted = self.crypto_relay(circuit_id, encrypted)
             except CryptoException, e:
                 self._logger.error(str(e))
                 return False
@@ -729,32 +733,6 @@ class TunnelCommunity(Community):
 
             packet = TunnelConversion.swap_circuit_id(packet, message_type, circuit_id, next_relay.circuit_id)
             self.increase_bytes_sent(next_relay, self.send_packet([Candidate(next_relay.sock_addr, False)], message_type, packet))
-
-            return True
-        return False
-
-    def forward_packet(self, circuit_id, message_type, packet):
-        if circuit_id > 0 and circuit_id in self.forward_from_to:
-            next_relay = self.forward_from_to[circuit_id]
-            this_relay = self.forward_from_to.get(next_relay.circuit_id, None)
-
-            if this_relay:
-                this_relay.last_incoming = time.time()
-                self.increase_bytes_received(this_relay, len(packet))
-
-            plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
-            try:
-                decrypted = self.crypto_in(circuit_id, encrypted)
-                encrypted = self.crypto_out(next_relay.circuit_id, decrypted)
-            except CryptoException, e:
-                self._logger.error(str(e))
-                return False
-            packet = plaintext + encrypted
-
-            packet = TunnelConversion.swap_circuit_id(packet, message_type, circuit_id, next_relay.circuit_id)
-            self.increase_bytes_sent(next_relay, self.send_packet([Candidate(next_relay.sock_addr, False)], message_type, packet))
-
-            self._logger.debug("TunnelCommunity: forwarded packet: %s -> %s", circuit_id, next_relay.circuit_id)
 
             return True
         return False
@@ -1008,8 +986,7 @@ class TunnelCommunity(Community):
 
         self._logger.debug("TunnelCommunity: got data (%d) from %s", circuit_id, sock_addr)
 
-        if not self.relay_packet(circuit_id, message_type, packet) and \
-           not self.forward_packet(circuit_id, message_type, packet):
+        if not self.relay_packet(circuit_id, message_type, packet):
             plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
 
             try:
@@ -1042,7 +1019,7 @@ class TunnelCommunity(Community):
 
     def on_ping(self, messages):
         for message in messages:
-            if self.exit_sockets.keys() + \
+            if self.exit_sockets.keys() + self.my_intro_points.keys() + \
                [t[0] for t in self.intro_point_for.values() + self.rendezvous_point_for.values()]:
                 self.send_cell([message.candidate], u"pong", (message.payload.circuit_id, message.payload.identifier))
                 self._logger.debug("TunnelCommunity: got ping from %s", message.candidate)
@@ -1057,7 +1034,7 @@ class TunnelCommunity(Community):
     def do_ping(self):
         # Ping circuits. Pings are only sent to the first hop, subsequent hops will relay the ping.
         for circuit in self.circuits.values():
-            if circuit.state == CIRCUIT_STATE_READY:
+            if circuit.state == CIRCUIT_STATE_READY and circuit.ctype != CIRCUIT_TYPE_RENDEZVOUS:
                 cache = self.request_cache.add(PingRequestCache(self, circuit))
                 self.increase_bytes_sent(circuit, self.send_cell([Candidate(circuit.first_hop, False)], u"ping", (circuit.circuit_id, cache.number)))
 
@@ -1496,8 +1473,8 @@ class TunnelCommunity(Community):
             self.send_cell([relay_candidate], u"rendezvous2", payload)
             self._logger.error("TunnelCommunity: relayed rendezvous1 as rendezvous2 into %s", relay_circuit_id)
 
-            self.forward_from_to[circuit_id] = RelayRoute(relay_circuit_id, relay_candidate.sock_addr)
-            self.forward_from_to[relay_circuit_id] = RelayRoute(circuit_id, message.candidate.sock_addr)
+            self.relay_from_to[circuit_id] = RelayRoute(relay_circuit_id, relay_candidate.sock_addr, True)
+            self.relay_from_to[relay_circuit_id] = RelayRoute(circuit_id, message.candidate.sock_addr, True)
             self._logger.error("TunnelCommunity: connected circuits %s and %s", circuit_id, relay_circuit_id)
 
     def on_rendezvous2(self, messages):
@@ -1546,7 +1523,7 @@ class TunnelCommunity(Community):
             payload = (circuit.circuit_id, identifier, long_to_bytes(circuit.dh_second_part), cookie)
             self.send_cell([Candidate(circuit.first_hop, False)], u'rendezvous1', payload)
 
-        # Create circuit for intro1
+        # Create circuit for rendezvous1
         hops = ip.circuit.goal_hops
         self.create_circuit(hops, CIRCUIT_TYPE_RENDEZVOUS, callback, max_retries=5, required_exit=rendezvous_point)
 
