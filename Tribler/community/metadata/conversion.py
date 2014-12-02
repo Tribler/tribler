@@ -11,7 +11,10 @@ class MetadataConversion(BinaryConversion):
 
     def __init__(self, community):
         super(MetadataConversion, self).__init__(community, "\x02")
-        self.define_meta_message(chr(1), community.get_meta_message(u"metadata"), lambda message: self._encode_decode(self._encode_metadata, self._decode_metadata, message), self._decode_metadata)
+        self.define_meta_message(chr(1), community.get_meta_message(u"metadata"),
+                                 lambda message: self._encode_decode(self._encode_metadata,
+                                                                     self._decode_metadata, message),
+                                 self._decode_metadata)
 
     def _encode_decode(self, encode, decode, message):
         result = encode(message)
@@ -34,7 +37,6 @@ class MetadataConversion(BinaryConversion):
         def create_msg():
             msg_dict = {
                 "infohash": message.payload.infohash,
-                "roothash": message.payload.roothash,
                 "data-list": message.payload.data_list
             }
             if message.payload.prev_mid:
@@ -72,12 +74,6 @@ class MetadataConversion(BinaryConversion):
         if not (isinstance(infohash, str) and len(infohash) == 20):
             raise DropPacket("Invalid 'infohash' type or value")
 
-        if not "roothash" in dic:
-            raise DropPacket("Missing 'roothash'")
-        roothash = dic["roothash"]
-        if roothash and not (isinstance(roothash, str) and len(roothash) == 20):
-            raise DropPacket("Invalid 'roothash' type or value")
-
         if not "data-list" in dic:
             raise DropPacket("Missing 'data-list'")
         data_list = dic["data-list"]
@@ -99,9 +95,9 @@ class MetadataConversion(BinaryConversion):
         if prev_global_time and not isinstance(prev_global_time, (int, long)):
             raise DropPacket("Invalid 'prev-global-time' type")
 
-        if (prev_mid and not prev_global_time):
+        if prev_mid and not prev_global_time:
             raise DropPacket("Incomplete previous pointer (mid and NO global-time)")
-        if (not prev_mid and prev_global_time):
+        if not prev_mid and prev_global_time:
             raise DropPacket("Incomplete previous pointer (global-time and NO mid)")
 
-        return offset, placeholder.meta.payload.implement(infohash, roothash, data_list, prev_mid, prev_global_time)
+        return offset, placeholder.meta.payload.implement(infohash, data_list, prev_mid, prev_global_time)

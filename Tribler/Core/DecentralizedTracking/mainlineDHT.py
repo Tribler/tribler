@@ -21,12 +21,13 @@ if sys.version.split()[0] >= '2.5':
     except ImportError:
         logger.exception(u"Could not import pymdht")
 
-def init(addr, conf_path, swift_port):
+
+def init(addr, conf_path):
     if DEBUG:
         log_level = logging.DEBUG
     else:
         log_level = logging.ERROR
-    logger.debug('dht: DHT initialization %s', DHT_IMPORTED)
+    logger.debug(u"DHT initialization %s", DHT_IMPORTED)
 
     if DHT_IMPORTED:
         my_node = node.Node(addr, None, version=pymdht.VERSION_LABEL)
@@ -36,14 +37,14 @@ def init(addr, conf_path, swift_port):
                             lookup_mod,
                             experimental_m_mod,
                             private_dht_name,
-                            log_level,
-                            swift_port=swift_port)
-        logger.debug('Swift DHT running')
-    return dht
+                            log_level)
+        logger.debug(u"DHT running")
+        return dht
+
 
 def deinit(dht):
     if dht is not None:
         try:
             dht.stop()
         except:
-            logger.exception('could not stop Swift DHT')
+            logger.exception(u"could not stop DHT")

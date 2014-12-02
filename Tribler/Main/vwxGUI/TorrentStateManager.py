@@ -1,11 +1,11 @@
 import os
 import json
-import shutil
 import hashlib
-import binascii
+from binascii import hexlify
 import logging
 import tempfile
 from threading import currentThread, Thread
+import Image
 
 try:
     prctlimported = True
@@ -13,22 +13,25 @@ try:
 except ImportError, e:
     prctlimported = False
 
-from Tribler.Core.Swift.SwiftDef import SwiftDef
-from Tribler.Core.Video.VideoUtility import get_videoinfo, preferred_timecodes, \
-    limit_resolution, get_thumbnail
+from Tribler.Core.simpledefs import NTFY_METADATA
+from Tribler.Core.Video.VideoUtility import get_videoinfo, preferred_timecodes, limit_resolution, get_thumbnail
 
 
 class TorrentStateManager(object):
     # Code to make this a singleton
     __single = None
 
-    def __init__(self):
+    def __init__(self, session):
         if TorrentStateManager.__single:
             raise RuntimeError("TorrentStateManager is singleton")
         TorrentStateManager.__single = self
 
-        super(TorrentStateManager, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
+
+        self.session = session
+        self.torrent_manager = None
+        self.library_manager = None
+        self.channelsearch_manager = None
 
     def getInstance(*args, **kw):
         if TorrentStateManager.__single is None:
@@ -64,108 +67,73 @@ class TorrentStateManager(object):
         t = Thread(target=self._create_and_seed_metadata, args=(videofile, torrent), name="ThumbnailGenerator")
         t.start()
 
-    def _create_metadata_roothash_and_contenthash(self, tempdir, torrent):
-        assert isinstance(tempdir, str) or isinstance(tempdir, unicode), \
-            u"tempdir is of type %s" % type(tempdir)
-
-        from Tribler.Core.Session import Session
-        session = Session.get_instance()
-
-        torcoldir = session.get_torrent_collecting_dir()
-        thumb_filenames = []
-        for filename in os.listdir(tempdir):
-            filepath = os.path.join(tempdir, filename)
-            if not os.path.isfile(filepath):
-                continue
-            if not (filename.endswith(".jpg") or filename.endswith(".jpeg") or filename.endswith(".png")):
-                continue
-            if os.path.getsize(filepath) < 1024:
-                continue
-            thumb_filenames.append(filepath)
-        if not thumb_filenames:
+    def create_and_seed_metadata_thumbnail(self, thumbnail_file, torrent, modifications, thumb_timecodes=None):
+        if not os.path.isfile(thumbnail_file):
+            self._logger.error(u"not a file: %s", thumbnail_file)
             return
 
-        # Calculate sha1 of the thumbnails.
-        contenthash = hashlib.sha1()
-        for fn in thumb_filenames:
-            with open(fn, 'rb') as fp:
-                contenthash.update(fp.read())
-        contenthash_hex = contenthash.hexdigest()
-
-        # Move files to torcoldir/thumbs-infohash/contenthash.
-        finaldir = os.path.join(torcoldir, 'thumbs-' + binascii.hexlify(torrent.infohash), contenthash_hex)
-        # ignore the folder that has already been downloaded
-        if os.path.exists(finaldir):
-            shutil.rmtree(tempdir)
-        else:
-            shutil.move(tempdir, finaldir)
-        thumb_filenames = [fn.replace(tempdir, finaldir) for fn in thumb_filenames]
-
-        if len(thumb_filenames) == 1:
-            mfplaceholder_path = os.path.join(finaldir, ".mfplaceholder")
-            open(mfplaceholder_path, "a").close()
-            thumb_filenames.append(mfplaceholder_path)
-
-        # Create SwiftDef.
-        sdef = SwiftDef()
-        sdef.set_tracker("127.0.0.1:%d" % session.get_swift_dht_listen_port())
-        for thumbfile in thumb_filenames:
-            if os.path.exists(thumbfile):
-                xi = os.path.relpath(thumbfile, torcoldir)
-                sdef.add_content(thumbfile, xi)
-
-        specpn = sdef.finalize(session.get_swift_path(), destdir=torcoldir)
-        hex_roothash = sdef.get_roothash_as_hex()
-
+        # validate the thumbnail file and save to torrent collecting directory
         try:
-            swift_filename = os.path.join(torcoldir, hex_roothash)
-            shutil.move(specpn, swift_filename)
-            shutil.move(specpn + '.mhash', swift_filename + '.mhash')
-            shutil.move(specpn + '.mbinmap', swift_filename + '.mbinmap')
-        except:
-            self._logger.exception(u"Failed to move swift files: specpn=%s, swift_filename=%s", specpn, swift_filename)
+            img = Image.open(thumbnail_file)
+            fmt = img.format.lower()
+            if fmt not in ("jpeg", "png"):
+                self._logger.error(u"not a JPEG or PNG: %s, %s", img.format, thumbnail_file)
+                return
 
-        return hex_roothash, contenthash_hex
+            with open(thumbnail_file, "rb") as f:
+                data = f.read()
+            thumbnail_hash_str = hexlify(hashlib.sha1(data).digest())
+            file_name = u"%s.%s" % (thumbnail_hash_str, fmt)
+
+            sub_file_path = os.path.join(hexlify(torrent.infohash), file_name)
+            sub_dir_path = os.path.join(self.session.get_torrent_collecting_dir(), hexlify(torrent.infohash))
+            file_path = os.path.join(self.session.get_torrent_collecting_dir(), sub_file_path)
+
+            if not os.path.exists(sub_dir_path):
+                os.mkdir(sub_dir_path)
+
+            if os.path.exists(file_path):
+                self._logger.warn(u"thumbnail %s already exists, no need to copy.", file_path)
+            else:
+                with open(file_path, "wb") as f:
+                    f.write(data)
+
+            modifications.append((u"swift-thumbs", json.dumps((thumb_timecodes, sub_file_path, thumbnail_hash_str))))
+
+            self._logger.debug(u"modifications = %s", modifications)
+            self.torrent_manager.modifyTorrent(torrent, modifications)
+
+        except IOError as e:
+            self._logger.error(u"failed to create thumbnail %s: %s", thumbnail_file, e)
 
     def _create_and_seed_metadata(self, videofile, torrent):
         if prctlimported:
-            prctl.set_name("Tribler" + currentThread().getName())
+            prctl.set_name(u"Tribler" + currentThread().getName())
 
         # skip if we already have a video-info
-        from Tribler.Core.CacheDB.SqliteCacheDBHandler import MetadataDBHandler
-        metadata_db_handler = MetadataDBHandler.getInstance()
+        metadata_db_handler = self.session.open_dbhandler(NTFY_METADATA)
         result_list = metadata_db_handler.getMetdataDateByInfohash(torrent.infohash)
         if result_list:
             for key, _ in result_list:
-                if key == 'video-info':
+                if key == u"video-info":
                     return
 
-        from Tribler.Core.Session import Session
-        self.session = Session.get_instance()
         videoanalyser = self.session.get_video_analyser_path()
 
-        torcoldir = self.session.get_torrent_collecting_dir()
-        thumbdir_root = os.path.join(torcoldir, 'thumbs-' + binascii.hexlify(torrent.infohash))
-
-        if [f for _, _, fn in os.walk(os.path.expanduser(thumbdir_root)) for f in fn if f.startswith('ag_')]:
-            self._logger.debug('create_and_seed_metadata: already downloaded thumbnails for torrent %s', torrent.name)
-            return
-
-        self._logger.debug('create_and_seed_metadata: going to seed metadata for torrent %s', torrent.name)
+        self._logger.debug(u"going to seed metadata for torrent %s", torrent.name)
 
         # Determine duration, bitrate, and resolution from the given videofile.
         duration, bitrate, resolution = get_videoinfo(videofile, videoanalyser)
-        video_info = {'duration': duration,
-                      'bitrate': bitrate,
-                      'resolution': resolution}
+        video_info = {u"duration": duration,
+                      u"bitrate": bitrate,
+                      u"resolution": resolution}
 
-        self._logger.debug('create_and_seed_metadata: FFMPEG - duration = %d, bitrate = %d, resolution = %s', duration, bitrate, resolution)
+        self._logger.debug(u"FFMPEG - duration = %d, bitrate = %d, resolution = %s", duration, bitrate, resolution)
 
         # Generate thumbnails.
-        tempdir = tempfile.mkdtemp()
+        temp_dir = tempfile.mkdtemp()
 
-        thumb_filenames = [os.path.join(tempdir, "ag_" + postfix)
-                           for postfix in ["thumb%d.jpg" % i for i in range(1, 2)]]
+        thumb_filenames = [os.path.join(temp_dir, u"thumb.jpg")]
         thumb_resolutions = [(320, 240)]
         thumb_timecodes = preferred_timecodes(videofile, duration, limit_resolution(resolution, (100, 100)),
                                               videoanalyser, num_samples=15, k=4)
@@ -175,16 +143,10 @@ class TorrentStateManager(object):
             get_thumbnail(videofile, filename, thumb_res, videoanalyser, timecode)
 
             path_exists = os.path.exists(filename)
-            self._logger.debug('create_and_seed_metadata: FFMPEG - thumbnail created = %s, timecode = %d', path_exists, timecode)
+            self._logger.debug(u"FFMPEG - thumbnail created = %s, timecode = %d", path_exists, timecode)
 
         # Create modification
-        modifications = [('video-info', json.dumps(video_info))]
+        modifications = [(u"video-info", json.dumps(video_info))]
 
-        result = self._create_metadata_roothash_and_contenthash(tempdir, torrent)
-        if result:
-            roothash_hex, contenthash_hex = result
-            modifications.append(('swift-thumbs', json.dumps((thumb_timecodes, roothash_hex, contenthash_hex))))
-
-        self._logger.debug('create_and_seed_metadata: modifications = %s', modifications)
-
-        self.torrent_manager.modifyTorrent(torrent, modifications)
+        self.create_and_seed_metadata_thumbnail(thumb_filenames[0], torrent, modifications,
+                                                thumb_timecodes=thumb_timecodes)

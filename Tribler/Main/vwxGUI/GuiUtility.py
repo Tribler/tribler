@@ -12,10 +12,9 @@ from time import time
 from Tribler import LIBRARYNAME
 
 from Tribler.Category.Category import Category
-from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.Search.SearchManager import split_into_keywords
+from Tribler.Core.simpledefs import NTFY_USEREVENTLOG
 
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
@@ -100,7 +99,7 @@ class GUIUtility(object):
             self.torrentsearch_manager = TorrentManager.getInstance(self)
             self.channelsearch_manager = ChannelManager.getInstance()
             self.library_manager = LibraryManager.getInstance(self)
-            self.torrentstate_manager = TorrentStateManager.getInstance()
+            self.torrentstate_manager = TorrentStateManager.getInstance(self.utility.session)
 
             self.torrentsearch_manager.connect(self.utility.session, self.library_manager, self.channelsearch_manager)
             self.channelsearch_manager.connect(self.utility.session, self.library_manager, self.torrentsearch_manager)
@@ -409,11 +408,6 @@ class GUIUtility(object):
                 self.frame.top_bg.searchField.Clear()
                 self.ShowPage('my_files')
 
-        elif input.startswith(SWIFT_URL_SCHEME) or input.startswith("ppsp://"):
-            if self.frame.startDownloadFromSwift(str(input)):
-                self.frame.top_bg.searchField.Clear()
-                self.ShowPage('my_files')
-
         else:
             keywords = split_into_keywords(input)
             keywords = [keyword for keyword in keywords if len(keyword) > 1]
@@ -628,7 +622,7 @@ class GUIUtility(object):
                     wx.CallAfter(self.Notify, "Channel marked as favourite", "Marked channel '%s' as favourite" % channel.name, icon='favourite')
                     if event:
                         button.Enable(True)
-                    UserEventLogDBHandler.getInstance().addEvent(message="User marked a channel as favorite", type=2)
+                    self.utility.session.open_dbhandler(NTFY_USEREVENTLOG).addEvent(message="User marked a channel as favorite", type=2)
                     self.RefreshChannel(channel.id)
                 add_vote()
             elif event:

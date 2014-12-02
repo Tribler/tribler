@@ -47,14 +47,14 @@ class Tunnel(object):
 
     __single = None
 
-    def __init__(self, settings, crawl_keypair_filename=None, swift_port= -1):
+    def __init__(self, settings, crawl_keypair_filename=None, dispersy_port= -1):
         if Tunnel.__single:
             raise RuntimeError("Tunnel is singleton")
         Tunnel.__single = self
 
         self.settings = settings
         self.crawl_keypair_filename = crawl_keypair_filename
-        self.swift_port = swift_port
+        self.dispersy_port = dispersy_port
         self.crawl_data = defaultdict(lambda: [])
         self.crawl_message = {}
         self.current_stats = [0, 0, 0]
@@ -108,19 +108,20 @@ class Tunnel(object):
         config.set_multicast_local_peer_discovery(False)
         config.set_megacache(False)
         config.set_dispersy(True)
-        config.set_swift_proc(True)
-        config.set_mainline_dht(False)
+        config.set_mainline_dht(True)
         config.set_torrent_collecting(False)
         config.set_libtorrent(True)
         config.set_dht_torrent_collecting(False)
         config.set_videoplayer(False)
-        config.set_dispersy_tunnel_over_swift(True)
-        config.set_swift_tunnel_listen_port(self.swift_port)
+        config.set_dispersy_port(self.dispersy_port)
         self.session = Session(config)
+        upgrader = self.session.prestart()
+        while not upgrader.is_done:
+            time.sleep(0.1)
         self.session.start()
-        print >> sys.stderr, "Using port %d for swift tunnel" % self.session.get_swift_tunnel_listen_port()
+        print >> sys.stderr, "Using port %d" % self.session.get_dispersy_port()
 
-    def run(self):
+    def start(self):
         def start_community():
             if self.crawl_keypair_filename:
                 keypair = read_keypair(self.crawl_keypair_filename)
@@ -280,7 +281,7 @@ class LineHandler(LineReceiver):
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
             dscfg.set_hops(2)
-            dscfg.set_dest_dir(os.path.join(os.getcwd(), 'downloader%s' % anon_tunnel.session.get_swift_tunnel_listen_port()))
+            dscfg.set_dest_dir(os.path.join(os.getcwd(), 'downloader%s' % anon_tunnel.session.get_dispersy_port()))
 
             def start_download():
                 def cb(ds):
@@ -312,7 +313,7 @@ def main(argv):
 
     try:
         parser.add_argument('-p', '--socks5', help='Socks5 port')
-        parser.add_argument('-s', '--swift', help='Swift port')
+        parser.add_argument('-d', '--dispersy', help='Dispersy port')
         parser.add_argument('-c', '--crawl', help='Enable crawler and use the keypair specified in the given filename')
         parser.add_argument('-j', '--json', help='Enable JSON api, which will run on the provided port number ' +
                                                  '(only available if the crawler is enabled)', type=int)
@@ -325,7 +326,7 @@ def main(argv):
         sys.exit(2)
 
     socks5_port = int(args.socks5) if args.socks5 else None
-    swift_port = int(args.swift) if args.swift else -1
+    dispersy_port = int(args.dispersy) if args.dispersy else -1
     crawl_keypair_filename = args.crawl
     profile = args.yappi if args.yappi in ['wall', 'cpu'] else None
 
@@ -344,13 +345,16 @@ def main(argv):
     else:
         settings.socks_listen_ports = [random.randint(1000, 65535) for _ in range(5)]
     settings.do_test = False
-    tunnel = Tunnel(settings, crawl_keypair_filename, swift_port)
+    tunnel = Tunnel(settings, crawl_keypair_filename, dispersy_port)
     StandardIO(LineHandler(tunnel, profile))
-    tunnel.run()
+    tunnel.start()
 
     if crawl_keypair_filename and args.json > 0:
         cherrypy.config.update({'server.socket_host': '0.0.0.0', 'server.socket_port': args.json})
         cherrypy.quickstart(tunnel)
+    else:
+        while True:
+            time.sleep(1)
 
 if __name__ == "__main__":
     main(sys.argv[1:])

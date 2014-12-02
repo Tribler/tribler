@@ -11,7 +11,7 @@ from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, DLSTATUS_ALLOCATING_DISKSP
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
 
-class RateManager:
+class RateManager(object):
 
     def __init__(self):
         self._logger = logging.getLogger(self.__class__.__name__)

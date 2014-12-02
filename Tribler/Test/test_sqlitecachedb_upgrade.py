@@ -1,46 +1,50 @@
-import sys
-
-from Tribler.Core.CacheDB import sqlitecachedb
+from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.Session import Session
+from Tribler.Core.SessionConfig import SessionStartupConfig
+from Tribler.Core.Upgrade.db_upgrader import DBUpgrader, VersionNoLongerSupportedError
 from Tribler.Test.bak_tribler_sdb import init_bak_tribler_sdb
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestSqliteCacheDB(AbstractServer):
 
-    @blocking_call_on_reactor_thread
     def setUp(self):
-        AbstractServer.setUp(self)
+        super(TestSqliteCacheDB, self).setUp()
+        self.config = SessionStartupConfig()
+        self.config.set_state_dir(self.getStateDir())
+        self.config.set_torrent_checking(False)
+        self.config.set_multicast_local_peer_discovery(False)
+        self.config.set_megacache(False)
+        self.config.set_dispersy(False)
+        self.config.set_mainline_dht(False)
+        self.config.set_torrent_collecting(False)
+        self.config.set_libtorrent(False)
+        self.config.set_dht_torrent_collecting(False)
+        self.config.set_videoplayer(False)
+        self.session = Session(self.config, ignore_singleton=True)
+        self.sqlitedb = None
 
-        # Speed up upgrade, otherwise this test would take ages.
-        self.original_values = [sqlitecachedb.INITIAL_UPGRADE_PAUSE, sqlitecachedb.SUCCESIVE_UPGRADE_PAUSE, sqlitecachedb.UPGRADE_BATCH_SIZE, sqlitecachedb.TEST_OVERRIDE]
-
-        sqlitecachedb.INITIAL_UPGRADE_PAUSE = 10
-        sqlitecachedb.SUCCESIVE_UPGRADE_PAUSE = 1
-        sqlitecachedb.UPGRADE_BATCH_SIZE = sys.maxsize
-        sqlitecachedb.TEST_OVERRIDE = True
-
-    @blocking_call_on_reactor_thread
     def tearDown(self):
-        if SQLiteCacheDB.hasInstance():
-            SQLiteCacheDB.getInstance().close_all()
-            SQLiteCacheDB.delInstance()
+        super(TestSqliteCacheDB, self).tearDown()
+        if self.sqlitedb:
+            self.sqlitedb.close()
+        self.sqlitedb = None
+        self.session.del_instance()
+        self.session = None
 
-        if Session.has_instance():  # Upgrading will create a session instance
-            Session.del_instance()
+    def test_upgrade_from_obsolete_version(self):
+        """We no longer support DB versions older than 17 (Tribler 6.0)"""
+        dbpath = init_bak_tribler_sdb(u"bak_old_tribler.sdb", destination_path=self.getStateDir(), overwrite=True)
 
-        sqlitecachedb.INITIAL_UPGRADE_PAUSE, sqlitecachedb.SUCCESIVE_UPGRADE_PAUSE, sqlitecachedb.UPGRADE_BATCH_SIZE, sqlitecachedb.TEST_OVERRIDE = self.original_values
-        AbstractServer.tearDown(self)
+        self.sqlitedb = SQLiteCacheDB(Session.get_instance())
+        self.sqlitedb.initialize(dbpath)
 
-    def test_perform_upgrade(self):
-        dbpath = init_bak_tribler_sdb('bak_old_tribler.sdb', destination_path=self.getStateDir(), overwrite=True)
+        db_migrator = DBUpgrader(self.session, self.sqlitedb)
+        self.assertRaises(VersionNoLongerSupportedError, db_migrator.start_migrate)
 
-        # TODO(emilon): Replace this with the database decorator when the database stuff gets its own thread again
-        @blocking_call_on_reactor_thread
-        def do_db():
-            self.sqlitedb = SQLiteCacheDB.getInstance()
-            self.sqlitedb.initDB(dbpath)
-        do_db()
-        self.sqlitedb.waitForUpdateComplete()
+    def test_upgrade_from_17(self):
+        pass
+        # TODO(emilon): Implement that one and 18 22 23
+        # assert sqlitedb.version == LATEST_DB_VERSION, "Database didn't get upgraded to latest version (%s != %s)" % (
+        #     sqlitedb.version, LATEST_DB_VERSION)

@@ -18,20 +18,18 @@ from threading import enumerate as enumerate_threads
 
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 
 from nose.twistedtools import reactor
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
-STATE_DIR = os.path.join(BASE_DIR, "test_.Tribler")
-DEST_DIR = os.path.join(BASE_DIR, "test_TriblerDownloads")
-FILES_DIR = os.path.abspath(os.path.join(BASE_DIR, 'data'))
+STATE_DIR = os.path.join(BASE_DIR, u"test_.Tribler")
+DEST_DIR = os.path.join(BASE_DIR, u"test_TriblerDownloads")
+FILES_DIR = os.path.abspath(os.path.join(BASE_DIR, u"data"))
 
 from Tribler.Core import defaults
 defaults.sessdefaults['general']['state_dir'] = STATE_DIR
 defaults.sessdefaults['general']['minport'] = -1
 defaults.sessdefaults['general']['maxport'] = -1
-defaults.sessdefaults['swift']['swifttunnellistenport'] = -1
 defaults.sessdefaults['dispersy']['dispersy_port'] = -1
 
 defaults.dldefaults["downloadconfig"]["saveas"] = DEST_DIR
@@ -39,6 +37,7 @@ defaults.dldefaults["downloadconfig"]["saveas"] = DEST_DIR
 DEBUG = False
 
 OUTPUT_DIR = os.environ.get('OUTPUT_DIR', 'output')
+
 
 class AbstractServer(unittest.TestCase):
 
@@ -78,18 +77,18 @@ class AbstractServer(unittest.TestCase):
         self.setUpCleanup()
 
     def getStateDir(self, nr=0):
-        dir = STATE_DIR + (str(nr) if nr else '')
-        if not os.path.exists(dir):
-            os.mkdir(dir)
-        if os.path.isfile("bootstraptribler.txt"):
-            shutil.copy("bootstraptribler.txt", os.path.join(dir, "bootstraptribler.txt"))
-        return dir
+        state_dir = STATE_DIR + (str(nr) if nr else '')
+        if not os.path.exists(state_dir):
+            os.mkdir(state_dir)
+        if os.path.isfile(u"bootstraptribler.txt"):
+            shutil.copy(u"bootstraptribler.txt", os.path.join(state_dir, u"bootstraptribler.txt"))
+        return state_dir
 
     def getDestDir(self, nr=0):
-        dir = DEST_DIR + (str(nr) if nr else '')
-        if not os.path.exists(dir):
-            os.mkdir(dir)
-        return dir
+        dest_dir = DEST_DIR + (str(nr) if nr else '')
+        if not os.path.exists(dest_dir):
+            os.mkdir(dest_dir)
+        return dest_dir
 
     def annotate(self, annotation, start=True, destdir=OUTPUT_DIR):
         if not os.path.exists(destdir):
@@ -98,7 +97,7 @@ class AbstractServer(unittest.TestCase):
         if start:
             self.annotate_dict[annotation] = time.time()
         else:
-            filename = os.path.join(destdir, "annotations.txt")
+            filename = os.path.join(destdir, u"annotations.txt")
             if os.path.exists(filename):
                 f = open(filename, 'a')
             else:
@@ -107,7 +106,7 @@ class AbstractServer(unittest.TestCase):
 
             AbstractServer._annotate_counter += 1
             _annotation = re.sub('[^a-zA-Z0-9_]', '_', annotation)
-            _annotation = '%d_' % AbstractServer._annotate_counter + _annotation
+            _annotation = u"%d_" % AbstractServer._annotate_counter + _annotation
 
             print >> f, _annotation, self.annotate_dict[annotation], time.time()
             f.close()
@@ -120,12 +119,16 @@ class TestAsServer(AbstractServer):
     """
 
     def setUp(self):
-        AbstractServer.setUp(self, annotate=False)
+        super(TestAsServer, self).setUp(annotate=False)
         self.setUpPreSession()
 
         self.quitting = False
 
         self.session = Session(self.config)
+        upgrader = self.session.prestart()
+        while not upgrader.is_done:
+            time.sleep(0.1)
+        assert not upgrader.failed, upgrader.current_status
         self.session.start()
 
         self.hisport = self.session.get_listen_port()
@@ -143,7 +146,6 @@ class TestAsServer(AbstractServer):
         self.config.set_multicast_local_peer_discovery(False)
         self.config.set_megacache(False)
         self.config.set_dispersy(False)
-        self.config.set_swift_proc(False)
         self.config.set_mainline_dht(False)
         self.config.set_torrent_collecting(False)
         self.config.set_libtorrent(False)
@@ -166,11 +168,7 @@ class TestAsServer(AbstractServer):
         for t in ts:
             print >> sys.stderr, "test_as_server: Thread still running", t.getName(), "daemon", t.isDaemon(), "instance:", t
 
-        if SQLiteCacheDB.hasInstance():
-            SQLiteCacheDB.getInstance().close_all()
-            SQLiteCacheDB.delInstance()
-
-        AbstractServer.tearDown(self, annotate=False)
+        super(TestAsServer, self).tearDown(annotate=False)
 
     def _shutdown_session(self, session):
         session_shutdown_start = time.time()

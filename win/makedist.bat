@@ -110,8 +110,6 @@ copy Tribler\Core\superpeer.txt dist\installdir\Tribler\Core
 mkdir dist\installdir\Tribler\Core\Statistics
 copy Tribler\Core\Statistics\*.txt dist\installdir\Tribler\Core\Statistics
 copy Tribler\Core\Statistics\*.sql dist\installdir\Tribler\Core\Statistics
-mkdir dist\installdir\Tribler\Core\Tag
-copy Tribler\Core\Tag\*.filter dist\installdir\Tribler\Core\Tag
 
 copy Tribler\Main\Build\Win32\heading.bmp dist\installdir
 
@@ -155,15 +153,6 @@ copy Tribler\Main\webUI\static\lang\*.* dist\installdir\Tribler\Main\webUI\stati
 mkdir dist\installdir\Tribler\Category
 copy Tribler\Category\category.conf dist\installdir\Tribler\Category
 copy Tribler\Category\filter_terms.filter dist\installdir\Tribler\Category
-
-REM Swift
-IF EXIST swift.exe DEL swift.exe
-cd Tribler\SwiftEngine
-REM CALL c:\Python273\Scripts\scons -c
-CALL win32-build.bat
-cd ..\..
-copy swift.exe dist\installdir
-svn ci swift.exe -m "auto-commit during build"
 
 @echo Running NSIS
 cd dist\installdir

@@ -14,12 +14,9 @@ from time import strftime, time
 from traceback import print_exc
 
 from Tribler.Category.Category import Category
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_TUNNEL, \
-    NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, NTFY_EXTENDED_FOR
+from Tribler.Core.simpledefs import (NTFY_TORRENTS, NTFY_CHANNELCAST, NTFY_INSERT, NTFY_TUNNEL, NTFY_CREATED,
+                                     NTFY_MISC, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, NTFY_EXTENDED_FOR)
 from Tribler.Core.Session import Session
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler, \
-    TorrentDBHandler, ChannelCastDBHandler
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
 from Tribler.Main.vwxGUI import SEPARATOR_GREY, DEFAULT_BACKGROUND, LIST_BLUE, THUMBNAIL_FILETYPES
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
@@ -292,10 +289,10 @@ class Stats(wx.Panel):
             traceback.print_exc()
 
     def _printDBStats(self):
-        torrentdb = TorrentDBHandler.getInstance()
-        tables = torrentdb._db.fetchall("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+        sqlite_db = self.guiutility.utility.session.sqlite_db
+        tables = sqlite_db.fetchall("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
         for table, in tables:
-            self._logger.info("%s %s", table, torrentdb._db.fetchone("SELECT COUNT(*) FROM %s" % table))
+            self._logger.info("%s %s", table, sqlite_db.fetchone("SELECT COUNT(*) FROM %s" % table))
 
     def Show(self, show=True):
         if show:
@@ -363,9 +360,9 @@ class NetworkPanel(HomePanel):
     def __init__(self, parent):
         HomePanel.__init__(self, parent, 'Network info', SEPARATOR_GREY, (0, 1))
 
-        self.torrentdb = TorrentDBHandler.getInstance()
-        self.channelcastdb = ChannelCastDBHandler.getInstance()
-        self.remotetorrenthandler = RemoteTorrentHandler.getInstance()
+        self.torrentdb = parent.guiutility.utility.session.open_dbhandler(NTFY_TORRENTS)
+        self.channelcastdb = parent.guiutility.utility.session.open_dbhandler(NTFY_CHANNELCAST)
+        self.remotetorrenthandler = parent.guiutility.utility.session.lm.rtorrent_handler
 
         self.timer = None
 
@@ -468,8 +465,8 @@ class NewTorrentPanel(HomePanel):
         HomePanel.__init__(self, parent, 'Newest Torrents', SEPARATOR_GREY, (0, 1))
         self.Layout()
 
-        self.torrentdb = TorrentDBHandler.getInstance()
-        session = Session.get_instance()
+        session = parent.guiutility.utility.session
+        self.torrentdb = session.open_dbhandler(NTFY_TORRENTS)
         session.add_observer(self.OnNotify, NTFY_TORRENTS, [NTFY_INSERT])
 
     def CreatePanel(self):
@@ -515,8 +512,8 @@ class PopularTorrentPanel(NewTorrentPanel):
         HomePanel.__init__(self, parent, 'Popular Torrents', SEPARATOR_GREY, (1, 0))
         self.Layout()
 
-        self.misc_db = MiscDBHandler.getInstance()
-        self.torrentdb = TorrentDBHandler.getInstance()
+        self.misc_db = parent.guiutility.utility.session.open_dbhandler(NTFY_MISC)
+        self.torrentdb = parent.guiutility.utility.session.open_dbhandler(NTFY_TORRENTS)
 
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._onTimer, self.timer)
@@ -944,7 +941,7 @@ class ArtworkPanel(wx.Panel):
         torrents = delayedResult.get()
 
         for torrent in torrents:
-            thumb_path = os.path.join(self.utility.session.get_torrent_collecting_dir(), 'thumbs-%s' % binascii.hexlify(torrent.infohash))
+            thumb_path = os.path.join(self.utility.session.get_torrent_collecting_dir(), binascii.hexlify(torrent.infohash))
             if os.path.isdir(thumb_path):
                 if not self.guiutility.getFamilyFilter() or not self.IsXXX(torrent, thumb_path):
                     data.append((torrent.infohash, [torrent.name], torrent, ThumbnailListItemNoTorrent))

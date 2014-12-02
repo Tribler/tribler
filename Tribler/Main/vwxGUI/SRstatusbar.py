@@ -1,8 +1,7 @@
 # Written by Niels Zeilemaker
 import wx
 
-from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
+from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, NTFY_USEREVENTLOG
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI import warnWxThread, forceWxThread
@@ -29,7 +28,7 @@ class SRstatusbar(wx.StatusBar):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.library_manager = self.guiutility.library_manager
-        self.uelog = UserEventLogDBHandler.getInstance()
+        self.uelog = self.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
 
         self.ff_checkbox = wx.CheckBox(self, -1, 'Family filter', style=wx.ALIGN_RIGHT)
         self.ff_checkbox.Bind(wx.EVT_CHECKBOX, self.OnCheckbox)

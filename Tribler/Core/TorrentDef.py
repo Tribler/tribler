@@ -93,6 +93,15 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         return TorrentDef._read(f)
     load = staticmethod(load)
 
+    @staticmethod
+    def load_from_memory(data):
+        """ Loads a torrent file that is already in memory.
+        :param data: The torrent file data.
+        :return: A TorrentDef object.
+        """
+        data = bdecode(data)
+        return TorrentDef._create(data)
+
     def _read(stream):
         """ Internal class method that reads a torrent file from stream,
         checks it for correctness and sets self.input and self.metainfo
@@ -100,7 +109,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         bdata = stream.read()
         stream.close()
         data = bdecode(bdata)
-        # print >>sys.stderr,data
         return TorrentDef._create(data)
     _read = staticmethod(_read)
 
@@ -132,7 +140,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
     _create = staticmethod(_create)
 
     @staticmethod
-    def retrieve_from_magnet(url, callback, timeout=30.0, max_connections=30.0, silent=False):
+    def retrieve_from_magnet(url, callback, timeout=30.0, timeout_callback=None, silent=False):
         """
         If the URL conforms to a magnet link, the .torrent info is
         downloaded and converted into a TorrentDef.  The resulting
@@ -149,7 +157,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         assert callable(callback), "CALLBACK must be callable"
 
         def metainfo_retrieved(metadata):
-            tdef = None
             try:
                 tdef = TorrentDef.load_from_dict(metadata)
             except UnicodeDecodeError:
@@ -159,7 +166,8 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             if tdef:
                 callback(tdef)
         if LibtorrentMgr.hasInstance():
-            LibtorrentMgr.getInstance().get_metainfo(url, metainfo_retrieved, timeout)
+            LibtorrentMgr.getInstance().get_metainfo(url, metainfo_retrieved,
+                                                     timeout=timeout, timeout_callback=timeout_callback)
             return True
         return False
 

@@ -1,8 +1,7 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
-""" Simple definitions for the Tribler Core. """
-import os
 
+""" Simple definitions for the Tribler Core. """
 DLSTATUS_ALLOCATING_DISKSPACE = 0  # TODO: make sure this get set when in this alloc mode
 DLSTATUS_WAITING4HASHCHECK = 1
 DLSTATUS_HASHCHECKING = 2
@@ -14,14 +13,14 @@ DLSTATUS_METADATA = 7
 DLSTATUS_CIRCUITS = 8
 
 dlstatus_strings = ['DLSTATUS_ALLOCATING_DISKSPACE',
-    'DLSTATUS_WAITING4HASHCHECK',
-    'DLSTATUS_HASHCHECKING',
-    'DLSTATUS_DOWNLOADING',
-    'DLSTATUS_SEEDING',
-    'DLSTATUS_STOPPED',
-    'DLSTATUS_STOPPED_ON_ERROR',
-    'DLSTATUS_METADATA',
-    'DLSTATUS_CIRCUITS']
+                    'DLSTATUS_WAITING4HASHCHECK',
+                    'DLSTATUS_HASHCHECKING',
+                    'DLSTATUS_DOWNLOADING',
+                    'DLSTATUS_SEEDING',
+                    'DLSTATUS_STOPPED',
+                    'DLSTATUS_STOPPED_ON_ERROR',
+                    'DLSTATUS_METADATA',
+                    'DLSTATUS_CIRCUITS']
 
 UPLOAD = 'up'
 DOWNLOAD = 'down'
@@ -43,7 +42,6 @@ For details see API.py
 STATEDIR_DLPSTATE_DIR = 'dlcheckpoints'
 STATEDIR_PEERICON_DIR = 'icons'
 STATEDIR_TORRENTCOLL_DIR = 'collected_torrent_files'
-STATEDIR_SWIFTRESEED_DIR = os.path.join(STATEDIR_TORRENTCOLL_DIR, 'swift_reseeds')
 
 STATEDIR_SESSCONFIG = 'libtribler.conf'
 
@@ -66,6 +64,8 @@ NTFY_VOTECAST = 'votecast'
 NTFY_CHANNELCAST = 'channelcast'
 NTFY_TUNNEL = 'tunnel'
 NTFY_TRACKERINFO = 'trackerinfo'
+NTFY_USEREVENTLOG = 'usereventlog'
+NTFY_BUNDLERPREFERENCE = "bundlepreference"
 
 # non data handler subjects
 NTFY_ACTIVITIES = 'activities'  # an activity was set (peer met/dns resolved)
@@ -116,7 +116,6 @@ LIVE_AUTHMETHOD_RSA = "RSA"  # RSA signatures
 
 
 P2PURL_SCHEME = "tribe"  # No colon
-SWIFT_URL_SCHEME = "tswift"  # No colon
 
 TRIBLER_TORRENT_EXT = ".tribe"  # Unused
 

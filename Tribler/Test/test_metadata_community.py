@@ -13,10 +13,10 @@ from Tribler.Core.simpledefs import dlstatus_strings
 
 DEBUG = True
 
+
 class TestMetadataCommunity(TestGuiAsServer):
 
     def test_add_metadata(self):
-
         def do_overview():
             self.screenshot('Resulting metadata')
             self.quit()
@@ -43,7 +43,7 @@ class TestMetadataCommunity(TestGuiAsServer):
             self.CallConditional(10, check_for_modifications, lambda: self.Call(5, do_overview), 'No valid channel modifications received')
 
         def do_thumbnails(torrentfilename):
-            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), 'thumbs-8bb88a02da691636a7ed929b87d467f24700e490')
+            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), '8bb88a02da691636a7ed929b87d467f24700e490')
             self.CallConditional(120, lambda: os.path.isdir(thumb_dir) and len(os.listdir(thumb_dir)) > 0, lambda: do_modifications(torrentfilename), 'No thumbnails were created')
 
         def do_download_torrent(torrentfilename):
@@ -60,7 +60,6 @@ class TestMetadataCommunity(TestGuiAsServer):
         self.startTest(do_create_local_torrent)
 
     def startTest(self, callback):
-
         def get_and_modify_dispersy():
             from Tribler.dispersy.endpoint import NullEndpoint
 
@@ -71,7 +70,7 @@ class TestMetadataCommunity(TestGuiAsServer):
 
             callback()
 
-        TestGuiAsServer.startTest(self, get_and_modify_dispersy)
+        super(TestMetadataCommunity, self).startTest(get_and_modify_dispersy)
 
     def setupSeeder(self):
         from Tribler.Core.Session import Session
@@ -82,7 +81,12 @@ class TestMetadataCommunity(TestGuiAsServer):
         self.config.set_libtorrent(True)
 
         self.config2 = self.config.copy()
+
         self.session2 = Session(self.config2, ignore_singleton=True)
+        upgrader = self.session2.prestart()
+        while not upgrader.is_done:
+            time.sleep(0.1)
+        assert not upgrader.failed, upgrader.current_status
         self.session2.start()
 
         tdef = TorrentDef()
@@ -102,10 +106,10 @@ class TestMetadataCommunity(TestGuiAsServer):
     def seeder_state_callback(self, ds):
         d = ds.get_download()
         print >> sys.stderr, "test: seeder:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress()
-        return (5.0, False)
+        return 5.0, False
 
     def setUp(self):
-        TestGuiAsServer.setUp(self)
+        super(TestMetadataCommunity, self).setUp()
         self.session2 = None
 
     def tearDown(self):
@@ -113,4 +117,4 @@ class TestMetadataCommunity(TestGuiAsServer):
             self._shutdown_session(self.session2)
             time.sleep(10)
 
-        TestGuiAsServer.tearDown(self)
+        super(TestMetadataCommunity, self).tearDown()

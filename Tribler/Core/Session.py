@@ -6,18 +6,21 @@ import copy
 import logging
 import os
 import socket
-import sys
 
 from Tribler.Core import NoDispersyRLock
+
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
+from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
+
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
 from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException
 from Tribler.Core.osutils import get_appstate_dir, is_android
 from Tribler.Core.simpledefs import (STATEDIR_TORRENTCOLL_DIR, STATEDIR_PEERICON_DIR, STATEDIR_DLPSTATE_DIR,
-                                     STATEDIR_SWIFTRESEED_DIR, STATEDIR_SESSCONFIG, NTFY_MISC, NTFY_PEERS,
+                                     STATEDIR_SESSCONFIG, NTFY_MISC, NTFY_PEERS, NTFY_BUNDLERPREFERENCE,
                                      NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_UPDATE,
-                                     NTFY_INSERT, NTFY_DELETE, NTFY_METADATA)
+                                     NTFY_USEREVENTLOG, NTFY_INSERT, NTFY_DELETE, NTFY_METADATA)
 
 GOTM2CRYPTO = False
 try:
@@ -90,24 +93,14 @@ class Session(SessionConfigInterface):
 
         set_and_create_dir(scfg.get_state_dir(), scfg.set_state_dir, Session.get_default_state_dir())
         set_and_create_dir(scfg.get_torrent_collecting_dir(), scfg.set_torrent_collecting_dir, os.path.join(scfg.get_state_dir(), STATEDIR_TORRENTCOLL_DIR))
-        set_and_create_dir(scfg.get_swift_meta_dir(), scfg.set_swift_meta_dir, os.path.join(scfg.get_state_dir(), STATEDIR_SWIFTRESEED_DIR))
         set_and_create_dir(scfg.get_peer_icon_path(), scfg.set_peer_icon_path, os.path.join(scfg.get_state_dir(), STATEDIR_PEERICON_DIR))
+
+        create_dir(os.path.join(scfg.get_state_dir(), u"sqlite"))
 
         create_dir(os.path.join(scfg.get_state_dir(), STATEDIR_DLPSTATE_DIR))
 
         if scfg.get_nickname() == '__default_name__':
             scfg.set_nickname(socket.gethostname())
-
-        # SWIFTPROC
-        if scfg.get_swift_path() is None or not os.path.exists(scfg.get_swift_path()):
-            if sys.platform == "win32":
-                swift_path = os.path.join(scfg.get_install_dir(), "swift.exe")
-            elif is_android(strict=True):
-                swift_path = os.path.join(os.environ['ANDROID_PRIVATE'], 'swift')
-            else:
-                swift_path = os.path.join(scfg.get_install_dir(), "swift")
-            self._logger.info("Changing swift_path config var from '%s' to '%s'", str(scfg.get_swift_path()), swift_path)
-            scfg.set_swift_path(swift_path)
 
         if GOTM2CRYPTO:
             permidmod.init()
@@ -144,13 +137,6 @@ class Session(SessionConfigInterface):
         self.get_mainline_dht_listen_port()
         self.get_videoplayer_port()
 
-        self.get_swift_tunnel_listen_port()
-        self.get_swift_tunnel_cmdgw_listen_port()
-        self.get_swift_tunnel_httpgw_listen_port()
-
-        self.get_swift_cmd_listen_port()
-        self.get_swift_dht_listen_port()
-
         self.get_anon_listen_port()
         self.get_tunnel_community_socks5_listen_ports()
 
@@ -160,6 +146,22 @@ class Session(SessionConfigInterface):
 
         # Checkpoint startup config
         self.save_pstate_sessconfig()
+
+        self.sqlite_db = None
+
+    def prestart(self):
+        """ Pre-starts the session. We check the currently version and upgrades if needed
+        before we start everything else.
+        """
+        # initialize the database
+        self.sqlite_db = SQLiteCacheDB(self)
+        self.sqlite_db.initialize()
+        self.sqlite_db.initial_begin()
+
+        # check and upgrade
+        upgrader = TriblerUpgrader(self, self.sqlite_db)
+        upgrader.check_and_upgrade()
+        return upgrader
 
     #
     # Class methods
@@ -205,7 +207,7 @@ class Session(SessionConfigInterface):
     #
     # Public methods
     #
-    def start_download(self, cdef, dcfg=None, initialdlstatus=None, hidden=False):
+    def start_download(self, tdef, dcfg=None, initialdlstatus=None, hidden=False):
         """
         Creates a Download object and adds it to the session. The passed
         ContentDef and DownloadStartupConfig are copied into the new Download
@@ -214,7 +216,7 @@ class Session(SessionConfigInterface):
         If a checkpointed version of the Download is found, that is restarted
         overriding the saved DownloadStartupConfig if "dcfg" is not None.
 
-        @param cdef  A finalized TorrentDef or a SwiftDef
+        @param tdef  A finalized TorrentDef
         @param dcfg DownloadStartupConfig or None, in which case
         a new DownloadStartupConfig() is created with its default settings
         and the result becomes the runtime config of this Download.
@@ -225,17 +227,10 @@ class Session(SessionConfigInterface):
         @return Download
         """
         # locking by lm
-        if cdef.get_def_type() == "torrent":
-            if self.get_libtorrent():
-                return self.lm.add(cdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
-            raise OperationNotEnabledByConfigurationException()
-
-        else:
-            # SWIFTPROC
-            if self.get_swift_proc():
-                return self.lm.swift_add(cdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
-
-            raise OperationNotEnabledByConfigurationException()
+        assert tdef.get_def_type() == "torrent"
+        if self.get_libtorrent():
+            return self.lm.add(tdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
+        raise OperationNotEnabledByConfigurationException()
 
     def resume_download_from_file(self, filename):
         """
@@ -256,13 +251,13 @@ class Session(SessionConfigInterface):
         # locking by lm
         return self.lm.get_downloads()
 
-    def get_download(self, hash):
+    def get_download(self, infohash):
         """
         Returns the Download object for this hash.
         @return A Donwload Object.
         """
         # locking by lm
-        return self.lm.get_download(hash)
+        return self.lm.get_download(infohash)
 
     def remove_download(self, d, removecontent=False, removestate=True, hidden=False):
         """
@@ -278,11 +273,8 @@ class Session(SessionConfigInterface):
         # locking by lm
         if d.get_def().get_def_type() == "torrent":
             self.lm.remove(d, removecontent=removecontent, removestate=removestate, hidden=hidden)
-        else:
-            # SWIFTPROC
-            self.lm.swift_remove(d, removecontent=removecontent, removestate=removestate, hidden=hidden)
 
-    def remove_download_by_id(self, id, removecontent=False, removestate=True):
+    def remove_download_by_id(self, infohash, removecontent=False, removestate=True):
         """
         @param infohash The Download to remove
         @param removecontent Whether to delete the already downloaded content
@@ -293,12 +285,12 @@ class Session(SessionConfigInterface):
         """
         downloadList = self.get_downloads()
         for download in downloadList:
-            if download.get_def().get_id() == id:
+            if download.get_def().get_id() == infohash:
                 self.remove_download(download, removecontent, removestate)
                 return
 
-        self.lm.remove_id(id)
-        self.uch.perform_removestate_callback(id, [])
+        self.lm.remove_id(infohash)
+        self.uch.perform_removestate_callback(infohash, [])
 
     def set_download_states_callback(self, usercallback, getpeerlist=None):
         """
@@ -418,26 +410,27 @@ class Session(SessionConfigInterface):
             raise OperationNotEnabledByConfigurationException()
 
         # Called by any thread
-        self.sesslock.acquire()
-        try:
-            if subject == NTFY_MISC:
-                return self.lm.misc_db
-            elif subject == NTFY_METADATA:
-                return self.lm.metadata_db
-            elif subject == NTFY_PEERS:
-                return self.lm.peer_db
-            elif subject == NTFY_TORRENTS:
-                return self.lm.torrent_db
-            elif subject == NTFY_MYPREFERENCES:
-                return self.lm.mypref_db
-            elif subject == NTFY_VOTECAST:
-                return self.lm.votecast_db
-            elif subject == NTFY_CHANNELCAST:
-                return self.lm.channelcast_db
-            else:
-                raise ValueError('Cannot open DB subject: ' + subject)
-        finally:
-            self.sesslock.release()
+        #with self.sesslock:
+        if subject == NTFY_MISC:
+            return self.lm.misc_db
+        elif subject == NTFY_METADATA:
+            return self.lm.metadata_db
+        elif subject == NTFY_PEERS:
+            return self.lm.peer_db
+        elif subject == NTFY_TORRENTS:
+            return self.lm.torrent_db
+        elif subject == NTFY_MYPREFERENCES:
+            return self.lm.mypref_db
+        elif subject == NTFY_VOTECAST:
+            return self.lm.votecast_db
+        elif subject == NTFY_CHANNELCAST:
+            return self.lm.channelcast_db
+        elif subject == NTFY_USEREVENTLOG:
+            return self.lm.ue_db
+        elif subject == NTFY_BUNDLERPREFERENCE:
+            return self.lm.bundlerpref_db
+        else:
+            raise ValueError(u"Cannot open DB subject: %s" % subject)
 
     def close_dbhandler(self, dbhandler):
         """ Closes the given database connection """
@@ -485,6 +478,9 @@ class Session(SessionConfigInterface):
         # Arno, 2010-08-09: now shutdown after gracetime
         self.uch.shutdown()
 
+        self.sqlite_db.close()
+        self.sqlite_db = None
+
     def has_shutdown(self):
         """ Whether the Session has completely shutdown, i.e., its internal
         threads are finished and it is safe to quit the process the Session
@@ -503,7 +499,7 @@ class Session(SessionConfigInterface):
         finally:
             self.sesslock.release()
 
-    def download_torrentfile(self, infohash=None, roothash=None, usercallback=None, prio=0):
+    def download_torrentfile(self, infohash=None, usercallback=None, prio=0):
         """ Try to download the torrentfile without a known source.
         A possible source could be the DHT.
         If the torrent is succesfully
@@ -518,9 +514,9 @@ class Session(SessionConfigInterface):
         if not self.lm.rtorrent_handler:
             raise OperationNotEnabledByConfigurationException()
 
-        self.lm.rtorrent_handler.download_torrent(None, infohash, roothash, usercallback, prio)
+        self.lm.rtorrent_handler.download_torrent(None, infohash, user_callback=usercallback, priority=prio)
 
-    def download_torrentfile_from_peer(self, candidate, infohash=None, roothash=None, usercallback=None, prio=0):
+    def download_torrentfile_from_peer(self, candidate, infohash=None, usercallback=None, prio=0):
         """ Ask the designated peer to send us the torrentfile for the torrent
         identified by the passed infohash. If the torrent is succesfully
         received, the usercallback method is called with the infohash as first
@@ -536,7 +532,7 @@ class Session(SessionConfigInterface):
         if not self.lm.rtorrent_handler:
             raise OperationNotEnabledByConfigurationException()
 
-        self.lm.rtorrent_handler.download_torrent(candidate, infohash, roothash, usercallback, prio)
+        self.lm.rtorrent_handler.download_torrent(candidate, infohash, user_callback=usercallback, priority=prio)
 
     def download_torrentmessage_from_peer(self, candidate, infohash, usercallback, prio=0):
         """ Ask the designated peer to send us the torrentmessage for the torrent
@@ -561,12 +557,6 @@ class Session(SessionConfigInterface):
             raise OperationNotEnabledByConfigurationException()
 
         return self.lm.dispersy
-
-    def get_swift_process(self):
-        if not self.get_swift_proc():
-            raise OperationNotEnabledByConfigurationException()
-
-        return self.lm.swift_process
 
     def get_libtorrent_process(self):
         if not self.get_libtorrent():

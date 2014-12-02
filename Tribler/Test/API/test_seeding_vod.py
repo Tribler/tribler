@@ -13,24 +13,25 @@ class TestVODSeeding(TestSeeding):
     Testing seeding via new tribler API:
     """
     def setUp(self):
-        TestSeeding.setUp(self)
+        super(TestVODSeeding, self).setUp()
         self.vod_event = threading.Event()
 
     def setup_seeder(self, filename='video.avi'):
-        TestSeeding.setup_seeder(self, filename)
+        super(TestVODSeeding, self).setup_seeder(filename)
 
     def subtest_download(self):
         self.dscfg2.set_mode(DLMODE_VOD)
-        TestSeeding.subtest_download(self)
+        super(TestVODSeeding, self).subtest_download()
         assert self.vod_event.wait(60)
 
     def downloader_state_callback(self, ds):
         d = ds.get_download()
-        print >> sys.stderr, "test: download:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress(), ds.get_vod_prebuffering_progress()
+        print >> sys.stderr, "test: download:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()],\
+            ds.get_progress(), ds.get_vod_prebuffering_progress()
 
         if ds.get_progress() > 0:
             self.downloading_event.set()
         if ds.get_vod_prebuffering_progress() == 1.0:
             self.vod_event.set()
 
-        return (1.0, False)
+        return 1.0, False

@@ -17,14 +17,28 @@ from payload import MetadataPayload
 
 class MetadataCommunity(Community):
 
-    def initialize(self, integrate_with_tribler=True):
-        self._integrate_with_tribler = integrate_with_tribler
+    def __init__(self, *args, **kwargs):
+        super(MetadataCommunity, self).__init__(*args, **kwargs)
+
+        self.tribler_session = None
+        self._integrate_with_tribler = None
+
+        self._metadata_db = None
+        self._torrent_db = None
+        self._rth = None
+
+    def initialize(self, tribler_session=None):
+        self.tribler_session = tribler_session
+        self._integrate_with_tribler = tribler_session is not None
 
         if self._integrate_with_tribler:
-            from Tribler.Core.CacheDB.SqliteCacheDBHandler import MetadataDBHandler, TorrentDBHandler
+            from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_METADATA
             # tribler channelcast database
-            self._metadata_db = MetadataDBHandler.getInstance()
-            self._torrent_db = TorrentDBHandler.getInstance()
+            self._metadata_db = self.tribler_session.open_dbhandler(NTFY_METADATA)
+            self._torrent_db = self.tribler_session.open_dbhandler(NTFY_TORRENTS)
+
+            self._rth = self.tribler_session.lm.rtorrent_handler
+
         else:
             self._metadata_db = MetadataDBStub(self._dispersy)
 
@@ -32,18 +46,18 @@ class MetadataCommunity(Community):
 
     @classmethod
     def get_master_members(cls, dispersy):
-# generated: Tue Jul 29 17:03:28 2014
+# generated: Mon Nov 17 11:19:01 2014
 # curve: NID_sect571r1
 # len: 571 bits ~ 144 bytes signature
-# pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000400dd38ab50c9fe890ecee3ba62160b04005daf493f342d974989a6ebc1ce5203204b22835ebe613ecd4b83d20639dd7607fccc8f70d09ad930689066c597b23ba8f567bff13f32c9053928baa4660b3ce725bb0f773044befeed3a5fb6367cef40542980767d9ebc0ac7d1d96e2dbdc6d65d0a7694684b18fe396d81723bd518f4d5ba5e579d5f4750c4132137ce1a8d
-# pub-sha1 e625e8177ce1f344fc4be72bada996a8ff0220f3
+# pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000406e2f91e7224247bb093be6a1fa42edc825c7d99d1e53a6529f8b8ff406b85cd3f934747972a5c808ab218e293a4a6c95e745dc54cc0b435e5a7936f5e34ba5351e525fc101479190202da7857c4aaae6ca067ea1236b04c0381786b419b26e5291780471cfe4d2f35638cea522fc3ac89f3646ddf8894e275120b77c1e1f3a9dbf1eeff32e619a4955d4f00e17d0f45
+# pub-sha1 d8f6723cf160dc95662174e0414c29964fe9bb23
 # -----BEGIN PUBLIC KEY-----
-# MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQA3TirUMn+iQ7O47piFgsEAF2vST80
-# LZdJiabrwc5SAyBLIoNevmE+zUuD0gY53XYH/MyPcNCa2TBokGbFl7I7qPVnv/E/
-# MskFOSi6pGYLPOcluw93MES+/u06X7Y2fO9AVCmAdn2evArH0dluLb3G1l0KdpRo
-# Sxj+OW2BcjvVGPTVul5XnV9HUMQTITfOGo0=
+# MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQG4vkeciQke7CTvmofpC7cglx9mdHl
+# OmUp+Lj/QGuFzT+TR0eXKlyAirIY4pOkpsledF3FTMC0NeWnk29eNLpTUeUl/BAU
+# eRkCAtp4V8SqrmygZ+oSNrBMA4F4a0GbJuUpF4BHHP5NLzVjjOpSL8OsifNkbd+I
+# lOJ1Egt3weHzqdvx7v8y5hmklV1PAOF9D0U=
 # -----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000400dd38ab50c9fe890ecee3ba62160b04005daf493f342d974989a6ebc1ce5203204b22835ebe613ecd4b83d20639dd7607fccc8f70d09ad930689066c597b23ba8f567bff13f32c9053928baa4660b3ce725bb0f773044befeed3a5fb6367cef40542980767d9ebc0ac7d1d96e2dbdc6d65d0a7694684b18fe396d81723bd518f4d5ba5e579d5f4750c4132137ce1a8d".decode("HEX")
+        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000406e2f91e7224247bb093be6a1fa42edc825c7d99d1e53a6529f8b8ff406b85cd3f934747972a5c808ab218e293a4a6c95e745dc54cc0b435e5a7936f5e34ba5351e525fc101479190202da7857c4aaae6ca067ea1236b04c0381786b419b26e5291780471cfe4d2f35638cea522fc3ac89f3646ddf8894e275120b77c1e1f3a9dbf1eeff32e619a4955d4f00e17d0f45".decode("HEX")
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
@@ -73,9 +87,9 @@ class MetadataCommunity(Community):
                     self.on_metadata),
         ]
 
-    def create_metadata_message(self, infohash, roothash, data_list):
-        columns = ("previous_global_time", "previous_mid", "this_global_time", "this_mid", "message_id")
-        result_list = self._metadata_db.getMetadataMessageList(infohash, roothash, columns)
+    def create_metadata_message(self, infohash, data_list):
+        columns = (u"previous_global_time", u"previous_mid", u"this_global_time", u"this_mid", u"message_id")
+        result_list = self._metadata_db.getMetadataMessageList(infohash, columns)
 
         prev_mid = None
         prev_global_time = None
@@ -93,7 +107,7 @@ class MetadataCommunity(Community):
             # check duplicates
             for data in prev_data_list:
                 if data in merged_data_set:
-                    self._logger.warn("Duplicate key in new and old data-list: %s", data[0])
+                    self._logger.warn(u"Duplicate key in new and old data-list: %s", data[0])
             # merge
             merged_data_set.update(prev_data_list)
             merged_data_list = list(merged_data_set)
@@ -106,7 +120,7 @@ class MetadataCommunity(Community):
         meta = self.get_meta_message(u"metadata")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.claim_global_time(),),
-                            payload=(infohash, roothash, merged_data_list, prev_mid, prev_global_time))
+                            payload=(infohash, merged_data_list, prev_mid, prev_global_time))
         self.__log(-1, message)
         self._dispersy.store_update_forward([message], True, True, True)
 
@@ -118,44 +132,36 @@ class MetadataCommunity(Community):
                 continue
 
             infohash = message.payload.infohash
-            roothash = message.payload.roothash
 
             if infohash:
                 do_continue = False
                 for key, value in message.payload.data_list:
-                    if key.startswith("swift-"):
-                        data_type = key.split('-', 1)[1]
+                    if key == u"swift-thumbs":
+                        _, sub_file_path, thumbnail_hash_str = json.loads(value)
 
-                        _, roothash, contenthash = json.loads(value)
-                        roothash = binascii.unhexlify(roothash)
-                        contenthash = binascii.unhexlify(contenthash)
-
-                        from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
-                        th_handler = RemoteTorrentHandler.getInstance()
-                        if not th_handler.has_metadata(data_type, infohash, contenthash):
-                            self._logger.debug("Will try to download %s with roothash %s from %s",
-                                               key, roothash.encode("HEX"), message.candidate.sock_addr[0])
+                        if not self._rth.has_metadata(infohash, sub_file_path):
+                            self._logger.debug(u"try to download %s with %s from %s", key, thumbnail_hash_str,
+                                               message.candidate.sock_addr[0], message.candidate.sock_addr[1])
 
                             @call_on_reactor_thread
                             def callback(_, msg=message):
                                 self.on_messages([msg])
-                                msg_metadata = {'infohash': msg.payload.infohash,
-                                                'roothash': msg.payload.roothash,
-                                                'data_list': msg.payload.data_list[:]
+                                msg_metadata = {u"infohash": msg.payload.infohash,
+                                                u"data_list": msg.payload.data_list[:]
                                                 }
                                 if self._integrate_with_tribler:
-                                    th_handler.session.uch.perform_usercallback(
+                                    self._rth.session.uch.perform_usercallback(
                                         lambda metadata=msg_metadata: self._check_metadata_thumbs(metadata))
 
-                            th_handler.download_metadata(data_type, message.candidate,
-                                                         roothash, infohash, contenthash,
-                                                         timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
+                            self._rth.download_metadata(message.candidate, infohash, sub_file_path,
+                                                        timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
                             do_continue = True
                             break
 
                         else:
-                            self._logger.debug("No need to download thumbs with roothash %s from %s, already on disk",
-                                               roothash.encode("HEX"), message.candidate.sock_addr[0])
+                            self._logger.debug(u"metadata %s already on disk, no need to download from %s:%s",
+                                               thumbnail_hash_str,
+                                               message.candidate.sock_addr[0], message.candidate.sock_addr[1])
 
                 if do_continue:
                     continue
@@ -163,48 +169,21 @@ class MetadataCommunity(Community):
             yield message
 
     def _check_metadata_thumbs(self, metadata):
-        #from Tribler.Category.Category import Category
-        #if not Category.getInstance().family_filter_enabled():
-        #    return
-
-        import os
-        from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
-        th_handler = RemoteTorrentHandler.getInstance()
         from Tribler.Core.Video.VideoUtility import considered_xxx
 
         # check the thumbnails if they are good
-        infohash = metadata['infohash']
-        roothash = metadata['roothash']
-        for key, value in metadata['data_list']:
-            if not key.startswith("swift-"):
-                continue
-            data_type = key.split('-', 1)[1]
-            if data_type != 'thumbs':
+        infohash = metadata[u"infohash"]
+        for key, value in metadata[u"data_list"]:
+            if key != u"swift-thumbs":
                 continue
 
-            _, __, contenthash = json.loads(value)
-            contenthash = binascii.unhexlify(contenthash)
+            _, sub_file_path, thumbnail_hash_str = json.loads(value)
 
             # check if there is xxx thumbnail
-            has_xxx = False
-            metadata_dir = th_handler.get_metadata_dir(data_type, infohash, contenthash)
-            if not os.path.isdir(metadata_dir):
-                continue
-
-            for thumb in os.listdir(metadata_dir):
-                if thumb == ".mfplaceholder":
-                    continue
-                try:
-                    thumb_path = os.path.join(metadata_dir, thumb)
-                    if considered_xxx(thumb_path):
-                        has_xxx = True
-                        break
-                except:
-                    pass
-
-            # delete the thumbnails if the family filter is enabled
-            if has_xxx:
-                th_handler.delete_metadata(data_type, infohash, roothash, contenthash)
+            metadata_filepath = self._rth.get_metadata_path(infohash, sub_file_path)
+            if considered_xxx(metadata_filepath):
+                # delete the thumbnails if the family filter is enabled
+                self._rth.delete_metadata(infohash, thumbnail_hash_str)
                 break
 
     def on_metadata(self, messages):
@@ -219,27 +198,26 @@ class MetadataCommunity(Community):
         global_time = message.distribution.global_time
         mid = binascii.hexlify(message.authentication.member.mid)[:7]
         infohash = binascii.hexlify(message.payload.infohash)[:7] if message.payload.infohash else None
-        roothash = binascii.hexlify(message.payload.roothash)[:7] if message.payload.roothash else None
 
         if count == 0:
-            self._logger.debug("ACCEPT ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s %s]",
+            self._logger.debug(u"ACCEPT ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s]",
                                message.candidate.sock_addr[0], message.candidate.sock_addr[1],
-                               global_time, mid, prev_global_time, prev_mid, infohash, roothash)
+                               global_time, mid, prev_global_time, prev_mid, infohash)
         elif count == -1:
-            self._logger.debug("CREATE member[%s %s] msg[(%s %s)->(%s %s)]",
-                               global_time, mid, prev_global_time, prev_mid, infohash, roothash)
+            self._logger.debug(u"CREATE member[(%s %s)->(%s %s)] msg[%s]",
+                               global_time, mid, prev_global_time, prev_mid, infohash)
         elif count == -2:
-            self._logger.debug("IGNORE ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s %s]",
+            self._logger.debug(u"IGNORE ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s]",
                                message.candidate.sock_addr[0], message.candidate.sock_addr[1],
-                               global_time, mid, prev_global_time, prev_mid, infohash, roothash)
+                               global_time, mid, prev_global_time, prev_mid, infohash)
         elif count >= 100:
-            self._logger.debug("CUSTOM ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s %s] | %s",
+            self._logger.debug(u"CUSTOM ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s] | %s",
                                message.candidate.sock_addr[0], message.candidate.sock_addr[1],
-                               global_time, mid, prev_global_time, prev_mid, infohash, roothash, info_str)
+                               global_time, mid, prev_global_time, prev_mid, infohash, info_str)
         else:
-            self._logger.debug("DROP[%d] ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s %s]",
+            self._logger.debug(u"DROP[%d] ip[%s:%s] member[(%s %s)->(%s %s)] msg[%s]",
                                count, message.candidate.sock_addr[0], message.candidate.sock_addr[1],
-                               global_time, mid, prev_global_time, prev_mid, infohash, roothash)
+                               global_time, mid, prev_global_time, prev_mid, infohash)
 
     def custom_callback_check(self, unique, times, message):
         """
@@ -253,7 +231,6 @@ class MetadataCommunity(Community):
         assert isinstance(unique, set)
         assert isinstance(times, dict)
         assert isinstance(message, Message.Implementation)
-
         # check UNIQUE
         key = (message.authentication.member.database_id, message.distribution.global_time)
         if key in unique:
@@ -273,15 +250,14 @@ class MetadataCommunity(Community):
 
             tim = times[message.authentication.member.database_id]
 
-            if message.distribution.global_time in tim and \
-                    self._dispersy._is_duplicate_sync_message(message):
+            if message.distribution.global_time in tim and self._dispersy._is_duplicate_sync_message(message):
                 self.__log(2, message)
                 return DropMessage(message, "duplicate message by member^global_time (3)")
 
             # select the metadata messages from DB
             message_list = self._metadata_db.getMetadataMessageList(
-                message.payload.infohash, message.payload.roothash,
-                ("previous_global_time", "previous_mid", "this_global_time", "this_mid", "dispersy_id"))
+                message.payload.infohash,
+                (u"previous_global_time", u"previous_mid", u"this_global_time", u"this_mid", u"dispersy_id"))
 
             if message.payload.prev_mid:
                 prev_mid = message.payload.prev_mid
@@ -330,7 +306,7 @@ class MetadataCommunity(Community):
         to_clear_set = set()
         value_list = []
         for message in messages:
-            to_clear_set.add((message.payload.infohash, message.payload.roothash))
+            to_clear_set.add(message.payload.infohash)
 
             dispersy_id = message.packet_id
             this_global_time = message.distribution.global_time
@@ -339,8 +315,7 @@ class MetadataCommunity(Community):
             # insert new metadata message
             message_id = self._metadata_db.addAndGetIDMetadataMessage(
                 dispersy_id, this_global_time, this_mid,
-                message.payload.infohash, message.payload.roothash,
-                message.payload.prev_mid, message.payload.prev_global_time)
+                message.payload.infohash, message.payload.prev_mid, message.payload.prev_global_time)
 
             # new metadata data to insert
             for key, value in message.payload.data_list:
@@ -350,9 +325,9 @@ class MetadataCommunity(Community):
 
         # STEP 2: cleanup and update metadataData
         sync_id_list = []
-        for to_clear_infohash, to_clear_roothash in to_clear_set:
+        for to_clear_infohash in to_clear_set:
             message_list = self._metadata_db.getMetadataMessageList(
-                to_clear_infohash, to_clear_roothash,
+                to_clear_infohash,
                 ("previous_global_time", "previous_mid", "this_global_time", "this_mid", "dispersy_id"))
 
             # compare previous pointers
@@ -381,10 +356,10 @@ class MetadataDBStub(object):
     def getAllMetadataMessage(self):
         return self._metadata_message_db_list
 
-    def getMetadataMessageList(self, infohash, roothash, columns):
+    def getMetadataMessageList(self, infohash, columns):
         message_list = []
         for data in self._metadata_message_db_list:
-            if data["infohash"] != infohash or data["roothash"] != roothash:
+            if data["infohash"] != infohash:
                 continue
 
             message = []
@@ -395,14 +370,13 @@ class MetadataDBStub(object):
 
         return message_list
 
-    def addAndGetIDMetadataMessage(self, dispersy_id, this_global_time, this_mid,
-            infohash, roothash, prev_mid=None, prev_global_time=None):
+    def addAndGetIDMetadataMessage(self, dispersy_id, this_global_time, this_mid, infohash,
+                                   prev_mid=None, prev_global_time=None):
         data = {"message_id": self._auto_message_id,
                 "dispersy_id": dispersy_id,
                 "this_global_time": this_global_time,
                 "this_mid": this_mid,
                 "infohash": infohash,
-                "roothash": roothash,
                 "previous_mid": prev_mid,
                 "previous_global_time": prev_global_time}
         self._metadata_message_db_list.append(data)

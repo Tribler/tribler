@@ -4,7 +4,6 @@
 # Note for Developers: Please write a unittest in Tribler/Test/test_sqlitecachedbhandler.py
 # for any function you add to database.
 # Please reuse the functions in sqlitecachedb as much as possible
-import binascii
 import logging
 import os
 import threading
@@ -13,33 +12,23 @@ from binascii import hexlify
 from copy import deepcopy
 from random import sample
 from struct import unpack_from
-from threading import RLock, Lock
+from threading import Lock
 from time import time
 from traceback import print_exc
+from collections import OrderedDict
 
-from twisted.internet.base import DelayedCall
-from twisted.internet.defer import Deferred
 from twisted.internet.task import LoopingCall
 
-from Notifier import Notifier
-from Tribler.Category.Category import Category
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, bin2str, str2bin
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+from Tribler.Core.CacheDB.Notifier import Notifier
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.Search.SearchManager import split_into_keywords, filter_keywords
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.simpledefs import (INFOHASH_LENGTH, NTFY_PEERS, NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_CREATE,
                                      NTFY_MODIFIED, NTFY_TRACKERINFO, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_TORRENTS,
-                                     NTFY_CHANNELCAST, NTFY_COMMENTS, NTFY_PLAYLISTS, NTFY_MODIFICATIONS,
+                                     NTFY_CHANNELCAST, NTFY_COMMENTS, NTFY_PLAYLISTS, NTFY_MODIFICATIONS, NTFY_MISC,
                                      NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_STATE)
 from Tribler.dispersy.taskmanager import TaskManager
-
-
-try:
-    # python 2.7 only...
-    from collections import OrderedDict
-except ImportError:
-    from Tribler.dispersy.python27_ordereddict import OrderedDict
 
 try:
     WindowsError
@@ -74,67 +63,48 @@ class LimitedOrderedDict(OrderedDict):
 
 
 class BasicDBHandler(TaskManager):
-    _singleton_lock = RLock()
-    _single = None
 
-    def __init__(self, db, table_name):  # # self, table_name
+    def __init__(self, session, table_name):
         super(BasicDBHandler, self).__init__()
-
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self._db = db  # # SQLiteCacheDB.getInstance()
+        self.session = session
+        self._db = self.session.sqlite_db
         self.table_name = table_name
         self.notifier = Notifier.getInstance()
 
-    @classmethod
-    def getInstance(cls, *args, **kargs):
-        with cls._singleton_lock:
-            if not cls._single:
-                cls._single = cls(*args, **kargs)
-            return cls._single
-
-    @classmethod
-    def delInstance(cls):
-        with cls._singleton_lock:
-            if cls._single:
-                # cancel all pending tasks
-                cls._single.cancel_all_pending_tasks()
-                cls._single = None
-
-    @classmethod
-    def hasInstance(cls):
-        return cls._single is not None
+    def initialize(self, *args, **kwargs):
+        """
+        Initializes this DBHandler.
+        """
+        pass
 
     def close(self):
         self.cancel_all_pending_tasks()
 
-        try:
-            self._db.close()
-        except:
-            if SHOW_ERROR:
-                print_exc()
-
     def size(self):
         return self._db.size(self.table_name)
 
-    def getOne(self, value_name, where=None, conj='and', **kw):
+    def getOne(self, value_name, where=None, conj=u"AND", **kw):
         return self._db.getOne(self.table_name, value_name, where=where, conj=conj, **kw)
 
-    def getAll(self, value_name, where=None, group_by=None, having=None, order_by=None, limit=None, offset=None, conj='and', **kw):
+    def getAll(self, value_name, where=None, group_by=None, having=None, order_by=None, limit=None, offset=None, conj=u"AND", **kw):
         return self._db.getAll(self.table_name, value_name, where=where, group_by=group_by, having=having, order_by=order_by, limit=limit, offset=offset, conj=conj, **kw)
 
 
 class MiscDBHandler(BasicDBHandler):
 
-    def __init__(self):
-        if MiscDBHandler._single:
-            raise RuntimeError("MiscDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, None)
+    def __init__(self, session):
+        super(MiscDBHandler, self).__init__(session, None)
 
-        self.initialize()
+        self._torrent_status_name2id_dict = None
+        self._torrent_status_id2name_dict = None
+        self._category_name2id_dict = None
+        self._category_id2name_dict = None
+        self._torrent_source_name2id_dict = None
+        self._torrent_source_id2name_dict = None
 
-    def initialize(self):
+    def initialize(self, *args, **kwargs):
         # initialize TorrentStatus name-ID tables
         self._torrent_status_name2id_dict = {u'unknown': 0, u'good': 1, u'dead': 2}
         sql = u'SELECT LOWER(name), status_id FROM TorrentStatus'
@@ -143,12 +113,11 @@ class MiscDBHandler(BasicDBHandler):
 
         self._torrent_status_id2name_dict = \
             dict([(x, y) for (y, x) in self._torrent_status_name2id_dict.iteritems()])
-        self._torrent_status_id2name_dict[None] = 'unknown'
+        self._torrent_status_id2name_dict[None] = u"unknown"
 
         # initialize Category name-ID tables
-        self._category_name2id_dict = { u'Video': 1, u'VideoClips': 2,
-            u'Audio': 3, u'Compressed': 4, u'Document': 5,
-            u'Picture': 6, u'xxx': 7, u'other': 8, }
+        self._category_name2id_dict = {u'Video': 1, u'VideoClips': 2, u'Audio': 3, u'Compressed': 4, u'Document': 5,
+                                       u'Picture': 6, u'xxx': 7, u'other': 8, }
         sql = u'SELECT LOWER(name), category_id FROM Category'
         ct = self._db.fetchall(sql)
         self._category_name2id_dict.update(dict(ct))
@@ -196,7 +165,7 @@ class MiscDBHandler(BasicDBHandler):
 
     def _addSource(self, source):
         desc = u''
-        if source.startswith('http') and source.endswith('xml'):
+        if source.startswith(u"http") and source.endswith(u"xml"):
             desc = u'RSS'
         self._db.insert(u'TorrentSource', name=source, description=desc)
         source_id = self._db.getOne(u'TorrentSource', u'source_id', name=source)
@@ -205,26 +174,34 @@ class MiscDBHandler(BasicDBHandler):
 
 class MetadataDBHandler(BasicDBHandler):
 
-    def __init__(self):
-        if MetadataDBHandler._single:
-            raise RuntimeError("MetadataDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, None)
-        self.category = Category.getInstance()
-        self.misc_db = MiscDBHandler.getInstance()
-        self.torrent_db = TorrentDBHandler.getInstance()
+    def __init__(self, session):
+        super(MetadataDBHandler, self).__init__(session, None)
 
-    def getMetadataMessageList(self, infohash, roothash, columns):
+        self.category = None
+        self.misc_db = None
+        self.torrent_db = None
+
+    def initialize(self, *args, **kwargs):
+        self.category = self.session.lm.cat
+        self.misc_db = self.session.open_dbhandler(NTFY_MISC)
+        self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+
+    def close(self):
+        super(MetadataDBHandler, self).close()
+        self.category = None
+        self.misc_db = None
+        self.torrent_db = None
+
+    def getMetadataMessageList(self, infohash, columns):
         """
         Gets a list of metadata messages with the given hash-type and
         hash-value.
         """
         infohash_str = bin2str(infohash) if infohash else None
-        roothash_str = bin2str(roothash) if roothash else None
 
-        column_str = ",".join(columns)
-        sql = "SELECT %s FROM MetadataMessage WHERE infohash = ? OR roothash = ?" % column_str
-        raw_result_list = self._db.fetchall(sql, (infohash_str, roothash_str))
+        column_str = u",".join(columns)
+        sql = u"SELECT %s FROM MetadataMessage WHERE infohash = ?" % column_str
+        raw_result_list = self._db.fetchall(sql, (infohash_str,))
 
         processed_result_list = []
         if raw_result_list:
@@ -236,8 +213,6 @@ class MetadataDBHandler(BasicDBHandler):
                         this_result.append(None)
 
                     elif column == "infohash":
-                        this_result.append(str2bin(raw_result[idx]))
-                    elif column == "roothash":
                         this_result.append(str2bin(raw_result[idx]))
                     elif column == "this_mid":
                         this_result.append(str(raw_result[idx]))
@@ -251,7 +226,7 @@ class MetadataDBHandler(BasicDBHandler):
         return processed_result_list
 
     def addAndGetIDMetadataMessage(self, dispersy_id, this_global_time, this_mid,
-            infohash, roothash, prev_mid=None, prev_global_time=None):
+            infohash, prev_mid=None, prev_global_time=None):
         """
         Adds a Metadata message and get its message ID.
         """
@@ -259,16 +234,13 @@ class MetadataDBHandler(BasicDBHandler):
         prev_mid_str = buffer(prev_mid) if prev_mid else None
 
         infohash_str = bin2str(infohash) if infohash else None
-        roothash_str = bin2str(roothash) if roothash else None
 
-        sql = """INSERT INTO MetadataMessage(dispersy_id, this_global_time,
-                this_mid, infohash, roothash, previous_mid, previous_global_time)
-            VALUES(?, ?, ?, ?, ?, ?, ?);
+        sql = u"""INSERT INTO MetadataMessage(dispersy_id, this_global_time,
+                this_mid, infohash, previous_mid, previous_global_time)
+            VALUES(?, ?, ?, ?, ?, ?);
             SELECT last_insert_rowid();
         """
-        values = (dispersy_id, this_global_time, this_mid_str,
-            infohash_str, roothash_str,
-            prev_mid_str, prev_global_time)
+        values = (dispersy_id, this_global_time, this_mid_str, infohash_str, prev_mid_str, prev_global_time)
 
         result = self._db.fetchone(sql, values)
         self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
@@ -278,15 +250,15 @@ class MetadataDBHandler(BasicDBHandler):
         """
         Adds metadata data in batch.
         """
-        sql = "INSERT INTO MetadataData(message_id, data_key, data_value) VALUES(?, ?, ?)"
+        sql = u"INSERT INTO MetadataData(message_id, data_key, data_value) VALUES(?, ?, ?)"
         self._db.executemany(sql, value_tuple_list)
 
     def deleteMetadataMessage(self, dispersy_id):
-        sql = "DELETE FROM MetadataMessage WHERE dispersy_id = ?"
+        sql = u"DELETE FROM MetadataMessage WHERE dispersy_id = ?"
         self._db.execute_write(sql, (dispersy_id,))
 
     def getMetdataDateByInfohash(self, infohash):
-        sql = """
+        sql = u"""
         SELECT data.data_key, data.data_value
         FROM MetadataMessage as msg, MetadataData as data
         WHERE msg.infohash = ? AND msg.message_id = data.message_id
@@ -295,16 +267,16 @@ class MetadataDBHandler(BasicDBHandler):
         return result
 
     def getMetadataData(self, message_id):
-        sql = "SELECT data_key, data_value FROM MetadataData WHERE message_id = ?"
+        sql = u"SELECT data_key, data_value FROM MetadataData WHERE message_id = ?"
         result = self._db.fetchall(sql, (message_id,))
         return result
 
     def getThumbnailTorrents(self, keys, limit=20):
-        sql = "SELECT " + ", ".join(keys) + " FROM Torrent, MetadataData, MetadataMessage WHERE MetadataData.message_id = MetadataMessage.message_id AND MetadataMessage.infohash = Torrent.infohash AND data_key='swift-thumbs' AND Torrent.name <> '' AND Torrent.name IS NOT NULL " + self.category.get_family_filter_sql(self.misc_db.categoryName2Id) + " GROUP BY MetadataMessage.infohash ORDER BY this_global_time DESC LIMIT ?"
+        sql = u"SELECT " + u", ".join(keys) + u" FROM Torrent, MetadataData, MetadataMessage WHERE MetadataData.message_id = MetadataMessage.message_id AND MetadataMessage.infohash = Torrent.infohash AND data_key='swift-thumbs' AND Torrent.name <> '' AND Torrent.name IS NOT NULL " + self.category.get_family_filter_sql(self.misc_db.categoryName2Id) + " GROUP BY MetadataMessage.infohash ORDER BY this_global_time DESC LIMIT ?"
         return self._getThumbnailTorrents(sql, keys, limit)
 
     def getNotCollectedThumbnailTorrents(self, keys, limit=20):
-        sql = "SELECT " + ", ".join(keys) + " FROM MetadataData, MetadataMessage LEFT JOIN Torrent on MetadataMessage.infohash = Torrent.infohash WHERE MetadataData.message_id = MetadataMessage.message_id AND data_key='swift-thumbs' AND Torrent.name = '' OR Torrent.name IS NULL GROUP BY MetadataMessage.infohash ORDER BY this_global_time DESC LIMIT ?"
+        sql = u"SELECT " + u", ".join(keys) + u" FROM MetadataData, MetadataMessage LEFT JOIN Torrent on MetadataMessage.infohash = Torrent.infohash WHERE MetadataData.message_id = MetadataMessage.message_id AND data_key='swift-thumbs' AND Torrent.name = '' OR Torrent.name IS NULL GROUP BY MetadataMessage.infohash ORDER BY this_global_time DESC LIMIT ?"
         return self._getThumbnailTorrents(sql, keys, limit)
 
     def _getThumbnailTorrents(self, sql, keys, limit=20):
@@ -318,13 +290,11 @@ class MetadataDBHandler(BasicDBHandler):
                         results[i] = result
         return results
 
+
 class PeerDBHandler(BasicDBHandler):
 
-    def __init__(self):
-        if PeerDBHandler._single:
-            raise RuntimeError("PeerDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'Peer')
+    def __init__(self, session):
+        super(PeerDBHandler, self).__init__(session, u"Peer")
 
         self.permid_id = LimitedOrderedDict(DEFAULT_ID_CACHE_SIZE)
 
@@ -341,8 +311,8 @@ class PeerDBHandler(BasicDBHandler):
                 to_select.append(bin2str(permid))
 
         if len(to_select) > 0:
-            parameters = ", ".join('?' * len(to_select))
-            sql_get_peer_ids = "SELECT peer_id, permid FROM Peer WHERE permid IN (" + parameters + ")"
+            parameters = u", ".join(u'?' * len(to_select))
+            sql_get_peer_ids = u"SELECT peer_id, permid FROM Peer WHERE permid IN (%s)" % parameters
             peerids = self._db.fetchall(sql_get_peer_ids, to_select)
             for peer_id, permid in peerids:
                 self.permid_id[str2bin(permid)] = peer_id
@@ -410,7 +380,7 @@ class PeerDBHandler(BasicDBHandler):
             value['name'] = dunno2unicode(value['name'])
         if peer_id is not None:
             peer_existed = True
-            where = u'peer_id=%d' % peer_id
+            where = u'peer_id == %d' % peer_id
             self._db.update('Peer', where, **value)
         else:
             self._db.insert_or_ignore('Peer', permid=bin2str(permid), **value)
@@ -428,7 +398,7 @@ class PeerDBHandler(BasicDBHandler):
             return bool(self.getPeerID(permid))
         else:
             permid_str = bin2str(permid)
-            sql_get_peer_id = "SELECT peer_id FROM Peer WHERE permid==?"
+            sql_get_peer_id = u"SELECT peer_id FROM Peer WHERE permid == ?"
             peer_id = self._db.fetchone(sql_get_peer_id, (permid_str,))
             if peer_id is None:
                 return False
@@ -436,7 +406,7 @@ class PeerDBHandler(BasicDBHandler):
                 return True
 
     def updatePeer(self, permid, **argv):
-        self._db.update(self.table_name, 'permid=' + repr(bin2str(permid)), **argv)
+        self._db.update(self.table_name, u'permid = ' + repr(bin2str(permid)), **argv)
         self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
 
     def deletePeer(self, permid=None, peer_id=None):
@@ -446,9 +416,8 @@ class PeerDBHandler(BasicDBHandler):
         if peer_id is None:
             return
 
-        deleted = False
         if peer_id is not None:
-            self._db.delete('Peer', peer_id=peer_id)
+            self._db.delete(u"Peer", peer_id=peer_id)
             deleted = not self.hasPeer(permid, check_db=True)
             if deleted and permid in self.permid_id:
                 self.permid_id.pop(permid)
@@ -458,47 +427,51 @@ class PeerDBHandler(BasicDBHandler):
 
 class TorrentDBHandler(BasicDBHandler):
 
-    def __init__(self):
-        if TorrentDBHandler._single is not None:
-            raise RuntimeError("TorrentDBHandler is singleton")
-
-        db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'Torrent')  # # self,db,torrent
+    def __init__(self, session):
+        super(TorrentDBHandler, self).__init__(session, u"Torrent")
 
         self.torrent_dir = None
 
-        self.keys = ['torrent_id', 'name', 'torrent_file_name',
-                'length', 'creation_date', 'num_files', 'thumbnail',
-                'insert_time', 'secret', 'relevance',
-                'source_id', 'category_id', 'status_id',
-                'num_seeders', 'num_leechers', 'comment', 'swift_hash', 'swift_torrent_hash',
-                'last_tracker_check']
+        self.keys = ['torrent_id', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'thumbnail',
+                     'insert_time', 'secret', 'relevance', 'source_id', 'category_id', 'status_id',
+                     'num_seeders', 'num_leechers', 'comment', 'last_tracker_check']
         self.existed_torrents = set()
 
         self.value_name = ['C.torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
-                      'num_leechers', 'num_seeders', 'length',
-                      'secret', 'insert_time', 'source_id', 'torrent_file_name',
-                      'relevance', 'infohash', 'last_tracker_check']
+                           'num_leechers', 'num_seeders', 'length', 'secret', 'insert_time', 'source_id',
+                           'torrent_file_name', 'relevance', 'infohash', 'last_tracker_check']
 
-        self.value_name_for_channel = ['C.torrent_id', 'infohash', 'name',
-                'torrent_file_name', 'length', 'creation_date', 'num_files',
-                'thumbnail', 'insert_time', 'secret', 'relevance', 'source_id',
-                'category_id', 'status_id', 'num_seeders', 'num_leechers', 'comment']
-        self.category = Category.getInstance()
+        self.value_name_for_channel = ['C.torrent_id', 'infohash', 'name', 'torrent_file_name', 'length',
+                                       'creation_date', 'num_files', 'thumbnail', 'insert_time', 'secret',
+                                       'relevance', 'source_id', 'category_id', 'status_id',
+                                       'num_seeders', 'num_leechers', 'comment']
 
-        self.misc_db = MiscDBHandler.getInstance()
-        self.mypref_db = self.votecast_db = self.channelcast_db = self._rtorrent_handler = None
+        self.category = None
+        self.misc_db = self.mypref_db = self.votecast_db = self.channelcast_db = self._rtorrent_handler = None
 
         self.infohash_id = LimitedOrderedDict(DEFAULT_ID_CACHE_SIZE)
 
-    def register(self, torrent_dir):
-        self.torrent_dir = torrent_dir
+    def initialize(self, *args, **kwargs):
+        super(TorrentDBHandler, self).initialize(*args, **kwargs)
+        self.torrent_dir = os.path.abspath(self.session.get_torrent_collecting_dir())
 
-        self.misc_db = MiscDBHandler.getInstance()
-        self.mypref_db = MyPreferenceDBHandler.getInstance()
-        self.votecast_db = VoteCastDBHandler.getInstance()
-        self.channelcast_db = ChannelCastDBHandler.getInstance()
-        self._rtorrent_handler = RemoteTorrentHandler.getInstance()
+        self.category = self.session.lm.cat
+        self.misc_db = self.session.open_dbhandler(NTFY_MISC)
+        self.mypref_db = self.session.open_dbhandler(NTFY_MYPREFERENCES)
+        self.votecast_db = self.session.open_dbhandler(NTFY_VOTECAST)
+        self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
+        self._rtorrent_handler = self.session.lm.rtorrent_handler
+
+    def close(self):
+        super(TorrentDBHandler, self).close()
+        self.torrent_dir = None
+
+        self.category = None
+        self.misc_db = None
+        self.mypref_db = None
+        self.votecast_db = None
+        self.channelcast_db = None
+        self._rtorrent_handler = None
 
     def getTorrentID(self, infohash):
         return self.getTorrentIDS([infohash, ])[0]
@@ -531,14 +504,6 @@ class TorrentDBHandler(BasicDBHandler):
             else:
                 to_return.append(None)
         return to_return
-
-    def getTorrentIDRoot(self, roothash):
-        assert isinstance(roothash, str), "roothash has invalid type: %s" % type(roothash)
-        assert len(roothash) == INFOHASH_LENGTH, "roothash has invalid length: %d" % len(roothash)
-
-        sql_get_torrent_id = "SELECT torrent_id FROM Torrent WHERE swift_hash==?"
-        tid = self._db.fetchone(sql_get_torrent_id, (bin2str(roothash),))
-        return tid
 
     def getInfohash(self, torrent_id):
         sql_get_infohash = "SELECT infohash FROM Torrent WHERE torrent_id==?"
@@ -637,19 +602,6 @@ class TorrentDBHandler(BasicDBHandler):
             torrent_id = self.getTorrentID(infohash)
         return torrent_id
 
-    def addOrGetTorrentIDRoot(self, roothash, name):
-        assert isinstance(roothash, str), "roothash has invalid type: %s" % type(roothash)
-        assert len(roothash) == INFOHASH_LENGTH, "roothash has invalid length: %d" % len(roothash)
-
-        torrent_id = self.getTorrentIDRoot(roothash)
-        if torrent_id is None:
-            infohash = 'swift' + bin2str(roothash)[5:]
-            status_id = self.misc_db.torrentStatusName2Id(u'unknown')
-            self._db.insert('Torrent', infohash=infohash,
-                swift_hash=bin2str(roothash), name=name, status_id=status_id)
-            torrent_id = self.getTorrentIDRoot(roothash)
-        return torrent_id
-
     def addOrGetTorrentIDS(self, infohashes):
         torrentIds, _ = self.addOrGetTorrentIDSReturn(infohashes)
         return torrentIds
@@ -697,10 +649,6 @@ class TorrentDBHandler(BasicDBHandler):
             dict["num_seeders"] = extra_info["seeder"]
         if extra_info.get("leecher", -1) != -1:
             dict["num_leechers"] = extra_info["leecher"]
-        if extra_info.get('swift_hash', ''):
-            dict['swift_hash'] = bin2str(extra_info['swift_hash'])
-        if extra_info.get('swift_torrent_hash', ''):
-            dict['swift_torrent_hash'] = bin2str(extra_info['swift_torrent_hash'])
 
         return dict
 
@@ -721,20 +669,11 @@ class TorrentDBHandler(BasicDBHandler):
         else:  # infohash in db
             del database_dict["infohash"]  # no need for infohash, its already stored
             where = "torrent_id = %d" % torrent_id
-            try:
-                self._db.update('Torrent', where=where, **database_dict)
-            except:
-                self._logger.error("--------- Failed to update existing torrent ---------")
-                self._logger.error("- infohash: %s", binascii.hexlify(infohash))
-                self._logger.error("- swarmname: %s", swarmname)
-                self._logger.error("- database:")
-                for k, v in database_dict.iteritems():
-                    self._logger.error("->>> [%s]: [%s]", k, v)
-                self._logger.error("--------- --------------------------------- ---------")
+            self._db.update('Torrent', where=where, **database_dict)
 
         if not torrentdef.is_multifile_torrent():
             swarmname, _ = os.path.splitext(swarmname)
-        self._indexTorrent(torrent_id, swarmname, torrentdef.get_files_as_unicode(), source in ['BC', 'SWIFT', 'DISP_SC'])
+        self._indexTorrent(torrent_id, swarmname, torrentdef.get_files_as_unicode(), source in ['BC', 'DISP_SC'])
 
         self._addTorrentTracker(torrent_id, torrentdef, extra_info)
         return torrent_id
@@ -827,12 +766,6 @@ class TorrentDBHandler(BasicDBHandler):
         if 'leecher' in kw:
             kw['num_leechers'] = kw.pop('leecher')
 
-        if 'swift_hash' in kw:
-            kw['swift_hash'] = bin2str(kw['swift_hash'])
-
-        if 'swift_torrent_hash' in kw:
-            kw['swift_torrent_hash'] = bin2str(kw['swift_torrent_hash'])
-
         for key in kw.keys():
             if key not in self.keys:
                 kw.pop(key)
@@ -845,139 +778,92 @@ class TorrentDBHandler(BasicDBHandler):
         if notify:
             self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
 
-    def on_torrent_collect_response(self, torrents):
-        torrents = [(bin2str(torrent[0]), bin2str(torrent[1])) for torrent in torrents]
+    def on_torrent_collect_response(self, infohashes):
+        infohash_list = [(bin2str(infohash)) for infohash in infohashes]
 
-        infohashes = [infohash for infohash, _ in torrents if infohash]
-        roothashes = [roothash for _, roothash in torrents if roothash]
-
-        i_parameters = '?,' * len(infohashes)
+        i_parameters = u"?," * len(infohash_list)
         i_parameters = i_parameters[:-1]
 
-        r_parameters = '?,' * len(roothashes)
-        r_parameters = r_parameters[:-1]
-
-        sql = "SELECT torrent_id, infohash, swift_torrent_hash FROM Torrent WHERE infohash in (" + i_parameters + ") or swift_torrent_hash in (" + r_parameters + ")"
-        results = self._db.fetchall(sql, infohashes + roothashes)
+        sql = u"SELECT torrent_id, infohash FROM Torrent WHERE infohash in (%s)" % i_parameters
+        results = self._db.fetchall(sql, infohash_list)
 
         info_dict = {}
-        root_dict = {}
-        for torrent_id, infohash, roothash in results:
-            if infohash.startswith('swift'):
-                infohash = ''
-
+        for torrent_id, infohash in results:
             if infohash:
                 info_dict[infohash] = torrent_id
-            if roothash:
-                root_dict[roothash] = torrent_id
 
         to_be_inserted = []
-        update_infohash = []
-        update_roothash = []
-        for infohash, roothash in torrents:
-            if infohash in info_dict and roothash in root_dict:
+        for infohash in infohash_list:
+            if infohash in info_dict:
                 continue
-            elif infohash in info_dict:
-                update_roothash.append((roothash, info_dict[infohash]))
-            elif roothash in root_dict:
-                update_infohash.append((infohash, root_dict[roothash]))
-            else:
-                to_be_inserted.append((infohash, roothash))
+            to_be_inserted.append((infohash,))
 
         if len(to_be_inserted) > 0:
-            sql = "INSERT OR IGNORE INTO Torrent (infohash, swift_torrent_hash) VALUES (?, ?)"
+            sql = u"INSERT OR IGNORE INTO Torrent (infohash) VALUES (?)"
             self._db.executemany(sql, to_be_inserted)
-
-        if len(update_infohash) > 0:
-            sql = "UPDATE Torrent SET infohash = ? WHERE torrent_id = ?"
-            self._db.executemany(sql, update_infohash)
-
-        if len(update_roothash) > 0:
-            sql = "UPDATE Torrent SET swift_torrent_hash = ? WHERE torrent_id = ?"
-            self._db.executemany(sql, update_roothash)
 
     def on_search_response(self, torrents):
         source_id = self.misc_db.torrentSourceName2Id(u'DISP_SEARCH')
         status_id = self.misc_db.torrentStatusName2Id(u'unknown')
 
-        torrents = [(bin2str(torrent[0]), torrent[1], torrent[2], torrent[3], self.misc_db.categoryName2Id(torrent[4]), torrent[5], bin2str(torrent[8]) if torrent[8] else '', bin2str(torrent[9]) if torrent[9] else '') for torrent in torrents]
-        info_root = [(torrent[0], torrent[6] or '--') for torrent in torrents]
+        torrents = [(bin2str(torrent[0]), torrent[1], torrent[2], torrent[3], self.misc_db.categoryName2Id(torrent[4]),
+                     torrent[5]) for torrent in torrents]
+        infohash = [(torrent[0],) for torrent in torrents]
 
-        sql = "SELECT torrent_id, infohash, swift_hash, torrent_file_name, name FROM Torrent WHERE infohash = ? or swift_hash = ?"
-        results = self._db.executemany(sql, info_root) or []
+        sql = u"SELECT torrent_id, infohash, torrent_file_name, name FROM Torrent WHERE infohash == ?"
+        results = self._db.executemany(sql, infohash) or []
 
         infohash_tid = {}
-        roothash_tid = {}
 
         tid_collected = set()
         tid_name = {}
-        for torrent_id, infohash, roothash, torrent_filename, name in results:
+        for torrent_id, infohash, torrent_filename, name in results:
             infohash = str(infohash)
-            roothash = str(roothash)
-
-            if infohash.startswith('swift'):
-                infohash = ''
 
             if infohash:
                 infohash_tid[infohash] = torrent_id
-            if roothash:
-                roothash_tid[roothash] = torrent_id
             if torrent_filename:
                 tid_collected.add(torrent_id)
             tid_name[torrent_id] = name
 
         insert = []
         update = []
-        update_roothash = []
         update_infohash = []
         to_be_indexed = []
-        for infohash, swarmname, length, nrfiles, categoryid, creation_date, swift_hash, swift_torrent_hash in torrents:
-            # 12/07/12 Boudewijn: swift_hash must be unique in the database, hence empty strings
-            # must be stored as None
-            if swift_hash == "":
-                swift_hash = None
-            # 02/08/12 Boudewijn: swift_torrent_hash has the same issue as swift_hash above
-            if swift_torrent_hash == "":
-                swift_torrent_hash = None
-
-            tid = infohash_tid.get(infohash, None) or roothash_tid.get(swift_hash, None)
+        for infohash, swarmname, length, nrfiles, categoryid, creation_date in torrents:
+            tid = infohash_tid.get(infohash, None)
 
             if tid:  # we know this torrent
                 if tid not in tid_collected and swarmname != tid_name.get(tid, ''):  # if not collected and name not equal then do fullupdate
-                    update.append((swarmname, length, nrfiles, categoryid, creation_date, infohash, swift_hash, swift_torrent_hash, source_id, status_id, tid))
+                    update.append((swarmname, length, nrfiles, categoryid, creation_date, infohash, source_id, status_id, tid))
                     to_be_indexed.append((tid, swarmname))
 
-                elif swift_hash and swift_hash not in roothash_tid:  # else check if we need to update swift
-                    update_roothash.append((swift_hash, tid))
-
-                elif infohash and infohash not in infohash_tid:  # or infohash
+                elif infohash and infohash not in infohash_tid:
                     update_infohash.append((infohash, tid))
             else:
-                insert.append((swarmname, length, nrfiles, categoryid, creation_date, infohash, swift_hash, swift_torrent_hash, source_id, status_id))
+                insert.append((swarmname, length, nrfiles, categoryid, creation_date, infohash, source_id, status_id))
 
         if len(update) > 0:
-            sql = "UPDATE Torrent SET name = ?, length = ?, num_files = ?, category_id = ?, creation_date = ?, infohash = ?, swift_hash = ?, swift_torrent_hash = ?, source_id = ?, status_id = ? WHERE torrent_id = ?"
+            sql = u"UPDATE Torrent SET name = ?, length = ?, num_files = ?, category_id = ?, creation_date = ?," \
+                  u" infohash = ?, source_id = ?, status_id = ? WHERE torrent_id = ?"
             self._db.executemany(sql, update)
 
-        if len(update_roothash) > 0:
-            sql = "UPDATE Torrent SET swift_hash = ? WHERE torrent_id = ?"
-            self._db.executemany(sql, update_roothash)
-
         if len(update_infohash) > 0:
-            sql = "UPDATE Torrent SET infohash = ? WHERE torrent_id = ?"
+            sql = u"UPDATE Torrent SET infohash = ? WHERE torrent_id = ?"
             self._db.executemany(sql, update_infohash)
 
         if len(insert) > 0:
-            sql = "INSERT INTO Torrent (name, length, num_files, category_id, creation_date, infohash, swift_hash, swift_torrent_hash, source_id, status_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+            sql = u"INSERT INTO Torrent (name, length, num_files, category_id, creation_date, infohash, source_id," \
+                  u" status_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
             try:
                 self._db.executemany(sql, insert)
 
-                were_inserted = [(inserted[5], inserted[7]) for inserted in insert]
-                sql = "SELECT torrent_id, name FROM Torrent WHERE infohash = ? or swift_hash = ?"
+                were_inserted = [(inserted[5],) for inserted in insert]
+                sql = u"SELECT torrent_id, name FROM Torrent WHERE infohash == ?"
                 to_be_indexed = to_be_indexed + list(self._db.executemany(sql, were_inserted))
             except:
                 print_exc()
-                self._logger.error("infohashes: %s", insert)
+                self._logger.error(u"infohashes: %s", insert)
 
         for torrent_id, swarmname in to_be_indexed:
             self._indexTorrent(torrent_id, swarmname, [], False)
@@ -1011,14 +897,14 @@ class TorrentDBHandler(BasicDBHandler):
             if infohash in self.existed_torrents:
                 self.existed_torrents.remove(infohash)
 
-            self._db.delete('TorrentTrackerMapping', torrent_id=torrent_id)
-            # print '******* delete torrent', torrent_id, `infohash`, self.hasTorrent(infohash)
+            stmt = u"DELETE FROM TorrentTrackerMapping WHERE torrent_id == ?"
+            self._db.execute_write(stmt, (torrent_id,))
 
     def eraseTorrentFile(self, infohash):
         torrent_id = self.getTorrentID(infohash)
         if torrent_id is not None:
             torrent_dir = self.getTorrentDir()
-            torrent_name = self.getOne('torrent_file_name', torrent_id=torrent_id)
+            torrent_name = self.getOne(u'torrent_file_name', torrent_id=torrent_id)
             src = os.path.join(torrent_dir, torrent_name)
             if not os.path.exists(src):  # already removed
                 return True
@@ -1026,50 +912,42 @@ class TorrentDBHandler(BasicDBHandler):
             try:
                 os.remove(src)
             except Exception as msg:
-                self._logger.error("cachedbhandler: failed to erase torrent %s %s %s", src, Exception, msg)
+                self._logger.error(u"Failed to erase torrent %s %s", src, msg)
                 return False
 
         return True
 
     def getTorrentCheckRetries(self, torrent_id):
-        sql = 'SELECT tracker_check_retries FROM Torrent WHERE torrent_id = ?'
+        sql = u"SELECT tracker_check_retries FROM Torrent WHERE torrent_id = ?"
         result = self._db.fetchone(sql, (torrent_id,))
         return result
 
-    def updateTorrentCheckResult(self, torrent_id, infohash,
-                seeders, leechers, last_check, next_check, status, retries):
-        sql = 'UPDATE Torrent SET num_seeders = ?, num_leechers = ?'\
-              + ', last_tracker_check = ?, next_tracker_check = ?'\
-              + ', status_id = ?, tracker_check_retries = ?'\
-              + ' WHERE torrent_id = ?'
+    def updateTorrentCheckResult(self, torrent_id, infohash, seeders, leechers, last_check, next_check, status,
+                                 retries):
+        sql = u"UPDATE Torrent SET num_seeders = ?, num_leechers = ?, last_tracker_check = ?, next_tracker_check = ?," \
+              u" status_id = ?, tracker_check_retries = ? WHERE torrent_id = ?"
 
         status_id = self.misc_db.torrentStatusName2Id(status)
-        self._db.execute_write(sql,
-            (seeders, leechers, last_check, next_check,
-             status_id, retries, torrent_id))
+        self._db.execute_write(sql, (seeders, leechers, last_check, next_check, status_id, retries, torrent_id))
 
-        self._logger.debug("cachedbhandler: update result %d/%d for %s/%d", seeders, leechers, bin2str(infohash), torrent_id)
+        self._logger.debug(u"update result %d/%d for %s/%d", seeders, leechers, bin2str(infohash), torrent_id)
 
         # notify
         self.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
 
-    # ------------------------------------------------------------
-    # Updates the TorrentTrackerMapping table.
-    # ------------------------------------------------------------
     def addTorrentTrackerMapping(self, torrent_id, tracker):
         self.addTorrentTrackerMappingInBatch(torrent_id, [tracker, ])
 
-    # ------------------------------------------------------------
-    # Updates the TorrentTrackerMapping table in batch.
-    # ------------------------------------------------------------
     def addTorrentTrackerMappingInBatch(self, torrent_id, tracker_list):
         if not tracker_list:
             return
 
-        parameters = '?,' * len(tracker_list)
-        sql = 'SELECT tracker FROM TrackerInfo WHERE tracker IN (' + parameters[:-1] + ')'
+        parameters = u"?," * len(tracker_list)
+        parameters = parameters[:-1]
+        sql = u"SELECT tracker FROM TrackerInfo WHERE tracker IN (%s)" % parameters
+
         found_tracker_list = self._db.fetchall(sql, tuple(tracker_list))
-        found_tracker_list = [ tracker[0] for tracker in found_tracker_list ]
+        found_tracker_list = [tracker[0] for tracker in found_tracker_list]
 
         # update tracker info
         not_found_tracker_list = [tracker for tracker in tracker_list if tracker not in found_tracker_list]
@@ -1083,9 +961,6 @@ class TorrentDBHandler(BasicDBHandler):
         if new_mapping_list:
             self._db.executemany(sql, new_mapping_list)
 
-    # ------------------------------------------------------------
-    # Gets all the torrents that has a specific tracker.
-    # ------------------------------------------------------------
     def getTorrentsOnTracker(self, tracker, current_time):
         sql = """
             SELECT T.torrent_id, T.infohash, T.last_tracker_check
@@ -1097,10 +972,6 @@ class TorrentDBHandler(BasicDBHandler):
         infohash_list = self._db.fetchall(sql, (tracker, current_time))
         return [(torrent_id, str2bin(infohash), last_tracker_check) for torrent_id, infohash, last_tracker_check in infohash_list]
 
-    # ------------------------------------------------------------
-    # Gets a list of trackers of a given torrent ID.
-    # (from TorrentTrackerMapping table)
-    # ------------------------------------------------------------
     def getTrackerListByTorrentID(self, torrent_id):
         sql = 'SELECT TR.tracker FROM TrackerInfo TR, TorrentTrackerMapping MP'\
             + ' WHERE MP.torrent_id = ?'\
@@ -1108,23 +979,13 @@ class TorrentDBHandler(BasicDBHandler):
         tracker_list = self._db.fetchall(sql, (torrent_id,))
         return [ tracker[0] for tracker in tracker_list ]
 
-    # ------------------------------------------------------------
-    # Gets a list of trackers of a given infohash.
-    # (from TorrentTrackerMapping table)
-    # ------------------------------------------------------------
     def getTrackerListByInfohash(self, infohash):
         torrent_id = self.getTorrentID(infohash)
         return self.getTrackerListByTorrentID(torrent_id)
 
-    # ------------------------------------------------------------
-    # Adds a new tracker into the TrackerInfo table.
-    # ------------------------------------------------------------
     def addTrackerInfo(self, tracker, to_notify=True):
         self.addTrackerInfoInBatch([tracker, ], to_notify)
 
-    # ------------------------------------------------------------
-    # Adds a new trackers in batch into the TrackerInfo table.
-    # ------------------------------------------------------------
     def addTrackerInfoInBatch(self, tracker_list, to_notify=True):
         sql = 'INSERT INTO TrackerInfo(tracker) VALUES(?)'
         self._db.executemany(sql, [(tracker,) for tracker in tracker_list])
@@ -1132,26 +993,17 @@ class TorrentDBHandler(BasicDBHandler):
         if to_notify:
             self.notifier.notify(NTFY_TRACKERINFO, NTFY_INSERT, tracker_list)
 
-    # ------------------------------------------------------------
-    # Gets all tracker information from the TrackerInfo table.
-    # ------------------------------------------------------------
     def getTrackerInfoList(self):
         sql = 'SELECT tracker, last_check, failures, is_alive FROM TrackerInfo'
         tracker_info_list = self._db.fetchall(sql)
         return tracker_info_list
 
-    # ------------------------------------------------------------
-    # Updates a list of tracker status into the TrackerInfo table.
-    # ------------------------------------------------------------
     def updateTrackerInfo(self, args):
         sql = 'UPDATE TrackerInfo SET'\
             + ' last_check = ?, failures = ?, is_alive = ?'\
             + ' WHERE tracker = ?'
         self._db.executemany(sql, args)
 
-    # ------------------------------------------------------------
-    # Gets a list of trackers that have been checked to be alive recently.
-    # ------------------------------------------------------------
     def getRecentlyAliveTrackers(self, limit=10):
         sql = """
             SELECT DISTINCT tracker FROM TrackerInfo
@@ -1166,7 +1018,7 @@ class TorrentDBHandler(BasicDBHandler):
         return self.torrent_dir
 
     def updateTorrentDir(self, torrent_dir):
-        sql = "SELECT torrent_id, torrent_file_name FROM Torrent WHERE torrent_file_name not NULL"
+        sql = u"SELECT torrent_id, torrent_file_name FROM Torrent WHERE torrent_file_name not NULL"
         results = self._db.fetchall(sql)
 
         updates = []
@@ -1175,7 +1027,7 @@ class TorrentDBHandler(BasicDBHandler):
             new_file_name = os.path.join(torrent_dir, tail)
 
             updates.append((new_file_name, result[0]))
-        sql = "UPDATE TORRENT SET torrent_file_name = ? WHERE torrent_id = ?"
+        sql = u"UPDATE TORRENT SET torrent_file_name = ? WHERE torrent_id = ?"
         self._db.executemany(sql, updates)
 
         self.torrent_dir = torrent_dir
@@ -1203,12 +1055,6 @@ class TorrentDBHandler(BasicDBHandler):
 
         if 'status_id' in torrent:
             torrent['status'] = self.misc_db.torrentStatusId2Name(torrent['status_id'])
-
-        if 'swift_hash' in torrent and torrent['swift_hash']:
-            torrent['swift_hash'] = str2bin(torrent['swift_hash'])
-
-        if 'swift_torrent_hash' in torrent and torrent['swift_torrent_hash']:
-            torrent['swift_torrent_hash'] = str2bin(torrent['swift_torrent_hash'])
 
         torrent['infohash'] = infohash
 
@@ -1241,12 +1087,11 @@ class TorrentDBHandler(BasicDBHandler):
         niels 25-10-2010: changed behaviour to left join TorrentTracker, due to magnet links
         """
 
-        # print >> sys.stderr, 'TorrentDBHandler: getTorrents(%s, %s, %s, %s, %s)' % (category_name, range, library, sort, reverse)
         s = time()
 
         value_name = deepcopy(self.value_name)
-        sql = 'Select ' + ','.join(value_name)
-        sql += ' From CollectedTorrent C'
+        sql = 'SELECT ' + ','.join(value_name)
+        sql += ' FROM CollectedTorrent C'
         # sql += ' From CollectedTorrent C LEFT JOIN TorrentTrackerMapping TTM ON C.torrent_id = TTM.torrent_id'
 
         where = ''
@@ -1277,9 +1122,6 @@ class TorrentDBHandler(BasicDBHandler):
                 sql += ' Order By lower(%s) %s' % (sort, desc)
             else:
                 sql += ' Order By %s %s' % (sort, desc)
-
-        # print >>sys.stderr,"TorrentDBHandler: GET TORRENTS val",value_name,"where",where,"limit",limit,"offset",offset,"order",order_by
-        # print_stack
 
         # Must come before query
         ranks = self.getRanks()
@@ -1343,8 +1185,6 @@ class TorrentDBHandler(BasicDBHandler):
                         result[key_index] = str2bin(result[key_index])
                         results[i] = result
         fix_value('infohash')
-        fix_value('swift_hash')
-        fix_value('swift_torrent_hash')
         return results
 
     def getRanks(self):
@@ -1359,39 +1199,36 @@ class TorrentDBHandler(BasicDBHandler):
         # return self._db.size('CollectedTorrent')
         return self._db.getOne('CollectedTorrent', 'count(torrent_id)')
 
-    def getRecentlyCollectedSwiftHashes(self, limit=50):
-        sql = """
-            SELECT CT.swift_torrent_hash, CT.infohash, CT.num_seeders, CT.num_leechers, T.last_tracker_check, CT.insert_time
+    def getRecentlyCollectedTorrents(self, limit=50):
+        sql = u"""
+            SELECT CT.infohash, CT.num_seeders, CT.num_leechers, T.last_tracker_check, CT.insert_time
              FROM Torrent T, CollectedTorrent CT
              WHERE CT.torrent_id = T.torrent_id
-             AND CT.swift_torrent_hash IS NOT NULL AND CT.swift_torrent_hash <> ''
              AND T.secret is not 1 ORDER BY CT.insert_time DESC LIMIT ?
              """
         results = self._db.fetchall(sql, (limit,))
-        return [[str2bin(result[0]), str2bin(result[1]), result[2], result[3], result[4] or 0, result[5]] for result in results]
+        return [[str2bin(result[0]), result[1], result[2], result[3] or 0, result[4]] for result in results]
 
-    def getRandomlyCollectedSwiftHashes(self, insert_time, limit=50):
-        sql = """
-            SELECT CT.swift_torrent_hash, CT.infohash, CT.num_seeders, CT.num_leechers, T.last_tracker_check
+    def getRandomlyCollectedTorrents(self, insert_time, limit=50):
+        sql = u"""
+            SELECT CT.infohash, CT.num_seeders, CT.num_leechers, T.last_tracker_check
              FROM Torrent T, CollectedTorrent CT
              WHERE CT.torrent_id = T.torrent_id
              AND CT.insert_time < ?
-             AND CT.swift_torrent_hash IS NOT NULL
-             AND CT.swift_torrent_hash <> ''
              AND T.secret is not 1 ORDER BY RANDOM() DESC LIMIT ?
             """
         results = self._db.fetchall(sql, (insert_time, limit))
-        return [[str2bin(result[0]), str2bin(result[1]), result[2], result[3], result[4] or 0] for result in results]
+        return [[str2bin(result[0]), result[1], result[2], result[3] or 0] for result in results]
 
-    def selectSwiftTorrentsToCollect(self, hashes):
+    def select_torrents_to_collect(self, hashes):
         parameters = '?,' * len(hashes)
         parameters = parameters[:-1]
 
         # TODO: bias according to votecast, popular first
 
-        sql = "SELECT infohash, swift_torrent_hash FROM Torrent WHERE torrent_file_name is NULL and infohash in (" + parameters + ")"
+        sql = u"SELECT infohash FROM Torrent WHERE torrent_file_name is NULL and infohash in (%s)" % parameters
         results = self._db.fetchall(sql, map(bin2str, hashes))
-        return [(str2bin(hash), str2bin(roothash)) for hash, roothash in results]
+        return [str2bin(infohash) for infohash, in results]
 
     def getTorrentsStats(self):
         return self._db.getOne('CollectedTorrent', ['count(torrent_id)', 'sum(length)', 'sum(num_files)'])
@@ -1400,23 +1237,23 @@ class TorrentDBHandler(BasicDBHandler):
 # if torrents2del > 100:  # only delete so many torrents each time
 #            torrents2del = 100
         if self.channelcast_db and self.channelcast_db._channel_id:
-            sql = """
-                select torrent_file_name, torrent_id, swift_torrent_hash, relevance,
-                    min(relevance,2500) +  min(500,num_leechers) + 4*min(500,num_seeders) - (max(0,min(500,(%d-creation_date)/86400)) ) as weight
-                from CollectedTorrent
-                where torrent_id not in (select torrent_id from MyPreference)
-                and torrent_id not in (select torrent_id from ChannelTorrents where channel_id = %d)
-                order by weight
-                limit %d
+            sql = U"""
+                SELECT torrent_file_name, torrent_id, relevance,
+                MIN(relevance, 2500) + MIN(500, num_leechers) + 4*MIN(500, num_seeders) - (MAX(0, MIN(500, (%d - creation_date)/86400)) ) AS weight
+                FROM CollectedTorrent
+                WHERE torrent_id NOT IN (SELECT torrent_id FROM MyPreference)
+                AND torrent_id NOT IN (SELECT torrent_id FROM ChannelTorrents WHERE channel_id == %d)
+                ORDER BY weight
+                LIMIT %d
             """ % (int(time()), self.channelcast_db._channel_id, torrents2del)
         else:
-            sql = """
-                select torrent_file_name, torrent_id, swift_torrent_hash, relevance,
-                    min(relevance,2500) +  min(500,num_leechers) + 4*min(500,num_seeders) - (max(0,min(500,(%d-creation_date)/86400)) ) as weight
-                from CollectedTorrent
-                where torrent_id not in (select torrent_id from MyPreference)
-                order by weight
-                limit %d
+            sql = u"""
+                SELECT torrent_file_name, torrent_id, relevance,
+                    min(relevance,2500) +  min(500,num_leechers) + 4*min(500,num_seeders) - (max(0,min(500,(%d-creation_date)/86400)) ) AS weight
+                FROM CollectedTorrent
+                WHERE torrent_id NOT IN (SELECT torrent_id FROM MyPreference)
+                ORDER BY weight
+                LIMIT %d
             """ % (int(time()), torrents2del)
 
         res_list = self._db.fetchall(sql)
@@ -1424,10 +1261,10 @@ class TorrentDBHandler(BasicDBHandler):
             return False
 
         # delete torrents from db
-        sql_del_torrent = "update Torrent set torrent_file_name = null where torrent_id=?"
+        sql_del_torrent = u"UPDATE Torrent SET torrent_file_name = NULL WHERE torrent_id = ?"
         # sql_del_tracker = "delete from TorrentTracker where torrent_id=?"
         # sql_del_pref = "delete from Preference where torrent_id=?"
-        tids = [(torrent_id,) for torrent_file_name, torrent_id, swift_torrent_hash, relevance, weight in res_list]
+        tids = [(torrent_id,) for torrent_file_name, torrent_id, relevance, weight in res_list]
 
         self._db.executemany(sql_del_torrent, tids)
         # self._db.executemany(sql_del_tracker, tids)
@@ -1441,12 +1278,8 @@ class TorrentDBHandler(BasicDBHandler):
         torrent_dir = self.getTorrentDir()
         deleted = 0  # deleted any file?
         insert_files = []
-        for torrent_file_name, torrent_id, swift_torrent_hash, relevance, weight in res_list:
-
+        for torrent_file_name, torrent_id, relevance, weight in res_list:
             torrent_path = os.path.join(torrent_dir, torrent_file_name)
-            if not os.path.exists(torrent_path):
-                roothash_as_hex = binascii.hexlify(swift_torrent_hash)
-                torrent_path = os.path.join(torrent_dir, roothash_as_hex)
 
             if os.path.exists(torrent_path):
                 try:
@@ -1456,18 +1289,9 @@ class TorrentDBHandler(BasicDBHandler):
                     insert_files.extend(files)
                 except:
                     pass
-
-            mhash_path = torrent_path + '.mhash'
-            mbinmap_path = torrent_path + '.mbinmap'
             try:
                 if os.path.exists(torrent_path):
                     os.remove(torrent_path)
-
-                if os.path.exists(mhash_path):
-                    os.remove(mhash_path)
-
-                if os.path.exists(mbinmap_path):
-                    os.remove(mbinmap_path)
 
                 deleted += 1
             except WindowsError:
@@ -1487,17 +1311,11 @@ class TorrentDBHandler(BasicDBHandler):
     def hasMetaData(self, infohash):
         return self.hasTorrent(infohash)
 
-    def searchNames(self, kws, local=True, keys=['torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'insert_time', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'dispersy_id', 'swift_hash', 'swift_torrent_hash'], doSort=True):
-        #        if local:
-#            mainsql += "C.id, C.dispersy_id, C.name, C.description, C.time_stamp, inserted, "
-#            value_name += ['channeltorrent_id', 'dispersy_id', 'chant_name', 'description', 'time_stamp', 'inserted']
-#
+    def searchNames(self, kws, local=True, keys=['torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'insert_time', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'dispersy_id'], doSort=True):
         assert 'infohash' in keys
         assert not doSort or ('num_seeders' in keys or 'T.num_seeders' in keys)
 
         infohash_index = keys.index('infohash')
-        swift_hash_index = keys.index('swift_hash') if 'swift_hash' in keys else -1
-        swift_torrent_hash_index = keys.index('swift_torrent_hash') if 'swift_torrent_hash' in keys else -1
         num_seeders_index = keys.index('num_seeders') if 'num_seeders' in keys else -1
 
         if num_seeders_index == -1:
@@ -1513,7 +1331,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         mainsql += """, FullTextIndex
                     LEFT OUTER JOIN _ChannelTorrents C ON T.torrent_id = C.torrent_id
-                    WHERE t.torrent_id = FullTextIndex.rowid AND C.deleted_at IS NULL AND FullTextIndex MATCH ?
+                    WHERE t.name IS NOT NULL AND t.torrent_id = FullTextIndex.rowid AND C.deleted_at IS NULL AND FullTextIndex MATCH ?
                     """
 
         if not local:
@@ -1533,7 +1351,7 @@ class TorrentDBHandler(BasicDBHandler):
                 channels.add(result[-2])
 
         if len(channels) > 0:
-            # Channels consist of a tuple (id, dispersy_cid, name, description, nr_torrents, nr_favorites, nr_spam, my_vote, modified)
+            # results are tuples of (id, str(dispersy_cid), name, description, nr_torrents, nr_favorites, nr_spam, my_vote, modified, id == self._channel_id)
             for channel in self.channelcast_db.getChannels(channels):
                 if channel[1] != '-1':
                     channel_dict[channel[0]] = channel
@@ -1546,7 +1364,7 @@ class TorrentDBHandler(BasicDBHandler):
         # step 1, merge torrents keep one with best channel
         for result in results:
             channel_id = result[-2]
-            channel = channel_dict.get(channel_id, False)
+            channel = channel_dict.get(channel_id, None)
 
             infohash = result[infohash_index]
             if channel:
@@ -1586,10 +1404,6 @@ class TorrentDBHandler(BasicDBHandler):
             result = results[i]
 
             result[infohash_index] = str2bin(result[infohash_index])
-            if swift_hash_index >= 0 and result[swift_hash_index]:
-                result[swift_hash_index] = str2bin(result[swift_hash_index])
-            if swift_torrent_hash_index >= 0 and result[swift_torrent_hash_index]:
-                result[swift_torrent_hash_index] = str2bin(result[swift_torrent_hash_index])
 
             matches = {'swarmname': set(), 'filenames': set(), 'fileextensions': set()}
 
@@ -1687,7 +1501,7 @@ class TorrentDBHandler(BasicDBHandler):
                 return 1
             return 0
 
-        cursor = self._db.getCursor()
+        cursor = self._db.get_cursor()
         connection = cursor.getconnection()
         connection.createcollation("leven", levcollate)
 
@@ -1711,24 +1525,23 @@ class TorrentDBHandler(BasicDBHandler):
 
 class MyPreferenceDBHandler(BasicDBHandler):
 
-    def __init__(self):
-        if MyPreferenceDBHandler._single is not None:
-            raise RuntimeError("MyPreferenceDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'MyPreference')  # # self,db,'MyPreference'
+    def __init__(self, session):
+        super(MyPreferenceDBHandler, self).__init__(session, u"MyPreference")
 
-        self.status_good = MiscDBHandler.getInstance().torrentStatusName2Id(u'good')
         self.rlock = threading.RLock()
-        self.loadData()
 
-        self._torrent_db = TorrentDBHandler.getInstance()
-
-    def loadData(self):
-        """ Arno, 2010-02-04: Brute force update method for the self.recent_
-        caches, because people don't seem to understand that caches need
-        to be kept consistent with the database. Caches are evil in the first place.
-        """
         self.recent_preflist = self.recent_preflist_with_clicklog = self.recent_preflist_with_swarmsize = None
+        self.status_good = None
+        self._torrent_db = None
+
+    def initialize(self, *args, **kwargs):
+        self.status_good = self.session.open_dbhandler(NTFY_MISC).torrentStatusName2Id(u'good')
+        self._torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+
+    def close(self):
+        super(MyPreferenceDBHandler, self).close()
+        self.status_good = None
+        self._torrent_db = None
 
     def getMyPrefList(self, order_by=None):
         res = self.getAll('torrent_id', order_by=order_by)
@@ -1737,12 +1550,12 @@ class MyPreferenceDBHandler(BasicDBHandler):
     def getMyPrefListInfohash(self, returnDeleted=True, limit=None):
         # Arno, 2012-08-01: having MyPreference (the shorter list) first makes
         # this faster.
-        sql = 'select infohash, swift_hash from MyPreference, Torrent where Torrent.torrent_id == MyPreference.torrent_id'
+        sql = u"SELECT infohash FROM MyPreference, Torrent WHERE Torrent.torrent_id == MyPreference.torrent_id"
         if not returnDeleted:
-            sql += ' AND destination_path != ""'
+            sql += u' AND destination_path != ""'
 
         if limit:
-            sql += ' ORDER BY creation_time DESC LIMIT %d' % limit
+            sql += u" ORDER BY creation_time DESC LIMIT %d" % limit
 
         res = self._db.fetchall(sql)
         res = [item for sublist in res for item in sublist]
@@ -1752,7 +1565,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
         # get the full {torrent_id:(create_time,progress,destdir)}
         value_name = ('torrent_id', 'creation_time', 'progress', 'destination_path')
         if torrent_id is not None:
-            where = 'torrent_id=%s' % torrent_id
+            where = 'torrent_id == %s' % torrent_id
         else:
             where = None
         res = self.getAll(value_name, where)
@@ -1870,25 +1683,28 @@ class MyPreferenceDBHandler(BasicDBHandler):
 
 class VoteCastDBHandler(BasicDBHandler):
 
-    def __init__(self):
-        try:
-            db = SQLiteCacheDB.getInstance()
-            BasicDBHandler.__init__(self, db, 'VoteCast')
-            self._logger.debug("votecast: DB made")
-        except:
-            self._logger.error("votecast: couldn't make the table")
+    def __init__(self, session):
+        super(VoteCastDBHandler, self).__init__(session, u"VoteCast")
 
         self.my_votes = None
 
         self.voteLock = Lock()
         self.updatedChannels = set()
-        db.register_task("flush to database", LoopingCall(self._flush_to_database)).start(VOTECAST_FLUSH_DB_INTERVAL, now=False)
 
-    def registerSession(self, session):
-        self.session = session
+        self.peer_db = None
+        self.channelcast_db = None
 
-        self.peer_db = PeerDBHandler.getInstance()
-        self.channelcast_db = ChannelCastDBHandler.getInstance()
+    def initialize(self, *args, **kwargs):
+        self.peer_db = self.session.open_dbhandler(NTFY_PEERS)
+        self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
+        self.session.sqlite_db.register_task(u"flush to database",
+                                             LoopingCall(self._flush_to_database)).start(VOTECAST_FLUSH_DB_INTERVAL,
+                                                                                         now=False)
+
+    def close(self):
+        super(VoteCastDBHandler, self).close()
+        self.peer_db = None
+        self.channelcast_db = None
 
     def on_votes_from_dispersy(self, votes):
         insert_vote = "INSERT OR REPLACE INTO _ChannelVotes (channel_id, voter_id, dispersy_id, vote, time_stamp) VALUES (?,?,?,?,?)"
@@ -1992,31 +1808,31 @@ class VoteCastDBHandler(BasicDBHandler):
 
 class ChannelCastDBHandler(BasicDBHandler):
 
-    def __init__(self):
-        try:
-            db = SQLiteCacheDB.getInstance()
-            BasicDBHandler.__init__(self, db, '_Channels')
-            self._logger.debug("Channels: DB made")
-        except:
-            self._logger.error("Channels: couldn't make the table")
+    def __init__(self, session):
+        super(ChannelCastDBHandler, self).__init__(session, u"_Channels")
 
         self._channel_id = None
         self.my_dispersy_cid = None
 
+        self.modification_types = None
+        self.id2modification = None
+
+        self.peer_db = None
+        self.votecast_db = None
+        self.torrent_db = None
+
+    def initialize(self, *args, **kwargs):
         self.modification_types = dict(self._db.fetchall("SELECT name, id FROM MetaDataTypes"))
         self.id2modification = dict([(v, k) for k, v in self.modification_types.iteritems()])
 
         self._channel_id = self.getMyChannelId()
-        self._logger.debug("Channels: my channel is %s", self._channel_id)
+        self._logger.debug(u"Channels: my channel is %s", self._channel_id)
 
-    def registerSession(self, session):
-        self.session = session
+        self.peer_db = self.session.open_dbhandler(NTFY_PEERS)
+        self.votecast_db = self.session.open_dbhandler(NTFY_VOTECAST)
+        self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
 
-        self.peer_db = PeerDBHandler.getInstance()
-        self.votecast_db = VoteCastDBHandler.getInstance()
-        self.torrent_db = TorrentDBHandler.getInstance()
-
-        def updateNrTorrents():
+        def update_nr_torrents():
             rows = self.getChannelNrTorrents(50)
             update = "UPDATE _Channels SET nr_torrents = ? WHERE id = ?"
             self._db.executemany(update, rows)
@@ -2025,7 +1841,19 @@ class ChannelCastDBHandler(BasicDBHandler):
             update = "UPDATE _Channels SET nr_torrents = ?, modified = ? WHERE id = ?"
             self._db.executemany(update, rows)
 
-        self.register_task("updateNrTorrents", LoopingCall(updateNrTorrents)).start(300, now=False)
+        self.register_task(u"update_nr_torrents", LoopingCall(update_nr_torrents)).start(300, now=False)
+
+    def close(self):
+        super(ChannelCastDBHandler, self).close()
+        self._channel_id = None
+        self.my_dispersy_cid = None
+
+        self.modification_types = None
+        self.id2modification = None
+
+        self.peer_db = None
+        self.votecast_db = None
+        self.torrent_db = None
 
     # dispersy helper functions
     def _get_my_dispersy_cid(self):
@@ -2171,15 +1999,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         elif modification_type in ['swift-url']:
             sql = "Select infohash From Torrent, ChannelTorrents Where Torrent.torrent_id = ChannelTorrents.torrent_id And ChannelTorrents.id = ?"
             infohash = self._db.fetchone(sql, (channeltorrent_id,))
-
-            if infohash:
-                from Tribler.Core.Swift.SwiftDef import SwiftDef
-
-                sdef = SwiftDef.load_from_url(modification_value)
-                roothash = bin2str(sdef.get_roothash())
-                # If a user created two .torrents from the same set of files with different swarmnames we have two infohashes pointing to the same roothash.
-                update_torrent = "UPDATE or IGNORE Torrent SET swift_hash = ? WHERE infohash = ?"
-                self._db.execute_write(update_torrent, (roothash, infohash))
 
     def addOrGetChannelTorrentID(self, channel_id, infohash):
         torrent_id = self.torrent_db.addOrGetTorrentID(infohash)
@@ -2689,8 +2508,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         if torrent:
             torrent = list(torrent)
             fix_value('infohash', torrent)
-            fix_value('swift_hash', torrent)
-            fix_value('swift_torrent_hash', torrent)
         return torrent
 
     def __fixTorrents(self, keys, results):
@@ -2703,8 +2520,6 @@ class ChannelCastDBHandler(BasicDBHandler):
                         result[key_index] = str2bin(result[key_index])
                         results[i] = result
         fix_value('infohash')
-        fix_value('swift_hash')
-        fix_value('swift_torrent_hash')
         return results
 
     def getPlaylistsFromChannelId(self, channel_id, keys):
@@ -2971,11 +2786,8 @@ class UserEventLogDBHandler(BasicDBHandler):
     # when this maximum is reached, approx. 50% of the entries are deleted.
     MAX_EVENTS = 2 * 10000
 
-    def __init__(self):
-        if UserEventLogDBHandler._single is not None:
-            raise RuntimeError("UserEventLogDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'UserEventLog')
+    def __init__(self, session):
+        super(UserEventLogDBHandler, self).__init__(session, u"UserEventLog")
 
         self.count = -1
 
@@ -3019,21 +2831,18 @@ class BundlerPreferenceDBHandler(BasicDBHandler):
     storing a chosen bundle method for a particular query.
     """
 
-    def __init__(self):
-        if BundlerPreferenceDBHandler._single is not None:
-            raise RuntimeError("BundlerPreferenceDBHandler is singleton")
-        db = SQLiteCacheDB.getInstance()
-        BasicDBHandler.__init__(self, db, 'BundlerPreference')
+    def __init__(self, session):
+        super(BundlerPreferenceDBHandler, self).__init__(session, u"BundlerPreference")
 
     def storePreference(self, keywords, bundle_mode):
         query = ' '.join(sorted(set(keywords)))
-        self._db.execute_write('INSERT OR REPLACE INTO BundlerPreference (query, bundle_mode) VALUES (?,?)',
+        self._db.execute_write(u"INSERT OR REPLACE INTO BundlerPreference (query, bundle_mode) VALUES (?,?)",
                                (query, bundle_mode))
 
     def getPreference(self, keywords):
         # returns None if query not in db
         query = ' '.join(sorted(set(keywords)))
-        return self.getOne('bundle_mode', query=query)
+        return self.getOne(u"bundle_mode", query=query)
 
 
 def ranksfind(ranks, key):

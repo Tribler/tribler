@@ -5,12 +5,9 @@ class MetadataPayload(Payload):
 
     class Implementation(Payload.Implementation):
 
-        def __init__(self, meta, infohash, roothash, data_list, prev_mid=None, prev_global_time=None):
+        def __init__(self, meta, infohash, data_list, prev_mid=None, prev_global_time=None):
             assert isinstance(infohash, str), u"infohash is a %s" % type(infohash)
             assert len(infohash) == 20, u"infohash has length %d" % len(infohash)
-            if roothash:
-                assert isinstance(roothash, str), u"roothash is a %s" % type(roothash)
-                assert len(roothash) == 20, u"roothash has length %d" % len(roothash)
 
             assert isinstance(data_list, list), u"data_list is a %s" % type(data_list)
             for data in data_list:
@@ -25,7 +22,6 @@ class MetadataPayload(Payload):
             super(MetadataPayload.Implementation, self).__init__(meta)
 
             self._infohash = infohash
-            self._roothash = roothash
             self._data_list = data_list
 
             self._prev_mid = prev_mid
@@ -34,10 +30,6 @@ class MetadataPayload(Payload):
         @property
         def infohash(self):
             return self._infohash
-
-        @property
-        def roothash(self):
-            return self._roothash
 
         @property
         def data_list(self):

@@ -8,17 +8,13 @@ import logging
 import copy
 import wx
 import imghdr
-import tempfile
-import shutil
 
 from Tribler.Core.osutils import startfile
-from Tribler.Core.simpledefs import DLSTATUS_ALLOCATING_DISKSPACE, \
-    DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, \
-    DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR, \
-    DLSTATUS_METADATA, UPLOAD, DOWNLOAD, NTFY_TORRENTS, \
-    NTFY_VIDEO_ENDED, DLMODE_VOD
+from Tribler.Core.simpledefs import (DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING,
+                                     DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
+                                     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_METADATA, UPLOAD, DOWNLOAD, NTFY_TORRENTS,
+                                     NTFY_USEREVENTLOG, NTFY_VIDEO_ENDED, DLMODE_VOD)
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.Video.VideoUtility import limit_resolution
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
@@ -26,19 +22,16 @@ from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 
 from Tribler.community.channel.community import ChannelCommunity
 
-from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, \
-    CollectedTorrent, Channel, Playlist
-from Tribler.Main.vwxGUI import warnWxThread, forceWxThread, startWorker, \
-    GRADIENT_LGREY, GRADIENT_DGREY, THUMBNAIL_FILETYPES, GUI_PRI_DISPERSY, \
-    DEFAULT_BACKGROUND, FILTER_GREY, SEPARATOR_GREY, DOWNLOADING_COLOUR, \
-    SEEDING_COLOUR, TRIBLER_RED, LIST_LIGHTBLUE, format_time
+from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, Channel, Playlist
+from Tribler.Main.vwxGUI import (warnWxThread, forceWxThread, startWorker, GRADIENT_LGREY, GRADIENT_DGREY,
+                                 THUMBNAIL_FILETYPES, GUI_PRI_DISPERSY, DEFAULT_BACKGROUND, FILTER_GREY, SEPARATOR_GREY,
+                                 DOWNLOADING_COLOUR, SEEDING_COLOUR, TRIBLER_RED, LIST_LIGHTBLUE, format_time)
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.vwxGUI.widgets import LinkStaticText, EditText, \
-    SelectableListCtrl, _set_font, BetterText as StaticText, \
-    MaxBetterText, NotebookPanel, SimpleNotebook, ProgressButton, \
-    FancyPanel, TransparentText, LinkText, StaticBitmaps, \
-    TransparentStaticBitmap, Graph, ProgressBar
+from Tribler.Main.vwxGUI.widgets import (LinkStaticText, EditText, SelectableListCtrl, _set_font,
+                                         BetterText as StaticText, MaxBetterText, NotebookPanel, SimpleNotebook,
+                                         ProgressButton, FancyPanel, TransparentText, LinkText, StaticBitmaps,
+                                         TransparentStaticBitmap, Graph, ProgressBar)
 
 from Tribler.Main.Utility.utility import eta_value, size_format, speed_format
 
@@ -134,10 +127,10 @@ class TorrentDetails(AbstractDetails):
 
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
-        self.uelog = UserEventLogDBHandler.getInstance()
+        self.uelog = self.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
 
         self.parent = parent
-        self.torrent = Torrent('0', '0', '0', '0', '', '', 0, 0, 0, 0, 0, None)
+        self.torrent = Torrent('0', '0', '', '', 0, 0, 0, 0, 0, None)
         self.state = -1
         self.timeouttimer = None
 
@@ -473,25 +466,21 @@ class TorrentDetails(AbstractDetails):
     def OnUploadThumbsButtonClick(self, event):
         type_str = "Pictures (*.png, *.jpeg, *jpg)|*.png;*.jpeg;*.jpg"
         dialog = wx.FileDialog(self, "Upload Thumbnails", wildcard=type_str,
-            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
-        extra_info = {'thumbnail-tempdir': None, 'thumbnail-file-list': []}
+                               style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE)
+
+        extra_info = {'thumbnail-file': None}
         if dialog.ShowModal() == wx.ID_OK:
             path_list = dialog.GetPaths()
-            tempdir = tempfile.mkdtemp(suffix="thumbs", prefix="tribler")
-            extra_info['thumbnail-tempdir'] = tempdir
-            thumb_idx = 0
             for thumb_path in path_list:
                 if not os.path.exists(thumb_path) or not os.path.isfile(thumb_path):
                     continue
                 type_check = imghdr.what(thumb_path)
                 if type_check not in ('png', 'jpeg'):
                     continue
-                thumb_file_name = "thumbnail-%d.%s" % (thumb_idx, type_check)
-                dst = os.path.join(tempdir, thumb_file_name)
-                shutil.copy(thumb_path, dst)
-                thumb_idx += 1
-                extra_info['thumbnail-file-list'].append(thumb_file_name)
-            if thumb_idx > 0:
+                extra_info['thumbnail-file'] = thumb_path
+                break
+
+            if extra_info['thumbnail-file'] > 0:
                 self.guiutility.torrentsearch_manager.createMetadataModificationFromDef(
                     None, None, extraInfo=extra_info, guitorrent=self.torrent)
 
@@ -539,7 +528,8 @@ class TorrentDetails(AbstractDetails):
         self.channel.Show(show_channel)
 
         # Toggle thumbnails
-        thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(self.torrent.infohash))
+        thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(),
+                                 binascii.hexlify(self.torrent.infohash))
         thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
         show_thumbnails = bool(thumb_files)
         self.thumbnails.Show(show_thumbnails)
@@ -885,8 +875,6 @@ class TorrentDetails(AbstractDetails):
 
         if not curTorrent.exactCopy(newTorrent):
             # replace current torrent
-            curTorrent.swift_hash = newTorrent.swift_hash
-            curTorrent.swift_torrent_hash = newTorrent.swift_torrent_hash
             curTorrent.torrent_file_name = newTorrent.torrent_file_name
 
             curTorrent.name = newTorrent.name
@@ -1082,8 +1070,6 @@ class LibraryDetails(TorrentDetails):
     def getHashes(self):
         hashes = []
         if self.torrent:
-            if self.torrent.swift_hash:
-                hashes.append(self.torrent.swift_hash)
             if self.torrent.infohash:
                 hashes.append(self.torrent.infohash)
         return hashes
@@ -1454,6 +1440,7 @@ class LibraryDetails(TorrentDetails):
         TorrentDetails.__del__(self)
         self.guiutility.library_manager.set_want_peers(self.getHashes(), enable=False)
 
+
 class ChannelDetails(AbstractDetails):
 
     def __init__(self, parent):
@@ -1462,7 +1449,7 @@ class ChannelDetails(AbstractDetails):
 
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
-        self.uelog = UserEventLogDBHandler.getInstance()
+        self.uelog = self.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
 
         self.parent = parent
         self.channel = None
@@ -1552,7 +1539,7 @@ class PlaylistDetails(AbstractDetails):
 
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
-        self.uelog = UserEventLogDBHandler.getInstance()
+        self.uelog = self.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
 
         self.parent = parent
         self.playlist = None
@@ -1652,7 +1639,8 @@ class PlaylistDetails(AbstractDetails):
                     self.playlist_torrents = delayedResult.get()
                     bmps = []
                     for torrent in self.playlist_torrents:
-                        thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(torrent.infohash))
+                        thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(),
+                                                 binascii.hexlify(torrent.infohash))
                         thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
                         if thumb_files:
                             bmps.append(wx.Bitmap(thumb_files[0], wx.BITMAP_TYPE_ANY))
@@ -1700,7 +1688,7 @@ class AbstractInfoPanel(FancyPanel):
 
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
-        self.uelog = UserEventLogDBHandler.getInstance()
+        self.uelog = self.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
 
         self.parent = parent
         self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)

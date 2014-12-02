@@ -242,9 +242,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
                 self.dlstate = DLSTATUS_CIRCUITS if self.get_hops() > 0 else self.dlstate
 
-                self._logger.debug("LibtorrentDownloadImpl: setup: initialdlstatus %s %s", self.tdef.get_infohash(), initialdlstatus)
+                self._logger.debug(u"setup: initialdlstatus %s %s", hexlify(self.tdef.get_infohash()), initialdlstatus)
 
-                self.create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, initialdlstatus=initialdlstatus, wrapperDelay=wrapperDelay)
+                self.create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate,
+                                           initialdlstatus=initialdlstatus, wrapperDelay=wrapperDelay)
 
             self.pstate_for_restart = pstate
 
@@ -261,7 +262,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 session_ok = self.ltmgr.tunnels_ready(self) == 1
 
                 if not self.ltmgr or not dht_ok or not session_ok:
-                    self._logger.info("LibtorrentDownloadImpl: LTMGR/DHT/session not ready, rescheduling create_engine_wrapper")
+                    self._logger.info(u"LTMGR/DHT/session not ready, rescheduling create_engine_wrapper")
                     create_engine_wrapper_lambda = lambda: self.create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate, initialdlstatus=initialdlstatus)
                     self.session.lm.rawserver.add_task(create_engine_wrapper_lambda, 5)
                     self.dlstate = DLSTATUS_CIRCUITS if not session_ok else DLSTATUS_METADATA

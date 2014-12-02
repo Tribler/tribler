@@ -12,10 +12,10 @@ import Queue
 
 from traceback import print_exc
 
+from Tribler.Core import NoDispersyRLock
+from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Swift.SwiftDef import SwiftDef
-from Tribler.Core import NoDispersyRLock
 
 try:
     prctlimported = True
@@ -31,7 +31,6 @@ from Tribler.TrackerChecking.TrackerSession import MAX_TRACKER_MULTI_SCRAPE
 
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, bin2str
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 
 
 # some settings
@@ -48,7 +47,7 @@ class TorrentChecking(Thread):
 
     __single = None
 
-    def __init__(self, torrent_select_interval=DEFAULT_TORRENT_SELECTION_INTERVAL,
+    def __init__(self, session, torrent_select_interval=DEFAULT_TORRENT_SELECTION_INTERVAL,
                  torrent_check_interval=DEFAULT_TORRENT_CHECK_INTERVAL,
                  max_torrrent_check_retries=DEFAULT_MAX_TORRENT_CHECK_RETRIES,
                  torrrent_check_retry_interval=DEFAULT_TORRENT_CHECK_RETRY_INTERVAL):
@@ -56,7 +55,7 @@ class TorrentChecking(Thread):
             raise RuntimeError("Torrent Checking is singleton")
         TorrentChecking.__single = self
 
-        Thread.__init__(self)
+        super(TorrentChecking, self).__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -66,7 +65,9 @@ class TorrentChecking(Thread):
         self._logger.debug('Starting TorrentChecking from %s.', threading.currentThread().getName())
         self.setDaemon(True)
 
-        self._torrentdb = TorrentDBHandler.getInstance()
+        self.session = session
+
+        self._torrentdb = session.open_dbhandler(NTFY_TORRENTS)
         self._interrupt_socket = InterruptSocket()
 
         self._lock = NoDispersyRLock()
@@ -74,7 +75,7 @@ class TorrentChecking(Thread):
         self._pending_response_dict = dict()
 
         # initialize a tracker status cache, TODO: add parameters
-        self._tracker_info_cache = TrackerInfoCache()
+        self._tracker_info_cache = TrackerInfoCache(session)
 
         self._tracker_selection_idx = 0
         self._torrent_select_interval = torrent_select_interval
@@ -109,6 +110,7 @@ class TorrentChecking(Thread):
         if not self._should_stop:
             self._should_stop = True
             self._interrupt_socket.interrupt()
+            self.join()
 
     def addGuiRequest(self, gui_torrent):
         # enqueue a new GUI request
@@ -205,19 +207,11 @@ class TorrentChecking(Thread):
 
         # get trackers from its .torrent file
         result = None
-        torrent = self._torrentdb.getTorrent(infohash,
-                                             ['torrent_file_name', 'swift_torrent_hash'],
-                                             include_mypref=False)
+        torrent = self._torrentdb.getTorrent(infohash,  ['torrent_file_name'], include_mypref=False)
         if torrent:
             if torrent.get('torrent_file_name', False) and os.path.isfile(torrent['torrent_file_name']):
                 result = torrent['torrent_file_name']
 
-            elif torrent.get('swift_torrent_hash', False):
-                sdef = SwiftDef(torrent['swift_torrent_hash'])
-                torrent_filename = os.path.join(self._tor_col_dir, sdef.get_roothash_as_hex())
-
-                if os.path.isfile(torrent_filename):
-                    result = torrent_filename
         if result:
             try:
                 torrent = TorrentDef.load(result)

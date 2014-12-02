@@ -56,7 +56,7 @@ class SearchResponsePayload(Payload):
                     assert isinstance(result, tuple), type(result)
                     assert len(result) > 10
 
-                    infohash, swarmname, length, nrfiles, categorykeys, creation_date, seeders, leechers, swift_hash, swift_torrent_hash, cid = result[:11]
+                    infohash, swarmname, length, nrfiles, categorykeys, creation_date, seeders, leechers, cid = result[:9]
                     assert isinstance(infohash, str), type(infohash)
                     assert len(infohash) == 20, len(infohash)
                     assert isinstance(swarmname, unicode), type(swarmname)
@@ -67,10 +67,6 @@ class SearchResponsePayload(Payload):
                     assert isinstance(creation_date, long), type(creation_date)
                     assert isinstance(seeders, int), type(seeders)
                     assert isinstance(leechers, int), type(leechers)
-                    assert not swift_hash or isinstance(swift_hash, str), type(swift_hash)
-                    assert not swift_hash or len(swift_hash) == 20, swift_hash
-                    assert not swift_torrent_hash or isinstance(swift_torrent_hash, str), type(swift_torrent_hash)
-                    assert not swift_torrent_hash or len(swift_torrent_hash) == 20, swift_torrent_hash
                     assert not cid or isinstance(cid, str), type(cid)
                     assert not cid or len(cid) == 20, cid
 
