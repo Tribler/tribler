@@ -41,12 +41,3 @@ Description: Python based Bittorrent/Internet TV application
  ability to make friends, and to donate idle upload capacity to friends. The
  later can improve download speed by a factor of two on asymmetric Internet
  links. The fastest way of social file sharing.
-
-Package: tribler-swift
-Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: Fast peer-to-peer file distribution helper program for tribler.
- Swift is a fast peer-to-peer file distribution protocol used to disseminate
- data within Tribler.
- .
- This package contains a helper program used by tribler.
