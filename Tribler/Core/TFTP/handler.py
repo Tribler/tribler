@@ -1,5 +1,7 @@
 import os
 import logging
+from socket import inet_aton
+from struct import unpack
 from random import randint
 from tempfile import mkstemp
 from tarfile import TarFile
@@ -97,9 +99,27 @@ class TftpHandler(TaskManager):
         :param failure_callback: The failure callback.
         """
         # generate a unique session id
-        session_id = randint(0, MAX_INT16)
+        # if the target address is higher than ours, we use even number. Otherwise, we use odd number.
+        target_ip = unpack('!L', inet_aton(ip))[0]
+        target_port = port
+        self_ip, self_port = self.session.lm.dispersy.wan_address
+        self_ip = unpack('!L', inet_aton(self_ip))[0]
+        if target_ip > self_ip:
+            generate_session = lambda: randint(0, MAX_INT16) & 0xfff0
+        elif target_ip < self_ip:
+            generate_session = lambda: randint(0, MAX_INT16) | 1
+        else:
+            if target_port > self_port:
+                generate_session = lambda: randint(0, MAX_INT16) & 0xfff0
+            elif target_port < self_port:
+                generate_session = lambda: randint(0, MAX_INT16) | 1
+            else:
+                self._logger.critical(u"communicating to myself %s:%s", ip, port)
+                generate_session = lambda: randint(0, MAX_INT16)
+
+        session_id = generate_session()
         while (ip, port, session_id) in self._session_dict:
-            session_id = randint(0, MAX_INT16)
+            session_id = generate_session()
 
         # create session
         assert session_id is not None, u"session_id = %s" % session_id
