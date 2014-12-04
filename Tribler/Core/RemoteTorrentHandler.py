@@ -511,7 +511,7 @@ class TftpRequester(Requester):
     def __init__(self, name, session, remote_torrent_handler, priority):
         super(TftpRequester, self).__init__(name, session, remote_torrent_handler, priority)
 
-        self._current_active_request = None
+        self._active_request_list = []
         self._untried_sources = {}
         self._tried_sources = {}
 
@@ -522,7 +522,7 @@ class TftpRequester(Requester):
         else:
             key_str = hexlify(key)
 
-        if key in self._pending_request_queue or key == self._current_active_request:
+        if key in self._pending_request_queue or key in self._active_request_list:
             # append to the active one
             if candidate in self._untried_sources[key] or candidate in self._tried_sources[key]:
                 self._logger.debug(u"already has request %s from %s:%s, skip", key_str, ip, port)
@@ -539,11 +539,11 @@ class TftpRequester(Requester):
             self._tried_sources[key] = deque()
 
         # start pending tasks if there is no task running
-        if not self._current_active_request:
+        if not self._active_request_list:
             self._start_pending_requests()
 
     def _do_request(self):
-        assert self._current_active_request is None, "self._current_active_request = %s" % repr(self._current_active_request)
+        assert not self._active_request_list, "active_request_list is not empty = %s" % repr(self._active_request_list)
 
         # starts to download a torrent
         key = self._pending_request_queue.popleft()
@@ -570,13 +570,12 @@ class TftpRequester(Requester):
         self._session.lm.tftp_handler.download_file(file_name, ip, port, extra_info=extra_info,
                                                     success_callback=self._success_callback,
                                                     failure_callback=self._failure_callback)
+        self._active_request_list.append(key)
 
-        self._current_active_request = key
-
-    def _clear_current_request(self):
-        del self._untried_sources[self._current_active_request]
-        del self._tried_sources[self._current_active_request]
-        self._current_active_request = None
+    def _clear_active_request(self, key):
+        del self._untried_sources[key]
+        del self._tried_sources[key]
+        self._active_request_list.remove(key)
 
     @call_on_reactor_thread
     def _success_callback(self, address, file_name, file_data, extra_info):
@@ -586,7 +585,8 @@ class TftpRequester(Requester):
         infohash = extra_info.get(u"infohash")
         thumbnail_subpath = extra_info.get(u"thumbnail_subpath")
         key = (infohash, thumbnail_subpath) if thumbnail_subpath else infohash
-        assert key == self._current_active_request, "key = %s, self._current_active_request = %s" % (key, self._current_active_request)
+        assert key in self._active_request_list, "key = %s, active_request_list = %s" % (repr(key),
+                                                                                         self._active_request_list)
 
         self._requests_succeeded += 1
         self._total_bandwidth += len(file_data)
@@ -605,7 +605,7 @@ class TftpRequester(Requester):
             self._logger.error(u"failed to save data for download %s: %s", file_name, e)
 
         # start the next request
-        self._clear_current_request()
+        self._clear_active_request(key)
         self._start_pending_requests()
 
     @call_on_reactor_thread
@@ -616,7 +616,8 @@ class TftpRequester(Requester):
         infohash = extra_info.get(u"infohash")
         thumbnail_subpath = extra_info.get(u"thumbnail_subpath")
         key = (infohash, thumbnail_subpath) if thumbnail_subpath else infohash
-        assert key == self._current_active_request, "key = %s, self._current_active_request = %s" % (key, self._current_active_request)
+        assert key in self._active_request_list, "key = %s, active_request_list = %s" % (repr(key),
+                                                                                         self._active_request_list)
 
         self._requests_failed += 1
 
@@ -624,11 +625,11 @@ class TftpRequester(Requester):
             # try to download this data from another candidate
             self._logger.debug(u"scheduling next try for %s", hexlify(infohash))
 
-            self._pending_request_queue.appendleft(self._current_active_request)
-            self._current_active_request = None
+            self._pending_request_queue.appendleft(key)
+            self._active_request_list.remove(key)
             self.schedule_task(self._do_request)
 
         else:
             # no more available candidates, download the next requested infohash
-            self._clear_current_request()
+            self._clear_active_request(key)
             self._start_pending_requests()
