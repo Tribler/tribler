@@ -313,7 +313,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 # We prefer to use an url, since it may contain trackers
                 atp["url"] = self.tdef.get_url()
             else:
-                atp["info_hash"] = lt.big_number(self.tdef.get_infohash())
+                atp["info_hash"] = self.tdef.get_infohash()
             atp["name"] = self.tdef.get_name_as_unicode()
 
         self.handle = self.ltmgr.add_torrent(self, atp)
