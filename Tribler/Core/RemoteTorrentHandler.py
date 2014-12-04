@@ -3,7 +3,6 @@
 #
 # Handles the case where the user did a remote query and now selected one of the
 # returned torrents for download.
-import Queue
 import logging
 import os
 import sys
@@ -12,10 +11,6 @@ import shutil
 from collections import deque
 from abc import ABCMeta, abstractmethod
 from binascii import hexlify
-from time import time
-from tempfile import mkstemp
-from tarfile import TarFile
-from traceback import print_exc
 
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
