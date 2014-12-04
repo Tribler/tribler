@@ -641,12 +641,19 @@ class TriblerLaunchMany(Thread):
         if self.rtorrent_handler:
             self.rtorrent_handler.shutdown()
             self.rtorrent_handler.delInstance()
+            self.rtorrent_handler = None
         if self.torrent_checking:
             self.torrent_checking.shutdown()
             self.torrent_checking.delInstance()
+            self.torrent_checking = None
         if self.videoplayer:
             self.videoplayer.shutdown()
             self.videoplayer.delInstance()
+            self.videoplayer = None
+
+        if self.tftp_handler:
+            self.tftp_handler.shutdown()
+            self.tftp_handler = None
 
         if self.dispersy:
             self._logger.info("lmc: Shutting down Dispersy...")
@@ -662,9 +669,6 @@ class TriblerLaunchMany(Thread):
                 self._logger.info("lmc: Dispersy successfully shutdown in %.2f seconds", diff)
             else:
                 self._logger.info("lmc: Dispersy failed to shutdown in %.2f seconds", diff)
-
-        if self.tftp_handler:
-            self.tftp_handler.shutdown()
 
         if self.session.get_megacache():
             self.bundlerpref_db.close()
@@ -690,6 +694,7 @@ class TriblerLaunchMany(Thread):
         if self.mainline_dht:
             from Tribler.Core.DecentralizedTracking import mainlineDHT
             mainlineDHT.deinit(self.mainline_dht)
+            self.mainline_dht = None
 
     def network_shutdown(self):
         try:
