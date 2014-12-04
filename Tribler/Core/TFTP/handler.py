@@ -175,6 +175,10 @@ class TftpHandler(TaskManager):
                 return
 
             session = self._session_queue[0]
+            if session.address != addr:
+                self._logger.warn(u"sender (%s:%s) and current session address (%s:%s) mismatch, dropping packet.",
+                                  ip, port, session.address[0], session.address[1])
+                return
             self._process_packet(session, packet)
 
             if not session.is_done and not session.is_failed:
