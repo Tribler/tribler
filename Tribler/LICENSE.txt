@@ -48,16 +48,6 @@
 
     Next-Share content-delivery library.
 
-    The research leading to this library has received funding from the European
-    Community's Seventh Framework Programme in the P2P-Next project under grant
-    agreement no 216217.
-
-    The following library modules are Copyright (c) 2008-2013,
-    Delft University of Technology;
-    All rights reserved:
-
-      Tribler/SwiftEngine/*
-
     The following library modules are Copyright (c) 2008-2012, Kungliga Tekniska Högskolan (The Royal Institute of Technology); All rights reserved:
 
       Tribler/Core/DecentralizedTracking/pymdht/*
