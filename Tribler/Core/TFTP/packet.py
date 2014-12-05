@@ -26,6 +26,7 @@ ERROR_DICT = {
     6: "File already exists",
     7: "No such user",
     8: "Failed to negotiate options",
+    50: "Session ID already exists",
 }
 
 
@@ -84,14 +85,14 @@ def _decode_options(packet, buff, start_idx):
             raise InvalidOptionException(u"Invalid value for option %s: %s" % (repr(k), repr(v)))
 
 
-def _decode_rrq_wrq(packet, packet_buff):
+def _decode_rrq_wrq(packet, packet_buff, offset):
     """ Decodes a RRQ/WRQ packet.
     :param packet: The packet dictionary.
     :param packet_buff: The packet buffer.
     :return: The decoded packet as a dictionary.
     """
     # get file_name and mode
-    file_name, idx = _get_string(packet_buff, 2)
+    file_name, idx = _get_string(packet_buff, offset)
 
     packet['file_name'] = file_name
 
@@ -100,17 +101,17 @@ def _decode_rrq_wrq(packet, packet_buff):
     return packet
 
 
-def _decode_data(packet, packet_buff):
+def _decode_data(packet, packet_buff, offset):
     """ Decodes a DATA packet.
     :param packet: The packet dictionary.
     :param packet_buff: The packet buffer.
     :return: The decoded packet as a dictionary.
     """
     # get block number and data
-    if len(packet_buff) < 4:
+    if len(packet_buff) < offset + 2:
         raise InvalidPacketException(u"DATA packet too small (<4): %s" % repr(packet_buff))
-    block_number, = struct.unpack_from("!H", packet_buff, 2)
-    data = packet_buff[4:]
+    block_number, = struct.unpack_from("!H", packet_buff, offset)
+    data = packet_buff[offset + 2:]
 
     packet['block_number'] = block_number
     packet['data'] = data
@@ -118,33 +119,32 @@ def _decode_data(packet, packet_buff):
     return packet
 
 
-def _decode_ack(packet, packet_buff):
+def _decode_ack(packet, packet_buff, offset):
     """ Decodes a ACK packet.
     :param packet: The packet dictionary.
     :param packet_buff: The packet buffer.
     :return: The decoded packet as a dictionary.
     """
-    # get block number and data
-    if len(packet_buff) != 4:
-        raise InvalidPacketException(u"ACK packet has invalid size (!=4): %s" % hexlify(packet_buff))
-    block_number, = struct.unpack_from("!H", packet_buff, 2)
+    # get block number
+    if len(packet_buff) != offset + 2:
+        raise InvalidPacketException(u"ACK packet has invalid size (!=%s): %s" % (offset + 2, hexlify(packet_buff)))
+    block_number, = struct.unpack_from("!H", packet_buff, offset)
 
     packet['block_number'] = block_number
 
     return packet
 
 
-def _decode_error(packet, packet_buff):
+def _decode_error(packet, packet_buff, offset):
     """ Decodes a ERROR packet.
     :param packet: The packet dictionary.
     :param packet_buff: The packet buffer.
     :return: The decoded packet as a dictionary.
     """
-    # get block number and data
-    if len(packet_buff) < 5:
-        raise InvalidPacketException(u"ERROR packet too small (<5): %s" % hexlify(packet_buff))
-    error_code, = struct.unpack_from("!H", packet_buff, 2)
-    error_msg, idx = _get_string(packet_buff, 4)
+    if len(packet_buff) < offset + 3:
+        raise InvalidPacketException(u"ERROR packet too small (<%s): %s" % (offset + 3, hexlify(packet_buff)))
+    error_code, = struct.unpack_from("!H", packet_buff, offset)
+    error_msg, idx = _get_string(packet_buff, offset + 2)
 
     if not error_msg:
         raise InvalidPacketException(u"ERROR packet has empty error message: %s" % hexlify(packet_buff))
@@ -157,14 +157,14 @@ def _decode_error(packet, packet_buff):
     return packet
 
 
-def _decode_oack(packet, packet_buff):
+def _decode_oack(packet, packet_buff, offset):
     """ Decodes a OACK packet.
     :param packet: The packet dictionary.
     :param packet_buff: The packet buffer.
     :return: The decoded packet as a dictionary.
     """
     # get block number and data
-    _decode_options(packet, packet_buff, 2)
+    _decode_options(packet, packet_buff, offset)
 
     return packet
 
@@ -188,16 +188,17 @@ def decode_packet(packet_buff):
     :return: The decoded packet dictionary.
     """
     # get the opcode
-    if len(packet_buff) < 2:
-        raise InvalidPacketException(u"Packet too small (<2): %s" % hexlify(packet_buff))
-    opcode, = struct.unpack_from("!H", packet_buff, 0)
+    if len(packet_buff) < 4:
+        raise InvalidPacketException(u"Packet too small (<4): %s" % hexlify(packet_buff))
+    opcode, session_id = struct.unpack_from("!HH", packet_buff, 0)
 
     if opcode not in PACKET_DECODE_DICT:
         raise InvalidPacketException(u"Invalid opcode: %s" % opcode)
 
     # decode the packet
-    packet = {'opcode': opcode}
-    return PACKET_DECODE_DICT[opcode](packet, packet_buff)
+    packet = {'opcode': opcode,
+              'session_id': session_id}
+    return PACKET_DECODE_DICT[opcode](packet, packet_buff, 4)
 
 
 def encode_packet(packet):
@@ -206,7 +207,7 @@ def encode_packet(packet):
     :return: The encoded packet buffer.
     """
     # get block number and data
-    packet_buff = struct.pack("!H", packet['opcode'])
+    packet_buff = struct.pack("!HH", packet['opcode'], packet['session_id'])
     if packet['opcode'] in (OPCODE_RRQ, OPCODE_WRQ):
         packet_buff += packet['file_name'] + "\x00"
 
