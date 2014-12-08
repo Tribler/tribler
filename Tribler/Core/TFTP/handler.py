@@ -142,6 +142,8 @@ class TftpHandler(TaskManager):
         has_timeout = False
         for key, session in self._session_dict.items():
             if session.last_contact_time + session.timeout < time():
+                has_timeout = True
+
                 # fail as timeout
                 self._logger.info(u"%s timed out", session)
                 if session.failure_callback:
