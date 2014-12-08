@@ -142,6 +142,8 @@ class TftpHandler(TaskManager):
         has_timeout = False
         for key, session in self._session_dict.items():
             if session.last_contact_time + session.timeout < time():
+                has_timeout = True
+
                 # fail as timeout
                 self._logger.info(u"%s timed out", session)
                 if session.failure_callback:
@@ -269,7 +271,7 @@ class TftpHandler(TaskManager):
                 file_data, file_size = self._load_file(file_name)
             checksum = b64encode(sha1(file_data).digest())
         except FileNotFound as e:
-            self._logger.error(u"[READ %s:%s] file/dir not found: %s", ip, port, e)
+            self._logger.warn(u"[READ %s:%s] file/dir not found: %s", ip, port, e)
             dummy_session = Session(False, packet['session_id'], (ip, port), packet['opcode'],
                                     file_name, None, None, None, block_size=block_size, timeout=timeout)
             self._handle_error(dummy_session, 1)

@@ -779,6 +779,8 @@ class TriblerLaunchMany(Thread):
 
     def run_torrent_check(self):
         """ Called by network thread """
+        if not self.torrent_checking:
+            return
 
         self.update_torrent_checking_period()
         self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
