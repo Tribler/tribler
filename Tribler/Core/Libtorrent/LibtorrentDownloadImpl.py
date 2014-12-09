@@ -167,6 +167,13 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
     def __init__(self, session, tdef):
         self._logger = logging.getLogger(self.__class__.__name__)
 
+        # ugly fix for libtorrent big_number problem
+        lt_version = [int(v) for v in lt.version.split('.')]
+        if lt_version[0] > 0 or (lt_version[0] == 0 and lt_version[1] == 16 and lt_version[2] > 13):
+            self.use_bignumber = False
+        else:
+            self.use_bignumber = True
+
         self.dllock = NoDispersyRLock()
         self.session = session
         self.tdef = tdef
@@ -313,7 +320,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 # We prefer to use an url, since it may contain trackers
                 atp["url"] = self.tdef.get_url()
             else:
-                atp["info_hash"] = self.tdef.get_infohash()
+                # ugly fix for libtorrent big_number problem
+                if self.use_bignumber:
+                    atp["info_hash"] = lt.big_number(self.tdef.get_infohash())
+                else:
+                    atp["info_hash"] = self.tdef.get_infohash()
             atp["name"] = self.tdef.get_name_as_unicode()
 
         self.handle = self.ltmgr.add_torrent(self, atp)
