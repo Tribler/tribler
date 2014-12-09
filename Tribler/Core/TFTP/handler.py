@@ -153,8 +153,16 @@ class TftpHandler(TaskManager):
 
                 self._cleanup_session(key)
 
-        if has_timeout and not self._callback_scheduled:
+        if has_timeout:
+            self._schedule_callback_processing()
+
+    def _schedule_callback_processing(self):
+        """
+        Schedules a task to process callbacks.
+        """
+        if not self._callback_scheduled:
             self.register_task(u"tftp_process_callback", reactor.callLater(0, self._process_callbacks))
+            self._callback_scheduled = True
 
     def _process_callbacks(self):
         """
@@ -229,8 +237,7 @@ class TftpHandler(TaskManager):
                     fd = session.file_data, ei = session.extra_info: cb(a, fn, fd, ei)
                 self._callbacks.append(callback)
 
-        if not self._callback_scheduled:
-            self.register_task(u"tftp_process_callback", reactor.callLater(0, self._process_callbacks))
+        self._schedule_callback_processing()
 
     def _handle_new_request(self, ip, port, packet):
         """ Handles a new request.
