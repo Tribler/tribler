@@ -167,17 +167,36 @@ class TestTunnelCommunity(TestGuiAsServer):
             d = seeder_session.start_download(tdef, dscfg)
             d.set_state_callback(self.seeder_state_callback)
 
+            # Replace pymdht with a fake one
+            class FakeDHT(object):
+
+                def __init__(self, dht_dict, mainline_dht):
+                    self.dht_dict = dht_dict
+                    self.mainline_dht = mainline_dht
+
+                def get_peers(self, lookup_id, _, callback_f, bt_port=0):
+                    if bt_port != 0:
+                        self.dht_dict[lookup_id] = self.dht_dict.get(lookup_id, []) + [('127.0.0.1', bt_port)]
+                    callback_f(lookup_id, self.dht_dict.get(lookup_id, None), None)
+
+                def stop(self):
+                    self.mainline_dht.stop()
+
+            dht_dict = {}
+            for session in self.sessions + [self.session]:
+                session.lm.mainline_dht = FakeDHT(dht_dict, session.lm.mainline_dht)
+
             # Wait for the introduction point to announce itself to the DHT
             dht = Event()
             def dht_announce(info_hash, community):
-                def cb(info_hash, peers, source):
+                def cb_dht(info_hash, peers, source):
                     print >> sys.stderr, "announced %s to the DHT" % info_hash.encode('hex')
                     dht.set()
                 port = community.trsession.get_dispersy_port()
-                community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb, bt_port=port)
+                community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb_dht, bt_port=port)
             for community in tunnel_communities:
                 community.dht_announce = lambda ih, com = community: dht_announce(ih, com)
-            self.CallConditional(60, dht.is_set, lambda: self.Call(15, lambda: start_download(tf)),
+            self.CallConditional(60, dht.is_set, lambda: self.Call(5, lambda: start_download(tf)),
                                 'Introduction point did not get announced')
 
         self.startTest(setup_seeder)
