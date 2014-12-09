@@ -234,9 +234,9 @@ class TunnelExitSocket(DatagramProtocol):
 
 class TunnelSettings(object):
 
-    def __init__(self):
+    def __init__(self, curves_fn=None):
         self.circuit_length = 3
-        self.crypto = TunnelCrypto()
+        self.crypto = TunnelCrypto(curves_fn)
         self.socks_listen_ports = range(1080, 1085)
         self.do_test = True
 

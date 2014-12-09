@@ -5,9 +5,9 @@ from Tribler.community.privatesemantic.crypto.ecelgamal import encrypt_str, decr
 
 class ElgamalCrypto(ECCrypto):
 
-    def __init__(self):
+    def __init__(self, curves_fn=None):
         ECCrypto.__init__(self)
-        self.openssl = OpenSSLCurves()
+        self.openssl = OpenSSLCurves(curves_fn)
 
     def encrypt(self, key, string):
         # Encrypt a string with this key"
