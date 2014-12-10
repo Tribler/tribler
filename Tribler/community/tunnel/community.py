@@ -791,7 +791,8 @@ class TunnelCommunity(Community):
                 candidate_list_enc = message.payload.candidate_list
                 _, candidate_list = decode(self.crypto.decrypt_str(hop.session_keys[EXIT_NODE], candidate_list_enc))
 
-                ignore_candidates = [self.my_member.public_key] + [hop.public_key for hop in circuit.hops]
+                ignore_candidates = [self.crypto.key_to_bin(hop.public_key) for hop in circuit.hops] + \
+                                    [self.my_member.public_key]
                 if circuit.required_exit:
                     ignore_candidates.append(circuit.required_exit[2])
                 for ignore_candidate in ignore_candidates:
