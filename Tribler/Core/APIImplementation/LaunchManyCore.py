@@ -165,7 +165,8 @@ class TriblerLaunchMany(Thread):
                 endpoint = RawserverEndpoint(self.rawserver, self.session.get_dispersy_port())
 
                 working_directory = unicode(self.session.get_state_dir())
-                self.dispersy = Dispersy(endpoint, working_directory, crypto=ElgamalCrypto())
+                crypto = ElgamalCrypto(self.session.get_install_dir())
+                self.dispersy = Dispersy(endpoint, working_directory, crypto=crypto)
 
                 # register TFTP service
                 from Tribler.Core.TFTP.handler import TftpHandler

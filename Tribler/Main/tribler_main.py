@@ -457,7 +457,7 @@ class ABCApp(object):
             if my_channel:
                 self.torrentfeed.register(self.utility.session, my_channel)
                 self.torrentfeed.addCallback(my_channel, self.guiUtility.channelsearch_manager.createTorrentFromDef)
-                #self.torrentfeed.addCallback(my_channel, self.guiUtility.torrentsearch_manager.createMetadataModificationFromDef)
+                # self.torrentfeed.addCallback(my_channel, self.guiUtility.torrentsearch_manager.createMetadataModificationFromDef)
 
         startWorker(wx_thread, db_thread, delay=5.0)
 
@@ -495,9 +495,7 @@ class ABCApp(object):
             if not self.is_unit_testing:
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair),)
-                curves_fn = os.path.join(session.get_install_dir(), 'Tribler', 'community',
-                                         'privatesemantic', 'crypto', 'curves.ec')
-                settings = TunnelSettings(curves_fn)
+                settings = TunnelSettings(session.get_install_dir())
                 tunnel_kwargs = {'tribler_session': session, 'settings': settings}
 
                 self.tunnel_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, load=True,
@@ -803,7 +801,7 @@ class ABCApp(object):
 
                     self.torrentfeed.register(self.utility.session, objectID)
                     self.torrentfeed.addCallback(objectID, self.guiUtility.channelsearch_manager.createTorrentFromDef)
-                    #self.torrentfeed.addCallback(objectID, self.guiUtility.torrentsearch_manager.createMetadataModificationFromDef)
+                    # self.torrentfeed.addCallback(objectID, self.guiUtility.torrentsearch_manager.createMetadataModificationFromDef)
 
                 self.frame.managechannel.channelUpdated(objectID, created=changeType == NTFY_CREATE, modified=changeType == NTFY_MODIFIED)
 
