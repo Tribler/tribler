@@ -7,7 +7,7 @@ import subprocess
 from re import search
 from math import sqrt
 
-import Image
+from PIL import Image
 
 from Tribler.Core.osutils import is_android
 
