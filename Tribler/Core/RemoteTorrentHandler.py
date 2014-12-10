@@ -200,9 +200,9 @@ class RemoteTorrentHandler(TaskManager):
         # delete the folder and the swift files
         metadata_filepath = self.get_metadata_path(infohash, thumbnail_subpath)
         if not os.path.exists(metadata_filepath):
-            self._logger.error(u"trying to delete non-existing metadata: %s", metadata_filepath)
+            self._logger.warn(u"trying to delete non-existing metadata: %s", metadata_filepath)
         elif not os.path.isfile(metadata_filepath):
-            self._logger.error(u"deleting directory while expecting file metadata: %s", metadata_filepath)
+            self._logger.warn(u"deleting directory while expecting file metadata: %s", metadata_filepath)
             shutil.rmtree(metadata_filepath)
         else:
             os.unlink(metadata_filepath)
