@@ -5,7 +5,7 @@ from binascii import hexlify
 import logging
 import tempfile
 from threading import currentThread, Thread
-import Image
+from PIL import Image
 
 try:
     prctlimported = True
