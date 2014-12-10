@@ -245,10 +245,14 @@ class Socks5Connection(Protocol):
         @return Set with destinations using this circuit
         """
         affected_destinations = set(destination for destination, tunnel_circuit in self.destinations.iteritems() if tunnel_circuit == broken_circuit)
+        counter = 0
         for destination in affected_destinations:
             if destination in self.destinations:
                 del self.destinations[destination]
-                self._logger.error("Deleting peer %s from destination list", destination)
+                counter += 1
+
+        if counter > 0:
+            self._logger.error("Deleted %d peers from destination list", counter)
 
         return affected_destinations
 
