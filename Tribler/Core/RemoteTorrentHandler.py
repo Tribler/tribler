@@ -268,14 +268,15 @@ class RemoteTorrentHandler(TaskManager):
 
     def getQueueSuccess(self):
         def getQueueSuccess(qname, requesters):
-            sum_requests = sum_success = sum_fail = sum_on_disk = 0
+            pending_requests = success = failed = 0
             for requester in requesters.itervalues():
-                sum_requests += requester.pending_request_queue_size
-                sum_success += requester.requests_succeeded
-                sum_fail += requester.requests_failed
-                sum_on_disk += 0
+                pending_requests += requester.pending_request_queue_size
+                success += requester.requests_succeeded
+                failed += requester.requests_failed
+            total_requests = pending_requests + success + failed
 
-            return "%s: %d/%d" % (qname, sum_success, sum_requests), "%s: success %d, pending %d, on disk %d, failed %d" % (qname, sum_success, sum_requests - sum_success - sum_fail, sum_on_disk, sum_fail)
+            return "%s: %d/%d" % (qname, success, total_requests),\
+                   "%s: pending %d, success %d, failed %d, total %d" % (qname, pending_requests, success, failed, total_requests)
         return [(qstring, qtooltip) for qstring, qtooltip in [getQueueSuccess("TFTP", self.torrent_requesters),
                                                               getQueueSuccess("DHT", self.magnet_requesters),
                                                               getQueueSuccess("Msg", self.torrent_message_requesters)] if qstring]
