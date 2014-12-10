@@ -71,6 +71,8 @@ class TftpHandler(TaskManager):
         self._callback_scheduled = False
         self._callbacks = []
 
+        self._is_running = False
+
     def initialize(self):
         """ Initializes the TFTP service. We create a UDP socket and a server session.
         """
@@ -78,6 +80,7 @@ class TftpHandler(TaskManager):
         # start a looping call that checks timeout
         self.register_task(u"tftp timeout check",
                            LoopingCall(self._check_timeout)).start(self._timeout_check_interval, now=True)
+        self._is_running = True
 
     @blocking_call_on_reactor_thread
     def shutdown(self):
@@ -88,6 +91,8 @@ class TftpHandler(TaskManager):
 
         self._session_id_dict = None
         self._session_dict = None
+
+        self._is_running = False
 
     @call_on_reactor_thread
     def download_file(self, file_name, ip, port, extra_info=None, success_callback=None, failure_callback=None):
@@ -100,6 +105,9 @@ class TftpHandler(TaskManager):
         """
         # generate a unique session id
         # if the target address is higher than ours, we use even number. Otherwise, we use odd number.
+        if not self._is_running:
+            return
+
         target_ip = unpack('!L', inet_aton(ip))[0]
         target_port = port
         self_ip, self_port = self.session.lm.dispersy.wan_address
@@ -136,7 +144,7 @@ class TftpHandler(TaskManager):
     def _check_timeout(self):
         """ A scheduled task that checks for timeout.
         """
-        if not self._session_dict:
+        if not self._is_running:
             return
 
         has_timeout = False
@@ -190,6 +198,9 @@ class TftpHandler(TaskManager):
         :param addr: The (IP, port) address tuple of the sender.
         :param data: The data received.
         """
+        if not self._is_running:
+            return
+
         ip, port = addr
 
         # decode the packet
