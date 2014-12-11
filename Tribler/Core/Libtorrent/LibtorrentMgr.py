@@ -232,7 +232,7 @@ class LibtorrentMgr(object):
             elif 'url' in atp:
                 infohash = binascii.hexlify(parse_magnetlink(atp['url'])[1])
             else:
-                infohash = str(atp["info_hash"])
+                raise ValueError('No ti or url key in add_torrent_params')
 
             if infohash in self.metainfo_requests:
                 self._logger.info("LibtorrentMgr: killing get_metainfo request for %s", infohash)
@@ -240,13 +240,7 @@ class LibtorrentMgr(object):
                 if handle:
                     ltsession.remove_torrent(handle, 0)
 
-            encoded_atp = encode_atp(atp)
-            try:
-                handle = ltsession.add_torrent(encoded_atp)
-            except Exception as e:
-                import sys
-                print >> sys.stderr, "Failed to add torrent, error: %s, encoded_atp: %s" % (e, encoded_atp)
-                raise e
+            handle = ltsession.add_torrent(encode_atp(atp))
             infohash = str(handle.info_hash())
             if infohash in self.torrents:
                 raise DuplicateDownloadException()
