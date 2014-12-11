@@ -208,13 +208,15 @@ class EcpkParameters(univ.Choice):
 
 class OpenSSLCurves():
 
-    def __init__(self, curves_fn=None):
+    def __init__(self, install_dir=None):
         self.curve_dict = defaultdict(lambda: ["", "", ""])
 
         implicit = True
 
-        if curves_fn is None:
+        if install_dir is None:
             curves_fn = os.path.join(os.path.dirname(__file__), 'curves.ec')
+        else:
+            curves_fn = os.path.join(install_dir, 'Tribler', 'community', 'privatesemantic', 'crypto', 'curves.ec')
 
         with open(curves_fn, 'r') as f:
             for line in f:
