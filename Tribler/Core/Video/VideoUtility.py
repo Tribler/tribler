@@ -7,7 +7,7 @@ import subprocess
 from re import search
 from math import sqrt
 
-import Image
+from PIL import Image
 
 from Tribler.Core.osutils import is_android
 
@@ -98,8 +98,6 @@ def preferred_timecodes(videofile, duration, sample_res, ffmpeg, num_samples=20,
             # Android doesn't have wx, use PIL instead
             if is_android():
                 def get_image_data():
-                    import Image  # PIL
-
                     im = Image.open(outputfile)
                     return list(im.getdata())
             else:

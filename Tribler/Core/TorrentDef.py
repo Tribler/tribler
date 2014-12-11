@@ -93,6 +93,15 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         return TorrentDef._read(f)
     load = staticmethod(load)
 
+    @staticmethod
+    def load_from_memory(data):
+        """ Loads a torrent file that is already in memory.
+        :param data: The torrent file data.
+        :return: A TorrentDef object.
+        """
+        data = bdecode(data)
+        return TorrentDef._create(data)
+
     def _read(stream):
         """ Internal class method that reads a torrent file from stream,
         checks it for correctness and sets self.input and self.metainfo
@@ -100,7 +109,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         bdata = stream.read()
         stream.close()
         data = bdecode(bdata)
-        # print >>sys.stderr,data
         return TorrentDef._create(data)
     _read = staticmethod(_read)
 
@@ -132,7 +140,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
     _create = staticmethod(_create)
 
     @staticmethod
-    def retrieve_from_magnet(url, callback, timeout=30.0, max_connections=30.0, silent=False):
+    def retrieve_from_magnet(url, callback, timeout=30.0, timeout_callback=None, silent=False):
         """
         If the URL conforms to a magnet link, the .torrent info is
         downloaded and converted into a TorrentDef.  The resulting
@@ -149,7 +157,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         assert callable(callback), "CALLBACK must be callable"
 
         def metainfo_retrieved(metadata):
-            tdef = None
             try:
                 tdef = TorrentDef.load_from_dict(metadata)
             except UnicodeDecodeError:
@@ -159,7 +166,8 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             if tdef:
                 callback(tdef)
         if LibtorrentMgr.hasInstance():
-            LibtorrentMgr.getInstance().get_metainfo(url, metainfo_retrieved, timeout)
+            LibtorrentMgr.getInstance().get_metainfo(url, metainfo_retrieved,
+                                                     timeout=timeout, timeout_callback=timeout_callback)
             return True
         return False
 
@@ -1088,6 +1096,20 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
         self.input['private'] = 1 if private else 0
 
+    def is_anonymous(self):
+        """ Returns whether this TorrentDef is an anonymous torrent.
+        @return Boolean """
+        if not self.metainfo_valid:
+            raise NotYetImplementedException()
+
+        return int(self.metainfo['info'].get('anonymous', 0)) == 1
+
+    def set_anonymous(self, anonymous=True):
+        if self.readonly:
+            raise OperationNotPossibleAtRuntimeException()
+
+        self.input['anonymous'] = 1 if anonymous else 0
+
     def get_url(self):
         """ Returns the URL representation of this TorrentDef. The TorrentDef
         must be a Merkle or live torrent and must be set to URL-compatible
@@ -1175,3 +1197,6 @@ class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
 
     def copy(self):
         return TorrentDefNoMetainfo(self.infohash, self.name)
+
+    def is_anonymous(self):
+        return False

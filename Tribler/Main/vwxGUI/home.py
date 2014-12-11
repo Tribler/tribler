@@ -14,12 +14,9 @@ from time import strftime, time
 from traceback import print_exc
 
 from Tribler.Category.Category import Category
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT, NTFY_ANONTUNNEL, \
-    NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, NTFY_EXTENDED_FOR
+from Tribler.Core.simpledefs import (NTFY_TORRENTS, NTFY_CHANNELCAST, NTFY_INSERT, NTFY_TUNNEL, NTFY_CREATED,
+                                     NTFY_MISC, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, NTFY_EXTENDED_FOR)
 from Tribler.Core.Session import Session
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import MiscDBHandler, \
-    TorrentDBHandler, ChannelCastDBHandler
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 
 from Tribler.Main.vwxGUI import SEPARATOR_GREY, DEFAULT_BACKGROUND, LIST_BLUE, THUMBNAIL_FILETYPES
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
@@ -292,10 +289,10 @@ class Stats(wx.Panel):
             traceback.print_exc()
 
     def _printDBStats(self):
-        torrentdb = TorrentDBHandler.getInstance()
-        tables = torrentdb._db.fetchall("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+        sqlite_db = self.guiutility.utility.session.sqlite_db
+        tables = sqlite_db.fetchall("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
         for table, in tables:
-            self._logger.info("%s %s", table, torrentdb._db.fetchone("SELECT COUNT(*) FROM %s" % table))
+            self._logger.info("%s %s", table, sqlite_db.fetchone("SELECT COUNT(*) FROM %s" % table))
 
     def Show(self, show=True):
         if show:
@@ -363,9 +360,9 @@ class NetworkPanel(HomePanel):
     def __init__(self, parent):
         HomePanel.__init__(self, parent, 'Network info', SEPARATOR_GREY, (0, 1))
 
-        self.torrentdb = TorrentDBHandler.getInstance()
-        self.channelcastdb = ChannelCastDBHandler.getInstance()
-        self.remotetorrenthandler = RemoteTorrentHandler.getInstance()
+        self.torrentdb = parent.guiutility.utility.session.open_dbhandler(NTFY_TORRENTS)
+        self.channelcastdb = parent.guiutility.utility.session.open_dbhandler(NTFY_CHANNELCAST)
+        self.remotetorrenthandler = parent.guiutility.utility.session.lm.rtorrent_handler
 
         self.timer = None
 
@@ -468,8 +465,8 @@ class NewTorrentPanel(HomePanel):
         HomePanel.__init__(self, parent, 'Newest Torrents', SEPARATOR_GREY, (0, 1))
         self.Layout()
 
-        self.torrentdb = TorrentDBHandler.getInstance()
-        session = Session.get_instance()
+        session = parent.guiutility.utility.session
+        self.torrentdb = session.open_dbhandler(NTFY_TORRENTS)
         session.add_observer(self.OnNotify, NTFY_TORRENTS, [NTFY_INSERT])
 
     def CreatePanel(self):
@@ -515,8 +512,8 @@ class PopularTorrentPanel(NewTorrentPanel):
         HomePanel.__init__(self, parent, 'Popular Torrents', SEPARATOR_GREY, (1, 0))
         self.Layout()
 
-        self.misc_db = MiscDBHandler.getInstance()
-        self.torrentdb = TorrentDBHandler.getInstance()
+        self.misc_db = parent.guiutility.utility.session.open_dbhandler(NTFY_MISC)
+        self.torrentdb = parent.guiutility.utility.session.open_dbhandler(NTFY_TORRENTS)
 
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._onTimer, self.timer)
@@ -588,7 +585,7 @@ class NetworkGraphPanel(wx.Panel):
         self.hop_active_evt = None
         self.hop_active = None
 
-        self.tunnels = True
+        self.hops = -1
         self.fullscreen = fullscreen
         self.radius = 20 if self.fullscreen else 12
         self.line_width = 2 if self.fullscreen else 1
@@ -597,6 +594,7 @@ class NetworkGraphPanel(wx.Panel):
 
         self.AddComponents()
 
+        self.tunnel_community = None
         self.try_community()
 
     def try_community(self):
@@ -617,10 +615,10 @@ class NetworkGraphPanel(wx.Panel):
         self.circuit_timer.Start(5000)
 
         if self.fullscreen:
-            self.session.add_observer(self.OnExtended, NTFY_ANONTUNNEL, [NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN])
-            self.session.add_observer(self.OnSelect, NTFY_ANONTUNNEL, [NTFY_SELECT])
-            self.session.add_observer(self.OnJoined, NTFY_ANONTUNNEL, [NTFY_JOINED])
-            self.session.add_observer(self.OnExtendedFor, NTFY_ANONTUNNEL, [NTFY_EXTENDED_FOR])
+            self.session.add_observer(self.OnExtended, NTFY_TUNNEL, [NTFY_CREATED, NTFY_EXTENDED, NTFY_BROKEN])
+            self.session.add_observer(self.OnSelect, NTFY_TUNNEL, [NTFY_SELECT])
+            self.session.add_observer(self.OnJoined, NTFY_TUNNEL, [NTFY_JOINED])
+            self.session.add_observer(self.OnExtendedFor, NTFY_TUNNEL, [NTFY_EXTENDED_FOR])
 
     def AddComponents(self):
         self.graph_panel = wx.Panel(self, -1)
@@ -658,10 +656,10 @@ class NetworkGraphPanel(wx.Panel):
         self.main_sizer.Add(self.vSizer, 2, wx.EXPAND | wx.ALL, 10)
         self.SetSizer(self.main_sizer)
 
-    def ShowTunnels(self, enable):
-        self.circuit_list.Show(enable)
-        self.tunnels = enable
-        self.graph_panel.Refresh()
+    def ShowTunnels(self, hops):
+        self.circuit_list.Show(hops != 0)
+        self.hops = hops
+        self.OnUpdateCircuits(None)
 
     def OnItemSelected(self, event):
         selected = []
@@ -678,6 +676,9 @@ class NetworkGraphPanel(wx.Panel):
         self.graph_panel.Refresh()
 
     def OnUpdateCircuits(self, event):
+        if not self.tunnel_community:
+            return
+
         if self.fullscreen:
             self.num_circuits_label.SetLabel("You have %d circuit(s); %d relay(s); %d exit socket(s)" %
                                              (len(self.tunnel_community.circuits),
@@ -685,7 +686,7 @@ class NetworkGraphPanel(wx.Panel):
                                               len(self.tunnel_community.exit_sockets)))
 
         new_circuits = dict(self.tunnel_community.circuits)
-        self.circuits = new_circuits
+        self.circuits = {k:v for k, v in new_circuits.iteritems() if v.goal_hops == self.hops or self.hops < 0}
 
         # Add new circuits & update existing circuits
         for circuit_id, circuit in self.circuits.iteritems():
@@ -776,7 +777,7 @@ class NetworkGraphPanel(wx.Panel):
 
         circuit_points = {}
 
-        if self.tunnels:
+        if self.hops != 0:
             num_circuits = len(self.circuits)
             for c_index, circuit in enumerate(sorted(self.circuits.values(), key=lambda c: c.circuit_id)):
                 circuit_points[circuit] = [(self.margin_x, h / 2 + self.margin_y)]
@@ -940,7 +941,7 @@ class ArtworkPanel(wx.Panel):
         torrents = delayedResult.get()
 
         for torrent in torrents:
-            thumb_path = os.path.join(self.utility.session.get_torrent_collecting_dir(), 'thumbs-%s' % binascii.hexlify(torrent.infohash))
+            thumb_path = os.path.join(self.utility.session.get_torrent_collecting_dir(), binascii.hexlify(torrent.infohash))
             if os.path.isdir(thumb_path):
                 if not self.guiutility.getFamilyFilter() or not self.IsXXX(torrent, thumb_path):
                     data.append((torrent.infohash, [torrent.name], torrent, ThumbnailListItemNoTorrent))

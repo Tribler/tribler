@@ -31,9 +31,10 @@ DEFAULTPORT = 7760
 # History:
 #  Version 2: as released in Tribler 4.5.0
 #  Version 3: cleanup unused params
+#  Version 4: remove swift
 #
 
-SESSDEFAULTS_VERSION = 3
+SESSDEFAULTS_VERSION = 4
 sessdefaults = OrderedDict()
 
 # General Tribler settings
@@ -59,7 +60,7 @@ sessdefaults['general']['live_aux_seeders'] = []
 
 # Tunnel community section
 sessdefaults['tunnel_community'] = OrderedDict()
-sessdefaults['tunnel_community']['socks5_listen_port'] = -1
+sessdefaults['tunnel_community']['socks5_listen_ports'] = [-1] * 5
 
 # Mainline DHT settings
 sessdefaults['mainline_dht'] = OrderedDict()
@@ -93,24 +94,9 @@ sessdefaults['libtorrent']['anon_proxytype'] = 0
 sessdefaults['libtorrent']['anon_proxyserver'] = None
 sessdefaults['libtorrent']['anon_proxyauth'] = None
 
-# SWIFTPROC config
-sessdefaults['swift'] = OrderedDict()
-sessdefaults['swift']['enabled'] = True
-sessdefaults['swift']['swiftpath'] = None
-sessdefaults['swift']['swiftworkingdir'] = '.'
-sessdefaults['swift']['swiftcmdlistenport'] = -1
-sessdefaults['swift']['swiftdlsperproc'] = 1000
-sessdefaults['swift']['swiftmetadir'] = None
-# Config for tunneling via swift, e.g. dispersy
-sessdefaults['swift']['swifttunnellistenport'] = DEFAULTPORT - 2
-sessdefaults['swift']['swifttunnelhttpgwlistenport'] = -1
-sessdefaults['swift']['swifttunnelcmdgwlistenport'] = -1
-sessdefaults['swift']['swiftdhtport'] = -1
-
 # Dispersy config
 sessdefaults['dispersy'] = OrderedDict()
 sessdefaults['dispersy']['enabled'] = True
-sessdefaults['dispersy']['dispersy-tunnel-over-swift'] = False
 sessdefaults['dispersy']['dispersy_port'] = DEFAULTPORT - 1
 
 # Video config
@@ -132,8 +118,9 @@ sessdefaults['video']['preferredmode'] = PLAYBACKMODE_INTERNAL
 #  Version 6: allow users to overwrite the multifile destination
 #  Version 7: swift params
 #  Version 8: deleted many of the old params that were not used anymore (due to the switch to libtorrent)
+#  Version 9: remove swift
 
-DLDEFAULTS_VERSION = 8
+DLDEFAULTS_VERSION = 9
 dldefaults = OrderedDict()
 
 # General download settings
@@ -144,14 +131,9 @@ dldefaults['downloadconfig']['max_upload_rate'] = 0
 dldefaults['downloadconfig']['max_download_rate'] = 0
 dldefaults['downloadconfig']['super_seeder'] = 0
 dldefaults['downloadconfig']['mode'] = 0
-dldefaults['downloadconfig']['anon_mode'] = False
+dldefaults['downloadconfig']['hops'] = 0
 dldefaults['downloadconfig']['selected_files'] = []
 dldefaults['downloadconfig']['correctedfilename'] = None
-dldefaults['downloadconfig']['swiftlistenport'] = None
-dldefaults['downloadconfig']['swiftcmdgwlistenport'] = None
-dldefaults['downloadconfig']['swifthttpgwlistenport'] = None
-dldefaults['downloadconfig']['swiftmetadir'] = None
-dldefaults['downloadconfig']['name'] = None
 
 tdefdictdefaults = {}
 tdefdictdefaults['comment'] = None

@@ -166,7 +166,7 @@ def validTorrentFile(metainfo):
                 raise ValueError('azureus_properties content is not dict, but ' + repr(type(content)))
             if 'thumbnail' in content:
                 thumb = content['thumbnail']
-                if not isinstance(content, StringType):
+                if not isinstance(thumb, StringType):
                     raise ValueError('azureus_properties content thumbnail is not string')
 
     # Perform check on httpseeds/url-list fields

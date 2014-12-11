@@ -1,5 +1,5 @@
 """
-The AnonTunnel community package
+The Tunnel community package
 
 Defines a ProxyCommunity which discovers other proxies and offers an API to
 create and reserve circuits. A basic SOCKS5 server is included which reserves
@@ -10,7 +10,13 @@ forth
 from Tribler.community.privatesemantic.crypto.optional_crypto import mpz
 
 ORIGINATOR = 0
-ENDPOINT = 1
+EXIT_NODE = 1
+
+CIRCUIT_TYPE_DATA = 'DATA'
+CIRCUIT_TYPE_IP = 'IP'
+CIRCUIT_TYPE_RP = 'RP'
+CIRCUIT_TYPE_INTRODUCE = 'INTRODUCE'
+CIRCUIT_TYPE_RENDEZVOUS = 'RENDEZVOUS'
 
 CIRCUIT_STATE_READY = 'READY'
 CIRCUIT_STATE_EXTENDING = 'EXTENDING'

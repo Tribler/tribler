@@ -92,11 +92,11 @@ class DownloadConfigInterface(object):
         @return DLMODE_NORMAL/DLMODE_VOD """
         return self.dlconfig.get('downloadconfig', 'mode')
 
-    def set_anon_mode(self, anon_mode):
-        self.dlconfig.set('downloadconfig', 'anon_mode', anon_mode)
+    def set_hops(self, hops):
+        self.dlconfig.set('downloadconfig', 'hops', hops)
 
-    def get_anon_mode(self):
-        return self.dlconfig.get('downloadconfig', 'anon_mode')
+    def get_hops(self):
+        return self.dlconfig.get('downloadconfig', 'hops')
 
     def set_selected_files(self, files):
         """ Select which files in the torrent to download. The filenames must
@@ -155,65 +155,6 @@ class DownloadConfigInterface(object):
         """ Returns hether super seeding is enabled.
         @return Boolean. """
         return self.dlconfig.get('downloadconfig', 'super_seeder')
-
-    # SWIFTPROC
-    def set_swift_listen_port(self, port):
-        """ Set the UDP port for the swift process
-        (download-to-process mapping permitting).
-        @param port A port number.
-        """
-        self.dlconfig.set('downloadconfig', 'swiftlistenport', port)
-
-    def get_swift_listen_port(self):
-        """ Returns the UDP port of the swift process.
-
-        @return Port number. """
-        return self.dlconfig.get('downloadconfig', 'swiftlistenport')
-
-    def set_swift_cmdgw_listen_port(self, port):
-        """ Set the TCP listen port for the CMDGW of the swift process
-        (download-to-process mapping permitting).
-        @param port A port number.
-        """
-        self.dlconfig.set('downloadconfig', 'swiftcmdgwlistenport', port)
-
-    def get_swift_cmdgw_listen_port(self):
-        """ Returns the TCP listen port for the CMDGW of the swift process
-        (download-to-process mapping permitting).
-
-        @return Port number. """
-        return self.dlconfig.get('downloadconfig', 'swiftcmdgwlistenport')
-
-    def set_swift_httpgw_listen_port(self, port):
-        """ Set the TCP listen port for the CMDGW of the swift process
-        (download-to-process mapping permitting).
-        @param port A port number.
-        """
-        self.dlconfig.set('downloadconfig', 'swifthttpgwlistenport', port)
-
-    def get_swift_httpgw_listen_port(self):
-        """ Returns the TCP listen port for the CMDGW of the swift process.
-
-        @return Port number. """
-        return self.dlconfig.get('downloadconfig', 'swifthttpgwlistenport')
-
-    def set_swift_meta_dir(self, value):
-        """ Set the metadir for storing .m* files of this Download.
-        @param value An absolutepath.
-        """
-        self.dlconfig.set('downloadconfig', 'swiftmetadir', value)
-
-    def get_swift_meta_dir(self):
-        """ Return the metadir for storing .m* files of this Download.
-        @return An absolutepath.
-        """
-        return self.dlconfig.get('downloadconfig', 'swiftmetadir')
-
-    def set_swift_name(self, value):
-        self.dlconfig.set('downloadconfig', 'name', value)
-
-    def get_swift_name(self):
-        return self.dlconfig.get('downloadconfig', 'name')
 
 
 class DownloadStartupConfig(DownloadConfigInterface, Serializable, Copyable):
@@ -274,7 +215,7 @@ def get_default_dest_dir():
         else: Home\TriblerDownloads
     </pre>
     """
-    downloaddir = 'TriblerDownloads'
+    downloaddir = u"TriblerDownloads"
 
     if os.path.isdir(downloaddir):
         return os.path.abspath(downloaddir)

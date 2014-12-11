@@ -1,10 +1,10 @@
 import logging
-from Tribler.community.tunnel.Socks5 import conversion
 
 from twisted.internet import reactor
-from twisted.internet.protocol import Protocol, DatagramProtocol, connectionDone, \
-    Factory
-from Tribler.community.tunnel import CIRCUIT_STATE_READY
+from twisted.internet.protocol import Protocol, DatagramProtocol, connectionDone, Factory
+
+from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP
+from Tribler.community.tunnel.Socks5 import conversion
 
 
 class ConnectionState(object):
@@ -78,10 +78,11 @@ class Socks5Connection(Protocol):
     for TCP BIND requests
     """
 
-    def __init__(self, socksserver, selection_strategy):
+    def __init__(self, socksserver, selection_strategy, hops):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.socksserver = socksserver
         self.selection_strategy = selection_strategy
+        self.hops = hops
 
         self._udp_socket = None
         self.state = ConnectionState.BEFORE_METHOD_REQUEST
@@ -207,7 +208,7 @@ class Socks5Connection(Protocol):
         self._logger.error("DENYING SOCKS5 request")
 
     def on_udp_associate_request(self, connection, request):
-        if self.selection_strategy.has_options():
+        if self.selection_strategy.has_options(self.hops):
             # The DST.ADDR and DST.PORT fields contain the address and port that the client expects
             # to use to send UDP datagrams on for the association.  The server MAY use this information
             # to limit access to the association.
@@ -226,7 +227,7 @@ class Socks5Connection(Protocol):
 
     def select(self, destination):
         if not destination in self.destinations:
-            selected_circuit = self.selection_strategy.select()
+            selected_circuit = self.selection_strategy.select(destination, self.hops)
             if not selected_circuit:
                 return None
 
@@ -244,15 +245,19 @@ class Socks5Connection(Protocol):
         @return Set with destinations using this circuit
         """
         affected_destinations = set(destination for destination, tunnel_circuit in self.destinations.iteritems() if tunnel_circuit == broken_circuit)
+        counter = 0
         for destination in affected_destinations:
             if destination in self.destinations:
                 del self.destinations[destination]
-                self._logger.error("Deleting peer %s from destination list", destination)
+                counter += 1
+
+        if counter > 0:
+            self._logger.error("Deleted %d peers from destination list", counter)
 
         return affected_destinations
 
-    def on_incoming_from_tunnel(self, community, circuit, origin, data):
-        if circuit in self.destinations.values():
+    def on_incoming_from_tunnel(self, community, circuit, origin, data, force=False):
+        if circuit in self.destinations.values() or force:
             self.destinations[origin] = circuit
 
             if self._udp_socket:
@@ -273,30 +278,34 @@ class Socks5Connection(Protocol):
         self.transport.loseConnection()
 
 
-class Socks5Server(Factory):
+class Socks5Server(object):
 
-    def __init__(self, community, socks5_port=1080):
+    def __init__(self, community, socks5_ports):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.community = community
-        self.socks5_port = socks5_port
-        self.twisted_port = None
+        self.socks5_ports = socks5_ports
+        self.twisted_ports = []
         self.sessions = []
 
     def start(self):
-        self.twisted_port = reactor.listenTCP(self.socks5_port, self)
+        for i, port in enumerate(self.socks5_ports):
+            factory = Factory()
+            factory.buildProtocol = lambda addr, hops = i + 1: self.buildProtocol(addr, hops)
+            self.twisted_ports.append(reactor.listenTCP(port, factory))
 
     def stop(self):
-        if self.twisted_port:
+        if self.twisted_ports:
             for session in self.sessions:
                 session.close('stopping')
             self.sessions = []
 
-            self.twisted_port.stopListening()
-            self.twisted_port = None
+            for twisted_port in self.twisted_ports:
+                twisted_port.stopListening()
+            self.twisted_ports = []
 
-    def buildProtocol(self, addr):
-        socks5connection = Socks5Connection(self, self.community.selection_strategy)
+    def buildProtocol(self, addr, hops):
+        socks5connection = Socks5Connection(self, self.community.selection_strategy, hops)
         self.sessions.append(socks5connection)
         return socks5connection
 
@@ -314,6 +323,9 @@ class Socks5Server(Factory):
 
         return affected_destinations
 
-    def on_incoming_from_tunnel(self, community, circuit, origin, data):
-        if not any(session.on_incoming_from_tunnel(community, circuit, origin, data) for session in self.sessions):
+    def on_incoming_from_tunnel(self, community, circuit, origin, data, force=False):
+        if circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
+            origin = (community.circuit_id_to_ip(circuit.circuit_id), 1024)
+
+        if not any([session.on_incoming_from_tunnel(community, circuit, origin, data, force) for session in self.sessions]):
             self._logger.error("No session accepted this data from %s:%d", *origin)

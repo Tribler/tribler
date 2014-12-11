@@ -1,16 +1,21 @@
 # Tribler           [![Build Status](http://jenkins.tribler.org/job/Test_tribler_devel/badge/icon)](http://jenkins.tribler.org/job/Test_tribler_devel/)
 
+The aim of Tribler is giving anonymous access to online streaming videos. We are trying to make privacy, strong cryptography and authentication the Internet norm.
+
+Tribler currently offers a Youtube-style service. For instance, Bittorrent-compatible streaming, fast search, thumbnail previews and comments. For the past 9 years we have been building a very robust Peer-to-Peer system. Today Tribler is robust: "the only way to take Tribler down is to take The Internet down" (but a single software bug could end everything).
+
+We implemented and enhanced the _Tor protocol specifications_ plus merged them with Bittorrent streaming.
+More info: https://github.com/Tribler/tribler/wiki
+Tribler includes our own experimental Tor-like onion routing network, detailed specs: https://github.com/Tribler/tribler/wiki/Anonymous-Downloading-and-Streaming-specifications
+
+## Build dependencies
+
 We make use of submodules, so remember using the --recursive argument when cloning this repo.
 
-## Dependencies
-
 ### Debian/Ubuntu/Mint
-sudo apt-get install scons build-essential libevent-dev python-libtorrent python-twisted python-apsw python-wxgtk2.8 python-netifaces python-m2crypto vlc python-pyasn1 python-gmpy libssl-dev python-requests
+sudo apt-get install python-libtorrent python-twisted python-apsw python-wxgtk2.8 python-netifaces python-m2crypto vlc python-pyasn1 python-gmpy python-requests
 
-### Windows
-TODO
-
-### OSX
+### Windows and OSX 
 TODO
 
 ## Running Tribler from this repository
@@ -25,14 +30,6 @@ or, if you don't have added your ssh key to your github account:
 
 ```bash
 git clone --recursive  https://github.com/Tribler/tribler.git
-```
-Then build swift and copy the binary where Tribler expects it to be:
-
-```bash
-cd  tribler/Tribler/SwiftEngine
-scons #or scons -j8 if you have 8 cores on your machine.
-cp swift ../..
-cd ../..
 ```
 
 Done!

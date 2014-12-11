@@ -70,9 +70,9 @@ class SearchResponsePayload(Payload):
                 assert isinstance(results, list), type(results)
                 for result in results:
                     assert isinstance(result, tuple), type(result)
-                    assert len(result) > 10
+                    assert len(result) > 8
 
-                    infohash, swarmname, length, nrfiles, categorykeys, creation_date, seeders, leechers, swift_hash, swift_torrent_hash, cid = result[:11]
+                    infohash, swarmname, length, nrfiles, categorykeys, creation_date, seeders, leechers, cid = result[:9]
                     assert isinstance(infohash, str), type(infohash)
                     assert len(infohash) == 20
                     assert isinstance(swarmname, unicode), type(swarmname)
@@ -83,10 +83,6 @@ class SearchResponsePayload(Payload):
                     assert isinstance(creation_date, long), type(creation_date)
                     assert isinstance(seeders, int), type(seeders)
                     assert isinstance(leechers, int), type(leechers)
-                    assert not swift_hash or isinstance(swift_hash, str), type(swift_hash)
-                    assert not swift_hash or len(swift_hash) == 20, swift_hash
-                    assert not swift_torrent_hash or isinstance(swift_torrent_hash, str), type(swift_torrent_hash)
-                    assert not swift_torrent_hash or len(swift_torrent_hash) == 20, swift_torrent_hash
                     assert not cid or isinstance(cid, str), type(cid)
                     assert not cid or len(cid) == 20, cid
 
@@ -134,18 +130,14 @@ class TorrentCollectRequestPayload(Payload):
             if __debug__:
                 assert isinstance(identifier, int), type(identifier)
                 assert isinstance(torrents, list), type(torrents)
-                for hash, infohash, seeders, leechers, ago in torrents:
-                    assert isinstance(hash, str)
-                    assert len(hash) == 20, "%d, %s" % (len(hash), hash)
+                for infohash, seeders, leechers, ago in torrents:
                     assert isinstance(infohash, str)
                     assert len(infohash) == 20, "%d, %s" % (len(infohash), infohash)
-                    assert isinstance(seeders, int)
+                    assert isinstance(seeders, int), type(seeders)
                     assert 0 <= seeders < 2 ** 16, seeders
-                    assert isinstance(leechers, int)
+                    assert isinstance(leechers, int), type(leechers)
                     assert 0 <= leechers < 2 ** 16, leechers
-                    assert isinstance(leechers, int)
-                    assert 0 <= leechers < 2 ** 16, leechers
-                    assert isinstance(ago, int)
+                    assert isinstance(ago, int), type(ago)
                     assert 0 <= ago < 2 ** 16, ago
 
                 assert isinstance(hashtype, int), type(hashtype)

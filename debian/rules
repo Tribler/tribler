@@ -20,10 +20,6 @@ GIT_URL = https://github.com/Tribler/tribler.git
 override_dh_auto_configure:
 	dh_auto_configure
 
-override_dh_auto_build:
-	make -C $(CURDIR)/Tribler/SwiftEngine
-	dh_auto_build
-
 override_dh_install:
 	dh_install --exclude=.git
 	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Core/DecentralizedTracking/pymdht/LICENSE.txt
@@ -35,16 +31,13 @@ override_dh_install:
 	rm -rf $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Main/Build
 	rm -rf $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Player/Build
 	rm -rf $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Transport/Build
-	rm -rf $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/SwiftEngine
 	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Main/Utility/Feeds/feedparser.py
-	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Main/webUI/static/mootools.js
 	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Core/DecentralizedTracking/pymdht/LGPL-2.1.txt
+	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Main/webUI/static/mootools.js
+	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Main/webUI/static/excanvas.js
 
 	dh_link -ptribler usr/share/javascript/mootools/mootools.js usr/share/tribler/Tribler/Main/webUI/static/mootools.js
-
-override_dh_auto_clean:
-	make -C $(CURDIR)/Tribler/SwiftEngine clean || echo "SwiftEngine cleaned"
-	dh_auto_clean
+	dh_link -ptribler usr/share/javascript/excanvas/excanvas.js usr/share/tribler/Tribler/Main/webUI/static/excanvas.js
 
 get-orig-source:
 	set -e; if echo $(DEB_VERSION) | grep -c "git"; \
@@ -58,7 +51,7 @@ get-orig-source:
 	echo "checkout upstream repository ..."; \
 	git clone --recursive $(GIT_URL); echo "getting specific upstream revision/tag: $$git_version"; \
 	cd `ls | head -n 1`; git checkout -b orig $$git_version; cd ..; \
-	tar --exclude=.git --exclude=.gitignore --exclude='*.exe' --exclude='draft-ietf-ppsp-*' \
+	tar --exclude=.git --exclude=.gitignore \
 	-cJvf $(CURDIR)/$(DEB_SOURCE)_$(DEB_UPSTREAM_VERSION).orig.tar.xz `ls | head -n 1`; \
 	cd $(CURDIR); \
 	rm -rf $$tmpdir

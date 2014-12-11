@@ -12,36 +12,29 @@ from colorsys import hsv_to_rgb, rgb_to_hsv
 
 from Tribler.Category.Category import Category
 
-from Tribler.Core.simpledefs import NTFY_MISC, DLSTATUS_STOPPED, \
-    DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_WAITING4HASHCHECK, \
-    DLSTATUS_HASHCHECKING
+from Tribler.Core.simpledefs import (NTFY_MISC, NTFY_USEREVENTLOG, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR,
+                                     DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING)
 from Tribler.Core.exceptions import NotYetImplementedException
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 
-from Tribler.Main.vwxGUI import warnWxThread, DEFAULT_BACKGROUND, \
-    LIST_GREY, LIST_GREEN, LIST_ORANGE, LIST_DESELECTED, SEPARATOR_GREY, \
-    GRADIENT_LGREY, GRADIENT_DGREY, TRIBLER_RED, format_time
-from Tribler.Main.vwxGUI.list_header import ListHeader, DownloadFilter, \
-    TorrentFilter, ChannelFilter
+from Tribler.Main.vwxGUI import (warnWxThread, DEFAULT_BACKGROUND, LIST_GREY, LIST_GREEN, LIST_ORANGE, LIST_DESELECTED,
+                                 SEPARATOR_GREY, GRADIENT_LGREY, GRADIENT_DGREY, TRIBLER_RED, format_time)
+from Tribler.Main.vwxGUI.list_header import ListHeader, DownloadFilter, TorrentFilter, ChannelFilter
 from Tribler.Main.vwxGUI.list_body import ListBody, FixedListBody
 from Tribler.Main.vwxGUI.list_footer import ListFooter
-from Tribler.Main.vwxGUI.list_item import ChannelListItem, TorrentListItem, \
-    ChannelListItemAssociatedTorrents, ColumnsManager, LibraryListItem, \
-    DragItem, ActivityListItem
-from Tribler.Main.vwxGUI.list_details import TorrentDetails, ChannelDetails, \
-    SearchInfoPanel, LibraryDetails, LibraryInfoPanel, ChannelInfoPanel, \
-    ChannelsExpandedPanel, VideoplayerExpandedPanel
-from Tribler.Main.vwxGUI.widgets import HorizontalGauge, TorrentStatus, \
-    FancyPanel, TransparentStaticBitmap, _set_font, SwarmHealth, LinkStaticText, \
-    TransparentText, TagText, BetterText
+from Tribler.Main.vwxGUI.list_item import (ChannelListItem, TorrentListItem, ChannelListItemAssociatedTorrents,
+                                           ColumnsManager, LibraryListItem, DragItem, ActivityListItem)
+from Tribler.Main.vwxGUI.list_details import (TorrentDetails, ChannelDetails, SearchInfoPanel, LibraryDetails,
+                                              LibraryInfoPanel, ChannelInfoPanel, ChannelsExpandedPanel,
+                                              VideoplayerExpandedPanel)
+from Tribler.Main.vwxGUI.widgets import (HorizontalGauge, TorrentStatus, FancyPanel, TransparentStaticBitmap, _set_font,
+                                         SwarmHealth, LinkStaticText, TransparentText, TagText, BetterText)
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
-from Tribler.Main.Utility.GuiDBTuples import Torrent, CollectedTorrent, \
-    ChannelTorrent, Channel
+from Tribler.Main.Utility.GuiDBTuples import Torrent, CollectedTorrent, ChannelTorrent, Channel
 
 from Tribler.Main.Utility.utility import eta_value, size_format, speed_format
 
@@ -483,7 +476,7 @@ class List(wx.BoxSizer):
         self.cur_nr_filtered = 0
 
         self.guiutility = GUIUtility.getInstance()
-        self.uelog = UserEventLogDBHandler.getInstance()
+        self.uelog = self.guiutility.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
         self.category = Category.getInstance()
 
         self.leftLine = self.rightLine = None
@@ -1648,16 +1641,13 @@ class LibraryList(SizeList):
                    {'name': 'Connections', 'width': '15em', 'autoRefresh': False},
                    {'name': 'Ratio', 'width': '15em', 'fmt': self._format_ratio, 'autoRefresh': False},
                    {'name': 'Time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
-                   {'name': 'Swift ratio', 'width': '15em', 'fmt': self._format_ratio, 'autoRefresh': False},
-                   {'name': 'Swift time seeding', 'width': '30em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
                    {'name': 'Anonymous', 'width': '15em', 'autoRefresh': False}]
 
-        columns = self.guiutility.SetColumnInfo(LibraryListItem, columns, hide_defaults=[2, 7, 8, 9, 10])
+        columns = self.guiutility.SetColumnInfo(LibraryListItem, columns, hide_defaults=[2, 7, 8])
         ColumnsManager.getInstance().setColumns(LibraryListItem, columns)
 
         gui_image_manager = GuiImageManager.getInstance()
 
-        self.hasSwift = gui_image_manager.getImage(u"swift.png")
         self.hasTorrent = gui_image_manager.getImage(u"bittorrent.png")
         SizeList.__init__(self, None, LIST_GREY, [0, 0], False, parent=parent)
 
@@ -1682,10 +1672,6 @@ class LibraryList(SizeList):
 
     def _format_ratio(self, value):
         return "%.2f" % value
-
-    def _swift_icon(self, item):
-        # Always return icon, toggle icon from RefreshItems
-        return self.hasSwift, None, "Using Swift for this download", None, False
 
     def _torrent_icon(self, item):
         # Always return icon, toggle icon from RefreshItems
@@ -1827,24 +1813,7 @@ class LibraryList(SizeList):
 
                 tooltip = ''
                 if ds:
-                    torrent_ds, swift_ds = item.original_data.dslist
-
-                    # Set Swift seeding time and ratio
-                    if swift_ds and swift_ds.get_seeding_statistics():
-                        seeding_stats = swift_ds.get_seeding_statistics()
-                        dl = seeding_stats['total_down']
-                        ul = seeding_stats['total_up']
-
-                        if dl == 0:
-                            if ul != 0:
-                                ratio = sys.maxsize
-                            else:
-                                ratio = 0
-                        else:
-                            ratio = 1.0 * ul / dl
-
-                        item.RefreshColumn(9, ratio)
-                        item.RefreshColumn(10, seeding_stats['time_seeding'])
+                    torrent_ds = item.original_data.dslist[0]
 
                     # Set torrent seeding time and ratio
                     if torrent_ds and torrent_ds.get_seeding_statistics():
@@ -1892,16 +1861,13 @@ class LibraryList(SizeList):
                 item.RefreshColumn(6, seeds + peers)
                 item.SetToolTipColumn(6, "Connected to %d Seeders and %d Leechers." % (seeds, peers) if ds else '')
 
-                item.RefreshColumn(11, 'Yes' if ds and ds.get_download() and ds.get_download().get_anon_mode() else 'No')
+                item.RefreshColumn(9, 'Yes' if ds and ds.get_download() and ds.get_download().get_anon_mode() else 'No')
 
                 # For updating torrent icons
-                torrent_ds, swift_ds = item.original_data.dslist
+                torrent_ds = item.original_data.dslist[0]
                 torrent_enabled = bool(torrent_ds) and torrent_ds.get_download().get_def().get_def_type() == 'torrent' and \
                                   torrent_ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]
-                swift_enabled = bool(swift_ds) and swift_ds.get_download().get_def().get_def_type() == 'swift' and \
-                                swift_ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]
                 item.icons[0].Show(torrent_enabled)
-                item.icons[1].Show(swift_enabled)
 
                 self.oldDS[infohash] = ds
 

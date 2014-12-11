@@ -29,7 +29,8 @@ class GlobalSeedingManager:
             # Arno, 2012-05-07: ContentDef support
             cdef = download_state.get_download().get_def()
             hash = cdef.get_id()
-            if download_state.get_status() == DLSTATUS_SEEDING:
+            anonymous = cdef.get_def_type() == 'torrent' and cdef.is_anonymous()
+            if download_state.get_status() == DLSTATUS_SEEDING and not anonymous:
                 if hash not in self.seeding_managers:
                     # apply new seeding manager
                     self._logger.debug("SeedingManager: apply seeding manager %s", hash.encode("HEX"))

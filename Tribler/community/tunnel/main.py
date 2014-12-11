@@ -7,6 +7,7 @@ import argparse
 import threading
 import cherrypy
 
+from traceback import print_exc
 from collections import defaultdict, deque
 
 from twisted.internet.task import LoopingCall
@@ -19,6 +20,8 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Core.permid import read_keypair
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 try:
     import yappi
@@ -44,14 +47,14 @@ class Tunnel(object):
 
     __single = None
 
-    def __init__(self, settings, crawl_keypair_filename=None, swift_port= -1):
+    def __init__(self, settings, crawl_keypair_filename=None, dispersy_port= -1):
         if Tunnel.__single:
             raise RuntimeError("Tunnel is singleton")
         Tunnel.__single = self
 
         self.settings = settings
         self.crawl_keypair_filename = crawl_keypair_filename
-        self.swift_port = swift_port
+        self.dispersy_port = dispersy_port
         self.crawl_data = defaultdict(lambda: [])
         self.crawl_message = {}
         self.current_stats = [0, 0, 0]
@@ -59,8 +62,10 @@ class Tunnel(object):
         self.start_tribler()
         self.dispersy = self.session.lm.dispersy
         self.community = None
-        self.clean_messages_lc = LoopingCall(self.clean_messages).start(1800)
-        self.build_history_lc = LoopingCall(self.build_history).start(60, now=True)
+        self.clean_messages_lc = LoopingCall(self.clean_messages)
+        self.clean_messages_lc.start(1800)
+        self.build_history_lc = LoopingCall(self.build_history)
+        self.build_history_lc.start(60, now=True)
 
     def get_instance(*args, **kw):
         if Tunnel.__single is None:
@@ -98,24 +103,25 @@ class Tunnel(object):
 
     def start_tribler(self):
         config = SessionStartupConfig()
-        config.set_state_dir(os.path.join(BASE_DIR, ".Tribler-%d") % self.settings.socks_listen_port)
+        config.set_state_dir(os.path.join(BASE_DIR, ".Tribler-%d") % self.settings.socks_listen_ports[0])
         config.set_torrent_checking(False)
         config.set_multicast_local_peer_discovery(False)
         config.set_megacache(False)
         config.set_dispersy(True)
-        config.set_swift_proc(True)
-        config.set_mainline_dht(False)
+        config.set_mainline_dht(True)
         config.set_torrent_collecting(False)
-        config.set_libtorrent(False)
+        config.set_libtorrent(True)
         config.set_dht_torrent_collecting(False)
         config.set_videoplayer(False)
-        config.set_dispersy_tunnel_over_swift(True)
-        config.set_swift_tunnel_listen_port(self.swift_port)
+        config.set_dispersy_port(self.dispersy_port)
         self.session = Session(config)
+        upgrader = self.session.prestart()
+        while not upgrader.is_done:
+            time.sleep(0.1)
         self.session.start()
-        print >> sys.stderr, "Using port %d for swift tunnel" % self.session.get_swift_tunnel_listen_port()
+        print >> sys.stderr, "Using port %d" % self.session.get_dispersy_port()
 
-    def run(self):
+    def start(self):
         def start_community():
             if self.crawl_keypair_filename:
                 keypair = read_keypair(self.crawl_keypair_filename)
@@ -124,14 +130,33 @@ class Tunnel(object):
             else:
                 member = self.dispersy.get_new_member(u"NID_secp160k1")
                 cls = TunnelCommunity
-            self.community = self.dispersy.define_auto_load(cls, member, (None, self.settings), load=True)[0]
+            self.community = self.dispersy.define_auto_load(cls, member, (self.session, self.settings), load=True)[0]
+
+            self.session.set_anon_proxy_settings(2, ("127.0.0.1", self.session.get_tunnel_community_socks5_listen_ports()))
 
         blockingCallFromThread(reactor, start_community)
 
+        self.session.set_download_states_callback(self.download_states_callback, False)
+
+    def download_states_callback(self, dslist):
+        try:
+            self.community.monitor_downloads(dslist)
+        except:
+            print_exc()
+
+        return (4.0, [])
+
     def stop(self):
+        self.session.uch.perform_usercallback(self._stop)
+
+    def _stop(self):
         if self.clean_messages_lc:
             self.clean_messages_lc.stop()
             self.clean_messages_lc = None
+
+        if self.build_history_lc:
+            self.build_history_lc.stop()
+            self.build_history_lc = None
 
         if self.session:
             session_shutdown_start = time.time()
@@ -216,10 +241,61 @@ class LineHandler(LineReceiver):
                                                              len(circuit.hops),
                                                              circuit.bytes_down / 1024.0 / 1024.0,
                                                              circuit.bytes_up / 1024.0 / 1024.0)
+
+        elif line.startswith('s'):
+            cur_path = os.getcwd()
+            line_split = line.split(' ')
+            filename = 'test_file' if len(line_split) == 1 else line_split[1]
+
+            if not os.path.exists(filename):
+                print "Creating torrent..",
+                with open(filename, 'wb') as fp:
+                    fp.write(os.urandom(50 * 1024 * 1024))
+                tdef = TorrentDef()
+                tdef.add_content(os.path.join(cur_path, filename))
+                tdef.set_tracker("udp://fake.net/announce")
+                tdef.set_private()
+                tdef.set_anonymous()
+                tdef.finalize()
+                tdef.save(os.path.join(cur_path, filename + '.torrent'))
+            else:
+                print "Loading torrent..",
+                tdef = TorrentDef.load(filename + '.torrent')
+            print "done"
+
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            dscfg = defaultDLConfig.copy()
+            dscfg.set_hops(2)
+            dscfg.set_dest_dir(cur_path)
+
+            anon_tunnel.session.uch.perform_usercallback(lambda: anon_tunnel.session.start_download(tdef, dscfg))
+
+        elif line.startswith('d'):
+            line_split = line.split(' ')
+            filename = 'test_file' if len(line_split) == 1 else line_split[1]
+
+            print "Loading torrent..",
+            tdef = TorrentDef.load(filename + '.torrent')
+            print "done"
+
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+            dscfg = defaultDLConfig.copy()
+            dscfg.set_hops(2)
+            dscfg.set_dest_dir(os.path.join(os.getcwd(), 'downloader%s' % anon_tunnel.session.get_dispersy_port()))
+
+            def start_download():
+                def cb(ds):
+                    print 'Download', tdef.get_id().encode('hex')[:10], '@', ds.get_current_speed('down'), ds.get_progress(), ds.get_status(), sum(ds.get_num_seeds_peers())
+                    return 1.0, False
+                download = anon_tunnel.session.start_download(tdef, dscfg)
+                download.set_state_callback(cb, delay=1)
+
+            anon_tunnel.session.uch.perform_usercallback(start_download)
+
         elif line == 'q':
             anon_tunnel.stop()
-            os._exit(0)
             return
+
         elif line == 'r':
             print "circuit\t\t\tdirection\tcircuit\t\t\tTraffic (MB)"
 
@@ -237,7 +313,7 @@ def main(argv):
 
     try:
         parser.add_argument('-p', '--socks5', help='Socks5 port')
-        parser.add_argument('-s', '--swift', help='Swift port')
+        parser.add_argument('-d', '--dispersy', help='Dispersy port')
         parser.add_argument('-c', '--crawl', help='Enable crawler and use the keypair specified in the given filename')
         parser.add_argument('-j', '--json', help='Enable JSON api, which will run on the provided port number ' +
                                                  '(only available if the crawler is enabled)', type=int)
@@ -250,7 +326,7 @@ def main(argv):
         sys.exit(2)
 
     socks5_port = int(args.socks5) if args.socks5 else None
-    swift_port = int(args.swift) if args.swift else -1
+    dispersy_port = int(args.dispersy) if args.dispersy else -1
     crawl_keypair_filename = args.crawl
     profile = args.yappi if args.yappi in ['wall', 'cpu'] else None
 
@@ -264,14 +340,21 @@ def main(argv):
         sys.exit(1)
 
     settings = TunnelSettings()
-    settings.socks_listen_port = socks5_port or random.randint(1000, 65535)
-    tunnel = Tunnel(settings, crawl_keypair_filename, swift_port)
+    if socks5_port is not None:
+        settings.socks_listen_ports = range(socks5_port, socks5_port + 5)
+    else:
+        settings.socks_listen_ports = [random.randint(1000, 65535) for _ in range(5)]
+    settings.do_test = False
+    tunnel = Tunnel(settings, crawl_keypair_filename, dispersy_port)
     StandardIO(LineHandler(tunnel, profile))
-    tunnel.run()
+    tunnel.start()
 
     if crawl_keypair_filename and args.json > 0:
         cherrypy.config.update({'server.socket_host': '0.0.0.0', 'server.socket_port': args.json})
         cherrypy.quickstart(tunnel)
+    else:
+        while True:
+            time.sleep(1)
 
 if __name__ == "__main__":
     main(sys.argv[1:])

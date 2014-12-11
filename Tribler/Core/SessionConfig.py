@@ -91,21 +91,23 @@ class SessionConfigInterface(object):
     # Auxiliar functions
     #
 
-    def _obtain_port(self, *keys):
+    def _obtain_port(self, section, option):
         """ Fetch a port setting from the config file and in case it's set to -1 (random), look for a free port and assign it to
                 this particular setting.
         """
-        settings_port = self.sessconfig.get(*keys)
-        path = '~'.join(keys)
+        settings_port = self.sessconfig.get(section, option)
+        path = section + '~' + option
         in_selected_ports = path in self.selected_ports
 
         if in_selected_ports or settings_port == -1:
-            if not in_selected_ports:
-                self.selected_ports[path] = get_random_port()
-
-                self._logger.debug(u"Get random port %d for [%s]", self.selected_ports[path], path)
-            return self.selected_ports[path]
+            return self._get_random_port(path)
         return settings_port
+
+    def _get_random_port(self, path):
+        if path not in self.selected_ports:
+            self.selected_ports[path] = get_random_port()
+            self._logger.debug(u"Get random port %d for [%s]", self.selected_ports[path], path)
+        return self.selected_ports[path]
 
     def set_state_dir(self, statedir):
         """ Set the directory to store the Session's state in.
@@ -159,11 +161,13 @@ class SessionConfigInterface(object):
         """
         self.selected_ports['~'.join(('general', 'minport'))] = port
 
-    def set_tunnel_community_socks5_listen_port(self, port):
-        self.sessconfig.set(u'tunnel_community', u'socks5_listen_port', port)
+    def set_tunnel_community_socks5_listen_ports(self, ports):
+        self.sessconfig.set(u'tunnel_community', u'socks5_listen_ports', ports)
 
-    def get_tunnel_community_socks5_listen_port(self):
-        return self._obtain_port(u'tunnel_community', u'socks5_listen_port')
+    def get_tunnel_community_socks5_listen_ports(self):
+        ports = self.sessconfig.get(u'tunnel_community', u'socks5_listen_ports')
+        path = u'tunnel_community~socks5_listen_ports~'
+        return [self._get_random_port(path + unicode(index)) if port < 0 else port for index, port in enumerate(ports)]
 
     def get_listen_port(self):
         """ Returns the current UDP/TCP listen port.
@@ -235,7 +239,7 @@ class SessionConfigInterface(object):
     def set_anon_proxy_settings(self, ptype, server=None, auth=None):
         """
         @param ptype Integer (0 = no proxy server, 1 = SOCKS4, 2 = SOCKS5, 3 = SOCKS5 + auth, 4 = HTTP, 5 = HTTP + auth)
-        @param server (host, port) tuple or None
+        @param server (host, [ports]) tuple or None
         @param auth (username, password) tuple or None
         """
         self.sessconfig.set(u'libtorrent', u'anon_proxytype', ptype)
@@ -468,19 +472,6 @@ class SessionConfigInterface(object):
         """
         return self.sessconfig.get(u'dispersy', u'enabled')
 
-    def set_dispersy_tunnel_over_swift(self, value):
-        """ Enable or disable Dispersy tunnelling over libswift.
-        @param value Boolean.
-        """
-        assert isinstance(value, bool)
-        self.sessconfig.set(u'dispersy', u'dispersy-tunnel-over-swift', value)
-
-    def get_dispersy_tunnel_over_swift(self):
-        """ Returns whether Dispersy is tunnelling over libswift.
-        @return Boolean.
-        """
-        return self.sessconfig.get(u'dispersy', u'dispersy-tunnel-over-swift')
-
     def set_dispersy_port(self, value):
         """ Sets the port that Dispersy uses to receive and send UDP
         datagrams.
@@ -497,138 +488,8 @@ class SessionConfigInterface(object):
         return self._obtain_port(u'dispersy', u'dispersy_port')
 
     #
-    # SWIFTPROC
-    #
-    def set_swift_proc(self, value):
-        """ Enable/disable support for swift Downloads via an external
-        swift C++ process.
-        @param value  Boolean
-        """
-        self.sessconfig.set(u'swift', u'enabled', value)
-
-    def get_swift_proc(self):
-        """ Return whether support for swift Downloads via an external
-        swift C++ process is enabled.
-        @return  Boolean
-        """
-        return self.sessconfig.get(u'swift', u'enabled')
-
-    def set_swift_path(self, value):
-        """ Path to swift binary (default = None = <installdir>/swift[.exe])
-        @param value An absolute path name.
-        """
-        self.sessconfig.set(u'swift', u'swiftpath', value)
-
-    def get_swift_path(self):
-        """ Returns the path of the swift binary.
-        @return An absolute path name. """
-        return self.sessconfig.get(u'swift', u'swiftpath')  # strings immutable
-
-    def set_swift_working_dir(self, value):
-        """ Current working directory for swift binary (default = '.')
-        @param value A path name.
-        """
-        self.sessconfig.set(u'swift', u'swiftworkingdir', value)
-
-    def get_swift_working_dir(self):
-        """ Returns the working directory for the swift binary.
-        @return A path name. """
-        return self.sessconfig.get(u'swift', u'swiftworkingdir')  # strings immutable
-
-    def set_swift_meta_dir(self, value):
-        """ Set the metadir for storing .m* files of downloads.
-        @param value An absolutepath.
-        """
-        self.sessconfig.set(u'swift', u'swiftmetadir', value)
-
-    def get_swift_meta_dir(self):
-        """ Return the metadir for storing .m* files of downloads.
-        @return An absolutepath.
-        """
-        return self.sessconfig.get(u'swift', u'swiftmetadir')
-
-    def set_swift_cmd_listen_port(self, port):
-        """ Set the local TCP listen port for cmd socket communication to
-        the swift processes (unused). CMD listen port of swift process itself
-        is set via DownloadConfig.set_swift_cmdgw_listen_port() (download-to-process
-        mapping permitting)
-        @param port A port number.
-        """
-        self.sessconfig.set(u'swift', u'swiftcmdlistenport', port)
-
-    def get_swift_cmd_listen_port(self):
-        """ Returns the local listen port for swift cmd socket communication.
-        @return Port number. """
-        return self._obtain_port(u'swift', u'swiftcmdlistenport')
-
-    def set_swift_dht_listen_port(self, port):
-        """ Set the local UDP listen port for dht socket communication to
-        the swift processes.
-        @param port A port number.
-        """
-        self.sessconfig.set(u'swift', u'swiftdhtport', port)
-
-    def get_swift_dht_listen_port(self):
-        """ Returns the local dht port for swift communication.
-        @return Port number. """
-        return self._obtain_port(u'swift', u'swiftdhtport')
-
-    def set_swift_downloads_per_process(self, value):
-        """ Number of downloads per swift process. When exceeded, a new swift
-        process is created. Only used when the user did not specify ports
-        for the swift process via DownloadConfig.set_swift_*_port()
-        @param value A number of downloads.
-        """
-        self.sessconfig.set(u'swift', u'swiftdlsperproc', value)
-
-    def get_swift_downloads_per_process(self):
-        """ Returns the number of downloads per swift process.
-        @return A number of downloads. """
-        return self.sessconfig.get(u'swift', u'swiftdlsperproc')
-
-    #
     # Config for swift tunneling e.g. dispersy traffic
     #
-    def set_swift_tunnel_listen_port(self, port):
-        """ Set the UDP port for the swift process
-        (download-to-process mapping permitting).
-        @param port A port number.
-        """
-        self.sessconfig.set(u'swift', u'swifttunnellistenport', port)
-
-    def get_swift_tunnel_listen_port(self):
-        """ Returns the UDP port of the swift process.
-
-        @return Port number. """
-        return self._obtain_port(u'swift', u'swifttunnellistenport')
-
-    def set_swift_tunnel_cmdgw_listen_port(self, port):
-        """ Set the TCP listen port for the CMDGW of the swift process
-        (download-to-process mapping permitting).
-        @param port A port number.
-        """
-        self.sessconfig.set(u'swift', u'swifttunnelcmdgwlistenport', port)
-
-    def get_swift_tunnel_cmdgw_listen_port(self):
-        """ Returns the TCP listen port for the CMDGW of the swift process
-        (download-to-process mapping permitting).
-
-        @return Port number. """
-        return self._obtain_port(u'swift', u'swifttunnelcmdgwlistenport')
-
-    def set_swift_tunnel_httpgw_listen_port(self, port):
-        """ Set the TCP listen port for the CMDGW of the swift process
-        (download-to-process mapping permitting).
-        @param port A port number.
-        """
-        self.sessconfig.set(u'swift', u'swifttunnelhttpgwlistenport', port)
-
-    def get_swift_tunnel_httpgw_listen_port(self):
-        """ Returns the TCP listen port for the CMDGW of the swift process.
-
-        @return Port number. """
-        return self._obtain_port(u'swift', u'swifttunnelhttpgwlistenport')
-
     def get_videoplayer(self):
         """ Enable or disable VOD functionality (default = True).
         @param value Boolean.

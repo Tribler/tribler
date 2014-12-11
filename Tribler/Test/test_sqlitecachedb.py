@@ -1,37 +1,42 @@
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Test.test_as_server import AbstractServer
+from Tribler.Core.Session import Session
+from Tribler.Core.SessionConfig import SessionStartupConfig
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestSqliteCacheDB(AbstractServer):
 
-    @blocking_call_on_reactor_thread
     def setUp(self):
-        AbstractServer.setUp(self)
-        self.sqlite_test = SQLiteCacheDB.getInstance()
-        self.db_path = ':memory:'
+        super(TestSqliteCacheDB, self).setUp()
+        self.config = SessionStartupConfig()
+        self.config.set_state_dir(self.getStateDir())
+        self.config.set_torrent_checking(False)
+        self.config.set_multicast_local_peer_discovery(False)
+        self.config.set_megacache(False)
+        self.config.set_dispersy(False)
+        self.config.set_mainline_dht(False)
+        self.config.set_torrent_collecting(False)
+        self.config.set_libtorrent(False)
+        self.config.set_dht_torrent_collecting(False)
+        self.config.set_videoplayer(False)
+        self.session = Session(self.config, ignore_singleton=True)
 
-    @blocking_call_on_reactor_thread
+        self.sqlite_test = SQLiteCacheDB(self.session)
+        self.db_path = u":memory:"
+        self.sqlite_test.initialize(self.db_path)
+
     def tearDown(self):
-        AbstractServer.tearDown(self)
-        SQLiteCacheDB.getInstance().close_all()
-        SQLiteCacheDB.delInstance()
-
-    @blocking_call_on_reactor_thread
-    def test_open_db(self):
-        self.sqlite_test.openDB(self.db_path, 0)
+        super(TestSqliteCacheDB, self).tearDown()
+        self.sqlite_test.close()
+        self.sqlite_test = None
+        self.session.del_instance()
+        self.session = None
 
     @blocking_call_on_reactor_thread
     def test_create_db(self):
-        sql = "create table person(lastname, firstname);"
-        self.sqlite_test.createDBTable(sql, self.db_path)
-
-    @blocking_call_on_reactor_thread
-    def test_get_del_instance(self):
-        SQLiteCacheDB.delInstance()
-        sqlite_test2 = SQLiteCacheDB.getInstance()
-
-        assert sqlite_test2 != self.sqlite_test
+        sql = u"CREATE TABLE person(lastname, firstname);"
+        self.sqlite_test.execute(sql)
 
     @blocking_call_on_reactor_thread
     def test_insert(self):
@@ -43,13 +48,13 @@ class TestSqliteCacheDB(AbstractServer):
     @blocking_call_on_reactor_thread
     def test_fetchone(self):
         self.test_insert()
-        one = self.sqlite_test.fetchone('select * from person')
+        one = self.sqlite_test.fetchone(u"SELECT * FROM person")
         assert one == ('a', 'b')
 
-        one = self.sqlite_test.fetchone("select lastname from person where firstname == 'b'")
+        one = self.sqlite_test.fetchone(u"SELECT lastname FROM person WHERE firstname == 'b'")
         assert one == 'a'
 
-        one = self.sqlite_test.fetchone("select lastname from person where firstname == 'c'")
+        one = self.sqlite_test.fetchone(u"SELECT lastname FROM person WHERE firstname == 'c'")
         assert one is None
 
     @blocking_call_on_reactor_thread

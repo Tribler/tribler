@@ -51,9 +51,9 @@ class TunnelCrypto(ElgamalCrypto):
         except Exception, e:
             raise CryptoException(str(e))
 
-    def hybrid_decrypt_str(self, pub_key, content):
+    def hybrid_decrypt_str(self, key, content):
         try:
-            return self.decrypt(pub_key, content)
+            return self.decrypt(key, content)
         except Exception, e:
             raise CryptoException(str(e))
 

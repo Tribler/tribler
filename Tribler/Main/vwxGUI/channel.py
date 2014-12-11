@@ -15,10 +15,9 @@ from Tribler.Main.vwxGUI.widgets import _set_font, NotebookPanel, SimpleNotebook
 
 from Tribler.Category.Category import Category
 
-from Tribler.Core.simpledefs import NTFY_MISC
+from Tribler.Core.simpledefs import NTFY_MISC, NTFY_USEREVENTLOG
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 
 from Tribler.Main.vwxGUI import (CHANNEL_MAX_NON_FAVORITE, warnWxThread, LIST_GREY, LIST_LIGHTBLUE, LIST_DESELECTED,
@@ -899,6 +898,7 @@ class Playlist(SelectedChannelList):
         detailspanel = self.guiutility.SetBottomSplitterWindow(PlaylistInfoPanel)
         detailspanel.Set(len(self.list.raw_data) if self.list.raw_data else 1, self.playlist.channel.isFavorite() if self.playlist and self.playlist.channel else None)
 
+
 class ManageChannelFilesManager(BaseManager):
 
     def __init__(self, list):
@@ -960,14 +960,10 @@ class ManageChannelFilesManager(BaseManager):
 
     def startDownload(self, torrentfilename, *args, **kwargs):
         try:
-            def swiftReady(sdef):
-                self.AddSDef(sdef, tdef)
-
             # if fixtorrent not in kwargs -> new torrent created
             tdef = TorrentDef.load(torrentfilename)
             if 'fixtorrent' not in kwargs:
                 download = self.guiutility.frame.startDownload(torrentfilename=torrentfilename, destdir=kwargs.get('destdir', None), correctedFilename=kwargs.get('correctedFilename', None))
-                # self.guiutility.app.sesscb_reseed_via_swift(download, swiftReady)
             return self.AddTDef(tdef)
 
         except:
@@ -977,9 +973,6 @@ class ManageChannelFilesManager(BaseManager):
     def startDownloads(self, filenames, *args, **kwargs):
         torrentdefs = []
 
-        def swiftReady(sdef):
-            self.AddSDef(sdef, tdef)
-
         while len(filenames) > 0:
             for torrentfilename in filenames[:500]:
                 try:
@@ -987,7 +980,6 @@ class ManageChannelFilesManager(BaseManager):
                     tdef = TorrentDef.load(torrentfilename)
                     if 'fixtorrent' not in kwargs:
                         download = self.guiutility.frame.startDownload(torrentfilename=torrentfilename, destdir=kwargs.get('destdir', None), correctedFilename=kwargs.get('correctedFilename', None))
-                        self.guiutility.app.sesscb_reseed_via_swift(download, swiftReady)
 
                     torrentdefs.append(tdef)
                 except:
@@ -1012,13 +1004,6 @@ class ManageChannelFilesManager(BaseManager):
                 notification = 'New torrent added to My Channel'
             self.guiutility.Notify(notification, icon=wx.ART_INFORMATION)
 
-            return True
-        return False
-
-    def AddSDef(self, sdef, tdef):
-        if tdef and sdef:
-            torrent = self.channelsearch_manager.getTorrentFromChannel(self.channel, tdef.get_infohash())
-            self.channelsearch_manager.modifyTorrent(self.channel.id, torrent.channeltorrent_id, {'swift-url': sdef.get_url()})
             return True
         return False
 
@@ -1136,7 +1121,7 @@ class ManageChannel(AbstractDetails):
         self.rss_url = None
 
         self.guiutility = GUIUtility.getInstance()
-        self.uelog = UserEventLogDBHandler.getInstance()
+        self.uelog = self.guiutility.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
         self.torrentfeed = RssParser.getInstance()
         self.channelsearch_manager = self.guiutility.channelsearch_manager
 

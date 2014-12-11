@@ -24,18 +24,18 @@ import threading
 import time
 from traceback import print_exc, print_stack
 import urllib
+import copy
 
 from Tribler.Category.Category import Category
 
 from Tribler.Core.version import version_id
-from Tribler.Core.simpledefs import dlstatus_strings, NTFY_MYPREFERENCES, \
-    DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_SEEDING, \
-    NTFY_ACT_NEW_VERSION, NTFY_ACT_NONE, NTFY_ACT_ACTIVE, NTFY_ACT_UPNP, \
-    NTFY_ACT_REACHABLE, NTFY_ACT_MEET, NTFY_ACT_GET_EXT_IP_FROM_PEERS, \
-    NTFY_ACT_GOT_METADATA, NTFY_ACT_RECOMMEND, NTFY_ACT_DISK_FULL
+from Tribler.Core.simpledefs import (dlstatus_strings, NTFY_MYPREFERENCES, NTFY_ACT_NEW_VERSION, NTFY_ACT_NONE,
+                                     NTFY_ACT_ACTIVE, NTFY_ACT_UPNP, NTFY_ACT_REACHABLE, NTFY_ACT_MEET,
+                                     NTFY_ACT_GET_EXT_IP_FROM_PEERS, NTFY_ACT_GOT_METADATA, NTFY_ACT_RECOMMEND,
+                                     NTFY_ACT_DISK_FULL, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE,
+                                     DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK, DOWNLOAD)
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.Swift.SwiftDef import SwiftDef
 from Tribler.Core.Utilities.bencode import bencode, bdecode
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 
@@ -50,16 +50,13 @@ from Tribler.Main.Dialogs.SaveAs import SaveAs
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY
-from Tribler.Main.vwxGUI.list import SearchList, ChannelList, \
-    LibraryList, ActivitiesList
-from Tribler.Main.vwxGUI.list_details import SearchInfoPanel, ChannelInfoPanel, \
-    LibraryInfoPanel, PlaylistInfoPanel, SelectedchannelInfoPanel, \
-    TorrentDetails, LibraryDetails, ChannelDetails, PlaylistDetails
-from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel, \
-    TopSearchPanelStub
+from Tribler.Main.vwxGUI.list import SearchList, ChannelList, LibraryList, ActivitiesList
+from Tribler.Main.vwxGUI.list_details import (SearchInfoPanel, ChannelInfoPanel, LibraryInfoPanel, PlaylistInfoPanel,
+                                              SelectedchannelInfoPanel, TorrentDetails, LibraryDetails, ChannelDetails,
+                                              PlaylistDetails)
+from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel, TopSearchPanelStub
 from Tribler.Main.vwxGUI.home import Home, Stats, NetworkGraphPanel
-from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, \
-    ManageChannel
+from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, ManageChannel
 from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
 
 from Tribler.Core.Video.utils import videoextdefaults
@@ -413,25 +410,16 @@ class MainFrame(wx.Frame):
                 self.startDownloadFromMagnet(self.params[0], cmdline=True, selectedFiles=selectedFiles, vodmode=vod)
             elif url_filename.startswith("http"):
                 self.startDownloadFromUrl(self.params[0], cmdline=True, selectedFiles=selectedFiles, vodmode=vod)
-            elif url_filename.startswith("tswift") or url_filename.startswith("ppsp"):
-                self.startDownloadFromSwift(url_filename)
             else:
                 self.startDownload(url_filename, cmdline=True, selectedFiles=selectedFiles, vodmode=vod)
 
-    def startDownloadFromMagnet(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False, anon_mode=False):
+    def startDownloadFromMagnet(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False, hops=0):
         name, infohash, _ = parse_magnetlink(url)
         tdef = TorrentDefNoMetainfo(infohash, name, url=url)
-        wx.CallAfter(self.startDownload, tdef=tdef, cmdline=cmdline, destdir=destdir, selectedFiles=selectedFiles, vodmode=vodmode, anon_mode=anon_mode)
+        wx.CallAfter(self.startDownload, tdef=tdef, cmdline=cmdline, destdir=destdir, selectedFiles=selectedFiles, vodmode=vodmode, hops=0)
         return True
 
-    def startDownloadFromSwift(self, url, destdir=None):
-        url = url.replace("ppsp://", "tswift://127.0.0.1:%d/" % self.utility.session.get_swift_dht_listen_port()) if url.startswith("ppsp://") else url
-        sdef = SwiftDef.load_from_url(url)
-        sdef.set_name("Unnamed video - " + time.strftime("%d-%m-%Y at %H:%M", time.localtime()))
-        wx.CallAfter(self.startDownload, sdef=sdef, destdir=destdir)
-        return True
-
-    def startDownloadFromUrl(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False, anon_mode=False):
+    def startDownloadFromUrl(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False, hops=0):
         try:
             tdef = TorrentDef.load_from_url(url)
             if tdef:
@@ -440,7 +428,7 @@ class MainFrame(wx.Frame):
                           'destdir': destdir,
                           'selectedFiles': selectedFiles,
                           'vodmode': vodmode,
-                          'anon_mode': anon_mode}
+                          'hops':hops}
                 if wx.Thread_IsMain():
                     self.startDownload(**kwargs)
                 else:
@@ -451,31 +439,21 @@ class MainFrame(wx.Frame):
         self.guiUtility.Notify("Download from url failed", icon=wx.ART_WARNING)
         return False
 
-    def startDownload(self, torrentfilename=None, destdir=None, sdef=None, tdef=None, cmdline=False, clicklog=None,
-                      name=None, vodmode=False, anon_mode=False, fixtorrent=False, selectedFiles=None,
+    def startDownload(self, torrentfilename=None, destdir=None, tdef=None, cmdline=False, clicklog=None,
+                      name=None, vodmode=False, hops=0, try_hidden_services=False, fixtorrent=False, selectedFiles=None,
                       correctedFilename=None, hidden=False):
-        self._logger.debug("mainframe: startDownload: %s %s %s %s %s %s", torrentfilename, destdir, sdef, tdef, vodmode, selectedFiles)
+        self._logger.debug(u"startDownload: %s %s %s %s %s", torrentfilename, destdir, tdef, vodmode, selectedFiles)
 
         if fixtorrent and torrentfilename:
             self.fixTorrent(torrentfilename)
-
-        # Niels: if you call startdownload with both a Swift sdef and a tdef/torrentfilename, we allow Swift to download the file in the first X seconds
-        if sdef and (torrentfilename or tdef):
-            monitorSwiftProgress = True
-        else:
-            monitorSwiftProgress = False
 
         try:
             if torrentfilename and tdef is None:
                 tdef = TorrentDef.load(torrentfilename)
 
-            # Prefer to download using libtorrent
-            # cdef = sdef or tdef
-            cdef = tdef or sdef
-
-            d = self.utility.session.get_download(cdef.get_id())
-            if d and cdef.get_def_type() == 'torrent':
-                new_trackers = list(set(cdef.get_trackers_as_single_tuple()) - set(d.get_def().get_trackers_as_single_tuple()))
+            d = self.utility.session.get_download(tdef.get_id())
+            if d:
+                new_trackers = list(set(tdef.get_trackers_as_single_tuple()) - set(d.get_def().get_trackers_as_single_tuple()))
                 if not new_trackers:
                     raise DuplicateDownloadException()
 
@@ -515,8 +493,6 @@ class MainFrame(wx.Frame):
                     if dlg.ShowModal() == wx.ID_OK:
                         # If the dialog has collected a torrent, use the new tdef
                         tdef = dlg.GetCollected() or tdef
-                        # cdef = sdef or tdef
-                        cdef = tdef or sdef
 
                         # for multifile we enabled correctedFilenames, use split to remove the filename from the path
                         if tdef and tdef.is_multifile_torrent():
@@ -524,22 +500,29 @@ class MainFrame(wx.Frame):
                             selectedFiles = dlg.GetSelectedFiles()
                         else:
                             destdir = dlg.GetPath()
-                        anon_mode = dlg.GetAnonMode()
+                        hops = dlg.GetHops()
                     else:
                         cancelDownload = True
                     dlg.Destroy()
                 else:
                     raise Exception("cannot create dialog, not on wx thread")
 
-            if anon_mode:
+            if hops > 0:
                 if not tdef:
                     raise Exception('Currently only torrents can be downloaded in anonymous mode')
-                elif sdef:
-                    sdef = None
-                    cdef = tdef
-                    monitorSwiftProgress = False
 
-            dscfg.set_anon_mode(anon_mode)
+            if try_hidden_services and not vodmode and not isinstance(tdef, TorrentDefNoMetainfo) and \
+               not tdef.is_anonymous() and hops > 0:
+                monitorHiddenSerivcesProgress = True
+                # Set anonymous flag
+                metainfo = copy.deepcopy(tdef.metainfo)
+                metainfo['info']['anonymous'] = 1
+                orig_tdef = tdef
+                cdef = tdef = TorrentDef._create(metainfo)
+            else:
+                monitorHiddenSerivcesProgress = False
+
+            dscfg.set_hops(hops)
 
             if not cancelDownload:
                 if destdir is not None:
@@ -562,48 +545,40 @@ class MainFrame(wx.Frame):
                 if vodmode and len(videofiles) == 0 and (not tdef or not isinstance(tdef, TorrentDefNoMetainfo)):
                     vodmode = False
 
-                vodmode = vodmode or cdef.get_live()
+                vodmode = vodmode or tdef.get_live()
 
-                selectedFile = None
                 if vodmode:
                     self._logger.info('MainFrame: startDownload: Starting in VOD mode')
-                    result = self.utility.session.start_download(cdef, dscfg)
-                    self.guiUtility.library_manager.playTorrent(cdef.get_id(), videofiles[0] if len(videofiles) == 1 else None)
+                    result = self.utility.session.start_download(tdef, dscfg)
+                    self.guiUtility.library_manager.playTorrent(tdef.get_id(), videofiles[0] if len(videofiles) == 1 else None)
 
                 else:
                     if selectedFiles:
-                        if cdef.get_def_type() == 'swift' and tdef:
-                            swift_selectedFiles = []
-                            for selectedFile in selectedFiles:
-                                swift_selectedFiles.append(tdef.get_name_as_unicode() + "/" + selectedFile)
-                            dscfg.set_selected_files(swift_selectedFiles)
-
-                        else:
-                            dscfg.set_selected_files(selectedFiles)
+                        dscfg.set_selected_files(selectedFiles)
 
                     self._logger.debug('MainFrame: startDownload: Starting in DL mode')
-                    result = self.utility.session.start_download(cdef, dscfg, hidden=hidden)
+                    result = self.utility.session.start_download(tdef, dscfg, hidden=hidden)
 
                 if result and not hidden:
                     self.show_saved(tdef)
 
-                    if monitorSwiftProgress:
-                        state_lambda = lambda ds, vodmode = vodmode, torrentfilename = torrentfilename, dscfg = dscfg, selectedFile = selectedFile, selectedFiles = selectedFiles: self.monitorSwiftProgress(ds, vodmode, torrentfilename, dscfg, selectedFile, selectedFiles)
-                        result.set_state_callback(state_lambda, delay=15.0)
+                    if monitorHiddenSerivcesProgress:
+                        state_lambda = lambda ds, tdef = orig_tdef, dscfg = dscfg, selectedFiles = selectedFiles: self.monitorHiddenSerivcesProgress(ds, tdef, dscfg, selectedFiles)
+                        result.set_state_callback(state_lambda, delay=40.0)
 
                 if clicklog is not None:
                     mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
-                    startWorker(None, mypref.addClicklogToMyPreference, wargs=(cdef.get_id(), clicklog))
+                    startWorker(None, mypref.addClicklogToMyPreference, wargs=(tdef.get_id(), clicklog))
 
                 return result
 
         except DuplicateDownloadException as e:
             # If there is something on the cmdline, all other torrents start
             # in STOPPED state. Restart
-            if cmdline and cdef.get_def_type() == 'torrent':
+            if cmdline:
                 dlist = self.utility.session.get_downloads()
                 for d in dlist:
-                    if d.get_def().get_infohash() == cdef.get_infohash():
+                    if d.get_def().get_infohash() == tdef.get_infohash():
                         d.restart()
                         break
 
@@ -624,19 +599,6 @@ class MainFrame(wx.Frame):
             self.onWarning(e)
 
         return None
-
-    def startReseedSwiftDownload(self, tdef, storagepath, sdef):
-        # Arno, 2012-05-07:
-        self._logger.info("main: frame: startReseedSwift %s %s %s", tdef, storagepath, sdef)
-
-        # 1. Tell library_manager that we have a 'swift_hash' for this infohash
-        self.guiUtility.library_manager.updateTorrent(tdef.get_infohash(), sdef.get_roothash())
-
-        # 2. Start swift download reseeding BitTorrent content
-        self.startDownload(destdir=storagepath, sdef=sdef, hidden=True)
-
-        # 3. Checkpoint Session
-        self.utility.session.checkpoint()
 
     def modifySelection(self, download, selectedFiles):
         download.set_selected_files(selectedFiles)
@@ -662,25 +624,18 @@ class MainFrame(wx.Frame):
 
         return True
 
-    def monitorSwiftProgress(self, ds, vodmode, torrentfilename, dscfg, selectedFile, selectedFiles):
-        if ds.get_progress() == 0:
-            if ds.get_status() == DLSTATUS_ALLOCATING_DISKSPACE:
-                return (5.0, True)
+    def monitorHiddenSerivcesProgress(self, ds, tdef, dscfg, selectedFiles):
+        if ds.get_status() in [DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]:
+            return (5.0, True)
 
+        if ds.get_current_speed(DOWNLOAD) == 0:
             download = ds.get_download()
             self.utility.session.remove_download(download)
 
-            # pause for swift file release
-            time.sleep(1)
-
-            self._logger.info("Switching to Bittorrent")
-            cdef = TorrentDef.load(torrentfilename)
-            if vodmode:
-                wx.CallAfter(self.startDownload, tdef=cdef, destdir=dscfg.get_dest_dir(), vodmode=True, selectedFiles=[selectedFile] if selectedFile else [])
-            else:
-                dscfg = dscfg.copy()
-                dscfg.set_selected_files(selectedFiles or [])
-                self.utility.session.start_download(cdef, dscfg)
+            self._logger.error("Switching from hidden services to exit nodes")
+            dscfg = dscfg.copy()
+            dscfg.set_selected_files(selectedFiles or [])
+            self.utility.session.start_download(tdef, dscfg)
         return (0, False)
 
     @forceWxThread

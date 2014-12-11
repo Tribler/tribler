@@ -29,23 +29,20 @@ def convertSessionConfig(oldfilename, newfilename):
     # Upgrade to new config
     sconfig = SessionStartupConfig()
     for key, value in sessconfig.iteritems():
-        if key in ['state_dir', 'install_dir', 'ip', 'minport', 'maxport', 'bind', 'ipv6_enabled', \
-                   'ipv6_binds_v4', 'timeout', 'timeout_check_interval', 'eckeypairfilename', 'megacache', \
+        if key in ['state_dir', 'install_dir', 'ip', 'minport', 'maxport', 'bind', 'ipv6_enabled',
+                   'ipv6_binds_v4', 'timeout', 'timeout_check_interval', 'eckeypairfilename', 'megacache',
                    'nickname', 'mugshot', 'videoanalyserpath', 'peer_icon_path', 'live_aux_seeders']:
             sconfig.sessconfig.set('general', key, value)
         if key in ['mainline_dht', 'mainline_dht_port']:
             sconfig.sessconfig.set('mainline_dht', 'enabled' if key == 'mainline_dht' else key, value)
         if key in ['torrent_checking', 'torrent_checking_period']:
             sconfig.sessconfig.set('torrent_checking', 'enabled' if key == 'torrent_checking' else key, value)
-        if key in ['torrent_collecting', 'dht_torrent_collecting', 'torrent_collecting_max_torrents', 'torrent_collecting_dir' \
+        if key in ['torrent_collecting', 'dht_torrent_collecting', 'torrent_collecting_max_torrents', 'torrent_collecting_dir',
                    'stop_collecting_threshold']:
             sconfig.sessconfig.set('torrent_collecting', 'enabled' if key == 'torrent_collecting' else key, value)
         if key in ['libtorrent', 'lt_proxytype', 'lt_proxyserver', 'lt_proxyauth']:
             sconfig.sessconfig.set('libtorrent', 'enabled' if key == 'libtorrent' else key, value)
-        if key in ['swiftproc', 'swiftpath', 'swiftworkingdir', 'swiftcmdlistenport', 'swiftdlsperproc', 'swiftmetadir' \
-                   'swifttunnellistenport', 'swifttunnelhttpgwlistenport', 'swifttunnelcmdgwlistenport', 'swiftdhtport']:
-            sconfig.sessconfig.set('swift', 'enabled' if key == 'swiftproc' else key, value)
-        if key in ['dispersy_port', 'dispersy-tunnel-over-swift', 'dispersy']:
+        if key in ['dispersy_port', 'dispersy']:
             sconfig.sessconfig.set('dispersy', 'enabled' if key == 'dispersy' else key, value)
 
     # Save the new file, remove the old one
@@ -109,9 +106,8 @@ def convertDefaultDownloadConfig(oldfilename, newfilename):
     # Upgrade to new config
     ddsconfig = DefaultDownloadStartupConfig()
     for key, value in dlconfig.iteritems():
-        if key in ['saveas', 'max_upload_rate', 'max_download_rate', \
-                   'super_seeder', 'mode', 'selected_files', 'correctedfilename', \
-                   'swiftlistenport', 'swiftcmdgwlistenport', 'swifthttpgwlistenport', 'swiftmetadir', 'name']:
+        if key in ['saveas', 'max_upload_rate', 'max_download_rate', 'super_seeder', 'mode', 'selected_files',
+                   'correctedfilename']:
             ddsconfig.dlconfig.set('downloadconfig', key, value)
 
     # Save the new file, remove the old one
@@ -137,9 +133,8 @@ def convertDownloadCheckpoints(checkpoint_dir):
                 new_checkpoint.add_section('downloadconfig')
                 new_checkpoint.add_section('state')
                 for key, value in old_checkpoint['dlconfig'].iteritems():
-                    if key in ['saveas', 'max_upload_rate', 'max_download_rate', 'super_seeder', 'mode', \
-                               'selected_files', 'correctedfilename', 'swiftlistenport', \
-                               'swiftcmdgwlistenport', 'swifthttpgwlistenport', 'swiftmetadir', 'name']:
+                    if key in ['saveas', 'max_upload_rate', 'max_download_rate', 'super_seeder', 'mode',
+                               'selected_files', 'correctedfilename']:
                         new_checkpoint.set('downloadconfig', key, value)
                 new_checkpoint.set('state', 'version', PERSISTENTSTATE_CURRENTVERSION)
                 new_checkpoint.set('state', 'engineresumedata', old_checkpoint['engineresumedata'])

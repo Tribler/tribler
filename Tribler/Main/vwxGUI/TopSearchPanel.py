@@ -5,21 +5,17 @@ import logging
 import wx.animate
 
 from Tribler import LIBRARYNAME
+from Tribler.Core.simpledefs import NTFY_USEREVENTLOG, NTFY_TORRENTS
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler, \
-    TorrentDBHandler
 
 from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent, Torrent
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker
-from Tribler.Main.vwxGUI import forceWxThread, TRIBLER_RED, SEPARATOR_GREY, \
-    GRADIENT_LGREY, GRADIENT_DGREY
+from Tribler.Main.vwxGUI import forceWxThread, TRIBLER_RED, SEPARATOR_GREY, GRADIENT_LGREY, GRADIENT_DGREY
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.vwxGUI.widgets import ActionButton, FancyPanel, \
-    TextCtrlAutoComplete, ProgressButton
+from Tribler.Main.vwxGUI.widgets import ActionButton, FancyPanel, TextCtrlAutoComplete, ProgressButton
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
 from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
-from Tribler.Core.simpledefs import SWIFT_URL_SCHEME
 
 
 class TopSearchPanelStub(object):
@@ -52,8 +48,8 @@ class TopSearchPanel(FancyPanel):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.installdir = self.utility.getPath()
-        self.uelog = UserEventLogDBHandler.getInstance()
-        self.tdb = None
+        self.uelog = self.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
+        self.tdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
         self.collectedTorrents = {}
 
         FancyPanel.__init__(self, parent, border=wx.BOTTOM)
@@ -237,15 +233,13 @@ class TopSearchPanel(FancyPanel):
         self.Thaw()
 
     def complete(self, term):
-        ignore_list = ["http://", "https://", "magnet:", SWIFT_URL_SCHEME, "ppsp://"]
+        ignore_list = ["http://", "https://", "magnet:"]
         for ignore in ignore_list:
             if term.startswith(ignore):
                 return []
 
         """autocompletes term."""
         if len(term) > 1:
-            if self.tdb is None:
-                self.tdb = TorrentDBHandler.getInstance()
             return self.tdb.getAutoCompleteTerms(term, max_terms=7)
         return []
 

@@ -9,19 +9,15 @@ import logging
 import binascii
 from datetime import timedelta
 
-from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, DLSTATUS_METADATA, \
-    DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK
+from Tribler.Core.simpledefs import (DOWNLOAD, UPLOAD, DLSTATUS_METADATA, DLSTATUS_HASHCHECKING, NTFY_USEREVENTLOG,
+                                     DLSTATUS_WAITING4HASHCHECK)
 from Tribler.Core.osutils import startfile
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
 
-from Tribler.Main.vwxGUI import warnWxThread, GRADIENT_DGREY, SEPARATOR_GREY, \
-    LIST_AT_HIGHLIST, LIST_SELECTED, LIST_EXPANDED, format_time, \
-    LIST_DARKBLUE, LIST_DESELECTED, THUMBNAIL_FILETYPES
+from Tribler.Main.vwxGUI import (warnWxThread, GRADIENT_DGREY, SEPARATOR_GREY, LIST_AT_HIGHLIST, LIST_SELECTED,
+                                 LIST_EXPANDED, format_time, LIST_DARKBLUE, LIST_DESELECTED, THUMBNAIL_FILETYPES)
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-from Tribler.Main.vwxGUI.widgets import _set_font, TagText, ActionButton, \
-    ProgressButton, MaxBetterText, FancyPanel
+from Tribler.Main.vwxGUI.widgets import _set_font, TagText, ActionButton, ProgressButton, MaxBetterText, FancyPanel
 from Tribler.Main.vwxGUI.list_body import ListItem
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM
@@ -377,7 +373,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
 
     def SetThumbnailIcon(self):
         torcoldir = self.guiutility.utility.session.get_torrent_collecting_dir()
-        rel_thumbdir = 'thumbs-' + binascii.hexlify(self.original_data.infohash)
+        rel_thumbdir = binascii.hexlify(self.original_data.infohash)
         abs_thumbdir = os.path.join(torcoldir, rel_thumbdir)
         has_thumbnails = os.path.exists(abs_thumbdir) and os.listdir(abs_thumbdir)
 
@@ -555,7 +551,8 @@ class TorrentListItem(DoubleLineListItemWithButtons):
                 added.append(torrent)
 
         if added:
-            UserEventLogDBHandler.getInstance().addEvent(message="MyChannel: %d manual add(s) from library" % len(added), type=2)
+            ue_db = self.guiutility.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
+            ue_db.addEvent(message="MyChannel: %d manual add(s) from library" % len(added), type=2)
 
             # remote channel link to force reload
             for torrent in added:
@@ -600,15 +597,6 @@ class TorrentListItem(DoubleLineListItemWithButtons):
                     self._MoveDownload(torrent.ds, new_dir)
 
     def _MoveDownload(self, download_state, new_dir):
-        def modify_config(download):
-            self.guiutility.library_manager.deleteTorrentDownload(download, None, removestate=False)
-
-            cdef = download.get_def()
-            dscfg = DownloadStartupConfig(download.dlconfig)
-            dscfg.set_dest_dir(new_dir)
-
-            return cdef, dscfg
-
         def rename_or_merge(old, new):
             if os.path.exists(old):
                 if os.path.exists(new):
@@ -644,13 +632,6 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         else:
             dslist = [download_state]
 
-        # Remove Swift downloads
-        to_start = []
-        for ds in dslist:
-            download = ds.get_download()
-            if download.get_def().get_def_type() == 'swift':
-                to_start.append(modify_config(download))
-
         # Move torrents
         storage_moved = False
         for ds in dslist:
@@ -666,11 +647,6 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             self._logger.info("Moving from %s to %s newdir %s", old, new, new_dir)
             movelambda = lambda: rename_or_merge(old, new)
             self.guiutility.utility.session.lm.rawserver.add_task(movelambda, 0.0)
-
-        # Start Swift downloads again..
-        for cdef, dscfg in to_start:
-            startlambda = lambda cdef = cdef, dscfg = dscfg: self.guiutility.utility.session.start_download(cdef, dscfg)
-            self.guiutility.utility.session.lm.rawserver.add_task(startlambda, 0.0)
 
     def OnDClick(self, event):
         self.guiutility.frame.top_bg.OnDownload(None, [self.original_data])
@@ -917,7 +893,7 @@ class LibraryListItem(TorrentListItem):
         pass
 
     def GetIcons(self):
-        return [self.parent_list.parent_list._torrent_icon(self), self.parent_list.parent_list._swift_icon(self)]
+        return [self.parent_list.parent_list._torrent_icon(self)]
 
     def GetContextMenu(self):
         menu = TorrentListItem.GetContextMenu(self)
@@ -926,6 +902,7 @@ class LibraryListItem(TorrentListItem):
 
     def OnDClick(self, event):
         pass
+
 
 class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
 
@@ -1000,7 +977,7 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
         
         bitmap = None
 
-        thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(self.original_data.infohash))
+        thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), binascii.hexlify(self.original_data.infohash))
         thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
 
         if thumb_files:
@@ -1291,7 +1268,7 @@ class ModificationActivityItem(AvantarItem):
             self.guiutility = GUIUtility.getInstance()
             self.session = self.guiutility.utility.session
 
-            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(modification.torrent.infohash))
+            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), binascii.hexlify(modification.torrent.infohash))
             self.body = []
             if os.path.exists(thumb_dir):
                 for single_thumb in os.listdir(thumb_dir)[:4]:
@@ -1340,7 +1317,7 @@ class ModificationItem(AvantarItem):
             self.guiutility = GUIUtility.getInstance()
             self.session = self.guiutility.utility.session
 
-            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), 'thumbs-' + binascii.hexlify(modification.torrent.infohash))
+            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), binascii.hexlify(modification.torrent.infohash))
             self.body = []
             if os.path.exists(thumb_dir):
                 for single_thumb in os.listdir(thumb_dir)[:4]:

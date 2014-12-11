@@ -13,7 +13,7 @@ from Tribler.dispersy.bloomfilter import BloomFilter
 class SearchConversion(BinaryConversion):
 
     def __init__(self, community):
-        super(SearchConversion, self).__init__(community, "\x01")
+        super(SearchConversion, self).__init__(community, "\x02")
         self.define_meta_message(chr(1), community.get_meta_message(u"search-request"), lambda message: self._encode_decode(self._encode_search_request, self._decode_search_request, message), self._decode_search_request)
         self.define_meta_message(chr(2), community.get_meta_message(u"search-response"), lambda message: self._encode_decode(self._encode_search_response, self._decode_search_response, message), self._decode_search_response)
         self.define_meta_message(chr(3), community.get_meta_message(u"torrent-request"), lambda message: self._encode_decode(self._encode_torrent_request, self._decode_torrent_request, message), self._decode_torrent_request)
@@ -154,10 +154,10 @@ class SearchConversion(BinaryConversion):
             if not isinstance(result, tuple):
                 raise DropPacket("Invalid result type")
 
-            if len(result) < 11:
+            if len(result) < 9:
                 raise DropPacket("Invalid result length")
 
-            infohash, swarmname, length, nrfiles, categorykeys, creation_date, seeders, leechers, swift_hash, swift_torrent_hash, cid = result[:11]
+            infohash, swarmname, length, nrfiles, categorykeys, creation_date, seeders, leechers, cid = result[:9]
 
             if not isinstance(infohash, str):
                 raise DropPacket("Invalid infohash type")
@@ -187,20 +187,6 @@ class SearchConversion(BinaryConversion):
 
             if not isinstance(leechers, int):
                 raise DropPacket("Invalid leechers type '%s'" % type(leechers))
-
-            if swift_hash:
-                if not isinstance(swift_hash, str):
-                    raise DropPacket("Invalid swift_hash type '%s'" % type(swift_hash))
-
-                if len(swift_hash) != 20:
-                    raise DropPacket("Invalid swift_hash length")
-
-            if swift_torrent_hash:
-                if not isinstance(swift_torrent_hash, str):
-                    raise DropPacket("Invalid swift_torrent_hash type")
-
-                if len(swift_torrent_hash) != 20:
-                    raise DropPacket("Invalid swift_torrent_hash length")
 
             if cid:
                 if not isinstance(cid, str):
@@ -248,16 +234,15 @@ class SearchConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(payload)
 
     def _encode_torrent_collect_request(self, message):
-        import sys
         for torrent in message.payload.torrents:
+            if torrent[1] > 2 ** 16 or torrent[1] < 0:
+                self._logger.info("seeder value is incorrect %s", torrent[1])
             if torrent[2] > 2 ** 16 or torrent[2] < 0:
-                self._logger.info("seeder value is incorrect %s", torrent[2])
+                self._logger.info("leecher value is incorrect %s", torrent[2])
             if torrent[3] > 2 ** 16 or torrent[3] < 0:
-                self._logger.info("leecher value is incorrect %s", torrent[3])
-            if torrent[4] > 2 ** 16 or torrent[4] < 0:
-                self._logger.info("since value is incorrect %s", torrent[4])
+                self._logger.info("since value is incorrect %s", torrent[3])
 
-        hashpack = '20s20sHHH' * len(message.payload.torrents)
+        hashpack = '20sHHH' * len(message.payload.torrents)
         torrents = [item for sublist in message.payload.torrents for item in sublist]
         return pack('!HH' + hashpack, message.payload.identifier, message.payload.hashtype, *torrents),
 
@@ -269,17 +254,17 @@ class SearchConversion(BinaryConversion):
         offset += 4
 
         length = len(data) - offset
-        if length % 46 != 0:
+        if length % 26 != 0:
             raise DropPacket("Invalid number of bytes available (tcr)")
 
         if length:
-            hashpack = '20s20sHHH' * (length / 46)
+            hashpack = '20sHHH' * (length / 26)
             hashes = unpack_from('!' + hashpack, data, offset)
             offset += length
 
             torrents = []
-            for i in range(0, len(hashes), 5):
-                torrents.append([hashes[i], hashes[i + 1], hashes[i + 2], hashes[i+3], hashes[i+4]])
+            for i in range(0, len(hashes), 4):
+                torrents.append([hashes[i], hashes[i + 1], hashes[i + 2], hashes[i + 3]])
         else:
             torrents = []
         return offset, placeholder.meta.payload.implement(identifier, hashtype, torrents)

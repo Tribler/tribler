@@ -4,8 +4,9 @@
 import wx
 import logging
 
-from Tribler.Main.vwxGUI import LIST_SELECTED, DEFAULT_BACKGROUND, LIST_GREY, \
-    LIST_AUTOSIZEHEADER, format_size
+from Tribler.Core.simpledefs import NTFY_USEREVENTLOG
+
+from Tribler.Main.vwxGUI import LIST_SELECTED, DEFAULT_BACKGROUND, LIST_GREY, LIST_AUTOSIZEHEADER, format_size
 from Tribler.Main.vwxGUI.list_body import ListItem, FixedListBody
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
@@ -13,7 +14,6 @@ from Tribler.Main.vwxGUI.list import GenericSearchList
 from Tribler.Main.vwxGUI.list_header import ListHeader
 from Tribler.Main.vwxGUI.list_details import TorrentDetails
 from Tribler.Main.vwxGUI.widgets import LinkStaticText, BetterText as StaticText
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import UserEventLogDBHandler
 
 BUNDLE_FONT_SIZE_DECREMENT = 0
 BUNDLE_FONT_COLOR = (50, 50, 50)
@@ -197,7 +197,7 @@ class BundlePanel(wx.BoxSizer):
 
         # logging
         self.guiutility = GUIUtility.getInstance()
-        self.uelog = UserEventLogDBHandler.getInstance()
+        self.uelog = self.guiutility.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
 
         self.state = BundlePanel.COLLAPSED
         self.nrhits = -1

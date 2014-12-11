@@ -2,14 +2,11 @@
 # see LICENSE.txt for license information
 import os
 import sys
-import logging
 from random import gauss
 
 from Tribler.Core.version import version_id
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-
-logger = logging.getLogger(__name__)
 
 
 #
@@ -56,8 +53,6 @@ class Utility(object):
                             # WebUI
                             'use_webui': 0,
                             'webui_port': 8080,
-                            # Swift reseed
-                            'swiftreseed': 1,
                             'showsaveas': 1,
                             'i2ilistenport': 57891,
                             'mintray': 2 if sys.platform == 'win32' else 0,

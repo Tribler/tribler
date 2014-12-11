@@ -4,30 +4,27 @@ Priority: optional
 Maintainer: Ying-Chun Liu (PaulLiu) <paulliu@debian.org>
 Build-Depends: debhelper (>= 9),
                dpkg-dev (>= 1.16.1~),
-               libevent-dev (>= 2.0.17),
-               libssl-dev,
                python (>= 2.6.6-3~),
-               scons
-Standards-Version: 3.9.4
+Standards-Version: 3.9.5
 Homepage: http://www.tribler.org/
 
 Package: tribler
 Architecture: all
 Depends: libav-tools,
+         libjs-excanvas,
          libjs-mootools,
          libx11-6,
          python-apsw,
          python-cherrypy3,
          python-feedparser,
          python-gmpy,
-         python-libtorrent (>=0.16.4),
+         python-libtorrent (>= 0.16.4),
          python-m2crypto,
          python-netifaces,
          python-pyasn1,
          python-twisted,
          python-wxgtk2.8,
          python-requests,
-         tribler-swift (>= ${source:Version}),
          vlc (>= 1.1.0),
          ${misc:Depends},
          ${python:Depends}
@@ -44,12 +41,3 @@ Description: Python based Bittorrent/Internet TV application
  ability to make friends, and to donate idle upload capacity to friends. The
  later can improve download speed by a factor of two on asymmetric Internet
  links. The fastest way of social file sharing.
-
-Package: tribler-swift
-Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: Fast peer-to-peer file distribution helper program for tribler.
- Swift is a fast peer-to-peer file distribution protocol used to disseminate
- data within Tribler.
- .
- This package contains a helper program used by tribler.
