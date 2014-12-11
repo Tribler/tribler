@@ -1072,7 +1072,7 @@ def run(params=None, is_unit_testing=False):
             if sys.platform == 'linux2' and os.environ.get("TRIBLER_INITTHREADS", "true").lower() == "true":
                 try:
                     import ctypes
-                    x11 = ctypes.cdll.LoadLibrary('libX11.so')
+                    x11 = ctypes.cdll.LoadLibrary('libX11.so.6')
                     x11.XInitThreads()
                 except OSError as e:
                     logger.debug("Failed to call XInitThreads '%s'", str(e))
