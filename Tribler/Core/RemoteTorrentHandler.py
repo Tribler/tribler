@@ -25,6 +25,7 @@ from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH
 TORRENT_OVERFLOW_CHECKING_INTERVAL = 30 * 60
 LOW_PRIO_COLLECTING = 0
 MAGNET_TIMEOUT = 5.0
+MAX_PRIORITY = 1
 
 
 class RemoteTorrentHandler(TaskManager):
@@ -343,7 +344,8 @@ class Requester(object):
         if self._remote_torrent_handler.is_pending_task_active(self._name):
             return
         if self._pending_request_queue:
-            self.schedule_task(self._do_request, delay_time=Requester.REQUEST_INTERVAL * self._priority)
+            self.schedule_task(self._do_request,
+                               delay_time=Requester.REQUEST_INTERVAL * (MAX_PRIORITY - self._priority))
 
     @abstractmethod
     def add_request(self, key, candidate, timeout=None):
@@ -506,6 +508,8 @@ class TftpRequester(Requester):
 
     def __init__(self, name, session, remote_torrent_handler, priority):
         super(TftpRequester, self).__init__(name, session, remote_torrent_handler, priority)
+
+        self.REQUEST_INTERVAL = 5.0
 
         self._active_request_list = []
         self._untried_sources = {}

@@ -140,7 +140,7 @@ class MetadataCommunity(Community):
                         _, sub_file_path, thumbnail_hash_str = json.loads(value)
 
                         if not self._rth.has_metadata(infohash, sub_file_path):
-                            self._logger.debug(u"try to download %s with %s from %s", key, thumbnail_hash_str,
+                            self._logger.debug(u"try to download %s key=%s with %s from %s", thumbnail_hash_str, key,
                                                message.candidate.sock_addr[0], message.candidate.sock_addr[1])
 
                             @call_on_reactor_thread

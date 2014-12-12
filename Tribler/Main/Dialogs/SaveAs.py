@@ -2,6 +2,7 @@
 # see LICENSE.txt for license information
 
 import wx
+import wx.lib.newevent
 import os
 import sys
 import json
@@ -15,6 +16,10 @@ from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
 from Tribler.Main.Utility.GuiDBTuples import Torrent
 from Tribler.Main.Utility.utility import size_format
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
+
+
+CollectedEvent, EVT_COLLECTED = wx.lib.newevent.NewEvent()
+
 
 class SaveAs(wx.Dialog):
 
@@ -110,6 +115,8 @@ class SaveAs(wx.Dialog):
         vSizer.Add(st, 0, wx.EXPAND | wx.BOTTOM, 10)
         vSizer.Add(slider_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
 
+        self.Bind(EVT_COLLECTED, self.OnCollected)
+
         # Add file list
         if tdef and tdef.get_files():
             self.AddFileList(tdef, selectedFiles, vSizer, len(vSizer.GetChildren()))
@@ -131,11 +138,15 @@ class SaveAs(wx.Dialog):
             torrent = Torrent.fromTorrentDef(tdef)
             torrentsearch_manager = self.guiutility.torrentsearch_manager
 
-            def callback(torrent_filename):
+            def callback(saveas_id, torrent_filename):
                 tdef = TorrentDef.load(torrent_filename)
-                wx.CallAfter(self.SetCollected, tdef)
+                event = CollectedEvent(tdef=tdef)
+                saveas = wx.FindWindowById(saveas_id)
+                if saveas:
+                    wx.PostEvent(saveas, event)
 
-            torrentsearch_manager.getTorrent(torrent, callback)
+            cb = lambda torrent_filename, saveas_id = self.Id: callback(saveas_id, torrent_filename)
+            torrentsearch_manager.getTorrent(torrent, cb)
 
         cancel = wx.Button(self, wx.ID_CANCEL)
         cancel.Bind(wx.EVT_BUTTON, self.OnCancel)
@@ -203,7 +214,8 @@ class SaveAs(wx.Dialog):
 
         vSizer.Insert(index, wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
 
-    def SetCollected(self, tdef):
+    def OnCollected(self, event):
+        tdef = event.tdef
         self.collected = tdef
         self.SetSize((600, 575))
         vSizer = self.GetSizer().GetItem(0).GetSizer()
