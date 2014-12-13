@@ -27,6 +27,7 @@ class VersionNoLongerSupportedError(Exception):
 class DatabaseUpgradeError(Exception):
     pass
 
+
 class DBUpgrader(object):
     """
     Migration tool for upgrading the collected torrent files/thumbnails on disk
@@ -41,7 +42,6 @@ class DBUpgrader(object):
 
         self.failed = True
         self.torrent_collecting_dir = self.session.get_torrent_collecting_dir()
-
 
     def start_migrate(self):
         """
@@ -73,7 +73,6 @@ class DBUpgrader(object):
                 self.status_update_func(msg)
                 raise DatabaseUpgradeError(msg)
 
-
     def _purge_old_search_metadata_communities(self):
         """
         Cleans up all SearchCommunity and MetadataCommunity stuff in dispersy database.
@@ -102,7 +101,6 @@ class DBUpgrader(object):
         connection.commit()
         connection.close()
 
-
     def _upgrade_17_to_18(self):
         self.current_status = u"Upgrading database from v%s to v%s..." % (17, 18)
 
@@ -114,7 +112,6 @@ INSERT OR IGNORE INTO MetaDataTypes ('name') VALUES ('video-info');
 """)
         # update database version
         self.db.write_version(18)
-
 
     def _upgrade_18_to_22(self):
         self.current_status = u"Upgrading database from v%s to v%s..." % (18, 22)
@@ -172,7 +169,6 @@ DROP INDEX IF EXISTS idx_search_torrent;
 """)
         # update database version
         self.db.write_version(22)
-
 
     def _upgrade_22_to_23(self):
         """
