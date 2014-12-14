@@ -74,6 +74,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         self.download_hash = None
         self.update = True
         self.timeoffset = None
+        self.oldvolume = 0
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
