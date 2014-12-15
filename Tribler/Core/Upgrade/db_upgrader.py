@@ -60,7 +60,7 @@ class DBUpgrader(object):
         if self.db.version == 22:
             self._upgrade_22_to_23()
 
-        # version 23 -> 24 (24 is a dummy version which we only cleans up thumbnail files
+        # version 23 -> 24 (24 is a dummy version in which we only cleans up thumbnail files
         if self.db.version == 23:
             self._upgrade_23_to_24()
 
