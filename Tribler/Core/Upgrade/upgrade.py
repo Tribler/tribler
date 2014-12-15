@@ -1,11 +1,11 @@
 import logging
 import os
 
-from Tribler.Core.CacheDB.db_versions import LOWEST_SUPPORTED_DB_VERSION, LATEST_DB_VERSION
+from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION
 from Tribler.Core.Upgrade.db_upgrader import DBUpgrader
 from Tribler.Core.Upgrade.torrent_upgrade64 import TorrentMigrator64
-from Tribler.dispersy.util import call_on_reactor_thread
 
+from Tribler.dispersy.util import call_on_reactor_thread
 
 # Database versions:
 #   *earlier versions are no longer supported

@@ -12,6 +12,7 @@ import os
 from binascii import hexlify
 from glob import iglob
 from sqlite3 import Connection
+from shutil import rmtree
 
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MiscDBHandler
@@ -58,6 +59,10 @@ class DBUpgrader(object):
         # version 22 -> 23
         if self.db.version == 22:
             self._upgrade_22_to_23()
+
+        # version 23 -> 24 (24 is a dummy version which we only cleans up thumbnail files
+        if self.db.version == 23:
+            self._upgrade_23_to_24()
 
         # check if we managed to upgrade to the latest DB version.
         if self.db.version == LATEST_DB_VERSION:
@@ -314,6 +319,19 @@ CREATE TABLE IF NOT EXISTS MetadataData (
 
         # update database version
         self.db.write_version(23)
+
+    def _upgrade_23_to_24(self):
+        self.status_update_func(u"Upgrading database from v%s to v%s..." % (23, 24))
+
+        # remove all thumbnail files
+        for root, dirs, files in os.walk(self.session.get_torrent_collecting_dir()):
+            for d in dirs:
+                dir_path = os.path.join(root, d)
+                rmtree(dir_path, ignore_errors=True)
+            break
+
+        # update database version
+        self.db.write_version(24)
 
     def reimport_torrents(self):
         """Import all torrent files in the collected torrent dir, all the files already in the database will be ignored.
