@@ -206,7 +206,7 @@ class TunnelExitSocket(DatagramProtocol):
             if TunnelConversion.is_allowed(data):
                 self.community.tunnel_data_to_origin(self.circuit_id, self.sock_addr, source, data)
             else:
-                self._logger.error("TunnelCommunity: dropping forbidden packets to exit socket with circuit_id %d", self.circuit_id)
+                self._logger.warning("TunnelCommunity: dropping forbidden packets to exit socket with circuit_id %d", self.circuit_id)
 
     def close(self):
         if self.enabled:
@@ -543,7 +543,7 @@ class TunnelCommunity(Community):
         for torrent, peers in self.bittorrent_peers.items():
             infohash = torrent.tdef.get_infohash().encode("hex")
             for peer in peers:
-                self._logger.error("Re-adding peer %s to torrent %s", peer, infohash)
+                self._logger.debug("Re-adding peer %s to torrent %s", peer, infohash)
                 torrent.add_peer(peer)
             del self.bittorrent_peers[torrent]
 
@@ -551,7 +551,7 @@ class TunnelCommunity(Community):
         assert isinstance(circuit_id, (long, int)), type(circuit_id)
 
         if circuit_id in self.circuits:
-            self._logger.error("TunnelCommunity: removing circuit %d " + additional_info, circuit_id)
+            self._logger.debug("TunnelCommunity: removing circuit %d " + additional_info, circuit_id)
 
             if destroy:
                 self.destroy_circuit(circuit_id)
@@ -562,7 +562,7 @@ class TunnelCommunity(Community):
 
             # Remove & rebuild introduction/rendezvous points
             if circuit_id in self.my_intro_points:
-                self._logger.error("TunnelCommunity: removed introduction point %s", ', rebuilding' if rebuild else '')
+                self._logger.debug("TunnelCommunity: removed introduction point %s", ', rebuilding' if rebuild else '')
                 ip = self.my_intro_points.pop(circuit_id)
                 if rebuild:
                     self.create_introduction_points(ip.info_hash, ip.circuit.goal_hops)
@@ -607,7 +607,7 @@ class TunnelCommunity(Community):
 
         for cid in to_remove:
             if cid in self.relay_from_to:
-                self._logger.error("TunnelCommunity: removing relay %d %s", cid, additional_info)
+                self._logger.warning("TunnelCommunity: removing relay %d %s", cid, additional_info)
                 # Remove the relay
                 del self.relay_from_to[cid]
                 # Remove old session key
@@ -623,7 +623,7 @@ class TunnelCommunity(Community):
             # Close socket
             exit_socket = self.exit_sockets.pop(circuit_id)
             if exit_socket.enabled:
-                self._logger.error("TunnelCommunity: removing exit socket %d %s", circuit_id, additional_info)
+                self._logger.info("TunnelCommunity: removing exit socket %d %s", circuit_id, additional_info)
                 exit_socket.close()
                 # Remove old session key
                 if circuit_id in self.relay_session_keys:
@@ -635,7 +635,7 @@ class TunnelCommunity(Community):
         if circuit_id in self.circuits:
             sock_addr = self.circuits[circuit_id].first_hop
             self.send_destroy(Candidate(sock_addr, False), circuit_id, reason)
-            self._logger.error("TunnelCommunity: destroy_circuit %s %s", circuit_id, sock_addr)
+            self._logger.debug("TunnelCommunity: destroy_circuit %s %s", circuit_id, sock_addr)
 
     def destroy_relay(self, circuit_ids, reason=0, got_destroy_from=None):
         relays = {cid_from:(self.relay_from_to[cid_from].circuit_id,
@@ -648,16 +648,16 @@ class TunnelCommunity(Community):
             return
 
         for cid_from, (cid_to, sock_addr) in relays.iteritems():
-            self._logger.error("TunnelCommunity: found relay %s -> %s (%s)", cid_from, cid_to, sock_addr)
+            self._logger.debug("TunnelCommunity: found relay %s -> %s (%s)", cid_from, cid_to, sock_addr)
             if (cid_to, sock_addr) != got_destroy_from:
                 self.send_destroy(Candidate(sock_addr, False), cid_to, reason)
-                self._logger.error("TunnelCommunity: fw destroy to %s %s", cid_to, sock_addr)
+                self._logger.debug("TunnelCommunity: fw destroy to %s %s", cid_to, sock_addr)
 
     def destroy_exit_socket(self, circuit_id, reason=0):
         if circuit_id in self.exit_sockets:
             sock_addr = self.exit_sockets[circuit_id].sock_addr
             self.send_destroy(Candidate(sock_addr, False), circuit_id, reason)
-            self._logger.error("TunnelCommunity: destroy_exit_socket %s %s", circuit_id, sock_addr)
+            self._logger.debug("TunnelCommunity: destroy_exit_socket %s %s", circuit_id, sock_addr)
 
     def active_data_circuits(self, hops=None):
         return {cid: c for cid, c in self.circuits.items()
@@ -993,7 +993,7 @@ class TunnelCommunity(Community):
             try:
                 encrypted = self.crypto_in(circuit_id, encrypted, is_data=True)
             except CryptoException, e:
-                self._logger.error(str(e))
+                self._logger.warning(str(e))
                 return
 
             packet = plaintext + encrypted
@@ -1228,7 +1228,7 @@ class TunnelCommunity(Community):
         self.download_states = new_states
 
     def create_introduction_points(self, info_hash, hops, amount=1):
-        self._logger.error('Creating %d introduction point(s)', amount)
+        self._logger.debug('Creating %d introduction point(s)', amount)
         self._create_introduction_points(info_hash, hops, amount)
 
         # Ensures that libtorrent tries to make an outgoing connection so that the socks5 server
@@ -1247,7 +1247,7 @@ class TunnelCommunity(Community):
             cache = self.request_cache.add(IPRequestCache(self, circuit))
             payload = (circuit_id, cache.number, ip.service_key_public_bin, info_hash)
             self.send_cell([Candidate(circuit.first_hop, False)], u'establish-intro', payload)
-            self._logger.error("TunnelCommunity: establish introduction tunnel %s for service %s",
+            self._logger.debug("TunnelCommunity: establish introduction tunnel %s for service %s",
                                circuit_id, self._readable_binary_string(ip.service_key_public_bin))
 
         # Create circuits for introduction points
@@ -1383,7 +1383,7 @@ class TunnelCommunity(Community):
     def on_intro_established(self, messages):
         for message in messages:
             self.request_cache.pop(u"establish-intro", message.payload.identifier)
-            self._logger.error("TunnelCommunity: got intro-established from %s", message.candidate)
+            self._logger.info("TunnelCommunity: got intro-established from %s", message.candidate)
 
     def on_establish_rendezvous(self, messages):
         for message in messages:
