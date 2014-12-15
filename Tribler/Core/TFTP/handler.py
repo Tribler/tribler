@@ -390,7 +390,7 @@ class TftpHandler(TaskManager):
         session.last_contact_time = time()
         # check if it is an ERROR packet
         if packet['opcode'] == OPCODE_ERROR:
-            self._logger.error(u"%s got ERROR message: code = %s, msg = %s",
+            self._logger.warning(u"%s got ERROR message: code = %s, msg = %s",
                                session, packet['error_code'], packet['error_msg'])
             session.is_failed = True
             return
