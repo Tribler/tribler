@@ -64,6 +64,8 @@ class TorrentStateManager(object):
                 self.create_and_seed_metadata(destname, torrent)
 
     def create_and_seed_metadata(self, videofile, torrent):
+        # disable metadata generation
+        return
         t = Thread(target=self._create_and_seed_metadata, args=(videofile, torrent), name="ThumbnailGenerator")
         t.start()
 
