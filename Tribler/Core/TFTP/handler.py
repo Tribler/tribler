@@ -13,7 +13,7 @@ from twisted.internet import reactor
 
 from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
 from Tribler.dispersy.candidate import Candidate
-from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread
+from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread, attach_runtime_statistics
 from .session import Session, DEFAULT_BLOCK_SIZE, DEFAULT_TIMEOUT
 from .packet import (encode_packet, decode_packet, OPCODE_RRQ, OPCODE_WRQ, OPCODE_ACK, OPCODE_DATA, OPCODE_OACK,
                      OPCODE_ERROR, ERROR_DICT)
@@ -141,6 +141,7 @@ class TftpHandler(TaskManager):
 
         self._logger.info(u"%s started", session)
 
+    @attach_runtime_statistics(u"{0.__class__.__name__}.{function_name}")
     def _check_timeout(self):
         """ A scheduled task that checks for timeout.
         """
@@ -172,6 +173,7 @@ class TftpHandler(TaskManager):
             self.register_task(u"tftp_process_callback", reactor.callLater(0, self._process_callbacks))
             self._callback_scheduled = True
 
+    @attach_runtime_statistics(u"{0.__class__.__name__}.{function_name}")
     def _process_callbacks(self):
         """
         Process the callbacks
@@ -192,6 +194,7 @@ class TftpHandler(TaskManager):
             del self._session_id_dict[session_id]
         del self._session_dict[key]
 
+    @attach_runtime_statistics(u"{0.__class__.__name__}.{function_name}")
     @call_on_reactor_thread
     def data_came_in(self, addr, data):
         """ The callback function that the RawServer will call when there is incoming data.
