@@ -132,7 +132,7 @@ class VideoPlayer(object):
         return 1, False
 
     def get_vod_stream(self, dl_hash, wait=False):
-        if not self.vod_info[dl_hash].has_key('stream') and self.session.get_download(dl_hash):
+        if 'stream' not in self.vod_info[dl_hash] and self.session.get_download(dl_hash):
             download = self.session.get_download(dl_hash)
             vod_filename = self.get_vod_filename(download)
             while wait and not os.path.exists(vod_filename):
@@ -153,7 +153,7 @@ class VideoPlayer(object):
         if self.vod_download:
             self.vod_download.set_mode(DLMODE_NORMAL)
             vi_dict = self.vod_info.pop(self.vod_download.get_def().get_id(), None)
-            if vi_dict and vi_dict.has_key('stream'):
+            if vi_dict and 'stream' in vi_dict:
                 vi_dict['stream'][0].close()
 
         self.vod_download = download
