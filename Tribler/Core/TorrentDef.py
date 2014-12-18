@@ -219,12 +219,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
     #
     # ContentDefinition interface
     #
-    def get_def_type(self):
-        """ Returns the type of this Definition
-        @return string
-        """
-        return "torrent"
-
     def get_id(self):
         """ Returns a identifier for this Definition
         @return string
@@ -1152,9 +1146,6 @@ class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
 
     def get_name(self):
         return self.name
-
-    def get_def_type(self):
-        return "torrent"
 
     def get_id(self):
         return self.get_infohash()
