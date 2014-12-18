@@ -488,7 +488,7 @@ class TunnelConversion(BinaryConversion):
 
     @staticmethod
     def could_be_dispersy(data):
-        return data[:TUNNEL_PREFIX_LENGHT] == TUNNEL_PREFIX and len(data) > 22
+        return data[:TUNNEL_PREFIX_LENGHT] == TUNNEL_PREFIX and len(data) >= (23 + TUNNEL_PREFIX_LENGHT)
 
     @staticmethod
     def is_allowed(data):

@@ -138,7 +138,7 @@ class LibtorrentMgr(object):
         ltsession.add_dht_router('router.utorrent.com', 6881)
         ltsession.add_dht_router('router.bitcomet.com', 6881)
 
-        self._logger.error("Started libtorrent session for %d hops on port %d", hops, ltsession.listen_port())
+        self._logger.debug("Started libtorrent session for %d hops on port %d", hops, ltsession.listen_port())
 
         return ltsession
 

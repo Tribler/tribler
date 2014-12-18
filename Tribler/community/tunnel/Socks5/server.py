@@ -53,9 +53,9 @@ class SocksUDPConnection(DatagramProtocol):
                 circuit = self.socksconnection.select(request.destination)
 
                 if not circuit:
-                    self._logger.error("No circuits available, dropping %d bytes to %s", len(request.payload), request.destination)
+                    self._logger.debug("No circuits available, dropping %d bytes to %s", len(request.payload), request.destination)
                 elif circuit.state != CIRCUIT_STATE_READY:
-                    self._logger.error("Circuit is not ready, dropping %d bytes to %s", len(request.payload), request.destination)
+                    self._logger.debug("Circuit is not ready, dropping %d bytes to %s", len(request.payload), request.destination)
                 else:
                     self._logger.debug("Sending data over circuit destined for %s:%d", *request.destination)
                     circuit.tunnel_data(request.destination, request.payload)
@@ -109,7 +109,7 @@ class Socks5Connection(Protocol):
     def _try_handshake(self):
         """
         Try to read a HANDSHAKE request
-        
+
         :return: False if command could not been processes due to lack of bytes, True otherwise
         """
         offset, request = conversion.decode_methods_request(0, self.buffer)
@@ -239,7 +239,7 @@ class Socks5Connection(Protocol):
     def circuit_dead(self, broken_circuit):
         """
         When a circuit breaks and it affects our operation we should re-add the
-        peers when a new circuit is available 
+        peers when a new circuit is available
 
         @param Circuit broken_circuit: the circuit that has been broken
         @return Set with destinations using this circuit
@@ -252,7 +252,7 @@ class Socks5Connection(Protocol):
                 counter += 1
 
         if counter > 0:
-            self._logger.error("Deleted %d peers from destination list", counter)
+            self._logger.debug("Deleted %d peers from destination list", counter)
 
         return affected_destinations
 
@@ -270,7 +270,7 @@ class Socks5Connection(Protocol):
         self.socksserver.connectionLost(self)
 
     def close(self, reason='unspecified'):
-        self._logger.error("Closing session, reason %s", reason)
+        self._logger.info("Closing session, reason %s", reason)
         if self._udp_socket:
             self._udp_socket.close()
             self._udp_socket = None

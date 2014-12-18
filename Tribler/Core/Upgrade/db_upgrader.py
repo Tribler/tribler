@@ -12,6 +12,7 @@ import os
 from binascii import hexlify
 from glob import iglob
 from sqlite3 import Connection
+from shutil import rmtree
 
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MiscDBHandler
@@ -27,6 +28,7 @@ class VersionNoLongerSupportedError(Exception):
 class DatabaseUpgradeError(Exception):
     pass
 
+
 class DBUpgrader(object):
     """
     Migration tool for upgrading the collected torrent files/thumbnails on disk
@@ -41,7 +43,6 @@ class DBUpgrader(object):
 
         self.failed = True
         self.torrent_collecting_dir = self.session.get_torrent_collecting_dir()
-
 
     def start_migrate(self):
         """
@@ -59,6 +60,10 @@ class DBUpgrader(object):
         if self.db.version == 22:
             self._upgrade_22_to_23()
 
+        # version 23 -> 24 (24 is a dummy version in which we only cleans up thumbnail files
+        if self.db.version == 23:
+            self._upgrade_23_to_24()
+
         # check if we managed to upgrade to the latest DB version.
         if self.db.version == LATEST_DB_VERSION:
             self.status_update_func(u"Database upgrade finished.")
@@ -72,7 +77,6 @@ class DBUpgrader(object):
                 msg = u"Database upgrade failed: %s -> %s" % (self.db.version, LATEST_DB_VERSION)
                 self.status_update_func(msg)
                 raise DatabaseUpgradeError(msg)
-
 
     def _purge_old_search_metadata_communities(self):
         """
@@ -102,7 +106,6 @@ class DBUpgrader(object):
         connection.commit()
         connection.close()
 
-
     def _upgrade_17_to_18(self):
         self.current_status = u"Upgrading database from v%s to v%s..." % (17, 18)
 
@@ -114,7 +117,6 @@ INSERT OR IGNORE INTO MetaDataTypes ('name') VALUES ('video-info');
 """)
         # update database version
         self.db.write_version(18)
-
 
     def _upgrade_18_to_22(self):
         self.current_status = u"Upgrading database from v%s to v%s..." % (18, 22)
@@ -172,7 +174,6 @@ DROP INDEX IF EXISTS idx_search_torrent;
 """)
         # update database version
         self.db.write_version(22)
-
 
     def _upgrade_22_to_23(self):
         """
@@ -318,6 +319,19 @@ CREATE TABLE IF NOT EXISTS MetadataData (
 
         # update database version
         self.db.write_version(23)
+
+    def _upgrade_23_to_24(self):
+        self.status_update_func(u"Upgrading database from v%s to v%s..." % (23, 24))
+
+        # remove all thumbnail files
+        for root, dirs, files in os.walk(self.session.get_torrent_collecting_dir()):
+            for d in dirs:
+                dir_path = os.path.join(root, d)
+                rmtree(dir_path, ignore_errors=True)
+            break
+
+        # update database version
+        self.db.write_version(24)
 
     def reimport_torrents(self):
         """Import all torrent files in the collected torrent dir, all the files already in the database will be ignored.

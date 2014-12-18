@@ -5,6 +5,7 @@ import os
 import sys
 import json
 import time
+from unittest.case import skip
 
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 
@@ -16,6 +17,7 @@ DEBUG = True
 
 class TestMetadataCommunity(TestGuiAsServer):
 
+    @skip("Automatic thumbnail generation has been disabled and this test will never pass")
     def test_add_metadata(self):
         def do_overview():
             self.screenshot('Resulting metadata')
