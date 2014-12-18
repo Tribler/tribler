@@ -11,7 +11,7 @@ goto general
 
 :general
 set TDIR="%USERPROFILE%\%APPDIR%\.Tribler"
-set DDIR="%USERPROFILE%\Desktop\TriblerDownloads"
+set DDIR="%USERPROFILE%\Downloads\TriblerDownloads"
 rmdir %TDIR% /S /Q
 rmdir %DDIR% /S /Q
 
