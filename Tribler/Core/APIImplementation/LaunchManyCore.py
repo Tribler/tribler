@@ -819,31 +819,3 @@ class TriblerLaunchMany(Thread):
         else:
             return False
         return True
-
-
-def singledownload_size_cmp(x, y):
-    """ Method that compares 2 SingleDownload objects based on the size of the
-        content of the BT1Download (if any) contained in them.
-    """
-    if x is None and y is None:
-        return 0
-    elif x is None:
-        return 1
-    elif y is None:
-        return -1
-    else:
-        a = x.get_bt1download()
-        b = y.get_bt1download()
-        if a is None and b is None:
-            return 0
-        elif a is None:
-            return 1
-        elif b is None:
-            return -1
-        else:
-            if a.get_datalength() == b.get_datalength():
-                return 0
-            elif a.get_datalength() < b.get_datalength():
-                return -1
-            else:
-                return 1
