@@ -679,7 +679,7 @@ class SettingsDialog(wx.Dialog):
 
         sd_vsizer.AddStretchSpacer(1)
 
-        sd_faq_text = wx.StaticText(seeding_panel, label="Why differ between 'normal' BitTorrent and Tribler-peers?\nBecause between Tribler-peers you will build up a repuation.\nThis is not the case for 'normal' BitTorrent-peers.")
+        sd_faq_text = wx.StaticText(seeding_panel, label="Why differ between 'normal' BitTorrent and Tribler-peers?\nBecause between Tribler-peers you will build up a reputation.\nThis is not the case for 'normal' BitTorrent-peers.")
         sd_vsizer.Add(sd_faq_text)
 
         # other things
