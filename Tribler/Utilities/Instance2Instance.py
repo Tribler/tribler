@@ -39,8 +39,8 @@ class Instance2InstanceServer(Thread):
                                    timeout / 5.0,
                                    timeout,
                                    ipv6_enable=False,
-                                   failfunc=self.rawserver_fatalerrorfunc,
-                                   errorfunc=self.rawserver_nonfatalerrorfunc)
+                                   fatal_func=self.rawserver_fatalerrorfunc,
+                                   nonfatal_func=self.rawserver_nonfatalerrorfunc)
 
         # Only accept local connections
         self.rawserver.bind(self.i2iport, bind=['127.0.0.1'], reuse=True)
