@@ -217,15 +217,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         return TorrentDef._create(metainfo)
 
     #
-    # ContentDefinition interface
-    #
-    def get_id(self):
-        """ Returns a identifier for this Definition
-        @return string
-        """
-        return self.get_infohash()
-
-    #
     # Convenience instance methods for publishing new content
     #
     def add_content(self, inpath, outpath=None, playtime=None):
@@ -1146,9 +1137,6 @@ class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
 
     def get_name(self):
         return self.name
-
-    def get_id(self):
-        return self.get_infohash()
 
     def get_infohash(self):
         return self.infohash
