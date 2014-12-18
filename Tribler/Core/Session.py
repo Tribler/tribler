@@ -230,7 +230,6 @@ class Session(SessionConfigInterface):
         @return Download
         """
         # locking by lm
-        assert tdef.get_def_type() == "torrent"
         if self.get_libtorrent():
             return self.lm.add(tdef, dcfg, initialdlstatus=initialdlstatus, hidden=hidden)
         raise OperationNotEnabledByConfigurationException()
@@ -274,8 +273,7 @@ class Session(SessionConfigInterface):
         removed
         """
         # locking by lm
-        if d.get_def().get_def_type() == "torrent":
-            self.lm.remove(d, removecontent=removecontent, removestate=removestate, hidden=hidden)
+        self.lm.remove(d, removecontent=removecontent, removestate=removestate, hidden=hidden)
 
     def remove_download_by_id(self, infohash, removecontent=False, removestate=True):
         """
