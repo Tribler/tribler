@@ -1201,7 +1201,7 @@ class TunnelCommunity(Community):
         for ds in dslist:
             download = ds.get_download()
             tdef = download.get_def()
-            if tdef.get_def_type() == 'torrent' and tdef.is_anonymous():
+            if tdef.is_anonymous():
                 info_hash = tdef.get_infohash()
                 hops[info_hash] = download.get_hops()
                 new_states[info_hash] = ds.get_status()

@@ -644,8 +644,8 @@ class ABCApp(object):
             doCheckpoint = False
             for ds in dslist:
                 state = ds.get_status()
-                cdef = ds.get_download().get_def()
-                safename = cdef.get_name_as_unicode() if cdef.get_def_type() == 'torrent' else cdef.get_name()
+                tdef = ds.get_download().get_def()
+                safename = tdef.get_name_as_unicode()
 
                 if state == DLSTATUS_DOWNLOADING:
                     newActiveDownloads.append(safename)
@@ -653,12 +653,12 @@ class ABCApp(object):
                 elif state == DLSTATUS_SEEDING:
                     if safename in self.prevActiveDownloads:
                         download = ds.get_download()
-                        cdef = download.get_def()
+                        tdef = download.get_def()
 
                         coldir = os.path.basename(os.path.abspath(self.utility.session.get_torrent_collecting_dir()))
                         destdir = os.path.basename(download.get_dest_dir())
                         if destdir != coldir:
-                            hash = cdef.get_id()
+                            hash = tdef.get_id()
 
                             notifier = Notifier.getInstance()
                             notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, hash, safename)
@@ -734,7 +734,7 @@ class ABCApp(object):
 
         storage_locations = defaultdict(list)
         for download in self.utility.session.get_downloads():
-            if download.get_def().get_def_type() == 'torrent' and download.get_status() == DLSTATUS_DOWNLOADING:
+            if download.get_status() == DLSTATUS_DOWNLOADING:
                 storage_locations[download.get_dest_dir()].append(download)
 
         show_message = False
@@ -925,7 +925,7 @@ class ABCApp(object):
         # Remove anonymous test download
         for download in self.utility.session.get_downloads():
             tdef = download.get_def()
-            if tdef.get_def_type() == 'torrent' and not tdef.is_anonymous() and download.get_anon_mode() and \
+            if not tdef.is_anonymous() and download.get_anon_mode() and \
                os.path.basename(download.get_dest_dir()) == "anon_test":
                 self.utility.session.remove_download(download)
 

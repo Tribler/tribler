@@ -431,7 +431,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
 
         bw_alloc = menu.FindItemById(menu.FindItem('Bandwidth allocation..')).GetSubMenu()
         download = self.original_data.ds.get_download() if self.original_data.ds else None
-        if download and download.get_def().get_def_type() == 'torrent':
+        if download:
             bw_alloc.AppendMenu(wx.ID_ANY, 'Set download limit..', self.CreateBandwidthMenu(download, DOWNLOAD, menu))
             bw_alloc.AppendMenu(wx.ID_ANY, 'Set upload limit..', self.CreateBandwidthMenu(download, UPLOAD, menu))
 
@@ -636,11 +636,10 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         storage_moved = False
         for ds in dslist:
             download = ds.get_download()
-            if download.get_def().get_def_type() == 'torrent':
-                self._logger.info("Moving from %s to %s newdir %s", old, new, new_dir)
-                download.move_storage(new_dir)
-                if download.get_save_path() == new_dir:
-                    storage_moved = True
+            self._logger.info("Moving from %s to %s newdir %s", old, new, new_dir)
+            download.move_storage(new_dir)
+            if download.get_save_path() == new_dir:
+                storage_moved = True
 
         # If libtorrent hasn't moved the files yet, move them now
         if not storage_moved:
@@ -663,7 +662,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         for torrent in torrents:
             if 'completed' in torrent.state or 'seeding' in torrent.state:
                 tdef = torrent.ds.get_download().get_def() if torrent.ds else None
-                if tdef and tdef.get_def_type() == 'torrent':
+                if tdef:
                     if UserDownloadChoice.get_singleton().get_download_state(tdef.get_id()) == 'restartseed':
                         enable = False
                         break
@@ -697,7 +696,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
         for torrent in torrents:
             download = torrent.ds.get_download() if torrent.ds else None
-            if download and download.get_def().get_def_type() == 'torrent':
+            if download:
                 enable = True
                 break
         event.Enable(enable)
@@ -726,7 +725,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
         for torrent in torrents:
             download = torrent.ds.get_download() if torrent.ds else None
-            if download and download.get_def().get_def_type() == 'torrent':
+            if download:
                 enable = True
                 break
         event.Enable(enable)

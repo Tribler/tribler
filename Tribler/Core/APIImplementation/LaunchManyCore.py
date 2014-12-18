@@ -348,7 +348,7 @@ class TriblerLaunchMany(Thread):
         dl = self.get_download(id)
         old_def = dl.get_def() if dl else None
 
-        if old_def and old_def.get_def_type() == 'torrent':
+        if old_def:
             old_trackers = old_def.get_trackers_as_single_tuple()
             new_trackers = list(set(trackers) - set(old_trackers))
             all_trackers = list(old_trackers) + new_trackers

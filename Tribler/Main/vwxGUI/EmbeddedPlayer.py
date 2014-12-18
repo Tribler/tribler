@@ -469,7 +469,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                 vp = VideoPlayer.getInstance()
                 download, fileindex = (vp.get_vod_download(), vp.get_vod_fileindex())
                 self.OnStop(None)
-                if download and download.get_def().get_def_type() == 'torrent':
+                if download:
                     self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_ENDED, (download.get_def().get_id(), fileindex))
                 if self.fullscreenwindow:
                     self._ToggleFullScreen()

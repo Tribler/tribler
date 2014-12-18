@@ -167,11 +167,10 @@ class VideoPlayer(object):
         self.vod_fileindex = fileindex
 
     def get_vod_filename(self, download):
-        if download.get_def().get_def_type() == 'torrent':
-            if download.get_def().is_multifile_torrent():
-                return os.path.join(download.get_content_dest(), download.get_selected_files()[0])
-            else:
-                return download.get_content_dest()
+        if download.get_def().is_multifile_torrent():
+            return os.path.join(download.get_content_dest(), download.get_selected_files()[0])
+        else:
+            return download.get_content_dest()
 
     def launch_video_player(self, cmd, download=None):
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
