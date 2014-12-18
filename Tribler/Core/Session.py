@@ -283,7 +283,7 @@ class Session(SessionConfigInterface):
         """
         downloadList = self.get_downloads()
         for download in downloadList:
-            if download.get_def().get_id() == infohash:
+            if download.get_def().get_infohash() == infohash:
                 self.remove_download(download, removecontent, removestate)
                 return
 

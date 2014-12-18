@@ -285,7 +285,7 @@ class LineHandler(LineReceiver):
 
             def start_download():
                 def cb(ds):
-                    print 'Download', tdef.get_id().encode('hex')[:10], '@', ds.get_current_speed('down'), ds.get_progress(), ds.get_status(), sum(ds.get_num_seeds_peers())
+                    print 'Download', tdef.get_infohash().encode('hex')[:10], '@', ds.get_current_speed('down'), ds.get_progress(), ds.get_status(), sum(ds.get_num_seeds_peers())
                     return 1.0, False
                 download = anon_tunnel.session.start_download(tdef, dscfg)
                 download.set_state_callback(cb, delay=1)

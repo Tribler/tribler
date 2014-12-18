@@ -914,14 +914,14 @@ class LibraryManager(object):
 
     def updateProgressInDB(self):
         for ds in self.dslist[:]:
-            id = ds.get_download().get_def().get_id()
+            infohash = ds.get_download().get_def().get_infohash()
             progress = (ds.get_progress() or 0.0) * 100.0
 
             # update progress if difference is larger than 5%
-            if progress - self.cache_progress.get(id, 0) > 5:
-                self.cache_progress[id] = progress
+            if progress - self.cache_progress.get(infohash, 0) > 5:
+                self.cache_progress[infohash] = progress
                 try:
-                    self.mypref_db.updateProgressByHash(id, progress)
+                    self.mypref_db.updateProgressByHash(infohash, progress)
                 except:
                     print_exc()
 
@@ -1076,8 +1076,8 @@ class LibraryManager(object):
                 download.restart()
                 resumed = True
 
-                id = download.get_def().get_id()
-                self.user_download_choice.set_download_state(id, "restartseed" if force_seed and download.get_progress() == 1.0 else "restart")
+                infohash = download.get_def().get_infohash()
+                self.user_download_choice.set_download_state(infohash, "restartseed" if force_seed and download.get_progress() == 1.0 else "restart")
 
         if not resumed:
             filename = self.torrentsearch_manager.getCollectedFilename(torrent)
@@ -1100,13 +1100,13 @@ class LibraryManager(object):
                 self.stopVideoIfEqual(download)
                 download.stop()
 
-                id = download.get_def().get_id()
-                self.user_download_choice.set_download_state(id, "stop")
+                infohash = download.get_def().get_infohash()
+                self.user_download_choice.set_download_state(infohash, "stop")
 
     def _getDownloads(self, torrent):
         downloads = []
         for curdownload in self.session.get_downloads():
-            infohash = curdownload.get_def().get_id()
+            infohash = curdownload.get_def().get_infohash()
             if infohash == torrent.infohash:
                 downloads.append(curdownload)
         return downloads

@@ -954,8 +954,8 @@ class SizeList(List):
         dsdict = {}
         old_dsdict = {}
         for ds in dslist:
-            id = ds.get_download().get_def().get_id()
-            dsdict[id] = ds
+            infohash = ds.get_download().get_def().get_infohash()
+            dsdict[infohash] = ds
 
         curStates = {}
         didStateChange = False
@@ -1803,8 +1803,8 @@ class LibraryList(SizeList):
 
         for infohash, item in self.list.items.iteritems():
             ds = item.original_data.ds
-            id = ds.get_download().get_def().get_id() if ds else None
-            if True or newFilter or not self.__ds__eq__(ds, self.oldDS.get(id, None)):
+            infohash = ds.get_download().get_def().get_infohash() if ds else None
+            if True or newFilter or not self.__ds__eq__(ds, self.oldDS.get(infohash, None)):
                 if ds and hasattr(item, 'progressPanel'):
                     progress = item.progressPanel.Update(item.original_data)
                     item.data[1] = progress

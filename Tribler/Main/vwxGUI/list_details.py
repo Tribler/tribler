@@ -2351,7 +2351,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
 
         vod_dl = VideoPlayer.getInstance().get_vod_download()
         if vod_dl and vod_dl.get_vod_fileindex() == fileindex:
-            self.library_manager.stopTorrent(self.tdef.get_id())
+            self.library_manager.stopTorrent(self.tdef.get_infohash())
             self.library_manager.last_vod_torrent = None
 
     def SetNrFiles(self, nr):
@@ -2407,7 +2407,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
                 self.fileindex = link.fileindex
                 self.DoHighlight()
                 # This needs to be in a CallAfter, or VLC may crash.
-                wx.CallAfter(lambda: self.library_manager.playTorrent(self.tdef.get_id(), self.tdef.get_files_as_unicode()[self.fileindex]))
+                wx.CallAfter(lambda: self.library_manager.playTorrent(self.tdef.get_infohash(), self.tdef.get_files_as_unicode()[self.fileindex]))
 
         for link in self.links:
             mousepos = wx.GetMousePosition()
@@ -2420,7 +2420,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
     def OnVideoEnded(self, subject, changeType, torrent_tuple):
         infohash, fileindex = torrent_tuple
 
-        if not self.tdef or self.tdef.get_id() != infohash:
+        if not self.tdef or self.tdef.get_infohash() != infohash:
             return
 
         for index, control in enumerate(self.links):
@@ -2431,4 +2431,4 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
                     control_next.SetForegroundColour(TRIBLER_RED)
                     self.fileindex = control_next.fileindex
                     self.DoHighlight()
-                    self.library_manager.playTorrent(self.tdef.get_id(), self.tdef.get_files_as_unicode()[control_next.fileindex])
+                    self.library_manager.playTorrent(self.tdef.get_infohash(), self.tdef.get_files_as_unicode()[control_next.fileindex])

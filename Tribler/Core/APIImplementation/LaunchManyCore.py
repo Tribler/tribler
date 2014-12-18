@@ -433,7 +433,7 @@ class TriblerLaunchMany(Thread):
             # for every initiated dl.
             # 2012-07-31: Turn MOREINFO on/off on demand for efficiency.
             # 2013-04-17: Libtorrent now uses set_moreinfo_stats as well.
-            d.set_moreinfo_stats(True in getpeerlist or d.get_def().get_id() in getpeerlist)
+            d.set_moreinfo_stats(True in getpeerlist or d.get_def().get_infohash() in getpeerlist)
 
         network_set_download_states_callback_lambda = lambda: self.network_set_download_states_callback(usercallback)
         self.rawserver.add_task(network_set_download_states_callback_lambda, when)
@@ -567,8 +567,8 @@ class TriblerLaunchMany(Thread):
         if tdef and dscfg:
             if dscfg.get_dest_dir() != '':  # removed torrent ignoring
                 try:
-                    if not self.download_exists(tdef.get_id()):
-                        initialdlstatus = initialdlstatus_dict.get(tdef.get_id(), initialdlstatus)
+                    if not self.download_exists(tdef.get_infohash()):
+                        initialdlstatus = initialdlstatus_dict.get(tdef.get_infohash(), initialdlstatus)
                         self.add(tdef, dscfg, pstate, initialdlstatus, setupDelay=setupDelay)
                     else:
                         self._logger.info("tlm: not resuming checkpoint because download has already been added")

@@ -289,7 +289,7 @@ class Torrent(Helper):
                 self.dslist = [None, None]
 
             tdef = ds.get_download().get_def()
-            if self.infohash and self.infohash == tdef.get_id():
+            if self.infohash and self.infohash == tdef.get_infohash():
                 self.dslist[0] = ds
                 return True
         return False
