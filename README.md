@@ -13,7 +13,12 @@ Tribler includes our own experimental Tor-like onion routing network, detailed s
 We make use of submodules, so remember using the --recursive argument when cloning this repo.
 
 ### Debian/Ubuntu/Mint
-sudo apt-get install libav-tools libjs-excanvas libjs-mootools libx11-6 python-apsw python-cherrypy3 python-crypto python-feedparser python-gmpy python-libtorrent python-m2crypto python-netifaces python-pil python-pyasn1 python-requests python-twisted python-wxgtk2.8 vlc
+
+```bash
+sudo apt-get install libav-tools libjs-excanvas libjs-mootools libx11-6 python-apsw \
+python-cherrypy3 python-feedparser python-gmpy python-libtorrent python-m2crypto \
+python-netifaces python-requests python-twisted python-wxgtk2.8 vlc
+```
 
 ### Windows and OSX
 TODO
