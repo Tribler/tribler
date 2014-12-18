@@ -89,7 +89,7 @@ class VideoPlayer(object):
 
     def play(self, download, fileindex):
         url = 'http://127.0.0.1:' + str(self.videoserver.port) + '/'\
-              + hexlify(download.get_def().get_id()) + '/' + str(fileindex)
+              + hexlify(download.get_def().get_infohash()) + '/' + str(fileindex)
         if self.playbackmode == PLAYBACKMODE_INTERNAL:
             self.launch_video_player(url, download)
         else:
@@ -110,7 +110,7 @@ class VideoPlayer(object):
         bufferprogress = ds.get_vod_prebuffering_progress_consec()
 
         dl_def = dl.get_def()
-        dl_hash = dl_def.get_id()
+        dl_hash = dl_def.get_infohash()
 
         if (bufferprogress >= 1.0 and not self.vod_playing) or (bufferprogress >= 1.0 and self.vod_playing is None):
             self.vod_playing = True
@@ -152,7 +152,7 @@ class VideoPlayer(object):
     def set_vod_download(self, download):
         if self.vod_download:
             self.vod_download.set_mode(DLMODE_NORMAL)
-            vi_dict = self.vod_info.pop(self.vod_download.get_def().get_id(), None)
+            vi_dict = self.vod_info.pop(self.vod_download.get_def().get_infohash(), None)
             if vi_dict and 'stream' in vi_dict:
                 vi_dict['stream'][0].close()
 

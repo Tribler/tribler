@@ -451,7 +451,7 @@ class MainFrame(wx.Frame):
             if torrentfilename and tdef is None:
                 tdef = TorrentDef.load(torrentfilename)
 
-            d = self.utility.session.get_download(tdef.get_id())
+            d = self.utility.session.get_download(tdef.get_infohash())
             if d:
                 new_trackers = list(set(tdef.get_trackers_as_single_tuple()) - set(d.get_def().get_trackers_as_single_tuple()))
                 if not new_trackers:
@@ -464,7 +464,7 @@ class MainFrame(wx.Frame):
                         dialog = wx.MessageDialog(None, 'This torrent is already being downloaded. Do you wish to load the trackers from it?', 'Tribler', wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
                         if dialog.ShowModal() == wx.ID_YES:
                             # Update trackers
-                            self.utility.session.update_trackers(cdef.get_id(), new_trackers)
+                            self.utility.session.update_trackers(tdef.get_infohash(), new_trackers)
                         dialog.Destroy()
 
                     do_gui()
@@ -524,7 +524,7 @@ class MainFrame(wx.Frame):
                 metainfo = copy.deepcopy(tdef.metainfo)
                 metainfo['info']['anonymous'] = 1
                 orig_tdef = tdef
-                cdef = tdef = TorrentDef._create(metainfo)
+                tdef = TorrentDef._create(metainfo)
             else:
                 monitorHiddenSerivcesProgress = False
 
@@ -556,7 +556,7 @@ class MainFrame(wx.Frame):
                 if vodmode:
                     self._logger.info('MainFrame: startDownload: Starting in VOD mode')
                     result = self.utility.session.start_download(tdef, dscfg)
-                    self.guiUtility.library_manager.playTorrent(tdef.get_id(), videofiles[0] if len(videofiles) == 1 else None)
+                    self.guiUtility.library_manager.playTorrent(tdef.get_infohash(), videofiles[0] if len(videofiles) == 1 else None)
 
                 else:
                     if selectedFiles:
@@ -574,7 +574,7 @@ class MainFrame(wx.Frame):
 
                 if clicklog is not None:
                     mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
-                    startWorker(None, mypref.addClicklogToMyPreference, wargs=(tdef.get_id(), clicklog))
+                    startWorker(None, mypref.addClicklogToMyPreference, wargs=(tdef.get_infohash(), clicklog))
 
                 return result
 

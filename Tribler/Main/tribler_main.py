@@ -684,10 +684,10 @@ class ABCApp(object):
                         coldir = os.path.basename(os.path.abspath(self.utility.session.get_torrent_collecting_dir()))
                         destdir = os.path.basename(download.get_dest_dir())
                         if destdir != coldir:
-                            hash = tdef.get_id()
+                            infohash = tdef.get_infohash()
 
                             notifier = Notifier.getInstance()
-                            notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, hash, safename)
+                            notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, infohash, safename)
 
                             doCheckpoint = True
 

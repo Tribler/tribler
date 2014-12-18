@@ -663,7 +663,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             if 'completed' in torrent.state or 'seeding' in torrent.state:
                 tdef = torrent.ds.get_download().get_def() if torrent.ds else None
                 if tdef:
-                    if UserDownloadChoice.get_singleton().get_download_state(tdef.get_id()) == 'restartseed':
+                    if UserDownloadChoice.get_singleton().get_download_state(tdef.get_infohash()) == 'restartseed':
                         enable = False
                         break
         event.Enable(enable)

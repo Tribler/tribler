@@ -27,13 +27,13 @@ class GlobalSeedingManager:
 
         for download_state in dslist:
             # Arno, 2012-05-07: ContentDef support
-            cdef = download_state.get_download().get_def()
-            hash = cdef.get_id()
-            anonymous = cdef.is_anonymous()
+            tdef = download_state.get_download().get_def()
+            infohash = tdef.get_infohash()
+            anonymous = tdef.is_anonymous()
             if download_state.get_status() == DLSTATUS_SEEDING and not anonymous:
-                if hash not in self.seeding_managers:
+                if infohash not in self.seeding_managers:
                     # apply new seeding manager
-                    self._logger.debug("SeedingManager: apply seeding manager %s", hash.encode("HEX"))
+                    self._logger.debug("SeedingManager: apply seeding manager %s", infohash.encode("HEX"))
                     seeding_manager = SeedingManager(download_state)
 
                     policy = self.Read('t4t_option')
@@ -57,9 +57,9 @@ class GlobalSeedingManager:
                         self._logger.debug("GlobalSeedingManager: NoSeeding")
                         seeding_manager.set_policy(NoSeeding())
 
-                    self.seeding_managers[hash] = seeding_manager
+                    self.seeding_managers[infohash] = seeding_manager
 
-                self.seeding_managers[hash].update_download_state(download_state)
+                self.seeding_managers[infohash].update_download_state(download_state)
 
 
 class SeedingManager:
@@ -74,10 +74,10 @@ class SeedingManager:
     def update_download_state(self, download_state):
         self.download_state = download_state
         download = self.download_state.get_download()
-        if self.udc.get_download_state(download.get_def().get_id()) != 'restartseed' and download.get_mode() != DLMODE_VOD:
+        if self.udc.get_download_state(download.get_def().get_infohash()) != 'restartseed' and download.get_mode() != DLMODE_VOD:
             if not self.policy.apply(self.download_state, self.download_state.get_seeding_statistics()):
                 self._logger.debug("Stop seeding with libtorrent: %s", self.download_state.get_download().get_dest_files())
-                self.udc.set_download_state(download.get_def().get_id(), 'stop')
+                self.udc.set_download_state(download.get_def().get_infohash(), 'stop')
                 self.download_state.get_download().stop()
 
     def set_policy(self, policy):

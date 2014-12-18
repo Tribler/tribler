@@ -166,7 +166,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
     def OnVideoBuffering(self, subject, changeType, torrent_tuple):
         download_hash, _, is_buffering = torrent_tuple
-        if self.download and self.download.get_def().get_id() == download_hash:
+        if self.download and self.download.get_def().get_infohash() == download_hash:
             @forceWxThread
             def do_gui():
                 if is_buffering:
@@ -221,7 +221,7 @@ class EmbeddedPlayerPanel(wx.Panel):
         self._logger.debug("embedplay: Load: %s %s", url, currentThread().getName())
 
         self.download = download
-        self.download_hash = download.get_def().get_id()
+        self.download_hash = download.get_def().get_infohash()
 
         # 19/02/10 Boudewijn: no self.slider when self.vlcwrap is None
         # 26/05/09 Boudewijn: when using the external player we do not have a vlcwrap
@@ -470,7 +470,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                 download, fileindex = (vp.get_vod_download(), vp.get_vod_fileindex())
                 self.OnStop(None)
                 if download:
-                    self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_ENDED, (download.get_def().get_id(), fileindex))
+                    self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_ENDED, (download.get_def().get_infohash(), fileindex))
                 if self.fullscreenwindow:
                     self._ToggleFullScreen()
 
