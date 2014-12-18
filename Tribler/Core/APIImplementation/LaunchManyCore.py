@@ -108,8 +108,8 @@ class TriblerLaunchMany(Thread):
                                        self.session.get_timeout_check_interval(),
                                        self.session.get_timeout(),
                                        ipv6_enable=self.session.get_ipv6(),
-                                       failfunc=self.rawserver_fatalerrorfunc,
-                                       errorfunc=self.rawserver_nonfatalerrorfunc)
+                                       fatal_func=self.rawserver_fatalerrorfunc,
+                                       nonfatal_func=self.rawserver_nonfatalerrorfunc)
 
             self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
 
