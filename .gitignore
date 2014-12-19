@@ -15,6 +15,7 @@
 /Tribler/Test/test_.Tribler/
 /Tribler/Test/test_.Tribler2
 /Tribler/Test/test_TriblerDownloads2
+/Tribler/community/tunnel/.Tribler*
 /bootstraptribler.txt
 /core
 /debian/files
@@ -27,4 +28,5 @@
 /output
 \#*\#
 \.\#
+memorydump.out
 flycheck_*
