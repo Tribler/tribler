@@ -63,8 +63,12 @@ except ImportError:
         return ret + cipher.final()
 
     def aes_decrypt_str(aes_key, encr_str):
+        assert isinstance(encr_str, str), type(encr_str)
         if isinstance(aes_key, long):
             aes_key = long_to_bytes(aes_key, 16)
+        # ATTENTION: If the key has the wrong length M2Crypto will segfault!!!
+        if len(aes_key) != 16:
+            raise ValueError("aes_encrypt_str: wrong key length: %s for key %s " % (len(aes_key), aes_key.encode('HEX')))
         cipher = EVP.Cipher(alg='aes_128_ecb', key=aes_key, iv='\x00' * 16, op=0)
         ret = cipher.update(encr_str)
         return ret + cipher.final()
