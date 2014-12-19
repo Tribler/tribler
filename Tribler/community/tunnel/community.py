@@ -880,7 +880,7 @@ class TunnelCommunity(Community):
             try:
                 dh_second_part = self.crypto.hybrid_decrypt_str(self.my_member._ec, message.payload.key)
             except CryptoException, e:
-                self._logger.error(str(e))
+                self._logger.error("Failed to decrypt message, exception of type %s was: %s", str(type(e)), str(e))
                 continue
 
             self.directions[circuit_id] = EXIT_NODE

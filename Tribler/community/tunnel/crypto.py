@@ -6,8 +6,12 @@ from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto
 
 
 class CryptoException(Exception):
-    pass
+    def __init__(self, failure, *args, **kwargs):
+        super(CryptoException, self).__init__(*args, **kwargs)
+        self.failure = failure
 
+    def __str__(self):
+        return " %s <Failure: %s: %s>" % (self.__class__.__name__, str(type(self.failure)), str(self.failure))
 
 class TunnelCrypto(ElgamalCrypto):
 
@@ -55,7 +59,7 @@ class TunnelCrypto(ElgamalCrypto):
         try:
             return self.decrypt(key, content)
         except Exception, e:
-            raise CryptoException(str(e))
+            raise CryptoException(e)
 
 
 class NoTunnelCrypto(TunnelCrypto):
