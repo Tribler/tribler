@@ -825,7 +825,7 @@ class List(wx.BoxSizer):
 
     def GetFFilterMessage(self):
         if self.guiutility.getFamilyFilter() and self.nr_filtered:
-            return None, '%d items were blocked by the Familiy filter' % self.nr_filtered
+            return None, '%d items were blocked by the Family filter' % self.nr_filtered
         return None, ''
 
     def MatchFilter(self, item):
