@@ -37,7 +37,7 @@ import wx
 class GaugeSplash(wx.Frame):
 
     """Placeholder for a gauge-bar splash screen."""
-    def __init__(self, bmp):
+    def __init__(self, bmp, label):
         wx.Frame.__init__(self, None, style=wx.FRAME_NO_TASKBAR)
 
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -50,7 +50,7 @@ class GaugeSplash(wx.Frame):
         self.bmp = wx.StaticBitmap(self, -1, bmp)
         sizer.Add(self.bmp, 0, wx.EXPAND)
 
-        self.label = wx.StaticText(self, -1, "Loading...")
+        self.label = wx.StaticText(self, -1, label)
         self.label.SetBackgroundColour(DEFAULT_BACKGROUND)
         sizer.Add(self.label, 0, flag=wx.EXPAND | wx.ALL, border=self.border)
 

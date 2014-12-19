@@ -177,7 +177,7 @@ class ABCApp(object):
         self.splash = None
         try:
             bm = self.gui_image_manager.getImage(u'splash.png')
-            self.splash = GaugeSplash(bm)
+            self.splash = GaugeSplash(bm, "Loading...")
             self.splash.setTicks(13)
             self.splash.Show()
 
@@ -944,11 +944,18 @@ class ABCApp(object):
 
     @forceWxThread
     def OnExit(self):
+
+        bm = self.gui_image_manager.getImage(u'closescreen.png')
+        self.closewindow = GaugeSplash(bm, "Closing...")
+        self.closewindow.setTicks(6)
+        self.closewindow.Show()
+
         self._logger.info("main: ONEXIT")
         self.ready = False
         self.done = True
 
         # Remove anonymous test download
+        self.closewindow.tick('Remove anonymous test download')
         for download in self.utility.session.get_downloads():
             tdef = download.get_def()
             if not tdef.is_anonymous() and download.get_anon_mode() and \
@@ -956,6 +963,7 @@ class ABCApp(object):
                 self.utility.session.remove_download(download)
 
         # write all persistent data to disk
+        self.closewindow.tick('Write all persistent data to disk')
         if self.i2is:
             self.i2is.shutdown()
         if self.torrentfeed:
@@ -982,11 +990,13 @@ class ABCApp(object):
 
             try:
                 self._logger.info("main: ONEXIT cleaning database")
+                self.closewindow.tick('Cleaning database')
                 peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
                 peerdb._db.clean_db(randint(0, 24) == 0, exiting=True)
             except:
                 print_exc()
 
+            self.closewindow.tick('Shutdown session')
             self.utility.session.shutdown(hacksessconfcheckpoint=False)
 
             # Arno, 2012-07-12: Shutdown should be quick
@@ -1002,6 +1012,7 @@ class ABCApp(object):
                 sleep(3)
             self._logger.info("main: ONEXIT Session is shutdown")
 
+        self.closewindow.tick('Deleting instances')
         print >> sys.stderr, "ONEXIT deleting instances"
 
         Session.del_instance()
@@ -1009,7 +1020,11 @@ class ABCApp(object):
         GUIDBProducer.delInstance()
         DefaultDownloadStartupConfig.delInstance()
         GuiImageManager.delInstance()
-
+        
+        self.closewindow.tick('Exiting now')
+        
+        self.closewindow.Destroy()
+        
         return 0
 
     def db_exception_handler(self, e):
