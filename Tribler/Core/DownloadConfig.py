@@ -215,10 +215,10 @@ def get_default_dest_dir():
         else: Home\TriblerDownloads
     </pre>
     """
-    downloaddir = u"TriblerDownloads"
+    downloaddir = u"Downloads\"TriblerDownloads"
 
     if os.path.isdir(downloaddir):
         return os.path.abspath(downloaddir)
 
-    uhome = get_desktop_dir()
+    uhome = get_home_dir()
     return os.path.join(uhome, downloaddir)
