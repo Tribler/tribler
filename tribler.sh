@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/bin/sh
 # Run Tribler from source tree
 
 
-UNAME=$(uname -s)
+UNAME="$(uname -s)"
 
 if [ -z "$PROFILE_TRIBLER" ]; then
     TRIBLER_SCRIPT=Tribler/Main/tribler.py
@@ -10,18 +10,18 @@ else
     TRIBLER_SCRIPT=Tribler/Main/tribler_profiler.py
 fi
 
-if [ $UNAME == "Linux" ]; then
+if [ "$UNAME" = "Linux" ]; then
     # Find the Tribler dir
-    TRIBLER_DIR=$( dirname $(readlink -f "$0"))
-    if [ ! -d "$TRIBLER_DIR" ]; then
-        TRIBLER_DIR=$( dirname $(readlink -f $(which "$0")))
-    fi
+    TRIBLER_DIR="$(dirname "$(readlink -f "$0")")"
     if [ ! -d "$TRIBLER_DIR" ]; then
         echo "Couldn't figure out where Tribler is, bailing out."
         exit 1
     fi
 
-    cd $TRIBLER_DIR
+    cd "$TRIBLER_DIR" || {
+        echo "Couldn't cd to $TRIBLER_DIR. Check permissions."
+        exit 1
+    }
 
     PYTHONPATH=.:"$PYTHONPATH"
 
@@ -31,7 +31,7 @@ if [ $UNAME == "Linux" ]; then
     python $TRIBLER_SCRIPT
 
 else
-    if [ $UNAME == "Darwin" ]; then
+    if [ "$UNAME" = "Darwin" ]; then
 
         if [ ! -e $TRIBLER_SCRIPT ]; then
             echo "ERROR: Script must be called from source tree root"
