@@ -30,3 +30,4 @@
 \.\#
 memorydump.out
 flycheck_*
+.DS_Store
