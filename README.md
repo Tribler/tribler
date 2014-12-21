@@ -1,6 +1,6 @@
 # Tribler           [![Build Status](http://jenkins.tribler.org/job/Test_tribler_devel/badge/icon)](http://jenkins.tribler.org/job/Test_tribler_devel/)
 
-_Making Bittorrent anonymous and impossible to shutdown._
+_Making Bittorrent anonymous and impossible to shut down._
 
 We use our own dedicated Tor-like network for anonymous torrent downloading. We implemented and enhanced the _Tor protocol specifications_ plus merged them with Bittorrent streaming. More info: https://github.com/Tribler/tribler/wiki
 Tribler includes our own Tor-like onion routing network with hidden services based seeding and end-to-end encryption, detailed specs: https://github.com/Tribler/tribler/wiki/Anonymous-Downloading-and-Streaming-specifications
