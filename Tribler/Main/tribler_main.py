@@ -402,6 +402,16 @@ class ABCApp(object):
         if not self.sconfig.get_torrent_collecting_dir():
             self.sconfig.set_torrent_collecting_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR))
 
+
+        if not self.sconfig.get_tunnel_community_optin_dialog_shown() and not self.is_unit_testing:
+            from Tribler.Main.Dialogs.TunnelOptin import TunnelOptin
+            optin_dialog = TunnelOptin(None)
+            enable_tunnel_community = optin_dialog.ShowModal() == wx.ID_OK
+            self.sconfig.set_tunnel_community_enabled(enable_tunnel_community)
+            self.sconfig.set_tunnel_community_optin_dialog_shown(True)
+            optin_dialog.Destroy()
+            del optin_dialog
+
         session = Session(self.sconfig)
 
         # check and upgrade
