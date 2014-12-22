@@ -1,7 +1,7 @@
 import hashlib
 
 from Tribler.community.tunnel import DIFFIE_HELLMAN_MODULUS, DIFFIE_HELLMAN_GENERATOR
-from Tribler.community.privatesemantic.crypto.optional_crypto import mpz, rand, aes_decrypt_str, aes_encrypt_str
+from Tribler.community.privatesemantic.crypto.cryptowrapper import mpz, rand, aes_decrypt_str, aes_encrypt_str
 from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto
 
 
