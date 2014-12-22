@@ -4,7 +4,7 @@ from itertools import product, groupby
 from random import Random
 from time import time
 
-from gmpy import mpz
+from cryptowrapper import mpz
 from hashlib import md5
 
 from Tribler.community.privatesemantic.conversion import bytes_to_long, \

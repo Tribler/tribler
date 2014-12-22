@@ -1,4 +1,4 @@
-from optional_crypto import mpz, invert
+from cryptowrapper import mpz, invert
 
 from collections import defaultdict, namedtuple
 import os
