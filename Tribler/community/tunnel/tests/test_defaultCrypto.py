@@ -6,10 +6,9 @@ import time
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.community.tunnel import exitstrategies
 from Tribler.community.tunnel.community import ProxyCommunity, ProxySettings
-from Tribler.community.tunnel.crypto import NoCrypto, DefaultCrypto
+from Tribler.community.tunnel.crypto.tunnelcrypto import NoCrypto, DefaultCrypto
 from Tribler.community.tunnel.payload import CreateMessage, ExtendMessage, CreatedMessage
 from Tribler.community.tunnel.routing import Circuit, Hop
-from Tribler.community.privatesemantic.conversion import long_to_bytes
 from Tribler.dispersy.candidate import WalkCandidate, CANDIDATE_ELIGIBLE_DELAY
 from Tribler.dispersy.endpoint import NullEndpoint
 
