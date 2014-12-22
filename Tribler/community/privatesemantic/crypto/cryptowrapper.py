@@ -36,7 +36,3 @@ try:
 except ImportError as e:
     raise RuntimeError("Cannot continue without M2Crypto" + str(e))
 
-
-if __name__ == "__main__":
-    from os import urandom
-    aes_key = urandom(16)
