@@ -1,7 +1,5 @@
 # Written by Niels Zeilemaker
-
-from Crypto.Util.number import GCD, bytes_to_long, long_to_bytes
-from optional_crypto import mpz, invert, rand, StrongRandom, aes_encrypt_str, aes_decrypt_str
+from cryptowrapper import mpz, invert, rand, StrongRandom, aes_encrypt_str, aes_decrypt_str, bytes_to_long, long_to_bytes, GCD
 
 from random import randint, Random, choice
 from time import time

@@ -1,9 +1,6 @@
 # Written by Niels Zeilemaker
 
-from optional_crypto import mpz, StrongRandom, aes_encrypt_str, aes_decrypt_str
-
-from Crypto.PublicKey import RSA
-from Crypto.Util.number import GCD, bytes_to_long, long_to_bytes
+from cryptowrapper import mpz, StrongRandom, aes_encrypt_str, aes_decrypt_str, GCD, bytes_to_long, long_to_bytes
 
 from string import ascii_uppercase, digits
 from hashlib import sha1
@@ -17,6 +14,7 @@ import json
 RSAKey = namedtuple('RSAKey', ['n', 'e', 'p', 'q', 'd', 'size', 'encsize'])
 
 def rsa_init(bits=1024):
+    from Crypto.PublicKey import RSA
     key = RSA.generate(bits)
     return RSAKey(mpz(key.key.n), mpz(key.key.e), mpz(key.key.p), mpz(key.key.q), mpz(key.key.d), bits, bits)
 

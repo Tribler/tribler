@@ -7,7 +7,7 @@ circuits for its client connections and tunnels UDP packets over them back and
 forth
 """
 
-from Tribler.community.privatesemantic.crypto.optional_crypto import mpz
+from Tribler.community.privatesemantic.crypto.cryptowrapper import mpz
 
 ORIGINATOR = 0
 EXIT_NODE = 1
