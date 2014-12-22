@@ -8,7 +8,7 @@ from pyasn1.codec.der import decoder
 
 from Tribler import LIBRARYNAME
 from Tribler.dispersy.crypto import ECCrypto
-from Tribler.community.privatesemantic.conversion import long_to_bytes, bytes_to_long
+from Tribler.community.tunnel.conversion import long_to_bytes, bytes_to_long
 
 from M2Crypto.EC import EC_pub
 
@@ -216,7 +216,7 @@ class OpenSSLCurves():
         if install_dir is None:
             curves_fn = os.path.join(os.path.dirname(__file__), 'curves.ec')
         else:
-            curves_fn = os.path.join(install_dir, 'Tribler', 'community', 'privatesemantic', 'crypto', 'curves.ec')
+            curves_fn = os.path.join(install_dir, 'Tribler', 'community', 'tunnel', 'crypto', 'curves.ec')
 
         with open(curves_fn, 'r') as f:
             for line in f:

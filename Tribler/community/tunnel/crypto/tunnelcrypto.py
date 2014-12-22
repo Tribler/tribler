@@ -1,9 +1,13 @@
 import hashlib
 
-from Tribler.community.tunnel import DIFFIE_HELLMAN_MODULUS, DIFFIE_HELLMAN_GENERATOR
-from Tribler.community.privatesemantic.crypto.cryptowrapper import mpz, rand, aes_decrypt_str, aes_encrypt_str
-from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto
+from cryptowrapper import mpz, rand, aes_decrypt_str, aes_encrypt_str
+from elgamalcrypto import ElgamalCrypto
 
+# we use the 1024 bit modulus from rfc2409
+# http://tools.ietf.org/html/rfc2409#section-6.2
+DIFFIE_HELLMAN_GENERATOR = 2
+DIFFIE_HELLMAN_MODULUS = mpz(0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE65381FFFFFFFFFFFFFFFF)
+DIFFIE_HELLMAN_MODULUS_SIZE = 1024
 
 class CryptoException(Exception):
     pass

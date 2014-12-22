@@ -123,7 +123,7 @@ setup(
              (LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core", [LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core/bootstrap_unstable"]),
              LIBRARYNAME + "/readme.txt",
              LIBRARYNAME + "/Main/Build/Mac/TriblerDoc.icns",
-             (LIBRARYNAME + "/community/privatesemantic/crypto", [LIBRARYNAME + "/community/privatesemantic/crypto/curves.ec"]),
+             (LIBRARYNAME + "/community/tunnel/crypto", [LIBRARYNAME + "/community/tunnel/crypto/curves.ec"]),
            ]
            # add images
            + includedir(LIBRARYNAME + "/Main/vwxGUI/images")
