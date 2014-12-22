@@ -11,7 +11,7 @@ from time import time
 from cryptowrapper import rand, StrongRandom, aes_encrypt_str, aes_decrypt_str
 from ecutils import Point, EllipticCurve, \
     OpenSSLCurves, ECElgamalKey_Pub, ECElgamalKey
-from Tribler.community.privatesemantic.conversion import bytes_to_long, \
+from Tribler.community.tunnel.conversion import bytes_to_long, \
     long_to_bytes
 
 def ecelgamal_init(bits=192, curve=None):
