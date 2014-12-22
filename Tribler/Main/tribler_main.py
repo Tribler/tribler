@@ -492,7 +492,7 @@ class ABCApp(object):
             dispersy.define_auto_load(ChannelCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
             dispersy.define_auto_load(PreviewChannelCommunity, session.dispersy_member, kargs=default_kwargs)
 
-            if not self.is_unit_testing:
+            if self.sconfig.get_tunnel_community_enabled() and not self.is_unit_testing:
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair),)
                 settings = TunnelSettings(session.get_install_dir())
