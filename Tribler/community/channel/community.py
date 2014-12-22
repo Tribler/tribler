@@ -369,7 +369,7 @@ class ChannelCommunity(Community):
             message = self._dispersy.load_message_by_packetid(self, dispersy_id)
             if message:
                 if not message.undone:
-                    self._dispersy.create_undo(self, message)
+                    Community.create_undo(self, message)
 
                 else:  # hmm signal gui that this message has been removed already
                     self._disp_undo_torrent([(None, None, message)])
