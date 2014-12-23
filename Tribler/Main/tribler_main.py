@@ -403,9 +403,7 @@ class ABCApp(object):
             self.sconfig.set_torrent_collecting_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR))
 
 
-        #TODO(emilon): Quick hack to get 6.4.1 out the door, (re tunnel_community tests disabling is_unit_testing flag)
-        if os.environ.get("TRIBLER_SKIP_OPTIN_DLG", "False") == "True":
-            self.sconfig.set_tunnel_community_enabled(True)
+        # TODO(emilon): Quick hack to get 6.4.1 out the door, (re tunnel_community tests disabling is_unit_testing flag)
         elif not self.sconfig.get_tunnel_community_optin_dialog_shown() and not self.is_unit_testing:
             optin_dialog = wx.MessageDialog(None,
                                             'If you are not familiar with proxy technology, please opt-out.\n\n'
@@ -514,7 +512,7 @@ class ABCApp(object):
             dispersy.define_auto_load(AllChannelCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
 
             # load metadata community
-            #dispersy.define_auto_load(MetadataCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
+            # dispersy.define_auto_load(MetadataCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
             dispersy.define_auto_load(ChannelCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
             dispersy.define_auto_load(PreviewChannelCommunity, session.dispersy_member, kargs=default_kwargs)
 
@@ -1020,11 +1018,11 @@ class ABCApp(object):
         GUIDBProducer.delInstance()
         DefaultDownloadStartupConfig.delInstance()
         GuiImageManager.delInstance()
-        
+
         self.closewindow.tick('Exiting now')
-        
+
         self.closewindow.Destroy()
-        
+
         return 0
 
     def db_exception_handler(self, e):
