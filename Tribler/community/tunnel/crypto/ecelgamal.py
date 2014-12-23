@@ -182,10 +182,11 @@ if __name__ == "__main__":
             encrypted_values.append(ecelgamal_encrypt(key, value))
 
         t3 = time()
-        for cipher in encrypted_values:
-            ecelgamal_decrypt(key, cipher)
+        for original_value, cipher in zip(random_list, encrypted_values):
+            assert original_value == ecelgamal_decrypt(key, cipher), (original_value, cipher)
 
         print "Took %.2fs to encrypt %d points, %.2fs to decrypt them (%.2fs to generate the points)" % (t3 - t2, len(random_list), time() - t3, t2 - t1)
+
 
     profiler = Profile()
     profiler.runcall(do_perf)
