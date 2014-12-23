@@ -5,9 +5,31 @@ from Tribler.Core.Utilities.bencode import bdecode
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
 from Tribler.dispersy.endpoint import TUNNEL_PREFIX, TUNNEL_PREFIX_LENGHT
+from binascii import unhexlify, hexlify
 
 ADDRESS_TYPE_IPV4 = 0x01
 ADDRESS_TYPE_DOMAIN_NAME = 0x02
+
+def long_to_bytes(val, nrbytes=0):
+    hex_val = '%x' % abs(val)
+    if nrbytes:
+        padding = '0' * ((abs(nrbytes) * 2) - len(hex_val))
+    else:
+        padding = ''
+    result = unhexlify(padding + hex_val)[::-1]
+
+    if nrbytes < 0:
+        return ("-" if val < 0 else "+") + result
+    return result
+
+def bytes_to_long(val, nrbytes=0):
+    if nrbytes < 0 and (val[0] == "-" or val[0] == "+"):
+        _val = long(hexlify(val[1:][::-1]), 16)
+        if val[0] == "-":
+            return -_val
+        return _val
+    else:
+        return long(hexlify(val[::-1]), 16)
 
 
 class TunnelConversion(BinaryConversion):
