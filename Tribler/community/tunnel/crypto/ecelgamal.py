@@ -8,7 +8,7 @@ from string import ascii_uppercase, digits
 from sys import maxint
 from time import time
 
-from cryptowrapper import rand, StrongRandom, aes_encrypt_str, aes_decrypt_str
+from cryptowrapper import StrongRandom, aes_encrypt_str, aes_decrypt_str, GCD
 from ecutils import Point, EllipticCurve, \
     OpenSSLCurves, ECElgamalKey_Pub, ECElgamalKey
 from Tribler.community.tunnel.conversion import bytes_to_long, \
@@ -51,13 +51,15 @@ def ecelgamal_init(bits=192, curve=None):
             curve = EllipticCurve(coef_a, coef_b, modulus, base_x, base_y)
 
     if curve:
-        x = rand('next', 10000)
+        x = StrongRandom().randint(1, curve.q - 1)
         Q = x * curve.g
         return ECElgamalKey(curve, x, Q, bits / 8, bits / 8 * 4)
 
 def ecelgamal_encrypt(key, M):
     assert M in key.ec
-    k = rand('next', 10000)
+    while True:
+        k = StrongRandom().randint(1, long(key.ec.q - 1))
+        if GCD(k, key.ec.q) == 1: break
 
     R = k * key.ec.g
     S = M + k * key.Q

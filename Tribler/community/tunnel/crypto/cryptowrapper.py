@@ -2,9 +2,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 try:
-    from gmpy import mpz, rand, invert, gcd
-    rand('init', 128)
-    rand('seed')
+    from gmpy import mpz, invert, gcd
 
 except ImportError:
     raise RuntimeError("Cannot continue without gmpy")
