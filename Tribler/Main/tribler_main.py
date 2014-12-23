@@ -403,7 +403,10 @@ class ABCApp(object):
             self.sconfig.set_torrent_collecting_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR))
 
 
-        if not self.sconfig.get_tunnel_community_optin_dialog_shown() and not self.is_unit_testing:
+        #TODO(emilon): Quick hack to get 6.4.1 out the door, (re tunnel_community tests disabling is_unit_testing flag)
+        if os.environ.get("SKIP_OPTIN_DLG", "False") == "True":
+            self.sconfig.set_tunnel_community_enabled(True)
+        elif not self.sconfig.get_tunnel_community_optin_dialog_shown() and not self.is_unit_testing:
             from Tribler.Main.Dialogs.TunnelOptin import TunnelOptin
             optin_dialog = TunnelOptin(None)
             enable_tunnel_community = optin_dialog.ShowModal() == wx.ID_OK
