@@ -55,7 +55,7 @@ class TunnelOptin(wx.Dialog):
         line = 'If you are not familiar with proxy technology, please opt-out.'
 
         firstLine = wx.StaticText(self, -1, line)
-        firstLine.SetMinSize((-1, 20))
+        firstLine.SetMinSize((-1, -1))
         _set_font(firstLine, fontweight=wx.FONTWEIGHT_BOLD)
         vSizer.Add(firstLine, 0, wx.EXPAND | wx.BOTTOM, 3)
 
@@ -68,7 +68,7 @@ class TunnelOptin(wx.Dialog):
                                   'We are a torrent client and aim to protect you against lawyer-based '
                                   'attacks and censorship.\n'
                                   'With help from many volunteers we are continuously evolving and improving.')
-        long_text.SetMinSize((1, -1))
+        long_text.SetMinSize((-1, -1))
         vSizer.Add(long_text, 0, wx.EXPAND | wx.BOTTOM | wx.RIGHT, 3)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -95,6 +95,8 @@ class TunnelOptin(wx.Dialog):
         sizer = wx.BoxSizer()
         sizer.Add(vSizer, 1, wx.EXPAND | wx.ALL, 10)
         self.SetSizer(sizer)
+
+        wx.CallAfter(wx.GetTopLevelParent(self).Fit)
 
     def OnCancel(self, event=None):
         self.EndModal(wx.ID_CANCEL)
