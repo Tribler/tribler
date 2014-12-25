@@ -25,10 +25,13 @@ class SaveAs(wx.Dialog):
 
     def __init__(self, parent, tdef, defaultdir, defaultname, selectedFiles=None):
         self._logger = logging.getLogger(self.__class__.__name__)
-        wx.Dialog.__init__(self, parent, -1, 'Please specify a target directory', size=(600, 550), name="SaveAsDialog")
+        wx.Dialog.__init__(self, parent, -1, 'Please specify a target directory', name="SaveAsDialog")
 
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
+        self.tunnel_community_enabled = self.utility.session.get_tunnel_community_enabled()
+        self.SetSize((600, 550 if self.tunnel_community_enabled else 450))
+
         self.filehistory = []
         try:
             self.filehistory = json.loads(self.utility.read_config("recent_download_history", literal_eval=False))
@@ -79,41 +82,43 @@ class SaveAs(wx.Dialog):
 
         vSizer.Add(hSizer, 0, wx.EXPAND | wx.BOTTOM, 3)
 
-        # Add slider
-        labels = wx.BoxSizer(wx.HORIZONTAL)
-        labels.Add(wx.StaticText(self, -1, 'High speed\nLow anonymity', style=wx.ALIGN_CENTRE_HORIZONTAL))
-        labels.AddStretchSpacer()
-        labels.Add(wx.StaticText(self, -1, 'Low speed\nHigh anonymity', style=wx.ALIGN_CENTRE_HORIZONTAL))
+        self.slider = None
+        if self.tunnel_community_enabled:
+            # Add slider
+            labels = wx.BoxSizer(wx.HORIZONTAL)
+            labels.Add(wx.StaticText(self, -1, 'High speed\nLow anonymity', style=wx.ALIGN_CENTRE_HORIZONTAL))
+            labels.AddStretchSpacer()
+            labels.Add(wx.StaticText(self, -1, 'Low speed\nHigh anonymity', style=wx.ALIGN_CENTRE_HORIZONTAL))
 
-        self.slider_images = [GuiImageManager.getInstance().getImage(u"scale_%d.png" % i) for i in range(6)]
-        self.slider_bitmap = wx.StaticBitmap(self, -1, self.slider_images[0])
+            self.slider_images = [GuiImageManager.getInstance().getImage(u"scale_%d.png" % i) for i in range(6)]
+            self.slider_bitmap = wx.StaticBitmap(self, -1, self.slider_images[0])
 
-        self.slider = wx.Slider(self, -1, 0, 0, 5, wx.DefaultPosition, style=wx.SL_AUTOTICKS | wx.SL_HORIZONTAL)
-        self.slider.Bind(wx.EVT_SLIDER, self.OnSlider)
+            self.slider = wx.Slider(self, -1, 0, 0, 5, wx.DefaultPosition, style=wx.SL_AUTOTICKS | wx.SL_HORIZONTAL)
+            self.slider.Bind(wx.EVT_SLIDER, self.OnSlider)
 
-        hop_count = wx.BoxSizer(wx.HORIZONTAL)
-        hop_count.AddSpacer((10, -1))
-        for count in range(6):
-            hop_count.Add(wx.StaticText(self, -1, '%d' % count, style=wx.ALIGN_CENTRE_HORIZONTAL))
-            if count != 5:
-                hop_count.AddStretchSpacer()
-            else:
-                hop_count.AddSpacer((10, -1))
+            hop_count = wx.BoxSizer(wx.HORIZONTAL)
+            hop_count.AddSpacer((10, -1))
+            for count in range(6):
+                hop_count.Add(wx.StaticText(self, -1, '%d' % count, style=wx.ALIGN_CENTRE_HORIZONTAL))
+                if count != 5:
+                    hop_count.AddStretchSpacer()
+                else:
+                    hop_count.AddSpacer((10, -1))
 
-        labels_and_slider = wx.BoxSizer(wx.VERTICAL)
-        labels_and_slider.Add(labels, 0, wx.EXPAND)
-        labels_and_slider.Add(self.slider, 0, wx.EXPAND)
-        labels_and_slider.Add(hop_count, 0, wx.EXPAND)
+            labels_and_slider = wx.BoxSizer(wx.VERTICAL)
+            labels_and_slider.Add(labels, 0, wx.EXPAND)
+            labels_and_slider.Add(self.slider, 0, wx.EXPAND)
+            labels_and_slider.Add(hop_count, 0, wx.EXPAND)
 
-        slider_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        slider_sizer.Add(labels_and_slider, 1, wx.RIGHT, 10)
-        slider_sizer.Add(self.slider_bitmap)
+            slider_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            slider_sizer.Add(labels_and_slider, 1, wx.RIGHT, 10)
+            slider_sizer.Add(self.slider_bitmap)
 
-        vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
-        st = wx.StaticText(self, -1, 'Please select how anonymous you want to download:')
-        _set_font(st, fontweight=wx.FONTWEIGHT_BOLD)
-        vSizer.Add(st, 0, wx.EXPAND | wx.BOTTOM, 10)
-        vSizer.Add(slider_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+            vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
+            st = wx.StaticText(self, -1, 'Please select how anonymous you want to download:')
+            _set_font(st, fontweight=wx.FONTWEIGHT_BOLD)
+            vSizer.Add(st, 0, wx.EXPAND | wx.BOTTOM, 10)
+            vSizer.Add(slider_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
 
         self.Bind(EVT_COLLECTED, self.OnCollected)
 
@@ -132,7 +137,7 @@ class SaveAs(wx.Dialog):
             sizer.Add(ag, 0, wx.ALIGN_CENTER_VERTICAL)
             sizer.AddStretchSpacer()
             vSizer.Add(sizer, 1, wx.EXPAND | wx.BOTTOM, 3)
-            self.SetSize((600, 285))
+            self.SetSize((600, 285 if self.tunnel_community_enabled else 185))
 
             # convert tdef into guidbtuple, and collect it using torrentsearch_manager.getTorrent
             torrent = Torrent.fromTorrentDef(tdef)
@@ -217,7 +222,7 @@ class SaveAs(wx.Dialog):
     def OnCollected(self, event):
         tdef = event.tdef
         self.collected = tdef
-        self.SetSize((600, 575))
+        self.SetSize((600, 575 if self.tunnel_community_enabled else 475))
         vSizer = self.GetSizer().GetItem(0).GetSizer()
         hsizer = vSizer.GetItem(len(vSizer.GetChildren()) - 2).GetSizer()
         self.Freeze()
@@ -257,7 +262,7 @@ class SaveAs(wx.Dialog):
         return None
 
     def GetHops(self):
-        return self.slider.GetValue()
+        return self.slider.GetValue() if self.slider else 0
 
     def OnOk(self, event=None):
         if self.listCtrl:
