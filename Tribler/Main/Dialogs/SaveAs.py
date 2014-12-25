@@ -228,7 +228,11 @@ class SaveAs(wx.Dialog):
         return None
 
     def GetHops(self):
+<<<<<<< HEAD
         return self.anonymous_slidebar.GetValue() if self.anonymous_slidebar else 0
+=======
+        return self.slider.GetValue() if self.slider else 0
+>>>>>>> Don't show slider on SaveAs dialog when TunnelCommunity is disabled
 
     def OnOk(self, event=None):
         if self.listCtrl:
