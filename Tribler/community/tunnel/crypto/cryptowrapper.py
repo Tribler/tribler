@@ -1,6 +1,8 @@
 import logging
 logger = logging.getLogger(__name__)
 
+from ..conversion import long_to_bytes, bytes_to_long
+
 try:
     from gmpy import mpz, invert, gcd
 
@@ -9,7 +11,7 @@ except ImportError:
 
 try:
     from Crypto.Random.random import StrongRandom
-    from Crypto.Util.number import long_to_bytes, bytes_to_long, GCD
+    from Crypto.Util.number import GCD
 
 except ImportError:
     raise RuntimeError("Cannot continue without pycrypto")
