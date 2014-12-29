@@ -14,17 +14,12 @@ Tribler currently offers a Youtube-style service. For instance, Bittorrent-compa
 We make use of submodules, so remember using the --recursive argument when cloning this repo.
 
 ### Debian/Ubuntu/Mint
-The dependencies for Tribler are shown below. Some of them are only necessary when used in combination with Gumby. 
+
 ```bash
-sudo apt-get install git libav-tools libjs-excanvas libjs-mootools python-pip \
-swig libssl-dev scons build-essential libevent-dev python-m2crypto libx11-6 \
-python-libtorrent python-twisted python-apsw python-wxgtk2.8 python-netifaces \
-vlc python-pyasn1 python-cherrypy3 python-feedparser python-gmpy libssl-dev \
-python-requests python-yappy python-dev python-meliae python-objgraph mercurial vlc
-
-sudo pip install yappi validate psutil dowser
+sudo apt-get install libav-tools libjs-excanvas libjs-mootools libx11-6 python-apsw \
+python-cherrypy3 python-feedparser python-gmpy python-libtorrent python-m2crypto \
+python-netifaces python-pyasn1 python-requests python-twisted python-wxgtk2.8 vlc
 ```
-
 
 ### Windows and OSX
 TODO
