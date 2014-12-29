@@ -914,7 +914,7 @@ class ArtworkPanel(wx.Panel):
         self.list.SetBackgroundColour(self.GetBackgroundColour())
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        vSizer.Add(DetailHeader(self, "Start streaming immediately by clicking on one of items below"), 0, wx.EXPAND)
+        vSizer.Add(DetailHeader(self, "Start streaming immediately by clicking on one of the items below"), 0, wx.EXPAND)
         vSizer.Add(self.list, 1, wx.EXPAND)
 
         self.SetSizer(vSizer)
