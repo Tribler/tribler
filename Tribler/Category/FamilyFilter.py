@@ -54,9 +54,9 @@ class XXXFilter(object):
                   (comment and self.isXXX(comment, False))
                   )
         if is_xxx:
-            self._logger.debug('Torrent is XXX: %s %s', torrent_name, tracker)
+            self._logger.debug(u"Torrent is XXX: %s %s", torrent_name, tracker)
         else:
-            self._logger.debug('Torrent is NOT XXX: %s %s', torrent_name, tracker)
+            self._logger.debug(u"Torrent is NOT XXX: %s %s", torrent_name, tracker)
         return is_xxx
 
     def isXXX(self, s, isFilename=True):
