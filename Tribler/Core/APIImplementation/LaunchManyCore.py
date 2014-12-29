@@ -108,8 +108,8 @@ class TriblerLaunchMany(Thread):
                                        self.session.get_timeout_check_interval(),
                                        self.session.get_timeout(),
                                        ipv6_enable=self.session.get_ipv6(),
-                                       failfunc=self.rawserver_fatalerrorfunc,
-                                       errorfunc=self.rawserver_nonfatalerrorfunc)
+                                       fatal_func=self.rawserver_fatalerrorfunc,
+                                       nonfatal_func=self.rawserver_nonfatalerrorfunc)
 
             self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
 
@@ -348,7 +348,7 @@ class TriblerLaunchMany(Thread):
         dl = self.get_download(id)
         old_def = dl.get_def() if dl else None
 
-        if old_def and old_def.get_def_type() == 'torrent':
+        if old_def:
             old_trackers = old_def.get_trackers_as_single_tuple()
             new_trackers = list(set(trackers) - set(old_trackers))
             all_trackers = list(old_trackers) + new_trackers
@@ -433,7 +433,7 @@ class TriblerLaunchMany(Thread):
             # for every initiated dl.
             # 2012-07-31: Turn MOREINFO on/off on demand for efficiency.
             # 2013-04-17: Libtorrent now uses set_moreinfo_stats as well.
-            d.set_moreinfo_stats(True in getpeerlist or d.get_def().get_id() in getpeerlist)
+            d.set_moreinfo_stats(True in getpeerlist or d.get_def().get_infohash() in getpeerlist)
 
         network_set_download_states_callback_lambda = lambda: self.network_set_download_states_callback(usercallback)
         self.rawserver.add_task(network_set_download_states_callback_lambda, when)
@@ -567,8 +567,8 @@ class TriblerLaunchMany(Thread):
         if tdef and dscfg:
             if dscfg.get_dest_dir() != '':  # removed torrent ignoring
                 try:
-                    if not self.download_exists(tdef.get_id()):
-                        initialdlstatus = initialdlstatus_dict.get(tdef.get_id(), initialdlstatus)
+                    if not self.download_exists(tdef.get_infohash()):
+                        initialdlstatus = initialdlstatus_dict.get(tdef.get_infohash(), initialdlstatus)
                         self.add(tdef, dscfg, pstate, initialdlstatus, setupDelay=setupDelay)
                     else:
                         self._logger.info("tlm: not resuming checkpoint because download has already been added")

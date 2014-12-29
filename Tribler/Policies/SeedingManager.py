@@ -27,20 +27,20 @@ class GlobalSeedingManager:
 
         for download_state in dslist:
             # Arno, 2012-05-07: ContentDef support
-            cdef = download_state.get_download().get_def()
-            hash = cdef.get_id()
-            anonymous = cdef.get_def_type() == 'torrent' and cdef.is_anonymous()
+            tdef = download_state.get_download().get_def()
+            infohash = tdef.get_infohash()
+            anonymous = tdef.is_anonymous()
             if download_state.get_status() == DLSTATUS_SEEDING and not anonymous:
-                if hash not in self.seeding_managers:
+                if infohash not in self.seeding_managers:
                     # apply new seeding manager
-                    self._logger.debug("SeedingManager: apply seeding manager %s", hash.encode("HEX"))
+                    self._logger.debug("SeedingManager: apply seeding manager %s", infohash.encode("HEX"))
                     seeding_manager = SeedingManager(download_state)
 
-                    policy = self.Read('t4t_option') if cdef.get_def_type() == 'torrent' else self.Read('g2g_option')
+                    policy = self.Read('t4t_option')
                     if policy == 0:
                         # No leeching, seeding until sharing ratio is met
                         self._logger.debug("GlobalSeedingManager: RatioBasedSeeding")
-                        seeding_manager.set_policy(TitForTatRatioBasedSeeding(self.Read) if cdef.get_def_type() == 'torrent' else GiveToGetRatioBasedSeeding(self.Read))
+                        seeding_manager.set_policy(TitForTatRatioBasedSeeding(self.Read))
 
                     elif policy == 1:
                         # Unlimited seeding
@@ -50,16 +50,16 @@ class GlobalSeedingManager:
                     elif policy == 2:
                         # Time based seeding
                         self._logger.debug("GlobalSeedingManager: TimeBasedSeeding")
-                        seeding_manager.set_policy(TitForTatTimeBasedSeeding(self.Read) if cdef.get_def_type() == 'torrent' else GiveToGetTimeBasedSeeding(self.Read))
+                        seeding_manager.set_policy(TitForTatTimeBasedSeeding(self.Read))
 
                     else:
                         # No seeding
                         self._logger.debug("GlobalSeedingManager: NoSeeding")
                         seeding_manager.set_policy(NoSeeding())
 
-                    self.seeding_managers[hash] = seeding_manager
+                    self.seeding_managers[infohash] = seeding_manager
 
-                self.seeding_managers[hash].update_download_state(download_state)
+                self.seeding_managers[infohash].update_download_state(download_state)
 
 
 class SeedingManager:
@@ -74,17 +74,11 @@ class SeedingManager:
     def update_download_state(self, download_state):
         self.download_state = download_state
         download = self.download_state.get_download()
-        if download.get_def().get_def_type() == 'torrent':
-            if self.udc.get_download_state(download.get_def().get_id()) != 'restartseed' and download.get_mode() != DLMODE_VOD:
-                if not self.policy.apply(self.download_state, self.download_state.get_seeding_statistics()):
-                    self._logger.debug("Stop seeding with libtorrent: %s", self.download_state.get_download().get_dest_files())
-                    self.udc.set_download_state(download.get_def().get_id(), 'stop')
-                    self.download_state.get_download().stop()
-        else:
-            if self.udc.get_download_state(download.get_def().get_id()) != 'restartseed' and download.get_mode() != DLMODE_VOD:
-                if not self.policy.apply(self.download_state, self.download_state.get_seeding_statistics()):
-                    self._logger.debug("Stop seeding with libswift: %s", self.download_state.get_download().get_dest_files())
-                    self.download_state.get_download().stop()
+        if self.udc.get_download_state(download.get_def().get_infohash()) != 'restartseed' and download.get_mode() != DLMODE_VOD:
+            if not self.policy.apply(self.download_state, self.download_state.get_seeding_statistics()):
+                self._logger.debug("Stop seeding with libtorrent: %s", self.download_state.get_download().get_dest_files())
+                self.udc.set_download_state(download.get_def().get_infohash(), 'stop')
+                self.download_state.get_download().stop()
 
     def set_policy(self, policy):
         self.policy = policy

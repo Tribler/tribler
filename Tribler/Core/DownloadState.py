@@ -330,11 +330,8 @@ class DownloadState(Serializable):
         if not self.length:
             files = self.get_selected_files()
 
-            cdef = self.download.get_def()
-            if cdef.get_def_type() == "torrent":
-                self.length = cdef.get_length(files)
-            else:
-                self.length = self.download.get_dynasize()
+            tdef = self.download.get_def()
+            self.length = tdef.get_length(files)
         return self.length
 
     def get_availability(self):

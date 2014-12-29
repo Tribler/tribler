@@ -37,20 +37,8 @@ class ContentDefinition(object):
 
     """ Interface for content definition such as torrents and swift swarms """
 
-    def get_def_type(self):
-        """ Returns the type of this Definition
-        @return string
-        """
-        raise NotYetImplementedException()
-
     def get_name(self):
         """ Returns the user-friendly name of this Definition
-        @return string
-        """
-        raise NotYetImplementedException()
-
-    def get_id(self):
-        """ Returns a identifier for this Definition
         @return string
         """
         raise NotYetImplementedException()
