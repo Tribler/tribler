@@ -383,7 +383,7 @@ class SessionConfigInterface(object):
     def get_nickname(self):
         """ Returns the set nickname.
         @return A Unicode string. """
-        return self.sessconfig.get(u'general', u'nickname')
+        return unicode(self.sessconfig.get(u'general', u'nickname'))
 
     def set_mugshot(self, value, mime='image/jpeg'):
         """ The picture of yourself you want to show to others.
