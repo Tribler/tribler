@@ -15,7 +15,7 @@ We make use of submodules, so remember using the --recursive argument when cloni
 
 ### Debian/Ubuntu/Mint
 ```bash
-sudo apt-get install libav-tools libjs-excanvas libjs-mootools libx11-6 python-apsw python-cherrypy3 python-crypto python-feedparser python-gmpy python-libtorrent python-m2crypto python-netifaces python-pyasn1 python-requests python-twisted python-wxgtk2.8 vlc
+sudo apt-get install libav-tools libjs-excanvas libjs-mootools libx11-6 python-apsw python-cherrypy3 python-crypto python-feedparser python-gmpy python-libtorrent python-m2crypto python-netifaces python-pil python-pyasn1 python-requests python-twisted python-wxgtk2.8 vlc
 ```
 
 ### Windows and OSX
@@ -43,6 +43,50 @@ Now you can run tribler by executing the tribler.sh script on the root of the tr
 ```
 ### Windows
 TODO
+
+
+# Packaging Tribler
+
+## Debian and derivatives
+
+```bash
+cd tribler
+Tribler/Main/Build/update_version_from_git.py
+debuild -i -us -uc -b
+```
+
+## OSX
+
+```bash
+cd tribler
+mkdir vlc
+# Copy the ffmpeg binary from its build directory
+cp $HOME/Workspace/install/ffmpeg-2.2.4 vlc/ffmpeg
+Tribler/Main/Build/update_version_from_git.py
+./mac/makedistmac.sh
+```
+
+## Windows
+
+```cmd
+setlocal enabledelayedexpansion
+call "c:\Program Files\Microsoft SDKs\Windows\v7.0\Bin\SetEnv.Cmd" /Release /x86
+SET PATH=%PATH%;c:\windows\system32;c:\Program Files\Microsoft Visual Studio 9.0\VC\bin
+cd tribler
+python Tribler/Main/Build/update_version_from_git.py
+xcopy c:\build\vlc vlc /E /I
+win\makedist.bat
+```
+
+TODO: Add detailed build dependencies.
+
+## Other Unixes
+
+We don't have a generic setup.py yet.
+
+So for the time being, the easiest way to package Tribler is to put ```Tribler/``` in ```/usr/share/tribler/``` and ```debian/bin/tribler``` in ```/usr/bin/```
+
+A good reference for the dependency list is ```debian/control```
 
 # Submodule notes
  - As updated submodules are in detached head state, remember to check out a branch before commiting changes on them.
