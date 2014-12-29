@@ -33,7 +33,12 @@ class TriblerUpgrader(object):
     def check_and_upgrade(self):
         """ Checks the database version and upgrade if it is not the latest version.
         """
-        if self.db.version == LATEST_DB_VERSION:
+        if self.db.version > LATEST_DB_VERSION:
+            msg = u"The on-disk tribler database is newer than your tribler version. Your database will be backed up."
+            self.current_status = msg
+            self._logger.info(msg)
+            self.failed = True
+        elif self.db.version == LATEST_DB_VERSION:
             self._logger.info(u"tribler is in the latest version, no need to upgrade")
             self.failed = False
         else:
