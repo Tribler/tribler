@@ -99,8 +99,6 @@ class Session(SessionConfigInterface):
 
         create_dir(os.path.join(scfg.get_state_dir(), STATEDIR_DLPSTATE_DIR))
 
-        if scfg.get_nickname() == '__default_name__':
-            scfg.set_nickname(socket.gethostname())
 
         if GOTM2CRYPTO:
             permidmod.init()
