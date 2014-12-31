@@ -11,7 +11,7 @@ import atexit
 import time
 import logging
 
-from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
+from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, STATEDIR_TORRENTCOLL_DIR
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.osutils import get_picture_dir
