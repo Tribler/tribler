@@ -9,13 +9,12 @@ import json
 import copy
 import logging
 
-from Tribler.Main.vwxGUI.widgets import CheckSelectableListCtrl, _set_font
+from Tribler.Main.vwxGUI.widgets import CheckSelectableListCtrl, _set_font, AnonymousSlidebar
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler import LIBRARYNAME
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
 from Tribler.Main.Utility.GuiDBTuples import Torrent
 from Tribler.Main.Utility.utility import size_format
-from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 
 
 CollectedEvent, EVT_COLLECTED = wx.lib.newevent.NewEvent()
@@ -84,41 +83,8 @@ class SaveAs(wx.Dialog):
 
         self.slider = None
         if self.tunnel_community_enabled:
-            # Add slider
-            labels = wx.BoxSizer(wx.HORIZONTAL)
-            labels.Add(wx.StaticText(self, -1, 'High speed\nLow anonymity', style=wx.ALIGN_CENTRE_HORIZONTAL))
-            labels.AddStretchSpacer()
-            labels.Add(wx.StaticText(self, -1, 'Low speed\nHigh anonymity', style=wx.ALIGN_CENTRE_HORIZONTAL))
-
-            self.slider_images = [GuiImageManager.getInstance().getImage(u"scale_%d.png" % i) for i in range(6)]
-            self.slider_bitmap = wx.StaticBitmap(self, -1, self.slider_images[0])
-
-            self.slider = wx.Slider(self, -1, 0, 0, 5, wx.DefaultPosition, style=wx.SL_AUTOTICKS | wx.SL_HORIZONTAL)
-            self.slider.Bind(wx.EVT_SLIDER, self.OnSlider)
-
-            hop_count = wx.BoxSizer(wx.HORIZONTAL)
-            hop_count.AddSpacer((10, -1))
-            for count in range(6):
-                hop_count.Add(wx.StaticText(self, -1, '%d' % count, style=wx.ALIGN_CENTRE_HORIZONTAL))
-                if count != 5:
-                    hop_count.AddStretchSpacer()
-                else:
-                    hop_count.AddSpacer((10, -1))
-
-            labels_and_slider = wx.BoxSizer(wx.VERTICAL)
-            labels_and_slider.Add(labels, 0, wx.EXPAND)
-            labels_and_slider.Add(self.slider, 0, wx.EXPAND)
-            labels_and_slider.Add(hop_count, 0, wx.EXPAND)
-
-            slider_sizer = wx.BoxSizer(wx.HORIZONTAL)
-            slider_sizer.Add(labels_and_slider, 1, wx.RIGHT, 10)
-            slider_sizer.Add(self.slider_bitmap)
-
-            vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
-            st = wx.StaticText(self, -1, 'Please select how anonymous you want to download:')
-            _set_font(st, fontweight=wx.FONTWEIGHT_BOLD)
-            vSizer.Add(st, 0, wx.EXPAND | wx.BOTTOM, 10)
-            vSizer.Add(slider_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+            self.anonymous_slidebar = AnonymousSlidebar(self)
+            vSizer.Add(self.anonymous_slidebar, 0, wx.EXPAND, 3)
 
         self.Bind(EVT_COLLECTED, self.OnCollected)
 
@@ -262,7 +228,7 @@ class SaveAs(wx.Dialog):
         return None
 
     def GetHops(self):
-        return self.slider.GetValue() if self.slider else 0
+        return self.anonymous_slidebar.GetValue() if self.anonymous_slidebar else 0
 
     def OnOk(self, event=None):
         if self.listCtrl:
@@ -288,9 +254,6 @@ class SaveAs(wx.Dialog):
 
     def OnCancel(self, event=None):
         self.EndModal(wx.ID_CANCEL)
-
-    def OnSlider(self, event):
-        self.slider_bitmap.SetBitmap(self.slider_images[self.slider.GetValue()])
 
     def OnBrowseDir(self, event):
         dlg = wx.DirDialog(None, "Please select a directory to save this torrent", style=wx.wx.DD_NEW_DIR_BUTTON)
