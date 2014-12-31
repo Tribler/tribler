@@ -19,7 +19,7 @@ from Tribler.Core.osutils import get_picture_dir
 from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, data2wxBitmap, ICON_MAX_DIM
-from Tribler.Main.vwxGUI.widgets import _set_font, EditText
+from Tribler.Main.vwxGUI.widgets import _set_font, EditText, AnonymousSlidebar
 from Tribler.Main.vwxGUI.validator import DirectoryValidator, NetworkSpeedValidator, \
     NumberValidator
 
@@ -196,6 +196,11 @@ class SettingsDialog(wx.Dialog):
             self.saveDefaultDownloadConfig(scfg)
             self.moveCollectedTorrents(self.currentDestDir, valdir)
             restart = True
+
+        default_anonymous_level = self._default_anonymous_slidebar.GetValue()
+        if default_anonymous_level != self.utility.read_config('default_anonymous_level'):
+            self.utility.write_config('default_anonymous_level', default_anonymous_level)
+            self.saveDefaultDownloadConfig(scfg)
 
         useWebUI = self._use_webui.IsChecked()
         if useWebUI != self.utility.read_config('use_webui'):
@@ -423,6 +428,12 @@ class SettingsDialog(wx.Dialog):
         dlg.ShowModal()
         dlg.Destroy()
 
+    def OnChooseLocationChecked(self, event):
+        to_show = not self._disk_location_choice.GetValue()
+        self._default_anonymous_label.Show(to_show)
+        self._default_anonymous_slidebar.Show(to_show)
+        self.Layout()
+
     def __create_s1(self, tree_root, sizer):
         general_panel, gp_vsizer = create_section(self, sizer, "General")
 
@@ -456,8 +467,14 @@ class SettingsDialog(wx.Dialog):
         gp_s2_hsizer.Add(self._browse)
         gp_s2_sizer.Add(gp_s2_hsizer, 0, wx.EXPAND)
         self._disk_location_choice = wx.CheckBox(general_panel, label="Let me choose a location for every download")
+        self._disk_location_choice.Bind(wx.EVT_CHECKBOX, self.OnChooseLocationChecked)
         self._disk_location_choice.SetValue(False)
+
         gp_s2_sizer.Add(self._disk_location_choice)
+        self._default_anonymous_label = wx.StaticText(general_panel, label="Default Anonymous Level:")
+        self._default_anonymous_slidebar = AnonymousSlidebar(general_panel)
+        gp_s2_sizer.Add(self._default_anonymous_label, 0, wx.EXPAND)
+        gp_s2_sizer.Add(self._default_anonymous_slidebar, 0, wx.EXPAND)
 
         # Minimize
         if sys.platform == "darwin":
@@ -486,6 +503,8 @@ class SettingsDialog(wx.Dialog):
         self.currentDestDir = self.defaultDLConfig.get_dest_dir()
         self._disk_location_ctrl.SetValue(self.currentDestDir)
         self._disk_location_choice.SetValue(self.utility.read_config('showsaveas'))
+        self.OnChooseLocationChecked(None)
+        self._default_anonymous_slidebar.SetValue(self.utility.read_config('default_anonymous_level'))
         # minimize to tray
         if sys.platform != "darwin":
             min_to_tray = self.utility.read_config('mintray') == 1
