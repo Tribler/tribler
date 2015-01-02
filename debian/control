@@ -13,6 +13,7 @@ Architecture: all
 Depends: libav-tools,
          libjs-excanvas,
          libjs-mootools,
+         libsodium13,
          libx11-6,
          python-apsw,
          python-cherrypy3,
