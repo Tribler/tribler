@@ -9,7 +9,7 @@ from twisted.internet.threads import blockingCallFromThread
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.community.tunnel import exitstrategies
 from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
-from Tribler.community.tunnel.crypto import NoCrypto
+from Tribler.community.tunnel.crypto.tunnelcrypto import NoCrypto
 from Tribler.community.tunnel.events import TunnelObserver
 from Tribler.community.tunnel import (MESSAGE_CREATED, MESSAGE_CREATE, CIRCUIT_STATE_READY,
                                           CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_BROKEN,

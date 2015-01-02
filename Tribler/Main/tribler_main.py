@@ -402,6 +402,19 @@ class ABCApp(object):
         if not self.sconfig.get_torrent_collecting_dir():
             self.sconfig.set_torrent_collecting_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR))
 
+
+        #TODO(emilon): Quick hack to get 6.4.1 out the door, (re tunnel_community tests disabling is_unit_testing flag)
+        if os.environ.get("SKIP_OPTIN_DLG", "False") == "True":
+            self.sconfig.set_tunnel_community_enabled(True)
+        elif not self.sconfig.get_tunnel_community_optin_dialog_shown() and not self.is_unit_testing:
+            from Tribler.Main.Dialogs.TunnelOptin import TunnelOptin
+            optin_dialog = TunnelOptin(None)
+            enable_tunnel_community = optin_dialog.ShowModal() == wx.ID_OK
+            self.sconfig.set_tunnel_community_enabled(enable_tunnel_community)
+            self.sconfig.set_tunnel_community_optin_dialog_shown(True)
+            optin_dialog.Destroy()
+            del optin_dialog
+
         session = Session(self.sconfig)
 
         # check and upgrade
@@ -492,7 +505,7 @@ class ABCApp(object):
             dispersy.define_auto_load(ChannelCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
             dispersy.define_auto_load(PreviewChannelCommunity, session.dispersy_member, kargs=default_kwargs)
 
-            if not self.is_unit_testing:
+            if self.sconfig.get_tunnel_community_enabled() and not self.is_unit_testing:
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair),)
                 settings = TunnelSettings(session.get_install_dir())

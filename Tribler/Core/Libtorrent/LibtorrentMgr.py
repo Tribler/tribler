@@ -189,7 +189,12 @@ class LibtorrentMgr(object):
             proxy_settings.password = auth[1]
         proxy_settings.proxy_hostnames = True
         proxy_settings.proxy_peer_connections = True
-        ltsession.set_proxy(proxy_settings)
+
+        if ltsession is not None:
+            ltsession.set_proxy(proxy_settings)
+        else:
+            # only apply the proxy settings to normal libtorrent session (with hops = 0)
+            self.ltsessions[0].set_proxy(proxy_settings)
 
     def set_utp(self, enable, hops=0):
         ltsession = self.get_session(hops)

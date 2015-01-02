@@ -8,10 +8,10 @@ from string import ascii_uppercase, digits
 from sys import maxint
 from time import time
 
-from optional_crypto import rand, StrongRandom, aes_encrypt_str, aes_decrypt_str
+from cryptowrapper import StrongRandom, aes_encrypt_str, aes_decrypt_str, GCD
 from ecutils import Point, EllipticCurve, \
     OpenSSLCurves, ECElgamalKey_Pub, ECElgamalKey
-from Tribler.community.privatesemantic.conversion import bytes_to_long, \
+from Tribler.community.tunnel.conversion import bytes_to_long, \
     long_to_bytes
 
 def ecelgamal_init(bits=192, curve=None):
@@ -51,15 +51,15 @@ def ecelgamal_init(bits=192, curve=None):
             curve = EllipticCurve(coef_a, coef_b, modulus, base_x, base_y)
 
     if curve:
-        rand('init', 128)
-        rand('seed', StrongRandom().randint(0, maxint))
-        x = rand('next', 10000)
+        x = StrongRandom().randint(1, curve.q - 1)
         Q = x * curve.g
         return ECElgamalKey(curve, x, Q, bits / 8, bits / 8 * 4)
 
 def ecelgamal_encrypt(key, M):
     assert M in key.ec
-    k = rand('next', 10000)
+    while True:
+        k = StrongRandom().randint(1, long(key.ec.q - 1))
+        if GCD(k, key.ec.q) == 1: break
 
     R = k * key.ec.g
     S = M + k * key.Q
@@ -182,10 +182,11 @@ if __name__ == "__main__":
             encrypted_values.append(ecelgamal_encrypt(key, value))
 
         t3 = time()
-        for cipher in encrypted_values:
-            ecelgamal_decrypt(key, cipher)
+        for original_value, cipher in zip(random_list, encrypted_values):
+            assert original_value == ecelgamal_decrypt(key, cipher), (original_value, cipher)
 
         print "Took %.2fs to encrypt %d points, %.2fs to decrypt them (%.2fs to generate the points)" % (t3 - t2, len(random_list), time() - t3, t2 - t1)
+
 
     profiler = Profile()
     profiler.runcall(do_perf)

@@ -1,7 +1,6 @@
 from Tribler.dispersy.crypto import ECCrypto, NoCrypto
-from Tribler.community.privatesemantic.crypto.ecutils import OpenSSLCurves
-from Tribler.community.privatesemantic.crypto.ecelgamal import encrypt_str, decrypt_str, \
-    hybrid_encrypt_str, hybrid_decrypt_str
+from ecutils import OpenSSLCurves
+from ecelgamal import encrypt_str, decrypt_str, hybrid_encrypt_str, hybrid_decrypt_str
 
 class ElgamalCrypto(ECCrypto):
 
@@ -10,7 +9,7 @@ class ElgamalCrypto(ECCrypto):
         self.openssl = OpenSSLCurves(install_dir)
 
     def encrypt(self, key, string):
-        # Encrypt a string with this key"
+        # Encrypt a string with this key.
         ecelgamalkey = self.openssl.get_ecelgamalkey_for_key(key)
         return encrypt_str(ecelgamalkey, string)
 

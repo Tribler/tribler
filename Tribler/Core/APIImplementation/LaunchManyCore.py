@@ -23,7 +23,7 @@ from Tribler.Core.osutils import get_readable_torrent_name
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_INSERT,
                                      NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_ACT_UPNP)
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.community.privatesemantic.crypto.elgamalcrypto import ElgamalCrypto
+from Tribler.community.tunnel.crypto.elgamalcrypto import ElgamalCrypto
 from Tribler.dispersy.util import blockingCallFromThread
 from Tribler.dispersy.endpoint import RawserverEndpoint
 
@@ -804,7 +804,7 @@ class TriblerLaunchMany(Thread):
                 self.ltmgr.set_utp(new_value)
         elif section == 'libtorrent' and name == 'lt_proxyauth':
             if self.ltmgr:
-                self.ltmgr.set_proxy_settings(self.ltmgr.ltsession, *self.session.get_libtorrent_proxy_settings())
+                self.ltmgr.set_proxy_settings(None, *self.session.get_libtorrent_proxy_settings())
         elif section == 'torrent_checking' and name == 'torrent_checking_period':
             if self.rtorrent_handler and value_changed:
                 self.rtorrent_handler.set_max_num_torrents(new_value)

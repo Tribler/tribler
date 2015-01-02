@@ -52,7 +52,7 @@ sessdefaults['general']['timeout'] = 300.0
 sessdefaults['general']['timeout_check_interval'] = 60.0
 sessdefaults['general']['eckeypairfilename'] = None
 sessdefaults['general']['megacache'] = True
-sessdefaults['general']['nickname'] = '__default_name__'  # is replaced with hostname in LaunchManyCore.py
+sessdefaults['general']['nickname'] = 'Tribler User'
 sessdefaults['general']['mugshot'] = None
 sessdefaults['general']['videoanalyserpath'] = None
 sessdefaults['general']['peer_icon_path'] = None
@@ -60,6 +60,8 @@ sessdefaults['general']['live_aux_seeders'] = []
 
 # Tunnel community section
 sessdefaults['tunnel_community'] = OrderedDict()
+sessdefaults['tunnel_community']['optin_dialog_shown'] = False
+sessdefaults['tunnel_community']['enabled'] = False
 sessdefaults['tunnel_community']['socks5_listen_ports'] = [-1] * 5
 
 # Mainline DHT settings

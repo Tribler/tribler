@@ -1909,7 +1909,7 @@ class LibraryList(SizeList):
     def RefreshData(self, key, data):
         List.RefreshData(self, key, data)
 
-        data = (data.infohash, [data.name, None, data.length, None, None, None, 0, 0, 0, 0, 0, ''], data)
+        data = (data.infohash, [data.name, None, data.length, None, None, None, 0, 0, 0, 0, 0, ''], data, LibraryListItem)
         self.list.RefreshData(key, data)
 
     def SetNrResults(self, nr):

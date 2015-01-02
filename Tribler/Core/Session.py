@@ -99,8 +99,11 @@ class Session(SessionConfigInterface):
 
         create_dir(os.path.join(scfg.get_state_dir(), STATEDIR_DLPSTATE_DIR))
 
-        if scfg.get_nickname() == '__default_name__':
-            scfg.set_nickname(socket.gethostname())
+        # Reset the nickname to something not related to the host name, it was
+        # really silly to have this default on the first place.
+        # TODO: Maybe move this to the upgrader?
+        if socket.gethostname() in scfg.get_nickname():
+            scfg.set_nickname("Tribler user")
 
         if GOTM2CRYPTO:
             permidmod.init()
