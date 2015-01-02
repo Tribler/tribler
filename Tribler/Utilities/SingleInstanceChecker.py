@@ -32,7 +32,7 @@ class SingleInstanceChecker(object):
         return self._wx_checker.IsAnotherRunning()
 
     def __get_process_num_on_linux(self):
-        cmd = 'pgrep -fl "%s\.py" | grep -v pgrep' % self._basename
+        cmd = 'pgrep -fl "%s\.py"' % self._basename
         progress_info = commands.getoutput(cmd)
 
         self._logger.info(u"Linux cmd returned %s", progress_info)
