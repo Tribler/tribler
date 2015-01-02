@@ -195,10 +195,9 @@ class TriblerLaunchMany(Thread):
 
             self.upnp_ports.append((self.dispersy.wan_address[1], 'UDP'))
 
-            from Tribler.Core.permid import read_keypair
-            keypair = read_keypair(self.session.get_permid_keypair_filename())
+            from Tribler.dispersy.crypto import M2CryptoSK
             self.session.dispersy_member = blockingCallFromThread(reactor, self.dispersy.get_member,
-                                                                  private_key=self.dispersy.crypto.key_to_bin(keypair))
+                                                                  private_key=self.dispersy.crypto.key_to_bin(M2CryptoSK(filename=self.session.get_permid_keypair_filename())))
 
             blockingCallFromThread(reactor, self.dispersy.define_auto_load, HardKilledCommunity,
                                    self.session.dispersy_member, load=True)
