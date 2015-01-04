@@ -24,7 +24,6 @@ from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS,
                                      NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_ACT_UPNP)
 from Tribler.Core.torrentstore import TorrentStore
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.community.tunnel.crypto.elgamalcrypto import ElgamalCrypto
 from Tribler.dispersy.util import blockingCallFromThread
 from Tribler.dispersy.endpoint import RawserverEndpoint
 
@@ -170,8 +169,7 @@ class TriblerLaunchMany(Thread):
                 endpoint = RawserverEndpoint(self.rawserver, self.session.get_dispersy_port())
 
                 working_directory = unicode(self.session.get_state_dir())
-                crypto = ElgamalCrypto(self.session.get_install_dir())
-                self.dispersy = Dispersy(endpoint, working_directory, crypto=crypto)
+                self.dispersy = Dispersy(endpoint, working_directory)
 
                 # register TFTP service
                 from Tribler.Core.TFTP.handler import TftpHandler

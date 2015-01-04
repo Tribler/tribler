@@ -4,6 +4,7 @@ from M2Crypto.EC import EC_pub
 
 from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING, \
                                      CIRCUIT_TYPE_DATA
+from Tribler.dispersy.crypto import DispersyKey, LibNaCLPK
 
 __author__ = 'chris'
 
@@ -108,10 +109,10 @@ class Hop(object):
 
     def __init__(self, public_key=None):
         """
-        @param None|EC_pub public_key: public key object of the hop
+        @param None|LibNaCLPK public_key: public key object of the hop
         """
 
-        assert public_key is None or isinstance(public_key, EC_pub)
+        assert public_key is None or isinstance(public_key, LibNaCLPK)
 
         self.session_keys = None
         self.dh_first_part = None
@@ -136,6 +137,26 @@ class Hop(object):
         if self.address:
             return self.address[1]
         return " UNKNOWN PORT "
+
+    @property
+    def nodeid(self):
+        """
+        The hop's nodeid
+        """
+        if self.public_key:
+            return self.public_key.key_to_hash()
+
+        raise RuntimeError("nodeid unknown")
+
+    @property
+    def node_public_key(self):
+        """
+        The hop's public_key
+        """
+        if self.public_key:
+            return self.public_key.key_to_bin()
+
+        raise RuntimeError("public key unknown")
 
 
 class RelayRoute(object):

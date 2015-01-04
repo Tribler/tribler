@@ -28,17 +28,29 @@ class CellPayload(Payload):
 
 class CreatePayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, key="\0"*336):
+        def __init__(self, meta, circuit_id, nodeid, node_public_key, key):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
+            assert isinstance(nodeid, basestring), type(nodeid)
+            assert isinstance(node_public_key, basestring), type(node_public_key)
             assert isinstance(key, basestring), type(key)
 
             super(CreatePayload.Implementation, self).__init__(meta)
             self._circuit_id = circuit_id
+            self._nodeid = nodeid
+            self._node_public_key = node_public_key
             self._key = key
 
         @property
         def circuit_id(self):
             return self._circuit_id
+
+        @property
+        def nodeid(self):
+            return self._nodeid
+
+        @property
+        def node_public_key(self):
+            return self._node_public_key
 
         @property
         def key(self):
@@ -47,14 +59,16 @@ class CreatePayload(Payload):
 
 class CreatedPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, key, candidate_list):
+        def __init__(self, meta, circuit_id, key, auth, candidate_list):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(key, basestring), type(key)
+            assert isinstance(auth, basestring), type(auth)
             assert all(isinstance(key, basestring) for key in candidate_list)
 
             super(CreatedPayload.Implementation, self).__init__(meta)
             self._circuit_id = circuit_id
             self._key = key
+            self._auth = auth
             self._candidate_list = candidate_list
 
         @property
@@ -64,6 +78,10 @@ class CreatedPayload(Payload):
         @property
         def key(self):
             return self._key
+
+        @property
+        def auth(self):
+            return self._auth
 
         @property
         def candidate_list(self):
@@ -72,45 +90,53 @@ class CreatedPayload(Payload):
 
 class ExtendPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, key, extend_with, extend_with_addr=None):
+        def __init__(self, meta, circuit_id, nodeid, node_public_key, node_addr, key):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
+            assert isinstance(nodeid, basestring), type(nodeid)
+            assert isinstance(node_public_key, basestring), type(node_public_key)
+            assert node_addr == None or isinstance(node_addr, tuple), type(node_addr)
             assert isinstance(key, basestring), type(key)
-            assert extend_with is None or isinstance(extend_with, basestring), type(extend_with)
-            assert extend_with_addr is None or isinstance(extend_with_addr, tuple), type(extend_with_addr)
 
             super(ExtendPayload.Implementation, self).__init__(meta)
             self._circuit_id = circuit_id
+            self._nodeid = nodeid
+            self._node_public_key = node_public_key
+            self._node_addr = node_addr
             self._key = key
-            self._extend_with = extend_with
-            self._extend_with_addr = extend_with_addr
 
         @property
         def circuit_id(self):
             return self._circuit_id
 
         @property
+        def nodeid(self):
+            return self._nodeid
+
+        @property
+        def node_public_key(self):
+            return self._node_public_key
+
+        @property
+        def node_addr(self):
+            return self._node_addr
+
+        @property
         def key(self):
             return self._key
-
-        @property
-        def extend_with(self):
-            return self._extend_with
-
-        @property
-        def extend_with_addr(self):
-            return self._extend_with_addr
 
 
 class ExtendedPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, key, candidate_list):
+        def __init__(self, meta, circuit_id, key, auth, candidate_list):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(key, basestring), type(key)
+            assert isinstance(auth, basestring), type(auth)
             assert all(isinstance(key, basestring) for key in candidate_list)
 
             super(ExtendedPayload.Implementation, self).__init__(meta)
             self._circuit_id = circuit_id
             self._key = key
+            self._auth = auth
             self._candidate_list = candidate_list
 
         @property
@@ -120,6 +146,10 @@ class ExtendedPayload(Payload):
         @property
         def key(self):
             return self._key
+
+        @property
+        def auth(self):
+            return self._auth
 
         @property
         def candidate_list(self):
@@ -426,16 +456,18 @@ class Intro2Payload(Payload):
 
 class Rendezvous1Payload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, identifier, key, cookie):
+        def __init__(self, meta, circuit_id, identifier, key, auth, cookie):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(identifier, int), type(identifier)
             assert isinstance(key, basestring), type(key)
+            assert isinstance(auth, basestring), type(auth)
             assert isinstance(cookie, basestring), type(cookie)
 
             super(Rendezvous1Payload.Implementation, self).__init__(meta)
             self._circuit_id = circuit_id
             self._identifier = identifier
             self._key = key
+            self._auth = auth
             self._cookie = cookie
 
         @property
@@ -449,6 +481,10 @@ class Rendezvous1Payload(Payload):
         @property
         def key(self):
             return self._key
+
+        @property
+        def auth(self):
+            return self._auth
 
         @property
         def cookie(self):
