@@ -23,7 +23,8 @@ from Crypto.Util.number import bytes_to_long, long_to_bytes
 
 from Tribler.community.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR,
                                       PING_INTERVAL, EXIT_NODE, CIRCUIT_TYPE_DATA, CIRCUIT_TYPE_IP,
-                                      CIRCUIT_TYPE_RP, CIRCUIT_TYPE_INTRODUCE, CIRCUIT_TYPE_RENDEZVOUS)
+                                      CIRCUIT_TYPE_RP, CIRCUIT_TYPE_INTRODUCE, CIRCUIT_TYPE_RENDEZVOUS,
+    EXIT_NODE_SALT, ORIGINATOR_SALT)
 from Tribler.community.tunnel.conversion import TunnelConversion
 from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, CreatedPayload, ExtendPayload,
                                               ExtendedPayload, DestroyPayload, PongPayload, PingPayload,
@@ -242,7 +243,7 @@ class TunnelSettings(object):
 
     def __init__(self, install_dir=None):
         self.circuit_length = 3
-        self.crypto = TunnelCrypto(install_dir)
+        self.crypto = TunnelCrypto()
         self.socks_listen_ports = range(1080, 1085)
         self.do_test = True
 
@@ -357,22 +358,18 @@ class TunnelCommunity(Community):
 
     @classmethod
     def get_master_members(cls, dispersy):
-        # generated: Sun Nov 23 11:34:51 2014
+        # generated: Fri Jan 02 19:44:50 2015
         # curve: NID_sect571r1
-        # len: 571 bits ~ 144 bytes signature
-        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000407f32364f340a840228
-        # 98d43275a60e6455f9121c09a7f03f159878d0caeadca7fe92b88f08e542015f04947c5bb3a8d18c
-        # d8440f14457d2556391de18d78a0f4774285907d86b05068267b2629d2611d74ddd5814f45508d95
-        # 9bd29c298c58ef95d1ad817242d373bed2bae9a745ba5854529f172211e0a6d2bd276a4256bf4133
-        # c0d408e835f614d9331faf214546e
-        # pub-sha1 e91d0cd4ca8e02fc65be47a8bb19223428bedcc3
-        #-----BEGIN PUBLIC KEY-----
-        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQH8yNk80CoQCKJjUMnWmDmRV+RIcCa
-        # fwPxWYeNDK6tyn/pK4jwjlQgFfBJR8W7Oo0YzYRA8URX0lVjkd4Y14oPR3QoWQfY
-        # awUGgmeyYp0mEddN3VgU9FUI2Vm9KcKYxY75XRrYFyQtNzvtK66adFulhUUp8XIh
-        # HgptK9J2pCVr9BM8DUCOg19hTZMx+vIUVG4=
-        #-----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000407f32364f340a84022898d43275a60e6455f9121c09a7f03f159878d0caeadca7fe92b88f08e542015f04947c5bb3a8d18cd8440f14457d2556391de18d78a0f4774285907d86b05068267b2629d2611d74ddd5814f45508d959bd29c298c58ef95d1ad817242d373bed2bae9a745ba5854529f172211e0a6d2bd276a4256bf4133c0d408e835f614d9331faf214546e".decode("HEX")
+        # 144 bytes signature
+        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000403ab6c5ddea44f806e3fc581ea90cc380d735d2c24ca87b3a68cdf1f95de50010aeff312344eedcae1bb96038db160be4b31a20289023251a2ad88b1f18bde0f14049843f3a35df5017630a445e63bb5005621c04c9b7ba8ca8ccebe567b355b6b21d846199bd8dcc9e7048dc59bf3f1ab70372f19e85d3c2133f56579fa5108840f52ff4ea3e41906623c1d6e8e2eaf
+        # pub-sha1 28bad8f1722de818700228c471ab0d7786736c05
+        # -----BEGIN PUBLIC KEY-----
+        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQDq2xd3qRPgG4/xYHqkMw4DXNdLCTK
+        # h7OmjN8fld5QAQrv8xI0Tu3K4buWA42xYL5LMaICiQIyUaKtiLHxi94PFASYQ/Oj
+        # XfUBdjCkReY7tQBWIcBMm3uoyozOvlZ7NVtrIdhGGZvY3MnnBI3Fm/Pxq3A3Lxno
+        # XTwhM/VlefpRCIQPUv9Oo+QZBmI8HW6OLq8=
+        # -----END PUBLIC KEY-----
+        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403ab6c5ddea44f806e3fc581ea90cc380d735d2c24ca87b3a68cdf1f95de50010aeff312344eedcae1bb96038db160be4b31a20289023251a2ad88b1f18bde0f14049843f3a35df5017630a445e63bb5005621c04c9b7ba8ca8ccebe567b355b6b21d846199bd8dcc9e7048dc59bf3f1ab70372f19e85d3c2133f56579fa5108840f52ff4ea3e41906623c1d6e8e2eaf".decode("HEX")
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
@@ -452,6 +449,11 @@ class TunnelCommunity(Community):
     def crypto(self):
         return self.settings.crypto
 
+    def get_session_keys(self, keys, direction):
+        # increment salt_explicit
+        keys[direction + 4] += 1
+        return keys[direction], keys[direction + 2], keys[direction + 4]
+
     @property
     def dispersy_enable_bloom_filter_sync(self):
         return False
@@ -476,7 +478,8 @@ class TunnelCommunity(Community):
 
             for _ in range(num_to_build):
                 try:
-                    self.create_circuit(circuit_length)
+                    if not self.create_circuit(circuit_length):
+                        break
                 except:
                     self._logger.exception("Error creating circuit while running do_circuits")
 
@@ -524,8 +527,11 @@ class TunnelCommunity(Community):
 
         if not first_hop:
             if retry_lambda:
+                self._logger.info("could not create circuit, no available hops will retry in 5 seconds.")
                 self.register_task(retry_lambda, reactor.callLater(5, retry_lambda))
-            return
+            else:
+                self._logger.info("could not create circuit, no available hops.")
+            return False
 
         circuit_id = self._generate_circuit_id(first_hop.sock_addr)
         circuit = Circuit(circuit_id, goal_hops, first_hop.sock_addr, self, ctype, callback, required_exit)
@@ -542,8 +548,12 @@ class TunnelCommunity(Community):
         self.circuits[circuit_id] = circuit
         self.waiting_for.add(circuit_id)
 
-        dh_first_part_enc = self.crypto.hybrid_encrypt_str(first_hop.get_member()._ec, long_to_bytes(circuit.unverified_hop.dh_first_part))
-        self.increase_bytes_sent(circuit, self.send_cell([first_hop], u"create", (circuit_id, dh_first_part_enc)))
+        self.increase_bytes_sent(circuit, self.send_cell([first_hop], u"create", (circuit_id,
+                                                                                  circuit.unverified_hop.nodeid,
+                                                                                  circuit.unverified_hop.node_public_key,
+                                                                                  circuit.unverified_hop.dh_first_part)))
+
+        return True
 
     def readd_bittorrent_peers(self):
         for torrent, peers in self.bittorrent_peers.items():
@@ -782,7 +792,14 @@ class TunnelCommunity(Community):
 
     def _ours_on_created_extended(self, circuit, message):
         hop = circuit.unverified_hop
-        hop.session_keys = self.crypto.generate_session_keys(hop.dh_secret, bytes_to_long(message.payload.key))
+
+        try:
+            shared_secret = self.crypto.verify_and_generate_shared_secret(hop.dh_secret, message.payload.key, message.payload.auth, hop.public_key.key.pk)
+            hop.session_keys = self.crypto.generate_session_keys(shared_secret)
+
+        except CryptoException:
+            self.remove_circuit(circuit.circuit_id, "error while verifying shared secret, bailing out.")
+            return
 
         circuit.add_hop(hop)
         circuit.unverified_hop = None
@@ -796,7 +813,7 @@ class TunnelCommunity(Community):
 
             else:
                 candidate_list_enc = message.payload.candidate_list
-                _, candidate_list = decode(self.crypto.decrypt_str(hop.session_keys[EXIT_NODE], candidate_list_enc))
+                _, candidate_list = decode(self.crypto.decrypt_str(candidate_list_enc, hop.session_keys[EXIT_NODE], hop.session_keys[EXIT_NODE_SALT]))
 
                 ignore_candidates = [self.crypto.key_to_bin(hop.public_key) for hop in circuit.hops] + \
                                     [self.my_member.public_key]
@@ -820,10 +837,12 @@ class TunnelCommunity(Community):
                 circuit.unverified_hop.dh_secret, circuit.unverified_hop.dh_first_part = self.crypto.generate_diffie_secret()
 
                 self._logger.info("extending circuit %d with %s", circuit.circuit_id, extend_hop_public_bin[:20].encode('hex'))
-                dh_first_part_enc = self.crypto.hybrid_encrypt_str(extend_hop_public_key, long_to_bytes(circuit.unverified_hop.dh_first_part))
-                self.increase_bytes_sent(circuit, self.send_cell([Candidate(circuit.first_hop, False)], u"extend", \
-                                                                 (circuit.circuit_id, dh_first_part_enc,
-                                                                  extend_hop_public_bin, extend_hop_addr)))
+                self.increase_bytes_sent(circuit, self.send_cell([Candidate(circuit.first_hop, False)], u"extend", (circuit.circuit_id,
+                                                                                                                    circuit.unverified_hop.nodeid,
+                                                                                                                    circuit.unverified_hop.node_public_key,
+                                                                                                                    extend_hop_addr,
+                                                                                                                    circuit.unverified_hop.dh_first_part)))
+
             else:
                 self.remove_circuit(circuit.circuit_id, "no candidates to extend, bailing out.")
 
@@ -884,17 +903,19 @@ class TunnelCommunity(Community):
                 self._logger.error('TunnelCommunity: circuit_id collision in on_create (%d)', circuit_id)
                 continue
 
-            try:
-                dh_second_part = self.crypto.hybrid_decrypt_str(self.my_member._ec, message.payload.key)
-            except CryptoException, e:
-                self._logger.error(str(e))
+            if self.crypto.key.key_to_hash() != message.payload.nodeid:
+                self._logger.error('TunnelCommunity: nodeids do not match')
+                continue
+
+            if self.crypto.key.pub().key_to_bin() != message.payload.node_public_key:
+                self._logger.error('TunnelCommunity: public keys do not match')
                 continue
 
             self.directions[circuit_id] = EXIT_NODE
             self._logger.info('TunnelCommunity: we joined circuit %d with neighbour %s', circuit_id, candidate.sock_addr)
-            dh_secret, dh_first_part = self.crypto.generate_diffie_secret()
 
-            self.relay_session_keys[circuit_id] = self.crypto.generate_session_keys(dh_secret, bytes_to_long(dh_second_part))
+            shared_secret, Y, AUTH = self.crypto.generate_diffie_shared_secret(message.payload.key)
+            self.relay_session_keys[circuit_id] = self.crypto.generate_session_keys(shared_secret)
 
             candidates = {}
             for c in self.dispersy_yield_verified_candidates():
@@ -910,8 +931,8 @@ class TunnelCommunity(Community):
                 from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_JOINED
                 self.notifier.notify(NTFY_TUNNEL, NTFY_JOINED, candidate.sock_addr, circuit_id)
 
-            candidate_list_enc = self.crypto.encrypt_str(self.relay_session_keys[circuit_id][EXIT_NODE], encode(candidates.keys()))
-            self.send_cell([candidate], u"created", (circuit_id, long_to_bytes(dh_first_part), candidate_list_enc))
+            candidate_list_enc = self.crypto.encrypt_str(encode(candidates.keys()), *self.get_session_keys(self.relay_session_keys[circuit_id], EXIT_NODE))
+            self.send_cell([candidate], u"created", (circuit_id, Y, AUTH, candidate_list_enc))
 
     def on_created(self, messages):
         for message in messages:
@@ -928,8 +949,10 @@ class TunnelCommunity(Community):
                 self._logger.debug("Got CREATED message forward as EXTENDED to origin.")
 
                 forwarding_relay = self.relay_from_to[circuit_id]
-                self.send_cell([Candidate(forwarding_relay.sock_addr, False)], u"extended", \
-                               (forwarding_relay.circuit_id, message.payload.key, message.payload.candidate_list))
+                self.send_cell([Candidate(forwarding_relay.sock_addr, False)], u"extended", (forwarding_relay.circuit_id,
+                                                                                             message.payload.key,
+                                                                                             message.payload.auth,
+                                                                                             message.payload.candidate_list))
 
             # Circuit is ours.
             if circuit_id in self.circuits:
@@ -938,15 +961,15 @@ class TunnelCommunity(Community):
 
     def on_extend(self, messages):
         for message in messages:
-            if message.payload.extend_with:
+            if message.payload.node_public_key:
                 candidate = message.candidate
                 circuit_id = message.payload.circuit_id
                 request = self.request_cache.pop(u"anon-created", circuit_id)
 
-                if request.candidates.has_key(message.payload.extend_with):
-                    extend_candidate = request.candidates[message.payload.extend_with]
+                if request.candidates.has_key(message.payload.node_public_key):
+                    extend_candidate = request.candidates[message.payload.node_public_key]
                 else:
-                    extend_candidate = Candidate(message.payload.extend_with_addr, False)
+                    extend_candidate = Candidate(message.payload.node_addr, False)
 
                 self._logger.info("on_extend send CREATE for circuit (%s, %d) to %s:%d!", candidate.sock_addr,
                                 circuit_id, extend_candidate.sock_addr[0], extend_candidate.sock_addr[1])
@@ -976,7 +999,10 @@ class TunnelCommunity(Community):
 
             self._logger.info("extending circuit, got candidate with IP %s:%d from cache", *extend_candidate.sock_addr)
 
-            self.send_cell([extend_candidate], u"create", (new_circuit_id, message.payload.key))
+            self.increase_bytes_sent(new_circuit_id, self.send_cell([extend_candidate], u"create", (new_circuit_id,
+                                                                                                    message.payload.nodeid,
+                                                                                                    message.payload.node_public_key,
+                                                                                                    message.payload.key)))
 
     def on_extended(self, messages):
         for message in messages:
@@ -1126,12 +1152,12 @@ class TunnelCommunity(Community):
         if circuit:
             if circuit and is_data and circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
                 direction = int(circuit.ctype == CIRCUIT_TYPE_RP)
-                content = self.crypto.encrypt_str(circuit.hs_session_keys[direction], content)
+                content = self.crypto.encrypt_str(content, *self.get_session_keys(circuit.hs_session_keys, direction))
             for hop in reversed(circuit.hops):
-                content = self.crypto.encrypt_str(hop.session_keys[EXIT_NODE], content)
+                content = self.crypto.encrypt_str(content, *self.get_session_keys(hop.session_keys, EXIT_NODE))
             return content
         elif circuit_id in self.relay_session_keys:
-            return self.crypto.encrypt_str(self.relay_session_keys[circuit_id][ORIGINATOR], content)
+            return self.crypto.encrypt_str(content, *self.get_session_keys(self.relay_session_keys[circuit_id], ORIGINATOR))
         raise CryptoException("Don't know how to encrypt outgoing message for circuit_id %d" % circuit_id)
 
     def crypto_in(self, circuit_id, content, is_data=False):
@@ -1139,21 +1165,22 @@ class TunnelCommunity(Community):
         if circuit and len(circuit.hops) > 0:
             # Remove all the encryption layers
             for hop in self.circuits[circuit_id].hops:
-                content = self.crypto.decrypt_str(hop.session_keys[ORIGINATOR], content)
+                content = self.crypto.decrypt_str(content, hop.session_keys[ORIGINATOR], hop.session_keys[ORIGINATOR_SALT])
             if circuit and is_data and circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
                 direction = int(circuit.ctype != CIRCUIT_TYPE_RP)
-                content = self.crypto.decrypt_str(circuit.hs_session_keys[direction], content)
+                direction_salt = direction + 2
+                content = self.crypto.decrypt_str(content, circuit.hs_session_keys[direction], circuit.hs_session_keys[direction_salt])
             return content
         elif circuit_id in self.relay_session_keys:
-            return self.crypto.decrypt_str(self.relay_session_keys[circuit_id][EXIT_NODE], content)
+            return self.crypto.decrypt_str(content, self.relay_session_keys[circuit_id][EXIT_NODE], self.relay_session_keys[circuit_id][EXIT_NODE_SALT])
         raise CryptoException("Don't know how to decrypt incoming message for circuit_id %d" % circuit_id)
 
     def crypto_relay(self, circuit_id, content):
         direction = self.directions[circuit_id]
         if direction == ORIGINATOR:
-            return self.crypto.encrypt_str(self.relay_session_keys[circuit_id][direction], content)
+            return self.crypto.encrypt_str(content, *self.get_session_keys(self.relay_session_keys[circuit_id], ORIGINATOR))
         elif direction == EXIT_NODE:
-            return self.crypto.decrypt_str(self.relay_session_keys[circuit_id][direction], content)
+            return self.crypto.decrypt_str(content, self.relay_session_keys[circuit_id][EXIT_NODE], self.relay_session_keys[circuit_id][EXIT_NODE_SALT])
         raise CryptoException("Direction must be either ORIGINATOR or EXIT_NODE")
 
     def increase_bytes_sent(self, obj, num_bytes):
@@ -1463,7 +1490,7 @@ class TunnelCommunity(Community):
 
             # Decrypt using hybrid crypto
             ip = self.my_intro_points[message.payload.circuit_id]
-            decrypt = lambda item, sk = ip.service_key: self.crypto.hybrid_decrypt_str(sk, item)
+            decrypt = lambda item, sk = ip.service_key: self.crypto.ec_decrypt_str(sk, item)
             self.send_rendezvous1_over_new_tunnel(ip, message.payload.identifier,
                                                   decode(decrypt(message.payload.rendezvous_point))[1],
                                                   decrypt(message.payload.cookie), decrypt(message.payload.key))
@@ -1508,8 +1535,8 @@ class TunnelCommunity(Community):
 
             # Partially encrypt payload using hybrid crypto
             sk = self.dispersy.crypto.key_from_public_bin(rp.service_key)
-            encrypt = lambda item, sk = sk: self.crypto.hybrid_encrypt_str(sk, str(item))
-            payload = (circuit.circuit_id, cache.number, encrypt(long_to_bytes(rp.circuit.dh_first_part)),
+            encrypt = lambda item, sk = sk: self.crypto.ec_encrypt_str(sk, str(item))
+            payload = (circuit.circuit_id, cache.number, encrypt((rp.circuit.dh_first_part)),
                        encrypt(rp.cookie), encrypt(encode(rp.rendezvous_point)), rp.service_key)
 
             self.send_cell([Candidate(circuit.first_hop, False)], u'intro1', tuple(payload))

@@ -403,8 +403,7 @@ class ABCApp(object):
             self.sconfig.set_torrent_collecting_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR))
 
 
-        # TODO(emilon): Quick hack to get 6.4.1 out the door, (re tunnel_community tests disabling is_unit_testing flag)
-        elif not self.sconfig.get_tunnel_community_optin_dialog_shown() and not self.is_unit_testing:
+        if not (self.sconfig.get_tunnel_community_optin_dialog_shown() or os.environ.get("TRIBLER_SKIP_OPTIN_DLG", "False") == "True"):
             optin_dialog = wx.MessageDialog(None,
                                             'If you are not familiar with proxy technology, please opt-out.\n\n'
                                             'This experimental anonymity feature using Tor-inspired onion routing '
@@ -517,7 +516,7 @@ class ABCApp(object):
             dispersy.define_auto_load(PreviewChannelCommunity, session.dispersy_member, kargs=default_kwargs)
 
             if self.sconfig.get_tunnel_community_enabled() and not self.is_unit_testing:
-                keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
+                keypair = dispersy.crypto.generate_key(u"curve25519")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair),)
                 settings = TunnelSettings(session.get_install_dir())
                 tunnel_kwargs = {'tribler_session': session, 'settings': settings}

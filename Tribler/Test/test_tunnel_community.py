@@ -254,7 +254,7 @@ class TestTunnelCommunity(TestGuiAsServer):
             dispersy = session.get_dispersy_instance()
 
             def load_community(session):
-                keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
+                keypair = dispersy.crypto.generate_key(u"curve25519")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
                 settings = TunnelSettings()
                 settings.do_test = False
