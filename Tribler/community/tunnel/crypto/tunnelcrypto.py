@@ -1,106 +1,85 @@
-import hashlib
+import struct
 
-from cryptowrapper import mpz, StrongRandom, aes_decrypt_str, aes_encrypt_str
-from elgamalcrypto import ElgamalCrypto
-from Tribler.community.tunnel.crypto.cryptowrapper import bin_to_dec, dec_to_mpi, \
-    mpi_to_dec, DH
-
-# we use the 1024 bit modulus from rfc2409
-# http://tools.ietf.org/html/rfc2409#section-6.2
-DIFFIE_HELLMAN_GENERATOR = 2
-DIFFIE_HELLMAN_MODULUS = 0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE65381FFFFFFFFFFFFFFFF
-DIFFIE_HELLMAN_MODULUS_SIZE = 1024
+from cryptowrapper import crypto_box_beforenm, crypto_auth, crypto_auth_verify, Cipher, algorithms, modes, HKDFExpand, hashes, default_backend
+from Tribler.dispersy.crypto import ECCrypto, LibNaCLPK
 
 class CryptoException(Exception):
     pass
 
-class OldTunnelCrypto(ElgamalCrypto):
+
+class TunnelCrypto(ECCrypto):
 
     def initialize(self, community):
         self.community = community
-        self.my_curve = self.community.crypto.get_curve(self.community.my_member._ec)
+        self.key = self.community.my_member._ec
 
     def is_key_compatible(self, key):
-        his_curve = self.community.crypto.get_curve(key)
-        return self.my_curve == his_curve
+        return isinstance(key, LibNaCLPK)
 
     def generate_diffie_secret(self):
-        """
-        Generates a new Diffie Hellman g^x. Note the mpz lib used for Windows
-        @return: tuple of x and g^x
-        """
-        dh_secret = 0
-        while dh_secret >= DIFFIE_HELLMAN_MODULUS or dh_secret < 2:
-            dh_secret = StrongRandom().randint(2, DIFFIE_HELLMAN_MODULUS)
-        dh_secret = mpz(dh_secret)
+        tmp_key = self.generate_key(u"curve25519")
+        X = tmp_key.key.pk
 
-        dh_first_part = mpz(pow(DIFFIE_HELLMAN_GENERATOR, dh_secret, DIFFIE_HELLMAN_MODULUS))
-        return dh_secret, dh_first_part
+        return tmp_key, X
 
-    def generate_session_keys(self, dh_secret, dh_received):
-        key = pow(dh_received, dh_secret, DIFFIE_HELLMAN_MODULUS)
-        m = hashlib.sha256()
-        m.update(str(key))
-        digest = m.digest()
-        return digest[0:16], digest[16:32]
+    def generate_diffie_shared_secret(self, dh_received):
+        tmp_key = self.generate_key(u"curve25519")
+        y = tmp_key.key.sk
+        Y = tmp_key.key.pk
+        shared_secret = crypto_box_beforenm(dh_received, y) + crypto_box_beforenm(dh_received, self.key.key.sk)
 
-    def encrypt_str(self, key, content):
-        return aes_encrypt_str(key, content)
+        AUTH = crypto_auth(Y, shared_secret)
+        return shared_secret, Y, AUTH
 
-    def decrypt_str(self, key, content):
-        return aes_decrypt_str(key, content)
+    def verify_and_generate_shared_secret(self, dh_secret, dh_received, auth, B):
+        shared_secret = crypto_box_beforenm(dh_received, dh_secret.key.sk) + crypto_box_beforenm(B, dh_secret.key.sk)
+        crypto_auth_verify(auth, dh_received, shared_secret)
 
-    def hybrid_encrypt_str(self, pub_key, content):
-        try:
-            return self.encrypt(pub_key, content)
-        except Exception, e:
-            raise CryptoException(str(e))
+        return shared_secret
 
-    def hybrid_decrypt_str(self, key, content):
-        try:
-            return self.decrypt(key, content)
-        except Exception, e:
-            raise CryptoException(str(e))
+    def generate_session_keys(self, shared_secret):
+        hkdf = HKDFExpand(algorithm=hashes.SHA256(), backend=default_backend(), length=40, info="key_generation")
+        key = hkdf.derive(shared_secret)
 
-class TunnelCrypto(ElgamalCrypto):
+        kf = key[:16]
+        kb = key[16:32]
+        sf = key[32:36]
+        sb = key[36:40]
+        return [kf, kb, sf, sb, 1, 1]
 
-    def initialize(self, community):
-        self.community = community
-        self.my_curve = self.community.crypto.get_curve(self.community.my_member._ec)
+    def _bulid_iv(self, salt, salt_explicit):
+        assert isinstance(salt, (basestring)), type(salt)
+        assert isinstance(salt_explicit, (int, long)), type(salt_explicit)
 
-    def is_key_compatible(self, key):
-        his_curve = self.community.crypto.get_curve(key)
-        return self.my_curve == his_curve
+        if salt_explicit == 0:
+            raise RuntimeError("salt_explicit wrapped")
 
-    def generate_diffie_secret(self):
-        dh = DH.set_params(dec_to_mpi(DIFFIE_HELLMAN_MODULUS), dec_to_mpi(DIFFIE_HELLMAN_GENERATOR))
-        dh.gen_key()
-        return dh, mpi_to_dec(dh.pub)
+        return salt + str(salt_explicit)
 
-    def generate_session_keys(self, dh_secret, dh_received):
-        key = bin_to_dec(dh_secret.compute_key(dec_to_mpi(dh_received)))
-        m = hashlib.sha256()
-        m.update(str(key))
-        digest = m.digest()
-        return digest[0:16], digest[16:32]
+    def encrypt_str(self, content, key, salt, salt_explicit):
+        # return the encrypted content prepended with the
+        # gcm tag and salt_explicit
+        cipher = Cipher(algorithms.AES(key),
+                        modes.GCM(initialization_vector=self._bulid_iv(salt, salt_explicit)),
+                        backend=default_backend()
+        ).encryptor()
+        ciphertext = cipher.update(content) + cipher.finalize()
+        return struct.pack('!q16s', salt_explicit, cipher.tag) + ciphertext
 
-    def encrypt_str(self, key, content):
-        return aes_encrypt_str(key, content)
+    def decrypt_str(self, content, key, salt):
+        # content contains the gcm tag and salt_explicit in plaintext
+        salt_explicit, gcm_tag = struct.unpack_from('!q16s', content)
+        cipher = Cipher(algorithms.AES(key),
+                        modes.GCM(initialization_vector=self._bulid_iv(salt, salt_explicit), tag=gcm_tag),
+                        backend=default_backend()
+        ).decryptor()
+        return cipher.update(content[24:]) + cipher.finalize()
 
-    def decrypt_str(self, key, content):
-        return aes_decrypt_str(key, content)
+    def ec_encrypt_str(self, key, content):
+        return content
 
-    def hybrid_encrypt_str(self, pub_key, content):
-        try:
-            return self.encrypt(pub_key, content)
-        except Exception, e:
-            raise CryptoException(str(e))
-
-    def hybrid_decrypt_str(self, key, content):
-        try:
-            return self.decrypt(key, content)
-        except Exception, e:
-            raise CryptoException(str(e))
+    def ec_decrypt_str(self, key, content):
+        return content
 
 
 class NoTunnelCrypto(TunnelCrypto):
@@ -112,40 +91,22 @@ class NoTunnelCrypto(TunnelCrypto):
         return True
 
     def generate_diffie_secret(self):
-        return 0, 0
+        return '', ''
 
-    def generate_session_keys(self, dh_secret, dh_received):
-        return '\0' * 16, '\0' * 16
+    def generate_diffie_shared_secret(self, dh_received):
+        return '', '', ''
 
-    def encrypt_str(self, key, content):
+    def verify_and_generate_shared_secret(self, dh_secret, dh_received, auth, B):
+        return ''
+
+    def generate_session_keys(self, shared_secret):
+        return '\0' * 16, '\0' * 16, '\0' * 4, '\0' * 4, 1, 1
+
+    def encrypt_str(self, content, key, salt, salt_explicit):
         return content
 
-    def decrypt_str(self, key, content):
-        return content
-
-    def hybrid_encrypt_str(self, pub_key, content):
-        return content
-
-    def hybrid_decrypt_str(self, pub_key, content):
+    def decrypt_str(self, content, key, salt):
         return content
 
 if __name__ == "__main__":
-    oldTC = OldTunnelCrypto()
-    newTC = TunnelCrypto()
-
-    for i in xrange(1000):
-        dh_secret, dh_first_part = oldTC.generate_diffie_secret()
-        dh_secret2, dh_first_part2 = oldTC.generate_diffie_secret()
-
-        assert oldTC.generate_session_keys(dh_secret, dh_first_part2) == oldTC.generate_session_keys(dh_secret2, dh_first_part)
-
-        dh_secret, dh_first_part = newTC.generate_diffie_secret()
-        dh_secret2, dh_first_part2 = newTC.generate_diffie_secret()
-
-        assert newTC.generate_session_keys(dh_secret, dh_first_part2) == newTC.generate_session_keys(dh_secret2, dh_first_part)
-
-        # test for differences in behavior
-        dh_secret, dh_first_part = oldTC.generate_diffie_secret()
-        dh_secret2, dh_first_part2 = newTC.generate_diffie_secret()
-        assert oldTC.generate_session_keys(dh_secret, dh_first_part2) == newTC.generate_session_keys(dh_secret2, dh_first_part)
-
+    tc = TunnelCrypto()
