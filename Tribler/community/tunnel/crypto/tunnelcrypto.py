@@ -52,7 +52,7 @@ class TunnelCrypto(ECCrypto):
         assert isinstance(salt_explicit, (int, long)), type(salt_explicit)
 
         if salt_explicit == 0:
-            raise RuntimeError("salt_explicit wrapped")
+            raise CryptoException("salt_explicit wrapped")
 
         return salt + str(salt_explicit)
 
@@ -76,10 +76,10 @@ class TunnelCrypto(ECCrypto):
         return cipher.update(content[24:]) + cipher.finalize()
 
     def ec_encrypt_str(self, key, content):
-        return content
+        raise RuntimeError('no more')
 
     def ec_decrypt_str(self, key, content):
-        return content
+        raise RuntimeError('no more')
 
 
 class NoTunnelCrypto(TunnelCrypto):

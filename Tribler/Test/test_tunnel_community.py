@@ -12,12 +12,14 @@ from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import blockingCallFromThread
-from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
+from Tribler.community.tunnel.tunnel_community import TunnelSettings
+from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 
 
 # TODO(emilon): Quick hack to get 6.4.1 out the door, (re tunnel_community tests disabling is_unit_testing flag)
 from os import environ
+
 environ["SKIP_OPTIN_DLG"] = "True"
 
 class TestTunnelCommunity(TestGuiAsServer):
@@ -34,7 +36,7 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         def on_fail(expected, reason, do_assert):
             dispersy = self.session.lm.dispersy
-            tunnel_community = next(c for c in dispersy.get_communities() if isinstance(c, TunnelCommunity))
+            tunnel_community = next(c for c in dispersy.get_communities() if isinstance(c, HiddenTunnelCommunity))
 
             self.guiUtility.ShowPage('networkgraph')
 
@@ -112,7 +114,7 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         def on_fail(expected, reason, do_assert):
             dispersy = self.session.lm.dispersy
-            tunnel_community = next(c for c in dispersy.get_communities() if isinstance(c, TunnelCommunity))
+            tunnel_community = next(c for c in dispersy.get_communities() if isinstance(c, HiddenTunnelCommunity))
 
             self.guiUtility.ShowPage('networkgraph')
 
@@ -214,7 +216,7 @@ class TestTunnelCommunity(TestGuiAsServer):
 
             # Connect the proxies to the Tribler instance
             for community in self.lm.dispersy.get_communities():
-                if isinstance(community, TunnelCommunity):
+                if isinstance(community, HiddenTunnelCommunity):
                     tunnel_communities.append(community)
                     community.settings.min_circuits = 3
                     # Cancel 50 MB test download
@@ -258,7 +260,7 @@ class TestTunnelCommunity(TestGuiAsServer):
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
                 settings = TunnelSettings()
                 settings.do_test = False
-                return dispersy.define_auto_load(TunnelCommunity, dispersy_member, (session, settings), load=True)[0]
+                return dispersy.define_auto_load(HiddenTunnelCommunity, dispersy_member, (session, settings), load=True)[0]
 
             return blockingCallFromThread(reactor, load_community, session)
 

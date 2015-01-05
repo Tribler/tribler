@@ -5,7 +5,6 @@ from Tribler.Core.Utilities.bencode import bdecode
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
 from Tribler.dispersy.endpoint import TUNNEL_PREFIX, TUNNEL_PREFIX_LENGHT
-from binascii import unhexlify, hexlify
 
 ADDRESS_TYPE_IPV4 = 0x01
 ADDRESS_TYPE_DOMAIN_NAME = 0x02
@@ -56,7 +55,7 @@ class TunnelConversion(BinaryConversion):
 
     def _encode_create(self, message):
         payload = message.payload
-        packet = pack("!IHH20s", payload.circuit_id, len(payload.node_public_key), len(payload.key), payload.nodeid) + payload.node_public_key + payload.key
+        packet = pack("!IHH20s", payload.circuit_id, len(payload.node_public_key), len(payload.key), payload.node_id) + payload.node_public_key + payload.key
         return packet,
 
     def _decode_create(self, placeholder, offset, data):
@@ -73,18 +72,15 @@ class TunnelConversion(BinaryConversion):
 
     def _encode_created(self, message):
         payload = message.payload
-        packet = pack("!IHH", payload.circuit_id, len(payload.key), len(payload.auth)) + payload.key + payload.auth + payload.candidate_list
+        packet = pack("!IH32s", payload.circuit_id, len(payload.key), payload.auth) + payload.key + payload.candidate_list
         return packet,
 
     def _decode_created(self, placeholder, offset, data):
-        circuit_id, len_key, len_auth = unpack_from('!IHH', data, offset)
-        offset += 8
+        circuit_id, len_key, auth = unpack_from('!IH32s', data, offset)
+        offset += 38
 
         key = data[offset:offset + len_key]
         offset += len_key
-
-        auth = data[offset:offset + len_auth]
-        offset += len_auth
 
         candidate_list = data[offset:]
         offset += len(candidate_list)
@@ -93,7 +89,7 @@ class TunnelConversion(BinaryConversion):
 
     def _encode_extend(self, message):
         payload = message.payload
-        packet = pack("!IHH20s", payload.circuit_id, len(payload.node_public_key), len(payload.key), payload.nodeid) + \
+        packet = pack("!IHH20s", payload.circuit_id, len(payload.node_public_key), len(payload.key), payload.node_id) + \
                  payload.node_public_key + payload.key
 
         if message.payload.node_addr:
@@ -121,17 +117,14 @@ class TunnelConversion(BinaryConversion):
 
     def _encode_extended(self, message):
         payload = message.payload
-        return pack("!IHH", payload.circuit_id, len(payload.key), len(payload.auth)) + payload.key + payload.auth + payload.candidate_list,
+        return pack("!IH32s", payload.circuit_id, len(payload.key), payload.auth) + payload.key + payload.candidate_list,
 
     def _decode_extended(self, placeholder, offset, data):
-        circuit_id, len_key, len_auth = unpack_from('!IHH', data, offset)
-        offset += 8
+        circuit_id, len_key, auth = unpack_from('!IH32s', data, offset)
+        offset += 38
 
         key = data[offset:offset + len_key]
         offset += len_key
-
-        auth = data[offset: offset + len_auth]
-        offset += len_auth
 
         candidate_list = data[offset:]
         offset += len(candidate_list)
