@@ -493,7 +493,8 @@ class ABCApp(object):
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
             from Tribler.community.metadata.community import MetadataCommunity
-            from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
+            from Tribler.community.tunnel.tunnel_community import TunnelSettings
+            from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
             # make sure this is only called once
             session.remove_observer(define_communities)
@@ -521,7 +522,7 @@ class ABCApp(object):
                 settings = TunnelSettings(session.get_install_dir())
                 tunnel_kwargs = {'tribler_session': session, 'settings': settings}
 
-                self.tunnel_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, load=True,
+                self.tunnel_community = dispersy.define_auto_load(HiddenTunnelCommunity, dispersy_member, load=True,
                                                                   kargs=tunnel_kwargs)[0]
 
                 session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_tunnel_community_socks5_listen_ports()))
