@@ -1,10 +1,8 @@
 import time
 
-from M2Crypto.EC import EC_pub
-
 from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING, \
                                      CIRCUIT_TYPE_DATA
-from Tribler.dispersy.crypto import DispersyKey, LibNaCLPK
+from Tribler.dispersy.crypto import LibNaCLPK
 
 __author__ = 'chris'
 
@@ -22,10 +20,10 @@ class Circuit(object):
         :return: Circuit
         """
 
-        from Tribler.community.tunnel.community import TunnelCommunity
+        from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
         assert isinstance(circuit_id, long)
         assert isinstance(goal_hops, int)
-        assert proxy is None or isinstance(proxy, TunnelCommunity)
+        assert proxy is None or isinstance(proxy, HiddenTunnelCommunity)
         assert first_hop is None or isinstance(first_hop, tuple) and isinstance(first_hop[0], basestring) and isinstance(first_hop[1], int)
 
         self._broken = False
@@ -139,7 +137,7 @@ class Hop(object):
         return " UNKNOWN PORT "
 
     @property
-    def nodeid(self):
+    def node_id(self):
         """
         The hop's nodeid
         """
