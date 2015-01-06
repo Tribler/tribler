@@ -90,7 +90,7 @@ class TunnelOptin(wx.Dialog):
         bSizer.AddButton(cancel)
         bSizer.AddButton(ok)
         bSizer.Realize()
-        vSizer.Add(bSizer, 0, wx.EXPAND | wx.BOTTOM, 3)
+        vSizer.Add(bSizer, 1, wx.EXPAND | wx.BOTTOM, 3)
 
         sizer = wx.BoxSizer()
         sizer.Add(vSizer, 1, wx.EXPAND | wx.ALL, 10)
