@@ -14,7 +14,7 @@ from twisted.internet import reactor
 from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread, attach_runtime_statistics
-from .session import Session, DEFAULT_BLOCK_SIZE, DEFAULT_TIMEOUT
+from .session import Session, DEFAULT_BLOCK_SIZE, DEFAULT_TIMEOUT, DEFAULT_MAX_RETRIES
 from .packet import (encode_packet, decode_packet, OPCODE_RRQ, OPCODE_WRQ, OPCODE_ACK, OPCODE_DATA, OPCODE_OACK,
                      OPCODE_ERROR, ERROR_DICT)
 from .exception import InvalidPacketException, FileNotFound
@@ -31,7 +31,8 @@ class TftpHandler(TaskManager):
     This is the TFTP handler that should be registered at the RawServer to handle TFTP packets.
     """
 
-    def __init__(self, session, root_dir, endpoint, prefix, block_size=DEFAULT_BLOCK_SIZE, timeout=DEFAULT_TIMEOUT):
+    def __init__(self, session, root_dir, endpoint, prefix, block_size=DEFAULT_BLOCK_SIZE, timeout=DEFAULT_TIMEOUT,
+                 max_retries=DEFAULT_MAX_RETRIES):
         """ The constructor.
         :param session:    The tribler session.
         :param root_dir:   The root directory to use.
@@ -62,6 +63,8 @@ class TftpHandler(TaskManager):
 
         self._block_size = block_size
         self._timeout = timeout
+
+        self._max_retries = max_retries
 
         self._timeout_check_interval = 0.5
 
@@ -151,6 +154,12 @@ class TftpHandler(TaskManager):
         has_timeout = False
         for key, session in self._session_dict.items():
             if session.last_contact_time + session.timeout < time():
+                # check if we can still retry
+                if session.retries < self._max_retries:
+                    self._send_packet(session, session.last_sent_packet)
+                    session.retries += 1
+                    continue
+
                 has_timeout = True
 
                 # fail as timeout
