@@ -537,7 +537,7 @@ class TunnelCommunity(Community):
         self.circuits[circuit_id] = circuit
         self.waiting_for.add(circuit_id)
 
-        dh_first_part_enc = self.crypto.hybrid_encrypt_str(first_hop.get_member()._ec, long_to_bytes(circuit.unverified_hop.dh_first_part))
+        dh_first_part_enc = self.crypto.hybrid_encrypt_str(first_hop.get_member()._ec.ec, long_to_bytes(circuit.unverified_hop.dh_first_part))
         self.increase_bytes_sent(circuit, self.send_cell([first_hop], u"create", (circuit_id, dh_first_part_enc)))
 
     def readd_bittorrent_peers(self):
@@ -879,7 +879,7 @@ class TunnelCommunity(Community):
                 continue
 
             try:
-                dh_second_part = self.crypto.hybrid_decrypt_str(self.my_member._ec, message.payload.key)
+                dh_second_part = self.crypto.hybrid_decrypt_str(self.my_member._ec.ec, message.payload.key)
             except CryptoException, e:
                 self._logger.error(str(e))
                 continue

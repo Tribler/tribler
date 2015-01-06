@@ -607,7 +607,7 @@ class NetworkGraphPanel(wx.Panel):
     def found_community(self, tunnel_community):
         self.tunnel_community = tunnel_community
 
-        self.my_address = Hop(self.tunnel_community.my_member._ec.pub())
+        self.my_address = Hop(self.tunnel_community.my_member._ec.ec.pub())
         self.my_address.address = ('127.0.0.1', "SELF")
 
         self.circuit_timer = wx.Timer(self)

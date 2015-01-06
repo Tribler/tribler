@@ -18,7 +18,7 @@ class OldTunnelCrypto(ElgamalCrypto):
 
     def initialize(self, community):
         self.community = community
-        self.my_curve = self.community.crypto.get_curve(self.community.my_member._ec)
+        self.my_curve = self.community.crypto.get_curve(self.community.my_member._ec.ec)
 
     def is_key_compatible(self, key):
         his_curve = self.community.crypto.get_curve(key)
@@ -66,7 +66,7 @@ class TunnelCrypto(ElgamalCrypto):
 
     def initialize(self, community):
         self.community = community
-        self.my_curve = self.community.crypto.get_curve(self.community.my_member._ec)
+        self.my_curve = self.community.crypto.get_curve(self.community.my_member._ec.ec)
 
     def is_key_compatible(self, key):
         his_curve = self.community.crypto.get_curve(key)
@@ -148,4 +148,3 @@ if __name__ == "__main__":
         dh_secret, dh_first_part = oldTC.generate_diffie_secret()
         dh_secret2, dh_first_part2 = newTC.generate_diffie_secret()
         assert oldTC.generate_session_keys(dh_secret, dh_first_part2) == newTC.generate_session_keys(dh_secret2, dh_first_part)
-
