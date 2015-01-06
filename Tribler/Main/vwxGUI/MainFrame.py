@@ -507,6 +507,11 @@ class MainFrame(wx.Frame):
                 else:
                     raise Exception("cannot create dialog, not on wx thread")
 
+            # use default setup
+            else:
+                # set hops to the default anonymous level
+                hops = self.utility.read_config('default_anonymous_level')
+
             if hops > 0:
                 if not tdef:
                     raise Exception('Currently only torrents can be downloaded in anonymous mode')
