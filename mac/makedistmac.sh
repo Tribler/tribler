@@ -15,7 +15,7 @@ fi
 export LIBRARYNAME=Tribler
 
 PYTHON_VERSION=2.7
-PYTHON="arch -i386 /System/Library/Frameworks/Python.framework/Versions/$PYTHON_VERSION/bin/python$PYTHON_VERSION"
+PYTHON="arch -i386 /Library/Frameworks/Python.framework/Versions/$PYTHON_VERSION/bin/python$PYTHON_VERSION"
 
 # ----- Set python paths TODO dynamic checkout
 
