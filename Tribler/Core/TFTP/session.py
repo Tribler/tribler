@@ -5,7 +5,7 @@ from time import time
 DEFAULT_BLOCK_SIZE = 512
 
 # default timeout and maximum retries
-DEFAULT_TIMEOUT = 2
+DEFAULT_TIMEOUT = 4
 DEFAULT_MAX_RETRIES = 4
 
 
