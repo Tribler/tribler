@@ -404,7 +404,7 @@ class ABCApp(object):
 
 
         #TODO(emilon): Quick hack to get 6.4.1 out the door, (re tunnel_community tests disabling is_unit_testing flag)
-        if os.environ.get("SKIP_OPTIN_DLG", "False") == "True":
+        if os.environ.get("TRIBLER_SKIP_OPTIN_DLG", "False") == "True":
             self.sconfig.set_tunnel_community_enabled(True)
         elif not self.sconfig.get_tunnel_community_optin_dialog_shown() and not self.is_unit_testing:
             optin_dialog = wx.MessageDialog(None,

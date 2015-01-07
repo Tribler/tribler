@@ -18,7 +18,7 @@ from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 
 #TODO(emilon): Quick hack to get 6.4.1 out the door, (re tunnel_community tests disabling is_unit_testing flag)
 from os import environ
-environ["SKIP_OPTIN_DLG"] = "True"
+environ["TRIBLER_SKIP_OPTIN_DLG"] = "True"
 
 class TestTunnelCommunity(TestGuiAsServer):
 
