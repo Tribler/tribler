@@ -125,7 +125,7 @@ FREE_SPACE_CHECK_INTERVAL = 300.0
 
 DEBUG = False
 DEBUG_DOWNLOADS = False
-ALLOW_MULTIPLE = False
+ALLOW_MULTIPLE = os.environ.get("TRIBLER_ALLOW_MULTIPLE", "False").lower() == "true"
 
 #
 #
