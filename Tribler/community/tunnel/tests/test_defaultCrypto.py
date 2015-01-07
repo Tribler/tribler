@@ -127,12 +127,12 @@ class TestDefaultCrypto(TestAsServer):
 
     def test__encrypt_decrypt_create_content(self):
         # test own circuit create
-        candidate = DummyCandidate(self.community.my_member._ec.ec)
+        candidate = DummyCandidate(self.community.my_member._ec)
 
         create_message = CreateMessage()
         circuit_id = 123
         self.community.circuits[123] = Circuit(123, 1, candidate, self.community)
-        hop = Hop(self.community.my_member._ec.ec.pub())
+        hop = Hop(self.community.my_member._ec.pub())
         self.community.circuits[123].unverified_hop = hop
 
         encrypted_create_message = \
@@ -140,7 +140,7 @@ class TestDefaultCrypto(TestAsServer):
 
         unverified_hop = self.community.circuits[123].unverified_hop
         unencrypted_key = unverified_hop.dh_first_part
-        unencrypted_pub_key = self.community.crypto.key_to_bin(self.community.my_member._ec.ec.pub())
+        unencrypted_pub_key = self.community.crypto.key_to_bin(self.community.my_member._ec.pub())
         self.assertNotEquals(unencrypted_key, encrypted_create_message.key)
 
         decrypted_create_message = self.crypto._decrypt_create_content(candidate, circuit_id, encrypted_create_message)
@@ -151,12 +151,12 @@ class TestDefaultCrypto(TestAsServer):
         # test other circuit create
         self.__prepare_for_create()
         del self.community.circuits[123]
-        candidate = DummyCandidate(self.community.my_member._ec.ec)
+        candidate = DummyCandidate(self.community.my_member._ec)
 
         create_message = CreateMessage()
         circuit_id = 123
         self.community.circuits[123] = Circuit(123, 1, candidate, self.community)
-        hop = Hop(self.community.my_member._ec.ec.pub())
+        hop = Hop(self.community.my_member._ec.pub())
         self.community.circuits[123].unverified_hop = hop
 
         encrypted_create_message = \
@@ -164,7 +164,7 @@ class TestDefaultCrypto(TestAsServer):
 
         unverified_hop = self.community.circuits[123].unverified_hop
         unencrypted_key = unverified_hop.dh_first_part
-        unencrypted_pub_key = self.community.crypto.key_to_bin(self.community.my_member._ec.ec.pub())
+        unencrypted_pub_key = self.community.crypto.key_to_bin(self.community.my_member._ec.pub())
         self.assertNotEquals(unencrypted_key, encrypted_create_message.key)
 
         decrypted_create_message = self.crypto._decrypt_create_content(candidate, circuit_id, encrypted_create_message)
@@ -174,12 +174,12 @@ class TestDefaultCrypto(TestAsServer):
 
 
     def test__encrypt_decrypt_extend_content(self):
-        candidate = DummyCandidate(self.community.my_member._ec.ec)
+        candidate = DummyCandidate(self.community.my_member._ec)
 
         extend_message = ExtendMessage(self.community.my_member.mid)
         circuit_id = 123
         self.community.circuits[123] = Circuit(123, 1, candidate, self.community)
-        hop = Hop(self.community.my_member._ec.ec.pub())
+        hop = Hop(self.community.my_member._ec.pub())
         self.community.circuits[123].unverified_hop = hop
 
         encrypted_extend_message = \
@@ -196,7 +196,7 @@ class TestDefaultCrypto(TestAsServer):
 
 
     def test__encrypt_decrypt_created_content(self):
-        candidate = DummyCandidate(self.community.my_member._ec.ec)
+        candidate = DummyCandidate(self.community.my_member._ec)
         candidate_list = self.__generate_candidate_list()
 
         circuit_id = 123
