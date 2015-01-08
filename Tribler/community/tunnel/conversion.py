@@ -5,32 +5,9 @@ from Tribler.Core.Utilities.bencode import bdecode
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
 from Tribler.dispersy.endpoint import TUNNEL_PREFIX, TUNNEL_PREFIX_LENGHT
-from binascii import unhexlify, hexlify
 
 ADDRESS_TYPE_IPV4 = 0x01
 ADDRESS_TYPE_DOMAIN_NAME = 0x02
-
-def long_to_bytes(val, nrbytes=0):
-    hex_val = '%x' % abs(val)
-    if nrbytes:
-        padding = '0' * ((abs(nrbytes) * 2) - len(hex_val))
-    else:
-        padding = ''
-    result = unhexlify(padding + hex_val)[::-1]
-
-    if nrbytes < 0:
-        return ("-" if val < 0 else "+") + result
-    return result
-
-def bytes_to_long(val, nrbytes=0):
-    if nrbytes < 0 and (val[0] == "-" or val[0] == "+"):
-        _val = long(hexlify(val[1:][::-1]), 16)
-        if val[0] == "-":
-            return -_val
-        return _val
-    else:
-        return long(hexlify(val[::-1]), 16)
-
 
 class TunnelConversion(BinaryConversion):
     def __init__(self, community):
@@ -78,32 +55,29 @@ class TunnelConversion(BinaryConversion):
 
     def _encode_create(self, message):
         payload = message.payload
-        packet = pack("!IH", payload.circuit_id, len(payload.key)) + payload.key
+        packet = pack("!IHH20s", payload.circuit_id, len(payload.node_public_key), len(payload.key), payload.node_id) + payload.node_public_key + payload.key
         return packet,
 
     def _decode_create(self, placeholder, offset, data):
-        circuit_id, = unpack_from('!I', data, offset)
-        offset += 4
+        circuit_id, len_pubic_key, len_key, nodeid = unpack_from('!IHH20s', data, offset)
+        offset += 28
 
-        len_key, = unpack_from("!H", data, offset)
-        offset += 2
+        node_public_key = data[offset: offset + len_pubic_key]
+        offset += len_pubic_key
 
         key = data[offset:offset + len_key]
         offset += len_key
 
-        return offset, placeholder.meta.payload.implement(circuit_id, key)
+        return offset, placeholder.meta.payload.implement(circuit_id, nodeid, node_public_key, key)
 
     def _encode_created(self, message):
         payload = message.payload
-        packet = pack("!IH", payload.circuit_id, len(payload.key)) + payload.key + payload.candidate_list
+        packet = pack("!IH32s", payload.circuit_id, len(payload.key), payload.auth) + payload.key + payload.candidate_list
         return packet,
 
     def _decode_created(self, placeholder, offset, data):
-        circuit_id, = unpack_from('!I', data, offset)
-        offset += 4
-
-        len_key, = unpack_from("!H", data, offset)
-        offset += 2
+        circuit_id, len_key, auth = unpack_from('!IH32s', data, offset)
+        offset += 38
 
         key = data[offset:offset + len_key]
         offset += len_key
@@ -111,57 +85,51 @@ class TunnelConversion(BinaryConversion):
         candidate_list = data[offset:]
         offset += len(candidate_list)
 
-        return offset, placeholder.meta.payload.implement(circuit_id, key, candidate_list)
+        return offset, placeholder.meta.payload.implement(circuit_id, key, auth, candidate_list)
 
     def _encode_extend(self, message):
         payload = message.payload
-        packet = pack("!IHH", payload.circuit_id, len(payload.extend_with), len(payload.key)) + \
-                 payload.extend_with + payload.key
+        packet = pack("!IHH20s", payload.circuit_id, len(payload.node_public_key), len(payload.key), payload.node_id) + \
+                 payload.node_public_key + payload.key
 
-        if message.payload.extend_with_addr:
-            host, port = message.payload.extend_with_addr
+        if message.payload.node_addr:
+            host, port = message.payload.node_addr
             packet += pack("!4sH", inet_aton(host), port)
         return packet,
 
     def _decode_extend(self, placeholder, offset, data):
-        circuit_id, = unpack_from('!I', data, offset)
-        offset += 4
+        circuit_id, len_public_key, len_key, nodeid = unpack_from('!IHH20s', data, offset)
+        offset += 28
 
-        len_extend_with, len_key = unpack_from("!HH", data, offset)
-        offset += 4
-
-        extend_with = data[offset:offset + len_extend_with]
-        offset += len_extend_with
+        node_public_key = data[offset:offset + len_public_key]
+        offset += len_public_key
 
         key = data[offset:offset + len_key]
         offset += len_key
 
-        extend_with_addr = None
+        node_addr = None
         if len(data) > offset:
             host, port = unpack_from('!4sH', data, offset)
             offset += 6
-            extend_with_addr = (inet_ntoa(host), port)
+            node_addr = (inet_ntoa(host), port)
 
-        return offset, placeholder.meta.payload.implement(circuit_id, key, extend_with, extend_with_addr)
+        return offset, placeholder.meta.payload.implement(circuit_id, nodeid, node_public_key, node_addr, key)
 
     def _encode_extended(self, message):
         payload = message.payload
-        return pack("!IH", payload.circuit_id, len(payload.key)) + payload.key + payload.candidate_list,
+        return pack("!IH32s", payload.circuit_id, len(payload.key), payload.auth) + payload.key + payload.candidate_list,
 
     def _decode_extended(self, placeholder, offset, data):
-        circuit_id, = unpack_from('!I', data, offset)
-        offset += 4
+        circuit_id, len_key, auth = unpack_from('!IH32s', data, offset)
+        offset += 38
 
-        key_length, = unpack_from("!H", data, offset)
-        offset += 2
-
-        key = data[offset:offset + key_length]
-        offset += key_length
+        key = data[offset:offset + len_key]
+        offset += len_key
 
         candidate_list = data[offset:]
         offset += len(candidate_list)
 
-        return offset, placeholder.meta.payload.implement(circuit_id, key, candidate_list)
+        return offset, placeholder.meta.payload.implement(circuit_id, key, auth, candidate_list)
 
     def _encode_ping(self, message):
         return pack('!IH', message.payload.circuit_id, message.payload.identifier),

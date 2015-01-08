@@ -23,7 +23,6 @@ from Tribler.Core.osutils import get_readable_torrent_name
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_INSERT,
                                      NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_ACT_UPNP)
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.community.tunnel.crypto.elgamalcrypto import ElgamalCrypto
 from Tribler.dispersy.util import blockingCallFromThread
 from Tribler.dispersy.endpoint import RawserverEndpoint
 
@@ -165,8 +164,7 @@ class TriblerLaunchMany(Thread):
                 endpoint = RawserverEndpoint(self.rawserver, self.session.get_dispersy_port())
 
                 working_directory = unicode(self.session.get_state_dir())
-                crypto = ElgamalCrypto(self.session.get_install_dir())
-                self.dispersy = Dispersy(endpoint, working_directory, crypto=crypto)
+                self.dispersy = Dispersy(endpoint, working_directory)
 
                 # register TFTP service
                 from Tribler.Core.TFTP.handler import TftpHandler
@@ -195,10 +193,9 @@ class TriblerLaunchMany(Thread):
 
             self.upnp_ports.append((self.dispersy.wan_address[1], 'UDP'))
 
-            from Tribler.Core.permid import read_keypair
-            keypair = read_keypair(self.session.get_permid_keypair_filename())
+            from Tribler.dispersy.crypto import M2CryptoSK
             self.session.dispersy_member = blockingCallFromThread(reactor, self.dispersy.get_member,
-                                                                  private_key=self.dispersy.crypto.key_to_bin(keypair))
+                                                                  private_key=self.dispersy.crypto.key_to_bin(M2CryptoSK(filename=self.session.get_permid_keypair_filename())))
 
             blockingCallFromThread(reactor, self.dispersy.define_auto_load, HardKilledCommunity,
                                    self.session.dispersy_member, load=True)

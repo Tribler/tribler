@@ -403,7 +403,7 @@ class ABCApp(object):
             self.sconfig.set_torrent_collecting_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR))
 
 
-        #TODO(emilon): Quick hack to get 6.4.1 out the door, (re tunnel_community tests disabling is_unit_testing flag)
+        # TODO(emilon): Quick hack to get 6.4.1 out the door, (re tunnel_community tests disabling is_unit_testing flag)
         if os.environ.get("SKIP_OPTIN_DLG", "False") == "True":
             self.sconfig.set_tunnel_community_enabled(True)
         elif not self.sconfig.get_tunnel_community_optin_dialog_shown() and not self.is_unit_testing:
@@ -496,7 +496,8 @@ class ABCApp(object):
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
             from Tribler.community.metadata.community import MetadataCommunity
-            from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
+            from Tribler.community.tunnel.tunnel_community import TunnelSettings
+            from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
             # make sure this is only called once
             session.remove_observer(define_communities)
@@ -514,17 +515,17 @@ class ABCApp(object):
             dispersy.define_auto_load(AllChannelCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
 
             # load metadata community
-            #dispersy.define_auto_load(MetadataCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
+            # dispersy.define_auto_load(MetadataCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
             dispersy.define_auto_load(ChannelCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
             dispersy.define_auto_load(PreviewChannelCommunity, session.dispersy_member, kargs=default_kwargs)
 
             if self.sconfig.get_tunnel_community_enabled() and not self.is_unit_testing:
-                keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
+                keypair = dispersy.crypto.generate_key(u"curve25519")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair),)
                 settings = TunnelSettings(session.get_install_dir())
                 tunnel_kwargs = {'tribler_session': session, 'settings': settings}
 
-                self.tunnel_community = dispersy.define_auto_load(TunnelCommunity, dispersy_member, load=True,
+                self.tunnel_community = dispersy.define_auto_load(HiddenTunnelCommunity, dispersy_member, load=True,
                                                                   kargs=tunnel_kwargs)[0]
 
                 session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_tunnel_community_socks5_listen_ports()))

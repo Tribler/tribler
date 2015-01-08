@@ -15,13 +15,14 @@ from twisted.internet.stdio import StandardIO
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.threads import blockingCallFromThread
 
-from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
+from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Core.permid import read_keypair
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
 try:
     import yappi
@@ -31,7 +32,7 @@ except ImportError:
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 
 
-class TunnelCommunityCrawler(TunnelCommunity):
+class TunnelCommunityCrawler(HiddenTunnelCommunity):
 
     def on_introduction_response(self, messages):
         super(TunnelCommunityCrawler, self).on_introduction_response(messages)
@@ -47,7 +48,7 @@ class Tunnel(object):
 
     __single = None
 
-    def __init__(self, settings, crawl_keypair_filename=None, dispersy_port= -1):
+    def __init__(self, settings, crawl_keypair_filename=None, dispersy_port=-1):
         if Tunnel.__single:
             raise RuntimeError("Tunnel is singleton")
         Tunnel.__single = self
@@ -128,8 +129,8 @@ class Tunnel(object):
                 member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair))
                 cls = TunnelCommunityCrawler
             else:
-                member = self.dispersy.get_new_member(u"NID_secp160k1")
-                cls = TunnelCommunity
+                member = self.dispersy.get_new_member(u"curve25519")
+                cls = HiddenTunnelCommunity
             self.community = self.dispersy.define_auto_load(cls, member, (self.session, self.settings), load=True)[0]
 
             self.session.set_anon_proxy_settings(2, ("127.0.0.1", self.session.get_tunnel_community_socks5_listen_ports()))
