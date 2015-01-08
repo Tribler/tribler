@@ -194,6 +194,8 @@ class TunnelExitSocket(DatagramProtocol):
         return self.port is not None
 
     def sendto(self, data, destination):
+        # Make sure we are sending big enough payloads (https://en.wikipedia.org/wiki/Ethernet_frame#Payload)
+        assert len(data) >= 46, "invalid message length %s %s" % (data.encode("HEX"), str(destination))
         if self.check_num_packets(destination, False):
             if TunnelConversion.is_allowed(data):
                 self.transport.write(data, destination)
