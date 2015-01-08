@@ -1,9 +1,8 @@
 import time
 
-from M2Crypto.EC import EC_pub
-
 from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING, \
                                      CIRCUIT_TYPE_DATA
+from Tribler.dispersy.crypto import DispersyKey
 
 __author__ = 'chris'
 
@@ -111,7 +110,7 @@ class Hop(object):
         @param None|EC_pub public_key: public key object of the hop
         """
 
-        assert public_key is None or isinstance(public_key, EC_pub)
+        assert public_key is None or isinstance(public_key, DispersyKey)
 
         self.session_keys = None
         self.dh_first_part = None

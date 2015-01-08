@@ -7,10 +7,8 @@ from pyasn1.type import univ, namedtype, tag
 from pyasn1.codec.der import decoder
 
 from Tribler import LIBRARYNAME
-from Tribler.dispersy.crypto import ECCrypto
+from Tribler.dispersy.crypto import ECCrypto, DispersyKey, M2CryptoSK
 from Tribler.community.tunnel.conversion import long_to_bytes, bytes_to_long
-
-from M2Crypto.EC import EC_pub
 
 ECElgamalKey = namedtuple('ECElgamalKey', ['ec', 'x', 'Q', 'size', 'encsize'])
 ECElgamalKey_Pub = namedtuple('ECElgamalKey_Pub', ['ec', 'Q', 'size', 'encsize'])
@@ -239,10 +237,12 @@ class OpenSSLCurves():
                 curve[1] = ex
 
     def get_curvename_for_key(self, key):
+        assert isinstance(key, DispersyKey), type(key)
+
         ec = ECCrypto()
         der_encoded_str = ec.key_to_bin(key)
 
-        if isinstance(key, EC_pub):
+        if not isinstance(key, M2CryptoSK):
             decoded_pk, _ = decoder.decode(der_encoded_str, asn1Spec=SubjectPublicKeyInfo())
             return str(decoded_pk[0]['parameters']['namedCurve'])
 
@@ -250,6 +250,8 @@ class OpenSSLCurves():
         return str(decoded_pk['parameters']['namedCurve'])
 
     def get_curve_for_key(self, key):
+        assert isinstance(key, DispersyKey), type(key)
+
         ec = ECCrypto()
         der_encoded_str = ec.key_to_bin(key)
 
@@ -257,12 +259,14 @@ class OpenSSLCurves():
         return self.get_curve(str(decoded_pk[0]['parameters']['namedCurve']))
 
     def get_ecelgamalkey_for_key(self, key):
+        assert isinstance(key, DispersyKey), type(key)
+
         ec = ECCrypto()
         size = ec.get_signature_length(key) / 2
 
         der_encoded_str = ec.key_to_bin(key)
 
-        if isinstance(key, EC_pub):
+        if not isinstance(key, M2CryptoSK):
             decoded_pk, _ = decoder.decode(der_encoded_str, asn1Spec=SubjectPublicKeyInfo())
             curve = self.get_curve(str(decoded_pk[0]['parameters']['namedCurve']))
             bitstring = "".join(map(str, decoded_pk[1]))
