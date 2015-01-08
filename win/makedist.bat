@@ -126,7 +126,7 @@ mkdir dist\installdir\Tribler\community\tunnel\crypto
 copy Tribler\community\tunnel\crypto\curves.ec dist\installdir\Tribler\community\tunnel\crypto
 
 copy logger.conf dist\installdir
-copy ffmpeg.exe dist\installdir
+copy C:\Build\ffmpeg-20150107-git-919e038-win32-static\bin\ffmpeg.exe dist\installdir
 xcopy vlc dist\installdir\vlc /E /I
 copy vlc.py dist\installdir\vlc.py
 
