@@ -81,7 +81,7 @@ class SaveAs(wx.Dialog):
 
         vSizer.Add(hSizer, 0, wx.EXPAND | wx.BOTTOM, 3)
 
-        self.slider = None
+        self.anonymous_slidebar = None
         if self.tunnel_community_enabled:
             self.anonymous_slidebar = AnonymousSlidebar(self)
             vSizer.Add(self.anonymous_slidebar, 0, wx.EXPAND, 3)
