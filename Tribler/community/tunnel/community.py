@@ -442,7 +442,7 @@ class TunnelCommunity(Community):
         for circuit_id in self.circuits.keys():
             self.remove_circuit(circuit_id, destroy=True)
         for circuit_id in self.relay_from_to.keys():
-            self.remove_relay(circuit_id, destroy=True)
+            self.remove_relay(circuit_id, destroy=True, both_sides=False)
         for circuit_id in self.exit_sockets.keys():
             self.remove_exit_socket(circuit_id, destroy=True)
 
@@ -495,11 +495,11 @@ class TunnelCommunity(Community):
         # Remove relays that are inactive / are too old / have transferred too many bytes.
         for key, relay in self.relay_from_to.items():
             if relay.last_incoming < time.time() - self.settings.max_time_inactive:
-                self.remove_relay(key, 'no activity')
+                self.remove_relay(key, 'no activity', both_sides=False)
             elif relay.creation_time < time.time() - self.settings.max_time:
-                self.remove_relay(key, 'too old')
+                self.remove_relay(key, 'too old', both_sides=False)
             elif relay.bytes_up + relay.bytes_down > self.settings.max_traffic:
-                self.remove_relay(key, 'traffic limit exceeded')
+                self.remove_relay(key, 'traffic limit exceeded', both_sides=False)
 
         # Remove exit sockets that are too old / have transferred too many bytes.
         for circuit_id, exit_socket in self.exit_sockets.items():
@@ -600,12 +600,13 @@ class TunnelCommunity(Community):
             return True
         return False
 
-    def remove_relay(self, circuit_id, additional_info='', destroy=False, got_destroy_from=None):
+    def remove_relay(self, circuit_id, additional_info='', destroy=False, got_destroy_from=None, both_sides=True):
         # Find other side of relay
         to_remove = [circuit_id]
-        for k, v in self.relay_from_to.iteritems():
-            if circuit_id == v.circuit_id:
-                to_remove.append(k)
+        if both_sides:
+            for k, v in self.relay_from_to.iteritems():
+                if circuit_id == v.circuit_id:
+                    to_remove.append(k)
 
         # Send destroy
         if destroy:
