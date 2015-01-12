@@ -491,13 +491,17 @@ class SocketHandler(object):
                 try:
                     try:
                         while True:
-                            (data, addr) = s.socket.recvfrom(65535)
-                            if not data:
-                                self._logger.debug("SocketHandler: UDP no-data %s", addr)
-                                break
-                            else:
-                                self._logger.debug("SocketHandler: Got UDP data %s len %s", addr, len(data))
-                                packets.append((addr, data))
+                            try:
+                                (data, addr) = s.socket.recvfrom(65535)
+                            except socket.error, e:
+                                # They both have the same value, but keep it for clarity.
+                                if e.args[0] in [errno.EAGAIN, errno.EWOULDBLOCK]:
+                                    break
+                                else:
+                                    raise
+
+                            self._logger.debug("SocketHandler: Got UDP data %s len %s", addr, len(data))
+                            packets.append((addr, data))
 
                     except socket.error as e:
                         self._logger.debug("SocketHandler: UDP Socket error %s", e)
