@@ -26,4 +26,5 @@
 /debian/tribler/
 /output
 \#*\#
+\.\#
 flycheck_*
