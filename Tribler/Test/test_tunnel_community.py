@@ -3,6 +3,7 @@
 import os
 import sys
 import time
+from time import sleep
 
 from threading import Event
 from traceback import print_exc
@@ -12,13 +13,14 @@ from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import blockingCallFromThread
+from Tribler.dispersy.discovery.community import DiscoveryCommunity
 from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
 from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 
 
 #TODO(emilon): Quick hack to get 6.4.1 out the door, (re tunnel_community tests disabling is_unit_testing flag)
 from os import environ
-environ["SKIP_OPTIN_DLG"] = "True"
+environ["TRIBLER_SKIP_OPTIN_DLG"] = "True"
 
 class TestTunnelCommunity(TestGuiAsServer):
 
@@ -72,12 +74,12 @@ class TestTunnelCommunity(TestGuiAsServer):
         this = self
 
         def on_incoming_from_tunnel(socks_server, community, circuit, origin, data):
-            this.assert_(data == "4242", "Data is not 4242, it is '%s'" % data)
+            this.assert_(data == "4242", "Data is not 4242, it is '%s'" % data.encode("HEX"))
             this.assert_(origin == ("127.0.0.1", 12345), "Origin is not 127.0.0.1:12345, it is '%s:%d'" % (origin[0], origin[1]))
             got_data.set()
 
         def exit_data(community, circuit_id, sock_addr, destination, data):
-            self.assert_(data == "42", "Data is not 42, it is '%s'" % data)
+            assert data == "42", "Data is not 42, it is '%s'" % data.encode("HEX")
             self.assert_(destination == ("127.0.0.1", 12345), "Destination is not 127.0.0.1:12345, it is '%s:%d'" % (destination[0], destination[1]))
             community.tunnel_data_to_origin(circuit_id, sock_addr, ("127.0.0.1", 12345), "4242")
 
@@ -246,6 +248,11 @@ class TestTunnelCommunity(TestGuiAsServer):
             while not upgrader.is_done:
                 time.sleep(0.1)
             session.start()
+            for community in session.lm.dispersy.get_communities():
+                if isinstance(community, DiscoveryCommunity):
+                    community.unload_community()
+                    break
+
             self.sessions.append(session)
 
             while not session.lm.initComplete:
@@ -279,6 +286,11 @@ class TestTunnelCommunity(TestGuiAsServer):
         while not upgrader.is_done:
             time.sleep(0.1)
         self.session2.start()
+        sleep(1)
+        for community in self.session.lm.dispersy.get_communities():
+            if isinstance(community, DiscoveryCommunity):
+                community.unload_community()
+                break
 
         tdef = TorrentDef()
         tdef.add_content(os.path.join(BASE_DIR, "data", "video.avi"))
@@ -301,9 +313,6 @@ class TestTunnelCommunity(TestGuiAsServer):
         return 5.0, False
 
     def setUp(self):
-        with open("bootstraptribler.txt", "w") as f:
-            f.write("127.0.0.1 1")
-
         TestGuiAsServer.setUp(self)
         self.sessions = []
         self.session2 = None
@@ -327,6 +336,5 @@ class TestTunnelCommunity(TestGuiAsServer):
         for session in self.sessions:
             self._shutdown_session(session)
 
-        os.unlink("bootstraptribler.txt")
         time.sleep(10)
         TestGuiAsServer.tearDown(self)

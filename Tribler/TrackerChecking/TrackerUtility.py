@@ -24,7 +24,7 @@ def getUniformedURL(tracker_url):
     try:
         unicode(tracker_url)
     except Exception:
-        logger.warn("Bad tracker URL [%s]" % tracker_url)
+        logger.warn(u"Bad tracker URL [%s]" % tracker_url.encode("HEX"))
         return None
 
     tracker_url = tracker_url.strip()

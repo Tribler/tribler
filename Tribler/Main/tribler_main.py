@@ -125,7 +125,7 @@ FREE_SPACE_CHECK_INTERVAL = 300.0
 
 DEBUG = False
 DEBUG_DOWNLOADS = False
-ALLOW_MULTIPLE = False
+ALLOW_MULTIPLE = os.environ.get("TRIBLER_ALLOW_MULTIPLE", "False").lower() == "true"
 
 #
 #
@@ -404,7 +404,7 @@ class ABCApp(object):
 
 
         #TODO(emilon): Quick hack to get 6.4.1 out the door, (re tunnel_community tests disabling is_unit_testing flag)
-        if os.environ.get("SKIP_OPTIN_DLG", "False") == "True":
+        if os.environ.get("TRIBLER_SKIP_OPTIN_DLG", "False") == "True":
             self.sconfig.set_tunnel_community_enabled(True)
         elif not self.sconfig.get_tunnel_community_optin_dialog_shown() and not self.is_unit_testing:
             optin_dialog = wx.MessageDialog(None,
@@ -1100,6 +1100,7 @@ def run(params=None, is_unit_testing=False):
                     import ctypes
                     x11 = ctypes.cdll.LoadLibrary('libX11.so.6')
                     x11.XInitThreads()
+                    os.environ["TRIBLER_INITTHREADS"] = "False"
                 except OSError as e:
                     logger.debug("Failed to call XInitThreads '%s'", str(e))
                 except:

@@ -53,6 +53,7 @@ class XXXFilter(object):
                   any(self.isXXX(term) for term in terms) or
                   (comment and self.isXXX(comment, False))
                   )
+        tracker = repr(tracker)
         if is_xxx:
             self._logger.debug(u"Torrent is XXX: %s %s", torrent_name, tracker)
         else:
