@@ -509,8 +509,9 @@ class MainFrame(wx.Frame):
 
             # use default setup
             else:
-                # set hops to the default anonymous level
-                hops = self.utility.read_config('default_anonymous_level')
+                if useDefault:
+                    # only load default anonymous level if we use default settings
+                    hops = self.utility.read_config('default_anonymous_level')
 
             if hops > 0:
                 if not tdef:
