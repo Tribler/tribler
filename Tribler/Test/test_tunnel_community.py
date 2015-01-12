@@ -79,7 +79,7 @@ class TestTunnelCommunity(TestGuiAsServer):
             got_data.set()
 
         def exit_data(community, circuit_id, sock_addr, destination, data):
-            self.assert_(data == "42", "Data is not 42, it is '%s'" % data.encode("HEX"))
+            assert data == "42", "Data is not 42, it is '%s'" % data.encode("HEX")
             self.assert_(destination == ("127.0.0.1", 12345), "Destination is not 127.0.0.1:12345, it is '%s:%d'" % (destination[0], destination[1]))
             community.tunnel_data_to_origin(circuit_id, sock_addr, ("127.0.0.1", 12345), "4242")
 
