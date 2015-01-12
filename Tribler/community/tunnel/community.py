@@ -196,7 +196,12 @@ class TunnelExitSocket(DatagramProtocol):
     def sendto(self, data, destination):
         if self.check_num_packets(destination, False):
             if TunnelConversion.is_allowed(data):
-                self.transport.write(data, destination)
+                try:
+                    self.transport.write(data, destination)
+                except Exception, e:
+                    self._logger.error("Failed to write data to transport: %s", str(destination).encode("HEX"))
+                    raise
+
                 self.community.increase_bytes_sent(self, len(data))
             else:
                 self._logger.error("dropping forbidden packets from exit socket with circuit_id %d", self.circuit_id)
