@@ -1136,6 +1136,7 @@ class TunnelCommunity(Community):
     def crypto_in(self, circuit_id, content, is_data=False):
         circuit = self.circuits.get(circuit_id, None)
         if circuit and len(circuit.hops) > 0:
+            # Remove all the encryption layers
             for hop in self.circuits[circuit_id].hops:
                 content = self.crypto.decrypt_str(hop.session_keys[ORIGINATOR], content)
             if circuit and is_data and circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
