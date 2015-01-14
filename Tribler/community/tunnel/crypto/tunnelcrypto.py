@@ -4,6 +4,7 @@ from cryptowrapper import mpz, StrongRandom, aes_decrypt_str, aes_encrypt_str
 from elgamalcrypto import ElgamalCrypto
 from Tribler.community.tunnel.crypto.cryptowrapper import bin_to_dec, dec_to_mpi, \
     mpi_to_dec, DH
+from Tribler.dispersy.crypto import DispersyKey
 
 # we use the 1024 bit modulus from rfc2409
 # http://tools.ietf.org/html/rfc2409#section-6.2
@@ -69,6 +70,7 @@ class TunnelCrypto(ElgamalCrypto):
         self.my_curve = self.community.crypto.get_curve(self.community.my_member._ec)
 
     def is_key_compatible(self, key):
+        assert isinstance(key, DispersyKey), type(key)
         his_curve = self.community.crypto.get_curve(key)
         return self.my_curve == his_curve
 
@@ -148,4 +150,3 @@ if __name__ == "__main__":
         dh_secret, dh_first_part = oldTC.generate_diffie_secret()
         dh_secret2, dh_first_part2 = newTC.generate_diffie_secret()
         assert oldTC.generate_session_keys(dh_secret, dh_first_part2) == newTC.generate_session_keys(dh_secret2, dh_first_part)
-

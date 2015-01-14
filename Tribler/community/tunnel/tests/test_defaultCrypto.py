@@ -85,7 +85,7 @@ class TestDefaultCrypto(TestAsServer):
 
     def __prepare_for_created(self, candidate, circuit_id):
         dh_key = self.crypto._generate_diffie_secret()
-        hop = Hop(self.community.my_member._ec.pub())
+        hop = Hop(self.community.my_member._ec.ec.pub())
         hop.dh_secret = dh_key[0]
         hop.dh_first_part = dh_key[1]
         self.community.circuits[circuit_id] = Circuit(circuit_id, 1, candidate, self.community)
