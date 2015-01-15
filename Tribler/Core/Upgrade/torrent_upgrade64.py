@@ -171,7 +171,7 @@ class TorrentMigrator64(object):
                 file_path = os.path.join(root, name)
                 try:
                     tdef = TorrentDef.load(file_path)
-                    os.rename(file_path, os.path.join(self.tmp_migration_dir, hexlify(tdef.infohash) + u".torrent"))
+                    move(file_path, os.path.join(self.tmp_migration_dir, hexlify(tdef.infohash) + u".torrent"))
                     self.torrent_files_migrated += 1
                 except Exception as e:
                     self._logger.error(u"dropping corrupted torrent file %s: %s", file_path, str(e))

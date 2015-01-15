@@ -1,11 +1,12 @@
 import logging
 import os
+import shutil
 
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION
 from Tribler.Core.Upgrade.db_upgrader import DBUpgrader
 from Tribler.Core.Upgrade.torrent_upgrade64 import TorrentMigrator64
-
 from Tribler.dispersy.util import call_on_reactor_thread
+
 
 # Database versions:
 #   *earlier versions are no longer supported
@@ -68,6 +69,6 @@ class TriblerUpgrader(object):
         self.db.close()
         old_dir = os.path.dirname(self.db.sqlite_db_path)
         new_dir = u'%s_backup_%d' % (old_dir, LATEST_DB_VERSION)
-        os.rename(old_dir, new_dir)
+        shutil.move(old_dir, new_dir)
         os.makedirs(old_dir)
         self.db.initialize()

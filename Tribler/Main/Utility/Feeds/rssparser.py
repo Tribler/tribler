@@ -1,23 +1,22 @@
 # Written by Niels Zeilemaker
-
-import os
-import sha
-import time
-import re
+import imghdr
 import logging
+import os
+import re
+import sha
+import tempfile
+import time
 from copy import deepcopy
 from shutil import copyfile
-from urlparse import urlparse
-import imghdr
-import tempfile
-from traceback import print_exc
 from threading import Thread, RLock, Event
+from traceback import print_exc
+
 import requests
 
-from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
-from Tribler.Core.Utilities.bencode import bdecode
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.bencode import bdecode
+
 
 try:
     from Tribler.Main.Utility.Feeds import feedparser
@@ -354,7 +353,7 @@ class URLResourceRetriever(object):
             old_filepath = filepath
             new_filename = u"thumbnail-%d.%s" % (image_count, image_type)
             new_filepath = os.path.join(work_dir, new_filename)
-            os.rename(old_filepath, new_filepath)
+            move(old_filepath, new_filepath)
 
             return new_filepath
         else:
