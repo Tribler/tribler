@@ -12,6 +12,8 @@ from urlparse import urlsplit, parse_qsl
 import binascii
 import logging
 
+from Tribler.Core.Utilities.bencode import bencode, bdecode
+
 logger = logging.getLogger(__name__)
 
 
@@ -282,6 +284,33 @@ def parse_magnetlink(url):
         logger.debug("parse_magnetlink() TRACS: %s", trs)
 
     return (dn, xt, trs)
+
+
+def fix_torrent(file_path):
+    """
+    Reads and checks if a torrent file is valid and tries to overwrite the torrent file with a non-sloppy version.
+    :param file_path: The torrent file path.
+    :return: True if the torrent file is now overwritten with valid information, otherwise False.
+    """
+    f = open(file_path, 'rb')
+    bdata = f.read()
+    f.close()
+
+    # Check if correct bdata
+    try:
+        bdecode(bdata)
+    except ValueError:
+        # Try reading using sloppy
+        try:
+            bdata = bencode(bdecode(bdata, 1))
+            # Overwrite with non-sloppy torrent
+            f = open(file_path, 'wb')
+            f.write(bdata)
+            f.close()
+        except:
+            return False
+
+    return True
 
 
 if __name__ == '__main__':

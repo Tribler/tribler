@@ -33,8 +33,7 @@ from Tribler.Core.simpledefs import (NTFY_MYPREFERENCES, NTFY_ACT_NEW_VERSION, N
                                      DLSTATUS_WAITING4HASHCHECK, DOWNLOAD)
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.Utilities.bencode import bencode, bdecode
-from Tribler.Core.Utilities.utilities import parse_magnetlink
+from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
 
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.Utility.GuiDBHandler import startWorker
@@ -453,7 +452,7 @@ class MainFrame(wx.Frame):
         self._logger.debug(u"startDownload: %s %s %s %s %s", torrentfilename, destdir, tdef, vodmode, selectedFiles)
 
         if fixtorrent and torrentfilename:
-            self.fixTorrent(torrentfilename)
+            fix_torrent(torrentfilename)
 
         try:
             if torrentfilename and tdef is None:
@@ -613,27 +612,6 @@ class MainFrame(wx.Frame):
             self.onWarning(e)
 
         return None
-
-    def fixTorrent(self, filename):
-        f = open(filename, "rb")
-        bdata = f.read()
-        f.close()
-
-        # Check if correct bdata
-        try:
-            bdecode(bdata)
-        except ValueError:
-            # Try reading using sloppy
-            try:
-                bdata = bencode(bdecode(bdata, 1))
-                # Overwrite with non-sloppy torrent
-                f = open(filename, "wb")
-                f.write(bdata)
-                f.close()
-            except:
-                return False
-
-        return True
 
     def monitorHiddenSerivcesProgress(self, ds, tdef, dscfg, selectedFiles):
         if ds.get_status() in [DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]:

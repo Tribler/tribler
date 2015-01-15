@@ -17,7 +17,7 @@ from Tribler.Core.Search.Bundler import Bundler
 from Tribler.Core.Search.Reranking import DefaultTorrentReranker
 from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.Utilities.utilities import parse_magnetlink
+from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.simpledefs import (NTFY_MISC, NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST,
@@ -34,6 +34,7 @@ from Tribler.Main.vwxGUI import (warnWxThread, forceWxThread, TORRENT_REQ_COLUMN
                                  TUMBNAILTORRENT_REQ_COLUMNS)
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
+
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import (ChannelCommunity, warnDispersyThread)
 from Tribler.community.metadata.community import MetadataCommunity
@@ -282,8 +283,7 @@ class TorrentManager(object):
                     tdef = TorrentDef.load(torrent_filename)
 
                 except ValueError:
-                    # we should move fixTorrent to this object
-                    if self.guiUtility.frame.fixTorrent(torrent_filename):
+                    if fix_torrent(torrent_filename):
                         tdef = TorrentDef.load(torrent_filename)
 
                     else:
