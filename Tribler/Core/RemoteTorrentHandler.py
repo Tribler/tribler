@@ -567,6 +567,9 @@ class TftpRequester(Requester):
             file_name = self._remote_torrent_handler.get_torrent_filename(infohash)
 
         extra_info = {u"infohash": infohash, u"thumbnail_subpath": thumbnail_subpath}
+        # do not download if TFTP has been shutdown
+        if self._session.lm.tftp_handler is None:
+            return
         self._session.lm.tftp_handler.download_file(file_name, ip, port, extra_info=extra_info,
                                                     success_callback=self._success_callback,
                                                     failure_callback=self._failure_callback)

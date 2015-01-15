@@ -121,8 +121,9 @@ sessdefaults['video']['preferredmode'] = PLAYBACKMODE_INTERNAL
 #  Version 7: swift params
 #  Version 8: deleted many of the old params that were not used anymore (due to the switch to libtorrent)
 #  Version 9: remove swift
+#  Version 10: add default anonymous level
 
-DLDEFAULTS_VERSION = 9
+DLDEFAULTS_VERSION = 10
 dldefaults = OrderedDict()
 
 # General download settings
@@ -136,6 +137,7 @@ dldefaults['downloadconfig']['mode'] = 0
 dldefaults['downloadconfig']['hops'] = 0
 dldefaults['downloadconfig']['selected_files'] = []
 dldefaults['downloadconfig']['correctedfilename'] = None
+dldefaults['downloadconfig']['default_anonymous_level'] = 0
 
 tdefdictdefaults = {}
 tdefdictdefaults['comment'] = None

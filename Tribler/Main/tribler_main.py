@@ -125,7 +125,7 @@ FREE_SPACE_CHECK_INTERVAL = 300.0
 
 DEBUG = False
 DEBUG_DOWNLOADS = False
-ALLOW_MULTIPLE = False
+ALLOW_MULTIPLE = os.environ.get("TRIBLER_ALLOW_MULTIPLE", "False").lower() == "true"
 
 #
 #
@@ -404,11 +404,24 @@ class ABCApp(object):
 
 
         #TODO(emilon): Quick hack to get 6.4.1 out the door, (re tunnel_community tests disabling is_unit_testing flag)
-        if os.environ.get("SKIP_OPTIN_DLG", "False") == "True":
+        if os.environ.get("TRIBLER_SKIP_OPTIN_DLG", "False") == "True":
             self.sconfig.set_tunnel_community_enabled(True)
         elif not self.sconfig.get_tunnel_community_optin_dialog_shown() and not self.is_unit_testing:
-            from Tribler.Main.Dialogs.TunnelOptin import TunnelOptin
-            optin_dialog = TunnelOptin(None)
+            optin_dialog = wx.MessageDialog(None,
+                                            'If you are not familiar with proxy technology, please opt-out.\n\n'
+                                            'This experimental anonymity feature using Tor-inspired onion routing '
+                                            'and multi-layered encryption.'
+                                            'You will become an exit node for other users downloads which could get you in '
+                                            'trouble in various countries.\n'
+                                            'This privacy enhancement will not protect you against spooks or '
+                                            'government agencies.\n'
+                                            'We are a torrent client and aim to protect you against lawyer-based '
+                                            'attacks and censorship.\n'
+                                            'With help from many volunteers we are continuously evolving and improving.'
+                                            '\n\nI you aren\'t sure, press Cancel to disable the \n'
+                                            'experimental anonymity feature',
+                                            'Do you want to use the experimental anonymity feature?',
+                                            wx.ICON_WARNING | wx.OK | wx.CANCEL)
             enable_tunnel_community = optin_dialog.ShowModal() == wx.ID_OK
             self.sconfig.set_tunnel_community_enabled(enable_tunnel_community)
             self.sconfig.set_tunnel_community_optin_dialog_shown(True)

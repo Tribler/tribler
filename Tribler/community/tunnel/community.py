@@ -196,7 +196,12 @@ class TunnelExitSocket(DatagramProtocol):
     def sendto(self, data, destination):
         if self.check_num_packets(destination, False):
             if TunnelConversion.is_allowed(data):
-                self.transport.write(data, destination)
+                try:
+                    self.transport.write(data, destination)
+                except Exception, e:
+                    self._logger.error("Failed to write data to transport: %s", str(destination).encode("HEX"))
+                    raise
+
                 self.community.increase_bytes_sent(self, len(data))
             else:
                 self._logger.error("dropping forbidden packets from exit socket with circuit_id %d", self.circuit_id)
@@ -1131,6 +1136,7 @@ class TunnelCommunity(Community):
     def crypto_in(self, circuit_id, content, is_data=False):
         circuit = self.circuits.get(circuit_id, None)
         if circuit and len(circuit.hops) > 0:
+            # Remove all the encryption layers
             for hop in self.circuits[circuit_id].hops:
                 content = self.crypto.decrypt_str(hop.session_keys[ORIGINATOR], content)
             if circuit and is_data and circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
