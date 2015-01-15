@@ -325,7 +325,7 @@ class TunnelCommunity(Community):
         self.trsession = tribler_session
         self.settings = settings if settings else TunnelSettings()
 
-        assert isinstance(self.settings.crypto, TunnelCrypto)
+        assert isinstance(self.settings.crypto, TunnelCrypto), self.settings.crypto
 
         self.crypto.initialize(self)
 
@@ -1111,7 +1111,7 @@ class TunnelCommunity(Community):
         if circuit_id in self.exit_sockets:
             if not self.exit_sockets[circuit_id].enabled:
                 # We got the correct circuit_id, but from a wrong IP.
-                assert sock_addr == self.exit_sockets[circuit_id].sock_addr
+                assert sock_addr == self.exit_sockets[circuit_id].sock_addr, "%s != %s" % (str(sock_addr), str(self.exit_sockets[circuit_id].sock_addr))
                 self.exit_sockets[circuit_id].enable()
             try:
                 self.exit_sockets[circuit_id].sendto(data, destination)
