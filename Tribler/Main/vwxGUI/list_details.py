@@ -807,7 +807,7 @@ class TorrentDetails(AbstractDetails):
             menu.Append(itemid, label)
             menu.Enable(itemid, enabled)
             if enabled:
-                menu.Bind(wx.EVT_MENU, lambda evt, d=download, f=files: self.guiutility.frame.modifySelection(d, f), id=itemid)
+                menu.Bind(wx.EVT_MENU, lambda evt, d=download, f=files: d.set_selected_files(f), id=itemid)
 
         self.PopupMenu(menu, self.ScreenToClient(wx.GetMousePosition()))
         menu.Destroy()

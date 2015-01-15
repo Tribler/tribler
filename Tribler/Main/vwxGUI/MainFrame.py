@@ -614,9 +614,6 @@ class MainFrame(wx.Frame):
 
         return None
 
-    def modifySelection(self, download, selectedFiles):
-        download.set_selected_files(selectedFiles)
-
     def fixTorrent(self, filename):
         f = open(filename, "rb")
         bdata = f.read()
