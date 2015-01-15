@@ -110,6 +110,7 @@ class TorrentMigrator64(object):
         """
         Walks through the torrent collecting directory and gets the total number of file.
         """
+        self.status_update_func(u"Scanning torrent directory. This may take a while if you have a big torrent collection...")
         for root, _, files in os.walk(self.torrent_collecting_dir):
             for name in files:
                 if name.endswith(u".mbinmap") or name.endswith(u".mhash") or name.startswith(u"tmp_"):
