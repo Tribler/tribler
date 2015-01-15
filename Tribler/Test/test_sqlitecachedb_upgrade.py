@@ -37,7 +37,7 @@ class TestSqliteCacheDB(AbstractServer):
         """We no longer support DB versions older than 17 (Tribler 6.0)"""
         dbpath = init_bak_tribler_sdb(u"bak_old_tribler.sdb", destination_path=self.getStateDir(), overwrite=True)
 
-        self.sqlitedb = SQLiteCacheDB(Session.get_instance())
+        self.sqlitedb = SQLiteCacheDB(self.session)
         self.sqlitedb.initialize(dbpath)
 
         db_migrator = DBUpgrader(self.session, self.sqlitedb)

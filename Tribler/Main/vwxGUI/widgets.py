@@ -2543,3 +2543,58 @@ class VideoVolume(wx.Panel):
         gc.SetPen(wx.Pen(wx.Colour(241, 92, 62)))
         gc.SetBrush(wx.TRANSPARENT_BRUSH)
         gc.DrawPath(path)
+
+
+class AnonymousSlidebar(wx.Panel):
+
+    def __init__(self, parent):
+        super(AnonymousSlidebar, self).__init__(parent)
+
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+
+        # Add slider
+        labels = wx.BoxSizer(wx.HORIZONTAL)
+        labels.Add(wx.StaticText(self, -1, 'High speed\nLow anonymity', style=wx.ALIGN_CENTRE_HORIZONTAL))
+        labels.AddStretchSpacer()
+        labels.Add(wx.StaticText(self, -1, 'Low speed\nHigh anonymity', style=wx.ALIGN_CENTRE_HORIZONTAL))
+
+        self.slider_images = [GuiImageManager.getInstance().getImage(u"scale_%d.png" % i) for i in range(6)]
+        self.slider_bitmap = wx.StaticBitmap(self, -1, self.slider_images[0])
+
+        self.slider = wx.Slider(self, -1, 0, 0, 5, wx.DefaultPosition, style=wx.SL_AUTOTICKS | wx.SL_HORIZONTAL)
+        self.slider.Bind(wx.EVT_SLIDER, self.OnSlide)
+
+        hop_count = wx.BoxSizer(wx.HORIZONTAL)
+        hop_count.AddSpacer((10, -1))
+        for count in range(6):
+            hop_count.Add(wx.StaticText(self, -1, '%d' % count, style=wx.ALIGN_CENTRE_HORIZONTAL))
+            if count != 5:
+                hop_count.AddStretchSpacer()
+            else:
+                hop_count.AddSpacer((10, -1))
+
+        labels_and_slider = wx.BoxSizer(wx.VERTICAL)
+        labels_and_slider.Add(labels, 0, wx.EXPAND)
+        labels_and_slider.Add(self.slider, 0, wx.EXPAND)
+        labels_and_slider.Add(hop_count, 0, wx.EXPAND)
+
+        slider_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        slider_sizer.Add(labels_and_slider, 1, wx.RIGHT, 10)
+        slider_sizer.Add(self.slider_bitmap)
+
+        vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
+        st = wx.StaticText(self, -1, 'Please select how anonymous you want to download:')
+        _set_font(st, fontweight=wx.FONTWEIGHT_BOLD)
+        vSizer.Add(st, 0, wx.EXPAND | wx.BOTTOM, 10)
+        vSizer.Add(slider_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+
+        self.SetSizer(vSizer)
+
+    def OnSlide(self, event):
+        self.slider_bitmap.SetBitmap(self.slider_images[self.slider.GetValue()])
+
+    def GetValue(self):
+        return self.slider.GetValue()
+
+    def SetValue(self, value):
+        self.slider.SetValue(value)
