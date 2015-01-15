@@ -291,9 +291,10 @@ class SettingsDialog(wx.Dialog):
 
         if restart:
             dlg = wx.MessageDialog(self, "A restart is required for these changes to take effect.\nDo you want to restart Tribler now?", "Restart required", wx.ICON_QUESTION | wx.YES_NO | wx.YES_DEFAULT)
-            if dlg.ShowModal() == wx.ID_YES:
-                self.guiUtility.frame.Restart()
+            result = dlg.ShowModal()
             dlg.Destroy()
+            if result == wx.ID_YES:
+                self.guiUtility.frame.Restart()
         self.EndModal(1)
         event.Skip()
 
