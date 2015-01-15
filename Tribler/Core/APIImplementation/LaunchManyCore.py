@@ -97,7 +97,7 @@ class TriblerLaunchMany(Thread):
         self.torrent_checking = None
         self.tunnel_community = None
 
-    def register(self, session, sesslock):
+    def register(self, session, sesslock, autoload_discovery=True):
         if not self.registered:
             self.registered = True
 
@@ -175,16 +175,16 @@ class TriblerLaunchMany(Thread):
                 self.tftp_handler.initialize()
 
         if not self.initComplete:
-            self.init()
+            self.init(autoload_discovery)
 
-    def init(self):
+    def init(self, autoload_discovery):
         if self.dispersy:
             from Tribler.dispersy.community import HardKilledCommunity
 
             self._logger.info("lmc: Starting Dispersy...")
 
             now = timemod.time()
-            success = self.dispersy.start()
+            success = self.dispersy.start(autoload_discovery)
 
             diff = timemod.time() - now
             if success:
