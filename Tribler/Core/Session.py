@@ -43,7 +43,7 @@ class Session(SessionConfigInterface):
     """
     __single = None
 
-    def __init__(self, scfg=None, ignore_singleton=False):
+    def __init__(self, scfg=None, ignore_singleton=False, autoload_discovery=True):
         """
         A Session object is created which is configured following a copy of the
         SessionStartupConfig scfg. (copy constructor used internally)
@@ -151,6 +151,8 @@ class Session(SessionConfigInterface):
         self.save_pstate_sessconfig()
 
         self.sqlite_db = None
+
+        self.autoload_discovery = autoload_discovery
 
     def prestart(self):
         """ Pre-starts the session. We check the currently version and upgrades if needed
@@ -463,7 +465,7 @@ class Session(SessionConfigInterface):
 
         # Create engine with network thread
         self.lm = TriblerLaunchMany()
-        self.lm.register(self, self.sesslock)
+        self.lm.register(self, self.sesslock, autoload_discovery=self.autoload_discovery)
         self.lm.start()
 
         self.sessconfig.set_callback(self.lm.sessconfig_changed_callback)

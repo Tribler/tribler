@@ -138,7 +138,7 @@ ALLOW_MULTIPLE = os.environ.get("TRIBLER_ALLOW_MULTIPLE", "False").lower() == "t
 
 class ABCApp(object):
 
-    def __init__(self, params, installdir, is_unit_testing=False):
+    def __init__(self, params, installdir, is_unit_testing=False, autoload_discovery=True):
         assert not isInIOThread(), "isInIOThread() seems to not be working correctly"
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -172,7 +172,7 @@ class ABCApp(object):
         self.utility = None
 
         # Stage 1 start
-        session = self.InitStage1(installdir)
+        session = self.InitStage1(installdir, autoload_discovery=autoload_discovery)
 
         self.splash = None
         try:
@@ -340,7 +340,7 @@ class ABCApp(object):
 
             self.onError(e)
 
-    def InitStage1(self, installdir):
+    def InitStage1(self, installdir, autoload_discovery=True):
         """ Stage 1 start: pre-start the session to handle upgrade.
         """
         self.gui_image_manager = GuiImageManager.getInstance(installdir)
@@ -426,7 +426,7 @@ class ABCApp(object):
             optin_dialog.Destroy()
             del optin_dialog
 
-        session = Session(self.sconfig)
+        session = Session(self.sconfig, autoload_discovery=autoload_discovery)
 
         # check and upgrade
         upgrader = session.prestart()
@@ -1085,7 +1085,7 @@ class ABCApp(object):
 #
 #
 @attach_profiler
-def run(params=None, is_unit_testing=False):
+def run(params=None, is_unit_testing=False, autoload_discovery=True):
     if params is None:
         params = [""]
 
@@ -1122,7 +1122,7 @@ def run(params=None, is_unit_testing=False):
             app = wx.GetApp()
             if not app:
                 app = wx.PySimpleApp(redirect=False)
-            abc = ABCApp(params, installdir, is_unit_testing)
+            abc = ABCApp(params, installdir, is_unit_testing, autoload_discovery=autoload_discovery)
             if abc.frame:
                 app.SetTopWindow(abc.frame)
                 abc.frame.set_wxapp(app)
