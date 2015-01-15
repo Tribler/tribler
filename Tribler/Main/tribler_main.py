@@ -74,7 +74,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
@@ -96,7 +96,7 @@ from Tribler.Core.simpledefs import (UPLOAD, DOWNLOAD, NTFY_MODIFIED, NTFY_INSER
                                      DLSTATUS_STOPPED, NTFY_DISPERSY, NTFY_STARTED)
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
-from Tribler.Core.DownloadConfig import get_default_dest_dir
+from Tribler.Core.DownloadConfig import get_default_dest_dir, get_default_dscfg_filename
 
 from Tribler.Core.Statistics.Status.Status import get_status_holder, delete_status_holders
 from Tribler.Core.Statistics.Status.NullReporter import NullReporter

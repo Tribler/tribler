@@ -23,6 +23,8 @@ from Tribler.Core.Base import Serializable, Copyable
 from Tribler.Core.osutils import get_home_dir
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 
+STATEDIR_DLCONFIG = u"tribler.conf"
+
 
 
 class DownloadConfigInterface(object):
@@ -224,3 +226,7 @@ def get_default_dest_dir():
         return os.path.join(downloads_dir, t_downloaddir)
     else:
         return os.path.join(get_home_dir(), t_downloaddir)
+
+
+def get_default_dscfg_filename(state_dir):
+    return os.path.join(state_dir, STATEDIR_DLCONFIG)
