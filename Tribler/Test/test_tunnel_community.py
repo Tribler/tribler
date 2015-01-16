@@ -241,7 +241,7 @@ class TestTunnelCommunity(TestGuiAsServer):
             config.set_dispersy(True)
             config.set_state_dir(self.getStateDir(index))
 
-            session = Session(config, ignore_singleton=True)
+            session = Session(config, ignore_singleton=True, autoload_discovery=False)
             upgrader = session.prestart()
             while not upgrader.is_done:
                 time.sleep(0.1)
@@ -262,7 +262,7 @@ class TestTunnelCommunity(TestGuiAsServer):
 
             return blockingCallFromThread(reactor, load_community, session)
 
-        TestGuiAsServer.startTest(self, setup_proxies, force_is_unit_testing=False)
+        TestGuiAsServer.startTest(self, setup_proxies, force_is_unit_testing=False, autoload_discovery=False)
 
     def setupSeeder(self):
         from Tribler.Core.Session import Session
@@ -274,7 +274,7 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         self.config2 = self.config.copy()
         self.config2.set_state_dir(self.getStateDir(2))
-        self.session2 = Session(self.config2, ignore_singleton=True)
+        self.session2 = Session(self.config2, ignore_singleton=True, autoload_discovery=False)
         upgrader = self.session2.prestart()
         while not upgrader.is_done:
             time.sleep(0.1)
@@ -301,9 +301,6 @@ class TestTunnelCommunity(TestGuiAsServer):
         return 5.0, False
 
     def setUp(self):
-        with open("bootstraptribler.txt", "w") as f:
-            f.write("127.0.0.1 1")
-
         TestGuiAsServer.setUp(self)
         self.sessions = []
         self.session2 = None
@@ -327,6 +324,5 @@ class TestTunnelCommunity(TestGuiAsServer):
         for session in self.sessions:
             self._shutdown_session(session)
 
-        os.unlink("bootstraptribler.txt")
         time.sleep(10)
         TestGuiAsServer.tearDown(self)
