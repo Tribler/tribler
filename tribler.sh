@@ -21,8 +21,7 @@ if [ $UNAME == "Linux" ]; then
 
     export PYTHONPATH
 
-
-    python Tribler/Main/tribler.py
+    python2.7 Tribler/Main/tribler.py
 
 else
     if [ $UNAME == "Darwin" ]; then
