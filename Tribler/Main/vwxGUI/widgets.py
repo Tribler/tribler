@@ -2552,29 +2552,42 @@ class AnonymousSlidebar(wx.Panel):
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
+        self.anonymous_chkbox = wx.CheckBox(self, -1, "Enable anonymous download")
+        font = self.anonymous_chkbox.GetFont()
+        font.SetWeight(wx.BOLD)
+        self.anonymous_chkbox.SetFont(font)
+        self.anonymous_chkbox.Bind(wx.EVT_CHECKBOX, self.OnAnonymousValueChanged)
+
         # Add slider
-        labels = wx.BoxSizer(wx.HORIZONTAL)
-        labels.Add(wx.StaticText(self, -1, 'High speed\nLow anonymity', style=wx.ALIGN_CENTRE_HORIZONTAL))
-        labels.AddStretchSpacer()
-        labels.Add(wx.StaticText(self, -1, 'Low speed\nHigh anonymity', style=wx.ALIGN_CENTRE_HORIZONTAL))
+        self._lbls = []
+        self.labels = wx.BoxSizer(wx.HORIZONTAL)
+        lbl = wx.StaticText(self, -1, 'High speed\nMinimum anonymity', style=wx.ALIGN_CENTRE_HORIZONTAL)
+        self._lbls.append(lbl)
+        self.labels.Add(lbl)
+        self.labels.AddStretchSpacer()
+        lbl = wx.StaticText(self, -1, 'Low speed\nStrong anonymity', style=wx.ALIGN_CENTRE_HORIZONTAL)
+        self._lbls.append(lbl)
+        self.labels.Add(lbl)
 
         self.slider_images = [GuiImageManager.getInstance().getImage(u"scale_%d.png" % i) for i in range(6)]
         self.slider_bitmap = wx.StaticBitmap(self, -1, self.slider_images[0])
 
-        self.slider = wx.Slider(self, -1, 0, 0, 5, wx.DefaultPosition, style=wx.SL_AUTOTICKS | wx.SL_HORIZONTAL)
+        self.slider = wx.Slider(self, -1, 1, 1, 3, wx.DefaultPosition, style=wx.SL_AUTOTICKS | wx.SL_HORIZONTAL)
         self.slider.Bind(wx.EVT_SLIDER, self.OnSlide)
 
         hop_count = wx.BoxSizer(wx.HORIZONTAL)
         hop_count.AddSpacer((10, -1))
-        for count in range(6):
-            hop_count.Add(wx.StaticText(self, -1, '%d' % count, style=wx.ALIGN_CENTRE_HORIZONTAL))
-            if count != 5:
+        for count in xrange(1, 4):
+            lbl = wx.StaticText(self, -1, '%d' % count, style=wx.ALIGN_CENTRE_HORIZONTAL)
+            self._lbls.append(lbl)
+            hop_count.Add(lbl)
+            if count != 3:
                 hop_count.AddStretchSpacer()
             else:
                 hop_count.AddSpacer((10, -1))
 
         labels_and_slider = wx.BoxSizer(wx.VERTICAL)
-        labels_and_slider.Add(labels, 0, wx.EXPAND)
+        labels_and_slider.Add(self.labels, 0, wx.EXPAND)
         labels_and_slider.Add(self.slider, 0, wx.EXPAND)
         labels_and_slider.Add(hop_count, 0, wx.EXPAND)
 
@@ -2583,18 +2596,37 @@ class AnonymousSlidebar(wx.Panel):
         slider_sizer.Add(self.slider_bitmap)
 
         vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
-        st = wx.StaticText(self, -1, 'Please select how anonymous you want to download:')
-        _set_font(st, fontweight=wx.FONTWEIGHT_BOLD)
-        vSizer.Add(st, 0, wx.EXPAND | wx.BOTTOM, 10)
+        vSizer.Add(self.anonymous_chkbox, 0, wx.EXPAND | wx.BOTTOM, 10)
+        self.st = wx.StaticText(self, -1, 'Please select how anonymous you want to download:')
+        _set_font(self.st, fontweight=wx.FONTWEIGHT_BOLD)
+        vSizer.Add(self.st, 0, wx.EXPAND | wx.BOTTOM, 10)
         vSizer.Add(slider_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
 
         self.SetSizer(vSizer)
 
+        self.anonymous_chkbox.SetValue(False)
+        self.OnAnonymousValueChanged(None)
+
     def OnSlide(self, event):
         self.slider_bitmap.SetBitmap(self.slider_images[self.slider.GetValue()])
 
+    def OnAnonymousValueChanged(self, event):
+        to_show = self.anonymous_chkbox.GetValue()
+        self.slider.Show(to_show)
+        self.slider_bitmap.Show(to_show)
+        self.st.Show(to_show)
+        for lbl in self._lbls:
+            lbl.Show(to_show)
+
+        self.Layout()
+        self.GetParent().Layout()
+
     def GetValue(self):
-        return self.slider.GetValue()
+        return self.slider.GetValue() if self.anonymous_chkbox.GetValue() else 0
 
     def SetValue(self, value):
-        self.slider.SetValue(value)
+        if value == 0:
+            self.anonymous_chkbox.SetValue(False)
+        else:
+            self.anonymous_chkbox.SetValue(True)
+            self.slider.SetValue(value)
