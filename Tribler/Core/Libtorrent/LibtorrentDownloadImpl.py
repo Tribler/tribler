@@ -204,6 +204,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.endbuffsize = 0
         self.vod_seekpos = 0
 
+        self.max_prebuffsize = 5 * 1024 * 1024
+
         self.pstate_for_restart = None
 
         self.cew_scheduled = False
@@ -350,7 +352,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             filename = self.get_selected_files()[0] if self.tdef.is_multifile_torrent() else self.tdef.get_name()
             self.vod_index = self.tdef.get_index_of_file_in_files(filename) if self.tdef.is_multifile_torrent() else 0
 
-            self.prebuffsize = max(int(self.get_vod_filesize() * 0.05), 5 * 1024 * 1024)
+            self.prebuffsize = max(int(self.get_vod_filesize() * 0.05), self.max_prebuffsize)
             self.endbuffsize = 1 * 1024 * 1024
 
             self.handle.set_sequential_download(True)

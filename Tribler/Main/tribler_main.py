@@ -1115,6 +1115,7 @@ def run(params=None, is_unit_testing=False, autoload_discovery=True):
                     import ctypes
                     x11 = ctypes.cdll.LoadLibrary('libX11.so.6')
                     x11.XInitThreads()
+                    os.environ["TRIBLER_INITTHREADS"] = "False"
                 except OSError as e:
                     logger.debug("Failed to call XInitThreads '%s'", str(e))
                 except:

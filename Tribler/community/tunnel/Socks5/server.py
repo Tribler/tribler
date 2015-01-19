@@ -113,11 +113,12 @@ class Socks5Connection(Protocol):
         :return: False if command could not been processes due to lack of bytes, True otherwise
         """
         offset, request = conversion.decode_methods_request(0, self.buffer)
-        assert isinstance(request, conversion.MethodRequest)
 
         # No (complete) HANDSHAKE received, so dont do anything
         if request is None:
             return False
+
+        assert isinstance(request, conversion.MethodRequest), request
 
         # Consume the buffer
         self.buffer = self.buffer[offset:]

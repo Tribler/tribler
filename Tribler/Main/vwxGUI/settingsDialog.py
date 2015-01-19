@@ -1,27 +1,26 @@
 # Written by Niels Zeilemaker
 
 # see LICENSE.txt for license information
-import wx
-import wx.lib.masked.textctrl
-import wx.lib.imagebrowser as ib
-import sys
-import os
-import tempfile
 import atexit
-import time
 import logging
+import os
+import shutil
+import sys
+import tempfile
+import time
 
-from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, STATEDIR_TORRENTCOLL_DIR
+import wx.lib.imagebrowser as ib
+import wx.lib.masked.textctrl
+
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.osutils import get_picture_dir
-
+from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, STATEDIR_TORRENTCOLL_DIR
 from Tribler.Main.globals import DefaultDownloadStartupConfig, get_default_dscfg_filename
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, data2wxBitmap, ICON_MAX_DIM
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.validator import DirectoryValidator, NetworkSpeedValidator,NumberValidator
 from Tribler.Main.vwxGUI.widgets import _set_font, EditText, AnonymousSlidebar
-from Tribler.Main.vwxGUI.validator import DirectoryValidator, NetworkSpeedValidator, \
-    NumberValidator
 
 
 def create_section(parent, hsizer, label):
@@ -291,9 +290,10 @@ class SettingsDialog(wx.Dialog):
 
         if restart:
             dlg = wx.MessageDialog(self, "A restart is required for these changes to take effect.\nDo you want to restart Tribler now?", "Restart required", wx.ICON_QUESTION | wx.YES_NO | wx.YES_DEFAULT)
-            if dlg.ShowModal() == wx.ID_YES:
-                self.guiUtility.frame.Restart()
+            result = dlg.ShowModal()
             dlg.Destroy()
+            if result == wx.ID_YES:
+                self.guiUtility.frame.Restart()
         self.EndModal(1)
         event.Skip()
 
@@ -370,9 +370,9 @@ class SettingsDialog(wx.Dialog):
                         elif os.path.exists(newfile):
                             if not ignore:
                                 os.remove(newfile)
-                                os.rename(oldfile, newfile)
+                                shutil.move(oldfile, newfile)
                         else:
-                            os.rename(oldfile, newfile)
+                            shutil.move(oldfile, newfile)
                 else:
                     os.renames(old, new)
 

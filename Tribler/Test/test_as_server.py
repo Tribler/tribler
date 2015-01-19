@@ -80,8 +80,6 @@ class AbstractServer(unittest.TestCase):
         state_dir = STATE_DIR + (str(nr) if nr else '')
         if not os.path.exists(state_dir):
             os.mkdir(state_dir)
-        if os.path.isfile(u"bootstraptribler.txt"):
-            shutil.copy(u"bootstraptribler.txt", os.path.join(state_dir, u"bootstraptribler.txt"))
         return state_dir
 
     def getDestDir(self, nr=0):

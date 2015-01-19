@@ -610,9 +610,9 @@ class TorrentListItem(DoubleLineListItemWithButtons):
 
                         elif os.path.exists(newfile):
                             os.remove(newfile)
-                            os.rename(oldfile, newfile)
+                            shutil.move(oldfile, newfile)
                         else:
-                            os.rename(oldfile, newfile)
+                            shutil.move(oldfile, newfile)
                 else:
                     os.renames(old, new)
 
@@ -973,7 +973,7 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
     def CreateBitmaps(self):
         # Temporary silence wx errors. Avoids "No handler found for image type" errors.
         nolog = wx.LogNull()
-        
+
         bitmap = None
 
         thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), binascii.hexlify(self.original_data.infohash))
