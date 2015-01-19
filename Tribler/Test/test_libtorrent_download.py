@@ -155,7 +155,12 @@ class TestLibtorrentDownload(TestGuiAsServer):
         def do_vod():
             from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
-            self.frame.startDownload(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"), self.getDestDir(), selectedFiles=[os.path.join('Sample', 'Pioneer.One.S01E06.720p.x264.Sample-VODO.mkv')], vodmode=True)
+            ds = self.frame.startDownload(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"),
+                                          self.getDestDir(),
+                                          selectedFiles=[os.path.join('Sample', 'Pioneer.One.S01E06.720p.x264.Sample-VODO.mkv')],
+                                          vodmode=True)
+            # set the max prebuffsize to be smaller so that the unit test runs faster
+            ds.max_prebuffsize = 16 * 1024
             self.guiUtility.ShowPlayer()
             self.CallConditional(30, lambda: VideoPlayer.getInstance().get_vod_download(), do_monitor, "VOD download not found")
 
