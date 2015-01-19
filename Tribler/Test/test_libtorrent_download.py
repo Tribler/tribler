@@ -5,6 +5,8 @@ import os
 from time import time
 
 import binascii
+
+from Tribler.Core.simpledefs import DOWNLOAD
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 
 
@@ -18,7 +20,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.quit()
 
         def item_shown_in_list():
-            self.CallConditional(30, lambda: self.frame.librarylist.list.GetItem(infohash).original_data.ds and self.frame.librarylist.list.GetItem(infohash).original_data.ds.progress > 0, make_screenshot, 'no download progress')
+            self.CallConditional(30, lambda: self.frame.librarylist.list.GetItem(infohash).original_data.ds and self.frame.librarylist.list.GetItem(infohash).original_data.ds.get_current_speed(DOWNLOAD) > 0, make_screenshot, 'no download progress')
 
         def download_object_ready():
             self.CallConditional(10, lambda: self.frame.librarylist.list.HasItem(infohash), item_shown_in_list, 'no download in librarylist')
