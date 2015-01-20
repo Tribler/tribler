@@ -9,13 +9,13 @@ The aim of Tribler is giving anonymous access to online (streaming) videos. We a
 
 Tribler currently offers a Youtube-style service. For instance, Bittorrent-compatible streaming, fast search, thumbnail previews and comments. For the past 9 years we have been building a very robust Peer-to-Peer system. Today Tribler is robust: "the only way to take Tribler down is to take The Internet down" (but a single software bug could end everything).
 
-## Build dependencies
-
 We make use of submodules, so remember using the --recursive argument when cloning this repo.
+
+## Runtime dependencies
 
 ### Debian/Ubuntu/Mint
 ```bash
-sudo apt-get install libav-tools libjs-excanvas libjs-mootools libx11-6 python-apsw python-cherrypy3 python-crypto python-feedparser python-gmpy python-libtorrent python-m2crypto python-netifaces python-pil python-pyasn1 python-requests python-twisted python-wxgtk2.8 vlc
+sudo apt-get install libav-tools libjs-excanvas libjs-mootools libx11-6 python-apsw python-cherrypy3 python-crypto python-feedparser python-gmpy python-libtorrent python-m2crypto python-netifaces python-pil python-pyasn1 python-requests python-twisted python-wxgtk2.8 python2.7 vlc
 ```
 
 ### Windows and OSX
@@ -36,7 +36,7 @@ git clone --recursive  https://github.com/Tribler/tribler.git
 ```
 
 Done!
-Now you can run tribler by executing the tribler.sh script on the root of the tree:
+Now you can run tribler by executing the ```tribler.sh``` script on the root of the tree:
 
 ```bash
 ./tribler.sh
@@ -65,6 +65,7 @@ cp $HOME/Workspace/install/ffmpeg-2.2.4 vlc/ffmpeg
 Tribler/Main/Build/update_version_from_git.py
 ./mac/makedistmac.sh
 ```
+TODO: Add detailed build dependencies.
 
 ## Windows
 
@@ -91,5 +92,5 @@ A good reference for the dependency list is ```debian/control```
 # Submodule notes
  - As updated submodules are in detached head state, remember to check out a branch before commiting changes on them.
  - If you forgot to check out a branch before doing a commit, you should get a warning telling you about it. To get the commit to a branch just check out the branch and do a git cherry-pick of the commit.
- - Take care of not accidentally commiting a submodule change with git commit -a
+ - Take care of not accidentally commiting a submodule revision change with git commit -a
  - Do not commit a submodule update without running all the tests first and making sure the new code is not breaking Tribler.

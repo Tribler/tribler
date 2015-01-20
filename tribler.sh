@@ -27,8 +27,7 @@ if [ "$UNAME" = "Linux" ]; then
 
     export PYTHONPATH
 
-
-    python $TRIBLER_SCRIPT
+    python2.7 $TRIBLER_SCRIPT
 
 else
     if [ "$UNAME" = "Darwin" ]; then
