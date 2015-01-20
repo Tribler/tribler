@@ -515,7 +515,7 @@ class ListItem(wx.Panel):
         return False
 
     def __str__(self):
-        return "ListItem " + " ".join(map(str, self.data))
+        return u"ListItem " + u" ".join(map(unicode, self.data))
 
 
 class AbstractListBody():
@@ -909,7 +909,7 @@ class AbstractListBody():
     @warnWxThread
     def RefreshData(self, key, data):
         if key in self.items:
-            self._logger.debug("ListBody: refresh item %s", self.items[key])
+            self._logger.debug(u"ListBody: refresh item %s", self.items[key])
             self.items[key].RefreshData(data)
 
             # forward update to expandedPanel
