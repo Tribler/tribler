@@ -447,7 +447,7 @@ class MainFrame(wx.Frame):
         return False
 
     def startDownload(self, torrentfilename=None, destdir=None, tdef=None, cmdline=False, clicklog=None,
-                      name=None, vodmode=False, hops=0, try_hidden_services=False, fixtorrent=False, selectedFiles=None,
+                      vodmode=False, hops=0, try_hidden_services=False, fixtorrent=False, selectedFiles=None,
                       correctedFilename=None, hidden=False):
         self._logger.debug(u"startDownload: %s %s %s %s %s", torrentfilename, destdir, tdef, vodmode, selectedFiles)
 
