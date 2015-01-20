@@ -252,8 +252,7 @@ def find_prog_in_PATH(prog):
 
 
 def get_collected_torrent_filename(infohash):
-    # Arno: Better would have been the infohash in hex.
-    filename = sha(infohash).hexdigest() + '.torrent'    # notice: it's sha1-hash of infohash
+    filename = binascii.hexlify(infohash) + '.torrent'
     return filename
     # exceptions will be handled by got_metadata()
 
