@@ -20,11 +20,17 @@ try:
 except:
     logger.exception("Unable to use wxversion, Error: %s.")
 
+
 def run():
     from Tribler.Main.tribler_main import run as run_main
     run_main()
 
+if sys.version_info[:2] != (2, 7):
+    print >> sys.stderr, "Tribler needs python 2.7.X to run, current version: %s" % sys.version
+    exit(1)
+
 if __name__ == '__main__':
+
     run()
     delayed_calls = reactor.getDelayedCalls()
     if delayed_calls:
