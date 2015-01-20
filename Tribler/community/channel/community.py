@@ -369,7 +369,7 @@ class ChannelCommunity(Community):
             message = self._dispersy.load_message_by_packetid(self, dispersy_id)
             if message:
                 if not message.undone:
-                    Community.create_undo(self, message)
+                    self.create_undo(message)
 
                 else:  # hmm signal gui that this message has been removed already
                     self._disp_undo_torrent([(None, None, message)])
@@ -379,7 +379,7 @@ class ChannelCommunity(Community):
             message = self._dispersy.load_message_by_packetid(self, dispersy_id)
             if message:
                 if not message.undone:
-                    self._dispersy.create_undo(self, message)
+                    self.create_undo(message)
 
                 else:  # hmm signal gui that this message has been removed already
                     self._disp_undo_playlist([(None, None, message)])
@@ -534,7 +534,7 @@ class ChannelCommunity(Community):
     def remove_comment(self, dispersy_id):
         message = self._dispersy.load_message_by_packetid(self, dispersy_id)
         if message:
-            self._dispersy.create_undo(self, message)
+            self.create_undo(message)
 
     # modify channel, playlist or torrent
     @call_on_reactor_thread
@@ -773,7 +773,7 @@ class ChannelCommunity(Community):
         for dispersy_id in dispersy_ids:
             message = self._dispersy.load_message_by_packetid(self, dispersy_id)
             if message:
-                self._dispersy.create_undo(self, message)
+                self.create_undo(message)
 
     @call_on_reactor_thread
     def _disp_create_playlist_torrents(self, playlist_packet, infohashes, store=True, update=True, forward=True):
