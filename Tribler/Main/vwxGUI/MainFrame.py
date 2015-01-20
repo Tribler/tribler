@@ -415,6 +415,8 @@ class MainFrame(wx.Frame):
 
     def startDownloadFromMagnet(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False, hops=0):
         name, infohash, _ = parse_magnetlink(url)
+        if name is None:
+            name = ""
         tdef = TorrentDefNoMetainfo(infohash, name, url=url)
         wx.CallAfter(self.startDownload, tdef=tdef, cmdline=cmdline, destdir=destdir, selectedFiles=selectedFiles, vodmode=vodmode, hops=0)
         return True
