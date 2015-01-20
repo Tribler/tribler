@@ -5,7 +5,8 @@ from time import time
 DEFAULT_BLOCK_SIZE = 512
 
 # default timeout and maximum retries
-DEFAULT_TIMEOUT = 2
+DEFAULT_TIMEOUT = 4
+DEFAULT_MAX_RETRIES = 4
 
 
 class Session(object):
@@ -29,6 +30,8 @@ class Session(object):
         self.timeout = timeout
         self.success_callback = success_callback
         self.failure_callback = failure_callback
+
+        self.retries = 0
 
         self.last_contact_time = time()
         self.last_received_packet = None
