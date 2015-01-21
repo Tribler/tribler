@@ -656,6 +656,10 @@ class TriblerLaunchMany(Thread):
             self.tftp_handler.shutdown()
             self.tftp_handler = None
 
+        if self.torrent_store is not None:
+            self.torrent_store.close()
+            self.torrent_store = None
+
         if self.dispersy:
             self._logger.info("lmc: Shutting down Dispersy...")
             now = timemod.time()
