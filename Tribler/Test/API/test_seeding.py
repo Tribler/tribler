@@ -62,19 +62,22 @@ class TestSeeding(TestAsServer):
         self.torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
         self.tdef.save(self.torrentfn)
 
-        self._logger.debug("setup_seeder: name is %s", self.tdef.metainfo['info']['name'])
+        self._logger.debug("name is %s", self.tdef.metainfo['info']['name'])
 
         self.dscfg = DownloadStartupConfig()
         self.dscfg.set_dest_dir(os.path.join(BASE_DIR, "API"))  # basedir of the file we are seeding
         d = self.session.start_download(self.tdef, self.dscfg)
         d.set_state_callback(self.seeder_state_callback)
 
-        self._logger.debug("setup_seeder: starting to wait for download to reach seeding state")
+        self._logger.debug("starting to wait for download to reach seeding state")
         assert self.seeding_event.wait(60)
 
     def seeder_state_callback(self, ds):
         d = ds.get_download()
-        self._logger.debug("seeder: %s %s %s ", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress())
+        self._logger.debug("seeder status: %s %s %s",
+                           repr(d.get_def().get_name()),
+                           dlstatus_strings[ds.get_status()],
+                           ds.get_progress())
 
         if ds.get_status() == DLSTATUS_SEEDING:
             self.seeding_event.set()
@@ -125,7 +128,10 @@ class TestSeeding(TestAsServer):
 
     def downloader_state_callback(self, ds):
         d = ds.get_download()
-        self._logger.debug("download: %s %s %s", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress())
+        self._logger.debug("download status: %s %s %s",
+                           repr(d.get_def().get_name()),
+                           dlstatus_strings[ds.get_status()],
+                           ds.get_progress())
 
         if ds.get_status() == DLSTATUS_SEEDING:
             # File is in
