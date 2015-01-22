@@ -20,7 +20,7 @@ from Tribler.dispersy.util import call_on_reactor_thread
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH
-
+from Tribler.Core.torrentstore import TorrentStore
 
 TORRENT_OVERFLOW_CHECKING_INTERVAL = 30 * 60
 LOW_PRIO_COLLECTING = 0
@@ -140,39 +140,44 @@ class RemoteTorrentHandler(TaskManager):
             callback = lambda ih = infohash: user_callback(ih)
             self.torrent_callbacks.setdefault(infohash, set()).add(callback)
 
-    def get_torrent_filename(self, infohash):
-        return u"%s.torrent" % hexlify(infohash)
-
-    def get_torrent_filepath(self, infohash):
-        return os.path.join(self.tor_col_dir, self.get_torrent_filename(infohash))
-
-    def has_torrent(self, infohash):
-        return os.path.exists(self.get_torrent_filepath(infohash))
-
     @call_on_reactor_thread
     def save_torrent(self, tdef, callback=None):
         infohash = tdef.get_infohash()
-        file_path = self.get_torrent_filepath(infohash)
+        infohash_str = hexlify(infohash)
 
-        if not self.has_torrent(infohash):
+        if self.session.lm.torrent_store == None:
+            self._logger.error("Torrent store is not loaded")
+            return
+
+        # TODO(emilon): could we check the database instead of the store?
+        # Checking if a key is present fetches the whole torrent from disk if its
+        # not on the writeback cache.
+        if infohash_str not in self.session.lm.torrent_store:
             # save torrent to file
             try:
-                tdef.save(file_path)
+                bdata = tdef.encode()
+
             except Exception as e:
-                self._logger(u"failed to save torrent %s: %s", file_path, e)
+                self._logger.error(u"failed to encode torrent %s: %s", infohash_str, e)
                 return
+            try:
+                self.session.lm.torrent_store[infohash_str] = bdata
+            except Exception as e:
+                self._logger.error(u"failed to store torrent data for %s, exception was: %s", infohash_str, e)
 
             # add torrent to database
             if self.torrent_db.hasTorrent(infohash):
-                self.torrent_db.updateTorrent(infohash, torrent_file_name=file_path)
+                self.torrent_db.updateTorrent(infohash, torrent_file_name="lvl")
             else:
-                self.torrent_db.addExternalTorrent(tdef, extra_info={u"filename": file_path, u"status": u"good"})
+                self.torrent_db.addExternalTorrent(tdef, extra_info={u"filename": "lvl", u"status": u"good"})
 
         if callback:
+            # TODO(emilon): should we catch exceptions from the callback?
             callback()
 
+        # TODO(emilon): remove all the torrent_file_name references in the callback chain
         # notify all
-        self.notify_possible_torrent_infohash(infohash, file_path)
+        self.notify_possible_torrent_infohash(infohash, infohash_str)
 
     @call_on_reactor_thread
     def download_torrentmessage(self, candidate, infohash, user_callback=None, priority=1):
@@ -234,6 +239,7 @@ class RemoteTorrentHandler(TaskManager):
 
         self.notify_possible_metadata_infohash(infohash, thumbnail_subpath)
 
+    # TODO(emilon): HERE
     def notify_possible_torrent_infohash(self, infohash, torrent_file_name=None):
         if infohash not in self.torrent_callbacks:
             return
@@ -564,15 +570,15 @@ class TftpRequester(Requester):
         if thumbnail_subpath:
             file_name = thumbnail_subpath
         else:
-            file_name = self._remote_torrent_handler.get_torrent_filename(infohash)
+            file_name = hexlify(infohash)+'.torrent'
 
         extra_info = {u"infohash": infohash, u"thumbnail_subpath": thumbnail_subpath}
         # do not download if TFTP has been shutdown
         if self._session.lm.tftp_handler is None:
             return
         self._session.lm.tftp_handler.download_file(file_name, ip, port, extra_info=extra_info,
-                                                    success_callback=self._success_callback,
-                                                    failure_callback=self._failure_callback)
+                                                    success_callback=self._on_download_successful,
+                                                    failure_callback=self._on_download_failed)
         self._active_request_list.append(key)
 
     def _clear_active_request(self, key):
@@ -581,7 +587,7 @@ class TftpRequester(Requester):
         self._active_request_list.remove(key)
 
     @call_on_reactor_thread
-    def _success_callback(self, address, file_name, file_data, extra_info):
+    def _on_download_successful(self, address, file_name, file_data, extra_info):
         self._logger.debug(u"successfully downloaded %s from %s:%s", file_name, address[0], address[1])
 
         # metadata has thumbnail_subpath info
@@ -612,7 +618,7 @@ class TftpRequester(Requester):
         self._start_pending_requests()
 
     @call_on_reactor_thread
-    def _failure_callback(self, address, file_name, error_msg, extra_info):
+    def _on_download_failed(self, address, file_name, error_msg, extra_info):
         self._logger.debug(u"failed to download %s from %s:%s: %s", file_name, address[0], address[1], error_msg)
 
         # metadata has thumbnail_subpath info
