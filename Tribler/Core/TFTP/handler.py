@@ -289,7 +289,7 @@ class TftpHandler(TaskManager):
             if file_name.startswith(DIR_PREFIX):
                 file_data, file_size = self._load_directory(file_name)
             else:
-                file_data, file_size = self._load_file(file_name)
+                file_data, file_size = self._load_torrent(file_name)
             checksum = b64encode(sha1(file_data).digest())
         except FileNotFound as e:
             self._logger.warn(u"[READ %s:%s] file/dir not found: %s", ip, port, e)
@@ -370,6 +370,21 @@ class TftpHandler(TaskManager):
 
         # load the zip file as binary
         return self._load_file(file_name, file_path=tmpfile_path)
+
+    def _load_torrent(self, file_name):
+        """ Loads a file into memory.
+        :param file_name: The path of the file.
+        """
+
+        infohash=file_name[:-8]  # len('.torrent') = 8
+
+        file_data = self.session.lm.torrent_store.get(infohash)
+        # check if file exists
+        if not file_data:
+            msg = u"Torrent not in store: %s" % infohash
+            raise FileNotFound(msg)
+
+        return file_data, len(file_data)
 
     def _get_next_data(self, session):
         """ Gets the next block of data to be uploaded. This method is only used for data uploading.
