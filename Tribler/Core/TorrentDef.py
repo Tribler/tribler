@@ -862,38 +862,14 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
         @param filename An absolute Unicode path name.
         """
-        if not self.readonly:
-            self.finalize()
-
-        # Boudewijn, 10/09/10: do not save the 'initial peers'.  (1)
-        # they should not be saved, as they are unlikely to be there
-        # the next time, and (2) bencode does not understand tuples
-        # and converts the (addres,port) tuple into a list.
-        if 'initial peers' in self.metainfo:
-            del self.metainfo['initial peers']
-
-        bdata = bencode(self.metainfo)
-        f = open(filename, "wb")
-        f.write(bdata)
-        f.close()
-
+        with open(filename, "wb") as f:
+            f.write(self.encode())
     def get_torrent_size(self):
         """
         Finalizes the torrent def and converts the metainfo to string, returns the
         number of bytes the string would take on disk.
         """
-        if not self.readonly:
-            self.finalize()
-
-        # Boudewijn, 10/09/10: do not save the 'initial peers'.  (1)
-        # they should not be saved, as they are unlikely to be there
-        # the next time, and (2) bencode does not understand tuples
-        # and converts the (addres,port) tuple into a list.
-        if 'initial peers' in self.metainfo:
-            del self.metainfo['initial peers']
-
-        bdata = bencode(self.metainfo)
-        return len(bdata)
+        return len(self.encode())
 
     def get_bitrate(self, file=None):
         """ Returns the bitrate of the specified file. If no file is specified,
@@ -906,6 +882,19 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             raise NotYetImplementedException()  # must save first
 
         return maketorrent.get_bitrate_from_metainfo(file, self.metainfo)
+
+    def encode(self):
+        if not self.readonly:
+            self.finalize()
+
+        # Boudewijn, 10/09/10: do not save the 'initial peers'.  (1)
+        # they should not be saved, as they are unlikely to be there
+        # the next time, and (2) bencode does not understand tuples
+        # and converts the (addres,port) tuple into a list.
+        if 'initial peers' in self.metainfo:
+            del self.metainfo['initial peers']
+
+        return bencode(self.metainfo)
 
     def get_files_with_length(self, exts=None):
         """ The list of files in the finalized torrent def.
