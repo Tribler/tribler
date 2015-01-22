@@ -79,6 +79,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
     #
     # Class methods for creating a TorrentDef from a .torrent file
     #
+    @staticmethod
     def load(filename):
         """
         Load a BT .torrent or Tribler .tribe file from disk and convert
@@ -90,7 +91,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         # Class method, no locking required
         f = open(filename, "rb")
         return TorrentDef._read(f)
-    load = staticmethod(load)
 
     @staticmethod
     def load_from_memory(data):
