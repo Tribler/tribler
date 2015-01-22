@@ -22,6 +22,7 @@ from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.osutils import get_readable_torrent_name
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_INSERT,
                                      NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_ACT_UPNP)
+from Tribler.Core.torrentstore import TorrentStore
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.community.tunnel.crypto.elgamalcrypto import ElgamalCrypto
 from Tribler.dispersy.util import blockingCallFromThread
@@ -76,6 +77,7 @@ class TriblerLaunchMany(Thread):
         self.rawserver = None
         self.multihandler = None
 
+        self.torrent_store = None
         self.rtorrent_handler = None
         self.tftp_handler = None
 
@@ -112,6 +114,9 @@ class TriblerLaunchMany(Thread):
                                        nonfatal_func=self.rawserver_nonfatalerrorfunc)
 
             self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
+
+            if self.session.get_torrent_store():
+                self.torrent_store = TorrentStore(os.path.join(self.session.get_state_dir(), "collected_torrents"))
 
             # torrent collecting: RemoteTorrentHandler
             if self.session.get_torrent_collecting():
