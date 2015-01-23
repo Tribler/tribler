@@ -12,6 +12,10 @@ import unittest
 from threading import enumerate as enumerate_threads
 from traceback import print_exc
 
+# set wxpython version before importing wx or anything from Tribler
+import wxversion
+wxversion.select("2.8-unicode")
+
 import wx
 
 from Tribler.Core import defaults
