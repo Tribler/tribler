@@ -68,9 +68,9 @@ class AbstractServer(unittest.TestCase):
 
         delayed_calls = reactor.getDelayedCalls()
         if delayed_calls:
-            print >> sys.stderr, "The reactor was dirty:"
+            self._logger.debug("The reactor was dirty:")
             for dc in delayed_calls:
-                print >> sys.stderr, ">     %s" % dc
+                self._logger.debug(">     %s" % dc)
         self.assertFalse(delayed_calls, "The reactor was dirty when tearing down the test")
 
     def tearDownCleanup(self):
@@ -162,9 +162,9 @@ class TestAsServer(AbstractServer):
         gc.collect()
 
         ts = enumerate_threads()
-        print >> sys.stderr, "test_as_server: Number of threads still running", len(ts)
+        self._logger.debug("test_as_server: Number of threads still running %d", len(ts))
         for t in ts:
-            print >> sys.stderr, "test_as_server: Thread still running", t.getName(), "daemon", t.isDaemon(), "instance:", t
+            self._logger.debug("Thread still running %s, daemon: %s, instance: %s", t.getName(), t.isDaemon(), t)
 
         super(TestAsServer, self).tearDown(annotate=False)
 
@@ -177,10 +177,10 @@ class TestAsServer(AbstractServer):
             diff = time.time() - session_shutdown_start
             assert diff < waittime, "test_as_server: took too long for Session to shutdown"
 
-            print >> sys.stderr, "test_as_server: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds" % (waittime - diff)
+            self._logger.debug("Waiting for Session to shutdown, will wait for an additional %d seconds", (waittime - diff))
             time.sleep(1)
 
-        print >> sys.stderr, "test_as_server: Session is shutdown"
+        self._logger.debug("Session has shut down")
 
     def assert_(self, boolean, reason=None, do_assert=True):
         if not boolean:
@@ -205,7 +205,8 @@ class TestAsServer(AbstractServer):
                 if time.time() - t < timeout:
                     try:
                         if condition():
-                            print >> sys.stderr, "test_as_server: condition satisfied after %d seconds, calling callback '%s'" % (time.time() - t, callback.__name__)
+                            self._logger.debug("condition satisfied after %d seconds, calling callback '%s'",
+                                               (time.time() - t), callback.__name__)
                             callback()
                         else:
                             self.Call(0.5, DoCheck)
@@ -214,7 +215,10 @@ class TestAsServer(AbstractServer):
                         print_exc()
                         self.assert_(False, 'Condition or callback raised an exception, quitting (%s)' % (assertMsg or "no-assert-msg"), do_assert=False)
                 else:
-                    print >> sys.stderr, "test_as_server: %s, condition was not satisfied in %d seconds (%s)" % ('calling callback' if assertCallback else 'quitting' , timeout, assertMsg or "no-assert-msg")
+                    self._logger.debug("%s, condition was not satisfied in %d seconds (%s)",
+                                       ('calling callback' if assertCallback else 'quitting'),
+                                        timeout,
+                                        assertMsg or "no-assert-msg")
                     assertcall = assertCallback if assertCallback else self.assert_
                     assertcall(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, do_assert=False)
         self.Call(0, DoCheck)
@@ -273,28 +277,28 @@ class TestGuiAsServer(TestAsServer):
                 self.Call(min_timeout - took, callback)
 
         def wait_for_frame():
-            print >> sys.stderr, "tgs: GUIUtility ready, staring to wait for frame to be ready"
+            self._logger.debug("GUIUtility ready, staring to wait for frame to be ready")
             self.frame = self.guiUtility.frame
             self.frame.Maximize()
             self.CallConditional(30, lambda: self.frame.ready, call_callback)
 
         def wait_for_init():
-            print >> sys.stderr, "tgs: lm initcomplete, staring to wait for GUIUtility to be ready"
+            self._logger.debug("lm initcomplete, staring to wait for GUIUtility to be ready")
             self.guiUtility = GUIUtility.getInstance()
             self.CallConditional(30, lambda: self.guiUtility.registered, wait_for_frame)
 
         def wait_for_guiutility():
-            print >> sys.stderr, "tgs: waiting for guiutility instance"
+            self._logger.debug("waiting for guiutility instance")
             self.lm = self.session.lm
             self.CallConditional(30, lambda: GUIUtility.hasInstance(), wait_for_init)
 
         def wait_for_instance():
-            print >> sys.stderr, "tgs: found instance, staring to wait for lm to be initcomplete"
+            self._logger.debug("found instance, staring to wait for lm to be initcomplete")
             self.session = Session.get_instance()
             self.hadSession = True
             self.CallConditional(30, lambda: self.session.lm and self.session.lm.initComplete, wait_for_guiutility)
 
-        print >> sys.stderr, "tgs: waiting for session instance"
+        self._logger.debug("waiting for session instance")
         self.CallConditional(30, Session.has_instance, lambda: TestAsServer.startTest(self, wait_for_instance))
 
         # modify argv to let tribler think its running from a different directory
@@ -350,9 +354,10 @@ class TestGuiAsServer(TestAsServer):
         gc.collect()
 
         ts = enumerate_threads()
-        print >> sys.stderr, "teardown: Number of threads still running", len(ts)
-        for t in ts:
-            print >> sys.stderr, "teardown: Thread still running", t.getName(), "daemon", t.isDaemon(), "instance:", t
+        if ts:
+            self._logger.debug("Number of threads still running %s", len(ts))
+            for t in ts:
+                self._logger.debug("Thread still running %s, daemon %s, instance: %s", t.getName(), t.isDaemon(), t)
 
         dhtlog = os.path.join(STATE_DIR, 'pymdht.log')
         if os.path.exists(dhtlog):
