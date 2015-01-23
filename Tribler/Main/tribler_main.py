@@ -989,7 +989,7 @@ class ABCApp(object):
             session_shutdown_start = time()
 
             try:
-                self._logger.info("main: ONEXIT cleaning database")
+                self._logger.info("ONEXIT cleaning database")
                 self.closewindow.tick('Cleaning database')
                 peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
                 peerdb._db.clean_db(randint(0, 24) == 0, exiting=True)
@@ -1008,34 +1008,34 @@ class ABCApp(object):
                     self._logger.info("main: ONEXIT NOT Waiting for Session to shutdown, took too long")
                     break
 
-                self._logger.info("main: ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds", waittime - diff)
+                self._logger.info("ONEXIT Waiting for Session to shutdown, will wait for an additional %d seconds", waittime - diff)
                 sleep(3)
-            self._logger.info("main: ONEXIT Session is shutdown")
+            self._logger.info("ONEXIT Session is shutdown")
 
         self.closewindow.tick('Deleting instances')
-        print >> sys.stderr, "ONEXIT deleting instances"
+        self._logger.debug("ONEXIT deleting instances")
 
         Session.del_instance()
         GUIUtility.delInstance()
         GUIDBProducer.delInstance()
         DefaultDownloadStartupConfig.delInstance()
         GuiImageManager.delInstance()
-        
+
         self.closewindow.tick('Exiting now')
-        
+
         self.closewindow.Destroy()
-        
+
         return 0
 
     def db_exception_handler(self, e):
-        self._logger.debug("main: Database Exception handler called %s value %s #", e, e.args)
+        self._logger.debug("Database Exception handler called %s value %s #", e, e.args)
         try:
             if e.args[1] == "DB object has been closed":
                 return  # We caused this non-fatal error, don't show.
             if self.error is not None and self.error.args[1] == e.args[1]:
                 return  # don't repeat same error
         except:
-            self._logger.error("main: db_exception_handler error %s %s", e, type(e))
+            self._logger.error("db_exception_handler error %s %s", e, type(e))
             print_exc()
             # print_stack()
 
