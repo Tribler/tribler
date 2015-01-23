@@ -361,14 +361,14 @@ class TestGuiAsServer(TestAsServer):
 
         dhtlog = os.path.join(STATE_DIR, 'pymdht.log')
         if os.path.exists(dhtlog):
-            print >> sys.stderr, "teardown: content of pymdht.log"
+            self._logger.debug("Content of pymdht.log")
             f = open(dhtlog, 'r')
             for line in f:
                 line = line.strip()
                 if line:
-                    print >> sys.stderr, line
+                    self._logger.debug("> %s", line)
             f.close()
-            print >> sys.stderr, "teardown: finished printing content of pymdht.log"
+            self._logger.debug("Finished printing content of pymdht.log")
 
         AbstractServer.tearDown(self, annotate=False)
 
