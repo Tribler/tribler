@@ -72,7 +72,7 @@ class TestSeeding(TestAsServer):
         self.tdef.set_piece_length(piecesize)
         self.tdef.finalize()
 
-        print >> sys.stderr, "test: setup_seeder: name is", self.tdef.metainfo['info']['name']
+        self._logger.debug("name is %s", self.tdef.metainfo['info']['name'])
 
         self.dscfg = DownloadStartupConfig()
         self.dscfg.set_dest_dir(self.getDestDir())
@@ -88,7 +88,7 @@ class TestSeeding(TestAsServer):
 
     def seeder_state_callback(self, ds):
         d = ds.get_download()
-        print >> sys.stderr, "test: seeder:", dlstatus_strings[ds.get_status()], ds.get_progress()
+        self._logger.debug("seeder status: %s %s", dlstatus_strings[ds.get_status()], ds.get_progress())
         return (1.0, False)
 
     def subtest_download(self):
