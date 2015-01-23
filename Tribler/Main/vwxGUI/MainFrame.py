@@ -122,7 +122,7 @@ class MainFrame(wx.Frame):
     def __init__(self, parent, channelonly, internalvideo, progress):
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        print >> sys.stderr, 'GUI started'
+        self._logger.info('GUI started')
 
         # Do all init here
         self.ready = False
@@ -1051,7 +1051,7 @@ class MainFrame(wx.Frame):
             except:
                 print_exc()
 
-        print >> sys.stderr, 'GUI closing'
+        self._logger.info('GUI closing')
         self.utility.abcquitting = True
         self.GUIupdate = False
 
@@ -1087,7 +1087,7 @@ class MainFrame(wx.Frame):
         for t in ts:
             self._logger.info("mainframe: Thread still running %s daemon %s", t.getName(), t.isDaemon())
 
-        print >> sys.stderr, 'GUI closed'
+        self._logger.info('GUI closed')
 
     @forceWxThread
     def onWarning(self, exc):
