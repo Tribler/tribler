@@ -37,10 +37,11 @@ class TestThreadPool(AbstractServer):
         self.assertEquals(self.exp, self.got)
 
         ts = enumerate_threads()
-        print >> sys.stderr, "test_threadpool: Number of threads still running", len(ts)
-        for t in ts:
-            print >> sys.stderr, "test_threadpool: Thread still running", t.getName(), "daemon", t.isDaemon(), "instance:", t
-            
+        if ts:
+            self._logger.warning("Number of threads still running %d", len(ts))
+            for t in ts:
+                self._logger.warning("Thread still running %s, daemon: %s, instance:%s", t.getName(), t.isDaemon(), t)
+
         AbstractServer.tearDown(self)
 
     def test_queueTask1(self):
