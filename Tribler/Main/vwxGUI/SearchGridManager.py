@@ -122,11 +122,6 @@ class TorrentManager(object):
                 torrent.torrent_file_name = dict['torrent_file_name']
                 return self.getCollectedFilename(torrent, retried=True)
 
-    def getCollectedFilenameFromDef(self, torrentdef):
-        torrent = self.getTorrentByInfohash(torrentdef.infohash)
-        if torrent:
-            return self.getCollectedFilename(torrent)
-
     def getTorrent(self, torrent, callback, prio=0):
         """
         TORRENT is a dictionary containing torrent information used to
