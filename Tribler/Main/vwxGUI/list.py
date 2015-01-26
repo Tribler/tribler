@@ -1777,6 +1777,10 @@ class LibraryList(SizeList):
 
     @warnWxThread
     def RefreshItems(self, dslist, magnetlist):
+        # Yeah, I know...
+        if not self:
+            return
+
         didStateChange, _, newDS = SizeList.RefreshItems(self, dslist, magnetlist, rawdata=True)
 
         newFilter = self.newfilter
@@ -1880,13 +1884,18 @@ class LibraryList(SizeList):
 
     @warnWxThread
     def RefreshBandwidthHistory(self, dslist, magnetlist):
+        # Avoid WxPyDeadObject exceptions
+        if not (self and self.list and self.list.items):
+            return
+
         for item in self.list.items.itervalues():
             # Store bandwidth history in self.bw_history
             self.bw_history_counter += 1
             if self.bw_history_counter % 5 == 0:
                 ds = item.original_data.ds
                 self.bw_history[item.original_data.infohash] = self.bw_history.get(item.original_data.infohash, [])
-                self.bw_history[item.original_data.infohash].append((ds.get_current_speed('up') / 1024 if ds else 0, ds.get_current_speed('down') / 1024 if ds else 0))
+                self.bw_history[item.original_data.infohash].append((ds.get_current_speed('up') / 1024 if ds else 0,
+                                                                     ds.get_current_speed('down') / 1024 if ds else 0))
                 self.bw_history[item.original_data.infohash] = self.bw_history[item.original_data.infohash][-120:]
 
 
@@ -2313,8 +2322,11 @@ class ActivitiesList(List):
             self.notifyTimer = wx.CallLater(1000, self.HideNotify)
         else:
             def DoHide():
-                self.notifyPanel.Hide()
-                self.Layout()
+                # Avoid WxPyDeadObject exceptions
+                if self:
+                    if self.notifyPanel:
+                        self.notifyPanel.Hide()
+                    self.Layout()
             self.notifyTimer = None
             wx.CallLater(500, DoHide)
 

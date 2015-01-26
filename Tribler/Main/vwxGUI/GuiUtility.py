@@ -562,7 +562,8 @@ class GUIUtility(object):
             self.frame.actlist.Notify(msg or title, icon)
 
     def ShouldGuiUpdate(self):
-        if self.frame.ready:
+        # Avoid WxPyDeadObject exception
+        if self.frame and self.frame.ready:
             return self.frame.GUIupdate
         return True
 
