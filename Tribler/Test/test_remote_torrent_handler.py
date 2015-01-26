@@ -27,6 +27,7 @@ class TestRemoteTorrentHandler(TestAsServer):
     def setUpPreSession(self):
         super(TestRemoteTorrentHandler, self).setUpPreSession()
         self.config.set_dispersy(True)
+        self.config.set_torrent_store(True)
 
     def tearDown(self):
         self._shutdown_session(self.session2)
