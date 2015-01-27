@@ -34,7 +34,7 @@ DEFAULTPORT = 7760
 #  Version 4: remove swift
 #
 
-SESSDEFAULTS_VERSION = 5
+SESSDEFAULTS_VERSION = 6
 sessdefaults = OrderedDict()
 
 # General Tribler settings
@@ -77,6 +77,7 @@ sessdefaults['torrent_checking']['torrent_checking_period'] = 31  # will be chan
 # Torrent store settings
 sessdefaults['torrent_store'] = OrderedDict()
 sessdefaults['torrent_store']['enabled'] = True
+sessdefaults['torrent_store']['dir'] = None
 
 # Torrent collecting settings
 sessdefaults['torrent_collecting'] = OrderedDict()

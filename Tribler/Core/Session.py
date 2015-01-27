@@ -8,19 +8,23 @@ import os
 import socket
 
 from Tribler.Core import NoDispersyRLock
-
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
-from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
-
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
+from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException
-from Tribler.Core.osutils import get_appstate_dir, is_android
-from Tribler.Core.simpledefs import (STATEDIR_TORRENTCOLL_DIR, STATEDIR_PEERICON_DIR, STATEDIR_DLPSTATE_DIR,
-                                     STATEDIR_SESSCONFIG, NTFY_MISC, NTFY_PEERS, NTFY_BUNDLERPREFERENCE,
-                                     NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_UPDATE,
-                                     NTFY_USEREVENTLOG, NTFY_INSERT, NTFY_DELETE, NTFY_METADATA)
+from Tribler.Core.osutils import get_appstate_dir
+from Tribler.Core.simpledefs import (STATEDIR_PEERICON_DIR,
+                                     STATEDIR_DLPSTATE_DIR, STATEDIR_SESSCONFIG,
+                                     NTFY_MISC, NTFY_PEERS,
+                                     NTFY_BUNDLERPREFERENCE, NTFY_TORRENTS,
+                                     NTFY_MYPREFERENCES, NTFY_VOTECAST,
+                                     NTFY_CHANNELCAST, NTFY_UPDATE,
+                                     NTFY_USEREVENTLOG, NTFY_INSERT, NTFY_DELETE,
+                                     NTFY_METADATA, STATEDIR_TORRENT_STORE_DIR,
+                                     STATEDIR_TORRENTCOLL_DIR)
+
 
 GOTM2CRYPTO = False
 try:
@@ -93,6 +97,7 @@ class Session(SessionConfigInterface):
 
         set_and_create_dir(scfg.get_state_dir(), scfg.set_state_dir, Session.get_default_state_dir())
         set_and_create_dir(scfg.get_torrent_collecting_dir(), scfg.set_torrent_collecting_dir, os.path.join(scfg.get_state_dir(), STATEDIR_TORRENTCOLL_DIR))
+        set_and_create_dir(scfg.get_torrent_store_dir(), scfg.set_torrent_store_dir, os.path.join(scfg.get_state_dir(), STATEDIR_TORRENT_STORE_DIR))
         set_and_create_dir(scfg.get_peer_icon_path(), scfg.set_peer_icon_path, os.path.join(scfg.get_state_dir(), STATEDIR_PEERICON_DIR))
 
         create_dir(os.path.join(scfg.get_state_dir(), u"sqlite"))
@@ -189,6 +194,7 @@ class Session(SessionConfigInterface):
         Session.__single = None
     del_instance = staticmethod(del_instance)
 
+    @staticmethod
     def get_default_state_dir(homedirpostfix='.Tribler'):
         """ Returns the factory default directory for storing session state
         on the current platform (Win32,Mac,Unix).
@@ -206,8 +212,6 @@ class Session(SessionConfigInterface):
         appdir = get_appstate_dir()
         statedir = os.path.join(appdir, homedirpostfix)
         return statedir
-
-    get_default_state_dir = staticmethod(get_default_state_dir)
 
     #
     # Public methods

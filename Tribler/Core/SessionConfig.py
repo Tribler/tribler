@@ -300,6 +300,18 @@ class SessionConfigInterface(object):
         """
         self.sessconfig.set(u'torrent_store', u'enabled', value)
 
+    def get_torrent_store_dir(self):
+        """ Returns the torrent store directory.
+        @return str
+        """
+        return self.sessconfig.get(u'torrent_store', u'dir')
+
+    def set_torrent_store_dir(self, value):
+        """ Store torrent store dir(default = state_dir/collected_torrents).
+        @param value str.
+        """
+        self.sessconfig.set(u'torrent_store', u'dir', value)
+
     #
     # Torrent file collecting
     #

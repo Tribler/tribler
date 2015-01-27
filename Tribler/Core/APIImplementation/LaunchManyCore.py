@@ -116,7 +116,7 @@ class TriblerLaunchMany(Thread):
             self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
 
             if self.session.get_torrent_store():
-                self.torrent_store = TorrentStore(os.path.join(self.session.get_state_dir(), "collected_torrents"))
+                self.torrent_store = TorrentStore(self.session.get_torrent_store_dir())
 
             # torrent collecting: RemoteTorrentHandler
             if self.session.get_torrent_collecting():
