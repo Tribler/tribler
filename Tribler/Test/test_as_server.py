@@ -277,13 +277,13 @@ class TestGuiAsServer(TestAsServer):
                 self.Call(min_timeout - took, callback)
 
         def wait_for_frame():
-            self._logger.debug("GUIUtility ready, staring to wait for frame to be ready")
+            self._logger.debug("GUIUtility ready, starting to wait for frame to be ready")
             self.frame = self.guiUtility.frame
             self.frame.Maximize()
             self.CallConditional(30, lambda: self.frame.ready, call_callback)
 
         def wait_for_init():
-            self._logger.debug("lm initcomplete, staring to wait for GUIUtility to be ready")
+            self._logger.debug("lm initcomplete, starting to wait for GUIUtility to be ready")
             self.guiUtility = GUIUtility.getInstance()
             self.CallConditional(30, lambda: self.guiUtility.registered, wait_for_frame)
 
@@ -293,7 +293,7 @@ class TestGuiAsServer(TestAsServer):
             self.CallConditional(30, lambda: GUIUtility.hasInstance(), wait_for_init)
 
         def wait_for_instance():
-            self._logger.debug("found instance, staring to wait for lm to be initcomplete")
+            self._logger.debug("found instance, starting to wait for lm to be initcomplete")
             self.session = Session.get_instance()
             self.hadSession = True
             self.CallConditional(30, lambda: self.session.lm and self.session.lm.initComplete, wait_for_guiutility)
