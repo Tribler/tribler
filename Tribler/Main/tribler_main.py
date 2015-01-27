@@ -609,6 +609,9 @@ class ABCApp(object):
             return nr_connections, nr_channel_connections
 
         def do_wx(delayedResult):
+            if not self.frame:
+                return
+
             nr_connections, nr_channel_connections = delayedResult.get()
 
             # self.frame.SRstatusbar.set_reputation(myRep, total_down, total_up)

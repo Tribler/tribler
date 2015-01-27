@@ -109,8 +109,8 @@ class SaveAs(wx.Dialog):
             torrent = Torrent.fromTorrentDef(tdef)
             torrentsearch_manager = self.guiutility.torrentsearch_manager
 
-            def callback(saveas_id, torrent_filename):
-                tdef = TorrentDef.load(torrent_filename)
+            def callback(saveas_id, infohash):
+                tdef = TorrentDef.load_from_memory(self.utility.session.lm.torrent_store.get(infohash))
                 event = CollectedEvent(tdef=tdef)
                 saveas = wx.FindWindowById(saveas_id)
                 if saveas:

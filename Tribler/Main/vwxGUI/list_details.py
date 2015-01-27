@@ -192,6 +192,9 @@ class TorrentDetails(AbstractDetails):
                     self.timeouttimer = wx.CallLater(10000, timeout) if not self.guiutility.frame.librarylist.IsShownOnScreen() else None
 
                 def timeout():
+                    # Avoid WxPyDeadObject exception
+                    if not self:
+                        return
                     self.messageText.SetLabel("Failed loading torrent.\nPlease click retry or wait to allow other peers to respond.")
                     self.messageGauge.Show(False)
                     self.messageButton.Show(True)

@@ -285,6 +285,19 @@ class SessionConfigInterface(object):
         """
         return self.sessconfig.get(u'libtorrent', u'utp')
 
+    #
+    # Torrent file store
+    #
+    def get_torrent_store(self):
+        """ Returns whether to enable the torrent store.
+        @return Boolean. """
+        return self.sessconfig.get(u'torrent_store', u'enabled')
+
+    def set_torrent_store(self, value):
+        """ Store torrent files in a leveldb database (default = True).
+        @param value Boolean.
+        """
+        self.sessconfig.set(u'torrent_store', u'enabled', value)
 
     #
     # Torrent file collecting

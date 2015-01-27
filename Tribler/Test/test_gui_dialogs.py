@@ -2,13 +2,12 @@
 # see LICENSE.txt for license information
 
 import unittest
-import wx
 import binascii
 import os
 from threading import Event
 from traceback import print_exc
 
-from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
+from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR, wx  # import wx after selecting the WX version
 
 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
