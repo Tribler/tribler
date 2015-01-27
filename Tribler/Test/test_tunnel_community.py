@@ -193,7 +193,7 @@ class TestTunnelCommunity(TestGuiAsServer):
             dht = Event()
             def dht_announce(info_hash, community):
                 def cb_dht(info_hash, peers, source):
-                    print >> sys.stderr, "announced %s to the DHT" % info_hash.encode('hex')
+                    self._logger.debug("announced %s to the DHT", info_hash.encode('hex'))
                     dht.set()
                 port = community.trsession.get_dispersy_port()
                 community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb_dht, bt_port=port)
@@ -297,7 +297,7 @@ class TestTunnelCommunity(TestGuiAsServer):
 
     def seeder_state_callback(self, ds):
         d = ds.get_download()
-        print >> sys.stderr, "test: seeder:", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress()
+        self._logger.debug("test: seeder: %s %s %s", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress())
         return 5.0, False
 
     def setUp(self):

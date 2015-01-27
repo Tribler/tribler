@@ -91,8 +91,7 @@ class TestVideoHTTPServer(TestAsServer):
         return head
 
     def range_check(self, firstbyte, lastbyte, sourcesize, setset=False):
-        if DEBUG:
-            print >> sys.stderr, "test: range_test:", firstbyte, lastbyte, sourcesize, "setset", setset
+        self._logger.debug("range_test: %s %s %s setset %s", firstbyte, lastbyte, sourcesize, setset)
         self.register_file_stream()
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -126,8 +125,8 @@ class TestVideoHTTPServer(TestAsServer):
         # the amount of bytes actually requested. (Content-length)
         expsize = explastbyte - expfirstbyte + 1
 
-        if DEBUG:
-            print >> sys.stderr, "test: Expecting first", expfirstbyte, "last", explastbyte, "size", sourcesize
+
+        self._logger.debug("Expecting first %s last %s size %s ", expfirstbyte, explastbyte, sourcesize)
         s.send(head)
 
         # Parse header
@@ -135,11 +134,11 @@ class TestVideoHTTPServer(TestAsServer):
         while True:
             line = self.readline(s)
             if DEBUG:
-                print >> sys.stderr, "test: Got line", repr(line)
+                self._logger.debug("Got line: %s", repr(line))
 
             if len(line) == 0:
                 if DEBUG:
-                    print >> sys.stderr, "test: server closed conn"
+                    self._logger.debug("server closed conn")
                 self.assert_(False)
                 return
 
@@ -170,7 +169,7 @@ class TestVideoHTTPServer(TestAsServer):
         data = s.recv(expsize)
         if len(data) == 0:
             if DEBUG:
-                print >> sys.stderr, "test: server closed conn2"
+                self._logger.debug("server closed conn2")
             self.assert_(False)
             return
         else:
@@ -191,7 +190,7 @@ class TestVideoHTTPServer(TestAsServer):
 
             except socket.timeout:
                 if DEBUG:
-                    print >> sys.stderr, "test: Timeout, video server didn't respond with requested bytes, possibly bug in Python impl of HTTP"
+                    self._logger.debug("Timeout, video server didn't respond with requested bytes, possibly bug in Python impl of HTTP")
                     print_exc()
 
     def readline(self, s):

@@ -30,9 +30,9 @@ class TestSeeding(TestAsServer):
     def setUp(self):
         """ override TestAsServer """
         TestAsServer.setUp(self)
-        print >> sys.stderr, "test: Giving Session time to startup"
+        self._logger.debug("Giving Session time to startup")
         time.sleep(5)
-        print >> sys.stderr, "test: Session should have started up"
+        self._logger.debug("Session should have started up")
 
     def setUpPreSession(self):
         """ override TestAsServer """
@@ -67,12 +67,12 @@ class TestSeeding(TestAsServer):
         self.npieces = 12
         playtime = ((self.npieces - 1) * piecesize) / self.bitrate
         playtimestr = '0:' + str(playtime)  # DON'T WORK IF > 60 secs
-        self.tdef.create_live("Test Live", self.bitrate, playtimestr)
+        self.tdef.create_live("Test Live: %s %s", self.bitrate, playtimestr)
         self.tdef.set_tracker(self.session.get_internal_tracker_url())
         self.tdef.set_piece_length(piecesize)
         self.tdef.finalize()
 
-        print >> sys.stderr, "test: setup_seeder: name is", self.tdef.metainfo['info']['name']
+        self._logger.debug("name is %s", self.tdef.metainfo['info']['name'])
 
         self.dscfg = DownloadStartupConfig()
         self.dscfg.set_dest_dir(self.getDestDir())
@@ -88,7 +88,7 @@ class TestSeeding(TestAsServer):
 
     def seeder_state_callback(self, ds):
         d = ds.get_download()
-        print >> sys.stderr, "test: seeder:", dlstatus_strings[ds.get_status()], ds.get_progress()
+        self._logger.debug("seeder status: %s %s", dlstatus_strings[ds.get_status()], ds.get_progress())
         return (1.0, False)
 
     def subtest_download(self):
@@ -96,7 +96,7 @@ class TestSeeding(TestAsServer):
         self.session2 = Session(self.config2, ignore_singleton=True)
 
         # Allow session2 to start
-        print >> sys.stderr, "test: downloader: Sleeping 3 secs to let Session2 start"
+        self._logger.debug("Downloader: Sleeping 3 secs to let Session2 start")
         time.sleep(3)
 
         tdef2 = TorrentDef.load(self.torrentfn)
@@ -115,7 +115,7 @@ class TestSeeding(TestAsServer):
 
     def downloader_state_callback(self, ds):
         d = ds.get_download()
-        print >> sys.stderr, "test: download:", dlstatus_strings[ds.get_status()], ds.get_progress()
+        self._logger.debug("download: %s %s", dlstatus_strings[ds.get_status()], ds.get_progress())
 
         return (1.0, False)
 
@@ -132,7 +132,7 @@ class TestSeeding(TestAsServer):
 
     def subtest_connect2downloader(self):
 
-        print >> sys.stderr, "test: verifier: Connecting to seeder to check bitfield"
+        self._logger.debug("verifier: Connecting to seeder to check bitfield")
 
         infohash = self.tdef.get_infohash()
         s = BTConnection('localhost', self.session2.get_listen_port(), user_infohash=infohash)
@@ -142,14 +142,14 @@ class TestSeeding(TestAsServer):
             s.s.settimeout(10.0)
             resp = s.recv()
             self.assert_(len(resp) > 0)
-            print >> sys.stderr, "test: verifier: Got message", getMessageName(resp[0])
+            self._logger.debug("verifier: Got message %s", getMessageName(resp[0]))
             self.assert_(resp[0] == EXTEND)
             resp = s.recv()
             self.assert_(len(resp) > 0)
-            print >> sys.stderr, "test: verifier: Got 2nd message", getMessageName(resp[0])
+            self._logger.debug("verifier: Got 2nd message %s", getMessageName(resp[0]))
             self.assert_(resp[0] == BITFIELD)
             b = Bitfield(self.npieces, resp[1:])
-            print >> sys.stderr, "test: verifier: Bitfield is", repr(b.toboollist())
+            self._logger.debug("verifier: Bitfield is %s", repr(b.toboollist()))
 
             b2 = Bitfield(self.npieces)
             b2[0] = True
@@ -159,7 +159,7 @@ class TestSeeding(TestAsServer):
             time.sleep(5)
 
         except socket.timeout:
-            print >> sys.stderr, "test: verifier: Timeout, peer didn't reply"
+            self._logger.debug("verifier: Timeout, peer didn't reply")
             self.assert_(False)
         s.close()
 

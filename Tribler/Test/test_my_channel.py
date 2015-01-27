@@ -122,7 +122,7 @@ class TestMyChannel(TestGuiAsServer):
         def get_and_modify_dispersy():
             from Tribler.dispersy.endpoint import NullEndpoint
 
-            print >> sys.stderr, "tgs: frame ready, replacing dispersy endpoint"
+            self._logger.debug("Frame ready, replacing dispersy endpoint")
             dispersy = self.session.get_dispersy_instance()
             dispersy._endpoint = NullEndpoint()
             dispersy._endpoint.open(dispersy)
