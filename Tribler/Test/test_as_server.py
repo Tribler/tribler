@@ -1,32 +1,30 @@
 # Written by Arno Bakker, Jie Yang
 # Improved and Modified by Niels Zeilemaker
 # see LICENSE.txt for license information
-
-import unittest
-
-import os
-import sys
-import shutil
-import time
 import gc
-import wx
-import re
 import logging
-
-from traceback import print_exc
+import os
+import re
+import shutil
+import sys
+import time
+import unittest
 from threading import enumerate as enumerate_threads
+from traceback import print_exc
 
+import wx
+
+from Tribler.Core import defaults
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
+from Tribler.Core.Utilities.twisted_thread import reactor
 
-from nose.twistedtools import reactor
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 STATE_DIR = os.path.join(BASE_DIR, u"test_.Tribler")
 DEST_DIR = os.path.join(BASE_DIR, u"test_TriblerDownloads")
 FILES_DIR = os.path.abspath(os.path.join(BASE_DIR, u"data"))
 
-from Tribler.Core import defaults
 defaults.sessdefaults['general']['state_dir'] = STATE_DIR
 defaults.sessdefaults['general']['minport'] = -1
 defaults.sessdefaults['general']['maxport'] = -1

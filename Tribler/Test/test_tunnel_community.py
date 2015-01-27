@@ -3,21 +3,20 @@
 import os
 import sys
 import time
-
+from os import environ
 from threading import Event
 from traceback import print_exc
-from twisted.internet import reactor
 
+from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
+from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
+from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import blockingCallFromThread
-from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
-from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 
 
 #TODO(emilon): Quick hack to get 6.4.1 out the door, (re tunnel_community tests disabling is_unit_testing flag)
-from os import environ
 environ["TRIBLER_SKIP_OPTIN_DLG"] = "True"
 
 class TestTunnelCommunity(TestGuiAsServer):
