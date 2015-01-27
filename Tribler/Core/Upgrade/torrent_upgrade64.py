@@ -142,7 +142,7 @@ class TorrentMigrator64(object):
             if self.total_swift_file_count > 0:
                 progress = float(self.swift_files_deleted) / self.total_swift_file_count
             progress *= 100
-            self.status_update_func(u"Deleting swift files %.2f%%..." % progress)
+            self.status_update_func(u"Deleting swift files %.1f%%..." % progress)
 
         for root, _, files in os.walk(self.torrent_collecting_dir):
             for name in files:
