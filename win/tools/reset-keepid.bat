@@ -1,7 +1,7 @@
 
 ver | find "Version 6." > nul
 if %ERRORLEVEL% == 0 goto IFDEFVISTA
-REM No quotes around this, otherwise we have double in the *DIR vars
+REM No quotes around this, otherwise we have double in the *DIR vars.
 set APPDIR=%APPDIR%
 goto general
 
@@ -13,7 +13,7 @@ goto general
 
 
 set TDIR="%USERPROFILE%\%APPDIR%\.Tribler"
-set DDIR="%USERPROFILE%\Desktop\TriblerDownloads"
+set DDIR="%USERPROFILE%\Downloads\TriblerDownloads"
 del %TDIR%\torrent*.* /S /F /Q
 REM rmdiriver us from Windows, *.* apparently does not include the following:
 rmdir %TDIR%\torrent /S /Q
