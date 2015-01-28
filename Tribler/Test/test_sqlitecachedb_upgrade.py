@@ -40,7 +40,13 @@ class TestSqliteCacheDB(AbstractServer):
         self.sqlitedb = SQLiteCacheDB(self.session)
         self.sqlitedb.initialize(dbpath)
 
-        db_migrator = DBUpgrader(self.session, self.sqlitedb)
+        class MockTorrentStore(object):
+            def flush():
+                pass
+            def close():
+                pass
+
+        db_migrator = DBUpgrader(self.session, self.sqlitedb, torrent_store=MockTorrentStore())
         self.assertRaises(VersionNoLongerSupportedError, db_migrator.start_migrate)
 
     def test_upgrade_from_17(self):
