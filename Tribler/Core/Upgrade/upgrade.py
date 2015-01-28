@@ -67,7 +67,7 @@ class TriblerUpgrader(object):
 
                 self.failed = False
             except Exception as e:
-                self._logger.error(u"failed to upgrade: %s", e)
+                self._logger.exception(u"failed to upgrade: %s", e)
 
         if self.failed:
             self._stash_database_away()
