@@ -22,8 +22,7 @@ from Tribler.Core.simpledefs import (STATEDIR_PEERICON_DIR,
                                      NTFY_MYPREFERENCES, NTFY_VOTECAST,
                                      NTFY_CHANNELCAST, NTFY_UPDATE,
                                      NTFY_USEREVENTLOG, NTFY_INSERT, NTFY_DELETE,
-                                     NTFY_METADATA, STATEDIR_TORRENT_STORE_DIR,
-                                     STATEDIR_TORRENTCOLL_DIR)
+                                     NTFY_METADATA, STATEDIR_TORRENT_STORE_DIR)
 
 
 GOTM2CRYPTO = False
@@ -96,9 +95,19 @@ class Session(SessionConfigInterface):
             create_dir(dirname or default_dir)
 
         set_and_create_dir(scfg.get_state_dir(), scfg.set_state_dir, Session.get_default_state_dir())
-        set_and_create_dir(scfg.get_torrent_collecting_dir(), scfg.set_torrent_collecting_dir, os.path.join(scfg.get_state_dir(), STATEDIR_TORRENTCOLL_DIR))
-        set_and_create_dir(scfg.get_torrent_store_dir(), scfg.set_torrent_store_dir, os.path.join(scfg.get_state_dir(), STATEDIR_TORRENT_STORE_DIR))
-        set_and_create_dir(scfg.get_peer_icon_path(), scfg.set_peer_icon_path, os.path.join(scfg.get_state_dir(), STATEDIR_PEERICON_DIR))
+        # Note that we are setting it to STATEDIR_TORRENT_STORE_DIR instead of
+        # STATEDIR_TORRENTCOLL_DIR as that dir is unused and only kept for
+        # the upgrade process.
+        set_and_create_dir(scfg.get_torrent_collecting_dir(),
+                           scfg.set_torrent_collecting_dir,
+                           os.path.join(scfg.get_state_dir(), STATEDIR_TORRENT_STORE_DIR))
+
+        set_and_create_dir(scfg.get_torrent_store_dir(),
+                           scfg.set_torrent_store_dir,
+                           os.path.join(scfg.get_state_dir(), STATEDIR_TORRENT_STORE_DIR))
+
+        set_and_create_dir(scfg.get_peer_icon_path(), scfg.set_peer_icon_path,
+                           os.path.join(scfg.get_state_dir(), STATEDIR_PEERICON_DIR))
 
         create_dir(os.path.join(scfg.get_state_dir(), u"sqlite"))
 
