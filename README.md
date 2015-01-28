@@ -50,6 +50,7 @@ TODO
 ## Debian and derivatives
 
 ```bash
+sudo apt-get install devscripts
 cd tribler
 Tribler/Main/Build/update_version_from_git.py
 debuild -i -us -uc -b
