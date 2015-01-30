@@ -642,21 +642,20 @@ class ABCApp(object):
 
         try:
             # Print stats on Console
-            if DEBUG:
-                if self.ratestatecallbackcount % 5 == 0:
-                    for ds in dslist:
-                        safename = repr(ds.get_download().get_def().get_name())
-                        self._logger.debug("%s %s %.1f%% dl %.1f ul %.1f n %d", safename, dlstatus_strings[ds.get_status()], 100.0 * ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers())
-                        # print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
-                        if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
-                            self._logger.error("main: Error: %s", repr(ds.get_error()))
-                            # show error dialog
-                            dlg = wx.MessageDialog(self.frame,
-                                                   "Download stopped on error: %s" % repr(ds.get_error()),
-                                                   "Download Error",
-                                                   wx.OK | wx.ICON_ERROR)
-                            dlg.ShowModal()
-                            dlg.Destroy()
+            if self.ratestatecallbackcount % 5 == 0:
+                for ds in dslist:
+                    safename = repr(ds.get_download().get_def().get_name())
+                    self._logger.debug("%s %s %.1f%% dl %.1f ul %.1f n %d", safename, dlstatus_strings[ds.get_status()], 100.0 * ds.get_progress(), ds.get_current_speed(DOWNLOAD), ds.get_current_speed(UPLOAD), ds.get_num_peers())
+                    # print >>sys.stderr,"main: Infohash:",`ds.get_download().get_def().get_infohash()`
+                    if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
+                        self._logger.error("main: Error: %s", repr(ds.get_error()))
+                        # show error dialog
+                        dlg = wx.MessageDialog(self.frame,
+                                               "Download stopped on error: %s" % repr(ds.get_error()),
+                                               "Download Error",
+                                               wx.OK | wx.ICON_ERROR)
+                        dlg.ShowModal()
+                        dlg.Destroy()
 
             # Pass DownloadStates to libaryView
             no_collected_list = []
