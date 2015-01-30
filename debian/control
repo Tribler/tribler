@@ -10,7 +10,9 @@ Homepage: http://www.tribler.org/
 
 Package: tribler
 Architecture: all
-Depends: libav-tools,
+Depends: ${misc:Depends},
+         ${python:Depends}
+         ffmpeg | libav-tools,
          libjs-excanvas,
          libjs-mootools,
          libx11-6,
@@ -28,8 +30,6 @@ Depends: libav-tools,
          python-twisted,
          python-wxgtk2.8,
          vlc (>= 1.1.0),
-         ${misc:Depends},
-         ${python:Depends}
 Description: Python based Bittorrent/Internet TV application
  It allows you to watch videos and download content. Tribler aims to combine
  the ease of Youtube.com with the performance of peer-to-peer.
