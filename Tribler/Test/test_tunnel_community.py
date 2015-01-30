@@ -16,9 +16,6 @@ from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import blockingCallFromThread
 
 
-#TODO(emilon): Quick hack to get 6.4.1 out the door, (re tunnel_community tests disabling is_unit_testing flag)
-environ["TRIBLER_SKIP_OPTIN_DLG"] = "True"
-
 class TestTunnelCommunity(TestGuiAsServer):
 
     def test_anon_download(self):
@@ -204,6 +201,9 @@ class TestTunnelCommunity(TestGuiAsServer):
         self.startTest(setup_seeder)
 
     def startTest(self, callback, min_timeout=5):
+        from Tribler.Main import tribler_main
+        tribler_main.FORCE_ENABLE_TUNNEL_COMMUNITY = True
+
         self.getStateDir()  # getStateDir copies the bootstrap file into the statedir
 
         def setup_proxies():
@@ -261,7 +261,7 @@ class TestTunnelCommunity(TestGuiAsServer):
 
             return blockingCallFromThread(reactor, load_community, session)
 
-        TestGuiAsServer.startTest(self, setup_proxies, force_is_unit_testing=False, autoload_discovery=False)
+        TestGuiAsServer.startTest(self, setup_proxies, autoload_discovery=False)
 
     def setupSeeder(self):
         from Tribler.Core.Session import Session
