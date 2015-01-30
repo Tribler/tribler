@@ -13,7 +13,7 @@ goto general
 
 
 set TDIR="%USERPROFILE%\%APPDIR%\.Tribler"
-set DDIR="%USERPROFILE%\Desktop\TriblerDownloads"
+set DDIR="%USERPROFILE%\Downloads\TriblerDownloads"
 del %TDIR%\torrent*.* /S /F /Q
 REM rmdiriver us from Windows, *.* apparently does not include the following:
 rmdir %TDIR%\torrent /S /Q

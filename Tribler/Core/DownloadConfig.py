@@ -20,8 +20,9 @@ from types import StringType
 from Tribler.Core.simpledefs import DLMODE_VOD, UPLOAD
 from Tribler.Core.defaults import dldefaults
 from Tribler.Core.Base import Serializable, Copyable
-from Tribler.Core.osutils import get_desktop_dir
+from Tribler.Core.osutils import get_home_dir
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
+
 
 
 class DownloadConfigInterface(object):
@@ -208,17 +209,18 @@ class DownloadStartupConfig(DownloadConfigInterface, Serializable, Copyable):
 
 def get_default_dest_dir():
     """ Returns the default dir to save content to.
-    <pre>
-    * For Win32/MacOS: Desktop\TriblerDownloads
-    * For UNIX:
-        If Desktop exists: Desktop\TriblerDownloads
-        else: Home\TriblerDownloads
-    </pre>
+    * If Downloads/ exists: Downloads/TriblerDownloads
+        else: Home/TriblerDownloads
+
     """
-    downloaddir = u"TriblerDownloads"
+    t_downloaddir = u"TriblerDownloads"
 
-    if os.path.isdir(downloaddir):
-        return os.path.abspath(downloaddir)
+    # TODO(emilon): Is this here so the unit tests work?
+    if os.path.isdir(t_downloaddir):
+        return os.path.abspath(t_downloaddir)
 
-    uhome = get_desktop_dir()
-    return os.path.join(uhome, downloaddir)
+    downloads_dir =  os.path.join(get_home_dir(), "Downloads")
+    if os.path.isdir(downloads_dir):
+        return os.path.join(downloads_dir, t_downloaddir)
+    else:
+        return os.path.join(get_home_dir(), t_downloaddir)
