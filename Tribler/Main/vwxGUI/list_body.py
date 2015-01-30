@@ -939,6 +939,9 @@ class AbstractListBody():
             highlight = not self.IsEmpty()
 
         def doSetData():
+            if not self:
+                return
+
             self.lastData = time()
             self.dataTimer = None
 
@@ -1015,7 +1018,7 @@ class AbstractListBody():
             if message:
                 self.ShowMessage(message + '.', header)
 
-        if self.done:
+        if self and self.done:
             self.Unbind(wx.EVT_IDLE)  # unbinding unnecessary event handler seems to improve visual performance
         else:
             self.Bind(wx.EVT_IDLE, self.OnIdle)
