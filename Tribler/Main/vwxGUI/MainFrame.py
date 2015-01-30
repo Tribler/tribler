@@ -419,12 +419,14 @@ class MainFrame(wx.Frame):
         if name is None:
             name = ""
         try:
+            if infohash is None:
+                raise RuntimeError("Missing infohash")
             tdef = TorrentDefNoMetainfo(infohash, name, url=url)
             wx.CallAfter(self.startDownload, tdef=tdef, cmdline=cmdline, destdir=destdir, selectedFiles=selectedFiles, vodmode=vodmode, hops=0)
         except Exception, e:
             # show an error dialog
-            dlg = wx.MessageBox(self, "Failed to add magnet download: %s" % str(e),
-                                "Failed to add magnet download", wx.OK | wx.ICON_ERROR)
+            dlg = wx.MessageBox(self, "The magnet link is invalid: %s" % str(e),
+                                "The magnet link is invalid", wx.OK | wx.ICON_ERROR)
             dlg.ShowModal()
             dlg.Destroy()
         return True
