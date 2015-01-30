@@ -235,22 +235,6 @@ def show_permid_short(permid):
     # return encodestring(sha(s).digest()).replace("\n","")
 
 
-def find_prog_in_PATH(prog):
-    envpath = unicode(os.path.expandvars('${PATH}').decode(sys.getfilesystemencoding()))
-    if sys.platform == 'win32':
-        splitchar = u';'
-    else:
-        splitchar = u':'
-    paths = envpath.split(splitchar)
-    foundat = None
-    for path in paths:
-        fullpath = os.path.join(path, prog)
-        if os.access(fullpath, os.R_OK | os.X_OK):
-            foundat = fullpath
-            break
-    return foundat
-
-
 def get_collected_torrent_filename(infohash):
     filename = binascii.hexlify(infohash) + '.torrent'
     return filename
