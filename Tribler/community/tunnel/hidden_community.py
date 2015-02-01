@@ -159,12 +159,6 @@ class HiddenTunnelCommunity(TunnelCommunity):
             if rebuild:
                 self.create_rendezvous_points(rp.info_hash, rp.circuit.goal_hops)
 
-    def _generate_binary_string(self, length):
-        return os.urandom(length)
-
-    def _readable_binary_string(self, value):
-        return value.encode('hex')[:20]
-
     def ip_to_circuit_id(self, ip_str):
         return struct.unpack("!I", socket.inet_aton(ip_str))[0]
 
@@ -414,7 +408,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
             cache = self.request_cache.add(IPRequestCache(self, circuit))
             self.send_cell([Candidate(circuit.first_hop, False)], u'establish-intro', (circuit_id, cache.number, info_hash))
-            self._logger.debug("Established introduction tunnel %s for %s", circuit_id, self._readable_binary_string(info_hash))
+            self._logger.debug("Established introduction tunnel %s", circuit_id)
 
         for _ in range(amount):
             self.create_circuit(hops, CIRCUIT_TYPE_IP, callback, max_retries=5)
