@@ -232,16 +232,14 @@ class StatsResponsePayload(Payload):
 
 class EstablishIntroPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, identifier, service_key, info_hash):
+        def __init__(self, meta, circuit_id, identifier, info_hash):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(identifier, int), type(identifier)
-            assert isinstance(service_key, basestring), type(service_key)
             assert isinstance(info_hash, basestring), type(info_hash)
 
             super(EstablishIntroPayload.Implementation, self).__init__(meta)
             self._circuit_id = circuit_id
             self._identifier = identifier
-            self._service_key = service_key
             self._info_hash = info_hash
 
         @property
@@ -251,10 +249,6 @@ class EstablishIntroPayload(Payload):
         @property
         def identifier(self):
             return self._identifier
-
-        @property
-        def service_key(self):
-            return self._service_key
 
         @property
         def info_hash(self):
@@ -330,13 +324,14 @@ class RendezvousEstablishedPayload(Payload):
             return self._rendezvous_point_addr
 
 
-class KeysRequestPayload(Payload):
+class KeyRequestPayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta, identifier, info_hash):
             assert isinstance(identifier, int), type(identifier)
             assert isinstance(info_hash, basestring), type(info_hash)
+            assert len(info_hash) == 20, len(info_hash)
 
-            super(KeysRequestPayload.Implementation, self).__init__(meta)
+            super(KeyRequestPayload.Implementation, self).__init__(meta)
             self._identifier = identifier
             self._info_hash = info_hash
 
@@ -348,131 +343,73 @@ class KeysRequestPayload(Payload):
         def info_hash(self):
             return self._info_hash
 
-
-class KeysResponsePayload(Payload):
+class KeyResponsePayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, identifier, ip_key, service_key):
+        def __init__(self, meta, identifier, public_key):
             assert isinstance(identifier, int), type(identifier)
-            assert isinstance(ip_key, basestring), type(ip_key)
-            assert isinstance(service_key, basestring), type(service_key)
+            assert isinstance(public_key, basestring), type(public_key)
 
-            super(KeysResponsePayload.Implementation, self).__init__(meta)
+            super(KeyResponsePayload.Implementation, self).__init__(meta)
             self._identifier = identifier
-            self._ip_key = ip_key
-            self._service_key = service_key
+            self._public_key = public_key
 
         @property
         def identifier(self):
             return self._identifier
 
         @property
-        def ip_key(self):
-            return self._ip_key
+        def public_key(self):
+            return self._public_key
 
-        @property
-        def service_key(self):
-            return self._service_key
-
-
-class Intro1Payload(Payload):
+class CreateE2EPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, identifier, key, cookie, rendezvous_point, service_key):
-            assert isinstance(circuit_id, (int, long)), type(circuit_id)
+        def __init__(self, meta, identifier, info_hash, node_id, node_public_key, key):
             assert isinstance(identifier, int), type(identifier)
+            assert isinstance(info_hash, basestring), type(info_hash)
+            assert len(info_hash) == 20, len(info_hash)
+            assert isinstance(node_id, basestring), type(node_id)
+            assert isinstance(node_public_key, basestring), type(node_public_key)
             assert isinstance(key, basestring), type(key)
-            assert isinstance(cookie, basestring), type(cookie)
-            assert isinstance(rendezvous_point, basestring), type(rendezvous_point)
-            assert isinstance(service_key, basestring), type(service_key)
 
-            super(Intro1Payload.Implementation, self).__init__(meta)
-            self._circuit_id = circuit_id
+            super(CreateE2EPayload.Implementation, self).__init__(meta)
             self._identifier = identifier
+            self._info_hash = info_hash
+            self._node_id = node_id
+            self._node_public_key = node_public_key
             self._key = key
-            self._cookie = cookie
-            self._rendezvous_point = rendezvous_point
-            self._service_key = service_key
-
-        @property
-        def circuit_id(self):
-            return self._circuit_id
 
         @property
         def identifier(self):
             return self._identifier
+
+        @property
+        def info_hash(self):
+            return self._info_hash
+
+        @property
+        def node_id(self):
+            return self._node_id
+
+        @property
+        def node_public_key(self):
+            return self._node_public_key
 
         @property
         def key(self):
             return self._key
 
-        @property
-        def cookie(self):
-            return self._cookie
-
-        @property
-        def rendezvous_point(self):
-            return self._rendezvous_point
-
-        @property
-        def service_key(self):
-            return self._service_key
-
-
-class Intro2Payload(Payload):
+class CreatedE2EPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, identifier, key, cookie, rendezvous_point):
-            assert isinstance(circuit_id, (int, long)), type(circuit_id)
-            assert isinstance(identifier, int), type(identifier)
-            assert isinstance(key, basestring), type(key)
-            assert isinstance(cookie, basestring), type(cookie)
-            assert isinstance(rendezvous_point, basestring), type(rendezvous_point)
-
-            super(Intro2Payload.Implementation, self).__init__(meta)
-            self._circuit_id = circuit_id
-            self._identifier = identifier
-            self._key = key
-            self._cookie = cookie
-            self._rendezvous_point = rendezvous_point
-
-        @property
-        def circuit_id(self):
-            return self._circuit_id
-
-        @property
-        def identifier(self):
-            return self._identifier
-
-        @property
-        def key(self):
-            return self._key
-
-        @property
-        def cookie(self):
-            return self._cookie
-
-        @property
-        def rendezvous_point(self):
-            return self._rendezvous_point
-
-
-class Rendezvous1Payload(Payload):
-    class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, identifier, key, auth, cookie):
-            assert isinstance(circuit_id, (int, long)), type(circuit_id)
+        def __init__(self, meta, identifier, key, auth, rp_sock_addr):
             assert isinstance(identifier, int), type(identifier)
             assert isinstance(key, basestring), type(key)
             assert isinstance(auth, basestring), type(auth)
-            assert isinstance(cookie, basestring), type(cookie)
 
-            super(Rendezvous1Payload.Implementation, self).__init__(meta)
-            self._circuit_id = circuit_id
+            super(CreatedE2EPayload.Implementation, self).__init__(meta)
             self._identifier = identifier
             self._key = key
             self._auth = auth
-            self._cookie = cookie
-
-        @property
-        def circuit_id(self):
-            return self._circuit_id
+            self._rp_sock_addr = rp_sock_addr
 
         @property
         def identifier(self):
@@ -487,21 +424,21 @@ class Rendezvous1Payload(Payload):
             return self._auth
 
         @property
-        def cookie(self):
-            return self._cookie
+        def rp_sock_addr(self):
+            return self._rp_sock_addr
 
 
-class Rendezvous2Payload(Payload):
+class LinkE2EPayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, circuit_id, identifier, key):
+        def __init__(self, meta, circuit_id, identifier, cookie):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(identifier, int), type(identifier)
-            assert isinstance(key, basestring), type(key)
+            assert isinstance(cookie, basestring), type(cookie)
 
-            super(Rendezvous2Payload.Implementation, self).__init__(meta)
+            super(LinkE2EPayload.Implementation, self).__init__(meta)
             self._circuit_id = circuit_id
             self._identifier = identifier
-            self._key = key
+            self._cookie = cookie
 
         @property
         def circuit_id(self):
@@ -512,5 +449,23 @@ class Rendezvous2Payload(Payload):
             return self._identifier
 
         @property
-        def key(self):
-            return self._key
+        def cookie(self):
+            return self._cookie
+
+class LinkedE2EPayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta, circuit_id, identifier):
+            assert isinstance(circuit_id, (int, long)), type(circuit_id)
+            assert isinstance(identifier, int), type(identifier)
+
+            super(LinkedE2EPayload.Implementation, self).__init__(meta)
+            self._circuit_id = circuit_id
+            self._identifier = identifier
+
+        @property
+        def circuit_id(self):
+            return self._circuit_id
+
+        @property
+        def identifier(self):
+            return self._identifier

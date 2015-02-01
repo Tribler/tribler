@@ -22,11 +22,14 @@ class TunnelCrypto(ECCrypto):
 
         return tmp_key, X
 
-    def generate_diffie_shared_secret(self, dh_received):
+    def generate_diffie_shared_secret(self, dh_received, key=None):
+        if key == None:
+            key = self.key
+
         tmp_key = self.generate_key(u"curve25519")
         y = tmp_key.key.sk
         Y = tmp_key.key.pk
-        shared_secret = crypto_box_beforenm(dh_received, y) + crypto_box_beforenm(dh_received, self.key.key.sk)
+        shared_secret = crypto_box_beforenm(dh_received, y) + crypto_box_beforenm(dh_received, key.key.sk)
 
         AUTH = crypto_auth(Y, shared_secret)
         return shared_secret, Y, AUTH

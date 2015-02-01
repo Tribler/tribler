@@ -10,15 +10,13 @@ from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLST
 from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 from Tribler.Core.Utilities.encoding import encode, decode
 
-from Crypto.Util.number import bytes_to_long, long_to_bytes
-
-from Tribler.community.tunnel import CIRCUIT_TYPE_IP, CIRCUIT_TYPE_RP, CIRCUIT_TYPE_INTRODUCE, CIRCUIT_TYPE_RENDEZVOUS
+from Tribler.community.tunnel import CIRCUIT_TYPE_IP, CIRCUIT_TYPE_RP, CIRCUIT_TYPE_RENDEZVOUS, \
+    DEFAULT_HOPS, EXIT_NODE, EXIT_NODE_SALT
 
 from Tribler.community.tunnel.payload import (EstablishIntroPayload, IntroEstablishedPayload, EstablishRendezvousPayload,
-                                              RendezvousEstablishedPayload, Intro1Payload, Intro2Payload,
-                                              Rendezvous1Payload, Rendezvous2Payload, KeysRequestPayload,
-                                              KeysResponsePayload)
-from Tribler.community.tunnel.routing import RelayRoute, IntroductionPoint, RendezvousPoint
+                                              RendezvousEstablishedPayload, KeyResponsePayload, KeyRequestPayload,
+    CreateE2EPayload, CreatedE2EPayload, LinkE2EPayload, LinkedE2EPayload)
+from Tribler.community.tunnel.routing import RelayRoute, RendezvousPoint, Hop
 
 from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.candidate import Candidate
@@ -40,10 +38,6 @@ class IPRequestCache(RandomNumberCache):
         self.circuit = circuit
         self.community = community
 
-    @property
-    def timeout_delay(self):
-        return 5.0
-
     def on_timeout(self):
         self._logger.debug("IPRequestCache: no response on establish-intro (circuit %d)", self.circuit.circuit_id)
         self.community.remove_circuit(self.circuit.circuit_id, 'establish-intro timeout')
@@ -56,58 +50,57 @@ class RPRequestCache(RandomNumberCache):
         self.circuit = circuit
         self.community = community
 
-    @property
-    def timeout_delay(self):
-        return 5.0
-
     def on_timeout(self):
         self._logger.debug("RPRequestCache: no response on establish-rendezvous (circuit %d)", self.circuit.circuit_id)
         self.community.remove_circuit(self.circuit.circuit_id, 'establish-rendezvous timeout')
 
 
-class Introduce1RequestCache(RandomNumberCache):
+class KeyRequestCache(RandomNumberCache):
 
-    def __init__(self, community, circuit):
-        super(Introduce1RequestCache, self).__init__(community.request_cache, u"intro1")
+    def __init__(self, community, circuit, sock_addr, info_hash):
+        super(KeyRequestCache, self).__init__(community.request_cache, u"key-request")
         self.circuit = circuit
-        self.community = community
-
-    @property
-    def timeout_delay(self):
-        return 20.0
-
-    def on_timeout(self):
-        self._logger.debug("Introduce1RequestCache: no response on intro1 (circuit %d)", self.circuit.circuit_id)
-        self.community.remove_circuit(self.circuit.circuit_id, 'intro1 timeout')
-
-
-class KeysRequestCache(RandomNumberCache):
-
-    def __init__(self, community, callback):
-        super(KeysRequestCache, self).__init__(community.request_cache, u"keys-request")
-        self.callback = callback
-        self.community = community
-
-    def on_success(self, ip_key, service_key):
-        self.callback(ip_key, service_key)
-
-    @property
-    def timeout_delay(self):
-        return 5.0
+        self.sock_addr = sock_addr
+        self.info_hash = info_hash
 
     def on_timeout(self):
         pass
 
+
+class E2ERequestCache(RandomNumberCache):
+
+    def __init__(self, community, info_hash, circuit, hop):
+        super(E2ERequestCache, self).__init__(community.request_cache, u"e2e-request")
+        self.circuit = circuit
+        self.hop = hop
+        self.info_hash = info_hash
+
+    def on_timeout(self):
+        pass
+
+class LinkRequestCache(RandomNumberCache):
+
+    def __init__(self, community, circuit, info_hash):
+        super(LinkRequestCache, self).__init__(community.request_cache, u"link-request")
+        self.circuit = circuit
+        self.info_hash = info_hash
+
+    def on_timeout(self):
+        pass
 
 class HiddenTunnelCommunity(TunnelCommunity):
 
     def __init__(self, *args, **kwargs):
         super(HiddenTunnelCommunity, self).__init__(*args, **kwargs)
 
-        self.my_intro_points = {}
-        self.my_rendezvous_points = {}
+        self.session_keys = {}
+
+        self.my_intro_points = defaultdict(list)
         self.intro_point_for = {}
+
+        self.my_rendezvous_points = {}
         self.rendezvous_point_for = {}
+
         self.download_states = {}
         self.rp_blacklist = defaultdict(dict)
         self.last_rp_creation = {}
@@ -119,36 +112,36 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
     def initiate_meta_messages(self):
         return super(HiddenTunnelCommunity, self).initiate_meta_messages() + \
-                [Message(self, u"establish-intro", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                        CandidateDestination(), EstablishIntroPayload(), self._generic_timeline_check,
-                        self.on_establish_intro),
-                Message(self, u"intro-established", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                        CandidateDestination(), IntroEstablishedPayload(), self.check_intro_established,
-                        self.on_intro_established),
-                Message(self, u"establish-rendezvous", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                        CandidateDestination(), EstablishRendezvousPayload(), self._generic_timeline_check,
-                        self.on_establish_rendezvous),
-                Message(self, u"rendezvous-established", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                        CandidateDestination(), RendezvousEstablishedPayload(), self.check_rendezvous_established,
-                        self.on_rendezvous_established),
-                Message(self, u"keys-request", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                        CandidateDestination(), KeysRequestPayload(), self._generic_timeline_check,
-                        self.on_keys_request),
-                Message(self, u"keys-response", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                        CandidateDestination(), KeysResponsePayload(), self._generic_timeline_check,
-                        self.on_keys_response),
-                Message(self, u"intro1", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                        CandidateDestination(), Intro1Payload(), self.check_intro1,
-                        self.on_intro1),
-                Message(self, u"intro2", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                        CandidateDestination(), Intro2Payload(), self.check_intro2,
-                        self.on_intro2),
-                Message(self, u"rendezvous1", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                        CandidateDestination(), Rendezvous1Payload(), self.check_rendezvous1,
-                        self.on_rendezvous1),
-                Message(self, u"rendezvous2", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                        CandidateDestination(), Rendezvous2Payload(), self.check_rendezvous2,
-                        self.on_rendezvous2)]
+                [Message(self, u"key-request", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), KeyRequestPayload(), self.check_key_request,
+                        self.on_key_request),
+                 Message(self, u"key-response", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                         CandidateDestination(), KeyResponsePayload(), self.check_key_response,
+                         self.on_key_response),
+                 Message(self, u"create-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                         CandidateDestination(), CreateE2EPayload(), self.check_key_request,
+                         self.on_create_e2e),
+                 Message(self, u"created-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                         CandidateDestination(), CreatedE2EPayload(), self.check_created_e2e,
+                         self.on_created_e2e),
+                 Message(self, u"link-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                         CandidateDestination(), LinkE2EPayload(), self.check_link_e2e,
+                         self.on_link_e2e),
+                 Message(self, u"linked-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                         CandidateDestination(), LinkedE2EPayload(), self.check_linked_e2e,
+                         self.on_linked_e2e),
+                 Message(self, u"establish-intro", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                         CandidateDestination(), EstablishIntroPayload(), self.check_establish_intro,
+                         self.on_establish_intro),
+                 Message(self, u"intro-established", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                         CandidateDestination(), IntroEstablishedPayload(), self.check_intro_established,
+                         self.on_intro_established),
+                 Message(self, u"establish-rendezvous", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                         CandidateDestination(), EstablishRendezvousPayload(), self.check_establish_rendezvous,
+                         self.on_establish_rendezvous),
+                 Message(self, u"rendezvous-established", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                         CandidateDestination(), RendezvousEstablishedPayload(), self.check_rendezvous_established,
+                         self.on_rendezvous_established)]
 
     def remove_circuit(self, circuit_id, additional_info='', destroy=False, rebuild=False):
         super(HiddenTunnelCommunity, self).remove_circuit(circuit_id, additional_info, destroy, rebuild)
@@ -165,8 +158,6 @@ class HiddenTunnelCommunity(TunnelCommunity):
             rp = self.my_rendezvous_points.pop(circuit_id)
             if rebuild:
                 self.create_rendezvous_points(rp.info_hash, rp.circuit.goal_hops)
-
-
 
     def _generate_binary_string(self, length):
         return os.urandom(length)
@@ -186,6 +177,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
                 if time.time() - ts > 60:
                     self.rp_blacklist[info_hash].pop(sock_addr)
 
+    @call_on_reactor_thread
     def monitor_downloads(self, dslist):
         # Monitor downloads with anonymous flag set, and build rendezvous/introduction points when needed.
         new_states = {}
@@ -194,7 +186,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
         for ds in dslist:
             download = ds.get_download()
             tdef = download.get_def()
-            if tdef.get_def_type() == 'torrent' and tdef.is_anonymous():
+            if tdef.is_anonymous():
                 info_hash = tdef.get_infohash()
                 hops[info_hash] = download.get_hops()
                 new_states[info_hash] = ds.get_status()
@@ -204,14 +196,13 @@ class HiddenTunnelCommunity(TunnelCommunity):
             old_state = self.download_states.get(info_hash, None)
             state_changed = new_state != old_state
 
-            # Every 300s force a DHT check to discover new introduction points
             force_rendezvous = (time.time() - self.last_rp_creation.get(info_hash, 0)) >= 300
 
             if (state_changed or force_rendezvous) and new_state == DLSTATUS_DOWNLOADING:
-                self.create_rendezvous_points(info_hash, hops=hops.get(info_hash, 2))
+                self.do_lookup(info_hash, hops=hops.get(info_hash, 2))
 
             elif state_changed and new_state == DLSTATUS_SEEDING:
-                self.create_introduction_points(info_hash, hops=hops.get(info_hash, 2))
+                self.create_introduction_point(info_hash, hops=hops.get(info_hash, DEFAULT_HOPS))
 
             elif state_changed and new_state in [DLSTATUS_STOPPED, None]:
                 for cid, p in self.my_rendezvous_points.items() + self.my_intro_points.items():
@@ -220,91 +211,230 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
         self.download_states = new_states
 
-    def create_introduction_points(self, info_hash, hops, amount=1):
-        self._logger.debug('Creating %d introduction point(s)', amount)
-        self._create_introduction_points(info_hash, hops, amount)
+    def do_lookup(self, info_hash, hops):
+        # Get seeders from the DHT and establish an e2e encrypted tunnel to them
+        def dht_callback(info_hash, peers, _):
+            if not peers:
+                return
 
+            exclude = [rp.intro_point[:2] for rp in self.my_rendezvous_points.values()] + self.rp_blacklist[info_hash].keys()
+
+            for peer in set(peers):
+                if peer not in exclude:
+                    self._logger.info("Requesting key from %s", peer)
+                    self.create_key_request(info_hash, peer)
+
+        # todo, rename this to something more like last lookup
+        self.last_rp_creation[info_hash] = time.time()
+        self.dht_lookup(info_hash, dht_callback)
+
+    def create_key_request(self, info_hash, sock_addr):
+        # Blacklist this sock_addr for a period of at least 60s
+        self.rp_blacklist[info_hash][sock_addr] = time.time()
+
+        # 1. Select a circuit
+        circuit = self.selection_strategy.select(None, DEFAULT_HOPS)
+        if not circuit:
+            self._logger.error("No circuit for key-request")
+            return False
+
+        # 2. Send a key-request message
+        cache = self.request_cache.add(KeyRequestCache(self, circuit, sock_addr, info_hash))
+        meta = self.get_meta_message(u'key-request')
+        message = meta.impl(distribution=(self.global_time,), payload=(cache.number, info_hash))
+        circuit.tunnel_data(sock_addr, TUNNEL_PREFIX + message.packet)
+
+        return True
+
+    def check_key_request(self, messages):
+        for message in messages:
+            info_hash = message.payload.info_hash
+            if not message.source.startswith(u"circuit_"):
+                if not info_hash in self.intro_point_for:
+                    yield DropMessage(message, "not an intro point for this infohash")
+                    continue
+            else:
+                if not info_hash in self.session_keys:
+                    yield DropMessage(message, "not seeding this infohash")
+                    continue
+
+            yield message
+
+    def on_key_request(self, messages):
+        for message in messages:
+            # if we have received this message over a socket, we need to forward it
+            if not message.source.startswith(u"circuit_"):
+                relay_circuit = self.intro_point_for[message.payload.info_hash]
+                relay_circuit.tunnel_data(message.candidate.sock_addr, TUNNEL_PREFIX + message.packet)
+
+            else:
+                info_hash = message.payload.info_hash
+                key = self.session_keys[info_hash]
+                circuit = self.circuits[int(message.source[8:])]
+
+                meta = self.get_meta_message(u'key-response')
+                response = meta.impl(distribution=(self.global_time,), payload=(message.payload.identifier, key.pub().key_to_bin()))
+                circuit.tunnel_data(message.candidate.sock_addr, TUNNEL_PREFIX + response.packet)
+
+    def check_key_response(self, messages):
+        for message in messages:
+            if not message.source.startswith(u"circuit_"):
+                yield DropMessage(message, "must be received from a circuit")
+                continue
+
+            request = self.request_cache.get(u"key-request", message.payload.identifier)
+            if not request:
+                yield DropMessage(message, "invalid key-response identifier")
+                continue
+
+            yield message
+
+    def on_key_response(self, messages):
+        for message in messages:
+            cache = self.request_cache.pop(u"key-request", message.payload.identifier)
+            self.create_e2e(cache.circuit, cache.sock_addr, cache.info_hash, message.payload.public_key)
+
+    def create_e2e(self, circuit, sock_addr, info_hash, public_key):
+        hop = Hop(self.crypto.key_from_public_bin(public_key))
+        hop.dh_secret, hop.dh_first_part = self.crypto.generate_diffie_secret()
+
+        cache = self.request_cache.add(E2ERequestCache(self, info_hash, circuit, hop))
+        meta = self.get_meta_message(u'create-e2e')
+        message = meta.impl(distribution=(self.global_time,), payload=(cache.number, info_hash, hop.node_id,
+                                                                       hop.node_public_key, hop.dh_first_part))
+        circuit.tunnel_data(sock_addr, TUNNEL_PREFIX + message.packet)
+
+    def on_create_e2e(self, messages):
+        for message in messages:
+            # if we have received this message over a socket, we need to forward it
+            if not message.source.startswith(u"circuit_"):
+                relay_circuit = self.intro_point_for[message.payload.info_hash]
+                relay_circuit.tunnel_data(message.candidate.sock_addr, TUNNEL_PREFIX + message.packet)
+
+            else:
+                self.create_rendevous_point(DEFAULT_HOPS, lambda rendevous_point, message=message: self.create_created_e2e(rendevous_point, message))
+
+    def create_created_e2e(self, rendevous_point, message):
+        info_hash = message.payload.info_hash
+        key = self.session_keys[info_hash]
+
+        circuit = self.circuits[int(message.source[8:])]
+        shared_secret, Y, AUTH = self.crypto.generate_diffie_shared_secret(message.payload.key, key)
+        rendevous_point.circuit.hs_session_keys = self.crypto.generate_session_keys(shared_secret)
+
+        rp_info_enc = self.crypto.encrypt_str(encode((rendevous_point.rp_info, rendevous_point.cookie)), *self.get_session_keys(rendevous_point.circuit.hs_session_keys, EXIT_NODE))
+
+        meta = self.get_meta_message(u'created-e2e')
+        response = meta.impl(distribution=(self.global_time,), payload=(message.payload.identifier, Y, AUTH, rp_info_enc))
+        circuit.tunnel_data(message.candidate.sock_addr, TUNNEL_PREFIX + response.packet)
+
+    def check_created_e2e(self, messages):
+        for message in messages:
+            if not message.source.startswith(u"circuit_"):
+                yield DropMessage(message, "must be received from a circuit")
+                continue
+
+            request = self.request_cache.get(u"e2e-request", message.payload.identifier)
+            if not request:
+                yield DropMessage(message, "invalid created-e2e identifier")
+                continue
+
+            yield message
+
+    def on_created_e2e(self, messages):
+        for message in messages:
+            cache = self.request_cache.pop(u"e2e-request", message.payload.identifier)
+            shared_secret = self.crypto.verify_and_generate_shared_secret(cache.hop.dh_secret, message.payload.key, message.payload.auth, cache.hop.public_key.key.pk)
+            session_keys = self.crypto.generate_session_keys(shared_secret)
+
+            _, rp_info = decode(self.crypto.decrypt_str(message.payload.rp_sock_addr, session_keys[EXIT_NODE], session_keys[EXIT_NODE_SALT]))
+            self.create_circuit(DEFAULT_HOPS, CIRCUIT_TYPE_RENDEZVOUS, callback=lambda circuit, cookie=rp_info[1], session_keys=session_keys, info_hash=cache.info_hash: self.create_link_e2e(circuit, cookie, session_keys, info_hash), max_retries=5, required_exit=rp_info[0])
+
+    def create_link_e2e(self, circuit, cookie, session_keys, info_hash):
+        circuit.hs_session_keys = session_keys
+
+        cache = self.request_cache.add(LinkRequestCache(self, circuit, info_hash))
+        self.send_cell([Candidate(circuit.first_hop, False)], u'link-e2e', (circuit.circuit_id, cache.number, cookie))
+
+    def check_link_e2e(self, messages):
+        for message in messages:
+            if not message.source.startswith(u"circuit_"):
+                yield DropMessage(message, "must be received from a circuit")
+                continue
+
+            if message.payload.cookie not in self.rendezvous_point_for:
+                yield DropMessage(message, "not a rendezvous point for this cookie")
+                continue
+
+            yield message
+
+    def on_link_e2e(self, messages):
+        for message in messages:
+            circuit = self.exit_sockets[int(message.source[8:])]
+            relay_circuit = self.rendezvous_point_for[message.payload.cookie]
+
+            self.send_cell([message.candidate], u"linked-e2e", (circuit.circuit_id, message.payload.identifier))
+
+            self.relay_from_to[circuit.circuit_id] = RelayRoute(relay_circuit.circuit_id, relay_circuit.sock_addr, True)
+            self.relay_from_to[relay_circuit.circuit_id] = RelayRoute(circuit.circuit_id, circuit.sock_addr, True)
+
+    def check_linked_e2e(self, messages):
+        for message in messages:
+            if not message.source.startswith(u"circuit_"):
+                yield DropMessage(message, "must be received from a circuit")
+                continue
+
+            request = self.request_cache.get(u"link-request", message.payload.identifier)
+            if not request:
+                yield DropMessage(message, "invalid linked-e2e identifier")
+                continue
+
+            yield message
+
+    def on_linked_e2e(self, messages):
+        for message in messages:
+            cache = self.request_cache.pop(u"link-request", message.payload.identifier)
+
+            download = self.trsession.get_download(cache.info_hash)
+            download.add_peer((self.circuit_id_to_ip(cache.circuit.circuit_id), 1024))
+
+    def create_introduction_point(self, info_hash, hops, amount=1):
         # Ensures that libtorrent tries to make an outgoing connection so that the socks5 server
         # knows on which UDP port libtorrent is listening.
         self.trsession.get_download(info_hash).add_peer(('1.1.1.1' , 1024))
 
-    @call_on_reactor_thread
-    def _create_introduction_points(self, info_hash, hops, amount=1):
+        # Create a separate key per infohash
+        if info_hash not in self.session_keys:
+            self.session_keys[info_hash] = self.crypto.generate_key(u"curve25519")
 
         def callback(circuit):
             # We got a circuit, now let's create a introduction point
             circuit_id = circuit.circuit_id
-            service_key = self.crypto.generate_key(u"curve25519")
-            ip = self.my_intro_points[circuit_id] = IntroductionPoint(circuit, info_hash, service_key,
-                                                                      self.crypto.key_to_bin(service_key.pub()))
-            cache = self.request_cache.add(IPRequestCache(self, circuit))
-            payload = (circuit_id, cache.number, ip.service_key_public_bin, info_hash)
-            self.send_cell([Candidate(circuit.first_hop, False)], u'establish-intro', payload)
-            self._logger.debug("Establish introduction tunnel %s for service %s",
-                               circuit_id, self._readable_binary_string(ip.service_key_public_bin))
+            self.my_intro_points[info_hash].append(circuit)
 
-        # Create circuits for introduction points
-        for _ in range(0, amount):
+            cache = self.request_cache.add(IPRequestCache(self, circuit))
+            self.send_cell([Candidate(circuit.first_hop, False)], u'establish-intro', (circuit_id, cache.number, info_hash))
+            self._logger.debug("Established introduction tunnel %s for %s", circuit_id, self._readable_binary_string(info_hash))
+
+        for _ in range(amount):
             self.create_circuit(hops, CIRCUIT_TYPE_IP, callback, max_retries=5)
 
-    def create_rendezvous_points(self, info_hash, hops):
-        def add_peer(circuit_id, download):
-            download.add_peer((self.circuit_id_to_ip(circuit_id), 1024))
+    def check_establish_intro(self, messages):
+        for message in messages:
+            if not message.source.startswith(u"circuit_"):
+                yield DropMessage(message, "did not receive this message from a circuit")
+                continue
 
-        def dht_callback(ih, peers, _):
-            if not peers:
-                return
+            yield message
 
-            exclude = [rp.intro_point[:2] for rp in self.my_rendezvous_points.values()] + \
-                      self.rp_blacklist[ih].keys()
+    def on_establish_intro(self, messages):
+        for message in messages:
+            circuit = self.exit_sockets[int(message.source[8:])]
+            self.intro_point_for[message.payload.info_hash] = circuit
 
-            for peer in set(peers):
-                if peer not in exclude:
-                    self._logger.error("Creating rendezvous point for introduction point %s", peer)
-                    download = self.trsession.get_download(ih)
-                    self._create_rendezvous_point(ih, peer, hops, lambda c, d=download: add_peer(c, d))
-                    # Blacklist this sock_addr for a period of at least 60s
-                    self.rp_blacklist[ih][peer] = time.time()
+            self.send_cell([message.candidate], u"intro-established", (circuit.circuit_id, message.payload.identifier))
 
-        self.last_rp_creation[info_hash] = time.time()
-
-        # Get introduction points from the DHT, create rendezvous the points, and add the resulting
-        # circuit_ids to the libtorrent download
-        self.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), dht_callback)
-
-    @call_on_reactor_thread
-    def _create_rendezvous_point(self, info_hash, sock_addr, hops, finished_callback):
-
-        def keys_callback(ip_key, service_key, sock_addr):
-            def circuit_callback(circuit):
-                # Now that we have a circuit + the required info, let's create a rendezvous point
-                circuit_id = circuit.circuit_id
-                rp = self.my_rendezvous_points[circuit_id] = RendezvousPoint(circuit, info_hash,
-                                                                             self._generate_binary_string(20),
-                                                                             service_key,
-                                                                             (sock_addr[0], sock_addr[1], ip_key),
-                                                                             finished_callback)
-                cache = self.request_cache.add(RPRequestCache(self, circuit))
-                payload = (circuit_id, cache.number, rp.cookie)
-                self.send_cell([Candidate(circuit.first_hop, False)], u'establish-rendezvous', payload)
-                self._logger.error("Establish rendezvous tunnel %s with cookie %s", circuit_id,
-                                   self._readable_binary_string(rp.cookie))
-
-            # Create a circuit for the rendezvous points
-            self.create_circuit(hops, CIRCUIT_TYPE_RP, circuit_callback, max_retries=5)
-
-        def request_keys(circuit):
-            self._logger.error("Sending keys-request to %s", sock_addr)
-            cache = self.request_cache.add(KeysRequestCache(self, lambda i, s, a=sock_addr: keys_callback(i, s, a)))
-            meta = self.get_meta_message(u'keys-request')
-            message = meta.impl(distribution=(self.global_time,), payload=(cache.number, info_hash))
-            circuit.tunnel_data(sock_addr, TUNNEL_PREFIX + message.packet)
-
-        circuit = self.selection_strategy.select(None, hops)
-        if circuit:
-            request_keys(circuit)
-        else:
-            self._logger.error("No circuit for keys-request")
+            self.dht_announce(message.payload.info_hash)
 
     def check_intro_established(self, messages):
         for message in messages:
@@ -312,7 +442,40 @@ class HiddenTunnelCommunity(TunnelCommunity):
             if not request:
                 yield DropMessage(message, "invalid intro-established request identifier")
                 continue
+
             yield message
+
+    def on_intro_established(self, messages):
+        for message in messages:
+            self.request_cache.pop(u"establish-intro", message.payload.identifier)
+            self._logger.info("Got intro-established from %s", message.candidate)
+
+    def create_rendevous_point(self, hops, finished_callback):
+        def callback(circuit):
+            # We got a circuit, now let's create a rendezvous point
+            circuit_id = circuit.circuit_id
+            rp = self.my_rendezvous_points[circuit_id] = RendezvousPoint(circuit, os.urandom(20), finished_callback)
+
+            cache = self.request_cache.add(RPRequestCache(self, circuit))
+            self.send_cell([Candidate(circuit.first_hop, False)], u'establish-rendezvous', (circuit_id, cache.number, rp.cookie))
+
+        # create a new circuit to be used to transfer data
+        self.create_circuit(hops, CIRCUIT_TYPE_RP, callback, max_retries=5)
+
+    def check_establish_rendezvous(self, messages):
+        for message in messages:
+            if not message.source.startswith(u"circuit_"):
+                yield DropMessage(message, "did not receive this message from a circuit")
+                continue
+
+            yield message
+
+    def on_establish_rendezvous(self, messages):
+        for message in messages:
+            circuit = self.exit_sockets[int(message.source[8:])]
+            self.rendezvous_point_for[message.payload.cookie] = circuit
+
+            self.send_cell([message.candidate], u"rendezvous-established", (circuit.circuit_id, message.payload.identifier, self.dispersy.wan_address))
 
     def check_rendezvous_established(self, messages):
         for message in messages:
@@ -320,209 +483,27 @@ class HiddenTunnelCommunity(TunnelCommunity):
             if not request:
                 yield DropMessage(message, "invalid rendezvous-established request identifier")
                 continue
+
             yield message
-
-    def check_intro1(self, messages):
-        for message in messages:
-            service_key = message.payload.service_key
-            if service_key not in self.intro_point_for:
-                yield DropMessage(message, "intro1 has unknown service_key")
-                continue
-            yield message
-
-    def check_intro2(self, messages):
-        for message in messages:
-            circuit = self.circuits.get(message.payload.circuit_id, None)
-            if not circuit or circuit.ctype != CIRCUIT_TYPE_IP:
-                yield DropMessage(message, "got intro2 with invalid circuit_id")
-                continue
-            yield message
-
-    def check_rendezvous1(self, messages):
-        for message in messages:
-            cookie = message.payload.cookie
-            if cookie not in self.rendezvous_point_for:
-                yield DropMessage(message, "rendezvous1 has unknown cookie")
-                continue
-            yield message
-
-    def check_rendezvous2(self, messages):
-        for message in messages:
-            circuit = self.circuits.get(message.payload.circuit_id, None)
-            if not circuit or circuit.ctype != CIRCUIT_TYPE_RP:
-                yield DropMessage(message, "got rendezvous2 with invalid circuit_id")
-                continue
-            yield message
-
-    def on_establish_intro(self, messages):
-        for message in messages:
-            circuit_id = message.payload.circuit_id
-            if circuit_id in self.exit_sockets:
-                candidate = message.candidate
-                if self.exit_sockets[circuit_id].enabled:
-                    self._logger.error("Got establish-intro from %s but exit socket is enabled, " +
-                                       "aborting.", candidate)
-                    continue
-                self.remove_exit_socket(circuit_id, 'exit socket becomes introduction point')
-                self.intro_point_for[message.payload.service_key] = (circuit_id, message.payload.info_hash, candidate)
-                self._logger.error("Establish-intro received from %s. Circuit %s associated with " +
-                                   "service_key %s", candidate, circuit_id,
-                                   self._readable_binary_string(message.payload.service_key))
-                self.send_cell([candidate], u"intro-established", (circuit_id, message.payload.identifier))
-                self.dht_announce(message.payload.info_hash)
-            else:
-                self._logger.error("Got establish-intro but no exit socket found")
-
-    def on_intro_established(self, messages):
-        for message in messages:
-            self.request_cache.pop(u"establish-intro", message.payload.identifier)
-            self._logger.info("Got intro-established from %s", message.candidate)
-
-    def on_establish_rendezvous(self, messages):
-        for message in messages:
-            circuit_id = message.payload.circuit_id
-            if circuit_id in self.exit_sockets:
-                if self.exit_sockets[circuit_id].enabled:
-                    self._logger.error("Got establish-rendezvous from %s but exit socket is " +
-                                       "enabled, aborting.", message.candidate)
-                    continue
-                self.remove_exit_socket(circuit_id, 'exit socket becomes rendezvous point')
-                self.rendezvous_point_for[message.payload.cookie] = (circuit_id, message.candidate)
-                self._logger.error("Establish-rendezvous received from %s. Circuit %s associated " +
-                                   "with rendezvous cookie %s", message.candidate, circuit_id,
-                                   self._readable_binary_string(message.payload.cookie))
-                payload = (circuit_id, message.payload.identifier, self.dispersy.wan_address)
-                self.send_cell([message.candidate], u"rendezvous-established", payload)
-            else:
-                self._logger.error("Got establish-rendezvous from %s but no exit socket found",
-                                   message.candidate)
 
     def on_rendezvous_established(self, messages):
         for message in messages:
             cache = self.request_cache.pop(u"establish-rendezvous", message.payload.identifier)
-            self._logger.error("Got rendezvous-established from %s", message.candidate)
+
             rp = self.my_rendezvous_points[cache.circuit.circuit_id]
-            rp.rendezvous_point = list(message.payload.rendezvous_point_addr) + \
-                                  [self.crypto.key_to_bin(rp.circuit.hops[-1].public_key)]
-            self.send_intro1_over_new_tunnel(rp)
 
-    def on_keys_request(self, messages):
-        for message in messages:
-            info_hash = message.payload.info_hash
-            service_keys = [sk for sk, (_, ih, _) in self.intro_point_for.iteritems() if ih == info_hash]
-            if service_keys:
-                meta = self.get_meta_message(u'keys-response')
-                payload = (message.payload.identifier, self.my_member.public_key, service_keys[0])
-                response = meta.impl(distribution=(self.global_time,), payload=payload)
-                self.send_packet([message.candidate], u'keys-response', response.packet)
-                self._logger.error("keys-request received from %s, response sent", message.candidate)
-            else:
-                self._logger.error("Got keys-request but no service_key found")
+            sock_addr = message.payload.rendezvous_point_addr
+            rp.rp_info = (sock_addr[0], sock_addr[1], self.crypto.key_to_bin(rp.circuit.hops[-1].public_key))
 
-    def on_keys_response(self, messages):
-        for message in messages:
-            cache = self.request_cache.get(u"keys-request", message.payload.identifier)
-            if cache:
-                cache.on_success(message.payload.ip_key, message.payload.service_key)
-                self._logger.error("keys-response received from %s", message.candidate)
-            else:
-                self._logger.error("Unknown keys-response received from %s", message.candidate)
+            rp.finished_callback(rp)
 
-    def on_intro1(self, messages):
-        for message in messages:
-            circuit_id = message.payload.circuit_id
-            service_key = message.payload.service_key
-            relay_circuit_id, _, relay_candidate = self.intro_point_for[service_key]
-            self._logger.error("Got intro1 with rendezvous cookie %s via tunnel %s from %s",
-                               self._readable_binary_string(message.payload.cookie), circuit_id, message.candidate)
-            self.remove_exit_socket(circuit_id, 'intro1 received')
-
-            payload = (relay_circuit_id, message.payload.identifier, message.payload.key,
-                       message.payload.cookie, message.payload.rendezvous_point)
-            self.send_cell([relay_candidate], u"intro2", payload)
-            self._logger.error("Relayed intro1 as an intro2 message into tunnel %s", relay_circuit_id)
-
-    def on_intro2(self, messages):
-        for message in messages:
-            # TODO: check for replay attack
-
-            # Decrypt using hybrid crypto
-            ip = self.my_intro_points[message.payload.circuit_id]
-            decrypt = lambda item, sk = ip.service_key: self.crypto.ec_decrypt_str(sk, item)
-            self.send_rendezvous1_over_new_tunnel(ip, message.payload.identifier,
-                                                  decode(decrypt(message.payload.rendezvous_point))[1],
-                                                  decrypt(message.payload.cookie), decrypt(message.payload.key))
-
-    def on_rendezvous1(self, messages):
-        for message in messages:
-            circuit_id = message.payload.circuit_id
-            cookie = message.payload.cookie
-            relay_circuit_id, relay_candidate = self.rendezvous_point_for[cookie]
-            self._logger.error("Got rendezvous1 with valid rendezvous cookie %s via tunnel %s " +
-                               "from %s", self._readable_binary_string(cookie), circuit_id, message.candidate)
-
-            self.remove_exit_socket(circuit_id, 'rendezvous1 received')
-
-            payload = (relay_circuit_id, message.payload.identifier, message.payload.key)
-            self.send_cell([relay_candidate], u"rendezvous2", payload)
-            self._logger.error("Relayed rendezvous1 as rendezvous2 into %s", relay_circuit_id)
-
-            self.relay_from_to[circuit_id] = RelayRoute(relay_circuit_id, relay_candidate.sock_addr, True)
-            self.relay_from_to[relay_circuit_id] = RelayRoute(circuit_id, message.candidate.sock_addr, True)
-            self._logger.error("Connected circuits %s and %s", circuit_id, relay_circuit_id)
-
-    def on_rendezvous2(self, messages):
-        for message in messages:
-            self.request_cache.pop(u'intro1', message.payload.identifier)
-            rp = self.my_rendezvous_points[message.payload.circuit_id]
-            session_keys = self.crypto.generate_session_keys(rp.circuit.dh_secret, bytes_to_long(message.payload.key))
-            rp.circuit.hs_session_keys = session_keys
-            self._logger.error("Handshake completed!")
-            self._logger.error("Session keys %s %s", self._readable_binary_string(session_keys[0]),
-                                                                      self._readable_binary_string(session_keys[1]))
-            rp.finished_callback(message.payload.circuit_id)
-
-    def send_intro1_over_new_tunnel(self, rp):
-
-        def callback(circuit):
-            cache = self.request_cache.add(Introduce1RequestCache(self, circuit))
-            self._logger.error("Send intro1 over tunnel %s with cookie %s",
-                               circuit.circuit_id, self._readable_binary_string(rp.cookie))
-
-            rp.circuit.dh_secret, rp.circuit.dh_first_part = self.crypto.generate_diffie_secret()
-
-            # Partially encrypt payload using hybrid crypto
-            sk = self.dispersy.crypto.key_from_public_bin(rp.service_key)
-            encrypt = lambda item, sk = sk: self.crypto.ec_encrypt_str(sk, str(item))
-            payload = (circuit.circuit_id, cache.number, encrypt((rp.circuit.dh_first_part)),
-                       encrypt(rp.cookie), encrypt(encode(rp.rendezvous_point)), rp.service_key)
-
-            self.send_cell([Candidate(circuit.first_hop, False)], u'intro1', tuple(payload))
-
-        # Create circuit for intro1
-        hops = rp.circuit.goal_hops
-        self.create_circuit(hops, CIRCUIT_TYPE_INTRODUCE, callback, max_retries=5, required_exit=rp.intro_point)
-
-    def send_rendezvous1_over_new_tunnel(self, ip, identifier, rendezvous_point, cookie, dh_first_part):
-
-        def callback(circuit):
-            self._logger.error("Send rendezvous1 over tunnel %s with cookie %s",
-                               circuit.circuit_id, self._readable_binary_string(cookie))
-
-            circuit.dh_secret, circuit.dh_second_part = self.crypto.generate_diffie_secret()
-            session_keys = self.crypto.generate_session_keys(circuit.dh_secret, bytes_to_long(dh_first_part))
-            circuit.hs_session_keys = session_keys
-            self._logger.error("Session keys %s %s", self._readable_binary_string(session_keys[0]),
-                                                                      self._readable_binary_string(session_keys[1]))
-            payload = (circuit.circuit_id, identifier, long_to_bytes(circuit.dh_second_part), cookie)
-            self.send_cell([Candidate(circuit.first_hop, False)], u'rendezvous1', payload)
-
-        # Create circuit for rendezvous1
-        hops = ip.circuit.goal_hops
-        self.create_circuit(hops, CIRCUIT_TYPE_RENDEZVOUS, callback, max_retries=5, required_exit=rendezvous_point)
+    def dht_lookup(self, info_hash, cb):
+        if self.trsession:
+            self.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb)
+        else:
+            self._logger.error("Need a Tribler session to lookup to the DHT")
 
     def dht_announce(self, info_hash):
-        # DHT announce
         if self.trsession:
             def cb(info_hash, peers, source):
                 self._logger.error("Announced %s to the DHT", info_hash.encode('hex'))

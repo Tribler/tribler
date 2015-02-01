@@ -133,9 +133,12 @@ class TunnelExitSocket(DatagramProtocol):
         self.community.increase_bytes_received(self, len(data))
         if self.check_num_packets(source, True):
             if TunnelConversion.is_allowed(data):
-                self.community.tunnel_data_to_origin(self.circuit_id, self.sock_addr, source, data)
+                self.tunnel_data(source, data)
             else:
                 self._logger.warning("dropping forbidden packets to exit socket with circuit_id %d", self.circuit_id)
+
+    def tunnel_data(self, source, data):
+        self.community.tunnel_data_to_origin(self.circuit_id, self.sock_addr, source, data)
 
     def close(self):
         if self.enabled:
@@ -195,7 +198,7 @@ class RoundRobin(object):
             circuit = self.community.circuits.get(circuit_id, None)
 
             if circuit and circuit.state == CIRCUIT_STATE_READY and \
-               circuit.ctype == CIRCUIT_TYPE_RP:
+               circuit.ctype == CIRCUIT_TYPE_RENDEZVOUS:
                 return circuit
 
         circuit_ids = sorted(self.community.active_data_circuits(hops).keys())
@@ -394,6 +397,8 @@ class TunnelCommunity(Community):
                 self.remove_exit_socket(circuit_id, 'traffic limit exceeded')
 
     def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None, max_retries=0, required_exit=None):
+        assert required_exit is None or isinstance(required_exit, tuple), type(required_exit)
+        assert required_exit is None or len(required_exit) == 3, required_exit
         retry_lambda = first_hop = None
 
         if max_retries > 0:
@@ -741,8 +746,6 @@ class TunnelCommunity(Community):
             self.notifier.notify(NTFY_TUNNEL, NTFY_CREATED if len(circuit.hops) == 1 else NTFY_EXTENDED, circuit)
 
     def on_cell(self, messages):
-        decrypted_packets = []
-
         for message in messages:
             circuit_id = message.payload.circuit_id
             self._logger.debug("Got %s (%d) from %s", message.payload.message_type, message.payload.circuit_id, message.candidate.sock_addr)
@@ -760,14 +763,11 @@ class TunnelCommunity(Community):
 
                 packet = plaintext + encrypted
 
-                decrypted_packets.append((message.candidate, TunnelConversion.convert_from_cell(packet)))
+                self.dispersy.on_incoming_packets([(message.candidate, TunnelConversion.convert_from_cell(packet))], False, source=u"circuit_%d" % circuit_id)
 
                 if circuit_id in self.circuits:
                     self.circuits[circuit_id].beat_heart()
                     self.increase_bytes_received(self.circuits[circuit_id], len(message.packet))
-
-        if decrypted_packets:
-            self.dispersy.on_incoming_packets(decrypted_packets, cache=False)
 
     def on_create(self, messages):
         for message in messages:
@@ -781,8 +781,6 @@ class TunnelCommunity(Community):
             if self._request_cache.has(u"anon-created", circuit_id):
                 self._logger.error('TunnelCommunity: circuit_id collision in on_create (%d)', circuit_id)
                 continue
-
-
 
             self.directions[circuit_id] = EXIT_NODE
             self._logger.info('TunnelCommunity: we joined circuit %d with neighbour %s', circuit_id, candidate.sock_addr)
@@ -911,9 +909,9 @@ class TunnelCommunity(Community):
 
                 if TunnelConversion.could_be_dispersy(data):
                     self._logger.error("Giving incoming data packet to dispersy")
-                    self.dispersy.on_incoming_packets([(Candidate(origin, False), data[TUNNEL_PREFIX_LENGHT:])], False)
+                    self.dispersy.on_incoming_packets([(Candidate(origin, False), data[TUNNEL_PREFIX_LENGHT:])], False, source=u"circuit_%d" % circuit_id)
                 else:
-                    anon_seed = self.circuits[circuit_id].ctype == CIRCUIT_TYPE_RENDEZVOUS
+                    anon_seed = self.circuits[circuit_id].ctype == CIRCUIT_TYPE_RP
                     self.socks_server.on_incoming_from_tunnel(self, self.circuits[circuit_id], origin, data, anon_seed)
 
             # It is not our circuit so we got it from a relay, we need to EXIT it!

@@ -25,14 +25,14 @@ class TunnelConversion(BinaryConversion):
         self.define_meta_message(chr(10), community.get_meta_message(u"destroy"), lambda message: self._encode_decode(self._encode_destroy, self._decode_destroy, message), self._decode_destroy)
         self.define_meta_message(chr(11), community.get_meta_message(u"establish-intro"), lambda message: self._encode_decode(self._encode_establish_intro, self._decode_establish_intro, message), self._decode_establish_intro)
         self.define_meta_message(chr(12), community.get_meta_message(u"intro-established"), lambda message: self._encode_decode(self._encode_intro_established, self._decode_intro_established, message), self._decode_intro_established)
-        self.define_meta_message(chr(13), community.get_meta_message(u"establish-rendezvous"), lambda message: self._encode_decode(self._encode_establish_rendezvous, self._decode_establish_rendezvous, message), self._decode_establish_rendezvous)
-        self.define_meta_message(chr(14), community.get_meta_message(u"rendezvous-established"), lambda message: self._encode_decode(self._encode_rendezvous_established, self._decode_rendezvous_established, message), self._decode_rendezvous_established)
-        self.define_meta_message(chr(15), community.get_meta_message(u"keys-request"), lambda message: self._encode_decode(self._encode_keys_request, self._decode_keys_request, message), self._decode_keys_request)
-        self.define_meta_message(chr(16), community.get_meta_message(u"keys-response"), lambda message: self._encode_decode(self._encode_keys_response, self._decode_keys_response, message), self._decode_keys_response)
-        self.define_meta_message(chr(17), community.get_meta_message(u"intro1"), lambda message: self._encode_decode(self._encode_intro1, self._decode_intro1, message), self._decode_intro1)
-        self.define_meta_message(chr(18), community.get_meta_message(u"intro2"), lambda message: self._encode_decode(self._encode_intro2, self._decode_intro2, message), self._decode_intro2)
-        self.define_meta_message(chr(19), community.get_meta_message(u"rendezvous1"), lambda message: self._encode_decode(self._encode_rendezvous1, self._decode_rendezvous1, message), self._decode_rendezvous1)
-        self.define_meta_message(chr(20), community.get_meta_message(u"rendezvous2"), lambda message: self._encode_decode(self._encode_rendezvous2, self._decode_rendezvous2, message), self._decode_rendezvous2)
+        self.define_meta_message(chr(13), community.get_meta_message(u"key-request"), lambda message: self._encode_decode(self._encode_keys_request, self._decode_keys_request, message), self._decode_keys_request)
+        self.define_meta_message(chr(14), community.get_meta_message(u"key-response"), lambda message: self._encode_decode(self._encode_keys_response, self._decode_keys_response, message), self._decode_keys_response)
+        self.define_meta_message(chr(15), community.get_meta_message(u"establish-rendezvous"), lambda message: self._encode_decode(self._encode_establish_rendezvous, self._decode_establish_rendezvous, message), self._decode_establish_rendezvous)
+        self.define_meta_message(chr(16), community.get_meta_message(u"rendezvous-established"), lambda message: self._encode_decode(self._encode_rendezvous_established, self._decode_rendezvous_established, message), self._decode_rendezvous_established)
+        self.define_meta_message(chr(17), community.get_meta_message(u"create-e2e"), lambda message: self._encode_decode(self._encode_create_e2e, self._decode_create_e2e, message), self._decode_create_e2e)
+        self.define_meta_message(chr(18), community.get_meta_message(u"created-e2e"), lambda message: self._encode_decode(self._encode_created_e2e, self._decode_created_e2e, message), self._decode_created_e2e)
+        self.define_meta_message(chr(19), community.get_meta_message(u"link-e2e"), lambda message: self._encode_decode(self._encode_link_e2e, self._decode_link_e2e, message), self._decode_link_e2e)
+        self.define_meta_message(chr(20), community.get_meta_message(u"linked-e2e"), lambda message: self._encode_decode(self._encode_linked_e2e, self._decode_linked_e2e, message), self._decode_linked_e2e)
 
     def _encode_cell(self, message):
         payload = message.payload
@@ -191,19 +191,13 @@ class TunnelConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(identifier, stats_dict)
 
     def _encode_establish_intro(self, message):
-        return (pack('!IHH', message.payload.circuit_id, message.payload.identifier, len(message.payload.service_key)) +
-                message.payload.service_key + message.payload.info_hash),
+        return pack('!IH20s', message.payload.circuit_id, message.payload.identifier, message.payload.info_hash),
 
     def _decode_establish_intro(self, placeholder, offset, data):
-        circuit_id, identifier, len_service_key = unpack_from('!IHH', data, offset)
-        offset += 8
-        service_key = data[offset: offset + len_service_key]
-        offset += len_service_key
+        circuit_id, identifier, info_hash = unpack_from('!IH20s', data, offset)
+        offset += 26
 
-        info_hash = data[offset: offset + 20]
-        offset += 20
-
-        return offset, placeholder.meta.payload.implement(circuit_id, identifier, service_key, info_hash)
+        return offset, placeholder.meta.payload.implement(circuit_id, identifier, info_hash)
 
     def _encode_intro_established(self, message):
         return pack('!IH', message.payload.circuit_id, message.payload.identifier),
@@ -246,125 +240,69 @@ class TunnelConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(identifier, info_hash)
 
     def _encode_keys_response(self, message):
-        return (pack('!HH', message.payload.identifier, len(message.payload.ip_key)) + message.payload.ip_key +
-                pack('!H', len(message.payload.service_key)) + message.payload.service_key),
+        return pack('!HH', message.payload.identifier, len(message.payload.public_key)) + message.payload.public_key,
 
     def _decode_keys_response(self, placeholder, offset, data):
-        identifier, len_ip_key = unpack_from('!HH', data, offset)
+        identifier, len_public_key = unpack_from('!HH', data, offset)
         offset += 4
-        ip_key = data[offset: offset + len_ip_key]
-        offset += len_ip_key
 
-        len_service_key, = unpack_from('!H', data, offset)
-        offset += 2
-        service_key = data[offset: offset + len_service_key]
-        offset += len_service_key
+        public_key = data[offset: offset + len_public_key]
+        offset += len_public_key
 
-        return offset, placeholder.meta.payload.implement(identifier, ip_key, service_key)
+        return offset, placeholder.meta.payload.implement(identifier, public_key)
 
-    def _encode_intro1(self, message):
-        return (pack('!IH', message.payload.circuit_id, message.payload.identifier) +
-                pack('!H', len(message.payload.key)) + message.payload.key +
-                pack('!H', len(message.payload.cookie)) + message.payload.cookie +
-                pack('!H', len(message.payload.rendezvous_point)) + message.payload.rendezvous_point +
-                pack('!H', len(message.payload.service_key)) + message.payload.service_key),
+    def _encode_create_e2e(self, message):
+        payload = message.payload
+        packet = pack("!H20sHH20s", payload.identifier, payload.info_hash, len(payload.node_public_key), len(payload.key), payload.node_id) + payload.node_public_key + payload.key
+        return packet,
 
-    def _decode_intro1(self, placeholder, offset, data):
+    def _decode_create_e2e(self, placeholder, offset, data):
+        identifier, info_hash, len_pubic_key, len_key, nodeid = unpack_from('!H20sHH20s', data, offset)
+        offset += 46
+
+        node_public_key = data[offset: offset + len_pubic_key]
+        offset += len_pubic_key
+
+        key = data[offset:offset + len_key]
+        offset += len_key
+
+        return offset, placeholder.meta.payload.implement(identifier, info_hash, nodeid, node_public_key, key)
+
+    def _encode_created_e2e(self, message):
+        payload = message.payload
+        return pack("!HH32s", payload.identifier, len(payload.key), payload.auth) + payload.key + payload.rp_sock_addr,
+
+    def _decode_created_e2e(self, placeholder, offset, data):
+        identifier, len_key, auth = unpack_from('!HH32s', data, offset)
+        offset += 36
+
+        key = data[offset:offset + len_key]
+        offset += len_key
+
+        rp_sock_addr = data[offset:]
+        offset += len(rp_sock_addr)
+
+        return offset, placeholder.meta.payload.implement(identifier, key, auth, rp_sock_addr)
+
+    def _encode_link_e2e(self, message):
+        payload = message.payload
+        return pack("!IH20s", payload.circuit_id, payload.identifier, payload.cookie),
+
+    def _decode_link_e2e(self, placeholder, offset, data):
+        circuit_id, identifier, cookie = unpack_from('!IH20s', data, offset)
+        offset += 26
+
+        return offset, placeholder.meta.payload.implement(circuit_id, identifier, cookie)
+
+    def _encode_linked_e2e(self, message):
+        payload = message.payload
+        return pack("!IH", payload.circuit_id, payload.identifier),
+
+    def _decode_linked_e2e(self, placeholder, offset, data):
         circuit_id, identifier = unpack_from('!IH', data, offset)
         offset += 6
 
-        len_key, = unpack_from('!H', data, offset)
-        offset += 2
-        key = data[offset: offset + len_key]
-        offset += len_key
-
-        len_cookie, = unpack_from('!H', data, offset)
-        offset += 2
-        cookie = data[offset: offset + len_cookie]
-        offset += len_cookie
-
-        len_rendezvous_point, = unpack_from('!H', data, offset)
-        offset += 2
-        rendezvous_point = data[offset: offset + len_rendezvous_point]
-        offset += len_rendezvous_point
-
-        len_service_key, = unpack_from('!H', data, offset)
-        offset += 2
-        service_key = data[offset: offset + len_service_key]
-        offset += len_service_key
-
-        return offset, placeholder.meta.payload.implement(circuit_id, identifier, key,
-                                                          cookie, rendezvous_point, service_key)
-
-    def _encode_intro2(self, message):
-        return (pack('!IH', message.payload.circuit_id, message.payload.identifier) +
-                pack('!H', len(message.payload.key)) + message.payload.key +
-                pack('!H', len(message.payload.cookie)) + message.payload.cookie +
-                pack('!H', len(message.payload.rendezvous_point)) + message.payload.rendezvous_point),
-
-    def _decode_intro2(self, placeholder, offset, data):
-        circuit_id, identifier = unpack_from('!IH', data, offset)
-        offset += 6
-
-        len_key, = unpack_from('!H', data, offset)
-        offset += 2
-        key = data[offset: offset + len_key]
-        offset += len_key
-
-        len_cookie, = unpack_from('!H', data, offset)
-        offset += 2
-        cookie = data[offset: offset + len_cookie]
-        offset += len_cookie
-
-        len_rendezvous_point, = unpack_from('!H', data, offset)
-        offset += 2
-        rendezvous_point = data[offset: offset + len_rendezvous_point]
-        offset += len_rendezvous_point
-
-        return offset, placeholder.meta.payload.implement(circuit_id, identifier, key, cookie, rendezvous_point)
-
-    def _encode_rendezvous1(self, message):
-        return (pack('!IHH', message.payload.circuit_id, message.payload.identifier, len(message.payload.key)) +
-                message.payload.key +
-                pack('!20s', message.payload.cookie)),
-
-    def _decode_rendezvous1(self, placeholder, offset, data):
-        circuit_id, identifier, len_key = unpack_from('!IHH', data, offset)
-        offset += 8
-
-        key = data[offset: offset + len_key]
-        offset += len_key
-
-        cookie, = unpack_from('!20s', data, offset)
-        offset += 20
-
-        return offset, placeholder.meta.payload.implement(circuit_id, identifier, key, cookie)
-
-    def _encode_rendezvous2(self, message):
-        return (pack('!IHH', message.payload.circuit_id, message.payload.identifier, len(message.payload.key)) +
-                message.payload.key),
-
-    def _decode_rendezvous2(self, placeholder, offset, data):
-        circuit_id, identifier, len_key = unpack_from('!IHH', data, offset)
-        offset += 8
-
-        key = data[offset: offset + len_key]
-        offset += len_key
-
-        return offset, placeholder.meta.payload.implement(circuit_id, identifier, key)
-
-    def _encode_decode(self, encode, decode, message):
-        result = encode(message)
-        try:
-            decode(None, 0, result[0])
-
-        except DropPacket:
-            from traceback import print_exc
-            print_exc()
-            raise
-        except:
-            pass
-        return result
+        return offset, placeholder.meta.payload.implement(circuit_id, identifier)
 
     @staticmethod
     def swap_circuit_id(packet, message_type, old_circuit_id, new_circuit_id):
@@ -486,3 +424,14 @@ class TunnelConversion(BinaryConversion):
                 TunnelConversion.could_be_udp_tracker(data) or
                 TunnelConversion.could_be_dht(data) or
                 TunnelConversion.could_be_dispersy(data))
+
+    def _encode_decode(self, encode, decode, message):
+        result = encode(message)
+        try:
+            decode(None, 0, result[0])
+
+        except DropPacket:
+            raise
+        except:
+            pass
+        return result
