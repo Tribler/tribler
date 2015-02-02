@@ -10,15 +10,18 @@
 import logging
 import os
 from binascii import hexlify
-from glob import iglob
-from sqlite3 import Connection
 from shutil import rmtree
+from sqlite3 import Connection
+
+from twisted.internet.threads import blockingCallFromThread
 
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MiscDBHandler
 from Tribler.Core.CacheDB.db_versions import LOWEST_SUPPORTED_DB_VERSION, LATEST_DB_VERSION
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.twisted_thread import reactor
+from Tribler.Core.torrentstore import TorrentStore
 
 
 class VersionNoLongerSupportedError(Exception):
@@ -30,16 +33,18 @@ class DatabaseUpgradeError(Exception):
 
 
 class DBUpgrader(object):
+
     """
     Migration tool for upgrading the collected torrent files/thumbnails on disk
     structure from Tribler version 6.3 to 6.4.
     """
 
-    def __init__(self, session, db, status_update_func=None):
+    def __init__(self, session, db, torrent_store, status_update_func=None):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.session = session
         self.db = db
-        self.status_update_func = status_update_func if status_update_func else lambda _:None
+        self.status_update_func = status_update_func if status_update_func else lambda _: None
+        self.torrent_store = torrent_store
 
         self.failed = True
         self.torrent_collecting_dir = self.session.get_torrent_collecting_dir()
@@ -63,6 +68,10 @@ class DBUpgrader(object):
         # version 23 -> 24 (24 is a dummy version in which we only cleans up thumbnail files
         if self.db.version == 23:
             self._upgrade_23_to_24()
+
+        # version 24 -> 25 (25 is also a dummy version, where the torrent files get migrated to a levedb based store.
+        if self.db.version == 24:
+            self._upgrade_24_to_25()
 
         # check if we managed to upgrade to the latest DB version.
         if self.db.version == LATEST_DB_VERSION:
@@ -333,25 +342,35 @@ CREATE TABLE IF NOT EXISTS MetadataData (
         # update database version
         self.db.write_version(24)
 
+    def _upgrade_24_to_25(self):
+        self.status_update_func(u"Upgrading database from v%s to v%s..." % (24, 25))
+
+        # update database version (that one was easy :D)
+        self.db.write_version(25)
+
     def reimport_torrents(self):
         """Import all torrent files in the collected torrent dir, all the files already in the database will be ignored.
         """
+        self.status_update_func("Opening TorrentDBHandler...")
         # TODO(emilon): That's a freakishly ugly hack.
         torrent_db_handler = TorrentDBHandler(self.session)
         torrent_db_handler.misc_db = MiscDBHandler(self.session)
         torrent_db_handler.misc_db.initialize()
         torrent_db_handler.category = Category.getInstance()
 
+        # TODO(emilon): It would be nice to drop the corrupted torrent data from the store as a bonus.
+        self.status_update_func("Registering recovered torrents...")
         try:
-            for torrent_file in iglob(os.path.join(self.torrent_collecting_dir, "*.torrent")):
-                torrentdef = TorrentDef.load(torrent_file)
+            for infoshash_str, torrent_data in self.torrent_store.itervalues():
+                self.status_update_func("> %s" % infoshash_str)
+                torrentdef = TorrentDef.load_from_memory(torrent_data)
                 if torrentdef.is_finalized():
                     infohash = torrentdef.get_infohash()
                     if not torrent_db_handler.hasTorrent(infohash):
                         self.status_update_func(u"Registering recovered torrent: %s" % hexlify(infohash))
-                        torrent_db_handler._addTorrentToDB(torrentdef, source="BC", extra_info={"filename":torrent_file})
-
+                        torrent_db_handler._addTorrentToDB(torrentdef, source="BC", extra_info={"filename": infoshash_str})
         finally:
             torrent_db_handler.close()
             Category.delInstance()
             self.db.commit_now()
+            return self.torrent_store.flush()

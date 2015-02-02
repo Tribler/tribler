@@ -271,17 +271,12 @@ class TorrentManager(object):
                 if 'no-DHT' in trackers:
                     trackers.remove('no-DHT')
 
-                if len(files) > 0:
-                    # We still call getTorrent to fetch .torrent
-                    self.getTorrent(torrent, None)
 
-                    torrent = NotCollectedTorrent(torrent, files, trackers)
-                else:
-                    torrent_callback = lambda torfilename: self.loadTorrent(torrent, callback)
-                    torrent_filename = self.getTorrent(torrent, torrent_callback)
+                # We still call getTorrent to fetch .torrent
+                self.getTorrent(torrent, None)
 
-                    if torrent_filename[0]:
-                        return torrent_filename[1]
+                torrent = NotCollectedTorrent(torrent, files, trackers)
+
             else:
                 try:
                     tdef = TorrentDef.load(torrent_filename)

@@ -2,9 +2,12 @@ import logging
 import os
 import shutil
 
+from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION
 from Tribler.Core.Upgrade.db_upgrader import DBUpgrader
-from Tribler.Core.Upgrade.torrent_upgrade64 import TorrentMigrator64
+from Tribler.Core.Upgrade.torrent_upgrade65 import TorrentMigrator65
+from Tribler.Core.torrentstore import TorrentStore
 from Tribler.dispersy.util import call_on_reactor_thread
 
 
@@ -31,6 +34,7 @@ class TriblerUpgrader(object):
         self.current_status = status_text
 
     @call_on_reactor_thread
+    @inlineCallbacks
     def check_and_upgrade(self):
         """ Checks the database version and upgrade if it is not the latest version.
         """
@@ -45,20 +49,25 @@ class TriblerUpgrader(object):
         else:
             # upgrade
             try:
-                torrent_migrator = TorrentMigrator64(self.session, self.db, status_update_func=self.update_status)
-                torrent_migrator.start_migrate()
+                torrent_store = TorrentStore(self.session.get_torrent_store_dir())
+                torrent_migrator = TorrentMigrator65(self.session, self.db, torrent_store=torrent_store, status_update_func=self.update_status)
+                yield torrent_migrator.start_migrate()
 
-                db_migrator = DBUpgrader(self.session, self.db, status_update_func=self.update_status)
-                db_migrator.start_migrate()
+                db_migrator = DBUpgrader(self.session, self.db, torrent_store=torrent_store, status_update_func=self.update_status)
+                yield db_migrator.start_migrate()
 
                 # Import all the torrent files not in the database, we do this in
                 # case we have some unhandled torrent files left due to
                 # bugs/crashes, etc.
-                db_migrator.reimport_torrents()
+                self.update_status("Recovering unregistered torrents...")
+                yield db_migrator.reimport_torrents()
+
+                yield torrent_store.close()
+                del torrent_store
 
                 self.failed = False
             except Exception as e:
-                self._logger.error(u"failed to upgrade: %s", e)
+                self._logger.exception(u"failed to upgrade: %s", e)
 
         if self.failed:
             self._stash_database_away()
