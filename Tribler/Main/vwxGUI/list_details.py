@@ -15,6 +15,7 @@ from Tribler.Core.simpledefs import (DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAI
                                      DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_METADATA, UPLOAD, DOWNLOAD, NTFY_TORRENTS,
                                      NTFY_USEREVENTLOG, NTFY_VIDEO_ENDED, DLMODE_VOD)
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
+from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.Video.VideoUtility import limit_resolution
 from Tribler.Core.Video.VideoPlayer import VideoPlayer

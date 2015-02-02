@@ -21,7 +21,7 @@ from Tribler.Main.vwxGUI.widgets import _set_font, TagText, ActionButton, Progre
 from Tribler.Main.vwxGUI.list_body import ListItem
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM
-from Tribler.Main.Utility.GuiDBTuples import MergedDs, Torrent, CollectedTorrent
+from Tribler.Main.Utility.GuiDBTuples import Torrent, CollectedTorrent
 
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Core.Video.VideoUtility import limit_resolution
@@ -494,8 +494,8 @@ class TorrentListItem(DoubleLineListItemWithButtons):
     def OnRecheck(self, event):
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
         for torrent in torrents:
-            if torrent.dslist[0] and 'metadata' not in torrent.state and 'checking' not in torrent.state:
-                torrent.dslist[0].get_download().force_recheck()
+            if torrent.download_status and 'metadata' not in torrent.state and 'checking' not in torrent.state:
+                torrent.download_status.get_download().force_recheck()
 
     def OnExportTorrent(self, filename):
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
@@ -627,19 +627,15 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             new = os.path.join(new_dir, old_file)
 
         self._logger.info("Creating new downloadconfig")
-        if isinstance(download_state, MergedDs):
-            dslist = download_state.dslist
-        else:
-            dslist = [download_state]
 
         # Move torrents
         storage_moved = False
-        for ds in dslist:
-            download = ds.get_download()
-            self._logger.info("Moving from %s to %s newdir %s", old, new, new_dir)
-            download.move_storage(new_dir)
-            if download.get_save_path() == new_dir:
-                storage_moved = True
+
+        download = download_state.get_download()
+        self._logger.info("Moving from %s to %s newdir %s", old, new, new_dir)
+        download.move_storage(new_dir)
+        if download.get_save_path() == new_dir:
+            storage_moved = True
 
         # If libtorrent hasn't moved the files yet, move them now
         if not storage_moved:
@@ -685,7 +681,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         enable = False
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
         for torrent in torrents:
-            status = torrent.dslist[0].get_status() if torrent.dslist[0] else None
+            status = torrent.download_status.get_status() if torrent.download_status else None
             if status not in [None, DLSTATUS_METADATA, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]:
                 enable = True
                 break

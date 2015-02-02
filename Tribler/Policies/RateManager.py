@@ -38,9 +38,8 @@ class RateManager(object):
         finally:
             self.lock.release()
 
-    def add_downloadstatelist(self, dslist):
-        for ds in dslist:
-            self.add_downloadstate(ds)
+    def add_downloadstatelist(self, download_state):
+        self.add_downloadstate(download_state)
 
     def adjust_speeds(self):
         """ Adjust speeds for the specified set of downloads and clears the set """
