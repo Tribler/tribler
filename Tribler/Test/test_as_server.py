@@ -141,6 +141,8 @@ class TestAsServer(AbstractServer):
     def setUpPreSession(self):
         """ Should set self.config_path and self.config """
         self.config = SessionStartupConfig()
+        self.config.set_tunnel_community_enabled(False)
+        self.config.set_tunnel_community_optin_dialog_shown(True)
         self.config.set_state_dir(self.getStateDir())
         self.config.set_torrent_checking(False)
         self.config.set_multicast_local_peer_discovery(False)
@@ -263,10 +265,11 @@ class TestGuiAsServer(TestAsServer):
             if do_assert:
                 assert boolean, reason
 
-    def startTest(self, callback, min_timeout=5, force_is_unit_testing=True, autoload_discovery=True):
+    def startTest(self, callback, min_timeout=5, autoload_discovery=True):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
         from Tribler.Main import tribler_main
         tribler_main.ALLOW_MULTIPLE = True
+        tribler_main.SKIP_TUNNEL_DIALOG = True
 
         self.hadSession = False
         starttime = time.time()
@@ -305,7 +308,7 @@ class TestGuiAsServer(TestAsServer):
 
         # modify argv to let tribler think its running from a different directory
         sys.argv = [os.path.abspath('./.exe')]
-        tribler_main.run(is_unit_testing=force_is_unit_testing, autoload_discovery=autoload_discovery)
+        tribler_main.run(autoload_discovery=autoload_discovery)
 
         assert self.hadSession, 'Did not even create a session'
 

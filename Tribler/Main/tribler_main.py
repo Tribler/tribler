@@ -127,6 +127,10 @@ DEBUG = False
 DEBUG_DOWNLOADS = False
 ALLOW_MULTIPLE = os.environ.get("TRIBLER_ALLOW_MULTIPLE", "False").lower() == "true"
 
+SKIP_TUNNEL_DIALOG = os.environ.get("TRIBLER_SKIP_OPTIN_DLG", "False") == "True"
+# used by the anon tunnel tests as there's no way to mess with the Session before running the test ATM.
+FORCE_ENABLE_TUNNEL_COMMUNITY = False
+
 #
 #
 # Class : ABCApp
@@ -138,13 +142,12 @@ ALLOW_MULTIPLE = os.environ.get("TRIBLER_ALLOW_MULTIPLE", "False").lower() == "t
 
 class ABCApp(object):
 
-    def __init__(self, params, installdir, is_unit_testing=False, autoload_discovery=True):
+    def __init__(self, params, installdir, autoload_discovery=True):
         assert not isInIOThread(), "isInIOThread() seems to not be working correctly"
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.params = params
         self.installdir = installdir
-        self.is_unit_testing = is_unit_testing
 
         self.state_dir = None
         self.error = None
@@ -402,11 +405,10 @@ class ABCApp(object):
         if not self.sconfig.get_torrent_collecting_dir():
             self.sconfig.set_torrent_collecting_dir(os.path.join(defaultDLConfig.get_dest_dir(), STATEDIR_TORRENTCOLL_DIR))
 
-
-        #TODO(emilon): Quick hack to get 6.4.1 out the door, (re tunnel_community tests disabling is_unit_testing flag)
-        if os.environ.get("TRIBLER_SKIP_OPTIN_DLG", "False") == "True":
+        if FORCE_ENABLE_TUNNEL_COMMUNITY:
             self.sconfig.set_tunnel_community_enabled(True)
-        elif not self.sconfig.get_tunnel_community_optin_dialog_shown() and not self.is_unit_testing:
+
+        if not self.sconfig.get_tunnel_community_optin_dialog_shown() and not SKIP_TUNNEL_DIALOG:
             optin_dialog = wx.MessageDialog(None,
                                             'If you are not familiar with proxy technology, please opt-out.\n\n'
                                             'This experimental anonymity feature using Tor-inspired onion routing '
@@ -518,7 +520,7 @@ class ABCApp(object):
             dispersy.define_auto_load(ChannelCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
             dispersy.define_auto_load(PreviewChannelCommunity, session.dispersy_member, kargs=default_kwargs)
 
-            if self.sconfig.get_tunnel_community_enabled() and not self.is_unit_testing:
+            if self.sconfig.get_tunnel_community_enabled():
                 keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair),)
                 settings = TunnelSettings(session.get_install_dir())
@@ -1096,7 +1098,7 @@ class ABCApp(object):
 #
 #
 @attach_profiler
-def run(params=None, is_unit_testing=False, autoload_discovery=True):
+def run(params=None, autoload_discovery=True):
     if params is None:
         params = [""]
 
@@ -1134,7 +1136,7 @@ def run(params=None, is_unit_testing=False, autoload_discovery=True):
             app = wx.GetApp()
             if not app:
                 app = wx.PySimpleApp(redirect=False)
-            abc = ABCApp(params, installdir, is_unit_testing, autoload_discovery=autoload_discovery)
+            abc = ABCApp(params, installdir, autoload_discovery=autoload_discovery)
             if abc.frame:
                 app.SetTopWindow(abc.frame)
                 abc.frame.set_wxapp(app)
