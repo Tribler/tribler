@@ -55,7 +55,9 @@ setup(
     # (Disabling bundle_files for now -- apparently causes some issues with Win98)
     # options = {"py2exe": {"bundle_files": 1}},
     # zipfile = None,
-    options={"py2exe": {"packages": packages, "optimize": 2}},
+    options={"py2exe": {"packages": packages,
+                        "optimize": 2,
+                        "dll_excludes": ["mswsock.dll"]}},
     data_files=[("installdir", [])],
     windows=[target],
 )
