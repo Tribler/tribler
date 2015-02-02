@@ -35,6 +35,7 @@ override_dh_install:
 	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Core/DecentralizedTracking/pymdht/LGPL-2.1.txt
 	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Main/webUI/static/mootools.js
 	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Main/webUI/static/excanvas.js
+	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/dispersy/twisted/plugins/dropin.cache
 
 	dh_link -ptribler usr/share/javascript/mootools/mootools.js usr/share/tribler/Tribler/Main/webUI/static/mootools.js
 	dh_link -ptribler usr/share/javascript/excanvas/excanvas.js usr/share/tribler/Tribler/Main/webUI/static/excanvas.js
