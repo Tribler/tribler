@@ -279,8 +279,9 @@ class TorrentManager(object):
                     tdef = TorrentDef.load(torrent_filename)
 
                 except ValueError:
-                    if fix_torrent(torrent_filename):
-                        tdef = TorrentDef.load(torrent_filename)
+                    data = fix_torrent(torrent_filename)
+                    if data is not None:
+                        tdef = TorrentDef.load_from_memory(data)
 
                     else:
                         # cannot repair torrent, removing
