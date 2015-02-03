@@ -297,20 +297,17 @@ def fix_torrent(file_path):
     f.close()
 
     # Check if correct bdata
+    fixed_data = bdata
     try:
         bdecode(bdata)
     except ValueError:
         # Try reading using sloppy
         try:
-            bdata = bencode(bdecode(bdata, 1))
-            # Overwrite with non-sloppy torrent
-            f = open(file_path, 'wb')
-            f.write(bdata)
-            f.close()
+            fixed_data = bencode(bdecode(bdata, 1))
         except:
-            return False
+            fixed_data = None
 
-    return True
+    return fixed_data
 
 
 if __name__ == '__main__':
