@@ -4,9 +4,17 @@ import urllib
 import urlparse
 import re
 import time
+import subprocess
+import atexit
 
-# This
-# TODO(lipu): review the code and make this working.
+import wx
+
+from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING, NTFY_ACT_NEW_VERSION
+from Tribler.Core.exceptions import DuplicateDownloadException
+from Tribler.Core.TorrentDef import TorrentDef
+
+from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Main.vwxGUI import forceWxThread
 
 
 def checkVersion(self):
