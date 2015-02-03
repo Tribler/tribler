@@ -150,12 +150,6 @@ Section "!Main EXE" SecMain
  File Tribler\Category\*.conf
  File Tribler\Category\*.filter
 
- CreateDirectory "$INSTDIR\Tribler\community"
- CreateDirectory "$INSTDIR\Tribler\community\tunnel"
- CreateDirectory "$INSTDIR\Tribler\community\tunnel\crypto"
- SetOutPath "$INSTDIR\Tribler\community\tunnel\crypto"
- File Tribler\community\tunnel\crypto\curves.ec
-
  ; Arno, 2012-05-25: data files for pymdht
  CreateDirectory "$INSTDIR\Tribler\Core\DecentralizedTracking"
  CreateDirectory "$INSTDIR\Tribler\Core\DecentralizedTracking\pymdht"
