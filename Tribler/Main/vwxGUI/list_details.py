@@ -938,15 +938,16 @@ class TorrentDetails(AbstractDetails):
     def OnRefresh(self, dslist, magnetlist):
         found = False
 
-        for ds in dslist:
-            if self.torrent.addDs(ds):
-                found = True
+        if self and self.torrent:  # avoid pydeadobject error
+            for ds in dslist:
+                if self.torrent.addDs(ds):
+                    found = True
 
-        self.torrent.magnetstatus = magnetlist.get(self.torrent.infohash, None)
+            self.torrent.magnetstatus = magnetlist.get(self.torrent.infohash, None)
 
-        if not found:
-            self.torrent.clearDs()
-        self._Refresh()
+            if not found:
+                self.torrent.clearDs()
+            self._Refresh()
 
     @warnWxThread
     def _Refresh(self, ds=None):
