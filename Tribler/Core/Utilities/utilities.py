@@ -308,18 +308,3 @@ def fix_torrent(file_path):
             fixed_data = None
 
     return fixed_data
-
-
-if __name__ == '__main__':
-
-    torrenta = {'name': 'a', 'swarmsize': 12}
-    torrentb = {'name': 'b', 'swarmsize': 24}
-    torrentc = {'name': 'c', 'swarmsize': 18, 'Web2': True}
-    torrentd = {'name': 'b', 'swarmsize': 36, 'Web2': True}
-
-    torrents = [torrenta, torrentb, torrentc, torrentd]
-    logger.debug(repr(multisort_dictlist(torrents, ["Web2", ("swarmsize", "decrease")])))
-
-
-    # d = {'a':1,'b':[1,2,3],'c':{'c':2,'d':[3,4],'k':{'c':2,'d':[3,4]}}}
-    # print_dict(d)
