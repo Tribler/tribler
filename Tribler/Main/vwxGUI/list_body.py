@@ -1018,10 +1018,11 @@ class AbstractListBody():
             if message:
                 self.ShowMessage(message + '.', header)
 
-        if self and self.done:
-            self.Unbind(wx.EVT_IDLE)  # unbinding unnecessary event handler seems to improve visual performance
-        else:
-            self.Bind(wx.EVT_IDLE, self.OnIdle)
+        if self:
+            if self.done:
+                self.Unbind(wx.EVT_IDLE)  # unbinding unnecessary event handler seems to improve visual performance
+            else:
+                self.Bind(wx.EVT_IDLE, self.OnIdle)
 
     def OnIdle(self, event):
         self._logger.debug("ListBody: OnIdle")
