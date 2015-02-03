@@ -12,6 +12,8 @@ from urlparse import urlsplit, parse_qsl
 import binascii
 import logging
 
+from Tribler.Core.Utilities.bencode import bencode, bdecode
+
 logger = logging.getLogger(__name__)
 
 
@@ -284,16 +286,25 @@ def parse_magnetlink(url):
     return (dn, xt, trs)
 
 
-if __name__ == '__main__':
+def fix_torrent(file_path):
+    """
+    Reads and checks if a torrent file is valid and tries to overwrite the torrent file with a non-sloppy version.
+    :param file_path: The torrent file path.
+    :return: True if the torrent file is now overwritten with valid information, otherwise False.
+    """
+    f = open(file_path, 'rb')
+    bdata = f.read()
+    f.close()
 
-    torrenta = {'name': 'a', 'swarmsize': 12}
-    torrentb = {'name': 'b', 'swarmsize': 24}
-    torrentc = {'name': 'c', 'swarmsize': 18, 'Web2': True}
-    torrentd = {'name': 'b', 'swarmsize': 36, 'Web2': True}
+    # Check if correct bdata
+    fixed_data = bdata
+    try:
+        bdecode(bdata)
+    except ValueError:
+        # Try reading using sloppy
+        try:
+            fixed_data = bencode(bdecode(bdata, 1))
+        except:
+            fixed_data = None
 
-    torrents = [torrenta, torrentb, torrentc, torrentd]
-    logger.debug(repr(multisort_dictlist(torrents, ["Web2", ("swarmsize", "decrease")])))
-
-
-    # d = {'a':1,'b':[1,2,3],'c':{'c':2,'d':[3,4],'k':{'c':2,'d':[3,4]}}}
-    # print_dict(d)
+    return fixed_data

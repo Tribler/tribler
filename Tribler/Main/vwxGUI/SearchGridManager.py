@@ -17,7 +17,7 @@ from Tribler.Core.Search.Bundler import Bundler
 from Tribler.Core.Search.Reranking import DefaultTorrentReranker
 from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.Utilities.utilities import parse_magnetlink
+from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.simpledefs import (NTFY_MISC, NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST,
@@ -34,6 +34,7 @@ from Tribler.Main.vwxGUI import (warnWxThread, forceWxThread, TORRENT_REQ_COLUMN
                                  TUMBNAILTORRENT_REQ_COLUMNS)
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
+
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import (ChannelCommunity, warnDispersyThread)
 from Tribler.community.metadata.community import MetadataCommunity
@@ -120,11 +121,6 @@ class TorrentManager(object):
                 torrent.update_torrent_id(dict['torrent_id'])
                 torrent.torrent_file_name = dict['torrent_file_name']
                 return self.getCollectedFilename(torrent, retried=True)
-
-    def getCollectedFilenameFromDef(self, torrentdef):
-        torrent = self.getTorrentByInfohash(torrentdef.infohash)
-        if torrent:
-            return self.getCollectedFilename(torrent)
 
     def getTorrent(self, torrent, callback, prio=0):
         """
@@ -232,7 +228,8 @@ class TorrentManager(object):
 
         # Api download
         def do_gui():
-            d = self.guiUtility.frame.startDownload(torrent_filename, tdef=tdef, destdir=dest, clicklog=clicklog, name=name, vodmode=vodmode, selectedFiles=selectedFiles)  # # remove name=name
+            d = self.guiUtility.frame.startDownload(torrent_filename, tdef=tdef, destdir=dest, clicklog=clicklog,
+                                                    vodmode=vodmode, selectedFiles=selectedFiles)
             if d:
                 if secret:
                     self.torrent_db.setSecret(torrent.infohash, secret)
@@ -282,9 +279,9 @@ class TorrentManager(object):
                     tdef = TorrentDef.load(torrent_filename)
 
                 except ValueError:
-                    # we should move fixTorrent to this object
-                    if self.guiUtility.frame.fixTorrent(torrent_filename):
-                        tdef = TorrentDef.load(torrent_filename)
+                    data = fix_torrent(torrent_filename)
+                    if data is not None:
+                        tdef = TorrentDef.load_from_memory(data)
 
                     else:
                         # cannot repair torrent, removing

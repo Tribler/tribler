@@ -169,7 +169,8 @@ class MetadataInjector(object):
                 self._channel_manager.createTorrentFromDef(my_channel_id, torrentdef)
 
                 # save torrent to collectedtorrents
-                filename = self._torrent_manager.getCollectedFilenameFromDef(torrentdef)
+                torrent = self._torrent_manager.getTorrentByInfohash(torrentdef.infohash)
+                filename = self._torrent_manager.getCollectedFilename(torrent) if torrent else None
                 if not os.path.isfile(filename):
                     torrentdef.save(filename)
 

@@ -45,6 +45,3 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
         config = CallbackConfigParser()
         config._sections = {'downloadconfig': copy.deepcopy(self.dlconfig._sections['downloadconfig'])}
         return DownloadStartupConfig(config)
-
-def get_default_dscfg_filename(state_dir):
-    return os.path.join(state_dir, STATEDIR_DLCONFIG)
