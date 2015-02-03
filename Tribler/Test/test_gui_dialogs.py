@@ -86,8 +86,8 @@ class TestGuiDialogs(TestGuiAsServer):
             self.assert_(isinstance(dialog, SaveAs), 'could not find SaveAs')
 
             self.screenshot('Screenshot of SaveAs', window=dialog)
-            self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
-            self.Call(2, lambda: add_dialog.EndModal(wx.ID_CANCEL))
+            self.Call(1, lambda: dialog and dialog.EndModal(wx.ID_CANCEL))
+            self.Call(2, lambda: add_dialog and add_dialog.EndModal(wx.ID_CANCEL))
             self.Call(3, self.quit)
 
         def do_save_dialog():
