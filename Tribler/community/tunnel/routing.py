@@ -1,9 +1,8 @@
 import time
 
-from M2Crypto.EC import EC_pub
-
 from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING, \
                                      CIRCUIT_TYPE_DATA
+from Tribler.dispersy.crypto import LibNaCLPK
 
 __author__ = 'chris'
 
@@ -21,10 +20,10 @@ class Circuit(object):
         :return: Circuit
         """
 
-        from Tribler.community.tunnel.community import TunnelCommunity
+        from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
         assert isinstance(circuit_id, long)
         assert isinstance(goal_hops, int)
-        assert proxy is None or isinstance(proxy, TunnelCommunity)
+        assert proxy is None or isinstance(proxy, HiddenTunnelCommunity)
         assert first_hop is None or isinstance(first_hop, tuple) and isinstance(first_hop[0], basestring) and isinstance(first_hop[1], int)
 
         self._broken = False
@@ -108,10 +107,10 @@ class Hop(object):
 
     def __init__(self, public_key=None):
         """
-        @param None|EC_pub public_key: public key object of the hop
+        @param None|LibNaCLPK public_key: public key object of the hop
         """
 
-        assert public_key is None or isinstance(public_key, EC_pub)
+        assert public_key is None or isinstance(public_key, LibNaCLPK)
 
         self.session_keys = None
         self.dh_first_part = None
@@ -137,6 +136,26 @@ class Hop(object):
             return self.address[1]
         return " UNKNOWN PORT "
 
+    @property
+    def node_id(self):
+        """
+        The hop's nodeid
+        """
+        if self.public_key:
+            return self.public_key.key_to_hash()
+
+        raise RuntimeError("nodeid unknown")
+
+    @property
+    def node_public_key(self):
+        """
+        The hop's public_key
+        """
+        if self.public_key:
+            return self.public_key.key_to_bin()
+
+        raise RuntimeError("public key unknown")
+
 
 class RelayRoute(object):
     """
@@ -159,23 +178,10 @@ class RelayRoute(object):
         self.bytes_up = self.bytes_down = 0
         self.rendezvous_relay = rendezvous_relay
 
-
-class IntroductionPoint(object):
-
-    def __init__(self, circuit, info_hash, service_key, serivce_key_public_bin):
-        self.circuit = circuit
-        self.info_hash = info_hash
-        self.service_key = service_key
-        self.service_key_public_bin = serivce_key_public_bin
-
-
 class RendezvousPoint(object):
 
-    def __init__(self, circuit, info_hash, cookie, service_key, intro_point, finished_callback):
+    def __init__(self, circuit, cookie, finished_callback):
         self.circuit = circuit
-        self.info_hash = info_hash
         self.cookie = cookie
-        self.service_key = service_key
-        self.intro_point = intro_point
-        self.rendezvous_point = None
         self.finished_callback = finished_callback
+        self.rp_info = None

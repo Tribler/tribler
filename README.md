@@ -15,7 +15,7 @@ We make use of submodules, so remember using the --recursive argument when cloni
 
 ### Debian/Ubuntu/Mint
 ```bash
-sudo apt-get install libav-tools libjs-excanvas libjs-mootools libx11-6 python-apsw python-leveldb python-cherrypy3 python-crypto python-feedparser python-gmpy python-libtorrent python-m2crypto python-netifaces python-pil python-pyasn1 python-requests python-twisted python-wxgtk2.8 python2.7 vlc
+sudo apt-get install libav-tools libjs-excanvas libjs-mootools libx11-6 python-apsw python-leveldb python-cherrypy3 python-feedparser python-gmpy python-libtorrent python-m2crypto python-cryptography python-netifaces python-pil python-requests python-twisted python-wxgtk2.8 python2.7 vlc
 ```
 
 ### Windows and OSX

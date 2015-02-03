@@ -8,7 +8,7 @@ from twisted.internet.threads import blockingCallFromThread
 
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.community.tunnel import exitstrategies
-from Tribler.community.tunnel.community import TunnelCommunity, TunnelSettings
+from Tribler.community.tunnel.tunnel_community import TunnelCommunity, TunnelSettings
 from Tribler.community.tunnel.crypto.tunnelcrypto import NoCrypto
 from Tribler.community.tunnel.events import TunnelObserver
 from Tribler.community.tunnel import (MESSAGE_CREATED, MESSAGE_CREATE, CIRCUIT_STATE_READY,
@@ -42,7 +42,7 @@ class TestProxyCommunity(TestAsServer):
 
         dispersy = self.dispersy
 
-        keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
+        keypair = dispersy.crypto.generate_key(u"curve25519")
         dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
 
         settings = TunnelSettings()
@@ -65,7 +65,7 @@ class TestProxyCommunity(TestAsServer):
         lan_address = ("0.0.0.0", 0)
         candidate = WalkCandidate(wan_address, False, lan_address, wan_address, u'unknown')
 
-        key = self.dispersy.crypto.generate_key(u"NID_secp160k1")
+        key = self.dispersy.crypto.generate_key(u"curve25519")
         member = self.dispersy.get_member(public_key=self.dispersy.crypto.key_to_bin(key.pub()))
         candidate.associate(member)
 
