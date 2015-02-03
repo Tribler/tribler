@@ -452,7 +452,16 @@ class MainFrame(wx.Frame):
         self._logger.debug(u"startDownload: %s %s %s %s %s", torrentfilename, destdir, tdef, vodmode, selectedFiles)
 
         if fixtorrent and torrentfilename:
-            fix_torrent(torrentfilename)
+            data = fix_torrent(torrentfilename)
+            if data is None:
+                # show error message: could not open torrent file
+                dlg = wx.MessageBox(self, "Could not open torrent file %s" % torrentfilename,
+                                    "Error", wx.OK | wx.ICON_ERROR)
+                dlg.ShowModal()
+                dlg.Destroy()
+                return
+
+            tdef = TorrentDef.load_from_memory(data)
 
         try:
             if torrentfilename and tdef is None:
