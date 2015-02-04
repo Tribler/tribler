@@ -106,6 +106,8 @@ def filterincludes(l, f):
 
     return [(x, y) for (x, y) in l if f(y[0])]
 
+PYTHON_CRYPTOGRAPHY_PATH = "/Users/tribler/Workspace/install/python-libs/lib/python2.7/site-packages/cryptography-0.7.2-py2.7-macosx-10.6-intel.egg"
+
 # ----- build the app bundle
 mainfile = os.path.join(LIBRARYNAME, 'Main', 'tribler.py')
 setup(
@@ -125,23 +127,26 @@ setup(
              (LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core", [LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core/bootstrap_unstable"]),
              LIBRARYNAME + "/readme.txt",
              LIBRARYNAME + "/Main/Build/Mac/TriblerDoc.icns",
-           ]
-           # add images
-           + includedir(LIBRARYNAME + "/Main/vwxGUI/images")
-           + includedir(LIBRARYNAME + "/Main/webUI/static")
+             ]
+            + ["/Users/tribler/Workspace/install/python-libs/lib/libsodium.dylib",
+               "/Users/tribler/Workspace/install/python-libs/lib/libsodium.13.dylib"]
 
-           # add GUI elements
-           + filterincludes(includedir(LIBRARYNAME + "/Main/vwxGUI"), lambda x: x.endswith(".xrc"))
+            # add images
+            + includedir(LIBRARYNAME + "/Main/vwxGUI/images")
+            + includedir(LIBRARYNAME + "/Main/webUI/static")
 
-           # add crawler info and SQL statements
-           + filterincludes(includedir(LIBRARYNAME + "/Core/Statistics"), lambda x: x.endswith(".txt"))
-           + filterincludes(includedir(LIBRARYNAME + "/Core/Statistics"), lambda x: x.endswith(".sql"))
-           + filterincludes(includedir(LIBRARYNAME + "/"), lambda x: x.endswith(".sql"))
+            # add GUI elements
+            + filterincludes(includedir(LIBRARYNAME + "/Main/vwxGUI"), lambda x: x.endswith(".xrc"))
 
-           # add VLC plugins
-           + includedir("vlc")
+            # add crawler info and SQL statements
+            + filterincludes(includedir(LIBRARYNAME + "/Core/Statistics"), lambda x: x.endswith(".txt"))
+            + filterincludes(includedir(LIBRARYNAME + "/Core/Statistics"), lambda x: x.endswith(".sql"))
+            + filterincludes(includedir(LIBRARYNAME + "/"), lambda x: x.endswith(".sql"))
 
-           # add ffmpeg binary
-           + [("vlc", ["vlc/ffmpeg"])],
+            # add VLC plugins
+            + includedir("vlc")
+
+            # add ffmpeg binary
+            + [("vlc", ["vlc/ffmpeg"])],
     }}
 )
