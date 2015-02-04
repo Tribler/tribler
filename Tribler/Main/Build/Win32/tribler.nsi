@@ -98,6 +98,7 @@ Section "!Main EXE" SecMain
  ; Install Tribler stuff
  SetOutPath "$INSTDIR"
  File /r Microsoft.VC90.CRT
+ File /r *
  File *.txt
  ; Arno: Appears to be for CRT v6?
  ; File tribler.exe.manifest
