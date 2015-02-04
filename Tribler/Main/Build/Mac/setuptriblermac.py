@@ -10,12 +10,14 @@ import logging
 from setuptools import setup
 from Tribler import LIBRARYNAME
 
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../dispersy/libnacl'))
+
 logger = logging.getLogger(__name__)
 
 # modules to include into bundle
 includeModules = ["encodings.hex_codec", "encodings.utf_8", "encodings.latin_1", "xml.sax", "email.iterators",
                   "netifaces", "apsw", "libtorrent", "twisted", "M2Crypto", "pycrypto", "pyasn1", "Image"
-                  "urllib3", "requests", "leveldb"]
+                  "urllib3", "requests", "leveldb", "cryptography", "libnacl", "pycparser", "six"]
 
 # gui panels to include
 includePanels = [
