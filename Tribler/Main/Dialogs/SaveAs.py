@@ -103,7 +103,7 @@ class SaveAs(wx.Dialog):
             sizer.Add(ag, 0, wx.ALIGN_CENTER_VERTICAL)
             sizer.AddStretchSpacer()
             vSizer.Add(sizer, 1, wx.EXPAND | wx.BOTTOM, 3)
-            self.SetSize((600, 285 if self.tunnel_community_enabled else 185))
+            self.SetSize((600, 385 if self.tunnel_community_enabled else 185))
 
             # convert tdef into guidbtuple, and collect it using torrentsearch_manager.getTorrent
             torrent = Torrent.fromTorrentDef(tdef)

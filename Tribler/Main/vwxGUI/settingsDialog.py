@@ -66,7 +66,7 @@ def add_label(parent, sizer, label):
 class SettingsDialog(wx.Dialog):
 
     def __init__(self):
-        super(SettingsDialog, self).__init__(None, size=(600, 600),
+        super(SettingsDialog, self).__init__(None, size=(600, 700),
                                              title="Settings", name="settingsDialog", style=wx.DEFAULT_DIALOG_STYLE)
         self.SetExtraStyle(self.GetExtraStyle() | wx.WS_EX_VALIDATE_RECURSIVELY)
         self._logger = logging.getLogger(self.__class__.__name__)
