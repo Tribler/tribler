@@ -12,6 +12,7 @@ class TunnelCrypto(ECCrypto):
     def initialize(self, community):
         self.community = community
         self.key = self.community.my_member._ec
+        assert isinstance(self.key, LibNaCLPK), type(self.key)
 
     def is_key_compatible(self, key):
         return isinstance(key, LibNaCLPK)

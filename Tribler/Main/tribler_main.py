@@ -522,7 +522,7 @@ class ABCApp(object):
             dispersy.define_auto_load(PreviewChannelCommunity, session.dispersy_member, kargs=default_kwargs)
 
             if self.sconfig.get_tunnel_community_enabled():
-                keypair = dispersy.crypto.generate_key(u"NID_secp160k1")
+                keypair = dispersy.crypto.generate_key(u"curve25519")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair),)
                 settings = TunnelSettings(session.get_install_dir())
                 tunnel_kwargs = {'tribler_session': session, 'settings': settings}
