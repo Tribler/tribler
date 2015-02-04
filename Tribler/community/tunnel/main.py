@@ -202,6 +202,9 @@ class Tunnel(object):
 
 
 class LineHandler(LineReceiver):
+    
+    delimiter = os.linesep
+    
     def __init__(self, anon_tunnel, profile):
         self.anon_tunnel = anon_tunnel
         self.profile = profile
