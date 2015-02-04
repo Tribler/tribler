@@ -20,6 +20,8 @@ except ImportError:
 from distutils.core import setup
 import py2exe
 
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../dispersy/libnacl'))
+
 #
 #
 # Setup script used for py2exe
@@ -47,8 +49,9 @@ includePanels = [
 # packages = ["Tribler.Core","encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]
 packages = ["encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels] +\
     ["Tribler.Core.DecentralizedTracking.pymdht.core",
-     "Tribler.Main.tribler_main", "netifaces", "csv", "cherrypy",
-     "twisted", "apsw", "libtorrent", "M2Crypto",
+     "Tribler.Main.tribler_main",
+     "netifaces", "csv", "cherrypy",
+     "twisted", "apsw", "libtorrent", "M2Crypto", "cryptography", "libnacl", "six", "cffi", "pycparser",
      "zope.interface", "pyasn1", "gmpy", "Image", "requests", "leveldb"]
 
 setup(
@@ -57,7 +60,9 @@ setup(
     # zipfile = None,
     options={"py2exe": {"packages": packages,
                         "optimize": 2,
+                        "skip_archive": True,
+                        "dist_dir": os.path.join("dist", "installdir"),
                         "dll_excludes": ["mswsock.dll"]}},
-    data_files=[("installdir", [])],
+    data_files=[(".", [r"C:\build\libsodium.dll"])],
     windows=[target],
 )

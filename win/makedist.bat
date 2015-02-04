@@ -86,7 +86,7 @@ copy C:\WINDOWS\WinSxS\%CRTFULLNAME%\msvcp90.dll .
 %PYTHONHOME%\python.exe -O Tribler\Main\Build\Win32\setuptribler.py py2exe
 
 REM Arno: Move py2exe results to installdir
-move dist\*.* dist\installdir
+move dist\* dist\installdir
 
 copy Tribler\Main\Build\Win32\tribler*.nsi dist\installdir
 copy Tribler\Main\Build\Win32\tribler.exe.manifest dist\installdir
