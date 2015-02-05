@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import threading
+from binascii import hexlify
 from math import sqrt
 from time import time
 from traceback import print_exc
@@ -110,7 +111,7 @@ class TorrentManager(object):
         Returns a filename, if filename is known
         """
         torrent_filename = torrent.torrent_file_name
-        if torrent_filename and os.path.isfile(torrent_filename):
+        if torrent_filename and self.session.lm.torrent_store.get(hexlify(torrent.infohash)):
             return torrent_filename
 
         if not retried:
@@ -276,7 +277,7 @@ class TorrentManager(object):
 
             else:
                 try:
-                    tdef = TorrentDef.load(torrent_filename)
+                    tdef = TorrentDef.load_from_memory(self.session.lm.torrent_store.get(hexlify(torrent.infohash)))
 
                 except ValueError:
                     data = fix_torrent(torrent_filename)
