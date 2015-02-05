@@ -9,10 +9,6 @@ from Tribler.Main.vwxGUI.list_item import ChannelListItem
 
 class TestRemoteQuery(TestGuiAsServer):
 
-    def setUpPreSession(self):
-        super(TestRemoteQuery, self).setUpPreSession()
-        self.config.set_torrent_store(True)
-
     def test_remotesearch(self):
         def do_assert():
             self.screenshot('After doing mp3 search, got %d results' % self.frame.searchlist.GetNrResults())
