@@ -30,7 +30,6 @@ from Tribler.dispersy.resolution import PublicResolution
 
 
 DEBUG = False
-SWIFT_INFOHASHES = 0
 CREATE_TORRENT_COLLECT_INTERVAL = 5
 
 
@@ -494,21 +493,20 @@ class SearchCommunity(Community):
         to_collect_dict = {}
         to_popularity_dict = {}
         for message in messages:
-            # check if the identifier is still in the request_cache because it could be timed out
+            # check if the identifier is still in the request_cache because it could have timed out
             if not self.request_cache.has(u"ping", message.payload.identifier):
                 self._logger.warn(u"message from %s cannot be found in the request cache, skipping it",
                                   message.candidate)
                 continue
             self.request_cache.pop(u"ping", message.payload.identifier)
 
-            if message.payload.hashtype == SWIFT_INFOHASHES:
-                for infohash, seeders, leechers, ago in message.payload.torrents:
-                    if not infohash:
-                        continue
-                    elif infohash not in to_insert_list:
-                        to_insert_list.append(infohash)
-                    to_popularity_dict[infohash] = [seeders, leechers, time() - (ago * 60)]
-                    to_collect_dict.setdefault(infohash, []).append(message.candidate)
+            for infohash, seeders, leechers, ago in message.payload.torrents:
+                if not infohash:
+                    continue
+                elif infohash not in to_insert_list:
+                    to_insert_list.append(infohash)
+                to_popularity_dict[infohash] = [seeders, leechers, time() - (ago * 60)]
+                to_collect_dict.setdefault(infohash, []).append(message.candidate)
 
         if len(to_insert_list) > 0:
             while to_insert_list:
@@ -547,7 +545,7 @@ class SearchCommunity(Community):
             meta = self.get_meta_message(meta_name)
             message = meta.impl(authentication=(self._my_member,),
                                 distribution=(self.global_time,), destination=(candidate,),
-                                payload=(identifier, SWIFT_INFOHASHES, torrents))
+                                payload=(identifier, torrents))
 
             self._dispersy._forward([message])
             self._logger.debug(u"send %s to %s", meta_name, candidate)

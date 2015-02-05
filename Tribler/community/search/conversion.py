@@ -233,14 +233,14 @@ class SearchConversion(BinaryConversion):
 
         hashpack = '20sHHH' * len(message.payload.torrents)
         torrents = [item for sublist in message.payload.torrents for item in sublist]
-        return pack('!HH' + hashpack, message.payload.identifier, message.payload.hashtype, *torrents),
+        return pack('!H' + hashpack, message.payload.identifier, *torrents),
 
     def _decode_torrent_collect_request(self, placeholder, offset, data):
-        if len(data) < offset + 4:
+        if len(data) < offset + 2:
             raise DropPacket("Insufficient packet size")
 
-        identifier, hashtype = unpack_from('!HH', data, offset)
-        offset += 4
+        identifier = unpack_from('!H', data, offset)[0]
+        offset += 2
 
         length = len(data) - offset
         if length % 26 != 0:
@@ -256,7 +256,7 @@ class SearchConversion(BinaryConversion):
                 torrents.append([hashes[i], hashes[i + 1], hashes[i + 2], hashes[i + 3]])
         else:
             torrents = []
-        return offset, placeholder.meta.payload.implement(identifier, hashtype, torrents)
+        return offset, placeholder.meta.payload.implement(identifier, torrents)
 
     def _encode_torrent_collect_response(self, message):
         return self._encode_torrent_collect_request(message)
