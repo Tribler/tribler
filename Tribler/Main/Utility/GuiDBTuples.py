@@ -92,48 +92,10 @@ class Helper(object):
             setattr(self, key, value)
 
 
-class MergedDs(object):
-
-    def __init__(self, dslist):
-        self.dslist = dslist
-
-    def __getattr__(self, name):
-        # print >> sys.stderr, name
-        return getattr(self.dslist[0], name)
-
-    def get_status(self):
-        order = [DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING, DLSTATUS_CIRCUITS, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_STOPPED]
-        status1, status2 = self.dslist[0].get_status(), self.dslist[1].get_status()
-
-        def return_in_order(status1, status2, order):
-            for status in order:
-                if status1 == status or status2 == status:
-                    return status
-
-        return return_in_order(status1, status2, order)
-
-    def get_current_speed(self, direct):
-        return self.dslist[0].get_current_speed(direct) + self.dslist[1].get_current_speed(direct)
-
-    def get_num_con_initiated(self):
-        return self.dslist[0].get_num_con_initiated() + self.dslist[1].get_num_con_initiated()
-
-    def get_num_con_candidates(self):
-        return self.dslist[0].get_num_con_candidates() + self.dslist[1].get_num_con_candidates()
-
-    def get_num_seeds_peers(self):
-        seeds, peers = self.dslist[0].get_num_seeds_peers()
-        s_seeds, s_peers = self.dslist[1].get_num_seeds_peers()
-        return seeds + s_seeds, peers + s_peers
-
-    def get_peerlist(self):
-        return self.dslist[0].get_peerlist() + self.dslist[1].get_peerlist()
-
-
 class Torrent(Helper):
     __slots__ = ('infohash', 'name', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders',
                  'num_leechers', '_channel', 'channeltorrents_id', 'misc_db', 'torrent_db', 'channelcast_db',
-                 'metadata_db', 'dslist', '_progress', 'relevance_score', 'query_candidates', 'magnetstatus')
+                 'metadata_db', 'ds', '_progress', 'download_status', 'relevance_score', 'query_candidates', 'magnetstatus')
 
     def __init__(self, torrent_id, infohash, name, torrent_file_name, length, category_id, status_id, num_seeders, num_leechers, channel):
         Helper.__init__(self)
@@ -163,7 +125,7 @@ class Torrent(Helper):
         self.relevance_score = None
         self.query_candidates = None
         self._progress = None
-        self.dslist = None
+        self.download_status = None
         self.magnetstatus = None
 
     @cacheProperty
@@ -278,24 +240,18 @@ class Torrent(Helper):
 
     @property
     def ds(self):
-        if self.dslist:
-            if self.dslist[0] and self.dslist[1]:
-                return MergedDs(self.dslist)
-            return self.dslist[0] or self.dslist[1]
+        return self.download_status
 
     def addDs(self, ds):
-        if ds and not isinstance(ds, MergedDs):
-            if self.dslist is None:
-                self.dslist = [None, None]
-
+        if ds:
             tdef = ds.get_download().get_def()
             if self.infohash and self.infohash == tdef.get_infohash():
-                self.dslist[0] = ds
+                self.download_status = ds
                 return True
         return False
 
     def clearDs(self):
-        self.dslist = [None, None]
+        self.download_status = None
 
     def assignRelevance(self, matches):
         """
@@ -336,7 +292,7 @@ class Torrent(Helper):
     def __getstate__(self):
         statedict = {}
         for key in Torrent.__slots__:
-            if key not in ['dslist', 'channelcast_db', 'torrent_db']:
+            if key not in ['ds', 'channelcast_db', 'torrent_db']:
                 statedict[key] = getattr(self, key, None)
         return statedict
 

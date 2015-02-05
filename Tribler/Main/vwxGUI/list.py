@@ -983,7 +983,7 @@ class SizeList(List):
                     original_data.magnetstatus = None
 
                 if item:  # torrents in raw_data and items are not equal
-                    item.original_data.dslist = original_data.dslist
+                    item.original_data.download_status = original_data.download_status
                     item.original_data.magnetstatus = original_data.magnetstatus
 
                 curState = curStates[infohash] = original_data.state, original_data.magnetState
@@ -1199,8 +1199,8 @@ class GenericSearchList(SizeList):
 
             # we need to merge the dslist from the current item
             prevItem = self.list.GetItem(head.infohash)
-            if prevItem.original_data.ds:
-                original_data.dslist = prevItem.original_data.dslist
+            if prevItem.original_data.download_status:
+                original_data.download_status = prevItem.original_data.download_status
 
             # Update primary columns with new data
             if DEBUG_RELEVANCE:
@@ -1817,7 +1817,7 @@ class LibraryList(SizeList):
 
                 tooltip = ''
                 if ds:
-                    torrent_ds = item.original_data.dslist[0]
+                    torrent_ds = item.original_data.download_status
 
                     # Set torrent seeding time and ratio
                     if torrent_ds and torrent_ds.get_seeding_statistics():
@@ -1868,7 +1868,7 @@ class LibraryList(SizeList):
                 item.RefreshColumn(9, 'Yes' if ds and ds.get_download() and ds.get_download().get_anon_mode() else 'No')
 
                 # For updating torrent icons
-                torrent_ds = item.original_data.dslist[0]
+                torrent_ds = item.original_data.download_status
                 torrent_enabled = bool(torrent_ds) and \
                                   torrent_ds.get_status() not in [DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR]
                 item.icons[0].Show(torrent_enabled)
@@ -1883,7 +1883,7 @@ class LibraryList(SizeList):
             self.oldDS.pop(infohash)
 
     @warnWxThread
-    def RefreshBandwidthHistory(self, dslist, magnetlist):
+    def RefreshBandwidthHistory(self, _, magnetlist):
         # Avoid WxPyDeadObject exceptions
         if not (self and self.list and self.list.items):
             return
