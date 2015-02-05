@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 # modules to include into bundle
 includeModules = ["encodings.hex_codec", "encodings.utf_8", "encodings.latin_1", "xml.sax", "email.iterators",
                   "netifaces", "apsw", "libtorrent", "twisted", "M2Crypto", "pycrypto", "pyasn1", "Image"
-                  "urllib3", "requests", "leveldb", "cryptography", "libnacl", "pycparser", "six"]
+                  "urllib3", "requests", "leveldb", "cryptography", "libnacl", "pycparser", "six", "hashlib",
+                  "csv"]
 
 # gui panels to include
 includePanels = [
