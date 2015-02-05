@@ -23,7 +23,7 @@ PYTHON="arch -i386 /Library/Frameworks/Python.framework/Versions/$PYTHON_VERSION
 # Arno 2013-02-12: Added libtorrent
 PYTHONPATH="$PWD:$PYTHONPATH"
 PYTHONPATH="$HOME/Workspace/install/python-libs/lib/python2.7/site-packages:$PYTHONPATH"
-PYTHONPATH="$HOME/Workspace/install/libtorrent-rasterbar-0.16.17/lib/python2.7/site-packages:$PYTHONPATH"
+PYTHONPATH="$HOME/Workspace/install/libtorrent-rasterbar-1.0.3/lib/python2.7/site-packages:$PYTHONPATH"
 export PYTHONPATH
 
 # Force 32-bit:
