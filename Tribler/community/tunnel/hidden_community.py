@@ -205,6 +205,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
     def do_lookup(self, info_hash, hops):
         # Get seeders from the DHT and establish an e2e encrypted tunnel to them
+        @call_on_reactor_thread
         def dht_callback(info_hash, peers, _):
             if not peers:
                 return
