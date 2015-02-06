@@ -494,8 +494,8 @@ class TorrentListItem(DoubleLineListItemWithButtons):
     def OnRecheck(self, event):
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
         for torrent in torrents:
-            if torrent.download_status and 'metadata' not in torrent.state and 'checking' not in torrent.state:
-                torrent.download_status.get_download().force_recheck()
+            if torrent.download_state and 'metadata' not in torrent.state and 'checking' not in torrent.state:
+                torrent.download_state.get_download().force_recheck()
 
     def OnExportTorrent(self, filename):
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
@@ -681,7 +681,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         enable = False
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
         for torrent in torrents:
-            status = torrent.download_status.get_status() if torrent.download_status else None
+            status = torrent.download_state.get_status() if torrent.download_state else None
             if status not in [None, DLSTATUS_METADATA, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]:
                 enable = True
                 break

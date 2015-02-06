@@ -95,7 +95,7 @@ class Helper(object):
 class Torrent(Helper):
     __slots__ = ('infohash', 'name', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders',
                  'num_leechers', '_channel', 'channeltorrents_id', 'misc_db', 'torrent_db', 'channelcast_db',
-                 'metadata_db', 'ds', '_progress', 'download_status', 'relevance_score', 'query_candidates', 'magnetstatus')
+                 'metadata_db', '_progress', 'download_state', 'relevance_score', 'query_candidates', 'magnetstatus')
 
     def __init__(self, torrent_id, infohash, name, torrent_file_name, length, category_id, status_id, num_seeders, num_leechers, channel):
         Helper.__init__(self)
@@ -125,7 +125,7 @@ class Torrent(Helper):
         self.relevance_score = None
         self.query_candidates = None
         self._progress = None
-        self.download_status = None
+        self.download_state = None
         self.magnetstatus = None
 
     @cacheProperty
@@ -240,18 +240,18 @@ class Torrent(Helper):
 
     @property
     def ds(self):
-        return self.download_status
+        return self.download_state
 
     def addDs(self, ds):
         if ds:
             tdef = ds.get_download().get_def()
             if self.infohash and self.infohash == tdef.get_infohash():
-                self.download_status = ds
+                self.download_state = ds
                 return True
         return False
 
     def clearDs(self):
-        self.download_status = None
+        self.download_state = None
 
     def assignRelevance(self, matches):
         """
@@ -292,7 +292,7 @@ class Torrent(Helper):
     def __getstate__(self):
         statedict = {}
         for key in Torrent.__slots__:
-            if key not in ['ds', 'channelcast_db', 'torrent_db']:
+            if key not in ['download_state', 'channelcast_db', 'torrent_db']:
                 statedict[key] = getattr(self, key, None)
         return statedict
 

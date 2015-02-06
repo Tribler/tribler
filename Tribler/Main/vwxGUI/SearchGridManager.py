@@ -1105,7 +1105,7 @@ class LibraryManager(object):
         return downloads
 
     def deleteTorrent(self, torrent, removecontent=False):
-        self.deleteTorrentDS(torrent.download_status, torrent.infohash, removecontent)
+        self.deleteTorrentDS(torrent.download_state, torrent.infohash, removecontent)
 
     def deleteTorrentDS(self, ds, infohash, removecontent=False):
         if not ds is None:
