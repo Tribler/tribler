@@ -1471,10 +1471,6 @@ class TorrentDBHandler(BasicDBHandler):
         sql = "SELECT path, length FROM TorrentFiles WHERE torrent_id = ?"
         return self._db.fetchall(sql, (torrent_id,))
 
-    def getTorrentCollecting(self, torrent_id):
-        sql = "SELECT source FROM TorrentCollecting WHERE torrent_id = ?"
-        return self._db.fetchall(sql, (torrent_id,))
-
     def setSecret(self, infohash, secret):
         kw = {'secret': secret}
         self.updateTorrent(infohash, **kw)
