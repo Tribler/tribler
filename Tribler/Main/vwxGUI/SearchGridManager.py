@@ -253,15 +253,6 @@ class TorrentManager(object):
                 else:
                     torrent_id = torrent.torrent_id
 
-                if torrent_id and torrent_id != -1:
-                    files = self.torrent_db.getTorrentFiles(torrent_id)
-
-                    collectingSources = self.torrent_db.getTorrentCollecting(torrent_id)
-                    for source, in collectingSources:
-                        if source.startswith('magnet'):
-                            _, _, trs = parse_magnetlink(source)
-                            trackers.extend(trs)
-
                 trackers.extend(self.torrent_db.getTrackerListByTorrentID(torrent_id))
 
                 if 'DHT' in trackers:

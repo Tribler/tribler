@@ -199,7 +199,6 @@ class TestTorrentDBHandler(AbstractDB):
         # print data
         assert data['category'][0] in self.misc_db._category_name2id_dict, data['category']
         assert data['status'] in self.misc_db._torrent_status_name2id_dict, data['status']
-        assert data['source'] in self.misc_db._torrent_source_name2id_dict, data['source']
         assert len(data['infohash']) == 20
 
     @blocking_call_on_reactor_thread
@@ -228,12 +227,11 @@ class TestTorrentDBHandler(AbstractDB):
 
         single_tdef = TorrentDef.load(single_torrent_file_path)
         assert s_infohash == single_tdef.get_infohash()
-        src = 'http://www.rss.com/torrent.xml'
         multiple_tdef = TorrentDef.load(multiple_torrent_file_path)
         assert m_infohash == multiple_tdef.get_infohash()
 
         self.tdb.addExternalTorrent(single_tdef, extra_info={'filename': single_torrent_file_path})
-        self.tdb.addExternalTorrent(multiple_tdef, source=src, extra_info={'filename': multiple_torrent_file_path})
+        self.tdb.addExternalTorrent(multiple_tdef, extra_info={'filename': multiple_torrent_file_path})
 
         single_torrent_id = self.tdb.getTorrentID(s_infohash)
         multiple_torrent_id = self.tdb.getTorrentID(m_infohash)
@@ -244,7 +242,6 @@ class TestTorrentDBHandler(AbstractDB):
         multiple_name = 'Tribler_4.1.7_src'
 
         assert self.tdb.size() == old_size + 2, old_size - self.tdb.size()
-        assert old_src_size + 1 == self.tdb._db.size('TorrentSource')
         new_tracker_table_size = self.tdb._db.size('TrackerInfo')
         assert old_tracker_size < new_tracker_table_size, new_tracker_table_size - old_tracker_size
 
@@ -262,12 +259,6 @@ class TestTorrentDBHandler(AbstractDB):
         cat = self.tdb.getOne('category_id', torrent_id=multiple_torrent_id)
         # assert cat == 8, cat  # other
 
-        sid = self.tdb._db.getOne('TorrentSource', 'source_id', name=src)
-        assert sid > 1
-        m_sid = self.tdb.getOne('source_id', torrent_id=multiple_torrent_id)
-        assert sid == m_sid
-        s_sid = self.tdb.getOne('source_id', torrent_id=single_torrent_id)
-        assert 1 == s_sid
         s_status = self.tdb.getOne('status_id', torrent_id=single_torrent_id)
         assert s_status == 0
 

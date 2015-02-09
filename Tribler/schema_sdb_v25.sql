@@ -73,7 +73,6 @@ CREATE TABLE Torrent (
   insert_time      numeric,
   secret           integer,
   relevance        numeric DEFAULT 0,
-  source_id        integer,
   category_id      integer,
   status_id        integer DEFAULT 0,
   num_seeders      integer,
@@ -88,18 +87,6 @@ CREATE TABLE Torrent (
 CREATE UNIQUE INDEX infohash_idx
   ON Torrent
   (infohash);
-
-----------------------------------------
-
-CREATE TABLE TorrentSource (
-  source_id    integer PRIMARY KEY NOT NULL,
-  name         text NOT NULL,
-  description  text
-);
-
-CREATE UNIQUE INDEX torrent_source_idx
-  ON TorrentSource
-  (name);
 
 ----------------------------------------
 
@@ -373,9 +360,6 @@ INSERT INTO Category VALUES (8, 'other', 'Other');
 INSERT INTO TorrentStatus VALUES (0, 'unknown', NULL);
 INSERT INTO TorrentStatus VALUES (1, 'good', NULL);
 INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
-
-INSERT INTO TorrentSource VALUES (0, '', 'Unknown');
-INSERT INTO TorrentSource VALUES (1, 'BC', 'Received from other user');
 
 INSERT INTO MyInfo VALUES ('version', 24);
 
