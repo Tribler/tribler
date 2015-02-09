@@ -101,8 +101,6 @@ class MiscDBHandler(BasicDBHandler):
         self._torrent_status_id2name_dict = None
         self._category_name2id_dict = None
         self._category_id2name_dict = None
-        self._torrent_source_name2id_dict = None
-        self._torrent_source_id2name_dict = None
 
     def initialize(self, *args, **kwargs):
         # initialize TorrentStatus name-ID tables
@@ -127,14 +125,6 @@ class MiscDBHandler(BasicDBHandler):
             dict([(x, y) for (y, x) in self._category_name2id_dict.iteritems()])
         self._category_id2name_dict[None] = u'unknown'
 
-        # initialize TorrentSource name-ID tables
-        sql = u'SELECT name, source_id FROM TorrentSource'
-        st = self._db.fetchall(sql)
-        self._torrent_source_name2id_dict = dict(st)
-        self._torrent_source_id2name_dict = \
-            dict([(x, y) for (y, x) in self._torrent_source_name2id_dict.iteritems()])
-        self._torrent_source_id2name_dict[None] = u'unknown'
-
     def torrentStatusName2Id(self, status_name):
         return self._torrent_status_name2id_dict.get(status_name.lower(), 0)
 
@@ -150,26 +140,6 @@ class MiscDBHandler(BasicDBHandler):
 
     def categoryId2Name(self, category_id):
         return self._category_id2name_dict[category_id]
-
-    def torrentSourceName2Id(self, source_name):
-        if source_name in self._torrent_source_name2id_dict:
-            source_id = self._torrent_source_name2id_dict[source_name]
-        else:
-            source_id = self._addSource(source_name)
-            self._torrent_source_name2id_dict[source_name] = source_id
-            self._torrent_source_id2name_dict[source_id] = source_name
-        return source_id
-
-    def torrentSourceId2Name(self, source_id):
-        return self._torrent_source_id2name_dict.get(source_id, None)
-
-    def _addSource(self, source):
-        desc = u''
-        if source.startswith(u"http") and source.endswith(u"xml"):
-            desc = u'RSS'
-        self._db.insert(u'TorrentSource', name=source, description=desc)
-        source_id = self._db.getOne(u'TorrentSource', u'source_id', name=source)
-        return source_id
 
 
 class MetadataDBHandler(BasicDBHandler):
@@ -433,17 +403,17 @@ class TorrentDBHandler(BasicDBHandler):
         self.torrent_dir = None
 
         self.keys = ['torrent_id', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'thumbnail',
-                     'insert_time', 'secret', 'relevance', 'source_id', 'category_id', 'status_id',
+                     'insert_time', 'secret', 'relevance', 'category_id', 'status_id',
                      'num_seeders', 'num_leechers', 'comment', 'last_tracker_check']
         self.existed_torrents = set()
 
         self.value_name = ['C.torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
-                           'num_leechers', 'num_seeders', 'length', 'secret', 'insert_time', 'source_id',
+                           'num_leechers', 'num_seeders', 'length', 'secret', 'insert_time',
                            'torrent_file_name', 'relevance', 'infohash', 'last_tracker_check']
 
         self.value_name_for_channel = ['C.torrent_id', 'infohash', 'name', 'torrent_file_name', 'length',
                                        'creation_date', 'num_files', 'thumbnail', 'insert_time', 'secret',
-                                       'relevance', 'source_id', 'category_id', 'status_id',
+                                       'relevance', 'category_id', 'status_id',
                                        'num_seeders', 'num_leechers', 'comment']
 
         self.category = None
@@ -634,7 +604,6 @@ class TorrentDBHandler(BasicDBHandler):
                 "insert_time": long(time()),
                 "secret": 1 if torrentdef.is_private() else 0,
                 "relevance": 0.0,
-                "source_id": self.misc_db.torrentSourceName2Id(source),
                 # todo: the category_id is calculated directly from
                 # torrentdef.metainfo, the category checker should use
                 # the proper torrentdef api
@@ -803,7 +772,6 @@ class TorrentDBHandler(BasicDBHandler):
             self._db.executemany(sql, to_be_inserted)
 
     def on_search_response(self, torrents):
-        source_id = self.misc_db.torrentSourceName2Id(u'DISP_SEARCH')
         status_id = self.misc_db.torrentStatusName2Id(u'unknown')
 
         torrents = [(bin2str(torrent[0]), torrent[1], torrent[2], torrent[3], self.misc_db.categoryName2Id(torrent[4]),
@@ -835,17 +803,17 @@ class TorrentDBHandler(BasicDBHandler):
 
             if tid:  # we know this torrent
                 if tid not in tid_collected and swarmname != tid_name.get(tid, ''):  # if not collected and name not equal then do fullupdate
-                    update.append((swarmname, length, nrfiles, categoryid, creation_date, infohash, source_id, status_id, tid))
+                    update.append((swarmname, length, nrfiles, categoryid, creation_date, infohash, status_id, tid))
                     to_be_indexed.append((tid, swarmname))
 
                 elif infohash and infohash not in infohash_tid:
                     update_infohash.append((infohash, tid))
             else:
-                insert.append((swarmname, length, nrfiles, categoryid, creation_date, infohash, source_id, status_id))
+                insert.append((swarmname, length, nrfiles, categoryid, creation_date, infohash, status_id))
 
         if len(update) > 0:
             sql = u"UPDATE Torrent SET name = ?, length = ?, num_files = ?, category_id = ?, creation_date = ?," \
-                  u" infohash = ?, source_id = ?, status_id = ? WHERE torrent_id = ?"
+                  u" infohash = ?, status_id = ? WHERE torrent_id = ?"
             self._db.executemany(sql, update)
 
         if len(update_infohash) > 0:
@@ -853,8 +821,8 @@ class TorrentDBHandler(BasicDBHandler):
             self._db.executemany(sql, update_infohash)
 
         if len(insert) > 0:
-            sql = u"INSERT INTO Torrent (name, length, num_files, category_id, creation_date, infohash, source_id," \
-                  u" status_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            sql = u"INSERT INTO Torrent (name, length, num_files, category_id, creation_date, infohash," \
+                  u" status_id) VALUES (?, ?, ?, ?, ?, ?, ?)"
             try:
                 self._db.executemany(sql, insert)
 
@@ -1035,7 +1003,6 @@ class TorrentDBHandler(BasicDBHandler):
     def getTorrent(self, infohash, keys=None, include_mypref=True):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
-        # to do: replace keys like source -> source_id and status-> status_id ??
 
         if keys is None:
             keys = deepcopy(self.value_name)
@@ -1047,9 +1014,6 @@ class TorrentDBHandler(BasicDBHandler):
         if not res:
             return None
         torrent = dict(zip(keys, res))
-        if 'source_id' in torrent:
-            torrent['source'] = self.misc_db.torrentSourceId2Name(torrent['source_id'])
-
         if 'category_id' in torrent:
             torrent['category'] = [self.misc_db.categoryId2Name(torrent['category_id'])]
 
@@ -1145,13 +1109,6 @@ class TorrentDBHandler(BasicDBHandler):
         for item in res_list:
             value_name[0] = 'torrent_id'
             torrent = dict(zip(value_name, item))
-
-            try:
-                torrent['source'] = self.misc_db.torrentSourceId2Name(torrent['source_id'])
-            except:
-                print_exc()
-                # Arno: RSS subscription and id2src issue
-                torrent['source'] = 'http://some/RSS/feed'
 
             torrent['category'] = [self.misc_db.categoryId2Name(torrent['category_id'])]
             torrent['status'] = self.misc_db.torrentStatusId2Name(torrent['status_id'])
