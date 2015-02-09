@@ -194,18 +194,6 @@ class TorrentChecking(Thread):
         for tracker in db_tracker_list:
             tracker_set.add(tracker)
 
-        # get trackers from its magnet link
-        source_list = self._torrentdb.getTorrentCollecting(torrent_id)
-        for source, in source_list:
-            if not source.startswith('magnet'):
-                continue
-
-            dn, xt, trackers = parse_magnetlink(source)
-            if not trackers:
-                continue
-            for tracker in trackers:
-                tracker_set.add(tracker)
-
         # get trackers from its .torrent file
         result = None
         torrent = self._torrentdb.getTorrent(infohash,  ['torrent_file_name'], include_mypref=False)
