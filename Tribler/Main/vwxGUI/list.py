@@ -122,7 +122,7 @@ class RemoteSearchManager(BaseManager):
             self.oldkeywords = keywords
 
     def NewResult(self, keywords):
-        if self.oldkeywords == keywords:
+        if self and self.list and self.oldkeywords == keywords:
             self.list.NewResult()
 
     def refresh(self, remote=False):
