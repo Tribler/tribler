@@ -62,7 +62,7 @@ class MetadataInjector(object):
         self._logger.info(u"Starting session...")
         self.session = Session(sscfg)
         # add dispersy start callbacks
-        #self.session.add_observer(self.init_managers, NTFY_DISPERSY, [NTFY_STARTED])
+        # self.session.add_observer(self.init_managers, NTFY_DISPERSY, [NTFY_STARTED])
         self.session.add_observer(self.define_communities, NTFY_DISPERSY, [NTFY_STARTED])
         self.session.add_observer(self.dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])
         self.session.start()
@@ -193,18 +193,21 @@ class MetadataInjector(object):
                     infohash = sha1(item['name']).digest()
                 except:
                     infohash = sha1(str(random.randint(0, 1000000))).digest()
-                message = community._disp_create_torrent(infohash, long(time.time()), unicode(item['name']), ((u'fake.file', 10),), tuple(), update=False, forward=False)
+                message = community._disp_create_torrent(infohash, long(time.time()), unicode(
+                    item['name']), ((u'fake.file', 10),), tuple(), update=False, forward=False)
 
                 self._logger.info("Created a new torrent")
 
                 latest_review = None
                 for modification in item['modifications']:
-                    reviewmessage = community._disp_create_modification('description', unicode(modification['text']), long(time.time()), message, latest_review, update=False, forward=False)
+                    reviewmessage = community._disp_create_modification('description', unicode(
+                        modification['text']), long(time.time()), message, latest_review, update=False, forward=False)
 
                     self._logger.info("Created a new modification")
 
                     if modification['revert']:
-                        community._disp_create_moderation('reverted', long(time.time()), 0, reviewmessage.packet_id, update=False, forward=False)
+                        community._disp_create_moderation(
+                            'reverted', long(time.time()), 0, reviewmessage.packet_id, update=False, forward=False)
 
                         self._logger.info("Reverted the last modification")
                     else:
@@ -218,8 +221,10 @@ def main():
     command_line_parser = optparse.OptionParser()
     command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir")
     command_line_parser.add_option("--port", action="store", type="int", help="Listen at this port")
-    command_line_parser.add_option("--rss", action="store", type="string", help="Url where to fetch rss feed, or several seperated with ';'")
-    command_line_parser.add_option("--dir", action="store", type="string", help="Directory to watch for .torrent files, or several seperated with ';'")
+    command_line_parser.add_option("--rss", action="store", type="string",
+                                   help="Url where to fetch rss feed, or several seperated with ';'")
+    command_line_parser.add_option("--dir", action="store", type="string",
+                                   help="Directory to watch for .torrent files, or several seperated with ';'")
     command_line_parser.add_option("--file", action="store", type="string", help="JSON file which has a community")
     command_line_parser.add_option("--nickname", action="store", type="string", help="The moderator name")
     command_line_parser.add_option("--channelname", action="store", type="string", help="The channel name")
@@ -313,10 +318,10 @@ def print_info(dispersy):
 def print_communities(dispersy):
     stats = dispersy.statistics
     community_list = sorted(stats.communities,
-            key=lambda community:
-                (not community.dispersy_enable_candidate_walker,
-                community.classification, community.cid)
-        )
+                            key=lambda community:
+                            (not community.dispersy_enable_candidate_walker,
+                             community.classification, community.cid)
+                            )
 
     print >> sys.stderr, u"\n\n===== Dispersy Communities ====="
     print >> sys.stderr, u"- %15s | %7s | %7s | %5s | %7s | %5s | %5s | %14s | %14s | %14s | %14s" %\

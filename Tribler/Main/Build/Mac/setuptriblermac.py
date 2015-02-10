@@ -32,7 +32,8 @@ includeModules += ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]
 # ----- some basic checks
 
 if __debug__:
-    logger.warn("WARNING: Non optimised python bytecode (.pyc) will be produced. Run with -OO instead to produce and bundle .pyo files.")
+    logger.warn(
+        "WARNING: Non optimised python bytecode (.pyc) will be produced. Run with -OO instead to produce and bundle .pyo files.")
 
 if sys.platform != "darwin":
     logger.warn("WARNING: You do not seem to be running Mac OS/X.")
@@ -124,8 +125,10 @@ setup(
         'optimize': 0 if __debug__ else 2,
         'resources':
             [(LIBRARYNAME + "/Category", [LIBRARYNAME + "/Category/category.conf"]),
-             (LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core", [LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core/bootstrap_stable"]),
-             (LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core", [LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core/bootstrap_unstable"]),
+             (LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core",
+              [LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core/bootstrap_stable"]),
+             (LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core",
+              [LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core/bootstrap_unstable"]),
              LIBRARYNAME + "/readme.txt",
              LIBRARYNAME + "/Main/Build/Mac/TriblerDoc.icns",
              ]

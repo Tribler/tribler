@@ -8,7 +8,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-#We aren't using python-git because we don't want to install the dependency on all the builders.
+# We aren't using python-git because we don't want to install the dependency on all the builders.
+
 
 def runCommand(cmd):
     p = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -30,7 +31,8 @@ if __name__ == '__main__':
 
     logger.info('Writing runtime version info.')
     f = open(path.join('Tribler', 'Core', 'version.py'), 'w')
-    f.write('version_id = "%s"%sbuild_date = "%s"%scommit_id = "%s"%s' % (version_id, linesep, build_date, linesep, commit_id, linesep))
+    f.write('version_id = "%s"%sbuild_date = "%s"%scommit_id = "%s"%s' %
+            (version_id, linesep, build_date, linesep, commit_id, linesep))
     f.close()
 
     f = open('.TriblerVersion', 'w')
