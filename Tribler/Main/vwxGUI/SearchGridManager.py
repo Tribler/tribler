@@ -123,26 +123,6 @@ class TorrentManager(object):
                 torrent.torrent_file_name = dict['torrent_file_name']
                 return self.getCollectedFilename(torrent, retried=True)
 
-    def getTorrent(self, torrent, callback, prio=0):
-        """
-        TORRENT is a dictionary containing torrent information used to
-        display the entry on the UI. it is NOT the torrent file!
-
-        CALLBACK is called when the torrent is downloaded. When no
-        torrent can be downloaded the callback is ignored
-        As a first argument the filename of the torrent is passed
-
-        Returns a boolean + request_type
-        describing if the torrent is requested
-        """
-
-        if self.downloadTorrentfileFromPeers(torrent, callback, duplicate=True, prio=prio):
-            candidates = torrent.query_candidates
-            if candidates and len(candidates) > 0:
-                return True, "from peers"
-            return True, "from the dht"
-        return False
-
     def downloadTorrentfileFromPeers(self, torrent, callback, duplicate=True, prio=0):
         """
         TORRENT is a GuiDBTuple containing torrent information used to
@@ -262,7 +242,7 @@ class TorrentManager(object):
 
 
                 # We still call getTorrent to fetch .torrent
-                self.getTorrent(torrent, None)
+                self.downloadTorrentfileFromPeers(torrent, None)
 
                 torrent = NotCollectedTorrent(torrent, files, trackers)
 
@@ -1075,7 +1055,7 @@ class LibraryManager(object):
                 self.guiUtility.frame.startDownload(tdef=tdef, destdir=destdir)
             else:
                 callback = lambda torrentfilename: self.resumeTorrent(torrent)
-                self.torrentsearch_manager.getTorrent(torrent, callback)
+                self.torrentsearch_manager.downloadTorrentfileFromPeers(torrent, callback)
 
     def stopTorrent(self, torrent):
         downloads = self._getDownloads(torrent) if not isinstance(torrent, basestring) else [self.session.get_download(torrent)]

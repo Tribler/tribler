@@ -931,7 +931,9 @@ class ArtworkPanel(wx.Panel):
         if len(torrents) == 0:
             non_torrents = self.guiutility.torrentsearch_manager.getNotCollectedThumbnailTorrents(limit=self.max_torrents)
             for torrent in non_torrents:
-                self.guiutility.torrentsearch_manager.getTorrent(torrent, lambda _: self.refreshNow(), prio=2)
+                self.guiutility.torrentsearch_manager.downloadTorrentfileFromPeers(torrent,
+                                                                                   lambda _: self.refreshNow(),
+                                                                                   prio=2)
 
         return torrents
 
