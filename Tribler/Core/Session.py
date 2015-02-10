@@ -405,7 +405,7 @@ class Session(SessionConfigInterface):
             raise OperationNotEnabledByConfigurationException()
 
         # Called by any thread
-        #with self.sesslock:
+        # with self.sesslock:
         if subject == NTFY_MISC:
             return self.lm.misc_db
         elif subject == NTFY_METADATA:
@@ -465,7 +465,8 @@ class Session(SessionConfigInterface):
         """
         # Called by any thread
         self.lm.early_shutdown()
-        self.checkpoint_shutdown(stop=True, checkpoint=checkpoint, gracetime=gracetime, hacksessconfcheckpoint=hacksessconfcheckpoint)
+        self.checkpoint_shutdown(stop=True, checkpoint=checkpoint,
+                                 gracetime=gracetime, hacksessconfcheckpoint=hacksessconfcheckpoint)
         # Arno, 2010-08-09: now shutdown after gracetime
         self.uch.shutdown()
 

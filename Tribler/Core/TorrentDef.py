@@ -42,6 +42,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
     cf. libtorrent torrent_info
     """
+
     def __init__(self, input=None, metainfo=None, infohash=None):
         """ Normal constructor for TorrentDef (The input, metainfo and infohash
         parameters are used internally to make this a copy constructor) """
@@ -721,7 +722,8 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
         # Note: reading of all files and calc of hashes is done by calling
         # thread.
-        (infohash, metainfo) = maketorrent.make_torrent_file(self.input, userabortflag=userabortflag, userprogresscallback=userprogresscallback)
+        (infohash, metainfo) = maketorrent.make_torrent_file(self.input,
+                                                             userabortflag=userabortflag, userprogresscallback=userprogresscallback)
         if infohash is not None:
 
             if self.get_url_compat():
@@ -738,8 +740,10 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             self.input['piece length'] = metainfo['info']['piece length']
             self.metainfo_valid = True
 
-        assert self.infohash is None or isinstance(self.infohash, str), "INFOHASH has invalid type: %s" % type(self.infohash)
-        assert self.infohash is None or len(self.infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(self.infohash)
+        assert self.infohash is None or isinstance(
+            self.infohash, str), "INFOHASH has invalid type: %s" % type(self.infohash)
+        assert self.infohash is None or len(
+            self.infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(self.infohash)
 
     def is_finalized(self):
         """ Returns whether the TorrentDef is finalized or not.
@@ -861,6 +865,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         """
         with open(filename, "wb") as f:
             f.write(self.encode())
+
     def get_torrent_size(self):
         """
         Finalizes the torrent def and converts the metainfo to string, returns the
@@ -974,7 +979,8 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
                                 if 0 < ord(char) < 128:
                                     return char
                                 else:
-                                    self._logger.debug("Bad character filter %s, isalnum? %s", ord(char), char.isalnum())
+                                    self._logger.debug(
+                                        "Bad character filter %s, isalnum? %s", ord(char), char.isalnum())
                                     return u"?"
                             return u"".join([filter_character(char) for char in name])
                         yield join(*[unicode(filter_characters(element)) for element in file_dict["path"]]), file_dict["length"]

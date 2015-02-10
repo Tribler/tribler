@@ -42,7 +42,8 @@ def warnDisperyThread(func):
             callerstr = "%s %s:%s" % (caller[3], caller[1], caller[2])
 
             from time import time
-            logger.info("%d CANNOT BE ON DISPERSYTHREAD %s %s:%s called by %s", long(time()), func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
+            logger.info("%d CANNOT BE ON DISPERSYTHREAD %s %s:%s called by %s", long(time()),
+                        func.__name__, func.func_code.co_filename, func.func_code.co_firstlineno, callerstr)
             print_stack()
 
         return func(*args, **kwargs)
