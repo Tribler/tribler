@@ -48,11 +48,12 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         def do_progress(download, start_time):
             self.CallConditional(120,
-                lambda: download.get_progress() == 1.0,
-                lambda: take_screenshot(time.time() - start_time),
-                'Anonymous download should be finished in 120 seconds (%.1f%% downloaded)' % (download.get_progress() * 100),
-                on_fail
-            )
+                                 lambda: download.get_progress() == 1.0,
+                                 lambda: take_screenshot(time.time() - start_time),
+                                 'Anonymous download should be finished in 120 seconds (%.1f%% downloaded)' % (
+                                     download.get_progress() * 100),
+                                 on_fail
+                                 )
 
         def do_create_local_torrent(_):
             tf = self.setupSeeder()
@@ -61,7 +62,7 @@ class TestTunnelCommunity(TestGuiAsServer):
                                                            hops=3, try_hidden_services=False)
 
             self.guiUtility.ShowPage('my_files')
-            self.Call(5, lambda : download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
+            self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
 
             do_progress(download, start_time)
 
@@ -74,12 +75,14 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         def on_incoming_from_tunnel(socks_server, community, circuit, origin, data):
             this.assert_(data == "4242", "Data is not 4242, it is '%s'" % data.encode("HEX"))
-            this.assert_(origin == ("127.0.0.1", 12345), "Origin is not 127.0.0.1:12345, it is '%s:%d'" % (origin[0], origin[1]))
+            this.assert_(origin == ("127.0.0.1", 12345),
+                         "Origin is not 127.0.0.1:12345, it is '%s:%d'" % (origin[0], origin[1]))
             got_data.set()
 
         def exit_data(community, circuit_id, sock_addr, destination, data):
             self.assert_(data == "42", "Data is not 42, it is '%s'" % data.encode("HEX"))
-            self.assert_(destination == ("127.0.0.1", 12345), "Destination is not 127.0.0.1:12345, it is '%s:%d'" % (destination[0], destination[1]))
+            self.assert_(destination == ("127.0.0.1", 12345), "Destination is not 127.0.0.1:12345, it is '%s:%d'" %
+                         (destination[0], destination[1]))
             community.tunnel_data_to_origin(circuit_id, sock_addr, ("127.0.0.1", 12345), "4242")
 
         def start_test(tunnel_communities):
@@ -92,12 +95,14 @@ class TestTunnelCommunity(TestGuiAsServer):
         def replace_socks(tunnel_communities):
             for tunnel_community in tunnel_communities:
                 socks_server = tunnel_community.socks_server
-                socks_server.on_incoming_from_tunnel = lambda community, circuit, origin, data, socks_server = socks_server: on_incoming_from_tunnel(socks_server, community, circuit, origin, data)
-                tunnel_community.exit_data = lambda circuit_id, sock_addr, destination, data, community = tunnel_community: exit_data(community, circuit_id, sock_addr, destination, data)
+                socks_server.on_incoming_from_tunnel = lambda community, circuit, origin, data, socks_server = socks_server: on_incoming_from_tunnel(
+                    socks_server, community, circuit, origin, data)
+                tunnel_community.exit_data = lambda circuit_id, sock_addr, destination, data, community = tunnel_community: exit_data(
+                    community, circuit_id, sock_addr, destination, data)
             tunnel_communities[-1].circuits_needed[3] = 4
 
             self.CallConditional(30, lambda: len(tunnel_communities[-1].active_data_circuits()) == 4,
-                                     lambda: start_test(tunnel_communities))
+                                 lambda: start_test(tunnel_communities))
 
         self.startTest(replace_socks)
 
@@ -126,11 +131,12 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         def do_progress(download, start_time):
             self.CallConditional(120,
-                lambda: download.get_progress() == 1.0,
-                lambda: take_screenshot(time.time() - start_time),
-                'Anonymous download should be finished in 120 seconds (%.1f%% downloaded)' % (download.get_progress() * 100),
-                on_fail
-            )
+                                 lambda: download.get_progress() == 1.0,
+                                 lambda: take_screenshot(time.time() - start_time),
+                                 'Anonymous download should be finished in 120 seconds (%.1f%% downloaded)' % (
+                                     download.get_progress() * 100),
+                                 on_fail
+                                 )
 
         def start_download(tf):
             start_time = time.time()
@@ -150,7 +156,8 @@ class TestTunnelCommunity(TestGuiAsServer):
             tunnel_communities[0].settings.min_circuits = 0
             tunnel_communities[0].settings.max_circuits = 0
             seeder_session = self.sessions[0]
-            seeder_session.set_anon_proxy_settings(2, ("127.0.0.1", seeder_session.get_tunnel_community_socks5_listen_ports()))
+            seeder_session.set_anon_proxy_settings(
+                2, ("127.0.0.1", seeder_session.get_tunnel_community_socks5_listen_ports()))
             seeder_session.set_download_states_callback(download_states_callback, False)
 
             # Create an anonymous torrent
@@ -193,6 +200,7 @@ class TestTunnelCommunity(TestGuiAsServer):
 
             # Wait for the introduction point to announce itself to the DHT
             dht = Event()
+
             def dht_announce(info_hash, community):
                 def cb_dht(info_hash, peers, source):
                     self._logger.debug("announced %s to the DHT", info_hash.encode('hex'))
@@ -202,7 +210,7 @@ class TestTunnelCommunity(TestGuiAsServer):
             for community in tunnel_communities:
                 community.dht_announce = lambda ih, com = community: dht_announce(ih, com)
             self.CallConditional(60, dht.is_set, lambda: self.Call(5, lambda: start_download(tf)),
-                                'Introduction point did not get announced')
+                                 'Introduction point did not get announced')
 
         self.startTest(setup_seeder)
 
@@ -302,7 +310,8 @@ class TestTunnelCommunity(TestGuiAsServer):
 
     def seeder_state_callback(self, ds):
         d = ds.get_download()
-        self._logger.debug("seeder: %s %s %s", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress())
+        self._logger.debug("seeder: %s %s %s", repr(d.get_def().get_name()),
+                           dlstatus_strings[ds.get_status()], ds.get_progress())
         return 5.0, False
 
     def setUp(self):

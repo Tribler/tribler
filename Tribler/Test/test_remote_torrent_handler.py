@@ -12,6 +12,7 @@ from Tribler.dispersy.util import call_on_reactor_thread
 
 from unittest import skip
 
+
 class TestRemoteTorrentHandler(TestAsServer):
 
     """ Tests the download_torrent() method of TestRemoteTorrentHandler.
