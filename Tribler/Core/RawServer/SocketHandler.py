@@ -44,6 +44,7 @@ class InterruptSocket(object):
     When we need the poll to return before the timeout expires, we
     will send some data to the InterruptSocket and discard the data.
     """
+
     def __init__(self, socket_handler):
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -76,6 +77,7 @@ class InterruptSocket(object):
 class UdpSocket(object):
 
     """ Class to hold socket and handler for a UDP socket. """
+
     def __init__(self, socket, handler):
         self.socket = socket
         self.handler = handler
@@ -312,7 +314,7 @@ class SocketHandler(object):
             raise socket.error('unable to open server port')
         self.port = port
 
-    def find_and_bind(self, first_try, minport, maxport, bind='', reuse= False, ipv6_socket_style=1,
+    def find_and_bind(self, first_try, minport, maxport, bind='', reuse=False, ipv6_socket_style=1,
                       randomizer=False, handler=None):
         e = 'maxport less than minport - no ports to check'
         if maxport - minport < 50 or not randomizer:
