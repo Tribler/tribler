@@ -371,6 +371,7 @@ class URLResourceRetriever(object):
             if filestream:
                 filestream.close()
 
+
 class RSSFeedParser(object):
 
     def __init__(self):
