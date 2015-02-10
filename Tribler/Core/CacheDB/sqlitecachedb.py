@@ -377,7 +377,8 @@ class SQLiteCacheDB(TaskManager):
             find = list(find)
             if len(find) > 0:
                 if len(find) > 1:
-                    self._logger.debug(u"FetchONE resulted in many more rows than one, consider putting a LIMIT 1 in the sql statement %s, %s", sql, len(find))
+                    self._logger.debug(
+                        u"FetchONE resulted in many more rows than one, consider putting a LIMIT 1 in the sql statement %s, %s", sql, len(find))
                 find = find[0]
             else:
                 return
