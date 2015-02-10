@@ -19,11 +19,15 @@ logging.config.fileConfig(
 
 __author__ = 'rutger'
 
+
 class DummyEndpoint(NullEndpoint):
+
     def send_simple(self, *args):
         pass
 
+
 class DummyCandidate():
+
     def __init__(self, key=None):
         # super(DummyCandidate, self).__init__(self)
         self.sock_addr = Mock()
@@ -35,7 +39,9 @@ class DummyCandidate():
     def get_member(self):
         return self.member
 
+
 class TestDefaultCrypto(TestAsServer):
+
     @property
     def crypto(self):
         return self.community.settings.crypto
@@ -69,7 +75,6 @@ class TestDefaultCrypto(TestAsServer):
         wan_address = ("8.8.8.{0}".format(self.__candidate_counter), self.__candidate_counter)
         lan_address = ("0.0.0.0", 0)
         candidate = WalkCandidate(wan_address, False, lan_address, wan_address, u'unknown')
-
 
         key = self.dispersy.crypto.generate_key(u"NID_secp160k1")
         member = self.dispersy.get_member(public_key=self.dispersy.crypto.key_to_bin(key.pub()))
@@ -172,7 +177,6 @@ class TestDefaultCrypto(TestAsServer):
         self.assertEquals(unencrypted_key, decrypted_create_message.key)
         self.assertEquals(unencrypted_pub_key, decrypted_create_message.public_key)
 
-
     def test__encrypt_decrypt_extend_content(self):
         candidate = DummyCandidate(self.community.my_member._ec)
 
@@ -194,7 +198,6 @@ class TestDefaultCrypto(TestAsServer):
         self.assertEquals(unencrypted_key, decrypted_extend_message.key)
         self.assertEquals(self.community.my_member.mid, decrypted_extend_message.extend_with)
 
-
     def test__encrypt_decrypt_created_content(self):
         candidate = DummyCandidate(self.community.my_member._ec)
         candidate_list = self.__generate_candidate_list()
@@ -211,6 +214,7 @@ class TestDefaultCrypto(TestAsServer):
         unencrypted_key = unverified_hop.dh_first_part
         self.assertNotEquals(unencrypted_key, encrypted_created_message.key)
 
-        decrypted_created_message = self.crypto._decrypt_created_content(candidate, circuit_id, encrypted_created_message)
+        decrypted_created_message = self.crypto._decrypt_created_content(
+            candidate, circuit_id, encrypted_created_message)
 
         self.assertEquals(candidate_list, decrypted_created_message.candidate_list)

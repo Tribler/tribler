@@ -6,6 +6,7 @@ __author__ = 'Chris'
 
 
 class TestTunnelExitSocket(TestCase):
+
     def setUp(self):
 
         self.socket = Mock()

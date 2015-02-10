@@ -11,6 +11,7 @@ __author__ = 'Chris'
 
 
 class TestDefaultExitStrategy(TestCase):
+
     def setUp(self):
         self.socket = Mock()
         self.socket.sendto = Mock(return_value=True)
@@ -77,4 +78,5 @@ class TestDefaultExitStrategy(TestCase):
 
         exit_socket = strategy.get_exit_socket(proxy.circuits[0].circuit_id, destination)
         exit_socket2 = strategy.get_exit_socket(proxy.circuits[0].circuit_id, destination)
-        self.assertEqual(exit_socket, exit_socket2, "Subsequent exit packets to the same destination should use the exact same exit socket")
+        self.assertEqual(exit_socket, exit_socket2,
+                         "Subsequent exit packets to the same destination should use the exact same exit socket")

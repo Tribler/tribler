@@ -3,6 +3,7 @@ import struct
 from cryptowrapper import crypto_box_beforenm, crypto_auth, crypto_auth_verify, Cipher, algorithms, modes, HKDFExpand, hashes, default_backend
 from Tribler.dispersy.crypto import ECCrypto, LibNaCLPK
 
+
 class CryptoException(Exception):
     pass
 
@@ -66,7 +67,7 @@ class TunnelCrypto(ECCrypto):
         cipher = Cipher(algorithms.AES(key),
                         modes.GCM(initialization_vector=self._bulid_iv(salt, salt_explicit)),
                         backend=default_backend()
-        ).encryptor()
+                        ).encryptor()
         ciphertext = cipher.update(content) + cipher.finalize()
         return struct.pack('!q16s', salt_explicit, cipher.tag) + ciphertext
 
@@ -76,7 +77,7 @@ class TunnelCrypto(ECCrypto):
         cipher = Cipher(algorithms.AES(key),
                         modes.GCM(initialization_vector=self._bulid_iv(salt, salt_explicit), tag=gcm_tag),
                         backend=default_backend()
-        ).decryptor()
+                        ).decryptor()
         return cipher.update(content[24:]) + cipher.finalize()
 
     def ec_encrypt_str(self, key, content):
