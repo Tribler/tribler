@@ -68,7 +68,8 @@ class SaveAs(wx.Dialog):
 
         if defaultname:
             choices.insert(0, os.path.join(lastUsed, defaultname))
-            self.dirTextCtrl = wx.ComboBox(self, -1, os.path.join(lastUsed, defaultname), choices=choices, style=wx.CB_DROPDOWN)
+            self.dirTextCtrl = wx.ComboBox(self, -1, os.path.join(
+                lastUsed, defaultname), choices=choices, style=wx.CB_DROPDOWN)
         else:
             self.dirTextCtrl = wx.ComboBox(self, -1, lastUsed, choices=choices, style=wx.CB_DROPDOWN)
         self.dirTextCtrl.Select(0)
@@ -95,7 +96,8 @@ class SaveAs(wx.Dialog):
         elif isinstance(tdef, TorrentDefNoMetainfo):
             text = wx.StaticText(self, -1, "Attempting to retrieve .torrent...")
             _set_font(text, size_increment=1)
-            ag = wx.animate.GIFAnimationCtrl(self, -1, os.path.join(self.guiutility.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new.gif'))
+            ag = wx.animate.GIFAnimationCtrl(self, -1, os.path.join(
+                self.guiutility.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new.gif'))
             ag.Play()
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             sizer.AddStretchSpacer()
@@ -177,7 +179,8 @@ class SaveAs(wx.Dialog):
                 event.Skip()
         self.listCtrl.Bind(wx.EVT_CHAR, OnChar)
 
-        vSizer.Insert(index, wx.StaticText(self, -1, 'Use the checkboxes to choose which files to download.\nUse ctrl+a to select all/deselect all.'), 0, wx.BOTTOM, 3)
+        vSizer.Insert(index, wx.StaticText(
+            self, -1, 'Use the checkboxes to choose which files to download.\nUse ctrl+a to select all/deselect all.'), 0, wx.BOTTOM, 3)
 
         firstLine = wx.StaticText(self, -1, "Content:")
         _set_font(firstLine, fontweight=wx.FONTWEIGHT_BOLD)
@@ -234,14 +237,15 @@ class SaveAs(wx.Dialog):
         if self.listCtrl:
             nrSelected = len(self.listCtrl.GetSelectedItems())
             if nrSelected == 0:
-                dlg = wx.MessageDialog(self, "Please select at least one file to be downloaded using the checkboxes.", "Please select a file to be downloaded", wx.ICON_ERROR)
+                dlg = wx.MessageDialog(
+                    self, "Please select at least one file to be downloaded using the checkboxes.", "Please select a file to be downloaded", wx.ICON_ERROR)
                 dlg.ShowModal()
                 dlg.Destroy()
                 return
 
         path = self.GetPath()
         history_path = os.path.split(path)[0] if (self.collected and self.collected.is_multifile_torrent()) or \
-                                                 not os.path.exists(path) or os.path.isfile(path) else path
+            not os.path.exists(path) or os.path.isfile(path) else path
         if history_path in self.filehistory:
             self.filehistory.remove(history_path)
         self.filehistory.insert(0, history_path)

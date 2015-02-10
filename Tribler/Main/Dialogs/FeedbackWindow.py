@@ -12,7 +12,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-# 10-10-2011 Niels Zeilemaker: modified version of http://svn.osafoundation.org/chandler/trunk/chandler/application/feedback.py
+# 10-10-2011 Niels Zeilemaker: modified version of
+# http://svn.osafoundation.org/chandler/trunk/chandler/application/feedback.py
 
 import sys
 import os
@@ -31,6 +32,7 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
     An error dialog that would be shown in case there is an uncaught
     exception. The user can send the error report back to us as well.
     """
+
     def __call__(self, *args, **kw):
         # Make this a Singleton to avoid the problem of multiple feedback
         # windows popping up at the same time
@@ -96,7 +98,8 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
         self.text.AppendText(st)
 
     def CreateOutputWindow(self, st):
-        self.frame = wx.Dialog(None, -1, self.title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, name="FeedbackWindow")
+        self.frame = wx.Dialog(
+            None, -1, self.title, style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER, name="FeedbackWindow")
 
         self.frame.CenterOnParent()
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -105,7 +108,8 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
         sizer.Add(icon)
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        vSizer.Add(wx.StaticText(self.frame, -1, 'Tribler encountered an error, to help us fix this please send an error-report.'))
+        vSizer.Add(
+            wx.StaticText(self.frame, -1, 'Tribler encountered an error, to help us fix this please send an error-report.'))
 
         self.text = wx.TextCtrl(self.frame, -1, "", style=wx.TE_MULTILINE | wx.TE_READONLY)
         self.text.SetMinSize((600, 150))

@@ -7,7 +7,7 @@ class ThreadSafeProgressDialog():
         wx.CallAfter(self.wx_init, title, message, maximum, parent, style)
 
     def wx_init(self, title, message, maximum, parent, style):
-        self.dlg = wx.ProgressDialog(title=title, message=message, maximum = maximum, parent=parent, style=style)
+        self.dlg = wx.ProgressDialog(title=title, message=message, maximum=maximum, parent=parent, style=style)
         self.dlg.Raise()
 
     def Update(self, value, newmsg=''):
