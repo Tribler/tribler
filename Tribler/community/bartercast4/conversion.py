@@ -28,7 +28,7 @@ class StatisticsConversion(BinaryConversion):
         records = message.payload.records
         packed = pack("!i", stats_type)
         for r in records:
-            peer_id = r[0]
+            peer_id = r[0].encode('utf8')
             value = r[1]
             packed = packed + pack("!H%dsi" % len(peer_id), len(peer_id), peer_id, value)
         return packed,

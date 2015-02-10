@@ -11,7 +11,7 @@ from Tribler.dispersy.message import Message, DelayMessageByProof
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.statistics import BartercastStatisticTypes
 from twisted.internet.task import LoopingCall
-import logging
+from twisted.python import log
 
 
 class BarterCommunity(Community):
@@ -34,10 +34,9 @@ class BarterCommunity(Community):
 
     def __init__(self, dispersy, master, my_member):
         super(BarterCommunity, self).__init__(dispersy, master, my_member)
-        print __file__
         self._dispersy = dispersy
-        self._logger = logging.getLogger(self.__class__.__name__)
-        print "joined BC community"
+        # self._logger = logging.getLogger(self.__class__.__name__)
+        log.msg("joined BC community")
 
     def initiate_meta_messages(self):
         return super(BarterCommunity, self).initiate_meta_messages() + [
@@ -126,7 +125,7 @@ class BarterCommunity(Community):
     def on_stats_response(self, messages):
         self._logger.info("IN: stats-response")
         for message in messages:
-            self._logger.info("stats-response: %s %s %s"
+            log.msg("stats-response: %s %s %s"
                                % (message._distribution.global_time, message.payload.stats_type, message.payload.records))
             for r in message.payload.records:
                 self._dispersy._statistics.log_interaction(self._dispersy,
@@ -139,15 +138,17 @@ class BarterCommunityCrawler(BarterCommunity):
 
     def __init__(self, *args, **kargs):
         super(BarterCommunityCrawler, self).__init__(*args, **kargs)
+        # self._logger = logging.getLogger(self.__class__.__name__)
 
     def on_introduction_response(self, messages):
         super(BarterCommunity, self).on_introduction_response(messages)
         # handler = Tunnel.get_instance().stats_handler
         for message in messages:
             # self.do_stats(message.candidate, lambda c, s, m=message: handler(c, s, m))
-            print "in on_introduction_response: Requesting stats from %s" % message.candidate
+            self._logger.info("in on_introduction_response: Requesting stats from %s" % message.candidate)
             # @TODO add other message types
-            self.create_stats_request(message.candidate, BartercastStatisticTypes.TORRENTS_RECEIVED)
+            for t in BartercastStatisticTypes.reverse_mapping:
+                self.create_stats_request(message.candidate, t)
 
     def start_walking(self):
         self.register_task("take step", LoopingCall(self.take_step)).start(1.0, now=True)
