@@ -50,10 +50,12 @@ class TriblerUpgrader(object):
             # upgrade
             try:
                 torrent_store = TorrentStore(self.session.get_torrent_store_dir())
-                torrent_migrator = TorrentMigrator65(self.session, self.db, torrent_store=torrent_store, status_update_func=self.update_status)
+                torrent_migrator = TorrentMigrator65(
+                    self.session, self.db, torrent_store=torrent_store, status_update_func=self.update_status)
                 yield torrent_migrator.start_migrate()
 
-                db_migrator = DBUpgrader(self.session, self.db, torrent_store=torrent_store, status_update_func=self.update_status)
+                db_migrator = DBUpgrader(
+                    self.session, self.db, torrent_store=torrent_store, status_update_func=self.update_status)
                 yield db_migrator.start_migrate()
 
                 # Import all the torrent files not in the database, we do this in
