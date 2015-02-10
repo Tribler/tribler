@@ -39,7 +39,8 @@ logger = logging.getLogger(__name__)
 # gvkDGKyO4q0tCd2r3BQMqHm5OJIYMfAIlREyHkVrZ8O1RcqDT2clnkz37/AvvXl8
 # A6LfbbW5Rf81iSJ9aG1r9ZOxNyd27OKDqw0=
 # -----END PUBLIC KEY-----
-MASTER_MEMBER_PUBLIC_KEY = "3081a7301006072a8648ce3d020106052b8104002703819200040792e72441554e5d5448043bcf516c18d93125cf299244f85fa3bc2c89cdca3029b2f8d832573d337babae5f64ff49dbf70ceca5a0a15e1b13a685c50c4bf285252667e3470b82f90318ac8ee2ad2d09ddabdc140ca879b938921831f0089511321e456b67c3b545ca834f67259e4cf7eff02fbd797c03a2df6db5b945ff3589227d686d6bf593b1372776ece283ab0d".decode("HEX")
+MASTER_MEMBER_PUBLIC_KEY = "3081a7301006072a8648ce3d020106052b8104002703819200040792e72441554e5d5448043bcf516c18d93125cf299244f85fa3bc2c89cdca3029b2f8d832573d337babae5f64ff49dbf70ceca5a0a15e1b13a685c50c4bf285252667e3470b82f90318ac8ee2ad2d09ddabdc140ca879b938921831f0089511321e456b67c3b545ca834f67259e4cf7eff02fbd797c03a2df6db5b945ff3589227d686d6bf593b1372776ece283ab0d".decode(
+    "HEX")
 MASTER_MEMBER_PUBLIC_KEY_DIGEST = "4fe1172862c649485c25b3d446337a35f389a2a2".decode("HEX")
 
 
@@ -82,6 +83,7 @@ class RecordCandidate(object):
     Container class for a candidate that is on our slope.
     """
     # TODO(emilon): the callback_id could be removed and use the object itself as a key on the pending tasks dict
+
     def __init__(self, candidate, callback_id):
         super(RecordCandidate, self).__init__()
         self.candidate = candidate
@@ -111,6 +113,7 @@ class Book(object):
     """
     Container class for all the bookkeeping information per peer.
     """
+
     def __init__(self, member):
         super(Book, self).__init__()
         self.member = member
@@ -207,7 +210,8 @@ class BarterCommunity(Community):
             Message(self, u"barter-record",
                     DoubleMemberAuthentication(allow_signature_func=self.allow_signature_request),
                     PublicResolution(),
-                    LastSyncDistribution(synchronization_direction=u"DESC", priority=128, history_size=1, pruning=pruning),
+                    LastSyncDistribution(
+                        synchronization_direction=u"DESC", priority=128, history_size=1, pruning=pruning),
                     CommunityDestination(node_count=10),
                     BarterRecordPayload(),
                     self.check_barter_record,
@@ -254,12 +258,16 @@ class BarterCommunity(Community):
         # dispersy-introduction-response messages
         meta = self._meta_messages[u"dispersy-introduction-request"]
         self._original_on_introduction_request = meta.handle_callback
-        self._meta_messages[meta.name] = Message(meta.community, meta.name, meta.authentication, meta.resolution, meta.distribution, meta.destination, meta.payload, meta.check_callback, self.on_introduction_request, meta.undo_callback, meta.batch)
+        self._meta_messages[meta.name] = Message(
+            meta.community, meta.name, meta.authentication, meta.resolution, meta.distribution,
+                                                 meta.destination, meta.payload, meta.check_callback, self.on_introduction_request, meta.undo_callback, meta.batch)
         assert self._original_on_introduction_request
 
         meta = self._meta_messages[u"dispersy-introduction-response"]
         self._original_on_introduction_response = meta.handle_callback
-        self._meta_messages[meta.name] = Message(meta.community, meta.name, meta.authentication, meta.resolution, meta.distribution, meta.destination, meta.payload, meta.check_callback, self.on_introduction_response, meta.undo_callback, meta.batch)
+        self._meta_messages[meta.name] = Message(
+            meta.community, meta.name, meta.authentication, meta.resolution, meta.distribution,
+                                                 meta.destination, meta.payload, meta.check_callback, self.on_introduction_response, meta.undo_callback, meta.batch)
         assert self._original_on_introduction_response
 
     def initiate_conversions(self):
@@ -287,7 +295,8 @@ class BarterCommunity(Community):
         self.download_state_callback([], False)
 
         # store all cached bookkeeping
-        self._database.executemany(u"INSERT OR REPLACE INTO book (member, cycle, effort, upload, download) VALUES (?, ?, ?, ?, ?)",
+        self._database.executemany(
+            u"INSERT OR REPLACE INTO book (member, cycle, effort, upload, download) VALUES (?, ?, ?, ?, ?)",
                                    [(book.member.database_id, book.cycle, buffer(book.effort.bytes), book.upload, book.download) for book in self._books.itervalues()])
 
         # store bandwidth counters
@@ -308,7 +317,8 @@ class BarterCommunity(Community):
 
             # fetch from database
             try:
-                cycle, effort, upload, download = self._database.execute(u"SELECT cycle, effort, upload, download FROM book WHERE member = ?",
+                cycle, effort, upload, download = self._database.execute(
+                    u"SELECT cycle, effort, upload, download FROM book WHERE member = ?",
                                                                          (member.database_id,)).next()
             except StopIteration:
                 now = time()
@@ -324,7 +334,8 @@ class BarterCommunity(Community):
             self._books[member.database_id] = book
             if len(self._books) > self._books_length:
                 _, old = self._books.popitem(False)
-                self._database.execute(u"INSERT OR REPLACE INTO book (member, cycle, effort, upload, download) VALUES (?, ?, ?, ?)",
+                self._database.execute(
+                    u"INSERT OR REPLACE INTO book (member, cycle, effort, upload, download) VALUES (?, ?, ?, ?)",
                                        (old.member.database_id, old.cycle, buffer(old.effort.bytes), old.upload, old.download))
         return book
 
@@ -404,7 +415,8 @@ class BarterCommunity(Community):
         assert isinstance(cooked_bytes_down, (int, long)), type(cooked_bytes_down)
         assert isInIOThread(), "Must be called on the reactor thread"
         if cooked_bytes_up or cooked_bytes_down:
-            logger.debug("swift channel close %s:%d with +%d -%d", address[0], address[1], cooked_bytes_up, cooked_bytes_down)
+            logger.debug("swift channel close %s:%d with +%d -%d", address[
+                         0], address[1], cooked_bytes_up, cooked_bytes_down)
             self.update_book_from_address(address, time(), cooked_bytes_up, cooked_bytes_down, delayed=True)
 
     def download_state_callback(self, states, delayed):
@@ -492,7 +504,8 @@ class BarterCommunity(Community):
                            distribution=(self.claim_global_time(),),
                            payload=(book.cycle, book.effort, upload_first_to_second, upload_second_to_first,
                                     # the following parameters are used for debugging only
-                                    time(), book.download, book.upload, self._total_up, self._total_down, self._associated_up, self._associated_down,
+                                    time(
+                                    ), book.download, book.upload, self._total_up, self._total_down, self._associated_up, self._associated_down,
                                     time(), 0, 0, 0, 0, 0, 0),
                            sign=False)
         return self.create_dispersy_signature_request(second_candidate, record, self.on_signature_response)
@@ -524,14 +537,16 @@ class BarterCommunity(Community):
             # there is a problem determining the current cycle.  this can be caused by (a)
             # difference in local clock times, (b) record creation during transition between cycles,
             # (c) delay in message processing resulting in issue b.
-            logger.warning("invalid request. cycle mismatch (%d ?= %d ?= %d)", message.payload.cycle, proposed_effort.cycle, local_effort.cycle)
+            logger.warning("invalid request. cycle mismatch (%d ?= %d ?= %d)",
+                           message.payload.cycle, proposed_effort.cycle, local_effort.cycle)
             return None
         cycle = message.payload.cycle
 
         if proposed_effort.long ^ local_effort.long:
             # there is a mismatch in bits, this should not occur on the DAS4, however, we will need
             # to repair this once we go into the big bad world
-            logger.warning("bits mismatch. using AND merge (%s != %s)", bin(proposed_effort.long), bin(local_effort.long))
+            logger.warning("bits mismatch. using AND merge (%s != %s)", bin(
+                proposed_effort.long), bin(local_effort.long))
 
         # merge effort using AND
         effort = EffortHistory(proposed_effort.long & local_effort.long, cycle * CYCLE_SIZE)
@@ -695,7 +710,8 @@ class BarterCommunity(Community):
         meta = self._meta_messages[u"ping"]
         while True:
             cache = self._request_cache.add(PingCache(self, candidate, member))
-            ping = meta.impl(distribution=(self._global_time,), destination=(candidate,), payload=(cache.number, self._my_member))
+            ping = meta.impl(distribution=(self._global_time,), destination=(
+                candidate,), payload=(cache.number, self._my_member))
             self._dispersy.store_update_forward([ping], False, False, True)
 
             yield 50.0
@@ -712,7 +728,8 @@ class BarterCommunity(Community):
                 book.effort.set(cycle * CYCLE_SIZE)
 
         meta = self._meta_messages[u"pong"]
-        responses = [meta.impl(distribution=(self._global_time,), destination=(ping.candidate,), payload=(ping.payload.identifier, self._my_member)) for ping in messages]
+        responses = [meta.impl(distribution=(self._global_time,), destination=(ping.candidate,), payload=(ping.payload.identifier, self._my_member))
+                     for ping in messages]
         self._dispersy.store_update_forward(responses, False, False, True)
 
     def check_pong(self, messages):
@@ -791,7 +808,8 @@ class BarterCommunity(Community):
                         message.payload.first_associated_down)
 
         logger.debug("storing %d barter records", len(messages))
-        self._database.executemany(u"INSERT OR REPLACE INTO record VALUES (?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        self._database.executemany(
+            u"INSERT OR REPLACE INTO record VALUES (?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                                    (ordering(message) for message in messages))
 
     def check_member_request(self, messages):
