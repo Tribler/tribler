@@ -76,7 +76,8 @@ class SeedingManager:
         download = self.download_state.get_download()
         if self.udc.get_download_state(download.get_def().get_infohash()) != 'restartseed' and download.get_mode() != DLMODE_VOD:
             if not self.policy.apply(self.download_state, self.download_state.get_seeding_statistics()):
-                self._logger.debug("Stop seeding with libtorrent: %s", self.download_state.get_download().get_dest_files())
+                self._logger.debug(
+                    "Stop seeding with libtorrent: %s", self.download_state.get_download().get_dest_files())
                 self.udc.set_download_state(download.get_def().get_infohash(), 'stop')
                 self.download_state.get_download().stop()
 
@@ -183,5 +184,6 @@ class GiveToGetRatioBasedSeeding(SeedingPolicy):
         else:
             ratio = 1.0 * ul / dl
 
-        self._logger.debug("GiveToGetRatioBasedSeedingapply: %s %s %s %s", dl, ul, ratio, self.Read('g2g_ratio', "int") / 100.0)
+        self._logger.debug("GiveToGetRatioBasedSeedingapply: %s %s %s %s",
+                           dl, ul, ratio, self.Read('g2g_ratio', "int") / 100.0)
         return ratio < self.Read('g2g_ratio') / 100.0
