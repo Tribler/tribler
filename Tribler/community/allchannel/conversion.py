@@ -10,11 +10,16 @@ class AllChannelConversion(BinaryConversion):
 
     def __init__(self, community):
         super(AllChannelConversion, self).__init__(community, "\x01")
-        self.define_meta_message(chr(1), community.get_meta_message(u"channelcast"), self._encode_channelcast, self._decode_channelcast)
-        self.define_meta_message(chr(2), community.get_meta_message(u"channelcast-request"), self._encode_channelcast, self._decode_channelcast)
-        self.define_meta_message(chr(3), community.get_meta_message(u"channelsearch"), self._encode_channelsearch, self._decode_channelsearch)
-        self.define_meta_message(chr(4), community.get_meta_message(u"channelsearch-response"), self._encode_channelsearch_response, self._decode_channelsearch_response)
-        self.define_meta_message(chr(5), community.get_meta_message(u"votecast"), self._encode_votecast, self._decode_votecast)
+        self.define_meta_message(chr(1), community.get_meta_message(u"channelcast"),
+                                 self._encode_channelcast, self._decode_channelcast)
+        self.define_meta_message(chr(2), community.get_meta_message(u"channelcast-request"),
+                                 self._encode_channelcast, self._decode_channelcast)
+        self.define_meta_message(chr(3), community.get_meta_message(u"channelsearch"),
+                                 self._encode_channelsearch, self._decode_channelsearch)
+        self.define_meta_message(chr(4), community.get_meta_message(u"channelsearch-response"),
+                                 self._encode_channelsearch_response, self._decode_channelsearch_response)
+        self.define_meta_message(chr(5), community.get_meta_message(u"votecast"),
+                                 self._encode_votecast, self._decode_votecast)
 
     def _encode_channelcast(self, message):
         max_len = self._community.dispersy_sync_bloom_filter_bits / 8
