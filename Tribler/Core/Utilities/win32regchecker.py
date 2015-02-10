@@ -85,7 +85,7 @@ class Win32RegChecker:
             # kreate desired key in Windows register
             full_key = _winreg.CreateKey(hkey, key_name)
         except EnvironmentError:
-            return False;
+            return False
         # set desired value in created Windows register key
         _winreg.SetValueEx(full_key, value_name, 0, value_type, value_data)
         # close Windows register key

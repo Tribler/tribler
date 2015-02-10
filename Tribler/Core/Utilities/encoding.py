@@ -240,7 +240,7 @@ def bytes_to_uint(stream, offset=0):
     assert isinstance(offset, (int, long))
     assert offset >= 0
     bit8 = 16 * 8
-    mask7 = 2 ** 7 -1
+    mask7 = 2 ** 7 - 1
     i = 0
     while offset < len(stream):
         c = ord(stream[offset])
@@ -279,21 +279,21 @@ def _a_decode_int(stream, offset, count, _):
     """
     'a2i42',3,2 --> 5,42
     """
-    return offset + count, int(stream[offset:offset +count])
+    return offset + count, int(stream[offset:offset + count])
 
 
 def _a_decode_long(stream, offset, count, _):
     """
     'a2J42',3,2 --> 5,42
     """
-    return offset + count, long(stream[offset:offset +count])
+    return offset + count, long(stream[offset:offset + count])
 
 
 def _a_decode_float(stream, offset, count, _):
     """
     'a3f4.2',3,3 --> 6,4.2
     """
-    return offset + count, float(stream[offset:offset +count])
+    return offset + count, float(stream[offset:offset + count])
 
 
 def _a_decode_unicode(stream, offset, count, _):
@@ -301,7 +301,7 @@ def _a_decode_unicode(stream, offset, count, _):
     'a3sbar',3,3 --> 6,u'bar'
     """
     if len(stream) >= offset + count:
-        return offset + count, stream[offset:offset +count].decode("UTF-8")
+        return offset + count, stream[offset:offset + count].decode("UTF-8")
     else:
         raise ValueError("Invalid stream length", len(stream), offset + count)
 
@@ -311,7 +311,7 @@ def _a_decode_bytes(stream, offset, count, _):
     'a3bfoo',3,3 --> 6,'foo'
     """
     if len(stream) >= offset + count:
-        return offset + count, stream[offset:offset +count]
+        return offset + count, stream[offset:offset + count]
     else:
         raise ValueError("Invalid stream length", len(stream), offset + count)
 
