@@ -216,7 +216,8 @@ class LinkStaticText(wx.BoxSizer):
             self.icon = wx.StaticBitmap(parent, bitmap=GuiImageManager.getInstance().getImage(icon))
             self.icon.SetCursor(wx.StockCursor(wx.CURSOR_HAND))
         elif icon_type:
-            self.icon = wx.StaticBitmap(parent, bitmap=GuiImageManager.getInstance().getBitmap(parent, self.icon_type, parent.GetBackgroundColour(), state=0))
+            self.icon = wx.StaticBitmap(parent, bitmap=GuiImageManager.getInstance().getBitmap(
+                parent, self.icon_type, parent.GetBackgroundColour(), state=0))
         else:
             self.icon = None
 
@@ -230,7 +231,8 @@ class LinkStaticText(wx.BoxSizer):
         selectedfont.SetPointSize(normalfont.GetPointSize() + font_increment)
         selectedfont.SetUnderlined(True)
 
-        self.text = LinkText(parent, text, fonts=[normalfont, selectedfont], colours=[font_colour, (255, 0, 0, 255)], parentsizer=self)
+        self.text = LinkText(parent, text, fonts=[normalfont, selectedfont], colours=[
+                             font_colour, (255, 0, 0, 255)], parentsizer=self)
         self.Add(self.text, 1, wx.ALIGN_CENTER_VERTICAL)
 
         if self.icon and icon_align == wx.ALIGN_RIGHT:
@@ -602,7 +604,7 @@ class CheckSelectableListCtrl(SelectableListCtrl, CheckListCtrlMixin):
 
 class TextCtrlAutoComplete(wx.TextCtrl):
 
-    def __init__ (self, parent, entrycallback=None, selectcallback=None, **therest):
+    def __init__(self, parent, entrycallback=None, selectcallback=None, **therest):
         '''
             Constructor works just like wx.TextCtrl
         '''
@@ -621,7 +623,8 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         self.dropdown.SetBackgroundColour(DEFAULT_BACKGROUND)
         sizer = wx.BoxSizer()
 
-        self.dropdownlistbox = AutoWidthListCtrl(self.dropdown, style=wx.LC_REPORT | wx.BORDER_NONE | wx.LC_SINGLE_SEL | wx.LC_NO_HEADER)
+        self.dropdownlistbox = AutoWidthListCtrl(
+            self.dropdown, style=wx.LC_REPORT | wx.BORDER_NONE | wx.LC_SINGLE_SEL | wx.LC_NO_HEADER)
         self.dropdownlistbox.Bind(wx.EVT_LEFT_DOWN, self.ListClick)
         self.dropdownlistbox.Bind(wx.EVT_LEFT_DCLICK, self.ListClick)
         sizer.Add(self.dropdownlistbox, 1, wx.EXPAND | wx.ALL, 3)
@@ -644,7 +647,7 @@ class TextCtrlAutoComplete(wx.TextCtrl):
         self.dropdownlistbox.Select(toSel)
         self.SetValueFromSelected()
 
-    def SetChoices (self, choices=[""]):
+    def SetChoices(self, choices=[""]):
         ''' Sets the choices available in the popup wx.ListBox. '''
         self.choices = choices
 
@@ -1018,7 +1021,8 @@ class ActionButton(wx.Panel):
             if recreate:
                 image = bitmap.ConvertToImage()
                 self.bitmaps = [bitmap]
-                self.bitmaps.append(wx.BitmapFromImage(image.AdjustChannels(1.0, 1.0, 1.0, 0.6)) if self.hover else bitmap)
+                self.bitmaps.append(
+                    wx.BitmapFromImage(image.AdjustChannels(1.0, 1.0, 1.0, 0.6)) if self.hover else bitmap)
                 self.bitmaps.append(wx.BitmapFromImage(image.ConvertToGreyscale().AdjustChannels(1.0, 1.0, 1.0, 0.3)))
             else:
                 self.bitmaps[0] = bitmap
@@ -1430,7 +1434,8 @@ class MinMaxSlider(wx.Panel):
         text_width, text_height = dc.GetTextExtent(min_val)
         dc.DrawText(min_val, (self.text_spacers[0] - text_width) / 2, (height - text_height + 1) / 2)
         text_width, text_height = dc.GetTextExtent(max_val)
-        dc.DrawText(max_val, width - text_width - (self.text_spacers[0] - text_width) / 2, (height - text_height + 1) / 2)
+        dc.DrawText(max_val, width - text_width - (
+            self.text_spacers[0] - text_width) / 2, (height - text_height + 1) / 2)
 
         dc.SetPen(wx.Pen(fg_colour, 2, wx.SOLID))
         dc.DrawLine(self.range[0], height / 2, self.range[1] + self.arrow_down.GetSize()[0], height / 2)
@@ -1511,7 +1516,8 @@ class SimpleNotebook(wx.Panel):
             selected_tab = self.GetSelection()
             is_current = index == selected_tab
             fg_colour = TRIBLER_RED if is_current else self.tab_panel.GetForegroundColour()
-            bg_colour = self.tab_colours.get(selected_tab, self.panels[selected_tab].GetBackgroundColour()) if is_current else self.tab_panel.GetBackgroundColour()
+            bg_colour = self.tab_colours.get(selected_tab, self.panels[
+                                             selected_tab].GetBackgroundColour()) if is_current else self.tab_panel.GetBackgroundColour()
             label.SetForegroundColour(fg_colour)
             label.SetBackgroundColour(bg_colour)
         self.tab_panel.Refresh()
@@ -1679,7 +1685,8 @@ class SimpleNotebook(wx.Panel):
 
         # Draw tab highlighting
         selected_tab = self.GetSelection()
-        selected_sep = selected_tab - sum([1 for index, label in enumerate(self.labels) if not label.IsShown() and index < selected_tab])
+        selected_sep = selected_tab - \
+            sum([1 for index, label in enumerate(self.labels) if not label.IsShown() and index < selected_tab])
         x1 = separator_positions[selected_sep]
         x2 = separator_positions[selected_sep - 1] if selected_sep > 0 else 0
         tab_colour = self.tab_colours.get(selected_tab, self.panels[selected_tab].GetBackgroundColour())
@@ -2083,7 +2090,8 @@ class StaticBitmaps(wx.Panel):
             tmpbmp = wx.EmptyBitmapRGBA(*self.pointer.GetSize(), red=255, green=255, blue=255, alpha=155)
             dc.DrawBitmap(tmpbmp, self.pointer.x, self.pointer.y)
             dc.SetFont(self.GetFont())
-            dc.DrawLabel("%d/%d" % (self.bitmaps_index + 1, len(self.bitmaps)), self.pointer, alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
+            dc.DrawLabel("%d/%d" % (self.bitmaps_index + 1, len(self.bitmaps)),
+                         self.pointer, alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
 
 
 class Graph(wx.Panel):
@@ -2159,7 +2167,8 @@ class Graph(wx.Panel):
     def DrawAxis(self, dc, width, height):
         dc.SetPen(wx.Pen((175, 175, 175), 1, wx.SOLID))
         dc.DrawLine(self.x_margins[0], height - self.y_margins[1], self.x_margins[0], self.y_margins[0])
-        dc.DrawLine(self.x_margins[0], height - self.y_margins[1], width - self.x_margins[1], height - self.y_margins[1])
+        dc.DrawLine(self.x_margins[0], height - self.y_margins[
+                    1], width - self.x_margins[1], height - self.y_margins[1])
 
     def DrawGrid(self, dc, width, height):
         dashed_pen = wx.Pen((175, 175, 175), 1, wx.USER_DASH)
@@ -2167,7 +2176,8 @@ class Graph(wx.Panel):
         dc.SetPen(dashed_pen)
         grid_height = (height - self.y_margins[0] - self.y_margins[1]) / self.grid_size
         for i in range(1, self.grid_size + 1):
-            dc.DrawLine(self.x_margins[0], height - self.y_margins[1] - i * grid_height, width - self.x_margins[1], height - self.y_margins[1] - i * grid_height)
+            dc.DrawLine(self.x_margins[0], height - self.y_margins[
+                        1] - i * grid_height, width - self.x_margins[1], height - self.y_margins[1] - i * grid_height)
 
     def DrawText(self, dc, width, height):
         dc.SetFont(self.font)
@@ -2176,8 +2186,10 @@ class Graph(wx.Panel):
         # Draw labels along the x/y axis
         x_width, _ = self.GetTextExtent(self.x_label)
         _, y_height = self.GetTextExtent(self.y_label)
-        dc.DrawText(self.x_label, (width - self.x_margins[0] - self.x_margins[1] - x_width) / 2 + self.x_margins[0], height - self.y_margins[1])
-        dc.DrawRotatedText(self.y_label, self.x_margins[0] - y_height, (height - self.y_margins[0] - self.y_margins[1]) / 2 + self.y_margins[1], 90)
+        dc.DrawText(self.x_label, (width - self.x_margins[0] - self.x_margins[
+                    1] - x_width) / 2 + self.x_margins[0], height - self.y_margins[1])
+        dc.DrawRotatedText(self.y_label, self.x_margins[0] - y_height, (
+            height - self.y_margins[0] - self.y_margins[1]) / 2 + self.y_margins[1], 90)
 
         # Draw min/max values along the y axis
         miny = "0"
@@ -2193,9 +2205,11 @@ class Graph(wx.Panel):
                 colour, _ = self.config[graph_id]
                 gc.SetPen(wx.Pen(colour, 1, wx.SOLID))
                 num_points = len(column)
-                x_coords = [self.x_margins[0] + (i / float(self.max_points)) * (width - self.x_margins[0] - self.x_margins[1]) for i in range(0, num_points)]
+                x_coords = [self.x_margins[0] + (i / float(self.max_points)) * (
+                    width - self.x_margins[0] - self.x_margins[1]) for i in range(0, num_points)]
                 if self.max_range != 0:
-                    y_coords = [height - self.y_margins[1] - ((height - self.y_margins[0] - self.y_margins[1]) * column[i] / self.max_range) for i in range(0, num_points)]
+                    y_coords = [height - self.y_margins[1] - (
+                        (height - self.y_margins[0] - self.y_margins[1]) * column[i] / self.max_range) for i in range(0, num_points)]
                 else:
                     y_coords = [height - self.y_margins[1] for i in range(0, num_points)]
                 y_coords = [min(height - self.y_margins[1] - 1, y_coord) for y_coord in y_coords]
@@ -2214,7 +2228,8 @@ class Graph(wx.Panel):
         for colour, label in self.config:
             label_width, label_height = self.GetTextExtent(label)
             gc.SetPen(wx.Pen(colour, 1, wx.SOLID))
-            gc.DrawLines([(self.x_margins[0] + 10, next_y + label_height / 2), (self.x_margins[0] + 25, next_y + label_height / 2)])
+            gc.DrawLines(
+                [(self.x_margins[0] + 10, next_y + label_height / 2), (self.x_margins[0] + 25, next_y + label_height / 2)])
             # Drawing text with a gc looks a bit weird on Ubuntu, using dc instead.
             dc.SetTextForeground(wx.Colour(100, 100, 100))
             dc.DrawText(label, self.x_margins[0] + 30, next_y)
@@ -2296,7 +2311,8 @@ class VideoProgress(wx.Panel):
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         dc.SetFont(font)
         dc.SetTextForeground(self.text_colour)
-        dc.DrawLabel(self.error or self.label, self.GetClientRect(), alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
+        dc.DrawLabel(self.error or self.label, self.GetClientRect(),
+                     alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
 
 
 class VideoSlider(wx.Panel):
@@ -2330,7 +2346,8 @@ class VideoSlider(wx.Panel):
         self.value = value
         if not self.dragging:
             slider_width = self.slider_range[1] - self.slider_range[0]
-            self.slider_position[0] = (slider_width * self.value) + self.slider_range[0] if slider_width else self.slider_range[0]
+            self.slider_position[0] = (slider_width * self.value) + self.slider_range[
+                0] if slider_width else self.slider_range[0]
             self.slider_position[0] = min(self.slider_range[1], self.slider_position[0])
             self.slider_position[0] = max(self.slider_range[0], self.slider_position[0])
             self.Refresh()
@@ -2351,7 +2368,8 @@ class VideoSlider(wx.Panel):
 
     def OnLeftUp(self, event):
         self.dragging = False
-        self.SetValue(float(self.slider_position[0] - self.slider_range[0]) / (self.slider_range[1] - self.slider_range[0]))
+        self.SetValue(float(self.slider_position[0] - self.slider_range[0]) / (
+            self.slider_range[1] - self.slider_range[0]))
         if self.HasCapture():
             self.ReleaseMouse()
         # Call parent
@@ -2422,7 +2440,8 @@ class VideoSlider(wx.Panel):
 
         # Draw slider
         if self.IsEnabled():
-            gc.SetBrush(gc.CreateLinearGradientBrush(self.slider_position[0] - self.slider_radius, 0, self.slider_position[0] + self.slider_radius , 0, self.colour1, self.colour2))
+            gc.SetBrush(gc.CreateLinearGradientBrush(self.slider_position[
+                        0] - self.slider_radius, 0, self.slider_position[0] + self.slider_radius, 0, self.colour1, self.colour2))
             path = gc.CreatePath()
             path.AddCircle(self.slider_position[0], self.slider_position[1], self.slider_radius)
             gc.DrawPath(path)

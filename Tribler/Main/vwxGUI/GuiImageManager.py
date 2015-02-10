@@ -266,7 +266,7 @@ class GuiImageManager(object):
             dc.SetFont(font)
             dc.SetTextForeground(wx.Colour(100, 100, 100))
             dc.DrawLabel('No thumbnail\navailable', (0, 0) + size,
-                alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
+                         alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
             dc.SelectObject(wx.NullBitmap)
             del dc
         return bitmap
