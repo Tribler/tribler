@@ -707,8 +707,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         enable = False
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
         for torrent in torrents:
-            filename = self.guiutility.torrentsearch_manager.getCollectedFilename(torrent)
-            if filename and os.path.exists(filename):
+            if self.guiutility.utility.session.has_collected_torrent(torrent.infohash):
                 enable = True
                 break
         event.Enable(enable)
