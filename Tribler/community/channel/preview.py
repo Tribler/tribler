@@ -23,4 +23,3 @@ class PreviewChannelCommunity(ChannelCommunity):
 
     def get_channel_mode(self):
         return ChannelCommunity.CHANNEL_CLOSED, False
-
