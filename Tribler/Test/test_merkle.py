@@ -84,7 +84,7 @@ class TestMerkleHashes(unittest.TestCase):
         """ testing get_hashes_for_piece on tree with 3 pieces """
         msg = "3piece_get_hashes(" + str(piece_size) + "," + str(length_add) + ") failed"
         npieces = 3
-        total_length = 2 * piece_size +length_add
+        total_length = 2 * piece_size + length_add
 
         piece_hashes = ['\x01\x02\x03\x04\x05\x06\x07\x08\x07\x06\x05\x04\x03\x02\x01\x00\x01\x02\x03\x04'] * npieces
         tree = MerkleTree(piece_size, total_length, None, piece_hashes)
@@ -160,7 +160,7 @@ class TestMerkleHashes(unittest.TestCase):
 
     def _test_3piece_tree_check_hashes_update_hash_admin(self, piece_size, length_add):
         """ testing check_hashes and update_hash_admin tree with 3 pieces """
-        msg = "3piece_check_hashes(" + str(piece_size) + "," + str(length_add)+") failed"
+        msg = "3piece_check_hashes(" + str(piece_size) + "," + str(length_add) + ") failed"
         npieces = 3
         total_length = 2 * piece_size + length_add
 
@@ -187,7 +187,7 @@ class TestMerkleHashes(unittest.TestCase):
             test the creation of Merkle torrent files via TorrentMaker/btmakemetafile.py
         """
         piece_size = 2 ** 18
-        for file_size in [1, piece_size - 1, piece_size, piece_size + 1, 2*piece_size, (2*piece_size)+1]:
+        for file_size in [1, piece_size - 1, piece_size, piece_size + 1, 2 * piece_size, (2 * piece_size) + 1]:
             self.create_merkle_torrent(file_size, piece_size)
 
     def create_merkle_torrent(self, file_size, piece_size):
@@ -243,7 +243,7 @@ class TestMerkleHashes(unittest.TestCase):
             if DEBUG:
                 print "height is", height
 
-            starto = (2 ** (height - 1)) -1
+            starto = (2 ** (height - 1)) - 1
 
             if DEBUG:
                 print "starto is", starto
@@ -264,7 +264,7 @@ class TestMerkleHashes(unittest.TestCase):
 
             # calc higher level ones
             if height > 1:
-                for o in range(len(tree) - starto -2, -1, -1):
+                for o in range(len(tree) - starto - 2, -1, -1):
                     co = self.get_child_offset(o, height)
                     if DEBUG:
                         print "offset is", o, "co is", co

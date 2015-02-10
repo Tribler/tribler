@@ -22,6 +22,7 @@ class TestSeeding(TestAsServer):
     """
     Testing seeding via new tribler API:
     """
+
     def setUp(self):
         """ override TestAsServer """
         super(TestSeeding, self).setUp()

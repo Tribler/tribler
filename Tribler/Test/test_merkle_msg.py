@@ -27,8 +27,10 @@ from Tribler.Core.Merkle.merkle import MerkleTree
 
 DEBUG = True
 
+
 def toint(s):
     return long(b2a_hex(s), 16)
+
 
 def tobinary(i):
     return (chr(i >> 24) + chr((i >> 16) & 0xFF) +
@@ -105,7 +107,8 @@ class TestMerkleMessage(TestAsServer):
             print >> sys.stderr, "test: piece", i / 20, "hash", repr(hash)
             piece_hashes.append(hash)
 
-        print >> sys.stderr, "test: Putting", len(piece_hashes), "into MerkleTree, size", self.tdef.get_piece_length(), tdef2.get_piece_length()
+        print >> sys.stderr, "test: Putting", len(
+            piece_hashes), "into MerkleTree, size", self.tdef.get_piece_length(), tdef2.get_piece_length()
 
         self.tree = MerkleTree(self.tdef.get_piece_length(), self.tdef.get_length(), None, piece_hashes)
 
@@ -163,10 +166,12 @@ class TestMerkleMessage(TestAsServer):
     def subtest_good_hashpiece(self, oldstyle):
         print >> sys.stderr, "test: Testing good hashpiece, oldstyle", oldstyle
         if oldstyle:
-            self._test_good(self.create_good_hashpiece, oldstyle, self.create_good_tribler_extend_hs, infohash=self.infohash)
+            self._test_good(self.create_good_hashpiece, oldstyle,
+                            self.create_good_tribler_extend_hs, infohash=self.infohash)
         else:
             options = '\x00\x00\x00\x00\x00\x10\x00\x00'
-            self._test_good(self.create_good_hashpiece, oldstyle, self.create_good_nontribler_extend_hs, options=options, infohash=self.infohash)
+            self._test_good(self.create_good_hashpiece, oldstyle,
+                            self.create_good_nontribler_extend_hs, options=options, infohash=self.infohash)
 
     def _test_good(self, msg_gen_func, oldstyle, extend_hs_gen_func, options=None, infohash=None):
         if options is None and infohash is None:
@@ -204,7 +209,8 @@ class TestMerkleMessage(TestAsServer):
                 resp = s.recv()
                 self.assert_(len(resp) > 0)
                 print >> sys.stderr, "test: Got reply2", getMessageName(resp[0])
-                self.assert_(resp[0] == REQUEST or resp[0] == INTERESTED or resp[0] == UNCHOKE or resp[0] == HAVE or resp[0] == NOT_INTERESTED)
+                self.assert_(resp[0] == REQUEST or resp[0] == INTERESTED or resp[
+                             0] == UNCHOKE or resp[0] == HAVE or resp[0] == NOT_INTERESTED)
                 if resp[0] == REQUEST:
                     chunkid = self.check_request(resp)
 
@@ -482,7 +488,8 @@ class TestMerkleMessage(TestAsServer):
                 resp = s.recv()
                 self.assert_(len(resp) > 0)
                 print >> sys.stderr, "test: Got reply 2", getMessageName(resp[0])
-                self.assert_(resp[0] == REQUEST or resp[0] == INTERESTED or resp[0] == UNCHOKE or resp[0] == HAVE or resp[0] == NOT_INTERESTED)
+                self.assert_(resp[0] == REQUEST or resp[0] == INTERESTED or resp[
+                             0] == UNCHOKE or resp[0] == HAVE or resp[0] == NOT_INTERESTED)
                 if resp[0] == REQUEST:
                     chunkid = self.check_request(resp)
 

@@ -12,6 +12,7 @@ class TestVODSeeding(TestSeeding):
     """
     Testing seeding via new tribler API:
     """
+
     def setUp(self):
         super(TestVODSeeding, self).setUp()
         self.vod_event = threading.Event()

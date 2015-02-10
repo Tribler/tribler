@@ -264,7 +264,8 @@ class TestTorrentDef(unittest.TestCase):
         fn = os.path.join(BASE_DIR, "API", "video.avi")
         t.add_content(fn)
         t.set_tracker(TRACKER)
-        exphier = [[TRACKER], ['http://tracker1.tribler.org:6969/announce', 'http://tracker2.tribler.org:7070/ann'], ['http://www.cs.vu.nl', 'http://www.st.ewi.tudelft.nl', 'http://www.vuze.com']]
+        exphier = [[TRACKER], ['http://tracker1.tribler.org:6969/announce', 'http://tracker2.tribler.org:7070/ann'],
+                   ['http://www.cs.vu.nl', 'http://www.st.ewi.tudelft.nl', 'http://www.vuze.com']]
         t.set_tracker_hierarchy(exphier)
         t.finalize()
 

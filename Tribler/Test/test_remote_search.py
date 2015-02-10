@@ -77,11 +77,13 @@ class TestRemoteQuery(TestGuiAsServer):
             self.guiUtility.utility.write_config('showsaveas', 0)
 
             self.frame.top_bg.OnDownload()
-            self.CallConditional(120, lambda: self.frame.librarylist.GetNrResults() > 0, do_assert, 'no download in librarylist')
+            self.CallConditional(
+                120, lambda: self.frame.librarylist.GetNrResults() > 0, do_assert, 'no download in librarylist')
 
         def do_select():
             self.assert_(self.frame.searchlist.GetNrResults() > 0, 'no hits matching vodo + pioneer')
-            self.screenshot('After doing vodo search + pioneer filter, got %d results' % self.frame.searchlist.GetNrResults())
+            self.screenshot('After doing vodo search + pioneer filter, got %d results' %
+                            self.frame.searchlist.GetNrResults())
             items = self.frame.searchlist.GetItems()
             keys = items.keys()
 
@@ -105,13 +107,15 @@ class TestRemoteQuery(TestGuiAsServer):
         if search_comm:
             def wait_for_search():
                 self._logger.debug("Frame ready, starting to wait for search to be ready")
-                self.CallConditional(300, lambda: self.frame.SRstatusbar.GetConnections() > 0.75, callback, 'did not connect to 75% of expected peers within 300s')
+                self.CallConditional(300, lambda: self.frame.SRstatusbar.GetConnections()
+                                     > 0.75, callback, 'did not connect to 75% of expected peers within 300s')
             super(TestRemoteQuery, self).startTest(wait_for_search)
 
         else:
             def wait_for_chansearch():
                 self._logger.debug("Frame ready, starting to wait for channelsearch to be ready")
-                self.CallConditional(300, lambda: self.frame.SRstatusbar.GetChannelConnections() > 10, callback, 'did not connect to more than 10 peers within 300s', assertCallback=lambda *argv, **kwarg: callback())
+                self.CallConditional(300, lambda: self.frame.SRstatusbar.GetChannelConnections() > 10, callback,
+                                     'did not connect to more than 10 peers within 300s', assertCallback=lambda *argv, **kwarg: callback())
             super(TestRemoteQuery, self).startTest(wait_for_chansearch)
 
 

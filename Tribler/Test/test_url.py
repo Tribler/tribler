@@ -28,6 +28,7 @@ DEBUG = False
 
 
 class TestP2PURLs(AbstractServer):
+
     """
     Testing P2P URLs version 0
     """
@@ -40,24 +41,50 @@ class TestP2PURLs(AbstractServer):
         """
         badurllist = []
 
-        badurllist += [("ribe://127.1.0.10:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "wrong scheme")]
-        badurllist += [("tribe//127.1.0.10:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "no colon after scheme")]
-        # badurllist += [("tribe://127.1.0.10:6969/announce?trai ler.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "space not escaped")] # too strict
-        # badurllist += [("tribe://localhost;10/?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "bad port spec")] # too strict
-        badurllist += [("tribe://localhost:https/?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "port not int")]
-        badurllist += [("tribe://localhost/trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "not query")]
+        badurllist += [
+            ("ribe://127.1.0.10:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg",
+             "wrong scheme")]
+        badurllist += [
+            ("tribe//127.1.0.10:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg",
+             "no colon after scheme")]
+        # badurllist += [("tribe://127.1.0.10:6969/announce?trai ler.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg",
+        # "space not escaped")] # too strict
+        # badurllist +=
+        # [("tribe://localhost;10/?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg",
+        # "bad port spec")] # too strict
+        badurllist += [
+            ("tribe://localhost:https/?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg",
+             "port not int")]
+        badurllist += [
+            ("tribe://localhost/trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg",
+             "not query")]
         if sys.platform != "win32":
-            badurllist += [("tribe://localhost?tr\xfeiler.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "char in name not URL escaped")]
+            badurllist += [
+                ("tribe://localhost?tr\xfeiler.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg",
+                 "char in name not URL escaped")]
         badurllist += [("tribe://localhost?Sjaak&", "query with empty key=value")]
-        badurllist += [("tribe://localhost?trailer.mkv&r:TTgcifG0Ot7STCY2JL8SUOxROFo&l:AKK35A&s=15&b:AAFnGg", "key value not separated by =")]
-        badurllist += [("tribe://localhost?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b:AAFnGg", "some key value not separated by =")]
-        badurllist += [("tribe://localhost?Sjaak&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=", "query with malformed key value")]
+        badurllist += [
+            ("tribe://localhost?trailer.mkv&r:TTgcifG0Ot7STCY2JL8SUOxROFo&l:AKK35A&s=15&b:AAFnGg",
+             "key value not separated by =")]
+        badurllist += [
+            ("tribe://localhost?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b:AAFnGg",
+             "some key value not separated by =")]
+        badurllist += [("tribe://localhost?Sjaak&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=",
+                        "query with malformed key value")]
 
         # IPv6 addresses
-        badurllist += [("tribe://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "unclosed IPv6 literal address")]
-        badurllist += [("tribe://FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "unopened IPv6 literal address")]
-        badurllist += [("tribe://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "unclosed IPv6 literal address, no port")]
-        badurllist += [("tribe://FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "unopened IPv6 literal address, no port")]
+        badurllist += [
+            ("tribe://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg",
+             "unclosed IPv6 literal address")]
+        badurllist += [
+            ("tribe://FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg",
+             "unopened IPv6 literal address")]
+        badurllist += [
+            ("tribe://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg",
+             "unclosed IPv6 literal address, no port")]
+        badurllist += [(
+            "tribe://FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg",
+            "unopened IPv6 literal address, no port")]
 
         self.run_badurllist(badurllist)
 
@@ -70,25 +97,43 @@ class TestP2PURLs(AbstractServer):
         badurllist += [("tribe://localhost?Sjaak", "query just name")]
         badurllist += [("tribe://localhost?n=Sjaak", "query just name")]
         badurllist += [("tribe://localhost?Sjaak&r=TTgcifG0Ot7STCY2JL8SUOxROFo", "query with just valid root hash")]
-        badurllist += [("tribe://localhost?Sjaak&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A", "query with missing piece size+bitrate")]
-        badurllist += [("tribe://localhost?Sjaak&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15", "query with missing bitrate")]
+        badurllist += [
+            ("tribe://localhost?Sjaak&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A", "query with missing piece size+bitrate")]
+        badurllist += [
+            ("tribe://localhost?Sjaak&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15", "query with missing bitrate")]
 
         # live
-        badurllist += [("tribe://127.2.3.42:7764/announce?SjaakCam.mpegts&k=MHowDQYJKoZIhvcNAQEBBQADaQAwZgJhAN0Khlp5ZhWC7VfLynCkKts71b8h8tZXH87PkDtJUTJaX_SS1Cddxkv63PRmKOvtAHhkTLSsWOZbSeHkOlPIq_FGg2aDLDJ05g3lQ-8mSmo05ff4SLqNUTShWO2CR2TPhQIBAw&l=HCAAAA&s=15&b=AAIAAA", "query with missing live auth method")]
+        badurllist += [
+            ("tribe://127.2.3.42:7764/announce?SjaakCam.mpegts&k=MHowDQYJKoZIhvcNAQEBBQADaQAwZgJhAN0Khlp5ZhWC7VfLynCkKts71b8h8tZXH87PkDtJUTJaX_SS1Cddxkv63PRmKOvtAHhkTLSsWOZbSeHkOlPIq_FGg2aDLDJ05g3lQ-8mSmo05ff4SLqNUTShWO2CR2TPhQIBAw&l=HCAAAA&s=15&b=AAIAAA",
+             "query with missing live auth method")]
 
         self.run_badurllist(badurllist)
 
     def test_encoding(self):
         badurllist = []
-        badurllist += [("tribe://localhost?Sjaak&r=\xd3]\xb7\xe3\x9e\xbb\xf3\xdd5\xdb~9\xeb\xbf=\xd3]\xb7\xe3\x9e&l=AKK35A&s=15&b=AAFnGg", "query with non-BASE64URL encoded root hash")]
-        badurllist += [("tribe://127.1.0.10:6969/announce?trailer.mkv&r=TTgcifG0Ot7ST!Y2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg", "query with invalid BASE64URL encoded root hash, contains !")]
-        badurllist += [("tribe://127.1.0.10:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo=&l=AKK35A&s=15&b=AAFnGg", "query with invalid BASE64URL encoded root hash, contains = padding")]
-        badurllist += [("tribe://localhost?Sjaak&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=1234&s=15&b=AAFnGg", "query with non-encoded length")]
-        badurllist += [("tribe://localhost?Sjaak&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=1234&b=AAFnGg", "query with non-encoded piece size")]
-        badurllist += [("tribe://localhost?Sjaak&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=1234", "query with non-encoded bitrate")]
+        badurllist += [(
+            "tribe://localhost?Sjaak&r=\xd3]\xb7\xe3\x9e\xbb\xf3\xdd5\xdb~9\xeb\xbf=\xd3]\xb7\xe3\x9e&l=AKK35A&s=15&b=AAFnGg",
+            "query with non-BASE64URL encoded root hash")]
+        badurllist += [(
+            "tribe://127.1.0.10:6969/announce?trailer.mkv&r=TTgcifG0Ot7ST!Y2JL8SUOxROFo&l=AKK35A&s=15&b=AAFnGg",
+            "query with invalid BASE64URL encoded root hash, contains !")]
+        badurllist += [(
+            "tribe://127.1.0.10:6969/announce?trailer.mkv&r=TTgcifG0Ot7STCY2JL8SUOxROFo=&l=AKK35A&s=15&b=AAFnGg",
+            "query with invalid BASE64URL encoded root hash, contains = padding")]
+        badurllist += [
+            ("tribe://localhost?Sjaak&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=1234&s=15&b=AAFnGg",
+             "query with non-encoded length")]
+        badurllist += [
+            ("tribe://localhost?Sjaak&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=1234&b=AAFnGg",
+             "query with non-encoded piece size")]
+        badurllist += [
+            ("tribe://localhost?Sjaak&r=TTgcifG0Ot7STCY2JL8SUOxROFo&l=AKK35A&s=15&b=1234",
+             "query with non-encoded bitrate")]
 
         # live
-        badurllist += [("tribe://127.2.3.42:7764/announce?SjaakCam.mpegts&k=MHowDQYJKoZIhvc!AQEBBQADaQAwZgJhAN0Khlp5ZhWC7VfLynCkKts71b8h8tZXH87PkDtJUTJaX_SS1Cddxkv63PRmKOvtAHhkTLSsWOZbSeHkOlPIq_FGg2aDLDJ05g3lQ-8mSmo05ff4SLqNUTShWO2CR2TPhQIBAw&l=HCAAAA&s=15&a=RSA&b=AAIAAA", "query with invalid BASE64URL encoded live public key, contains !")]
+        badurllist += [(
+            "tribe://127.2.3.42:7764/announce?SjaakCam.mpegts&k=MHowDQYJKoZIhvc!AQEBBQADaQAwZgJhAN0Khlp5ZhWC7VfLynCkKts71b8h8tZXH87PkDtJUTJaX_SS1Cddxkv63PRmKOvtAHhkTLSsWOZbSeHkOlPIq_FGg2aDLDJ05g3lQ-8mSmo05ff4SLqNUTShWO2CR2TPhQIBAw&l=HCAAAA&s=15&a=RSA&b=AAIAAA",
+            "query with invalid BASE64URL encoded live public key, contains !")]
 
         self.run_badurllist(badurllist)
 
@@ -158,6 +203,8 @@ class TestP2PURLs(AbstractServer):
             self.assertEqual(tbitrate, ebitrate)
 
 # TODO: Remove this and use the utility function instead.
+
+
 def dur2s(dur):
     """ [hh]mm:ss -> seconds """
     elems = dur.split(":")

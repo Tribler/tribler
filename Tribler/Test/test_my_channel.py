@@ -12,6 +12,7 @@ from Tribler.Core.simpledefs import dlstatus_strings
 
 DEBUG = True
 
+
 class TestMyChannel(TestGuiAsServer):
 
     def test_rss_import(self):
@@ -27,7 +28,8 @@ class TestMyChannel(TestGuiAsServer):
             self.managechannel.notebook.SetSelection(mt_index)
 
             managefiles = self.managechannel.fileslist
-            self.CallConditional(60, lambda: len(managefiles.GetItems()) > 0, do_files_check, 'Channel did not have torrents')
+            self.CallConditional(
+                60, lambda: len(managefiles.GetItems()) > 0, do_files_check, 'Channel did not have torrents')
 
         def do_rss():
             self.managechannel.rss_url.SetValue(r'http://torrent.fedoraproject.org/rss20.xml')
@@ -46,7 +48,8 @@ class TestMyChannel(TestGuiAsServer):
             self.managechannel.description.SetValue('Channel created for UNITTESTING purposes')
 
             self.managechannel.Save()
-            self.CallConditional(60, lambda: self.frame.managechannel.rss_url, do_rss, 'Channel instance did not arrive at managechannel')
+            self.CallConditional(60, lambda: self.frame.managechannel.rss_url,
+                                 do_rss, 'Channel instance did not arrive at managechannel')
 
         def do_page():
             self.guiUtility.ShowPage('mychannel')
@@ -74,14 +77,16 @@ class TestMyChannel(TestGuiAsServer):
             mp_index = self.managechannel.GetPage(self.managechannel.notebook, "Manage playlists")
             self.managechannel.notebook.SetSelection(mp_index)
 
-            self.CallConditional(60, lambda: len(manageplaylist.GetItems()) == 1, do_overview, 'Channel did not have a playlist')
+            self.CallConditional(
+                60, lambda: len(manageplaylist.GetItems()) == 1, do_overview, 'Channel did not have a playlist')
 
         def do_switch_tab(torrentfilename):
             # switch to files tab
             mt_index = self.managechannel.GetPage(self.managechannel.notebook, "Manage torrents")
             self.managechannel.notebook.SetSelection(mt_index)
 
-            self.CallConditional(120, lambda: len(self.managechannel.fileslist.GetItems()) == 3, lambda: do_create_playlist(torrentfilename), 'Channel did not have 3 torrents')
+            self.CallConditional(120, lambda: len(self.managechannel.fileslist.GetItems()) == 3,
+                                 lambda: do_create_playlist(torrentfilename), 'Channel did not have 3 torrents')
 
         def do_add_torrent(torrentfilename):
             self.screenshot('Channel is created')
@@ -89,10 +94,13 @@ class TestMyChannel(TestGuiAsServer):
             managefiles = self.managechannel.fileslist
             manager = managefiles.GetManager()
             manager.startDownload(torrentfilename, fixtorrent=True)
-            manager.startDownloadFromUrl(r'http://torrent.fedoraproject.org/torrents/Fedora-20-i386-DVD.torrent', fixtorrent=True)
-            manager.startDownloadFromMagnet(r'magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', fixtorrent=True)
+            manager.startDownloadFromUrl(
+                r'http://torrent.fedoraproject.org/torrents/Fedora-20-i386-DVD.torrent', fixtorrent=True)
+            manager.startDownloadFromMagnet(
+                r'magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', fixtorrent=True)
 
-            self.CallConditional(10, lambda: self.managechannel.notebook.GetPageCount() > 1, lambda: do_switch_tab(torrentfilename))
+            self.CallConditional(
+                10, lambda: self.managechannel.notebook.GetPageCount() > 1, lambda: do_switch_tab(torrentfilename))
 
         def do_create_local_torrent():
             torrentfilename = self.createTorrent()
@@ -109,7 +117,8 @@ class TestMyChannel(TestGuiAsServer):
             self.managechannel.Save()
             self.screenshot('After clicking save')
 
-            self.CallConditional(60, lambda: self.frame.managechannel.channel, do_create_local_torrent, 'Channel instance did not arrive at managechannel')
+            self.CallConditional(60, lambda: self.frame.managechannel.channel,
+                                 do_create_local_torrent, 'Channel instance did not arrive at managechannel')
 
         def do_page():
             self.guiUtility.ShowPage('mychannel')

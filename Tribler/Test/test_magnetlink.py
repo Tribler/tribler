@@ -146,7 +146,8 @@ class TestMagnet(TestAsServer):
                 event.set()
 
             event = threading.Event()
-            assert TorrentDef.retrieve_from_magnet('magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', torrentdef_retrieved, timeout=120)
+            assert TorrentDef.retrieve_from_magnet(
+                'magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', torrentdef_retrieved, timeout=120)
             assert event.wait(120)
 
         self.startTest(do_transfer)
@@ -158,6 +159,7 @@ class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
     A MiniBitTorrent instance is used to connect to BitTorrent clients
     and download the info part from the metadata.
     """
+
     def setUp(self):
         # listener for incoming connections from MiniBitTorrent
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -245,6 +247,7 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
     the ut_metadata extention message.  This allows other clients to
     obtain the info part of the metadata from us.
     """
+
     def setUp(self):
         TestAsServer.setUp(self)
 
@@ -288,7 +291,8 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
             self.seeder_setup_complete.set()
 
         d = ds.get_download()
-        self._logger.debug("seeder: %s %s %s", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress())
+        self._logger.debug("seeder: %s %s %s", repr(d.get_def().get_name()),
+                           dlstatus_strings[ds.get_status()], ds.get_progress())
         return 1.0, False
 
     def test_good_request(self):
