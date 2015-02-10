@@ -72,8 +72,10 @@ class TopSearchPanel(FancyPanel):
         else:
             self.searchFieldPanel = FancyPanel(self, radius=5, border=wx.ALL)
             self.searchFieldPanel.SetBorderColour(SEPARATOR_GREY, highlight=TRIBLER_RED)
-            self.searchField = TextCtrlAutoComplete(self.searchFieldPanel, style=wx.NO_BORDER, entrycallback=self.complete)
-            # Since we have set the style to wx.NO_BORDER, the default height will be too large. Therefore, we need to set the correct height.
+            self.searchField = TextCtrlAutoComplete(self.searchFieldPanel, style=wx.NO_BORDER,
+                                                    entrycallback=self.complete)
+            # Since we have set the style to wx.NO_BORDER, the default height will be
+            # too large. Therefore, we need to set the correct height.
             _, height = self.GetTextExtent("Gg")
             self.searchField.SetMinSize((-1, height))
             self.searchFieldPanel.SetMinSize((400, 25))
@@ -85,7 +87,8 @@ class TopSearchPanel(FancyPanel):
         self.go.SetMinSize((50, 25))
         self.go.Bind(wx.EVT_LEFT_UP, self.OnSearchKeyDown)
 
-        ag_fname = os.path.join(self.guiutility.utility.getPath(), LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new.gif')
+        ag_fname = os.path.join(self.guiutility.utility.getPath(),
+                                LIBRARYNAME, 'Main', 'vwxGUI', 'images', 'search_new.gif')
         self.ag = wx.animate.GIFAnimationCtrl(self, -1, ag_fname)
         self.ag.UseBackgroundColour(True)
         self.ag.SetBackgroundColour(wx.Colour(244, 244, 244))
@@ -204,7 +207,8 @@ class TopSearchPanel(FancyPanel):
         if times < 16:
             self.go.SetValue(newValue)
 
-            startWorker(None, self.FakeResult, wargs=(times + 1,), uId=u"FakeResult", delay=0.25, workerType="guiTaskQueue")
+            startWorker(None, self.FakeResult, wargs=(times + 1,), uId=u"FakeResult", delay=0.25,
+                        workerType="guiTaskQueue")
 
     def NewResult(self):
         maxValue = self.go.GetRange()
@@ -253,7 +257,8 @@ class TopSearchPanel(FancyPanel):
         if page in ['search_results', 'selectedchannel', 'playlist', 'my_files']:
             list = self.guiutility.GetSelectedPage()
             items = list.GetExpandedItems()
-            torrents = [item[1].original_data for item in items if isinstance(item[1].original_data, Torrent) or isinstance(item[1].original_data, CollectedTorrent)]
+            torrents = [item[1].original_data for item in items if isinstance(item[1].original_data, Torrent)
+                        or isinstance(item[1].original_data, CollectedTorrent)]
         return torrents
 
     def TorrentsChanged(self):
@@ -265,7 +270,10 @@ class TopSearchPanel(FancyPanel):
         if torrents:
             isMultiple = len(torrents) > 1
             usedCollectedTorrents = set()
-            states = [0, 0, 0, 0, 0, 0, 0]  # we have 7 different states, able to resume seeding, resume downloading, download, stop seeding, stop downloading, delete, or play
+            # we have 7 different states, able to resume seeding, resume downloading,
+            # download, stop seeding, stop downloading, delete, or play
+            # TODO(emilon): This is so ugly. At least we should use a named tuple.
+            states = [0, 0, 0, 0, 0, 0, 0]
             for torrent in torrents:
                 if 'stopped' in torrent.state:
                     if 'completed' in torrent.state:
@@ -295,11 +303,14 @@ class TopSearchPanel(FancyPanel):
                     # If the torrent isn't collected we assume its playable and let the core cancel the VOD if it isn't.
                     states[6] += 1
 
-
             enableDownload = states[1] + states[2]
             if enableDownload:
                 if isMultiple:
-                    self.SetButtonHandler(self.download_btn, self.OnDownload, 'Resume downloading %d torrent(s).' % enableDownload)
+                    self.SetButtonHandler(
+                        self.download_btn,
+                        self.OnDownload,
+                        'Resume downloading %d torrent(s).' %
+                        enableDownload)
                 elif states[1]:
                     self.SetButtonHandler(self.download_btn, self.OnResume, 'Resume downloading this torrent.')
                 else:
@@ -310,7 +321,11 @@ class TopSearchPanel(FancyPanel):
             enableUpload = states[0]
             if enableUpload:
                 if isMultiple:
-                    self.SetButtonHandler(self.upload_btn, self.OnUpload, 'Resume seeding %d torrent(s).' % enableUpload)
+                    self.SetButtonHandler(
+                        self.upload_btn,
+                        self.OnUpload,
+                        'Resume seeding %d torrent(s).' %
+                        enableUpload)
                 else:
                     self.SetButtonHandler(self.upload_btn, self.OnUpload, 'Resume seeding this torrent.')
             else:

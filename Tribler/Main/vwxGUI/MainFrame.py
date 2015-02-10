@@ -93,7 +93,9 @@ class FileDropTarget(wx.FileDropTarget):
                         break
 
                 if not found:
-                    dlg = wx.FileDialog(None, "Tribler needs a .torrent file to start seeding, please select the associated .torrent file.", wildcard="torrent (*.torrent)|*.torrent", style=wx.FD_OPEN)
+                    dlg = wx.FileDialog(
+                        None, "Tribler needs a .torrent file to start seeding, please select the associated .torrent file.",
+                                        wildcard="torrent (*.torrent)|*.torrent", style=wx.FD_OPEN)
                     if dlg.ShowModal() == wx.ID_OK:
                         filename = dlg.GetPath()
 
@@ -106,8 +108,8 @@ class FileDropTarget(wx.FileDropTarget):
                 self.frame.startDownload(filename, destdir=destdir)
             except IOError:
                 dlg = wx.MessageDialog(None,
-                    "File not found or cannot be accessed.",
-                    "Tribler Warning", wx.OK | wx.ICON_ERROR)
+                                       "File not found or cannot be accessed.",
+                                       "Tribler Warning", wx.OK | wx.ICON_ERROR)
                 dlg.ShowModal()
                 dlg.Destroy()
         return True
@@ -312,7 +314,8 @@ class MainFrame(wx.Frame):
             dragdroplist = FileDropTarget(self)
             self.SetDropTarget(dragdroplist)
         try:
-            self.SetIcon(wx.Icon(os.path.join(self.utility.getPath(), 'Tribler', 'Main', 'vwxGUI', 'images', 'tribler.ico'), wx.BITMAP_TYPE_ICO))
+            self.SetIcon(
+                wx.Icon(os.path.join(self.utility.getPath(), 'Tribler', 'Main', 'vwxGUI', 'images', 'tribler.ico'), wx.BITMAP_TYPE_ICO))
         except:
             pass
 
@@ -417,7 +420,8 @@ class MainFrame(wx.Frame):
             if infohash is None:
                 raise RuntimeError("Missing infohash")
             tdef = TorrentDefNoMetainfo(infohash, name, url=url)
-            wx.CallAfter(self.startDownload, tdef=tdef, cmdline=cmdline, destdir=destdir, selectedFiles=selectedFiles, vodmode=vodmode, hops=0)
+            wx.CallAfter(self.startDownload, tdef=tdef, cmdline=cmdline,
+                         destdir=destdir, selectedFiles=selectedFiles, vodmode=vodmode, hops=0)
         except Exception, e:
             # show an error dialog
             dlg = wx.MessageBox(self, "The magnet link is invalid: %s" % str(e),
@@ -435,7 +439,7 @@ class MainFrame(wx.Frame):
                           'destdir': destdir,
                           'selectedFiles': selectedFiles,
                           'vodmode': vodmode,
-                          'hops':hops}
+                          'hops': hops}
                 if wx.Thread_IsMain():
                     self.startDownload(**kwargs)
                 else:
@@ -485,7 +489,8 @@ class MainFrame(wx.Frame):
         try:
             d = self.utility.session.get_download(tdef.get_infohash())
             if d:
-                new_trackers = list(set(tdef.get_trackers_as_single_tuple()) - set(d.get_def().get_trackers_as_single_tuple()))
+                new_trackers = list(set(tdef.get_trackers_as_single_tuple()) - set(
+                    d.get_def().get_trackers_as_single_tuple()))
                 if not new_trackers:
                     raise DuplicateDownloadException()
 
@@ -493,7 +498,8 @@ class MainFrame(wx.Frame):
                     @forceWxThread
                     def do_gui():
                         # Show update tracker dialog
-                        dialog = wx.MessageDialog(None, 'This torrent is already being downloaded. Do you wish to load the trackers from it?', 'Tribler', wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+                        dialog = wx.MessageDialog(
+                            None, 'This torrent is already being downloaded. Do you wish to load the trackers from it?', 'Tribler', wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
                         if dialog.ShowModal() == wx.ID_YES:
                             # Update trackers
                             self.utility.session.update_trackers(tdef.get_infohash(), new_trackers)
@@ -588,7 +594,8 @@ class MainFrame(wx.Frame):
                 if vodmode:
                     self._logger.info('MainFrame: startDownload: Starting in VOD mode')
                     result = self.utility.session.start_download(tdef, dscfg)
-                    self.guiUtility.library_manager.playTorrent(tdef.get_infohash(), videofiles[0] if len(videofiles) == 1 else None)
+                    self.guiUtility.library_manager.playTorrent(
+                        tdef.get_infohash(), videofiles[0] if len(videofiles) == 1 else None)
 
                 else:
                     if selectedFiles:
@@ -601,7 +608,8 @@ class MainFrame(wx.Frame):
                     self.show_saved(tdef)
 
                     if monitorHiddenSerivcesProgress:
-                        state_lambda = lambda ds, tdef = orig_tdef, dscfg = dscfg, selectedFiles = selectedFiles: self.monitorHiddenSerivcesProgress(ds, tdef, dscfg, selectedFiles)
+                        state_lambda = lambda ds, tdef = orig_tdef, dscfg = dscfg, selectedFiles = selectedFiles: self.monitorHiddenSerivcesProgress(
+                            ds, tdef, dscfg, selectedFiles)
                         result.set_state_callback(state_lambda, delay=40.0)
 
                 return result
@@ -619,8 +627,8 @@ class MainFrame(wx.Frame):
             if wx.Thread_IsMain():
                 # show nice warning dialog
                 dlg = wx.MessageDialog(None,
-                    "You are already downloading this torrent, see the Downloads section.",
-                    "Duplicate download", wx.OK | wx.ICON_ERROR)
+                                       "You are already downloading this torrent, see the Downloads section.",
+                                       "Duplicate download", wx.OK | wx.ICON_ERROR)
                 result = dlg.ShowModal()
                 dlg.Destroy()
 
@@ -658,9 +666,11 @@ class MainFrame(wx.Frame):
                 else:
                     self.guiUtility.Notify('Downloading .torrent from DHT', icon='magnet')
             elif torrentname:
-                self.guiUtility.Notify("Download started", "Torrent '%s' has been added to the download queue." % torrentname, icon='download')
+                self.guiUtility.Notify(
+                    "Download started", "Torrent '%s' has been added to the download queue." % torrentname, icon='download')
             else:
-                self.guiUtility.Notify("Download started", "A new torrent has been added to the download queue.", icon='download')
+                self.guiUtility.Notify(
+                    "Download started", "A new torrent has been added to the download queue.", icon='download')
 
             self._logger.info("Allowing refresh in 3 seconds %s", long(time.time() + 3))
             self.librarylist.GetManager().prev_refresh_if = time.time() - 27
@@ -814,7 +824,8 @@ class MainFrame(wx.Frame):
         found = False
         if event is not None:
             nr = event.GetEventType()
-            lookup = {wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION"}
+            lookup = {wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[
+                0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION"}
             if nr in lookup:
                 nr = lookup[nr]
                 found = True
@@ -833,7 +844,8 @@ class MainFrame(wx.Frame):
             try:
                 if isinstance(event, wx.CloseEvent) and event.CanVeto() and self.utility.read_config('confirmonclose') and not event.GetEventType() == wx.EVT_QUERY_END_SESSION.evtType[0]:
                     if self.shutdown_and_upgrade_notes:
-                        confirmmsg = "Do you want to close Tribler and upgrade to the next version?  See release notes below" + "\n\n" + self.shutdown_and_upgrade_notes
+                        confirmmsg = "Do you want to close Tribler and upgrade to the next version?  See release notes below" + \
+                            "\n\n" + self.shutdown_and_upgrade_notes
                         confirmtitle = "Upgrade Tribler?"
                     else:
                         confirmmsg = "Do you want to close Tribler?"
@@ -922,7 +934,8 @@ class MainFrame(wx.Frame):
         if error_type == 0:
             errormsg = unicode(' UPnP mode ' + str(upnp_type) + ' ') + "request to the firewall failed."
         elif error_type == 1:
-            errormsg = unicode(' UPnP mode ' + str(upnp_type) + ' ') + "request to firewall returned:  '" + unicode(str(exc)) + "'. "
+            errormsg = unicode(' UPnP mode ' + str(upnp_type) + ' ') + \
+                "request to firewall returned:  '" + unicode(str(exc)) + "'. "
         elif error_type == 2:
             errormsg = unicode(' UPnP mode ' + str(upnp_type) + ' ') + "was enabled, but initialization failed."
         else:
@@ -946,7 +959,8 @@ class MainFrame(wx.Frame):
                 return
 
             if not wx.Thread_IsMain():
-                self._logger.debug("main: setActivity thread %s is NOT MAIN THREAD", threading.currentThread().getName())
+                self._logger.debug(
+                    "main: setActivity thread %s is NOT MAIN THREAD", threading.currentThread().getName())
                 print_stack()
 
             if type == NTFY_ACT_NONE:

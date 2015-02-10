@@ -181,7 +181,6 @@ class TorrentManager(object):
                 if 'no-DHT' in trackers:
                     trackers.remove('no-DHT')
 
-
                 # We still call getTorrent to fetch .torrent
                 self.downloadTorrentfileFromPeers(torrent, None)
 
@@ -280,12 +279,17 @@ class TorrentManager(object):
             beginlocalsearch = time()
             new_local_hits = self.searchLocalDatabase()
 
-            self._logger.debug('TorrentSearchGridManager: getHitsInCat: search found: %d items took %s', len(self.hits), time() - beginlocalsearch)
+            self._logger.debug(
+                'TorrentSearchGridManager: getHitsInCat: search found: %d items took %s',
+                len(self.hits),
+                time() - beginlocalsearch)
 
             # 2. Add remote hits that may apply.
             new_remote_hits, modified_hits = self.addStoredRemoteResults()
 
-            self._logger.debug('TorrentSearchGridManager: getHitsInCat: found after remote search: %d items', len(self.hits))
+            self._logger.debug(
+                'TorrentSearchGridManager: getHitsInCat: found after remote search: %d items',
+                len(self.hits))
 
             beginsort = time()
 
@@ -437,7 +441,10 @@ class TorrentManager(object):
             results = map(create_torrent, results)
         self.hits = results
 
-        self._logger.debug('TorrentSearchGridManager: _doSearchLocalDatabase took: %s of which tuple creation took %s', time() - begintime, time() - begintuples)
+        self._logger.debug(
+            'TorrentSearchGridManager: _doSearchLocalDatabase took: %s of which tuple creation took %s',
+            time() - begintime,
+            time() - begintuples)
         return True
 
     def addStoredRemoteResults(self):
@@ -509,7 +516,12 @@ class TorrentManager(object):
             keywords = search_results['keywords']
             results = search_results['results']
             candidate = search_results['candidate']
-            self._logger.debug("TorrentSearchGridManager: gotRemoteHist: got %s unfiltered results for %s %s %s", len(results), keywords, candidate, time())
+            self._logger.debug(
+                "TorrentSearchGridManager: gotRemoteHist: got %s unfiltered results for %s %s %s",
+                len(results),
+                keywords,
+                candidate,
+                time())
 
             if self.searchkeywords == keywords:
                 self.gotRemoteHits = True
@@ -542,7 +554,8 @@ class TorrentManager(object):
                     swarmnameset = set(split_into_keywords(remoteHit.name))
                     matches = {'fileextensions': set()}
                     matches['swarmname'] = swarmnameset & keywordset  # all keywords matching in swarmname
-                    matches['filenames'] = keywordset - matches['swarmname']  # remaining keywords should thus me matching in filenames or fileextensions
+                    matches['filenames'] = keywordset - matches['swarmname']
+                        # remaining keywords should thus me matching in filenames or fileextensions
 
                     if len(matches['filenames']) == 0:
                         _, ext = os.path.splitext(result[0])
@@ -600,7 +613,10 @@ class TorrentManager(object):
         norm_subscriptions = self.doStatNormalization(self.hits, 'subscriptions')
 
         for hit in self.hits:
-            score = 0.8 * norm_num_seeders[hit.infohash] - 0.1 * norm_neg_votes[hit.infohash] + 0.1 * norm_subscriptions[hit.infohash]
+            score = 0.8 * norm_num_seeders[
+                hit.infohash] - 0.1 * norm_neg_votes[
+                    hit.infohash] + 0.1 * norm_subscriptions[
+                        hit.infohash]
             hit.relevance_score[-1] = score
 
         self.hits.sort(key=lambda hit: hit.relevance_score, reverse=True)
@@ -875,7 +891,10 @@ class LibraryManager(object):
 
             def do_gui(delayedResult):
                 tdef = delayedResult.get()
-                download = self.guiUtility.frame.startDownload(tdef=tdef, destdir=DefaultDownloadStartupConfig.getInstance().get_dest_dir(), vodmode=True)
+                download = self.guiUtility.frame.startDownload(
+                    tdef=tdef,
+                    destdir=DefaultDownloadStartupConfig.getInstance().get_dest_dir(),
+                    vodmode=True)
 
             startWorker(do_gui, do_db, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
@@ -927,7 +946,10 @@ class LibraryManager(object):
             resumed = True
 
             infohash = download.get_def().get_infohash()
-            self.user_download_choice.set_download_state(infohash, "restartseed" if force_seed and download.get_progress() == 1.0 else "restart")
+            self.user_download_choice.set_download_state(
+                infohash,
+                "restartseed" if force_seed and download.get_progress(
+                ) == 1.0 else "restart")
 
         if not resumed:
             torrent_data = self.guiUtility.utility.session.get_collected_torrent(torrent.infohash)
@@ -1039,9 +1061,15 @@ class LibraryManager(object):
         return [len(self.hits), self.hits]
 
     def getTorrentFromInfohash(self, infohash):
-        dict = self.torrent_db.getTorrent(infohash, keys=['C.torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers'])
+        dict = self.torrent_db.getTorrent(infohash,
+                                          keys=['C.torrent_id',
+                                                'infohash', 'name', 'length',
+                                                'category_id', 'status_id',
+                                                'num_seeders', 'num_leechers'])
         if dict and dict['myDownloadHistory']:
-            t = LibraryTorrent(dict['C.torrent_id'], dict['infohash'], dict['name'], dict['length'], dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'])
+            t = LibraryTorrent(dict['C.torrent_id'], dict['infohash'],
+                               dict['name'], dict['length'], dict['category_id'], dict['status_id'],
+                               dict['num_seeders'], dict['num_leechers'])
             t.misc_db = self.misc_db
             t.torrent_db = self.torrent_db
             t.channelcast_db = self.channelcast_db
@@ -1231,7 +1259,11 @@ class ChannelManager(object):
         return self._createTorrent(data, channel, collectedOnly=collectedOnly)
 
     def getTorrentsFromChannel(self, channel, filterTorrents=True, limit=None):
-        hits = self.channelcast_db.getTorrentsFromChannelId(channel.id, channel.isDispersy(), CHANNEL_REQ_COLUMNS, limit)
+        hits = self.channelcast_db.getTorrentsFromChannelId(
+            channel.id,
+            channel.isDispersy(),
+            CHANNEL_REQ_COLUMNS,
+            limit)
         return self._createTorrents(hits, filterTorrents, {channel.id: channel})
 
     def getRecentReceivedTorrentsFromChannel(self, channel, filterTorrents=True, limit=None):
@@ -1400,7 +1432,10 @@ class ChannelManager(object):
         return self._createComments(hits, channel=playlist.channel, playlist=playlist)
 
     def getCommentsFromChannelTorrent(self, channel_torrent, limit=None):
-        hits = self.channelcast_db.getCommentsFromChannelTorrentId(channel_torrent.channeltorrent_id, COMMENT_REQ_COLUMNS, limit)
+        hits = self.channelcast_db.getCommentsFromChannelTorrentId(
+            channel_torrent.channeltorrent_id,
+            COMMENT_REQ_COLUMNS,
+            limit)
         return self._createComments(hits, channel=channel_torrent.channel, channel_torrent=channel_torrent)
 
     def _createComments(self, hits, channel=None, playlist=None, channel_torrent=None):
@@ -1562,12 +1597,21 @@ class ChannelManager(object):
             channel_id = channel.id
 
         if len(torrent.files) == 0:
-            self._logger.info("Could not create torrent, no files? %s %s %s", torrent.name, torrent.files, torrent.trackers)
+            self._logger.info(
+                "Could not create torrent, no files? %s %s %s",
+                torrent.name,
+                torrent.files,
+                torrent.trackers)
             return False
 
         if not self.channelcast_db.hasTorrent(channel_id, torrent.infohash):
             community = self._disp_get_community_from_channel_id(channel_id)
-            community._disp_create_torrent(torrent.infohash, long(time()), torrent.name, tuple(torrent.files), tuple(torrent.trackers))
+            community._disp_create_torrent(
+                torrent.infohash,
+                long(time()),
+                torrent.name,
+                tuple(torrent.files),
+                tuple(torrent.trackers))
             return True
         return False
 
@@ -1584,10 +1628,20 @@ class ChannelManager(object):
 
             files = tdef.get_files_as_unicode_with_length()
             if len(files) == 0:
-                self._logger.info("Could not create torrent, no files? %s %s %s", tdef.get_name_as_unicode(), files, tdef.get_trackers_as_single_tuple())
+                self._logger.info(
+                    "Could not create torrent, no files? %s %s %s",
+                    tdef.get_name_as_unicode(),
+                    files,
+                    tdef.get_trackers_as_single_tuple())
                 return False
 
-            community._disp_create_torrent(tdef.infohash, long(time()), tdef.get_name_as_unicode(), tuple(files), tdef.get_trackers_as_single_tuple(), forward=forward)
+            community._disp_create_torrent(
+                tdef.infohash,
+                long(time()),
+                tdef.get_name_as_unicode(),
+                tuple(files),
+                tdef.get_trackers_as_single_tuple(),
+                forward=forward)
 
             if 'description' in extraInfo:
                 desc = extraInfo['description']
@@ -1777,7 +1831,12 @@ class ChannelManager(object):
 
                         torrent = channel.getTorrent(infohash)
                         if not torrent:
-                            torrent = RemoteChannelTorrent(torrent_id=None, infohash=infohash, name=torrent_name, channel=channel, query_permids=set())
+                            torrent = RemoteChannelTorrent(
+                                torrent_id=None,
+                                infohash=infohash,
+                                name=torrent_name,
+                                channel=channel,
+                                query_permids=set())
                             channel.addTorrent(torrent)
 
                         if not torrent.query_permids:

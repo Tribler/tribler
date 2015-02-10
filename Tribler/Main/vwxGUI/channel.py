@@ -111,10 +111,12 @@ class ChannelManager(BaseManager):
 
                 if self.list.channel.isDispersy():
                     nr_playlists, playlists = self.channelsearch_manager.getPlaylistsFromChannel(channel)
-                    total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsNotInPlaylist(channel, self.guiutility.getFamilyFilter())
+                    total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsNotInPlaylist(
+                        channel, self.guiutility.getFamilyFilter())
                 else:
                     playlists = []
-                    total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromChannel(channel, self.guiutility.getFamilyFilter())
+                    total_items, nrfiltered, torrentList = self.channelsearch_manager.getTorrentsFromChannel(
+                        channel, self.guiutility.getFamilyFilter())
 
                 t3 = time()
                 self._logger.debug("SelChannelManager complete refresh took %s %s %s", t3 - t1, t2 - t1, t3)
@@ -131,7 +133,13 @@ class ChannelManager(BaseManager):
                 self._on_data(total_items, nrfiltered, torrentList, playlists)
 
         if self.list.channel:
-            startWorker(do_gui, db_callback, uId=u"ChannelManager_refresh_list_%d" % self.list.channel.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+            startWorker(
+                do_gui,
+                db_callback,
+                uId=u"ChannelManager_refresh_list_%d" %
+                self.list.channel.id,
+                retryOnBusy=True,
+                priority=GUI_PRI_DISPERSY)
 
     @forceWxThread
     def _on_data(self, total_items, nrfiltered, torrents, playlists):
@@ -431,22 +439,30 @@ class SelectedChannelList(GenericSearchList):
         SizeList.SetData(self, torrents)
 
         if len(playlists) > 0 or len(torrents) > 0:
-            data = [(playlist.id, [playlist.name, playlist.nr_torrents, 0, 0, 0, 0], playlist, PlaylistItem, index) for index, playlist in enumerate(playlists)]
+            data = [(playlist.id, [playlist.name, playlist.nr_torrents, 0, 0, 0, 0], playlist, PlaylistItem, index)
+                    for index, playlist in enumerate(playlists)]
 
             shouldDrag = len(playlists) > 0 and (self.channel.iamModerator or self.channel.isOpen())
             if shouldDrag:
-                data += [(torrent.infohash, [torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0, None], torrent, DragItem) for torrent in torrents]
+                data += [(torrent.infohash, [torrent.name, torrent.length, self.category_names[torrent.category_id],
+                                             torrent.num_seeders, torrent.num_leechers, 0, None],
+                          torrent, DragItem) for torrent in torrents]
             elif self.display_grid:
-                data += [(torrent.infohash, [torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0, None], torrent, ThumbnailListItem) for torrent in torrents]
+                data += [(torrent.infohash, [torrent.name, torrent.length, self.category_names[torrent.category_id],
+                                             torrent.num_seeders, torrent.num_leechers, 0, None],
+                          torrent, ThumbnailListItem) for torrent in torrents]
             else:
-                data += [(torrent.infohash, [torrent.name, torrent.length, self.category_names[torrent.category_id], torrent.num_seeders, torrent.num_leechers, 0, None], torrent, TorrentListItem) for torrent in torrents]
+                data += [(torrent.infohash, [torrent.name, torrent.length, self.category_names[torrent.category_id],
+                                             torrent.num_seeders, torrent.num_leechers, 0, None],
+                          torrent, TorrentListItem) for torrent in torrents]
             self.list.SetData(data)
 
         else:
             header = 'No torrents or playlists found.'
 
             if self.channel and self.channel.isOpen():
-                message = 'As this is an "open" channel, you can add your own torrents to share them with others in this channel'
+                message = 'As this is an "open" channel, '\
+                          'you can add your own torrents to share them with others in this channel'
                 self.list.ShowMessage(message, header=header)
             else:
                 self.list.ShowMessage(header)
@@ -475,9 +491,11 @@ class SelectedChannelList(GenericSearchList):
         if data:
             if isinstance(data, Torrent):
                 if self.state == ChannelCommunity.CHANNEL_OPEN or self.iamModerator:
-                    data = (data.infohash, [data.name, data.length, self.category_names[data.category_id], data.num_seeders, data.num_leechers, 0, None], data, DragItem)
+                    data = (data.infohash, [data.name, data.length, self.category_names[data.category_id],
+                                            data.num_seeders, data.num_leechers, 0, None], data, DragItem)
                 else:
-                    data = (data.infohash, [data.name, data.length, self.category_names[data.category_id], data.num_seeders, data.num_leechers, 0, None], data)
+                    data = (data.infohash, [data.name, data.length, self.category_names[data.category_id],
+                                            data.num_seeders, data.num_leechers, 0, None], data)
             else:
                 data = (data.id, [data.name, data.nr_torrents], data, PlaylistItem)
             self.list.RefreshData(key, data)
@@ -505,7 +523,11 @@ class SelectedChannelList(GenericSearchList):
             # detect changes
             changes = panel.GetChanged()
             if len(changes) > 0:
-                dlg = wx.MessageDialog(None, 'Do you want to save your changes made to this torrent?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
+                dlg = wx.MessageDialog(
+                    None,
+                    'Do you want to save your changes made to this torrent?',
+                    'Save changes?',
+                    wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
                 if dlg.ShowModal() == wx.ID_YES:
                     self.OnSaveTorrent(self.channel, panel)
                 dlg.Destroy()
@@ -717,7 +739,13 @@ class SelectedChannelList(GenericSearchList):
             self.guiutility.torrentsearch_manager.downloadTorrent(torrent)
 
     def _ShowFavoriteDialog(self, nrdownloaded):
-        dial = wx.MessageDialog(None, "You downloaded %d torrents from this Channel. 'Mark as favorite' will ensure that you will always have access to newest channel content.\n\nDo you want to mark this channel as one of your favorites now?" % nrdownloaded, 'Mark as Favorite?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
+        dial = wx.MessageDialog(
+            None,
+            "You downloaded %d torrents from this Channel. "\
+            "'Mark as favorite' will ensure that you will always have access to newest channel content.\n\n"\
+            "Do you want to mark this channel as one of your favorites now?" % nrdownloaded,
+            'Mark as Favorite?',
+            wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
         if dial.ShowModal() == wx.ID_YES:
             self.OnFavorite()
 
@@ -781,7 +809,13 @@ class PlaylistManager(BaseManager):
             return self.channelsearch_manager.getTorrentsFromPlaylist(self.list.playlist, self.guiutility.getFamilyFilter())
 
         if self.list.playlist:
-            startWorker(self._on_data, db_call, uId=u"PlaylistManager_refresh_list_%d" % self.list.playlist.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+            startWorker(
+                self._on_data,
+                db_call,
+                uId=u"PlaylistManager_refresh_list_%d" %
+                self.list.playlist.id,
+                retryOnBusy=True,
+                priority=GUI_PRI_DISPERSY)
 
     @forceDBThread
     def refresh_partial(self, ids):
@@ -887,7 +921,9 @@ class Playlist(SelectedChannelList):
     @warnWxThread
     def ResetBottomWindow(self):
         detailspanel = self.guiutility.SetBottomSplitterWindow(PlaylistInfoPanel)
-        detailspanel.Set(len(self.list.raw_data) if self.list.raw_data else 1, self.playlist.channel.isFavorite() if self.playlist and self.playlist.channel else None)
+        detailspanel.Set(
+            len(self.list.raw_data) if self.list.raw_data else 1,
+            self.playlist.channel.isFavorite() if self.playlist and self.playlist.channel else None)
 
 
 class ManageChannelFilesManager(BaseManager):
@@ -913,7 +949,13 @@ class ManageChannelFilesManager(BaseManager):
             self.list.dirty = False
             return self.channelsearch_manager.getTorrentsFromChannel(self.channel, filterTorrents=False)
 
-        startWorker(self._on_data, db_call, uId=u"ManageChannelFilesManager_refresh_%d" % self.channel.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        startWorker(
+            self._on_data,
+            db_call,
+            uId=u"ManageChannelFilesManager_refresh_%d" %
+            self.channel.id,
+            retryOnBusy=True,
+            priority=GUI_PRI_DISPERSY)
 
     def _on_data(self, delayedResult):
         total_items, nrfiltered, torrentList = delayedResult.get()
@@ -954,7 +996,9 @@ class ManageChannelFilesManager(BaseManager):
             # if fixtorrent not in kwargs -> new torrent created
             tdef = TorrentDef.load(torrentfilename)
             if 'fixtorrent' not in kwargs:
-                download = self.guiutility.frame.startDownload(torrentfilename=torrentfilename, destdir=kwargs.get('destdir', None), correctedFilename=kwargs.get('correctedFilename', None))
+                download = self.guiutility.frame.startDownload(torrentfilename=torrentfilename,
+                                                               destdir=kwargs.get('destdir', None),
+                                                               correctedFilename=kwargs.get('correctedFilename', None))
             return self.AddTDef(tdef)
 
         except:
@@ -970,7 +1014,9 @@ class ManageChannelFilesManager(BaseManager):
                     # if fixtorrent not in kwargs -> new torrent created
                     tdef = TorrentDef.load(torrentfilename)
                     if 'fixtorrent' not in kwargs:
-                        download = self.guiutility.frame.startDownload(torrentfilename=torrentfilename, destdir=kwargs.get('destdir', None), correctedFilename=kwargs.get('correctedFilename', None))
+                        download = self.guiutility.frame.startDownload(torrentfilename=torrentfilename,
+                                                            destdir=kwargs.get( 'destdir', None),
+                                                            correctedFilename=kwargs.get('correctedFilename', None))
 
                     torrentdefs.append(tdef)
                 except:
@@ -1053,10 +1099,24 @@ class ManageChannelPlaylistsManager(BaseManager):
             _, playlistList = self.channelsearch_manager.getPlaylistsFromChannel(self.channel)
             return playlistList
 
-        startWorker(self.list.SetDelayedData, db_call, uId=u"ManageChannelPlaylistsManager_refresh_%d" % self.channel.id, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        startWorker(
+            self.list.SetDelayedData,
+            db_call,
+            uId=u"ManageChannelPlaylistsManager_refresh_%d" %
+            self.channel.id,
+            retryOnBusy=True,
+            priority=GUI_PRI_DISPERSY)
 
     def refresh_partial(self, playlist_id):
-        startWorker(self.list.RefreshDelayedData, self.channelsearch_manager.getPlaylist, wargs=(self.channel, playlist_id), cargs=(playlist_id,), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        startWorker(
+            self.list.RefreshDelayedData,
+            self.channelsearch_manager.getPlaylist,
+            wargs=(self.channel,
+                   playlist_id),
+            cargs=(playlist_id,
+                   ),
+            retryOnBusy=True,
+            priority=GUI_PRI_DISPERSY)
 
     def SetChannel(self, channel):
         if channel != self.channel:
@@ -1071,28 +1131,36 @@ class ManageChannelPlaylistsManager(BaseManager):
         self.channelsearch_manager.removeAllPlaylists(self.channel)
 
     def GetTorrentsFromChannel(self):
-        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromChannel, wargs=(self.channel,), wkwargs={'filterTorrents': False}, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromChannel, wargs=(self.channel,),
+                                    wkwargs={'filterTorrents': False}, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         total_items, nrfiltered, torrentList = delayedResult.get()
         return torrentList
 
     def GetTorrentsNotInPlaylist(self):
-        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsNotInPlaylist, wargs=(self.channel,), wkwargs={'filterTorrents': False}, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsNotInPlaylist, wargs=(self.channel,),
+                                    wkwargs={'filterTorrents': False}, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         total_items, nrfiltered, torrentList = delayedResult.get()
         return torrentList
 
     def GetTorrentsFromPlaylist(self, playlist):
-        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromPlaylist, wargs=(playlist,), wkwargs={'filterTorrents': False}, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        delayedResult = startWorker(None, self.channelsearch_manager.getTorrentsFromPlaylist, wargs=(playlist,),
+                                    wkwargs={'filterTorrents': False}, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         total_items, nrfiltered, torrentList = delayedResult.get()
         return torrentList
 
     def createPlaylist(self, name, description, infohashes):
-        startWorker(None, self.channelsearch_manager.createPlaylist, wargs=(self.channel.id, name, description, infohashes), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        startWorker(None, self.channelsearch_manager.createPlaylist,
+                    wargs=(self.channel.id, name, description, infohashes),
+                    retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
     def savePlaylist(self, playlist_id, name, description):
-        startWorker(None, self.channelsearch_manager.modifyPlaylist, wargs=(self.channel.id, playlist_id, name, description), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        startWorker(None, self.channelsearch_manager.modifyPlaylist,
+                    wargs=(self.channel.id, playlist_id, name, description),
+                    retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
     def savePlaylistTorrents(self, playlist_id, infohashes):
-        startWorker(None, self.channelsearch_manager.savePlaylistTorrents, wargs=(self.channel.id, playlist_id, infohashes), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        startWorker(None, self.channelsearch_manager.savePlaylistTorrents,
+                    wargs=(self.channel.id, playlist_id, infohashes), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
     def playlistUpdated(self, playlist_id, modified=False):
         if self.list.InList(playlist_id):
@@ -1165,7 +1233,10 @@ class ManageChannel(AbstractDetails):
         self.identifier = EditText(self.overviewpage, '')
         self.identifier.SetMaxLength(40)
         self.identifier.SetEditable(False)
-        self.identifierText = BetterText(self.overviewpage, -1, 'You can use this identifier to allow other to manually join this channel.\nCopy and paste it in an email and let others join by going to Favorites and "Add Favorite channel"')
+        self.identifierText = BetterText(
+            self.overviewpage,
+            -1, 'You can use this identifier to allow other to manually join this channel.\n'
+            'Copy and paste it in an email and let others join by going to Favorites and "Add Favorite channel"')
 
         identSizer.Add(self.identifier, 0, wx.EXPAND)
         identSizer.Add(self.identifierText, 0, wx.EXPAND)
@@ -1361,7 +1432,8 @@ class ManageChannel(AbstractDetails):
 
                 if iamModerator:
                     if iamModerator and not channel.isMyChannel():
-                        self.overviewheader.SetLabel('Welcome to the management interface for this channel. You can modified these setting due to having the permissions for them.')
+                        self.overviewheader.SetLabel('Welcome to the management interface for this channel. '
+                                                    'You can modify these setting as you have the required permissions.')
 
                     self.name.Enable(True)
                     self.description.Enable(True)
@@ -1375,7 +1447,8 @@ class ManageChannel(AbstractDetails):
                     self.statebox.SetSelection(selection)
                     self.AddPage(self.notebook, self.settingspage, "Settings", 1)
                 else:
-                    self.overviewheader.SetLabel('Welcome to the management interface for this channel. You cannot modify any of these settings as you do not have the permissions to do so.')
+                    self.overviewheader.SetLabel('Welcome to the management interface for this channel. '
+                        'You cannot modify any of these settings as you do not have the required permissions.')
                     self.RemovePage(self.notebook, "Settings")
 
                 if iamModerator or channel_state == ChannelCommunity.CHANNEL_OPEN:
@@ -1400,7 +1473,8 @@ class ManageChannel(AbstractDetails):
             startWorker(update_panel, db_call, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
         else:
-            self.overviewheader.SetLabel('Welcome to the management interface for your channel. You currently do not yet have a channel, create one now.')
+            self.overviewheader.SetLabel('Welcome to the management interface for your channel. '
+                'You currently do not yet have a channel, create one now.')
 
             self.name.SetValue('')
             self.name.originalValue = ''
@@ -1522,7 +1596,11 @@ class ManageChannel(AbstractDetails):
     def Show(self, show=True):
         if not show:
             if self.IsChanged():
-                dlg = wx.MessageDialog(None, 'Do you want to save your changes made to this channel?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
+                dlg = wx.MessageDialog(
+                    None,
+                    'Do you want to save your changes made to this channel?',
+                    'Save changes?',
+                    wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
                 if dlg.ShowModal() == wx.ID_YES:
                     self.Save()
 
@@ -1559,7 +1637,13 @@ class ManageChannel(AbstractDetails):
         elif state == 2:
             state = 0
 
-        startWorker(None, self.channelsearch_manager.setChannelState, wargs=(self.channel.id, state), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        startWorker(
+            None,
+            self.channelsearch_manager.setChannelState,
+            wargs=(self.channel.id,
+                   state),
+            retryOnBusy=True,
+            priority=GUI_PRI_DISPERSY)
 
         button = event.GetEventObject()
         button.Enable(False)
@@ -1589,7 +1673,8 @@ class ManageChannel(AbstractDetails):
 class ManageChannelFilesList(List):
 
     def __init__(self, parent):
-        columns = [{'name': 'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True, 'showColumname': False},
+        columns = [
+            {'name': 'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True, 'showColumname': False},
                    {'name': 'Date Added', 'width': 85, 'fmt': format_time, 'defaultSorted': True, 'showColumname': False}]
 
         List.__init__(self, columns, LIST_LIGHTBLUE, [0, 0], parent=parent, borders=False)
@@ -1632,13 +1717,21 @@ class ManageChannelFilesList(List):
         return True
 
     def OnRemoveAll(self, event):
-        dlg = wx.MessageDialog(None, 'Are you sure you want to remove all torrents from your channel?', 'Remove torrents', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
+        dlg = wx.MessageDialog(
+            None,
+            'Are you sure you want to remove all torrents from your channel?',
+            'Remove torrents',
+            wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
         if dlg.ShowModal() == wx.ID_YES:
             self.GetManager().RemoveAllItems()
         dlg.Destroy()
 
     def OnRemoveSelected(self, event):
-        dlg = wx.MessageDialog(None, 'Are you sure you want to remove all selected torrents from your channel?', 'Remove torrents', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
+        dlg = wx.MessageDialog(
+            None,
+            'Are you sure you want to remove all selected torrents from your channel?',
+            'Remove torrents',
+            wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
         if dlg.ShowModal() == wx.ID_YES:
             infohashes = [key for key, _ in self.list.GetExpandedItems()]
             self.GetManager().RemoveItems(infohashes)
@@ -1653,7 +1746,10 @@ class ManageChannelFilesList(List):
         dlg.Destroy()
 
     def OnExport(self, event):
-        dlg = wx.DirDialog(None, "Please select a directory to which all .torrents should be exported", style=wx.wx.DD_DIR_MUST_EXIST)
+        dlg = wx.DirDialog(
+            None,
+            "Please select a directory to which all .torrents should be exported",
+            style=wx.wx.DD_DIR_MUST_EXIST)
         if dlg.ShowModal() == wx.ID_OK and os.path.isdir(dlg.GetPath()):
             self.GetManager().DoExport(dlg.GetPath())
         dlg.Destroy()
@@ -1662,7 +1758,11 @@ class ManageChannelFilesList(List):
 class ManageChannelPlaylistList(ManageChannelFilesList):
 
     def __init__(self, parent):
-        columns = [{'name': 'Name', 'width': wx.LIST_AUTOSIZE, 'icon': 'checkbox', 'sortAsc': True, 'showColumname': False}]
+        columns = [{'name': 'Name',
+                    'width': wx.LIST_AUTOSIZE,
+                    'icon': 'checkbox',
+                    'sortAsc': True,
+                    'showColumname': False}]
 
         List.__init__(self, columns, LIST_LIGHTBLUE, [0, 0], True, parent=parent, borders=False)
 
@@ -1683,7 +1783,8 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
     def SetData(self, data):
         List.SetData(self, data)
 
-        data = [(playlist.id, [playlist.name, playlist.nr_torrents, 0, 0], playlist, PlaylistItem, index) for index, playlist in enumerate(data)]
+        data = [(playlist.id, [playlist.name, playlist.nr_torrents, 0, 0], playlist, PlaylistItem, index)
+                for index, playlist in enumerate(data)]
         if len(data) > 0:
             self.list.SetData(data)
         else:
@@ -1710,7 +1811,11 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         playlist_id = item.original_data.get('id', False)
         if playlist_id:
             if panel.IsChanged():
-                dlg = wx.MessageDialog(None, 'Do you want to save your changes made to this playlist?', 'Save changes?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
+                dlg = wx.MessageDialog(
+                    None,
+                    'Do you want to save your changes made to this playlist?',
+                    'Save changes?',
+                    wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)
                 if dlg.ShowModal() == wx.ID_YES:
                     self.OnSave(playlist_id, panel)
         ManageChannelFilesList.OnCollapse(self, item, panel, from_expand)
@@ -1724,7 +1829,12 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
     def OnNew(self, event):
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
-        dlg = wx.Dialog(None, -1, 'Create a new playlist', size=(500, 300), style=wx.RESIZE_BORDER | wx.DEFAULT_DIALOG_STYLE)
+        dlg = wx.Dialog(
+            None,
+            -1,
+            'Create a new playlist',
+            size=(500, 300),
+            style=wx.RESIZE_BORDER | wx.DEFAULT_DIALOG_STYLE)
         playlistdetails = MyChannelPlaylist(dlg, self.OnManage, can_edit=True)
 
         vSizer.Add(playlistdetails, 1, wx.EXPAND | wx.ALL, 3)
@@ -1745,7 +1855,10 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
 #        dlg.Destroy()
 
     def OnRemoveSelected(self, playlist_id, panel):
-        dlg = wx.MessageDialog(None, 'Are you sure you want to remove this playlist from your channel?', 'Remove playlist', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
+        dlg = wx.MessageDialog(
+            None, 'Are you sure you want to remove this playlist from your channel?',
+            'Remove playlist',
+            wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
         if dlg.ShowModal() == wx.ID_YES:
             self.GetManager().RemoveItems([playlist_id])
         dlg.Destroy()
@@ -1757,7 +1870,10 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
             manager.savePlaylistTorrents(playlist.id, torrent_ids)
 
     def OnManage(self, playlist):
-        dlg = wx.Dialog(None, -1, 'Manage the torrents for this playlist', size=(900, 500), style=wx.RESIZE_BORDER | wx.DEFAULT_DIALOG_STYLE)
+        dlg = wx.Dialog(None, -1,
+            'Manage the torrents for this playlist',
+            size=(900, 500),
+            style=wx.RESIZE_BORDER | wx.DEFAULT_DIALOG_STYLE)
 
         manager = self.GetManager()
         available = manager.GetTorrentsFromChannel()
@@ -1967,7 +2083,8 @@ class CommentManager(BaseManager):
             changed = True
 
         elif channeltorrent:
-            assert isinstance(channeltorrent, ChannelTorrent) or (isinstance(channeltorrent, CollectedTorrent) and isinstance(channeltorrent.torrent, ChannelTorrent)), type(channeltorrent)
+            assert isinstance(channeltorrent, ChannelTorrent) or (
+                isinstance(channeltorrent, CollectedTorrent) and isinstance(channeltorrent.torrent, ChannelTorrent)), type(channeltorrent)
             self.channeltorrent = channeltorrent
             if self.list.header:
                 self.list.header.SetTitle('Comments for this torrent')
@@ -2018,9 +2135,19 @@ class CommentManager(BaseManager):
 
         def db_callback():
             if self.playlist:
-                self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after, playlist=self.playlist)
+                self.channelsearch_manager.createComment(
+                    comment,
+                    self.channel,
+                    reply_to,
+                    reply_after,
+                    playlist=self.playlist)
             elif self.channeltorrent:
-                self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after, infohash=self.channeltorrent.infohash)
+                self.channelsearch_manager.createComment(
+                    comment,
+                    self.channel,
+                    reply_to,
+                    reply_after,
+                    infohash=self.channeltorrent.infohash)
             else:
                 self.channelsearch_manager.createComment(comment, self.channel, reply_to, reply_after)
         startWorker(None, workerFn=db_callback, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
@@ -2113,7 +2240,10 @@ class CommentList(List):
                 return hSizer
 
             altControl = create_button
-        self.list.ShowMessage('You have to mark this channel as a Favorite to start receiving comments.', 'No comments received yet', altControl)
+        self.list.ShowMessage(
+            'You have to mark this channel as a Favorite to start receiving comments.',
+            'No comments received yet',
+            altControl)
 
     def EnableCommeting(self, enable=True):
         self.footer.EnableCommeting(enable)
@@ -2179,26 +2309,37 @@ class ActivityManager(BaseManager):
             if self.playlist:
                 commentList = self.channelsearch_manager.getCommentsFromPlayList(self.playlist, limit=10)
                 nrTorrents, _, torrentList = self.channelsearch_manager.getTorrentsFromPlaylist(self.playlist, limit=10)
-                nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromPlaylist(self.playlist, limit=10)
-                recentModifications = self.channelsearch_manager.getRecentModificationsFromPlaylist(self.playlist, limit=10)
+                nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentTorrentsFromPlaylist(
+                    self.playlist, limit=10)
+                recentModifications = self.channelsearch_manager.getRecentModificationsFromPlaylist(
+                    self.playlist, limit=10)
                 recentModerations = self.channelsearch_manager.getRecentModerationsFromPlaylist(self.playlist, limit=10)
                 recent_markings = self.channelsearch_manager.getRecentMarkingsFromPlaylist(self.playlist, limit=10)
             else:
                 commentList = self.channelsearch_manager.getCommentsFromChannel(self.channel, limit=10)
                 nrTorrents, _, torrentList = self.channelsearch_manager.getTorrentsFromChannel(self.channel, limit=10)
-                nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentReceivedTorrentsFromChannel(self.channel, limit=10)
-                recentModifications = self.channelsearch_manager.getRecentModificationsFromChannel(self.channel, limit=10)
+                nrRecentTorrents, _, recentTorrentList = self.channelsearch_manager.getRecentReceivedTorrentsFromChannel(
+                    self.channel, limit=10)
+                recentModifications = self.channelsearch_manager.getRecentModificationsFromChannel(
+                    self.channel, limit=10)
                 recentModerations = self.channelsearch_manager.getRecentModerationsFromChannel(self.channel, limit=10)
                 recent_markings = self.channelsearch_manager.getRecentMarkingsFromChannel(self.channel, limit=10)
 
             return torrentList, recentTorrentList, commentList, recentModifications, recentModerations, recent_markings
 
         def do_gui(delayedResult):
-            torrentList, recentTorrentList, commentList, recentModifications, recentModerations, recent_markings = delayedResult.get()
+            torrentList, recentTorrentList, commentList, recentModifications, recentModerations, recent_markings = delayedResult.get(
+            )
 
             self.channelsearch_manager.populateWithPlaylists(torrentList)
             self.channelsearch_manager.populateWithPlaylists(recentTorrentList)
-            self.list.SetData(commentList, torrentList, recentTorrentList, recentModifications, recentModerations, recent_markings)
+            self.list.SetData(
+                commentList,
+                torrentList,
+                recentTorrentList,
+                recentModifications,
+                recentModerations,
+                recent_markings)
 
         if self.channel.isFavorite() or self.channel.isMyChannel():
             startWorker(do_gui, db_callback, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
@@ -2229,20 +2370,34 @@ class ActivityList(List):
         return self.manager
 
     @forceWxThread
-    def SetData(self, comments, recent_torrents, recent_received_torrents, recent_modifications, recent_moderations, recent_markings):
+    def SetData(
+        self,
+        comments,
+     recent_torrents,
+     recent_received_torrents,
+     recent_modifications,
+     recent_moderations,
+     recent_markings):
         List.SetData(self, recent_torrents)
 
         # remove duplicates
         recent_torrent_infohashes = set([torrent.infohash for torrent in recent_torrents])
-        recent_received_torrents = [torrent for torrent in recent_received_torrents if torrent.infohash not in recent_torrent_infohashes]
+        recent_received_torrents = [
+            torrent for torrent in recent_received_torrents if torrent.infohash not in recent_torrent_infohashes]
 
         # first element must be timestamp, allows for easy sorting
-        data = [(comment.inserted, ("COMMENT_%d" % comment.id, (), (0, comment), CommentActivityItem)) for comment in comments]
-        data += [(torrent.inserted, (torrent.infohash, (), torrent, NewTorrentActivityItem)) for torrent in recent_torrents]
-        data += [(torrent.inserted, (torrent.infohash, (), torrent, TorrentActivityItem)) for torrent in recent_received_torrents]
-        data += [(modification.inserted, ("MODIFICATION_%d" % modification.id, (), modification, ModificationActivityItem)) for modification in recent_modifications if modification.name != "swift-url"]
-        data += [(moderation.inserted, ("MODERATION_%d" % moderation.id, (), moderation, ModerationActivityItem)) for moderation in recent_moderations]
-        data += [(marking.time_stamp, (marking.dispersy_id, (), marking, MarkingActivityItem)) for marking in recent_markings]
+        data = [(comment.inserted, ("COMMENT_%d" % comment.id, (), (0, comment), CommentActivityItem))
+                for comment in comments]
+        data += [(torrent.inserted, (torrent.infohash, (), torrent, NewTorrentActivityItem))
+                 for torrent in recent_torrents]
+        data += [(torrent.inserted, (torrent.infohash, (), torrent, TorrentActivityItem))
+                 for torrent in recent_received_torrents]
+        data += [(modification.inserted, ("MODIFICATION_%d" % modification.id, (), modification, ModificationActivityItem))
+                 for modification in recent_modifications if modification.name != "swift-url"]
+        data += [(moderation.inserted, ("MODERATION_%d" % moderation.id, (), moderation, ModerationActivityItem))
+                 for moderation in recent_moderations]
+        data += [(marking.time_stamp, (marking.dispersy_id, (), marking, MarkingActivityItem))
+                 for marking in recent_markings]
         data.sort(reverse=True)
 
         # removing timestamp
@@ -2267,7 +2422,10 @@ class ActivityList(List):
                 return hSizer
 
             altControl = create_button
-        self.list.ShowMessage('You have to mark this channel as a Favorite to start seeing activity.', 'No activity received yet', altControl)
+        self.list.ShowMessage(
+            'You have to mark this channel as a Favorite to start seeing activity.',
+            'No activity received yet',
+            altControl)
 
     def OnShowTorrent(self, torrent):
         self.parent_list.Select(torrent)
@@ -2338,14 +2496,22 @@ class ModificationList(List):
 
     @forceWxThread
     def ShowPreview(self):
-        self.list.ShowMessage('You have to mark this channel as a Favorite to start seeing modifications.', 'No modifications received yet')
+        self.list.ShowMessage(
+            'You have to mark this channel as a Favorite to start seeing modifications.',
+            'No modifications received yet')
 
     def OnRevertModification(self, modification):
-        dlg = wx.Dialog(None, -1, 'Revert this modification', size=(700, 400), style=wx.RESIZE_BORDER | wx.DEFAULT_DIALOG_STYLE)
+        dlg = wx.Dialog(None, -1,
+            'Revert this modification',
+            size=(700, 400),
+            style=wx.RESIZE_BORDER | wx.DEFAULT_DIALOG_STYLE)
         dlg.SetBackgroundColour(DEFAULT_BACKGROUND)
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
-        vSizer.Add(ModificationItem(dlg, dlg, '', '', modification, list_selected=DEFAULT_BACKGROUND), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 7)
+        vSizer.Add(
+            ModificationItem(dlg, dlg, '', '', modification,
+                             list_selected=DEFAULT_BACKGROUND),
+            0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 7)
         dlg.OnExpand = lambda a: False
         dlg.OnChange = vSizer.Layout
 
@@ -2464,7 +2630,8 @@ class ModerationList(List):
         if len(data) > 0:
             self.list.SetData(data)
         else:
-            self.list.ShowMessage('No moderations are found.\nModerations are modifications which are reverted by another peer.')
+            self.list.ShowMessage(
+                'No moderations are found.\nModerations are modifications which are reverted by another peer.')
             self.SetNrResults(0)
 
     @forceWxThread
@@ -2482,7 +2649,10 @@ class ModerationList(List):
                 return hSizer
 
             altControl = create_button
-        self.list.ShowMessage('You have to mark this channel as a Favorite to start seeing moderations.', 'No moderations received yet', altControl)
+        self.list.ShowMessage(
+            'You have to mark this channel as a Favorite to start seeing moderations.',
+            'No moderations received yet',
+            altControl)
 
     def OnShowTorrent(self, torrent):
         self.parent_list.Select(torrent)

@@ -230,7 +230,9 @@ class Stats(wx.Panel):
             self._stopDowser()
         else:
             if not self._startDowser():
-                dlg = wx.DirDialog(None, "Please select your dowser installation directory", style=wx.wx.DD_DIR_MUST_EXIST)
+                dlg = wx.DirDialog(None,
+                                   "Please select your dowser installation directory",
+                                   style=wx.wx.DD_DIR_MUST_EXIST)
                 if dlg.ShowModal() == wx.ID_OK and os.path.isdir(dlg.GetPath()):
                     sys.path.append(dlg.GetPath())
                     self._startDowser()
@@ -530,7 +532,11 @@ class PopularTorrentPanel(NewTorrentPanel):
             if familyfilter_sql:
                 familyfilter_sql = familyfilter_sql[4:]
 
-            topTen = self.torrentdb._db.getAll("CollectedTorrent", ("infohash", "name", "(num_seeders+num_leechers) as popularity"), where=familyfilter_sql, order_by="(num_seeders+num_leechers) DESC", limit=10)
+            topTen = self.torrentdb._db.getAll(
+                "CollectedTorrent", ("infohash", "name", "(num_seeders+num_leechers) as popularity"),
+                where=familyfilter_sql,
+                order_by="(num_seeders+num_leechers) DESC",
+                limit=10)
             self._RefreshList(topTen)
 
         startWorker(None, db_callback, uId=u"PopularTorrentPanel_RefreshList", priority=GUI_PRI_DISPERSY)
@@ -563,6 +569,7 @@ class ActivityPanel(NewTorrentPanel):
 
 
 class NetworkGraphPanel(wx.Panel):
+
     def __init__(self, parent, fullscreen=True):
         wx.Panel.__init__(self, parent, -1)
 
@@ -580,7 +587,10 @@ class NetworkGraphPanel(wx.Panel):
         self.circuits = {}
         self.circuits_old = None
         self.hop_to_colour = {}
-        self.colours = [wx.RED, wx.Colour(156, 18, 18), wx.Colour(183, 83, 83), wx.Colour(254, 134, 134), wx.Colour(254, 190, 190)]
+        self.colours = [wx.RED, wx.Colour(156, 18, 18),
+                        wx.Colour(183, 83, 83),
+                        wx.Colour(254, 134, 134),
+                        wx.Colour(254, 190, 190)]
 
         self.selected_circuit = None
         self.hop_hover_evt = None
@@ -602,7 +612,12 @@ class NetworkGraphPanel(wx.Panel):
 
     def try_community(self):
         try:
-            tunnel_community = (c for c in self.dispersy.get_communities() if isinstance(c, HiddenTunnelCommunity)).next()
+            tunnel_community = (
+                c for c in self.dispersy.get_communities(
+                ) if isinstance(
+                    c,
+                    HiddenTunnelCommunity)).next(
+            )
             self.found_community(tunnel_community)
         except:
             wx.CallLater(1000, self.try_community)
@@ -689,7 +704,7 @@ class NetworkGraphPanel(wx.Panel):
                                               len(self.tunnel_community.exit_sockets)))
 
         new_circuits = dict(self.tunnel_community.circuits)
-        self.circuits = {k:v for k, v in new_circuits.iteritems() if v.goal_hops == self.hops or self.hops < 0}
+        self.circuits = {k: v for k, v in new_circuits.iteritems() if v.goal_hops == self.hops or self.hops < 0}
 
         # Add new circuits & update existing circuits
         for circuit_id, circuit in self.circuits.iteritems():
@@ -820,7 +835,10 @@ class NetworkGraphPanel(wx.Panel):
         # Draw swarm
         gc.DrawBitmap(self.swarm, swarm_pos[0], swarm_pos[1], *swarm_size)
         dc.SetTextForeground(wx.BLACK)
-        dc.DrawLabel("Bittorrent swarm", wx.Rect(*(swarm_pos + swarm_size.Get())), alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
+        dc.DrawLabel(
+            "Bittorrent swarm",
+            wx.Rect(*(swarm_pos + swarm_size.Get())),
+            alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
 
         self.DrawHoverAndInfo(gc, dc, circuit_points)
 
@@ -913,11 +931,14 @@ class ArtworkPanel(wx.Panel):
         self.max_torrents = 20
         self.is_xxx = {}
 
-        self.list = ListBody(self, self, [{'width': wx.LIST_AUTOSIZE}], 0, 0, True, False, grid_columns=self.max_torrents, horizontal_scroll=True)
+        self.list = ListBody(self, self, [{'width': wx.LIST_AUTOSIZE}], 0, 0, True, False,
+                             grid_columns=self.max_torrents, horizontal_scroll=True)
         self.list.SetBackgroundColour(self.GetBackgroundColour())
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
-        vSizer.Add(DetailHeader(self, "Start streaming immediately by clicking on one of the items below"), 0, wx.EXPAND)
+        vSizer.Add(
+            DetailHeader(self, "Start streaming immediately by clicking on one of the items below"),
+            0, wx.EXPAND)
         vSizer.Add(self.list, 1, wx.EXPAND)
 
         self.SetSizer(vSizer)
@@ -932,7 +953,8 @@ class ArtworkPanel(wx.Panel):
         torrents = self.guiutility.torrentsearch_manager.getThumbnailTorrents(limit=self.max_torrents)
 
         if len(torrents) == 0:
-            non_torrents = self.guiutility.torrentsearch_manager.getNotCollectedThumbnailTorrents(limit=self.max_torrents)
+            non_torrents = self.guiutility.torrentsearch_manager.getNotCollectedThumbnailTorrents(
+                limit=self.max_torrents)
             for torrent in non_torrents:
                 self.guiutility.torrentsearch_manager.downloadTorrentfileFromPeers(torrent,
                                                                                    lambda _: self.refreshNow(),
@@ -946,7 +968,9 @@ class ArtworkPanel(wx.Panel):
         torrents = delayedResult.get()
 
         for torrent in torrents:
-            thumb_path = os.path.join(self.utility.session.get_torrent_collecting_dir(), binascii.hexlify(torrent.infohash))
+            thumb_path = os.path.join(
+                self.utility.session.get_torrent_collecting_dir(),
+                binascii.hexlify(torrent.infohash))
             if os.path.isdir(thumb_path):
                 if not self.guiutility.getFamilyFilter() or not self.IsXXX(torrent, thumb_path):
                     data.append((torrent.infohash, [torrent.name], torrent, ThumbnailListItemNoTorrent))
@@ -967,7 +991,8 @@ class ArtworkPanel(wx.Panel):
         if infohash in self.is_xxx:
             return self.is_xxx[infohash]
 
-        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
+        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir)
+                       for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
 
         if thumb_files:
             result = considered_xxx(thumb_files[0])

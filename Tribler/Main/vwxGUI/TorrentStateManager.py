@@ -150,7 +150,7 @@ class TorrentStateManager(object):
                 self._logger.debug(u"FFMPEG - thumbnail created = %s, timecode = %d", path_exists, timecode)
 
         # disable thumbnail generation
-        #generate_thumbnails()
+        # generate_thumbnails()
         thumb_filenames = [None]
         thumb_timecodes = None
 

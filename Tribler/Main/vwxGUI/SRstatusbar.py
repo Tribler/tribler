@@ -168,6 +168,7 @@ class SRstatusbar(wx.StatusBar):
 
     def GetConnections(self):
         return self.connection.GetPercentage()
+
     def GetChannelConnections(self):
         return self.channelconnections
 
