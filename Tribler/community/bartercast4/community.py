@@ -77,7 +77,7 @@ class BarterCommunity(Community):
         return False
 
     def create_stats_request(self, candidate, stats_type):
-        self._logger.info("Creating stats-request for type %d to member: %s" % (stats_type, candidate._association.mid.encode("hex")))
+        log.msg("Creating stats-request for type %d to member: %s" % (stats_type, candidate._association.mid.encode("hex")))
         meta = self.get_meta_message(u"stats-request")
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.claim_global_time(),),
@@ -95,18 +95,18 @@ class BarterCommunity(Community):
                 yield DelayMessageByProof(message)
 
     def on_stats_request(self, messages):
-        self._logger.info("IN: stats-request")
+        log.msg("IN: stats-request")
         for message in messages:
-            self._logger.info("stats-request: %s %s" % (message._distribution.global_time, message.payload.stats_type))
+            log.msg("stats-request: %s %s" % (message._distribution.global_time, message.payload.stats_type))
             # send back stats-response
             self.create_stats_response(message.payload.stats_type, message.candidate)
 
     # todo
     def create_stats_response(self, stats_type, candidate):
-        self._logger.info("OUT: stats-response")
+        log.msg("OUT: stats-response")
         meta = self.get_meta_message(u"stats-response")
         records = self._dispersy._statistics.get_top_n_bartercast_statistics(stats_type, 5)
-        self._logger.info("sending stats for type %d: %s" % (stats_type, records))
+        log.msg("sending stats for type %d: %s" % (stats_type, records))
 
         message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.claim_global_time(),),
@@ -123,7 +123,7 @@ class BarterCommunity(Community):
                 yield DelayMessageByProof(message)
 
     def on_stats_response(self, messages):
-        self._logger.info("IN: stats-response")
+        log.msg("IN: stats-response")
         for message in messages:
             log.msg("stats-response: %s %s %s"
                                % (message._distribution.global_time, message.payload.stats_type, message.payload.records))
@@ -145,7 +145,7 @@ class BarterCommunityCrawler(BarterCommunity):
         # handler = Tunnel.get_instance().stats_handler
         for message in messages:
             # self.do_stats(message.candidate, lambda c, s, m=message: handler(c, s, m))
-            self._logger.info("in on_introduction_response: Requesting stats from %s" % message.candidate)
+            log.msg("in on_introduction_response: Requesting stats from %s" % message.candidate)
             # @TODO add other message types
             for t in BartercastStatisticTypes.reverse_mapping:
                 self.create_stats_request(message.candidate, t)
