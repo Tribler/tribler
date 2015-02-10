@@ -75,7 +75,8 @@ class Category(object):
                 files_list.append((ifiles['path'][-1], ifiles['length'] / float(self.__size_change)))
         except KeyError:
             # single mode
-            files_list.append((torrent_dict['info']["name"], torrent_dict['info']['length'] / float(self.__size_change)))
+            files_list.append(
+                (torrent_dict['info']["name"], torrent_dict['info']['length'] / float(self.__size_change)))
 
         tracker = torrent_dict.get('announce')
         if not tracker:
@@ -91,7 +92,8 @@ class Category(object):
             if self.xxx_filter.isXXXTorrent(files_list, display_name, tracker, comment):
                 return ['xxx']
         except:
-            self._logger.critical('Category: Exception in explicit terms filter in torrent: %s', display_name, exc_info=True)
+            self._logger.critical(
+                'Category: Exception in explicit terms filter in torrent: %s', display_name, exc_info=True)
 
         torrent_category = None
         # filename_list ready
