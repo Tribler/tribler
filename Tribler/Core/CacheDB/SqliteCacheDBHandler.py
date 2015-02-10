@@ -495,16 +495,16 @@ class TorrentDBHandler(BasicDBHandler):
             self.existed_torrents.add(infohash)
             return True
 
-    def addExternalTorrent(self, torrentdef, source="BC", extra_info={}):
+    def addExternalTorrent(self, torrentdef, extra_info={}):
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
         assert torrentdef.is_finalized(), "TORRENTDEF is not finalized"
         if torrentdef.is_finalized():
             infohash = torrentdef.get_infohash()
             if not self.hasTorrent(infohash):
-                self._addTorrentToDB(torrentdef, source, extra_info)
+                self._addTorrentToDB(torrentdef, extra_info)
                 self.notifier.notify(NTFY_TORRENTS, NTFY_INSERT, infohash)
 
-    def addExternalTorrentNoDef(self, infohash, name, files, trackers, timestamp, source, extra_info={}):
+    def addExternalTorrentNoDef(self, infohash, name, files, trackers, timestamp, extra_info={}):
         if not self.hasTorrent(infohash):
             metainfo = {'info': {}, 'encoding': 'utf_8'}
             metainfo['info']['name'] = name.encode('utf_8')
@@ -534,7 +534,7 @@ class TorrentDBHandler(BasicDBHandler):
                 torrentdef = TorrentDef.load_from_dict(metainfo)
                 torrentdef.infohash = infohash
 
-                torrent_id = self._addTorrentToDB(torrentdef, source, extra_info)
+                torrent_id = self._addTorrentToDB(torrentdef, extra_info)
                 self._rtorrent_handler.notify_possible_torrent_infohash(infohash)
 
                 insert_files = [(torrent_id, unicode(path), length) for path, length in files]
@@ -551,7 +551,7 @@ class TorrentDBHandler(BasicDBHandler):
                     sql_insert_collecting = "INSERT OR IGNORE INTO TorrentCollecting (torrent_id, source) VALUES (?,?)"
                     self._db.executemany(sql_insert_collecting, insert_collecting)
             except:
-                self._logger.error("Could not create a TorrentDef instance %s %s %s %s %s %s %s", infohash, timestamp, name, files, trackers, source, extra_info)
+                self._logger.error("Could not create a TorrentDef instance %s %s %s %s %s %s", infohash, timestamp, name, files, trackers, extra_info)
                 print_exc()
 
     def addInfohash(self, infohash):
@@ -592,7 +592,7 @@ class TorrentDBHandler(BasicDBHandler):
         assert all(torrent_id for torrent_id in torrent_ids), torrent_ids
         return torrent_ids, to_be_inserted
 
-    def _get_database_dict(self, torrentdef, source="BC", extra_info={}):
+    def _get_database_dict(self, torrentdef, extra_info={}):
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
         assert torrentdef.is_finalized(), "TORRENTDEF is not finalized"
 
@@ -621,13 +621,13 @@ class TorrentDBHandler(BasicDBHandler):
 
         return dict
 
-    def _addTorrentToDB(self, torrentdef, source, extra_info):
+    def _addTorrentToDB(self, torrentdef, extra_info):
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
         assert torrentdef.is_finalized(), "TORRENTDEF is not finalized"
 
         infohash = torrentdef.get_infohash()
         swarmname = torrentdef.get_name_as_unicode()
-        database_dict = self._get_database_dict(torrentdef, source, extra_info)
+        database_dict = self._get_database_dict(torrentdef, extra_info)
 
         # see if there is already a torrent in the database with this infohash
         torrent_id = self.getTorrentID(infohash)
@@ -642,14 +642,14 @@ class TorrentDBHandler(BasicDBHandler):
 
         if not torrentdef.is_multifile_torrent():
             swarmname, _ = os.path.splitext(swarmname)
-        self._indexTorrent(torrent_id, swarmname, torrentdef.get_files_as_unicode(), source in ['BC', 'DISP_SC'])
+        self._indexTorrent(torrent_id, swarmname, torrentdef.get_files_as_unicode())
 
         self._addTorrentTracker(torrent_id, torrentdef, extra_info)
         return torrent_id
 
-    def _indexTorrent(self, torrent_id, swarmname, files, collected):
+    def _indexTorrent(self, torrent_id, swarmname, files):
         existed = self._db.getOne('CollectedTorrent', 'infohash', torrent_id=torrent_id)
-        if existed and not collected:
+        if existed:
             return
 
         # Niels: new method for indexing, replaces invertedindex
@@ -834,7 +834,7 @@ class TorrentDBHandler(BasicDBHandler):
                 self._logger.error(u"infohashes: %s", insert)
 
         for torrent_id, swarmname in to_be_indexed:
-            self._indexTorrent(torrent_id, swarmname, [], False)
+            self._indexTorrent(torrent_id, swarmname, [])
 
     def deleteTorrent(self, infohash, delete_file=False):
         if not self.hasTorrent(infohash):
@@ -1910,7 +1910,7 @@ class ChannelCastDBHandler(BasicDBHandler):
 
             # if new or not yet collected
             if infohash in inserted:
-                self.torrent_db.addExternalTorrentNoDef(infohash, name, files, trackers, timestamp, "DISP", {'dispersy_id': dispersy_id})
+                self.torrent_db.addExternalTorrentNoDef(infohash, name, files, trackers, timestamp, {'dispersy_id': dispersy_id})
 
             insert_data.append((dispersy_id, torrent_id, channel_id, peer_id, name, timestamp))
             updated_channels[channel_id] = updated_channels.get(channel_id, 0) + 1

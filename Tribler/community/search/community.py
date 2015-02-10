@@ -607,7 +607,7 @@ class SearchCommunity(Community):
 
     def on_torrent(self, messages):
         for message in messages:
-            self._torrent_db.addExternalTorrentNoDef(message.payload.infohash, message.payload.name, message.payload.files, message.payload.trackers, message.payload.timestamp, "DISP_SC", {'dispersy_id': message.packet_id})
+            self._torrent_db.addExternalTorrentNoDef(message.payload.infohash, message.payload.name, message.payload.files, message.payload.trackers, message.payload.timestamp, {'dispersy_id': message.packet_id})
 
     def _get_channel_id(self, cid):
         assert isinstance(cid, str)
