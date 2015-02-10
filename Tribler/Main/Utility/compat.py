@@ -37,8 +37,8 @@ def convertSessionConfig(oldfilename, newfilename):
             sconfig.sessconfig.set('mainline_dht', 'enabled' if key == 'mainline_dht' else key, value)
         if key in ['torrent_checking', 'torrent_checking_period']:
             sconfig.sessconfig.set('torrent_checking', 'enabled' if key == 'torrent_checking' else key, value)
-        if key in ['torrent_collecting', 'dht_torrent_collecting', 'torrent_collecting_max_torrents', 'torrent_collecting_dir',
-                   'stop_collecting_threshold']:
+        if key in ['torrent_collecting', 'dht_torrent_collecting', 'torrent_collecting_max_torrents',
+                   'torrent_collecting_dir', 'stop_collecting_threshold']:
             sconfig.sessconfig.set('torrent_collecting', 'enabled' if key == 'torrent_collecting' else key, value)
         if key in ['libtorrent', 'lt_proxytype', 'lt_proxyserver', 'lt_proxyauth']:
             sconfig.sessconfig.set('libtorrent', 'enabled' if key == 'libtorrent' else key, value)
