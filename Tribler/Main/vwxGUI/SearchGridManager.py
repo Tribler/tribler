@@ -1075,7 +1075,7 @@ class LibraryManager(object):
         self.deleteTorrentDS(torrent.download_state, torrent.infohash, removecontent)
 
     def deleteTorrentDS(self, ds, infohash, removecontent=False):
-        if not ds is None:
+        if ds is not None:
             self.stopVideoIfEqual(ds.download, reset_playlist=True)
             self.deleteTorrentDownload(ds.get_download(), infohash, removecontent)
 
