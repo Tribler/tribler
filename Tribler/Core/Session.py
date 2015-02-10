@@ -634,3 +634,11 @@ class Session(SessionConfigInterface):
         :return: True or False indicating if we have the torrent.
         """
         return hexlify(infohash) in self.lm.torrent_store
+
+    def get_collected_torrent(self, infohash):
+        """
+        Gets the given torrent from the torrent_store database.
+        :param infohash: The given infohash binary.
+        :return: The torrent data if exists, None otherwise.
+        """
+        return self.lm.torrent_store.get(hexlify(infohash))
