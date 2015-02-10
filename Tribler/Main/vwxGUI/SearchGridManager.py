@@ -286,7 +286,7 @@ class TorrentManager(object):
                 torrent = CollectedTorrent(torrent, tdef)
 
         self.library_manager.addDownloadState(torrent)
-        if not callback is None:
+        if callback is not None:
             callback(torrent)
         else:
             return torrent
