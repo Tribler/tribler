@@ -453,7 +453,7 @@ class TorrentDBHandler(BasicDBHandler):
             assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
             assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
 
-            if not infohash in self.infohash_id:
+            if infohash not in self.infohash_id:
                 to_select.append(bin2str(infohash))
 
         while len(to_select) > 0:
