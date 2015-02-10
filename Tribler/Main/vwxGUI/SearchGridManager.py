@@ -1,6 +1,5 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Lucan Musat, Arno Bakker
 # see LICENSE.txt for license information
-import json
 import logging
 import os
 import threading
@@ -18,7 +17,7 @@ from Tribler.Core.Search.Bundler import Bundler
 from Tribler.Core.Search.Reranking import DefaultTorrentReranker
 from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
+from Tribler.Core.Utilities.utilities import fix_torrent
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.simpledefs import (NTFY_MISC, NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST,
