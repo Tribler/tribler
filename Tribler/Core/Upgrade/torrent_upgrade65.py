@@ -76,7 +76,6 @@ class TorrentMigrator65(TorrentMigrator64):
         # so it stops being recreated.
         self.session.set_torrent_collecting_dir(self.session.get_torrent_store_dir())
 
-
     def _ingest_torrent_files(self):
         """
         Renames all the torrent files to INFOHASH.torrent and delete unparseable ones.
