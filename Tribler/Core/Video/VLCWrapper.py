@@ -80,7 +80,6 @@ class VLCWrapper(object):
         if not self.initialized:
             self._init_vlc()
 
-
         # Arno: 2007-05-11: Don't ask me why but without the "--verbose=0" vlc will ignore the key redef.
         params = ["--verbose=0"]
 
@@ -203,7 +202,7 @@ class VLCWrapper(object):
         if sys.platform == 'win32':
             self.vlc.libvlc_media_player_set_hwnd(self.player, xid)
         else:
-            self.vlc.libvlc_media_player_set_xwindow(self.player, xid);
+            self.vlc.libvlc_media_player_set_xwindow(self.player, xid)
 
         self.windowpassedtovlc = xid
 
