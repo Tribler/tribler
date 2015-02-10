@@ -1,13 +1,14 @@
 import time
 
 from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING, \
-                                     CIRCUIT_TYPE_DATA
+    CIRCUIT_TYPE_DATA
 from Tribler.dispersy.crypto import LibNaCLPK
 
 __author__ = 'chris'
 
 
 class Circuit(object):
+
     """ Circuit data structure storing the id, state and hops """
 
     def __init__(self, circuit_id, goal_hops=0, first_hop=None, proxy=None,
@@ -24,7 +25,8 @@ class Circuit(object):
         assert isinstance(circuit_id, long)
         assert isinstance(goal_hops, int)
         assert proxy is None or isinstance(proxy, HiddenTunnelCommunity)
-        assert first_hop is None or isinstance(first_hop, tuple) and isinstance(first_hop[0], basestring) and isinstance(first_hop[1], int)
+        assert first_hop is None or isinstance(first_hop, tuple) and isinstance(
+            first_hop[0], basestring) and isinstance(first_hop[1], int)
 
         self._broken = False
         self._hops = []
@@ -101,6 +103,7 @@ class Circuit(object):
 
 
 class Hop(object):
+
     """
     Circuit Hop containing the address, its public key and the first part of
     the Diffie-Hellman handshake
@@ -159,6 +162,7 @@ class Hop(object):
 
 
 class RelayRoute(object):
+
     """
     Relay object containing the destination circuit, socket address and whether
     it is online or not
@@ -179,6 +183,7 @@ class RelayRoute(object):
         self.bytes_up = self.bytes_down = 0
         self.rendezvous_relay = rendezvous_relay
         self.mid = 0
+
 
 class RendezvousPoint(object):
 

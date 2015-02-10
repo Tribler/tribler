@@ -12,8 +12,8 @@ from Tribler.community.tunnel.tunnel_community import TunnelCommunity, TunnelSet
 from Tribler.community.tunnel.crypto.tunnelcrypto import NoCrypto
 from Tribler.community.tunnel.events import TunnelObserver
 from Tribler.community.tunnel import (MESSAGE_CREATED, MESSAGE_CREATE, CIRCUIT_STATE_READY,
-                                          CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_BROKEN,
-                                          MESSAGE_EXTEND, MESSAGE_PONG)
+                                      CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_BROKEN,
+                                      MESSAGE_EXTEND, MESSAGE_PONG)
 from Tribler.community.tunnel.payload import (CreateMessage, CreatedMessage, ExtendedMessage, ExtendMessage,
                                               DataMessage, PingMessage, PongMessage)
 from Tribler.community.tunnel.routing import Circuit
@@ -29,11 +29,13 @@ logging.config.fileConfig(
 
 
 class DummyEndpoint(NullEndpoint):
+
     def send_simple(self, *args):
         pass
 
 
 class TestProxyCommunity(TestAsServer):
+
     @call_on_reactor_thread
     def setUp(self):
         super(TestProxyCommunity, self).setUp()
@@ -73,8 +75,6 @@ class TestProxyCommunity(TestAsServer):
         candidate.walk(now - CANDIDATE_ELIGIBLE_DELAY)
         candidate.walk_response(now)
         return candidate
-
-
 
     def test_on_create(self):
         create_sender = self.__create_walk_candidate()

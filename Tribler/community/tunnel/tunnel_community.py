@@ -50,7 +50,8 @@ class CircuitRequestCache(NumberCache):
 
     def on_timeout(self):
         if self.circuit.state != CIRCUIT_STATE_READY:
-            reason = 'timeout on CircuitRequestCache, state = %s, candidate = %s' % (self.circuit.state, self.circuit.first_hop)
+            reason = 'timeout on CircuitRequestCache, state = %s, candidate = %s' % (
+                self.circuit.state, self.circuit.first_hop)
             self.community.remove_circuit(self.number, reason)
             if self.retry:
                 self.retry()
@@ -154,7 +155,7 @@ class TunnelExitSocket(DatagramProtocol):
         max_packets_without_reply = self.community.settings.max_packets_without_reply
         if self.ips[ip] >= (max_packets_without_reply + 1 if incoming else max_packets_without_reply):
             self.community.remove_exit_socket(self.circuit_id, destroy=True)
-            self._logger.error("too many packets to a destination without a reply, " \
+            self._logger.error("too many packets to a destination without a reply, "
                                "removing exit socket with circuit_id %d", self.circuit_id)
             return False
 
@@ -269,7 +270,8 @@ class TunnelCommunity(Community):
             self.libtorrent_test = LibtorrentTest(self, self.trsession)
             if not self.libtorrent_test.has_completed_before():
                 self._logger.debug("Scheduling Anonymous LibTorrent download")
-                self.register_task("start_test", reactor.callLater(60, lambda : reactor.callInThread(self.libtorrent_test.start)))
+                self.register_task("start_test", reactor.callLater(
+                    60, lambda: reactor.callInThread(self.libtorrent_test.start)))
                 return True
         return False
 
@@ -286,14 +288,15 @@ class TunnelCommunity(Community):
         # XfUBdjCkReY7tQBWIcBMm3uoyozOvlZ7NVtrIdhGGZvY3MnnBI3Fm/Pxq3A3Lxno
         # XTwhM/VlefpRCIQPUv9Oo+QZBmI8HW6OLq8=
         # -----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403ab6c5ddea44f806e3fc581ea90cc380d735d2c24ca87b3a68cdf1f95de50010aeff312344eedcae1bb96038db160be4b31a20289023251a2ad88b1f18bde0f14049843f3a35df5017630a445e63bb5005621c04c9b7ba8ca8ccebe567b355b6b21d846199bd8dcc9e7048dc59bf3f1ab70372f19e85d3c2133f56579fa5108840f52ff4ea3e41906623c1d6e8e2eaf".decode("HEX")
+        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403ab6c5ddea44f806e3fc581ea90cc380d735d2c24ca87b3a68cdf1f95de50010aeff312344eedcae1bb96038db160be4b31a20289023251a2ad88b1f18bde0f14049843f3a35df5017630a445e63bb5005621c04c9b7ba8ca8ccebe567b355b6b21d846199bd8dcc9e7048dc59bf3f1ab70372f19e85d3c2133f56579fa5108840f52ff4ea3e41906623c1d6e8e2eaf".decode(
+            "HEX")
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
     def initiate_meta_messages(self):
         return super(TunnelCommunity, self).initiate_meta_messages() + \
-               [Message(self, u"cell", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                        CandidateDestination(), CellPayload(), self._generic_timeline_check, self.on_cell),
+            [Message(self, u"cell", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                     CandidateDestination(), CellPayload(), self._generic_timeline_check, self.on_cell),
                 Message(self, u"create", NoAuthentication(), PublicResolution(), DirectDistribution(),
                         CandidateDestination(), CreatePayload(), self.check_create, self.on_create),
                 Message(self, u"created", NoAuthentication(), PublicResolution(), DirectDistribution(),
@@ -405,7 +408,7 @@ class TunnelCommunity(Community):
 
         if max_retries > 0:
             retry_lambda = lambda h = goal_hops, t = ctype, c = callback, r = max_retries - 1, e = required_exit: \
-                           self.create_circuit(h, t, c, r, e)
+                self.create_circuit(h, t, c, r, e)
 
         hops = set([c.first_hop for c in self.circuits.values()])
         for c in self.dispersy_yield_verified_candidates():
@@ -530,8 +533,8 @@ class TunnelCommunity(Community):
             self._logger.debug("destroy_circuit %s %s", circuit_id, sock_addr)
 
     def destroy_relay(self, circuit_ids, reason=0, got_destroy_from=None):
-        relays = {cid_from:(self.relay_from_to[cid_from].circuit_id,
-                            self.relay_from_to[cid_from].sock_addr) for cid_from in circuit_ids
+        relays = {cid_from: (self.relay_from_to[cid_from].circuit_id,
+                             self.relay_from_to[cid_from].sock_addr) for cid_from in circuit_ids
                   if cid_from in self.relay_from_to}
 
         if got_destroy_from and got_destroy_from not in relays.values():
@@ -554,7 +557,7 @@ class TunnelCommunity(Community):
     def active_data_circuits(self, hops=None):
         return {cid: c for cid, c in self.circuits.items()
                 if c.state == CIRCUIT_STATE_READY and c.ctype == CIRCUIT_TYPE_DATA and
-                   (hops is None or hops == len(c.hops))}
+                (hops is None or hops == len(c.hops))}
 
     def is_relay(self, circuit_id):
         return circuit_id > 0 and circuit_id in self.relay_from_to and not circuit_id in self.waiting_for
@@ -596,7 +599,8 @@ class TunnelCommunity(Community):
 
     def send_destroy(self, candidate, circuit_id, reason):
         meta = self.get_meta_message(u"destroy")
-        destroy = meta.impl(authentication=(self._my_member,), distribution=(self.global_time,), payload=(circuit_id, reason))
+        destroy = meta.impl(authentication=(self._my_member,), distribution=(
+            self.global_time,), payload=(circuit_id, reason))
         self.send_packet([candidate], meta.name, destroy.packet)
 
     def relay_cell(self, circuit_id, message_type, message):
@@ -624,7 +628,8 @@ class TunnelCommunity(Community):
             packet = plaintext + encrypted
 
             packet = TunnelConversion.swap_circuit_id(packet, message_type, circuit_id, next_relay.circuit_id)
-            self.increase_bytes_sent(next_relay, self.send_packet([Candidate(next_relay.sock_addr, False)], message_type, packet))
+            self.increase_bytes_sent(next_relay, self.send_packet(
+                [Candidate(next_relay.sock_addr, False)], message_type, packet))
 
             return True
         return False
@@ -681,7 +686,8 @@ class TunnelCommunity(Community):
         hop = circuit.unverified_hop
 
         try:
-            shared_secret = self.crypto.verify_and_generate_shared_secret(hop.dh_secret, message.payload.key, message.payload.auth, hop.public_key.key.pk)
+            shared_secret = self.crypto.verify_and_generate_shared_secret(
+                hop.dh_secret, message.payload.key, message.payload.auth, hop.public_key.key.pk)
             hop.session_keys = self.crypto.generate_session_keys(shared_secret)
 
         except CryptoException:
@@ -700,7 +706,8 @@ class TunnelCommunity(Community):
 
             else:
                 candidate_list_enc = message.payload.candidate_list
-                _, candidate_list = decode(self.crypto.decrypt_str(candidate_list_enc, hop.session_keys[EXIT_NODE], hop.session_keys[EXIT_NODE_SALT]))
+                _, candidate_list = decode(self.crypto.decrypt_str(
+                    candidate_list_enc, hop.session_keys[EXIT_NODE], hop.session_keys[EXIT_NODE_SALT]))
 
                 ignore_candidates = [self.crypto.key_to_bin(hop.public_key) for hop in circuit.hops] + \
                                     [self.my_member.public_key]
@@ -721,14 +728,17 @@ class TunnelCommunity(Community):
             if extend_hop_public_bin:
                 extend_hop_public_key = self.dispersy.crypto.key_from_public_bin(extend_hop_public_bin)
                 circuit.unverified_hop = Hop(extend_hop_public_key)
-                circuit.unverified_hop.dh_secret, circuit.unverified_hop.dh_first_part = self.crypto.generate_diffie_secret()
+                circuit.unverified_hop.dh_secret, circuit.unverified_hop.dh_first_part = self.crypto.generate_diffie_secret(
+                )
 
-                self._logger.info("extending circuit %d with %s", circuit.circuit_id, extend_hop_public_bin[:20].encode('hex'))
-                self.increase_bytes_sent(circuit, self.send_cell([Candidate(circuit.first_hop, False)], u"extend", (circuit.circuit_id,
-                                                                                                                    circuit.unverified_hop.node_id,
-                                                                                                                    circuit.unverified_hop.node_public_key,
-                                                                                                                    extend_hop_addr,
-                                                                                                                    circuit.unverified_hop.dh_first_part)))
+                self._logger.info(
+                    "extending circuit %d with %s", circuit.circuit_id, extend_hop_public_bin[:20].encode('hex'))
+                self.increase_bytes_sent(
+                    circuit, self.send_cell([Candidate(circuit.first_hop, False)], u"extend", (circuit.circuit_id,
+                                                                                               circuit.unverified_hop.node_id,
+                                                                                               circuit.unverified_hop.node_public_key,
+                                                                                               extend_hop_addr,
+                                                                                               circuit.unverified_hop.dh_first_part)))
 
             else:
                 self.remove_circuit(circuit.circuit_id, "no candidates to extend, bailing out.")
@@ -751,7 +761,8 @@ class TunnelCommunity(Community):
     def on_cell(self, messages):
         for message in messages:
             circuit_id = message.payload.circuit_id
-            self._logger.debug("Got %s (%d) from %s", message.payload.message_type, message.payload.circuit_id, message.candidate.sock_addr)
+            self._logger.debug("Got %s (%d) from %s", message.payload.message_type,
+                               message.payload.circuit_id, message.candidate.sock_addr)
             # TODO: if crypto fails for relay messages, call remove_relay
             # TODO: if crypto fails for other messages, call remove_circuit
             if not self.relay_cell(circuit_id, message.payload.message_type, message):
@@ -766,7 +777,8 @@ class TunnelCommunity(Community):
 
                 packet = plaintext + encrypted
 
-                self.dispersy.on_incoming_packets([(message.candidate, TunnelConversion.convert_from_cell(packet))], False, source=u"circuit_%d" % circuit_id)
+                self.dispersy.on_incoming_packets(
+                    [(message.candidate, TunnelConversion.convert_from_cell(packet))], False, source=u"circuit_%d" % circuit_id)
 
                 if circuit_id in self.circuits:
                     self.circuits[circuit_id].beat_heart()
@@ -778,7 +790,8 @@ class TunnelCommunity(Community):
             circuit_id = message.payload.circuit_id
 
             if self.settings.max_relays_or_exits <= len(self.relay_from_to) + len(self.exit_sockets):
-                self._logger.error('TunnelCommunity: ignoring create for circuit %d from %s (too many relays %d)', circuit_id, candidate.sock_addr, len(self.relay_from_to) + len(self.exit_sockets))
+                self._logger.error('TunnelCommunity: ignoring create for circuit %d from %s (too many relays %d)',
+                                   circuit_id, candidate.sock_addr, len(self.relay_from_to) + len(self.exit_sockets))
                 continue
 
             if self._request_cache.has(u"anon-created", circuit_id):
@@ -786,7 +799,8 @@ class TunnelCommunity(Community):
                 continue
 
             self.directions[circuit_id] = EXIT_NODE
-            self._logger.info('TunnelCommunity: we joined circuit %d with neighbour %s', circuit_id, candidate.sock_addr)
+            self._logger.info(
+                'TunnelCommunity: we joined circuit %d with neighbour %s', circuit_id, candidate.sock_addr)
 
             shared_secret, Y, AUTH = self.crypto.generate_diffie_shared_secret(message.payload.key)
             self.relay_session_keys[circuit_id] = self.crypto.generate_session_keys(shared_secret)
@@ -808,7 +822,8 @@ class TunnelCommunity(Community):
                 from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_JOINED
                 self.notifier.notify(NTFY_TUNNEL, NTFY_JOINED, candidate.sock_addr, circuit_id)
 
-            candidate_list_enc = self.crypto.encrypt_str(encode(candidates.keys()), *self.get_session_keys(self.relay_session_keys[circuit_id], EXIT_NODE))
+            candidate_list_enc = self.crypto.encrypt_str(
+                encode(candidates.keys()), *self.get_session_keys(self.relay_session_keys[circuit_id], EXIT_NODE))
             self.send_cell([candidate], u"created", (circuit_id, Y, AUTH, candidate_list_enc))
 
     def on_created(self, messages):
@@ -817,7 +832,8 @@ class TunnelCommunity(Community):
             circuit_id = message.payload.circuit_id
 
             if circuit_id not in self.waiting_for:
-                self._logger.error("Got an unexpected CREATED message for circuit %d from %s:%d", circuit_id, *candidate.sock_addr)
+                self._logger.error(
+                    "Got an unexpected CREATED message for circuit %d from %s:%d", circuit_id, *candidate.sock_addr)
                 continue
             self.waiting_for.remove(circuit_id)
 
@@ -826,10 +842,11 @@ class TunnelCommunity(Community):
                 self._logger.debug("Got CREATED message forward as EXTENDED to origin.")
 
                 forwarding_relay = self.relay_from_to[circuit_id]
-                self.send_cell([Candidate(forwarding_relay.sock_addr, False)], u"extended", (forwarding_relay.circuit_id,
-                                                                                             message.payload.key,
-                                                                                             message.payload.auth,
-                                                                                             message.payload.candidate_list))
+                self.send_cell(
+                    [Candidate(forwarding_relay.sock_addr, False)], u"extended", (forwarding_relay.circuit_id,
+                                                                                  message.payload.key,
+                                                                                  message.payload.auth,
+                                                                                  message.payload.candidate_list))
 
             # Circuit is ours.
             if circuit_id in self.circuits:
@@ -849,7 +866,7 @@ class TunnelCommunity(Community):
                     extend_candidate = Candidate(message.payload.node_addr, False)
 
                 self._logger.info("on_extend send CREATE for circuit (%s, %d) to %s:%d!", candidate.sock_addr,
-                                circuit_id, extend_candidate.sock_addr[0], extend_candidate.sock_addr[1])
+                                  circuit_id, extend_candidate.sock_addr[0], extend_candidate.sock_addr[1])
             else:
                 self._logger.error("cancelling EXTEND, no candidate!")
                 continue
@@ -915,7 +932,8 @@ class TunnelCommunity(Community):
 
                 if TunnelConversion.could_be_dispersy(data):
                     self._logger.error("Giving incoming data packet to dispersy")
-                    self.dispersy.on_incoming_packets([(Candidate(origin, False), data[TUNNEL_PREFIX_LENGHT:])], False, source=u"circuit_%d" % circuit_id)
+                    self.dispersy.on_incoming_packets(
+                        [(Candidate(origin, False), data[TUNNEL_PREFIX_LENGHT:])], False, source=u"circuit_%d" % circuit_id)
                 else:
                     anon_seed = self.circuits[circuit_id].ctype == CIRCUIT_TYPE_RP
                     self.socks_server.on_incoming_from_tunnel(self, self.circuits[circuit_id], origin, data, anon_seed)
@@ -946,7 +964,8 @@ class TunnelCommunity(Community):
         for circuit in self.circuits.values():
             if circuit.state == CIRCUIT_STATE_READY and circuit.ctype != CIRCUIT_TYPE_RENDEZVOUS:
                 cache = self.request_cache.add(PingRequestCache(self, circuit))
-                self.increase_bytes_sent(circuit, self.send_cell([Candidate(circuit.first_hop, False)], u"ping", (circuit.circuit_id, cache.number)))
+                self.increase_bytes_sent(circuit, self.send_cell(
+                    [Candidate(circuit.first_hop, False)], u"ping", (circuit.circuit_id, cache.number)))
 
     def on_destroy(self, messages):
         for message in messages:
@@ -980,7 +999,8 @@ class TunnelCommunity(Community):
                 meta = self.get_meta_message(u"stats-response")
                 stats = dict(self.stats)
                 stats['uptime'] = time.time() - self.creation_time
-                response = meta.impl(authentication=(self._my_member,), distribution=(self.global_time,), payload=(request.payload.identifier, stats))
+                response = meta.impl(authentication=(self._my_member,), distribution=(
+                    self.global_time,), payload=(request.payload.identifier, stats))
                 self.send_packet([request.candidate], u"stats-response", response.packet)
             else:
                 self._logger.error("Got stats request from unknown crawler %s", request.candidate.sock_addr)
@@ -998,7 +1018,8 @@ class TunnelCommunity(Community):
     def do_stats(self, candidate, handler):
         cache = self.request_cache.add(StatsRequestCache(self, handler))
         meta = self.get_meta_message(u"stats-request")
-        request = meta.impl(authentication=(self._my_member,), distribution=(self.global_time,), payload=(cache.number,))
+        request = meta.impl(authentication=(self._my_member,),
+                            distribution=(self.global_time,), payload=(cache.number,))
         self.send_packet([candidate], u"stats-request", request.packet)
 
     def tunnel_data_to_end(self, ultimate_destination, data, circuit):
@@ -1013,7 +1034,8 @@ class TunnelCommunity(Community):
         if circuit_id in self.exit_sockets:
             if not self.exit_sockets[circuit_id].enabled:
                 # We got the correct circuit_id, but from a wrong IP.
-                assert sock_addr == self.exit_sockets[circuit_id].sock_addr, "%s != %s" % (str(sock_addr), str(self.exit_sockets[circuit_id].sock_addr))
+                assert sock_addr == self.exit_sockets[circuit_id].sock_addr, "%s != %s" % (
+                    str(sock_addr), str(self.exit_sockets[circuit_id].sock_addr))
                 self.exit_sockets[circuit_id].enable()
             try:
                 self.exit_sockets[circuit_id].sendto(data, destination)
@@ -1041,11 +1063,13 @@ class TunnelCommunity(Community):
         if circuit and len(circuit.hops) > 0:
             # Remove all the encryption layers
             for hop in self.circuits[circuit_id].hops:
-                content = self.crypto.decrypt_str(content, hop.session_keys[ORIGINATOR], hop.session_keys[ORIGINATOR_SALT])
+                content = self.crypto.decrypt_str(
+                    content, hop.session_keys[ORIGINATOR], hop.session_keys[ORIGINATOR_SALT])
             if circuit and is_data and circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
                 direction = int(circuit.ctype != CIRCUIT_TYPE_RP)
                 direction_salt = direction + 2
-                content = self.crypto.decrypt_str(content, circuit.hs_session_keys[direction], circuit.hs_session_keys[direction_salt])
+                content = self.crypto.decrypt_str(
+                    content, circuit.hs_session_keys[direction], circuit.hs_session_keys[direction_salt])
             return content
         elif circuit_id in self.relay_session_keys:
             return self.crypto.decrypt_str(content, self.relay_session_keys[circuit_id][EXIT_NODE], self.relay_session_keys[circuit_id][EXIT_NODE_SALT])

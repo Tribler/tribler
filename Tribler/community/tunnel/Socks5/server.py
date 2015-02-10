@@ -8,6 +8,7 @@ from Tribler.community.tunnel.Socks5 import conversion
 
 
 class ConnectionState(object):
+
     """
     Enumeration of possible SOCKS5 connection states
     """
@@ -53,16 +54,19 @@ class SocksUDPConnection(DatagramProtocol):
                 circuit = self.socksconnection.select(request.destination)
 
                 if not circuit:
-                    self._logger.debug("No circuits available, dropping %d bytes to %s", len(request.payload), request.destination)
+                    self._logger.debug(
+                        "No circuits available, dropping %d bytes to %s", len(request.payload), request.destination)
                 elif circuit.state != CIRCUIT_STATE_READY:
-                    self._logger.debug("Circuit is not ready, dropping %d bytes to %s", len(request.payload), request.destination)
+                    self._logger.debug(
+                        "Circuit is not ready, dropping %d bytes to %s", len(request.payload), request.destination)
                 else:
                     self._logger.debug("Sending data over circuit destined for %s:%d", *request.destination)
                     circuit.tunnel_data(request.destination, request.payload)
             else:
                 self._logger.debug("No support for fragmented data, dropping")
         else:
-            self._logger.debug("Ignoring data from %s:%d, is not %s:%d", source[0], source[1], self.remote_udp_address[0], self.remote_udp_address[1])
+            self._logger.debug("Ignoring data from %s:%d, is not %s:%d",
+                               source[0], source[1], self.remote_udp_address[0], self.remote_udp_address[1])
 
     def close(self):
         if self.listen_port:
@@ -71,6 +75,7 @@ class SocksUDPConnection(DatagramProtocol):
 
 
 class Socks5Connection(Protocol):
+
     """
     SOCKS5 TCP Connection handler
 
@@ -171,14 +176,14 @@ class Socks5Connection(Protocol):
 
             elif request.cmd == conversion.REQ_CMD_BIND:
                 response = conversion.encode_reply(0x05, conversion.REP_SUCCEEDED, 0x00,
-                    conversion.ADDRESS_TYPE_IPV4, "127.0.0.1", 1081)
+                                                   conversion.ADDRESS_TYPE_IPV4, "127.0.0.1", 1081)
 
                 self.transport.write(response)
                 self.state = ConnectionState.PROXY_REQUEST_ACCEPTED
 
             elif request.cmd == conversion.REQ_CMD_CONNECT:
                 self._logger.info("TCP req to %s:%d support it. Returning HOST UNREACHABLE",
-                                     *request.destination)
+                                  *request.destination)
 
                 response = conversion.encode_reply(0x05, conversion.REP_HOST_UNREACHABLE, 0x00,
                                                    conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
@@ -203,7 +208,7 @@ class Socks5Connection(Protocol):
         self.state = ConnectionState.CONNECTED
 
         response = conversion.encode_reply(0x05, conversion.REP_COMMAND_NOT_SUPPORTED, 0x00,
-            conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
+                                           conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
 
         self.transport.write(response)
         self._logger.error("DENYING SOCKS5 request")
@@ -219,7 +224,8 @@ class Socks5Connection(Protocol):
 
             self._logger.info("Accepting UDP ASSOCIATE request to %s:%d", ip, port)
 
-            response = conversion.encode_reply(0x05, conversion.REP_SUCCEEDED, 0x00, conversion.ADDRESS_TYPE_IPV4, ip, port)
+            response = conversion.encode_reply(
+                0x05, conversion.REP_SUCCEEDED, 0x00, conversion.ADDRESS_TYPE_IPV4, ip, port)
             self.transport.write(response)
 
         else:
@@ -233,8 +239,8 @@ class Socks5Connection(Protocol):
                 return None
 
             self.destinations[destination] = selected_circuit
-            self._logger.info("SELECT circuit {0} for {1}".format(self.destinations[destination].circuit_id, \
-                                                                     destination))
+            self._logger.info("SELECT circuit {0} for {1}".format(self.destinations[destination].circuit_id,
+                                                                  destination))
         return self.destinations[destination]
 
     def circuit_dead(self, broken_circuit):
@@ -245,7 +251,8 @@ class Socks5Connection(Protocol):
         @param Circuit broken_circuit: the circuit that has been broken
         @return Set with destinations using this circuit
         """
-        affected_destinations = set(destination for destination, tunnel_circuit in self.destinations.iteritems() if tunnel_circuit == broken_circuit)
+        affected_destinations = set(
+            destination for destination, tunnel_circuit in self.destinations.iteritems() if tunnel_circuit == broken_circuit)
         counter = 0
         for destination in affected_destinations:
             if destination in self.destinations:
@@ -262,7 +269,8 @@ class Socks5Connection(Protocol):
             self.destinations[origin] = circuit
 
             if self._udp_socket:
-                socks5_data = conversion.encode_udp_packet(0, 0, conversion.ADDRESS_TYPE_IPV4, origin[0], origin[1], data)
+                socks5_data = conversion.encode_udp_packet(
+                    0, 0, conversion.ADDRESS_TYPE_IPV4, origin[0], origin[1], data)
                 self._udp_socket.sendDatagram(socks5_data)
             return True
         return False
