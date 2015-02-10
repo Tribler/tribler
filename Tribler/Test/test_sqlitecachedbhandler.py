@@ -202,10 +202,9 @@ class TestTorrentDBHandler(AbstractDB):
         assert len(data['infohash']) == 20
 
     @blocking_call_on_reactor_thread
-    def test_add_update_delete_Torrent(self):
+    def test_add_update_Torrent(self):
         self.addTorrent()
         self.updateTorrent()
-        self.deleteTorrent()
 
     @blocking_call_on_reactor_thread
     def addTorrent(self):
@@ -299,29 +298,6 @@ class TestTorrentDBHandler(AbstractDB):
         assert leecher == 321
         last_tracker_check = self.tdb.getOne('last_tracker_check', torrent_id=multiple_torrent_id)
         assert last_tracker_check == 1234567, last_tracker_check
-
-    @blocking_call_on_reactor_thread
-    def deleteTorrent(self):
-        s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')
-        m_infohash = unhexlify('ed81da94d21ad1b305133f2726cdaec5a57fed98')
-
-        assert self.tdb.deleteTorrent(s_infohash, delete_file=True)
-        assert self.tdb.deleteTorrent(m_infohash)
-
-        assert not self.tdb.hasTorrent(s_infohash)
-        assert not self.tdb.hasTorrent(m_infohash)
-        assert not os.path.isfile(os.path.join(self.getStateDir(), 'single.torrent'))
-        m_trackers = self.tdb.getTrackerListByInfohash(m_infohash)
-        assert len(m_trackers) == 0
-
-        # fake_infoahsh = 'fake_infohash_1'+'0R0\x10\x00\x07*\x86H\xce=\x02'
-        # 02/02/10 Boudewijn: infohashes must be 20 bytes long
-        fake_infoahsh = 'fake_infohash_1' + '0R0\x10\x00'
-        assert not self.tdb.deleteTorrent(fake_infoahsh)
-
-        my_infohash_str_126 = 'ByJho7yj9mWY1ORWgCZykLbU1Xc='
-        my_infohash = str2bin(my_infohash_str_126)
-        assert not self.tdb.deleteTorrent(my_infohash)
 
     @blocking_call_on_reactor_thread
     def test_getCollectedTorrentHashes(self):
