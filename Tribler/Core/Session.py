@@ -6,6 +6,7 @@ import copy
 import logging
 import os
 import socket
+from binascii import hexlify
 
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
@@ -624,3 +625,12 @@ class Session(SessionConfigInterface):
         @param trackers A list of tracker urls.
         """
         return self.lm.update_trackers(id, trackers)
+
+    # New APIs
+    def has_collected_torrent(self, infohash):
+        """
+        Checks if the given torrent infohash exists in the torrent_store database.
+        :param infohash: The given infohash binary.
+        :return: True or False indicating if we have the torrent.
+        """
+        return hexlify(infohash) in self.lm.torrent_store
