@@ -1303,7 +1303,7 @@ class GenericSearchList(SizeList):
             self.uelog.addEvent(message=relevance_msg, type=4)
 
         startWorker(None, db_callback, retryOnBusy=True)
-        return self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles=files)
+        self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles=files)
 
     def InList(self, key):
         key = self.infohash2key.get(key, key)
