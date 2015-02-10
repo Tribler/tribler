@@ -836,55 +836,6 @@ class TorrentDBHandler(BasicDBHandler):
         for torrent_id, swarmname in to_be_indexed:
             self._indexTorrent(torrent_id, swarmname, [])
 
-    def deleteTorrent(self, infohash, delete_file=False):
-        if not self.hasTorrent(infohash):
-            return False
-
-        torrent_id = self.getTorrentID(infohash)
-        if self.mypref_db.hasMyPreference(torrent_id):  # don't remove torrents in my pref
-            return False
-
-        if delete_file:
-            deleted = self.eraseTorrentFile(infohash)
-        else:
-            deleted = True
-
-        if deleted:
-            self._deleteTorrent(infohash)
-
-        self.notifier.notify(NTFY_TORRENTS, NTFY_DELETE, infohash)
-        return deleted
-
-    def _deleteTorrent(self, infohash, keep_infohash=True):
-        torrent_id = self.getTorrentID(infohash)
-        if torrent_id is not None:
-            if keep_infohash:
-                self._db.update(self.table_name, where="torrent_id=%d" % torrent_id, torrent_file_name=None)
-            else:
-                self._db.delete(self.table_name, torrent_id=torrent_id)
-            if infohash in self.existed_torrents:
-                self.existed_torrents.remove(infohash)
-
-            stmt = u"DELETE FROM TorrentTrackerMapping WHERE torrent_id == ?"
-            self._db.execute_write(stmt, (torrent_id,))
-
-    def eraseTorrentFile(self, infohash):
-        torrent_id = self.getTorrentID(infohash)
-        if torrent_id is not None:
-            torrent_dir = self.getTorrentDir()
-            torrent_name = self.getOne(u'torrent_file_name', torrent_id=torrent_id)
-            src = os.path.join(torrent_dir, torrent_name)
-            if not os.path.exists(src):  # already removed
-                return True
-
-            try:
-                os.remove(src)
-            except Exception as msg:
-                self._logger.error(u"Failed to erase torrent %s %s", src, msg)
-                return False
-
-        return True
-
     def getTorrentCheckRetries(self, torrent_id):
         sql = u"SELECT tracker_check_retries FROM Torrent WHERE torrent_id = ?"
         result = self._db.fetchone(sql, (torrent_id,))
