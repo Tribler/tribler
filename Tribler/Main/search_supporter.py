@@ -15,6 +15,7 @@ from channelcast_supporter import main
 
 logger = logging.getLogger(__name__)
 
+
 def define_search(session):
     from Tribler.community.search.community import SearchCommunity
 
@@ -24,12 +25,11 @@ def define_search(session):
         print >> f, "%s %s %s %s" % (time(), sock_addr[0], sock_addr[1], ";".join(keywords))
         f.close()
 
-
     dispersy = session.get_dispersy_instance()
     dispersy.define_auto_load(SearchCommunity,
-                                     (session.dispersy_member,),
-                                     {"log_incomming_searches": log_search},
-                                     load=True)
+                              (session.dispersy_member,),
+                              {"log_incomming_searches": log_search},
+                              load=True)
     logger.info("tribler: Dispersy communities are ready")
 
 if __name__ == "__main__":
