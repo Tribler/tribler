@@ -286,7 +286,7 @@ class TriblerLaunchMany(Thread):
             elif self.rtorrent_handler:
                 self.rtorrent_handler.save_torrent(tdef, write_my_pref)
             else:
-                self.torrent_db.addExternalTorrent(tdef, source='', extra_info={'status': 'good'})
+                self.torrent_db.addExternalTorrent(tdef, extra_info={'status': 'good'})
                 write_my_pref()
 
         return d

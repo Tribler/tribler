@@ -368,7 +368,7 @@ CREATE TABLE IF NOT EXISTS MetadataData (
                     infohash = torrentdef.get_infohash()
                     if not torrent_db_handler.hasTorrent(infohash):
                         self.status_update_func(u"Registering recovered torrent: %s" % hexlify(infohash))
-                        torrent_db_handler._addTorrentToDB(torrentdef, source="BC", extra_info={"filename": infoshash_str})
+                        torrent_db_handler._addTorrentToDB(torrentdef, extra_info={"filename": infoshash_str})
         finally:
             torrent_db_handler.close()
             Category.delInstance()
