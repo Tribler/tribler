@@ -225,7 +225,8 @@ class HttpTrackerSession(TrackerSession):
         except Exception as e:
             # Error number 115 means the opertion is in progress.
             if e[0] not in [115, 10035]:
-                self._logger.debug('TrackerSession: Failed to connect to HTTP tracker [%s,%s]: %s', self._tracker, self._tracker_address, str(e))
+                self._logger.debug('TrackerSession: Failed to connect to HTTP tracker [%s,%s]: %s',
+                                   self._tracker, self._tracker_address, str(e))
                 self.setFailed()
                 return False
 
