@@ -178,7 +178,7 @@ class TorrentManager(object):
 
         name = torrent.get('name', torrent.infohash)
 
-        torrent_data = self.session.lm.torrent_store.get(hexlify(torrent.infohash))
+        torrent_data = self.session.get_collected_torrent(torrent.infohash)
         if torrent_data is not None:
             tdef = TorrentDef.load_from_memory(torrent_data)
         else:
@@ -227,7 +227,7 @@ class TorrentManager(object):
                 torrent = NotCollectedTorrent(torrent, files, trackers)
 
             else:
-                tdef = TorrentDef.load_from_memory(self.session.lm.torrent_store.get(hexlify(torrent.infohash)))
+                tdef = TorrentDef.load_from_memory(self.session.get_collected_torrent(torrent.infohash))
 
                 if torrent.torrent_id <= 0:
                     del torrent.torrent_id
