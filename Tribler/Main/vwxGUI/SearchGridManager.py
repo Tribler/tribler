@@ -102,26 +102,6 @@ class TorrentManager(object):
         TorrentManager.__single = None
     delInstance = staticmethod(delInstance)
 
-    def getCollectedFilename(self, torrent, retried=False):
-        """
-        TORRENT is a dictionary containing torrent information used to
-        display the entry on the UI. it is NOT the torrent file!
-
-        Returns a filename, if filename is known
-        """
-        torrent_filename = torrent.torrent_file_name
-        if torrent_filename and self.session.lm.torrent_store.get(hexlify(torrent.infohash)):
-            return torrent_filename
-
-        if not retried:
-            # reload torrent to see if database contains any changes
-            dict = self.torrent_db.getTorrent(torrent.infohash, keys=['torrent_id', 'torrent_file_name'],
-                                              include_mypref=False)
-            if dict:
-                torrent.update_torrent_id(dict['torrent_id'])
-                torrent.torrent_file_name = dict['torrent_file_name']
-                return self.getCollectedFilename(torrent, retried=True)
-
     def downloadTorrentfileFromPeers(self, torrent, callback, duplicate=True, prio=0):
         """
         TORRENT is a GuiDBTuple containing torrent information used to
