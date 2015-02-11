@@ -269,7 +269,7 @@ class WebUI(object):
                 if action in ['start', 'forcestart', 'unpause']:
                     self.library_manager.resumeTorrent(torrent)
                 elif action in ['stop', 'pause']:
-                    self.library_manager.stopTorrent(torrent)
+                    self.library_manager.stopTorrent(torrent.infohash)
                 elif action == 'remove':
                     self.library_manager.deleteTorrent(torrent)
                 elif action == 'removedata':

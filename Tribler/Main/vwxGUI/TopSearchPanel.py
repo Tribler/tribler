@@ -425,7 +425,7 @@ class TopSearchPanel(FancyPanel):
 
     def OnStop(self, event=None):
         for torrent in self.GetSelectedTorrents():
-            self.guiutility.library_manager.stopTorrent(torrent)
+            self.guiutility.library_manager.stopTorrent(torrent.infohash)
         if event:
             button = event.GetEventObject()
             button.Enable(False)
