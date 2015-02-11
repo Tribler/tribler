@@ -896,6 +896,9 @@ class TorrentDetails(AbstractDetails):
 
     @forceDBThread
     def UpdateHealth(self):
+        if not (self and self.torrent and self.torrent.swarminfo):
+            return
+
         # touch swarminfo property
         _, _, last_check = self.torrent.swarminfo
 
