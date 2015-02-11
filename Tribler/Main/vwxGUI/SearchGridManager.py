@@ -1001,15 +1001,15 @@ class LibraryManager(object):
             self.guiUtility.frame.startDownloadFromMagnet(url, destdir)
 
     def resumeTorrent(self, torrent, force_seed=False):
-        downloads = self._getDownloads(torrent)
+        download = self.session.get_download(torrent.infohash)
         resumed = False
-        for download in downloads:
-            if download:
-                download.restart()
-                resumed = True
 
-                infohash = download.get_def().get_infohash()
-                self.user_download_choice.set_download_state(infohash, "restartseed" if force_seed and download.get_progress() == 1.0 else "restart")
+        if download:
+            download.restart()
+            resumed = True
+
+            infohash = download.get_def().get_infohash()
+            self.user_download_choice.set_download_state(infohash, "restartseed" if force_seed and download.get_progress() == 1.0 else "restart")
 
         if not resumed:
             torrent_data = self.guiUtility.utility.session.get_collected_torrent(torrent.infohash)
