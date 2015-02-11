@@ -1037,14 +1037,6 @@ class LibraryManager(object):
             infohash = download.get_def().get_infohash()
             self.user_download_choice.set_download_state(infohash, "stop")
 
-    def _getDownloads(self, torrent):
-        downloads = []
-        for curdownload in self.session.get_downloads():
-            infohash = curdownload.get_def().get_infohash()
-            if infohash == torrent.infohash:
-                downloads.append(curdownload)
-        return downloads
-
     def deleteTorrent(self, torrent, removecontent=False):
         self.deleteTorrentDS(torrent.download_state, torrent.infohash, removecontent)
 
