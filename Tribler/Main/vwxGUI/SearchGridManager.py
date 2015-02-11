@@ -963,11 +963,11 @@ class LibraryManager(object):
                 self._playDownload(infohash, selectedinfilename)
         else:
             def do_db():
-                torrent = self.guiUtility.torrentsearch_manager.getTorrentByInfohash(infohash)
-                filename = self.guiUtility.torrentsearch_manager.getCollectedFilename(torrent)
-                if filename:
-                    tdef = TorrentDef.load(filename)
+                torrent_data = self.guiUtility.utility.session.get_collected_torrent(infohash)
+                if torrent_data is not None:
+                    tdef = TorrentDef.load_from_memory(torrent_data)
                 else:
+                    torrent = self.guiUtility.torrentsearch_manager.getTorrentByInfohash(infohash)
                     tdef = TorrentDefNoMetainfo(infohash, torrent.name)
                 return tdef
 
