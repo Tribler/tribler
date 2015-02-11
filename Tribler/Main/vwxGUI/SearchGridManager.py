@@ -194,7 +194,7 @@ class TorrentManager(object):
         return True
 
     def downloadTorrent(self, torrent, dest=None, secret=False, vodmode=False, selectedFiles=None):
-        torrent_filename = self.getCollectedFilename(torrent)
+        torrent_filename = torrent.torrent_file_name
 
         name = torrent.get('name', torrent.infohash)
 
