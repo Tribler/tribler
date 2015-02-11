@@ -224,8 +224,12 @@ class TorrentManager(object):
         if "click_position" in torrent:
             clicklog["click_position"] = torrent["click_position"]
 
-        tdef = TorrentDefNoMetainfo(torrent.infohash, torrent.name) \
-            if not isinstance(torrent_filename, basestring) else None
+        torrent_data = self.session.lm.torrent_store.get(hexlify(torrent.infohash))
+        if torrent_data is not None:
+            tdef = TorrentDef.load_from_memory(torrent_data)
+        else:
+            tdef = TorrentDefNoMetainfo(torrent.infohash, torrent.name) \
+                if not isinstance(torrent_filename, basestring) else None
 
         # Api download
         def do_gui():
