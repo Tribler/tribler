@@ -1039,9 +1039,9 @@ class LibraryManager(object):
                 self.user_download_choice.set_download_state(infohash, "restartseed" if force_seed and download.get_progress() == 1.0 else "restart")
 
         if not resumed:
-            filename = self.torrentsearch_manager.getCollectedFilename(torrent)
-            if filename:
-                tdef = TorrentDef.load(filename)
+            torrent_data = self.guiUtility.utility.session.get_collected_torrent(torrent.infohash)
+            if torrent_data is not None:
+                tdef = TorrentDef.load_from_memory(torrent_data)
 
                 destdirs = self.mypref_db.getMyPrefStats(torrent.torrent_id)
                 destdir = destdirs.get(torrent.torrent_id, None)
