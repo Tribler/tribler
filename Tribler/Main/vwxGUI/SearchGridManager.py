@@ -421,8 +421,7 @@ class TorrentManager(object):
         prefetch_counter_limit = [5, 10]
 
         for i, hit in enumerate(self.hits):
-            torrent_filename = self.getCollectedFilename(hit, retried=True)
-            if not torrent_filename:
+            if not self.guiUtility.utility.session.has_collected_torrent(hit.infohash):
                 # this .torrent is not collected, decide if we want to collect it, or only collect torrentmessage
                 if prefetch_counter[0] < prefetch_counter_limit[0] and i < hit_counter_limit[0]:
                     if self.downloadTorrentfileFromPeers(hit, lambda _, infohash=hit.infohash: sesscb_prefetch_done(infohash), duplicate=False, prio=1):
