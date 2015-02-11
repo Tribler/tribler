@@ -1025,15 +1025,17 @@ class LibraryManager(object):
                 callback = lambda torrentfilename: self.resumeTorrent(torrent)
                 self.torrentsearch_manager.downloadTorrentfileFromPeers(torrent, callback)
 
-    def stopTorrent(self, torrent):
-        downloads = self._getDownloads(torrent) if not isinstance(torrent, basestring) else [self.session.get_download(torrent)]
-        for download in downloads:
-            if download:
-                self.stopVideoIfEqual(download)
-                download.stop()
+    def stopTorrent(self, infohash):
+        assert isinstance(infohash, str), "infohash is of type %s" % type(infohash)
+        assert len(infohash) == 20, "infohash length is not 20: %s, %s" % (len(infohash), infohash)
 
-                infohash = download.get_def().get_infohash()
-                self.user_download_choice.set_download_state(infohash, "stop")
+        download = self.session.get_download(infohash)
+        if download:
+            self.stopVideoIfEqual(download)
+            download.stop()
+
+            infohash = download.get_def().get_infohash()
+            self.user_download_choice.set_download_state(infohash, "stop")
 
     def _getDownloads(self, torrent):
         downloads = []
