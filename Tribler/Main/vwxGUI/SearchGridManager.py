@@ -218,8 +218,12 @@ class TorrentManager(object):
 
     def loadTorrent(self, torrent, callback=None):
         if not isinstance(torrent, CollectedTorrent):
-            torrent_filename = self.getCollectedFilename(torrent)
-            if not torrent_filename:
+            if torrent.torrent_id <= 0:
+                torrent_id = self.torrent_db.getTorrentID(torrent.infohash)
+                if torrent_id:
+                    torrent.update_torrent_id(torrent_id)
+
+            if not self.session.has_collected_torrent(torrent.infohash):
                 files = []
                 trackers = []
 
@@ -243,18 +247,7 @@ class TorrentManager(object):
                 torrent = NotCollectedTorrent(torrent, files, trackers)
 
             else:
-                try:
-                    tdef = TorrentDef.load_from_memory(self.session.lm.torrent_store.get(hexlify(torrent.infohash)))
-
-                except ValueError:
-                    data = fix_torrent(torrent_filename)
-                    if data is not None:
-                        tdef = TorrentDef.load_from_memory(data)
-
-                    else:
-                        # cannot repair torrent, removing
-                        os.remove(torrent_filename)
-                        return self.loadTorrent(torrent, callback)
+                tdef = TorrentDef.load_from_memory(self.session.lm.torrent_store.get(hexlify(torrent.infohash)))
 
                 if torrent.torrent_id <= 0:
                     del torrent.torrent_id
