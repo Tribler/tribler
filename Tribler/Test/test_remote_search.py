@@ -43,9 +43,9 @@ class TestRemoteQuery(TestGuiAsServer):
             self.quit()
 
         def do_doubleclick():
-            self.assert_(self.frame.searchlist.GetNrChannels() > 0, 'no channels matching mp3')
+            self.assert_(self.frame.searchlist.GetNrChannels() > 0, 'no channels matching vodo')
 
-            self.screenshot('After doing mp3 search, got %d results' % self.frame.searchlist.GetNrResults())
+            self.screenshot('After doing vodo search, got %d results' % self.frame.searchlist.GetNrResults())
             items = self.frame.searchlist.GetItems()
             for _, item in items.iteritems():
                 if isinstance(item, ChannelListItem):
@@ -57,7 +57,7 @@ class TestRemoteQuery(TestGuiAsServer):
             self.Call(10, do_assert)
 
         def do_search():
-            self.guiUtility.dosearch(u'mp3')
+            self.guiUtility.dosearch(u'vodo')
             self.Call(15, do_doubleclick)
 
         self.startTest(do_search, search_comm=False)
