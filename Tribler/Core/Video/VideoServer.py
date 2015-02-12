@@ -11,9 +11,9 @@ from SocketServer import ThreadingMixIn
 from threading import Event, Thread
 from traceback import print_exc
 from binascii import unhexlify
+from cherrypy.lib.httputil import get_ranges
 
 from Tribler.Core.simpledefs import DLMODE_VOD
-from Tribler.Core.Video.utils import get_ranges
 
 
 class VideoServer(ThreadingMixIn, HTTPServer):
