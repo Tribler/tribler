@@ -551,23 +551,3 @@ class URLHistory:
             return link
         else:
             return link[:idx]
-
-if __name__ == '__main__':
-
-    def callback(key, torrent, extraInfo):
-        self._logger.info("RssParser: Found torrent %s %s %s", key, torrent, extraInfo)
-
-    class FakeSession:
-
-        def get_state_dir(self):
-            return os.path.dirname(__file__)
-
-        def get_torrent_collecting_dir(self):
-            return self.get_state_dir()
-
-    r = RssParser.getInstance()
-    r.register(FakeSession(), 'test')
-    r.addCallback('test', callback)
-    r.addURL('http://www.vodo.net/feeds/public', 'test', dowrite=False)
-
-    r.join()
