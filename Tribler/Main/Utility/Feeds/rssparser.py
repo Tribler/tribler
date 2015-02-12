@@ -17,11 +17,7 @@ from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.bencode import bdecode
 
-
-try:
-    from Tribler.Main.Utility.Feeds import feedparser
-except:
-    import feedparser  # Feedparser is installed as a package in ubuntu
+import feedparser
 
 URLHIST_TIMEOUT = 7 * 24 * 3600.0  # Don't revisit links for this time
 RSS_RELOAD_FREQUENCY = 30 * 60  # reload a rss source every n seconds
