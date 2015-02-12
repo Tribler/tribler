@@ -3,7 +3,7 @@ import imghdr
 import logging
 import os
 import re
-import sha
+from hashlib import sha1
 import tempfile
 import time
 from copy import deepcopy
@@ -83,7 +83,7 @@ class RssParser(Thread):
         return os.path.join(self.getdir(), "subscriptions.txt")
 
     def gethistfilename(self, url, key):
-        h = sha.sha(url).hexdigest()
+        h = sha1(url).hexdigest()
 
         histfile = os.path.join(self.getdir(), "%s-%s.txt" % (h, key))
         oldhistfile = os.path.join(self.getdir(), h + '.txt')
