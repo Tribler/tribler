@@ -699,12 +699,12 @@ class SelectedChannelList(GenericSearchList):
                 self.parent.sashpos = splitter.GetSashPosition()
                 splitter.Unsplit(bottomwindow)
 
-    def StartDownload(self, torrent, files=None):
+    def StartDownload(self, torrent):
         def do_gui(delayedResult):
             nrdownloaded = delayedResult.get()
             if nrdownloaded:
                 self._ShowFavoriteDialog(nrdownloaded)
-                GenericSearchList.StartDownload(self, torrent, files)
+                self.guiutility.torrentsearch_manager.downloadTorrent(torrent)
 
         def do_db():
             channel = self.channel
@@ -714,7 +714,7 @@ class SelectedChannelList(GenericSearchList):
         if not self.channel.isFavorite():
             startWorker(do_gui, do_db, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         else:
-            GenericSearchList.StartDownload(self, torrent, files)
+            self.guiutility.torrentsearch_manager.downloadTorrent(torrent)
 
     def _ShowFavoriteDialog(self, nrdownloaded):
         dial = wx.MessageDialog(None, "You downloaded %d torrents from this Channel. 'Mark as favorite' will ensure that you will always have access to newest channel content.\n\nDo you want to mark this channel as one of your favorites now?" % nrdownloaded, 'Mark as Favorite?', wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION)

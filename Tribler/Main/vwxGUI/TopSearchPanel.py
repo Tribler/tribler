@@ -373,9 +373,9 @@ class TopSearchPanel(FancyPanel):
                 self.guiutility.library_manager.resumeTorrent(torrent)
             else:
                 if self.guiutility.frame.selectedchannellist.IsShownOnScreen():
-                    self.guiutility.frame.selectedchannellist.StartDownload(torrent, None)
+                    self.guiutility.frame.selectedchannellist.StartDownload(torrent)
                 else:
-                    self.guiutility.frame.searchlist.StartDownload(torrent, None)
+                    self.guiutility.torrentsearch_manager.downloadTorrent(torrent)
 
                 refresh_library = True
 

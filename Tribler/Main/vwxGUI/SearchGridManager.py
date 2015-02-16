@@ -159,7 +159,7 @@ class TorrentManager(object):
                 self.session.download_torrentmessage_from_peer(candidate, torrent.infohash, callback, prio)
         return True
 
-    def downloadTorrent(self, torrent, dest=None, secret=False, vodmode=False, selectedFiles=None):
+    def downloadTorrent(self, torrent):
         torrent_filename = torrent.torrent_file_name
 
         name = torrent.get('name', torrent.infohash)
@@ -173,13 +173,7 @@ class TorrentManager(object):
 
         # Api download
         def do_gui():
-            d = self.guiUtility.frame.startDownload(torrent_filename, tdef=tdef, destdir=dest,
-                                                    vodmode=vodmode, selectedFiles=selectedFiles)
-            if d:
-                if secret:
-                    self.torrent_db.setSecret(torrent.infohash, secret)
-
-                self._logger.debug('standardDetails: download: download started')
+            self.guiUtility.frame.startDownload(torrent_filename, tdef=tdef)
         wx.CallAfter(do_gui)
 
     def loadTorrent(self, torrent, callback=None):
