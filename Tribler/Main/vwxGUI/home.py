@@ -56,7 +56,7 @@ class Home(wx.Panel):
         if sys.platform == 'darwin':  # mac
             self.searchBox = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         else:
-            self.searchBox = TextCtrlAutoComplete(self, entrycallback=parent.top_bg.complete, selectcallback=parent.top_bg.OnAutoComplete)
+            self.searchBox = TextCtrlAutoComplete(self, entrycallback=parent.top_bg.complete)
 
         font = self.searchBox.GetFont()
         font.SetPointSize(font.GetPointSize() * 2)
