@@ -1434,7 +1434,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
 
         self.rlock = threading.RLock()
 
-        self.recent_preflist = self.recent_preflist_with_clicklog = self.recent_preflist_with_swarmsize = None
+        self.recent_preflist = None
         self.status_good = None
         self._torrent_db = None
 
@@ -1500,24 +1500,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
             return self.recent_preflist[:num]
         else:
             return self.recent_preflist
-
-    def addClicklogToMyPreference(self, infohash, clicklog_data):
-        torrent_id = self._torrent_db.getTorrentID(infohash)
-        clicklog_already_stored = False  # equivalent to hasMyPreference TODO
-        if torrent_id is None or clicklog_already_stored:
-            return False
-
-        d = {}
-        # copy those elements of the clicklog data which are used in the update command
-        for clicklog_key in ["click_position", "reranking_strategy"]:
-            if clicklog_key in clicklog_data:
-                d[clicklog_key] = clicklog_data[clicklog_key]
-
-        if d == {}:
-            self._logger.debug("no updatable information given to addClicklogToMyPreference")
-        else:
-            self._logger.debug("addClicklogToMyPreference: updatable clicklog data: %s", d)
-            self._db.update(self.table_name, 'torrent_id=%d' % torrent_id, **d)
 
     def hasMyPreference(self, torrent_id):
         res = self.getOne('torrent_id', torrent_id=torrent_id)
