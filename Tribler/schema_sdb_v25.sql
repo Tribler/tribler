@@ -40,10 +40,7 @@ CREATE TABLE MyPreference (
   torrent_id     integer PRIMARY KEY NOT NULL,
   destination_path text NOT NULL,
   progress       numeric,
-  creation_time  integer NOT NULL,
-  -- V2: Patch for BuddyCast 4
-  click_position INTEGER DEFAULT -1,
-  reranking_strategy INTEGER DEFAULT -1
+  creation_time  integer NOT NULL
 );
 
 ----------------------------------------
@@ -121,12 +118,6 @@ CREATE VIEW CollectedTorrent AS SELECT * FROM Torrent WHERE torrent_file_name IS
 -- v7: TermFrequency and TorrentBiTermPhrase
 --     for "Network Buzz" feature (removed in v21);
 --     Also UserEventLog table for user studies.
-
-CREATE TABLE UserEventLog (
-  timestamp      numeric,
-  type           integer,
-  message        text
-);
 
 ----------------------------------------
 -- v8: BundlerPreference

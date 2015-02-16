@@ -446,7 +446,7 @@ class MainFrame(wx.Frame):
         self.guiUtility.Notify("Download from url failed", icon=wx.ART_WARNING)
         return False
 
-    def startDownload(self, torrentfilename=None, destdir=None, tdef=None, cmdline=False, clicklog=None,
+    def startDownload(self, torrentfilename=None, destdir=None, tdef=None, cmdline=False,
                       vodmode=False, hops=0, try_hidden_services=False, fixtorrent=False, selectedFiles=None,
                       correctedFilename=None, hidden=False):
         self._logger.debug(u"startDownload: %s %s %s %s %s", torrentfilename, destdir, tdef, vodmode, selectedFiles)
@@ -587,10 +587,6 @@ class MainFrame(wx.Frame):
                     if monitorHiddenSerivcesProgress:
                         state_lambda = lambda ds, tdef = orig_tdef, dscfg = dscfg, selectedFiles = selectedFiles: self.monitorHiddenSerivcesProgress(ds, tdef, dscfg, selectedFiles)
                         result.set_state_callback(state_lambda, delay=40.0)
-
-                if clicklog is not None:
-                    mypref = self.utility.session.open_dbhandler(NTFY_MYPREFERENCES)
-                    startWorker(None, mypref.addClicklogToMyPreference, wargs=(tdef.get_infohash(), clicklog))
 
                 return result
 
