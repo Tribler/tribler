@@ -2681,53 +2681,6 @@ class ChannelCastDBHandler(BasicDBHandler):
             return best_channel
 
 
-class UserEventLogDBHandler(BasicDBHandler):
-
-    """
-    The database handler for logging user events.
-    """
-    # maximum number of events to store
-    # when this maximum is reached, approx. 50% of the entries are deleted.
-    MAX_EVENTS = 2 * 10000
-
-    def __init__(self, session):
-        super(UserEventLogDBHandler, self).__init__(session, u"UserEventLog")
-
-        self.count = -1
-
-    def addEvent(self, message, type=1, timestamp=None):
-        """
-        Log a user event to the database. Commits automatically.
-
-        @param message A message (string) describing the event.
-        @param type Optional type of event (default: 1). There is no
-        mechanism to register user event types.
-        @param timestamp Optional timestamp of the event. If omitted,
-        the current time is used.
-        """
-        if timestamp is None:
-            timestamp = time()
-        self._db.insert(self.table_name,
-                        timestamp=timestamp, type=type, message=message)
-
-        if self.count == -1:
-            self.count = self._db.size(self.table_name)
-        else:
-            self.count += 1
-
-        if self.count > UserEventLogDBHandler.MAX_EVENTS:
-            sql = \
-                '''
-            DELETE FROM UserEventLog
-            WHERE timestamp < (SELECT MIN(timestamp)
-                               FROM (SELECT timestamp
-                                     FROM UserEventLog
-                                     ORDER BY timestamp DESC LIMIT %s))
-            ''' % (UserEventLogDBHandler.MAX_EVENTS / 2)
-            self._db.execute_write(sql)
-            self.count = self._db.size(self.table_name)
-
-
 class BundlerPreferenceDBHandler(BasicDBHandler):
 
     """
