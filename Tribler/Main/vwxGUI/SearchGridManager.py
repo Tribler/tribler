@@ -73,10 +73,6 @@ class TorrentManager(object):
         self.gotRemoteHits = False
         self.remoteLock = threading.Lock()
 
-        # Requests for torrents
-        self.requestedTorrents = set()
-        self.requestedTorrentsMessages = set()
-
         # For asking for a refresh when remote results came in
         self.gridmgr = None
         self.searchkeywords = []
@@ -124,16 +120,13 @@ class TorrentManager(object):
         """
 
         # return False when duplicate
-        if not duplicate and torrent.infohash in self.requestedTorrents:
+        if not duplicate and self.session.has_download(torrent.infohash):
             return False
 
         if torrent.query_candidates is None or len(torrent.query_candidates) == 0:
             self.session.download_torrentfile(torrent.infohash, callback, prio)
 
         else:
-            # only add to requestedTorrents if we have peers
-            self.requestedTorrents.add(torrent.infohash)
-
             for candidate in torrent.query_candidates:
                 self.session.download_torrentfile_from_peer(candidate, torrent.infohash, callback, prio)
 
@@ -158,17 +151,10 @@ class TorrentManager(object):
 
         Returns True or False
         """
-        # return False when duplicate
-        if not duplicate and torrent.infohash in self.requestedTorrentsMessages:
-            return False
-
         if torrent.query_candidates is None or len(torrent.query_candidates) == 0:
             return False
 
         else:
-            # only add to requestedTorrents if we have peers
-            self.requestedTorrentsMessages.add(torrent.infohash)
-
             for candidate in torrent.query_candidates:
                 self.session.download_torrentmessage_from_peer(candidate, torrent.infohash, callback, prio)
         return True
