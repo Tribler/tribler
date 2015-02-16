@@ -15,14 +15,10 @@ from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupCon
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException
 from Tribler.Core.osutils import get_appstate_dir
-from Tribler.Core.simpledefs import (STATEDIR_PEERICON_DIR,
-                                     STATEDIR_DLPSTATE_DIR, STATEDIR_SESSCONFIG,
-                                     NTFY_MISC, NTFY_PEERS,
-                                     NTFY_BUNDLERPREFERENCE, NTFY_TORRENTS,
-                                     NTFY_MYPREFERENCES, NTFY_VOTECAST,
-                                     NTFY_CHANNELCAST, NTFY_UPDATE,
-                                     NTFY_USEREVENTLOG, NTFY_INSERT, NTFY_DELETE,
-                                     NTFY_METADATA, STATEDIR_TORRENT_STORE_DIR)
+from Tribler.Core.simpledefs import (STATEDIR_PEERICON_DIR, STATEDIR_DLPSTATE_DIR, STATEDIR_SESSCONFIG,
+                                     NTFY_MISC, NTFY_PEERS, NTFY_BUNDLERPREFERENCE, NTFY_TORRENTS,
+                                     NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_UPDATE,
+                                     NTFY_INSERT, NTFY_DELETE, NTFY_METADATA, STATEDIR_TORRENT_STORE_DIR)
 
 
 GOTM2CRYPTO = False
@@ -441,8 +437,6 @@ class Session(SessionConfigInterface):
             return self.lm.votecast_db
         elif subject == NTFY_CHANNELCAST:
             return self.lm.channelcast_db
-        elif subject == NTFY_USEREVENTLOG:
-            return self.lm.ue_db
         elif subject == NTFY_BUNDLERPREFERENCE:
             return self.lm.bundlerpref_db
         else:
