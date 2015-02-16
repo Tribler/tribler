@@ -88,7 +88,6 @@ class TriblerLaunchMany(Thread):
         self.mypref_db = None
         self.votecast_db = None
         self.channelcast_db = None
-        self.ue_db = None
         self.bundlerpref_db = None
 
         self.videoplayer = None
@@ -126,8 +125,8 @@ class TriblerLaunchMany(Thread):
             if self.session.get_megacache():
                 from Tribler.Core.CacheDB.SqliteCacheDBHandler import (MiscDBHandler, PeerDBHandler, TorrentDBHandler,
                                                                        MyPreferenceDBHandler, VoteCastDBHandler,
-                                                                       ChannelCastDBHandler, UserEventLogDBHandler,
-                                                                       MetadataDBHandler, BundlerPreferenceDBHandler)
+                                                                       ChannelCastDBHandler, MetadataDBHandler,
+                                                                       BundlerPreferenceDBHandler)
                 from Tribler.Category.Category import Category
 
                 self._logger.debug('tlm: Reading Session state from %s', self.session.get_state_dir())
@@ -142,7 +141,6 @@ class TriblerLaunchMany(Thread):
                 self.mypref_db = MyPreferenceDBHandler(self.session)
                 self.votecast_db = VoteCastDBHandler(self.session)
                 self.channelcast_db = ChannelCastDBHandler(self.session)
-                self.ue_db = UserEventLogDBHandler(self.session)
                 self.bundlerpref_db = BundlerPreferenceDBHandler(self.session)
 
                 # initializes DBHandlers
@@ -153,7 +151,6 @@ class TriblerLaunchMany(Thread):
                 self.mypref_db.initialize()
                 self.votecast_db.initialize()
                 self.channelcast_db.initialize()
-                self.ue_db.initialize()
                 self.bundlerpref_db.initialize()
 
             if self.session.get_videoplayer():
@@ -679,7 +676,6 @@ class TriblerLaunchMany(Thread):
 
         if self.session.get_megacache():
             self.bundlerpref_db.close()
-            self.ue_db.close()
             self.channelcast_db.close()
             self.votecast_db.close()
             self.mypref_db.close()
@@ -689,7 +685,6 @@ class TriblerLaunchMany(Thread):
             self.misc_db.close()
 
             self.bundlerpref_db = None
-            self.ue_db = None
             self.channelcast_db = None
             self.votecast_db = None
             self.mypref_db = None

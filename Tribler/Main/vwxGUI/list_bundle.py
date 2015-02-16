@@ -4,8 +4,6 @@
 import wx
 import logging
 
-from Tribler.Core.simpledefs import NTFY_USEREVENTLOG
-
 from Tribler.Main.vwxGUI import LIST_SELECTED, DEFAULT_BACKGROUND, LIST_GREY, LIST_AUTOSIZEHEADER, format_size
 from Tribler.Main.vwxGUI.list_body import ListItem, FixedListBody
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -197,7 +195,6 @@ class BundlePanel(wx.BoxSizer):
 
         # logging
         self.guiutility = GUIUtility.getInstance()
-        self.uelog = self.guiutility.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
 
         self.state = BundlePanel.COLLAPSED
         self.nrhits = -1
@@ -463,21 +460,11 @@ class BundlePanel(wx.BoxSizer):
                     detailspanel.setTorrent(item.original_data)
                     item.expandedPanel = detailspanel
 
-        def db_callback():
-            self.uelog.addEvent(message="Bundler GUI: BundleLink click; %s; %s;" %
-                                (self.nrhits, self.parent_listitem.general_description), type=3)
-        self.guiutility.frame.guiserver.add_task(db_callback)
-
     def OnMoreClick(self, event):
         return
         # do expand
         self.ExpandAndHideParent()
         self.ChangeState(BundlePanel.FULL)
-
-        def db_callback():
-            self.uelog.addEvent(message="Bundler GUI: More click; %s; %s;" %
-                                (self.nrhits, self.parent_listitem.general_description), type=3)
-        self.guiutility.frame.guiserver.add_task(db_callback)
 
     def ExpandAndHideParent(self):
         self.parent.Freeze()

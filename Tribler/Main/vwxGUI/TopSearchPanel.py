@@ -5,8 +5,7 @@ import logging
 import wx.animate
 
 from Tribler import LIBRARYNAME
-from Tribler.Core.simpledefs import NTFY_USEREVENTLOG, NTFY_TORRENTS
-from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
+from Tribler.Core.simpledefs import NTFY_TORRENTS
 
 from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent, Torrent
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker
@@ -48,7 +47,6 @@ class TopSearchPanel(FancyPanel):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
         self.installdir = self.utility.getPath()
-        self.uelog = self.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
         self.tdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
         self.collectedTorrents = {}
 
@@ -74,7 +72,7 @@ class TopSearchPanel(FancyPanel):
         else:
             self.searchFieldPanel = FancyPanel(self, radius=5, border=wx.ALL)
             self.searchFieldPanel.SetBorderColour(SEPARATOR_GREY, highlight=TRIBLER_RED)
-            self.searchField = TextCtrlAutoComplete(self.searchFieldPanel, style=wx.NO_BORDER, entrycallback=self.complete, selectcallback=self.OnAutoComplete)
+            self.searchField = TextCtrlAutoComplete(self.searchFieldPanel, style=wx.NO_BORDER, entrycallback=self.complete)
             # Since we have set the style to wx.NO_BORDER, the default height will be too large. Therefore, we need to set the correct height.
             _, height = self.GetTextExtent("Gg")
             self.searchField.SetMinSize((-1, height))
@@ -155,16 +153,9 @@ class TopSearchPanel(FancyPanel):
         self.SetSizer(mainSizer)
         self.Layout()
 
-    @forceDBThread
-    def LogEvent(self, *args, **kwargs):
-        self.uelog.addEvent(*args, **kwargs)
-
     def OnResize(self, event):
         self.Refresh()
         event.Skip()
-
-    def OnAutoComplete(self):
-        self.LogEvent(message="TopSearchPanel: user used autocomplete", type=2)
 
     def OnSearchKeyDown(self, event=None):
         if self.go.IsEnabled():
@@ -421,11 +412,6 @@ class TopSearchPanel(FancyPanel):
             return
 
         self.guiutility.library_manager.playTorrent(torrent.infohash)
-
-        if not self.guiutility.frame.searchlist.IsShownOnScreen():
-            self.LogEvent(message="Torrent: torrent play from channel", type=2)
-        else:
-            self.LogEvent(message="Torrent: torrent play from other", type=2)
 
         button = event.GetEventObject()
         button.Enable(False)
