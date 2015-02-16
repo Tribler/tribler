@@ -273,6 +273,14 @@ class Session(SessionConfigInterface):
         # locking by lm
         return self.lm.get_download(infohash)
 
+    def has_download(self, infohash):
+        """
+        Checks if the torrent download already exists.
+        :param infohash: The torrent infohash.
+        :return: True or False indicating if the torrent download already exists.
+        """
+        return self.lm.download_exists(infohash)
+
     def remove_download(self, d, removecontent=False, removestate=True, hidden=False):
         """
         Stops the download and removes it from the session.
