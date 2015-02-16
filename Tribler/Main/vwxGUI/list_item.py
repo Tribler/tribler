@@ -9,7 +9,7 @@ import logging
 import binascii
 from datetime import timedelta
 
-from Tribler.Core.simpledefs import (DOWNLOAD, UPLOAD, DLSTATUS_METADATA, DLSTATUS_HASHCHECKING, NTFY_USEREVENTLOG,
+from Tribler.Core.simpledefs import (DOWNLOAD, UPLOAD, DLSTATUS_METADATA, DLSTATUS_HASHCHECKING,
                                      DLSTATUS_WAITING4HASHCHECK)
 from Tribler.Core.osutils import startfile
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
@@ -551,9 +551,6 @@ class TorrentListItem(DoubleLineListItemWithButtons):
                 added.append(torrent)
 
         if added:
-            ue_db = self.guiutility.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
-            ue_db.addEvent(message="MyChannel: %d manual add(s) from library" % len(added), type=2)
-
             # remote channel link to force reload
             for torrent in added:
                 del torrent.channel
