@@ -9,9 +9,11 @@ from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.message import Message, DelayMessageByProof
 from Tribler.dispersy.resolution import PublicResolution
-from Tribler.dispersy.statistics import BartercastStatisticTypes
+from .statistics import BartercastStatisticTypes, _barter_statistics
 from twisted.internet.task import LoopingCall
 from twisted.python import log
+
+BARTERCAST_PERSIST_INTERVAL = 120.0
 
 
 class BarterCommunity(Community):
@@ -37,6 +39,16 @@ class BarterCommunity(Community):
         self._dispersy = dispersy
         # self._logger = logging.getLogger(self.__class__.__name__)
         log.msg("joined BC community")
+        self.init_database()
+
+        # add task for persisting bartercast statistics every BARTERCAST_PERSIST_INTERVAL seconds
+        self._logger.debug("bartercast persist task started")
+        self.register_task("bartercast persist",
+                           LoopingCall(self.backup_bartercast_statistics)).start(BARTERCAST_PERSIST_INTERVAL, now=False)
+
+    def init_database(self):
+        log.msg("loading BC statistics from database")
+        _barter_statistics.load_statistics(self._dispersy)
 
     def initiate_meta_messages(self):
         return super(BarterCommunity, self).initiate_meta_messages() + [
@@ -105,7 +117,7 @@ class BarterCommunity(Community):
     def create_stats_response(self, stats_type, candidate):
         log.msg("OUT: stats-response")
         meta = self.get_meta_message(u"stats-response")
-        records = self._dispersy._statistics.get_top_n_bartercast_statistics(stats_type, 5)
+        records = _barter_statistics.get_top_n_bartercast_statistics(stats_type, 5)
         log.msg("sending stats for type %d: %s" % (stats_type, records))
 
         message = meta.impl(authentication=(self._my_member,),
@@ -128,10 +140,15 @@ class BarterCommunity(Community):
             log.msg("stats-response: %s %s %s"
                                % (message._distribution.global_time, message.payload.stats_type, message.payload.records))
             for r in message.payload.records:
-                self._dispersy._statistics.log_interaction(self._dispersy,
+                _barter_statistics.log_interaction(self._dispersy,
                                                            message.payload.stats_type,
                                                            message.authentication.member.mid.encode('hex'),
                                                            r[0], int(r[1].encode('hex'), 16))
+
+    # bartercast accounting stuff
+    def backup_bartercast_statistics(self):
+        self._logger.debug("merging bartercast statistics")
+        _barter_statistics.persist(self, 1)
 
 
 class BarterCommunityCrawler(BarterCommunity):

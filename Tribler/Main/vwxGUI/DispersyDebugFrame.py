@@ -8,7 +8,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.utility import compute_ratio, eta_value, size_format
 from operator import itemgetter
-from Tribler.dispersy.statistics import BartercastStatisticTypes
+from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
 
 DATA_NONE = ""
 
@@ -135,7 +135,7 @@ class DispersyDebugFrame(wx.Frame):
             self.__community_panel.UpdateInfo(stats)
             self.__rawinfo_panel.UpdateInfo(stats)
             self.__runtime_panel.UpdateInfo(stats)
-            self.__sharedstatistics_panel.UpdateInfo(stats)
+            self.__sharedstatistics_panel.UpdateInfo(_barter_statistics)
             self.Layout()
 
         startWorker(do_gui, do_db, uId=u"DispersyDebugFrame_UpdateInfo", priority=GUI_PRI_DISPERSY)

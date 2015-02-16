@@ -25,7 +25,7 @@ from Tribler.community.bartercast4.community import BarterCommunityCrawler
 class BartercastCrawler(Dispersy):
 
     def __init__(self, endpoint, working_directory, silent=False, crypto=NoVerifyCrypto()):
-        super(BartercastCrawler, self).__init__(endpoint, working_directory, u":memory:", crypto, load_bartercast=True)
+        super(BartercastCrawler, self).__init__(endpoint, working_directory, u":memory:", crypto)
 
         # location of persistent storage
         self._persistent_storage_filename = os.path.join(working_directory, "persistent-storage.data")
