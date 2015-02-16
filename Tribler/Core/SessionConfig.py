@@ -193,6 +193,12 @@ class SessionConfigInterface(object):
     def get_ipv6(self):
         return self.sessconfig.get(u'general', u'ipv6_enabled')
 
+    def set_ip(self, ip):
+        self.sessconfig.set(u'general', u'ip', ip)
+
+    def get_ip(self):
+        return self.sessconfig.get(u'general', u'ip')
+
     #
     # Enable/disable Tribler features
     #

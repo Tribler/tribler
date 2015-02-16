@@ -1442,6 +1442,9 @@ class ManageChannel(AbstractDetails):
 
     @forceDBThread
     def SetChannelId(self, channel_id):
+        if not (self and self.channelsearch_manager):
+            return
+
         channel = self.channelsearch_manager.getChannel(channel_id)
         self.SetChannel(channel)
 
