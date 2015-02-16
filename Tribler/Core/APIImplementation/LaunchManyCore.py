@@ -166,7 +166,7 @@ class TriblerLaunchMany(Thread):
                 from Tribler.dispersy.dispersy import Dispersy
 
                 # set communication endpoint
-                endpoint = RawserverEndpoint(self.rawserver, self.session.get_dispersy_port())
+                endpoint = RawserverEndpoint(self.rawserver, self.session.get_dispersy_port(), ip=self.session.get_ip())
 
                 working_directory = unicode(self.session.get_state_dir())
                 self.dispersy = Dispersy(endpoint, working_directory)
