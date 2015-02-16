@@ -738,18 +738,6 @@ class TorrentDetails(AbstractDetails):
             editable.Saved()
 
     @warnWxThread
-    def OnDrag(self, event):
-        if event.LeftIsDown():
-            filename = self.guiutility.torrentsearch_manager.getCollectedFilename(self.torrent)
-            if filename:
-                tdo = wx.FileDataObject()
-                tdo.AddFile(filename)
-
-                tds = wx.DropSource(self)
-                tds.SetData(tdo)
-                tds.DoDragDrop(True)
-
-    @warnWxThread
     def OnDoubleClick(self, event):
         selected = self.filesList.GetFirstSelected()
         playable_files = self.torrent.videofiles
