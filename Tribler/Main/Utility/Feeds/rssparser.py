@@ -3,7 +3,7 @@ import imghdr
 import logging
 import os
 import re
-import sha
+from hashlib import sha1
 import tempfile
 import time
 from copy import deepcopy
@@ -17,11 +17,7 @@ from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.bencode import bdecode
 
-
-try:
-    from Tribler.Main.Utility.Feeds import feedparser
-except:
-    import feedparser  # Feedparser is installed as a package in ubuntu
+import feedparser
 
 URLHIST_TIMEOUT = 7 * 24 * 3600.0  # Don't revisit links for this time
 RSS_RELOAD_FREQUENCY = 30 * 60  # reload a rss source every n seconds
@@ -87,7 +83,7 @@ class RssParser(Thread):
         return os.path.join(self.getdir(), "subscriptions.txt")
 
     def gethistfilename(self, url, key):
-        h = sha.sha(url).hexdigest()
+        h = sha1(url).hexdigest()
 
         histfile = os.path.join(self.getdir(), "%s-%s.txt" % (h, key))
         oldhistfile = os.path.join(self.getdir(), h + '.txt')
@@ -555,23 +551,3 @@ class URLHistory:
             return link
         else:
             return link[:idx]
-
-if __name__ == '__main__':
-
-    def callback(key, torrent, extraInfo):
-        self._logger.info("RssParser: Found torrent %s %s %s", key, torrent, extraInfo)
-
-    class FakeSession:
-
-        def get_state_dir(self):
-            return os.path.dirname(__file__)
-
-        def get_torrent_collecting_dir(self):
-            return self.get_state_dir()
-
-    r = RssParser.getInstance()
-    r.register(FakeSession(), 'test')
-    r.addCallback('test', callback)
-    r.addURL('http://www.vodo.net/feeds/public', 'test', dowrite=False)
-
-    r.join()

@@ -50,7 +50,7 @@ includePanels = [
 packages = ["encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels] +\
     ["Tribler.Core.DecentralizedTracking.pymdht.core",
      "Tribler.Main.tribler_main",
-     "netifaces", "csv", "cherrypy",
+     "netifaces", "csv", "cherrypy", "feedparser",
      "twisted", "apsw", "libtorrent", "M2Crypto", "cryptography", "libnacl", "six", "cffi", "pycparser",
      "zope.interface", "pyasn1", "gmpy", "Image", "requests", "leveldb"]
 
