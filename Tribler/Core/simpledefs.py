@@ -65,7 +65,6 @@ NTFY_VOTECAST = 'votecast'
 NTFY_CHANNELCAST = 'channelcast'
 NTFY_TUNNEL = 'tunnel'
 NTFY_TRACKERINFO = 'trackerinfo'
-NTFY_USEREVENTLOG = 'usereventlog'
 NTFY_BUNDLERPREFERENCE = "bundlepreference"
 
 # non data handler subjects
