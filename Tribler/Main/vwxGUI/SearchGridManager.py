@@ -197,18 +197,13 @@ class TorrentManager(object):
         torrent_filename = self.getCollectedFilename(torrent)
 
         name = torrent.get('name', torrent.infohash)
-        clicklog = {'keywords': self.searchkeywords,
-                    'reranking_strategy': self.rerankingStrategy.getID()}
-
-        if "click_position" in torrent:
-            clicklog["click_position"] = torrent["click_position"]
 
         tdef = TorrentDefNoMetainfo(torrent.infohash, torrent.name) \
             if not isinstance(torrent_filename, basestring) else None
 
         # Api download
         def do_gui():
-            d = self.guiUtility.frame.startDownload(torrent_filename, tdef=tdef, destdir=dest, clicklog=clicklog,
+            d = self.guiUtility.frame.startDownload(torrent_filename, tdef=tdef, destdir=dest,
                                                     vodmode=vodmode, selectedFiles=selectedFiles)
             if d:
                 if secret:
