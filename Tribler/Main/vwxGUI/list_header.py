@@ -5,7 +5,7 @@ import logging
 
 from Tribler.Category.Category import Category
 from Tribler.Core.Search.Bundler import Bundler
-from Tribler.Core.simpledefs import NTFY_USEREVENTLOG, NTFY_BUNDLERPREFERENCE
+from Tribler.Core.simpledefs import NTFY_BUNDLERPREFERENCE
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 
 from Tribler.community.channel.community import ChannelCommunity
@@ -535,7 +535,6 @@ class TorrentFilter(BaseFilter):
                                  Bundler.ALG_OFF: 'Off'}
         self.bundletexts = []
         self.bundle_db = self.guiutility.utility.session.open_dbhandler(NTFY_BUNDLERPREFERENCE)
-        self.uelog = self.guiutility.utility.session.open_dbhandler(NTFY_USEREVENTLOG)
 
         self.slider_minmax = (0, 0)
         self.slider_positions = (0, 0)
@@ -751,24 +750,11 @@ class TorrentFilter(BaseFilter):
             self.filesize.SetCurrentValues(min_val, max_val)
 
     def Rebundle(self, newstate):
-        curstate = self.bundlestate
-        selectedByMagic = self.selected_bundle_mode if self.bundlestate == Bundler.ALG_MAGIC else -1
-
         def db_callback():
             self.SetBundleState(newstate)
 
             keywords = self.torrentsearch_manager.getSearchKeywords()[0]
             self.bundle_db.storePreference(keywords, newstate)
-            query = ' '.join(keywords)
-
-            selectedByMagicStr = ''
-            if selectedByMagic != -1:
-                selectedByMagicStr = self.bundlestates_str[selectedByMagic]
-
-            self.uelog.addEvent(message="Bundler GUI: %s -> %s; %s -> %s; selectedByMagic %s (%s); q=%s"
-                                % (curstate, newstate, self.bundlestates_str[curstate],
-                                   self.bundlestates_str[newstate],
-                                   selectedByMagic, selectedByMagicStr, query), type=3)
 
         startWorker(None, db_callback)
 
