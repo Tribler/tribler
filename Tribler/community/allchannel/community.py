@@ -116,7 +116,6 @@ class AllChannelCommunity(Community):
         super(AllChannelCommunity, self).__init__(*args, **kwargs)
 
         self._blocklist = {}
-        self._searchCallbacks = {}
         self._recentlyRequested = []
 
         self.tribler_session = None
@@ -283,12 +282,9 @@ class AllChannelCommunity(Community):
 
             self._logger.debug("got request for %s torrents from %s", len(requested_packets), message.candidate)
 
-    def create_channelsearch(self, keywords, callback):
+    def create_channelsearch(self, keywords):
         # clear searchcallbacks if new search
         query = " ".join(keywords)
-        if query not in self._searchCallbacks:
-            self._searchCallbacks.clear()
-        self._searchCallbacks.setdefault(query, set()).add(callback)
 
         meta = self.get_meta_message(u"channelsearch")
         message = meta.impl(authentication=(self._my_member,),
@@ -361,10 +357,13 @@ class AllChannelCommunity(Community):
 
             self._logger.debug("got search response for '%s'", query)
 
-            if query in self._searchCallbacks:
+            # emit a results signal if integrated with Tribler
+            if self.tribler_session is not None:
+                from Tribler.Core.simpledefs import SIGNAL_ALLCHANNEL, SIGNAL_ONSEARCHRESULTS
                 torrents = message.payload.torrents
-                for callback in self._searchCallbacks[query]:
-                    callback(keywords, torrents)
+                results = {'keywords': keywords,
+                           'torrents': torrents}
+                self.tribler_session.uch.notify(SIGNAL_ALLCHANNEL, SIGNAL_ONSEARCHRESULTS, None, results)
 
     def disp_create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
         # reclassify community

@@ -21,7 +21,8 @@ from Tribler.Core.Utilities.utilities import fix_torrent
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.simpledefs import (NTFY_MISC, NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST,
-                                     NTFY_METADATA, DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK)
+                                     NTFY_METADATA, DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK,
+                                     SIGNAL_ALLCHANNEL, SIGNAL_ONSEARCHRESULTS)
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import (Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent,
                                               NotCollectedTorrent, LibraryTorrent, Comment, Modification, Channel,
@@ -1198,6 +1199,8 @@ class ChannelManager(object):
             self.remote_th = RemoteTorrentHandler.getInstance()
 
             self.dispersy = session.lm.dispersy
+
+            self.session.add_observer(self.gotDispersyRemoteHits, SIGNAL_ALLCHANNEL, [SIGNAL_ONSEARCHRESULTS])
         else:
             raise RuntimeError('ChannelManager already connected')
 
@@ -1884,7 +1887,7 @@ class ChannelManager(object):
         if self.dispersy:
             for community in self.dispersy.get_communities():
                 if isinstance(community, AllChannelCommunity):
-                    nr_requests_made = community.create_channelsearch(self.searchkeywords, self.gotDispersyRemoteHits)
+                    nr_requests_made = community.create_channelsearch(self.searchkeywords)
                     if not nr_requests_made:
                         self._logger.info("Could not send search in AllChannelCommunity, no verified candidates found")
                     break
@@ -1921,7 +1924,9 @@ class ChannelManager(object):
             self.hits[channel.id] = channel
         return True
 
-    def gotDispersyRemoteHits(self, kws, answers):
+    def gotDispersyRemoteHits(self, subject, changetype, objectID, results):
+        kws = results['keywords']
+        answers = results['torrents']
         if self.searchkeywords == kws:
             channel_cids = answers.keys()
             _, dispersyChannels = self.getChannelsByCID(channel_cids)

@@ -121,3 +121,8 @@ TRIBLER_TORRENT_EXT = ".tribe"  # Unused
 
 # Infohashes are always 20 byte binary strings
 INFOHASH_LENGTH = 20
+
+
+# SIGNALS
+SIGNAL_ALLCHANNEL = 'allchannel'
+SIGNAL_ONSEARCHRESULTS = 'onsearchresults'
