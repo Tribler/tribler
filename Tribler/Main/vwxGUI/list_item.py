@@ -500,26 +500,31 @@ class TorrentListItem(DoubleLineListItemWithButtons):
     def OnExportTorrent(self, filename):
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
         if len(torrents) == 1:
-            filename = self.guiutility.torrentsearch_manager.getCollectedFilename(torrents[0])
+            torrent_data = self.guiutility.utility.session.get_collected_torrent(torrents[0].infohash)
             dlg = wx.FileDialog(None, message="Select an export destination", defaultFile="%s.torrent" % torrents[0].name, wildcard="*.torrent", style=wx.FD_SAVE | wx.CHANGE_DIR | wx.OVERWRITE_PROMPT)
             dlg.SetDirectory(DefaultDownloadStartupConfig.getInstance().get_dest_dir())
             if dlg.ShowModal() == wx.ID_OK:
                 paths = dlg.GetPaths()
                 if os.path.exists(paths[0]):
                     os.remove(paths[0])
-                shutil.copyfile(filename, paths[0])
+
+                with open(paths[0], "wb") as f:
+                    f.write(torrent_data)
             dlg.Destroy()
+
         elif len(torrents) > 1:
             dlg = wx.DirDialog(None, "Choose where to move the selected torrent(s)", style=wx.DEFAULT_DIALOG_STYLE)
             dlg.SetPath(DefaultDownloadStartupConfig.getInstance().get_dest_dir())
             if dlg.ShowModal() == wx.ID_OK:
                 path = dlg.GetPath()
                 for torrent in torrents:
-                    src_filename = self.guiutility.torrentsearch_manager.getCollectedFilename(torrent)
+                    torrent_data = self.guiutility.utility.session.get_collected_torrent(torrent.infohash)
                     dst_filename = os.path.join(path, "%s.torrent" % torrent.name)
                     if os.path.exists(dst_filename):
                         os.remove(dst_filename)
-                    shutil.copyfile(src_filename, dst_filename)
+
+                    with open(dst_filename, "wb") as f:
+                        f.write(torrent_data)
             dlg.Destroy()
 
     def OnCopyMagnet(self, event):
@@ -707,8 +712,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         enable = False
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
         for torrent in torrents:
-            filename = self.guiutility.torrentsearch_manager.getCollectedFilename(torrent)
-            if filename and os.path.exists(filename):
+            if self.guiutility.utility.session.has_collected_torrent(torrent.infohash):
                 enable = True
                 break
         event.Enable(enable)

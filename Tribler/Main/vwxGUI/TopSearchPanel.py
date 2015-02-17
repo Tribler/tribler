@@ -373,9 +373,9 @@ class TopSearchPanel(FancyPanel):
                 self.guiutility.library_manager.resumeTorrent(torrent)
             else:
                 if self.guiutility.frame.selectedchannellist.IsShownOnScreen():
-                    self.guiutility.frame.selectedchannellist.StartDownload(torrent, None)
+                    self.guiutility.frame.selectedchannellist.StartDownload(torrent)
                 else:
-                    self.guiutility.frame.searchlist.StartDownload(torrent, None)
+                    self.guiutility.torrentsearch_manager.downloadTorrent(torrent)
 
                 refresh_library = True
 
@@ -425,7 +425,7 @@ class TopSearchPanel(FancyPanel):
 
     def OnStop(self, event=None):
         for torrent in self.GetSelectedTorrents():
-            self.guiutility.library_manager.stopTorrent(torrent)
+            self.guiutility.library_manager.stopTorrent(torrent.infohash)
         if event:
             button = event.GetEventObject()
             button.Enable(False)

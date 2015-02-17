@@ -390,8 +390,12 @@ class TorrentMessageRequester(Requester):
         if infohash not in self._pending_request_queue:
             self._pending_request_queue.append(infohash)
             self._source_dict[infohash] = []
-        self._source_dict[infohash].append(candidate)
+        if candidate in self._source_dict[infohash]:
+            self._logger.warn(u"ignore duplicate torrent message request %s from %s:%s",
+                              hexlify(infohash), addr[0], addr[1])
+            return
 
+        self._source_dict[infohash].append(candidate)
         self._logger.debug(u"added request %s from %s:%s", hexlify(infohash), addr[0], addr[1])
 
         # start scheduling tasks if the queue was empty, which means there was no task running previously

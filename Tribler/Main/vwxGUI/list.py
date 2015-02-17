@@ -1099,7 +1099,7 @@ class GenericSearchList(SizeList):
         item = event.GetEventObject().item
         key = self.infohash2key.get(item.original_data.infohash, item.original_data.infohash)
         self.Select(key)
-        self.StartDownload(item.original_data)
+        self.guiutility.torrentsearch_manager.downloadTorrent(item.original_data)
 
         button = event.GetEventObject()
         button.Enable(False)
@@ -1237,10 +1237,6 @@ class GenericSearchList(SizeList):
     def ResetBottomWindow(self):
         detailspanel = self.guiutility.SetBottomSplitterWindow(SearchInfoPanel)
         detailspanel.Set(len(self.list.raw_data) if self.list.raw_data else 0)
-
-    @forceWxThread
-    def StartDownload(self, torrent, files=None):
-        self.guiutility.torrentsearch_manager.downloadTorrent(torrent, selectedFiles=files)
 
     def InList(self, key):
         key = self.infohash2key.get(key, key)

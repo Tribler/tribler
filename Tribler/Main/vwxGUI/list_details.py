@@ -177,8 +177,7 @@ class TorrentDetails(AbstractDetails):
             self.torrent = torrent
             self.showTorrent(self.torrent)
 
-            filename = self.guiutility.torrentsearch_manager.getCollectedFilename(self.torrent, retried=True)
-            if filename:
+            if self.guiutility.utility.session.has_collected_torrent(self.torrent.infohash):
                 self.guiutility.torrentsearch_manager.loadTorrent(self.torrent, callback=self.showTorrent)
             else:
                 def doGui(delayedResult):
@@ -737,18 +736,6 @@ class TorrentDetails(AbstractDetails):
     def Saved(self):
         for editable in self.isEditable.values():
             editable.Saved()
-
-    @warnWxThread
-    def OnDrag(self, event):
-        if event.LeftIsDown():
-            filename = self.guiutility.torrentsearch_manager.getCollectedFilename(self.torrent)
-            if filename:
-                tdo = wx.FileDataObject()
-                tdo.AddFile(filename)
-
-                tds = wx.DropSource(self)
-                tds.SetData(tdo)
-                tds.DoDragDrop(True)
 
     @warnWxThread
     def OnDoubleClick(self, event):

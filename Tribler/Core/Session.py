@@ -6,6 +6,7 @@ import copy
 import logging
 import os
 import socket
+from binascii import hexlify
 
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
@@ -271,6 +272,14 @@ class Session(SessionConfigInterface):
         """
         # locking by lm
         return self.lm.get_download(infohash)
+
+    def has_download(self, infohash):
+        """
+        Checks if the torrent download already exists.
+        :param infohash: The torrent infohash.
+        :return: True or False indicating if the torrent download already exists.
+        """
+        return self.lm.download_exists(infohash)
 
     def remove_download(self, d, removecontent=False, removestate=True, hidden=False):
         """
@@ -624,3 +633,20 @@ class Session(SessionConfigInterface):
         @param trackers A list of tracker urls.
         """
         return self.lm.update_trackers(id, trackers)
+
+    # New APIs
+    def has_collected_torrent(self, infohash):
+        """
+        Checks if the given torrent infohash exists in the torrent_store database.
+        :param infohash: The given infohash binary.
+        :return: True or False indicating if we have the torrent.
+        """
+        return hexlify(infohash) in self.lm.torrent_store
+
+    def get_collected_torrent(self, infohash):
+        """
+        Gets the given torrent from the torrent_store database.
+        :param infohash: The given infohash binary.
+        :return: The torrent data if exists, None otherwise.
+        """
+        return self.lm.torrent_store.get(hexlify(infohash))

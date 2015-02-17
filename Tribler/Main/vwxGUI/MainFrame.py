@@ -446,27 +446,43 @@ class MainFrame(wx.Frame):
         self.guiUtility.Notify("Download from url failed", icon=wx.ART_WARNING)
         return False
 
-    def startDownload(self, torrentfilename=None, destdir=None, tdef=None, cmdline=False,
-                      vodmode=False, hops=0, try_hidden_services=False, fixtorrent=False, selectedFiles=None,
+    def startDownload(self, torrentfilename=None, destdir=None, infohash=None, tdef=None, cmdline=False,
+                      vodmode=False, hops=0, try_hidden_services=False, selectedFiles=None,
                       correctedFilename=None, hidden=False):
         self._logger.debug(u"startDownload: %s %s %s %s %s", torrentfilename, destdir, tdef, vodmode, selectedFiles)
 
-        if fixtorrent and torrentfilename:
-            data = fix_torrent(torrentfilename)
-            if data is None:
-                # show error message: could not open torrent file
-                dlg = wx.MessageBox(self, "Could not open torrent file %s" % torrentfilename,
-                                    "Error", wx.OK | wx.ICON_ERROR)
-                dlg.ShowModal()
-                dlg.Destroy()
-                return
+        # TODO(lipu): remove the assertions after it becomes stable
+        if infohash is not None:
+            assert isinstance(infohash, str), "infohash type: %s" % type(infohash)
+            assert len(infohash) == 20, "infohash length is not 20: %s, %s" % (len(infohash), infohash)
 
-            tdef = TorrentDef.load_from_memory(data)
+        # the priority of the parameters is: (1) tdef, (2) infohash, (3) torrent_file.
+        # so if we have tdef, infohash and torrent_file will be ignored, and so on.
+        if tdef is None:
+            if infohash is not None:
+                # try to get the torrent from torrent_store if the infohash is provided
+                torrent_data = self.utility.session.get_collected_torrent(infohash)
+                if torrent_data is not None:
+                    # use this torrent data for downloading
+                    tdef = TorrentDef.load_from_memory(torrent_data)
+
+            if tdef is None:
+                assert torrentfilename is not None, "torrent file must be provided if tdef and infohash are not given"
+                # try to get the torrent from the given torrent file
+                torrent_data = fix_torrent(torrentfilename)
+                if torrent_data is None:
+                    # show error message: could not open torrent file
+                    dlg = wx.MessageBox(self, "Could not open torrent file %s" % torrentfilename,
+                                        "Error", wx.OK | wx.ICON_ERROR)
+                    dlg.ShowModal()
+                    dlg.Destroy()
+                    return
+
+                tdef = TorrentDef.load_from_memory(torrent_data)
+
+        assert tdef is not None, "tdef MUST not be None after loading torrent"
 
         try:
-            if torrentfilename and tdef is None:
-                tdef = TorrentDef.load(torrentfilename)
-
             d = self.utility.session.get_download(tdef.get_infohash())
             if d:
                 new_trackers = list(set(tdef.get_trackers_as_single_tuple()) - set(d.get_def().get_trackers_as_single_tuple()))
