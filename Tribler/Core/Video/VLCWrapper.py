@@ -38,10 +38,12 @@ class VLCWrapper(object):
     def __init__(self):
         self._logger = logging.getLogger(self.__class__.__name__)
 
+        self.media = None
         self.player = None
         self.window = None
         self.windowpassedtovlc = -1
         self.initialized = False
+        self.is_shutting_down = False
 
     def _init_vlc(self):
         """
@@ -49,6 +51,8 @@ class VLCWrapper(object):
         GUI to instantly exit, we need to delay importing vlc and
         setting the window.
         """
+        if self.is_shutting_down:
+            return
         try:
             import Tribler.vlc as vlc
         except:
@@ -58,6 +62,15 @@ class VLCWrapper(object):
         self.initialized = True
         self.vlc = vlc
         self.media = self.get_vlc_mediactrl()
+
+    def shutdown(self):
+        self.is_shutting_down = True
+        if self.media:
+            self.media.release()
+            self.media = None
+        if self.player:
+            self.player.release()
+            self.player = None
 
     def set_window(self, wxwindow):
         self.window = wxwindow
