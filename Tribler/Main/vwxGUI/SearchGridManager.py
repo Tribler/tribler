@@ -44,12 +44,6 @@ from Tribler.dispersy.exception import CommunityNotFoundException
 from Tribler.dispersy.util import call_on_reactor_thread
 
 
-SEARCHMODE_STOPPED = 1
-SEARCHMODE_SEARCHING = 2
-SEARCHMODE_NONE = 3
-VOTE_LIMIT = -5
-
-
 class TorrentManager(object):
     # Code to make this a singleton
     __single = None
