@@ -125,4 +125,5 @@ INFOHASH_LENGTH = 20
 
 # SIGNALS
 SIGNAL_ALLCHANNEL = 'allchannel'
+SIGNAL_SEARCH_COMMUNITY = 'search_community'
 SIGNAL_ONSEARCHRESULTS = 'onsearchresults'
