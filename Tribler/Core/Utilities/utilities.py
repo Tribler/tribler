@@ -2,9 +2,6 @@
 # see LICENSE.txt for license information
 
 from base64 import encodestring, b32decode
-from Tribler.Core.Utilities.Crypto import sha
-import sys
-import os
 from types import StringType, LongType, IntType, ListType, DictType
 import urlparse
 from traceback import print_exc
