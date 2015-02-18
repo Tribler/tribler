@@ -37,6 +37,7 @@ from Tribler.dispersy.message import Message, DropMessage
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.util import call_on_reactor_thread
 from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
+from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
 
 
 class CircuitRequestCache(NumberCache):
@@ -97,7 +98,7 @@ class StatsRequestCache(RandomNumberCache):
 
 class TunnelExitSocket(DatagramProtocol):
 
-    def __init__(self, circuit_id, community, sock_addr):
+    def __init__(self, circuit_id, community, sock_addr, mid=None):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.port = None
@@ -107,6 +108,7 @@ class TunnelExitSocket(DatagramProtocol):
         self.ips = defaultdict(int)
         self.bytes_up = self.bytes_down = 0
         self.creation_time = time.time()
+        self.mid = mid
 
     def enable(self):
         if not self.enabled:
@@ -421,7 +423,7 @@ class TunnelCommunity(Community):
             return False
 
         circuit_id = self._generate_circuit_id(first_hop.sock_addr)
-        circuit = Circuit(circuit_id, goal_hops, first_hop.sock_addr, self, ctype, callback, required_exit)
+        circuit = Circuit(circuit_id, goal_hops, first_hop.sock_addr, self, ctype, callback, required_exit, first_hop._association.mid.encode('hex'))
 
         self.request_cache.add(CircuitRequestCache(self, circuit, retry_lambda))
 
@@ -440,6 +442,7 @@ class TunnelCommunity(Community):
                                                                                   circuit.unverified_hop.node_public_key,
                                                                                   circuit.unverified_hop.dh_first_part)))
 
+        _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_BYTES_SENT, circuit.mid)
         return True
 
     def readd_bittorrent_peers(self):
@@ -795,8 +798,11 @@ class TunnelCommunity(Community):
                     break
 
             self.request_cache.add(CreatedRequestCache(self, circuit_id, candidate, candidates))
-
-            self.exit_sockets[circuit_id] = TunnelExitSocket(circuit_id, self, candidate.sock_addr)
+            if candidate._association is not None:
+                candidate_mid = candidate._association.mid.encode('hex')
+            else:
+                candidate_mid = 0
+            self.exit_sockets[circuit_id] = TunnelExitSocket(circuit_id, self, candidate.sock_addr, candidate_mid)
 
             if self.notifier:
                 from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_JOINED
@@ -858,8 +864,8 @@ class TunnelCommunity(Community):
             new_circuit_id = self._generate_circuit_id(extend_candidate.sock_addr)
 
             self.waiting_for.add(new_circuit_id)
-            self.relay_from_to[new_circuit_id] = RelayRoute(circuit_id, candidate.sock_addr)
-            self.relay_from_to[circuit_id] = RelayRoute(new_circuit_id, extend_candidate.sock_addr)
+            self.relay_from_to[new_circuit_id] = RelayRoute(circuit_id, candidate.sock_addr, mid=candidate.get_member().mid.encode('hex'))
+            self.relay_from_to[circuit_id] = RelayRoute(new_circuit_id, extend_candidate.sock_addr, mid=extend_candidate.get_member().mid.encode('hex'))
 
             self.relay_session_keys[new_circuit_id] = self.relay_session_keys[circuit_id]
 
@@ -1057,21 +1063,26 @@ class TunnelCommunity(Community):
         if isinstance(obj, Circuit):
             obj.bytes_up += num_bytes
             self.stats['bytes_up'] += num_bytes
+            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_BYTES_SENT, obj.mid, num_bytes)
         elif isinstance(obj, RelayRoute):
             obj.bytes_up += num_bytes
             self.stats['bytes_relay_up'] += num_bytes
+            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_RELAY_BYTES_SENT, obj.mid, num_bytes)
         elif isinstance(obj, TunnelExitSocket):
             obj.bytes_up += num_bytes
             self.stats['bytes_exit'] += num_bytes
+            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_SENT, obj.mid, num_bytes)
 
     def increase_bytes_received(self, obj, num_bytes):
         if isinstance(obj, Circuit):
             obj.bytes_down += num_bytes
             self.stats['bytes_down'] += num_bytes
+            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_BYTES_RECEIVED, obj.mid, num_bytes)
         elif isinstance(obj, RelayRoute):
             obj.bytes_down += num_bytes
             self.stats['bytes_relay_down'] += num_bytes
+            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_RELAY_BYTES_RECEIVED, obj.mid, num_bytes)
         elif isinstance(obj, TunnelExitSocket):
             obj.bytes_down += num_bytes
             self.stats['bytes_enter'] += num_bytes
-
+            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED, obj.mid, num_bytes)

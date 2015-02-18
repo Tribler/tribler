@@ -7,6 +7,8 @@ from Tribler.Main.vwxGUI.widgets import _set_font, SimpleNotebook
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.utility import compute_ratio, eta_value, size_format
+from operator import itemgetter
+from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
 
 DATA_NONE = ""
 
@@ -77,11 +79,13 @@ class DispersyDebugFrame(wx.Frame):
         self.__community_panel = CommunityPanel(self.__notebook, -1)
         self.__rawinfo_panel = RawInfoPanel(self.__notebook, -1)
         self.__runtime_panel = RuntimeProfilingPanel(self.__notebook, -1)
+        self.__sharedstatistics_panel = SharedStatisticsPanel(self.__notebook, -1)
 
         self.__notebook.AddPage(self.__summary_panel, "Summary")
         self.__notebook.AddPage(self.__community_panel, "Community")
         self.__notebook.AddPage(self.__rawinfo_panel, "Raw Info")
         self.__notebook.AddPage(self.__runtime_panel, "Runtime Profiling")
+        self.__notebook.AddPage(self.__sharedstatistics_panel, "Network Health")
 
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
         self.__incstuff_checkbox = wx.CheckBox(self, -1, "include stuff")
@@ -131,6 +135,7 @@ class DispersyDebugFrame(wx.Frame):
             self.__community_panel.UpdateInfo(stats)
             self.__rawinfo_panel.UpdateInfo(stats)
             self.__runtime_panel.UpdateInfo(stats)
+            self.__sharedstatistics_panel.UpdateInfo(_barter_statistics)
             self.Layout()
 
         startWorker(do_gui, do_db, uId=u"DispersyDebugFrame_UpdateInfo", priority=GUI_PRI_DISPERSY)
@@ -296,7 +301,7 @@ class CommunityPanel(wx.Panel):
         self.__detail_panel.UpdateInfo(community_data)
 
     def UpdateInfo(self, stats):
-        community_list = sorted(stats.communities,  key=lambda community:
+        community_list = sorted(stats.communities, key=lambda community:
                                 (not community.dispersy_enable_candidate_walker,
                                  community.classification, community.cid))
         self.__community_data_list = []
@@ -669,3 +674,89 @@ class RuntimeProfilingPanel(wx.Panel):
 
         if prev_selection_idx is not None:
             self.__list1.Select(prev_selection_idx)
+
+# --------------------------------------------------
+# Shared Statistics Panel
+# --------------------------------------------------
+class SharedStatisticsPanel(wx.Panel):
+
+    def __init__(self, parent, id):
+        super(SharedStatisticsPanel, self).__init__(parent, id)
+        self.SetBackgroundColour(LIST_GREY)
+
+        self.__info = None
+        self.__selected_statistic = None
+
+        self.__statistic_list = AutoWidthListCtrl(self, -1, style=wx.LC_REPORT | wx.LC_ALIGN_LEFT |
+                                                 wx.LC_SINGLE_SEL | wx.BORDER_SUNKEN)
+        self.__statistic_list.InsertColumn(0, "Statistic", width=200)
+        self.__statistic_list.InsertColumn(1, "Total count")
+        self.__statistic_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnStatisticSelected)
+
+        self.__detail_list = AutoWidthListCtrl(self, -1, style=wx.LC_REPORT | wx.BORDER_SUNKEN)
+        self.__detail_list.InsertColumn(0, "Pubkey", width=200)
+        self.__detail_list.InsertColumn(1, "Count")
+
+        hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        hsizer.Add(self.__statistic_list, 1, wx.EXPAND | wx.RIGHT, 2)
+        hsizer.Add(self.__detail_list, 2, wx.EXPAND)
+        self.SetSizer(hsizer)
+
+    def OnStatisticSelected(self, event):
+        stat = self.__info[event.GetIndex()][0]
+        if self.__selected_statistic == stat:
+            return
+
+        self.__selected_statistic = stat
+        self.__detail_list.UpdateData(self.__info[event.GetIndex()][1])
+
+    def UpdateInfo(self, stats):
+        if not getattr(stats, "bartercast", None):
+            return
+
+        self.__STATISTICS = stats.bartercast.keys()
+        raw_info = {}
+
+        if stats is None:
+            self.__statistic_list.DeleteAllItems()
+            self.__detail_list.DeleteAllItems()
+            return
+
+        idx = 0
+        # initialize info list so we can replace elements
+        if not self.__info or len(self.__info) < len(self.__STATISTICS):
+            self.__info = [None] * len(self.__STATISTICS)
+
+        for stat in self.__STATISTICS:
+
+            self.__info[idx] = (stat, [])
+            raw_info[stat] = stats.bartercast[stat]
+
+            data_list = raw_info[stat]
+            # data_list.sort(key=lambda kv: kv[1], reverse=True)
+            data_list = sorted(data_list.items(), key=itemgetter(1), reverse=True)
+
+            total_count = 0
+
+            # for key, value in data_list.items():
+            for item in data_list:
+                key = item[0]
+                value = item[1]
+                # @TODO: maintain this total in Statistics?
+                total_count += value
+
+                # only draw updated values if we are inspecting the statistic
+                # if self.__selected_statistic is stat:
+                peer_str = "%s" % key
+                count_str = "%s" % value
+                self.__info[idx][1].append((peer_str, count_str))
+
+            total_count_str = "%s" % total_count
+
+            # update GUI
+            if idx < self.__statistic_list.GetItemCount():
+                self.__statistic_list.SetStringItem(idx, 0, BartercastStatisticTypes.reverse_mapping[stat])
+                self.__statistic_list.SetStringItem(idx, 1, total_count_str)
+            else:
+                self.__statistic_list.Append([BartercastStatisticTypes.reverse_mapping[stat]])
+            idx += 1

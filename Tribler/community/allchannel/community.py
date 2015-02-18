@@ -372,8 +372,9 @@ class AllChannelCommunity(Community):
         else:
             communityclass = PreviewChannelCommunity
 
-        community = self._get_channel_community(cid)
-        community = self.dispersy.reclassify_community(community, communityclass)
+        community_old = self._get_channel_community(cid)
+        community = self.dispersy.reclassify_community(community_old, communityclass)
+        community._candidates = community_old._candidates
 
         # check if we need to cancel a previous vote
         latest_dispersy_id = self._votecast_db.get_latest_vote_dispersy_id(community._channel_id, None)
