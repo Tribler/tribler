@@ -3,7 +3,6 @@
 import logging
 import os
 import threading
-from binascii import hexlify
 from math import sqrt
 from time import time
 from traceback import print_exc
@@ -17,12 +16,11 @@ from Tribler.Core.Search.Bundler import Bundler
 from Tribler.Core.Search.Reranking import DefaultTorrentReranker
 from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.Utilities.utilities import fix_torrent
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.simpledefs import (NTFY_MISC, NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST,
                                      NTFY_METADATA, DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK,
-                                     SIGNAL_ALLCHANNEL, SIGNAL_ONSEARCHRESULTS)
+                                     SIGNAL_ALLCHANNEL, SIGNAL_SEARCH_COMMUNITY, SIGNAL_ONSEARCHRESULTS)
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import (Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent,
                                               NotCollectedTorrent, LibraryTorrent, Comment, Modification, Channel,
@@ -42,12 +40,6 @@ from Tribler.community.metadata.community import MetadataCommunity
 from Tribler.community.search.community import SearchCommunity
 from Tribler.dispersy.exception import CommunityNotFoundException
 from Tribler.dispersy.util import call_on_reactor_thread
-
-
-SEARCHMODE_STOPPED = 1
-SEARCHMODE_SEARCHING = 2
-SEARCHMODE_NONE = 3
-VOTE_LIMIT = -5
 
 
 class TorrentManager(object):
@@ -259,6 +251,8 @@ class TorrentManager(object):
 
             self.dispersy = session.lm.dispersy
             self.xxx_category = self.misc_db.categoryName2Id([u'xxx'])
+
+            self.session.add_observer(self.gotDispersyRemoteHits, SIGNAL_SEARCH_COMMUNITY, [SIGNAL_ONSEARCHRESULTS])
         else:
             raise RuntimeError('TorrentManager already connected')
 
@@ -271,7 +265,7 @@ class TorrentManager(object):
         if self.dispersy:
             for community in self.dispersy.get_communities():
                 if isinstance(community, SearchCommunity):
-                    nr_requests_made = community.create_search(self.searchkeywords, self.gotDispersyRemoteHits)
+                    nr_requests_made = community.create_search(self.searchkeywords)
                     if not nr_requests_made:
                         self._logger.info("Could not send search in SearchCommunity, no verified candidates found")
                     break
@@ -538,9 +532,12 @@ class TorrentManager(object):
 
         return False, []
 
-    def gotDispersyRemoteHits(self, keywords, results, candidate):
+    def gotDispersyRemoteHits(self, subject, changetype, objectID, search_results):
         refreshGrid = False
         try:
+            keywords = search_results['keywords']
+            results = search_results['results']
+            candidate = search_results['candidate']
             self._logger.debug("TorrentSearchGridManager: gotRemoteHist: got %s unfiltered results for %s %s %s", len(results), keywords, candidate, time())
 
             if self.searchkeywords == keywords:

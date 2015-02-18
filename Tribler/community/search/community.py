@@ -304,10 +304,9 @@ class SearchCommunity(Community):
 
     class SearchRequest(RandomNumberCache):
 
-        def __init__(self, request_cache, keywords, callback):
+        def __init__(self, request_cache, keywords):
             super(SearchCommunity.SearchRequest, self).__init__(request_cache, u"search")
             self.keywords = keywords
-            self.callback = callback
 
         @property
         def timeout_delay(self):
@@ -316,14 +315,14 @@ class SearchCommunity(Community):
         def on_timeout(self):
             pass
 
-    def create_search(self, keywords, callback):
+    def create_search(self, keywords):
         candidates = self.get_connections()
         if len(candidates) > 0:
             if DEBUG:
                 self._logger.debug(u"sending search request for %s to %s", keywords, map(str, candidates))
 
             # register callback/fetch identifier
-            cache = self._request_cache.add(SearchCommunity.SearchRequest(self._request_cache, keywords, callback))
+            cache = self._request_cache.add(SearchCommunity.SearchRequest(self._request_cache, keywords))
 
             # create search request message
             meta = self.get_meta_message(u"search-request")
@@ -393,7 +392,14 @@ class SearchCommunity(Community):
                     if len(message.payload.results) > 0:
                         self._torrent_db.on_search_response(message.payload.results)
 
-                    search_request.callback(search_request.keywords, message.payload.results, message.candidate)
+                    # emit signal of search results
+                    if self.tribler_session is not None:
+                        from Tribler.Core.simpledefs import SIGNAL_SEARCH_COMMUNITY, SIGNAL_ONSEARCHRESULTS
+                        search_results = {'keywords': search_request.keywords,
+                                          'results': message.payload.results,
+                                          'candidate': message.candidate}
+                        self.tribler_session.uch.notify(SIGNAL_SEARCH_COMMUNITY, SIGNAL_ONSEARCHRESULTS, None,
+                                                        search_results)
 
                     # see if we need to join some channels
                     channels = set([result[8] for result in message.payload.results if result[8]])
