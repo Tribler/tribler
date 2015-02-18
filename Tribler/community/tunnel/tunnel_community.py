@@ -864,8 +864,8 @@ class TunnelCommunity(Community):
             new_circuit_id = self._generate_circuit_id(extend_candidate.sock_addr)
 
             self.waiting_for.add(new_circuit_id)
-            self.relay_from_to[new_circuit_id] = RelayRoute(circuit_id, candidate.sock_addr, candidate.get_member().mid.encode('hex'))
-            self.relay_from_to[circuit_id] = RelayRoute(new_circuit_id, extend_candidate.sock_addr, extend_candidate.get_member().mid.encode('hex'))
+            self.relay_from_to[new_circuit_id] = RelayRoute(circuit_id, candidate.sock_addr, mid=candidate.get_member().mid.encode('hex'))
+            self.relay_from_to[circuit_id] = RelayRoute(new_circuit_id, extend_candidate.sock_addr, mid=extend_candidate.get_member().mid.encode('hex'))
 
             self.relay_session_keys[new_circuit_id] = self.relay_session_keys[circuit_id]
 

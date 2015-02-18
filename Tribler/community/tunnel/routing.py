@@ -164,7 +164,7 @@ class RelayRoute(object):
     it is online or not
     """
 
-    def __init__(self, circuit_id, sock_addr, mid=0, rendezvous_relay=False):
+    def __init__(self, circuit_id, sock_addr, rendezvous_relay=False, mid=0):
         """
         @type sock_addr: (str, int)
         @type circuit_id: int
