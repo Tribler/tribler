@@ -37,7 +37,6 @@ class BarterCommunity(Community):
     def __init__(self, dispersy, master, my_member):
         super(BarterCommunity, self).__init__(dispersy, master, my_member)
         self._dispersy = dispersy
-        # self._logger = logging.getLogger(self.__class__.__name__)
         log.msg("joined BC community")
         self.init_database()
 
@@ -96,7 +95,6 @@ class BarterCommunity(Community):
                             destination=(candidate,),
                             payload=(stats_type,))
         self._dispersy._forward([message])
-        # self._dispersy.store_update_forward([message], store, update, forward)
 
     def check_stats_request(self, messages):
         for message in messages:
@@ -113,7 +111,6 @@ class BarterCommunity(Community):
             # send back stats-response
             self.create_stats_response(message.payload.stats_type, message.candidate)
 
-    # todo
     def create_stats_response(self, stats_type, candidate):
         log.msg("OUT: stats-response")
         meta = self.get_meta_message(u"stats-response")
@@ -155,15 +152,11 @@ class BarterCommunityCrawler(BarterCommunity):
 
     def __init__(self, *args, **kargs):
         super(BarterCommunityCrawler, self).__init__(*args, **kargs)
-        # self._logger = logging.getLogger(self.__class__.__name__)
 
     def on_introduction_response(self, messages):
         super(BarterCommunity, self).on_introduction_response(messages)
-        # handler = Tunnel.get_instance().stats_handler
         for message in messages:
-            # self.do_stats(message.candidate, lambda c, s, m=message: handler(c, s, m))
             log.msg("in on_introduction_response: Requesting stats from %s" % message.candidate)
-            # @TODO add other message types
             for t in BartercastStatisticTypes.reverse_mapping:
                 self.create_stats_request(message.candidate, t)
 
