@@ -120,8 +120,6 @@ def fill_tree(tree, height, npieces, hashes):
     startoffset = int(pow(2, height) - 1)
     logger.debug("merkle: bottom of tree starts at %s", startoffset)
     for offset in range(startoffset, startoffset + npieces):
-        # print >> sys.stderr,"merkle: copying",offset
-        # print >> sys.stderr,"merkle: hashes[",offset-startoffset,"]=",str(hashes[offset-startoffset])
         tree[offset] = hashes[offset - startoffset]
     # 2. Note that unused leaves are NOT filled. It may be a good idea to fill
     # them as hashing 0 values may create a security problem. However, the
@@ -136,9 +134,7 @@ def fill_tree(tree, height, npieces, hashes):
     for level in range(height, 0, -1):
         logger.debug("merkle: calculating level %s", level)
         for offset in range(int(pow(2, level) - 1), int(pow(2, level + 1) - 2), 2):
-            # print >> sys.stderr,"merkle: data offset",offset
             [parentstartoffset, parentoffset] = get_parent_offset(offset, level)
-            # print >> sys.stderr,"merkle: parent offset",parentoffset
             data = tree[offset] + tree[offset + 1]
             digester = sha()
             digester.update(data)

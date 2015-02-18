@@ -132,8 +132,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         assert isinstance(t.infohash, str), "INFOHASH has invalid type: %s" % type(t.infohash)
         assert len(t.infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(t.infohash)
 
-        # print >>sys.stderr,"INFOHASH",`t.infohash`
-
         return t
 
     _create = staticmethod(_create)
@@ -718,7 +716,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             add = (pl - diff) % pl
             newlen = int(length + add)
 
-            # print >>sys.stderr,"CHECK INFO LENGTH",secs,newlen
             d = self.input['files'][0]
             d['length'] = newlen
 

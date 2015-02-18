@@ -80,7 +80,6 @@ class DownloadState(Serializable):
                 self.status = DLSTATUS_SEEDING
             else:
                 self.status = DLSTATUS_DOWNLOADING
-            # print >>sys.stderr,"STATS IS",stats
 
             # Safe to store the stats dict. The stats dict is created per
             # invocation of the BT1Download returned statsfunc and contains no
@@ -104,7 +103,6 @@ class DownloadState(Serializable):
                         diff = tl - t
                         totalpieces += diff
 
-                # print >>sys.stderr,"DownloadState: get_pieces_complete",totalpieces
                 haveslice = [False] * totalpieces
                 have = 0
                 index = 0

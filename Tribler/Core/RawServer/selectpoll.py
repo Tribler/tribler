@@ -50,8 +50,6 @@ class poll(object):
                 elist = list(elist)    # in Python2.3, elist must be a list type
                 self._logger.debug("selectpoll: elist = %s", elist)
 
-                # print >>sys.stderr,"selectpoll: rlist",self.rlist,"wlist",self.wlist,"elist",elist
-
                 r, w, e = select(self.rlist, self.wlist, elist, timeout)
                 self._logger.debug("selectpoll: e = %s", e)
             except ValueError:

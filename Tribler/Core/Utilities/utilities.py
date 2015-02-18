@@ -212,8 +212,6 @@ def isValidURL(url):
     if url.lower().startswith('udp'):    # exception for udp
         url = url.lower().replace('udp', 'http', 1)
     r = urlparse.urlsplit(url)
-    # if DEBUG:
-    #     print >>sys.stderr,"isValidURL:",r
 
     if r[0] == '' or r[1] == '':
         return False

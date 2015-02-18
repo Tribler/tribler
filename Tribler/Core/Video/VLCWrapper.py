@@ -157,8 +157,6 @@ class VLCWrapper(object):
         params += ["--no-video-title-show"]
         params += ["--no-osd"]
 
-        # print >>sys.stderr,"VLCWrapper: get_vlc_mediactrl: params",params
-
         media = self.vlc.Instance(params)
         self.player = self.vlc.libvlc_media_player_new(media)
 

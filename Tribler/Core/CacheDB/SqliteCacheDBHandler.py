@@ -1078,8 +1078,6 @@ class TorrentDBHandler(BasicDBHandler):
                 torrent['progress'] = data[1]
                 torrent['destdir'] = data[2]
 
-            # print >>sys.stderr,"TorrentDBHandler: GET TORRENTS",`torrent`
-
             torrent_list.append(torrent)
         return torrent_list
 
@@ -1206,7 +1204,6 @@ class TorrentDBHandler(BasicDBHandler):
                 pass
             except Exception:
                 print_exc()
-                # print >> sys.stderr, "Error in erase torrent", Exception, msg
                 pass
 
         if len(insert_files) > 0:
@@ -1353,7 +1350,6 @@ class TorrentDBHandler(BasicDBHandler):
         if not local:
             results = results[:25]
 
-        # print >> sys.stderr, "# hits:%d (%d from db, %d not sorted); search time:%.3f,%.3f,%.3f,%.3f,%.3f,%.3f" % (len(results),len(results),len(dont_sort_list),t2-t1, t3-t2, t4-t3, t5-t4, time()-t5, time()-t1)
         return results
 
     def getAutoCompleteTerms(self, keyword, max_terms, limit=100):

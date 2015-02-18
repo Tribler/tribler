@@ -768,7 +768,6 @@ class TriblerLaunchMany(Thread):
 
     def set_activity(self, type, str='', arg2=None):
         """ Called by overlay + network thread """
-        # print >>sys.stderr,"tlm: set_activity",type,str,arg2
         self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, type, str, arg2)
 
     def update_torrent_checking_period(self):
@@ -777,7 +776,6 @@ class TriblerLaunchMany(Thread):
             ntorrents = self.rtorrent_handler.num_torrents
             if ntorrents > 0:
                 self.torrent_checking_period = min(max(7200 / ntorrents, 10), 100)
-        # print >> sys.stderr, "torrent_checking_period", self.torrent_checking_period
 
     def run_torrent_check(self):
         """ Called by network thread """
