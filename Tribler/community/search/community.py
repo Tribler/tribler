@@ -488,7 +488,7 @@ class SearchCommunity(Community):
         self._create_pingpong(u"torrent-collect-response", candidates, identifiers)
         self._process_collect_request_response(messages)
 
-    def on_torrent_collect_response(self, messages, verifyRequest=True):
+    def on_torrent_collect_response(self, messages):
         self._process_collect_request_response(messages)
 
         for message in messages:
