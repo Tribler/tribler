@@ -57,7 +57,6 @@ class MagnetHelpers(object):
     def read_extend_handshake(self, conn):
         response = conn.recv()
         self.assert_(len(response) > 0)
-        # print >>sys.stderr,"test: Got reply", getMessageName(response[0])
         self.assert_(response[0] == EXTEND)
         return self.metadata_id_from_extend_handshake(response[1:])
 
@@ -65,7 +64,6 @@ class MagnetHelpers(object):
         while True:
             response = conn.recv()
             assert len(response) > 0
-            # print >>sys.stderr,"test: Got data", getMessageName(response[0])
             if response[0] == EXTEND:
                 break
 
@@ -84,7 +82,6 @@ class MagnetHelpers(object):
         while True:
             response = conn.recv()
             assert len(response) > 0
-            # print >>sys.stderr,"test: Got data", getMessageName(response[0])
             if response[0] == EXTEND:
                 break
 
@@ -103,7 +100,6 @@ class MagnetHelpers(object):
         while True:
             response = conn.recv()
             assert len(response) > 0
-            # print >>sys.stderr,"test: Got reject", getMessageName(response[0])
             if response[0] == EXTEND:
                 break
 
@@ -147,7 +143,6 @@ class TestMagnet(TestAsServer):
     def test_good_transfer(self):
         def do_transfer():
             def torrentdef_retrieved(tdef):
-                print tdef.get_metainfo()
                 event.set()
 
             event = threading.Event()
