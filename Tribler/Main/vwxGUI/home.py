@@ -537,6 +537,9 @@ class PopularTorrentPanel(NewTorrentPanel):
 
     @forceWxThread
     def _RefreshList(self, topTen):
+        if not self:
+            return
+
         self.list.Freeze()
         self.list.DeleteAllItems()
         for item in topTen:

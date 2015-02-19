@@ -7,6 +7,8 @@ from os import environ
 from threading import Event
 from traceback import print_exc
 
+from nose.tools import timed
+
 from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Core.simpledefs import dlstatus_strings
@@ -19,6 +21,7 @@ from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
 class TestTunnelCommunity(TestGuiAsServer):
 
+    @timed(120)
     def test_anon_download(self):
         def take_second_screenshot():
             self.screenshot()
@@ -64,6 +67,7 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         self.startTest(do_create_local_torrent)
 
+    @timed(120)
     def test_anon_tunnel(self):
         got_data = Event()
         this = self
@@ -97,6 +101,7 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         self.startTest(replace_socks)
 
+    @timed(120)
     def test_hidden_services(self):
         def take_second_screenshot():
             self.screenshot()

@@ -900,6 +900,8 @@ class TorrentDetails(AbstractDetails):
 
     @forceWxThread
     def ShowHealth(self, updating, no_update_reason=''):
+        if not self:
+            return
         if isinstance(self.torrent, CollectedTorrent):
             updating = ', updating now' if updating else no_update_reason
 
