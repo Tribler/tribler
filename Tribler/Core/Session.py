@@ -627,12 +627,12 @@ class Session(SessionConfigInterface):
         return os.path.join(state_dir, STATEDIR_SESSCONFIG)
     get_default_config_filename = staticmethod(get_default_config_filename)
 
-    def update_trackers(self, id, trackers):
-        """ Update the trackers for a download.
-        @param id ID of the download for which the trackers need to be updated
-        @param trackers A list of tracker urls.
+    def update_trackers(self, infohash, trackers):
+        """ Updates the trackers of a torrent.
+        :param infohash: infohash of the torrent that needs to be updated
+        :param trackers: A list of tracker urls.
         """
-        return self.lm.update_trackers(id, trackers)
+        return self.lm.update_trackers(infohash, trackers)
 
     # New APIs
     def has_collected_torrent(self, infohash):

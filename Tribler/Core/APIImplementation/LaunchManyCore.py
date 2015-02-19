@@ -339,12 +339,12 @@ class TriblerLaunchMany(Thread):
         finally:
             self.sesslock.release()
 
-    def update_trackers(self, id, trackers):
+    def update_trackers(self, infohash, trackers):
         """ Update the trackers for a download.
-        @param id ID of the download for which the trackers need to be updated
-        @param trackers A list of tracker urls.
+        :param infohash: infohash of the torrent that needs to be updated
+        :param trackers: A list of tracker urls.
         """
-        dl = self.get_download(id)
+        dl = self.get_download(infohash)
         old_def = dl.get_def() if dl else None
 
         if old_def:
@@ -373,14 +373,16 @@ class TriblerLaunchMany(Thread):
 
                 if isinstance(old_def, TorrentDefNoMetainfo):
                     @forceDBThread
-                    def update_trackers_db(id, new_trackers):
-                        torrent_id = self.torrent_db.getTorrentID(id)
+                    def update_trackers_db(infohash, new_trackers):
+                        torrent_id = self.torrent_db.getTorrentID(infohash)
                         if torrent_id is not None:
                             self.torrent_db.addTorrentTrackerMappingInBatch(torrent_id, new_trackers)
-                            self.session.uch.notify(NTFY_TORRENTS, NTFY_UPDATE, id)
+                            self.session.uch.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
+
+
 
                     if self.session.get_megacache():
-                        update_trackers_db(id, new_trackers)
+                        update_trackers_db(infohash, new_trackers)
 
                 elif not isinstance(old_def, TorrentDefNoMetainfo) and self.rtorrent_handler:
                     # Update collected torrents
