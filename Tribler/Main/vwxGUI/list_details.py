@@ -558,7 +558,10 @@ class TorrentDetails(AbstractDetails):
             if metadata:
                 return metadata.get('description', '')
 
-        def set_description(description):
+        def set_description(widget_id, description):
+            if not wx.FindWindowById(widget_id):
+                return
+
             if not description:
                 if self.canEdit:
                     description = 'No description yet, be the first to add a description.'
@@ -573,10 +576,11 @@ class TorrentDetails(AbstractDetails):
             self.description.Show(show_description)
 
         the_description = self.torrent.get('description', '')
+        wid = self.GetId()
         if not the_description:
-            startWorker(lambda delayedResult: set_description(delayedResult.get()), do_db)
+            startWorker(lambda delayedResult, widget_id=wid: set_description(widget_id, delayedResult.get()), do_db)
         else:
-            set_description(the_description)
+            set_description(wid, the_description)
 
     def updateFilesTab(self):
         self.filesList.DeleteAllItems()
