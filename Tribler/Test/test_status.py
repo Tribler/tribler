@@ -10,6 +10,8 @@ from Tribler.Core.Statistics.Status import LivingLabReporter
 from Tribler.Test.test_as_server import AbstractServer
 
 
+raise unittest.SkipTest("We are not using any of this")
+
 class TestOnChangeStatusReporter(Status.OnChangeStatusReporter):
 
     name = None
