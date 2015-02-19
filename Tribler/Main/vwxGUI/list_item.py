@@ -318,6 +318,9 @@ class DoubleLineListItemWithButtons(DoubleLineListItem):
         return button
 
     def ShowSelected(self):
+        if not self:
+            return
+
         DoubleLineListItem.ShowSelected(self)
 
         if self.hide_buttons and self.GetBackgroundColour() == self.list_deselected:
