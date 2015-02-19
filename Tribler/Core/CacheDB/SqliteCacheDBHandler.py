@@ -880,6 +880,33 @@ class TorrentDBHandler(BasicDBHandler):
         if new_mapping_list:
             self._db.executemany(sql, new_mapping_list)
 
+        # add trackers into the torrent file if it has been collected
+        if not self.session.get_torrent_store():
+            return
+
+        infohash = self.getInfohash(torrent_id)
+        if infohash and self.session.has_collected_torrent(infohash):
+            torrent_data = self.session.get_collected_torrent(infohash)
+            tdef = TorrentDef.load_from_memory(torrent_data)
+
+            new_tracker_list = []
+            for tracker in tracker_list:
+                if tdef.get_tracker() and tracker == tdef.get_tracker():
+                    continue
+                if tdef.get_tracker_hierarchy() and tracker in tdef.get_tracker_hierarchy():
+                    continue
+                if tracker in ('DHT', 'no-DHT'):
+                    continue
+                new_tracker_list.append([tracker])
+
+            if tdef.get_tracker_hierarchy():
+                new_tracker_list = tdef.get_tracker_hierarchy() + new_tracker_list
+            if new_tracker_list:
+                tdef.set_tracker_hierarchy(new_tracker_list)
+                # have to use bencode to get around the TorrentDef.is_finalized() check in TorrentDef.encode()
+                from Tribler.Core.Utilities.bencode import bencode
+                self.session.save_collected_torrent(infohash, bencode(tdef.metainfo))
+
     def getTorrentsOnTracker(self, tracker, current_time):
         sql = """
             SELECT T.torrent_id, T.infohash, T.last_tracker_check

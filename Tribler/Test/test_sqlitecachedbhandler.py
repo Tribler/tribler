@@ -54,6 +54,7 @@ class AbstractDB(AbstractServer):
         self.config.set_libtorrent(False)
         self.config.set_dht_torrent_collecting(False)
         self.config.set_videoplayer(False)
+        self.config.set_torrent_store(False)
         self.session = Session(self.config, ignore_singleton=True)
 
         dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', destination_path=self.getStateDir(), overwrite=True)

@@ -24,6 +24,7 @@ class TestTorrentChecking(TestAsServer):
         super(TestTorrentChecking, self).setUpPreSession()
         self.config.set_torrent_checking(True)
         self.config.set_megacache(True)
+        self.config.set_torrent_store(True)
         self.config.set_torrent_checking_period(5.0)
 
     # ------------------------------------------------------------
