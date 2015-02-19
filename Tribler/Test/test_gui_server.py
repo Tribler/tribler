@@ -2,16 +2,16 @@
 # see LICENSE.txt for license information
 #
 # TODO: integrate with test_TimedTaskQueue
-
-import unittest
 from time import sleep
 
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+from Tribler.Test.test_as_server import BaseTestCase
+
 
 DEBUG = False
 
 
-class TestGUITaskQueue(unittest.TestCase):
+class TestGUITaskQueue(BaseTestCase):
 
     def setUp(self):
         self.ntasks = 0

@@ -1,6 +1,5 @@
 import os
 import sys
-import unittest
 
 if os.path.exists('test_osutils.py'):
     BASE_DIR = '..'
@@ -9,11 +8,10 @@ elif os.path.exists('LICENSE.txt'):
     BASE_DIR = '.'
 
 from Tribler.Core.osutils import fix_filebasename
+from Tribler.Test.test_as_server import BaseTestCase
 
-fix_filebasename
 
-
-class Test_OsUtils(unittest.TestCase):
+class Test_OsUtils(BaseTestCase):
 
     def test_fix_filebasename(self):
         default_name = '_'

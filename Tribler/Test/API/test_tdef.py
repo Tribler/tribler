@@ -4,14 +4,17 @@
 # TODO:
 #
 
-import unittest
 import os
 import tempfile
+import unittest
+
+from Tribler.Test.test_as_server import BaseTestCase
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.bencode import bdecode
 from Tribler.Core.Utilities.utilities import isValidTorrentFile
 from Tribler.Test.test_as_server import BASE_DIR
+
 
 DEBUG = False
 
@@ -20,7 +23,7 @@ PLAYTIME = "0:06"
 PLAYTIME_SECS = 6  # PLAYTIME in seconds
 
 
-class TestTorrentDef(unittest.TestCase):
+class TestTorrentDef(BaseTestCase):
 
     """
     Testing TorrentDef version 0

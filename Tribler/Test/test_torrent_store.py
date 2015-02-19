@@ -33,7 +33,6 @@
 #
 
 # Code:
-import unittest
 from shutil import rmtree
 from tempfile import mkdtemp
 
@@ -42,6 +41,7 @@ from twisted.internet.task import Clock
 
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.torrentstore import TorrentStore, WRITEBACK_PERIOD
+from Tribler.Test.test_as_server import BaseTestCase
 
 
 K = "foo"
@@ -52,7 +52,7 @@ class ClockedTorrentStore(TorrentStore):
     _reactor = Clock()
 
 
-class TestTorrentStore(unittest.TestCase):
+class TestTorrentStore(BaseTestCase):
 
     def setUp(self):
         self.openStore(mkdtemp(prefix=__name__))
