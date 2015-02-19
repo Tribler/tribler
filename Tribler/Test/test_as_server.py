@@ -1,7 +1,9 @@
 # Written by Arno Bakker, Jie Yang
 # Improved and Modified by Niels Zeilemaker
 # see LICENSE.txt for license information
+import functools
 import gc
+import inspect
 import logging
 import os
 import re
@@ -22,7 +24,7 @@ from Tribler.Core import defaults
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Utilities.twisted_thread import reactor
-
+from .util import process_unhandled_exceptions
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 STATE_DIR = os.path.join(BASE_DIR, u"_test_.Tribler")
@@ -41,7 +43,28 @@ DEBUG = False
 OUTPUT_DIR = os.environ.get('OUTPUT_DIR', 'output')
 
 
-class AbstractServer(unittest.TestCase):
+class BaseTestCase(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        super(BaseTestCase, self).__init__(*args, **kwargs)
+
+        def wrap(fun):
+            @functools.wraps(fun)
+            def check(*argv, **kwargs):
+                try:
+                    result = fun(*argv, **kwargs)
+                except:
+                    raise
+                else:
+                    process_unhandled_exceptions(self)
+                return result
+            return check
+
+        for name, method in inspect.getmembers(self, predicate=inspect.ismethod):
+            if name.startswith("test_"):
+                setattr(self, name, wrap(method))
+
+
+class AbstractServer(BaseTestCase):
 
     _annotate_counter = 0
 
