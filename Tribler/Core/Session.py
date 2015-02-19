@@ -650,3 +650,11 @@ class Session(SessionConfigInterface):
         :return: The torrent data if exists, None otherwise.
         """
         return self.lm.torrent_store.get(hexlify(infohash))
+
+    def save_collected_torrent(self, infohash, data):
+        """
+        Saves the given torrent into the torrent_store database.
+        :param infohash: The given infohash binary.
+        :param data: The torrent file data.
+        """
+        self.lm.torrent_store.put(hexlify(infohash), data)
