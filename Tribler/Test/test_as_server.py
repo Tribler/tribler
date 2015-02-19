@@ -22,7 +22,7 @@ from Tribler.Core import defaults
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Utilities.twisted_thread import reactor
-from .util import check_and_reset_exception_raised
+
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 STATE_DIR = os.path.join(BASE_DIR, u"_test_.Tribler")
@@ -73,7 +73,6 @@ class AbstractServer(unittest.TestCase):
             self._logger.debug("The reactor was dirty:")
             for dc in delayed_calls:
                 self._logger.debug(">     %s" % dc)
-        self.assertFalse(check_and_reset_exception_raised(), "An unhandled exception was raised ")
         self.assertFalse(delayed_calls, "The reactor was dirty when tearing down the test")
 
     def tearDownCleanup(self):

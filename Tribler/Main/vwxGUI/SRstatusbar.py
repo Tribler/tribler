@@ -190,8 +190,6 @@ class SRstatusbar(wx.StatusBar):
             self.activity_timer.Stop()
 
         def revert():
-            if not self:
-                return
             self.activity.SetBitmap(self.activityImages[1])
             self.activity.Refresh()
 
