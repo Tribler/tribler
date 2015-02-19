@@ -2,6 +2,8 @@
 Run Dispersy in standalone bartercast crawler mode.
 
 Crawls BarterCommunity and collects interaction data from peers.
+
+Temporary approach: all peers will run this service if this works OK. See Github issue #3.
 """
 import os
 import signal
