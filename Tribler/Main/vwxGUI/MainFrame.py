@@ -941,7 +941,6 @@ class MainFrame(wx.Frame):
 
     def setActivity(self, type, msg=u'', arg2=None):
         try:
-            # print >>sys.stderr,"MainFrame: setActivity: t",type,"m",msg,"a2",arg2
             if self.utility is None:
                 self._logger.debug("MainFrame: setActivity: Cannot display: t %s m %s a2 %s", type, msg, arg2)
                 return

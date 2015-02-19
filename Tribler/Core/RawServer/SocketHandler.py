@@ -209,8 +209,6 @@ class SingleSocket(object):
                         break
                     del self.buffer[0]
             except socket.error as e:
-                # if DEBUG:
-                #    print_exc(file=sys.stderr)
                 blocked = False
                 try:
                     blocked = (e[0] == SOCKET_BLOCK_ERRORCODE)
@@ -336,7 +334,6 @@ class SocketHandler(object):
                 pass
         for listen_port in portrange:
             try:
-                # print >> sys.stderr, listen_port, bind, reuse
                 self.bind(listen_port, bind, reuse=reuse, ipv6_socket_style=ipv6_socket_style, handler=handler)
                 return listen_port
             except socket.error as e:
@@ -386,8 +383,6 @@ class SocketHandler(object):
         s = SingleSocket(self, sock, handler, dns[0])    # create socket to connect the peers obtained from tracker
         self.single_sockets[sock.fileno()] = s
         self.poll.register(sock, POLLIN)
-        # if DEBUG:
-        #    print >> sys.stderr,"SocketHandler: Created Socket"
         return s
 
     def start_connection(self, dns, handler=None, randomize=False):
@@ -419,7 +414,6 @@ class SocketHandler(object):
                     a null op
                     """
                     socket.inet_aton(dns[0])  # IPVSIX: change to inet_pton()
-                    # print >>sys.stderr,"SockHand: start_conn: after inet_aton",dns[0],"<",dns,">"
                     addrinfos = [(socket.AF_INET, None, None, None, (dns[0], dns[1]))]
                 except:
                     # print_exc()
@@ -452,7 +446,6 @@ class SocketHandler(object):
 
     def handle_events(self, events):
         for sock, event in events:
-            # print >>sys.stderr,"SocketHandler: event on sock#",sock
             s, h = self.servers.get(sock, (None, None))    # socket.socket
             if s:
                 if event & (POLLHUP | POLLERR) != 0:
@@ -527,9 +520,6 @@ class SocketHandler(object):
                                                s.get_ip(), s.get_port())
                             self._close_socket(s)
                         else:
-                            # if DEBUG:
-                            #    print >> sys.stderr,"SocketHandler: Got data",s.get_ip(),s.get_port(),"len",len(data)
-
                             # btlaunchmany: NewSocketHandler, btdownloadheadless: Encrypter.Connection
                             s.handler.data_came_in(s, data)
                     except socket.error as e:

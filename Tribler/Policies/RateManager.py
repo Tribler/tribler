@@ -332,8 +332,6 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
         newws = []
         inactiveset = []
         for ds in workingset:
-            # d = ds.get_download()
-            # print >>sys.stderr,"RateManager: set_lim: Peers",d.get_def().get_name(),ds.get_num_nonseeds(),"alt",ds.get_num_seeds_peers()
             # Arno, 2010-09-16: Don't count any HTTP seeders as leechers.
             if ds.get_num_nonseeds() > 0:
                 newws.append(ds)

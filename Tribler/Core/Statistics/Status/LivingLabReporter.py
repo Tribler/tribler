@@ -141,8 +141,6 @@ class LivingLabPeriodicReporter(Status.PeriodicStatusReporter):
         This is a bit on the messy side, but it does work
         """
 
-        # print >>sys.stderr, xml_str
-
         self.num_reports += 1
 
         boundary = "------------------ThE_bOuNdArY_iS_hErE_$"

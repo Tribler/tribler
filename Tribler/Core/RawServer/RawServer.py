@@ -88,8 +88,6 @@ class RawServer(object):
         insort(self.funcs, (clock() + delay, func, id))
 
     def add_task(self, func, delay=0, id=None):
-        # if DEBUG:
-        #    print >>sys.stderr,"rawserver: add_task(",func,delay,")"
         if delay < 0:
             delay = 0
 
@@ -147,29 +145,20 @@ class RawServer(object):
                     if period < 0:
                         period = 0
 
-                    # if DEBUG:
-                    #    print >>sys.stderr,"rawserver: do_poll",period
                     events = self.sockethandler.do_poll(period)
 
                     if self.doneflag.isSet():
                         self._logger.debug("rawserver: stopping because done flag set")
                         return
 
-                    # print >>sys.stderr,"RawServer: funcs is",`self.funcs`
-
                     while self.funcs and self.funcs[0][0] <= clock() and not self.doneflag.isSet():
                         garbage1, func, id = self.funcs.pop(0)
                         if id in self.tasks_to_kill:
                             pass
                         try:
-#                            print func.func_name
                             if func.func_name != "_bgalloc":
                                 self._logger.debug("RawServer:f %s", func.func_name)
-                            # st = time.time()
                             func()
-                            # et = time.time()
-                            # diff = et - st
-                            # print >>sys.stderr,func,"took %.5f" % (diff)
 
                         except (SystemError, MemoryError) as e:
                             self.fatal_func(e)
@@ -218,10 +207,6 @@ class RawServer(object):
                     self._logger.debug("rawserver: other exception")
                     print_exc()
                     self.exception(e)
-                # Arno: Don't stop till we drop
-                # if self.exccount > 10:
-                # print >> sys.stderr,"rawserver: stopping because exccount > 10"
-                # return
         finally:
 #            self.sockethandler.shutdown()
             self.finished.set()

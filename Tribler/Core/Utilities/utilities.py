@@ -2,9 +2,6 @@
 # see LICENSE.txt for license information
 
 from base64 import encodestring, b32decode
-from Tribler.Core.Utilities.Crypto import sha
-import sys
-import os
 from types import StringType, LongType, IntType, ListType, DictType
 import urlparse
 from traceback import print_exc
@@ -212,8 +209,6 @@ def isValidURL(url):
     if url.lower().startswith('udp'):    # exception for udp
         url = url.lower().replace('udp', 'http', 1)
     r = urlparse.urlsplit(url)
-    # if DEBUG:
-    #     print >>sys.stderr,"isValidURL:",r
 
     if r[0] == '' or r[1] == '':
         return False
