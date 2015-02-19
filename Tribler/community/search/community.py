@@ -469,7 +469,6 @@ class SearchCommunity(Community):
                     break
 
             if remove:
-                self._logger.debug(u"no response on ping, removing from taste_buddies %s", self.candidate)
                 self.community.taste_buddies.remove(remove)
 
     def create_torrent_collect_requests(self, candidates=None):
@@ -488,17 +487,21 @@ class SearchCommunity(Community):
         self._create_pingpong(u"torrent-collect-response", candidates, identifiers)
         self._process_collect_request_response(messages)
 
-    def on_torrent_collect_response(self, messages, verifyRequest=True):
+    def on_torrent_collect_response(self, messages):
         self._process_collect_request_response(messages)
-
-        for message in messages:
-            self.request_cache.pop(u"ping", message.payload.identifier)
 
     def _process_collect_request_response(self, messages):
         to_insert_list = []
         to_collect_dict = {}
         to_popularity_dict = {}
         for message in messages:
+            # check if the identifier is still in the request_cache because it could be timed out
+            if not self.request_cache.has(u"ping", message.payload.identifier):
+                self._logger.warn(u"message from %s cannot be found in the request cache, skipping it",
+                                  message.candidate)
+                continue
+            self.request_cache.pop(u"ping", message.payload.identifier)
+
             if message.payload.hashtype == SWIFT_INFOHASHES:
                 for infohash, seeders, leechers, ago in message.payload.torrents:
                     if not infohash:
