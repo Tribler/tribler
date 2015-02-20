@@ -12,7 +12,6 @@ import wx
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
-from Tribler.Core.Search.Reranking import DefaultTorrentReranker
 from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
@@ -68,7 +67,6 @@ class TorrentManager(object):
         # For asking for a refresh when remote results came in
         self.gridmgr = None
         self.searchkeywords = []
-        self.rerankingStrategy = DefaultTorrentReranker()
         self.oldsearchkeywords = None
 
         self.filteredResults = 0
@@ -302,9 +300,6 @@ class TorrentManager(object):
 
                 elif sort == 'fulltextmetric':
                     self.fulltextSort()
-
-                self.hits = self.rerankingStrategy.rerank(self.hits, self.searchkeywords, self.torrent_db,
-                                                         None, self.mypref_db, None)
 
                 self.hits = self.library_manager.addDownloadStates(self.hits)
 
@@ -731,7 +726,6 @@ class LibraryManager(object):
         # current progress of download states
         self.cache_progress = {}
         self.last_progress_update = time()
-        self.rerankingStrategy = DefaultTorrentReranker()
 
         # For asking for a refresh when remote results came in
         self.gridmgr = None
@@ -1086,9 +1080,6 @@ class LibraryManager(object):
             return cmp(a.name.lower(), b.name.lower())
 
         results.sort(cmp=sort_by_name)
-
-        # Niels: maybe create a clever reranking for library results, for now disable
-        # results = self.rerankingStrategy.rerank(results, '', self.torrent_db, self.pref_db, self.mypref_db, self.search_db)
 
         self._logger.debug('getHitsInCat took: %s', time() - begintime)
 
