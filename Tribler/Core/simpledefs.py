@@ -65,7 +65,6 @@ NTFY_VOTECAST = 'votecast'
 NTFY_CHANNELCAST = 'channelcast'
 NTFY_TUNNEL = 'tunnel'
 NTFY_TRACKERINFO = 'trackerinfo'
-NTFY_BUNDLERPREFERENCE = "bundlepreference"
 
 # non data handler subjects
 NTFY_ACTIVITIES = 'activities'  # an activity was set (peer met/dns resolved)

@@ -88,7 +88,6 @@ class TriblerLaunchMany(Thread):
         self.mypref_db = None
         self.votecast_db = None
         self.channelcast_db = None
-        self.bundlerpref_db = None
 
         self.videoplayer = None
 
@@ -125,8 +124,7 @@ class TriblerLaunchMany(Thread):
             if self.session.get_megacache():
                 from Tribler.Core.CacheDB.SqliteCacheDBHandler import (MiscDBHandler, PeerDBHandler, TorrentDBHandler,
                                                                        MyPreferenceDBHandler, VoteCastDBHandler,
-                                                                       ChannelCastDBHandler, MetadataDBHandler,
-                                                                       BundlerPreferenceDBHandler)
+                                                                       ChannelCastDBHandler, MetadataDBHandler)
                 from Tribler.Category.Category import Category
 
                 self._logger.debug('tlm: Reading Session state from %s', self.session.get_state_dir())
@@ -141,7 +139,6 @@ class TriblerLaunchMany(Thread):
                 self.mypref_db = MyPreferenceDBHandler(self.session)
                 self.votecast_db = VoteCastDBHandler(self.session)
                 self.channelcast_db = ChannelCastDBHandler(self.session)
-                self.bundlerpref_db = BundlerPreferenceDBHandler(self.session)
 
                 # initializes DBHandlers
                 self.misc_db.initialize()
@@ -151,7 +148,6 @@ class TriblerLaunchMany(Thread):
                 self.mypref_db.initialize()
                 self.votecast_db.initialize()
                 self.channelcast_db.initialize()
-                self.bundlerpref_db.initialize()
 
             if self.session.get_videoplayer():
                 self.videoplayer = VideoPlayer(self.session)
@@ -677,7 +673,6 @@ class TriblerLaunchMany(Thread):
                 self._logger.info("lmc: Dispersy failed to shutdown in %.2f seconds", diff)
 
         if self.session.get_megacache():
-            self.bundlerpref_db.close()
             self.channelcast_db.close()
             self.votecast_db.close()
             self.mypref_db.close()
@@ -686,7 +681,6 @@ class TriblerLaunchMany(Thread):
             self.metadata_db.close()
             self.misc_db.close()
 
-            self.bundlerpref_db = None
             self.channelcast_db = None
             self.votecast_db = None
             self.mypref_db = None
