@@ -300,11 +300,6 @@ class TestTorrentDBHandler(AbstractDB):
         last_tracker_check = self.tdb.getOne('last_tracker_check', torrent_id=multiple_torrent_id)
         assert last_tracker_check == 1234567, last_tracker_check
 
-    @blocking_call_on_reactor_thread
-    def test_getCollectedTorrentHashes(self):
-        res = self.tdb.getNumberCollectedTorrents()
-        assert res == 4848, res
-
     @unittest.skip("TODO, the database thingie shouldn't be deleting files from the FS.")
     @blocking_call_on_reactor_thread
     def test_freeSpace(self):
