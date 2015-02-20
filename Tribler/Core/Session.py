@@ -658,3 +658,10 @@ class Session(SessionConfigInterface):
         :param data: The torrent file data.
         """
         self.lm.torrent_store.put(hexlify(infohash), data)
+
+    def get_collected_torrents_count(self):
+        """
+        Gets the total number of collected torrents in the torrent_store database.
+        :return: The total number of collected torrents in the torrent_store database.
+        """
+        return len(self.lm.torrent_store)

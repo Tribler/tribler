@@ -1112,10 +1112,6 @@ class TorrentDBHandler(BasicDBHandler):
         res_list = self._db.getAll('Torrent', value_name, where=where, limit=rankList_size, order_by=order_by)
         return [a[0] for a in res_list]
 
-    def getNumberCollectedTorrents(self):
-        # return self._db.size('CollectedTorrent')
-        return self._db.getOne('CollectedTorrent', 'count(torrent_id)')
-
     def getRecentlyCollectedTorrents(self, limit=50):
         sql = u"""
             SELECT CT.infohash, CT.num_seeders, CT.num_leechers, T.last_tracker_check, CT.insert_time
