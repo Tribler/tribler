@@ -22,7 +22,8 @@ from Tribler.Core.RawServer.RawServer import autodetect_socket_style
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.defaults import sessdefaults
-from Tribler.Core.osutils import is_android
+from Tribler.Core.osutils import is_android, get_appstate_dir
+from Tribler.Core.simpledefs import STATEDIR_SESSCONFIG
 
 
 class SessionConfigInterface(object):
@@ -120,7 +121,23 @@ class SessionConfigInterface(object):
     def get_state_dir(self):
         """ Returns the directory the Session stores its state in.
         @return An absolute path name. """
-        return self.sessconfig.get(u'general', u'state_dir')
+
+        in_config_path = self.sessconfig.get(u'general', u'state_dir')
+        return in_config_path or self.get_default_state_dir()
+
+    @staticmethod
+    def get_default_state_dir(homedirpostfix='.Tribler'):
+        # Allow override
+        statedirvar = '${TSTATEDIR}'
+        statedir = os.path.expandvars(statedirvar)
+        if statedir and statedir != statedirvar:
+            return statedir
+
+        if os.path.isdir(homedirpostfix):
+            return os.path.abspath(homedirpostfix)
+
+        appdir = get_appstate_dir()
+        return os.path.join(appdir, homedirpostfix)
 
     def set_install_dir(self, installdir):
         """ Set the directory in which the Tribler Core software is installed.
@@ -582,6 +599,17 @@ class SessionConfigInterface(object):
         """
         self.sessconfig.set(u'video', u'preferredmode', mode)
 
+    #
+    # Static methods
+    #
+    @staticmethod
+    def get_default_config_filename(state_dir):
+        """ Return the name of the file where a session config is saved by default.
+        @return A filename
+        """
+        return os.path.join(state_dir, STATEDIR_SESSCONFIG)
+
+
 
 class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
 
@@ -595,13 +623,20 @@ class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
     # Class method
     #
     @staticmethod
-    def load(filename):
+    def load(filename=None):
         """
         Load a saved SessionStartupConfig from disk.
 
-        @param filename  An absolute Unicode filename
+        @param filename  An absolute Unicode filename, if None, the default path will be used.
         @return SessionStartupConfig object
         """
+        if not filename:
+            # Then try to read from default location
+            filename = SessionStartupConfig.get_default_config_filename(SessionStartupConfig.get_default_state_dir())
+        if not os.path.isfile(filename):
+            # No config on the default location, just start from scratch
+            return SessionStartupConfig()
+
         # Class method, no locking required
         sessconfig = CallbackConfigParser()
         try:
