@@ -107,7 +107,7 @@ class RemoteTorrentHandler(TaskManager):
             """
             Check if we have reached the collected torrent limit and throttle its collection if so.
             """
-            self.num_torrents = self.torrent_db.getNumberCollectedTorrents()
+            self.num_torrents = self.session.get_collected_torrents_count()
             self._logger.debug(u"check overflow: current %d max %d", self.num_torrents, self.max_num_torrents)
 
             if self.num_torrents > self.max_num_torrents:
