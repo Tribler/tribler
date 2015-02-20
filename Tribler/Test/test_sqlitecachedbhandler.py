@@ -340,12 +340,6 @@ class TestMyPreferenceDBHandler(AbstractDB):
         pl = self.mdb.getMyPrefListInfohash()
         assert len(pl) == 12
 
-    @blocking_call_on_reactor_thread
-    def test_hasMyPreference(self):
-        assert self.mdb.hasMyPreference(126)
-        assert self.mdb.hasMyPreference(1279)
-        assert not self.mdb.hasMyPreference(1)
-
     @skip("We are going to rewrite the whole database thing, so its not worth the trouble fixing this now")
     @blocking_call_on_reactor_thread
     def test_addMyPreference_deletePreference(self):
@@ -381,7 +375,6 @@ class TestMyPreferenceDBHandler(AbstractDB):
         infohash = str2bin(infohash_str_126)
         torrent_id = self.tdb.getTorrentID(infohash)
         assert torrent_id == 126
-        assert self.mdb.hasMyPreference(torrent_id)
         self.mdb.updateProgress(torrent_id, 3.14)
         p = self.mdb.getOne('progress', torrent_id=torrent_id)
         assert p == 3.14

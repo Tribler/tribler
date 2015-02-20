@@ -1433,16 +1433,9 @@ class MyPreferenceDBHandler(BasicDBHandler):
         if torrent_id is not None:
             return self.getMyPrefStats(torrent_id)[torrent_id]
 
-    def hasMyPreference(self, torrent_id):
-        res = self.getOne('torrent_id', torrent_id=torrent_id)
-        if res is not None:
-            return True
-        else:
-            return False
-
     def addMyPreference(self, torrent_id, data):
         # keys in data: destination_path, progress, creation_time, torrent_id
-        if self.hasMyPreference(torrent_id):
+        if self.getOne('torrent_id', torrent_id=torrent_id) is not None:
             # Arno, 2009-03-09: Torrent already exists in myrefs.
             # Hack for hiding from lib while keeping in myprefs.
             # see standardOverview.removeTorrentFromLibrary()
