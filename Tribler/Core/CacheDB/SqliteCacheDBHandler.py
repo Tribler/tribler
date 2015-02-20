@@ -2670,27 +2670,6 @@ class ChannelCastDBHandler(BasicDBHandler):
             return best_channel
 
 
-class BundlerPreferenceDBHandler(BasicDBHandler):
-
-    """
-    The Bundler Preference database handler singleton for
-    storing a chosen bundle method for a particular query.
-    """
-
-    def __init__(self, session):
-        super(BundlerPreferenceDBHandler, self).__init__(session, u"BundlerPreference")
-
-    def storePreference(self, keywords, bundle_mode):
-        query = ' '.join(sorted(set(keywords)))
-        self._db.execute_write(u"INSERT OR REPLACE INTO BundlerPreference (query, bundle_mode) VALUES (?,?)",
-                               (query, bundle_mode))
-
-    def getPreference(self, keywords):
-        # returns None if query not in db
-        query = ' '.join(sorted(set(keywords)))
-        return self.getOne(u"bundle_mode", query=query)
-
-
 def ranksfind(ranks, key):
     if ranks is None:
         return -1

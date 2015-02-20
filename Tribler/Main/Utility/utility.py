@@ -51,7 +51,6 @@ class Utility(object):
                             'family_filter': 1,
                             'window_x': "",
                             'window_y': "",
-                            'use_bundle_magic': 0,
                             # WebUI
                             'use_webui': 0,
                             'webui_port': 8080,

@@ -12,7 +12,6 @@ import wx
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
-from Tribler.Core.Search.Bundler import Bundler
 from Tribler.Core.Search.Reranking import DefaultTorrentReranker
 from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
@@ -73,10 +72,6 @@ class TorrentManager(object):
         self.oldsearchkeywords = None
 
         self.filteredResults = 0
-
-        self.bundler = Bundler()
-        self.bundle_mode = None
-        self.bundle_mode_changed = True
 
         self.category = Category.getInstance()
         self.xxx_category = 0
@@ -281,7 +276,6 @@ class TorrentManager(object):
     def getHitsInCategory(self, categorykey='all', sort='fulltextmetric'):
         begintime = time()
         # categorykey can be 'all', 'Video', 'Document', ...
-        bundle_mode = self.bundle_mode
 
         self._logger.debug("TorrentSearchManager: getHitsInCategory: %s", categorykey)
 
@@ -318,20 +312,15 @@ class TorrentManager(object):
                 # want to prefetch the top N torrents.
                 startWorker(None, self.prefetch_hits, delay=1, uId=u"PREFETCH_RESULTS", workerType="guiTaskQueue")
 
-            beginbundle = time()
-
         finally:
             self.hitsLock.release()
 
         # Niels: important, we should not change self.hits otherwise prefetching will not work
-        returned_hits, selected_bundle_mode = self.bundler.bundle(self.hits, bundle_mode, self.searchkeywords)
+        returned_hits = self.hits
 
-        self._logger.debug('TorrentSearchGridManager: getHitsInCat took: %s of which sort took %s, bundle took %s', time() - begintime, beginbundle - beginsort, time() - beginbundle)
+        self._logger.debug('getHitsInCat took: %s of which sort took %s', time() - begintime, time() - beginsort)
 
-        bundle_mode_changed = self.bundle_mode_changed or (selected_bundle_mode != bundle_mode)
-        self.bundle_mode_changed = False
-
-        return [len(returned_hits), self.filteredResults, new_local_hits or new_remote_hits or bundle_mode_changed, selected_bundle_mode, returned_hits, modified_hits]
+        return [len(returned_hits), self.filteredResults, new_local_hits or new_remote_hits, returned_hits, modified_hits]
 
     def prefetch_hits(self):
         """
@@ -396,7 +385,6 @@ class TorrentManager(object):
                 self.hitsLock.acquire()
                 self.remoteLock.acquire()
 
-                self.bundle_mode = None
                 self.searchkeywords = [kw for kw in wantkeywords if kw != '']
                 self._logger.debug("TorrentSearchGridManager: keywords: %s; time: %s", self.searchkeywords, time())
 
@@ -409,13 +397,6 @@ class TorrentManager(object):
             finally:
                 self.hitsLock.release()
                 self.remoteLock.release()
-
-    def setBundleMode(self, bundle_mode, refresh=True):
-        if bundle_mode != self.bundle_mode:
-            self.bundle_mode = bundle_mode
-            self.bundle_mode_changed = True
-            if refresh:
-                self.refreshGrid()
 
     def searchLocalDatabase(self):
         """ Called by GetHitsInCategory() to search local DB. Caches previous query result. """

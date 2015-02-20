@@ -131,21 +131,19 @@ class RemoteSearchManager(BaseManager):
 
             keywords = self.oldkeywords
 
-            total_items, nrfiltered, new_items, selected_bundle_mode, data_files, modified_hits = self.torrentsearch_manager.getHitsInCategory()
+            total_items, nrfiltered, new_items, data_files, modified_hits = self.torrentsearch_manager.getHitsInCategory()
             total_channels, new_channels, self.data_channels = self.channelsearch_manager.getChannelHits()
             self._logger.debug('RemoteSearchManager: refresh returning results took %s %s', time() - begintime, time())
 
-            return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode, modified_hits
+            return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, modified_hits
         delay = 0.5 if remote else 0.0
         workerType = "guiTaskQueue" if remote else "dbThread"
         startWorker(self._on_refresh, db_callback, delay=delay, uId=u"RemoteSearchManager_refresh_%s" % self.oldkeywords, retryOnBusy=True, workerType=workerType, priority=GUI_PRI_DISPERSY)
 
     def _on_refresh(self, delayedResult):
-        keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode, modified_hits = delayedResult.get()
+        keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, modified_hits = delayedResult.get()
 
         if keywords == self.oldkeywords:
-            self.list.SetSelectedBundleMode(selected_bundle_mode)
-
             if modified_hits:
                 self.list.RemoveItems(modified_hits)
 
@@ -935,8 +933,6 @@ class SizeList(List):
                 if isinstance(item, tuple) and item and isinstance(item[0], Channel):
                     pass
                 else:
-                    if 'bundle' in item:
-                        item = item['bundle'][0]
                     self.curMax = max(self.curMax, item.length)
 
     @warnWxThread
@@ -1010,8 +1006,6 @@ class GenericSearchList(SizeList):
 
     def __init__(self, columns, background, spacers=[0, 0], singleSelect=False, showChange=False, borders=True, parent=None):
         SizeList.__init__(self, columns, background, spacers, singleSelect, showChange, borders, parent)
-
-        self.infohash2key = {}  # bundled infohashes
 
         gui_image_manager = GuiImageManager.getInstance()
 
@@ -1097,8 +1091,7 @@ class GenericSearchList(SizeList):
     @warnWxThread
     def OnDownload(self, event):
         item = event.GetEventObject().item
-        key = self.infohash2key.get(item.original_data.infohash, item.original_data.infohash)
-        self.Select(key)
+        self.Select(item.original_data.infohash)
         self.guiutility.torrentsearch_manager.downloadTorrent(item.original_data)
 
         button = event.GetEventObject()
@@ -1106,8 +1099,6 @@ class GenericSearchList(SizeList):
 
     @warnWxThread
     def SetData(self, data):
-        from Tribler.Main.vwxGUI.list_bundle import BundleListItem  # solving circular dependency for now
-
         resetbottomwindow = not bool(self.list.raw_data)
 
         SizeList.SetData(self, data)
@@ -1122,28 +1113,9 @@ class GenericSearchList(SizeList):
                     else:
                         list_data.append((channel.id, [channel.name, channel.modified, channel.nr_torrents, channel.nr_favorites], channel, ChannelListItem, position))
                 else:
-
-                    # either we have a bundle of hits:
-                    if 'bundle' in item:
-                        head = item['bundle'][0]
-                        create_method = BundleListItem
-                        key = item['key']
-
-                        for hit in item['bundle']:
-                            self.infohash2key[hit.infohash] = key
-
-                        # if the bundle is changed, inform the ListBody
-                        if 'bundle_changed' in item:
-                            self.RefreshData(key, item)
-
-                    # or a single hit:
-                    else:
-                        head = item
-                        create_method = TorrentListItem
-                        key = head.infohash
-
-                        if key in self.infohash2key:
-                            del self.infohash2key[key]
+                    head = item
+                    create_method = TorrentListItem
+                    key = head.infohash
 
                     if DEBUG_RELEVANCE:
                         item_data = ["%s %s" % (head.name, head.relevance_score), head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, None]
@@ -1188,13 +1160,8 @@ class GenericSearchList(SizeList):
                 return
 
             original_data = data
-            if 'bundle' in data:  # bundle update
-                head = data['bundle'][0]
-            else:  # individual hit update
-                head = original_data
-
-                # check whether the individual hit is in a bundle
-                key = self.infohash2key.get(key, key)
+            # individual hit update
+            head = original_data
 
             # we need to merge the dslist from the current item
             prevItem = self.list.GetItem(head.infohash)
@@ -1208,10 +1175,6 @@ class GenericSearchList(SizeList):
                 data = (head.infohash, [head.name, head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, None], original_data)
 
             self.list.RefreshData(key, data)
-
-    def Reset(self):
-        self.infohash2key = {}
-        return List.Reset(self)
 
     @warnWxThread
     def OnExpand(self, item):
@@ -1237,18 +1200,6 @@ class GenericSearchList(SizeList):
     def ResetBottomWindow(self):
         detailspanel = self.guiutility.SetBottomSplitterWindow(SearchInfoPanel)
         detailspanel.Set(len(self.list.raw_data) if self.list.raw_data else 0)
-
-    def InList(self, key):
-        key = self.infohash2key.get(key, key)
-        return List.InList(self, key)
-
-    def GetItem(self, key):
-        key = self.infohash2key.get(key, key)
-        return List.GetItem(self, key)
-
-    def GetItemPos(self, key):
-        key = self.infohash2key.get(key, key)
-        return List.GetItemPos(self, key)
 
     def format(self, val):
         val = int(val)
@@ -1382,9 +1333,6 @@ class SearchList(GenericSearchList):
         footer = ListFooter(parent, radius=0)
         footer.SetMinSize((-1, 0))
         return footer
-
-    def SetSelectedBundleMode(self, selected_bundle_mode):
-        self.header.SetSelectedBundleMode(selected_bundle_mode)
 
     @warnWxThread
     def SetData(self, torrents):
