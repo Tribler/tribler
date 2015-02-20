@@ -115,18 +115,6 @@ CREATE TABLE TorrentTrackerMapping (
 
 CREATE VIEW CollectedTorrent AS SELECT * FROM Torrent WHERE torrent_file_name IS NOT NULL;
 
--- v7: TermFrequency and TorrentBiTermPhrase
---     for "Network Buzz" feature (removed in v21);
---     Also UserEventLog table for user studies.
-
-----------------------------------------
--- v8: BundlerPreference
-
-CREATE TABLE BundlerPreference (
-  query         text PRIMARY KEY,
-  bundle_mode   integer
-);
-
 ----------------------------------------
 -- v9: Open2Edit replacing ChannelCast tables
 
