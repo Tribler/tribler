@@ -933,8 +933,6 @@ class SizeList(List):
                 if isinstance(item, tuple) and item and isinstance(item[0], Channel):
                     pass
                 else:
-                    if 'bundle' in item:
-                        item = item['bundle'][0]
                     self.curMax = max(self.curMax, item.length)
 
     @warnWxThread
@@ -1104,8 +1102,6 @@ class GenericSearchList(SizeList):
 
     @warnWxThread
     def SetData(self, data):
-        from Tribler.Main.vwxGUI.list_bundle import BundleListItem  # solving circular dependency for now
-
         resetbottomwindow = not bool(self.list.raw_data)
 
         SizeList.SetData(self, data)
@@ -1120,28 +1116,12 @@ class GenericSearchList(SizeList):
                     else:
                         list_data.append((channel.id, [channel.name, channel.modified, channel.nr_torrents, channel.nr_favorites], channel, ChannelListItem, position))
                 else:
+                    head = item
+                    create_method = TorrentListItem
+                    key = head.infohash
 
-                    # either we have a bundle of hits:
-                    if 'bundle' in item:
-                        head = item['bundle'][0]
-                        create_method = BundleListItem
-                        key = item['key']
-
-                        for hit in item['bundle']:
-                            self.infohash2key[hit.infohash] = key
-
-                        # if the bundle is changed, inform the ListBody
-                        if 'bundle_changed' in item:
-                            self.RefreshData(key, item)
-
-                    # or a single hit:
-                    else:
-                        head = item
-                        create_method = TorrentListItem
-                        key = head.infohash
-
-                        if key in self.infohash2key:
-                            del self.infohash2key[key]
+                    if key in self.infohash2key:
+                        del self.infohash2key[key]
 
                     if DEBUG_RELEVANCE:
                         item_data = ["%s %s" % (head.name, head.relevance_score), head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, None]
@@ -1186,13 +1166,11 @@ class GenericSearchList(SizeList):
                 return
 
             original_data = data
-            if 'bundle' in data:  # bundle update
-                head = data['bundle'][0]
-            else:  # individual hit update
-                head = original_data
+            # individual hit update
+            head = original_data
 
-                # check whether the individual hit is in a bundle
-                key = self.infohash2key.get(key, key)
+            # check whether the individual hit is in a bundle
+            key = self.infohash2key.get(key, key)
 
             # we need to merge the dslist from the current item
             prevItem = self.list.GetItem(head.infohash)

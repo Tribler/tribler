@@ -854,10 +854,7 @@ class TorrentDetails(AbstractDetails):
         else:
             curTorrent = self.torrent.torrent
 
-        if hasattr(data[2], "bundle"):
-            newTorrent = data[2]['bundle'][0]
-        else:
-            newTorrent = data[2]
+        newTorrent = data[2]
 
         if curTorrent.infohash != newTorrent.infohash:
             return
