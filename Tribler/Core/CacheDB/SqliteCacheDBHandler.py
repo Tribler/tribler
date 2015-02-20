@@ -998,12 +998,11 @@ class TorrentDBHandler(BasicDBHandler):
 
         return torrent
 
-    def getTorrents(self, category_name='all', range=None, library=False, sort=None, reverse=False):
+    def getTorrents(self):
         """
         get Torrents of some category and with alive status (opt. not in family filter)
 
-        if library == True: only torrents with destination_path != '' are returned
-        else: return only good torrents, accepted by family filter
+        return only good torrents, accepted by family filter
 
         @return Returns a list of dicts with keys:
             torrent_id, infohash, name, category, status, creation_date, num_files, num_leechers, num_seeders,
@@ -1012,42 +1011,18 @@ class TorrentDBHandler(BasicDBHandler):
 
         niels 25-10-2010: changed behaviour to left join TorrentTracker, due to magnet links
         """
-
-        s = time()
-
         value_name = deepcopy(self.value_name)
         sql = 'SELECT ' + ','.join(value_name)
         sql += ' FROM CollectedTorrent C'
-        # sql += ' From CollectedTorrent C LEFT JOIN TorrentTrackerMapping TTM ON C.torrent_id = TTM.torrent_id'
 
         where = ''
-        if category_name != 'all':
-            category_id = self.misc_db._category_name2id_dict.get(category_name.lower(), -1)
-            where += 'category_id = %d AND' % category_id  # unkown category_name returns no torrents
-
-        if library:
-            where += 'C.torrent_id in (select torrent_id from MyPreference where destination_path != "")'
-        else:
-            where += 'status_id=%d ' % self.misc_db.torrentStatusName2Id(u'good')  # if not library, show only good files
-            where += self.category.get_family_filter_sql(self.misc_db.categoryName2Id)  # add familyfilter
+        where += 'status_id=%d ' % self.misc_db.torrentStatusName2Id(u'good')  # if not library, show only good files
+        where += self.category.get_family_filter_sql(self.misc_db.categoryName2Id)  # add familyfilter
 
         sql += ' Where ' + where
 
         if 'infohash' in value_name:
             sql += " GROUP BY infohash"
-
-        if range:
-            offset = range[0]
-            limit = range[1] - range[0]
-            sql += ' Limit %d Offset %d' % (limit, offset)
-
-        if sort:
-            # Arno, 2008-10-6: buggy: not reverse???
-            desc = (reverse) and 'desc' or ''
-            if sort == 'name':
-                sql += ' Order By lower(%s) %s' % (sort, desc)
-            else:
-                sql += ' Order By %s %s' % (sort, desc)
 
         # Must come before query
         ranks = self.getRanks()
