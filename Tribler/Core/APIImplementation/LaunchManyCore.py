@@ -277,7 +277,7 @@ class TriblerLaunchMany(Thread):
                 self.mypref_db.addMyPreference(torrent_id, data)
 
             if isinstance(tdef, TorrentDefNoMetainfo):
-                self.torrent_db.addInfohash(tdef.get_infohash())
+                self.torrent_db.addOrGetTorrentID(tdef.get_infohash())
                 self.torrent_db.updateTorrent(tdef.get_infohash(), name=tdef.get_name_as_unicode())
                 write_my_pref()
             elif self.rtorrent_handler:

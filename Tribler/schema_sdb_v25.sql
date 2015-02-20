@@ -308,13 +308,6 @@ CREATE TABLE IF NOT EXISTS TorrentFiles (
 );
 CREATE INDEX IF NOT EXISTS TorFileIndex ON TorrentFiles(torrent_id);
 
-CREATE TABLE IF NOT EXISTS TorrentCollecting (
-  torrent_id            integer NOT NULL,
-  source                text    NOT NULL,
-  PRIMARY KEY (torrent_id, source)
-);
-CREATE INDEX IF NOT EXISTS TorColIndex ON TorrentCollecting(torrent_id);
-
 CREATE TABLE IF NOT EXISTS _TorrentMarkings (
   dispersy_id           integer NOT NULL,
   channeltorrent_id     integer NOT NULL,
