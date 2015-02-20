@@ -1177,9 +1177,6 @@ class TorrentDBHandler(BasicDBHandler):
         self._logger.info("Erased %d torrents", deleted)
         return deleted
 
-    def hasMetaData(self, infohash):
-        return self.hasTorrent(infohash)
-
     def searchNames(self, kws, local=True, keys=['torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'insert_time', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'dispersy_id'], doSort=True):
         assert 'infohash' in keys
         assert not doSort or ('num_seeders' in keys or 'T.num_seeders' in keys)

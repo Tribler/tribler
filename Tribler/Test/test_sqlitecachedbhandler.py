@@ -187,10 +187,8 @@ class TestTorrentDBHandler(AbstractDB):
         infohash_str = 'AA8cTG7ZuPsyblbRE7CyxsrKUCg='
         infohash = str2bin(infohash_str)
         assert self.tdb.hasTorrent(infohash)
-        assert self.tdb.hasMetaData(infohash)
         fake_infoahsh = 'fake_infohash_100000'
         assert self.tdb.hasTorrent(fake_infoahsh) == False
-        assert self.tdb.hasMetaData(fake_infoahsh) == False
 
     @blocking_call_on_reactor_thread
     def test_loadTorrents(self):
