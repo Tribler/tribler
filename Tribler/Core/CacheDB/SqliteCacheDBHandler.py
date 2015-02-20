@@ -423,8 +423,6 @@ class TorrentDBHandler(BasicDBHandler):
 
     def initialize(self, *args, **kwargs):
         super(TorrentDBHandler, self).initialize(*args, **kwargs)
-        self.torrent_dir = os.path.abspath(self.session.get_torrent_collecting_dir())
-
         self.category = self.session.lm.cat
         self.misc_db = self.session.open_dbhandler(NTFY_MISC)
         self.mypref_db = self.session.open_dbhandler(NTFY_MYPREFERENCES)
@@ -434,8 +432,6 @@ class TorrentDBHandler(BasicDBHandler):
 
     def close(self):
         super(TorrentDBHandler, self).close()
-        self.torrent_dir = None
-
         self.category = None
         self.misc_db = None
         self.mypref_db = None
@@ -944,24 +940,6 @@ class TorrentDBHandler(BasicDBHandler):
         trackers = self._db.fetchall(sql, (limit,))
         return [tracker[0] for tracker in trackers]
 
-    def getTorrentDir(self):
-        return self.torrent_dir
-
-    def updateTorrentDir(self, torrent_dir):
-        sql = u"SELECT torrent_id, torrent_file_name FROM Torrent WHERE torrent_file_name not NULL"
-        results = self._db.fetchall(sql)
-
-        updates = []
-        for result in results:
-            head, tail = os.path.split(result[1])
-            new_file_name = os.path.join(torrent_dir, tail)
-
-            updates.append((new_file_name, result[0]))
-        sql = u"UPDATE TORRENT SET torrent_file_name = ? WHERE torrent_id = ?"
-        self._db.executemany(sql, updates)
-
-        self.torrent_dir = torrent_dir
-
     def getTorrent(self, infohash, keys=None, include_mypref=True):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
@@ -1167,7 +1145,7 @@ class TorrentDBHandler(BasicDBHandler):
         # sql_insert =  "insert into Torrent (torrent_id, infohash, relevance) values (?,?,?)"
         # self._db.executemany(sql_insert, torrent_id_infohashes)
 
-        torrent_dir = self.getTorrentDir()
+        torrent_dir = self.session.get_torrent_collecting_dir()
         deleted = 0  # deleted any file?
         insert_files = []
         for torrent_file_name, torrent_id, relevance, weight in res_list:
