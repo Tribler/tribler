@@ -11,6 +11,7 @@ from threading import Event, Thread, enumerate as enumerate_threads, currentThre
 from traceback import print_exc
 from twisted.internet import reactor
 
+from Tribler.Core.managers import TorrentSearchManager
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.RawServer.RawServer import RawServer
@@ -87,6 +88,8 @@ class TriblerLaunchMany(Thread):
         self.mypref_db = None
         self.votecast_db = None
         self.channelcast_db = None
+
+        self.torrent_search_manager = None
 
         self.videoplayer = None
 
@@ -168,6 +171,9 @@ class TriblerLaunchMany(Thread):
                 self.tftp_handler = TftpHandler(self.session, u'', endpoint,
                                                 "fffffffd".decode('hex'), block_size=1024)
                 self.tftp_handler.initialize()
+
+            self.torrent_search_manager = TorrentSearchManager(self.session)
+            self.torrent_search_manager.initialize()
 
         if not self.initComplete:
             self.init(autoload_discovery)
@@ -627,6 +633,9 @@ class TriblerLaunchMany(Thread):
 
         # Note: sesslock not held
         self.shutdownstarttime = timemod.time()
+        if self.torrent_search_manager:
+            self.torrent_search_manager.shutdown()
+            self.torrent_search_manager = None
         if self.rtorrent_handler:
             self.rtorrent_handler.shutdown()
             self.rtorrent_handler.delInstance()
