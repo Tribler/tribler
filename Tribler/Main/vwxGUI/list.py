@@ -1007,8 +1007,6 @@ class GenericSearchList(SizeList):
     def __init__(self, columns, background, spacers=[0, 0], singleSelect=False, showChange=False, borders=True, parent=None):
         SizeList.__init__(self, columns, background, spacers, singleSelect, showChange, borders, parent)
 
-        self.infohash2key = {}  # bundled infohashes
-
         gui_image_manager = GuiImageManager.getInstance()
 
         self.statusDHT = gui_image_manager.getImage(u"status_dht.png")
@@ -1093,8 +1091,7 @@ class GenericSearchList(SizeList):
     @warnWxThread
     def OnDownload(self, event):
         item = event.GetEventObject().item
-        key = self.infohash2key.get(item.original_data.infohash, item.original_data.infohash)
-        self.Select(key)
+        self.Select(item.original_data.infohash)
         self.guiutility.torrentsearch_manager.downloadTorrent(item.original_data)
 
         button = event.GetEventObject()
@@ -1119,9 +1116,6 @@ class GenericSearchList(SizeList):
                     head = item
                     create_method = TorrentListItem
                     key = head.infohash
-
-                    if key in self.infohash2key:
-                        del self.infohash2key[key]
 
                     if DEBUG_RELEVANCE:
                         item_data = ["%s %s" % (head.name, head.relevance_score), head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, None]
@@ -1169,9 +1163,6 @@ class GenericSearchList(SizeList):
             # individual hit update
             head = original_data
 
-            # check whether the individual hit is in a bundle
-            key = self.infohash2key.get(key, key)
-
             # we need to merge the dslist from the current item
             prevItem = self.list.GetItem(head.infohash)
             if prevItem.original_data.download_state:
@@ -1184,10 +1175,6 @@ class GenericSearchList(SizeList):
                 data = (head.infohash, [head.name, head.length, self.category_names[head.category_id], head.num_seeders, head.num_leechers, 0, None], original_data)
 
             self.list.RefreshData(key, data)
-
-    def Reset(self):
-        self.infohash2key = {}
-        return List.Reset(self)
 
     @warnWxThread
     def OnExpand(self, item):
@@ -1213,18 +1200,6 @@ class GenericSearchList(SizeList):
     def ResetBottomWindow(self):
         detailspanel = self.guiutility.SetBottomSplitterWindow(SearchInfoPanel)
         detailspanel.Set(len(self.list.raw_data) if self.list.raw_data else 0)
-
-    def InList(self, key):
-        key = self.infohash2key.get(key, key)
-        return List.InList(self, key)
-
-    def GetItem(self, key):
-        key = self.infohash2key.get(key, key)
-        return List.GetItem(self, key)
-
-    def GetItemPos(self, key):
-        key = self.infohash2key.get(key, key)
-        return List.GetItemPos(self, key)
 
     def format(self, val):
         val = int(val)
