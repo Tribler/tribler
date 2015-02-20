@@ -98,9 +98,6 @@ from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.DownloadConfig import get_default_dest_dir, get_default_dscfg_filename
 
-from Tribler.Core.Statistics.Status.Status import get_status_holder, delete_status_holders
-from Tribler.Core.Statistics.Status.NullReporter import NullReporter
-
 from Tribler.Core.Video.VideoPlayer import return_feasible_playback_modes, PLAYBACKMODE_INTERNAL
 
 # Arno, 2012-06-20: h4x0t DHT import for py2...
@@ -323,17 +320,6 @@ class ABCApp(object):
             # doesn't allow me to press close.  The statement below
             # gracefully closes Tribler after 120 seconds.
             # wx.CallLater(120*1000, wx.GetApp().Exit)
-
-            status = get_status_holder("LivingLab")
-            status.add_reporter(NullReporter("Periodically remove all events", 0))
-            # TODO(emilon): can we delete this?
-            # status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 300, "Tribler client")) # Report every 5 minutes
-            # status.add_reporter(LivingLabPeriodicReporter("Living lab CS reporter", 30, "Tribler client")) # Report every 30 seconds - ONLY FOR TESTING
-
-            # report client version
-            status.create_and_add_event("client-startup-version", [version_id])
-            status.create_and_add_event("client-startup-build", [commit_id])
-            status.create_and_add_event("client-startup-build-date", [build_date])
 
             self.ready = True
 
@@ -988,8 +974,6 @@ class ABCApp(object):
         if self.guiserver:
             self.guiserver.shutdown(True)
             self.guiserver.delInstance()
-
-        delete_status_holders()
 
         if self.frame:
             self.frame.Destroy()
