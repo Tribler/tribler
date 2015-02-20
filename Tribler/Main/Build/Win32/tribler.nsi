@@ -117,7 +117,6 @@ Section "!Main EXE" SecMain
  SetOutPath "$INSTDIR\Tribler"
  File Tribler\*.sql
  CreateDirectory "$INSTDIR\Tribler\Core"
- CreateDirectory "$INSTDIR\Tribler\Core\Statistics"
 
   ; Main client specific
  CreateDirectory "$INSTDIR\Tribler"
