@@ -542,7 +542,7 @@ class TorrentDBHandler(BasicDBHandler):
                     sql_insert_files = "INSERT OR IGNORE INTO TorrentFiles (torrent_id, path, length) VALUES (?,?,?)"
                     self._db.executemany(sql_insert_files, insert_files)
             except:
-                self._logger.error("Could not create a TorrentDef instance %s %s %s %s %s %s", infohash, timestamp, name, files, trackers, extra_info)
+                self._logger.error("Could not create a TorrentDef instance %r %r %r %r %r %r", infohash, timestamp, name, files, trackers, extra_info)
                 print_exc()
 
     def addInfohash(self, infohash):
