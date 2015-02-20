@@ -1069,7 +1069,7 @@ class TorrentDBHandler(BasicDBHandler):
         # return self._db.size('CollectedTorrent')
         return self._db.getOne('CollectedTorrent', 'count(torrent_id)')
 
-    def getRecentlyCollectedTorrents(self, limit=50):
+    def getRecentlyCollectedTorrents(self, limit):
         sql = u"""
             SELECT CT.infohash, CT.num_seeders, CT.num_leechers, T.last_tracker_check, CT.insert_time
              FROM Torrent T, CollectedTorrent CT
@@ -1079,7 +1079,7 @@ class TorrentDBHandler(BasicDBHandler):
         results = self._db.fetchall(sql, (limit,))
         return [[str2bin(result[0]), result[1], result[2], result[3] or 0, result[4]] for result in results]
 
-    def getRandomlyCollectedTorrents(self, insert_time, limit=50):
+    def getRandomlyCollectedTorrents(self, insert_time, limit):
         sql = u"""
             SELECT CT.infohash, CT.num_seeders, CT.num_leechers, T.last_tracker_check
              FROM Torrent T, CollectedTorrent CT
@@ -1104,8 +1104,6 @@ class TorrentDBHandler(BasicDBHandler):
         return self._db.getOne('CollectedTorrent', ['count(torrent_id)', 'sum(length)', 'sum(num_files)'])
 
     def freeSpace(self, torrents2del):
-# if torrents2del > 100:  # only delete so many torrents each time
-#            torrents2del = 100
         if self.channelcast_db and self.channelcast_db._channel_id:
             sql = U"""
                 SELECT torrent_file_name, torrent_id, relevance,
@@ -1177,7 +1175,7 @@ class TorrentDBHandler(BasicDBHandler):
         self._logger.info("Erased %d torrents", deleted)
         return deleted
 
-    def searchNames(self, kws, local=True, keys=['torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'insert_time', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'dispersy_id'], doSort=True):
+    def searchNames(self, kws, local=True, keys=None, doSort=True):
         assert 'infohash' in keys
         assert not doSort or ('num_seeders' in keys or 'T.num_seeders' in keys)
 
@@ -1479,9 +1477,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
 
     def updateProgressByHash(self, hash, progress):
         torrent_id = self._torrent_db.getTorrentID(hash)
-        if not torrent_id:
-            torrent_id = self._torrent_db.getTorrentIDRoot(hash)
-
         if torrent_id:
             self.updateProgress(torrent_id, progress)
 
