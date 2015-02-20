@@ -337,8 +337,6 @@ class ABCApp(object):
         # Start Tribler Session
         defaultConfig = SessionStartupConfig()
         state_dir = defaultConfig.get_state_dir()
-        if not state_dir:
-            state_dir = Session.get_default_state_dir()
         cfgfilename = Session.get_default_config_filename(state_dir)
 
         self._logger.debug(u"Session config %s", cfgfilename)
@@ -1097,7 +1095,7 @@ def run(params=None, autoload_discovery=True):
         installdir = ABCApp.determine_install_dir()
 
         if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
-            statedir = SessionStartupConfig().get_state_dir() or Session.get_default_state_dir()
+            statedir = SessionStartupConfig().get_state_dir()
 
             # Send  torrent info to abc single instance
             if params[0] != "":

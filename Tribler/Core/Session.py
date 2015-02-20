@@ -69,15 +69,7 @@ class Session(SessionConfigInterface):
 
         # Determine startup config to use
         if scfg is None:  # If no override
-            try:
-                # Then try to read from default location
-                state_dir = Session.get_default_state_dir()
-                cfgfilename = Session.get_default_config_filename(state_dir)
-                scfg = SessionStartupConfig.load(cfgfilename)
-            except:
-                # If that fails, create a fresh config with factory defaults
-                self._logger.exception(u"Failed to init startup config")
-                scfg = SessionStartupConfig()
+            scfg = SessionStartupConfig.load()
         else:  # overrides any saved config
             # Work from copy
             scfg = SessionStartupConfig(copy.copy(scfg.sessconfig))
@@ -91,7 +83,8 @@ class Session(SessionConfigInterface):
                 setter(default_dir)
             create_dir(dirname or default_dir)
 
-        set_and_create_dir(scfg.get_state_dir(), scfg.set_state_dir, Session.get_default_state_dir())
+        state_dir = scfg.get_state_dir()
+        set_and_create_dir(state_dir, scfg.set_state_dir, state_dir)
         # Note that we are setting it to STATEDIR_TORRENT_STORE_DIR instead of
         # STATEDIR_TORRENTCOLL_DIR as that dir is unused and only kept for
         # the upgrade process.
@@ -199,25 +192,6 @@ class Session(SessionConfigInterface):
     def del_instance():
         Session.__single = None
     del_instance = staticmethod(del_instance)
-
-    @staticmethod
-    def get_default_state_dir(homedirpostfix='.Tribler'):
-        """ Returns the factory default directory for storing session state
-        on the current platform (Win32,Mac,Unix).
-        @return An absolute path name. """
-
-        # Allow override
-        statedirvar = '${TSTATEDIR}'
-        statedir = os.path.expandvars(statedirvar)
-        if statedir and statedir != statedirvar:
-            return statedir
-
-        if os.path.isdir(homedirpostfix):
-            return os.path.abspath(homedirpostfix)
-
-        appdir = get_appstate_dir()
-        statedir = os.path.join(appdir, homedirpostfix)
-        return statedir
 
     #
     # Public methods
@@ -617,13 +591,6 @@ class Session(SessionConfigInterface):
         sscfg = self.get_current_startup_config_copy()
         cfgfilename = Session.get_default_config_filename(sscfg.get_state_dir())
         sscfg.save(cfgfilename)
-
-    def get_default_config_filename(state_dir):
-        """ Return the name of the file where a session config is saved by default.
-        @return A filename
-        """
-        return os.path.join(state_dir, STATEDIR_SESSCONFIG)
-    get_default_config_filename = staticmethod(get_default_config_filename)
 
     def update_trackers(self, infohash, trackers):
         """ Updates the trackers of a torrent.
