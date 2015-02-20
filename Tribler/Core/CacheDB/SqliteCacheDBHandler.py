@@ -1375,10 +1375,6 @@ class TorrentDBHandler(BasicDBHandler):
         connection.createcollation("leven", None)
         return [result[0] for result in results]
 
-    def getTorrentFiles(self, torrent_id):
-        sql = "SELECT path, length FROM TorrentFiles WHERE torrent_id = ?"
-        return self._db.fetchall(sql, (torrent_id,))
-
     def setSecret(self, infohash, secret):
         kw = {'secret': secret}
         self.updateTorrent(infohash, **kw)
