@@ -131,21 +131,19 @@ class RemoteSearchManager(BaseManager):
 
             keywords = self.oldkeywords
 
-            total_items, nrfiltered, new_items, selected_bundle_mode, data_files, modified_hits = self.torrentsearch_manager.getHitsInCategory()
+            total_items, nrfiltered, new_items, data_files, modified_hits = self.torrentsearch_manager.getHitsInCategory()
             total_channels, new_channels, self.data_channels = self.channelsearch_manager.getChannelHits()
             self._logger.debug('RemoteSearchManager: refresh returning results took %s %s', time() - begintime, time())
 
-            return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode, modified_hits
+            return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, modified_hits
         delay = 0.5 if remote else 0.0
         workerType = "guiTaskQueue" if remote else "dbThread"
         startWorker(self._on_refresh, db_callback, delay=delay, uId=u"RemoteSearchManager_refresh_%s" % self.oldkeywords, retryOnBusy=True, workerType=workerType, priority=GUI_PRI_DISPERSY)
 
     def _on_refresh(self, delayedResult):
-        keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, selected_bundle_mode, modified_hits = delayedResult.get()
+        keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, modified_hits = delayedResult.get()
 
         if keywords == self.oldkeywords:
-            self.list.SetSelectedBundleMode(selected_bundle_mode)
-
             if modified_hits:
                 self.list.RemoveItems(modified_hits)
 
@@ -1382,9 +1380,6 @@ class SearchList(GenericSearchList):
         footer = ListFooter(parent, radius=0)
         footer.SetMinSize((-1, 0))
         return footer
-
-    def SetSelectedBundleMode(self, selected_bundle_mode):
-        self.header.SetSelectedBundleMode(selected_bundle_mode)
 
     @warnWxThread
     def SetData(self, torrents):

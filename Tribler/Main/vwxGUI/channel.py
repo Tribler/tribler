@@ -330,7 +330,7 @@ class SelectedChannelList(GenericSearchList):
 
     @warnWxThread
     def CreateHeader(self, parent):
-        return SelectedChannelFilter(parent, self, show_bundle=False)
+        return SelectedChannelFilter(parent, self)
 
     @warnWxThread
     def CreateTopHeader(self, parent):
@@ -840,7 +840,7 @@ class Playlist(SelectedChannelList):
 
     @warnWxThread
     def CreateHeader(self, parent):
-        return SelectedPlaylistFilter(parent, self, show_bundle=False)
+        return SelectedPlaylistFilter(parent, self)
 
     @warnWxThread
     def CreateTopHeader(self, parent):
