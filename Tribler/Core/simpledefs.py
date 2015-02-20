@@ -116,7 +116,11 @@ LIVE_AUTHMETHOD_RSA = "RSA"  # RSA signatures
 INFOHASH_LENGTH = 20
 
 
-# SIGNALS
+# SIGNALS (for internal use)
 SIGNAL_ALLCHANNEL = 'allchannel'
 SIGNAL_SEARCH_COMMUNITY = 'search_community'
 SIGNAL_ONSEARCHRESULTS = 'onsearchresults'
+
+
+# SIGNALS (for common use, like APIs)
+SIGNAL_TORRENT = 'signal_torrent'
