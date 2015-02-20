@@ -309,6 +309,9 @@ class LocalSearchManager(BaseManager):
     def _on_data(self, delayedResult):
         total_items, data = delayedResult.get()
 
+        if not (self and self.list):
+            return
+
         self.list.SetData(data)
         self.list.Layout()
 
