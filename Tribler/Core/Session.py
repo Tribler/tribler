@@ -616,3 +616,11 @@ class Session(SessionConfigInterface):
         :param data: The torrent file data.
         """
         self.lm.torrent_store.put(hexlify(infohash), data)
+
+    def search_remote_torrents(self, keywords):
+        """
+        Searches for remote torrents through SearchCommunity with the given keywords.
+        :param keywords: The given keywords.
+        :return: The number of requests made.
+        """
+        return self.lm.torrent_search_manager.search(keywords)
