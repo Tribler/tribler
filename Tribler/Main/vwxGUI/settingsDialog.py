@@ -393,10 +393,6 @@ class SettingsDialog(wx.Dialog):
         except:
             pass
 
-        # update db
-        self.guiUtility.torrentsearch_manager.torrent_db.updateTorrentDir(os.path.join(new_dir,
-                                                                                       'collected_torrent_files'))
-
         busyDlg.Destroy()
 
     def process_input(self):

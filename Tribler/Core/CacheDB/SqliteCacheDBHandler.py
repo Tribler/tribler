@@ -423,8 +423,6 @@ class TorrentDBHandler(BasicDBHandler):
 
     def initialize(self, *args, **kwargs):
         super(TorrentDBHandler, self).initialize(*args, **kwargs)
-        self.torrent_dir = os.path.abspath(self.session.get_torrent_collecting_dir())
-
         self.category = self.session.lm.cat
         self.misc_db = self.session.open_dbhandler(NTFY_MISC)
         self.mypref_db = self.session.open_dbhandler(NTFY_MYPREFERENCES)
@@ -434,8 +432,6 @@ class TorrentDBHandler(BasicDBHandler):
 
     def close(self):
         super(TorrentDBHandler, self).close()
-        self.torrent_dir = None
-
         self.category = None
         self.misc_db = None
         self.mypref_db = None
@@ -944,24 +940,6 @@ class TorrentDBHandler(BasicDBHandler):
         trackers = self._db.fetchall(sql, (limit,))
         return [tracker[0] for tracker in trackers]
 
-    def getTorrentDir(self):
-        return self.torrent_dir
-
-    def updateTorrentDir(self, torrent_dir):
-        sql = u"SELECT torrent_id, torrent_file_name FROM Torrent WHERE torrent_file_name not NULL"
-        results = self._db.fetchall(sql)
-
-        updates = []
-        for result in results:
-            head, tail = os.path.split(result[1])
-            new_file_name = os.path.join(torrent_dir, tail)
-
-            updates.append((new_file_name, result[0]))
-        sql = u"UPDATE TORRENT SET torrent_file_name = ? WHERE torrent_id = ?"
-        self._db.executemany(sql, updates)
-
-        self.torrent_dir = torrent_dir
-
     def getTorrent(self, infohash, keys=None, include_mypref=True):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
@@ -998,12 +976,11 @@ class TorrentDBHandler(BasicDBHandler):
 
         return torrent
 
-    def getTorrents(self, category_name='all', range=None, library=False, sort=None, reverse=False):
+    def getTorrents(self):
         """
         get Torrents of some category and with alive status (opt. not in family filter)
 
-        if library == True: only torrents with destination_path != '' are returned
-        else: return only good torrents, accepted by family filter
+        return only good torrents, accepted by family filter
 
         @return Returns a list of dicts with keys:
             torrent_id, infohash, name, category, status, creation_date, num_files, num_leechers, num_seeders,
@@ -1012,42 +989,18 @@ class TorrentDBHandler(BasicDBHandler):
 
         niels 25-10-2010: changed behaviour to left join TorrentTracker, due to magnet links
         """
-
-        s = time()
-
         value_name = deepcopy(self.value_name)
         sql = 'SELECT ' + ','.join(value_name)
         sql += ' FROM CollectedTorrent C'
-        # sql += ' From CollectedTorrent C LEFT JOIN TorrentTrackerMapping TTM ON C.torrent_id = TTM.torrent_id'
 
         where = ''
-        if category_name != 'all':
-            category_id = self.misc_db._category_name2id_dict.get(category_name.lower(), -1)
-            where += 'category_id = %d AND' % category_id  # unkown category_name returns no torrents
-
-        if library:
-            where += 'C.torrent_id in (select torrent_id from MyPreference where destination_path != "")'
-        else:
-            where += 'status_id=%d ' % self.misc_db.torrentStatusName2Id(u'good')  # if not library, show only good files
-            where += self.category.get_family_filter_sql(self.misc_db.categoryName2Id)  # add familyfilter
+        where += 'status_id=%d ' % self.misc_db.torrentStatusName2Id(u'good')  # if not library, show only good files
+        where += self.category.get_family_filter_sql(self.misc_db.categoryName2Id)  # add familyfilter
 
         sql += ' Where ' + where
 
         if 'infohash' in value_name:
             sql += " GROUP BY infohash"
-
-        if range:
-            offset = range[0]
-            limit = range[1] - range[0]
-            sql += ' Limit %d Offset %d' % (limit, offset)
-
-        if sort:
-            # Arno, 2008-10-6: buggy: not reverse???
-            desc = (reverse) and 'desc' or ''
-            if sort == 'name':
-                sql += ' Order By lower(%s) %s' % (sort, desc)
-            else:
-                sql += ' Order By %s %s' % (sort, desc)
 
         # Must come before query
         ranks = self.getRanks()
@@ -1192,7 +1145,7 @@ class TorrentDBHandler(BasicDBHandler):
         # sql_insert =  "insert into Torrent (torrent_id, infohash, relevance) values (?,?,?)"
         # self._db.executemany(sql_insert, torrent_id_infohashes)
 
-        torrent_dir = self.getTorrentDir()
+        torrent_dir = self.session.get_torrent_collecting_dir()
         deleted = 0  # deleted any file?
         insert_files = []
         for torrent_file_name, torrent_id, relevance, weight in res_list:
