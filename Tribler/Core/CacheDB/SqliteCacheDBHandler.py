@@ -1433,23 +1433,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
         if torrent_id is not None:
             return self.getMyPrefStats(torrent_id)[torrent_id]
 
-    def getRecentLivePrefList(self, num=0):
-        if self.recent_preflist is None:
-            self.rlock.acquire()
-            try:
-                if self.recent_preflist is None:
-                    sql = """SELECT infohash from MyPreference m, Torrent t
-                        WHERE m.torrent_id == t.torrent_id AND status_id == %d
-                        ORDER BY creation_time DESC""" % self.status_good
-                    recent_preflist = self._db.fetchall(sql)
-                    self.recent_preflist = [str2bin(t[0]) for t in recent_preflist] if recent_preflist else []
-            finally:
-                self.rlock.release()
-        if num > 0:
-            return self.recent_preflist[:num]
-        else:
-            return self.recent_preflist
-
     def hasMyPreference(self, torrent_id):
         res = self.getOne('torrent_id', torrent_id=torrent_id)
         if res is not None:

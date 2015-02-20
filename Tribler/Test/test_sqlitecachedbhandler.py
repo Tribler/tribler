@@ -341,20 +341,6 @@ class TestMyPreferenceDBHandler(AbstractDB):
         assert len(pl) == 12
 
     @blocking_call_on_reactor_thread
-    def test_getRecentLivePrefList(self):
-        pl = self.mdb.getRecentLivePrefList()
-        assert len(pl) == 11, (len(pl), pl)
-        infohash_str_126 = 'ByJho7yj9mWY1ORWgCZykLbU1Xc='
-        assert bin2str(pl[0]) == infohash_str_126
-        infohash_str_1279 = 'R+grUhp884MnFkt6NuLnnauZFsc='
-        assert bin2str(pl[1]) == infohash_str_1279
-
-        pl = self.mdb.getRecentLivePrefList(8)
-        assert len(pl) == 8, (len(pl), pl)
-        assert bin2str(pl[0]) == infohash_str_126
-        assert bin2str(pl[1]) == infohash_str_1279
-
-    @blocking_call_on_reactor_thread
     def test_hasMyPreference(self):
         assert self.mdb.hasMyPreference(126)
         assert self.mdb.hasMyPreference(1279)
