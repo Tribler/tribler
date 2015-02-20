@@ -24,8 +24,8 @@ def getUniformedURL(tracker_url):
     try:
         unicode(tracker_url)
     except Exception:
-        logger.warn(u"Bad tracker URL [%s]" % tracker_url.encode("HEX"))
-        return None
+        logger.warn(u"Bad tracker URL [%s]", repr(tracker_url))
+        return
 
     tracker_url = tracker_url.strip()
     if tracker_url.endswith('/'):
@@ -39,12 +39,12 @@ def getUniformedURL(tracker_url):
         tracker_type = 'udp'
         remaning_part = tracker_url[6:]
     else:
-        return None
+        return
 
     # host, port, and page
     if remaning_part.find('/') == -1:
         if tracker_type == 'http':
-            return None
+            return
         host_part = remaning_part
         page_part = None
     else:
@@ -52,7 +52,7 @@ def getUniformedURL(tracker_url):
 
     if host_part.find(':') == -1:
         if tracker_type == 'udp':
-            return None
+            return
         else:
             host = host_part
             port = 80
@@ -62,7 +62,7 @@ def getUniformedURL(tracker_url):
     try:
         port = int(port)
     except:
-        return None
+        return
 
     page = page_part
 
@@ -71,8 +71,5 @@ def getUniformedURL(tracker_url):
     else:
         uniformed_url = '%s://%s:%d' % (tracker_type, host, port)
 
-    if not url_regex.match(uniformed_url):
-        return None
-    else:
+    if url_regex.match(uniformed_url):
         return uniformed_url
-
