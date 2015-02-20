@@ -6,7 +6,7 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_react
 
 from Tribler.community.search.community import SearchCommunity
 
-from Tribler.Core.simpledefs import (SIGNAL_SEARCH_COMMUNITY, SIGNAL_ONSEARCHRESULTS, NTFY_CHANNELCAST, NTFY_MISC,
+from Tribler.Core.simpledefs import (SIGNAL_SEARCH_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, NTFY_CHANNELCAST, NTFY_MISC,
                                      SIGNAL_TORRENT)
 from Tribler.Core.Search.SearchManager import split_into_keywords
 
@@ -28,7 +28,7 @@ class TorrentSearchManager(TaskManager):
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.misc_db = self.session.open_dbhandler(NTFY_MISC)
 
-        self.session.add_observer(self._on_search_results, SIGNAL_SEARCH_COMMUNITY, [SIGNAL_ONSEARCHRESULTS])
+        self.session.add_observer(self._on_search_results, SIGNAL_SEARCH_COMMUNITY, [SIGNAL_ON_SEARCH_RESULTS])
 
     @blocking_call_on_reactor_thread
     def shutdown(self):
@@ -62,7 +62,7 @@ class TorrentSearchManager(TaskManager):
         """
         The callback function handles the search results.
         :param subject: Must be SIGNAL_SEARCH_COMMUNITY.
-        :param change_type: Must be SIGNAL_ONSEARCHRESULTS.
+        :param change_type: Must be SIGNAL_ON_SEARCH_RESULTS.
         :param object_id: Must be None.
         :param search_results: The result dictionary which has 'keywords', 'results', and 'candidate'.
         """

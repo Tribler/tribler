@@ -392,11 +392,11 @@ class SearchCommunity(Community):
 
                     # emit signal of search results
                     if self.tribler_session is not None:
-                        from Tribler.Core.simpledefs import SIGNAL_SEARCH_COMMUNITY, SIGNAL_ONSEARCHRESULTS
+                        from Tribler.Core.simpledefs import SIGNAL_SEARCH_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS
                         search_results = {'keywords': search_request.keywords,
                                           'results': message.payload.results,
                                           'candidate': message.candidate}
-                        self.tribler_session.uch.notify(SIGNAL_SEARCH_COMMUNITY, SIGNAL_ONSEARCHRESULTS, None,
+                        self.tribler_session.uch.notify(SIGNAL_SEARCH_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, None,
                                                         search_results)
 
                     # see if we need to join some channels

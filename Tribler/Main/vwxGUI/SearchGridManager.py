@@ -16,7 +16,7 @@ from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.simpledefs import (NTFY_MISC, NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST,
                                      NTFY_METADATA, DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK,
-                                     SIGNAL_ALLCHANNEL, SIGNAL_ONSEARCHRESULTS, SIGNAL_TORRENT)
+                                     SIGNAL_ALLCHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT)
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import (Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent,
                                               NotCollectedTorrent, LibraryTorrent, Comment, Modification, Channel,
@@ -207,7 +207,7 @@ class TorrentManager(object):
             self.dispersy = session.lm.dispersy
             self.xxx_category = self.misc_db.categoryName2Id([u'xxx'])
 
-            self.session.add_observer(self.gotDispersyRemoteHits, SIGNAL_TORRENT, [SIGNAL_ONSEARCHRESULTS])
+            self.session.add_observer(self.gotDispersyRemoteHits, SIGNAL_TORRENT, [SIGNAL_ON_SEARCH_RESULTS])
         else:
             raise RuntimeError('TorrentManager already connected')
 
@@ -1104,7 +1104,7 @@ class ChannelManager(object):
 
             self.dispersy = session.lm.dispersy
 
-            self.session.add_observer(self.gotDispersyRemoteHits, SIGNAL_ALLCHANNEL, [SIGNAL_ONSEARCHRESULTS])
+            self.session.add_observer(self.gotDispersyRemoteHits, SIGNAL_ALLCHANNEL, [SIGNAL_ON_SEARCH_RESULTS])
         else:
             raise RuntimeError('ChannelManager already connected')
 

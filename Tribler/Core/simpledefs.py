@@ -117,9 +117,9 @@ INFOHASH_LENGTH = 20
 
 
 # SIGNALS (for internal use)
-SIGNAL_ALLCHANNEL = 'allchannel'
-SIGNAL_SEARCH_COMMUNITY = 'search_community'
-SIGNAL_ONSEARCHRESULTS = 'onsearchresults'
+SIGNAL_ALLCHANNEL = 'signal_allchannel'
+SIGNAL_SEARCH_COMMUNITY = 'signal_search_community'
+SIGNAL_ON_SEARCH_RESULTS = 'signal_on_search_results'
 
 
 # SIGNALS (for common use, like APIs)
