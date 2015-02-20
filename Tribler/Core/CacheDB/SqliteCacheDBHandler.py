@@ -545,13 +545,6 @@ class TorrentDBHandler(BasicDBHandler):
                 self._logger.error("Could not create a TorrentDef instance %r %r %r %r %r %r", infohash, timestamp, name, files, trackers, extra_info)
                 print_exc()
 
-    def addInfohash(self, infohash):
-        assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
-        assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
-        if self.getTorrentID(infohash) is None:
-            status_id = self.misc_db.torrentStatusName2Id(u'unknown')
-            self._db.insert_or_ignore('Torrent', infohash=bin2str(infohash), status_id=status_id)
-
     def addOrGetTorrentID(self, infohash):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
         assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
