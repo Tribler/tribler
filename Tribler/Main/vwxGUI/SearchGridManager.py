@@ -146,20 +146,15 @@ class TorrentManager(object):
         return True
 
     def downloadTorrent(self, torrent):
-        torrent_filename = torrent.torrent_file_name
-
-        name = torrent.get('name', torrent.infohash)
-
         torrent_data = self.session.get_collected_torrent(torrent.infohash)
         if torrent_data is not None:
             tdef = TorrentDef.load_from_memory(torrent_data)
         else:
-            tdef = TorrentDefNoMetainfo(torrent.infohash, torrent.name) \
-                if not isinstance(torrent_filename, basestring) else None
+            tdef = TorrentDefNoMetainfo(torrent.infohash, torrent.name)
 
         # Api download
         def do_gui():
-            self.guiUtility.frame.startDownload(torrent_filename, tdef=tdef)
+            self.guiUtility.frame.startDownload(tdef=tdef)
         wx.CallAfter(do_gui)
 
     def loadTorrent(self, torrent, callback=None):
