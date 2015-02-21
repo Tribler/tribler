@@ -129,7 +129,7 @@ class TorrentDetails(AbstractDetails):
         self.utility = self.guiutility.utility
 
         self.parent = parent
-        self.torrent = Torrent('0', '0', '', '', 0, 0, 0, 0, 0, None)
+        self.torrent = Torrent('0', '0', '', 0, 0, 0, 0, 0, None)
         self.state = -1
         self.timeouttimer = None
 

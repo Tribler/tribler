@@ -167,9 +167,9 @@ class RemoteTorrentHandler(TaskManager):
 
             # add torrent to database
             if self.torrent_db.hasTorrent(infohash):
-                self.torrent_db.updateTorrent(infohash, torrent_file_name="lvl")
+                self.torrent_db.updateTorrent(infohash, is_collected=1)
             else:
-                self.torrent_db.addExternalTorrent(tdef, extra_info={u"filename": "lvl", u"status": u"good"})
+                self.torrent_db.addExternalTorrent(tdef, extra_info={u"is_collected": 1, u"status": u"good"})
 
         if callback:
             # TODO(emilon): should we catch exceptions from the callback?

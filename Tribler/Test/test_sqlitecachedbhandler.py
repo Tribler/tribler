@@ -218,8 +218,8 @@ class TestTorrentDBHandler(AbstractDB):
         multiple_tdef = TorrentDef.load(multiple_torrent_file_path)
         assert m_infohash == multiple_tdef.get_infohash()
 
-        self.tdb.addExternalTorrent(single_tdef, extra_info={'filename': single_torrent_file_path})
-        self.tdb.addExternalTorrent(multiple_tdef, extra_info={'filename': multiple_torrent_file_path})
+        self.tdb.addExternalTorrent(single_tdef)
+        self.tdb.addExternalTorrent(multiple_tdef)
 
         single_torrent_id = self.tdb.getTorrentID(s_infohash)
         multiple_torrent_id = self.tdb.getTorrentID(m_infohash)

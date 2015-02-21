@@ -402,16 +402,16 @@ class TorrentDBHandler(BasicDBHandler):
 
         self.torrent_dir = None
 
-        self.keys = ['torrent_id', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files',
+        self.keys = ['torrent_id', 'name', 'length', 'creation_date', 'num_files',
                      'insert_time', 'secret', 'relevance', 'category_id', 'status_id',
                      'num_seeders', 'num_leechers', 'comment', 'last_tracker_check']
         self.existed_torrents = set()
 
         self.value_name = ['C.torrent_id', 'category_id', 'status_id', 'name', 'creation_date', 'num_files',
                            'num_leechers', 'num_seeders', 'length', 'secret', 'insert_time',
-                           'torrent_file_name', 'relevance', 'infohash', 'last_tracker_check']
+                           'relevance', 'infohash', 'last_tracker_check']
 
-        self.value_name_for_channel = ['C.torrent_id', 'infohash', 'name', 'torrent_file_name', 'length',
+        self.value_name_for_channel = ['C.torrent_id', 'infohash', 'name', 'length',
                                        'creation_date', 'num_files', 'insert_time', 'secret',
                                        'relevance', 'category_id', 'status_id',
                                        'num_seeders', 'num_leechers', 'comment']
@@ -592,8 +592,6 @@ class TorrentDBHandler(BasicDBHandler):
                 "comment": torrentdef.get_comment_as_unicode()
                 }
 
-        if extra_info.get("filename", None):
-            dict["torrent_file_name"] = extra_info["filename"]
         if extra_info.get("seeder", -1) != -1:
             dict["num_seeders"] = extra_info["seeder"]
         if extra_info.get("leecher", -1) != -1:
@@ -758,19 +756,19 @@ class TorrentDBHandler(BasicDBHandler):
                      torrent[5]) for torrent in torrents]
         infohash = [(torrent[0],) for torrent in torrents]
 
-        sql = u"SELECT torrent_id, infohash, torrent_file_name, name FROM Torrent WHERE infohash == ?"
+        sql = u"SELECT torrent_id, infohash, is_collected, name FROM Torrent WHERE infohash == ?"
         results = self._db.executemany(sql, infohash) or []
 
         infohash_tid = {}
 
         tid_collected = set()
         tid_name = {}
-        for torrent_id, infohash, torrent_filename, name in results:
+        for torrent_id, infohash, is_collected, name in results:
             infohash = str(infohash)
 
             if infohash:
                 infohash_tid[infohash] = torrent_id
-            if torrent_filename:
+            if is_collected:
                 tid_collected.add(torrent_id)
             tid_name[torrent_id] = name
 
@@ -1060,7 +1058,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         # TODO: bias according to votecast, popular first
 
-        sql = u"SELECT infohash FROM Torrent WHERE torrent_file_name is NULL and infohash in (%s)" % parameters
+        sql = u"SELECT infohash FROM Torrent WHERE is_collected == 0 AND infohash IN (%s)" % parameters
         results = self._db.fetchall(sql, map(bin2str, hashes))
         return [str2bin(infohash) for infohash, in results]
 

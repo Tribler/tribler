@@ -97,7 +97,7 @@ class Torrent(Helper):
                  'num_leechers', '_channel', 'channeltorrents_id', 'misc_db', 'torrent_db', 'channelcast_db',
                  'metadata_db', '_progress', 'download_state', 'relevance_score', 'query_candidates', 'magnetstatus')
 
-    def __init__(self, torrent_id, infohash, name, torrent_file_name, length, category_id, status_id, num_seeders, num_leechers, channel):
+    def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channel):
         Helper.__init__(self)
 
         assert isinstance(infohash, str), type(infohash)
@@ -297,14 +297,14 @@ class Torrent(Helper):
 
     @staticmethod
     def fromTorrentDef(tdef):
-        return Torrent(-1, tdef.get_infohash(), tdef.get_name(), None, tdef.get_length(), None, None, 0, 0, False)
+        return Torrent(-1, tdef.get_infohash(), tdef.get_name(), tdef.get_length(), None, None, 0, 0, False)
 
 
 class RemoteTorrent(Torrent):
     __slots__ = ()
 
     def __init__(self, torrent_id, infohash, name, length=0, category_id=None, status_id=None, num_seeders=0, num_leechers=0, query_candidates=set()):
-        Torrent.__init__(self, torrent_id, infohash, name, False, length, category_id, status_id, num_seeders, num_leechers, channel=False)
+        Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channel=False)
         self.query_candidates = query_candidates
 
 
@@ -430,8 +430,8 @@ class NotCollectedTorrent(CollectedTorrent):
 class LibraryTorrent(Torrent):
     __slots__ = ()
 
-    def __init__(self, torrent_id, infohash, name, torrent_file_name, length, category_id, status_id, num_seeders, num_leechers, progress):
-        Torrent.__init__(self, torrent_id, infohash, name, torrent_file_name, length, category_id, status_id, num_seeders, num_leechers, None)
+    def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, progress):
+        Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, None)
         if progress > 1:
             progress = progress / 100.0
 
@@ -441,8 +441,8 @@ class LibraryTorrent(Torrent):
 class ChannelTorrent(Torrent):
     __slots__ = ('channeltorrent_id', 'dispersy_id', 'colt_name', 'chant_name', 'description', 'time_stamp', 'inserted', 'playlist')
 
-    def __init__(self, torrent_id, infohash, name, torrent_file_name, length, category_id, status_id, num_seeders, num_leechers, channeltorrent_id, dispersy_id, chant_name, colt_name, description, time_stamp, inserted, channel, playlist):
-        Torrent.__init__(self, torrent_id, infohash, name, torrent_file_name, length, category_id, status_id, num_seeders, num_leechers, channel)
+    def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channeltorrent_id, dispersy_id, chant_name, colt_name, description, time_stamp, inserted, channel, playlist):
+        Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channel)
 
         self.channeltorrent_id = channeltorrent_id
         self.dispersy_id = dispersy_id
@@ -487,7 +487,7 @@ class RemoteChannelTorrent(ChannelTorrent):
     __slots__ = ()
 
     def __init__(self, torrent_id, infohash, name, length=0, category_id=None, status_id=None, num_seeders=0, num_leechers=0, channel=False, query_candidates=set()):
-        ChannelTorrent.__init__(self, torrent_id, infohash, name, False, length, category_id, status_id, num_seeders, num_leechers, -1, '-1', '', name, '', None, None, channel, None)
+        ChannelTorrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, -1, '-1', '', name, '', None, None, channel, None)
         self.query_candidates = query_candidates
 
 

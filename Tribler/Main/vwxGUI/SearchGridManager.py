@@ -202,11 +202,11 @@ class TorrentManager(object):
             return torrent
 
     def getTorrentByInfohash(self, infohash):
-        dict = self.torrent_db.getTorrent(infohash, keys=['C.torrent_id', 'infohash', 'name', 'torrent_file_name',
+        dict = self.torrent_db.getTorrent(infohash, keys=['C.torrent_id', 'infohash', 'name',
                                                           'length', 'category_id', 'status_id', 'num_seeders',
                                                           'num_leechers'])
         if dict:
-            t = Torrent(dict['C.torrent_id'], dict['infohash'], dict['name'], dict['torrent_file_name'], dict['length'],
+            t = Torrent(dict['C.torrent_id'], dict['infohash'], dict['name'], dict['length'],
                         dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'], None)
             t.misc_db = self.misc_db
             t.torrent_db = self.torrent_db
@@ -416,22 +416,22 @@ class TorrentManager(object):
 
             channels = {}
             for a in results:
-                channel_details = a[18:]
+                channel_details = a[17:]
                 if channel_details[0] and channel_details[0] not in channels:
                     channels[channel_details[0]] = create_channel(channel_details)
 
             def create_torrent(a):
-                channel = channels.get(a[18], False)
+                channel = channels.get(a[17], False)
                 if channel and (channel.isFavorite() or channel.isMyChannel()):
-                    t = ChannelTorrent(*a[:16] + [channel, None])
+                    t = ChannelTorrent(*a[:15] + [channel, None])
                 else:
-                    t = Torrent(*a[:9] + [False])
+                    t = Torrent(*a[:8] + [False])
 
                 t.misc_db = self.misc_db
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
                 t.metadata_db = self.metadata_db
-                t.assignRelevance(a[17])
+                t.assignRelevance(a[16])
                 return t
 
             results = map(create_torrent, results)
@@ -528,12 +528,12 @@ class TorrentManager(object):
 
                     channel = channeldict.get(result[-1], False)
                     if channel:
-                        remoteHit = RemoteChannelTorrent(-1, result[0], result[1], result[2], category_id,
+                        remoteHit = RemoteChannelTorrent(-1, result[0], result[1], category_id,
                                                          self.misc_db.torrentStatusName2Id(u'good'),
                                                          result[6], result[7], channel=channel,
                                                          query_candidates={candidate})
                     else:
-                        remoteHit = RemoteTorrent(-1, result[0], result[1], result[2], category_id,
+                        remoteHit = RemoteTorrent(-1, result[0], result[1], category_id,
                                                   self.misc_db.torrentStatusName2Id(u'good'), result[6], result[7],
                                                   query_candidates={candidate})
 
@@ -1082,9 +1082,9 @@ class LibraryManager(object):
         return [len(self.hits), self.hits]
 
     def getTorrentFromInfohash(self, infohash):
-        dict = self.torrent_db.getTorrent(infohash, keys=['C.torrent_id', 'infohash', 'name', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers'])
+        dict = self.torrent_db.getTorrent(infohash, keys=['C.torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers'])
         if dict and dict['myDownloadHistory']:
-            t = LibraryTorrent(dict['C.torrent_id'], dict['infohash'], dict['name'], dict['torrent_file_name'], dict['length'], dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'], None)
+            t = LibraryTorrent(dict['C.torrent_id'], dict['infohash'], dict['name'], dict['length'], dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'], None)
             t.misc_db = self.misc_db
             t.torrent_db = self.torrent_db
             t.channelcast_db = self.channelcast_db
