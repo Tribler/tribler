@@ -402,7 +402,7 @@ class TorrentDBHandler(BasicDBHandler):
 
         self.torrent_dir = None
 
-        self.keys = ['torrent_id', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files', 'thumbnail',
+        self.keys = ['torrent_id', 'name', 'torrent_file_name', 'length', 'creation_date', 'num_files',
                      'insert_time', 'secret', 'relevance', 'category_id', 'status_id',
                      'num_seeders', 'num_leechers', 'comment', 'last_tracker_check']
         self.existed_torrents = set()
@@ -412,7 +412,7 @@ class TorrentDBHandler(BasicDBHandler):
                            'torrent_file_name', 'relevance', 'infohash', 'last_tracker_check']
 
         self.value_name_for_channel = ['C.torrent_id', 'infohash', 'name', 'torrent_file_name', 'length',
-                                       'creation_date', 'num_files', 'thumbnail', 'insert_time', 'secret',
+                                       'creation_date', 'num_files', 'insert_time', 'secret',
                                        'relevance', 'category_id', 'status_id',
                                        'num_seeders', 'num_leechers', 'comment']
 

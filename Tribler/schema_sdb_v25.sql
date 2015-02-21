@@ -66,7 +66,6 @@ CREATE TABLE Torrent (
   length           integer,
   creation_date    integer,
   num_files        integer,
-  thumbnail        integer,
   insert_time      numeric,
   secret           integer,
   relevance        numeric DEFAULT 0,
