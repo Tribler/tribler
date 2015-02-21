@@ -175,9 +175,8 @@ class RemoteTorrentHandler(TaskManager):
             # TODO(emilon): should we catch exceptions from the callback?
             callback()
 
-        # TODO(emilon): remove all the torrent_file_name references in the callback chain
         # notify all
-        self.notify_possible_torrent_infohash(infohash, infohash_str)
+        self.notify_possible_torrent_infohash(infohash)
 
     @call_on_reactor_thread
     def download_torrentmessage(self, candidate, infohash, user_callback=None, priority=1):
@@ -239,13 +238,12 @@ class RemoteTorrentHandler(TaskManager):
 
         self.notify_possible_metadata_infohash(infohash, thumbnail_subpath)
 
-    # TODO(emilon): HERE
-    def notify_possible_torrent_infohash(self, infohash, torrent_file_name=None):
+    def notify_possible_torrent_infohash(self, infohash):
         if infohash not in self.torrent_callbacks:
             return
 
         for callback in self.torrent_callbacks[infohash]:
-            self.session.uch.perform_usercallback(lambda ucb=callback, f=torrent_file_name: ucb(f))
+            self.session.uch.perform_usercallback(lambda ucb=callback, ih=hexlify(infohash): ucb(ih))
 
         del self.torrent_callbacks[infohash]
 
