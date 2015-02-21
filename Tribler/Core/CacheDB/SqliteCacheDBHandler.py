@@ -552,10 +552,6 @@ class TorrentDBHandler(BasicDBHandler):
             torrent_id = self.getTorrentID(infohash)
         return torrent_id
 
-    def addOrGetTorrentIDS(self, infohashes):
-        torrentIds, _ = self.addOrGetTorrentIDSReturn(infohashes)
-        return torrentIds
-
     def addOrGetTorrentIDSReturn(self, infohashes):
         to_be_inserted = set()
         torrent_ids = self.getTorrentIDS(infohashes)
