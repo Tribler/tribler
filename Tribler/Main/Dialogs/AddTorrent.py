@@ -124,7 +124,7 @@ class AddTorrent(wx.Dialog):
 
         if not cancel:
             for filename in filenames:
-                self.frame.startDownload(filename, fixtorrent=True)
+                self.frame.startDownload(filename)
 
     def OnBrowse(self, event):
         dlg = wx.FileDialog(None, "Please select the .torrent file(s).", wildcard="torrent (*.torrent)|*.torrent", style=wx.FD_OPEN | wx.FD_MULTIPLE)

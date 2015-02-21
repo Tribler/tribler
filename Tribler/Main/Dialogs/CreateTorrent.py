@@ -410,7 +410,7 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
     if params['announce-list']:
         tdef.set_tracker_hierarchy(params['announce-list'])
     if params['nodes']:  # mainline DHT
-        tdef.set_dht_nodesmax(params['nodes'])
+        tdef.set_dht_nodes(params['nodes'])
     if params['httpseeds']:
         tdef.set_httpseeds(params['httpseeds'])
     if params['encoding']:
