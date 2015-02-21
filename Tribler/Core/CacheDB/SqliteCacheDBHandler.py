@@ -976,42 +976,6 @@ class TorrentDBHandler(BasicDBHandler):
 
         return torrent
 
-    def getTorrents(self):
-        """
-        get Torrents of some category and with alive status (opt. not in family filter)
-
-        return only good torrents, accepted by family filter
-
-        @return Returns a list of dicts with keys:
-            torrent_id, infohash, name, category, status, creation_date, num_files, num_leechers, num_seeders,
-            length, secret, insert_time, source, torrent_filename, relevance, simRank, tracker, last_check
-            (if in library: myDownloadHistory, download_started, progress, dest_dir)
-
-        niels 25-10-2010: changed behaviour to left join TorrentTracker, due to magnet links
-        """
-        value_name = deepcopy(self.value_name)
-        sql = 'SELECT ' + ','.join(value_name)
-        sql += ' FROM CollectedTorrent C'
-
-        where = ''
-        where += 'status_id=%d ' % self.misc_db.torrentStatusName2Id(u'good')  # if not library, show only good files
-        where += self.category.get_family_filter_sql(self.misc_db.categoryName2Id)  # add familyfilter
-
-        sql += ' Where ' + where
-
-        if 'infohash' in value_name:
-            sql += " GROUP BY infohash"
-
-        # Must come before query
-        ranks = self.getRanks()
-        res_list = self._db.fetchall(sql)
-        mypref_stats = self.mypref_db.getMyPrefStats() if self.mypref_db else None
-
-        torrent_list = self.valuelist2torrentlist(value_name, res_list, ranks, mypref_stats)
-        del res_list
-        del mypref_stats
-        return torrent_list
-
     def getLibraryTorrents(self, keys):
         sql = "SELECT " + ", ".join(keys) + " FROM MyPreference, Torrent LEFT JOIN ChannelTorrents ON Torrent.torrent_id = ChannelTorrents.torrent_id WHERE destination_path != '' AND MyPreference.torrent_id = Torrent.torrent_id"
         data = self._db.fetchall(sql)
