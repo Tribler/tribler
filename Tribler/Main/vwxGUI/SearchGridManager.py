@@ -986,24 +986,14 @@ class LibraryManager(object):
             self.user_download_choice.set_download_state(infohash, "stop")
 
     def deleteTorrent(self, torrent, removecontent=False):
-        self.deleteTorrentDS(torrent.download_state, torrent.infohash, removecontent)
+        ds = torrent.download_state
+        infohash = torrent.infohash
 
-    def deleteTorrentDS(self, ds, infohash, removecontent=False):
         if ds is not None:
             self.stopVideoIfEqual(ds.download, reset_playlist=True)
-            self.deleteTorrentDownload(ds.get_download(), infohash, removecontent)
 
-        elif infohash:
-            self.deleteTorrentDownload(None, infohash, removecontent)
-
-    def deleteTorrentDownload(self, download, infohash, removecontent=False, removestate=True):
-        if download:
-            self.session.remove_download(download, removecontent=removecontent, removestate=removestate)
-        else:
-            self.session.remove_download_by_id(infohash, removecontent, removestate)
-
-        if infohash:
-            self.user_download_choice.remove_download_state(infohash)
+        self.session.remove_download_by_id(infohash, removecontent, removestate=True)
+        self.user_download_choice.remove_download_state(infohash)
 
     def stopVideoIfEqual(self, download, reset_playlist=False):
         videoplayer = self._get_videoplayer()
