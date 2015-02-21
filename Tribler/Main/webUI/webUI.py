@@ -11,6 +11,7 @@ from cherrypy import response
 from cherrypy.lib.auth_basic import checkpassword_dict
 
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 
 def jsonify(func):
@@ -245,7 +246,13 @@ class WebUI(object):
         action = args['action']
 
         if action == 'add-url':
-            self.library_manager.startDownloadFromUrl(args['s'], useDefault=True)
+            url = args['s']
+            destdir = DefaultDownloadStartupConfig.getInstance().get_dest_dir()
+
+            if url.startswith("http"):
+                self.guiUtility.frame.startDownloadFromUrl(url, destdir)
+            elif url.startswith("magnet:"):
+                self.guiUtility.frame.startDownloadFromMagnet(url, destdir)
 
         elif action == 'getprops':
             return self.doProps(args)

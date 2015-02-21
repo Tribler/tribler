@@ -936,18 +936,6 @@ class LibraryManager(object):
         videoplayer = self._get_videoplayer()
         videoplayer.set_vod_download(None)
 
-    def startDownloadFromUrl(self, url, useDefault=False):
-        if useDefault:
-            dscfg = DefaultDownloadStartupConfig.getInstance()
-            destdir = dscfg.get_dest_dir()
-        else:
-            destdir = None
-
-        if url.startswith("http"):
-            self.guiUtility.frame.startDownloadFromUrl(url, destdir)
-        elif url.startswith("magnet:"):
-            self.guiUtility.frame.startDownloadFromMagnet(url, destdir)
-
     def resumeTorrent(self, torrent, force_seed=False):
         download = self.session.get_download(torrent.infohash)
         resumed = False
