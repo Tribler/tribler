@@ -531,19 +531,10 @@ class TriblerLaunchMany(Thread):
             _, file = os.path.split(filename)
 
             infohash = binascii.unhexlify(file[:-6])
-            torrent = self.torrent_db.getTorrent(infohash, keys=['name', 'torrent_file_name'],
-                                                 include_mypref=False)
-            torrentfile = None
-            if torrent:
-                torrent_dir = self.session.get_torrent_collecting_dir()
 
-                if torrentfile and not os.path.isfile(torrentfile):
-                    # normal torrentfile is not present, see if readable torrent is there
-                    save_name = get_readable_torrent_name(infohash, torrent['name'])
-                    torrentfile = os.path.join(torrent_dir, save_name)
-
-            if torrentfile and os.path.isfile(torrentfile):
-                tdef = TorrentDef.load(torrentfile)
+            torrent_data = self.torrent_store.get(infohash)
+            if torrent_data:
+                tdef = TorrentDef.load_from_memory(torrent_data)
 
                 defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
                 dscfg = defaultDLConfig.copy()
