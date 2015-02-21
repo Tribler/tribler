@@ -1352,10 +1352,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
         self.status_good = None
         self._torrent_db = None
 
-    def getMyPrefList(self, order_by=None):
-        res = self.getAll('torrent_id', order_by=order_by)
-        return [p[0] for p in res]
-
     def getMyPrefListInfohash(self, returnDeleted=True, limit=None):
         # Arno, 2012-08-01: having MyPreference (the shorter list) first makes
         # this faster.
