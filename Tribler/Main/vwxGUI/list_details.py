@@ -865,8 +865,6 @@ class TorrentDetails(AbstractDetails):
 
         if not curTorrent.exactCopy(newTorrent):
             # replace current torrent
-            curTorrent.torrent_file_name = newTorrent.torrent_file_name
-
             curTorrent.name = newTorrent.name
             curTorrent.length = newTorrent.length
             curTorrent.category_id = newTorrent.category_id

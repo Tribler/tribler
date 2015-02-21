@@ -93,7 +93,7 @@ class Helper(object):
 
 
 class Torrent(Helper):
-    __slots__ = ('infohash', 'name', 'torrent_file_name', 'length', 'category_id', 'status_id', 'num_seeders',
+    __slots__ = ('infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders',
                  'num_leechers', '_channel', 'channeltorrents_id', 'misc_db', 'torrent_db', 'channelcast_db',
                  'metadata_db', '_progress', 'download_state', 'relevance_score', 'query_candidates', 'magnetstatus')
 
@@ -104,7 +104,6 @@ class Torrent(Helper):
         assert isinstance(name, basestring), type(name)
 
         self.infohash = infohash
-        self.torrent_file_name = torrent_file_name
         self.name = name
         self.length = length or 0
         self.category_id = category_id
@@ -317,7 +316,7 @@ class CollectedTorrent(Helper):
 
         self.torrent = torrent
         if self.torrent_id <= 0:
-            raise RuntimeError("self.torrent_id is too low, %d %s" % (self.torrent_id, self.torrent_file_name))
+            raise RuntimeError("self.torrent_id is too low, %d" % self.torrent_id)
 
         self.comment = torrentdef.get_comment_as_unicode()
         self.trackers = torrentdef.get_trackers_as_single_tuple()
@@ -425,7 +424,7 @@ class NotCollectedTorrent(CollectedTorrent):
         self.last_check = -1
 
         if self.torrent_id <= 0:
-            raise RuntimeError("self.torrent_id is too low, %d %s" % (self.torrent_id, self.torrent_file_name))
+            raise RuntimeError("self.torrent_id is too low, %d" % self.torrent_id)
 
 
 class LibraryTorrent(Torrent):
