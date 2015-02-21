@@ -861,7 +861,7 @@ class TorrentDBHandler(BasicDBHandler):
             self._db.executemany(sql, new_mapping_list)
 
         # add trackers into the torrent file if it has been collected
-        if not self.session.get_torrent_store():
+        if not self.session.get_torrent_store() or self.session.lm.torrent_store is None:
             return
 
         infohash = self.getInfohash(torrent_id)
