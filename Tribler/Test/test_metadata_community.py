@@ -39,21 +39,26 @@ class TestMetadataCommunity(TestGuiAsServer):
                     if modification.name == 'video-info' and modification.value:
                         videoinfo_dict = json.loads(modification.value)
                         if videoinfo_dict['duration'] and videoinfo_dict['resolution']:
-                            videoinfo_valid = (videoinfo_dict['resolution'] == [640, 480]) and (videoinfo_dict['duration'] == 6)
+                            videoinfo_valid = (videoinfo_dict['resolution'] == [640, 480]) and (
+                                videoinfo_dict['duration'] == 6)
 
                 return videoinfo_valid and swiftthumbnails_valid
-            self.CallConditional(10, check_for_modifications, lambda: self.Call(5, do_overview), 'No valid channel modifications received')
+            self.CallConditional(10, check_for_modifications, lambda: self.Call(
+                5, do_overview), 'No valid channel modifications received')
 
         def do_thumbnails(torrentfilename):
-            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), '8bb88a02da691636a7ed929b87d467f24700e490')
-            self.CallConditional(120, lambda: os.path.isdir(thumb_dir) and len(os.listdir(thumb_dir)) > 0, lambda: do_modifications(torrentfilename), 'No thumbnails were created')
+            thumb_dir = os.path.join(
+                self.session.get_torrent_collecting_dir(), '8bb88a02da691636a7ed929b87d467f24700e490')
+            self.CallConditional(120, lambda: os.path.isdir(thumb_dir) and len(
+                os.listdir(thumb_dir)) > 0, lambda: do_modifications(torrentfilename), 'No thumbnails were created')
 
         def do_download_torrent(torrentfilename):
             download = self.guiUtility.frame.startDownload(torrentfilename=torrentfilename, destdir=self.getDestDir())
 
             self.guiUtility.ShowPage('my_files')
             self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
-            self.CallConditional(10, lambda: download.get_progress() == 1.0, lambda: do_thumbnails(torrentfilename), 'Failed to download torrent in time')
+            self.CallConditional(10, lambda: download.get_progress() == 1.0, lambda:
+                                 do_thumbnails(torrentfilename), 'Failed to download torrent in time')
 
         def do_create_local_torrent():
             torrentfilename = self.setupSeeder()
@@ -107,7 +112,8 @@ class TestMetadataCommunity(TestGuiAsServer):
 
     def seeder_state_callback(self, ds):
         d = ds.get_download()
-        self._logger.debug("seeder: %s %s %s", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()], ds.get_progress())
+        self._logger.debug("seeder: %s %s %s", repr(d.get_def().get_name()),
+                           dlstatus_strings[ds.get_status()], ds.get_progress())
         return 5.0, False
 
     def setUp(self):

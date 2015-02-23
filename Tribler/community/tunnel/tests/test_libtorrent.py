@@ -10,6 +10,7 @@ from platform import system
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Main.vwxGUI import forceWxThread
 
+
 class LibtorrentTest(object):
 
     """

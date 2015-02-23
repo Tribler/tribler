@@ -187,7 +187,8 @@ def _upgradeVersion(self, my_version, latest_version, info):
 
 @forceWxThread
 def _manualUpgrade(self, my_version, latest_version, url):
-    dialog = wx.MessageDialog(self, 'There is a new version of Tribler.\nYour version:\t\t\t\t%s\nLatest version:\t\t\t%s\n\nPlease visit %s to upgrade.' % (my_version, latest_version, url), 'New version of Tribler is available', wx.OK | wx.ICON_INFORMATION)
+    dialog = wx.MessageDialog(self, 'There is a new version of Tribler.\nYour version:\t\t\t\t%s\nLatest version:\t\t\t%s\n\nPlease visit %s to upgrade.' %
+                              (my_version, latest_version, url), 'New version of Tribler is available', wx.OK | wx.ICON_INFORMATION)
     dialog.ShowModal()
 
 

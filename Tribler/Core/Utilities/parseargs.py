@@ -22,7 +22,7 @@ def splitLine(line, COLS=80, indent=10):
             i = len(word)
             continue
         if i + len(word) >= width:
-            s.write('\n' + indent +word)
+            s.write('\n' + indent + word)
             i = len(word)
             continue
         s.write(' ' + word)
@@ -59,7 +59,7 @@ def defaultargs(options):
     return l
 
 
-def parseargs(argv, options, minargs=None, maxargs= None, presets = {}):
+def parseargs(argv, options, minargs=None, maxargs=None, presets={}):
     config = {}
     longkeyed = {}
     for option in options:
@@ -111,7 +111,8 @@ def parseargs(argv, options, minargs=None, maxargs= None, presets = {}):
 
 
 def test_parseargs():
-    assert parseargs(('d', '--a', 'pq', 'e', '--b', '3', '--c', '4.5', 'f'), (('a', 'x', ''), ('b', 1, ''), ('c', 2.3, ''))) == ({'a': 'pq', 'b': 3, 'c': 4.5}, ['d', 'e', 'f'])
+    assert parseargs(('d', '--a', 'pq', 'e', '--b', '3', '--c', '4.5', 'f'), (
+        ('a', 'x', ''), ('b', 1, ''), ('c', 2.3, ''))) == ({'a': 'pq', 'b': 3, 'c': 4.5}, ['d', 'e', 'f'])
     assert parseargs([], [('a', 'x', '')]) == ({'a': 'x'}, [])
     assert parseargs(['--a', 'x', '--a', 'y'], [('a', '', '')]) == ({'a': 'y'}, [])
     try:

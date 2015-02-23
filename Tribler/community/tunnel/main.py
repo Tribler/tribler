@@ -100,7 +100,7 @@ class Tunnel(object):
         if time_dif > 0:
             for index, key in enumerate(['bytes_orig', 'bytes_exit', 'bytes_relay']):
                 self.current_stats[index] = self.current_stats[index] * 0.875 + \
-                                          (((stats[key] - stats_old[key]) / time_dif) / 1024) * 0.125
+                    (((stats[key] - stats_old[key]) / time_dif) / 1024) * 0.125
 
     def start_tribler(self):
         config = SessionStartupConfig()
@@ -133,7 +133,8 @@ class Tunnel(object):
                 cls = HiddenTunnelCommunity
             self.community = self.dispersy.define_auto_load(cls, member, (self.session, self.settings), load=True)[0]
 
-            self.session.set_anon_proxy_settings(2, ("127.0.0.1", self.session.get_tunnel_community_socks5_listen_ports()))
+            self.session.set_anon_proxy_settings(
+                2, ("127.0.0.1", self.session.get_tunnel_community_socks5_listen_ports()))
 
         blockingCallFromThread(reactor, start_community)
 
@@ -166,7 +167,8 @@ class Tunnel(object):
             while not self.session.has_shutdown():
                 diff = time.time() - session_shutdown_start
                 assert diff < waittime, "Took too long for Session to shutdown"
-                print >> sys.stderr, "ONEXIT Waiting for Session to shutdown, will wait for %d more seconds" % (waittime - diff)
+                print >> sys.stderr, "ONEXIT Waiting for Session to shutdown, will wait for %d more seconds" % (
+                    waittime - diff)
                 time.sleep(1)
             print >> sys.stderr, "Session is shutdown"
             Session.del_instance()
@@ -202,9 +204,9 @@ class Tunnel(object):
 
 
 class LineHandler(LineReceiver):
-    
+
     delimiter = os.linesep
-    
+
     def __init__(self, anon_tunnel, profile):
         self.anon_tunnel = anon_tunnel
         self.profile = profile
@@ -362,4 +364,3 @@ def main(argv):
 
 if __name__ == "__main__":
     main(sys.argv[1:])
-

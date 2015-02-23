@@ -182,7 +182,8 @@ class TestAsServer(AbstractServer):
             diff = time.time() - session_shutdown_start
             assert diff < waittime, "test_as_server: took too long for Session to shutdown"
 
-            self._logger.debug("Waiting for Session to shutdown, will wait for an additional %d seconds", (waittime - diff))
+            self._logger.debug(
+                "Waiting for Session to shutdown, will wait for an additional %d seconds", (waittime - diff))
             time.sleep(1)
 
         self._logger.debug("Session has shut down")
@@ -218,14 +219,16 @@ class TestAsServer(AbstractServer):
 
                     except:
                         print_exc()
-                        self.assert_(False, 'Condition or callback raised an exception, quitting (%s)' % (assertMsg or "no-assert-msg"), do_assert=False)
+                        self.assert_(False, 'Condition or callback raised an exception, quitting (%s)' %
+                                     (assertMsg or "no-assert-msg"), do_assert=False)
                 else:
                     self._logger.debug("%s, condition was not satisfied in %d seconds (%s)",
                                        ('calling callback' if assertCallback else 'quitting'),
-                                        timeout,
-                                        assertMsg or "no-assert-msg")
+                                       timeout,
+                                       assertMsg or "no-assert-msg")
                     assertcall = assertCallback if assertCallback else self.assert_
-                    assertcall(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" % timeout, do_assert=False)
+                    assertcall(False, assertMsg if assertMsg else "Condition was not satisfied in %d seconds" %
+                               timeout, do_assert=False)
         self.Call(0, DoCheck)
 
     def quit(self):

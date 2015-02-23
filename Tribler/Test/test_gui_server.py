@@ -9,6 +9,8 @@ from time import sleep
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
 DEBUG = False
+
+
 class TestGUITaskQueue(unittest.TestCase):
 
     def setUp(self):

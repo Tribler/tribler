@@ -41,8 +41,10 @@ class TestSqliteCacheDB(AbstractServer):
         self.sqlitedb.initialize(dbpath)
 
         class MockTorrentStore(object):
+
             def flush():
                 pass
+
             def close():
                 pass
 

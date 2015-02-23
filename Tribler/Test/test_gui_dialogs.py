@@ -31,6 +31,7 @@ class TestGuiDialogs(TestGuiAsServer):
             saved_event = Event()
 
             class FakeEvent():
+
                 def __init__(self, event):
                     self.event = event
 
