@@ -666,9 +666,6 @@ class TorrentDetails(AbstractDetails):
             if self.state != newState:
                 self.state = newState
 
-                if newState in [TorrentDetails.FINISHED, TorrentDetails.FINISHED_INACTIVE]:
-                    self.torrent._progress = 1
-
         else:
             # Additionally called by database event, thus we need to check if sizer exists(torrent is downloaded).
             wx.CallAfter(self.ShowPanel, newState)

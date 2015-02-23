@@ -56,7 +56,6 @@ LIST_AUTOSIZEHEADER = -2
 
 CHANNEL_REQ_COLUMNS = ['ChannelTorrents.channel_id', 'Torrent.torrent_id', 'infohash', '""', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'ChannelTorrents.id', 'ChannelTorrents.dispersy_id', 'ChannelTorrents.name', 'Torrent.name', 'ChannelTorrents.description', 'ChannelTorrents.time_stamp', 'ChannelTorrents.inserted']
 PLAYLIST_REQ_COLUMNS = ['Playlists.id', 'Playlists.dispersy_id', 'Playlists.channel_id', 'Playlists.name', 'Playlists.description']
-LIBRARY_REQ_COLUMNS = CHANNEL_REQ_COLUMNS + ['progress']
 TORRENT_REQ_COLUMNS = ['T.torrent_id', 'infohash', 'T.name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers', 'C.id', 'T.dispersy_id', 'C.name', 'T.name', 'C.description', 'C.time_stamp', 'C.inserted']
 TUMBNAILTORRENT_REQ_COLUMNS = ['torrent_id', 'MetadataMessage.infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers']
 

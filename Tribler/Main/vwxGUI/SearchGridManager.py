@@ -25,7 +25,7 @@ from Tribler.Main.Utility.GuiDBTuples import (Torrent, ChannelTorrent, Collected
                                               RemoteChannel, Playlist, Moderation, RemoteChannelTorrent, Marking,
                                               MetadataModification)
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.Main.vwxGUI import (warnWxThread, forceWxThread, TORRENT_REQ_COLUMNS, LIBRARY_REQ_COLUMNS,
+from Tribler.Main.vwxGUI import (warnWxThread, forceWxThread, TORRENT_REQ_COLUMNS,
                                  CHANNEL_REQ_COLUMNS, PLAYLIST_REQ_COLUMNS, MODIFICATION_REQ_COLUMNS,
                                  MODERATION_REQ_COLUMNS, MARKING_REQ_COLUMNS, COMMENT_REQ_COLUMNS,
                                  TUMBNAILTORRENT_REQ_COLUMNS)
@@ -990,7 +990,7 @@ class LibraryManager(object):
     def getHitsInCategory(self):
         begintime = time()
 
-        results = self.torrent_db.getLibraryTorrents(LIBRARY_REQ_COLUMNS)
+        results = self.torrent_db.getLibraryTorrents(CHANNEL_REQ_COLUMNS)
 
         if len(results) > 0:
             channelDict = {}
@@ -1001,12 +1001,11 @@ class LibraryManager(object):
                     channelDict[channel.id] = channel
 
             def create_torrent(a):
-                t = ChannelTorrent(*a[1:-1] + [channelDict.get(a[0], False), None])
+                t = ChannelTorrent(*a[1:] + [channelDict.get(a[0], False), None])
 
                 t.misc_db = self.misc_db
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
-                t._progress = a[-1] / 100.0
                 return t
 
             results = map(create_torrent, results)
@@ -1042,7 +1041,7 @@ class LibraryManager(object):
     def getTorrentFromInfohash(self, infohash):
         dict = self.torrent_db.getTorrent(infohash, keys=['C.torrent_id', 'infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders', 'num_leechers'])
         if dict and dict['myDownloadHistory']:
-            t = LibraryTorrent(dict['C.torrent_id'], dict['infohash'], dict['name'], dict['length'], dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'], None)
+            t = LibraryTorrent(dict['C.torrent_id'], dict['infohash'], dict['name'], dict['length'], dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'])
             t.misc_db = self.misc_db
             t.torrent_db = self.torrent_db
             t.channelcast_db = self.channelcast_db
