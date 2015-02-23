@@ -552,10 +552,6 @@ class TorrentDBHandler(BasicDBHandler):
             torrent_id = self.getTorrentID(infohash)
         return torrent_id
 
-    def addOrGetTorrentIDS(self, infohashes):
-        torrentIds, _ = self.addOrGetTorrentIDSReturn(infohashes)
-        return torrentIds
-
     def addOrGetTorrentIDSReturn(self, infohashes):
         to_be_inserted = set()
         torrent_ids = self.getTorrentIDS(infohashes)
@@ -966,9 +962,7 @@ class TorrentDBHandler(BasicDBHandler):
 
             if stats:
                 torrent['myDownloadHistory'] = True
-                torrent['creation_time'] = stats[tid][0]
-                torrent['progress'] = stats[tid][1]
-                torrent['destination_path'] = stats[tid][2]
+                torrent['destination_path'] = stats[tid]
             else:
                 torrent['myDownloadHistory'] = False
 
@@ -980,32 +974,6 @@ class TorrentDBHandler(BasicDBHandler):
 
         fixed = self.__fixTorrents(keys, data)
         return fixed
-
-    def valuelist2torrentlist(self, value_name, res_list, ranks, mypref_stats):
-        torrent_list = []
-        for item in res_list:
-            value_name[0] = 'torrent_id'
-            torrent = dict(zip(value_name, item))
-
-            torrent['category'] = [self.misc_db.categoryId2Name(torrent['category_id'])]
-            torrent['status'] = self.misc_db.torrentStatusId2Name(torrent['status_id'])
-            torrent['simRank'] = ranksfind(ranks, torrent['infohash'])
-            torrent['infohash'] = str2bin(torrent['infohash'])
-
-            # Niels: we now convert category and status in gui
-            # del torrent['category_id']
-            # del torrent['status_id']
-            torrent_id = torrent['torrent_id']
-            if mypref_stats is not None and torrent_id in mypref_stats:
-                # add extra info for torrent in mypref
-                torrent['myDownloadHistory'] = True
-                data = mypref_stats[torrent_id]  # (create_time,progress,destdir)
-                torrent['download_started'] = data[0]
-                torrent['progress'] = data[1]
-                torrent['destdir'] = data[2]
-
-            torrent_list.append(torrent)
-        return torrent_list
 
     def __fixTorrents(self, keys, results):
         def fix_value(key):
@@ -1356,10 +1324,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
         self.status_good = None
         self._torrent_db = None
 
-    def getMyPrefList(self, order_by=None):
-        res = self.getAll('torrent_id', order_by=order_by)
-        return [p[0] for p in res]
-
     def getMyPrefListInfohash(self, returnDeleted=True, limit=None):
         # Arno, 2012-08-01: having MyPreference (the shorter list) first makes
         # this faster.
@@ -1375,17 +1339,15 @@ class MyPreferenceDBHandler(BasicDBHandler):
         return [str2bin(p) if p else '' for p in res]
 
     def getMyPrefStats(self, torrent_id=None):
-        # get the full {torrent_id:(create_time,progress,destdir)}
-        value_name = ('torrent_id', 'creation_time', 'progress', 'destination_path')
+        value_name = ('torrent_id', 'destination_path',)
         if torrent_id is not None:
             where = 'torrent_id == %s' % torrent_id
         else:
             where = None
         res = self.getAll(value_name, where)
         mypref_stats = {}
-        for pref in res:
-            torrent_id, creation_time, progress, destination_path = pref
-            mypref_stats[torrent_id] = (creation_time, progress, destination_path)
+        for torrent_id, destination_path in res:
+            mypref_stats[torrent_id] = destination_path
         return mypref_stats
 
     def getMyPrefStatsInfohash(self, infohash):

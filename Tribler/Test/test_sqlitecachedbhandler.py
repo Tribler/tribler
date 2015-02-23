@@ -382,4 +382,4 @@ class TestMyPreferenceDBHandler(AbstractDB):
         assert len(res) == 12
         for k in res:
             data = res[k]
-            assert len(data) == 3
+            assert isinstance(data, basestring), "data is not destination_path: %s" % type(data)

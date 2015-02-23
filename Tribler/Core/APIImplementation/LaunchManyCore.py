@@ -310,13 +310,13 @@ class TriblerLaunchMany(Thread):
 
     def remove_id(self, infohash):
         @forceDBThread
-        def do_db(torrent_db, mypref_db, infohash):
+        def do_db(infohash):
             torrent_id = self.torrent_db.getTorrentID(infohash)
             if torrent_id:
                 self.mypref_db.deletePreference(torrent_id)
 
         if self.session.get_megacache():
-            do_db(self.torrent_db, self.mypref_db, infohash)
+            do_db(infohash)
 
     def get_downloads(self):
         """ Called by any thread """
@@ -526,6 +526,7 @@ class TriblerLaunchMany(Thread):
             dscfg = DownloadStartupConfig(pstate)
 
         except:
+            # FIXME(lipu): I think this part of the code has never been tested
             print_exc()
             # pstate is invalid or non-existing
             _, file = os.path.split(filename)
@@ -540,10 +541,10 @@ class TriblerLaunchMany(Thread):
                 dscfg = defaultDLConfig.copy()
 
                 if self.mypref_db is not None:
-                    preferences = self.mypref_db.getMyPrefStatsInfohash(infohash)
-                    if preferences:
-                        if os.path.isdir(preferences[2]) or preferences[2] == '':
-                            dscfg.set_dest_dir(preferences[2])
+                    dest_dir = self.mypref_db.getMyPrefStatsInfohash(infohash)
+                    if dest_dir:
+                        if os.path.isdir(dest_dir) or dest_dir == '':
+                            dscfg.set_dest_dir(dest_dir)
 
         self._logger.debug("tlm: load_checkpoint: pstate is %s %s",
                            pstate.get('dlstate', 'status'), pstate.get('dlstate', 'progress'))
