@@ -540,10 +540,10 @@ class TriblerLaunchMany(Thread):
                 dscfg = defaultDLConfig.copy()
 
                 if self.mypref_db is not None:
-                    preferences = self.mypref_db.getMyPrefStatsInfohash(infohash)
-                    if preferences:
-                        if os.path.isdir(preferences[2]) or preferences[2] == '':
-                            dscfg.set_dest_dir(preferences[2])
+                    dest_dir = self.mypref_db.getMyPrefStatsInfohash(infohash)
+                    if dest_dir:
+                        if os.path.isdir(dest_dir) or dest_dir == '':
+                            dscfg.set_dest_dir(dest_dir)
 
         self._logger.debug("tlm: load_checkpoint: pstate is %s %s",
                            pstate.get('dlstate', 'status'), pstate.get('dlstate', 'progress'))

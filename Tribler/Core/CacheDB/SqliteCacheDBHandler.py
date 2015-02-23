@@ -962,9 +962,7 @@ class TorrentDBHandler(BasicDBHandler):
 
             if stats:
                 torrent['myDownloadHistory'] = True
-                torrent['creation_time'] = stats[tid][0]
-                torrent['progress'] = stats[tid][1]
-                torrent['destination_path'] = stats[tid][2]
+                torrent['destination_path'] = stats[tid]
             else:
                 torrent['myDownloadHistory'] = False
 
@@ -1367,17 +1365,15 @@ class MyPreferenceDBHandler(BasicDBHandler):
         return [str2bin(p) if p else '' for p in res]
 
     def getMyPrefStats(self, torrent_id=None):
-        # get the full {torrent_id:(create_time,progress,destdir)}
-        value_name = ('torrent_id', 'creation_time', 'progress', 'destination_path')
+        value_name = ('torrent_id', 'destination_path',)
         if torrent_id is not None:
             where = 'torrent_id == %s' % torrent_id
         else:
             where = None
         res = self.getAll(value_name, where)
         mypref_stats = {}
-        for pref in res:
-            torrent_id, creation_time, progress, destination_path = pref
-            mypref_stats[torrent_id] = (creation_time, progress, destination_path)
+        for torrent_id, destination_path in res:
+            mypref_stats[torrent_id] = destination_path
         return mypref_stats
 
     def getMyPrefStatsInfohash(self, infohash):
