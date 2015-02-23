@@ -80,18 +80,23 @@ class CommentPayload(Payload):
 
     class Implementation(Payload.Implementation):
 
-        def __init__(self, meta, text, timestamp, reply_to_mid, reply_to_global_time, reply_after_mid, reply_after_global_time, playlist_packet, infohash):
+        def __init__(self, meta, text, timestamp, reply_to_mid, reply_to_global_time, reply_after_mid,
+                     reply_after_global_time, playlist_packet, infohash):
             assert isinstance(text, unicode)
             assert len(text) < 1024
             assert isinstance(timestamp, (int, long))
 
             assert not reply_to_mid or isinstance(reply_to_mid, str), 'reply_to_mid is a %s' % type(reply_to_mid)
             assert not reply_to_mid or len(reply_to_mid) == 20, 'reply_to_mid has length %d' % len(reply_to_mid)
-            assert not reply_to_global_time or isinstance(reply_to_global_time, (int, long)), 'reply_to_global_time is a %s' % type(reply_to_global_time)
+            assert not reply_to_global_time or isinstance(reply_to_global_time, (
+                int, long)), 'reply_to_global_time is a %s' % type(reply_to_global_time)
 
-            assert not reply_after_mid or isinstance(reply_after_mid, str), 'reply_after_mid is a %s' % type(reply_after_mid)
-            assert not reply_after_mid or len(reply_after_mid) == 20, 'reply_after_mid has length %d' % len(reply_after_global_time)
-            assert not reply_after_global_time or isinstance(reply_after_global_time, (int, long)), 'reply_after_global_time is a %s' % type(reply_to_global_time)
+            assert not reply_after_mid or isinstance(
+                reply_after_mid, str), 'reply_after_mid is a %s' % type(reply_after_mid)
+            assert not reply_after_mid or len(
+                reply_after_mid) == 20, 'reply_after_mid has length %d' % len(reply_after_global_time)
+            assert not reply_after_global_time or isinstance(reply_after_global_time, (
+                int, long)), 'reply_after_global_time is a %s' % type(reply_to_global_time)
 
             assert not playlist_packet or isinstance(playlist_packet, Packet)
 
@@ -233,9 +238,12 @@ class ModificationPayload(Payload):
             assert isinstance(modification_on, Packet)
 
             assert not prev_modification_packet or isinstance(prev_modification_packet, Packet)
-            assert not prev_modification_mid or isinstance(prev_modification_mid, str), 'prev_modification_mid is a %s' % type(prev_modification_mid)
-            assert not prev_modification_mid or len(prev_modification_mid) == 20, 'prev_modification_mid has length %d' % len(prev_modification_mid)
-            assert not prev_modification_global_time or isinstance(prev_modification_global_time, (int, long)), 'prev_modification_global_time is a %s' % type(prev_modification_global_time)
+            assert not prev_modification_mid or isinstance(
+                prev_modification_mid, str), 'prev_modification_mid is a %s' % type(prev_modification_mid)
+            assert not prev_modification_mid or len(
+                prev_modification_mid) == 20, 'prev_modification_mid has length %d' % len(prev_modification_mid)
+            assert not prev_modification_global_time or isinstance(prev_modification_global_time, (
+                int, long)), 'prev_modification_global_time is a %s' % type(prev_modification_global_time)
 
             super(ModificationPayload.Implementation, self).__init__(meta)
             self._modification_type = modification_type

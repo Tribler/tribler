@@ -103,7 +103,9 @@ class GUIUtility(object):
             self.torrentsearch_manager.connect(self.utility.session, self.library_manager, self.channelsearch_manager)
             self.channelsearch_manager.connect(self.utility.session, self.library_manager, self.torrentsearch_manager)
             self.library_manager.connect(self.utility.session, self.torrentsearch_manager, self.channelsearch_manager)
-            self.torrentstate_manager.connect(self.torrentsearch_manager, self.library_manager, self.channelsearch_manager)
+            self.torrentstate_manager.connect(self.torrentsearch_manager,
+                                              self.library_manager,
+                                              self.channelsearch_manager)
 
             self.videoplayer = VideoPlayer.getInstance()
         else:
@@ -189,7 +191,10 @@ class GUIUtility(object):
                 self.frame.selectedchannellist.Show(False)
                 if not self.frame.splitter.IsSplit():
                     sashpos = getattr(self.frame.splitter_top_window, 'sashpos', -185)
-                    self.frame.splitter.SplitHorizontally(self.frame.splitter_top_window, self.frame.splitter_bottom_window, sashpos)
+                    self.frame.splitter.SplitHorizontally(
+                        self.frame.splitter_top_window,
+                        self.frame.splitter_bottom_window,
+                        sashpos)
 
             if page == 'playlist':
                 self.SetTopSplitterWindow(self.frame.playlist)
@@ -306,13 +311,13 @@ class GUIUtility(object):
         from Tribler.Main.vwxGUI.list_details import TorrentDetails, ChannelInfoPanel, LibraryDetails, ChannelDetails, PlaylistDetails, SearchInfoPanel, LibraryInfoPanel, SelectedchannelInfoPanel, PlaylistInfoPanel
 
         type_to_panel = {TorrentDetails.__name__: self.frame.torrentdetailspanel,
-                         LibraryDetails.__name__: self.frame.librarydetailspanel, \
-                         ChannelDetails.__name__: self.frame.channeldetailspanel, \
-                         PlaylistDetails.__name__: self.frame.playlistdetailspanel, \
-                         SearchInfoPanel.__name__: self.frame.searchinfopanel, \
-                         ChannelInfoPanel.__name__: self.frame.channelinfopanel, \
-                         LibraryInfoPanel.__name__: self.frame.libraryinfopanel, \
-                         PlaylistInfoPanel.__name__: self.frame.playlistinfopanel, \
+                         LibraryDetails.__name__: self.frame.librarydetailspanel,
+                         ChannelDetails.__name__: self.frame.channeldetailspanel,
+                         PlaylistDetails.__name__: self.frame.playlistdetailspanel,
+                         SearchInfoPanel.__name__: self.frame.searchinfopanel,
+                         ChannelInfoPanel.__name__: self.frame.channelinfopanel,
+                         LibraryInfoPanel.__name__: self.frame.libraryinfopanel,
+                         PlaylistInfoPanel.__name__: self.frame.playlistinfopanel,
                          SelectedchannelInfoPanel.__name__: self.frame.selectedchannelinfopanel}
 
         result = None
@@ -412,7 +417,9 @@ class GUIUtility(object):
             keywords = [keyword for keyword in keywords if len(keyword) > 1]
 
             if len(keywords) == 0:
-                self.Notify('Please enter a search term', "Your search term '%s' was either to small or to general." % input, icon=wx.ART_INFORMATION)
+                self.Notify('Please enter a search term',
+                            "Your search term '%s' was either to small or to general." % input,
+                            icon=wx.ART_INFORMATION)
 
             else:
                 self.frame.top_bg.StartSearch()
@@ -424,8 +431,10 @@ class GUIUtility(object):
                 self.torrentsearch_manager.setSearchKeywords(keywords)
                 self.channelsearch_manager.setSearchKeywords(keywords)
 
-                # We set oldkeywords to '', which will trigger a reset in SetKeywords (called from ShowPage). This avoid calling reset twice.
-                # Niels: 17-09-2012, unfortunately showpage calls show(true) which results in the dirty items being refreshed.
+                # We set oldkeywords to '', which will trigger a reset in SetKeywords (called from ShowPage).
+                # This avoids calling reset twice.
+                # Niels: 17-09-2012, unfortunately showpage calls show(true)
+                # which results in the dirty items being refreshed.
                 # We need to call Reset in order to prevent this from happening
                 self.frame.searchlist.Reset()
                 self.ShowPage('search_results', keywords)
@@ -539,14 +548,24 @@ class GUIUtility(object):
         self.ShowPage('playlist')
 
     def OnList(self, goto_end, event=None):
-        lists = {'channels': self.frame.channellist, 'selectedchannel': self.frame.selectedchannellist, 'mychannel': self.frame.managechannel, 'search_results': self.frame.searchlist, 'my_files': self.frame.librarylist}
+        lists = {
+            'channels': self.frame.channellist,
+            'selectedchannel': self.frame.selectedchannellist,
+            'mychannel': self.frame.managechannel,
+            'search_results': self.frame.searchlist,
+            'my_files': self.frame.librarylist}
         if self.guiPage in lists and lists[self.guiPage].HasFocus():
             lists[self.guiPage].ScrollToEnd(goto_end)
         elif event:
             event.Skip()
 
     def ScrollTo(self, id):
-        lists = {'channels': self.frame.channellist, 'selectedchannel': self.frame.selectedchannellist, 'mychannel': self.frame.managechannel, 'search_results': self.frame.searchlist, 'my_files': self.frame.librarylist}
+        lists = {
+            'channels': self.frame.channellist,
+            'selectedchannel': self.frame.selectedchannellist,
+            'mychannel': self.frame.managechannel,
+            'search_results': self.frame.searchlist,
+            'my_files': self.frame.librarylist}
         if self.guiPage in lists:
             lists[self.guiPage].ScrollToId(id)
 
@@ -611,15 +630,17 @@ class GUIUtility(object):
                 response = wx.ID_OK
             else:
                 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
-                dlg = ConfirmationDialog(None, dlgname, "You are about to add \'%s\' to your list of favourite channels." % channel.name,
-                                         "If you mark this channel as your favourite, you will be able to access its full content.")
+                dlg = ConfirmationDialog(
+                    None, dlgname, "You are about to add \'%s\' to your list of favourite channels." % channel.name,
+                    "If you mark this channel as your favourite, you will be able to access its full content.")
                 response = dlg.ShowModal()
 
             if response == wx.ID_OK:
                 @forceDBThread
                 def add_vote():
                     self.channelsearch_manager.favorite(channel.id)
-                    wx.CallAfter(self.Notify, "Channel marked as favourite", "Marked channel '%s' as favourite" % channel.name, icon='favourite')
+                    wx.CallAfter(self.Notify, "Channel marked as favourite", "Marked channel '%s' as favourite" %
+                                 channel.name, icon='favourite')
                     if event:
                         button.Enable(True)
                     self.RefreshChannel(channel.id)
@@ -641,15 +662,20 @@ class GUIUtility(object):
                 response = wx.ID_OK
             else:
                 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
-                dlg = ConfirmationDialog(None, dlgname, "You are about to remove \'%s\' from your list of favourite channels." % channel.name,
-                                         "If you remove this channel from your favourites, you will no longer be able to access its full content.")
+                dlg = ConfirmationDialog(
+                    None, dlgname,
+                    "You are about to remove \'%s\' from your list of favourite channels." % channel.name,
+                    "If you remove this channel from your favourites, "
+                    "you will no longer be able to access its full content.")
                 response = dlg.ShowModal()
 
             if response == wx.ID_OK:
                 @forceDBThread
                 def remove_vote():
                     self.channelsearch_manager.remove_vote(channel.id)
-                    wx.CallAfter(self.Notify, "Channel removed from favourites", "Removed channel '%s' from your favourites" % channel.name, icon='favourite')
+                    wx.CallAfter(self.Notify, "Channel removed from favourites",
+                                 "Removed channel '%s' from your favourites" % channel.name,
+                                 icon='favourite')
                     if event:
                         button.Enable(True)
                     self.RefreshChannel(channel.id)
@@ -663,14 +689,16 @@ class GUIUtility(object):
             if event:
                 button = event.GetEventObject()
                 button.Enable(False)
-                if hasattr(button, 'selected'): button.selected = False
+                if hasattr(button, 'selected'):
+                    button.selected = False
 
             dlgname = 'MSdialog'
             if not self.ReadGuiSetting('show_%s' % dlgname, default=True):
                 response = wx.ID_OK
             else:
                 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
-                dlg = ConfirmationDialog(None, dlgname, "You are about to report channel \'%s\' as spam." % channel.name, "")
+                dlg = ConfirmationDialog(None, dlgname,
+                                         "You are about to report channel \'%s\' as spam." % channel.name, "")
                 response = dlg.ShowModal()
 
             if response == wx.ID_OK:
@@ -678,7 +706,8 @@ class GUIUtility(object):
                 def remove_vote():
                     self.channelsearch_manager.spam(channel.id)
                     wx.CallAfter(self.Notify, "Channel marked as spam", "Channel '%s' marked as spam" % channel.name)
-                    if event: button.Enable(True)
+                    if event:
+                        button.Enable(True)
                     self.RefreshChannel(channel.id)
                 remove_vote()
             elif event:
@@ -690,22 +719,26 @@ class GUIUtility(object):
             if event:
                 button = event.GetEventObject()
                 button.Enable(False)
-                if hasattr(button, 'selected'): button.selected = False
+                if hasattr(button, 'selected'):
+                    button.selected = False
 
             dlgname = 'RSdialog'
             if not self.ReadGuiSetting('show_%s' % dlgname, default=True):
                 response = wx.ID_OK
             else:
                 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
-                dlg = ConfirmationDialog(None, dlgname, "You are about unmark channel \'%s\' as spam." % channel.name, "")
+                dlg = ConfirmationDialog(None, dlgname,
+                                         "You are about unmark channel \'%s\' as spam." % channel.name, "")
                 response = dlg.ShowModal()
 
             if response == wx.ID_OK:
                 @forceDBThread
                 def remove_vote():
                     self.channelsearch_manager.remove_vote(channel.id)
-                    wx.CallAfter(self.Notify, "Channel unmarked as spam", "Channel '%s' unmarked as spam" % channel.name)
-                    if event: button.Enable(True)
+                    wx.CallAfter(self.Notify,
+                                 "Channel unmarked as spam", "Channel '%s' unmarked as spam" % channel.name)
+                    if event:
+                        button.Enable(True)
                     self.RefreshChannel(channel.id)
                 remove_vote()
             elif event:
@@ -726,7 +759,11 @@ class GUIUtility(object):
     def SelectVideo(self, videofiles, selected_file=None):
         if len(videofiles) > 1:
             videofiles.sort()
-            dialog = wx.SingleChoiceDialog(None, 'Tribler currently only supports playing one file at a time.\nSelect the file you want to play.', 'Which file do you want to play?', videofiles)
+            dialog = wx.SingleChoiceDialog(
+                None,
+                'Tribler currently only supports playing one file at a time.\nSelect the file you want to play.',
+                'Which file do you want to play?',
+                videofiles)
             if selected_file in videofiles:
                 dialog.SetSelection(videofiles.index(selected_file))
 

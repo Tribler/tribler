@@ -29,7 +29,8 @@ class AddTorrent(wx.Dialog):
         header = wx.StaticText(self, -1, 'Browse for local .torrent file or files')
         _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
         vSizer.Add(header, 0, wx.EXPAND | wx.BOTTOM, 3)
-        vSizer.Add(wx.StaticText(self, -1, 'Use this option if you have downloaded a .torrent manually'), 0, wx.BOTTOM, 3)
+        vSizer.Add(
+            wx.StaticText(self, -1, 'Use this option if you have downloaded a .torrent manually'), 0, wx.BOTTOM, 3)
 
         browseButton = wx.Button(self, -1, 'Browse')
         browseButton.Bind(wx.EVT_BUTTON, self.OnBrowse)
@@ -46,7 +47,8 @@ class AddTorrent(wx.Dialog):
         header = wx.StaticText(self, -1, 'Url')
         _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
         vSizer.Add(header, 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 3)
-        vSizer.Add(wx.StaticText(self, -1, 'This could either be a direct http-link (starting with http://), or a magnet link'), 0, wx.BOTTOM, 3)
+        vSizer.Add(
+            wx.StaticText(self, -1, 'This could either be a direct http-link (starting with http://), or a magnet link'), 0, wx.BOTTOM, 3)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.magnet = wx.TextCtrl(self, -1)
@@ -116,7 +118,8 @@ class AddTorrent(wx.Dialog):
 
         cancel = len(filenames) == 0
         if len(filenames) > 10:
-            warning = wx.MessageDialog(self, "This will add %d .torrents, are you sure?" % len(filenames), "Please confirm Add", wx.OK | wx.CANCEL | wx.ICON_WARNING)
+            warning = wx.MessageDialog(self, "This will add %d .torrents, are you sure?" %
+                                       len(filenames), "Please confirm Add", wx.OK | wx.CANCEL | wx.ICON_WARNING)
             if warning.ShowModal() != wx.ID_OK:
                 cancel = True
 
@@ -127,7 +130,8 @@ class AddTorrent(wx.Dialog):
                 self.frame.startDownload(filename)
 
     def OnBrowse(self, event):
-        dlg = wx.FileDialog(None, "Please select the .torrent file(s).", wildcard="torrent (*.torrent)|*.torrent", style=wx.FD_OPEN | wx.FD_MULTIPLE)
+        dlg = wx.FileDialog(None, "Please select the .torrent file(s).",
+                            wildcard="torrent (*.torrent)|*.torrent", style=wx.FD_OPEN | wx.FD_MULTIPLE)
 
         path = DefaultDownloadStartupConfig.getInstance().get_dest_dir() + os.sep
         dlg.SetPath(path)
@@ -164,8 +168,10 @@ class AddTorrent(wx.Dialog):
         dlg = CreateTorrent(None, configfile, configfile2, trackers, self.toChannel)
         if dlg.ShowModal() == wx.ID_OK:
             for destdir, correctedfilename, torrentfilename in dlg.createdTorrents:
-                # Niels: important do not pass fixtorrent to startDownload, used to differentiate between created and imported torrents
-                self.frame.startDownload(torrentfilename=torrentfilename, destdir=destdir, correctedFilename=correctedfilename)
+                # Niels: important do not pass fixtorrent to startDownload, used to
+                # differentiate between created and imported torrents
+                self.frame.startDownload(
+                    torrentfilename=torrentfilename, destdir=destdir, correctedFilename=correctedfilename)
 
             dlg.Destroy()
             self.EndModal(wx.ID_OK)

@@ -163,7 +163,8 @@ class CreateTorrent(wx.Dialog):
         self.paths = None
 
     def OnBrowse(self, event):
-        dlg = wx.FileDialog(None, "Please select the file(s).", style=wx.FD_OPEN | wx.FD_MULTIPLE, defaultDir=self.latestFile)
+        dlg = wx.FileDialog(None, "Please select the file(s).",
+                            style=wx.FD_OPEN | wx.FD_MULTIPLE, defaultDir=self.latestFile)
         if dlg.ShowModal() == wx.ID_OK:
             filenames = dlg.GetPaths()
             dlg.Destroy()
@@ -205,9 +206,11 @@ class CreateTorrent(wx.Dialog):
     def OnOk(self, event):
         max = 1 if self.combineRadio.GetValue() else len(self.selectedPaths)
         if self.toChannel:
-            dlg = wx.MessageDialog(self, "This will add %d new .torrents to this Channel.\nDo you want to continue?" % max, "Are you sure?", style=wx.YES_NO | wx.ICON_QUESTION)
+            dlg = wx.MessageDialog(self, "This will add %d new .torrents to this Channel.\nDo you want to continue?" %
+                                   max, "Are you sure?", style=wx.YES_NO | wx.ICON_QUESTION)
         else:
-            dlg = wx.MessageDialog(self, "This will create %d new .torrents.\nDo you want to continue?" % max, "Are you sure?", style=wx.YES_NO | wx.ICON_QUESTION)
+            dlg = wx.MessageDialog(self, "This will create %d new .torrents.\nDo you want to continue?" %
+                                   max, "Are you sure?", style=wx.YES_NO | wx.ICON_QUESTION)
 
         if dlg.ShowModal() == wx.ID_YES:
             dlg.Destroy()
@@ -271,9 +274,12 @@ class CreateTorrent(wx.Dialog):
 
             def start():
                 if self.combineRadio.GetValue():
-                    self.progressDlg = wx.ProgressDialog("Creating new .torrents", "Please wait while Tribler is creating your .torrents.\nThis could take a while due to creating the required hashes.", maximum=max, parent=self, style=wx.PD_APP_MODAL | wx.PD_AUTO_HIDE)
+                    self.progressDlg = wx.ProgressDialog(
+                        "Creating new .torrents", "Please wait while Tribler is creating your .torrents.\nThis could take a while due to creating the required hashes.", maximum=max, parent=self, style=wx.PD_APP_MODAL | wx.PD_AUTO_HIDE)
                 else:
-                    self.progressDlg = wx.ProgressDialog("Creating new .torrents", "Please wait while Tribler is creating your .torrents.\nThis could take a while due to creating the required hashes.", maximum=max, parent=self, style=wx.PD_CAN_ABORT | wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME | wx.PD_AUTO_HIDE)
+                    self.progressDlg = wx.ProgressDialog(
+                        "Creating new .torrents", "Please wait while Tribler is creating your .torrents.\nThis could take a while due to creating the required hashes.",
+                                                         maximum=max, parent=self, style=wx.PD_CAN_ABORT | wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME | wx.PD_AUTO_HIDE)
                 self.progressDlg.Pulse()
                 self.progressDlg.cur = 0
 
@@ -291,7 +297,8 @@ class CreateTorrent(wx.Dialog):
 
                 nrPieces = total_size / params['piece length']
                 if nrPieces > 2500:
-                    dlg2 = wx.MessageDialog(self, "The selected piecesize will cause a torrent to have %d pieces.\nThis is more than the recommended max 2500 pieces.\nDo you want to continue?" % nrPieces, "Are you sure?", style=wx.YES_NO | wx.ICON_QUESTION)
+                    dlg2 = wx.MessageDialog(self, "The selected piecesize will cause a torrent to have %d pieces.\nThis is more than the recommended max 2500 pieces.\nDo you want to continue?" %
+                                            nrPieces, "Are you sure?", style=wx.YES_NO | wx.ICON_QUESTION)
                     if dlg2.ShowModal() == wx.ID_YES:
                         start()
                     dlg2.Destroy()
@@ -374,7 +381,8 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
     if nrFiles > 1:
         # outpaths should start with a common prefix, this prefix is the swarmname of the torrent
         # if srcpaths contain c:\a\1, c:\a\2 -> basepath should be c:\ and basedir a and outpaths should be a\1 and a\2
-        # if srcpaths contain c:\a\1, c:\a\2, c:\a\b\1, c:\a\b\2 -> basepath should be c:\ and outpaths should be a\1, a\2, a\b\1 and a\b\2
+        # if srcpaths contain c:\a\1, c:\a\2, c:\a\b\1, c:\a\b\2 -> basepath
+        # should be c:\ and outpaths should be a\1, a\2, a\b\1 and a\b\2
         basepath = os.path.abspath(os.path.commonprefix(srcpaths))
         basepath, basedir = os.path.split(basepath)
         for srcpath in srcpaths:
