@@ -2154,84 +2154,84 @@ class ChannelCastDBHandler(BasicDBHandler):
         return self.__fixTorrents(keys, results)
 
     def getRecentModificationsFromChannelId(self, channel_id, keys, limit=None):
-        sql = "SELECT " + ", ".join(keys) + \
-              " FROM ChannelMetaData " + \
-              "LEFT JOIN MetaDataTorrent ON ChannelMetaData.id = MetaDataTorrent.metadata_id " + \
-              "LEFT JOIN Moderations ON Moderations.cause = ChannelMetaData.dispersy_id " + \
-              "WHERE ChannelMetaData.channel_id = ? " + \
-              "ORDER BY -Moderations.time_stamp ASC, ChannelMetaData.inserted DESC"
+        sql = "SELECT " \
+              ", ".join(keys) """ FROM ChannelMetaData
+              LEFT JOIN MetaDataTorrent ON ChannelMetaData.id = MetaDataTorrent.metadata_id
+              LEFT JOIN Moderations ON Moderations.cause = ChannelMetaData.dispersy_id
+              WHERE ChannelMetaData.channel_id = ?
+              ORDER BY -Moderations.time_stamp ASC, ChannelMetaData.inserted DESC"""
         if limit:
             sql += " LIMIT %d" % limit
         return self._db.fetchall(sql, (channel_id,))
 
     def getRecentModerationsFromChannel(self, channel_id, keys, limit=None):
-        sql = "SELECT " + ", ".join(keys) + \
-              " FROM Moderations, MetaDataTorrent, ChannelMetaData " + \
-              "WHERE Moderations.cause = ChannelMetaData.dispersy_id " + \
-              "AND ChannelMetaData.id = MetaDataTorrent.metadata_id " + \
-              "AND Moderations.channel_id = ? " + \
-              "ORDER BY Moderations.inserted DESC"
+        sql = "SELECT " \
+              ", ".join(keys) """ FROM Moderations, MetaDataTorrent, ChannelMetaData
+              WHERE Moderations.cause = ChannelMetaData.dispersy_id
+              AND ChannelMetaData.id = MetaDataTorrent.metadata_id
+              AND Moderations.channel_id = ?
+              ORDER BY Moderations.inserted DESC"""
         if limit:
             sql += " LIMIT %d" % limit
         return self._db.fetchall(sql, (channel_id,))
 
     def getRecentMarkingsFromChannel(self, channel_id, keys, limit=None):
-        sql = "SELECT " + ", ".join(keys) + \
-              " FROM TorrentMarkings, ChannelTorrents " + \
-              "WHERE TorrentMarkings.channeltorrent_id = ChannelTorrents.id " + \
-              "AND ChannelTorrents.channel_id = ? " + \
-              "ORDER BY TorrentMarkings.time_stamp DESC"
+        sql = "SELECT " \
+              ", ".join(keys) """ FROM TorrentMarkings, ChannelTorrents
+              WHERE TorrentMarkings.channeltorrent_id = ChannelTorrents.id
+              AND ChannelTorrents.channel_id = ?
+              ORDER BY TorrentMarkings.time_stamp DESC"""
         if limit:
             sql += " LIMIT %d" % limit
         return self._db.fetchall(sql, (channel_id,))
 
     def getMostPopularTorrentsFromChannel(self, channel_id, isDispersy, keys, limit=None):
         if isDispersy:
-            sql = "SELECT " + ", ".join(keys) + \
-                  " FROM Torrent, ChannelTorrents " + \
-                  "WHERE Torrent.torrent_id = ChannelTorrents.torrent_id " + \
-                  "AND channel_id = ? " + \
-                  "GROUP BY Torrent.torrent_id " + \
-                  "ORDER BY ChannelTorrents.time_stamp DESC"
+            sql = "SELECT " \
+                  ", ".join(keys) """ FROM Torrent, ChannelTorrents
+                  WHERE Torrent.torrent_id = ChannelTorrents.torrent_id
+                  AND channel_id = ?
+                  GROUP BY Torrent.torrent_id
+                  ORDER BY ChannelTorrents.time_stamp DESC"""
         else:
-            sql = "SELECT " + ", ".join(keys) + \
-                  " FROM CollectedTorrent as Torrent, ChannelTorrents " + \
-                  "WHERE Torrent.torrent_id = ChannelTorrents.torrent_id " + \
-                  "AND channel_id = ? " + \
-                  "GROUP BY Torrent.torrent_id " + \
-                  "ORDER BY ChannelTorrents.time_stamp DESC"
+            sql = "SELECT " \
+                  ", ".join(keys) """ FROM CollectedTorrent as Torrent, ChannelTorrents
+                  WHERE Torrent.torrent_id = ChannelTorrents.torrent_id
+                  AND channel_id = ?
+                  GROUP BY Torrent.torrent_id
+                  ORDER BY ChannelTorrents.time_stamp DESC"""
 
         if limit:
             sql += " LIMIT %d" % limit
         return self._db.fetchall(sql, (channel_id,))
 
     def getTorrentsFromPlaylist(self, playlist_id, keys, limit=None):
-        sql = "SELECT " + ", ".join(keys) + \
-              " FROM Torrent, ChannelTorrents, PlaylistTorrents " + \
-              "WHERE Torrent.torrent_id = ChannelTorrents.torrent_id " + \
-              "AND ChannelTorrents.id = PlaylistTorrents.channeltorrent_id " + \
-              "AND playlist_id = ? ORDER BY time_stamp DESC"
+        sql = "SELECT " \
+              ", ".join(keys) """ FROM Torrent, ChannelTorrents, PlaylistTorrents
+              WHERE Torrent.torrent_id = ChannelTorrents.torrent_id
+              AND ChannelTorrents.id = PlaylistTorrents.channeltorrent_id
+              AND playlist_id = ? ORDER BY time_stamp DESC"""
         if limit:
             sql += " LIMIT %d" % limit
         results = self._db.fetchall(sql, (playlist_id,))
         return self.__fixTorrents(keys, results)
 
     def getTorrentFromPlaylist(self, playlist_id, infohash, keys):
-        sql = "SELECT " + ", ".join(keys) + \
-              " FROM Torrent, ChannelTorrents, PlaylistTorrents " + \
-              "WHERE Torrent.torrent_id = ChannelTorrents.torrent_id " + \
-              "AND ChannelTorrents.id = PlaylistTorrents.channeltorrent_id " + \
-              "AND playlist_id = ? AND infohash = ?"
+        sql = "SELECT " \
+              ", ".join(keys) """ FROM Torrent, ChannelTorrents, PlaylistTorrents
+              WHERE Torrent.torrent_id = ChannelTorrents.torrent_id
+              AND ChannelTorrents.id = PlaylistTorrents.channeltorrent_id
+              AND playlist_id = ? AND infohash = ?"""
         result = self._db.fetchone(sql, (playlist_id, bin2str(infohash)))
 
         return self.__fixTorrent(keys, result)
 
     def getRecentTorrentsFromPlaylist(self, playlist_id, keys, limit=None):
-        sql = "SELECT " + ", ".join(keys) + \
-              " FROM Torrent, ChannelTorrents, PlaylistTorrents " + \
-              "WHERE Torrent.torrent_id = ChannelTorrents.torrent_id " + \
-              "AND ChannelTorrents.id = PlaylistTorrents.channeltorrent_id " + \
-              "AND playlist_id = ? ORDER BY inserted DESC"
+        sql = "SELECT " \
+              ", ".join(keys) """ FROM Torrent, ChannelTorrents, PlaylistTorrents
+              WHERE Torrent.torrent_id = ChannelTorrents.torrent_id
+              AND ChannelTorrents.id = PlaylistTorrents.channeltorrent_id
+              AND playlist_id = ? ORDER BY inserted DESC"""
         if limit:
             sql += " LIMIT %d" % limit
         results = self._db.fetchall(sql, (playlist_id,))
@@ -2242,19 +2242,19 @@ class ChannelCastDBHandler(BasicDBHandler):
         if 'MetaDataTorrent.channeltorrent_id' in playlistKeys:
             playlistKeys[playlistKeys.index('MetaDataTorrent.channeltorrent_id')] = '""'
 
-        sql = "SELECT " + ", ".join(playlistKeys) + \
-              " FROM MetaDataPlaylist, ChannelMetaData " + \
-              "LEFT JOIN Moderations ON Moderations.cause = ChannelMetaData.dispersy_id " + \
-              "WHERE MetaDataPlaylist.metadata_id = ChannelMetaData.id AND playlist_id = ?"
+        sql = "SELECT " \
+              ", ".join(playlistKeys) """ FROM MetaDataPlaylist, ChannelMetaData
+              LEFT JOIN Moderations ON Moderations.cause = ChannelMetaData.dispersy_id
+              WHERE MetaDataPlaylist.metadata_id = ChannelMetaData.id AND playlist_id = ?"""
         if limit:
             sql += " LIMIT %d" % limit
         playlist_modifications = self._db.fetchall(sql, (playlist_id,))
 
-        sql = "SELECT " + ", ".join(keys) + \
-              " FROM MetaDataTorrent, ChannelMetaData, PlaylistTorrents " + \
-              "LEFT JOIN Moderations ON Moderations.cause = ChannelMetaData.dispersy_id " + \
-              "WHERE MetaDataTorrent.metadata_id = ChannelMetaData.id " + \
-              "AND PlaylistTorrents.channeltorrent_id = MetaDataTorrent.channeltorrent_id AND playlist_id = ?"
+        sql = "SELECT " \
+              ", ".join(keys) """ FROM MetaDataTorrent, ChannelMetaData, PlaylistTorrents
+              LEFT JOIN Moderations ON Moderations.cause = ChannelMetaData.dispersy_id
+              WHERE MetaDataTorrent.metadata_id = ChannelMetaData.id
+              AND PlaylistTorrents.channeltorrent_id = MetaDataTorrent.channeltorrent_id AND playlist_id = ?"""
         if limit:
             sql += " LIMIT %d" % limit
         torrent_modifications = self._db.fetchall(sql, (playlist_id,))
@@ -2272,23 +2272,23 @@ class ChannelCastDBHandler(BasicDBHandler):
         return data
 
     def getRecentModerationsFromPlaylist(self, playlist_id, keys, limit=None):
-        sql = "SELECT " + ", ".join(keys) + \
-              " FROM Moderations, MetaDataTorrent, ChannelMetaData, PlaylistTorrents " + \
-              "WHERE Moderations.cause = ChannelMetaData.dispersy_id " + \
-              "AND ChannelMetaData.id = MetaDataTorrent.metadata_id " + \
-              "AND MetaDataTorrent.channeltorrent_id = PlaylistTorrents.channeltorrent_id " + \
-              "AND PlaylistTorrents.playlist_id = ? ORDER BY Moderations.inserted DESC"
+        sql = "SELECT " \
+              ", ".join(keys) """ FROM Moderations, MetaDataTorrent, ChannelMetaData, PlaylistTorrents
+              WHERE Moderations.cause = ChannelMetaData.dispersy_id
+              AND ChannelMetaData.id = MetaDataTorrent.metadata_id
+              AND MetaDataTorrent.channeltorrent_id = PlaylistTorrents.channeltorrent_id
+              AND PlaylistTorrents.playlist_id = ? ORDER BY Moderations.inserted DESC"""
         if limit:
             sql += " LIMIT %d" % limit
         return self._db.fetchall(sql, (playlist_id,))
 
     def getRecentMarkingsFromPlaylist(self, playlist_id, keys, limit=None):
-        sql = "SELECT " + ", ".join(keys) + \
-              " FROM TorrentMarkings, PlaylistTorrents, ChannelTorrents " + \
-              "WHERE TorrentMarkings.channeltorrent_id = PlaylistTorrents.channeltorrent_id " + \
-              "AND ChannelTorrents.id = PlaylistTorrents.channeltorrent_id " + \
-              "AND PlaylistTorrents.playlist_id = ? " + \
-              "AND ChannelTorrents.dispersy_id <> -1 ORDER BY TorrentMarkings.time_stamp DESC"
+        sql = "SELECT " \
+              ", ".join(keys) """ FROM TorrentMarkings, PlaylistTorrents, ChannelTorrents
+              WHERE TorrentMarkings.channeltorrent_id = PlaylistTorrents.channeltorrent_id
+              AND ChannelTorrents.id = PlaylistTorrents.channeltorrent_id
+              AND PlaylistTorrents.playlist_id = ?
+              AND ChannelTorrents.dispersy_id <> -1 ORDER BY TorrentMarkings.time_stamp DESC"""
         if limit:
             sql += " LIMIT %d" % limit
         return self._db.fetchall(sql, (playlist_id,))
