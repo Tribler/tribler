@@ -845,7 +845,7 @@ class LibraryManager(object):
 
     def stopLastVODTorrent(self):
         if self.last_vod_torrent:
-            self.stopTorrent(self.last_vod_torrent[0].infohash)
+            self.stopTorrent(self.last_vod_torrent[0])
 
     @forceWxThread
     def playTorrent(self, infohash, selectedinfilename=None):
