@@ -975,32 +975,6 @@ class TorrentDBHandler(BasicDBHandler):
         fixed = self.__fixTorrents(keys, data)
         return fixed
 
-    def valuelist2torrentlist(self, value_name, res_list, ranks, mypref_stats):
-        torrent_list = []
-        for item in res_list:
-            value_name[0] = 'torrent_id'
-            torrent = dict(zip(value_name, item))
-
-            torrent['category'] = [self.misc_db.categoryId2Name(torrent['category_id'])]
-            torrent['status'] = self.misc_db.torrentStatusId2Name(torrent['status_id'])
-            torrent['simRank'] = ranksfind(ranks, torrent['infohash'])
-            torrent['infohash'] = str2bin(torrent['infohash'])
-
-            # Niels: we now convert category and status in gui
-            # del torrent['category_id']
-            # del torrent['status_id']
-            torrent_id = torrent['torrent_id']
-            if mypref_stats is not None and torrent_id in mypref_stats:
-                # add extra info for torrent in mypref
-                torrent['myDownloadHistory'] = True
-                data = mypref_stats[torrent_id]  # (create_time,progress,destdir)
-                torrent['download_started'] = data[0]
-                torrent['progress'] = data[1]
-                torrent['destdir'] = data[2]
-
-            torrent_list.append(torrent)
-        return torrent_list
-
     def __fixTorrents(self, keys, results):
         def fix_value(key):
             if key in keys:
