@@ -331,7 +331,7 @@ INSERT INTO TorrentStatus VALUES (0, 'unknown', NULL);
 INSERT INTO TorrentStatus VALUES (1, 'good', NULL);
 INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
 
-INSERT INTO MyInfo VALUES ('version', 24);
+INSERT INTO MyInfo VALUES ('version', 26);
 
 INSERT INTO MetaDataTypes ('name') VALUES ('name');
 INSERT INTO MetaDataTypes ('name') VALUES ('description');
