@@ -26,11 +26,11 @@ import copy
 from Tribler.Category.Category import Category
 
 from Tribler.Core.version import version_id
-from Tribler.Core.simpledefs import (NTFY_MYPREFERENCES, NTFY_ACT_NEW_VERSION, NTFY_ACT_NONE,
-                                     NTFY_ACT_ACTIVE, NTFY_ACT_UPNP, NTFY_ACT_REACHABLE, NTFY_ACT_MEET,
-                                     NTFY_ACT_GET_EXT_IP_FROM_PEERS, NTFY_ACT_GOT_METADATA, NTFY_ACT_RECOMMEND,
-                                     NTFY_ACT_DISK_FULL, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING,
-                                     DLSTATUS_WAITING4HASHCHECK, DOWNLOAD)
+from Tribler.Core.simpledefs import (NTFY_ACT_NEW_VERSION, NTFY_ACT_NONE, NTFY_ACT_ACTIVE, NTFY_ACT_UPNP,
+                                     NTFY_ACT_REACHABLE, NTFY_ACT_MEET, NTFY_ACT_GET_EXT_IP_FROM_PEERS,
+                                     NTFY_ACT_GOT_METADATA, NTFY_ACT_RECOMMEND, NTFY_ACT_DISK_FULL,
+                                     DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK,
+                                     DOWNLOAD)
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent

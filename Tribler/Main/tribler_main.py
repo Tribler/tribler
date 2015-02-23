@@ -17,7 +17,7 @@ import logging
 
 from Tribler.Main.Utility.compat import (convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig,
                                          convertDownloadCheckpoints)
-from Tribler.Core.version import version_id, commit_id, build_date
+from Tribler.Core.version import version_id, commit_id
 from Tribler.Core.osutils import get_free_space
 
 logger = logging.getLogger(__name__)

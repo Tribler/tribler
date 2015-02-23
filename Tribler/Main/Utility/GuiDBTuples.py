@@ -95,7 +95,7 @@ class Helper(object):
 class Torrent(Helper):
     __slots__ = ('infohash', 'name', 'length', 'category_id', 'status_id', 'num_seeders',
                  'num_leechers', '_channel', 'channeltorrents_id', 'misc_db', 'torrent_db', 'channelcast_db',
-                 'metadata_db', '_progress', 'download_state', 'relevance_score', 'query_candidates', 'magnetstatus')
+                 'metadata_db', 'download_state', 'relevance_score', 'query_candidates', 'magnetstatus')
 
     def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, channel):
         Helper.__init__(self)
@@ -123,7 +123,6 @@ class Torrent(Helper):
 
         self.relevance_score = None
         self.query_candidates = None
-        self._progress = None
         self.download_state = None
         self.magnetstatus = None
 
@@ -235,7 +234,7 @@ class Torrent(Helper):
     def progress(self):
         if self.ds:
             return self.ds.get_progress()
-        return min(1, self._progress)
+        return 0.0
 
     @property
     def ds(self):
@@ -430,12 +429,8 @@ class NotCollectedTorrent(CollectedTorrent):
 class LibraryTorrent(Torrent):
     __slots__ = ()
 
-    def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, progress):
+    def __init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers):
         Torrent.__init__(self, torrent_id, infohash, name, length, category_id, status_id, num_seeders, num_leechers, None)
-        if progress > 1:
-            progress = progress / 100.0
-
-        self._progress = progress
 
 
 class ChannelTorrent(Torrent):

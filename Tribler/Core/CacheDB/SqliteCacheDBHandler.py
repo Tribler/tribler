@@ -7,8 +7,6 @@
 import logging
 import os
 import threading
-import urllib
-from binascii import hexlify
 from copy import deepcopy
 from random import sample
 from struct import unpack_from
@@ -700,10 +698,6 @@ class TorrentDBHandler(BasicDBHandler):
             status_id = self.misc_db.torrentStatusName2Id(kw.pop('status'))
             kw['status_id'] = status_id
 
-        if 'progress' in kw:
-            torrent_id = self.getTorrentID(infohash)
-            if infohash:
-                self.mypref_db.updateProgress(torrent_id, kw.pop('progress'))  # commit at end of function
         if 'seeder' in kw:
             kw['num_seeders'] = kw.pop('seeder')
         if 'leecher' in kw:
@@ -1356,7 +1350,7 @@ class MyPreferenceDBHandler(BasicDBHandler):
             return self.getMyPrefStats(torrent_id)[torrent_id]
 
     def addMyPreference(self, torrent_id, data):
-        # keys in data: destination_path, progress, creation_time, torrent_id
+        # keys in data: destination_path, creation_time, torrent_id
         if self.getOne('torrent_id', torrent_id=torrent_id) is not None:
             # Arno, 2009-03-09: Torrent already exists in myrefs.
             # Hack for hiding from lib while keeping in myprefs.
@@ -1370,7 +1364,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
 
         d = {}
         d['destination_path'] = data.get('destination_path')
-        d['progress'] = data.get('progress', 0)
         d['creation_time'] = data.get('creation_time', int(time()))
         d['torrent_id'] = torrent_id
 
@@ -1395,14 +1388,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
 
         # Arno, 2010-02-04: Update self.recent_ caches :-(
         # self.loadData()
-
-    def updateProgress(self, torrent_id, progress):
-        self._db.update(self.table_name, 'torrent_id=%d' % torrent_id, progress=progress)
-
-    def updateProgressByHash(self, hash, progress):
-        torrent_id = self._torrent_db.getTorrentID(hash)
-        if torrent_id:
-            self.updateProgress(torrent_id, progress)
 
     def updateDestDir(self, torrent_id, destdir):
         if not isinstance(destdir, basestring):

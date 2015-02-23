@@ -39,7 +39,6 @@ CREATE TABLE MyInfo (
 CREATE TABLE MyPreference (
   torrent_id     integer PRIMARY KEY NOT NULL,
   destination_path text NOT NULL,
-  progress       numeric,
   creation_time  integer NOT NULL
 );
 

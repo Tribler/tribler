@@ -271,7 +271,7 @@ class TestTorrentDBHandler(AbstractDB):
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')
         m_infohash = unhexlify('ed81da94d21ad1b305133f2726cdaec5a57fed98')
         self.tdb.updateTorrent(m_infohash, relevance=3.1415926, category=['Videoclips'],
-                               status='good', progress=23.5, seeder=123, leecher=321,
+                               status='good', seeder=123, leecher=321,
                                last_tracker_check=1234567,
                                other_key1='abcd', other_key2=123)
         multiple_torrent_id = self.tdb.getTorrentID(m_infohash)
@@ -279,8 +279,6 @@ class TestTorrentDBHandler(AbstractDB):
         # assert cid == 2, cid
         sid = self.tdb.getOne('status_id', torrent_id=multiple_torrent_id)
         assert sid == 1
-        p = self.tdb.mypref_db.getOne('progress', torrent_id=multiple_torrent_id)
-        assert p is None, p
         seeder = self.tdb.getOne('num_seeders', torrent_id=multiple_torrent_id)
         assert seeder == 123
         leecher = self.tdb.getOne('num_leechers', torrent_id=multiple_torrent_id)
@@ -333,12 +331,11 @@ class TestMyPreferenceDBHandler(AbstractDB):
     @skip("We are going to rewrite the whole database thing, so its not worth the trouble fixing this now")
     @blocking_call_on_reactor_thread
     def test_addMyPreference_deletePreference(self):
-        p = self.mdb.getOne(('torrent_id', 'destination_path', 'progress', 'creation_time'), torrent_id=126)
+        p = self.mdb.getOne(('torrent_id', 'destination_path', 'creation_time'), torrent_id=126)
         torrent_id = p[0]
         infohash = self.tdb.getInfohash(torrent_id)
         destpath = p[1]
-        progress = p[2]
-        creation_time = p[3]
+        creation_time = p[2]
         self.mdb.deletePreference(torrent_id)
         pl = self.mdb.getMyPrefListInfohash()
         assert len(pl) == 22
@@ -346,28 +343,18 @@ class TestMyPreferenceDBHandler(AbstractDB):
 
         data = {'destination_path': destpath}
         self.mdb.addMyPreference(torrent_id, data)
-        p2 = self.mdb.getOne(('torrent_id', 'destination_path', 'progress', 'creation_time'), torrent_id=126)
-        assert p2[0] == p[0] and p2[1] == p[1] and p2[2] == 0 and time() - p2[3] < 10, p2
+        p2 = self.mdb.getOne(('torrent_id', 'destination_path', 'creation_time'), torrent_id=126)
+        assert p2[0] == p[0] and p2[1] == p[1] and time() - p2[2] < 10, p2
 
         self.mdb.deletePreference(torrent_id)
         pl = self.mdb.getMyPrefListInfohash()
         assert len(pl) == 22
         assert infohash not in pl
 
-        data = {'destination_path': destpath, 'progress': progress, 'creation_time': creation_time}
+        data = {'destination_path': destpath, 'creation_time': creation_time}
         self.mdb.addMyPreference(torrent_id, data)
-        p3 = self.mdb.getOne(('torrent_id', 'destination_path', 'progress', 'creation_time'), torrent_id=126)
+        p3 = self.mdb.getOne(('torrent_id', 'destination_path', 'creation_time'), torrent_id=126)
         assert p3 == p, p3
-
-    @blocking_call_on_reactor_thread
-    def test_updateProgress(self):
-        infohash_str_126 = 'ByJho7yj9mWY1ORWgCZykLbU1Xc='
-        infohash = str2bin(infohash_str_126)
-        torrent_id = self.tdb.getTorrentID(infohash)
-        assert torrent_id == 126
-        self.mdb.updateProgress(torrent_id, 3.14)
-        p = self.mdb.getOne('progress', torrent_id=torrent_id)
-        assert p == 3.14
 
     @blocking_call_on_reactor_thread
     def test_getMyPrefListInfohash(self):
