@@ -5,6 +5,7 @@
 # 23 is used by Tribler 6.4.0 RC1
 # 24 is used by Tribler 6.4.0 RC2 - 6.4.X
 # 25 is used by Tribler 6.5-git
+# 26 is used by Tribler 6.5-git (with database upgrade scripts)
 
 TRIBLER_59_DB_VERSION = 17
 TRIBLER_60_DB_VERSION = 17
@@ -19,9 +20,10 @@ TRIBLER_64RC1_DB_VERSION = 23
 TRIBLER_64RC2_DB_VERSION = 24
 
 TRIBLER_65PRE_DB_VERSION = 25
+TRIBLER_65PRE2_DB_VERSION = 26
 
 # the lowest supported database version number
 LOWEST_SUPPORTED_DB_VERSION = TRIBLER_59_DB_VERSION
 
 # the latest database version number
-LATEST_DB_VERSION = TRIBLER_65PRE_DB_VERSION
+LATEST_DB_VERSION = TRIBLER_65PRE2_DB_VERSION
