@@ -219,8 +219,8 @@ class AllChannelCommunity(Community):
                 self._blocklist[candidate] = now
 
                 nr_torrents = sum(len(torrent) for torrent in torrents.values())
-                self._logger.debug("sending channelcast message containing %s torrents to %s didFavorite %s", nr_torrents, candidate.sock_addr, didFavorite)
-
+                self._logger.debug("sending channelcast message containing %s torrents to %s didFavorite %s",
+                                   nr_torrents, candidate.sock_addr, didFavorite)
                 # we're done
                 break
 
@@ -278,7 +278,7 @@ class AllChannelCommunity(Community):
 
             if requested_packets:
                 self._dispersy._send_packets([message.candidate], requested_packets,
-                    self, "-caused by channelcast-request-")
+                                             self, "-caused by channelcast-request-")
 
             self._logger.debug("got request for %s torrents from %s", len(requested_packets), message.candidate)
 
@@ -409,13 +409,18 @@ class AllChannelCommunity(Community):
                     # at this point we should NOT have the channel message for this community
                     if __debug__:
                         try:
-                            self._dispersy.database.execute(u"SELECT * FROM sync WHERE community = ? AND meta_message = ? AND undone = 0", (community.database_id, community.get_meta_message(u"channel").database_id)).next()
-                            self._logger.error("We already have the channel message... no need to wait for it %s", community.cid.encode("HEX"))
+                            self._dispersy.database.execute(
+                                u"SELECT * FROM sync WHERE community = ? AND meta_message = ? AND undone = 0",
+                                (community.database_id, community.get_meta_message(u"channel").database_id)).next()
+                            self._logger.error("We already have the channel message... no need to wait for it %s",
+                                               community.cid.encode("HEX"))
                         except StopIteration:
                             pass
 
-                    self._logger.debug("Did not receive channel, requesting channel message '%s' from %s", community.cid.encode("HEX"), message.candidate.sock_addr)
-                    yield DelayMessageReqChannelMessage(message, community, includeSnapshot=message.payload.vote > 0)  # request torrents if positive vote
+                    self._logger.debug("Did not receive channel, requesting channel message '%s' from %s",
+                                       community.cid.encode("HEX"), message.candidate.sock_addr)
+                    # request torrents if positive vote
+                    yield DelayMessageReqChannelMessage(message, community, includeSnapshot=message.payload.vote > 0)
 
                 else:
                     message.channel_id = channel_ids[message.payload.cid]
@@ -442,8 +447,10 @@ class AllChannelCommunity(Community):
                         channel_id = self._channelcast_db._db.fetchone(select_channel, (buffer(message.payload.cid),))
 
                         if not channel_id:
-                            insert_channel = "INSERT INTO _Channels (dispersy_cid, peer_id, name) VALUES (?, ?, ?); SELECT last_insert_rowid();"
-                            channel_id = self._channelcast_db._db.fetchone(insert_channel, (buffer(message.payload.cid), -1, ''))
+                            insert_channel = "INSERT INTO _Channels (dispersy_cid, peer_id, name) " \
+                                             "VALUES (?, ?, ?); SELECT last_insert_rowid();"
+                            channel_id = self._channelcast_db._db.fetchone(insert_channel,
+                                                                           (buffer(message.payload.cid), -1, ''))
                 else:
                     peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
 
@@ -488,7 +495,8 @@ class AllChannelCommunity(Community):
 
     def unload_preview(self):
         cleanpoint = time() - 300
-        inactive = [community for community in self.dispersy._communities.itervalues() if isinstance(community, PreviewChannelCommunity) and community.init_timestamp < cleanpoint]
+        inactive = [community for community in self.dispersy._communities.itervalues() if isinstance(
+            community, PreviewChannelCommunity) and community.init_timestamp < cleanpoint]
         self._logger.debug("cleaning %d/%d previewchannel communities", len(inactive), len(self.dispersy._communities))
 
         for community in inactive:
@@ -536,7 +544,8 @@ class AllChannelCommunity(Community):
 
         packets = []
         for infohash in infohashes:
-            dispersy_id = self._channelcast_db.getTorrentFromChannelId(channel_id, infohash, ['ChannelTorrents.dispersy_id'])
+            dispersy_id = self._channelcast_db.getTorrentFromChannelId(
+                channel_id, infohash, ['ChannelTorrents.dispersy_id'])
 
             if dispersy_id and dispersy_id > 0:
                 try:
@@ -549,7 +558,8 @@ class AllChannelCommunity(Community):
 
     def _get_packet_from_dispersy_id(self, dispersy_id, messagename):
         try:
-            packet, = self._dispersy.database.execute(u"SELECT sync.packet FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
+            packet, = self._dispersy.database.execute(
+                u"SELECT sync.packet FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
         except StopIteration:
             raise RuntimeError("Unknown dispersy_id")
         return str(packet)
