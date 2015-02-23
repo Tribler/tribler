@@ -191,16 +191,6 @@ class TestTorrentDBHandler(AbstractDB):
         assert self.tdb.hasTorrent(fake_infoahsh) == False
 
     @blocking_call_on_reactor_thread
-    def test_loadTorrents(self):
-        res = self.tdb.getTorrents()  # only returns good torrents
-
-        data = res[0]
-        # print data
-        assert data['category'][0] in self.misc_db._category_name2id_dict, data['category']
-        assert data['status'] in self.misc_db._torrent_status_name2id_dict, data['status']
-        assert len(data['infohash']) == 20
-
-    @blocking_call_on_reactor_thread
     def test_add_update_Torrent(self):
         self.addTorrent()
         self.updateTorrent()
@@ -228,8 +218,8 @@ class TestTorrentDBHandler(AbstractDB):
         multiple_tdef = TorrentDef.load(multiple_torrent_file_path)
         assert m_infohash == multiple_tdef.get_infohash()
 
-        self.tdb.addExternalTorrent(single_tdef, extra_info={'filename': single_torrent_file_path})
-        self.tdb.addExternalTorrent(multiple_tdef, extra_info={'filename': multiple_torrent_file_path})
+        self.tdb.addExternalTorrent(single_tdef)
+        self.tdb.addExternalTorrent(multiple_tdef)
 
         single_torrent_id = self.tdb.getTorrentID(s_infohash)
         multiple_torrent_id = self.tdb.getTorrentID(m_infohash)

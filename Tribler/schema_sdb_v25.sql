@@ -62,11 +62,9 @@ CREATE TABLE Torrent (
   torrent_id       integer PRIMARY KEY AUTOINCREMENT NOT NULL,
   infohash		   text NOT NULL,
   name             text,
-  torrent_file_name text,
   length           integer,
   creation_date    integer,
   num_files        integer,
-  thumbnail        integer,
   insert_time      numeric,
   secret           integer,
   relevance        numeric DEFAULT 0,
@@ -76,6 +74,7 @@ CREATE TABLE Torrent (
   num_leechers     integer,
   comment          text,
   dispersy_id      integer,
+  is_collected     integer DEFAULT 0,
   last_tracker_check    integer DEFAULT 0,
   tracker_check_retries integer DEFAULT 0,
   next_tracker_check    integer DEFAULT 0
@@ -113,7 +112,7 @@ CREATE TABLE TorrentTrackerMapping (
 
 ----------------------------------------
 
-CREATE VIEW CollectedTorrent AS SELECT * FROM Torrent WHERE torrent_file_name IS NOT NULL;
+CREATE VIEW CollectedTorrent AS SELECT * FROM Torrent WHERE is_collected == 1;
 
 ----------------------------------------
 -- v9: Open2Edit replacing ChannelCast tables

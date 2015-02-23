@@ -129,7 +129,7 @@ class TorrentDetails(AbstractDetails):
         self.utility = self.guiutility.utility
 
         self.parent = parent
-        self.torrent = Torrent('0', '0', '', '', 0, 0, 0, 0, 0, None)
+        self.torrent = Torrent('0', '0', '', 0, 0, 0, 0, 0, None)
         self.state = -1
         self.timeouttimer = None
 
@@ -865,8 +865,6 @@ class TorrentDetails(AbstractDetails):
 
         if not curTorrent.exactCopy(newTorrent):
             # replace current torrent
-            curTorrent.torrent_file_name = newTorrent.torrent_file_name
-
             curTorrent.name = newTorrent.name
             curTorrent.length = newTorrent.length
             curTorrent.category_id = newTorrent.category_id
