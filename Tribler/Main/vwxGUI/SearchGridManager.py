@@ -720,7 +720,6 @@ class LibraryManager(object):
 
         # current progress of download states
         self.cache_progress = {}
-        self.last_progress_update = time()
 
         # For asking for a refresh when remote results came in
         self.gridmgr = None
@@ -756,10 +755,6 @@ class LibraryManager(object):
         self.dslist = dslist
         startWorker(None, self._do_gui_callback, uId=u"LibraryManager_refresh_callbacks", workerType="guiTaskQueue")
 
-        if time() - self.last_progress_update > 10:
-            self.last_progress_update = time()
-            startWorker(None, self.updateProgressInDB, uId=u"LibraryManager_refresh_callbacks", retryOnBusy=True, priority=GUI_PRI_DISPERSY)
-
         return self.wantpeers
 
     def magnet_started(self, infohash):
@@ -791,19 +786,6 @@ class LibraryManager(object):
                 callback(dslist, magnetlist)
             except:
                 print_exc()
-
-    def updateProgressInDB(self):
-        for ds in self.dslist[:]:
-            infohash = ds.get_download().get_def().get_infohash()
-            progress = (ds.get_progress() or 0.0) * 100.0
-
-            # update progress if difference is larger than 5%
-            if progress - self.cache_progress.get(infohash, 0) > 5:
-                self.cache_progress[infohash] = progress
-                try:
-                    self.mypref_db.updateProgressByHash(infohash, progress)
-                except:
-                    print_exc()
 
     def add_download_state_callback(self, callback):
         if callback not in self.gui_callback:

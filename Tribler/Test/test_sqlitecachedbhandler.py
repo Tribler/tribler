@@ -360,16 +360,6 @@ class TestMyPreferenceDBHandler(AbstractDB):
         assert p3 == p, p3
 
     @blocking_call_on_reactor_thread
-    def test_updateProgress(self):
-        infohash_str_126 = 'ByJho7yj9mWY1ORWgCZykLbU1Xc='
-        infohash = str2bin(infohash_str_126)
-        torrent_id = self.tdb.getTorrentID(infohash)
-        assert torrent_id == 126
-        self.mdb.updateProgress(torrent_id, 3.14)
-        p = self.mdb.getOne('progress', torrent_id=torrent_id)
-        assert p == 3.14
-
-    @blocking_call_on_reactor_thread
     def test_getMyPrefListInfohash(self):
         preflist = self.mdb.getMyPrefListInfohash()
         for p in preflist:
