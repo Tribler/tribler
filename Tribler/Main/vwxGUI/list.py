@@ -2093,11 +2093,11 @@ class ChannelList(List):
     def OnAdd(self, event):
         dlg = wx.TextEntryDialog(
             None,
-            'Please specify the channel-identifier.\n"
+            "Please specify the channel-identifier.\n"
             "This should be a 40 character string which can be found in the overview tab of the channel "
             "management interface.\n\n"
-            "Joining a channel can take up to 1 minute and should appear in the all channellist.',
-            'Enter channel-identifier')
+            "Joining a channel can take up to 1 minute and should appear in the all channellist.",
+            "Enter channel-identifier")
         if dlg.ShowModal() == wx.ID_OK:
             cid = dlg.GetValue()
             cid = cid.decode("hex")
