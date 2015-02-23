@@ -1563,15 +1563,6 @@ class LibraryList(SizeList):
             header = DownloadFilter(parent, self)
         else:
             raise NotYetImplementedException('')
-#            header = LibraryOnlyHeader(parent, self, self.columns)
-#            def showSettings(event):
-#                self.guiutility.ShowPage('settings')
-#
-#            def showChannel(event):
-#                self.guiutility.ShowPage('selectedchannel')
-#
-#            header.SetEvents(self.OnAdd, showSettings, showChannel)
-#            header.SetTitle('Downloads')
 
         return header
 

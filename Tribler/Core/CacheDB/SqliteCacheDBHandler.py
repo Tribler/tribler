@@ -7,8 +7,6 @@
 import logging
 import os
 import threading
-import urllib
-from binascii import hexlify
 from copy import deepcopy
 from random import sample
 from struct import unpack_from
