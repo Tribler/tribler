@@ -27,6 +27,7 @@ DIR_PREFIX = u"dir" + DIR_SEPARATOR
 
 
 class TftpHandler(TaskManager):
+
     """
     This is the TFTP handler that should be registered at the RawServer to handle TFTP packets.
     """
@@ -376,7 +377,7 @@ class TftpHandler(TaskManager):
         :param file_name: The path of the file.
         """
 
-        infohash=file_name[:-8]  # len('.torrent') = 8
+        infohash = file_name[:-8]  # len('.torrent') = 8
 
         file_data = self.session.lm.torrent_store.get(infohash)
         # check if file exists
@@ -409,7 +410,7 @@ class TftpHandler(TaskManager):
         # check if it is an ERROR packet
         if packet['opcode'] == OPCODE_ERROR:
             self._logger.warning(u"%s got ERROR message: code = %s, msg = %s",
-                               session, packet['error_code'], packet['error_msg'])
+                                 session, packet['error_code'], packet['error_msg'])
             session.is_failed = True
             return
 
