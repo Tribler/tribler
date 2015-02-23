@@ -103,7 +103,7 @@ class FileDropTarget(wx.FileDropTarget):
                 if not found:
                     break
             try:
-                self.frame.startDownload(filename, destdir=destdir, fixtorrent=True)
+                self.frame.startDownload(filename, destdir=destdir)
             except IOError:
                 dlg = wx.MessageDialog(None,
                     "File not found or cannot be accessed.",
