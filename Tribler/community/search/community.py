@@ -592,10 +592,11 @@ class SearchCommunity(Community):
         self.torrent_cache = (time(), torrents)
         return torrents
 
-    def create_torrent(self, filename, store=True, update=True, forward=True):
-        if path.exists(filename):
+    def create_torrent(self, infohash, store=True, update=True, forward=True):
+        torrent_data = self.tribler_session.get_collected_torrent(infohash)
+        if torrent_data is not None:
             try:
-                torrentdef = TorrentDef.load(filename)
+                torrentdef = TorrentDef.load_from_memory(torrent_data)
                 files = torrentdef.get_files_as_unicode_with_length()
 
                 meta = self.get_meta_message(u"torrent")
@@ -668,13 +669,13 @@ class SearchCommunity(Community):
             if channel_id:
                 dispersy_id = self._channelcast_db.getTorrentFromChannelId(channel_id, infohash, ['ChannelTorrents.dispersy_id'])
             else:
-                torrent = self._torrent_db.getTorrent(infohash, ['dispersy_id', 'torrent_file_name'], include_mypref=False)
+                torrent = self._torrent_db.getTorrent(infohash, ['dispersy_id'], include_mypref=False)
                 if torrent:
                     dispersy_id = torrent['dispersy_id']
 
                     # 2. if still not found, create a new torrentmessage and return this one
-                    if not dispersy_id and torrent['torrent_file_name'] and path.isfile(torrent['torrent_file_name']):
-                        message = self.create_torrent(torrent['torrent_file_name'], store=True, update=False, forward=False)
+                    if not dispersy_id:
+                        message = self.create_torrent(infohash, store=True, update=False, forward=False)
                         if message:
                             packets.append(message.packet)
             add_packet(dispersy_id)

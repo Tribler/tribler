@@ -195,15 +195,10 @@ class TorrentChecking(Thread):
             tracker_set.add(tracker)
 
         # get trackers from its .torrent file
-        result = None
-        torrent = self._torrentdb.getTorrent(infohash,  ['torrent_file_name'], include_mypref=False)
-        if torrent:
-            if torrent.get('torrent_file_name', False) and os.path.isfile(torrent['torrent_file_name']):
-                result = torrent['torrent_file_name']
-
-        if result:
+        torrent_data = self.session.get_collected_torrent(infohash)
+        if torrent_data:
             try:
-                torrent = TorrentDef.load(result)
+                torrent = TorrentDef.load_from_memory(torrent_data)
                 # check DHT
                 if torrent.is_private():
                     dht = 'no-DHT'
