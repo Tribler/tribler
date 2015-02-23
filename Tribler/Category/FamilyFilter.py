@@ -67,7 +67,7 @@ class XXXFilter(object):
         if not self.isAudio(s) and self.foundXXXTerm(s):
             return True
         words = self._getWords(s)
-        words2 = [' '.join(words[i:i + 2]) for i in xrange(0, len(words) -1)]
+        words2 = [' '.join(words[i:i + 2]) for i in xrange(0, len(words) - 1)]
         num_xxx = len([w for w in words + words2 if self.isXXXTerm(w, s)])
         if isFilename and self.isAudio(s):
             return num_xxx > 2  # almost never classify mp3 as porn

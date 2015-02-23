@@ -13,7 +13,8 @@ from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.community.tunnel import CIRCUIT_TYPE_IP, CIRCUIT_TYPE_RP, CIRCUIT_TYPE_RENDEZVOUS, \
     DEFAULT_HOPS, EXIT_NODE, EXIT_NODE_SALT
 
-from Tribler.community.tunnel.payload import (EstablishIntroPayload, IntroEstablishedPayload, EstablishRendezvousPayload,
+from Tribler.community.tunnel.payload import (
+    EstablishIntroPayload, IntroEstablishedPayload, EstablishRendezvousPayload,
                                               RendezvousEstablishedPayload, KeyResponsePayload, KeyRequestPayload,
     CreateE2EPayload, CreatedE2EPayload, LinkE2EPayload, LinkedE2EPayload)
 from Tribler.community.tunnel.routing import RelayRoute, RendezvousPoint, Hop
@@ -78,6 +79,7 @@ class E2ERequestCache(RandomNumberCache):
     def on_timeout(self):
         pass
 
+
 class LinkRequestCache(RandomNumberCache):
 
     def __init__(self, community, circuit, info_hash):
@@ -87,6 +89,7 @@ class LinkRequestCache(RandomNumberCache):
 
     def on_timeout(self):
         pass
+
 
 class HiddenTunnelCommunity(TunnelCommunity):
 
@@ -107,36 +110,36 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
     def initiate_meta_messages(self):
         return super(HiddenTunnelCommunity, self).initiate_meta_messages() + \
-                [Message(self, u"key-request", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                        CandidateDestination(), KeyRequestPayload(), self.check_key_request,
-                        self.on_key_request),
-                 Message(self, u"key-response", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                         CandidateDestination(), KeyResponsePayload(), self.check_key_response,
-                         self.on_key_response),
-                 Message(self, u"create-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                         CandidateDestination(), CreateE2EPayload(), self.check_key_request,
-                         self.on_create_e2e),
-                 Message(self, u"created-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                         CandidateDestination(), CreatedE2EPayload(), self.check_created_e2e,
-                         self.on_created_e2e),
-                 Message(self, u"link-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                         CandidateDestination(), LinkE2EPayload(), self.check_link_e2e,
-                         self.on_link_e2e),
-                 Message(self, u"linked-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                         CandidateDestination(), LinkedE2EPayload(), self.check_linked_e2e,
-                         self.on_linked_e2e),
-                 Message(self, u"establish-intro", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                         CandidateDestination(), EstablishIntroPayload(), self.check_establish_intro,
-                         self.on_establish_intro),
-                 Message(self, u"intro-established", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                         CandidateDestination(), IntroEstablishedPayload(), self.check_intro_established,
-                         self.on_intro_established),
-                 Message(self, u"establish-rendezvous", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                         CandidateDestination(), EstablishRendezvousPayload(), self.check_establish_rendezvous,
-                         self.on_establish_rendezvous),
-                 Message(self, u"rendezvous-established", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                         CandidateDestination(), RendezvousEstablishedPayload(), self.check_rendezvous_established,
-                         self.on_rendezvous_established)]
+            [Message(self, u"key-request", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                     CandidateDestination(), KeyRequestPayload(), self.check_key_request,
+                     self.on_key_request),
+             Message(self, u"key-response", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                     CandidateDestination(), KeyResponsePayload(), self.check_key_response,
+                     self.on_key_response),
+             Message(self, u"create-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                     CandidateDestination(), CreateE2EPayload(), self.check_key_request,
+                     self.on_create_e2e),
+             Message(self, u"created-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                     CandidateDestination(), CreatedE2EPayload(), self.check_created_e2e,
+                     self.on_created_e2e),
+             Message(self, u"link-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                     CandidateDestination(), LinkE2EPayload(), self.check_link_e2e,
+                     self.on_link_e2e),
+             Message(self, u"linked-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                     CandidateDestination(), LinkedE2EPayload(), self.check_linked_e2e,
+                     self.on_linked_e2e),
+             Message(self, u"establish-intro", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                     CandidateDestination(), EstablishIntroPayload(), self.check_establish_intro,
+                     self.on_establish_intro),
+             Message(self, u"intro-established", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                     CandidateDestination(), IntroEstablishedPayload(), self.check_intro_established,
+                     self.on_intro_established),
+             Message(self, u"establish-rendezvous", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                     CandidateDestination(), EstablishRendezvousPayload(), self.check_establish_rendezvous,
+                     self.on_establish_rendezvous),
+             Message(self, u"rendezvous-established", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                     CandidateDestination(), RendezvousEstablishedPayload(), self.check_rendezvous_established,
+                     self.on_rendezvous_established)]
 
     def remove_circuit(self, circuit_id, additional_info='', destroy=False, rebuild=False):
         super(HiddenTunnelCommunity, self).remove_circuit(circuit_id, additional_info, destroy, rebuild)
@@ -271,7 +274,8 @@ class HiddenTunnelCommunity(TunnelCommunity):
                 circuit = self.circuits[int(message.source[8:])]
 
                 meta = self.get_meta_message(u'key-response')
-                response = meta.impl(distribution=(self.global_time,), payload=(message.payload.identifier, key.pub().key_to_bin()))
+                response = meta.impl(distribution=(self.global_time,), payload=(
+                    message.payload.identifier, key.pub().key_to_bin()))
                 circuit.tunnel_data(message.candidate.sock_addr, TUNNEL_PREFIX + response.packet)
 
     def check_key_response(self, messages):
@@ -310,7 +314,8 @@ class HiddenTunnelCommunity(TunnelCommunity):
                 relay_circuit.tunnel_data(message.candidate.sock_addr, TUNNEL_PREFIX + message.packet)
 
             else:
-                self.create_rendevous_point(DEFAULT_HOPS, lambda rendevous_point, message=message: self.create_created_e2e(rendevous_point, message))
+                self.create_rendevous_point(
+                    DEFAULT_HOPS, lambda rendevous_point, message=message: self.create_created_e2e(rendevous_point, message))
 
     def create_created_e2e(self, rendevous_point, message):
         info_hash = message.payload.info_hash
@@ -319,10 +324,12 @@ class HiddenTunnelCommunity(TunnelCommunity):
         circuit = self.circuits[int(message.source[8:])]
         shared_secret, Y, AUTH = self.crypto.generate_diffie_shared_secret(message.payload.key, key)
         rendevous_point.circuit.hs_session_keys = self.crypto.generate_session_keys(shared_secret)
-        rp_info_enc = self.crypto.encrypt_str(encode((rendevous_point.rp_info, rendevous_point.cookie)), *self.get_session_keys(rendevous_point.circuit.hs_session_keys, EXIT_NODE))
+        rp_info_enc = self.crypto.encrypt_str(
+            encode((rendevous_point.rp_info, rendevous_point.cookie)), *self.get_session_keys(rendevous_point.circuit.hs_session_keys, EXIT_NODE))
 
         meta = self.get_meta_message(u'created-e2e')
-        response = meta.impl(distribution=(self.global_time,), payload=(message.payload.identifier, Y, AUTH, rp_info_enc))
+        response = meta.impl(distribution=(self.global_time,), payload=(
+            message.payload.identifier, Y, AUTH, rp_info_enc))
         circuit.tunnel_data(message.candidate.sock_addr, TUNNEL_PREFIX + response.packet)
 
     def check_created_e2e(self, messages):
@@ -341,11 +348,14 @@ class HiddenTunnelCommunity(TunnelCommunity):
     def on_created_e2e(self, messages):
         for message in messages:
             cache = self.request_cache.pop(u"e2e-request", message.payload.identifier)
-            shared_secret = self.crypto.verify_and_generate_shared_secret(cache.hop.dh_secret, message.payload.key, message.payload.auth, cache.hop.public_key.key.pk)
+            shared_secret = self.crypto.verify_and_generate_shared_secret(
+                cache.hop.dh_secret, message.payload.key, message.payload.auth, cache.hop.public_key.key.pk)
             session_keys = self.crypto.generate_session_keys(shared_secret)
 
-            _, rp_info = decode(self.crypto.decrypt_str(message.payload.rp_sock_addr, session_keys[EXIT_NODE], session_keys[EXIT_NODE_SALT]))
-            self.create_circuit(DEFAULT_HOPS, CIRCUIT_TYPE_RENDEZVOUS, callback=lambda circuit, cookie=rp_info[1], session_keys=session_keys, info_hash=cache.info_hash, sock_addr=cache.sock_addr: self.create_link_e2e(circuit, cookie, session_keys, info_hash, sock_addr), max_retries=5, required_exit=rp_info[0])
+            _, rp_info = decode(self.crypto.decrypt_str(
+                message.payload.rp_sock_addr, session_keys[EXIT_NODE], session_keys[EXIT_NODE_SALT]))
+            self.create_circuit(DEFAULT_HOPS, CIRCUIT_TYPE_RENDEZVOUS, callback=lambda circuit, cookie=rp_info[
+                                1], session_keys=session_keys, info_hash=cache.info_hash, sock_addr=cache.sock_addr: self.create_link_e2e(circuit, cookie, session_keys, info_hash, sock_addr), max_retries=5, required_exit=rp_info[0])
 
     def create_link_e2e(self, circuit, cookie, session_keys, info_hash, sock_addr):
         self.my_download_points[circuit.circuit_id] = (info_hash, circuit.goal_hops, sock_addr)
@@ -413,7 +423,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
         # Ensures that libtorrent tries to make an outgoing connection so that the socks5 server
         # knows on which UDP port libtorrent is listening.
         # Niels: is this really neccesary? Why would we need the UDP port of libtorrent?
-        self.trsession.get_download(info_hash).add_peer(('1.1.1.1' , 1024))
+        self.trsession.get_download(info_hash).add_peer(('1.1.1.1', 1024))
 
         # Create a separate key per infohash
         if info_hash not in self.session_keys:
@@ -425,7 +435,8 @@ class HiddenTunnelCommunity(TunnelCommunity):
             self.my_intro_points[circuit_id].append((info_hash, hops))
 
             cache = self.request_cache.add(IPRequestCache(self, circuit))
-            self.send_cell([Candidate(circuit.first_hop, False)], u'establish-intro', (circuit_id, cache.number, info_hash))
+            self.send_cell([Candidate(circuit.first_hop, False)],
+                           u'establish-intro', (circuit_id, cache.number, info_hash))
             self._logger.debug("Established introduction tunnel %s", circuit_id)
 
         for _ in range(amount):
@@ -469,7 +480,8 @@ class HiddenTunnelCommunity(TunnelCommunity):
             rp = RendezvousPoint(circuit, os.urandom(20), finished_callback)
 
             cache = self.request_cache.add(RPRequestCache(self, rp))
-            self.send_cell([Candidate(circuit.first_hop, False)], u'establish-rendezvous', (circuit_id, cache.number, rp.cookie))
+            self.send_cell([Candidate(circuit.first_hop, False)],
+                           u'establish-rendezvous', (circuit_id, cache.number, rp.cookie))
 
         # create a new circuit to be used to transfer data
         self.create_circuit(hops, CIRCUIT_TYPE_RP, callback, max_retries=5)
@@ -487,7 +499,8 @@ class HiddenTunnelCommunity(TunnelCommunity):
             circuit = self.exit_sockets[int(message.source[8:])]
             self.rendezvous_point_for[message.payload.cookie] = circuit
 
-            self.send_cell([message.candidate], u"rendezvous-established", (circuit.circuit_id, message.payload.identifier, self.dispersy.wan_address))
+            self.send_cell([message.candidate], u"rendezvous-established", (
+                circuit.circuit_id, message.payload.identifier, self.dispersy.wan_address))
 
     def check_rendezvous_established(self, messages):
         for message in messages:

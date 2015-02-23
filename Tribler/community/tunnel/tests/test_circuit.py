@@ -10,11 +10,13 @@ __author__ = 'chris'
 
 
 class TestCircuit(TestCase):
+
     def test_destroy(self):
         candidate = Candidate(("127.0.0.1", 1000), False)
         circuit = Circuit(1, 1, candidate)
 
-        self.assertNotEqual(CIRCUIT_STATE_BROKEN, circuit.state, "Newly created circuit should not be considered broken")
+        self.assertNotEqual(CIRCUIT_STATE_BROKEN, circuit.state,
+                            "Newly created circuit should not be considered broken")
         circuit.destroy("Because we want to")
         self.assertEqual(CIRCUIT_STATE_BROKEN, circuit.state, "Destroyed circuit should be considered broken")
 
@@ -24,7 +26,8 @@ class TestCircuit(TestCase):
         circuit.add_hop(Hop(None))
 
         circuit.beat_heart()
-        self.assertAlmostEqual(time.time(), circuit.last_incoming, delta=0.1, msg="Beat heart should update the last_incoming time")
+        self.assertAlmostEqual(time.time(), circuit.last_incoming,
+                               delta=0.1, msg="Beat heart should update the last_incoming time")
 
     def test_state(self):
         candidate = Candidate(("127.0.0.1", 1000), False)
@@ -46,4 +49,4 @@ class TestCircuit(TestCase):
 
         circuit = Circuit(0)
         self.assertEqual(CIRCUIT_STATE_READY, circuit.state,
-                        "Zero hop circuit should always be online")
+                         "Zero hop circuit should always be online")

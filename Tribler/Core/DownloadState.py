@@ -18,6 +18,7 @@ class DownloadState(Serializable):
 
     cf. libtorrent torrent_status
     """
+
     def __init__(self, download, status, error, progress, stats=None, seeding_stats=None, filepieceranges=None, logmsgs=None, peerid=None, videoinfo=None):
         """ Internal constructor.
         @param download The Download this state belongs too.
@@ -324,7 +325,8 @@ class DownloadState(Serializable):
             return selected_files
 
     def get_length(self):
-        # Niels: 28/08/2012 for larger .torrent this methods gets quite expensive, cache the result to prevent us calculating this unnecessarily.
+        # Niels: 28/08/2012 for larger .torrent this methods gets quite expensive,
+        # cache the result to prevent us calculating this unnecessarily.
         if not self.length:
             files = self.get_selected_files()
 

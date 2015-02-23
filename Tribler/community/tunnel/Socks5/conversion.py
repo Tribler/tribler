@@ -24,12 +24,14 @@ REP_ADDRESS_TYPE_NOT_SUPPORTED = 0x08
 
 
 class MethodRequest(object):
+
     def __init__(self, version, methods):
         self.version = version
         self.methods = methods
 
 
 class Request(object):
+
     def __init__(self, version, cmd, rsv, address_type, destination_address,
                  destination_port):
         self.version = version
@@ -49,6 +51,7 @@ class Request(object):
 
 
 class UdpRequest(object):
+
     """
 
     @param rsv: the reserved bits in the SOCKS protocol

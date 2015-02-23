@@ -18,15 +18,16 @@ from Tribler.dispersy.distribution import FullSyncDistribution, DirectDistributi
 from Tribler.dispersy.message import BatchConfiguration, Message, DropMessage, DelayMessageByProof
 from Tribler.dispersy.resolution import LinearResolution, PublicResolution, DynamicResolution
 from Tribler.dispersy.util import call_on_reactor_thread
-from conversion import ChannelConversion
-from message import DelayMessageReqChannelMessage
-from payload import (ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload,
-                     PlaylistTorrentPayload, MissingChannelPayload, MarkTorrentPayload)
+from .conversion import ChannelConversion
+from .message import DelayMessageReqChannelMessage
+from .payload import (ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload,
+                      PlaylistTorrentPayload, MissingChannelPayload, MarkTorrentPayload)
 from twisted.python.log import msg
 from twisted.internet.task import LoopingCall
 from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
 
 logger = logging.getLogger(__name__)
+
 
 def warnDispersyThread(func):
     def invoke_func(*args, **kwargs):
@@ -46,6 +47,7 @@ class ChannelCommunity(Community):
     """
     Each user owns zero or more ChannelCommunities that other can join and use to discuss.
     """
+
     def __init__(self, *args, **kwargs):
         super(ChannelCommunity, self).__init__(*args, **kwargs)
 
@@ -73,7 +75,10 @@ class ChannelCommunity(Community):
             self._channelcast_db = tribler_session.open_dbhandler(NTFY_CHANNELCAST)
 
             # tribler channel_id
-            self._channel_id = self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ? and (peer_id <> -1 or peer_id ISNULL)", (buffer(self._master_member.mid),))
+            self._channel_id = self._channelcast_db._db.fetchone(
+                u"SELECT id FROM Channels WHERE dispersy_cid = ? and (peer_id <> -1 or peer_id ISNULL)",
+                (buffer(self._master_member.mid),
+                 ))
 
             # modification_types
             self._modification_types = self._channelcast_db.modification_types
@@ -144,7 +149,9 @@ class ChannelCommunity(Community):
             Message(self, u"modification",
                     MemberAuthentication(),
                     DynamicResolution(LinearResolution(), PublicResolution()),
-                    FullSyncDistribution(enable_sequence_number=False, synchronization_direction=u"DESC", priority=modification_priority),
+                    FullSyncDistribution(enable_sequence_number=False,
+                                         synchronization_direction=u"DESC",
+                                         priority=modification_priority),
                     CommunityDestination(node_count=10),
                     ModificationPayload(),
                     self._disp_check_modification,
@@ -199,7 +206,22 @@ class ChannelCommunity(Community):
         return [DefaultConversion(self), ChannelConversion(self)]
 
     CHANNEL_CLOSED, CHANNEL_SEMI_OPEN, CHANNEL_OPEN, CHANNEL_MODERATOR = range(4)
-    CHANNEL_ALLOWED_MESSAGES = ([], [u"comment", u"mark_torrent"], [u"torrent", u"comment", u"modification", u"playlist_torrent", u"moderation", u"mark_torrent"], [u"channel", u"torrent", u"playlist", u"comment", u"modification", u"playlist_torrent", u"moderation", u"mark_torrent"])
+    CHANNEL_ALLOWED_MESSAGES = ([],
+                                [u"comment", u"mark_torrent"],
+                                [u"torrent",
+                                 u"comment",
+                                 u"modification",
+                                 u"playlist_torrent",
+                                 u"moderation",
+                                 u"mark_torrent"],
+                                [u"channel",
+                                 u"torrent",
+                                 u"playlist",
+                                 u"comment",
+                                 u"modification",
+                                 u"playlist_torrent",
+                                 u"moderation",
+                                 u"mark_torrent"])
 
     def get_channel_mode(self):
         public = set()
@@ -285,7 +307,10 @@ class ChannelCommunity(Community):
                     peer_id = None
                 else:
                     peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
-                self._channel_id = self._channelcast_db.on_channel_from_dispersy(self._master_member.mid, peer_id, message.payload.name, message.payload.description)
+                self._channel_id = self._channelcast_db.on_channel_from_dispersy(self._master_member.mid,
+                                                                                 peer_id,
+                                                                                 message.payload.name,
+                                                                                 message.payload.description)
         else:
             for message in messages:
                 self._channel_id = self._master_member.mid
@@ -295,7 +320,9 @@ class ChannelCommunity(Community):
 
     def _disp_create_torrent_from_torrentdef(self, torrentdef, timestamp, store=True, update=True, forward=True):
         files = torrentdef.get_files_as_unicode_with_length()
-        return self._disp_create_torrent(torrentdef.get_infohash(), timestamp, torrentdef.get_name_as_unicode(), tuple(files), torrentdef.get_trackers_as_single_tuple(), store, update, forward)
+        return (self._disp_create_torrent(torrentdef.get_infohash(), timestamp,
+                                          torrentdef.get_name_as_unicode(), tuple(files),
+                                          torrentdef.get_trackers_as_single_tuple(), store, update, forward))
 
     def _disp_create_torrent(self, infohash, timestamp, name, files, trackers, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"torrent")
@@ -348,14 +375,25 @@ class ChannelCommunity(Community):
                 else:
                     peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
 
-                torrentlist.append((self._channel_id, dispersy_id, peer_id, message.payload.infohash, message.payload.timestamp, message.payload.name, message.payload.files, message.payload.trackers))
-                _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TORRENTS_RECEIVED, message.authentication.member.mid.encode('hex'))
+                torrentlist.append(
+                    (self._channel_id,
+                     dispersy_id,
+                     peer_id,
+                     message.payload.infohash,
+                     message.payload.timestamp,
+                     message.payload.name,
+                     message.payload.files,
+                     message.payload.trackers))
+                _barter_statistics.dict_inc_bartercast(
+                    BartercastStatisticTypes.TORRENTS_RECEIVED,
+                    message.authentication.member.mid.encode('hex'))
             self._channelcast_db.on_torrents_from_dispersy(torrentlist)
         else:
             for message in messages:
                 self._channelcast_db.newTorrent(message)
-                self._logger.debug("torrent received: %s on channel: %s" % (message.payload.infohash, self._master_member))
-                _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TORRENTS_RECEIVED, message.authentication.member.mid.encode('hex'))
+                self._logger.debug("torrent received: %s on channel: %s", message.payload.infohash, self._master_member)
+                _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TORRENTS_RECEIVED,
+                                                       message.authentication.member.mid.encode('hex'))
 
     def _disp_undo_torrent(self, descriptors, redo=False):
         for _, _, packet in descriptors:
@@ -423,7 +461,11 @@ class ChannelCommunity(Community):
                 else:
                     peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
 
-                self._channelcast_db.on_playlist_from_dispersy(self._channel_id, dispersy_id, peer_id, message.payload.name, message.payload.description)
+                self._channelcast_db.on_playlist_from_dispersy(self._channel_id,
+                                                               dispersy_id,
+                                                               peer_id,
+                                                               message.payload.name,
+                                                               message.payload.description)
 
     def _disp_undo_playlist(self, descriptors, redo=False):
         if self.integrate_with_tribler:
@@ -433,7 +475,8 @@ class ChannelCommunity(Community):
 
     # create, check or receive comments
     @call_on_reactor_thread
-    def create_comment(self, text, timestamp, reply_to, reply_after, playlist_id, infohash, store=True, update=True, forward=True):
+    def create_comment(self, text, timestamp, reply_to, reply_after, playlist_id, infohash, store=True, update=True,
+                       forward=True):
         reply_to_message = reply_to
         reply_after_message = reply_after
         playlist_message = playlist_id
@@ -444,10 +487,13 @@ class ChannelCommunity(Community):
             reply_after_message = self._dispersy.load_message_by_packetid(self, reply_after)
         if playlist_id:
             playlist_message = self._get_message_from_playlist_id(playlist_id)
-        self._disp_create_comment(text, timestamp, reply_to_message, reply_after_message, playlist_message, infohash, store, update, forward)
+        self._disp_create_comment( text, timestamp, reply_to_message,
+                                   reply_after_message, playlist_message,
+                                   infohash, store, update, forward)
 
     @call_on_reactor_thread
-    def _disp_create_comment(self, text, timestamp, reply_to_message, reply_after_message, playlist_message, infohash, store=True, update=True, forward=True):
+    def _disp_create_comment(self, text, timestamp, reply_to_message, reply_after_message, playlist_message, infohash,
+                             store=True, update=True, forward=True):
         reply_to_mid = None
         reply_to_global_time = None
         if reply_to_message:
@@ -469,8 +515,10 @@ class ChannelCommunity(Community):
         current_policy, _ = self._timeline.get_resolution_policy(meta, global_time)
         message = meta.impl(authentication=(self._my_member,),
                             resolution=(current_policy.implement(),),
-                            distribution=(global_time,),
-                            payload=(text, timestamp, reply_to_mid, reply_to_global_time, reply_after_mid, reply_after_global_time, playlist_message, infohash))
+                            distribution=(global_time,), payload=(text,
+                                                                  timestamp, reply_to_mid, reply_to_global_time,
+                                                                  reply_after_mid, reply_after_global_time,
+                                                                  playlist_message, infohash))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
@@ -503,22 +551,38 @@ class ChannelCommunity(Community):
                 reply_to_id = None
                 if message.payload.reply_to_mid:
                     try:
-                        reply_to_id = self._get_packet_id(message.payload.reply_to_global_time, message.payload.reply_to_mid)
+                        reply_to_id = self._get_packet_id(
+                            message.payload.reply_to_global_time,
+                            message.payload.reply_to_mid)
                     except:
                         reply_to_id = pack('!20sQ', message.payload.reply_to_mid, message.payload.reply_to_global_time)
 
                 reply_after_id = None
                 if message.payload.reply_after_mid:
                     try:
-                        reply_after_id = self._get_packet_id(message.payload.reply_after_global_time, message.payload.reply_after_mid)
+                        reply_after_id = self._get_packet_id(
+                            message.payload.reply_after_global_time,
+                            message.payload.reply_after_mid)
                     except:
-                        reply_after_id = pack('!20sQ', message.payload.reply_after_mid, message.payload.reply_after_global_time)
+                        reply_after_id = pack(
+                            '!20sQ',
+                            message.payload.reply_after_mid,
+                            message.payload.reply_after_global_time)
 
                 playlist_dispersy_id = None
                 if message.payload.playlist_packet:
                     playlist_dispersy_id = message.payload.playlist_packet.packet_id
 
-                self._channelcast_db.on_comment_from_dispersy(self._channel_id, dispersy_id, mid_global_time, peer_id, message.payload.text, message.payload.timestamp, reply_to_id, reply_after_id, playlist_dispersy_id, message.payload.infohash)
+                self._channelcast_db.on_comment_from_dispersy(self._channel_id,
+                                                              dispersy_id,
+                                                              mid_global_time,
+                                                              peer_id,
+                                                              message.payload.text,
+                                                              message.payload.timestamp,
+                                                              reply_to_id,
+                                                              reply_after_id,
+                                                              playlist_dispersy_id,
+                                                              message.payload.infohash)
 
     def _disp_undo_comment(self, descriptors, redo=False):
         if self.integrate_with_tribler:
@@ -547,7 +611,10 @@ class ChannelCommunity(Community):
         for type, value in modifications.iteritems():
             type = unicode(type)
             timestamp = long(time())
-            self._disp_create_modification(type, value, timestamp, modification_on_message, latest_modifications[type], store, update, forward)
+            self._disp_create_modification( type, value, timestamp,
+                                            modification_on_message,
+                                            latest_modifications[type], store,
+                                            update, forward)
 
     @call_on_reactor_thread
     def modifyPlaylist(self, playlist_id, modifications, store=True, update=True, forward=True):
@@ -561,7 +628,10 @@ class ChannelCommunity(Community):
         for type, value in modifications.iteritems():
             type = unicode(type)
             timestamp = long(time())
-            self._disp_create_modification(type, value, timestamp, modification_on_message, latest_modifications[type], store, update, forward)
+            self._disp_create_modification( type, value, timestamp,
+                                            modification_on_message,
+                                            latest_modifications[type], store,
+                                            update, forward)
 
     @call_on_reactor_thread
     def modifyTorrent(self, channeltorrent_id, modifications, store=True, update=True, forward=True):
@@ -577,9 +647,13 @@ class ChannelCommunity(Community):
         modification_on_message = self._get_message_from_torrent_id(channeltorrent_id)
         for type, value in modifications.iteritems():
             timestamp = long(time())
-            self._disp_create_modification(type, value, timestamp, modification_on_message, latest_modifications[type], store, update, forward)
+            self._disp_create_modification(type, value, timestamp,
+                                           modification_on_message,
+                                           latest_modifications[type], store,
+                                           update, forward)
 
-    def _disp_create_modification(self, modification_type, modifcation_value, timestamp, modification_on, latest_modification, store=True, update=True, forward=True):
+    def _disp_create_modification( self, modification_type, modifcation_value, timestamp, modification_on,
+                                   latest_modification, store=True, update=True, forward=True):
         modification_type = unicode(modification_type)
         modifcation_value = unicode(modifcation_value[:1023])
 
@@ -596,7 +670,10 @@ class ChannelCommunity(Community):
         message = meta.impl(authentication=(self._my_member,),
                             resolution=(current_policy.implement(),),
                             distribution=(global_time,),
-                            payload=(modification_type, modifcation_value, timestamp, modification_on, latest_modification, latest_modification_mid, latest_modification_global_time))
+                            payload=(modification_type, modifcation_value,
+                                     timestamp, modification_on, latest_modification,
+                                     latest_modification_mid,
+                                     latest_modification_global_time))
         self._dispersy.store_update_forward([message], store, update, forward)
         return message
 
@@ -626,17 +703,26 @@ class ChannelCommunity(Community):
                     continue
                 else:
                     modifying_dispersy_id = message.payload.modification_on.packet_id
-                    torrent_id = self._channelcast_db._db.fetchone(u"SELECT torrent_id FROM _ChannelTorrents WHERE dispersy_id = ?", (modifying_dispersy_id,))
-                    infohash = self._channelcast_db._db.fetchone(u"SELECT infohash FROM Torrent WHERE torrent_id = ?", (torrent_id,))
+                    torrent_id = self._channelcast_db._db.fetchone(
+                        u"SELECT torrent_id FROM _ChannelTorrents WHERE dispersy_id = ?",
+                        (modifying_dispersy_id,))
+                    infohash = self._channelcast_db._db.fetchone(
+                        u"SELECT infohash FROM Torrent WHERE torrent_id = ?", (torrent_id,))
                     if infohash:
                         infohash = str2bin(infohash)
-                        logger.debug("Incoming swift-thumbnails with infohash %s from %s", infohash.encode("HEX"), message.candidate.sock_addr[0])
+                        logger.debug(
+                            "Incoming swift-thumbnails with infohash %s from %s",
+                            infohash.encode("HEX"),
+                            message.candidate.sock_addr[0])
 
                         if not th_handler.has_metadata("thumbs", infohash, thumbnail_subpath):
                             @call_on_reactor_thread
                             def callback(_, message=message):
                                 self.on_messages([message])
-                            logger.debug("Will try to download swift-thumbnails with infohash %s from %s", infohash.encode("HEX"), message.candidate.sock_addr[0])
+                            logger.debug(
+                                "Will try to download swift-thumbnails with infohash %s from %s",
+                                infohash.encode("HEX"),
+                                message.candidate.sock_addr[0])
                             th_handler.download_metadata("thumbs", message.candidate, infohash, thumbnail_subpath,
                                                          timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
                             continue
@@ -683,7 +769,18 @@ class ChannelCommunity(Community):
                     peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
 
                 # always store metadata
-                self._channelcast_db.on_metadata_from_dispersy(message_name, channeltorrentDict.get(modifying_dispersy_id, None), playlistDict.get(modifying_dispersy_id, None), self._channel_id, dispersy_id, peer_id, mid_global_time, modification_type_id, modification_value, timestamp, prev_modification_id, prev_modification_global_time)
+                self._channelcast_db.on_metadata_from_dispersy(message_name,
+                                                               channeltorrentDict.get(modifying_dispersy_id, None),
+                                                               playlistDict.get(modifying_dispersy_id, None),
+                                                               self._channel_id,
+                                                               dispersy_id,
+                                                               peer_id,
+                                                               mid_global_time,
+                                                               modification_type_id,
+                                                               modification_value,
+                                                               timestamp,
+                                                               prev_modification_id,
+                                                               prev_modification_global_time)
 
             for message in messages:
                 dispersy_id = message.packet_id
@@ -701,19 +798,22 @@ class ChannelCommunity(Community):
                     if channeltorrent_id:
                         latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
                         if not latest or latest.packet_id == dispersy_id:
-                            self._channelcast_db.on_torrent_modification_from_dispersy(channeltorrent_id, modification_type, modification_value)
+                            self._channelcast_db.on_torrent_modification_from_dispersy(
+                                channeltorrent_id, modification_type, modification_value)
 
                 elif message_name == u"playlist":
                     playlist_id = playlistDict[modifying_dispersy_id]
 
                     latest = self._get_latest_modification_from_playlist_id(playlist_id, modification_type_id)
                     if not latest or latest.packet_id == dispersy_id:
-                        self._channelcast_db.on_playlist_modification_from_dispersy(playlist_id, modification_type, modification_value)
+                        self._channelcast_db.on_playlist_modification_from_dispersy(
+                            playlist_id, modification_type, modification_value)
 
                 elif message_name == u"channel":
                     latest = self._get_latest_modification_from_channel_id(modification_type_id)
                     if not latest or latest.packet_id == dispersy_id:
-                        self._channelcast_db.on_channel_modification_from_dispersy(self._channel_id, modification_type, modification_value)
+                        self._channelcast_db.on_channel_modification_from_dispersy(
+                            self._channel_id, modification_type, modification_value)
 
             if __debug__:
                 for message in messages:
@@ -745,21 +845,24 @@ class ChannelCommunity(Community):
 
                     if not latest or latest.packet_id == dispersy_id:
                         modification_value = latest.payload.modification_value if latest else ''
-                        self._channelcast_db.on_torrent_modification_from_dispersy(channeltorrent_id, modification_type, modification_value)
+                        self._channelcast_db.on_torrent_modification_from_dispersy(
+                            channeltorrent_id, modification_type, modification_value)
 
                 elif message_name == u"playlist":
                     latest = self._get_latest_modification_from_playlist_id(playlist_id, modification_type_id)
 
                     if not latest or latest.packet_id == dispersy_id:
                         modification_value = latest.payload.modification_value if latest else ''
-                        self._channelcast_db.on_playlist_modification_from_dispersy(playlist_id, modification_type, modification_value)
+                        self._channelcast_db.on_playlist_modification_from_dispersy(
+                            playlist_id, modification_type, modification_value)
 
                 elif message_name == u"channel":
                     latest = self._get_latest_modification_from_channel_id(modification_type_id)
 
                     if not latest or latest.packet_id == dispersy_id:
                         modification_value = latest.payload.modification_value if latest else ''
-                        self._channelcast_db.on_channel_modification_from_dispersy(self._channel_id, modification_type, modification_value)
+                        self._channelcast_db.on_channel_modification_from_dispersy(
+                            self._channel_id, modification_type, modification_value)
 
     # create, check or receive playlist_torrent messages
     @call_on_reactor_thread
@@ -812,7 +915,10 @@ class ChannelCommunity(Community):
                 else:
                     peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
 
-                self._channelcast_db.on_playlist_torrent(dispersy_id, playlist_dispersy_id, peer_id, message.payload.infohash)
+                self._channelcast_db.on_playlist_torrent(dispersy_id,
+                                                         playlist_dispersy_id,
+                                                         peer_id,
+                                                         message.payload.infohash)
 
     def _disp_undo_playlist_torrent(self, descriptors, redo=False):
         if self.integrate_with_tribler:
@@ -886,13 +992,19 @@ class ChannelCommunity(Community):
                     if not latest or latest.packet_id == cause_message.packet_id:
                         updateTorrent = True
 
-                self._channelcast_db.on_moderation(self._channel_id, dispersy_id, peer_id, by_peer_id, cause, message.payload.text, message.payload.timestamp, message.payload.severity)
+                self._channelcast_db.on_moderation( self._channel_id,
+                                                    dispersy_id, peer_id,
+                                                    by_peer_id, cause,
+                                                    message.payload.text,
+                                                    message.payload.timestamp,
+                                                    message.payload.severity)
 
                 if updateTorrent:
                     latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
 
                     modification_value = latest.payload.modification_value if latest else ''
-                    self._channelcast_db.on_torrent_modification_from_dispersy(channeltorrent_id, modification_type, modification_value)
+                    self._channelcast_db.on_torrent_modification_from_dispersy(
+                        channeltorrent_id, modification_type, modification_value)
 
     def _disp_undo_moderation(self, descriptors, redo=False):
         if self.integrate_with_tribler:
@@ -936,7 +1048,14 @@ class ChannelCommunity(Community):
                     peer_id = None
                 else:
                     peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
-                self._channelcast_db.on_mark_torrent(self._channel_id, dispersy_id, global_time, peer_id, message.payload.infohash, message.payload.type, message.payload.timestamp)
+                self._channelcast_db.on_mark_torrent(
+                    self._channel_id,
+                    dispersy_id,
+                    global_time,
+                    peer_id,
+                    message.payload.infohash,
+                    message.payload.type,
+                    message.payload.timestamp)
 
     def _disp_undo_mark_torrent(self, descriptors, redo=False):
         if self.integrate_with_tribler:
@@ -971,12 +1090,11 @@ class ChannelCommunity(Community):
                             packets.append(tormessage.packet)
 
                 self._dispersy._send_packets([message.candidate], packets,
-                    self, "-caused by missing-channel-response-snapshot-")
+                                             self, "-caused by missing-channel-response-snapshot-")
 
             else:
                 self._dispersy._send_packets([message.candidate], [channelmessage.packet],
-                    self, "-caused by missing-channel-response-")
-
+                                             self, "-caused by missing-channel-response-")
 
     def on_dynamic_settings(self, *args, **kwargs):
         Community.on_dynamic_settings(self, *args, **kwargs)
@@ -990,7 +1108,8 @@ class ChannelCommunity(Community):
 
         # 1. get the packet
         try:
-            packet, packet_id = self._dispersy.database.execute(u"SELECT packet, id FROM sync WHERE meta_message = ? ORDER BY global_time DESC LIMIT 1",
+            packet, packet_id = self._dispersy.database.execute(
+                u"SELECT packet, id FROM sync WHERE meta_message = ? ORDER BY global_time DESC LIMIT 1",
                                                                 (channel_meta.database_id,)).next()
         except StopIteration:
             raise RuntimeError("Could not find requested packet")
@@ -1000,7 +1119,8 @@ class ChannelCommunity(Community):
             assert message.name == u"channel", "Expecting a 'channel' message"
             message.packet_id = packet_id
         else:
-            raise RuntimeError("Unable to convert packet, could not find channel-message for channel %d" % channel_meta.database_id)
+            raise RuntimeError("Unable to convert packet, could not find channel-message for channel %d" %
+                               channel_meta.database_id)
 
         return message
 
@@ -1033,7 +1153,9 @@ class ChannelCommunity(Community):
         assert len(torrent_infohash) == 20, 'infohash has length %d' % len(torrent_infohash)
 
         # 1. get the dispersy identifier from the channel_id
-        dispersy_id = self._channelcast_db.getTorrentFromChannelId(self._channel_id, torrent_infohash, ['ChannelTorrents.dispersy_id'])
+        dispersy_id = self._channelcast_db.getTorrentFromChannelId(self._channel_id,
+                                                                   torrent_infohash,
+                                                                   ['ChannelTorrents.dispersy_id'])
 
         if dispersy_id and dispersy_id > 0:
             # 2. get the message
@@ -1048,7 +1170,15 @@ class ChannelCommunity(Community):
         assert isinstance(type_id, (int, long)), "type_id type is '%s'" % type(type_id)
 
         # 1. get the dispersy identifier from the channel_id
-        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time FROM ChannelMetaData WHERE type_id = ? AND channel_id = ? AND id NOT IN (SELECT metadata_id FROM MetaDataTorrent) AND id NOT IN (SELECT metadata_id FROM MetaDataPlaylist) AND dispersy_id not in (SELECT cause FROM Moderations WHERE channel_id = ?) ORDER BY prev_global_time DESC", (type_id, self._channel_id, self._channel_id))
+        dispersy_ids = self._channelcast_db._db.fetchall(
+            u"SELECT dispersy_id, prev_global_time " + \
+            u"FROM ChannelMetaData WHERE type_id = ? " + \
+            u"AND channel_id = ? " + \
+            u"AND id NOT IN (SELECT metadata_id FROM MetaDataTorrent) " + \
+            u"AND id NOT IN (SELECT metadata_id FROM MetaDataPlaylist) " + \
+            u"AND dispersy_id not in (SELECT cause FROM Moderations " + \
+            u"WHERE channel_id = ?) ORDER BY prev_global_time DESC",
+            (type_id, self._channel_id, self._channel_id))
         return self._determine_latest_modification(dispersy_ids)
 
     def _get_latest_modification_from_torrent_id(self, channeltorrent_id, type_id):
@@ -1056,7 +1186,14 @@ class ChannelCommunity(Community):
         assert isinstance(type_id, (int, long)), "type_id type is '%s'" % type(type_id)
 
         # 1. get the dispersy identifier from the channel_id
-        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time FROM ChannelMetaData, MetaDataTorrent WHERE ChannelMetaData.id = MetaDataTorrent.metadata_id AND type_id = ? AND channeltorrent_id = ? AND dispersy_id not in (SELECT cause FROM Moderations WHERE channel_id = ?) ORDER BY prev_global_time DESC", (type_id, channeltorrent_id, self._channel_id))
+        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time " + \
+                                                         u"FROM ChannelMetaData, MetaDataTorrent " + \
+                                                         u"WHERE ChannelMetaData.id = MetaDataTorrent.metadata_id " + \
+                                                         u"AND type_id = ? AND channeltorrent_id = ? " + \
+                                                         u"AND dispersy_id not in " + \
+                                                         u"(SELECT cause FROM Moderations WHERE channel_id = ?) " + \
+                                                         u"ORDER BY prev_global_time DESC",
+            (type_id, channeltorrent_id, self._channel_id))
         return self._determine_latest_modification(dispersy_ids)
 
     def _get_latest_modification_from_playlist_id(self, playlist_id, type_id):
@@ -1064,7 +1201,14 @@ class ChannelCommunity(Community):
         assert isinstance(type_id, (int, long)), "type_id type is '%s'" % type(type_id)
 
         # 1. get the dispersy identifier from the channel_id
-        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time FROM ChannelMetaData, MetaDataPlaylist WHERE ChannelMetaData.id = MetaDataPlaylist.metadata_id AND type_id = ? AND playlist_id = ? AND dispersy_id not in (SELECT cause FROM Moderations WHERE channel_id = ?) ORDER BY prev_global_time DESC", (type_id, playlist_id, self._channel_id))
+        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time " + \
+                                                         u"FROM ChannelMetaData, MetaDataPlaylist " + \
+                                                         u"WHERE ChannelMetaData.id = MetaDataPlaylist.metadata_id " + \
+                                                         u"AND type_id = ? AND playlist_id = ? " + \
+                                                         u"AND dispersy_id not in " + \
+                                                         u"(SELECT cause FROM Moderations WHERE channel_id = ?) " + \
+                                                         u"ORDER BY prev_global_time DESC",
+            (type_id, playlist_id, self._channel_id))
         return self._determine_latest_modification(dispersy_ids)
 
     @warnDispersyThread

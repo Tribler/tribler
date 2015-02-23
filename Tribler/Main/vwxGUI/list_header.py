@@ -118,7 +118,14 @@ class ListHeader(wx.Panel):
             down, up, empty = ListHeaderIcon.getInstance().getBitmaps(self, self.GetBackgroundColour())
             for i in xrange(len(columns)):
                 if columns[i].get('name', '') != '':
-                    label = LinkText(parent, columns[i]['name'], fonts=[None, selectedfont], style=columns[i].get('style', 0) | wx.ST_NO_AUTORESIZE, parentsizer=sizer)
+                    label = LinkText(
+                        parent,
+                        columns[i]['name'],
+                        fonts=[None,
+                               selectedfont],
+                        style=columns[i].get('style',
+                                             0) | wx.ST_NO_AUTORESIZE,
+                        parentsizer=sizer)
                     label.SetToolTipString('Click to sort table by %s.' % columns[i]['name'])
                     label.SetBackgroundColour(self.GetBackgroundColour())
                     label.column = i
@@ -157,7 +164,11 @@ class ListHeader(wx.Panel):
                         if remainingWidth > 0:
                             sizer.AddSpacer((remainingWidth, 1))
                         else:
-                            self._logger.info("LIST_HEADER: specified width is too small %s %s %s", columns[i]['name'], columns[i]['width'], remainingWidth)
+                            self._logger.info(
+                                "LIST_HEADER: specified width is too small %s %s %s",
+                                columns[i]['name'],
+                                columns[i]['width'],
+                                remainingWidth)
                             label.SetSize((label.GetBestSize()[0] + remainingWidth, -1))
 
                     self.columnHeaders.append(label)
@@ -276,7 +287,16 @@ class ListHeader(wx.Panel):
 
 class TitleHeader(ListHeader):
 
-    def __init__(self, parent, parent_list, columns, font_increment=2, fontweight=wx.FONTWEIGHT_BOLD, radius=0, spacers=[3, 3]):
+    def __init__(
+        self,
+        parent,
+     parent_list,
+     columns,
+     font_increment=2,
+     fontweight=wx.FONTWEIGHT_BOLD,
+     radius=0,
+     spacers=[3,
+              3]):
         self.font_increment = font_increment
         self.fontweight = fontweight
 
@@ -527,7 +547,14 @@ class TorrentFilter(BaseFilter):
         self.slider_positions = (0, 0)
         self.conversion_factor = 1048576.0
 
-        BaseFilter.__init__(self, parent, parent_list, ColumnsManager.getInstance().getColumns(TorrentListItem), spacers)
+        BaseFilter.__init__(
+            self,
+            parent,
+            parent_list,
+            ColumnsManager.getInstance(
+            ).getColumns(
+                TorrentListItem),
+             spacers)
 
     def GetFilterPanel(self, parent):
         panel = wx.Panel(parent)
@@ -592,7 +619,14 @@ class TorrentFilter(BaseFilter):
                 sortAsc = column.get('sortAsc', False)
                 itemid = wx.NewId()
                 menu.AppendRadioItem(itemid, column['name'])
-                menu.Bind(wx.EVT_MENU, lambda x, index=index, sortAsc=sortAsc: self.parent_list.OnSort(index, sortAsc), id=itemid)
+                menu.Bind(
+                    wx.EVT_MENU,
+                    lambda x,
+                    index=index,
+                    sortAsc=sortAsc: self.parent_list.OnSort(
+                        index,
+                        sortAsc),
+                    id=itemid)
                 menu.Check(itemid, sortcolumn == index)
 
         if len(self.columns) > 0:
@@ -623,7 +657,12 @@ class TorrentFilter(BaseFilter):
                 itemid = wx.NewId()
                 menu.AppendRadioItem(itemid, filetype)
                 menu.Bind(wx.EVT_MENU, lambda x, filetype=filetype: self.CategoryFilter(filetype), id=itemid)
-                menu.Check(itemid, bool(self.parent_list.categoryfilter) and (filetype.lower() in self.parent_list.categoryfilter))
+                menu.Check(
+                    itemid,
+                    bool(
+                        self.parent_list.categoryfilter) and (
+                            filetype.lower(
+                            ) in self.parent_list.categoryfilter))
 
         ctrl = self.filetype_icon
         pos = wx.Point(ctrl.GetPosition().x, self.GetPosition().y + self.filter_panel.GetSize().y)
@@ -769,7 +808,14 @@ class ChannelFilter(BaseFilter):
         self.channellist_manager = parent_list.GetManager()
         self.channel_categories = ["All", "Popular", "New", "Updated", "Mine"]
 
-        BaseFilter.__init__(self, parent, parent_list, ColumnsManager.getInstance().getColumns(ChannelListItem), spacers)
+        BaseFilter.__init__(
+            self,
+            parent,
+            parent_list,
+            ColumnsManager.getInstance(
+            ).getColumns(
+                ChannelListItem),
+             spacers)
 
     def GetFilterPanel(self, parent):
         panel = wx.Panel(parent)
@@ -825,7 +871,14 @@ class ChannelFilter(BaseFilter):
                 sortcolumn = index if (sortcolumn == -1 and sortDef) else sortcolumn
                 itemid = wx.NewId()
                 menu.AppendRadioItem(itemid, column['name'])
-                menu.Bind(wx.EVT_MENU, lambda x, index=index, sortAsc=sortAsc: self.parent_list.OnSort(index, sortAsc), id=itemid)
+                menu.Bind(
+                    wx.EVT_MENU,
+                    lambda x,
+                    index=index,
+                    sortAsc=sortAsc: self.parent_list.OnSort(
+                        index,
+                        sortAsc),
+                    id=itemid)
                 menu.Check(itemid, sortcolumn == index)
 
         if len(self.columns) > 0:
@@ -915,7 +968,14 @@ class DownloadFilter(BaseFilter):
         self.slider_positions = (0, 0)
         self.conversion_factor = 1048576.0
 
-        BaseFilter.__init__(self, parent, parent_list, ColumnsManager.getInstance().getColumns(LibraryListItem), spacers)
+        BaseFilter.__init__(
+            self,
+            parent,
+            parent_list,
+            ColumnsManager.getInstance(
+            ).getColumns(
+                LibraryListItem),
+             spacers)
 
     def GetFilterPanel(self, parent):
         panel = wx.Panel(parent)
@@ -997,7 +1057,14 @@ class DownloadFilter(BaseFilter):
                 sortcolumn = index if (sortcolumn == -1 and sortDef) else sortcolumn
                 itemid = wx.NewId()
                 menu.AppendRadioItem(itemid, column['name'] if column['name'] else 'Progress')
-                menu.Bind(wx.EVT_MENU, lambda x, index=index, sortAsc=sortAsc: self.parent_list.OnSort(index, sortAsc), id=itemid)
+                menu.Bind(
+                    wx.EVT_MENU,
+                    lambda x,
+                    index=index,
+                    sortAsc=sortAsc: self.parent_list.OnSort(
+                        index,
+                        sortAsc),
+                    id=itemid)
                 menu.Check(itemid, sortcolumn == index)
 
         if len(self.columns) > 0:
@@ -1237,7 +1304,14 @@ class PlaylistHeader(ListItemHeader):
             tag.Bind(wx.EVT_LEFT_UP, lambda evt: self.guiutility.showChannel(playlist.channel))
             new_item.titleSizer.Insert(0, tag, 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP, 2)
             new_item.titleSizer.Insert(1, (5, -1))
-            new_item.titleSizer.Insert(2, wx.StaticBitmap(new_item, -1, self.icon_right), 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP, 2)
+            new_item.titleSizer.Insert(
+                2,
+                wx.StaticBitmap(new_item,
+                                -1,
+                                self.icon_right),
+                0,
+                wx.ALIGN_CENTER_VERTICAL | wx.TOP,
+                2)
             new_item.titleSizer.Insert(3, (5, -1))
             new_item.buttonSizer.Clear(deleteWindows=True)
 

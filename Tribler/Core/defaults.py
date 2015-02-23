@@ -46,8 +46,10 @@ sessdefaults['general']['ip'] = '0.0.0.0'
 sessdefaults['general']['minport'] = DEFAULTPORT
 sessdefaults['general']['maxport'] = DEFAULTPORT
 sessdefaults['general']['bind'] = []
-sessdefaults['general']['ipv6_enabled'] = 0  # allow the client to connect to peers via IPv6 (currently not supported)
-sessdefaults['general']['ipv6_binds_v4'] = None  # set if an IPv6 server socket won't also field IPv4 connections (default = set automatically)
+# allow the client to connect to peers via IPv6 (currently not supported)
+sessdefaults['general']['ipv6_enabled'] = 0
+# set if an IPv6 server socket won't also field IPv4 connections (default = set automatically)
+sessdefaults['general']['ipv6_binds_v4'] = None
 sessdefaults['general']['timeout'] = 300.0
 sessdefaults['general']['timeout_check_interval'] = 60.0
 sessdefaults['general']['eckeypairfilename'] = None
@@ -72,7 +74,8 @@ sessdefaults['mainline_dht']['mainline_dht_port'] = -1
 # Torrent checking settings
 sessdefaults['torrent_checking'] = OrderedDict()
 sessdefaults['torrent_checking']['enabled'] = 1
-sessdefaults['torrent_checking']['torrent_checking_period'] = 31  # will be changed to min(max(86400/ntorrents, 15), 300) at runtime
+# will be changed to min(max(86400/ntorrents, 15), 300) at runtime
+sessdefaults['torrent_checking']['torrent_checking_period'] = 31
 
 # Torrent store settings
 sessdefaults['torrent_store'] = OrderedDict()
@@ -112,7 +115,6 @@ sessdefaults['video']['enabled'] = True
 sessdefaults['video']['path'] = None
 sessdefaults['video']['port'] = -1
 sessdefaults['video']['preferredmode'] = PLAYBACKMODE_INTERNAL
-
 
 
 #

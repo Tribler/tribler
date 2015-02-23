@@ -6,6 +6,7 @@ class DelayMessageReqChannelMessage(DelayMessage):
     """
     Raised during ChannelCommunity.check_ if the channel message has not been received yet.
     """
+
     def __init__(self, delayed, includeSnapshot=False):
         super(DelayMessageReqChannelMessage, self).__init__(delayed)
         if __debug__:

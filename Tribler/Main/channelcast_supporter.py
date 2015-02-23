@@ -19,6 +19,7 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 
 logger = logging.getLogger(__name__)
 
+
 @call_on_reactor_thread
 def define_allchannel(session):
     from Tribler.community.allchannel.community import AllChannelCommunity
@@ -26,15 +27,16 @@ def define_allchannel(session):
 
     dispersy = session.get_dispersy_instance()
     dispersy.define_auto_load(AllChannelCommunity,
-                                   (session.dispersy_member,),
-                                   {"auto_join_channel": True},
-                                   load=True)
+                              (session.dispersy_member,),
+                              {"auto_join_channel": True},
+                              load=True)
     dispersy.define_auto_load(ChannelCommunity, load=True)
     logger.info("tribler: Dispersy communities are ready")
 
     def on_incoming_torrent(subject, type_, infohash):
         logger.info("Incoming torrent: %s", infohash.encode("HEX"))
     session.add_observer(on_incoming_torrent, NTFY_TORRENTS, [NTFY_INSERT])
+
 
 def main(define_communities):
     command_line_parser = optparse.OptionParser()

@@ -168,7 +168,8 @@ class NewSocketHandler(object):     # hand a new socket off where it belongs
                     self.multihandler.httphandler.data_came_in(self.connection, self.firstbyte)
                     self.multihandler.httphandler.data_came_in(self.connection, s)
                 else:
-                    self._logger.debug("NewSocketHandler: Reporting connection via %s", self.multihandler.singlerawservers[m]._external_connection_made)
+                    self._logger.debug("NewSocketHandler: Reporting connection via %s",
+                                       self.multihandler.singlerawservers[m]._external_connection_made)
                     self.multihandler.singlerawservers[m]._external_connection_made(self.connection, self.options, s)
                 self.complete = True
                 return

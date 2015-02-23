@@ -2,7 +2,9 @@ from Tribler.dispersy.payload import Payload
 
 
 class CellPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, circuit_id, message_type, encrypted_message=""):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(message_type, basestring)
@@ -27,7 +29,9 @@ class CellPayload(Payload):
 
 
 class CreatePayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, circuit_id, node_id, node_public_key, key):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(node_id, basestring), type(node_id)
@@ -58,7 +62,9 @@ class CreatePayload(Payload):
 
 
 class CreatedPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, circuit_id, key, auth, candidate_list):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(key, basestring), type(key)
@@ -89,7 +95,9 @@ class CreatedPayload(Payload):
 
 
 class ExtendPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, circuit_id, node_id, node_public_key, node_addr, key):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(node_id, basestring), type(node_id)
@@ -126,7 +134,9 @@ class ExtendPayload(Payload):
 
 
 class ExtendedPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, circuit_id, key, auth, candidate_list):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(key, basestring), type(key)
@@ -157,7 +167,9 @@ class ExtendedPayload(Payload):
 
 
 class PingPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, circuit_id, identifier):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(identifier, int), type(identifier)
@@ -180,7 +192,9 @@ class PongPayload(PingPayload):
 
 
 class DestroyPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, circuit_id, reason):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(reason, int), type(reason)
@@ -199,7 +213,9 @@ class DestroyPayload(Payload):
 
 
 class StatsRequestPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, identifier):
             assert isinstance(identifier, int), type(identifier)
 
@@ -212,7 +228,9 @@ class StatsRequestPayload(Payload):
 
 
 class StatsResponsePayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, identifier, stats):
             assert isinstance(identifier, int), type(identifier)
             assert isinstance(stats, dict), type(stats)
@@ -231,7 +249,9 @@ class StatsResponsePayload(Payload):
 
 
 class EstablishIntroPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, circuit_id, identifier, info_hash):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(identifier, int), type(identifier)
@@ -256,7 +276,9 @@ class EstablishIntroPayload(Payload):
 
 
 class IntroEstablishedPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, circuit_id, identifier):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(identifier, int), type(identifier)
@@ -275,7 +297,9 @@ class IntroEstablishedPayload(Payload):
 
 
 class EstablishRendezvousPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, circuit_id, identifier, cookie):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(identifier, int), type(identifier)
@@ -300,7 +324,9 @@ class EstablishRendezvousPayload(Payload):
 
 
 class RendezvousEstablishedPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, circuit_id, identifier, rendezvous_point_addr):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(identifier, int), type(identifier)
@@ -325,7 +351,9 @@ class RendezvousEstablishedPayload(Payload):
 
 
 class KeyRequestPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, identifier, info_hash):
             assert isinstance(identifier, int), type(identifier)
             assert isinstance(info_hash, basestring), type(info_hash)
@@ -343,8 +371,11 @@ class KeyRequestPayload(Payload):
         def info_hash(self):
             return self._info_hash
 
+
 class KeyResponsePayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, identifier, public_key):
             assert isinstance(identifier, int), type(identifier)
             assert isinstance(public_key, basestring), type(public_key)
@@ -361,8 +392,11 @@ class KeyResponsePayload(Payload):
         def public_key(self):
             return self._public_key
 
+
 class CreateE2EPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, identifier, info_hash, node_id, node_public_key, key):
             assert isinstance(identifier, int), type(identifier)
             assert isinstance(info_hash, basestring), type(info_hash)
@@ -398,8 +432,11 @@ class CreateE2EPayload(Payload):
         def key(self):
             return self._key
 
+
 class CreatedE2EPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, identifier, key, auth, rp_sock_addr):
             assert isinstance(identifier, int), type(identifier)
             assert isinstance(key, basestring), type(key)
@@ -429,7 +466,9 @@ class CreatedE2EPayload(Payload):
 
 
 class LinkE2EPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, circuit_id, identifier, cookie):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(identifier, int), type(identifier)
@@ -452,8 +491,11 @@ class LinkE2EPayload(Payload):
         def cookie(self):
             return self._cookie
 
+
 class LinkedE2EPayload(Payload):
+
     class Implementation(Payload.Implementation):
+
         def __init__(self, meta, circuit_id, identifier):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(identifier, int), type(identifier)

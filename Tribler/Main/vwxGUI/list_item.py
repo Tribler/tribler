@@ -114,7 +114,12 @@ class DoubleLineListItem(ListItem):
             if getattr(control, 'icon', None):
                 # Remove the spacer and replace it with the icon
                 self.hSizer.Remove(0)
-                self.hSizer.Insert(0, control.icon, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, (33 - control.icon.GetSize().x) / 2)
+                self.hSizer.Insert(
+                    0,
+                    control.icon,
+                    0,
+                    wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT,
+                    (33 - control.icon.GetSize().x) / 2)
         else:
             self.descrSizer.Add(control, 0, wx.CENTER | wx.TOP, spacing)
 
@@ -141,7 +146,8 @@ class DoubleLineListItem(ListItem):
             mouse_x = event.GetPosition().x
             width = max(0, control.GetSize().x + mouse_x)
             if getattr(self, 'buttonSizer', False):
-                width = min(width, self.buttonSizer.GetPosition().x - self.descrSizer.GetPosition().x - sum([child.GetSize().x for child in self.descrSizer.GetChildren()]) + control.GetSize().x)
+                width = min(width, self.buttonSizer.GetPosition().x - self.descrSizer.GetPosition().x - sum(
+                    [child.GetSize().x for child in self.descrSizer.GetChildren()]) + control.GetSize().x)
             else:
                 pass
             control.SetMinSize((width, -1))
@@ -155,7 +161,8 @@ class DoubleLineListItem(ListItem):
             eo.Unbind(wx.EVT_MOTION)
             self.columns[column_index]['width'] = self.controls[control_index].GetSize().x
 
-            # If we are dealing with a control with a label in front of it, we need to add the width of the label to the column width.
+            # If we are dealing with a control with a label in front of it, we need to
+            # add the width of the label to the column width.
             if self.columns[column_index].get('showColumname', True) and \
                self.columns[column_index].get('name', False) and \
                self.columns[column_index].get('type', '') == 'method':
@@ -167,7 +174,8 @@ class DoubleLineListItem(ListItem):
 
             column_sizes = self.guiutility.ReadGuiSetting("column_sizes", default={})
             column_sizes[type(self).__name__] = column_sizes.get(type(self).__name__, {})
-            column_sizes[type(self).__name__].update({self.columns[column_index]['name']: self.columns[column_index]['width']})
+            column_sizes[type(self).__name__].update(
+                {self.columns[column_index]['name']: self.columns[column_index]['width']})
             self.guiutility.WriteGuiSetting("column_sizes", column_sizes)
 
             def rebuild():
@@ -243,8 +251,8 @@ class DoubleLineListItem(ListItem):
     @warnWxThread
     def GetContextMenu(self):
         menu = wx.Menu()
-        self.GetSubMenu([{'title': 'Show labels..', \
-                          'handler': [{'title': c['name'], 'type': 'check', 'enable': c['name'] != 'Name', 'check': c.get('show', True), \
+        self.GetSubMenu([{'title': 'Show labels..',
+                          'handler': [{'title': c['name'], 'type': 'check', 'enable': c['name'] != 'Name', 'check': c.get('show', True),
                                        'handler': lambda e, i=i: self.OnShowColumn(e, i)} for i, c in enumerate(self.columns)]}], menu)
         return menu
 
@@ -262,7 +270,7 @@ class DoubleLineListItem(ListItem):
             updateui = item.get('updateui', None)
             handler = item.get('handler', None)
 
-            if type(handler) is list:
+            if isinstance(handler, list):
                 itemid = wx.NewId()
                 submenu.AppendMenu(itemid, title, self.GetSubMenu(handler))
             else:
@@ -276,10 +284,10 @@ class DoubleLineListItem(ListItem):
             if updateui is not None:
                 wx.EVT_UPDATE_UI(self, itemid, updateui)
 
-            if type(enable) is bool:
+            if isinstance(enable, bool):
                 submenu.Enable(itemid, enable)
 
-            if itemtype == 'check' and type(check) is bool:
+            if itemtype == 'check' and isinstance(check, bool):
                 submenu.Check(itemid, check)
 
         return submenu
@@ -352,9 +360,16 @@ class TorrentListItem(DoubleLineListItemWithButtons):
                 break
 
         if do_add:
-            self.plbutton = self.AddButton("Stream", lambda evt: self.guiutility.library_manager.playTorrent(self.original_data.infohash))
-            self.dlbutton = self.AddButton("Download", lambda evt: self.guiutility.frame.top_bg.OnDownload(evt, [self.original_data]))
-            self.dlbutton.Enable('completed' not in self.original_data.state and 'active' not in self.original_data.state)
+            self.plbutton = self.AddButton(
+                "Stream",
+                lambda evt: self.guiutility.library_manager.playTorrent(
+                    self.original_data.infohash))
+            self.dlbutton = self.AddButton(
+                "Download",
+                lambda evt: self.guiutility.frame.top_bg.OnDownload(evt,
+                                                                    [self.original_data]))
+            self.dlbutton.Enable(
+                'completed' not in self.original_data.state and 'active' not in self.original_data.state)
 
     def SetCollectedTorrent(self, coltorrent):
         if self.plbutton:
@@ -372,7 +387,8 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         DoubleLineListItem.RefreshData(self, data)
         self.SetThumbnailIcon()
         if self.dlbutton:
-            self.dlbutton.Enable('completed' not in self.original_data.state and 'active' not in self.original_data.state)
+            self.dlbutton.Enable(
+                'completed' not in self.original_data.state and 'active' not in self.original_data.state)
 
     def SetThumbnailIcon(self):
         torcoldir = self.guiutility.utility.session.get_torrent_collecting_dir()
@@ -412,25 +428,32 @@ class TorrentListItem(DoubleLineListItemWithButtons):
     def GetContextMenu(self):
         menu = DoubleLineListItem.GetContextMenu(self)
 
-        self.GetSubMenu([{'title': 'Show download button on hover', 'type': 'check', 'updateui': self.CanShowHover, 'handler': self.OnShowHover}, \
-                         None, \
-                         {'title': 'Force start', 'updateui': self.CanForceStart, 'handler': self.OnForceStart}, \
-                         {'title': 'Start', 'updateui': self.CanStart, 'handler': self.OnStart}, \
-                         {'title': 'Stop', 'updateui': self.CanStop, 'handler': self.OnStop}, \
-                         None, \
-                         {'title': 'Remove download', 'updateui': self.CanRemove, 'handler': self.OnRemove}, \
-                         {'title': 'Remove download + data', 'updateui': self.CanRemoveAll, 'handler': self.OnRemoveAll}, \
-                         None, \
-                         {'title': 'Force recheck', 'updateui': self.CanRecheck, 'handler': self.OnRecheck}, \
-                         None, \
-                         {'title': 'Bandwidth allocation..', 'updateui': self.CanAllocateBandwidth, 'handler': []}, \
-                         None, \
-                         {'title': 'Export torrent..', 'updateui': self.CanExportTorrent, 'handler': self.OnExportTorrent}, \
-                         {'title': 'Copy magnet link', 'updateui': self.CanCopyMagnet, 'handler': self.OnCopyMagnet}, \
-                         {'title': 'Add to my channel', 'updateui': self.CanAddToMyChannel, 'handler': self.OnAddToMyChannel}, \
-                         None, \
-                         {'title': 'Explore files', 'updateui': self.CanExplore, 'handler': self.OnExplore}, \
-                         {'title': 'Change download location..', 'updateui': self.CanMove, 'handler': self.OnMove}], menu)
+        self.GetSubMenu(
+            [{'title': 'Show download button on hover', 'type': 'check', 'updateui': self.CanShowHover, 'handler': self.OnShowHover},
+             None,
+             {'title': 'Force start', 'updateui': self.CanForceStart, 'handler': self.OnForceStart},
+             {'title': 'Start', 'updateui': self.CanStart, 'handler': self.OnStart},
+             {'title': 'Stop', 'updateui': self.CanStop, 'handler': self.OnStop},
+             None,
+             {'title': 'Remove download', 'updateui': self.CanRemove, 'handler': self.OnRemove},
+             {'title': 'Remove download + data',
+                       'updateui': self.CanRemoveAll,
+                       'handler': self.OnRemoveAll},
+             None,
+             {'title': 'Force recheck', 'updateui': self.CanRecheck, 'handler': self.OnRecheck},
+             None,
+             {'title': 'Bandwidth allocation..', 'updateui': self.CanAllocateBandwidth, 'handler': []},
+             None,
+             {'title': 'Export torrent..',
+                       'updateui': self.CanExportTorrent,
+                       'handler': self.OnExportTorrent},
+             {'title': 'Copy magnet link', 'updateui': self.CanCopyMagnet, 'handler': self.OnCopyMagnet},
+             {'title': 'Add to my channel',
+                       'updateui': self.CanAddToMyChannel,
+                       'handler': self.OnAddToMyChannel},
+             None,
+             {'title': 'Explore files', 'updateui': self.CanExplore, 'handler': self.OnExplore},
+             {'title': 'Change download location..', 'updateui': self.CanMove, 'handler': self.OnMove}], menu)
 
         bw_alloc = menu.FindItemById(menu.FindItem('Bandwidth allocation..')).GetSubMenu()
         download = self.original_data.ds.get_download() if self.original_data.ds else None
@@ -457,7 +480,13 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             itemid = wx.NewId()
             result.AppendRadioItem(itemid, str(value) if value > 0 else 'unlimited')
             if sys.platform == 'win32':
-                parent_menu.Bind(wx.EVT_MENU, lambda x, value=value: download.set_max_speed(direction, value), id=itemid)
+                parent_menu.Bind(
+                    wx.EVT_MENU,
+                    lambda x,
+                    value=value: download.set_max_speed(
+                        direction,
+                        value),
+                    id=itemid)
             else:
                 result.Bind(wx.EVT_MENU, lambda x, value=value: download.set_max_speed(direction, value), id=itemid)
             result.Check(itemid, limit == value)
@@ -504,7 +533,12 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
         if len(torrents) == 1:
             torrent_data = self.guiutility.utility.session.get_collected_torrent(torrents[0].infohash)
-            dlg = wx.FileDialog(None, message="Select an export destination", defaultFile="%s.torrent" % torrents[0].name, wildcard="*.torrent", style=wx.FD_SAVE | wx.CHANGE_DIR | wx.OVERWRITE_PROMPT)
+            dlg = wx.FileDialog(
+                None,
+                message="Select an export destination",
+                defaultFile="%s.torrent" % torrents[0].name,
+                wildcard="*.torrent",
+                style=wx.FD_SAVE | wx.CHANGE_DIR | wx.OVERWRITE_PROMPT)
             dlg.SetDirectory(DefaultDownloadStartupConfig.getInstance().get_dest_dir())
             if dlg.ShowModal() == wx.ID_OK:
                 paths = dlg.GetPaths()
@@ -566,10 +600,17 @@ class TorrentListItem(DoubleLineListItemWithButtons):
 
             if len(added) == 1:
                 def gui_call():
-                    self.guiutility.Notify('New torrent added to My Channel', "Torrent '%s' has been added to My Channel" % self.original_data.name, icon=wx.ART_INFORMATION)
+                    self.guiutility.Notify(
+                        'New torrent added to My Channel',
+                        "Torrent '%s' has been added to My Channel" %
+                        self.original_data.name,
+                        icon=wx.ART_INFORMATION)
             else:
                 def gui_call():
-                    self.guiutility.Notify('New torrents added to My Channel', "%d Torrents have been added to My Channel" % len(added), icon=wx.ART_INFORMATION)
+                    self.guiutility.Notify(
+                        'New torrents added to My Channel',
+                        "%d Torrents have been added to My Channel" % len(added),
+                        icon=wx.ART_INFORMATION)
 
             wx.CallAfter(gui_call)
 
@@ -588,10 +629,12 @@ class TorrentListItem(DoubleLineListItemWithButtons):
                         path = DefaultDownloadStartupConfig.getInstance().get_dest_dir()
                         startfile(path)
 
-
     def OnMove(self, event):
         items = self.guiutility.frame.librarylist.GetExpandedItems()
-        torrents = [item[1].original_data for item in items if isinstance(item[1].original_data, Torrent) or isinstance(item[1].original_data, CollectedTorrent)]
+        torrents = [item[1].original_data for item in items if isinstance(
+                    item[1].original_data,
+                    Torrent) or isinstance(item[1].original_data,
+                                           CollectedTorrent)]
 
         dlg = wx.DirDialog(None, "Choose where to move the selected torrent(s)", style=wx.DEFAULT_DIALOG_STYLE)
         dlg.SetPath(self.original_data.ds.get_download().get_dest_dir())
@@ -670,7 +713,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         event.Enable(enable)
 
     def CanStart(self, event):
-        event.Enable(self.guiutility.frame.top_bg.upload_btn.IsEnabled() or \
+        event.Enable(self.guiutility.frame.top_bg.upload_btn.IsEnabled() or
                      self.guiutility.frame.top_bg.download_btn.IsEnabled())
 
     def CanStop(self, event):
@@ -770,9 +813,19 @@ class ChannelListItem(DoubleLineListItemWithButtons):
             self.AddButton("Visit channel", lambda evt: self.guiutility.showChannel(self.original_data))
         if not isinstance(self.parent_list.parent_list, GenericSearchList):
             if self.original_data.my_vote == 2:
-                self.AddButton("Remove Favorite", lambda evt, data=self.original_data: self.guiutility.RemoveFavorite(evt, data))
+                self.AddButton(
+                    "Remove Favorite",
+                    lambda evt,
+                    data=self.original_data: self.guiutility.RemoveFavorite(
+                        evt,
+                        data))
             elif not self.original_data.isMyChannel():
-                self.AddButton("Mark as Favorite", lambda evt, data=self.original_data: self.guiutility.MarkAsFavorite(evt, data))
+                self.AddButton(
+                    "Mark as Favorite",
+                    lambda evt,
+                    data=self.original_data: self.guiutility.MarkAsFavorite(
+                        evt,
+                        data))
             self.last_my_vote = self.original_data.my_vote
 
     @warnWxThread
@@ -805,7 +858,9 @@ class ChannelListItemAssociatedTorrents(ChannelListItem):
         visible_columns = [column['name'] for column in self.columns if column['show']]
         try:
             self.at_index = visible_columns.index('Associated torrents')
-            self.controls[self.at_index].SetToolTipString('This channel contains %d torrents matching your search query. The visible matches are currently highlighted.' % len(self.data[-1]))
+            self.controls[self.at_index].SetToolTipString(
+                'This channel contains %d torrents matching your search query. The visible matches are currently highlighted.' %
+                len(self.data[-1]))
             self.controls[self.at_index].Bind(wx.EVT_MOUSE_EVENTS, self.ShowSelected)
         except:
             pass
@@ -850,7 +905,7 @@ class PlaylistItem(DoubleLineListItemWithButtons):
         DoubleLineListItemWithButtons.__init__(self, parent, parent_list, columns, data, original_data, *args, **kwargs)
 
         if getattr(parent_list.parent_list, 'AddTorrent', False):
-            from channel import TorrentDT
+            from .channel import TorrentDT
             self.SetDropTarget(TorrentDT(original_data, parent_list.parent_list.AddTorrent))
 
     def AddComponents(self, *args, **kwargs):
@@ -905,7 +960,19 @@ class LibraryListItem(TorrentListItem):
 
 class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
 
-    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer=0, rightSpacer=0, showChange=False, list_selected=LIST_SELECTED, list_expanded=LIST_EXPANDED, list_selected_and_expanded=LIST_DARKBLUE):
+    def __init__(
+        self,
+        parent,
+     parent_list,
+     columns,
+     data,
+     original_data,
+     leftSpacer=0,
+     rightSpacer=0,
+     showChange=False,
+     list_selected=LIST_SELECTED,
+     list_expanded=LIST_EXPANDED,
+     list_selected_and_expanded=LIST_DARKBLUE):
         FancyPanel.__init__(self, parent, border=wx.RIGHT | wx.BOTTOM)
         self.SetBorderColour(SEPARATOR_GREY)
         self.guiutility = GUIUtility.getInstance()
@@ -976,17 +1043,25 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
 
         bitmap = None
 
-        thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(), binascii.hexlify(self.original_data.infohash))
-        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir) for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
+        thumb_dir = os.path.join(
+            self.guiutility.utility.session.get_torrent_collecting_dir(),
+            binascii.hexlify(self.original_data.infohash))
+        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir)
+                       for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
 
         if thumb_files:
             bmp = wx.Bitmap(thumb_files[0], wx.BITMAP_TYPE_ANY)
             res = limit_resolution(bmp.GetSize(), self.max_bitmap_size)
-            bitmap = bmp.ConvertToImage().Scale(*res, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap() if bmp.IsOk() and res else None
+            bitmap = bmp.ConvertToImage(
+            ).Scale(
+                *res,
+                quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap(
+            ) if bmp.IsOk(
+            ) and res else None
 
         if not bitmap:
             bitmap = GuiImageManager.getInstance().drawBitmap("no-thumbnail",
-                self.max_bitmap_size, self.GetFont())
+                                                              self.max_bitmap_size, self.GetFont())
 
         res = bitmap.GetSize()
         bitmap_hover = wx.EmptyBitmap(*res)
@@ -1077,13 +1152,34 @@ class DragItem(TorrentListItem):
 
 class AvantarItem(ListItem):
 
-    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer=0, rightSpacer=0, showChange=False, list_selected=LIST_SELECTED, list_expanded=LIST_EXPANDED):
+    def __init__(
+        self,
+        parent,
+     parent_list,
+     columns,
+     data,
+     original_data,
+     leftSpacer=0,
+     rightSpacer=0,
+     showChange=False,
+     list_selected=LIST_SELECTED,
+     list_expanded=LIST_EXPANDED):
         self.header = ''
         self.body = ''
         self.avantar = None
         self.additionalButtons = []
         self.maxlines = 6
-        ListItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
+        ListItem.__init__(
+            self,
+            parent,
+            parent_list,
+            columns,
+            data,
+            original_data,
+            leftSpacer,
+            rightSpacer,
+            showChange,
+            list_selected)
 
     def AddComponents(self, leftSpacer, rightSpacer):
         titleRow = wx.BoxSizer(wx.HORIZONTAL)
@@ -1152,7 +1248,18 @@ class AvantarItem(ListItem):
 
 class CommentItem(AvantarItem):
 
-    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer=0, rightSpacer=0, showChange=False, list_selected=LIST_SELECTED, list_expanded=LIST_EXPANDED):
+    def __init__(
+        self,
+        parent,
+     parent_list,
+     columns,
+     data,
+     original_data,
+     leftSpacer=0,
+     rightSpacer=0,
+     showChange=False,
+     list_selected=LIST_SELECTED,
+     list_expanded=LIST_EXPANDED):
         # check if we are part of a torrent
         manager = parent_list.parent_list.GetManager()
         if manager.channeltorrent:
@@ -1163,7 +1270,17 @@ class CommentItem(AvantarItem):
         _, comment = original_data
         self.canRemove = comment.isMyComment() or (comment.channel and comment.channel.isMyChannel())
 
-        AvantarItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
+        AvantarItem.__init__(
+            self,
+            parent,
+            parent_list,
+            columns,
+            data,
+            original_data,
+            leftSpacer,
+            rightSpacer,
+            showChange,
+            list_selected)
 
     def AddComponents(self, leftSpacer, rightSpacer):
         depth, comment = self.original_data
@@ -1241,7 +1358,9 @@ class TorrentActivityItem(AvantarItem):
     def AddComponents(self, leftSpacer, rightSpacer):
         torrent = self.original_data
 
-        self.header = "Discovered a torrent at %s, injected at %s" % (format_time(torrent.inserted).lower(), format_time(torrent.time_stamp).lower())
+        self.header = "Discovered a torrent at %s, injected at %s" % (
+            format_time(torrent.inserted).lower(),
+            format_time(torrent.time_stamp).lower())
         self.body = torrent.name
 
         button = wx.Button(self, -1, 'Open Torrent', style=wx.BU_EXACTFIT)
@@ -1261,20 +1380,26 @@ class ModificationActivityItem(AvantarItem):
     def AddComponents(self, leftSpacer, rightSpacer):
         modification = self.original_data
 
-        self.header = "Discovered a modification by %s at %s" % (modification.peer_name, format_time(modification.inserted).lower())
+        self.header = "Discovered a modification by %s at %s" % (
+            modification.peer_name,
+            format_time(modification.inserted).lower())
 
         if modification.name == "swift-thumbnails":
             self.guiutility = GUIUtility.getInstance()
             self.session = self.guiutility.utility.session
 
-            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), binascii.hexlify(modification.torrent.infohash))
+            thumb_dir = os.path.join(
+                self.session.get_torrent_collecting_dir(),
+                binascii.hexlify(modification.torrent.infohash))
             self.body = []
             if os.path.exists(thumb_dir):
                 for single_thumb in os.listdir(thumb_dir)[:4]:
                     bmp = wx.Bitmap(os.path.join(thumb_dir, single_thumb), wx.BITMAP_TYPE_ANY)
                     if bmp.IsOk():
                         res = limit_resolution(bmp.GetSize(), (100, 100))
-                        self.body.append(bmp.ConvertToImage().Scale(*res, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap())
+                        self.body.append(
+                            bmp.ConvertToImage().Scale(*res,
+                                                       quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap())
             if not self.body:
                 self.body = "WARNING: The thumbnails related to this modification could not be found on the filesystem."
         elif modification.name == "video-info":
@@ -1302,12 +1427,33 @@ class ModificationActivityItem(AvantarItem):
 
 class ModificationItem(AvantarItem):
 
-    def __init__(self, parent, parent_list, columns, data, original_data, leftSpacer=0, rightSpacer=0, showChange=False, list_selected=LIST_SELECTED, list_expanded=LIST_EXPANDED):
+    def __init__(
+        self,
+        parent,
+     parent_list,
+     columns,
+     data,
+     original_data,
+     leftSpacer=0,
+     rightSpacer=0,
+     showChange=False,
+     list_selected=LIST_SELECTED,
+     list_expanded=LIST_EXPANDED):
         if isinstance(parent, wx.Dialog):
             self.noButton = True
         else:
             self.noButton = not getattr(parent_list.parent_list, 'canModify', True)
-        AvantarItem.__init__(self, parent, parent_list, columns, data, original_data, leftSpacer, rightSpacer, showChange, list_selected)
+        AvantarItem.__init__(
+            self,
+            parent,
+            parent_list,
+            columns,
+            data,
+            original_data,
+            leftSpacer,
+            rightSpacer,
+            showChange,
+            list_selected)
 
     def AddComponents(self, leftSpacer, rightSpacer):
         modification = self.original_data
@@ -1316,14 +1462,18 @@ class ModificationItem(AvantarItem):
             self.guiutility = GUIUtility.getInstance()
             self.session = self.guiutility.utility.session
 
-            thumb_dir = os.path.join(self.session.get_torrent_collecting_dir(), binascii.hexlify(modification.torrent.infohash))
+            thumb_dir = os.path.join(
+                self.session.get_torrent_collecting_dir(),
+                binascii.hexlify(modification.torrent.infohash))
             self.body = []
             if os.path.exists(thumb_dir):
                 for single_thumb in os.listdir(thumb_dir)[:4]:
                     bmp = wx.Bitmap(os.path.join(thumb_dir, single_thumb), wx.BITMAP_TYPE_ANY)
                     if bmp.IsOk():
                         res = limit_resolution(bmp.GetSize(), (100, 100))
-                        self.body.append(bmp.ConvertToImage().Scale(*res, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap())
+                        self.body.append(
+                            bmp.ConvertToImage().Scale(*res,
+                                                       quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap())
             if not self.body:
                 self.body = "WARNING: The thumbnails related to this modification could not be found on the filesystem."
         elif modification.name == "video-info":
@@ -1338,11 +1488,18 @@ class ModificationItem(AvantarItem):
         gui_image_manager = GuiImageManager.getInstance()
         if modification.moderation:
             moderation = modification.moderation
-            self.header = "%s modified by %s,\nbut reverted by %s due to: '%s'" % (modification.name.capitalize(), modification.peer_name, moderation.peer_name, moderation.message)
+            self.header = "%s modified by %s,\nbut reverted by %s due to: '%s'" % (
+                modification.name.capitalize(),
+                modification.peer_name,
+                moderation.peer_name,
+                moderation.message)
             self.avantar = gui_image_manager.getImage(u"REVERTED_MODIFICATION", SMALL_ICON_MAX_DIM)
             self.maxlines = 2
         else:
-            self.header = "%s modified by %s at %s" % (modification.name.capitalize(), modification.peer_name, format_time(modification.time_stamp).lower())
+            self.header = "%s modified by %s at %s" % (
+                modification.name.capitalize(),
+                modification.peer_name,
+                format_time(modification.time_stamp).lower())
             self.avantar = gui_image_manager.getImage(u"MODIFICATION", SMALL_ICON_MAX_DIM)
 
             if not self.noButton:
@@ -1362,7 +1519,8 @@ class ModerationActivityItem(AvantarItem):
         moderation = self.original_data
 
         self.header = "Discovered a moderation %s" % (format_time(moderation.inserted).lower())
-        self.body = "%s reverted a modification made by %s, reason '%s'" % (moderation.peer_name, moderation.by_peer_name, moderation.message)
+        self.body = "%s reverted a modification made by %s, reason '%s'" % (
+            moderation.peer_name, moderation.by_peer_name, moderation.message)
 
         gui_image_manager = GuiImageManager.getInstance()
         self.avantar = gui_image_manager.getImage(u"REVERTED_MODIFICATION", SMALL_ICON_MAX_DIM)
@@ -1374,7 +1532,10 @@ class ModerationItem(AvantarItem):
     def AddComponents(self, leftSpacer, rightSpacer):
         moderation = self.original_data
 
-        self.header = "%s reverted a modification by %s at %s" % (moderation.peer_name.capitalize(), moderation.by_peer_name, format_time(moderation.time_stamp).lower())
+        self.header = "%s reverted a modification by %s at %s" % (
+            moderation.peer_name.capitalize(),
+            moderation.by_peer_name,
+            format_time(moderation.time_stamp).lower())
 
         if moderation.modification:
             modification = moderation.modification

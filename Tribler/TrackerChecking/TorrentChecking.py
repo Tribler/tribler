@@ -341,8 +341,8 @@ class TorrentChecking(Thread):
         next_check = last_check + self._torrrent_check_retry_interval * (2 ** retries)
 
         self._torrentdb.updateTorrentCheckResult(torrent_id,
-                infohash, seeders, leechers, last_check, next_check,
-                status, retries)
+                                                 infohash, seeders, leechers, last_check, next_check,
+                                                 status, retries)
 
     @forceDBThread
     def _checkResponseFinal(self, response):
@@ -368,7 +368,8 @@ class TorrentChecking(Thread):
         current_time = int(time.time())
         for _ in range(self._tracker_info_cache.getTrackerInfoListSize()):
             # update the new tracker index
-            self._tracker_selection_idx = (self._tracker_selection_idx + 1) % self._tracker_info_cache.getTrackerInfoListSize()
+            self._tracker_selection_idx = (
+                self._tracker_selection_idx + 1) % self._tracker_info_cache.getTrackerInfoListSize()
 
             tracker, _ = self._tracker_info_cache.getTrackerInfo(self._tracker_selection_idx)
             self._logger.debug('TorrentChecking: Should we check tracker[%s].', tracker)

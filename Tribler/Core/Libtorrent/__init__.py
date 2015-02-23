@@ -1,5 +1,6 @@
 # Written by Egbert Bouman
 
+
 def checkHandleAndSynchronize(default=None):
     def wrap(f):
         def invoke_func(*args, **kwargs):
@@ -10,6 +11,7 @@ def checkHandleAndSynchronize(default=None):
             return default
         return invoke_func
     return wrap
+
 
 def waitForHandleAndSynchronize(default=None):
     def wrap(f):

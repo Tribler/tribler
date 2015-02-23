@@ -130,7 +130,7 @@ class RemoteTorrentHandler(TaskManager):
         # fix prio levels to 1 and 0
         priority = min(priority, 1)
 
-        # # we use DHT if we don't have candidate
+        # we use DHT if we don't have candidate
         if candidate:
             self.torrent_requesters[priority].add_request(infohash, candidate, timeout)
         else:
@@ -281,7 +281,8 @@ class RemoteTorrentHandler(TaskManager):
             total_requests = pending_requests + success + failed
 
             return "%s: %d/%d" % (qname, success, total_requests),\
-                   "%s: pending %d, success %d, failed %d, total %d" % (qname, pending_requests, success, failed, total_requests)
+                   "%s: pending %d, success %d, failed %d, total %d" % (
+                       qname, pending_requests, success, failed, total_requests)
         return [(qstring, qtooltip) for qstring, qtooltip in [getQueueSuccess("TFTP", self.torrent_requesters),
                                                               getQueueSuccess("DHT", self.magnet_requesters),
                                                               getQueueSuccess("Msg", self.torrent_message_requesters)] if qstring]
@@ -572,7 +573,7 @@ class TftpRequester(Requester):
         if thumbnail_subpath:
             file_name = thumbnail_subpath
         else:
-            file_name = hexlify(infohash)+'.torrent'
+            file_name = hexlify(infohash) + '.torrent'
 
         extra_info = {u"infohash": infohash, u"thumbnail_subpath": thumbnail_subpath}
         # do not download if TFTP has been shutdown

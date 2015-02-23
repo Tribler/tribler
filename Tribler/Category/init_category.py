@@ -16,7 +16,7 @@ def __split_list(string):
 INIT_FUNC_DICT = {
     "minfilenumber": int,
     "maxfilenumber": int,
-    "minfilesize":int,
+    "minfilesize": int,
     "maxfilesize": int,
     "suffix": __split_list,
     "matchpercentage": float,

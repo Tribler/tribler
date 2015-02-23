@@ -6,7 +6,7 @@ from shutil import copy as copyFile, move
 from Tribler.Test.test_as_server import FILES_DIR
 
 
-def init_bak_tribler_sdb(backup='bak_tribler.sdb', destination= 'tribler.sdb', destination_path = FILES_DIR, overwrite = False):
+def init_bak_tribler_sdb(backup='bak_tribler.sdb', destination='tribler.sdb', destination_path=FILES_DIR, overwrite=False):
     backup_path = os.path.join(FILES_DIR, backup)
     destination_path = os.path.join(destination_path, destination)
 

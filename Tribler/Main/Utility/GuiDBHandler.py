@@ -96,7 +96,8 @@ class GUIDBProducer(TaskManager):
             try:
                 self.uIdsLock.acquire()
                 if uId in self.uIds:
-                    self._logger.debug("GUIDBHandler: Task(%s) already scheduled in queue, ignoring uId = %s", name, uId)
+                    self._logger.debug(
+                        "GUIDBHandler: Task(%s) already scheduled in queue, ignoring uId = %s", name, uId)
                     return
                 else:
                     self.uIds.add(uId)
@@ -113,7 +114,8 @@ class GUIDBProducer(TaskManager):
             self.uIdsLock.acquire()
             self.nrCallbacks[callbackId] = self.nrCallbacks.get(callbackId, 0) + 1
             if self.nrCallbacks[callbackId] > 10:
-                self._logger.debug("GUIDBHandler: Scheduled Task(%s) %d times", callbackId, self.nrCallbacks[callbackId])
+                self._logger.debug(
+                    "GUIDBHandler: Scheduled Task(%s) %d times", callbackId, self.nrCallbacks[callbackId])
 
             self.uIdsLock.release()
 
@@ -139,7 +141,8 @@ class GUIDBProducer(TaskManager):
                 return
 
             t3 = time()
-            self._logger.debug("GUIDBHandler: Task(%s) took to be called %.1f (expected %.1f), actual task took %.1f %s", name, t2 - t1, delay, t3 - t2, workerType)
+            self._logger.debug(
+                "GUIDBHandler: Task(%s) took to be called %.1f (expected %.1f), actual task took %.1f %s", name, t2 - t1, delay, t3 - t2, workerType)
 
             if uId:
                 try:
@@ -173,7 +176,8 @@ class GUIDBProducer(TaskManager):
             elif workerType == "guiTaskQueue":
                 self.guitaskqueue.add_task(wrapper, t=delay, id=uId)
         else:
-            self._logger.debug("GUIDBHandler: Task(%s) scheduled for thread on same thread, executing immediately", name)
+            self._logger.debug(
+                "GUIDBHandler: Task(%s) scheduled for thread on same thread, executing immediately", name)
             wrapper()
 
     def Remove(self, uId):

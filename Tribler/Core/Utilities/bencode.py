@@ -41,7 +41,7 @@ def decode_string(x, f):
     if x[f] == '0' and colon != f + 1:
         raise ValueError
     colon += 1
-    return (x[colon:colon + n], colon +n)
+    return (x[colon:colon + n], colon + n)
 
 
 def decode_unicode(x, f):
@@ -103,7 +103,7 @@ def sloppy_bdecode(x):
         r, l = decode_func[x[0]](x, 0)
 #    except (IndexError, KeyError):
     except (IndexError, KeyError, ValueError):
-        #print_exc()
+        # print_exc()
         raise ValueError("bad bencoded data")
     return r, l
 
@@ -198,7 +198,8 @@ def test_bdecode():
         pass
     assert bdecode('de') == {}
     assert bdecode('d3:agei25e4:eyes4:bluee') == {'age': 25, 'eyes': 'blue'}
-    assert bdecode('d8:spam.mp3d6:author5:Alice6:lengthi100000eee') == {'spam.mp3': {'author': 'Alice', 'length': 100000}}
+    assert bdecode('d8:spam.mp3d6:author5:Alice6:lengthi100000eee') == {
+        'spam.mp3': {'author': 'Alice', 'length': 100000}}
     try:
         bdecode('d3:fooe')
         assert 0
@@ -296,7 +297,7 @@ def encode_dict(x, r):
     ilist = x.items()
     ilist.sort()
     for k, v in ilist:
-        #logger.debug("bencode: Encoding %s %s", k, v)
+        # logger.debug("bencode: Encoding %s %s", k, v)
 
         try:
             r.extend((str(len(k)), ':', k))
@@ -357,7 +358,8 @@ def test_bencode():
     assert bencode([['Alice', 'Bob'], [2, 3]]) == 'll5:Alice3:Bobeli2ei3eee'
     assert bencode({}) == 'de'
     assert bencode({'age': 25, 'eyes': 'blue'}) == 'd3:agei25e4:eyes4:bluee'
-    assert bencode({'spam.mp3': {'author': 'Alice', 'length': 100000}}) == 'd8:spam.mp3d6:author5:Alice6:lengthi100000eee'
+    assert bencode({'spam.mp3': {'author': 'Alice', 'length': 100000}}
+                   ) == 'd8:spam.mp3d6:author5:Alice6:lengthi100000eee'
     try:
         bencode({1: 'foo'})
         assert 0

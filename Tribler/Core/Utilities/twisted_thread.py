@@ -10,6 +10,7 @@ from twisted.python import log
 
 _twisted_thread = None
 
+
 class TimeExpired(AssertionError):
     pass
 
@@ -37,6 +38,7 @@ def make_decorator(func):
             newfunc.compat_func_name = name
         return newfunc
     return decorate
+
 
 def threaded_reactor():
     """

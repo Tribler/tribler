@@ -56,7 +56,8 @@ class AllChannelCommunity(Community):
 # qbUHnyXOvqgIgyzRYBWBV5eQbpB1PRNe0teWud+6+vHq4uvqO4hGcWwVgU6WuTrg
 # 9f+uxEEpaIo46jX4eSBf2+EXMj5zB2Vh8RI=
 # -----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000405548a13626683d4788ab19393fa15c9e9d6f5ce0ff47737747fa511af6c4e956f523dc3d1ae8d7b83b850f21ab157dd4320331e2f136aa01e70d8c96df665acd653725e767da9b5079f25cebea808832cd16015815797906e90753d135ed2d796b9dfbafaf1eae2ebea3b8846716c15814e96b93ae0f5ffaec44129688a38ea35f879205fdbe117323e73076561f112".decode("HEX")
+        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000405548a13626683d4788ab19393fa15c9e9d6f5ce0ff47737747fa511af6c4e956f523dc3d1ae8d7b83b850f21ab157dd4320331e2f136aa01e70d8c96df665acd653725e767da9b5079f25cebea808832cd16015815797906e90753d135ed2d796b9dfbafaf1eae2ebea3b8846716c15814e96b93ae0f5ffaec44129688a38ea35f879205fdbe117323e73076561f112".decode(
+            "HEX")
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
@@ -219,7 +220,8 @@ class AllChannelCommunity(Community):
                 self._blocklist[candidate] = now
 
                 nr_torrents = sum(len(torrent) for torrent in torrents.values())
-                self._logger.debug("sending channelcast message containing %s torrents to %s didFavorite %s", nr_torrents, candidate.sock_addr, didFavorite)
+                self._logger.debug(
+                    "sending channelcast message containing %s torrents to %s didFavorite %s", nr_torrents, candidate.sock_addr, didFavorite)
 
                 # we're done
                 break
@@ -278,7 +280,7 @@ class AllChannelCommunity(Community):
 
             if requested_packets:
                 self._dispersy._send_packets([message.candidate], requested_packets,
-                    self, "-caused by channelcast-request-")
+                                             self, "-caused by channelcast-request-")
 
             self._logger.debug("got request for %s torrents from %s", len(requested_packets), message.candidate)
 
@@ -409,12 +411,15 @@ class AllChannelCommunity(Community):
                     # at this point we should NOT have the channel message for this community
                     if __debug__:
                         try:
-                            self._dispersy.database.execute(u"SELECT * FROM sync WHERE community = ? AND meta_message = ? AND undone = 0", (community.database_id, community.get_meta_message(u"channel").database_id)).next()
-                            self._logger.error("We already have the channel message... no need to wait for it %s", community.cid.encode("HEX"))
+                            self._dispersy.database.execute(u"SELECT * FROM sync WHERE community = ? AND meta_message = ? AND undone = 0", (
+                                community.database_id, community.get_meta_message(u"channel").database_id)).next()
+                            self._logger.error(
+                                "We already have the channel message... no need to wait for it %s", community.cid.encode("HEX"))
                         except StopIteration:
                             pass
 
-                    self._logger.debug("Did not receive channel, requesting channel message '%s' from %s", community.cid.encode("HEX"), message.candidate.sock_addr)
+                    self._logger.debug(
+                        "Did not receive channel, requesting channel message '%s' from %s", community.cid.encode("HEX"), message.candidate.sock_addr)
                     yield DelayMessageReqChannelMessage(message, community, includeSnapshot=message.payload.vote > 0)  # request torrents if positive vote
 
                 else:
@@ -443,7 +448,8 @@ class AllChannelCommunity(Community):
 
                         if not channel_id:
                             insert_channel = "INSERT INTO _Channels (dispersy_cid, peer_id, name) VALUES (?, ?, ?); SELECT last_insert_rowid();"
-                            channel_id = self._channelcast_db._db.fetchone(insert_channel, (buffer(message.payload.cid), -1, ''))
+                            channel_id = self._channelcast_db._db.fetchone(
+                                insert_channel, (buffer(message.payload.cid), -1, ''))
                 else:
                     peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
 
@@ -488,7 +494,8 @@ class AllChannelCommunity(Community):
 
     def unload_preview(self):
         cleanpoint = time() - 300
-        inactive = [community for community in self.dispersy._communities.itervalues() if isinstance(community, PreviewChannelCommunity) and community.init_timestamp < cleanpoint]
+        inactive = [community for community in self.dispersy._communities.itervalues() if isinstance(
+            community, PreviewChannelCommunity) and community.init_timestamp < cleanpoint]
         self._logger.debug("cleaning %d/%d previewchannel communities", len(inactive), len(self.dispersy._communities))
 
         for community in inactive:
@@ -536,7 +543,8 @@ class AllChannelCommunity(Community):
 
         packets = []
         for infohash in infohashes:
-            dispersy_id = self._channelcast_db.getTorrentFromChannelId(channel_id, infohash, ['ChannelTorrents.dispersy_id'])
+            dispersy_id = self._channelcast_db.getTorrentFromChannelId(
+                channel_id, infohash, ['ChannelTorrents.dispersy_id'])
 
             if dispersy_id and dispersy_id > 0:
                 try:
@@ -549,7 +557,8 @@ class AllChannelCommunity(Community):
 
     def _get_packet_from_dispersy_id(self, dispersy_id, messagename):
         try:
-            packet, = self._dispersy.database.execute(u"SELECT sync.packet FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
+            packet, = self._dispersy.database.execute(
+                u"SELECT sync.packet FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
         except StopIteration:
             raise RuntimeError("Unknown dispersy_id")
         return str(packet)

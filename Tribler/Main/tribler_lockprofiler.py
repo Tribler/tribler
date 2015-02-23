@@ -10,6 +10,7 @@ threadlocal = local()
 
 logger = logging.getLogger(__name__)
 
+
 def lock_profile(frame, event, arg):
     global stats, threadlocal
 
@@ -38,7 +39,8 @@ def lock_profile(frame, event, arg):
             thread = current_thread()
             name = thread.getName()
             if name not in stats[lockobj]:
-                stats[lockobj][name] = [sys.maxsize, sys.maxsize, sys.maxsize, sys.maxsize, sys.maxsize, sys.maxsize, False]
+                stats[lockobj][name] = [sys.maxsize, sys.maxsize,
+                                        sys.maxsize, sys.maxsize, sys.maxsize, sys.maxsize, False]
 
             index = 0
             if callname == 'release':
