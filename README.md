@@ -17,6 +17,45 @@ We make use of submodules, so remember using the --recursive argument when cloni
 ```bash
 sudo apt-get install libav-tools libjs-excanvas libjs-mootools libsodium13 libx11-6 python-apsw python-cherrypy3 python-crypto python-cryptography python-feedparser python-gmpy python-leveldb python-libtorrent python-m2crypto python-netifaces python-pil python-pyasn1 python-requests python-twisted python-wxgtk2.8 python2.7 vlc
 ```
+#### **Installing libsodium13 and python-cryptography on Ubuntu 14.04** 
+
+While installing libsodium13 and python-cryptography on a clean Ubuntu 14.04 install (possibly other versions as well), the situation can occur where the Ubuntu terminal throws the following error when trying to install the dependencies mentioned earlier in the README.md: 
+
+    E: Unable to locate package libsodium13
+    E: Unable to locate package python-cryptography
+
+This means that the required packages are not directly in the available package list of Ubuntu 14.04.
+
+To install the packages, the required files have to be downloaded from their respecive websites.
+
+For libsodium13, download libsodium13\_1.0.1-1\_<ProcessorType\>.deb from [http://packages.ubuntu.com/vivid/libsodium13](http://packages.ubuntu.com/vivid/libsodium13)
+
+For python-cryptography, download python-cryptography\_0.5.2-1\_<ProcessorType\>.deb from [http://packages.ubuntu.com/utopic/python-cryptography](http://packages.ubuntu.com/utopic/python-cryptography)
+
+###### **Installing the files**
+**Through terminal**
+
+After downloading files go to the download folder and install the files through terminal:
+
+**For amd64:**
+
+    cd ./Downloads
+    dpkg -i libsodium13_1.0.1-1_amd64.deb
+    dpkg -i python-cryptography_0.5.2-1_amd64.deb
+
+**For i386:**
+    
+    cd ./Downloads
+    dpkg -i libsodium13_1.0.1-1_i386.deb
+    dpkg -i python-cryptography_0.5.2-1_i386.deb
+
+
+
+**Through file navigator:**
+
+Using the file navigator to go to the download folder and by clicking on the .deb files to have the software installer install the packages.
+
+Now installing the list of dependencies should no longer throw an error.
 
 ### Windows and OSX
 TODO
