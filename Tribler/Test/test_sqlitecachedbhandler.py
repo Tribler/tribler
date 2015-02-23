@@ -187,10 +187,8 @@ class TestTorrentDBHandler(AbstractDB):
         infohash_str = 'AA8cTG7ZuPsyblbRE7CyxsrKUCg='
         infohash = str2bin(infohash_str)
         assert self.tdb.hasTorrent(infohash)
-        assert self.tdb.hasMetaData(infohash)
         fake_infoahsh = 'fake_infohash_100000'
         assert self.tdb.hasTorrent(fake_infoahsh) == False
-        assert self.tdb.hasMetaData(fake_infoahsh) == False
 
     @blocking_call_on_reactor_thread
     def test_loadTorrents(self):
@@ -342,26 +340,6 @@ class TestMyPreferenceDBHandler(AbstractDB):
         pl = self.mdb.getMyPrefListInfohash()
         assert len(pl) == 12
 
-    @blocking_call_on_reactor_thread
-    def test_getRecentLivePrefList(self):
-        pl = self.mdb.getRecentLivePrefList()
-        assert len(pl) == 11, (len(pl), pl)
-        infohash_str_126 = 'ByJho7yj9mWY1ORWgCZykLbU1Xc='
-        assert bin2str(pl[0]) == infohash_str_126
-        infohash_str_1279 = 'R+grUhp884MnFkt6NuLnnauZFsc='
-        assert bin2str(pl[1]) == infohash_str_1279
-
-        pl = self.mdb.getRecentLivePrefList(8)
-        assert len(pl) == 8, (len(pl), pl)
-        assert bin2str(pl[0]) == infohash_str_126
-        assert bin2str(pl[1]) == infohash_str_1279
-
-    @blocking_call_on_reactor_thread
-    def test_hasMyPreference(self):
-        assert self.mdb.hasMyPreference(126)
-        assert self.mdb.hasMyPreference(1279)
-        assert not self.mdb.hasMyPreference(1)
-
     @skip("We are going to rewrite the whole database thing, so its not worth the trouble fixing this now")
     @blocking_call_on_reactor_thread
     def test_addMyPreference_deletePreference(self):
@@ -397,7 +375,6 @@ class TestMyPreferenceDBHandler(AbstractDB):
         infohash = str2bin(infohash_str_126)
         torrent_id = self.tdb.getTorrentID(infohash)
         assert torrent_id == 126
-        assert self.mdb.hasMyPreference(torrent_id)
         self.mdb.updateProgress(torrent_id, 3.14)
         p = self.mdb.getOne('progress', torrent_id=torrent_id)
         assert p == 3.14
