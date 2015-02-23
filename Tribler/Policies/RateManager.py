@@ -86,6 +86,7 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
     3. There are separate global limits for download speed, upload speed
        and upload speed when all torrents are seeding.
     """
+
     def __init__(self):
         RateManager.__init__(self)
         self.global_max_speed = {UPLOAD: 0.0, DOWNLOAD: 0.0}
@@ -142,7 +143,7 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
 
             if len(todoset) > 0:
                 # Rest divides globalmaxspeed equally
-                localmaxspeed = globalmaxspeed / float(len(todoset))  if globalmaxspeed > 0 else 0.00001
+                localmaxspeed = globalmaxspeed / float(len(todoset)) if globalmaxspeed > 0 else 0.00001
                 # if too small than user's problem
 
                 self._logger.debug("RateManager: calc_and_set_speed_limits: localmaxspeed is %s %s", localmaxspeed, dir)
@@ -150,7 +151,6 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
                 for ds in todoset:
                     d = ds.get_download()
                     d.set_max_speed(dir, localmaxspeed)
-
 
         if self.ltmgr is None and LibtorrentMgr.hasInstance():
             self.ltmgr = LibtorrentMgr.getInstance()
@@ -180,6 +180,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
     TODO: if vod: give all of global limit? Do this at higher level: stop
     all dls when going to VOD
     """
+
     def __init__(self):
         UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager.__init__(self)
 
@@ -265,7 +266,8 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
                             # If unterutilizing:
                             totalunused += (localmaxspeed - newmaxspeed)
                             # Give current speed + 5.0 KB/s extra so it can grow
-                            self._logger.info("RateManager: calc_and_set_speed_limits: Underutil set to %s", newmaxspeed)
+                            self._logger.info(
+                                "RateManager: calc_and_set_speed_limits: Underutil set to %s", newmaxspeed)
                             d.set_max_speed(dir, newmaxspeed)
                         else:
                             todoset2.append(ds)
@@ -280,7 +282,9 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
                             d.set_max_speed(dir, piece)
                     else:
                         # what the f? No overutilizers now?
-                        self._logger.info("UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager: Internal error: No overutilizers anymore?")
+                        self._logger.info(
+                            "UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager: "
+                            "Internal error: No overutilizers anymore?")
                 else:
                     # No over and under utilizers, just divide equally
                     for ds in todoset:
@@ -313,6 +317,7 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
     3. There are separate global limits for download speed, upload speed
        and upload speed when all torrents are seeding.
     """
+
     def __init__(self):
         UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager.__init__(self)
 

@@ -13,6 +13,7 @@ from Tribler.dispersy.tool.lencoder import log
 
 
 class DemersTest(Community):
+
     def initiate_meta_messages(self):
         return super(DemersTest, self).initiate_meta_messages() + [
             Message(self, u"text",
