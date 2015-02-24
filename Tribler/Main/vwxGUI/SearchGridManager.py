@@ -1180,9 +1180,6 @@ class ChannelManager(object):
         community = self._disp_get_community_from_channel_id(channel_id)
         return community.set_channel_mode(channel_mode)
 
-    def getPermidFromChannel(self, channel_id):
-        return self.channelcast_db.getPermidForChannel(channel_id)
-
     def getNewChannels(self):
         two_months = time() - 5259487
 
