@@ -2660,12 +2660,3 @@ class ChannelCastDBHandler(BasicDBHandler):
                 elif channel[5] == best_channel[5] and channel[4] > best_channel[4]:
                     best_channel = channel
             return best_channel
-
-
-def ranksfind(ranks, key):
-    if ranks is None:
-        return -1
-    try:
-        return ranks.index(key) + 1
-    except:
-        return -1
