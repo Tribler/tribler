@@ -489,13 +489,6 @@ class GUIUtility(object):
 
         startWorker(None, db_callback, priority=GUI_PRI_DISPERSY)
 
-    def showChannelFromDispCid(self, channel_cid):
-        def db_callback():
-            channel = self.channelsearch_manager.getChannelByCid(channel_cid)
-            self.showChannel(channel)
-
-        startWorker(None, db_callback, priority=GUI_PRI_DISPERSY)
-
     def showChannelFromPermid(self, channel_permid):
         def db_callback():
             channel = self.channelsearch_manager.getChannelByPermid(channel_permid)
