@@ -2476,13 +2476,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         if len(channels) > 0:
             return channels[0]
 
-    def getChannelByCID(self, channel_cid):
-        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
-              "FROM Channels WHERE dispersy_cid = ?"
-        channels = self._getChannels(sql, (buffer(channel_cid),))
-        if len(channels) > 0:
-            return channels[0]
-
     def getChannelFromPermid(self, channel_permid):
         sql = "Select C.id, C.name, C.description, C.dispersy_cid, " + \
               "C.modified, C.nr_torrents, C.nr_favorite, C.nr_spam " + \
