@@ -1394,7 +1394,7 @@ class ChannelManager(object):
 
         return returnList
 
-    def getCommentsFromChannel(self, channel, limit=None, resolve_names=True):
+    def getCommentsFromChannel(self, channel, limit=None):
         hits = self.channelcast_db.getCommentsFromChannelId(channel.id, COMMENT_REQ_COLUMNS, limit)
         return self._createComments(hits, channel=channel)
 
