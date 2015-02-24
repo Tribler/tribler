@@ -260,15 +260,8 @@ class ABCApp(object):
             self.splash.tick('GUIUtility register')
             self.guiUtility.register()
 
-            channel_only = os.path.exists(os.path.join(self.installdir, 'joinchannel'))
-            if channel_only:
-                f = open(os.path.join(self.installdir, 'joinchannel'), 'rb')
-                channel_only = f.readline()
-                f.close()
-
             self.frame = MainFrame(
                 None,
-                channel_only,
                 PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(),
                 self.splash.tick)
             self.frame.SetIcon(wx.Icon(os.path.join(self.installdir, 'Tribler',
