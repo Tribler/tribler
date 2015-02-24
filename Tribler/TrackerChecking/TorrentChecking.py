@@ -597,7 +597,8 @@ class InterruptSocket(object):
         self.interrupt_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def interrupt(self):
-        self.interrupt_socket.sendto("+", (self.ip, self.port))
+        if self.interrupt_socket:
+            self.interrupt_socket.sendto("+", (self.ip, self.port))
 
     def handleRequest(self):
         try:
@@ -607,7 +608,9 @@ class InterruptSocket(object):
 
     def close(self):
         self.interrupt_socket.close()
+        self.interrupt_socket = None
         self.socket.close()
+        self.socket = None
 
     def get_ip(self):
         return self.ip
