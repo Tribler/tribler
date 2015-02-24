@@ -28,6 +28,8 @@ from Tribler.Core.simpledefs import (INFOHASH_LENGTH, NTFY_PEERS, NTFY_UPDATE, N
                                      NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_STATE)
 from Tribler.dispersy.taskmanager import TaskManager
 
+from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
+
 try:
     WindowsError
 except NameError:
@@ -877,7 +879,9 @@ class TorrentDBHandler(BasicDBHandler):
                     continue
                 if tracker in ('DHT', 'no-DHT'):
                     continue
-                new_tracker_list.append([tracker])
+                tracker = getUniformedURL(tracker)
+                if tracker and [tracker] not in new_tracker_list:
+                    new_tracker_list.append([tracker])
 
             if tdef.get_tracker_hierarchy():
                 new_tracker_list = tdef.get_tracker_hierarchy() + new_tracker_list
