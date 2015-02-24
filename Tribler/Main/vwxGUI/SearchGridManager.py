@@ -1836,19 +1836,19 @@ class ChannelManager(object):
                                 infohash=infohash,
                                 name=torrent_name,
                                 channel=channel,
-                                query_permids=set())
+                                query_candidates=set())
                             channel.addTorrent(torrent)
 
-                        if not torrent.query_permids:
-                            torrent.query_permids = set()
-                        torrent.query_permids.add(permid)
+                        if not torrent.query_candidates:
+                            torrent.query_candidates = set()
+                        torrent.query_candidates.add(permid)
 
                         channel.nr_torrents += 1
                         channel.modified = max(channel.modified, timestamp)
                     else:
                         channel = remoteItem
 
-                    if channel and not channel.id in self.hits:
+                    if channel and channel.id not in self.hits:
                         self.hits[channel.id] = channel
                         hitsUpdated = True
         finally:
