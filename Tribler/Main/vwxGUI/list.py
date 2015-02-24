@@ -1532,7 +1532,7 @@ class SearchList(GenericSearchList):
 
     @forceWxThread
     def NewResult(self):
-        if self.guiutility.frame.top_bg.NewResult():
+        if self and self.guiutility.frame.top_bg.NewResult():
             self.SetFinished(None)
 
     def SetFinished(self, keywords):
