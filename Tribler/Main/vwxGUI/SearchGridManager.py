@@ -118,33 +118,6 @@ class TorrentManager(object):
 
         return True
 
-    def downloadTorrentmessageFromPeer(self, torrent, callback=None, duplicate=True, prio=0):
-        """
-        TORRENT is a GuiDBTuple containing torrent information used to
-        display the entry on the UI. it is NOT the torrent file!
-
-        CALLBACK is called when the torrent is downloaded. When no
-        torrent can be downloaded the callback is ignored
-
-        DUPLICATE can be True: the message will be downloaded from peers
-        regardless of a previous/current download attempt (returns
-        True). Or DUPLICATE can be False: the message will only be
-        downloaded when it was not yet attempted to download (when
-        False is returned no callback will be made)
-
-        PRIO is the priority, default is 0 which means we need this torrent now.
-        If PRIO != 0, then a rate limiter could be used by the remotetorrentrequester
-
-        Returns True or False
-        """
-        if torrent.query_candidates is None or len(torrent.query_candidates) == 0:
-            return False
-
-        else:
-            for candidate in torrent.query_candidates:
-                self.session.download_torrentmessage_from_peer(candidate, torrent.infohash, callback, prio)
-        return True
-
     def downloadTorrent(self, torrent):
         torrent_data = self.session.get_collected_torrent(torrent.infohash)
         if torrent_data is not None:
@@ -360,9 +333,14 @@ class TorrentManager(object):
                         prefetch_counter[0] += 1
 
                 elif prefetch_counter[1] < prefetch_counter_limit[1] and i < hit_counter_limit[1]:
-                    if self.downloadTorrentmessageFromPeer(hit, None, duplicate=False, prio=1):
+                    if hit.query_candidates is None or len(hit.query_candidates) == 0:
+                        continue
+
+                    for candidate in hit.query_candidates:
+                        self.session.download_torrentmessage_from_peer(candidate, hit.infohash, None, 1)
                         self._logger.debug("Prefetch: attempting to download torrent message %s", hit.name)
                         prefetch_counter[1] += 1
+
                 else:
                     break
 
@@ -1160,10 +1138,6 @@ class ChannelManager(object):
         channel = self.channelcast_db.getChannel(channel_id)
         return self._getChannel(channel)
 
-    def getChannelByCid(self, channel_cid):
-        channel = self.channelcast_db.getChannelByCID(channel_cid)
-        return self._getChannel(channel)
-
     def getChannelByPermid(self, channel_permid):
         channel = self.channelcast_db.getChannelFromPermid(channel_permid)
         return self._getChannel(channel)
@@ -1201,9 +1175,6 @@ class ChannelManager(object):
     def setChannelState(self, channel_id, channel_mode):
         community = self._disp_get_community_from_channel_id(channel_id)
         return community.set_channel_mode(channel_mode)
-
-    def getPermidFromChannel(self, channel_id):
-        return self.channelcast_db.getPermidForChannel(channel_id)
 
     def getNewChannels(self):
         two_months = time() - 5259487
@@ -1423,7 +1394,7 @@ class ChannelManager(object):
 
         return returnList
 
-    def getCommentsFromChannel(self, channel, limit=None, resolve_names=True):
+    def getCommentsFromChannel(self, channel, limit=None):
         hits = self.channelcast_db.getCommentsFromChannelId(channel.id, COMMENT_REQ_COLUMNS, limit)
         return self._createComments(hits, channel=channel)
 

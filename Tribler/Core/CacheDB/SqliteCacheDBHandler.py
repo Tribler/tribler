@@ -999,14 +999,6 @@ class TorrentDBHandler(BasicDBHandler):
         fix_value('infohash')
         return results
 
-    def getRanks(self):
-        value_name = 'infohash'
-        order_by = 'relevance desc'
-        rankList_size = 20
-        where = 'status_id=%d ' % self.misc_db.torrentStatusName2Id(u'good')
-        res_list = self._db.getAll('Torrent', value_name, where=where, limit=rankList_size, order_by=order_by)
-        return [a[0] for a in res_list]
-
     def getNumberCollectedTorrents(self):
         # return self._db.size('CollectedTorrent')
         return self._db.getOne('CollectedTorrent', 'count(torrent_id)')
@@ -2033,10 +2025,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = "select count(DISTINCT id) from Channels LIMIT 1"
         return self._db.fetchone(sql)
 
-    def getPermidForChannel(self, channel_id):
-        sql = "SELECT permid FROM Peer, Channels WHERE Channels.peer_id = Peer.peer_id AND Channels.id = ?"
-        return self._db.fetchone(sql, (channel_id,))
-
     def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10,
                                    NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10,
                                    NUM_OTHERS_DOWNLOADED=5):
@@ -2488,13 +2476,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         if len(channels) > 0:
             return channels[0]
 
-    def getChannelByCID(self, channel_cid):
-        sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
-              "FROM Channels WHERE dispersy_cid = ?"
-        channels = self._getChannels(sql, (buffer(channel_cid),))
-        if len(channels) > 0:
-            return channels[0]
-
     def getChannelFromPermid(self, channel_permid):
         sql = "Select C.id, C.name, C.description, C.dispersy_cid, " + \
               "C.modified, C.nr_torrents, C.nr_favorite, C.nr_spam " + \
@@ -2672,12 +2653,3 @@ class ChannelCastDBHandler(BasicDBHandler):
                 elif channel[5] == best_channel[5] and channel[4] > best_channel[4]:
                     best_channel = channel
             return best_channel
-
-
-def ranksfind(ranks, key):
-    if ranks is None:
-        return -1
-    try:
-        return ranks.index(key) + 1
-    except:
-        return -1

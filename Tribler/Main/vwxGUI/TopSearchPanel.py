@@ -17,24 +17,6 @@ from Tribler.Main.Dialogs.AddTorrent import AddTorrent
 from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
 
 
-class TopSearchPanelStub(object):
-
-    def NextPage(self):
-        pass
-
-    def PrevPage(self):
-        pass
-
-    def SearchFocus(self):
-        pass
-
-    def Refresh(self):
-        pass
-
-    def Layout(self):
-        pass
-
-
 class TopSearchPanel(FancyPanel):
 
     def __init__(self, parent):

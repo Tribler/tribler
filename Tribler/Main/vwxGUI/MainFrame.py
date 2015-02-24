@@ -50,7 +50,7 @@ from Tribler.Main.vwxGUI.list import SearchList, ChannelList, LibraryList, Activ
 from Tribler.Main.vwxGUI.list_details import (SearchInfoPanel, ChannelInfoPanel, LibraryInfoPanel, PlaylistInfoPanel,
                                               SelectedchannelInfoPanel, TorrentDetails, LibraryDetails, ChannelDetails,
                                               PlaylistDetails)
-from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel, TopSearchPanelStub
+from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel
 from Tribler.Main.vwxGUI.home import Home, Stats, NetworkGraphPanel
 from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, ManageChannel
 from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
@@ -117,7 +117,7 @@ class FileDropTarget(wx.FileDropTarget):
 
 class MainFrame(wx.Frame):
 
-    def __init__(self, parent, channelonly, internalvideo, progress):
+    def __init__(self, parent, internalvideo, progress):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self._logger.info('GUI started')
@@ -165,93 +165,78 @@ class MainFrame(wx.Frame):
 
         # Create all components
         progress('Creating panels')
-        if not channelonly:
-            self.actlist = ActivitiesList(self)
-            self.top_bg = TopSearchPanel(self)
-            self.home = Home(self)
 
-            self.splitter = wx.SplitterWindow(self, style=wx.SP_NOBORDER)
-            self.splitter.SetMinimumPaneSize(1)
-            self.splitter.SetForegroundColour(self.GetForegroundColour())
-            self.splitter_top_window = wx.Panel(self.splitter, style=wx.NO_BORDER)
-            self.splitter_top_window.SetForegroundColour(self.GetForegroundColour())
-            self.splitter_top = wx.BoxSizer(wx.HORIZONTAL)
-            self.splitter_top_window.SetSizer(self.splitter_top)
-            self.splitter_bottom_window = wx.Panel(self.splitter)
-            self.splitter_bottom_window.SetMinSize((-1, 25))
-            self.splitter_bottom_window.SetForegroundColour(self.GetForegroundColour())
-            self.splitter_bottom_window.OnChange = lambda: self.splitter_bottom.Layout()
-            self.splitter_bottom_window.parent_list = self.splitter_bottom_window
+        self.actlist = ActivitiesList(self)
+        self.top_bg = TopSearchPanel(self)
+        self.home = Home(self)
 
-            self.networkgraph = NetworkGraphPanel(self)
-            self.networkgraph.Show(False)
-            self.searchlist = SearchList(self.splitter_top_window)
-            self.searchlist.Show(False)
-            self.librarylist = LibraryList(self.splitter_top_window)
-            self.librarylist.Show(False)
-            self.channellist = ChannelList(self.splitter_top_window)
-            self.channellist.Show(False)
-            self.selectedchannellist = SelectedChannelList(self.splitter_top_window)
-            self.selectedchannellist.Show(False)
-            self.playlist = Playlist(self.splitter_top_window)
-            self.playlist.Show(False)
+        self.splitter = wx.SplitterWindow(self, style=wx.SP_NOBORDER)
+        self.splitter.SetMinimumPaneSize(1)
+        self.splitter.SetForegroundColour(self.GetForegroundColour())
+        self.splitter_top_window = wx.Panel(self.splitter, style=wx.NO_BORDER)
+        self.splitter_top_window.SetForegroundColour(self.GetForegroundColour())
+        self.splitter_top = wx.BoxSizer(wx.HORIZONTAL)
+        self.splitter_top_window.SetSizer(self.splitter_top)
+        self.splitter_bottom_window = wx.Panel(self.splitter)
+        self.splitter_bottom_window.SetMinSize((-1, 25))
+        self.splitter_bottom_window.SetForegroundColour(self.GetForegroundColour())
+        self.splitter_bottom_window.OnChange = lambda: self.splitter_bottom.Layout()
+        self.splitter_bottom_window.parent_list = self.splitter_bottom_window
 
-            # Populate the bottom window
-            self.splitter_bottom = wx.BoxSizer(wx.HORIZONTAL)
-            self.torrentdetailspanel = TorrentDetails(self.splitter_bottom_window)
-            self.torrentdetailspanel.Show(False)
-            self.librarydetailspanel = LibraryDetails(self.splitter_bottom_window)
-            self.librarydetailspanel.Show(False)
-            self.channeldetailspanel = ChannelDetails(self.splitter_bottom_window)
-            self.channeldetailspanel.Show(False)
-            self.playlistdetailspanel = PlaylistDetails(self.splitter_bottom_window)
-            self.playlistdetailspanel.Show(False)
-            self.searchinfopanel = SearchInfoPanel(self.splitter_bottom_window)
-            self.searchinfopanel.Show(False)
-            self.channelinfopanel = ChannelInfoPanel(self.splitter_bottom_window)
-            self.channelinfopanel.Show(False)
-            self.libraryinfopanel = LibraryInfoPanel(self.splitter_bottom_window)
-            self.libraryinfopanel.Show(False)
-            self.playlistinfopanel = PlaylistInfoPanel(self.splitter_bottom_window)
-            self.playlistinfopanel.Show(False)
-            self.selectedchannelinfopanel = SelectedchannelInfoPanel(self.splitter_bottom_window)
-            self.selectedchannelinfopanel.Show(False)
-            self.splitter_bottom.Add(self.torrentdetailspanel, 1, wx.EXPAND)
-            self.splitter_bottom.Add(self.librarydetailspanel, 1, wx.EXPAND)
-            self.splitter_bottom.Add(self.channeldetailspanel, 1, wx.EXPAND)
-            self.splitter_bottom.Add(self.playlistdetailspanel, 1, wx.EXPAND)
-            self.splitter_bottom.Add(self.searchinfopanel, 1, wx.EXPAND)
-            self.splitter_bottom.Add(self.channelinfopanel, 1, wx.EXPAND)
-            self.splitter_bottom.Add(self.libraryinfopanel, 1, wx.EXPAND)
-            self.splitter_bottom.Add(self.playlistinfopanel, 1, wx.EXPAND)
-            self.splitter_bottom.Add(self.selectedchannelinfopanel, 1, wx.EXPAND)
-            self.splitter_bottom_window.SetSizer(self.splitter_bottom)
+        self.networkgraph = NetworkGraphPanel(self)
+        self.networkgraph.Show(False)
+        self.searchlist = SearchList(self.splitter_top_window)
+        self.searchlist.Show(False)
+        self.librarylist = LibraryList(self.splitter_top_window)
+        self.librarylist.Show(False)
+        self.channellist = ChannelList(self.splitter_top_window)
+        self.channellist.Show(False)
+        self.selectedchannellist = SelectedChannelList(self.splitter_top_window)
+        self.selectedchannellist.Show(False)
+        self.playlist = Playlist(self.splitter_top_window)
+        self.playlist.Show(False)
 
-            self.splitter.SetSashGravity(0.8)
-            self.splitter.SplitHorizontally(self.splitter_top_window, self.splitter_bottom_window, sashpos)
-            self.splitter.Show(False)
+        # Populate the bottom window
+        self.splitter_bottom = wx.BoxSizer(wx.HORIZONTAL)
+        self.torrentdetailspanel = TorrentDetails(self.splitter_bottom_window)
+        self.torrentdetailspanel.Show(False)
+        self.librarydetailspanel = LibraryDetails(self.splitter_bottom_window)
+        self.librarydetailspanel.Show(False)
+        self.channeldetailspanel = ChannelDetails(self.splitter_bottom_window)
+        self.channeldetailspanel.Show(False)
+        self.playlistdetailspanel = PlaylistDetails(self.splitter_bottom_window)
+        self.playlistdetailspanel.Show(False)
+        self.searchinfopanel = SearchInfoPanel(self.splitter_bottom_window)
+        self.searchinfopanel.Show(False)
+        self.channelinfopanel = ChannelInfoPanel(self.splitter_bottom_window)
+        self.channelinfopanel.Show(False)
+        self.libraryinfopanel = LibraryInfoPanel(self.splitter_bottom_window)
+        self.libraryinfopanel.Show(False)
+        self.playlistinfopanel = PlaylistInfoPanel(self.splitter_bottom_window)
+        self.playlistinfopanel.Show(False)
+        self.selectedchannelinfopanel = SelectedchannelInfoPanel(self.splitter_bottom_window)
+        self.selectedchannelinfopanel.Show(False)
+        self.splitter_bottom.Add(self.torrentdetailspanel, 1, wx.EXPAND)
+        self.splitter_bottom.Add(self.librarydetailspanel, 1, wx.EXPAND)
+        self.splitter_bottom.Add(self.channeldetailspanel, 1, wx.EXPAND)
+        self.splitter_bottom.Add(self.playlistdetailspanel, 1, wx.EXPAND)
+        self.splitter_bottom.Add(self.searchinfopanel, 1, wx.EXPAND)
+        self.splitter_bottom.Add(self.channelinfopanel, 1, wx.EXPAND)
+        self.splitter_bottom.Add(self.libraryinfopanel, 1, wx.EXPAND)
+        self.splitter_bottom.Add(self.playlistinfopanel, 1, wx.EXPAND)
+        self.splitter_bottom.Add(self.selectedchannelinfopanel, 1, wx.EXPAND)
+        self.splitter_bottom_window.SetSizer(self.splitter_bottom)
 
-            # Reset the sash position after the splitter has been made visible
-            def OnShowSplitter(event):
-                wx.CallAfter(self.splitter.SetSashPosition, sashpos)
-                self.splitter.Unbind(wx.EVT_SHOW)
-                event.Skip()
-            self.splitter.Bind(wx.EVT_SHOW, OnShowSplitter)
+        self.splitter.SetSashGravity(0.8)
+        self.splitter.SplitHorizontally(self.splitter_top_window, self.splitter_bottom_window, sashpos)
+        self.splitter.Show(False)
 
-        else:
-            self.actlist = None
-            self.top_bg = None
-
-            self.guiUtility.guiPage = 'selectedchannel'
-            self.home = None
-            self.searchlist = None
-            self.librarylist = LibraryList(self)
-            self.librarylist.Show(False)
-            self.channellist = None
-            self.selectedchannellist = SelectedChannelList(self)
-            self.selectedchannellist.Show(True)
-            self.playlist = Playlist(self)
-            self.playlist.Show(False)
+        # Reset the sash position after the splitter has been made visible
+        def OnShowSplitter(event):
+            wx.CallAfter(self.splitter.SetSashPosition, sashpos)
+            self.splitter.Unbind(wx.EVT_SHOW)
+            event.Skip()
+        self.splitter.Bind(wx.EVT_SHOW, OnShowSplitter)
 
         self.stats = Stats(self)
         self.stats.Show(False)
@@ -260,29 +245,22 @@ class MainFrame(wx.Frame):
 
         progress('Positioning')
 
-        if not channelonly:
-            # position all elements
-            vSizer = wx.BoxSizer(wx.VERTICAL)
+        # position all elements
+        vSizer = wx.BoxSizer(wx.VERTICAL)
 
-            vSizer.Add(self.top_bg, 0, wx.EXPAND)
+        vSizer.Add(self.top_bg, 0, wx.EXPAND)
 
-            hSizer = wx.BoxSizer(wx.HORIZONTAL)
-            vSizer.Add(hSizer, 1, wx.EXPAND)
+        hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        vSizer.Add(hSizer, 1, wx.EXPAND)
 
-            hSizer.Add(self.actlist, 0, wx.EXPAND)
-            separator = wx.Panel(self, size=(1, -1))
-            separator.SetBackgroundColour(SEPARATOR_GREY)
-            hSizer.Add(separator, 0, wx.EXPAND)
-            hSizer.Add(self.home, 1, wx.EXPAND)
-            hSizer.Add(self.stats, 1, wx.EXPAND)
-            hSizer.Add(self.networkgraph, 1, wx.EXPAND)
-            hSizer.Add(self.splitter, 1, wx.EXPAND)
-        else:
-            vSizer = wx.BoxSizer(wx.VERTICAL)
-            hSizer = wx.BoxSizer(wx.HORIZONTAL)
-            vSizer.Add(hSizer, 1, wx.EXPAND | wx.ALL, 5)
-
-            self.top_bg = TopSearchPanelStub()
+        hSizer.Add(self.actlist, 0, wx.EXPAND)
+        separator = wx.Panel(self, size=(1, -1))
+        separator.SetBackgroundColour(SEPARATOR_GREY)
+        hSizer.Add(separator, 0, wx.EXPAND)
+        hSizer.Add(self.home, 1, wx.EXPAND)
+        hSizer.Add(self.stats, 1, wx.EXPAND)
+        hSizer.Add(self.networkgraph, 1, wx.EXPAND)
+        hSizer.Add(self.splitter, 1, wx.EXPAND)
 
         hSizer.Add(self.managechannel, 1, wx.EXPAND)
 
@@ -292,23 +270,16 @@ class MainFrame(wx.Frame):
         self.SetSizer(vSizer)
 
         # set sizes
-        if not channelonly:
-            self.top_bg.SetMinSize((-1, 45))
-            self.actlist.SetMinSize((200, -1))
+        self.top_bg.SetMinSize((-1, 45))
+        self.actlist.SetMinSize((200, -1))
 
         self.SRstatusbar = SRstatusbar(self)
         self.SetStatusBar(self.SRstatusbar)
 
         def preload_data():
-            if not channelonly:
-                self.guiUtility.showChannelCategory('All', False)
+            self.guiUtility.showChannelCategory('All', False)
             self.guiUtility.showLibrary(False)
         startWorker(None, preload_data, delay=1.5, workerType="guiTaskQueue")
-
-        if channelonly:
-            self.guiUtility.showChannelFromDispCid(channelonly)
-            if internalvideo:
-                self.guiUtility.ShowPlayer()
 
         if sys.platform != 'darwin':
             dragdroplist = FileDropTarget(self)
