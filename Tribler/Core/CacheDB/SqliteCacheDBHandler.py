@@ -2025,10 +2025,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = "select count(DISTINCT id) from Channels LIMIT 1"
         return self._db.fetchone(sql)
 
-    def getPermidForChannel(self, channel_id):
-        sql = "SELECT permid FROM Peer, Channels WHERE Channels.peer_id = Peer.peer_id AND Channels.id = ?"
-        return self._db.fetchone(sql, (channel_id,))
-
     def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10,
                                    NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10,
                                    NUM_OTHERS_DOWNLOADED=5):
