@@ -50,7 +50,7 @@ from Tribler.Main.vwxGUI.list import SearchList, ChannelList, LibraryList, Activ
 from Tribler.Main.vwxGUI.list_details import (SearchInfoPanel, ChannelInfoPanel, LibraryInfoPanel, PlaylistInfoPanel,
                                               SelectedchannelInfoPanel, TorrentDetails, LibraryDetails, ChannelDetails,
                                               PlaylistDetails)
-from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel, TopSearchPanelStub
+from Tribler.Main.vwxGUI.TopSearchPanel import TopSearchPanel
 from Tribler.Main.vwxGUI.home import Home, Stats, NetworkGraphPanel
 from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, ManageChannel
 from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
