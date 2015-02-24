@@ -999,14 +999,6 @@ class TorrentDBHandler(BasicDBHandler):
         fix_value('infohash')
         return results
 
-    def getRanks(self):
-        value_name = 'infohash'
-        order_by = 'relevance desc'
-        rankList_size = 20
-        where = 'status_id=%d ' % self.misc_db.torrentStatusName2Id(u'good')
-        res_list = self._db.getAll('Torrent', value_name, where=where, limit=rankList_size, order_by=order_by)
-        return [a[0] for a in res_list]
-
     def getNumberCollectedTorrents(self):
         # return self._db.size('CollectedTorrent')
         return self._db.getOne('CollectedTorrent', 'count(torrent_id)')
