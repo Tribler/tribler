@@ -35,6 +35,7 @@ class SessionConfigInterface(object):
     Use SessionStartupConfig from creating and manipulation configurations
     before session startup time. This is just a parent class.
     """
+
     def __init__(self, sessconfig=None):
         """ Constructor.
         @param sessconfig Optional dictionary used internally
@@ -71,7 +72,8 @@ class SessionConfigInterface(object):
             if sys.platform == 'darwin':
                 self.sessconfig.set(u'general', u'videoanalyserpath', u"vlc/ffmpeg")
             elif is_android(strict=True):
-                self.sessconfig.set(u'general', u'videoanalyserpath', os.path.join(os.environ['ANDROID_PRIVATE'], 'ffmpeg'))
+                self.sessconfig.set(u'general', u'videoanalyserpath', os.path.join(
+                    os.environ['ANDROID_PRIVATE'], 'ffmpeg'))
             else:
                 self.sessconfig.set(u'general', u'videoanalyserpath', ffmpegname)
         else:
@@ -81,7 +83,8 @@ class SessionConfigInterface(object):
         if sys.platform == 'win32':
             videoplayerpath = os.path.expandvars('${PROGRAMFILES}') + '\\Windows Media Player\\wmplayer.exe'
         elif sys.platform == 'darwin':
-            videoplayerpath = find_executable("vlc") or ("/Applications/VLC.app" if os.path.exists("/Applications/VLC.app") else None) or "/Applications/QuickTime Player.app"
+            videoplayerpath = find_executable("vlc") or ("/Applications/VLC.app" if os.path.exists(
+                "/Applications/VLC.app") else None) or "/Applications/QuickTime Player.app"
         else:
             videoplayerpath = find_executable("vlc") or "vlc"
 
@@ -256,8 +259,8 @@ class SessionConfigInterface(object):
         """ Returns which proxy LibTorrent is using.
         @return Tuple containing ptype, server, authentication values (as described in set_libtorrent_proxy_settings)
         """
-        return (self.sessconfig.get(u'libtorrent', u'lt_proxytype'), \
-                self.sessconfig.get(u'libtorrent', u'lt_proxyserver'), \
+        return (self.sessconfig.get(u'libtorrent', u'lt_proxytype'),
+                self.sessconfig.get(u'libtorrent', u'lt_proxyserver'),
                 self.sessconfig.get(u'libtorrent', u'lt_proxyauth'))
 
     def set_anon_proxy_settings(self, ptype, server=None, auth=None):
@@ -277,7 +280,6 @@ class SessionConfigInterface(object):
         return (self.sessconfig.get(u'libtorrent', u'anon_proxytype'),
                 self.sessconfig.get(u'libtorrent', u'anon_proxyserver'),
                 self.sessconfig.get(u'libtorrent', u'anon_proxyauth'))
-
 
     def set_anon_listen_port(self, listen_port=None):
         self.sessconfig.set(u'libtorrent', u'anon_listen_port', listen_port)
@@ -618,7 +620,6 @@ class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
     def __init__(self, sessconfig=None):
         SessionConfigInterface.__init__(self, sessconfig)
 
-
     #
     # Class method
     #
@@ -645,7 +646,6 @@ class SessionStartupConfig(SessionConfigInterface, Copyable, Serializable):
             raise IOError, "Failed to open session config file"
 
         return SessionStartupConfig(sessconfig)
-
 
     def save(self, filename):
         """ Save the SessionStartupConfig to disk.

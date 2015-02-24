@@ -26,7 +26,6 @@ from Tribler.Core.Utilities.configparser import CallbackConfigParser
 STATEDIR_DLCONFIG = u"tribler.conf"
 
 
-
 class DownloadConfigInterface(object):
 
     """
@@ -39,6 +38,7 @@ class DownloadConfigInterface(object):
 
     cf. libtorrent torrent_handle
     """
+
     def __init__(self, dlconfig=None):
         super(DownloadConfigInterface, self).__init__()
 
@@ -169,6 +169,7 @@ class DownloadStartupConfig(DownloadConfigInterface, Serializable, Copyable):
 
     cf. libtorrent torrent_handle
     """
+
     def __init__(self, dlconfig=None):
         """ Normal constructor for DownloadStartupConfig (copy constructor
         used internally) """
@@ -221,7 +222,7 @@ def get_default_dest_dir():
     if os.path.isdir(t_downloaddir):
         return os.path.abspath(t_downloaddir)
 
-    downloads_dir =  os.path.join(get_home_dir(), "Downloads")
+    downloads_dir = os.path.join(get_home_dir(), "Downloads")
     if os.path.isdir(downloads_dir):
         return os.path.join(downloads_dir, t_downloaddir)
     else:
