@@ -1138,10 +1138,6 @@ class ChannelManager(object):
         channel = self.channelcast_db.getChannel(channel_id)
         return self._getChannel(channel)
 
-    def getChannelByCid(self, channel_cid):
-        channel = self.channelcast_db.getChannelByCID(channel_cid)
-        return self._getChannel(channel)
-
     def getChannelByPermid(self, channel_permid):
         channel = self.channelcast_db.getChannelFromPermid(channel_permid)
         return self._getChannel(channel)
