@@ -90,8 +90,6 @@ def make_torrent_file(input, userabortflag=None, userprogresscallback=lambda x: 
         cdict = {'Content': mdict}
         metainfo['azureus_properties'] = cdict
 
-    if 'url-compat' in input:
-        metainfo['info']['url-compat'] = input['url-compat']
     if 'private' in input:
         metainfo['info']['private'] = input['private']
     if 'anonymous' in input:
@@ -487,7 +485,7 @@ def copy_metainfo_to_input(metainfo, input):
         if key in metainfo:
             input[key] = metainfo[key]
 
-    infokeys = ['name', 'piece length', 'live', 'url-compat']
+    infokeys = ['name', 'piece length', 'live']
     for key in infokeys:
         if key in metainfo['info']:
             input[key] = metainfo['info'][key]
@@ -526,9 +524,6 @@ def copy_metainfo_to_input(metainfo, input):
 
     if 'cs_keys' in metainfo['info']:
         input['cs_keys'] = metainfo['info']['cs_keys']
-
-    if 'url-compat' in metainfo['info']:
-        input['url-compat'] = metainfo['info']['url-compat']
 
     if 'ogg-headers' in metainfo:
         input['ogg-headers'] = metainfo['ogg-headers']
