@@ -261,11 +261,6 @@ def makeinfo(input, userabortflag, userprogresscallback):
         # This is a closed swarm - add torrent keys
         infodict['cs_keys'] = input['cs_keys']
 
-    if 'ns-metadata' in input:
-        # This has P2P-Next metadata, store in info field to make it
-        # immutable.
-        infodict['ns-metadata'] = input['ns-metadata']
-
     if len(subs) == 1:
         # Find and add playtime
         for file in input['files']:
@@ -484,9 +479,6 @@ def copy_metainfo_to_input(metainfo, input):
 
     if 'cs_keys' in metainfo['info']:
         input['cs_keys'] = metainfo['info']['cs_keys']
-
-    if 'ns-metadata' in metainfo['info']:
-        input['ns-metadata'] = metainfo['info']['ns-metadata']
 
     # Diego : we want web seeding
     if 'url-list' in metainfo:

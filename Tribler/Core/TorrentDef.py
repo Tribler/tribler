@@ -531,20 +531,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         else:
             return None
 
-    def set_metadata(self, value):
-        """ Set the P2P-Next metadata
-        @param value binary string """
-
-        self.input['ns-metadata'] = value
-
-    def get_metadata(self):
-        """ Returns the stored P2P-Next metadata or None.
-        @return binary string. """
-        if 'ns-metadata' in self.input:
-            return self.input['ns-metadata']
-        else:
-            return None
-
     def set_initial_peers(self, value):
         """ Set the initial peers to connect to.
         @param value List of (IP,port) tuples """
