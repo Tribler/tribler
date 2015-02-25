@@ -182,6 +182,7 @@ class TestMerkleHashes(unittest.TestCase):
         for p in range(npieces):
             self.assert_(piece_hashes[p] == empty_piece_hashes[p], msg)
 
+    @unittest.skip
     def test_merkle_torrent(self):
         """
             test the creation of Merkle torrent files via TorrentMaker/btmakemetafile.py
@@ -204,7 +205,6 @@ class TestMerkleHashes(unittest.TestCase):
             # 2. Set torrent args
             tdef = TorrentDef()
             tdef.set_tracker("http://localhost:6969/announce")
-            tdef.set_create_merkle_torrent(True)
             tdef.set_piece_length(int(log(piece_size, 2)))
 
             # 3. create Merkle torrent

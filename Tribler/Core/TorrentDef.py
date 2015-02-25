@@ -573,22 +573,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         @return Boolean."""
         return self.input['makehash_sha1']
 
-    def set_create_merkle_torrent(self, value):
-        """ Create a Merkle torrent instead of a regular BT torrent. A Merkle
-        torrent uses a hash tree for checking the integrity of the content
-        received. As such it creates much smaller torrent files than the
-        regular method. Tribler-specific feature."""
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
-        self.input['createmerkletorrent'] = value
-        self.metainfo_valid = False
-
-    def get_create_merkle_torrent(self):
-        """ Returns whether to create a Merkle torrent.
-        @return Boolean. """
-        return self.input['createmerkletorrent']
-
     def set_signature_keypair_filename(self, value):
         """ Set absolute filename of keypair to be used for signature.
         When set, a signature will be added.

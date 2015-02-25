@@ -242,7 +242,6 @@ class CreateTorrent(wx.Dialog):
             params['makehash_md5'] = False
             params['makehash_crc32'] = False
             params['makehash_sha1'] = True
-            params['createmerkletorrent'] = False
             params['torrentsigkeypairfilename'] = False
             params['thumb'] = False
 
@@ -434,8 +433,6 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
     if params['makehash_sha1']:
         logger.info("TorrentMaker: make SHA1")
         tdef.set_add_sha1hash(params['makehash_sha1'])
-    if params['createmerkletorrent']:
-        tdef.set_create_merkle_torrent(params['createmerkletorrent'])
     if params['torrentsigkeypairfilename']:
         tdef.set_signature_keypair_filename(params['torrentsigkeypairfilename'])
     if params['thumb']:
@@ -443,10 +440,7 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
 
     tdef.finalize(userabortflag=userabortflag, userprogresscallback=progressCallback)
 
-    if params['createmerkletorrent']:
-        postfix = TRIBLER_TORRENT_EXT
-    else:
-        postfix = '.torrent'
+    postfix = '.torrent'
 
     if params.get('target', False):
         torrentfilename = os.path.join(params['target'], os.path.split(os.path.normpath(srcpath))[1] + postfix)
