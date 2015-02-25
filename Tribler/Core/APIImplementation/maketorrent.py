@@ -257,10 +257,6 @@ def makeinfo(input, userabortflag, userprogresscallback):
         # With source auth, live is a dict
         infodict['live'] = input['live']
 
-    if 'cs_keys' in input:
-        # This is a closed swarm - add torrent keys
-        infodict['cs_keys'] = input['cs_keys']
-
     if len(subs) == 1:
         # Find and add playtime
         for file in input['files']:
@@ -476,9 +472,6 @@ def copy_metainfo_to_input(metainfo, input):
 
     if 'live' in metainfo['info']:
         input['live'] = metainfo['info']['live']
-
-    if 'cs_keys' in metainfo['info']:
-        input['cs_keys'] = metainfo['info']['cs_keys']
 
     # Diego : we want web seeding
     if 'url-list' in metainfo:
