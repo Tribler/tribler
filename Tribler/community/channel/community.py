@@ -1,4 +1,3 @@
-import binascii
 import json
 import logging
 from struct import pack
@@ -22,8 +21,6 @@ from .conversion import ChannelConversion
 from .message import DelayMessageReqChannelMessage
 from .payload import (ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload,
                       PlaylistTorrentPayload, MissingChannelPayload, MarkTorrentPayload)
-from twisted.python.log import msg
-from twisted.internet.task import LoopingCall
 from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
 
 logger = logging.getLogger(__name__)

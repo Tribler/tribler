@@ -348,10 +348,3 @@ def cancelWorker(uId):
     if GUIDBProducer.hasInstance():
         thread = GUIDBProducer.getInstance()
         thread.Remove(uId)
-
-
-def onWorkerThread(type):
-    if GUIDBProducer.hasInstance():
-        dbProducer = GUIDBProducer.getInstance()
-        return dbProducer.onSameThread(type)
-    return False

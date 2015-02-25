@@ -11,19 +11,16 @@ import logging
 from threading import currentThread
 from traceback import print_exc
 
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_ENDED, \
-    DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED_ON_ERROR, NTFY_VIDEO_BUFFERING, \
-    DLMODE_VOD
+from Tribler.Core.simpledefs import (NTFY_TORRENTS, NTFY_VIDEO_ENDED, DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED_ON_ERROR,
+                                     NTFY_VIDEO_BUFFERING, DLMODE_VOD)
 from Tribler.Core.CacheDB.Notifier import Notifier
 
-from Tribler.Main.vwxGUI import forceWxThread, warnWxThread, \
-    SEPARATOR_GREY, GRADIENT_DGREY, GRADIENT_LGREY
+from Tribler.Main.vwxGUI import forceWxThread, warnWxThread, SEPARATOR_GREY, GRADIENT_DGREY, GRADIENT_LGREY
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.vwxGUI.widgets import VideoProgress, FancyPanel, \
-    ActionButton, TransparentText, VideoVolume, VideoSlider
+from Tribler.Main.vwxGUI.widgets import (VideoProgress, FancyPanel, ActionButton, TransparentText, VideoVolume,
+                                         VideoSlider)
 
-from Tribler.Core.Video.defs import MEDIASTATE_PLAYING, MEDIASTATE_ENDED, \
-    MEDIASTATE_STOPPED, MEDIASTATE_PAUSED
+from Tribler.Core.Video.defs import MEDIASTATE_PLAYING, MEDIASTATE_ENDED, MEDIASTATE_STOPPED, MEDIASTATE_PAUSED
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
 

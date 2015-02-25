@@ -15,7 +15,6 @@ from shutil import rmtree, move
 from sqlite3 import Connection
 
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 
 
 class TorrentMigrator64(object):

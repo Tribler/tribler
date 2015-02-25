@@ -13,15 +13,11 @@ from binascii import hexlify
 from shutil import rmtree
 from sqlite3 import Connection
 
-from twisted.internet.threads import blockingCallFromThread
-
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MiscDBHandler
 from Tribler.Core.CacheDB.db_versions import LOWEST_SUPPORTED_DB_VERSION, LATEST_DB_VERSION
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.twisted_thread import reactor
-from Tribler.Core.torrentstore import TorrentStore
 
 
 class VersionNoLongerSupportedError(Exception):

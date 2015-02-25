@@ -25,8 +25,8 @@ from Tribler.Main.vwxGUI.list_header import DetailHeader
 from Tribler.Main.vwxGUI.list_body import ListBody
 from Tribler.Main.vwxGUI.list_item import ThumbnailListItemNoTorrent
 from Tribler.Main.vwxGUI.list_footer import ListFooter
-from Tribler.Main.vwxGUI.widgets import SelectableListCtrl, \
-    TextCtrlAutoComplete, BetterText as StaticText, LinkStaticText
+from Tribler.Main.vwxGUI.widgets import (SelectableListCtrl, TextCtrlAutoComplete, BetterText as StaticText,
+                                         LinkStaticText)
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.Video.VideoUtility import considered_xxx

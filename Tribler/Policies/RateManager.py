@@ -5,9 +5,9 @@ import logging
 from sets import Set
 from threading import RLock
 
-from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, DLSTATUS_ALLOCATING_DISKSPACE, \
-    DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, \
-    DLSTATUS_SEEDING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR
+from Tribler.Core.simpledefs import (UPLOAD, DOWNLOAD, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAITING4HASHCHECK,
+                                     DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
+                                     DLSTATUS_STOPPED_ON_ERROR)
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
 

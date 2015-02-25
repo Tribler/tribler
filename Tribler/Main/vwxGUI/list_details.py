@@ -23,8 +23,9 @@ from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.community.channel.community import ChannelCommunity
 
 from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, Channel, Playlist
-from Tribler.Main.vwxGUI import (warnWxThread, forceWxThread, startWorker, GRADIENT_LGREY, GRADIENT_DGREY,
-                                 THUMBNAIL_FILETYPES, GUI_PRI_DISPERSY, DEFAULT_BACKGROUND, FILTER_GREY, SEPARATOR_GREY,
+from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, startWorker
+from Tribler.Main.vwxGUI import (warnWxThread, forceWxThread, GRADIENT_LGREY, GRADIENT_DGREY,
+                                 THUMBNAIL_FILETYPES, DEFAULT_BACKGROUND, FILTER_GREY, SEPARATOR_GREY,
                                  DOWNLOADING_COLOUR, SEEDING_COLOUR, TRIBLER_RED, LIST_LIGHTBLUE, format_time)
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
