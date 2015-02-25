@@ -5,7 +5,6 @@
 
 import sys
 import os
-import zlib
 import logging
 
 from Tribler.Core.Utilities.Crypto import sha
@@ -199,8 +198,6 @@ def makeinfo(input, userabortflag, userprogresscallback):
 
             if input['makehash_sha1']:
                 hash_sha1 = sha()
-            if input['makehash_crc32']:
-                hash_crc32 = zlib.crc32('')
 
             while pos < size:
                 a = min(size - pos, piece_length - done)
@@ -216,10 +213,6 @@ def makeinfo(input, userabortflag, userprogresscallback):
                     return None, None
 
                 sh.update(readpiece)
-
-                if input['makehash_crc32']:
-                    # Update CRC32
-                    hash_crc32 = zlib.crc32(readpiece, hash_crc32)
 
                 if input['makehash_sha1']:
                     # Update SHA1
@@ -248,8 +241,6 @@ def makeinfo(input, userabortflag, userprogresscallback):
                         newdict['playtime'] = file['playtime']
                     break
 
-            if input['makehash_crc32']:
-                newdict['crc32'] = "%08X" % hash_crc32
             if input['makehash_sha1']:
                 newdict['sha1'] = hash_sha1.digest()
 

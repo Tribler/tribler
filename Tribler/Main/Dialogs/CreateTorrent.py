@@ -238,7 +238,6 @@ class CreateTorrent(wx.Dialog):
             params['nodes'] = False
             params['httpseeds'] = False
             params['encoding'] = False
-            params['makehash_crc32'] = False
             params['makehash_sha1'] = True
             params['thumb'] = False
 
@@ -421,9 +420,6 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
         tdef.set_encoding(params['encoding'])
     if params['piece length']:
         tdef.set_piece_length(params['piece length'])
-    if params['makehash_crc32']:
-        logger.info("TorrentMaker: make CRC32")
-        tdef.set_add_crc32(params['makehash_crc32'])
     if params['makehash_sha1']:
         logger.info("TorrentMaker: make SHA1")
         tdef.set_add_sha1hash(params['makehash_sha1'])
