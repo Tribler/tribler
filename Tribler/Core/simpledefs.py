@@ -113,11 +113,6 @@ LIVE_AUTHMETHOD_NONE = "None"  # No auth, also no abs. piece nr. or timestamp.
 LIVE_AUTHMETHOD_ECDSA = "ECDSA"  # Elliptic Curve DSA signatures
 LIVE_AUTHMETHOD_RSA = "RSA"  # RSA signatures
 
-
-P2PURL_SCHEME = "tribe"  # No colon
-
-TRIBLER_TORRENT_EXT = ".tribe"  # Unused
-
 # Infohashes are always 20 byte binary strings
 INFOHASH_LENGTH = 20
 

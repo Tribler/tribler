@@ -8,7 +8,6 @@ from threading import Event
 from traceback import print_exc
 
 from Tribler.Core.version import version_id
-from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT
 from Tribler.Core.TorrentDef import TorrentDef
 
 from Tribler.Main.vwxGUI import forceWxThread
