@@ -507,20 +507,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         """ Returns the pieces"""
         return self.metainfo['info']['pieces'][:]
 
-    def set_add_md5hash(self, value):
-        """ Whether to add an end-to-end MD5 checksum to the def.
-        @param value Boolean.
-        """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
-        self.input['makehash_md5'] = value
-        self.metainfo_valid = False
-
-    def get_add_md5hash(self):
-        """ Returns whether to add an MD5 checksum. """
-        return self.input['makehash_md5']
-
     def set_add_crc32(self, value):
         """ Whether to add an end-to-end CRC32 checksum to the def.
         @param value Boolean.

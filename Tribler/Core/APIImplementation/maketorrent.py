@@ -5,7 +5,6 @@
 
 import sys
 import os
-from hashlib import md5
 import zlib
 import logging
 
@@ -16,7 +15,6 @@ from traceback import print_exc
 from types import LongType
 
 from Tribler.Core.Utilities.bencode import bencode
-from Tribler.Core.Merkle.merkle import MerkleTree
 from Tribler.Core.Utilities.unicode import bin2unicode
 from Tribler.Core.APIImplementation.miscutils import parse_playtime_to_secs, offset2piece
 from Tribler.Core.osutils import fix_filebasename
@@ -199,8 +197,6 @@ def makeinfo(input, userabortflag, userprogresscallback):
 
             h = open(f, 'rb')
 
-            if input['makehash_md5']:
-                hash_md5 = md5.new()
             if input['makehash_sha1']:
                 hash_sha1 = sha()
             if input['makehash_crc32']:
@@ -220,10 +216,6 @@ def makeinfo(input, userabortflag, userprogresscallback):
                     return None, None
 
                 sh.update(readpiece)
-
-                if input['makehash_md5']:
-                    # Update MD5
-                    hash_md5.update(readpiece)
 
                 if input['makehash_crc32']:
                     # Update CRC32
@@ -256,8 +248,6 @@ def makeinfo(input, userabortflag, userprogresscallback):
                         newdict['playtime'] = file['playtime']
                     break
 
-            if input['makehash_md5']:
-                newdict['md5sum'] = hash_md5.hexdigest()
             if input['makehash_crc32']:
                 newdict['crc32'] = "%08X" % hash_crc32
             if input['makehash_sha1']:
