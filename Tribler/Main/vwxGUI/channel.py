@@ -5,10 +5,10 @@ import os
 import sys
 from time import time
 import pickle
-from shutil import copyfile
 from random import sample
 from traceback import print_exc
 import re
+from binascii import hexlify
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.widgets import _set_font, NotebookPanel, SimpleNotebook, EditText, BetterText
@@ -18,7 +18,6 @@ from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import NTFY_MISC
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-from Tribler.Core.Utilities.utilities import get_collected_torrent_filename
 
 from Tribler.Main.vwxGUI import (CHANNEL_MAX_NON_FAVORITE, warnWxThread, LIST_GREY, LIST_LIGHTBLUE, LIST_DESELECTED,
                                  DEFAULT_BACKGROUND, format_time, showError)
@@ -1058,19 +1057,20 @@ class ManageChannelFilesManager(BaseManager):
 
     def DoExport(self, target_dir):
         if os.path.isdir(target_dir):
-            torrent_dir = self.channelsearch_manager.session.get_torrent_collecting_dir()
             _, _, torrents = self.channelsearch_manager.getTorrentsFromChannel(self.channel, filterTorrents=False)
 
             nr_torrents_exported = 0
             for torrent in torrents:
-                collected_torrent_filename = get_collected_torrent_filename(torrent.infohash)
-
-                torrent_filename = os.path.join(torrent_dir, collected_torrent_filename)
-                if os.path.isfile(torrent_filename):
-                    new_torrent_filename = os.path.join(target_dir, collected_torrent_filename)
-                    copyfile(torrent_filename, new_torrent_filename)
-
-                    nr_torrents_exported += 1
+                torrent_data = self.channelsearch_manager.session.get_collected_torrent(torrent.infohash)
+                if torrent_data is not None:
+                    torrent_file_name = hexlify(torrent.infohash) + u'.torrent'
+                    new_torrent_filename = os.path.join(target_dir, torrent_file_name)
+                    try:
+                        with open(new_torrent_filename, 'rb') as f:
+                            f.write(torrent_data)
+                        nr_torrents_exported += 1
+                    except Exception, e:
+                        self._logger.error("failed to export data to torrent file %s: %s", new_torrent_filename, e)
 
             self.guiutility.Notify('%d torrents exported' % nr_torrents_exported, icon=wx.ART_INFORMATION)
 
