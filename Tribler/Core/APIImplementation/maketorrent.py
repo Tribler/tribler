@@ -92,17 +92,6 @@ def make_torrent_file(input, userabortflag=None, userprogresscallback=lambda x: 
     if 'anonymous' in input:
         metainfo['info']['anonymous'] = input['anonymous']
 
-    # Arno, 2010-03-02:
-    # Theoretically should go into 'info' field, to get infohash protection
-    # because the video won't play without them. In the future we'll sign
-    # the whole .torrent IMHO so it won't matter. Keeping it out of 'info'
-    # at the moment makes the .tstream files more stable (in case you restart
-    # the live source, and the Ogg header generated contains some date or
-    # what not, we'd need a new .tstream to be distributed to all.
-    #
-    if 'ogg-headers' in input:
-        metainfo['ogg-headers'] = input['ogg-headers']
-
     # Two places where infohash calculated, here and in TorrentDef.
     # Elsewhere: must use TorrentDef.get_infohash() to allow P2PURLs.
     infohash = sha(bencode(info)).digest()
@@ -495,9 +484,6 @@ def copy_metainfo_to_input(metainfo, input):
 
     if 'cs_keys' in metainfo['info']:
         input['cs_keys'] = metainfo['info']['cs_keys']
-
-    if 'ogg-headers' in metainfo:
-        input['ogg-headers'] = metainfo['ogg-headers']
 
     if 'ns-metadata' in metainfo['info']:
         input['ns-metadata'] = metainfo['info']['ns-metadata']

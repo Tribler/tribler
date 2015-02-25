@@ -531,18 +531,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         else:
             return None
 
-    #
-    # For P2P-transported Ogg streams
-    #
-    def set_live_ogg_headers(self, value):
-        self.input['ogg-headers'] = value
-
-    def get_live_ogg_headers(self):
-        if 'ogg-headers' in self.input:
-            return self.input['ogg-headers']
-        else:
-            return None
-
     def set_metadata(self, value):
         """ Set the P2P-Next metadata
         @param value binary string """
