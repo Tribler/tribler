@@ -196,9 +196,6 @@ def makeinfo(input, userabortflag, userprogresscallback):
 
             h = open(f, 'rb')
 
-            if input['makehash_sha1']:
-                hash_sha1 = sha()
-
             while pos < size:
                 a = min(size - pos, piece_length - done)
 
@@ -213,10 +210,6 @@ def makeinfo(input, userabortflag, userprogresscallback):
                     return None, None
 
                 sh.update(readpiece)
-
-                if input['makehash_sha1']:
-                    # Update SHA1
-                    hash_sha1.update(readpiece)
 
                 done += a
                 pos += a
@@ -240,9 +233,6 @@ def makeinfo(input, userabortflag, userprogresscallback):
                     if file['playtime'] is not None:
                         newdict['playtime'] = file['playtime']
                     break
-
-            if input['makehash_sha1']:
-                newdict['sha1'] = hash_sha1.digest()
 
             fs.append(newdict)
 

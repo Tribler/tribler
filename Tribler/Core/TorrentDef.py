@@ -507,21 +507,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         """ Returns the pieces"""
         return self.metainfo['info']['pieces'][:]
 
-    def set_add_sha1hash(self, value):
-        """ Whether to add end-to-end SHA1 checksum to the def.
-        @param value Boolean.
-        """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
-        self.input['makehash_sha1'] = value
-        self.metainfo_valid = False
-
-    def get_add_sha1hash(self):
-        """ Returns whether to add an end-to-end SHA1 checksum to the def.
-        @return Boolean."""
-        return self.input['makehash_sha1']
-
     def get_live(self):
         """ Returns whether this definition is for a live torrent.
         @return Boolean. """
