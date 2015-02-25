@@ -108,11 +108,6 @@ NTFY_ACT_NEW_VERSION = 8
 NTFY_ACT_ACTIVE = 9
 
 
-# Methods for authentication of the source in live streaming
-LIVE_AUTHMETHOD_NONE = "None"  # No auth, also no abs. piece nr. or timestamp.
-LIVE_AUTHMETHOD_ECDSA = "ECDSA"  # Elliptic Curve DSA signatures
-LIVE_AUTHMETHOD_RSA = "RSA"  # RSA signatures
-
 # Infohashes are always 20 byte binary strings
 INFOHASH_LENGTH = 20
 
