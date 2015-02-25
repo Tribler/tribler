@@ -241,7 +241,6 @@ class CreateTorrent(wx.Dialog):
             params['makehash_md5'] = False
             params['makehash_crc32'] = False
             params['makehash_sha1'] = True
-            params['torrentsigkeypairfilename'] = False
             params['thumb'] = False
 
             piece_length_list = [0, 2 ** 22, 2 ** 21, 2 ** 20, 2 ** 19, 2 ** 18, 2 ** 17, 2 ** 16, 2 ** 15]
@@ -432,8 +431,6 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
     if params['makehash_sha1']:
         logger.info("TorrentMaker: make SHA1")
         tdef.set_add_sha1hash(params['makehash_sha1'])
-    if params['torrentsigkeypairfilename']:
-        tdef.set_signature_keypair_filename(params['torrentsigkeypairfilename'])
     if params['thumb']:
         tdef.set_thumbnail(params['thumb'])
 

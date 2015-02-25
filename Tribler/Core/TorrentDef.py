@@ -551,22 +551,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         @return Boolean."""
         return self.input['makehash_sha1']
 
-    def set_signature_keypair_filename(self, value):
-        """ Set absolute filename of keypair to be used for signature.
-        When set, a signature will be added.
-        @param value A filename containing an Elliptic Curve keypair.
-        """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
-        self.input['torrentsigkeypairfilename'] = value
-        self.metainfo_valid = False
-
-    def get_signature_keypair_filename(self):
-        """ Returns the filename containing the signing keypair or None.
-        @return Unicode String or None. """
-        return self.input['torrentsigkeypairfilename']
-
     def get_live(self):
         """ Returns whether this definition is for a live torrent.
         @return Boolean. """

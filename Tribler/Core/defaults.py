@@ -129,9 +129,9 @@ sessdefaults['video']['preferredmode'] = PLAYBACKMODE_INTERNAL
 #  Version 8: deleted many of the old params that were not used anymore (due to the switch to libtorrent)
 #  Version 9: remove swift
 #  Version 10: add default anonymous level
-#  Version 11: remove createmerkletorrent
+#  Version 11: remove createmerkletorrent and torrentsigkeypairfilename
 
-DLDEFAULTS_VERSION = 10
+DLDEFAULTS_VERSION = 11
 dldefaults = OrderedDict()
 
 # General download settings
@@ -163,7 +163,6 @@ tdefmetadefaults['piece length'] = 0
 tdefmetadefaults['makehash_md5'] = 0
 tdefmetadefaults['makehash_crc32'] = 0
 tdefmetadefaults['makehash_sha1'] = 0
-tdefmetadefaults['torrentsigkeypairfilename'] = None
 tdefmetadefaults['thumb'] = None  # JPEG data
 
 TDEF_DEFAULTS = {}
