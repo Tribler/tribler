@@ -309,6 +309,9 @@ class LocalSearchManager(BaseManager):
     def _on_data(self, delayedResult):
         total_items, data = delayedResult.get()
 
+        if not (self and self.list):
+            return
+
         self.list.SetData(data)
         self.list.Layout()
 
@@ -1529,7 +1532,7 @@ class SearchList(GenericSearchList):
 
     @forceWxThread
     def NewResult(self):
-        if self.guiutility.frame.top_bg.NewResult():
+        if self and self.guiutility.frame.top_bg.NewResult():
             self.SetFinished(None)
 
     def SetFinished(self, keywords):

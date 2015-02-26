@@ -1,10 +1,10 @@
-import unittest
 from time import sleep
 
+from Tribler.Test.test_as_server import BaseTestCase
 from Tribler.Utilities.TimedTaskQueue import TimedTaskQueue
 
 
-class TestTimedTaskQueue(unittest.TestCase):
+class TestTimedTaskQueue(BaseTestCase):
 
     def setUp(self):
         self.queue = TimedTaskQueue()
