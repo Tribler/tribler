@@ -250,7 +250,7 @@ class TriblerLaunchMany(Thread):
             from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
             d = LibtorrentDownloadImpl(self.session, tdef)
 
-            if pstate is None and not tdef.get_live():  # not already resuming
+            if pstate is None:  # not already resuming
                 pstate = self.load_download_pstate_noexc(infohash)
                 if pstate is not None:
                     self._logger.debug("tlm: add: pstate is %s %s",
