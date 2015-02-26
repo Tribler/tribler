@@ -7,8 +7,6 @@ import inspect
 import logging
 
 from datetime import datetime
-from Tribler.Main.Utility.GuiDBHandler import onWorkerThread, startWorker, \
-    GUI_PRI_DISPERSY
 
 from threading import Event
 from Tribler.Core.CacheDB.sqlitecachedb import TRHEADING_DEBUG

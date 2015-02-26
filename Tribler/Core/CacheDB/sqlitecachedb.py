@@ -7,7 +7,6 @@ from threading import currentThread, RLock
 
 import apsw
 from apsw import CantOpenError, SQLError
-from twisted.internet import reactor
 from twisted.python.threadable import isInIOThread
 
 from Tribler.dispersy.taskmanager import TaskManager

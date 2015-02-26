@@ -20,7 +20,6 @@ from Tribler.dispersy.util import call_on_reactor_thread
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH
-from Tribler.Core.torrentstore import TorrentStore
 
 TORRENT_OVERFLOW_CHECKING_INTERVAL = 30 * 60
 LOW_PRIO_COLLECTING = 0

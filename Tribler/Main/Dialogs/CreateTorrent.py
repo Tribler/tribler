@@ -8,7 +8,6 @@ from threading import Event
 from traceback import print_exc
 
 from Tribler.Core.version import version_id
-from Tribler.Core.simpledefs import TRIBLER_TORRENT_EXT
 from Tribler.Core.TorrentDef import TorrentDef
 
 from Tribler.Main.vwxGUI import forceWxThread
@@ -239,11 +238,6 @@ class CreateTorrent(wx.Dialog):
             params['nodes'] = False
             params['httpseeds'] = False
             params['encoding'] = False
-            params['makehash_md5'] = False
-            params['makehash_crc32'] = False
-            params['makehash_sha1'] = True
-            params['createmerkletorrent'] = False
-            params['torrentsigkeypairfilename'] = False
             params['thumb'] = False
 
             piece_length_list = [0, 2 ** 22, 2 ** 21, 2 ** 20, 2 ** 19, 2 ** 18, 2 ** 17, 2 ** 16, 2 ** 15]
@@ -425,28 +419,12 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
         tdef.set_encoding(params['encoding'])
     if params['piece length']:
         tdef.set_piece_length(params['piece length'])
-    if params['makehash_md5']:
-        logger.info("TorrentMaker: make MD5")
-        tdef.set_add_md5hash(params['makehash_md5'])
-    if params['makehash_crc32']:
-        logger.info("TorrentMaker: make CRC32")
-        tdef.set_add_crc32(params['makehash_crc32'])
-    if params['makehash_sha1']:
-        logger.info("TorrentMaker: make SHA1")
-        tdef.set_add_sha1hash(params['makehash_sha1'])
-    if params['createmerkletorrent']:
-        tdef.set_create_merkle_torrent(params['createmerkletorrent'])
-    if params['torrentsigkeypairfilename']:
-        tdef.set_signature_keypair_filename(params['torrentsigkeypairfilename'])
     if params['thumb']:
         tdef.set_thumbnail(params['thumb'])
 
     tdef.finalize(userabortflag=userabortflag, userprogresscallback=progressCallback)
 
-    if params['createmerkletorrent']:
-        postfix = TRIBLER_TORRENT_EXT
-    else:
-        postfix = '.torrent'
+    postfix = '.torrent'
 
     if params.get('target', False):
         torrentfilename = os.path.join(params['target'], os.path.split(os.path.normpath(srcpath))[1] + postfix)

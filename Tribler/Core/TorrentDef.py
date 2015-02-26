@@ -7,14 +7,13 @@ import logging
 from types import StringType, ListType, IntType, LongType
 from urllib2 import URLError
 
-from Tribler.Core.simpledefs import INFOHASH_LENGTH, P2PURL_SCHEME
+from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Core.defaults import TDEF_DEFAULTS
 from Tribler.Core.exceptions import (OperationNotPossibleAtRuntimeException, TorrentDefNotFinalizedException,
                                      NotYetImplementedException)
 from Tribler.Core.Base import ContentDefinition, Serializable, Copyable
 from Tribler.Core.Utilities.bencode import bencode, bdecode
 import Tribler.Core.APIImplementation.maketorrent as maketorrent
-import Tribler.Core.APIImplementation.makeurl as makeurl
 from Tribler.Core.APIImplementation.miscutils import parse_playtime_to_secs
 
 from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL, parse_magnetlink
@@ -35,10 +34,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
     by its API, first create the torrent def, finalize it, then add the
     fields to the metainfo, and create a new torrent def from that
     upgraded metainfo using TorrentDef.load_from_dict()
-
-    This class can also be used to create P2P URLs, by calling set_url_compat()
-    before finalizing. In that case only name, piece length, tracker, bitrate
-    and source-authentication parameters (for live) are configurable.
 
     cf. libtorrent torrent_info
     """
@@ -122,13 +117,9 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         # copy stuff into self.input
         maketorrent.copy_metainfo_to_input(t.metainfo, t.input)
 
-        # For testing EXISTING LIVE, or EXISTING MERKLE: DISABLE, i.e. keep true infohash
-        if t.get_url_compat():
-            t.infohash = makeurl.metainfo2swarmid(t.metainfo)
-        else:
-            # Two places where infohash calculated, here and in maketorrent.py
-            # Elsewhere: must use TorrentDef.get_infohash() to allow P2PURLs.
-            t.infohash = sha(bencode(metainfo['info'])).digest()
+        # Two places where infohash calculated, here and in maketorrent.py
+        # Elsewhere: must use TorrentDef.get_infohash() to allow P2PURLs.
+        t.infohash = sha(bencode(metainfo['info'])).digest()
 
         assert isinstance(t.infohash, str), "INFOHASH has invalid type: %s" % type(t.infohash)
         assert len(t.infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(t.infohash)
@@ -182,25 +173,12 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         @return TorrentDef.
         """
         # Class method, no locking required
-        if url.startswith(P2PURL_SCHEME):
-            (metainfo, swarmid) = makeurl.p2purl2metainfo(url)
+        try:
+            f = urlOpenTimeout(url)
+            return TorrentDef._read(f)
 
-            # Metainfo created from URL, so create URL compatible TorrentDef.
-            metainfo['info']['url-compat'] = 1
-
-            # For testing EXISTING LIVE: ENABLE, for old EXISTING MERKLE: DISABLE
-            # metainfo['info']['name.utf-8'] = metainfo['info']['name']
-
-            t = TorrentDef._create(metainfo)
-
-            return t
-        else:
-            try:
-                f = urlOpenTimeout(url)
-                return TorrentDef._read(f)
-
-            except URLError:
-                pass
+        except URLError:
+            pass
 
     @staticmethod
     def load_from_dict(metainfo):
@@ -529,82 +507,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         """ Returns the pieces"""
         return self.metainfo['info']['pieces'][:]
 
-    def set_add_md5hash(self, value):
-        """ Whether to add an end-to-end MD5 checksum to the def.
-        @param value Boolean.
-        """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
-        self.input['makehash_md5'] = value
-        self.metainfo_valid = False
-
-    def get_add_md5hash(self):
-        """ Returns whether to add an MD5 checksum. """
-        return self.input['makehash_md5']
-
-    def set_add_crc32(self, value):
-        """ Whether to add an end-to-end CRC32 checksum to the def.
-        @param value Boolean.
-        """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
-        self.input['makehash_crc32'] = value
-        self.metainfo_valid = False
-
-    def get_add_crc32(self):
-        """ Returns whether to add an end-to-end CRC32 checksum to the def.
-        @return Boolean. """
-        return self.input['makehash_crc32']
-
-    def set_add_sha1hash(self, value):
-        """ Whether to add end-to-end SHA1 checksum to the def.
-        @param value Boolean.
-        """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
-        self.input['makehash_sha1'] = value
-        self.metainfo_valid = False
-
-    def get_add_sha1hash(self):
-        """ Returns whether to add an end-to-end SHA1 checksum to the def.
-        @return Boolean."""
-        return self.input['makehash_sha1']
-
-    def set_create_merkle_torrent(self, value):
-        """ Create a Merkle torrent instead of a regular BT torrent. A Merkle
-        torrent uses a hash tree for checking the integrity of the content
-        received. As such it creates much smaller torrent files than the
-        regular method. Tribler-specific feature."""
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
-        self.input['createmerkletorrent'] = value
-        self.metainfo_valid = False
-
-    def get_create_merkle_torrent(self):
-        """ Returns whether to create a Merkle torrent.
-        @return Boolean. """
-        return self.input['createmerkletorrent']
-
-    def set_signature_keypair_filename(self, value):
-        """ Set absolute filename of keypair to be used for signature.
-        When set, a signature will be added.
-        @param value A filename containing an Elliptic Curve keypair.
-        """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
-        self.input['torrentsigkeypairfilename'] = value
-        self.metainfo_valid = False
-
-    def get_signature_keypair_filename(self):
-        """ Returns the filename containing the signing keypair or None.
-        @return Unicode String or None. """
-        return self.input['torrentsigkeypairfilename']
-
     def get_live(self):
         """ Returns whether this definition is for a live torrent.
         @return Boolean. """
@@ -629,24 +531,10 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         else:
             return None
 
-    def set_url_compat(self, value):
-        """ Set the URL compatible value for this definition. Only possible
-        for Merkle torrents and live torrents.
-        @param value Integer."""
-
-        self.input['url-compat'] = value
-
-    def get_url_compat(self):
-        """ Returns whether this definition is URL compatible.
-        @return Boolean. """
-        return 'url-compat' in self.input and self.input['url-compat']
-
     #
     # For P2P-transported Ogg streams
     #
     def set_live_ogg_headers(self, value):
-        if self.get_url_compat():
-            raise ValueError("Cannot use P2PURLs for Ogg streams")
         self.input['ogg-headers'] = value
 
     def get_live_ogg_headers(self):
@@ -725,14 +613,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         (infohash, metainfo) = maketorrent.make_torrent_file(self.input,
                                                              userabortflag=userabortflag, userprogresscallback=userprogresscallback)
         if infohash is not None:
-
-            if self.get_url_compat():
-                url = makeurl.metainfo2p2purl(metainfo)
-                # Make sure metainfo is preserved, in particular, the url-compat field.
-                swarmid = makeurl.metainfo2swarmid(metainfo)
-                self.infohash = swarmid
-            else:
-                self.infohash = infohash
+            self.infohash = infohash
             self.metainfo = metainfo
 
             self.input['name'] = metainfo['info']['name']
@@ -1075,16 +956,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             raise OperationNotPossibleAtRuntimeException()
 
         self.input['anonymous'] = 1 if anonymous else 0
-
-    def get_url(self):
-        """ Returns the URL representation of this TorrentDef. The TorrentDef
-        must be a Merkle or live torrent and must be set to URL-compatible
-        before finalizing."""
-
-        if self.metainfo_valid:
-            return makeurl.metainfo2p2purl(self.metainfo)
-        else:
-            raise TorrentDefNotFinalizedException()
 
     #
     # Internal methods

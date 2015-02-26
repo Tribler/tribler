@@ -7,7 +7,7 @@ from hashlib import sha1
 import tempfile
 import time
 from copy import deepcopy
-from shutil import copyfile
+from shutil import copyfile, move
 from threading import Thread, RLock, Event
 from traceback import print_exc
 

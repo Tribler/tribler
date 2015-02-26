@@ -5,8 +5,6 @@
 
 import sys
 import os
-from hashlib import md5
-import zlib
 import logging
 
 from Tribler.Core.Utilities.Crypto import sha
@@ -16,7 +14,6 @@ from traceback import print_exc
 from types import LongType
 
 from Tribler.Core.Utilities.bencode import bencode
-from Tribler.Core.Merkle.merkle import MerkleTree
 from Tribler.Core.Utilities.unicode import bin2unicode
 from Tribler.Core.APIImplementation.miscutils import parse_playtime_to_secs, offset2piece
 from Tribler.Core.osutils import fix_filebasename
@@ -90,8 +87,6 @@ def make_torrent_file(input, userabortflag=None, userprogresscallback=lambda x: 
         cdict = {'Content': mdict}
         metainfo['azureus_properties'] = cdict
 
-    if 'url-compat' in input:
-        metainfo['info']['url-compat'] = input['url-compat']
     if 'private' in input:
         metainfo['info']['private'] = input['private']
     if 'anonymous' in input:
@@ -182,19 +177,15 @@ def makeinfo(input, userabortflag, userprogresscallback):
 
     # 3. Calc piece length from totalsize if not set
     if input['piece length'] == 0:
-        if input['createmerkletorrent']:
-            # used to be 15=32K, but this works better with slow python
-            piece_length = 2 ** 18
-        else:
-            # Niels we want roughly between 1000-2000 pieces
-            # This results in the following logic:
+        # Niels we want roughly between 1000-2000 pieces
+        # This results in the following logic:
 
-            # We start with 32K pieces
-            piece_length = 2 ** 15
+        # We start with 32K pieces
+        piece_length = 2 ** 15
 
-            while totalsize / piece_length > 2000:
-                # too many piece, double piece_size
-                piece_length *= 2
+        while totalsize / piece_length > 2000:
+            # too many piece, double piece_size
+            piece_length *= 2
     else:
         piece_length = input['piece length']
 
@@ -204,13 +195,6 @@ def makeinfo(input, userabortflag, userprogresscallback):
             pos = 0
 
             h = open(f, 'rb')
-
-            if input['makehash_md5']:
-                hash_md5 = md5.new()
-            if input['makehash_sha1']:
-                hash_sha1 = sha()
-            if input['makehash_crc32']:
-                hash_crc32 = zlib.crc32('')
 
             while pos < size:
                 a = min(size - pos, piece_length - done)
@@ -226,18 +210,6 @@ def makeinfo(input, userabortflag, userprogresscallback):
                     return None, None
 
                 sh.update(readpiece)
-
-                if input['makehash_md5']:
-                    # Update MD5
-                    hash_md5.update(readpiece)
-
-                if input['makehash_crc32']:
-                    # Update CRC32
-                    hash_crc32 = zlib.crc32(readpiece, hash_crc32)
-
-                if input['makehash_sha1']:
-                    # Update SHA1
-                    hash_sha1.update(readpiece)
 
                 done += a
                 pos += a
@@ -261,13 +233,6 @@ def makeinfo(input, userabortflag, userprogresscallback):
                     if file['playtime'] is not None:
                         newdict['playtime'] = file['playtime']
                     break
-
-            if input['makehash_md5']:
-                newdict['md5sum'] = hash_md5.hexdigest()
-            if input['makehash_crc32']:
-                newdict['crc32'] = "%08X" % hash_crc32
-            if input['makehash_sha1']:
-                newdict['sha1'] = hash_sha1.digest()
 
             fs.append(newdict)
 
@@ -298,12 +263,7 @@ def makeinfo(input, userabortflag, userprogresscallback):
                 'name.utf-8': uniconvert(name, 'utf-8')}
 
     if 'live' not in input:
-        if input['createmerkletorrent']:
-            merkletree = MerkleTree(piece_length, totalsize, None, pieces)
-            root_hash = merkletree.get_root_hash()
-            infodict.update({'root hash': root_hash})
-        else:
-            infodict.update({'pieces': ''.join(pieces)})
+        infodict.update({'pieces': ''.join(pieces)})
     else:
         # With source auth, live is a dict
         infodict['live'] = input['live']
@@ -496,7 +456,7 @@ def copy_metainfo_to_input(metainfo, input):
         if key in metainfo:
             input[key] = metainfo[key]
 
-    infokeys = ['name', 'piece length', 'live', 'url-compat']
+    infokeys = ['name', 'piece length', 'live']
     for key in infokeys:
         if key in metainfo['info']:
             input[key] = metainfo['info'][key]
@@ -535,9 +495,6 @@ def copy_metainfo_to_input(metainfo, input):
 
     if 'cs_keys' in metainfo['info']:
         input['cs_keys'] = metainfo['info']['cs_keys']
-
-    if 'url-compat' in metainfo['info']:
-        input['url-compat'] = metainfo['info']['url-compat']
 
     if 'ogg-headers' in metainfo:
         input['ogg-headers'] = metainfo['ogg-headers']

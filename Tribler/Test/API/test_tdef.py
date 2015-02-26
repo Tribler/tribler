@@ -101,7 +101,6 @@ class TestTorrentDef(unittest.TestCase):
     def subtest_add_content_file(self, merkle=True):
         """ Add a single file to a TorrentDef """
         t = TorrentDef()
-        t.set_create_merkle_torrent(merkle)
         fn = os.path.join(BASE_DIR, "API", "video.avi")
         t.add_content(fn)
         t.set_tracker(TRACKER)
@@ -125,7 +124,6 @@ class TestTorrentDef(unittest.TestCase):
     def subtest_add_content_dir(self, merkle=True):
         """ Add a single dir to a TorrentDef """
         t = TorrentDef()
-        t.set_create_merkle_torrent(merkle)
         dn = os.path.join(BASE_DIR, "API", "contentdir")
         t.add_content(dn, "dirintorrent")
         t.set_tracker(TRACKER)
@@ -159,7 +157,6 @@ class TestTorrentDef(unittest.TestCase):
     def subtest_add_content_dir_and_file(self, merkle=True):
         """ Add a single dir and single file to a TorrentDef """
         t = TorrentDef()
-        t.set_create_merkle_torrent(merkle)
 
         dn = os.path.join(BASE_DIR, "API", "contentdir")
         t.add_content(dn, "dirintorrent")
@@ -190,7 +187,6 @@ class TestTorrentDef(unittest.TestCase):
     def subtest_add_content_file_playtime(self, merkle=True):
         """ Add a single file with playtime to a TorrentDef """
         t = TorrentDef()
-        t.set_create_merkle_torrent(merkle)
         fn = os.path.join(BASE_DIR, "API", "video.avi")
         t.add_content(fn, playtime=PLAYTIME)
         t.set_tracker(TRACKER)
@@ -210,7 +206,6 @@ class TestTorrentDef(unittest.TestCase):
     def subtest_add_content_dir_playtime(self, merkle=True):
         """ Add a single dir to a TorrentDef """
         t = TorrentDef()
-        t.set_create_merkle_torrent(merkle)
         fn1 = os.path.join(BASE_DIR, "API", "contentdir", "video.avi")
         fn2 = os.path.join(BASE_DIR, "API", "contentdir", "file.txt")
         t.add_content(fn1, os.path.join("dirintorrent", "video.avi"), playtime=PLAYTIME)
@@ -238,7 +233,6 @@ class TestTorrentDef(unittest.TestCase):
     def subtest_add_content_file_thumbnail(self, merkle=True):
         """ Add a single file with thumbnail to a TorrentDef """
         t = TorrentDef()
-        t.set_create_merkle_torrent(merkle)
         fn = os.path.join(BASE_DIR, "API", "video.avi")
         thumbfn = os.path.join(BASE_DIR, "API", "thumb.jpg")
         t.add_content(fn)
@@ -260,7 +254,6 @@ class TestTorrentDef(unittest.TestCase):
     def subtest_add_content_announce_list(self, merkle=True):
         """ Add a single file with announce-list to a TorrentDef """
         t = TorrentDef()
-        t.set_create_merkle_torrent(merkle)
         fn = os.path.join(BASE_DIR, "API", "video.avi")
         t.add_content(fn)
         t.set_tracker(TRACKER)
@@ -277,7 +270,6 @@ class TestTorrentDef(unittest.TestCase):
     def subtest_add_content_httpseeds(self, merkle=True):
         """ Add a single file with BitTornado httpseeds to a TorrentDef """
         t = TorrentDef()
-        t.set_create_merkle_torrent(merkle)
         fn = os.path.join(BASE_DIR, "API", "video.avi")
         t.add_content(fn)
         t.set_tracker(TRACKER)
@@ -293,7 +285,6 @@ class TestTorrentDef(unittest.TestCase):
     def subtest_add_content_piece_length(self, merkle=True):
         """ Add a single file with piece length to a TorrentDef """
         t = TorrentDef()
-        t.set_create_merkle_torrent(merkle)
         fn = os.path.join(BASE_DIR, "API", "video.avi")
         t.add_content(fn)
         t.set_piece_length(2 ** 16)
@@ -307,7 +298,6 @@ class TestTorrentDef(unittest.TestCase):
     def subtest_add_content_file_save(self, merkle=True):
         """ Add a single file to a TorrentDef and save the latter"""
         t = TorrentDef()
-        t.set_create_merkle_torrent(merkle)
         fn = os.path.join(BASE_DIR, "API", "video.avi")
         t.add_content(fn)
         t.set_tracker(TRACKER)

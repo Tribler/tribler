@@ -15,11 +15,9 @@ from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException
-from Tribler.Core.osutils import get_appstate_dir
-from Tribler.Core.simpledefs import (STATEDIR_PEERICON_DIR, STATEDIR_DLPSTATE_DIR, STATEDIR_SESSCONFIG,
-                                     NTFY_MISC, NTFY_PEERS, NTFY_TORRENTS,
-                                     NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_UPDATE,
-                                     NTFY_INSERT, NTFY_DELETE, NTFY_METADATA, STATEDIR_TORRENT_STORE_DIR)
+from Tribler.Core.simpledefs import (STATEDIR_PEERICON_DIR, STATEDIR_DLPSTATE_DIR, NTFY_MISC, NTFY_PEERS, NTFY_TORRENTS,
+                                     NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_UPDATE, NTFY_INSERT,
+                                     NTFY_DELETE, NTFY_METADATA, STATEDIR_TORRENT_STORE_DIR)
 
 
 GOTM2CRYPTO = False
