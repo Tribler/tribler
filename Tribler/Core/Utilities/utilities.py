@@ -1,7 +1,7 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
 
-from base64 import encodestring, b32decode
+from base64 import b32decode
 from types import StringType, LongType, IntType, ListType, DictType
 import urlparse
 from traceback import print_exc
@@ -12,14 +12,6 @@ import logging
 from Tribler.Core.Utilities.bencode import bencode, bdecode
 
 logger = logging.getLogger(__name__)
-
-
-def isInteger(str_integer):
-    try:
-        int(str_integer)
-        return True
-    except:
-        return False
 
 
 def validTorrentFile(metainfo):
@@ -77,12 +69,7 @@ def validTorrentFile(metainfo):
     if not isinstance(info, DictType):
         raise ValueError('info not dict')
 
-    if 'root hash' in info:
-        infokeys = ['name', 'piece length', 'root hash']
-    elif 'live' in info:
-        infokeys = ['name', 'piece length', 'live']
-    else:
-        infokeys = ['name', 'piece length', 'pieces']
+    infokeys = ['name', 'piece length', 'pieces']
     for key in infokeys:
         if key not in info:
             raise ValueError('info misses key ' + key)
@@ -92,21 +79,9 @@ def validTorrentFile(metainfo):
     pl = info['piece length']
     if not isinstance(pl, IntType) and not isinstance(pl, LongType):
         raise ValueError('info piece size is not int, but ' + repr(type(pl)))
-    if 'root hash' in info:
-        rh = info['root hash']
-        if not isinstance(rh, StringType) or len(rh) != 20:
-            raise ValueError('info roothash is not 20-byte string')
-    elif 'live' in info:
-        live = info['live']
-        if not isinstance(live, DictType):
-            raise ValueError('info live is not a dict')
-        else:
-            if 'authmethod' not in live:
-                raise ValueError('info live misses key' + 'authmethod')
-    else:
-        p = info['pieces']
-        if not isinstance(p, StringType) or len(p) % 20 != 0:
-            raise ValueError('info pieces is not multiple of 20 bytes')
+    p = info['pieces']
+    if not isinstance(p, StringType) or len(p) % 20 != 0:
+        raise ValueError('info pieces is not multiple of 20 bytes')
 
     if 'length' in info:
         # single-file torrent
@@ -150,23 +125,6 @@ def validTorrentFile(metainfo):
         for tier in al:
             if not isinstance(tier, ListType):
                 raise ValueError('announce-list tier is not list ' + repr(tier))
-        # Jie: this limitation is not necessary
-#            for url in tier:
-#                if not isValidURL(url):
-#                    raise ValueError('announce-list url is not valid '+`url`)
-
-    if 'azureus_properties' in metainfo:
-        azprop = metainfo['azureus_properties']
-        if not isinstance(azprop, DictType):
-            raise ValueError('azureus_properties is not dict, but ' + repr(type(azprop)))
-        if 'Content' in azprop:
-            content = azprop['Content']
-            if not isinstance(content, DictType):
-                raise ValueError('azureus_properties content is not dict, but ' + repr(type(content)))
-            if 'thumbnail' in content:
-                thumb = content['thumbnail']
-                if not isinstance(thumb, StringType):
-                    raise ValueError('azureus_properties content thumbnail is not string')
 
     # Perform check on httpseeds/url-list fields
     if 'url-list' in metainfo:
@@ -213,23 +171,6 @@ def isValidURL(url):
     if r[0] == '' or r[1] == '':
         return False
     return True
-
-
-def show_permid(permid):
-    # Full BASE64-encoded. Must not be abbreviated in any way.
-    if not permid:
-        return 'None'
-    return encodestring(permid).replace("\n", "")
-    # Short digest
-    # return sha(permid).hexdigest()
-
-
-def show_permid_short(permid):
-    if not permid:
-        return 'None'
-    s = encodestring(permid).replace("\n", "")
-    return s[-10:]
-    # return encodestring(sha(s).digest()).replace("\n","")
 
 
 def parse_magnetlink(url):
