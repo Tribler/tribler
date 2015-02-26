@@ -232,12 +232,6 @@ def show_permid_short(permid):
     # return encodestring(sha(s).digest()).replace("\n","")
 
 
-def get_collected_torrent_filename(infohash):
-    filename = binascii.hexlify(infohash) + '.torrent'
-    return filename
-    # exceptions will be handled by got_metadata()
-
-
 def parse_magnetlink(url):
     # url must be a magnet link
     dn = None
