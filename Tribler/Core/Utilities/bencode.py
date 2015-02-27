@@ -201,29 +201,6 @@ def bencode(x):
         print_exc()
         return ''
 
-
-def test_bencode():
-    assert bencode(4) == 'i4e'
-    assert bencode(0) == 'i0e'
-    assert bencode(-10) == 'i-10e'
-    assert bencode(12345678901234567890) == 'i12345678901234567890e'
-    assert bencode('') == '0:'
-    assert bencode('abc') == '3:abc'
-    assert bencode('1234567890') == '10:1234567890'
-    assert bencode([]) == 'le'
-    assert bencode([1, 2, 3]) == 'li1ei2ei3ee'
-    assert bencode([['Alice', 'Bob'], [2, 3]]) == 'll5:Alice3:Bobeli2ei3eee'
-    assert bencode({}) == 'de'
-    assert bencode({'age': 25, 'eyes': 'blue'}) == 'd3:agei25e4:eyes4:bluee'
-    assert bencode({'spam.mp3': {'author': 'Alice', 'length': 100000}}
-                   ) == 'd8:spam.mp3d6:author5:Alice6:lengthi100000eee'
-    try:
-        bencode({1: 'foo'})
-        assert 0
-    except AssertionError:
-        pass
-
-
 try:
     import psyco
     psyco.bind(bdecode)
