@@ -6,8 +6,7 @@
 import sys
 import os
 import logging
-
-from Tribler.Core.Utilities.Crypto import sha
+from hashlib import sha1
 from copy import copy
 from time import time
 from traceback import print_exc
@@ -94,7 +93,7 @@ def make_torrent_file(input, userabortflag=None, userprogresscallback=lambda x: 
 
     # Two places where infohash calculated, here and in TorrentDef.
     # Elsewhere: must use TorrentDef.get_infohash() to allow P2PURLs.
-    infohash = sha(bencode(info)).digest()
+    infohash = sha1(bencode(info)).digest()
     return infohash, metainfo
 
 
@@ -127,7 +126,7 @@ def makeinfo(input, userabortflag, userprogresscallback):
     encoding = input['encoding']
 
     pieces = []
-    sh = sha()
+    sh = sha1()
     done = 0
     fs = []
     totalsize = 0
@@ -207,7 +206,7 @@ def makeinfo(input, userabortflag, userprogresscallback):
                 if done == piece_length:
                     pieces.append(sh.digest())
                     done = 0
-                    sh = sha()
+                    sh = sha1()
 
                 if userprogresscallback is not None:
                     userprogresscallback(float(totalhashed) / float(totalsize))

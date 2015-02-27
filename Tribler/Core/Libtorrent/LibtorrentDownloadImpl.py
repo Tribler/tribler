@@ -5,7 +5,7 @@ import sys
 import time
 import logging
 import libtorrent as lt
-
+from hashlib import sha1
 from binascii import hexlify
 from traceback import print_exc
 
@@ -19,7 +19,6 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInt
 from Tribler.Core.APIImplementation import maketorrent
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
-from Tribler.Core.Utilities.Crypto import sha
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.Libtorrent import checkHandleAndSynchronize, waitForHandleAndSynchronize
 
@@ -146,7 +145,7 @@ class VODFile(object):
 
             startindex = 0
             for piece in range(frompiece, topiece + 1):
-                piecehash = sha(read_data[startindex:startindex + self.piecesize]).digest()
+                piecehash = sha1(read_data[startindex:startindex + self.piecesize]).digest()
 
                 if piecehash == self.pieces[piece]:
                     self._logger.info("VODFile: Correct piece read %s", piece)
