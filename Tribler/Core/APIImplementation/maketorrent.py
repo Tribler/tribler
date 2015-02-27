@@ -19,9 +19,6 @@ from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.defaults import tdefdictdefaults
 from Tribler.Core.Utilities.utilities import validTorrentFile
 
-
-ignore = []  # Arno: was ['core', 'CVS']
-
 logger = logging.getLogger(__name__)
 
 
@@ -275,7 +272,7 @@ def subfiles(d):
         p, n = stack.pop()
         if os.path.isdir(n):
             for s in os.listdir(n):
-                if s not in ignore and s[:1] != '.':
+                if s[:1] != '.':
                     stack.append((copy(p) + [s], os.path.join(n, s)))
         else:
             r.append((p, n))
