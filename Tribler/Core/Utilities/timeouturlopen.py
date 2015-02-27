@@ -68,10 +68,3 @@ def urlOpenTimeout(url, timeout=30, referer='', *data):
     if referer:
         opener.addheaders = [('Referer', referer)]
     return opener.open(url, *data)
-
-
-# s = urlOpenTimeout("http://torcache.com/torrent/F91DF2C0DC38FF530BB0B90E6FCD9BF0483F7936.torrent", timeout=10)
-# print len(s.read())
-
-# s = urlOpenTimeout("http://frayja.com", timeout=10)
-# print len(s.read())
