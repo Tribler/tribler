@@ -75,22 +75,6 @@ class TestTorrentDef(BaseTestCase):
         self.subtest_add_content_file_save(merkle=False)
         self.subtest_add_content_file_save(merkle=True)
 
-    def test_ns_metadata(self):
-        dummydata = "HalloWereld"
-        t = TorrentDef()
-        t.set_metadata(dummydata)
-        fn = os.path.join(BASE_DIR, "API", "video.avi")
-        t.add_content(fn)
-        t.set_tracker(TRACKER)
-        t.finalize()
-
-        [handle, filename] = tempfile.mkstemp()
-        os.close(handle)
-        t.save(filename)
-
-        t2 = TorrentDef.load(filename)
-        self.assert_(t2.get_metadata() == dummydata)
-
     def test_is_private(self):
         privatefn = os.path.join(BASE_DIR, "data", "private.torrent")
         publicfn = os.path.join(BASE_DIR, "data", "bak_single.torrent")
