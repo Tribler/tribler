@@ -200,10 +200,3 @@ def bencode(x):
             logger.debug("elem %s has type %s", elem, type(elem))
         print_exc()
         return ''
-
-try:
-    import psyco
-    psyco.bind(bdecode)
-    psyco.bind(bencode)
-except ImportError:
-    pass
