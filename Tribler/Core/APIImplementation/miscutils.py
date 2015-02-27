@@ -2,13 +2,9 @@
 # see LICENSE.txt for license information
 
 import re
-import logging
-
-logger = logging.getLogger(__name__)
 
 
 def parse_playtime_to_secs(hhmmss):
-    logger.debug("miscutils: Playtime is %s", hhmmss)
     r = re.compile("([0-9\.]+):*")
     occ = r.findall(hhmmss)
     t = None
@@ -27,7 +23,6 @@ def parse_playtime_to_secs(hhmmss):
 
 
 def offset2piece(offset, piecesize, endpoint=True):
-
     p = offset / piecesize
     # Niels: 08-08-2011: included endpoint boolean to specify if we should return an inclusive piece
     if endpoint and offset % piecesize > 0:
