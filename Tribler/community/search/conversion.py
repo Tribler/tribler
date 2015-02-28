@@ -14,12 +14,12 @@ class SearchConversion(BinaryConversion):
 
     def __init__(self, community):
         super(SearchConversion, self).__init__(community, "\x02")
-        self.define_meta_message(chr(1), community.get_meta_message(u"search-request"), lambda message: self._encode_decode(self._encode_search_request, self._decode_search_request, message), self._decode_search_request)
-        self.define_meta_message(chr(2), community.get_meta_message(u"search-response"), lambda message: self._encode_decode(self._encode_search_response, self._decode_search_response, message), self._decode_search_response)
-        self.define_meta_message(chr(3), community.get_meta_message(u"torrent-request"), lambda message: self._encode_decode(self._encode_torrent_request, self._decode_torrent_request, message), self._decode_torrent_request)
-        self.define_meta_message(chr(4), community.get_meta_message(u"torrent-collect-request"), lambda message: self._encode_decode(self._encode_torrent_collect_request, self._decode_torrent_collect_request, message), self._decode_torrent_collect_request)
-        self.define_meta_message(chr(5), community.get_meta_message(u"torrent-collect-response"), lambda message: self._encode_decode(self._encode_torrent_collect_response, self._decode_torrent_collect_response, message), self._decode_torrent_collect_response)
-        self.define_meta_message(chr(6), community.get_meta_message(u"torrent"), lambda message: self._encode_decode(self._encode_torrent, self._decode_torrent, message), self._decode_torrent)
+        self.define_meta_message(chr(1), community.get_meta_message(u"search-request"), self._encode_search_request, self._decode_search_request)
+        self.define_meta_message(chr(2), community.get_meta_message(u"search-response"), self._encode_search_response, self._decode_search_response)
+        self.define_meta_message(chr(3), community.get_meta_message(u"torrent-request"), self._encode_torrent_request, self._decode_torrent_request)
+        self.define_meta_message(chr(4), community.get_meta_message(u"torrent-collect-request"), self._encode_torrent_collect_request, self._decode_torrent_collect_request)
+        self.define_meta_message(chr(5), community.get_meta_message(u"torrent-collect-response"), self._encode_torrent_collect_response, self._decode_torrent_collect_response)
+        self.define_meta_message(chr(6), community.get_meta_message(u"torrent"), self._encode_torrent, self._decode_torrent)
 
     def _encode_introduction_request(self, message):
         data = BinaryConversion._encode_introduction_request(self, message)
@@ -63,17 +63,6 @@ class SearchConversion(BinaryConversion):
             payload.set_taste_bloom_filter(taste_bloom_filter)
 
         return offset, payload
-
-    def _encode_decode(self, encode, decode, message):
-        result = encode(message)
-        try:
-            decode(None, 0, result[0])
-
-        except DropPacket:
-            raise
-        except:
-            pass
-        return result
 
     def _encode_search_request(self, message):
         packet = pack('!H', message.payload.identifier), message.payload.keywords

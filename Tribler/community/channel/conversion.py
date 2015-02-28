@@ -16,57 +16,36 @@ class ChannelConversion(BinaryConversion):
     def __init__(self, community):
         super(ChannelConversion, self).__init__(community, "\x01")
         self.define_meta_message(chr(1), community.get_meta_message(u"channel"),
-                                 lambda message:
-                                 self._encode_decode(self._encode_channel, self._decode_channel, message),
+                                 self._encode_channel,
                                  self._decode_channel)
         self.define_meta_message(chr(2), community.get_meta_message(u"torrent"),
-                                 lambda message: self._encode_decode(self._encode_torrent,
-                                                                     self._decode_torrent, message),
+                                 self._encode_torrent,
                                  self._decode_torrent)
         self.define_meta_message(chr(3), community.get_meta_message(u"playlist"),
-                                 lambda message: self._encode_decode(self._encode_playlist,
-                                                                     self._decode_playlist, message),
+                                 self._encode_playlist,
                                  self._decode_playlist)
         self.define_meta_message(chr(4), community.get_meta_message(u"comment"),
-                                 lambda message: self._encode_decode(self._encode_comment,
-                                                                     self._decode_comment, message),
+                                 self._encode_comment,
                                  self._decode_comment)
         self.define_meta_message(chr(5),
                                  community.get_meta_message(u"modification"),
-                                 lambda message: self._encode_decode(self._encode_modification,
-                                                                     self._decode_modification,
-                                                                     message),
+                                 self._encode_modification,
                                  self._decode_modification)
         self.define_meta_message(chr(6),
                                  community.get_meta_message(u"playlist_torrent"),
-                                 lambda message: self._encode_decode(self._encode_playlist_torrent,
-                                                                     self._decode_playlist_torrent, message),
+                                 self._encode_playlist_torrent,
                                  self._decode_playlist_torrent)
         self.define_meta_message(chr(7),
                                  community.get_meta_message(u"missing-channel"),
-                                 lambda message: self._encode_decode(self._encode_missing_channel,
-                                                                     self._decode_missing_channel, message),
+                                 self._encode_missing_channel,
                                  self._decode_missing_channel)
         self.define_meta_message(chr(8),
                                  community.get_meta_message(u"moderation"),
-                                 lambda message: self._encode_decode(self._encode_moderation,
-                                                                     self._encode_moderation, message),
+                                 self._encode_moderation,
                                  self._decode_moderation)
         self.define_meta_message(chr(9), community.get_meta_message(u"mark_torrent"),
-                                 lambda message: self._encode_decode(self._encode_mark_torrent,
-                                                                     self._decode_mark_torrent, message),
+                                 self._encode_mark_torrent,
                                  self._decode_mark_torrent)
-
-    def _encode_decode(self, encode, decode, message):
-        result = encode(message)
-        try:
-            decode(None, 0, result[0])
-
-        except DropPacket:
-            raise
-        except:
-            pass
-        return result
 
     def _encode_channel(self, message):
         return encode((message.payload.name, message.payload.description)),
