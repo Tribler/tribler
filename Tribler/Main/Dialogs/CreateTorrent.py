@@ -423,10 +423,7 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
 
     postfix = '.torrent'
 
-    if params.get('target', False):
-        torrentfilename = os.path.join(params['target'], os.path.split(os.path.normpath(srcpath))[1] + postfix)
-    else:
-        torrentfilename = os.path.join(basepath, tdef.get_name() + postfix)
+    torrentfilename = os.path.join(basepath, tdef.get_name() + postfix)
     tdef.save(torrentfilename)
 
     # Inform higher layer we created torrent
