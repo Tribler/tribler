@@ -144,7 +144,7 @@ class RemoteTorrentHandler(TaskManager):
         infohash = tdef.get_infohash()
         infohash_str = hexlify(infohash)
 
-        if self.session.lm.torrent_store == None:
+        if self.session.lm.torrent_store is None:
             self._logger.error("Torrent store is not loaded")
             return
 
