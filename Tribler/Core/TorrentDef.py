@@ -249,20 +249,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
                 self.input['files'].remove(d)
                 break
 
-    def create_live(self, name, bitrate, playtime="1:00:00"):
-        """ Create a live streaming multimedia torrent with a specific bitrate.
-
-        @param name The name of the stream.
-        @param bitrate The desired bitrate in bytes per second.
-        @param playtime The virtual playtime of the stream as a string in
-        [hh:]mm:ss format.
-        """
-        self.input['bps'] = bitrate
-        self.input['playtime'] = playtime  # size of virtual content
-
-        d = {'inpath': name, 'outpath': None, 'playtime': None, 'length': None}
-        self.input['files'].append(d)
-
     #
     # Torrent attributes
     #
