@@ -351,7 +351,7 @@ class PeerDBHandler(BasicDBHandler):
         # ARNO: AAARGGH a method that silently changes the passed value param!!!
         # Jie: deepcopy(value)?
 
-        _permid = _last_seen = _ip = _port = None
+        _permid = None
         if 'permid' in value:
             _permid = value.pop('permid')
 
