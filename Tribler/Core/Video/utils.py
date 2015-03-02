@@ -7,8 +7,6 @@ import logging
 
 from traceback import print_exc
 
-from Tribler.Core.Utilities.unicode import unicode2str
-
 if sys.platform == 'win32':
     from Tribler.Core.Utilities.win32regchecker import Win32RegChecker
 
@@ -25,7 +23,7 @@ def win32_retrieve_video_play_command(ext, videourl):
     """ Use the specified extension of to find the player in the Windows registry to play the url (or file)"""
     registry = Win32RegChecker()
 
-    logger.debug("videoplay: Looking for player for %s", unicode2str(videourl))
+    logger.debug("videoplay: Looking for player for %s", repr(videourl))
     if ext == '':
         return [None, None]
 
