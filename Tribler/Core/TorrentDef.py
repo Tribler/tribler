@@ -581,10 +581,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         (Merkle torrents) or hash of the live-source authentication key.
         @return A string of length 20. """
         if self.metainfo_valid:
-            if self.is_merkle_torrent():
-                return self.metainfo['info']['root hash']
-            else:
-                return self.infohash
+            return self.infohash
         else:
             raise TorrentDefNotFinalizedException()
 
@@ -860,15 +857,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             raise NotYetImplementedException()  # must save first
 
         return 'files' in self.metainfo['info']
-
-    def is_merkle_torrent(self):
-        """ Returns whether this TorrentDef is a Merkle torrent. Use
-        get_create_merkle_torrent() to determine this before finalization.
-        @return Boolean """
-        if self.metainfo_valid:
-            return 'root hash' in self.metainfo['info']
-        else:
-            raise TorrentDefNotFinalizedException()
 
     def is_private(self):
         """ Returns whether this TorrentDef is a private torrent.
