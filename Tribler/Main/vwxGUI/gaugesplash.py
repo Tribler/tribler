@@ -38,7 +38,7 @@ class GaugeSplash(wx.Frame):
 
     """Placeholder for a gauge-bar splash screen."""
 
-    def __init__(self, bmp, label):
+    def __init__(self, bmp, label, ticks):
         wx.Frame.__init__(self, None, style=wx.FRAME_NO_TASKBAR)
 
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -57,7 +57,7 @@ class GaugeSplash(wx.Frame):
 
         self.progressHeight = 12
         self.gauge = wx.Gauge(self, -1,
-                              range=100, size=(-1, self.progressHeight),
+                              range=ticks, size=(-1, self.progressHeight),
                               style=wx.GA_HORIZONTAL | wx.GA_SMOOTH)
         self.gauge.SetBackgroundColour(DEFAULT_BACKGROUND)
         sizer.Add(self.gauge, 0, flag=wx.EXPAND | wx.TOP, border=self.border)
@@ -72,12 +72,6 @@ class GaugeSplash(wx.Frame):
             wx.Yield()
         except:
             pass
-
-    def setTicks(self, count):
-        """Set the total number of ticks that will be contained in the
-        progress bar.
-        """
-        self.gauge.SetRange(count)
 
     def tick(self, text):
         """Advance the progress bar by one tick and update the label.

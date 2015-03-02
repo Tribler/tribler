@@ -158,11 +158,8 @@ def encode(data, version="a"):
     assert isinstance(version, str)
     if version == "a":
         return "a" + "".join(_a_encode_mapping[type(data)](data, _a_encode_mapping))
-    elif version == "b":
-        # raise ValueError("This version is not yet implemented")
-        return "b" + "".join(_b_encode_mapping[type(data)](data, _b_encode_mapping))
-    else:
-        raise ValueError("Unknown encode version")
+
+    raise ValueError("Unknown encode version")
 
 
 def _a_decode_int(stream, offset, count, _):

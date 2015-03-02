@@ -177,8 +177,7 @@ class ABCApp(object):
         self.splash = None
         try:
             bm = self.gui_image_manager.getImage(u'splash.png')
-            self.splash = GaugeSplash(bm, "Loading...")
-            self.splash.setTicks(13)
+            self.splash = GaugeSplash(bm, "Loading...", 13)
             self.splash.Show()
 
             self._logger.info('Client Starting Up.')
@@ -975,10 +974,8 @@ class ABCApp(object):
 
     @forceWxThread
     def OnExit(self):
-
         bm = self.gui_image_manager.getImage(u'closescreen.png')
-        self.closewindow = GaugeSplash(bm, "Closing...")
-        self.closewindow.setTicks(6)
+        self.closewindow = GaugeSplash(bm, "Closing...", 6)
         self.closewindow.Show()
 
         self._logger.info("main: ONEXIT")

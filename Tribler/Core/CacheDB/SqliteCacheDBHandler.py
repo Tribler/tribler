@@ -351,7 +351,7 @@ class PeerDBHandler(BasicDBHandler):
         # ARNO: AAARGGH a method that silently changes the passed value param!!!
         # Jie: deepcopy(value)?
 
-        _permid = _last_seen = _ip = _port = None
+        _permid = None
         if 'permid' in value:
             _permid = value.pop('permid')
 
@@ -596,7 +596,8 @@ class TorrentDBHandler(BasicDBHandler):
                 # the proper torrentdef api
                 "category_id": self.misc_db.categoryName2Id(self.category.calculateCategory(torrentdef.metainfo, torrentdef.get_name_as_unicode())),
                 "status_id": self.misc_db.torrentStatusName2Id(extra_info.get("status", "unknown")),
-                "comment": torrentdef.get_comment_as_unicode()
+                "comment": torrentdef.get_comment_as_unicode(),
+                "is_collected": extra_info.get('is_collected', 0)
                 }
 
         if extra_info.get("seeder", -1) != -1:
@@ -2552,6 +2553,9 @@ class ChannelCastDBHandler(BasicDBHandler):
     def _getChannels(self, sql, args=None, cmpF=None, includeSpam=True):
         """Returns the channels based on the input sql, if the number of positive votes
         is less than maxvotes and the number of torrent > 0"""
+        if self.votecast_db is None:
+            return []
+
         channels = []
         results = self._db.fetchall(sql, args)
 

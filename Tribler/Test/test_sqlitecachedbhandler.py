@@ -200,7 +200,6 @@ class TestTorrentDBHandler(AbstractDB):
     @blocking_call_on_reactor_thread
     def addTorrent(self):
         old_size = self.tdb.size()
-        old_src_size = self.tdb._db.size('TorrentSource')
         old_tracker_size = self.tdb._db.size('TrackerInfo')
 
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')

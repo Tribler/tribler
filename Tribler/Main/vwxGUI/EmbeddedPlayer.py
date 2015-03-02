@@ -164,6 +164,9 @@ class EmbeddedPlayerPanel(wx.Panel):
             self.videoplayer.set_internalplayer_callback(self.LoadAndStartPlay)
 
     def OnVideoBuffering(self, subject, changeType, torrent_tuple):
+        if not self:
+            return
+
         download_hash, _, is_buffering = torrent_tuple
         if self.download and self.download.get_def().get_infohash() == download_hash:
             @forceWxThread
@@ -175,7 +178,7 @@ class EmbeddedPlayerPanel(wx.Panel):
             do_gui()
 
     def OnStatesCallback(self, dslist, magnetlist):
-        if not self.download:
+        if not self or not self.download:
             return
 
         for ds in dslist:
