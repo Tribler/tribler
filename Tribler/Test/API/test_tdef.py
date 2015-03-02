@@ -36,40 +36,31 @@ class TestTorrentDef(BaseTestCase):
         pass
 
     def test_add_content_file(self):
-        self.subtest_add_content_file(merkle=False)
-        self.subtest_add_content_file(merkle=True)
+        self.subtest_add_content_file()
 
     def test_add_content_dir(self):
-        self.subtest_add_content_dir(merkle=False)
-        self.subtest_add_content_dir(merkle=True)
+        self.subtest_add_content_dir()
 
     def test_add_content_dir_and_file(self):
-        self.subtest_add_content_dir_and_file(merkle=False)
-        self.subtest_add_content_dir_and_file(merkle=True)
+        self.subtest_add_content_dir_and_file()
 
     def test_add_content_file_playtime(self):
-        self.subtest_add_content_file_playtime(merkle=False)
-        self.subtest_add_content_file_playtime(merkle=True)
+        self.subtest_add_content_file_playtime()
 
     def test_add_content_dir_playtime(self):
-        self.subtest_add_content_dir_playtime(merkle=False)
-        self.subtest_add_content_dir_playtime(merkle=True)
+        self.subtest_add_content_dir_playtime()
 
     def test_add_content_announce_list(self):
-        self.subtest_add_content_announce_list(merkle=False)
-        self.subtest_add_content_announce_list(merkle=True)
+        self.subtest_add_content_announce_list()
 
     def test_add_content_httpseeds(self):
-        self.subtest_add_content_httpseeds(merkle=False)
-        self.subtest_add_content_httpseeds(merkle=True)
+        self.subtest_add_content_httpseeds()
 
     def test_add_content_piece_length(self):
-        self.subtest_add_content_piece_length(merkle=False)
-        self.subtest_add_content_piece_length(merkle=True)
+        self.subtest_add_content_piece_length()
 
     def test_add_content_file_save(self):
-        self.subtest_add_content_file_save(merkle=False)
-        self.subtest_add_content_file_save(merkle=True)
+        self.subtest_add_content_file_save()
 
     def test_is_private(self):
         privatefn = os.path.join(BASE_DIR, "data", "private.torrent")
@@ -81,7 +72,7 @@ class TestTorrentDef(BaseTestCase):
         self.assert_(t1.is_private() == True)
         self.assert_(t2.is_private() == False)
 
-    def subtest_add_content_file(self, merkle=True):
+    def subtest_add_content_file(self):
         """ Add a single file to a TorrentDef """
         t = TorrentDef()
         fn = os.path.join(BASE_DIR, "API", "video.avi")
@@ -104,7 +95,7 @@ class TestTorrentDef(BaseTestCase):
         f.close()
         """
 
-    def subtest_add_content_dir(self, merkle=True):
+    def subtest_add_content_dir(self):
         """ Add a single dir to a TorrentDef """
         t = TorrentDef()
         dn = os.path.join(BASE_DIR, "API", "contentdir")
@@ -137,7 +128,7 @@ class TestTorrentDef(BaseTestCase):
 
         self.assert_(exps == reals)
 
-    def subtest_add_content_dir_and_file(self, merkle=True):
+    def subtest_add_content_dir_and_file(self):
         """ Add a single dir and single file to a TorrentDef """
         t = TorrentDef()
 
@@ -167,7 +158,7 @@ class TestTorrentDef(BaseTestCase):
             reals += file['length']
         self.assert_(exps == reals)
 
-    def subtest_add_content_file_playtime(self, merkle=True):
+    def subtest_add_content_file_playtime(self):
         """ Add a single file with playtime to a TorrentDef """
         t = TorrentDef()
         fn = os.path.join(BASE_DIR, "API", "video.avi")
@@ -186,7 +177,7 @@ class TestTorrentDef(BaseTestCase):
         expspeedbps = s / PLAYTIME_SECS
         self.assert_(realspeedbps == expspeedbps)
 
-    def subtest_add_content_dir_playtime(self, merkle=True):
+    def subtest_add_content_dir_playtime(self):
         """ Add a single dir to a TorrentDef """
         t = TorrentDef()
         fn1 = os.path.join(BASE_DIR, "API", "contentdir", "video.avi")
@@ -213,7 +204,7 @@ class TestTorrentDef(BaseTestCase):
         expspeedbps = s / PLAYTIME_SECS
         self.assert_(realspeedbps == expspeedbps)
 
-    def subtest_add_content_announce_list(self, merkle=True):
+    def subtest_add_content_announce_list(self):
         """ Add a single file with announce-list to a TorrentDef """
         t = TorrentDef()
         fn = os.path.join(BASE_DIR, "API", "video.avi")
@@ -229,7 +220,7 @@ class TestTorrentDef(BaseTestCase):
         realhier = metainfo['announce-list']
         self.assert_(realhier == exphier)
 
-    def subtest_add_content_httpseeds(self, merkle=True):
+    def subtest_add_content_httpseeds(self):
         """ Add a single file with BitTornado httpseeds to a TorrentDef """
         t = TorrentDef()
         fn = os.path.join(BASE_DIR, "API", "video.avi")
@@ -244,7 +235,7 @@ class TestTorrentDef(BaseTestCase):
         realseeds = metainfo['httpseeds']
         self.assert_(realseeds == expseeds)
 
-    def subtest_add_content_piece_length(self, merkle=True):
+    def subtest_add_content_piece_length(self):
         """ Add a single file with piece length to a TorrentDef """
         t = TorrentDef()
         fn = os.path.join(BASE_DIR, "API", "video.avi")
@@ -257,7 +248,7 @@ class TestTorrentDef(BaseTestCase):
         self.general_check(metainfo)
         self.assert_(metainfo['info']['piece length'] == 2 ** 16)
 
-    def subtest_add_content_file_save(self, merkle=True):
+    def subtest_add_content_file_save(self):
         """ Add a single file to a TorrentDef and save the latter"""
         t = TorrentDef()
         fn = os.path.join(BASE_DIR, "API", "video.avi")
