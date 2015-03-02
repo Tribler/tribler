@@ -692,18 +692,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         """
         return len(self.encode())
 
-    def get_bitrate(self, file=None):
-        """ Returns the bitrate of the specified file. If no file is specified,
-        we assume this is a single-file torrent.
-
-        @param file (Optional) the file in the torrent to retrieve the bitrate of.
-        @return The bitrate in bytes per second or None.
-        """
-        if not self.metainfo_valid:
-            raise NotYetImplementedException()  # must save first
-
-        return maketorrent.get_bitrate_from_metainfo(file, self.metainfo)
-
     def encode(self):
         if not self.readonly:
             self.finalize()

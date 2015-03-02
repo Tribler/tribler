@@ -9,7 +9,6 @@ import logging
 from hashlib import sha1
 from copy import copy
 from time import time
-from traceback import print_exc
 from types import LongType
 
 from Tribler.Core.Utilities.bencode import bencode
@@ -320,62 +319,6 @@ def num2num(num):
         return int(num)
     else:
         return num
-
-
-def get_bitrate_from_metainfo(file, metainfo):
-    info = metainfo['info']
-    if file is None or 'files' not in info:  # if no file is specified or this is a single file torrent
-        bitrate = None
-        try:
-            playtime = None
-            if 'playtime' in info:
-                playtime = parse_playtime_to_secs(info['playtime'])
-            elif 'playtime' in metainfo:  # HACK: encode playtime in non-info part of existing torrent
-                playtime = parse_playtime_to_secs(metainfo['playtime'])
-            elif 'azureus_properties' in metainfo:
-                azprop = metainfo['azureus_properties']
-                if 'Content' in azprop:
-                    content = metainfo['azureus_properties']['Content']
-                    if 'Speed Bps' in content:
-                        bitrate = float(content['Speed Bps'])
-            if playtime is not None:
-                bitrate = info['length'] / playtime
-                logger.debug("TorrentDef: get_bitrate: Found bitrate %s", bitrate)
-        except:
-            print_exc()
-
-        return bitrate
-
-    else:
-        for i in range(len(info['files'])):
-            x = info['files'][i]
-
-            intorrentpath = ''
-            for elem in x['path']:
-                intorrentpath = os.path.join(intorrentpath, elem)
-            bitrate = None
-            try:
-                playtime = None
-                if 'playtime' in x:
-                    playtime = parse_playtime_to_secs(x['playtime'])
-                elif 'playtime' in metainfo:  # HACK: encode playtime in non-info part of existing torrent
-                    playtime = parse_playtime_to_secs(metainfo['playtime'])
-                elif 'azureus_properties' in metainfo:
-                    azprop = metainfo['azureus_properties']
-                    if 'Content' in azprop:
-                        content = metainfo['azureus_properties']['Content']
-                        if 'Speed Bps' in content:
-                            bitrate = float(content['Speed Bps'])
-
-                if playtime is not None:
-                    bitrate = x['length'] / playtime
-            except:
-                print_exc()
-
-            if intorrentpath == file:
-                return bitrate
-
-        raise ValueError("File not found in torrent")
 
 
 def get_length_from_metainfo(metainfo, selectedfiles):
