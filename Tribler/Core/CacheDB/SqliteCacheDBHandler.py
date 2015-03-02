@@ -2553,6 +2553,9 @@ class ChannelCastDBHandler(BasicDBHandler):
     def _getChannels(self, sql, args=None, cmpF=None, includeSpam=True):
         """Returns the channels based on the input sql, if the number of positive votes
         is less than maxvotes and the number of torrent > 0"""
+        if self.votecast_db is None:
+            return []
+
         channels = []
         results = self._db.fetchall(sql, args)
 
