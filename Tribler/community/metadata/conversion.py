@@ -12,19 +12,8 @@ class MetadataConversion(BinaryConversion):
     def __init__(self, community):
         super(MetadataConversion, self).__init__(community, "\x02")
         self.define_meta_message(chr(1), community.get_meta_message(u"metadata"),
-                                 lambda message: self._encode_decode(self._encode_metadata,
-                                                                     self._decode_metadata, message),
+                                 self._encode_metadata,
                                  self._decode_metadata)
-
-    def _encode_decode(self, encode, decode, message):
-        result = encode(message)
-        try:
-            decode(None, 0, result[0])
-        except DropPacket:
-            raise
-        except:
-            pass
-        return result
 
     def _encode_metadata(self, message):
         """
