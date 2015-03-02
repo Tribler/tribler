@@ -1162,6 +1162,8 @@ class GenericSearchList(SizeList):
 
     @warnWxThread
     def SetData(self, data):
+        if not self:
+            return
         resetbottomwindow = not bool(self.list.raw_data)
 
         SizeList.SetData(self, data)
@@ -1443,6 +1445,8 @@ class SearchList(GenericSearchList):
 
     @warnWxThread
     def SetData(self, torrents):
+        if not self:
+            return
         # Determine the associated channels
         associated = {}
         for torrent in torrents:
