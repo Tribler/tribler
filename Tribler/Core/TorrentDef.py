@@ -15,7 +15,6 @@ from Tribler.Core.exceptions import (OperationNotPossibleAtRuntimeException, Tor
 from Tribler.Core.Base import ContentDefinition, Serializable, Copyable
 from Tribler.Core.Utilities.bencode import bencode, bdecode
 import Tribler.Core.APIImplementation.maketorrent as maketorrent
-from Tribler.Core.APIImplementation.miscutils import parse_playtime_to_secs
 
 from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL, parse_magnetlink
 from Tribler.Core.Utilities.unicode import dunno2unicode
@@ -465,11 +464,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         """ Returns the pieces"""
         return self.metainfo['info']['pieces'][:]
 
-    def get_live(self):
-        """ Returns whether this definition is for a live torrent.
-        @return Boolean. """
-        return bool('live' in self.input and self.input['live'])
-
     def set_initial_peers(self, value):
         """ Set the initial peers to connect to.
         @param value List of (IP,port) tuples """
@@ -505,21 +499,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
         if self.metainfo_valid:
             return
-
-        if 'live' in self.input:
-            # Make sure the duration is an integral number of pieces, for
-            # security (live source auth).
-            secs = parse_playtime_to_secs(self.input['playtime'])
-            pl = float(self.get_piece_length())
-            length = float(self.input['bps'] * secs)
-
-            self._logger.debug("TorrentDef: finalize: length %s, piecelen %s", length, pl)
-            diff = length % pl
-            add = (pl - diff) % pl
-            newlen = int(length + add)
-
-            d = self.input['files'][0]
-            d['length'] = newlen
 
         # Note: reading of all files and calc of hashes is done by calling
         # thread.
@@ -881,9 +860,6 @@ class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
 
     def get_infohash(self):
         return self.infohash
-
-    def get_live(self):
-        return False
 
     def get_length(self, selectedfiles=None):
         return 0

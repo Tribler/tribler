@@ -5,8 +5,6 @@
 #
 
 import os
-import tempfile
-import unittest
 
 from Tribler.Test.test_as_server import BaseTestCase
 
@@ -43,12 +41,6 @@ class TestTorrentDef(BaseTestCase):
 
     def test_add_content_dir_and_file(self):
         self.subtest_add_content_dir_and_file()
-
-    def test_add_content_file_playtime(self):
-        self.subtest_add_content_file_playtime()
-
-    def test_add_content_dir_playtime(self):
-        self.subtest_add_content_dir_playtime()
 
     def test_add_content_announce_list(self):
         self.subtest_add_content_announce_list()
@@ -157,52 +149,6 @@ class TestTorrentDef(BaseTestCase):
         for file in metainfo['info']['files']:
             reals += file['length']
         self.assert_(exps == reals)
-
-    def subtest_add_content_file_playtime(self):
-        """ Add a single file with playtime to a TorrentDef """
-        t = TorrentDef()
-        fn = os.path.join(BASE_DIR, "API", "video.avi")
-        t.add_content(fn, playtime=PLAYTIME)
-        t.set_tracker(TRACKER)
-        t.finalize()
-
-        s = os.path.getsize(os.path.join(BASE_DIR, "API", "video.avi"))
-
-        metainfo = t.get_metainfo()
-        self.general_check(metainfo)
-        self.assert_(metainfo['info']['playtime'] == PLAYTIME)
-        azprop = metainfo['azureus_properties']
-        content = azprop['Content']
-        realspeedbps = content['Speed Bps']
-        expspeedbps = s / PLAYTIME_SECS
-        self.assert_(realspeedbps == expspeedbps)
-
-    def subtest_add_content_dir_playtime(self):
-        """ Add a single dir to a TorrentDef """
-        t = TorrentDef()
-        fn1 = os.path.join(BASE_DIR, "API", "contentdir", "video.avi")
-        fn2 = os.path.join(BASE_DIR, "API", "contentdir", "file.txt")
-        t.add_content(fn1, os.path.join("dirintorrent", "video.avi"), playtime=PLAYTIME)
-        t.add_content(fn2, os.path.join("dirintorrent", "file.txt"))
-        t.set_tracker(TRACKER)
-        t.finalize()
-
-        metainfo = t.get_metainfo()
-        self.general_check(metainfo)
-        self.assert_(metainfo['info']['name'] == 'dirintorrent')
-
-        s = os.path.getsize(fn1)
-
-        files = metainfo['info']['files']
-        for file in files:
-            if file['path'][0] == "video.avi":
-                self.assert_(file['playtime'] == PLAYTIME)
-
-        azprop = metainfo['azureus_properties']
-        content = azprop['Content']
-        realspeedbps = content['Speed Bps']
-        expspeedbps = s / PLAYTIME_SECS
-        self.assert_(realspeedbps == expspeedbps)
 
     def subtest_add_content_announce_list(self):
         """ Add a single file with announce-list to a TorrentDef """

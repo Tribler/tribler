@@ -13,7 +13,7 @@ from types import LongType
 
 from Tribler.Core.Utilities.bencode import bencode
 from Tribler.Core.Utilities.unicode import bin2unicode
-from Tribler.Core.APIImplementation.miscutils import parse_playtime_to_secs, offset2piece
+from Tribler.Core.APIImplementation.miscutils import offset2piece
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.defaults import tdefdictdefaults
 from Tribler.Core.Utilities.utilities import validTorrentFile
@@ -45,42 +45,6 @@ def make_torrent_file(input, userabortflag=None, userprogresscallback=lambda x: 
             metainfo[key] = input[key]
             if key == 'comment':
                 metainfo['comment.utf-8'] = uniconvert(input['comment'], 'utf-8')
-
-    # Assuming 1 file, Azureus format no support multi-file torrent with diff
-    # bitrates
-    bitrate = None
-    for file in input['files']:
-        if file['playtime'] is not None:
-            secs = parse_playtime_to_secs(file['playtime'])
-            bitrate = file['length'] / secs
-            break
-        if input.get('bps') is not None:
-            bitrate = input['bps']
-            break
-
-    if bitrate is not None or input['thumb'] is not None:
-        mdict = {'Publisher': 'Tribler'}
-        if input['comment'] is None:
-            descr = ''
-        else:
-            descr = input['comment']
-        mdict['Description'] = descr
-
-        if bitrate is not None:
-            mdict['Progressive'] = 1
-            mdict['Speed Bps'] = int(bitrate)  # bencode fails for float
-        else:
-            mdict['Progressive'] = 0
-
-        mdict['Title'] = metainfo['info']['name']
-        mdict['Creation Date'] = long(time())
-        # Azureus client source code doesn't tell what this is, so just put in random value from real torrent
-        mdict['Content Hash'] = 'PT3GQCPW4NPT6WRKKT25IQD4MU5HM4UY'
-        mdict['Revision Date'] = long(time())
-        if input['thumb'] is not None:
-            mdict['Thumbnail'] = input['thumb']
-        cdict = {'Content': mdict}
-        metainfo['azureus_properties'] = cdict
 
     if 'private' in input:
         metainfo['info']['private'] = input['private']
@@ -151,10 +115,7 @@ def makeinfo(input, userabortflag, userprogresscallback):
     # 2. Calc total size
     newsubs = []
     for p, f in subs:
-        if 'live' in input:
-            size = input['files'][0]['length']
-        else:
-            size = os.path.getsize(f)
+        size = os.path.getsize(f)
         totalsize += size
         newsubs.append((p, f, size))
     subs = newsubs
@@ -173,57 +134,49 @@ def makeinfo(input, userabortflag, userprogresscallback):
     else:
         piece_length = input['piece length']
 
-    # 4. Read files and calc hashes, if not live
-    if 'live' not in input:
-        for p, f, size in subs:
-            pos = 0
+    # 4. Read files and calc hashes
+    for p, f, size in subs:
+        pos = 0
 
-            h = open(f, 'rb')
+        h = open(f, 'rb')
 
-            while pos < size:
-                a = min(size - pos, piece_length - done)
+        while pos < size:
+            a = min(size - pos, piece_length - done)
 
-                # See if the user cancelled
-                if userabortflag is not None and userabortflag.isSet():
-                    return None, None
+            # See if the user cancelled
+            if userabortflag is not None and userabortflag.isSet():
+                return None, None
 
-                readpiece = h.read(a)
+            readpiece = h.read(a)
 
-                # See if the user cancelled
-                if userabortflag is not None and userabortflag.isSet():
-                    return None, None
+            # See if the user cancelled
+            if userabortflag is not None and userabortflag.isSet():
+                return None, None
 
-                sh.update(readpiece)
+            sh.update(readpiece)
 
-                done += a
-                pos += a
-                totalhashed += a
+            done += a
+            pos += a
+            totalhashed += a
 
-                if done == piece_length:
-                    pieces.append(sh.digest())
-                    done = 0
-                    sh = sha1()
+            if done == piece_length:
+                pieces.append(sh.digest())
+                done = 0
+                sh = sha1()
 
-                if userprogresscallback is not None:
-                    userprogresscallback(float(totalhashed) / float(totalsize))
+            if userprogresscallback is not None:
+                userprogresscallback(float(totalhashed) / float(totalsize))
 
-            newdict = {'length': num2num(size),
-                       'path': uniconvertl(p, encoding),
-                       'path.utf-8': uniconvertl(p, 'utf-8')}
+        newdict = {'length': num2num(size),
+                   'path': uniconvertl(p, encoding),
+                   'path.utf-8': uniconvertl(p, 'utf-8')}
 
-            # Find and add playtime
-            for file in input['files']:
-                if file['inpath'] == f:
-                    if file['playtime'] is not None:
-                        newdict['playtime'] = file['playtime']
-                    break
+        fs.append(newdict)
 
-            fs.append(newdict)
+        h.close()
 
-            h.close()
-
-        if done > 0:
-            pieces.append(sh.digest())
+    if done > 0:
+        pieces.append(sh.digest())
 
     # 5. Create info dict
     if len(subs) == 1:
@@ -246,18 +199,7 @@ def makeinfo(input, userabortflag, userprogresscallback):
                 'name': uniconvert(name, encoding),
                 'name.utf-8': uniconvert(name, 'utf-8')}
 
-    if 'live' not in input:
-        infodict.update({'pieces': ''.join(pieces)})
-    else:
-        # With source auth, live is a dict
-        infodict['live'] = input['live']
-
-    if len(subs) == 1:
-        # Find and add playtime
-        for file in input['files']:
-            if file['inpath'] == f:
-                if file['playtime'] is not None:
-                    infodict['playtime'] = file['playtime']
+    infodict.update({'pieces': ''.join(pieces)})
 
     return infodict, piece_length
 
@@ -375,7 +317,7 @@ def copy_metainfo_to_input(metainfo, input):
         if key in metainfo:
             input[key] = metainfo[key]
 
-    infokeys = ['name', 'piece length', 'live']
+    infokeys = ['name', 'piece length']
     for key in infokeys:
         if key in metainfo['info']:
             input[key] = metainfo['info'][key]
@@ -383,34 +325,16 @@ def copy_metainfo_to_input(metainfo, input):
     # Note: don't know inpath, set to outpath
     if 'length' in metainfo['info']:
         outpath = metainfo['info']['name']
-        if 'playtime' in metainfo['info']:
-            playtime = metainfo['info']['playtime']
-        else:
-            playtime = None
         length = metainfo['info']['length']
-        d = {'inpath': outpath, 'outpath': outpath, 'playtime': playtime, 'length': length}
+        d = {'inpath': outpath, 'outpath': outpath, 'length': length}
         input['files'].append(d)
     else:  # multi-file torrent
         files = metainfo['info']['files']
         for file in files:
             outpath = pathlist2filename(file['path'])
-            if 'playtime' in file:
-                playtime = file['playtime']
-            else:
-                playtime = None
             length = file['length']
-            d = {'inpath': outpath, 'outpath': outpath, 'playtime': playtime, 'length': length}
+            d = {'inpath': outpath, 'outpath': outpath, 'length': length}
             input['files'].append(d)
-
-    if 'azureus_properties' in metainfo:
-        azprop = metainfo['azureus_properties']
-        if 'Content' in azprop:
-            content = metainfo['azureus_properties']['Content']
-            if 'Thumbnail' in content:
-                input['thumb'] = content['Thumbnail']
-
-    if 'live' in metainfo['info']:
-        input['live'] = metainfo['info']['live']
 
     # Diego : we want web seeding
     if 'url-list' in metainfo:
