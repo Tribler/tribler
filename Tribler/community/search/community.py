@@ -1,5 +1,4 @@
 # Written by Niels Zeilemaker
-from os import path
 from random import shuffle
 from time import time
 from binascii import hexlify

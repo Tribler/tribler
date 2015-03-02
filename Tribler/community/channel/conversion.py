@@ -4,7 +4,6 @@ from struct import pack, unpack_from
 
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.dispersy.conversion import BinaryConversion
-from Tribler.dispersy.member import DummyMember
 from Tribler.dispersy.message import DropPacket, Packet, DelayPacketByMissingMessage, DelayPacketByMissingMember
 
 
