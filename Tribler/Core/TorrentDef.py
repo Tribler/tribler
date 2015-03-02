@@ -498,25 +498,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         @return Boolean. """
         return bool('live' in self.input and self.input['live'])
 
-    def get_live_authmethod(self):
-        """ Returns the method for authenticating the source.
-        <pre>
-        LIVE_AUTHMETHOD_ECDSA
-        </pre>
-        @return String
-        """
-        return 'live' in self.input and self.input['live']['authmethod']
-
-    def get_live_pubkey(self):
-        """ Returns the public key used for authenticating packets from
-        the source.
-        @return A public key in DER.
-        """
-        if 'live' in self.input and 'pubkey' in self.input['live']:
-            return self.input['live']['pubkey']
-        else:
-            return None
-
     def set_initial_peers(self, value):
         """ Set the initial peers to connect to.
         @param value List of (IP,port) tuples """
