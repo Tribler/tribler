@@ -314,7 +314,7 @@ class TorrentChecking(Thread):
         last_check = response['last_check']
 
         # the torrent status logic, TODO: do it in other way
-        self._logger.debug("TorrentChecking: Update result %d/%d for %s", seeders, leechers, bin2str(infohash))
+        self._logger.debug("TorrentChecking: Update result %s/%s for %s", seeders, leechers, bin2str(infohash))
 
         torrent_id = self._torrentdb.getTorrentID(infohash)
         retries = self._torrentdb.getTorrentCheckRetries(torrent_id)
