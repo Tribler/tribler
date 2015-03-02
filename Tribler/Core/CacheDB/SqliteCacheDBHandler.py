@@ -596,7 +596,8 @@ class TorrentDBHandler(BasicDBHandler):
                 # the proper torrentdef api
                 "category_id": self.misc_db.categoryName2Id(self.category.calculateCategory(torrentdef.metainfo, torrentdef.get_name_as_unicode())),
                 "status_id": self.misc_db.torrentStatusName2Id(extra_info.get("status", "unknown")),
-                "comment": torrentdef.get_comment_as_unicode()
+                "comment": torrentdef.get_comment_as_unicode(),
+                "is_collected": extra_info.get('is_collected', 0)
                 }
 
         if extra_info.get("seeder", -1) != -1:
