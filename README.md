@@ -58,7 +58,8 @@ Using the file navigator to go to the download folder and by clicking on the .de
 Now installing the list of dependencies should no longer throw an error.
 
 ### Windows and OSX
-TODO
+
+Tribler runs on Windows and OSX, but development is only supported on Linux.
 
 ## Running Tribler from this repository
 ### Unix
@@ -81,8 +82,8 @@ Now you can run tribler by executing the ```tribler.sh``` script on the root of 
 ./tribler.sh
 ```
 ### Windows
-TODO
 
+Tribler runs on Windows and OSX, but development is only supported on Linux.
 
 # Packaging Tribler
 
