@@ -4,6 +4,7 @@
 import sys
 import os
 import logging
+from hashlib import sha1
 from types import StringType, ListType, IntType, LongType
 from urllib2 import URLError
 
@@ -19,7 +20,6 @@ from Tribler.Core.APIImplementation.miscutils import parse_playtime_to_secs
 from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL, parse_magnetlink
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
-from Tribler.Core.Utilities.Crypto import sha
 
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
@@ -119,7 +119,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
         # Two places where infohash calculated, here and in maketorrent.py
         # Elsewhere: must use TorrentDef.get_infohash() to allow P2PURLs.
-        t.infohash = sha(bencode(metainfo['info'])).digest()
+        t.infohash = sha1(bencode(metainfo['info'])).digest()
 
         assert isinstance(t.infohash, str), "INFOHASH has invalid type: %s" % type(t.infohash)
         assert len(t.infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(t.infohash)

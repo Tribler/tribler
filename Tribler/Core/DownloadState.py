@@ -478,6 +478,7 @@ class DownloadState(Serializable):
         'utotal' = Total uploaded from peer in KB
         'dtotal' = Total downloaded from peer in KB
         'completed' = Fraction of download completed by peer (0-1.0)
+        -- QUESTION(lipu): swift and Bitfield are gone. Does this 'have' thing has anything to do with swift?
         'have' = Bitfield object for this peer if not complete
         'speed' = The peer's current total download speed (estimated)
         </pre>

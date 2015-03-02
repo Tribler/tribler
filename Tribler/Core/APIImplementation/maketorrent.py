@@ -6,8 +6,7 @@
 import sys
 import os
 import logging
-
-from Tribler.Core.Utilities.Crypto import sha
+from hashlib import sha1
 from copy import copy
 from time import time
 from traceback import print_exc
@@ -19,9 +18,6 @@ from Tribler.Core.APIImplementation.miscutils import parse_playtime_to_secs, off
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.defaults import tdefdictdefaults
 from Tribler.Core.Utilities.utilities import validTorrentFile
-
-
-ignore = []  # Arno: was ['core', 'CVS']
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +90,7 @@ def make_torrent_file(input, userabortflag=None, userprogresscallback=lambda x: 
 
     # Two places where infohash calculated, here and in TorrentDef.
     # Elsewhere: must use TorrentDef.get_infohash() to allow P2PURLs.
-    infohash = sha(bencode(info)).digest()
+    infohash = sha1(bencode(info)).digest()
     return infohash, metainfo
 
 
@@ -127,7 +123,7 @@ def makeinfo(input, userabortflag, userprogresscallback):
     encoding = input['encoding']
 
     pieces = []
-    sh = sha()
+    sh = sha1()
     done = 0
     fs = []
     totalsize = 0
@@ -207,7 +203,7 @@ def makeinfo(input, userabortflag, userprogresscallback):
                 if done == piece_length:
                     pieces.append(sh.digest())
                     done = 0
-                    sh = sha()
+                    sh = sha1()
 
                 if userprogresscallback is not None:
                     userprogresscallback(float(totalhashed) / float(totalsize))
@@ -276,7 +272,7 @@ def subfiles(d):
         p, n = stack.pop()
         if os.path.isdir(n):
             for s in os.listdir(n):
-                if s not in ignore and s[:1] != '.':
+                if s[:1] != '.':
                     stack.append((copy(p) + [s], os.path.join(n, s)))
         else:
             r.append((p, n))

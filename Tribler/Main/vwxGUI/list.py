@@ -153,6 +153,9 @@ class RemoteSearchManager(BaseManager):
         keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, modified_hits = delayedResult.get(
         )
 
+        if not self or not self.list:
+            return
+
         if keywords == self.oldkeywords:
             if modified_hits:
                 self.list.RemoveItems(modified_hits)

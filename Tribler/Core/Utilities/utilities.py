@@ -14,14 +14,6 @@ from Tribler.Core.Utilities.bencode import bencode, bdecode
 logger = logging.getLogger(__name__)
 
 
-def isInteger(str_integer):
-    try:
-        int(str_integer)
-        return True
-    except:
-        return False
-
-
 def validTorrentFile(metainfo):
     # Jie: is this function too strict? Many torrents could not be downloaded
     if not isinstance(metainfo, DictType):

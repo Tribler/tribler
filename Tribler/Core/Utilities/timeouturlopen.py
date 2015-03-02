@@ -6,9 +6,6 @@ from StringIO import StringIO
 import httplib
 import socket
 import urllib2
-
-import urllib
-import urlparse
 import logging
 
 logger = logging.getLogger(__name__)
@@ -71,34 +68,3 @@ def urlOpenTimeout(url, timeout=30, referer='', *data):
     if referer:
         opener.addheaders = [('Referer', referer)]
     return opener.open(url, *data)
-
-
-def find_proxy(url):
-    """ Returns proxy host as "host:port" string """
-    (scheme, netloc, path, pars, query, fragment) = urlparse.urlparse(url)
-    proxies = urllib.getproxies()
-    proxyhost = None
-    if scheme in proxies:
-        if '@' in netloc:
-            sidx = netloc.find('@') + 1
-        else:
-            sidx = 0
-        # IPVSIX TODO: what if host is IPv6 address
-        eidx = netloc.find(':')
-        if eidx == -1:
-            eidx = len(netloc)
-        host = netloc[sidx:eidx]
-        if not (host == "127.0.0.1" or urllib.proxy_bypass(host)):
-            proxyurl = proxies[scheme]
-            proxyelems = urlparse.urlparse(proxyurl)
-            proxyhost = proxyelems[1]
-
-    logger.debug("find_proxy: Got proxies %s selected %s URL was %s", proxies, proxyhost, url)
-    return proxyhost
-
-
-# s = urlOpenTimeout("http://torcache.com/torrent/F91DF2C0DC38FF530BB0B90E6FCD9BF0483F7936.torrent", timeout=10)
-# print len(s.read())
-
-# s = urlOpenTimeout("http://frayja.com", timeout=10)
-# print len(s.read())
