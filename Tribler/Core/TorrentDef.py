@@ -260,31 +260,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
     def get_encoding(self):
         return self.input['encoding']
 
-    def set_thumbnail(self, thumbfilename):
-        """
-        Reads image from file and turns it into a torrent thumbnail
-        The file should contain an image in JPEG format, preferably 171x96.
-
-        @param thumbfilename Absolute name of image file, as Unicode string.
-        """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
-        f = open(thumbfilename, "rb")
-        data = f.read()
-        f.close()
-        self.input['thumb'] = data
-        self.metainfo_valid = False
-
-    def get_thumbnail(self):
-        """ Returns (MIME type,thumbnail data) if present or (None,None)
-        @return A tuple. """
-        if 'thumb' not in self.input or self.input['thumb'] is None:
-            return (None, None)
-        else:
-            thumb = self.input['thumb']  # buffer/string immutable
-            return ('image/jpeg', thumb)
-
     def set_tracker(self, url):
         """ Sets the tracker (i.e. the torrent file's 'announce' field).
         @param url The announce URL.

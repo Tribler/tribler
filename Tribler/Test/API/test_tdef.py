@@ -55,10 +55,6 @@ class TestTorrentDef(BaseTestCase):
         self.subtest_add_content_dir_playtime(merkle=False)
         self.subtest_add_content_dir_playtime(merkle=True)
 
-    def test_add_content_file_thumbnail(self):
-        self.subtest_add_content_file_thumbnail(merkle=False)
-        self.subtest_add_content_file_thumbnail(merkle=True)
-
     def test_add_content_announce_list(self):
         self.subtest_add_content_announce_list(merkle=False)
         self.subtest_add_content_announce_list(merkle=True)
@@ -216,27 +212,6 @@ class TestTorrentDef(BaseTestCase):
         realspeedbps = content['Speed Bps']
         expspeedbps = s / PLAYTIME_SECS
         self.assert_(realspeedbps == expspeedbps)
-
-    def subtest_add_content_file_thumbnail(self, merkle=True):
-        """ Add a single file with thumbnail to a TorrentDef """
-        t = TorrentDef()
-        fn = os.path.join(BASE_DIR, "API", "video.avi")
-        thumbfn = os.path.join(BASE_DIR, "API", "thumb.jpg")
-        t.add_content(fn)
-        t.set_thumbnail(thumbfn)
-        t.set_tracker(TRACKER)
-        t.finalize()
-
-        f = open(thumbfn, "rb")
-        expthumb = f.read()
-        f.close()
-
-        metainfo = t.get_metainfo()
-        self.general_check(metainfo)
-        azprop = metainfo['azureus_properties']
-        content = azprop['Content']
-        realthumb = content['Thumbnail']
-        self.assert_(realthumb == expthumb)
 
     def subtest_add_content_announce_list(self, merkle=True):
         """ Add a single file with announce-list to a TorrentDef """
