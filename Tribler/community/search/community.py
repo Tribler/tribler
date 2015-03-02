@@ -30,7 +30,6 @@ from Tribler.dispersy.resolution import PublicResolution
 
 
 DEBUG = False
-SWIFT_INFOHASHES = 0
 CREATE_TORRENT_COLLECT_INTERVAL = 5
 
 
@@ -41,18 +40,18 @@ class SearchCommunity(Community):
     """
     @classmethod
     def get_master_members(cls, dispersy):
-# generated: Mon Nov 24 10:37:11 2014
+# generated: Tue Feb 10 14:37:00 2015
 # curve: NID_sect571r1
 # len: 571 bits ~ 144 bytes signature
-# pub: 170 3081a7301006072a8648ce3d020106052b810400270381920004034a9031d07ed6d5d98b0a98cacd4bef2e19125ea7635927708babefa8e66deeb6cb4e78cc0efda39a581a679032a95ebc4a0fbdf913aa08af31f14753839b620cb5547c6e6cf42f03629b1b3dc199a3b1a262401c7ae615e87a1cf13109c7fb532f45c492ba927787257bf994e989a15fb16f20751649515fc58d87e0c861ca5b467a5c450bf57f145743d794057e75
-# pub-sha1 fb04df93369587ec8fd9b74559186fa356cffda8
+# pub: 170 3081a7301006072a8648ce3d020106052b810400270381920004005af040626c7daade16e2eebfc9e890350910a102594037ff54d377253fdefcc4dac4b9acca7fe9733b949aee88fc415900f399b4067a6b569250e4ba6c0e290d1ce93adaa387a603dcfcc52cb14a62e5df1f441e44d4744ab64c47c3977cced6287e70694d6d5720b7bf63ab04a0ad2a1ec13c6579983abe8e53243cd1db62059d4faf39559a68f7122a8cfe8d3b53
+# pub-sha1 007a61708b5e96f322b1d465a5db109e5c289ace
 # -----BEGIN PUBLIC KEY-----
-# MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQDSpAx0H7W1dmLCpjKzUvvLhkSXqdj
-# WSdwi6vvqOZt7rbLTnjMDv2jmlgaZ5AyqV68Sg+9+ROqCK8x8UdTg5tiDLVUfG5s
-# 9C8DYpsbPcGZo7GiYkAceuYV6Hoc8TEJx/tTL0XEkrqSd4cle/mU6YmhX7FvIHUW
-# SVFfxY2H4MhhyltGelxFC/V/FFdD15QFfnU=
+# MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQAWvBAYmx9qt4W4u6/yeiQNQkQoQJZ
+# QDf/VNN3JT/e/MTaxLmsyn/pczuUmu6I/EFZAPOZtAZ6a1aSUOS6bA4pDRzpOtqj
+# h6YD3PzFLLFKYuXfH0QeRNR0SrZMR8OXfM7WKH5waU1tVyC3v2OrBKCtKh7BPGV5
+# mDq+jlMkPNHbYgWdT685VZpo9xIqjP6NO1M=
 # -----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004034a9031d07ed6d5d98b0a98cacd4bef2e19125ea7635927708babefa8e66deeb6cb4e78cc0efda39a581a679032a95ebc4a0fbdf913aa08af31f14753839b620cb5547c6e6cf42f03629b1b3dc199a3b1a262401c7ae615e87a1cf13109c7fb532f45c492ba927787257bf994e989a15fb16f20751649515fc58d87e0c861ca5b467a5c450bf57f145743d794057e75".decode("HEX")
+        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004005af040626c7daade16e2eebfc9e890350910a102594037ff54d377253fdefcc4dac4b9acca7fe9733b949aee88fc415900f399b4067a6b569250e4ba6c0e290d1ce93adaa387a603dcfcc52cb14a62e5df1f441e44d4744ab64c47c3977cced6287e70694d6d5720b7bf63ab04a0ad2a1ec13c6579983abe8e53243cd1db62059d4faf39559a68f7122a8cfe8d3b53".decode("HEX")
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
@@ -494,21 +493,20 @@ class SearchCommunity(Community):
         to_collect_dict = {}
         to_popularity_dict = {}
         for message in messages:
-            # check if the identifier is still in the request_cache because it could be timed out
+            # check if the identifier is still in the request_cache because it could have timed out
             if not self.request_cache.has(u"ping", message.payload.identifier):
                 self._logger.warn(u"message from %s cannot be found in the request cache, skipping it",
                                   message.candidate)
                 continue
             self.request_cache.pop(u"ping", message.payload.identifier)
 
-            if message.payload.hashtype == SWIFT_INFOHASHES:
-                for infohash, seeders, leechers, ago in message.payload.torrents:
-                    if not infohash:
-                        continue
-                    elif infohash not in to_insert_list:
-                        to_insert_list.append(infohash)
-                    to_popularity_dict[infohash] = [seeders, leechers, time() - (ago * 60)]
-                    to_collect_dict.setdefault(infohash, []).append(message.candidate)
+            for infohash, seeders, leechers, ago in message.payload.torrents:
+                if not infohash:
+                    continue
+                elif infohash not in to_insert_list:
+                    to_insert_list.append(infohash)
+                to_popularity_dict[infohash] = [seeders, leechers, time() - (ago * 60)]
+                to_collect_dict.setdefault(infohash, []).append(message.candidate)
 
         if len(to_insert_list) > 0:
             while to_insert_list:
@@ -547,7 +545,7 @@ class SearchCommunity(Community):
             meta = self.get_meta_message(meta_name)
             message = meta.impl(authentication=(self._my_member,),
                                 distribution=(self.global_time,), destination=(candidate,),
-                                payload=(identifier, SWIFT_INFOHASHES, torrents))
+                                payload=(identifier, torrents))
 
             self._dispersy._forward([message])
             self._logger.debug(u"send %s to %s", meta_name, candidate)
