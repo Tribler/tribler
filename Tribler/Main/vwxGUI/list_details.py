@@ -214,6 +214,8 @@ class TorrentDetails(AbstractDetails):
             self.guiutility.frame.top_bg.AddCollectedTorrent(torrent)
 
             def update():
+                if not self:
+                    return
                 page = self.guiutility.GetSelectedPage()
                 if page and hasattr(page, 'GetExpandedItems'):
                     for infohash, item in page.GetExpandedItems():
