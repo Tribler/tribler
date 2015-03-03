@@ -130,6 +130,7 @@ sessdefaults['video']['preferredmode'] = PLAYBACKMODE_INTERNAL
 #  Version 9: remove swift
 #  Version 10: add default anonymous level
 #  Version 11: remove createmerkletorrent, torrentsigkeypairfilename, makehash_md5, makehash_crc32, makehash_sha1
+#  Version 12: remove thumb
 
 DLDEFAULTS_VERSION = 11
 dldefaults = OrderedDict()
@@ -160,7 +161,6 @@ tdefdictdefaults['encoding'] = None
 tdefmetadefaults = {}
 tdefmetadefaults['version'] = 1
 tdefmetadefaults['piece length'] = 0
-tdefmetadefaults['thumb'] = None  # JPEG data
 
 TDEF_DEFAULTS = {}
 TDEF_DEFAULTS.update(tdefdictdefaults)
