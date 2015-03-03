@@ -55,7 +55,7 @@ class BaseTestCase(unittest.TestCase):
                 except:
                     raise
                 else:
-                    process_unhandled_exceptions(self)
+                    process_unhandled_exceptions()
                 return result
             return check
 
