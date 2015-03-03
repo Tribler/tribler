@@ -51,8 +51,10 @@ class UnhandledExceptionCatcher(object):
     """
 
     def __init__(self):
-        self._lines = []
         self._logger = logging.getLogger(self.__class__.__name__)
+        self._lines = []
+        self.last_exc = None
+        self.exc_counter = 0
         sys.excepthook = self.catch_exception
 
     def _register_exception_line(self, line, *format_args):
@@ -61,13 +63,18 @@ class UnhandledExceptionCatcher(object):
         self._logger.critical(line)
 
     def catch_exception(self, type, value, tb):
+        """
+        Catch unhandled exception, log it and store it to be printed at teardown time too.
+
+        """
+        self.exc_counter += 1
         def repr_(value):
             try:
                 return repr(value)
             except:
                 return "<Error while REPRing value>"
-
-        self._register_exception_line("Unhandled exception raised while running the test: %s %s", type, repr_(value))
+        self.last_exc = repr_(value)
+        self._register_exception_line("Unhandled exception raised while running the test: %s %s", type, self.last_exc)
 
         stack = []
         while tb:
@@ -82,16 +89,23 @@ class UnhandledExceptionCatcher(object):
                 value = repr_(value)
                 self._register_exception_line("| %12s = %s", key, value)
 
-    def check_exceptions(self, unittest):
-        if self._lines:
+    def check_exceptions(self):
+        """
+        Log all unhandled exceptions, clear logged exceptions and raise to fail the currently running test.
+        """
+        if self.exc_counter:
             lines = self._lines
             self._lines = []
+            exc_counter = self.exc_counter
+            self.exc_counter = 0
+            last_exc = self.last_exc
+            self.last_exc = 0
 
             self._logger.critical("The following unhandled exceptions where raised during this test's execution:")
             for line in lines:
                 self._logger.critical(line)
 
-            raise Exception("Test got unhandled exceptions")
+            raise Exception("Test raised %d unhandled exceptions, last one was: %s" % (exc_counter, last_exc))
 
 _catcher = UnhandledExceptionCatcher()
 
