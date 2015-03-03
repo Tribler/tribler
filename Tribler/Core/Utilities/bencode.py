@@ -108,23 +108,6 @@ def sloppy_bdecode(x):
     return r, l
 
 
-bencached_marker = []
-
-
-class Bencached:
-
-    def __init__(self, s):
-        self.marker = bencached_marker
-        self.bencoded = s
-
-BencachedType = type(Bencached(''))  # insufficient, but good as a filter
-
-
-def encode_bencached(x, r):
-    assert x.marker == bencached_marker
-    r.append(x.bencoded)
-
-
 def encode_int(x, r):
     r.extend(('i', str(x), 'e'))
 
@@ -166,7 +149,6 @@ def encode_dict(x, r):
     r.append('e')
 
 encode_func = {}
-encode_func[BencachedType] = encode_bencached
 encode_func[IntType] = encode_int
 encode_func[LongType] = encode_int
 encode_func[StringType] = encode_string
