@@ -238,7 +238,6 @@ class CreateTorrent(wx.Dialog):
             params['nodes'] = False
             params['httpseeds'] = False
             params['encoding'] = False
-            params['thumb'] = False
 
             piece_length_list = [0, 2 ** 22, 2 ** 21, 2 ** 20, 2 ** 19, 2 ** 18, 2 ** 17, 2 ** 16, 2 ** 15]
             if self.pieceChoice.GetSelection() != wx.NOT_FOUND:
@@ -383,20 +382,13 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
             if os.path.isfile(srcpath):
                 outpath = os.path.relpath(srcpath, basepath)
 
-                # h4x0r playtime
-                if 'playtime' in params:
-                    tdef.add_content(srcpath, outpath, playtime=params['playtime'])
-                else:
-                    tdef.add_content(srcpath, outpath)
+                tdef.add_content(srcpath, outpath)
     else:
         srcpaths = [file for file in srcpaths if os.path.isfile(file)]
 
         srcpath = srcpaths[0]
         basepath, _ = os.path.split(srcpath)
-        if 'playtime' in params:
-            tdef.add_content(srcpath, playtime=params['playtime'])
-        else:
-            tdef.add_content(srcpath)
+        tdef.add_content(srcpath)
 
         if params.get('urllist', False):
             tdef.set_urllist(params['urllist'])
@@ -419,17 +411,12 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
         tdef.set_encoding(params['encoding'])
     if params['piece length']:
         tdef.set_piece_length(params['piece length'])
-    if params['thumb']:
-        tdef.set_thumbnail(params['thumb'])
 
     tdef.finalize(userabortflag=userabortflag, userprogresscallback=progressCallback)
 
     postfix = '.torrent'
 
-    if params.get('target', False):
-        torrentfilename = os.path.join(params['target'], os.path.split(os.path.normpath(srcpath))[1] + postfix)
-    else:
-        torrentfilename = os.path.join(basepath, tdef.get_name() + postfix)
+    torrentfilename = os.path.join(basepath, tdef.get_name() + postfix)
     tdef.save(torrentfilename)
 
     # Inform higher layer we created torrent

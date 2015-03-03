@@ -71,8 +71,6 @@ def validTorrentFile(metainfo):
 
     if 'root hash' in info:
         infokeys = ['name', 'piece length', 'root hash']
-    elif 'live' in info:
-        infokeys = ['name', 'piece length', 'live']
     else:
         infokeys = ['name', 'piece length', 'pieces']
     for key in infokeys:
@@ -88,13 +86,6 @@ def validTorrentFile(metainfo):
         rh = info['root hash']
         if not isinstance(rh, StringType) or len(rh) != 20:
             raise ValueError('info roothash is not 20-byte string')
-    elif 'live' in info:
-        live = info['live']
-        if not isinstance(live, DictType):
-            raise ValueError('info live is not a dict')
-        else:
-            if 'authmethod' not in live:
-                raise ValueError('info live misses key' + 'authmethod')
     else:
         p = info['pieces']
         if not isinstance(p, StringType) or len(p) % 20 != 0:
@@ -146,19 +137,6 @@ def validTorrentFile(metainfo):
 #            for url in tier:
 #                if not isValidURL(url):
 #                    raise ValueError('announce-list url is not valid '+`url`)
-
-    if 'azureus_properties' in metainfo:
-        azprop = metainfo['azureus_properties']
-        if not isinstance(azprop, DictType):
-            raise ValueError('azureus_properties is not dict, but ' + repr(type(azprop)))
-        if 'Content' in azprop:
-            content = azprop['Content']
-            if not isinstance(content, DictType):
-                raise ValueError('azureus_properties content is not dict, but ' + repr(type(content)))
-            if 'thumbnail' in content:
-                thumb = content['thumbnail']
-                if not isinstance(thumb, StringType):
-                    raise ValueError('azureus_properties content thumbnail is not string')
 
     # Perform check on httpseeds/url-list fields
     if 'url-list' in metainfo:

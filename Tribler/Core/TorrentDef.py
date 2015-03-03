@@ -15,7 +15,6 @@ from Tribler.Core.exceptions import (OperationNotPossibleAtRuntimeException, Tor
 from Tribler.Core.Base import ContentDefinition, Serializable, Copyable
 from Tribler.Core.Utilities.bencode import bencode, bdecode
 import Tribler.Core.APIImplementation.maketorrent as maketorrent
-from Tribler.Core.APIImplementation.miscutils import parse_playtime_to_secs
 
 from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL, parse_magnetlink
 from Tribler.Core.Utilities.unicode import dunno2unicode
@@ -249,20 +248,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
                 self.input['files'].remove(d)
                 break
 
-    def create_live(self, name, bitrate, playtime="1:00:00"):
-        """ Create a live streaming multimedia torrent with a specific bitrate.
-
-        @param name The name of the stream.
-        @param bitrate The desired bitrate in bytes per second.
-        @param playtime The virtual playtime of the stream as a string in
-        [hh:]mm:ss format.
-        """
-        self.input['bps'] = bitrate
-        self.input['playtime'] = playtime  # size of virtual content
-
-        d = {'inpath': name, 'outpath': None, 'playtime': None, 'length': None}
-        self.input['files'].append(d)
-
     #
     # Torrent attributes
     #
@@ -273,31 +258,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
     def get_encoding(self):
         return self.input['encoding']
-
-    def set_thumbnail(self, thumbfilename):
-        """
-        Reads image from file and turns it into a torrent thumbnail
-        The file should contain an image in JPEG format, preferably 171x96.
-
-        @param thumbfilename Absolute name of image file, as Unicode string.
-        """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
-        f = open(thumbfilename, "rb")
-        data = f.read()
-        f.close()
-        self.input['thumb'] = data
-        self.metainfo_valid = False
-
-    def get_thumbnail(self):
-        """ Returns (MIME type,thumbnail data) if present or (None,None)
-        @return A tuple. """
-        if 'thumb' not in self.input or self.input['thumb'] is None:
-            return (None, None)
-        else:
-            thumb = self.input['thumb']  # buffer/string immutable
-            return ('image/jpeg', thumb)
 
     def set_tracker(self, url):
         """ Sets the tracker (i.e. the torrent file's 'announce' field).
@@ -369,9 +329,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         if tracker:
             return (tracker,)
         return ()
-
-    def has_trackers(self):
-        return len(self.get_trackers_as_single_tuple()) > 0
 
     def set_dht_nodes(self, nodes):
         """ Sets the DHT nodes required by the mainline DHT support,
@@ -507,30 +464,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         """ Returns the pieces"""
         return self.metainfo['info']['pieces'][:]
 
-    def get_live(self):
-        """ Returns whether this definition is for a live torrent.
-        @return Boolean. """
-        return bool('live' in self.input and self.input['live'])
-
-    def get_live_authmethod(self):
-        """ Returns the method for authenticating the source.
-        <pre>
-        LIVE_AUTHMETHOD_ECDSA
-        </pre>
-        @return String
-        """
-        return 'live' in self.input and self.input['live']['authmethod']
-
-    def get_live_pubkey(self):
-        """ Returns the public key used for authenticating packets from
-        the source.
-        @return A public key in DER.
-        """
-        if 'live' in self.input and 'pubkey' in self.input['live']:
-            return self.input['live']['pubkey']
-        else:
-            return None
-
     def set_initial_peers(self, value):
         """ Set the initial peers to connect to.
         @param value List of (IP,port) tuples """
@@ -567,21 +500,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         if self.metainfo_valid:
             return
 
-        if 'live' in self.input:
-            # Make sure the duration is an integral number of pieces, for
-            # security (live source auth).
-            secs = parse_playtime_to_secs(self.input['playtime'])
-            pl = float(self.get_piece_length())
-            length = float(self.input['bps'] * secs)
-
-            self._logger.debug("TorrentDef: finalize: length %s, piecelen %s", length, pl)
-            diff = length % pl
-            add = (pl - diff) % pl
-            newlen = int(length + add)
-
-            d = self.input['files'][0]
-            d['length'] = newlen
-
         # Note: reading of all files and calc of hashes is done by calling
         # thread.
         (infohash, metainfo) = maketorrent.make_torrent_file(self.input,
@@ -614,10 +532,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         (Merkle torrents) or hash of the live-source authentication key.
         @return A string of length 20. """
         if self.metainfo_valid:
-            if self.is_merkle_torrent():
-                return self.metainfo['info']['root hash']
-            else:
-                return self.infohash
+            return self.infohash
         else:
             raise TorrentDefNotFinalizedException()
 
@@ -727,18 +642,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         number of bytes the string would take on disk.
         """
         return len(self.encode())
-
-    def get_bitrate(self, file=None):
-        """ Returns the bitrate of the specified file. If no file is specified,
-        we assume this is a single-file torrent.
-
-        @param file (Optional) the file in the torrent to retrieve the bitrate of.
-        @return The bitrate in bytes per second or None.
-        """
-        if not self.metainfo_valid:
-            raise NotYetImplementedException()  # must save first
-
-        return maketorrent.get_bitrate_from_metainfo(file, self.metainfo)
 
     def encode(self):
         if not self.readonly:
@@ -894,15 +797,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
         return 'files' in self.metainfo['info']
 
-    def is_merkle_torrent(self):
-        """ Returns whether this TorrentDef is a Merkle torrent. Use
-        get_create_merkle_torrent() to determine this before finalization.
-        @return Boolean """
-        if self.metainfo_valid:
-            return 'root hash' in self.metainfo['info']
-        else:
-            raise TorrentDefNotFinalizedException()
-
     def is_private(self):
         """ Returns whether this TorrentDef is a private torrent.
         @return Boolean """
@@ -967,9 +861,6 @@ class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
     def get_infohash(self):
         return self.infohash
 
-    def get_live(self):
-        return False
-
     def get_length(self, selectedfiles=None):
         return 0
 
@@ -996,9 +887,6 @@ class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
             _, _, trs = parse_magnetlink(self.url)
             return tuple(trs)
         return ()
-
-    def has_trackers(self):
-        return False
 
     def copy(self):
         return TorrentDefNoMetainfo(self.infohash, self.name)

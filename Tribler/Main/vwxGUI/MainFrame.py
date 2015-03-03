@@ -560,8 +560,6 @@ class MainFrame(wx.Frame):
                 if vodmode and len(videofiles) == 0 and (not tdef or not isinstance(tdef, TorrentDefNoMetainfo)):
                     vodmode = False
 
-                vodmode = vodmode or tdef.get_live()
-
                 if vodmode:
                     self._logger.info('MainFrame: startDownload: Starting in VOD mode')
                     result = self.utility.session.start_download(tdef, dscfg)
