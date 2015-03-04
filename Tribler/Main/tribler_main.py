@@ -503,7 +503,8 @@ class ABCApp(object):
 
             default_kwargs = {'tribler_session': session}
             # must be called on the Dispersy thread
-            dispersy.define_auto_load(SearchCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
+            if session.get_enable_torrent_search():
+                dispersy.define_auto_load(SearchCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
             dispersy.define_auto_load(AllChannelCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
             dispersy.define_auto_load(BarterCommunity, session.dispersy_member, load=True)
 

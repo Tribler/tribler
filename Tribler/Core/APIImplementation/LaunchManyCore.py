@@ -172,8 +172,9 @@ class TriblerLaunchMany(Thread):
                                                 "fffffffd".decode('hex'), block_size=1024)
                 self.tftp_handler.initialize()
 
-            self.torrent_search_manager = TorrentSearchManager(self.session)
-            self.torrent_search_manager.initialize()
+            if self.session.get_enable_torrent_search():
+                self.torrent_search_manager = TorrentSearchManager(self.session)
+                self.torrent_search_manager.initialize()
 
         if not self.initComplete:
             self.init(autoload_discovery)

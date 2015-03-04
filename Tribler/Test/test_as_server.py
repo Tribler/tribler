@@ -173,6 +173,7 @@ class TestAsServer(AbstractServer):
         self.config.set_dispersy(False)
         self.config.set_mainline_dht(False)
         self.config.set_torrent_store(False)
+        self.config.set_enable_torrent_search(False)
         self.config.set_torrent_collecting(False)
         self.config.set_libtorrent(False)
         self.config.set_dht_torrent_collecting(False)
