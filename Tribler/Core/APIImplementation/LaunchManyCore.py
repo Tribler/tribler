@@ -165,7 +165,7 @@ class TriblerLaunchMany(Thread):
 
                 # register TFTP service
                 from Tribler.Core.TFTP.handler import TftpHandler
-                self.tftp_handler = TftpHandler(self.session, self.session.get_torrent_collecting_dir(), endpoint,
+                self.tftp_handler = TftpHandler(self.session, u'', endpoint,
                                                 "fffffffd".decode('hex'), block_size=1024)
                 self.tftp_handler.initialize()
 

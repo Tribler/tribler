@@ -89,8 +89,9 @@ class TorrentStateManager(object):
                 file_name = u"%s.%s" % (thumbnail_hash_str, fmt)
 
                 sub_file_path = os.path.join(hexlify(torrent.infohash), file_name)
-                sub_dir_path = os.path.join(self.session.get_torrent_collecting_dir(), hexlify(torrent.infohash))
-                file_path = os.path.join(self.session.get_torrent_collecting_dir(), sub_file_path)
+                # TODO
+                sub_dir_path = os.path.join(u"", hexlify(torrent.infohash))
+                file_path = os.path.join(u"", sub_file_path)
 
                 if not os.path.exists(sub_dir_path):
                     os.mkdir(sub_dir_path)

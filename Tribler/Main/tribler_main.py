@@ -91,7 +91,7 @@ from Tribler.Core.simpledefs import (UPLOAD, DOWNLOAD, NTFY_MODIFIED, NTFY_INSER
                                      NTFY_MYPREFERENCES, NTFY_TORRENTS, NTFY_COMMENTS, NTFY_PLAYLISTS, NTFY_DELETE,
                                      NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_PEERS, NTFY_MARKINGS, NTFY_FINISHED,
                                      NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, NTFY_MAGNET_STARTED,
-                                     NTFY_MAGNET_CLOSE, STATEDIR_TORRENTCOLL_DIR, dlstatus_strings,
+                                     NTFY_MAGNET_CLOSE, dlstatus_strings,
                                      DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING,
                                      DLSTATUS_STOPPED, NTFY_DISPERSY, NTFY_STARTED)
 from Tribler.Core.Session import Session
@@ -383,19 +383,12 @@ class ABCApp(object):
                     new_dest_dir = dlg.GetPath()
                     defaultDLConfig.set_dest_dir(new_dest_dir)
                     defaultDLConfig.save(dlcfgfilename)
-                    self.sconfig.set_torrent_collecting_dir(os.path.join(new_dest_dir, STATEDIR_TORRENTCOLL_DIR))
                     self.sconfig.save(cfgfilename)
                 else:
                     # Quit
                     self.onError = lambda e: self._logger.error(
                         "tribler: quitting due to non-existing destination directory")
                     raise Exception()
-
-        # Setting torrent collection dir based on default download dir
-        if not self.sconfig.get_torrent_collecting_dir():
-            self.sconfig.set_torrent_collecting_dir(
-                os.path.join(defaultDLConfig.get_dest_dir(),
-                             STATEDIR_TORRENTCOLL_DIR))
 
         if FORCE_ENABLE_TUNNEL_COMMUNITY:
             self.sconfig.set_tunnel_community_enabled(True)
@@ -668,13 +661,8 @@ class ABCApp(object):
                         dlg.Destroy()
 
             # Pass DownloadStates to libaryView
-            no_collected_list = []
+            no_collected_list = [ds for ds in dslist]
             try:
-                coldir = os.path.basename(os.path.abspath(self.utility.session.get_torrent_collecting_dir()))
-                for ds in dslist:
-                    destdir = os.path.basename(ds.get_download().get_dest_dir())
-                    if destdir != coldir:
-                        no_collected_list.append(ds)
                 # Arno, 2012-07-17: Retrieving peerlist for the DownloadStates takes CPU
                 # so only do it when needed for display.
                 wantpeers.extend(self.guiUtility.library_manager.download_state_callback(no_collected_list))
@@ -697,15 +685,12 @@ class ABCApp(object):
                         download = ds.get_download()
                         tdef = download.get_def()
 
-                        coldir = os.path.basename(os.path.abspath(self.utility.session.get_torrent_collecting_dir()))
-                        destdir = os.path.basename(download.get_dest_dir())
-                        if destdir != coldir:
-                            infohash = tdef.get_infohash()
+                        infohash = tdef.get_infohash()
 
-                            notifier = Notifier.getInstance()
-                            notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, infohash, safename)
+                        notifier = Notifier.getInstance()
+                        notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, infohash, safename)
 
-                            doCheckpoint = True
+                        doCheckpoint = True
 
             self.prevActiveDownloads = newActiveDownloads
             if doCheckpoint:
@@ -738,28 +723,11 @@ class ABCApp(object):
         return 1.0, wantpeers
 
     def loadSessionCheckpoint(self):
-        # Niels: first remove all "swift" torrent collect checkpoints
-        dir = self.utility.session.get_downloads_pstate_dir()
-        coldir = os.path.basename(os.path.abspath(self.utility.session.get_torrent_collecting_dir()))
+        pstate_dir = self.utility.session.get_downloads_pstate_dir()
 
-        filelist = os.listdir(dir)
+        filelist = os.listdir(pstate_dir)
         if any([filename.endswith('.pickle') for filename in filelist]):
-            convertDownloadCheckpoints(dir)
-            filelist = os.listdir(dir)
-
-        filelist = [os.path.join(dir, filename) for filename in filelist if filename.endswith('.state')]
-
-        for file in filelist:
-            try:
-                pstate = self.utility.session.lm.load_download_pstate(file)
-
-                saveas = pstate.get('downloadconfig', 'saveas')
-                if saveas:
-                    destdir = os.path.basename(saveas)
-                    if destdir == coldir:
-                        os.remove(file)
-            except:
-                pass
+            convertDownloadCheckpoints(pstate_dir)
 
         from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
         user_download_choice = UserDownloadChoice.get_singleton()

@@ -15,7 +15,7 @@ import wx.lib.masked.textctrl
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.osutils import get_picture_dir
-from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD, STATEDIR_TORRENTCOLL_DIR
+from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
 from Tribler.Core.DownloadConfig import get_default_dscfg_filename
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, data2wxBitmap, ICON_MAX_DIM
@@ -349,14 +349,7 @@ class SettingsDialog(wx.Dialog):
         self.defaultDLConfig.save(dlcfgfilename)
 
         # Save SessionStartupConfig
-        # Also change torrent collecting dir, which is by default in the default destdir
         cfgfilename = Session.get_default_config_filename(state_dir)
-        defaultdestdir = self.defaultDLConfig.get_dest_dir()
-        for target in [scfg, self.utility.session]:
-            try:
-                target.set_torrent_collecting_dir(os.path.join(defaultdestdir, STATEDIR_TORRENTCOLL_DIR))
-            except:
-                self._logger.exception("Could not set target torrent collecting dir")
 
         scfg.save(cfgfilename)
 

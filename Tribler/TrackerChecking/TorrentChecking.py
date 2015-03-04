@@ -1,4 +1,3 @@
-import os
 import binascii
 import time
 import logging
@@ -14,7 +13,6 @@ from traceback import print_exc
 
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.simpledefs import NTFY_TORRENTS
-from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
 
 try:
@@ -29,7 +27,6 @@ from Tribler.TrackerChecking.TrackerSession import TrackerSession
 from Tribler.TrackerChecking.TrackerSession import TRACKER_ACTION_CONNECT
 from Tribler.TrackerChecking.TrackerSession import MAX_TRACKER_MULTI_SCRAPE
 
-from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread, bin2str
 
 
@@ -89,8 +86,6 @@ class TorrentChecking(Thread):
         self._processed_gui_request_queue = Queue.Queue()
 
         self._should_stop = False
-
-        self._tor_col_dir = Session.get_instance().get_torrent_collecting_dir()
 
     @staticmethod
     def getInstance(*args, **kw):

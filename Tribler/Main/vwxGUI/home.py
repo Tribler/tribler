@@ -968,8 +968,9 @@ class ArtworkPanel(wx.Panel):
         torrents = delayedResult.get()
 
         for torrent in torrents:
+            # TODO
             thumb_path = os.path.join(
-                self.utility.session.get_torrent_collecting_dir(),
+                u"",
                 binascii.hexlify(torrent.infohash))
             if os.path.isdir(thumb_path):
                 if not self.guiutility.getFamilyFilter() or not self.IsXXX(torrent, thumb_path):

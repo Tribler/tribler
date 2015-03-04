@@ -52,7 +52,6 @@ class TorrentManager(object):
 
         self.guiUtility = guiUtility
         self.dispersy = None
-        self.col_torrent_dir = None
         self.connected = False
 
         # Contains all matches for keywords in DB, not filtered by category
@@ -197,7 +196,6 @@ class TorrentManager(object):
         if not self.connected:
             self.connected = True
             self.session = session
-            self.col_torrent_dir = self.session.get_torrent_collecting_dir()
 
             self.misc_db = session.open_dbhandler(NTFY_MISC)
             self.metadata_db = session.open_dbhandler(NTFY_METADATA)

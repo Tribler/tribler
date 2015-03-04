@@ -41,7 +41,6 @@ For details see API.py
 
 STATEDIR_DLPSTATE_DIR = 'dlcheckpoints'
 STATEDIR_PEERICON_DIR = 'icons'
-STATEDIR_TORRENTCOLL_DIR = 'collected_torrent_files'
 STATEDIR_TORRENT_STORE_DIR = 'collected_torrents'
 
 STATEDIR_SESSCONFIG = 'libtribler.conf'

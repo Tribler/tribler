@@ -67,7 +67,6 @@ class RemoteTorrentHandler(TaskManager):
         self.session = session
         self.dispersy = dispersy
         self.max_num_torrents = max_num_torrents
-        self.tor_col_dir = self.session.get_torrent_collecting_dir()
 
         self.torrent_db = None
         if self.session.get_megacache():

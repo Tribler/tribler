@@ -1,8 +1,7 @@
 # see LICENSE.txt for license information
 
 import os
-import sys
-from shutil import copyfile, rmtree, copytree
+from shutil import rmtree, copytree
 from time import sleep
 from threading import Event
 
@@ -108,7 +107,7 @@ class TestRemoteTorrentHandler(TestAsServer):
         self._logger.info(u"Start metadata download test...")
 
         def do_check_download(torrent_file=None):
-            des_file_path = os.path.join(self.session2.get_torrent_collecting_dir(), self.metadata_dir)
+            des_file_path = os.path.join(u"", self.metadata_dir)
             self.assertTrue(os.path.exists(des_file_path) and os.path.isdir(des_file_path),
                             u"Failed to download metadata.")
 
@@ -141,8 +140,8 @@ class TestRemoteTorrentHandler(TestAsServer):
 
         # copy file to the uploader's torrent_collecting_dir
         src_dir_path = os.path.join(BASE_DIR, u"data", self.metadata_dir)
-        des_dir_path = os.path.join(self.session.get_torrent_collecting_dir(), self.metadata_dir)
-        self._logger.info(u"Uploader's torrent_collect_dir = %s", self.session.get_torrent_collecting_dir())
+        des_dir_path = os.path.join(u"", self.metadata_dir)
+        self._logger.info(u"Uploader's torrent_collect_dir = %s", u"")
         copytree(src_dir_path, des_dir_path)
 
         from Tribler.Core.Session import Session
@@ -164,6 +163,6 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.session2.start()
         sleep(1)
 
-        self._logger.info(u"Downloader's torrent_collect_dir = %s", self.session2.get_torrent_collecting_dir())
+        self._logger.info(u"Downloader's torrent_collect_dir = %s", u"")
         self._logger.info(u"Uploader port: %s, Downloader port: %s",
                           self.session1_port, self.session2.get_dispersy_port())
