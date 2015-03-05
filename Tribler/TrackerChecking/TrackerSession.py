@@ -7,8 +7,8 @@ import time
 import logging
 
 import socket
+from libtorrent import bdecode
 
-from Tribler.Core.Utilities.bencode import bdecode
 from Tribler.Core import NoDispersyRLock
 
 # Although these are the actions for UDP trackers, they can still be used as
@@ -397,10 +397,8 @@ class HttpTrackerSession(TrackerSession):
 
     def _processScrapeResponse(self):
         # parse the retrived results
-        try:
-            response_dict = bdecode(self._message_buffer)
-        except Exception as e:
-            self._logger.debug('TrackerSession: Failed to decode bcode[%s].' % self._message_buffer)
+        response_dict = bdecode(self._message_buffer)
+        if response_dict is None:
             return False
 
         unprocessed_infohash_list = self._infohash_list[:]

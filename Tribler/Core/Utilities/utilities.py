@@ -9,7 +9,7 @@ from urlparse import urlsplit, parse_qsl
 import binascii
 import logging
 
-from Tribler.Core.Utilities.bencode import bencode, bdecode
+from libtorrent import bencode, bdecode
 
 logger = logging.getLogger(__name__)
 
@@ -256,14 +256,8 @@ def fix_torrent(file_path):
     f.close()
 
     # Check if correct bdata
-    fixed_data = bdata
-    try:
-        bdecode(bdata)
-    except ValueError:
-        # Try reading using sloppy
-        try:
-            fixed_data = bencode(bdecode(bdata, 1))
-        except:
-            fixed_data = None
+    fixed_data = bdecode(bdata)
+    if fixed_data is not None:
+        fixed_data = bencode(fixed_data)
 
     return fixed_data

@@ -7,13 +7,14 @@ import logging
 from hashlib import sha1
 from types import StringType, ListType, IntType, LongType
 from urllib2 import URLError
+from libtorrent import bencode, bdecode
+
 
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Core.defaults import TDEF_DEFAULTS
 from Tribler.Core.exceptions import (OperationNotPossibleAtRuntimeException, TorrentDefNotFinalizedException,
                                      NotYetImplementedException)
 from Tribler.Core.Base import ContentDefinition, Serializable, Copyable
-from Tribler.Core.Utilities.bencode import bencode, bdecode
 import Tribler.Core.APIImplementation.maketorrent as maketorrent
 
 from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL, parse_magnetlink

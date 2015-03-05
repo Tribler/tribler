@@ -10,12 +10,12 @@ from copy import deepcopy
 from shutil import copyfile, move
 from threading import Thread, RLock, Event
 from traceback import print_exc
+from libtorrent import bdecode
 
 import requests
 
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.bencode import bdecode
 
 import feedparser
 
@@ -363,8 +363,9 @@ class URLResourceRetriever(object):
         try:
             filestream = open(filepath, 'rb')
             data = filestream.read()
-            bddata = bdecode(data, 1)
-            return TorrentDef._create(bddata)
+            bddata = bdecode(data)
+            if bddata is not None:
+                return TorrentDef._create(bddata)
         except:
             return None
         finally:
