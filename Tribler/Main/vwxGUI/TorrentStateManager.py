@@ -89,7 +89,7 @@ class TorrentStateManager(object):
                 file_name = u"%s.%s" % (thumbnail_hash_str, fmt)
 
                 sub_file_path = os.path.join(hexlify(torrent.infohash), file_name)
-                # TODO
+                # FIXME(lipu): fix the thumbnail path to use metadata
                 sub_dir_path = os.path.join(u"", hexlify(torrent.infohash))
                 file_path = os.path.join(u"", sub_file_path)
 

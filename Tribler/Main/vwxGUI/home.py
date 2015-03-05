@@ -968,7 +968,7 @@ class ArtworkPanel(wx.Panel):
         torrents = delayedResult.get()
 
         for torrent in torrents:
-            # TODO
+            # FIXME(lipu): fix the thumbnail path to use metadata
             thumb_path = os.path.join(
                 u"",
                 binascii.hexlify(torrent.infohash))

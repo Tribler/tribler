@@ -391,7 +391,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
                 'completed' not in self.original_data.state and 'active' not in self.original_data.state)
 
     def SetThumbnailIcon(self):
-        # TODO
+        # FIXME(lipu): fix the thumbnail path to use metadata
         torcoldir = u""
         rel_thumbdir = binascii.hexlify(self.original_data.infohash)
         abs_thumbdir = os.path.join(torcoldir, rel_thumbdir)
@@ -1044,7 +1044,7 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
 
         bitmap = None
 
-        # TODO
+        # FIXME(lipu): fix the thumbnail path to use metadata
         thumb_dir = os.path.join(
             u"",
             binascii.hexlify(self.original_data.infohash))
@@ -1390,7 +1390,7 @@ class ModificationActivityItem(AvantarItem):
             self.guiutility = GUIUtility.getInstance()
             self.session = self.guiutility.utility.session
 
-            # TODO
+            # FIXME(lipu): fix the thumbnail path to use metadata
             thumb_dir = os.path.join(
                 u"",
                 binascii.hexlify(modification.torrent.infohash))
@@ -1465,7 +1465,7 @@ class ModificationItem(AvantarItem):
             self.guiutility = GUIUtility.getInstance()
             self.session = self.guiutility.utility.session
 
-            # TODO
+            # FIXME(lipu): fix the thumbnail path to use metadata
             thumb_dir = os.path.join(
                 u"",
                 binascii.hexlify(modification.torrent.infohash))
