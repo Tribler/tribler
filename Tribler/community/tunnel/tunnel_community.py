@@ -38,6 +38,8 @@ from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.util import call_on_reactor_thread
 from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
 from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
+from Tribler.Main.Utility.utility import Utility
+from Tribler.Core.SessionConfig import SessionStartupConfig
 
 
 class CircuitRequestCache(NumberCache):
@@ -169,7 +171,7 @@ class TunnelExitSocket(DatagramProtocol):
 
 class TunnelSettings(object):
 
-    def __init__(self, install_dir=None):
+    def __init__(self, install_dir=None, tribler_session=None):
         self.circuit_length = 3
         self.crypto = TunnelCrypto()
         self.socks_listen_ports = range(1080, 1085)
@@ -184,7 +186,16 @@ class TunnelSettings(object):
         self.max_traffic = 55 * 1024 * 1024
 
         self.max_packets_without_reply = 50
-
+        
+        if tribler_session:
+            state_dir = tribler_session.get_state_dir()
+            cfgfilename = tribler_session.get_default_config_filename(state_dir)
+            scfg = SessionStartupConfig.load(cfgfilename)
+            self.become_exitnode = scfg.get_tunnel_community_exitnode_enabled()
+        else:
+            self.become_exitnode = False
+            
+        
 
 class RoundRobin(object):
 
@@ -243,7 +254,7 @@ class TunnelCommunity(Community):
         super(TunnelCommunity, self).initialize()
 
         self.trsession = tribler_session
-        self.settings = settings if settings else TunnelSettings()
+        self.settings = settings if settings else TunnelSettings(tribler_session=tribler_session)
 
         assert isinstance(self.settings.crypto, TunnelCrypto), self.settings.crypto
 
@@ -277,18 +288,18 @@ class TunnelCommunity(Community):
 
     @classmethod
     def get_master_members(cls, dispersy):
-        # generated: Fri Jan 02 19:44:50 2015
-        # curve: NID_sect571r1
-        # 144 bytes signature
-        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000403ab6c5ddea44f806e3fc581ea90cc380d735d2c24ca87b3a68cdf1f95de50010aeff312344eedcae1bb96038db160be4b31a20289023251a2ad88b1f18bde0f14049843f3a35df5017630a445e63bb5005621c04c9b7ba8ca8ccebe567b355b6b21d846199bd8dcc9e7048dc59bf3f1ab70372f19e85d3c2133f56579fa5108840f52ff4ea3e41906623c1d6e8e2eaf
-        # pub-sha1 28bad8f1722de818700228c471ab0d7786736c05
-        # -----BEGIN PUBLIC KEY-----
-        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQDq2xd3qRPgG4/xYHqkMw4DXNdLCTK
-        # h7OmjN8fld5QAQrv8xI0Tu3K4buWA42xYL5LMaICiQIyUaKtiLHxi94PFASYQ/Oj
-        # XfUBdjCkReY7tQBWIcBMm3uoyozOvlZ7NVtrIdhGGZvY3MnnBI3Fm/Pxq3A3Lxno
-        # XTwhM/VlefpRCIQPUv9Oo+QZBmI8HW6OLq8=
-        # -----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403ab6c5ddea44f806e3fc581ea90cc380d735d2c24ca87b3a68cdf1f95de50010aeff312344eedcae1bb96038db160be4b31a20289023251a2ad88b1f18bde0f14049843f3a35df5017630a445e63bb5005621c04c9b7ba8ca8ccebe567b355b6b21d846199bd8dcc9e7048dc59bf3f1ab70372f19e85d3c2133f56579fa5108840f52ff4ea3e41906623c1d6e8e2eaf".decode(
+        #generated: Mon Mar  9 16:21:28 2015
+        #curve: None
+        #len: 571 bits ~ 144 bytes signature
+        #pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000404dc19d38890e0de983aed312d0b0c8a27732d7499a3e0c5d7bebfb8451270215d788ca671040935b4b4fc7faa48fd021226f5580995d63d0e9c82b0586850f93768debf550f4459054e6fb91318d8a0346c4059a4e84c95e4b7769cadc296d567ad353752a630d20f077a9f068998136338f2f0663d327d8934110565fb41040ac2d94c4fb78308118206a3930b68a8
+        #pub-sha1 3df2df7afa551c6d876a94b44c4b37d417b7c4e8
+        #-----BEGIN PUBLIC KEY-----
+        #MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQE3BnTiJDg3pg67TEtCwyKJ3MtdJmj
+        #4MXXvr+4RRJwIV14jKZxBAk1tLT8f6pI/QISJvVYCZXWPQ6cgrBYaFD5N2jev1UP
+        #RFkFTm+5ExjYoDRsQFmk6EyV5Ld2nK3CltVnrTU3UqYw0g8Hep8GiZgTYzjy8GY9
+        #Mn2JNBEFZftBBArC2UxPt4MIEYIGo5MLaKg=
+        #-----END PUBLIC KEY-----
+        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000404dc19d38890e0de983aed312d0b0c8a27732d7499a3e0c5d7bebfb8451270215d788ca671040935b4b4fc7faa48fd021226f5580995d63d0e9c82b0586850f93768debf550f4459054e6fb91318d8a0346c4059a4e84c95e4b7769cadc296d567ad353752a630d20f077a9f068998136338f2f0663d327d8934110565fb41040ac2d94c4fb78308118206a3930b68a8".decode(
             "HEX")
         master = dispersy.get_member(public_key=master_key)
         return [master]
@@ -440,10 +451,13 @@ class TunnelCommunity(Community):
         self.circuits[circuit_id] = circuit
         self.waiting_for.add(circuit_id)
 
+        # FIXME
+        becomes_exit = False
         self.increase_bytes_sent(circuit, self.send_cell([first_hop], u"create", (circuit_id,
                                                                                   circuit.unverified_hop.node_id,
                                                                                   circuit.unverified_hop.node_public_key,
-                                                                                  circuit.unverified_hop.dh_first_part)))
+                                                                                  circuit.unverified_hop.dh_first_part,
+                                                                                  becomes_exit)))
 
         _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_BYTES_SENT, circuit.mid)
         return True
@@ -643,6 +657,10 @@ class TunnelCommunity(Community):
             if self.crypto.key.pub().key_to_bin() != message.payload.node_public_key:
                 yield DropMessage(message, "TunnelCommunity: public keys do not match")
                 continue
+            
+            if not self.settings.become_exitnode and message.payload.become_exit:
+                yield DropMessage(message, "Exit-node functionality disabled")
+                continue
 
             yield message
 
@@ -699,7 +717,8 @@ class TunnelCommunity(Community):
 
         if circuit.state == CIRCUIT_STATE_EXTENDING:
 
-            if circuit.goal_hops - 1 == len(circuit.hops) and circuit.required_exit:
+            next_is_exit = circuit.goal_hops - 1 == len(circuit.hops)
+            if next_is_exit and circuit.required_exit:
                 host, port, pub_key = circuit.required_exit
                 extend_hop_public_bin = pub_key
                 extend_hop_addr = (host, port)
@@ -738,7 +757,8 @@ class TunnelCommunity(Community):
                                                                                                circuit.unverified_hop.node_id,
                                                                                                circuit.unverified_hop.node_public_key,
                                                                                                extend_hop_addr,
-                                                                                               circuit.unverified_hop.dh_first_part)))
+                                                                                               circuit.unverified_hop.dh_first_part,
+                                                                                               next_is_exit)))
 
             else:
                 self.remove_circuit(circuit.circuit_id, "no candidates to extend, bailing out.")
@@ -896,7 +916,8 @@ class TunnelCommunity(Community):
             self.increase_bytes_sent(new_circuit_id, self.send_cell([extend_candidate], u"create", (new_circuit_id,
                                                                                                     message.payload.node_id,
                                                                                                     message.payload.node_public_key,
-                                                                                                    message.payload.key)))
+                                                                                                    message.payload.key,
+                                                                                                    message.payload.become_exit)))
 
     def on_extended(self, messages):
         for message in messages:
@@ -1031,7 +1052,9 @@ class TunnelCommunity(Community):
         self.send_data([Candidate(sock_addr, False)], u'data', packet)
 
     def exit_data(self, circuit_id, sock_addr, destination, data):
-        if circuit_id in self.exit_sockets:
+        if not self.settings.become_exitnode:
+            self._logger.error("Dropping data packets, I don't want to be an exit node")
+        elif circuit_id in self.exit_sockets:
             if not self.exit_sockets[circuit_id].enabled:
                 # We got the correct circuit_id, but from a wrong IP.
                 assert sock_addr == self.exit_sockets[circuit_id].sock_addr, "%s != %s" % (

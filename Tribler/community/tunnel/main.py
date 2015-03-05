@@ -319,6 +319,7 @@ def main(argv):
 
     try:
         parser.add_argument('-p', '--socks5', help='Socks5 port')
+        parser.add_argument('-x', '--exit', help='Allow being an exit-node')
         parser.add_argument('-d', '--dispersy', help='Dispersy port')
         parser.add_argument('-c', '--crawl', help='Enable crawler and use the keypair specified in the given filename')
         parser.add_argument('-j', '--json', help='Enable JSON api, which will run on the provided port number ' +
@@ -350,6 +351,13 @@ def main(argv):
         settings.socks_listen_ports = range(socks5_port, socks5_port + 5)
     else:
         settings.socks_listen_ports = [random.randint(1000, 65535) for _ in range(5)]
+    
+    settings.become_exitnode = True if args.exit in ['true'] else False
+    if settings.become_exitnode:
+        print "Exit-node enabled"
+    else:
+        print "Exit-node disabled"
+        
     settings.do_test = False
     tunnel = Tunnel(settings, crawl_keypair_filename, dispersy_port)
     StandardIO(LineHandler(tunnel, profile))

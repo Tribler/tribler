@@ -32,17 +32,19 @@ class CreatePayload(Payload):
 
     class Implementation(Payload.Implementation):
 
-        def __init__(self, meta, circuit_id, node_id, node_public_key, key):
+        def __init__(self, meta, circuit_id, node_id, node_public_key, key, become_exit):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(node_id, basestring), type(node_id)
             assert isinstance(node_public_key, basestring), type(node_public_key)
             assert isinstance(key, basestring), type(key)
+            assert isinstance(become_exit, bool), type(become_exit)
 
             super(CreatePayload.Implementation, self).__init__(meta)
             self._circuit_id = circuit_id
             self._node_id = node_id
             self._node_public_key = node_public_key
             self._key = key
+            self._become_exit = become_exit
 
         @property
         def circuit_id(self):
@@ -59,6 +61,10 @@ class CreatePayload(Payload):
         @property
         def key(self):
             return self._key
+
+        @property
+        def become_exit(self):
+            return self._become_exit
 
 
 class CreatedPayload(Payload):
@@ -98,12 +104,13 @@ class ExtendPayload(Payload):
 
     class Implementation(Payload.Implementation):
 
-        def __init__(self, meta, circuit_id, node_id, node_public_key, node_addr, key):
+        def __init__(self, meta, circuit_id, node_id, node_public_key, node_addr, key, become_exit):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(node_id, basestring), type(node_id)
             assert isinstance(node_public_key, basestring), type(node_public_key)
             assert node_addr == None or isinstance(node_addr, tuple), type(node_addr)
             assert isinstance(key, basestring), type(key)
+            assert isinstance(become_exit, bool), type(become_exit)
 
             super(ExtendPayload.Implementation, self).__init__(meta)
             self._circuit_id = circuit_id
@@ -111,6 +118,7 @@ class ExtendPayload(Payload):
             self._node_public_key = node_public_key
             self._node_addr = node_addr
             self._key = key
+            self._become_exit = become_exit
 
         @property
         def circuit_id(self):
@@ -131,6 +139,10 @@ class ExtendPayload(Payload):
         @property
         def key(self):
             return self._key
+
+        @property
+        def become_exit(self):
+            return self._become_exit
 
 
 class ExtendedPayload(Payload):
