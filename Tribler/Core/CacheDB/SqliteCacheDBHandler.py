@@ -8,7 +8,6 @@ import logging
 import os
 import threading
 from copy import deepcopy
-from random import sample
 from struct import unpack_from
 from threading import Lock
 from time import time
@@ -1078,31 +1077,8 @@ class TorrentDBHandler(BasicDBHandler):
         # sql_insert =  "insert into Torrent (torrent_id, infohash, relevance) values (?,?,?)"
         # self._db.executemany(sql_insert, torrent_id_infohashes)
 
-        torrent_dir = self.session.get_torrent_collecting_dir()
         deleted = 0  # deleted any file?
         insert_files = []
-        for torrent_file_name, torrent_id, relevance, weight in res_list:
-            torrent_path = os.path.join(torrent_dir, torrent_file_name)
-
-            if os.path.exists(torrent_path):
-                try:
-                    tdef = TorrentDef.load(torrent_path)
-                    files = [(torrent_id, unicode(path), length)
-                             for path, length in tdef.get_files_as_unicode_with_length()]
-                    files = sample(files, 25)
-                    insert_files.extend(files)
-                except:
-                    pass
-            try:
-                if os.path.exists(torrent_path):
-                    os.remove(torrent_path)
-
-                deleted += 1
-            except WindowsError:
-                pass
-            except Exception:
-                print_exc()
-                pass
 
         if len(insert_files) > 0:
             sql_insert_files = "INSERT OR IGNORE INTO TorrentFiles (torrent_id, path, length) VALUES (?,?,?)"

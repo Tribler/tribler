@@ -551,7 +551,8 @@ class TorrentDetails(AbstractDetails):
         self.channel.Show(show_channel)
 
         # Toggle thumbnails
-        thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(),
+        # FIXME(lipu): fix the thumbnail path to use metadata
+        thumb_dir = os.path.join(u"",
                                  binascii.hexlify(self.torrent.infohash))
         thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir)
                        for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
@@ -1655,7 +1656,8 @@ class PlaylistDetails(AbstractDetails):
                     self.playlist_torrents = delayedResult.get()
                     bmps = []
                     for torrent in self.playlist_torrents:
-                        thumb_dir = os.path.join(self.guiutility.utility.session.get_torrent_collecting_dir(),
+                        # FIXME(lipu): fix the thumbnail path to use metadata
+                        thumb_dir = os.path.join(u"",
                                                  binascii.hexlify(torrent.infohash))
                         thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir)
                                        for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]

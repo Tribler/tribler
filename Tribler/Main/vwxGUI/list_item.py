@@ -391,7 +391,8 @@ class TorrentListItem(DoubleLineListItemWithButtons):
                 'completed' not in self.original_data.state and 'active' not in self.original_data.state)
 
     def SetThumbnailIcon(self):
-        torcoldir = self.guiutility.utility.session.get_torrent_collecting_dir()
+        # FIXME(lipu): fix the thumbnail path to use metadata
+        torcoldir = u""
         rel_thumbdir = binascii.hexlify(self.original_data.infohash)
         abs_thumbdir = os.path.join(torcoldir, rel_thumbdir)
         has_thumbnails = os.path.exists(abs_thumbdir) and os.listdir(abs_thumbdir)
@@ -1043,8 +1044,9 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
 
         bitmap = None
 
+        # FIXME(lipu): fix the thumbnail path to use metadata
         thumb_dir = os.path.join(
-            self.guiutility.utility.session.get_torrent_collecting_dir(),
+            u"",
             binascii.hexlify(self.original_data.infohash))
         thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir)
                        for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
@@ -1388,8 +1390,9 @@ class ModificationActivityItem(AvantarItem):
             self.guiutility = GUIUtility.getInstance()
             self.session = self.guiutility.utility.session
 
+            # FIXME(lipu): fix the thumbnail path to use metadata
             thumb_dir = os.path.join(
-                self.session.get_torrent_collecting_dir(),
+                u"",
                 binascii.hexlify(modification.torrent.infohash))
             self.body = []
             if os.path.exists(thumb_dir):
@@ -1462,8 +1465,9 @@ class ModificationItem(AvantarItem):
             self.guiutility = GUIUtility.getInstance()
             self.session = self.guiutility.utility.session
 
+            # FIXME(lipu): fix the thumbnail path to use metadata
             thumb_dir = os.path.join(
-                self.session.get_torrent_collecting_dir(),
+                u"",
                 binascii.hexlify(modification.torrent.infohash))
             self.body = []
             if os.path.exists(thumb_dir):

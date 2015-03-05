@@ -46,17 +46,6 @@ class TftpHandler(TaskManager):
 
         self.session = session
         self.root_dir = root_dir
-        # check the root directory if it is valid
-        if not os.path.exists(root_dir):
-            try:
-                os.makedirs(self.root_dir)
-            except OSError as ex:
-                self._logger.critical(u"Could not create root_dir %s: %s", root_dir, ex)
-                raise ex
-        if os.path.exists(root_dir) and not os.path.isdir(root_dir):
-            msg = u"root_dir is not a directory: %s" % root_dir
-            self._logger.critical(msg)
-            raise Exception(msg)
 
         self._endpoint = endpoint
         self._prefix = prefix

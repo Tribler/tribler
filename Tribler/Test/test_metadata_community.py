@@ -2,7 +2,6 @@
 # see LICENSE.txt for license information
 
 import os
-import sys
 import json
 import time
 from unittest.case import skip
@@ -47,8 +46,8 @@ class TestMetadataCommunity(TestGuiAsServer):
                 5, do_overview), 'No valid channel modifications received')
 
         def do_thumbnails(torrentfilename):
-            thumb_dir = os.path.join(
-                self.session.get_torrent_collecting_dir(), '8bb88a02da691636a7ed929b87d467f24700e490')
+            # FIXME(lipu): fix the thumbnail path to use metadata
+            thumb_dir = os.path.join(u"", '8bb88a02da691636a7ed929b87d467f24700e490')
             self.CallConditional(120, lambda: os.path.isdir(thumb_dir) and len(
                 os.listdir(thumb_dir)) > 0, lambda: do_modifications(torrentfilename), 'No thumbnails were created')
 

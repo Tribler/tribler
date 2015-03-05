@@ -83,12 +83,6 @@ class Session(SessionConfigInterface):
 
         state_dir = scfg.get_state_dir()
         set_and_create_dir(state_dir, scfg.set_state_dir, state_dir)
-        # Note that we are setting it to STATEDIR_TORRENT_STORE_DIR instead of
-        # STATEDIR_TORRENTCOLL_DIR as that dir is unused and only kept for
-        # the upgrade process.
-        set_and_create_dir(scfg.get_torrent_collecting_dir(),
-                           scfg.set_torrent_collecting_dir,
-                           os.path.join(scfg.get_state_dir(), STATEDIR_TORRENT_STORE_DIR))
 
         set_and_create_dir(scfg.get_torrent_store_dir(),
                            scfg.set_torrent_store_dir,
