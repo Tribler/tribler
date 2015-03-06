@@ -21,14 +21,6 @@ CREATE TABLE MetadataData (
 
 ----------------------------------------
 
-CREATE TABLE Category (
-  category_id    integer PRIMARY KEY NOT NULL,
-  name           text NOT NULL,
-  description    text
-);
-
-----------------------------------------
-
 CREATE TABLE MyInfo (
   entry  PRIMARY KEY,
   value  text
@@ -67,8 +59,8 @@ CREATE TABLE Torrent (
   insert_time      numeric,
   secret           integer,
   relevance        numeric DEFAULT 0,
-  category_id      integer,
-  status_id        integer DEFAULT 0,
+  category         text,
+  status           text DEFAULT 'unknown',
   num_seeders      integer,
   num_leechers     integer,
   comment          text,
@@ -82,14 +74,6 @@ CREATE TABLE Torrent (
 CREATE UNIQUE INDEX infohash_idx
   ON Torrent
   (infohash);
-
-----------------------------------------
-
-CREATE TABLE TorrentStatus (
-  status_id    integer PRIMARY KEY NOT NULL,
-  name         text NOT NULL,
-  description  text
-);
 
 ----------------------------------------
 
@@ -318,20 +302,7 @@ COMMIT TRANSACTION create_table;
 
 BEGIN TRANSACTION init_values;
 
-INSERT INTO Category VALUES (1, 'Video', 'Video Files');
-INSERT INTO Category VALUES (2, 'VideoClips', 'Video Clips');
-INSERT INTO Category VALUES (3, 'Audio', 'Audio');
-INSERT INTO Category VALUES (4, 'Compressed', 'Compressed');
-INSERT INTO Category VALUES (5, 'Document', 'Documents');
-INSERT INTO Category VALUES (6, 'Picture', 'Pictures');
-INSERT INTO Category VALUES (7, 'xxx', 'XXX');
-INSERT INTO Category VALUES (8, 'other', 'Other');
-
-INSERT INTO TorrentStatus VALUES (0, 'unknown', NULL);
-INSERT INTO TorrentStatus VALUES (1, 'good', NULL);
-INSERT INTO TorrentStatus VALUES (2, 'dead', NULL);
-
-INSERT INTO MyInfo VALUES ('version', 26);
+INSERT INTO MyInfo VALUES ('version', 27);
 
 INSERT INTO MetaDataTypes ('name') VALUES ('name');
 INSERT INTO MetaDataTypes ('name') VALUES ('description');

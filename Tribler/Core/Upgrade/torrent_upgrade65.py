@@ -51,7 +51,7 @@ class TorrentMigrator65(TorrentMigrator64):
         """
         Migrates the torrent collecting directory.
         """
-        if not os.path.isdir(self.torrent_collecting_dir):
+        if self.torrent_collecting_dir is None or not os.path.isdir(self.torrent_collecting_dir):
             self._logger.warn(u"torrent collecting directory not found, skip: %s", self.torrent_collecting_dir)
             return
 

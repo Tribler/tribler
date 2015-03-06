@@ -81,7 +81,6 @@ class TriblerLaunchMany(Thread):
         self.tftp_handler = None
 
         self.cat = None
-        self.misc_db = None
         self.metadata_db = None
         self.peer_db = None
         self.torrent_db = None
@@ -124,7 +123,7 @@ class TriblerLaunchMany(Thread):
 
             # TODO(emilon): move this to a megacache component or smth
             if self.session.get_megacache():
-                from Tribler.Core.CacheDB.SqliteCacheDBHandler import (MiscDBHandler, PeerDBHandler, TorrentDBHandler,
+                from Tribler.Core.CacheDB.SqliteCacheDBHandler import (PeerDBHandler, TorrentDBHandler,
                                                                        MyPreferenceDBHandler, VoteCastDBHandler,
                                                                        ChannelCastDBHandler, MetadataDBHandler)
                 from Tribler.Category.Category import Category
@@ -134,7 +133,6 @@ class TriblerLaunchMany(Thread):
                 self.cat = Category.getInstance(self.session.get_install_dir())
 
                 # create DBHandlers
-                self.misc_db = MiscDBHandler(self.session)
                 self.metadata_db = MetadataDBHandler(self.session)
                 self.peer_db = PeerDBHandler(self.session)
                 self.torrent_db = TorrentDBHandler(self.session)
@@ -143,7 +141,6 @@ class TriblerLaunchMany(Thread):
                 self.channelcast_db = ChannelCastDBHandler(self.session)
 
                 # initializes DBHandlers
-                self.misc_db.initialize()
                 self.metadata_db.initialize()
                 self.peer_db.initialize()
                 self.torrent_db.initialize()
@@ -680,7 +677,6 @@ class TriblerLaunchMany(Thread):
             self.torrent_db.close()
             self.peer_db.close()
             self.metadata_db.close()
-            self.misc_db.close()
 
             self.channelcast_db = None
             self.votecast_db = None
@@ -688,7 +684,6 @@ class TriblerLaunchMany(Thread):
             self.torrent_db = None
             self.peer_db = None
             self.metadata_db = None
-            self.misc_db = None
 
         if self.mainline_dht:
             from Tribler.Core.DecentralizedTracking import mainlineDHT

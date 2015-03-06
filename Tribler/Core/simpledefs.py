@@ -48,7 +48,6 @@ STATEDIR_SESSCONFIG = 'libtribler.conf'
 # For observer/callback mechanism, see Session.add_observer()
 
 # subjects
-NTFY_MISC = 'misc'
 NTFY_METADATA = 'metadata'
 NTFY_PEERS = 'peers'
 NTFY_TORRENTS = 'torrents'

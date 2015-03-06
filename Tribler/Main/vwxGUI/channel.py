@@ -14,8 +14,6 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.widgets import _set_font, NotebookPanel, SimpleNotebook, EditText, BetterText
 
 from Tribler.Category.Category import Category
-
-from Tribler.Core.simpledefs import NTFY_MISC
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 
@@ -258,13 +256,11 @@ class SelectedChannelList(GenericSearchList):
         columns = self.guiutility.SetColumnInfo(PlaylistItem, columns)
         ColumnsManager.getInstance().setColumns(PlaylistItem, columns)
 
-        misc_db = self.session.open_dbhandler(NTFY_MISC)
         self.category_names = {}
         for key, name in Category.getInstance().getCategoryNames(filter=False):
-            if key in misc_db._category_name2id_dict:
-                self.category_names[misc_db._category_name2id_dict[key]] = name
-        self.category_names[8] = 'Other'
-        self.category_names[None] = self.category_names[0] = 'Unknown'
+            self.category_names[key] = name
+        self.category_names['other'] = 'Other'
+        self.category_names[None] = 'Unknown'
 
         GenericSearchList.__init__(self, None, wx.WHITE, [0, 0], True, borders=False, showChange=True, parent=parent)
 
@@ -443,15 +439,15 @@ class SelectedChannelList(GenericSearchList):
 
             shouldDrag = len(playlists) > 0 and (self.channel.iamModerator or self.channel.isOpen())
             if shouldDrag:
-                data += [(torrent.infohash, [torrent.name, torrent.length, self.category_names[torrent.category_id],
+                data += [(torrent.infohash, [torrent.name, torrent.length, self.category_names[torrent.category],
                                              torrent.num_seeders, torrent.num_leechers, 0, None],
                           torrent, DragItem) for torrent in torrents]
             elif self.display_grid:
-                data += [(torrent.infohash, [torrent.name, torrent.length, self.category_names[torrent.category_id],
+                data += [(torrent.infohash, [torrent.name, torrent.length, self.category_names[torrent.category],
                                              torrent.num_seeders, torrent.num_leechers, 0, None],
                           torrent, ThumbnailListItem) for torrent in torrents]
             else:
-                data += [(torrent.infohash, [torrent.name, torrent.length, self.category_names[torrent.category_id],
+                data += [(torrent.infohash, [torrent.name, torrent.length, self.category_names[torrent.category],
                                              torrent.num_seeders, torrent.num_leechers, 0, None],
                           torrent, TorrentListItem) for torrent in torrents]
             self.list.SetData(data)
@@ -490,10 +486,10 @@ class SelectedChannelList(GenericSearchList):
         if data:
             if isinstance(data, Torrent):
                 if self.state == ChannelCommunity.CHANNEL_OPEN or self.iamModerator:
-                    data = (data.infohash, [data.name, data.length, self.category_names[data.category_id],
+                    data = (data.infohash, [data.name, data.length, self.category_names[data.category],
                                             data.num_seeders, data.num_leechers, 0, None], data, DragItem)
                 else:
-                    data = (data.infohash, [data.name, data.length, self.category_names[data.category_id],
+                    data = (data.infohash, [data.name, data.length, self.category_names[data.category],
                                             data.num_seeders, data.num_leechers, 0, None], data)
             else:
                 data = (data.id, [data.name, data.nr_torrents], data, PlaylistItem)

@@ -146,7 +146,7 @@ class SearchConversion(BinaryConversion):
             if len(result) < 9:
                 raise DropPacket("Invalid result length")
 
-            infohash, swarmname, length, nrfiles, categorykeys, creation_date, seeders, leechers, cid = result[:9]
+            infohash, swarmname, length, nrfiles, category, creation_date, seeders, leechers, cid = result[:9]
 
             if not isinstance(infohash, str):
                 raise DropPacket("Invalid infohash type")
@@ -162,11 +162,8 @@ class SearchConversion(BinaryConversion):
             if not isinstance(nrfiles, int):
                 raise DropPacket("Invalid nrfiles type")
 
-            if not isinstance(categorykeys, list):
-                raise DropPacket("Invalid categorykeys type")
-
-            if not all(isinstance(key, unicode) for key in categorykeys):
-                raise DropPacket("Invalid categorykey type")
+            if not isinstance(category, unicode):
+                raise DropPacket("Invalid category type")
 
             if not isinstance(creation_date, long):
                 raise DropPacket("Invalid creation_date type")
