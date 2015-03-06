@@ -4,8 +4,8 @@ import shutil
 
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION
-from Tribler.Core.Upgrade.db_upgrader import DBUpgrader
+from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION, LOWEST_SUPPORTED_DB_VERSION
+from Tribler.Core.Upgrade.db_upgrader import DBUpgrader, VersionNoLongerSupportedError
 from Tribler.Core.Upgrade.torrent_upgrade65 import TorrentMigrator65
 from Tribler.Core.torrentstore import TorrentStore
 from Tribler.dispersy.util import call_on_reactor_thread
@@ -42,6 +42,10 @@ class TriblerUpgrader(object):
             msg = u"The on-disk tribler database is newer than your tribler version. Your database will be backed up."
             self.current_status = msg
             self._logger.info(msg)
+            self.failed = True
+        elif self.db.version < LOWEST_SUPPORTED_DB_VERSION:
+            msg = u"Database is too old %s < %s" % (self.db.version, LOWEST_SUPPORTED_DB_VERSION)
+            self.current_status = msg
             self.failed = True
         elif self.db.version == LATEST_DB_VERSION:
             self._logger.info(u"tribler is in the latest version, no need to upgrade")
