@@ -1,7 +1,6 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Lucan Musat, Arno Bakker
 # see LICENSE.txt for license information
 import logging
-import os
 import threading
 from math import sqrt
 from time import time
@@ -12,13 +11,12 @@ import wx
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread
 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
-from Tribler.Core.Search.SearchManager import split_into_keywords
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.simpledefs import (NTFY_MISC, NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST,
                                      NTFY_METADATA, DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK,
-                                     SIGNAL_ALLCHANNEL, SIGNAL_SEARCH_COMMUNITY, SIGNAL_ONSEARCHRESULTS)
+                                     SIGNAL_ALLCHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT)
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import (Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent,
                                               NotCollectedTorrent, LibraryTorrent, Comment, Modification, Channel,
@@ -35,7 +33,6 @@ from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import (ChannelCommunity, warnDispersyThread)
 from Tribler.community.metadata.community import MetadataCommunity
-from Tribler.community.search.community import SearchCommunity
 from Tribler.dispersy.exception import CommunityNotFoundException
 from Tribler.dispersy.util import call_on_reactor_thread
 
@@ -210,7 +207,7 @@ class TorrentManager(object):
             self.dispersy = session.lm.dispersy
             self.xxx_category = self.misc_db.categoryName2Id([u'xxx'])
 
-            self.session.add_observer(self.gotDispersyRemoteHits, SIGNAL_SEARCH_COMMUNITY, [SIGNAL_ONSEARCHRESULTS])
+            self.session.add_observer(self.gotDispersyRemoteHits, SIGNAL_TORRENT, [SIGNAL_ON_SEARCH_RESULTS])
         else:
             raise RuntimeError('TorrentManager already connected')
 
@@ -219,22 +216,7 @@ class TorrentManager(object):
 
     @warnDispersyThread
     def searchDispersy(self):
-        nr_requests_made = 0
-        if self.dispersy:
-            for community in self.dispersy.get_communities():
-                if isinstance(community, SearchCommunity):
-                    nr_requests_made = community.create_search(self.searchkeywords)
-                    if not nr_requests_made:
-                        self._logger.info("Could not send search in SearchCommunity, no verified candidates found")
-                    break
-
-            else:
-                self._logger.info("Could not send search in SearchCommunity, community not found")
-
-        else:
-            self._logger.info("Could not send search in SearchCommunity, Dispersy not found")
-
-        return nr_requests_made
+        return self.session.search_remote_torrents(self.searchkeywords)
 
     def getHitsInCategory(self, categorykey='all', sort='fulltextmetric'):
         begintime = time()
@@ -488,61 +470,56 @@ class TorrentManager(object):
 
     def gotDispersyRemoteHits(self, subject, changetype, objectID, search_results):
         refreshGrid = False
+
         try:
             keywords = search_results['keywords']
-            results = search_results['results']
-            candidate = search_results['candidate']
-            self._logger.debug(
-                "TorrentSearchGridManager: gotRemoteHist: got %s unfiltered results for %s %s %s",
-                len(results),
-                keywords,
-                candidate,
-                time())
+            result_list = search_results['result_list']
+
+            self._logger.debug("Got results: %s, keywords: %s", len(result_list), keywords)
 
             if self.searchkeywords == keywords:
-                self.gotRemoteHits = True
+                # get all channel information
+                channel_cache_dict = {}
+                channel_cid_list = []
+                for result in result_list:
+                    if result['channel'] is not None:
+                        channel_cid_list.append(result['channel']['dispersy_cid'])
 
-                channeldict = {}
-                channels = set([result[-1] for result in results if result[-1]])
-                if len(channels) > 0:
-                    _, channels = self.channel_manager.getChannelsByCID(channels)
-
+                if len(channel_cid_list) > 0:
+                    _, channels = self.channel_manager.getChannelsByCID(channel_cid_list)
                     for channel in channels:
-                        channeldict[channel.dispersy_cid] = channel
+                        channel_cache_dict[channel.dispersy_cid] = channel
 
-                for result in results:
-                    categories = result[4]
-                    category_id = self.misc_db.categoryName2Id(categories)
+                # create Torrent Tuples from the results
+                for result in result_list:
+                    channel_tuple = None
+                    if result['channel'] is not None:
+                        channel_tuple = channel_cache_dict.get(result['channel']['dispersy_cid'])
 
-                    channel = channeldict.get(result[-1], False)
-                    if channel:
-                        remoteHit = RemoteChannelTorrent(-1, result[0], result[1], category_id,
-                                                         self.misc_db.torrentStatusName2Id(u'good'),
-                                                         result[6], result[7], channel=channel,
-                                                         query_candidates={candidate})
+                    if channel_tuple is not None:
+                        remoteHit = RemoteChannelTorrent(result['torrent_id'],
+                                                         result['infohash'],
+                                                         result['name'],
+                                                         result['length'],
+                                                         result['category_id'],
+                                                         result['status_id'],
+                                                         result['num_seeders'],
+                                                         result['num_leechers'],
+                                                         channel_tuple,
+                                                         result['query_candidates'])
                     else:
-                        remoteHit = RemoteTorrent(-1, result[0], result[1], category_id,
-                                                  self.misc_db.torrentStatusName2Id(u'good'), result[6], result[7],
-                                                  query_candidates={candidate})
+                        remoteHit = RemoteTorrent(result['torrent_id'],
+                                                  result['infohash'],
+                                                  result['name'],
+                                                  result['length'],
+                                                  result['category_id'],
+                                                  result['status_id'],
+                                                  result['num_seeders'],
+                                                  result['num_leechers'],
+                                                  result['query_candidates'])
 
-                    # Guess matches
-                    keywordset = set(keywords)
-                    swarmnameset = set(split_into_keywords(remoteHit.name))
-                    matches = {'fileextensions': set()}
-                    matches['swarmname'] = swarmnameset & keywordset  # all keywords matching in swarmname
-                    matches['filenames'] = keywordset - matches['swarmname']
-                        # remaining keywords should thus me matching in filenames or fileextensions
+                    remoteHit.relevance_score = result['relevance_score']
 
-                    if len(matches['filenames']) == 0:
-                        _, ext = os.path.splitext(result[0])
-                        ext = ext[1:]
-
-                        matches['filenames'] = matches['swarmname']
-                        matches['filenames'].discard(ext)
-
-                        if ext in keywordset:
-                            matches['fileextensions'].add(ext)
-                    remoteHit.assignRelevance(matches)
                     remoteHit.misc_db = self.misc_db
                     remoteHit.torrent_db = self.torrent_db
                     remoteHit.channelcast_db = self.channelcast_db
@@ -550,6 +527,8 @@ class TorrentManager(object):
                     with self.remoteLock:
                         self.remoteHits.append(remoteHit)
                     refreshGrid = True
+
+                self.gotRemoteHits = True
         finally:
             if self.gridmgr:
                 self.gridmgr.NewResult(keywords)
@@ -1125,7 +1104,7 @@ class ChannelManager(object):
 
             self.dispersy = session.lm.dispersy
 
-            self.session.add_observer(self.gotDispersyRemoteHits, SIGNAL_ALLCHANNEL, [SIGNAL_ONSEARCHRESULTS])
+            self.session.add_observer(self.gotDispersyRemoteHits, SIGNAL_ALLCHANNEL, [SIGNAL_ON_SEARCH_RESULTS])
         else:
             raise RuntimeError('ChannelManager already connected')
 

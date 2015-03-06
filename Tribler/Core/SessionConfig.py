@@ -601,6 +601,18 @@ class SessionConfigInterface(object):
         """
         self.sessconfig.set(u'video', u'preferredmode', mode)
 
+    def get_enable_torrent_search(self):
+        """ Gets if to enable torrent search (SearchCommunity and TorrentSearchManager).
+        :return: True or False.
+        """
+        return self.sessconfig.get(u'search_community', u'enabled')
+
+    def set_enable_torrent_search(self, mode):
+        """ Sets if to enable torrent search (SearchCommunity and TorrentSearchManager).
+        :param mode: True or False.
+        """
+        self.sessconfig.set(u'search_community', u'enabled', mode)
+
     #
     # Static methods
     #
