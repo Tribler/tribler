@@ -218,7 +218,7 @@ class TorrentManager(object):
     def searchDispersy(self):
         return self.session.search_remote_torrents(self.searchkeywords)
 
-    def getHitsInCategory(self, categorykey='all', sort='fulltextmetric'):
+    def getHitsInCategory(self, categorykey='all'):
         begintime = time()
         # categorykey can be 'all', 'Video', 'Document', ...
 
@@ -247,11 +247,7 @@ class TorrentManager(object):
             beginsort = time()
 
             if new_local_hits or new_remote_hits:
-                if sort == 'rameezmetric':
-                    self.rameezSort()
-
-                elif sort == 'fulltextmetric':
-                    self.fulltextSort()
+                self.fulltextSort()
 
                 self.hits = self.library_manager.addDownloadStates(self.hits)
 
@@ -542,25 +538,6 @@ class TorrentManager(object):
     def refreshGrid(self, remote=False):
         if self.gridmgr:
             self.gridmgr.refresh(remote)
-
-    # Rameez: The following code will call normalization functions and then
-    # sort and merge the torrent results
-    def rameezSort(self):
-        norm_num_seeders = self.doStatNormalization(self.hits, 'num_seeders')
-        norm_neg_votes = self.doStatNormalization(self.hits, 'neg_votes')
-        norm_subscriptions = self.doStatNormalization(self.hits, 'subscriptions')
-
-        def score_cmp(a, b):
-            info_a = a.infohash
-            info_b = b.infohash
-
-            # normScores can be small, so multiply
-            score_a = 0.8 * norm_num_seeders[info_a] - 0.1 * norm_neg_votes[info_a] + 0.1 * norm_subscriptions[info_a]
-            score_b = 0.8 * norm_num_seeders[info_b] - 0.1 * norm_neg_votes[info_b] + 0.1 * norm_subscriptions[info_b]
-
-            return cmp(score_a, score_b)
-
-        self.hits.sort(cmp, reverse=True)
 
     def fulltextSort(self):
         norm_num_seeders = self.doStatNormalization(self.hits, 'num_seeders')
