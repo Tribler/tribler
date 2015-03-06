@@ -17,6 +17,7 @@ class TestRemoteQuery(TestGuiAsServer):
             self.quit()
 
         def do_search():
+            self.guiUtility.toggleFamilyFilter(newState=False, setCheck=True)
             self.guiUtility.dosearch(u'mp3')
             self.Call(10, do_assert)
 
@@ -57,6 +58,7 @@ class TestRemoteQuery(TestGuiAsServer):
             self.Call(10, do_assert)
 
         def do_search():
+            self.guiUtility.toggleFamilyFilter(newState=False, setCheck=True)
             self.guiUtility.dosearch(u'mp3')
             self.Call(15, do_doubleclick)
 
@@ -94,6 +96,7 @@ class TestRemoteQuery(TestGuiAsServer):
             self.Call(5, do_select)
 
         def do_search():
+            self.guiUtility.toggleFamilyFilter(newState=False, setCheck=True)
             self.guiUtility.dosearch(u'vodo')
             self.Call(10, do_filter)
 
