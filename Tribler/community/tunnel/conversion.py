@@ -1,7 +1,7 @@
 from struct import pack, unpack_from
 from socket import inet_ntoa, inet_aton, error as socket_error
+from libtorrent import bdecode
 
-from Tribler.Core.Utilities.bencode import bdecode
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
 from Tribler.dispersy.endpoint import TUNNEL_PREFIX, TUNNEL_PREFIX_LENGHT
@@ -415,7 +415,7 @@ class TunnelConversion(BinaryConversion):
     def could_be_dht(data):
         try:
             decoded = bdecode(data)
-            if isinstance(decoded, dict) and decoded.has_key('y') and decoded['y'] in ['q', 'r', 'e']:
+            if isinstance(decoded, dict) and decoded.get('y') in ['q', 'r', 'e']:
                 return True
         except:
             pass

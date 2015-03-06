@@ -13,6 +13,7 @@ from threading import Lock
 from time import time
 from traceback import print_exc
 from collections import OrderedDict
+from libtorrent import bencode
 
 from twisted.internet.task import LoopingCall
 
@@ -888,7 +889,6 @@ class TorrentDBHandler(BasicDBHandler):
             if new_tracker_list:
                 tdef.set_tracker_hierarchy(new_tracker_list)
                 # have to use bencode to get around the TorrentDef.is_finalized() check in TorrentDef.encode()
-                from Tribler.Core.Utilities.bencode import bencode
                 self.session.save_collected_torrent(infohash, bencode(tdef.metainfo))
 
     def getTorrentsOnTracker(self, tracker, current_time):
