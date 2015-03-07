@@ -2,7 +2,6 @@
 # see LICENSE.txt for license information
 import logging
 import threading
-from math import sqrt
 from time import time
 from traceback import print_exc
 
@@ -17,6 +16,7 @@ from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.simpledefs import (NTFY_MISC, NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST,
                                      NTFY_METADATA, DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK,
                                      SIGNAL_ALLCHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT)
+from Tribler.Core.Utilities.sort_utils import sort_torrent_fulltext
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import (Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent,
                                               NotCollectedTorrent, LibraryTorrent, Comment, Modification, Channel,
@@ -247,7 +247,7 @@ class TorrentManager(object):
             beginsort = time()
 
             if new_local_hits or new_remote_hits:
-                self.fulltextSort()
+                sort_torrent_fulltext(self.hits)
 
                 self.hits = self.library_manager.addDownloadStates(self.hits)
 
@@ -538,55 +538,6 @@ class TorrentManager(object):
     def refreshGrid(self, remote=False):
         if self.gridmgr:
             self.gridmgr.refresh(remote)
-
-    def fulltextSort(self):
-        norm_num_seeders = self.doStatNormalization(self.hits, 'num_seeders')
-        norm_neg_votes = self.doStatNormalization(self.hits, 'neg_votes')
-        norm_subscriptions = self.doStatNormalization(self.hits, 'subscriptions')
-
-        for hit in self.hits:
-            score = 0.8 * norm_num_seeders[
-                hit.infohash] - 0.1 * norm_neg_votes[
-                    hit.infohash] + 0.1 * norm_subscriptions[
-                        hit.infohash]
-            hit.relevance_score[-1] = score
-
-        self.hits.sort(key=lambda hit: hit.relevance_score, reverse=True)
-
-    def doStatNormalization(self, hits, normKey):
-        '''Center the variance on zero (this means mean == 0) and divide
-        all values by the standard deviation. This is sometimes called scaling.
-        This is done on the field normKey of hits.'''
-
-        tot = 0
-        for hit in hits:
-            tot += (hit.get(normKey, 0) or 0)
-
-        if len(hits) > 0:
-            mean = tot / len(hits)
-        else:
-            mean = 0
-
-        sum = 0
-        for hit in hits:
-            temp = (hit.get(normKey, 0) or 0) - mean
-            temp = temp * temp
-            sum += temp
-
-        if len(hits) > 1:
-            dev = sum / (len(hits) - 1)
-        else:
-            dev = 0
-
-        stdDev = sqrt(dev)
-
-        return_dict = {}
-        for hit in hits:
-            if stdDev > 0:
-                return_dict[hit.infohash] = ((hit.get(normKey, 0) or 0) - mean) / stdDev
-            else:
-                return_dict[hit.infohash] = 0
-        return return_dict
 
     @call_on_reactor_thread
     def modifyTorrent(self, torrent, modifications):
