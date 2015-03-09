@@ -12,7 +12,7 @@ from colorsys import hsv_to_rgb, rgb_to_hsv
 
 from Tribler.Category.Category import Category
 
-from Tribler.Core.simpledefs import (NTFY_MISC, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR,
+from Tribler.Core.simpledefs import (DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR,
                                      DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING)
 from Tribler.Core.exceptions import NotYetImplementedException
 
@@ -827,7 +827,8 @@ class List(wx.BoxSizer):
         if keyword is not None:
             self.rawfilter = keyword.lower().strip()
         else:
-            self.LoadEnabledCategoryIDs()
+            enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()]
+            self.enabled_category_list = enabled_category_keys + [u'other']
 
         if self.rawfilter == '' and not self.guiutility.getFamilyFilter():
             wx.CallAfter(self.list.SetFilter, None, None, keyword is None)
@@ -853,22 +854,13 @@ class List(wx.BoxSizer):
                 self.filter = ''
                 self.header.FilterCorrect(False)
 
-    def LoadEnabledCategoryIDs(self):
-        misc_db = self.guiutility.utility.session.open_dbhandler(NTFY_MISC)
-        enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()]
-        self.enabled_category_ids = set([0, 8])
-        for key, id in misc_db._category_name2id_dict.iteritems():
-            if key.lower() in enabled_category_keys:
-                self.enabled_category_ids.add(id)
-        self.deadstatus_id = misc_db.torrentStatusName2Id(u'dead')
-
     def MatchFFilter(self, item):
         result = True
         if self.guiutility.getFamilyFilter():
             if isinstance(item[2], (Torrent, CollectedTorrent)):
                 torrent = item[2]
-                category = torrent.category_id if torrent.category_id else 0
-                result = category in self.enabled_category_ids
+                category = torrent.category if torrent.category else 0
+                result = category in self.enabled_category_list
 
             elif isinstance(item[2], Channel):
                 result = not self.category.xxx_filter.isXXX(item[2].name, False)
@@ -1197,7 +1189,7 @@ class GenericSearchList(SizeList):
                                      head.name,
                                      head.relevance_score),
                                      head.length,
-                                     self.category_names[head.category_id],
+                                     self.category_names[head.category],
                                      head.num_seeders,
                                      head.num_leechers,
                                      0,
@@ -1206,7 +1198,7 @@ class GenericSearchList(SizeList):
                         item_data = [
                             head.name,
                             head.length,
-                            self.category_names[head.category_id],
+                            self.category_names[head.category],
                             head.num_seeders,
                             head.num_leechers,
                             0,
@@ -1265,7 +1257,7 @@ class GenericSearchList(SizeList):
                     head.infohash,
                     ["%s %s" % (head.name, head.relevance_score),
                      head.length,
-                     self.category_names[head.category_id],
+                     self.category_names[head.category],
                      head.num_seeders,
                      head.num_leechers,
                      0,
@@ -1274,7 +1266,7 @@ class GenericSearchList(SizeList):
             else:
                 data = (
                     head.infohash,
-                    [head.name, head.length, self.category_names[head.category_id],
+                    [head.name, head.length, self.category_names[head.category],
                      head.num_seeders,
                      head.num_leechers,
                      0,
@@ -1336,7 +1328,7 @@ class GenericSearchList(SizeList):
         SizeList.OnFilter(self, new_filter)
 
     def MatchFilter(self, item):
-        if isinstance(item[2], Torrent) and (self.categoryfilter and self.categoryfilter not in self.category_names[item[2].category_id].lower()):
+        if isinstance(item[2], Torrent) and (self.categoryfilter and self.categoryfilter not in self.category_names[item[2].category].lower()):
             return False
 
         return SizeList.MatchFilter(self, item)
@@ -1378,13 +1370,11 @@ class SearchList(GenericSearchList):
         ColumnsManager.getInstance().setColumns(TorrentListItem, columns)
         ColumnsManager.getInstance().setColumns(DragItem, columns)
 
-        misc_db = self.session.open_dbhandler(NTFY_MISC)
         self.category_names = {}
         for key, name in self.category.getCategoryNames(filter=False):
-            if key in misc_db._category_name2id_dict:
-                self.category_names[misc_db._category_name2id_dict[key]] = name
-        self.category_names[8] = 'Other'
-        self.category_names[None] = self.category_names[0] = 'Unknown'
+            self.category_names[key] = name
+        self.category_names[None] = 'Unknwon'
+        self.category_names['other'] = 'Other'
 
         GenericSearchList.__init__(self, None, LIST_GREY, [0, 0], True, parent=parent)
 

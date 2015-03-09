@@ -6,7 +6,7 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_react
 
 from Tribler.community.search.community import SearchCommunity
 
-from Tribler.Core.simpledefs import (SIGNAL_SEARCH_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, NTFY_CHANNELCAST, NTFY_MISC,
+from Tribler.Core.simpledefs import (SIGNAL_SEARCH_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, NTFY_CHANNELCAST,
                                      SIGNAL_TORRENT)
 from Tribler.Core.Search.SearchManager import split_into_keywords
 
@@ -19,14 +19,12 @@ class TorrentSearchManager(TaskManager):
         self.session = session
         self.dispersy = None
         self.channelcast_db = None
-        self.misc_db = None
 
         self._current_keywords = None
 
     def initialize(self):
         self.dispersy = self.session.lm.dispersy
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
-        self.misc_db = self.session.open_dbhandler(NTFY_MISC)
 
         self.session.add_observer(self._on_search_results, SIGNAL_SEARCH_COMMUNITY, [SIGNAL_ON_SEARCH_RESULTS])
 
@@ -34,7 +32,6 @@ class TorrentSearchManager(TaskManager):
     def shutdown(self):
         self.cancel_all_pending_tasks()
         self.channelcast_db = None
-        self.misc_db = None
         self.dispersy = None
         self.session = None
 
@@ -78,7 +75,7 @@ class TorrentSearchManager(TaskManager):
             return
 
         # results is a list of tuples that are:
-        # (1) infohash, (2) name, (3) length, (4) num_files, (5) category_id, (6) creation_date, (7) num_seeders
+        # (1) infohash, (2) name, (3) length, (4) num_files, (5) category, (6) creation_date, (7) num_seeders
         # (8) num_leechers, (9) channel_cid
 
         remote_torrent_result_list = []
@@ -93,9 +90,6 @@ class TorrentSearchManager(TaskManager):
 
         # create result dictionaries that are understandable
         for result in results:
-            categories = result[4]
-            category_id = self.misc_db.categoryName2Id(categories)
-
             remote_torrent_result = {'torrent_type': 'remote',  # indicates if it is a remote torrent
                                      'relevance_score': None,
                                      'torrent_id': -1,
@@ -103,11 +97,11 @@ class TorrentSearchManager(TaskManager):
                                      'name': result[1],
                                      'length': result[2],
                                      'num_files': result[3],
-                                     'category_id': category_id,
+                                     'category': result[4],
                                      'creation_date': result[5],
                                      'num_seeders': result[6],
                                      'num_leechers': result[7],
-                                     'status_id': self.misc_db.torrentStatusName2Id(u'good'),
+                                     'status': u'good',
                                      'query_candidates': {candidate},
                                      'channel': None}
 

@@ -90,7 +90,7 @@ class Category(object):
         try:
 
             if self.xxx_filter.isXXXTorrent(files_list, display_name, tracker, comment):
-                return ['xxx']
+                return 'xxx'
         except:
             self._logger.critical(
                 'Category: Exception in explicit terms filter in torrent: %s', display_name, exc_info=True)
@@ -101,11 +101,11 @@ class Category(object):
         for category in self.category_info:  # for each category
             (decision, strength) = self.judge(category, files_list, display_name)
             if decision and (strength > strongest_cat):
-                torrent_category = [category['name']]
+                torrent_category = category['name']
                 strongest_cat = strength
 
         if torrent_category is None:
-            torrent_category = ['other']
+            torrent_category = 'other'
 
         return torrent_category
 
@@ -202,15 +202,11 @@ class Category(object):
                         category['rank'] = category['old-rank']
                     break
 
-    def get_family_filter_sql(self, _getCategoryID, table_name=''):
+    def get_family_filter_sql(self):
         if self.family_filter_enabled():
             forbiddencats = [cat['name'] for cat in self.category_info if cat['rank'] == -1]
-            if table_name:
-                table_name += '.'
             if forbiddencats:
-                return " and %scategory_id not in (%s)" % (table_name,
-                                                           ','.join([str(_getCategoryID([cat]))
-                                                                     for cat in forbiddencats]))
+                return " and category not in (%s)" % ','.join(["'%s'" % cat for cat in forbiddencats])
         return ''
 
 

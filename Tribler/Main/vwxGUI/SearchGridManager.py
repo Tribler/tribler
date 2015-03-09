@@ -13,7 +13,7 @@ from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.Video.utils import videoextdefaults
-from Tribler.Core.simpledefs import (NTFY_MISC, NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST,
+from Tribler.Core.simpledefs import (NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST,
                                      NTFY_METADATA, DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK,
                                      SIGNAL_ALLCHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT)
 from Tribler.Core.Utilities.sort_utils import sort_torrent_fulltext
@@ -68,7 +68,6 @@ class TorrentManager(object):
         self.filteredResults = 0
 
         self.category = Category.getInstance()
-        self.xxx_category = 0
 
     def getInstance(*args, **kw):
         if TorrentManager.__single is None:
@@ -171,12 +170,11 @@ class TorrentManager(object):
 
     def getTorrentByInfohash(self, infohash):
         dict = self.torrent_db.getTorrent(infohash, keys=['C.torrent_id', 'infohash', 'name',
-                                                          'length', 'category_id', 'status_id', 'num_seeders',
+                                                          'length', 'category', 'status', 'num_seeders',
                                                           'num_leechers'])
         if dict:
             t = Torrent(dict['C.torrent_id'], dict['infohash'], dict['name'], dict['length'],
-                        dict['category_id'], dict['status_id'], dict['num_seeders'], dict['num_leechers'], None)
-            t.misc_db = self.misc_db
+                        dict['category'], dict['status'], dict['num_seeders'], dict['num_leechers'], None)
             t.torrent_db = self.torrent_db
             t.channelcast_db = self.channelcast_db
             t.metadata_db = self.metadata_db
@@ -194,7 +192,6 @@ class TorrentManager(object):
             self.connected = True
             self.session = session
 
-            self.misc_db = session.open_dbhandler(NTFY_MISC)
             self.metadata_db = session.open_dbhandler(NTFY_METADATA)
             self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
             self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
@@ -205,7 +202,6 @@ class TorrentManager(object):
             self.channel_manager = channel_manager
 
             self.dispersy = session.lm.dispersy
-            self.xxx_category = self.misc_db.categoryName2Id([u'xxx'])
 
             self.session.add_observer(self.gotDispersyRemoteHits, SIGNAL_TORRENT, [SIGNAL_ON_SEARCH_RESULTS])
         else:
@@ -385,7 +381,6 @@ class TorrentManager(object):
                 else:
                     t = Torrent(*a[:8] + [False])
 
-                t.misc_db = self.misc_db
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
                 t.metadata_db = self.metadata_db
@@ -444,11 +439,11 @@ class TorrentManager(object):
 
                 if not known:
                     # Niels 26-10-2012: override category if name is xxx
-                    if remoteItem.category_id != self.xxx_category:
+                    if remoteItem.category.lower() != u'xxx':
                         local_category = self.category.calculateCategoryNonDict([], remoteItem.name, '', '')[0]
                         if local_category == 'xxx':
                             self._logger.debug('TorrentSearchGridManager: %s is xxx', remoteItem.name)
-                            remoteItem.category_id = self.xxx_category
+                            remoteItem.category = u'XXX'
 
                     self.hits.append(remoteItem)
                     hitsUpdated = True
@@ -497,8 +492,8 @@ class TorrentManager(object):
                                                          result['infohash'],
                                                          result['name'],
                                                          result['length'],
-                                                         result['category_id'],
-                                                         result['status_id'],
+                                                         result['category'],
+                                                         result['status'],
                                                          result['num_seeders'],
                                                          result['num_leechers'],
                                                          channel_tuple,
@@ -508,15 +503,14 @@ class TorrentManager(object):
                                                   result['infohash'],
                                                   result['name'],
                                                   result['length'],
-                                                  result['category_id'],
-                                                  result['status_id'],
+                                                  result['category'],
+                                                  result['status'],
                                                   result['num_seeders'],
                                                   result['num_leechers'],
                                                   result['query_candidates'])
 
                     remoteHit.relevance_score = result['relevance_score']
 
-                    remoteHit.misc_db = self.misc_db
                     remoteHit.torrent_db = self.torrent_db
                     remoteHit.channelcast_db = self.channelcast_db
 
@@ -580,7 +574,6 @@ class TorrentManager(object):
         result = []
         for t in self.metadata_db.getThumbnailTorrents(TUMBNAILTORRENT_REQ_COLUMNS, limit=limit):
             t = Torrent(*(list(t) + [None]))
-            t.misc_db = self.misc_db
             t.torrent_db = self.torrent_db
             result.append(t)
 
@@ -592,7 +585,6 @@ class TorrentManager(object):
             if t[0] is None:
                 continue
             t = Torrent(*(list(t) + [None]))
-            t.misc_db = self.misc_db
             t.torrent_db = self.torrent_db
             result.append(t)
 
@@ -881,7 +873,6 @@ class LibraryManager(object):
     def connect(self, session, torrentsearch_manager, channelsearch_manager):
         if not self.connected:
             self.session = session
-            self.misc_db = session.open_dbhandler(NTFY_MISC)
             self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
             self.channelcast_db = session.open_dbhandler(NTFY_CHANNELCAST)
             self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
@@ -908,7 +899,6 @@ class LibraryManager(object):
             def create_torrent(a):
                 t = ChannelTorrent(*a[1:] + [channelDict.get(a[0], False), None])
 
-                t.misc_db = self.misc_db
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
                 return t
@@ -947,13 +937,12 @@ class LibraryManager(object):
         dict = self.torrent_db.getTorrent(infohash,
                                           keys=['C.torrent_id',
                                                 'infohash', 'name', 'length',
-                                                'category_id', 'status_id',
+                                                'category', 'status',
                                                 'num_seeders', 'num_leechers'])
         if dict and dict['myDownloadHistory']:
             t = LibraryTorrent(dict['C.torrent_id'], dict['infohash'],
-                               dict['name'], dict['length'], dict['category_id'], dict['status_id'],
+                               dict['name'], dict['length'], dict['category'], dict['status'],
                                dict['num_seeders'], dict['num_leechers'])
-            t.misc_db = self.misc_db
             t.torrent_db = self.torrent_db
             t.channelcast_db = self.channelcast_db
 
@@ -995,7 +984,6 @@ class ChannelManager(object):
         self.remoteLock = threading.Lock()
         self.remoteRefresh = False
 
-        self.misc_db = None
         self.channelcast_db = None
         self.votecastdb = None
         self.dispersy = None
@@ -1022,7 +1010,6 @@ class ChannelManager(object):
         if not self.connected:
             self.connected = True
             self.session = session
-            self.misc_db = self.session.open_dbhandler(NTFY_MISC)
             self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
             self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
             self.votecastdb = self.session.open_dbhandler(NTFY_VOTECAST)
@@ -1184,7 +1171,6 @@ class ChannelManager(object):
     def _createTorrent(self, tuple, channel, playlist=None, collectedOnly=True, addDs=True):
         if tuple:
             ct = ChannelTorrent(*tuple[1:] + [channel, playlist])
-            ct.misc_db = self.misc_db
             ct.torrent_db = self.torrent_db
             ct.channelcast_db = self.channelcast_db
 
@@ -1369,26 +1355,21 @@ class ChannelManager(object):
 
     def _applyFF(self, hits):
         enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()] + ['other']
-        enabled_category_ids = set()
-        for key, id in self.misc_db._category_name2id_dict.iteritems():
-            if key.lower() in enabled_category_keys:
-                enabled_category_ids.add(id)
-        deadstatus_id = self.misc_db.torrentStatusName2Id(u'dead')
 
         def torrentFilter(torrent):
             okCategory = False
 
-            category = torrent.get("category_id", None)
+            category = torrent.get("category", None)
             if not category:
                 category = 0
 
-            if category in enabled_category_ids:
+            if category.lower() in enabled_category_keys:
                 okCategory = True
 
             if not okCategory:
                 self.filteredResults += 1
 
-            okGood = torrent.status_id != deadstatus_id
+            okGood = torrent.status != u'dead'
             return okCategory and okGood
 
         return filter(torrentFilter, hits)

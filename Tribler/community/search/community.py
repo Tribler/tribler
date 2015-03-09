@@ -63,7 +63,6 @@ class SearchCommunity(Community):
         self.taste_buddies = []
 
         self._channelcast_db = None
-        self._misc_db = None
         self._torrent_db = None
         self._mypref_db = None
         self._notifier = None
@@ -85,12 +84,11 @@ class SearchCommunity(Community):
         # self.taste_buddies.append([1, time(), Candidate(("127.0.0.1", 1234), False))
 
         if self.integrate_with_tribler:
-            from Tribler.Core.simpledefs import NTFY_MISC, NTFY_CHANNELCAST, NTFY_TORRENTS, NTFY_MYPREFERENCES
+            from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS, NTFY_MYPREFERENCES
             from Tribler.Core.CacheDB.Notifier import Notifier
 
             # tribler channelcast database
             self._channelcast_db = tribler_session.open_dbhandler(NTFY_CHANNELCAST)
-            self._misc_db = tribler_session.open_dbhandler(NTFY_MISC)
             self._torrent_db = tribler_session.open_dbhandler(NTFY_TORRENTS)
             self._mypref_db = tribler_session.open_dbhandler(NTFY_MYPREFERENCES)
             self._notifier = Notifier.getInstance()
@@ -342,7 +340,7 @@ class SearchCommunity(Community):
                 self.log_incomming_searches(message.candidate.sock_addr, keywords)
 
             results = []
-            dbresults = self._torrent_db.searchNames(keywords, local=False, keys=['infohash', 'T.name', 'T.length', 'T.num_files', 'T.category_id', 'T.creation_date', 'T.num_seeders', 'T.num_leechers'])
+            dbresults = self._torrent_db.searchNames(keywords, local=False, keys=['infohash', 'T.name', 'T.length', 'T.num_files', 'T.category', 'T.creation_date', 'T.num_seeders', 'T.num_leechers'])
             if len(dbresults) > 0:
                 for dbresult in dbresults:
                     channel_details = dbresult[-10:]
@@ -350,7 +348,7 @@ class SearchCommunity(Community):
                     dbresult = list(dbresult[:8])
                     dbresult[2] = long(dbresult[2])  # length
                     dbresult[3] = int(dbresult[3])  # num_files
-                    dbresult[4] = [self._misc_db.categoryId2Name(dbresult[4]), ]  # category_keys
+                    dbresult[4] = dbresult[4]  # category
                     dbresult[5] = long(dbresult[5])  # creation_date
                     dbresult[6] = int(dbresult[6] or 0)  # num_seeders
                     dbresult[7] = int(dbresult[7] or 0)  # num_leechers

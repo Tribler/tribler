@@ -15,7 +15,7 @@ from traceback import print_exc
 
 from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import (NTFY_TORRENTS, NTFY_CHANNELCAST, NTFY_INSERT, NTFY_TUNNEL, NTFY_CREATED,
-                                     NTFY_MISC, NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, NTFY_EXTENDED_FOR)
+                                     NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, NTFY_EXTENDED_FOR)
 from Tribler.Core.Session import Session
 
 from Tribler.Main.vwxGUI import SEPARATOR_GREY, DEFAULT_BACKGROUND, LIST_BLUE, THUMBNAIL_FILETYPES
@@ -514,7 +514,6 @@ class PopularTorrentPanel(NewTorrentPanel):
         HomePanel.__init__(self, parent, 'Popular Torrents', SEPARATOR_GREY, (1, 0))
         self.Layout()
 
-        self.misc_db = parent.guiutility.utility.session.open_dbhandler(NTFY_MISC)
         self.torrentdb = parent.guiutility.utility.session.open_dbhandler(NTFY_TORRENTS)
 
         self.timer = wx.Timer(self)
@@ -528,7 +527,7 @@ class PopularTorrentPanel(NewTorrentPanel):
 
     def RefreshList(self):
         def db_callback():
-            familyfilter_sql = Category.getInstance().get_family_filter_sql(self.misc_db.categoryName2Id)
+            familyfilter_sql = Category.getInstance().get_family_filter_sql()
             if familyfilter_sql:
                 familyfilter_sql = familyfilter_sql[4:]
 
