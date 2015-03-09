@@ -13,7 +13,7 @@ from Tribler import LIBRARYNAME
 
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-from Tribler.Core.Search.SearchManager import split_into_keywords
+from Tribler.Core.Utilities.search_utils import split_into_keywords
 
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
