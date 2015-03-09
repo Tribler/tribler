@@ -19,8 +19,8 @@ from twisted.internet.task import LoopingCall
 
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
-from Tribler.Core.Search.SearchManager import split_into_keywords, filter_keywords
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.search_utils import split_into_keywords, filter_keywords
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.simpledefs import (INFOHASH_LENGTH, NTFY_PEERS, NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_CREATE,
                                      NTFY_MODIFIED, NTFY_TRACKERINFO, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_TORRENTS,
@@ -580,13 +580,13 @@ class TorrentDBHandler(BasicDBHandler):
 
         # Niels: new method for indexing, replaces invertedindex
         # Making sure that swarmname does not include extension for single file torrents
-        swarm_keywords = " ".join(split_into_keywords(swarmname, filterStopwords=False))
+        swarm_keywords = " ".join(split_into_keywords(swarmname))
 
         filedict = {}
         fileextensions = set()
         for filename in files:
             filename, extension = os.path.splitext(filename)
-            for keyword in split_into_keywords(filename, filterStopwords=True):
+            for keyword in split_into_keywords(filename, to_filter_stopwords=True):
                 filedict[keyword] = filedict.get(keyword, 0) + 1
 
             fileextensions.add(extension[1:])

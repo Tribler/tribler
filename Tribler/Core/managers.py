@@ -8,7 +8,7 @@ from Tribler.community.search.community import SearchCommunity
 
 from Tribler.Core.simpledefs import (SIGNAL_SEARCH_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, NTFY_CHANNELCAST,
                                      SIGNAL_TORRENT)
-from Tribler.Core.Search.SearchManager import split_into_keywords
+from Tribler.Core.Utilities.search_utils import split_into_keywords
 
 
 class TorrentSearchManager(TaskManager):

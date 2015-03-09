@@ -6,7 +6,7 @@ from time import time
 
 from datetime import date
 
-from Tribler.Core.Search.SearchManager import split_into_keywords
+from Tribler.Core.Utilities.search_utils import split_into_keywords
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_STOPPED, DLSTATUS_SEEDING, DLSTATUS_HASHCHECKING,
                                      DLSTATUS_WAITING4HASHCHECK, DLSTATUS_ALLOCATING_DISKSPACE,
