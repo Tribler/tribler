@@ -396,7 +396,7 @@ class HttpTrackerSession(TrackerSession):
                 int(self._header_buffer[idx:].split('\r\n', 1)[0].strip())
 
     def _processScrapeResponse(self):
-        # parse the retrived results
+        # parse the retrieved results
         response_dict = bdecode(self._message_buffer)
         if response_dict is None:
             return False
