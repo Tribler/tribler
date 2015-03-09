@@ -16,25 +16,21 @@ protocol_name = 'BitTorrent protocol'
 # Right-most bit = BitTorrent DHT extension
 
 
+# BitTorrent Protocol Specification (BEP-3)
 CHOKE = chr(0)
 UNCHOKE = chr(1)
 INTERESTED = chr(2)
 NOT_INTERESTED = chr(3)
-
-# index
 HAVE = chr(4)
-# index, bitfield
 BITFIELD = chr(5)
-# index, begin, length
 REQUEST = chr(6)
-# index, begin, piece
 PIECE = chr(7)
-# index, begin, piece
 CANCEL = chr(8)
-# 2-byte port
+
+# DHT Protocol (BEP-5): 2-byte port
 PORT = chr(9)
 
-# uTorrent and Bram's BitTorrent now support an extended protocol
+# Extension Protocol (BEP-10): uTorrent and Bram's BitTorrent now support an extended protocol
 EXTEND = chr(20)
 
 
