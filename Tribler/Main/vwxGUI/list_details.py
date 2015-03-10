@@ -512,7 +512,7 @@ class TorrentDetails(AbstractDetails):
         todo = []
         todo.append((self.name, self.torrent.name))
         todo.append((self.description, ''))
-        todo.append((self.type, ', '.join(self.torrent.category).capitalize()
+        todo.append((self.type, self.torrent.category.capitalize()
                     if isinstance(self.torrent.category, basestring) else 'Unknown'))
         todo.append((self.uploaded, self.torrent.formatCreationDate()
                     if hasattr(self.torrent, 'formatCreationDate') else ''))
