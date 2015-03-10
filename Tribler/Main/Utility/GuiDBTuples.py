@@ -639,16 +639,11 @@ class Comment(Helper):
         from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM, data2wxBitmap
         gui_image_manager = GuiImageManager.getInstance()
 
+        data = None
         if self.peer_id is None:
             mime, data = self.get_mugshot()
             if data:
                 data = data2wxBitmap(mime, data, SMALL_ICON_MAX_DIM)
-        else:
-            from Tribler.Core.simpledefs import NTFY_PEERS
-            from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-            peer_db = GUIUtility.getInstance().utility.session.open_dbhandler(NTFY_PEERS)
-            raw_data = peer_db.getPeerById(self.peer_id, keys=u"thumbnail")
-            data = gui_image_manager.getPeerThumbnail(raw_data, SMALL_ICON_MAX_DIM)
 
         if data is None:
             data = gui_image_manager.getImage(u"PEER_THUMB", SMALL_ICON_MAX_DIM)
