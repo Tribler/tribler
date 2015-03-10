@@ -396,14 +396,16 @@ class HttpTrackerSession(TrackerSession):
                 int(self._header_buffer[idx:].split('\r\n', 1)[0].strip())
 
     def _processScrapeResponse(self):
-        # parse the retrived results
+        # parse the retrieved results
+        if self._message_buffer is None:
+            return False
         response_dict = bdecode(self._message_buffer)
         if response_dict is None:
             return False
 
         unprocessed_infohash_list = self._infohash_list[:]
         if 'files' in response_dict:
-            for infohash in response_dict['files'].keys():
+            for infohash in response_dict['files']:
                 downloaded = response_dict['files'][infohash].get('downloaded', 0)
                 complete = response_dict['files'][infohash].get('complete', 0)
                 incomplete = response_dict['files'][infohash].get('incomplete', 0)
