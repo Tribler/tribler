@@ -179,7 +179,7 @@ class AllChannelCommunity(Community):
         mychannel_id = self._channelcast_db.getMyChannelId()
 
         # loop through all candidates to see if we can find a non-blocked address
-        for candidate in [candidate for candidate in self._iter_categories([u'walk', u'stumble'], once=True) if not candidate in self._blocklist]:
+        for candidate in [candidate for candidate in self._iter_categories([u'walk', u'stumble'], once=True) if candidate not in self._blocklist]:
             if not candidate:
                 continue
 
@@ -233,7 +233,7 @@ class AllChannelCommunity(Community):
     def check_channelcast(self, messages):
         with self._dispersy.database:
             for message in messages:
-                for cid in message.payload.torrents.keys():
+                for cid in message.payload.torrents.iterkeys():
                     channel_id = self._get_channel_id(cid)
                     if not channel_id:
                         community = self._get_channel_community(cid)
@@ -334,7 +334,7 @@ class AllChannelCommunity(Community):
     def check_channelsearch_response(self, messages):
         with self._dispersy.database:
             for message in messages:
-                for cid in message.payload.torrents.keys():
+                for cid in message.payload.torrents.iterkeys():
                     channel_id = self._get_channel_id(cid)
                     if not channel_id:
                         community = self._get_channel_community(cid)
