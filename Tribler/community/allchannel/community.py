@@ -206,6 +206,7 @@ class AllChannelCommunity(Community):
                     normalTorrents = self._channelcast_db.getRecentAndRandomTorrents()
                 torrents = normalTorrents
 
+            # torrents is a dictionary of channel_id (key) and infohashes (value)
             if len(torrents) > 0:
                 meta = self.get_meta_message(u"channelcast")
                 message = meta.impl(authentication=(self._my_member,),
@@ -216,7 +217,7 @@ class AllChannelCommunity(Community):
                 # we've send something to this address, add to blocklist
                 self._blocklist[candidate] = now
 
-                nr_torrents = sum(len(torrent) for torrent in torrents.values())
+                nr_torrents = sum(len(infohashes) for infohashes in torrents.itervalues())
                 self._logger.debug("sending channelcast message containing %s torrents to %s didFavorite %s",
                                    nr_torrents, candidate.sock_addr, didFavorite)
                 # we're done
@@ -246,11 +247,11 @@ class AllChannelCommunity(Community):
     def on_channelcast(self, messages):
         for message in messages:
             toCollect = {}
-            for cid, torrents in message.payload.torrents.iteritems():
-                for infohash in self._selectTorrentsToCollect(cid, torrents):
+            for cid, infohashes in message.payload.torrents.iteritems():
+                for infohash in self._selectTorrentsToCollect(cid, infohashes):
                     toCollect.setdefault(cid, set()).add(infohash)
 
-            nr_requests = sum([len(torrents) for torrents in toCollect.values()])
+            nr_requests = sum([len(infohashes) for infohashes in toCollect.values()])
             if nr_requests > 0:
                 self.create_channelcast_request(toCollect, message.candidate)
 
@@ -261,7 +262,7 @@ class AllChannelCommunity(Community):
                             distribution=(self.global_time,), destination=(candidate,), payload=(toCollect,))
         self._dispersy._forward([message])
 
-        nr_requests = sum([len(torrents) for torrents in toCollect.values()])
+        nr_requests = sum([len(torrents) for torrents in toCollect.itervalues()])
         self._logger.debug("requesting %s torrents from %s", nr_requests, candidate)
 
     def check_channelcast_request(self, messages):
@@ -271,8 +272,8 @@ class AllChannelCommunity(Community):
     def on_channelcast_request(self, messages):
         for message in messages:
             requested_packets = []
-            for cid, torrents in message.payload.torrents.iteritems():
-                requested_packets.extend(self._get_packets_from_infohashes(cid, torrents))
+            for cid, infohashes in message.payload.torrents.iteritems():
+                requested_packets.extend(self._get_packets_from_infohashes(cid, infohashes))
 
             if requested_packets:
                 self._dispersy._send_packets([message.candidate], requested_packets,
