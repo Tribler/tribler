@@ -119,7 +119,6 @@ class AllChannelCommunity(Community):
         self._recentlyRequested = []
 
         self.tribler_session = None
-        self.integrate_with_tribler = None
         self.auto_join_channel = None
 
         self._channelcast_db = None
@@ -130,10 +129,9 @@ class AllChannelCommunity(Community):
         super(AllChannelCommunity, self).initialize()
 
         self.tribler_session = tribler_session
-        self.integrate_with_tribler = tribler_session is not None
         self.auto_join_channel = auto_join_channel
 
-        if self.integrate_with_tribler:
+        if tribler_session is not None:
             from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_VOTECAST, NTFY_PEERS
 
             # tribler channelcast database
@@ -430,7 +428,7 @@ class AllChannelCommunity(Community):
             raise IgnoreCommits()
 
     def on_votecast(self, messages):
-        if self.integrate_with_tribler:
+        if self.tribler_session is not None:
             votelist = []
             for message in messages:
                 dispersy_id = message.packet_id
@@ -459,7 +457,7 @@ class AllChannelCommunity(Community):
             self._votecast_db.on_votes_from_dispersy(votelist)
 
     def undo_votecast(self, descriptors, redo=False):
-        if self.integrate_with_tribler:
+        if self.tribler_session is not None:
             contains_my_vote = False
             votelist = []
             now = long(time())
