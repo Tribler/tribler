@@ -22,7 +22,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.search_utils import split_into_keywords, filter_keywords
 from Tribler.Core.Utilities.unicode import dunno2unicode
-from Tribler.Core.simpledefs import (INFOHASH_LENGTH, NTFY_PEERS, NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_CREATE,
+from Tribler.Core.simpledefs import (INFOHASH_LENGTH, NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_CREATE,
                                      NTFY_MODIFIED, NTFY_TRACKERINFO, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_TORRENTS,
                                      NTFY_CHANNELCAST, NTFY_COMMENTS, NTFY_PLAYLISTS, NTFY_MODIFICATIONS,
                                      NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_STATE)
@@ -316,11 +316,6 @@ class PeerDBHandler(BasicDBHandler):
         if _permid is not None:
             value['permid'] = permid
 
-        if peer_existed:
-            self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
-        else:
-            self.notifier.notify(NTFY_PEERS, NTFY_INSERT, permid)
-
     def hasPeer(self, permid, check_db=False):
         if not check_db:
             return bool(self.getPeerID(permid))
@@ -335,7 +330,6 @@ class PeerDBHandler(BasicDBHandler):
 
     def updatePeer(self, permid, **argv):
         self._db.update(self.table_name, u'permid = ' + repr(bin2str(permid)), **argv)
-        self.notifier.notify(NTFY_PEERS, NTFY_UPDATE, permid)
 
     def deletePeer(self, permid=None, peer_id=None):
         # don't delete friend of superpeers, except that force is True
@@ -349,8 +343,6 @@ class PeerDBHandler(BasicDBHandler):
             deleted = not self.hasPeer(permid, check_db=True)
             if deleted and permid in self.permid_id:
                 self.permid_id.pop(permid)
-
-        self.notifier.notify(NTFY_PEERS, NTFY_DELETE, permid)
 
 
 class TorrentDBHandler(BasicDBHandler):
@@ -1320,11 +1312,9 @@ class VoteCastDBHandler(BasicDBHandler):
         self.voteLock = Lock()
         self.updatedChannels = set()
 
-        self.peer_db = None
         self.channelcast_db = None
 
     def initialize(self, *args, **kwargs):
-        self.peer_db = self.session.open_dbhandler(NTFY_PEERS)
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.session.sqlite_db.register_task(u"flush to database",
                                              LoopingCall(self._flush_to_database)).start(VOTECAST_FLUSH_DB_INTERVAL,
@@ -1332,7 +1322,6 @@ class VoteCastDBHandler(BasicDBHandler):
 
     def close(self):
         super(VoteCastDBHandler, self).close()
-        self.peer_db = None
         self.channelcast_db = None
 
     def on_votes_from_dispersy(self, votes):
@@ -1451,7 +1440,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         self.modification_types = None
         self.id2modification = None
 
-        self.peer_db = None
         self.votecast_db = None
         self.torrent_db = None
 
@@ -1462,7 +1450,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         self._channel_id = self.getMyChannelId()
         self._logger.debug(u"Channels: my channel is %s", self._channel_id)
 
-        self.peer_db = self.session.open_dbhandler(NTFY_PEERS)
         self.votecast_db = self.session.open_dbhandler(NTFY_VOTECAST)
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
 
@@ -1485,7 +1472,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         self.modification_types = None
         self.id2modification = None
 
-        self.peer_db = None
         self.votecast_db = None
         self.torrent_db = None
 
