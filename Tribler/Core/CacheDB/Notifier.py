@@ -4,7 +4,7 @@
 import threading
 import logging
 
-from Tribler.Core.simpledefs import (NTFY_PEERS, NTFY_TORRENTS, NTFY_PLAYLISTS, NTFY_COMMENTS,
+from Tribler.Core.simpledefs import (NTFY_TORRENTS, NTFY_PLAYLISTS, NTFY_COMMENTS,
                                      NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_MYPREFERENCES,
                                      NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_CHANNELCAST, NTFY_VOTECAST, NTFY_DISPERSY,
                                      NTFY_TRACKERINFO, NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_TUNNEL,
@@ -13,7 +13,7 @@ from Tribler.Core.simpledefs import (NTFY_PEERS, NTFY_TORRENTS, NTFY_PLAYLISTS, 
 
 class Notifier(object):
 
-    SUBJECTS = [NTFY_PEERS, NTFY_TORRENTS, NTFY_PLAYLISTS, NTFY_COMMENTS, NTFY_MODIFICATIONS,
+    SUBJECTS = [NTFY_TORRENTS, NTFY_PLAYLISTS, NTFY_COMMENTS, NTFY_MODIFICATIONS,
                 NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_MYPREFERENCES, NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_CHANNELCAST,
                 NTFY_VOTECAST, NTFY_DISPERSY, NTFY_TRACKERINFO, NTFY_TUNNEL,
                 SIGNAL_ALLCHANNEL, SIGNAL_SEARCH_COMMUNITY, SIGNAL_TORRENT]
@@ -53,9 +53,9 @@ class Notifier(object):
         """
         Add observer function which will be called upon certain event
         Example:
-        addObserver(NTFY_PEERS, [NTFY_INSERT,NTFY_DELETE]) -> get callbacks
+        addObserver(NTFY_TORRENTS, [NTFY_INSERT,NTFY_DELETE]) -> get callbacks
                     when peers are added or deleted
-        addObserver(NTFY_PEERS, [NTFY_SEARCH_RESULT], 'a_search_id') -> get
+        addObserver(NTFY_TORRENTS, [NTFY_SEARCH_RESULT], 'a_search_id') -> get
                     callbacks when peer-searchresults of of search
                     with id=='a_search_id' come in
         """
