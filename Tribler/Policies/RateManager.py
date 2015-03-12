@@ -8,14 +8,14 @@ from threading import RLock
 from Tribler.Core.simpledefs import (UPLOAD, DOWNLOAD, DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAITING4HASHCHECK,
                                      DLSTATUS_HASHCHECKING, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
                                      DLSTATUS_STOPPED_ON_ERROR)
-from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
 
 class RateManager(object):
 
-    def __init__(self):
+    def __init__(self, session):
         self._logger = logging.getLogger(self.__class__.__name__)
 
+        self._session = session
         self.lock = RLock()
         self.statusmap = {}
         self.currenttotal = {}
@@ -87,10 +87,10 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
        and upload speed when all torrents are seeding.
     """
 
-    def __init__(self):
-        RateManager.__init__(self)
+    def __init__(self, session):
+        RateManager.__init__(self, session)
         self.global_max_speed = {UPLOAD: 0.0, DOWNLOAD: 0.0}
-        self.ltmgr = None
+        self.ltmgr = self._session.get_libtorrent_process()
 
     def set_global_max_speed(self, direct, speed):
         self.lock.acquire()
@@ -152,8 +152,8 @@ class UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager(RateManager):
                     d = ds.get_download()
                     d.set_max_speed(dir, localmaxspeed)
 
-        if self.ltmgr is None and LibtorrentMgr.hasInstance():
-            self.ltmgr = LibtorrentMgr.getInstance()
+        if self.ltmgr is None:
+            self.ltmgr = self._session.get_libtorrent_process()
 
         if self.ltmgr:
             rate = self.global_max_speed[dir]  # unlimited == 0, stop == -1, else rate in kbytes
@@ -181,8 +181,8 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
     all dls when going to VOD
     """
 
-    def __init__(self):
-        UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager.__init__(self)
+    def __init__(self, session):
+        UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager.__init__(self, session)
 
         self.ROOM = 5.0  # the amount of room in speed underutilizing downloads get
 
@@ -292,8 +292,8 @@ class UserDefinedMaxAlwaysOtherwiseDividedOnDemandRateManager(UserDefinedMaxAlwa
                         self._logger.info("RateManager: calc_and_set_speed_limits: Normal set to %s", piece)
                         d.set_max_speed(dir, localmaxspeed)
 
-        if self.ltmgr is None and LibtorrentMgr.hasInstance():
-            self.ltmgr = LibtorrentMgr.getInstance()
+        if self.ltmgr is None:
+            self.ltmgr = self._session.get_libtorrent_process()
 
         if self.ltmgr:
             rate = self.global_max_speed[dir]  # unlimited == 0, stop == -1, else rate in kbytes
@@ -318,8 +318,8 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
        and upload speed when all torrents are seeding.
     """
 
-    def __init__(self):
-        UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager.__init__(self)
+    def __init__(self, session):
+        UserDefinedMaxAlwaysOtherwiseEquallyDividedRateManager.__init__(self, session)
 
         self.ROOM = 5.0  # the amount of room in speed underutilizing downloads get
 
@@ -404,8 +404,8 @@ class UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(UserDefine
                 self._logger.debug("RateManager: set_lim: %s InactQ %s", d.get_def().get_name(), setspeed)
                 d.set_max_speed(dir, setspeed)
 
-        if self.ltmgr is None and LibtorrentMgr.hasInstance():
-            self.ltmgr = LibtorrentMgr.getInstance()
+        if self.ltmgr is None:
+            self.ltmgr = self._session.get_libtorrent_process()
 
         if self.ltmgr:
             rate = self.global_max_speed[dir]  # unlimited == 0, stop == -1, else rate in kbytes
