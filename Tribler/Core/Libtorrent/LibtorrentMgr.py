@@ -22,15 +22,8 @@ METAINFO_TMPDIR = 'metadata_tmpdir'
 
 
 class LibtorrentMgr(object):
-    # Code to make this a singleton
-    __single = None
 
-    def __init__(self, trsession, ignore_singleton=False):
-        if not ignore_singleton:
-            if LibtorrentMgr.__single:
-                raise RuntimeError("LibtorrentMgr is singleton")
-            LibtorrentMgr.__single = self
-
+    def __init__(self, trsession):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.trsession = trsession
@@ -62,21 +55,6 @@ class LibtorrentMgr(object):
         self.metadata_tmpdir = os.path.join(self.trsession.get_state_dir(), METAINFO_TMPDIR)
         if not os.path.exists(self.metadata_tmpdir):
             os.mkdir(self.metadata_tmpdir)
-
-    def getInstance(*args, **kw):
-        if LibtorrentMgr.__single is None:
-            LibtorrentMgr(*args, **kw)
-        return LibtorrentMgr.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance():
-        del LibtorrentMgr.__single
-        LibtorrentMgr.__single = None
-    delInstance = staticmethod(delInstance)
-
-    def hasInstance():
-        return LibtorrentMgr.__single is not None
-    hasInstance = staticmethod(hasInstance)
 
     def create_session(self, hops=0):
         settings = lt.session_settings()
