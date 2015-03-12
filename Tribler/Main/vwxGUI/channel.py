@@ -980,7 +980,7 @@ class ManageChannelFilesManager(BaseManager):
 
     def startDownloadFromMagnet(self, url, *args, **kwargs):
         try:
-            return TorrentDef.retrieve_from_magnet(url, self.AddTDef, timeout=300)
+            return TorrentDef.retrieve_from_magnet(self.guiutility.utility.session, url, self.AddTDef, timeout=300)
 
         except:
             print_exc()
