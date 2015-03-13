@@ -43,7 +43,7 @@ def validTorrentFile(metainfo):
             host, port = pair
             if not isinstance(host, StringType):
                 raise ValueError('node host not string, but ' + repr(type(host)))
-            if not isinstance(port, IntType):
+            if not isinstance(port, (IntType, LongType)):
                 raise ValueError('node port not int, but ' + repr(type(port)))
 
     if not ('announce' in metainfo or 'nodes' in metainfo):
