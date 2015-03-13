@@ -76,7 +76,8 @@ class TestRemoteQuery(TestGuiAsServer):
 
             self.frame.top_bg.OnDownload()
             self.CallConditional(
-                120, lambda: self.frame.librarylist.GetNrResults() > 0, do_assert, 'no download in librarylist')
+                120, lambda: self.frame.librarylist.GetNrResults() > 0, do_assert, 'no download in librarylist',
+                tribler_session=self.guiUtility.utility.session, dump_statistics=True)
 
         def do_select():
             self.assert_(self.frame.searchlist.GetNrResults() > 0, 'no hits matching vodo + pioneer')
