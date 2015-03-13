@@ -1359,9 +1359,7 @@ class ChannelManager(object):
         def torrentFilter(torrent):
             okCategory = False
 
-            category = torrent.get("category", None)
-            if not category:
-                category = 0
+            category = torrent.get("category", u"unknown")
 
             if category.lower() in enabled_category_keys:
                 okCategory = True
