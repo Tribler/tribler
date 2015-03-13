@@ -214,7 +214,7 @@ class TestAsServer(AbstractServer):
 
         self._logger.debug("Session has shut down")
 
-    def assert_(self, boolean, reason=None, do_assert=True):
+    def assert_(self, boolean, reason=None, do_assert=True, tribler_session=None, dump_statistics=False):
         if not boolean:
             # print statistics if needed
             if tribler_session and dump_statistics:
@@ -317,13 +317,11 @@ class TestGuiAsServer(TestAsServer):
         self.asserts = []
         self.annotate(self._testMethodName, start=True)
 
-    def assert_(self, boolean, reason, do_assert=True):
+    def assert_(self, boolean, reason, do_assert=True, tribler_session=None, dump_statistics=False):
         if not boolean:
             # print statistics if needed
             if tribler_session and dump_statistics:
-                from twisted.python.threadable import isInIOThread
-                statistics_dict = tribler_session.get_statistics()
-                self._print_statistics(statistics_dict)
+                self._print_statistics(tribler_session.get_statistics())
 
             self.screenshot("ASSERT: %s" % reason)
             self.quit()
