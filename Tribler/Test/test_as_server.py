@@ -235,7 +235,9 @@ class TestAsServer(AbstractServer):
                 else:
                     # ignore other types for the moment
                     continue
+        self._logger.debug(u"========== Tribler Statistics BEGIN ==========")
         _print_data_dict(statistics_dict, 0)
+        self._logger.debug(u"========== Tribler Statistics END ==========")
 
     def startTest(self, callback):
         self.quitting = False
