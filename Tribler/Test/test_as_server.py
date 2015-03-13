@@ -212,10 +212,30 @@ class TestAsServer(AbstractServer):
 
         self._logger.debug("Session has shut down")
 
-    def assert_(self, boolean, reason=None, do_assert=True):
+    def assert_(self, boolean, reason=None, do_assert=True, tribler_session=None, dump_statistics=False):
         if not boolean:
+            # print statistics if needed
+            if tribler_session and dump_statistics:
+                statistics_dict = tribler_session.dump_statistics()
+                self._print_statistics(statistics_dict)
+
             self.quit()
             assert boolean, reason
+
+    def _print_statistics(self, statistics_dict):
+        def _print_data_dict(data_dict, level):
+            for k, v in data_dict.iteritems():
+                indents = u'-' + u'-' * 2 * level
+
+                if isinstance(v, basestring):
+                    self._logger.debug(u"%s %s: %s", indents, k, v)
+                elif isinstance(v, dict):
+                    self._logger.debug(u"%s %s:", indents, k)
+                    _print_data_dict(v, level + 1)
+                else:
+                    # ignore other types for the moment
+                    continue
+        _print_data_dict(statistics_dict, 0)
 
     def startTest(self, callback):
         self.quitting = False
@@ -287,8 +307,13 @@ class TestGuiAsServer(TestAsServer):
 
         self.annotate(self._testMethodName, start=True)
 
-    def assert_(self, boolean, reason, do_assert=True):
+    def assert_(self, boolean, reason, do_assert=True, tribler_session=None, dump_statistics=False):
         if not boolean:
+            # print statistics if needed
+            if tribler_session and dump_statistics:
+                statistics_dict = tribler_session.dump_statistics()
+                self._print_statistics(statistics_dict)
+
             self.screenshot("ASSERT: %s" % reason)
             self.quit()
 
