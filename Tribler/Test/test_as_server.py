@@ -216,7 +216,7 @@ class TestAsServer(AbstractServer):
         if not boolean:
             # print statistics if needed
             if tribler_session and dump_statistics:
-                statistics_dict = tribler_session.dump_statistics()
+                statistics_dict = tribler_session.get_statistics()
                 self._print_statistics(statistics_dict)
 
             self.quit()
@@ -249,7 +249,8 @@ class TestAsServer(AbstractServer):
                 time.sleep(seconds)
             callback()
 
-    def CallConditional(self, timeout, condition, callback, assertMsg=None, assertCallback=None):
+    def CallConditional(self, timeout, condition, callback, assertMsg=None, assertCallback=None,
+                        tribler_session=None, dump_statistics=False):
         t = time.time()
 
         def DoCheck():
@@ -278,8 +279,12 @@ class TestAsServer(AbstractServer):
                                        timeout,
                                        assertMsg or "no-assert-msg")
                     assertcall = assertCallback if assertCallback else self.assert_
+                    kwargs = {}
+                    if assertcall == self.assert_:
+                        kwargs = {'tribler_session': tribler_session, 'dump_statistics': dump_statistics}
+
                     assertcall(False, "%s - %s - Condition was not satisfied in %d seconds" %
-                               (test_id, assertMsg, timeout), do_assert=False)
+                               (test_id, assertMsg, timeout), do_assert=False, **kwargs)
         self.Call(0, DoCheck)
 
     def quit(self):
