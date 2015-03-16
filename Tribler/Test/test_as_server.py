@@ -282,13 +282,12 @@ class TestGuiAsServer(TestAsServer):
 
         self.annotate(self._testMethodName, start=True)
 
-    def assert_(self, boolean, reason, do_assert=True):
+    def assert_(self, boolean, reason):
         if not boolean:
             self.screenshot("ASSERT: %s" % reason)
             self.quit()
 
-            if do_assert:
-                assert boolean, reason
+            assert boolean, reason
 
     def startTest(self, callback, min_timeout=5, autoload_discovery=True):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
