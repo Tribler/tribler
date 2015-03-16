@@ -388,7 +388,7 @@ class TorrentDBHandler(BasicDBHandler):
         self._rtorrent_handler = None
 
     def getTorrentID(self, infohash):
-        return self.getTorrentIDS([infohash, ])[0]
+        return self.getTorrentIDS([infohash, ]).get(infohash)
 
     def getTorrentIDS(self, infohashes):
         to_select = []
@@ -400,23 +400,16 @@ class TorrentDBHandler(BasicDBHandler):
             if infohash not in self.infohash_id:
                 to_select.append(bin2str(infohash))
 
-        while len(to_select) > 0:
-            nrToQuery = min(len(to_select), 50)
-            parameters = '?,' * nrToQuery
-            sql_get_torrent_ids = "SELECT torrent_id, infohash FROM Torrent WHERE infohash IN (" + parameters[:-1] + ")"
+        parameters = '?,' * len(to_select)
+        parameters = parameters[:-1]
+        sql_stmt = u"SELECT torrent_id, infohash FROM Torrent WHERE infohash IN (%s)" % parameters
+        torrents = self._db.fetchall(sql_stmt, to_select)
+        for torrent_id, infohash in torrents:
+            self.infohash_id[str2bin(infohash)] = torrent_id
 
-            torrents = self._db.fetchall(sql_get_torrent_ids, to_select[:nrToQuery])
-            for torrent_id, infohash in torrents:
-                self.infohash_id[str2bin(infohash)] = torrent_id
-
-            to_select = to_select[nrToQuery:]
-
-        to_return = []
+        to_return = {}
         for infohash in infohashes:
-            if infohash in self.infohash_id:
-                to_return.append(self.infohash_id[infohash])
-            else:
-                to_return.append(None)
+            to_return[infohash] = self.infohash_id.get(infohash)
         return to_return
 
     def getInfohash(self, torrent_id):
@@ -501,16 +494,18 @@ class TorrentDBHandler(BasicDBHandler):
 
     def addOrGetTorrentIDSReturn(self, infohashes):
         to_be_inserted = set()
-        torrent_ids = self.getTorrentIDS(infohashes)
-        for i in range(len(torrent_ids)):
-            torrent_id = torrent_ids[i]
+        torrent_id_results = self.getTorrentIDS(infohashes)
+        for infohash, torrent_id in torrent_id_results.iteritems():
             if torrent_id is None:
-                to_be_inserted.add(infohashes[i])
+                to_be_inserted.add(infohash)
 
         sql = "INSERT INTO Torrent (infohash, status) VALUES (?, ?)"
         self._db.executemany(sql, [(bin2str(infohash), u'unknown') for infohash in to_be_inserted])
 
-        torrent_ids = self.getTorrentIDS(infohashes)
+        torrent_id_results = self.getTorrentIDS(infohashes)
+        torrent_ids = []
+        for infohash in infohashes:
+            torrent_ids.append(torrent_id_results[infohash])
         assert all(torrent_id for torrent_id in torrent_ids), torrent_ids
         return torrent_ids, to_be_inserted
 
@@ -1644,15 +1639,15 @@ class ChannelCastDBHandler(BasicDBHandler):
 
     def hasTorrents(self, channel_id, infohashes):
         returnAr = []
-        torrent_ids = self.torrent_db.getTorrentIDS(infohashes)
+        torrent_id_results = self.torrent_db.getTorrentIDS(infohashes)
 
-        for i in range(len(infohashes)):
-            if torrent_ids[i] is None:
+        for infohash in infohashes:
+            if torrent_id_results[infohash] is None:
                 returnAr.append(False)
-
             else:
+                torrent_id = torrent_id_results[infohash]
                 sql = "SELECT id FROM ChannelTorrents WHERE torrent_id = ? AND channel_id = ? AND dispersy_id <> -1"
-                channeltorrent_id = self._db.fetchone(sql, (torrent_ids[i], channel_id))
+                channeltorrent_id = self._db.fetchone(sql, (torrent_id, channel_id))
                 returnAr.append(True if channeltorrent_id else False)
         return returnAr
 
