@@ -14,7 +14,6 @@ from libtorrent import bdecode
 
 import requests
 
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.TorrentDef import TorrentDef
 
 import feedparser
@@ -63,7 +62,7 @@ class RssParser(Thread):
         if not self.isRegistered:
             self.session = session
             self.defaultkey = defaultkey
-            self.remote_th = RemoteTorrentHandler.getInstance()
+            self.remote_th = session.lm.rtorrent_handler
 
             dirname = self.getdir()
             if not os.path.exists(dirname):

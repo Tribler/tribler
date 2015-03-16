@@ -675,10 +675,7 @@ class ChannelCommunity(Community):
         return message
 
     def _disp_check_modification(self, messages):
-        from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
-        from Tribler.community.search.community import SearchCommunity
-
-        th_handler = RemoteTorrentHandler.getInstance()
+        th_handler = self.tribler_session.lm.rtorrent_handler
 
         for message in messages:
             if not self._channel_id:

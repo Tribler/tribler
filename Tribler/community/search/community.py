@@ -7,7 +7,7 @@ from traceback import print_exc
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
+from Tribler.Core.RemoteTorrentHandler import LOW_PRIO_COLLECTING
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.community.channel.payload import TorrentPayload
 from Tribler.community.channel.preview import PreviewChannelCommunity
@@ -67,8 +67,6 @@ class SearchCommunity(Community):
         self._mypref_db = None
         self._notifier = None
 
-        self._rtorrent_handler = None
-
         self.taste_bloom_filter = None
         self.taste_bloom_filter_key = None
 
@@ -92,9 +90,6 @@ class SearchCommunity(Community):
             self._torrent_db = tribler_session.open_dbhandler(NTFY_TORRENTS)
             self._mypref_db = tribler_session.open_dbhandler(NTFY_MYPREFERENCES)
             self._notifier = Notifier.getInstance()
-
-            # torrent collecting
-            self._rtorrent_handler = RemoteTorrentHandler.getInstance()
         else:
             self._channelcast_db = ChannelCastDBStub(self._dispersy)
             self._torrent_db = None
@@ -520,9 +515,9 @@ class SearchCommunity(Community):
                                        candidate, hexlify(infohash))
 
                     # low_prio changes, hence we need to import it here
-                    from Tribler.Core.RemoteTorrentHandler import LOW_PRIO_COLLECTING
-                    self._rtorrent_handler.download_torrent(candidate, infohash, priority=LOW_PRIO_COLLECTING,
-                                                            timeout=CANDIDATE_WALK_LIFETIME)
+                    self.tribler_session.lm.rtorrent_handler.download_torrent(candidate, infohash,
+                                                                              priority=LOW_PRIO_COLLECTING,
+                                                                              timeout=CANDIDATE_WALK_LIFETIME)
 
         sock_addrs = [message.candidate.sock_addr for message in messages]
         for taste_buddy in self.taste_buddies:
