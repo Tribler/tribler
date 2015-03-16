@@ -36,6 +36,35 @@ class TunnelConversion(BinaryConversion):
         self.define_meta_message(chr(19), community.get_meta_message(u"link-e2e"), self._encode_link_e2e, self._decode_link_e2e)
         self.define_meta_message(chr(20), community.get_meta_message(u"linked-e2e"), self._encode_linked_e2e, self._decode_linked_e2e)
 
+
+    def _encode_introduction_response(self, message):
+        payload = message.payload
+        data = [pack("!??", payload.exitnode, payload.connectable)]
+        data += list(super(TunnelConversion, self)._encode_introduction_response(message))
+        return tuple(data)
+
+    def _decode_introduction_response(self, placeholder, offset, data):
+        exitnode, connectable, = unpack_from('!??', data, offset)
+        offset += 2
+        offset, payload = super(TunnelConversion, self)._decode_introduction_response(placeholder, offset, data)
+        payload._exitnode = exitnode
+        payload._connectable = connectable
+        return (offset, payload)
+
+    def _encode_introduction_request(self, message):
+        payload = message.payload
+        data = [pack("!??", payload.exitnode, payload.connectable)]
+        data += super(TunnelConversion, self)._encode_introduction_request(message)
+        return data
+
+    def _decode_introduction_request(self, placeholder, offset, data):
+        exitnode, connectable, = unpack_from('!??', data, offset)
+        offset += 2
+        offset, payload = super(TunnelConversion, self)._decode_introduction_request(placeholder, offset, data)
+        payload._exitnode = exitnode
+        payload._connectable = connectable
+        return (offset, payload)
+
     def _encode_cell(self, message):
         payload = message.payload
         packet = pack("!IB", payload.circuit_id, self._encode_message_map[
@@ -59,11 +88,11 @@ class TunnelConversion(BinaryConversion):
     def _encode_create(self, message):
         payload = message.payload
         packet = pack("!IHH20s?", payload.circuit_id, len(payload.node_public_key),
-                      len(payload.key), payload.node_id, payload.become_exit) + payload.node_public_key + payload.key
+                      len(payload.key), payload.node_id, payload.exit_candidates) + payload.node_public_key + payload.key
         return packet,
 
     def _decode_create(self, placeholder, offset, data):
-        circuit_id, len_pubic_key, len_key, nodeid, become_exit = unpack_from('!IHH20s?', data, offset)
+        circuit_id, len_pubic_key, len_key, nodeid, exit_candidates = unpack_from('!IHH20s?', data, offset)
         offset += 29
 
         node_public_key = data[offset: offset + len_pubic_key]
@@ -72,7 +101,7 @@ class TunnelConversion(BinaryConversion):
         key = data[offset:offset + len_key]
         offset += len_key
 
-        return offset, placeholder.meta.payload.implement(circuit_id, nodeid, node_public_key, key, become_exit)
+        return offset, placeholder.meta.payload.implement(circuit_id, nodeid, node_public_key, key, exit_candidates)
 
     def _encode_created(self, message):
         payload = message.payload
@@ -95,7 +124,7 @@ class TunnelConversion(BinaryConversion):
     def _encode_extend(self, message):
         payload = message.payload
         packet = pack("!IHH20s?", payload.circuit_id, len(payload.node_public_key), len(payload.key), 
-                      payload.node_id, payload.become_exit) + payload.node_public_key + payload.key
+                      payload.node_id, payload.exit_candidates) + payload.node_public_key + payload.key
 
         if message.payload.node_addr:
             host, port = message.payload.node_addr
@@ -103,7 +132,7 @@ class TunnelConversion(BinaryConversion):
         return packet,
 
     def _decode_extend(self, placeholder, offset, data):
-        circuit_id, len_public_key, len_key, nodeid, become_exit = unpack_from('!IHH20s?', data, offset)
+        circuit_id, len_public_key, len_key, nodeid, exit_candidates = unpack_from('!IHH20s?', data, offset)
         offset += 29
 
         node_public_key = data[offset:offset + len_public_key]
@@ -118,7 +147,7 @@ class TunnelConversion(BinaryConversion):
             offset += 6
             node_addr = (inet_ntoa(host), port)
 
-        return offset, placeholder.meta.payload.implement(circuit_id, nodeid, node_public_key, node_addr, key, become_exit)
+        return offset, placeholder.meta.payload.implement(circuit_id, nodeid, node_public_key, node_addr, key, exit_candidates)
 
     def _encode_extended(self, message):
         payload = message.payload

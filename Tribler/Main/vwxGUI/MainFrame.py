@@ -56,6 +56,7 @@ from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, ManageCha
 from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
 
 from Tribler.Core.Video.utils import videoextdefaults
+from Tribler.Core.SessionConfig import SessionStartupConfig
 
 
 #
@@ -614,8 +615,12 @@ class MainFrame(wx.Frame):
     def monitorHiddenSerivcesProgress(self, ds, tdef, dscfg, selectedFiles):
         if ds.get_status() in [DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]:
             return (5.0, True)
-
-        if ds.get_current_speed(DOWNLOAD) == 0:
+        
+        state_dir = self.utility.session.get_state_dir()
+        cfgfilename = self.utility.session.get_default_config_filename(state_dir)
+        scfg = SessionStartupConfig.load(cfgfilename)
+        
+        if ds.get_current_speed(DOWNLOAD) == 0 and scfg.get_tunnel_community_hs_timeout_switch():
             download = ds.get_download()
             self.utility.session.remove_download(download)
 

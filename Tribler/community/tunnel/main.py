@@ -24,6 +24,9 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
+import logging.config
+#logging.config.fileConfig("logger.conf")
+
 try:
     import yappi
 except ImportError:

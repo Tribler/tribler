@@ -20,7 +20,8 @@ from Tribler.community.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDI
 from Tribler.community.tunnel.conversion import TunnelConversion
 from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, CreatedPayload, ExtendPayload,
                                               ExtendedPayload, DestroyPayload, PongPayload, PingPayload,
-                                              StatsRequestPayload, StatsResponsePayload)
+                                              StatsRequestPayload, StatsResponsePayload, 
+                                              TunnelIntroductionResponsePayload, TunnelIntroductionRequestPayload)
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.community.tunnel.tests.test_libtorrent import LibtorrentTest
 from Tribler.community.tunnel.Socks5.server import Socks5Server
@@ -57,7 +58,6 @@ class CircuitRequestCache(NumberCache):
             self.community.remove_circuit(self.number, reason)
             if self.retry:
                 self.retry()
-
 
 class CreatedRequestCache(NumberCache):
 
@@ -238,6 +238,8 @@ class TunnelCommunity(Community):
         self.waiting_for = set()
         self.exit_sockets = {}
         self.circuits_needed = {}
+        self.exit_candidates = {}
+        self.connectable_candidates = {}
         self.notifier = None
         self.made_anon_session = False
         self.selection_strategy = RoundRobin(self)
@@ -251,10 +253,11 @@ class TunnelCommunity(Community):
         self.trsession = self.settings = self.socks_server = self.libtorrent_test = None
 
     def initialize(self, tribler_session=None, settings=None):
-        super(TunnelCommunity, self).initialize()
-
+        
         self.trsession = tribler_session
         self.settings = settings if settings else TunnelSettings(tribler_session=tribler_session)
+        
+        super(TunnelCommunity, self).initialize()
 
         assert isinstance(self.settings.crypto, TunnelCrypto), self.settings.crypto
 
@@ -282,7 +285,7 @@ class TunnelCommunity(Community):
             if not self.libtorrent_test.has_completed_before():
                 self._logger.debug("Scheduling Anonymous LibTorrent download")
                 self.register_task("start_test", reactor.callLater(
-                    60, lambda: reactor.callInThread(self.libtorrent_test.start)))
+                    5, lambda: reactor.callInThread(self.libtorrent_test.start)))
                 return True
         return False
 
@@ -305,7 +308,30 @@ class TunnelCommunity(Community):
         return [master]
 
     def initiate_meta_messages(self):
-        return super(TunnelCommunity, self).initiate_meta_messages() + \
+        messages = super(TunnelCommunity, self).initiate_meta_messages()
+        copy_messages = messages[:]
+        for message in copy_messages:
+            if message.name == "dispersy-introduction-request" or message.name == "dispersy-introduction-response":
+                messages.remove(message)
+            
+        messages += [Message(self, u"dispersy-introduction-request",
+                                     MemberAuthentication(),
+                                     PublicResolution(),
+                                     DirectDistribution(),
+                                     CandidateDestination(),
+                                     TunnelIntroductionRequestPayload(),
+                                     self.check_introduction_request,
+                                     self.on_introduction_request),
+                             Message(self, u"dispersy-introduction-response",
+                                     MemberAuthentication(),
+                                     PublicResolution(),
+                                     DirectDistribution(),
+                                     CandidateDestination(),
+                                     TunnelIntroductionResponsePayload(),
+                                     self.check_introduction_response,
+                                     self.on_introduction_response)]
+            
+        return messages + \
             [Message(self, u"cell", NoAuthentication(), PublicResolution(), DirectDistribution(),
                      CandidateDestination(), CellPayload(), self._generic_timeline_check, self.on_cell),
                 Message(self, u"create", NoAuthentication(), PublicResolution(), DirectDistribution(),
@@ -451,13 +477,13 @@ class TunnelCommunity(Community):
         self.circuits[circuit_id] = circuit
         self.waiting_for.add(circuit_id)
 
-        # FIXME
-        becomes_exit = False
+        exit_candidates = circuit.goal_hops - 1 == len(circuit.hops) + 1
+        
         self.increase_bytes_sent(circuit, self.send_cell([first_hop], u"create", (circuit_id,
                                                                                   circuit.unverified_hop.node_id,
                                                                                   circuit.unverified_hop.node_public_key,
                                                                                   circuit.unverified_hop.dh_first_part,
-                                                                                  becomes_exit)))
+                                                                                  exit_candidates)))
 
         _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_BYTES_SENT, circuit.mid)
         return True
@@ -658,10 +684,6 @@ class TunnelCommunity(Community):
                 yield DropMessage(message, "TunnelCommunity: public keys do not match")
                 continue
             
-            if not self.settings.become_exitnode and message.payload.become_exit:
-                yield DropMessage(message, "Exit-node functionality disabled")
-                continue
-
             yield message
 
     def check_extend(self, messages):
@@ -716,9 +738,9 @@ class TunnelCommunity(Community):
         circuit.unverified_hop = None
 
         if circuit.state == CIRCUIT_STATE_EXTENDING:
-
-            next_is_exit = circuit.goal_hops - 1 == len(circuit.hops)
-            if next_is_exit and circuit.required_exit:
+            become_exit = circuit.goal_hops - 1 == len(circuit.hops)
+            exit_candidates = circuit.goal_hops - 1 == len(circuit.hops) + 1
+            if become_exit and circuit.required_exit:
                 host, port, pub_key = circuit.required_exit
                 extend_hop_public_bin = pub_key
                 extend_hop_addr = (host, port)
@@ -758,7 +780,7 @@ class TunnelCommunity(Community):
                                                                                                circuit.unverified_hop.node_public_key,
                                                                                                extend_hop_addr,
                                                                                                circuit.unverified_hop.dh_first_part,
-                                                                                               next_is_exit)))
+                                                                                               exit_candidates)))
 
             else:
                 self.remove_circuit(circuit.circuit_id, "no candidates to extend, bailing out.")
@@ -778,6 +800,30 @@ class TunnelCommunity(Community):
             from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_CREATED, NTFY_EXTENDED
             self.notifier.notify(NTFY_TUNNEL, NTFY_CREATED if len(circuit.hops) == 1 else NTFY_EXTENDED, circuit)
 
+
+    def on_introduction_request(self, messages):
+        connectable = False # Todo. Unused so far
+        exitnode = self.settings.become_exitnode
+        extra_payload = [exitnode, connectable]
+        super(TunnelCommunity, self).on_introduction_request(messages, extra_payload)
+        for message in messages:
+            pubkey = message.candidate.get_member().public_key
+            self.exit_candidates[pubkey] = message.payload.exitnode
+            self.connectable_candidates[pubkey] = message.payload.connectable
+     
+    def create_introduction_request(self, destination, allow_sync, forward=True, is_fast_walker=False):
+        connectable = False # Todo. Unused so far
+        exitnode = self.settings.become_exitnode
+        extra_payload = [exitnode, connectable]
+        super(TunnelCommunity, self).create_introduction_request(destination, allow_sync, forward, is_fast_walker, extra_payload)
+        
+    def on_introduction_response(self, messages):
+        super(TunnelCommunity, self).on_introduction_response(messages)
+        for message in messages:
+            pubkey = message.candidate.get_member().public_key
+            self.exit_candidates[pubkey] = message.payload.exitnode
+            self.connectable_candidates[pubkey] = message.payload.connectable
+     
     def on_cell(self, messages):
         for message in messages:
             circuit_id = message.payload.circuit_id
@@ -808,7 +854,7 @@ class TunnelCommunity(Community):
         for message in messages:
             candidate = message.candidate
             circuit_id = message.payload.circuit_id
-
+            
             if self.settings.max_relays_or_exits <= len(self.relay_from_to) + len(self.exit_sockets):
                 self._logger.error('TunnelCommunity: ignoring create for circuit %d from %s (too many relays %d)',
                                    circuit_id, candidate.sock_addr, len(self.relay_from_to) + len(self.exit_sockets))
@@ -827,7 +873,12 @@ class TunnelCommunity(Community):
 
             candidates = {}
             for c in self.dispersy_yield_verified_candidates():
-                candidates[c.get_member().public_key] = c
+                pubkey = c.get_member().public_key
+                if message.payload.exit_candidates and not self.exit_candidates[pubkey]:
+                    # Next candidates need to be exit nodes, and this candidate isn't
+                    continue
+                
+                candidates[pubkey] = c
                 if len(candidates) >= 4:
                     break
 
@@ -917,13 +968,14 @@ class TunnelCommunity(Community):
                                                                                                     message.payload.node_id,
                                                                                                     message.payload.node_public_key,
                                                                                                     message.payload.key,
-                                                                                                    message.payload.become_exit)))
+                                                                                                    message.payload.exit_candidates)))
 
     def on_extended(self, messages):
         for message in messages:
             circuit_id = message.payload.circuit_id
             circuit = self.circuits[circuit_id]
             self._ours_on_created_extended(circuit, message)
+
 
     @call_on_reactor_thread
     def on_data(self, sock_addr, packet):
@@ -1053,7 +1105,7 @@ class TunnelCommunity(Community):
 
     def exit_data(self, circuit_id, sock_addr, destination, data):
         if not self.settings.become_exitnode:
-            self._logger.error("Dropping data packets, I don't want to be an exit node")
+            self._logger.error("Dropping data packets, refusing to be an exit node")
         elif circuit_id in self.exit_sockets:
             if not self.exit_sockets[circuit_id].enabled:
                 # We got the correct circuit_id, but from a wrong IP.

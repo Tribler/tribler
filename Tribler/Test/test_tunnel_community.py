@@ -106,14 +106,14 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         self.startTest(replace_socks)
 
-    @timed(120)
+    @timed(180)
     def test_hidden_services(self):
         def take_second_screenshot():
             self.screenshot()
             self.quit()
 
         def take_screenshot(download_time):
-            self.screenshot("After an anonymous libtorrent download (took %.2f s)" % download_time)
+            self.screenshot("After libtorrent download over hidden services (took %.2f s)" % download_time)
             self.guiUtility.ShowPage('networkgraph')
             self.Call(1, take_second_screenshot)
 
@@ -133,7 +133,7 @@ class TestTunnelCommunity(TestGuiAsServer):
             self.CallConditional(120,
                                  lambda: download.get_progress() == 1.0,
                                  lambda: take_screenshot(time.time() - start_time),
-                                 'Anonymous download should be finished in 120 seconds (%.1f%% downloaded)' % (
+                                 'Hidden services download should be finished in 120 seconds (%.1f%% downloaded)' % (
                                      download.get_progress() * 100),
                                  on_fail
                                  )
@@ -222,8 +222,8 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         def setup_proxies():
             tunnel_communities = []
-            for i in range(3, 7):
-                tunnel_communities.append(create_proxy(i, i > 5))
+            for i in range(3, 10):
+                tunnel_communities.append(create_proxy(i, i > 7))
 
             # Connect the proxies to the Tribler instance
             for community in self.lm.dispersy.get_communities():
@@ -271,7 +271,7 @@ class TestTunnelCommunity(TestGuiAsServer):
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
                 settings = TunnelSettings(tribler_session=session)
                 settings.do_test = False
-                settings.become_exitnode = True #become_exit_node
+                settings.become_exitnode = become_exit_node
                 return dispersy.define_auto_load(HiddenTunnelCommunity, dispersy_member, (session, settings), load=True)[0]
 
             return blockingCallFromThread(reactor, load_community, session)

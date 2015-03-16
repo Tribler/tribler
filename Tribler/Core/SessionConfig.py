@@ -190,6 +190,14 @@ class SessionConfigInterface(object):
         path = u'tunnel_community~socks5_listen_ports~'
         return [self._get_random_port(path + unicode(index)) if port < 0 else port for index, port in enumerate(ports)]
 
+    def set_tunnel_community_hs_timeout_switch(self, value):
+        self.sessconfig.set(u'tunnel_community', u'hs_timeout_switch', value)
+
+    def get_tunnel_community_hs_timeout_switch(self):
+        """ Returns whether hidden services switch to anonymous downloading on timeout
+        @return Boolean. """
+        return self.sessconfig.get(u'tunnel_community', u'hs_timeout_switch')
+
     def set_tunnel_community_exitnode_enabled(self, value):
         self.sessconfig.set(u'tunnel_community', u'exitnode_enabled', value)
 

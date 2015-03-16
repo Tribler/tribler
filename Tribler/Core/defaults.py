@@ -66,6 +66,8 @@ sessdefaults['tunnel_community']['optin_dialog_shown'] = False
 sessdefaults['tunnel_community']['enabled'] = False
 sessdefaults['tunnel_community']['socks5_listen_ports'] = [-1] * 5
 sessdefaults['tunnel_community']['exitnode_enabled'] = False
+sessdefaults['tunnel_community']['hs_timeout_switch'] = True
+
 
 # Mainline DHT settings
 sessdefaults['mainline_dht'] = OrderedDict()
