@@ -32,7 +32,7 @@ class TestTunnelCommunity(TestGuiAsServer):
             self.guiUtility.ShowPage('networkgraph')
             self.Call(1, take_second_screenshot)
 
-        def on_fail(expected, reason, do_assert):
+        def on_fail(expected, reason):
             dispersy = self.session.lm.dispersy
             tunnel_community = next(c for c in dispersy.get_communities() if isinstance(c, HiddenTunnelCommunity))
 
@@ -42,7 +42,7 @@ class TestTunnelCommunity(TestGuiAsServer):
                 self.assert_(len(tunnel_community.circuits) >= 4,
                              "At least 4 circuits should have been created (got %d)" % len(tunnel_community.circuits),
                              False)
-                self.assert_(expected, reason, do_assert)
+                self.assert_(expected, reason)
 
             self.Call(1, do_asserts)
 
@@ -117,7 +117,7 @@ class TestTunnelCommunity(TestGuiAsServer):
             self.guiUtility.ShowPage('networkgraph')
             self.Call(1, take_second_screenshot)
 
-        def on_fail(expected, reason, do_assert):
+        def on_fail(expected, reason):
             dispersy = self.session.lm.dispersy
             tunnel_community = next(c for c in dispersy.get_communities() if isinstance(c, HiddenTunnelCommunity))
 
@@ -125,7 +125,7 @@ class TestTunnelCommunity(TestGuiAsServer):
 
             def do_asserts():
                 self.assert_(len(tunnel_community.circuits) >= 4, "At least 4 circuits should have been created", False)
-                self.assert_(expected, reason, do_assert)
+                self.assert_(expected, reason)
 
             self.Call(1, do_asserts)
 
