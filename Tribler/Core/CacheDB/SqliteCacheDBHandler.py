@@ -14,7 +14,6 @@ from time import time
 from traceback import print_exc
 from collections import OrderedDict
 from libtorrent import bencode
-
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.CacheDB.Notifier import Notifier
@@ -27,8 +26,8 @@ from Tribler.Core.simpledefs import (INFOHASH_LENGTH, NTFY_UPDATE, NTFY_INSERT, 
                                      NTFY_CHANNELCAST, NTFY_COMMENTS, NTFY_PLAYLISTS, NTFY_MODIFICATIONS,
                                      NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_STATE)
 from Tribler.dispersy.taskmanager import TaskManager
+from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 
-from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
 
 try:
     WindowsError
@@ -618,10 +617,9 @@ class TorrentDBHandler(BasicDBHandler):
             new_tracker_set.add('DHT')
 
         # get rid of junk trackers
-        from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
         # prepare the tracker list to add
         if announce:
-            tracker_url = getUniformedURL(announce)
+            tracker_url = get_uniformed_tracker_url(announce)
             if tracker_url:
                 new_tracker_set.add(tracker_url)
         if announce_list:
@@ -630,7 +628,7 @@ class TorrentDBHandler(BasicDBHandler):
                     # TODO: check this. a limited tracker list
                     if len(new_tracker_set) >= 25:
                         break
-                    tracker_url = getUniformedURL(tracker)
+                    tracker_url = get_uniformed_tracker_url(tracker)
                     if tracker_url:
                         new_tracker_set.add(tracker_url)
 
@@ -804,7 +802,7 @@ class TorrentDBHandler(BasicDBHandler):
                     continue
                 if tracker in ('DHT', 'no-DHT'):
                     continue
-                tracker = getUniformedURL(tracker)
+                tracker = get_uniformed_tracker_url(tracker)
                 if tracker and [tracker] not in new_tracker_list:
                     new_tracker_list.append([tracker])
 

@@ -1,7 +1,4 @@
 import re
-import logging
-
-logger = logging.getLogger(__name__)
 
 url_regex = re.compile(
     r'^(?:http|udp)://'  # http:// or udp
@@ -9,7 +6,7 @@ url_regex = re.compile(
     r'localhost|'  # localhost...
     r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
     r'(?::\d+)?'  # optional port
-    r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    r'(?:/?|[/?]\S+)$', re.IGNORECASE | re.UNICODE)
 
 
 # ------------------------------------------------------------
@@ -19,45 +16,46 @@ url_regex = re.compile(
 #    udp://tracker.openbittorrent.com:80
 #    http://tracker.openbittorrent.com:80/announce
 # ------------------------------------------------------------
-def getUniformedURL(tracker_url):
-    # check if there is any strange binary in URL
+def get_uniformed_tracker_url(tracker_url):
+    assert isinstance(tracker_url, basestring), u"tracker_url is not a basestring: %s" % type(tracker_url)
+
+    # check if the URL is valid unicode data
     try:
-        unicode(tracker_url)
-    except Exception:
-        logger.warn(u"Bad tracker URL [%s]", repr(tracker_url))
+        tracker_url = unicode(tracker_url)
+    except UnicodeDecodeError:
         return
 
     tracker_url = tracker_url.strip()
-    if tracker_url.endswith('/'):
+    if tracker_url.endswith(u'/'):
         tracker_url = tracker_url[:-1]
 
     # get tracker type
-    if tracker_url.startswith('http://'):
-        tracker_type = 'http'
+    if tracker_url.startswith(u'http://'):
+        tracker_type = u'http'
         remaning_part = tracker_url[7:]
-    elif tracker_url.startswith('udp://'):
-        tracker_type = 'udp'
+    elif tracker_url.startswith(u'udp://'):
+        tracker_type = u'udp'
         remaning_part = tracker_url[6:]
     else:
         return
 
     # host, port, and page
-    if remaning_part.find('/') == -1:
-        if tracker_type == 'http':
+    if remaning_part.find(u'/') == -1:
+        if tracker_type == u'http':
             return
         host_part = remaning_part
         page_part = None
     else:
-        host_part, page_part = remaning_part.split('/', 1)
+        host_part, page_part = remaning_part.split(u'/', 1)
 
-    if host_part.find(':') == -1:
-        if tracker_type == 'udp':
+    if host_part.find(u':') == -1:
+        if tracker_type == u'udp':
             return
         else:
             host = host_part
             port = 80
     else:
-        host, port = host_part.split(':', 1)
+        host, port = host_part.split(u':', 1)
 
     try:
         port = int(port)
@@ -66,10 +64,14 @@ def getUniformedURL(tracker_url):
 
     page = page_part
 
-    if tracker_type == 'http':
-        uniformed_url = '%s://%s:%d/%s' % (tracker_type, host, port, page)
+    if tracker_type == u'http':
+        # omit the port number if it is 80 for an HTTP tracker
+        if port == 80:
+            uniformed_url = u'%s://%s/%s' % (tracker_type, host, page)
+        else:
+            uniformed_url = u'%s://%s:%d/%s' % (tracker_type, host, port, page)
     else:
-        uniformed_url = '%s://%s:%d' % (tracker_type, host, port)
+        uniformed_url = u'%s://%s:%d' % (tracker_type, host, port)
 
     if url_regex.match(uniformed_url):
         return uniformed_url

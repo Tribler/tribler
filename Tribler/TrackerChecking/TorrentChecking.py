@@ -1,19 +1,17 @@
 import binascii
 import time
 import logging
-
 import select
 import socket
-
 import threading
 from threading import Thread
 import Queue
-
 from traceback import print_exc
 
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Core.TorrentDef import TorrentDef
+
 
 try:
     prctlimported = True
@@ -21,7 +19,7 @@ try:
 except ImportError as e:
     prctlimported = False
 
-from Tribler.TrackerChecking.TrackerUtility import getUniformedURL
+from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 from Tribler.TrackerChecking.TrackerInfoCache import TrackerInfoCache
 from Tribler.TrackerChecking.TrackerSession import TrackerSession
 from Tribler.TrackerChecking.TrackerSession import TRACKER_ACTION_CONNECT
@@ -211,7 +209,7 @@ class TorrentChecking(Thread):
         for tracker in tracker_set:
             if tracker == 'no-DHT' or tracker == 'DHT':
                 continue
-            tracker_url = getUniformedURL(tracker)
+            tracker_url = get_uniformed_tracker_url(tracker)
             if tracker_url:
                 checked_tracker_set.add(tracker_url)
 
