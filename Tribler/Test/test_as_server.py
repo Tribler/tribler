@@ -285,12 +285,15 @@ class TestGuiAsServer(TestAsServer):
         self.hadSession = False
         self.quitting = False
 
+        self.asserts = []
         self.annotate(self._testMethodName, start=True)
 
     def assert_(self, boolean, reason, do_assert=True):
         if not boolean:
             self.screenshot("ASSERT: %s" % reason)
             self.quit()
+
+            self.asserts.append((boolean, reason))
 
             if do_assert:
                 assert boolean, reason
@@ -406,6 +409,9 @@ class TestGuiAsServer(TestAsServer):
             self._logger.debug("Finished printing content of pymdht.log")
 
         AbstractServer.tearDown(self, annotate=False)
+
+        for boolean, reason in self.asserts:
+            assert boolean, reason
 
     def screenshot(self, title=None, destdir=OUTPUT_DIR, window=None):
         try:
