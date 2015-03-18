@@ -125,7 +125,7 @@ class TorrentCollectRequestPayload(Payload):
 
     class Implementation(Payload.Implementation):
 
-        def __init__(self, meta, identifier, torrents):
+        def __init__(self, meta, identifier, hashtype, torrents):
             if __debug__:
                 assert isinstance(identifier, int), type(identifier)
                 assert isinstance(torrents, list), type(torrents)
@@ -139,14 +139,22 @@ class TorrentCollectRequestPayload(Payload):
                     assert isinstance(ago, int), type(ago)
                     assert 0 <= ago < 2 ** 16, ago
 
+                assert isinstance(hashtype, int), type(hashtype)
+                assert 0 <= hashtype < 2 ** 16, hashtype
+
             super(TorrentCollectRequestPayload.Implementation, self).__init__(meta)
 
             self._identifier = identifier
+            self._hashtype = hashtype
             self._torrents = torrents
 
         @property
         def identifier(self):
             return self._identifier
+
+        @property
+        def hashtype(self):
+            return self._hashtype
 
         @property
         def torrents(self):
