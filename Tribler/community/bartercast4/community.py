@@ -75,18 +75,6 @@ class BarterCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), StatisticsConversion(self)]
 
-    @property
-    def dispersy_sync_response_limit(self):
-        return 1
-
-    @property
-    def dispersy_sync_skip_enable(self):
-        return False
-
-    @property
-    def dispersy_sync_cache_enable(self):
-        return False
-
     def create_stats_request(self, candidate, stats_type):
         log.msg("Creating stats-request for type %d to member: %s" % (stats_type, candidate._association.mid.encode("hex")))
         meta = self.get_meta_message(u"stats-request")

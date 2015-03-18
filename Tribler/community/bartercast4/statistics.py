@@ -93,7 +93,6 @@ class BarterStatistics(object):
             if not t in statistics:
                 statistics[t] = defaultdict()
             statistics[t][peer] = value
-        print statistics
         self.bartercast = statistics
         return statistics
 
