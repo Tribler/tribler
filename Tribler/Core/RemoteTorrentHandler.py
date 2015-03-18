@@ -471,7 +471,7 @@ class MagnetRequester(Requester):
             self._logger.debug(u"requesting %s priority %s through magnet link %s",
                                infohash_str, self._priority, magnetlink)
 
-            TorrentDef.retrieve_from_magnet(magnetlink, self._success_callback, timeout=self.TIMEOUT,
+            TorrentDef.retrieve_from_magnet(self._session, magnetlink, self._success_callback, timeout=self.TIMEOUT,
                                             timeout_callback=self._failure_callback, silent=True)
             self._running_requests.append(infohash)
 

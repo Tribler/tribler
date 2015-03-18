@@ -225,7 +225,7 @@ class ABCApp(object):
 
             # Create global rate limiter
             self.splash.tick('Setting up ratelimiters')
-            self.ratelimiter = UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager()
+            self.ratelimiter = UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(s)
 
             # Counter to suppress some event from occurring
             self.ratestatecallbackcount = 0

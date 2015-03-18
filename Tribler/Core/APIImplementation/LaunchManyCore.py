@@ -217,7 +217,7 @@ class TriblerLaunchMany(Thread):
 
         if self.session.get_libtorrent():
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
-            self.ltmgr = LibtorrentMgr(self.session, ignore_singleton=self.session.ignore_singleton)
+            self.ltmgr = LibtorrentMgr(self.session)
 
         # add task for tracker checking
         if self.session.get_torrent_checking():
@@ -710,7 +710,6 @@ class TriblerLaunchMany(Thread):
         # Shutdown libtorrent session after checkpoints have been made
         if self.ltmgr:
             self.ltmgr.shutdown()
-            self.ltmgr.delInstance()
 
     def save_download_pstate(self, infohash, pstate):
         """ Called by network thread """
