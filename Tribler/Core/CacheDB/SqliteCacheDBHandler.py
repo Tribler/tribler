@@ -612,9 +612,9 @@ class TorrentDBHandler(BasicDBHandler):
         # check if to use DHT
         new_tracker_set = set()
         if torrentdef.is_private():
-            new_tracker_set.add('no-DHT')
+            new_tracker_set.add(u'no-DHT')
         else:
-            new_tracker_set.add('DHT')
+            new_tracker_set.add(u'DHT')
 
         # get rid of junk trackers
         # prepare the tracker list to add
@@ -775,8 +775,8 @@ class TorrentDBHandler(BasicDBHandler):
 
         # update tracker info
         not_found_tracker_list = [tracker for tracker in tracker_list if tracker not in found_tracker_list]
-        if not_found_tracker_list:
-            self.addTrackerInfoInBatch(not_found_tracker_list)
+        for tracker in not_found_tracker_list:
+            self.session.lm.tracker_manager.add_tracker(tracker)
 
         # update torrent-tracker mapping
         sql = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
