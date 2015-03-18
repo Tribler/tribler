@@ -17,13 +17,8 @@ from Tribler.Core.simpledefs import DLMODE_VOD
 
 
 class VideoServer(ThreadingMixIn, HTTPServer):
-    __single = None
 
     def __init__(self, port, session):
-        if VideoServer.__single:
-            raise RuntimeError("VideoServer is Singleton")
-        VideoServer.__single = self
-
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.port = port
@@ -38,16 +33,6 @@ class VideoServer(ThreadingMixIn, HTTPServer):
 
         self.daemon_threads = True
         self.allow_reuse_address = True
-
-    def getInstance(*args, **kw):
-        if VideoServer.__single is None:
-            VideoServer(*args, **kw)
-        return VideoServer.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        VideoServer.__single = None
-    delInstance = staticmethod(delInstance)
 
     def start(self):
         self.server_thread = Thread(target=self.serve_forever, name="VideoHTTPServerThread-1")

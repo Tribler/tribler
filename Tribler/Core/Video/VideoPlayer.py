@@ -51,7 +51,7 @@ class VideoPlayer(object):
         self.vlcwrap = VLCWrapper() if self.playbackmode == PLAYBACKMODE_INTERNAL else None
 
         # Start HTTP server for serving video
-        self.videoserver = VideoServer.getInstance(httpport or self.session.get_videoplayer_port(), self.session)
+        self.videoserver = VideoServer(httpport or self.session.get_videoplayer_port(), self.session)
         self.videoserver.start()
 
         self.notifier = Notifier.getInstance()
