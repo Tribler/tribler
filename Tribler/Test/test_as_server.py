@@ -232,11 +232,15 @@ class TestAsServer(AbstractServer):
 
         def DoCheck():
             if not self.quitting:
+                # only use the last two parts as the ID because the full name is too long
+                test_id = self.id()
+                test_id = '.'.join(test_id.split('.')[-2:])
+
                 if time.time() - t < timeout:
                     try:
                         if condition():
                             self._logger.debug("%s - condition satisfied after %d seconds, calling callback '%s'",
-                                               self.id(), time.time() - t, callback.__name__)
+                                               test_id, time.time() - t, callback.__name__)
                             callback()
                         else:
                             self.Call(0.5, DoCheck)
@@ -244,16 +248,16 @@ class TestAsServer(AbstractServer):
                     except:
                         print_exc()
                         self.assert_(False, '%s - Condition or callback raised an exception, quitting (%s)' %
-                                     (self.id(), assertMsg or "no-assert-msg"), do_assert=False)
+                                     (test_id, assertMsg or "no-assert-msg"), do_assert=False)
                 else:
                     self._logger.debug("%s - %s, condition was not satisfied in %d seconds (%s)",
-                                       self.id(),
+                                       test_id,
                                        ('calling callback' if assertCallback else 'quitting'),
                                        timeout,
                                        assertMsg or "no-assert-msg")
                     assertcall = assertCallback if assertCallback else self.assert_
                     assertcall(False, "%s - %s - Condition was not satisfied in %d seconds" %
-                               (self.id(), assertMsg, timeout), do_assert=False)
+                               (test_id, assertMsg, timeout), do_assert=False)
         self.Call(0, DoCheck)
 
     def quit(self):
