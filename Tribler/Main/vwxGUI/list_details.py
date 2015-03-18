@@ -912,7 +912,7 @@ class TorrentDetails(AbstractDetails):
             diff = time() - last_check
 
             if diff > 1800:
-                self.utility.session.lm.torrent_checker.add_gui_request(self.torrent.infohash)
+                self.utility.session.check_torrent_health(self.torrent.infohash)
                 self.ShowHealth(True)
             else:
                 self.ShowHealth(False)

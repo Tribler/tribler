@@ -317,7 +317,7 @@ class TorrentManager(object):
 
             else:
                 # schedule health check
-                self.session.lm.torrent_checker.add_gui_request(hit.infohash)
+                self.session.check_torrent_health(hit.infohash)
 
     def getSearchKeywords(self):
         return self.searchkeywords, len(self.hits), self.filteredResults
