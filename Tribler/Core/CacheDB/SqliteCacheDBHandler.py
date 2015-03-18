@@ -776,7 +776,8 @@ class TorrentDBHandler(BasicDBHandler):
         # update tracker info
         not_found_tracker_list = [tracker for tracker in tracker_list if tracker not in found_tracker_list]
         for tracker in not_found_tracker_list:
-            self.session.lm.tracker_manager.add_tracker(tracker)
+            if self.session.lm.tracker_manager is not None:
+                self.session.lm.tracker_manager.add_tracker(tracker)
 
         # update torrent-tracker mapping
         sql = 'INSERT OR IGNORE INTO TorrentTrackerMapping(torrent_id, tracker_id)'\
