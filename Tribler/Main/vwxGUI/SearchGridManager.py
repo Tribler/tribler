@@ -10,7 +10,6 @@ import wx
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
-from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.simpledefs import (NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST,
                                      NTFY_METADATA, DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK,
@@ -635,7 +634,7 @@ class LibraryManager(object):
         """
         Returns the VideoPlayer instance.
         """
-        return VideoPlayer.getInstance()
+        return self.guiUtility.utility.session.lm.videoplayer
 
     def download_state_callback(self, dslist):
         """

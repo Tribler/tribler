@@ -18,14 +18,13 @@ from Tribler.Core.simpledefs import DLMODE_VOD
 
 class VideoServer(ThreadingMixIn, HTTPServer):
 
-    def __init__(self, port, session):
+    def __init__(self, port, session, video_player):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.port = port
         self.session = session
 
-        from Tribler.Core.Video.VideoPlayer import VideoPlayer
-        self.videoplayer = VideoPlayer.getInstance()
+        self.videoplayer = video_player
 
         HTTPServer.__init__(self, ("127.0.0.1", self.port), VideoRequestHandler)
 
