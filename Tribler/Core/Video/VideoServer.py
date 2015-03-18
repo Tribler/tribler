@@ -79,7 +79,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
         if self.request_version == 'HTTP/1.1':
             self.protocol_version = 'HTTP/1.1'
 
-        self._logger.debug("VideoServer: VOD request %s %s", self.client_address, self.path)
+        self._logger.debug("VOD request %s %s", self.client_address, self.path)
         downloadhash, fileindex = self.path.strip('/').split('/')
         downloadhash = unhexlify(downloadhash)
         download = self.server.session.get_download(downloadhash)
@@ -122,7 +122,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
             nbytes2send = length
             self.send_response(200)
 
-        self._logger.debug("VideoServer: requested range %d - %d", firstbyte, firstbyte + nbytes2send)
+        self._logger.debug("requested range %d - %d", firstbyte, firstbyte + nbytes2send)
 
         mimetype = mimetypes.guess_type(filename)[0]
         if mimetype:
@@ -167,7 +167,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
                     nbyteswritten += len(data)
 
             if nbyteswritten != nbytes2send:
-                self._logger.error("VideoServer: sent wrong amount, wanted %s got %s", nbytes2send, nbyteswritten)
+                self._logger.error("sent wrong amount, wanted %s got %s", nbytes2send, nbyteswritten)
 
             if not requested_range:
                 stream.close()
