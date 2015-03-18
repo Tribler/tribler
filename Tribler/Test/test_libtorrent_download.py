@@ -3,7 +3,6 @@
 import unittest
 import os
 from time import time
-
 import binascii
 
 from Tribler.Core.simpledefs import DOWNLOAD
@@ -32,7 +31,8 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.frame.startDownload(
                 os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"), self.getDestDir())
 
-            self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready)
+            self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready,
+                                 'do_downloadfromfile() failed')
 
         self.startTest(do_downloadfromfile)
 
@@ -56,7 +56,8 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.frame.startDownloadFromUrl(
                 r'http://torrent.fedoraproject.org/torrents/Fedora-Live-Desktop-x86_64-19.torrent', self.getDestDir())
 
-            self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready)
+            self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready,
+                                 'do_downloadfromurl() failed')
 
         self.startTest(do_downloadfromurl)
 
@@ -80,7 +81,8 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.frame.startDownloadFromMagnet(
                 r'magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', self.getDestDir())
 
-            self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready)
+            self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready,
+                                 'do_downloadfrommagnet() failed')
 
         self.startTest(do_downloadfrommagnet)
 
@@ -127,7 +129,8 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.guiUtility.showLibrary()
             self.frame.startDownloadFromUrl(
                 r'http://torrent.fedoraproject.org/torrents/Fedora-Live-Desktop-x86_64-19.torrent', self.getDestDir())
-            self.CallConditional(60, lambda: self.session.get_download(infohash), download_object_ready)
+            self.CallConditional(60, lambda: self.session.get_download(infohash), download_object_ready,
+                                 'do_start() failed')
 
         self.startTest(do_start)
 
