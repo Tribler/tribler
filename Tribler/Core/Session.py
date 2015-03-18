@@ -622,3 +622,6 @@ class Session(SessionConfigInterface):
         :return: The number of requests made.
         """
         return self.lm.torrent_search_manager.search(keywords)
+
+    def notify(self, subject, notify_type, object_id, *args):
+        self.uch.notify(subject, notify_type, object_id, *args)
