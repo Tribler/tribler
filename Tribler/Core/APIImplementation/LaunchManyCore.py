@@ -119,7 +119,7 @@ class TriblerLaunchMany(Thread):
             # torrent collecting: RemoteTorrentHandler
             if self.session.get_torrent_collecting():
                 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
-                self.rtorrent_handler = RemoteTorrentHandler()
+                self.rtorrent_handler = RemoteTorrentHandler(self.session)
 
             # TODO(emilon): move this to a megacache component or smth
             if self.session.get_megacache():
@@ -232,8 +232,7 @@ class TriblerLaunchMany(Thread):
                 print_exc()
 
         if self.rtorrent_handler:
-            self.rtorrent_handler.register(self.dispersy, self.session,
-                                           self.session.get_torrent_collecting_max_torrents())
+            self.rtorrent_handler.initialize()
 
         self.initComplete = True
 
