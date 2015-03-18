@@ -389,7 +389,7 @@ class HttpTrackerSession(TrackerSession):
             return False
 
         unprocessed_infohash_list = self._infohash_list[:]
-        if 'files' in response_dict:
+        if 'files' in response_dict and isinstance(response_dict['files'], dict):
             for infohash in response_dict['files']:
                 downloaded = response_dict['files'][infohash].get('downloaded', 0)
                 complete = response_dict['files'][infohash].get('complete', 0)
