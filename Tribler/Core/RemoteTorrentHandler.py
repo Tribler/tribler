@@ -29,11 +29,7 @@ MAX_PRIORITY = 1
 
 class RemoteTorrentHandler(TaskManager):
 
-    __single = None
-
     def __init__(self):
-        RemoteTorrentHandler.__single = self
-
         super(RemoteTorrentHandler, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -52,16 +48,6 @@ class RemoteTorrentHandler(TaskManager):
         self.max_num_torrents = 0
         self.tor_col_dir = None
         self.torrent_db = None
-
-    def getInstance(*args, **kw):
-        if RemoteTorrentHandler.__single is None:
-            RemoteTorrentHandler(*args, **kw)
-        return RemoteTorrentHandler.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        RemoteTorrentHandler.__single = None
-    delInstance = staticmethod(delInstance)
 
     def register(self, dispersy, session, max_num_torrents):
         self.session = session

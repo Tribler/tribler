@@ -636,7 +636,6 @@ class TriblerLaunchMany(Thread):
             self.torrent_search_manager = None
         if self.rtorrent_handler:
             self.rtorrent_handler.shutdown()
-            self.rtorrent_handler.delInstance()
             self.rtorrent_handler = None
         if self.torrent_checking:
             self.torrent_checking.shutdown()
