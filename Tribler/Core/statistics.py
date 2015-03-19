@@ -109,7 +109,10 @@ class TriblerStatistics(object):
                 u"Statistics": self._get_community_rawinfo(community),
             }
 
-            community_data_dict[community.hex_cid] = community_data
+            key = u"%s: %s" % (community.hex_cid, community.classification)
+            community_data_dict[key] = community_data
+
+        return community_data_dict
 
     def _get_community_rawinfo(self, community):
         categories = (u"attachment", u"endpoint_recv", u"endpoint_send",

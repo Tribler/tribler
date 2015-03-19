@@ -20,6 +20,8 @@ wxversion.select("2.8-unicode")
 
 import wx
 
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
+
 from Tribler.Core import defaults
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
@@ -216,12 +218,12 @@ class TestAsServer(AbstractServer):
         if not boolean:
             # print statistics if needed
             if tribler_session and dump_statistics:
-                statistics_dict = tribler_session.get_statistics()
-                self._print_statistics(statistics_dict)
+                self._print_statistics(tribler_session.get_statistics())
 
             self.quit()
             assert boolean, reason
 
+    @blocking_call_on_reactor_thread
     def _print_statistics(self, statistics_dict):
         def _print_data_dict(data_dict, level):
             for k, v in data_dict.iteritems():
@@ -318,7 +320,8 @@ class TestGuiAsServer(TestAsServer):
         if not boolean:
             # print statistics if needed
             if tribler_session and dump_statistics:
-                statistics_dict = tribler_session.dump_statistics()
+                from twisted.python.threadable import isInIOThread
+                statistics_dict = tribler_session.get_statistics()
                 self._print_statistics(statistics_dict)
 
             self.screenshot("ASSERT: %s" % reason)
