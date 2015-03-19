@@ -9,7 +9,6 @@ import wx
 
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.Video.utils import videoextdefaults
@@ -1014,7 +1013,7 @@ class ChannelManager(object):
             self.votecastdb = self.session.open_dbhandler(NTFY_VOTECAST)
             self.torrentsearch_manager = torrentsearch_manager
             self.library_manager = library_manager
-            self.remote_th = RemoteTorrentHandler.getInstance()
+            self.remote_th = session.lm.rtorrent_handler
 
             self.dispersy = session.lm.dispersy
 

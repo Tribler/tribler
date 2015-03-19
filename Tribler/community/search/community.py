@@ -7,7 +7,6 @@ from traceback import print_exc
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.community.channel.payload import TorrentPayload
 from Tribler.community.channel.preview import PreviewChannelCommunity
@@ -94,7 +93,7 @@ class SearchCommunity(Community):
             self._notifier = Notifier.getInstance()
 
             # torrent collecting
-            self._rtorrent_handler = RemoteTorrentHandler.getInstance()
+            self._rtorrent_handler = tribler_session.lm.rtorrent_handler
         else:
             self._channelcast_db = ChannelCastDBStub(self._dispersy)
             self._torrent_db = None
