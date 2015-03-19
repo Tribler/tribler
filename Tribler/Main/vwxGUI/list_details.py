@@ -18,7 +18,6 @@ from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.Video.VideoUtility import limit_resolution
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
-from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 
 from Tribler.community.channel.community import ChannelCommunity
 
@@ -913,7 +912,7 @@ class TorrentDetails(AbstractDetails):
             diff = time() - last_check
 
             if diff > 1800:
-                TorrentChecking.getInstance().addGuiRequest(self.torrent)
+                self.utility.session.check_torrent_health(self.torrent.infohash)
                 self.ShowHealth(True)
             else:
                 self.ShowHealth(False)

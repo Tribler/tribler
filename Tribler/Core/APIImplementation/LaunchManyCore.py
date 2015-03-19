@@ -94,7 +94,8 @@ class TriblerLaunchMany(Thread):
 
         self.mainline_dht = None
         self.ltmgr = None
-        self.torrent_checking = None
+        self.tracker_manager = None
+        self.torrent_checker = None
         self.tunnel_community = None
 
     def register(self, session, sesslock, autoload_discovery=True):
@@ -147,6 +148,10 @@ class TriblerLaunchMany(Thread):
                 self.mypref_db.initialize()
                 self.votecast_db.initialize()
                 self.channelcast_db.initialize()
+
+                from Tribler.Core.Modules.tracker_manager import TrackerManager
+                self.tracker_manager = TrackerManager(self.session)
+                self.tracker_manager.initialize()
 
             if self.session.get_videoplayer():
                 self.videoplayer = VideoPlayer(self.session)
@@ -222,12 +227,11 @@ class TriblerLaunchMany(Thread):
         # add task for tracker checking
         if self.session.get_torrent_checking():
             try:
-                from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
+                from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
                 self.torrent_checking_period = self.session.get_torrent_checking_period()
-                self.torrent_checking = TorrentChecking(self.session,
-                                                        torrent_select_interval=self.torrent_checking_period)
-                self.torrent_checking.start()
-                self.run_torrent_check()
+                self.torrent_checker = TorrentChecker(self.session,
+                                                      torrent_select_interval=self.torrent_checking_period)
+                self.torrent_checker.initialize()
             except:
                 print_exc()
 
@@ -631,6 +635,9 @@ class TriblerLaunchMany(Thread):
 
         # Note: sesslock not held
         self.shutdownstarttime = timemod.time()
+        if self.torrent_checker:
+            self.torrent_checker.shutdown()
+            self.torrent_checker = None
         if self.torrent_search_manager:
             self.torrent_search_manager.shutdown()
             self.torrent_search_manager = None
@@ -638,14 +645,14 @@ class TriblerLaunchMany(Thread):
             self.rtorrent_handler.shutdown()
             self.rtorrent_handler.delInstance()
             self.rtorrent_handler = None
-        if self.torrent_checking:
-            self.torrent_checking.shutdown()
-            self.torrent_checking.delInstance()
-            self.torrent_checking = None
         if self.videoplayer:
             self.videoplayer.shutdown()
             self.videoplayer.delInstance()
             self.videoplayer = None
+
+        if self.tracker_manager:
+            self.tracker_manager.shutdown()
+            self.tracker_manager = None
 
         if self.tftp_handler:
             self.tftp_handler.shutdown()
@@ -760,26 +767,6 @@ class TriblerLaunchMany(Thread):
     def set_activity(self, type, str='', arg2=None):
         """ Called by overlay + network thread """
         self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, type, str, arg2)
-
-    def update_torrent_checking_period(self):
-        # dynamically change the interval: update at least every 2h
-        if self.rtorrent_handler:
-            ntorrents = self.rtorrent_handler.num_torrents
-            if ntorrents > 0:
-                self.torrent_checking_period = min(max(7200 / ntorrents, 10), 100)
-
-    def run_torrent_check(self):
-        """ Called by network thread """
-        if not self.torrent_checking:
-            return
-
-        self.update_torrent_checking_period()
-        self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
-        try:
-            self.torrent_checking.setTorrentSelectionInterval(self.torrent_checking_period)
-        except Exception as e:
-            print_exc()
-            self.rawserver_nonfatalerrorfunc(e)
 
     def get_external_ip(self):
         """ Returns the external IP address of this Session, i.e., by which

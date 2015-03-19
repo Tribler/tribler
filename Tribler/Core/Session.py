@@ -622,3 +622,10 @@ class Session(SessionConfigInterface):
         :return: The number of requests made.
         """
         return self.lm.torrent_search_manager.search(keywords)
+
+    def check_torrent_health(self, infohash):
+        """
+        Checks the given torrent's health on its trackers.
+        :param infohash: The given torrent infohash.
+        """
+        self.lm.torrent_checker.add_gui_request(infohash)

@@ -165,6 +165,11 @@ class TestTorrentDBHandler(AbstractDB):
     def setUp(self):
         super(TestTorrentDBHandler, self).setUp()
 
+        from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
+        from Tribler.Core.Modules.tracker_manager import TrackerManager
+        self.session.lm = TriblerLaunchMany()
+        self.session.lm.tracker_manager = TrackerManager(self.session)
+        self.session.lm.tracker_manager.initialize()
         self.tdb = TorrentDBHandler(self.session)
         self.tdb.torrent_dir = FILES_DIR
         self.tdb.category = Category.getInstance()
@@ -253,7 +258,7 @@ class TestTorrentDBHandler(AbstractDB):
 
         m_trackers = self.tdb.getTrackerListByInfohash(m_infohash)
         assert len(m_trackers) == 8
-        assert 'http://tpb.tracker.thepiratebay.org:80/announce' in m_trackers, m_trackers
+        assert 'http://tpb.tracker.thepiratebay.org/announce' in m_trackers, m_trackers
 
         s_torrent = self.tdb.getTorrent(s_infohash)
         m_torrent = self.tdb.getTorrent(m_infohash)

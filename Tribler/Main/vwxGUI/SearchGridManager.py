@@ -28,7 +28,6 @@ from Tribler.Main.vwxGUI import (warnWxThread, forceWxThread, TORRENT_REQ_COLUMN
                                  MODERATION_REQ_COLUMNS, MARKING_REQ_COLUMNS, COMMENT_REQ_COLUMNS,
                                  TUMBNAILTORRENT_REQ_COLUMNS)
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import (ChannelCommunity, warnDispersyThread)
@@ -318,7 +317,7 @@ class TorrentManager(object):
 
             else:
                 # schedule health check
-                TorrentChecking.getInstance().addGuiRequest(hit)
+                self.session.check_torrent_health(hit.infohash)
 
     def getSearchKeywords(self):
         return self.searchkeywords, len(self.hits), self.filteredResults
