@@ -109,7 +109,7 @@ class TriblerStatistics(object):
                 u"Statistics": self._get_community_rawinfo(community),
             }
 
-            key = u"%s: %s" % (community.hex_cid, community.classification)
+            key = u"<%s>: %s" % (community.classification, community.hex_cid)
             community_data_dict[key] = community_data
 
         return community_data_dict
