@@ -32,7 +32,8 @@ class TestBarterStatistics(TestAsServer):
         self.config.set_state_dir(self.getStateDir())
         self.config.set_torrent_checking(False)
         self.config.set_multicast_local_peer_discovery(False)
-        self.config.set_megacache(False)
+        # required by db handler
+        self.config.set_megacache(True)
         self.config.set_dispersy(True)
         self.config.set_mainline_dht(False)
         self.config.set_torrent_store(False)
