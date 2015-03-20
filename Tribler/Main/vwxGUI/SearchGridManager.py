@@ -438,7 +438,7 @@ class TorrentManager(object):
                 if not known:
                     # Niels 26-10-2012: override category if name is xxx
                     if remoteItem.category.lower() != u'xxx':
-                        local_category = self.category.calculateCategoryNonDict([], remoteItem.name, '', '')[0]
+                        local_category = self.category.calculateCategoryNonDict([], remoteItem.name, '', '')
                         if local_category == 'xxx':
                             self._logger.debug('TorrentSearchGridManager: %s is xxx', remoteItem.name)
                             remoteItem.category = u'XXX'
