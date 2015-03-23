@@ -440,7 +440,7 @@ class TorrentManager(object):
                 if not known:
                     # Niels 26-10-2012: override category if name is xxx
                     if remoteItem.category.lower() != u'xxx':
-                        local_category = self.category.calculateCategoryNonDict([], remoteItem.name, '', '')[0]
+                        local_category = self.category.calculateCategoryNonDict([], remoteItem.name, '', '')
                         if local_category == 'xxx':
                             self._logger.debug('TorrentSearchGridManager: %s is xxx', remoteItem.name)
                             remoteItem.category = u'XXX'
@@ -1354,14 +1354,14 @@ class ChannelManager(object):
         return self.channelcast_db.getSubscribersCount(channel.id)
 
     def _applyFF(self, hits):
-        enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()] + ['other']
+        enabled_category_keys = [key for key, _ in self.category.getCategoryNames()]
 
         def torrentFilter(torrent):
             okCategory = False
 
             category = torrent.get("category", u"unknown")
 
-            if category.lower() in enabled_category_keys:
+            if category in enabled_category_keys:
                 okCategory = True
 
             if not okCategory:
