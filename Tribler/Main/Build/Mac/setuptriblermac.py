@@ -18,7 +18,11 @@ logger = logging.getLogger(__name__)
 includeModules = ["encodings.hex_codec", "encodings.utf_8", "encodings.latin_1", "xml.sax", "email.iterators",
                   "netifaces", "apsw", "libtorrent", "twisted", "M2Crypto", "pycrypto", "pyasn1", "Image", "feedparser",
                   "urllib3", "requests", "leveldb", "cryptography", "libnacl", "pycparser", "six", "hashlib",
-                  "csv", "cherrypy"]
+                  "csv", "cherrypy",
+                  "cryptography.hazmat.backends.commoncrypto",
+                  "cryptography.hazmat.backends.openssl",
+                  "cryptography.hazmat.bindings.commoncrypto",
+                  "cryptography.hazmat.bindings.openssl"]
 
 # gui panels to include
 includePanels = [
