@@ -417,6 +417,10 @@ class Session(SessionConfigInterface):
         """ Closes the given database connection """
         dbhandler.close()
 
+    def get_statistics(self):
+        from Tribler.Core.statistics import TriblerStatistics
+        return TriblerStatistics(self).dump_statistics()
+
     #
     # Persistence and shutdown
     #

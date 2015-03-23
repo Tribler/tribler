@@ -659,6 +659,8 @@ class List(wx.BoxSizer):
 
     @warnWxThread
     def RefreshDelayedData(self, delayedResult, key):
+        if not self:
+            return
         assert self.isReady, "List not ready"
         data = delayedResult.get()
         if data:
@@ -827,8 +829,8 @@ class List(wx.BoxSizer):
         if keyword is not None:
             self.rawfilter = keyword.lower().strip()
         else:
-            enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()]
-            self.enabled_category_list = enabled_category_keys + [u'other']
+            enabled_category_keys = [key for key, _ in self.category.getCategoryNames()]
+            self.enabled_category_list = enabled_category_keys
 
         if self.rawfilter == '' and not self.guiutility.getFamilyFilter():
             wx.CallAfter(self.list.SetFilter, None, None, keyword is None)
@@ -859,7 +861,7 @@ class List(wx.BoxSizer):
         if self.guiutility.getFamilyFilter():
             if isinstance(item[2], (Torrent, CollectedTorrent)):
                 torrent = item[2]
-                category = torrent.category if torrent.category else 0
+                category = torrent.category if torrent.category else u'unknown'
                 result = category in self.enabled_category_list
 
             elif isinstance(item[2], Channel):
