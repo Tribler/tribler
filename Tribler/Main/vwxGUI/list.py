@@ -659,6 +659,8 @@ class List(wx.BoxSizer):
 
     @warnWxThread
     def RefreshDelayedData(self, delayedResult, key):
+        if not self:
+            return
         assert self.isReady, "List not ready"
         data = delayedResult.get()
         if data:
