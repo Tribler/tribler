@@ -9,17 +9,27 @@ The aim of Tribler is giving anonymous access to online (streaming) videos. We a
 
 Tribler currently offers a Youtube-style service. For instance, Bittorrent-compatible streaming, fast search, thumbnail previews and comments. For the past 9 years we have been building a very robust Peer-to-Peer system. Today Tribler is robust: "the only way to take Tribler down is to take The Internet down" (but a single software bug could end everything).
 
-We make use of submodules, so remember using the --recursive argument when cloning this repo.
+__We make use of submodules, so remember using the --recursive argument when cloning this repo.__
 
-## Runtime dependencies
+## Obtaining the latest release of Tribler
 
-### Debian/Ubuntu/Mint
+Just click [here](https://github.com/Tribler/tribler/releases/latest) and download the latest package for your OS.
+
+## Obtaining support
+
+If you have issues, please [open an issue] (https://github.com/Tribler/tribler/issues/new) and we will have a look at it ASAP.
+
+## Getting your development environment up and running
+
+### Runtime dependencies
+
+#### Debian/Ubuntu/Mint
 ```bash
 sudo apt-get install libav-tools libjs-excanvas libjs-mootools libsodium13 libx11-6 python-apsw python-cherrypy3 python-crypto python-cryptography python-feedparser python-gmpy python-leveldb python-libtorrent python-m2crypto python-netifaces python-pil python-pyasn1 python-requests python-twisted python-wxgtk2.8 python2.7 vlc
 ```
-#### **Installing libsodium13 and python-cryptography on Ubuntu 14.04** 
+##### **Installing libsodium13 and python-cryptography on Ubuntu 14.04**
 
-While installing libsodium13 and python-cryptography on a clean Ubuntu 14.04 install (possibly other versions as well), the situation can occur where the Ubuntu terminal throws the following error when trying to install the dependencies mentioned earlier in the README.md: 
+While installing libsodium13 and python-cryptography on a clean Ubuntu 14.04 install (possibly other versions as well), the situation can occur where the Ubuntu terminal throws the following error when trying to install the dependencies mentioned earlier in the README.md:
 
     E: Unable to locate package libsodium13
     E: Unable to locate package python-cryptography
@@ -39,17 +49,18 @@ After downloading files go to the download folder and install the files through 
 
 **For amd64:**
 
-    cd ./Downloads
-    dpkg -i libsodium13_1.0.1-1_amd64.deb
-    dpkg -i python-cryptography_0.5.2-1_amd64.deb
-
+```bash
+cd ./Downloads
+dpkg -i libsodium13_1.0.1-1_amd64.deb
+dpkg -i python-cryptography_0.5.2-1_amd64.deb
+```
 **For i386:**
-    
-    cd ./Downloads
-    dpkg -i libsodium13_1.0.1-1_i386.deb
-    dpkg -i python-cryptography_0.5.2-1_i386.deb
 
-
+```bash
+cd ./Downloads
+dpkg -i libsodium13_1.0.1-1_i386.deb
+dpkg -i python-cryptography_0.5.2-1_i386.deb
+```
 
 **Through file navigator:**
 
@@ -57,12 +68,12 @@ Using the file navigator to go to the download folder and by clicking on the .de
 
 Now installing the list of dependencies should no longer throw an error.
 
-### Windows and OSX
+#### Windows and OSX
 
 Tribler runs on Windows and OSX, but development is only supported on Linux.
 
-## Running Tribler from this repository
-### Unix
+### Running Tribler from this repository
+#### Unix
 First clone the repository:
 
 ```bash
@@ -76,18 +87,19 @@ git clone --recursive  https://github.com/Tribler/tribler.git
 ```
 
 Done!
-Now you can run tribler by executing the ```tribler.sh``` script on the root of the tree:
+Now you can run tribler by executing the ```tribler.sh``` script on the root of the repository:
 
 ```bash
+cd tribler
 ./tribler.sh
 ```
-### Windows
+#### Windows
 
 Tribler runs on Windows and OSX, but development is only supported on Linux.
 
-# Packaging Tribler
+## Packaging Tribler
 
-## Debian and derivatives
+### Debian and derivatives
 
 ```bash
 sudo apt-get install devscripts
@@ -96,7 +108,7 @@ Tribler/Main/Build/update_version_from_git.py
 debuild -i -us -uc -b
 ```
 
-## OSX
+### OSX
 
 ```bash
 cd tribler
@@ -108,7 +120,7 @@ Tribler/Main/Build/update_version_from_git.py
 ```
 TODO: Add detailed build dependencies.
 
-## Windows
+### Windows
 
 ```cmd
 setlocal enabledelayedexpansion
@@ -122,7 +134,7 @@ win\makedist.bat
 
 TODO: Add detailed build dependencies.
 
-## Other Unixes
+### Other Unixes
 
 We don't have a generic setup.py yet.
 
@@ -130,7 +142,7 @@ So for the time being, the easiest way to package Tribler is to put ```Tribler/`
 
 A good reference for the dependency list is ```debian/control```
 
-# Submodule notes
+## Submodule notes
  - As updated submodules are in detached head state, remember to check out a branch before commiting changes on them.
  - If you forgot to check out a branch before doing a commit, you should get a warning telling you about it. To get the commit to a branch just check out the branch and do a git cherry-pick of the commit.
  - Take care of not accidentally commiting a submodule revision change with git commit -a
