@@ -827,8 +827,8 @@ class List(wx.BoxSizer):
         if keyword is not None:
             self.rawfilter = keyword.lower().strip()
         else:
-            enabled_category_keys = [key.lower() for key, _ in self.category.getCategoryNames()]
-            self.enabled_category_list = enabled_category_keys + [u'other']
+            enabled_category_keys = [key for key, _ in self.category.getCategoryNames()]
+            self.enabled_category_list = enabled_category_keys
 
         if self.rawfilter == '' and not self.guiutility.getFamilyFilter():
             wx.CallAfter(self.list.SetFilter, None, None, keyword is None)

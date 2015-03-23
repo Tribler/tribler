@@ -259,7 +259,6 @@ class SelectedChannelList(GenericSearchList):
         self.category_names = {}
         for key, name in Category.getInstance().getCategoryNames(filter=False):
             self.category_names[key] = name
-        self.category_names['other'] = 'Other'
         self.category_names[None] = 'Unknown'
 
         GenericSearchList.__init__(self, None, wx.WHITE, [0, 0], True, borders=False, showChange=True, parent=parent)
