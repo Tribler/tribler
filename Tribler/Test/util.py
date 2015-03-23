@@ -68,6 +68,7 @@ class UnhandledExceptionCatcher(object):
 
         """
         self.exc_counter += 1
+
         def repr_(value):
             try:
                 return repr(value)
@@ -87,6 +88,8 @@ class UnhandledExceptionCatcher(object):
                                           frame.f_lineno, frame.f_code.co_name)
             for key, value in frame.f_locals.items():
                 value = repr_(value)
+                if len(value) > 500:
+                    value = value[:500] + "..."
                 self._register_exception_line("| %12s = %s", key, value)
 
     def check_exceptions(self):
