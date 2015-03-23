@@ -859,7 +859,7 @@ class List(wx.BoxSizer):
         if self.guiutility.getFamilyFilter():
             if isinstance(item[2], (Torrent, CollectedTorrent)):
                 torrent = item[2]
-                category = torrent.category if torrent.category else 0
+                category = torrent.category if torrent.category else u'unknown'
                 result = category in self.enabled_category_list
 
             elif isinstance(item[2], Channel):
