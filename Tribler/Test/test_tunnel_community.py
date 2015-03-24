@@ -217,6 +217,7 @@ class TestTunnelCommunity(TestGuiAsServer):
     def startTest(self, callback, min_timeout=5):
         from Tribler.Main import tribler_main
         tribler_main.FORCE_ENABLE_TUNNEL_COMMUNITY = True
+        tribler_main.TUNNEL_COMMUNITY_DO_TEST = False
 
         self.getStateDir()  # getStateDir copies the bootstrap file into the statedir
 

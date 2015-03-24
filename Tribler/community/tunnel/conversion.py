@@ -39,30 +39,28 @@ class TunnelConversion(BinaryConversion):
 
     def _encode_introduction_response(self, message):
         payload = message.payload
-        data = [pack("!??", payload.exitnode, payload.connectable)]
+        data = [pack("!?", payload.exitnode,)]
         data += list(super(TunnelConversion, self)._encode_introduction_response(message))
         return tuple(data)
 
     def _decode_introduction_response(self, placeholder, offset, data):
-        exitnode, connectable, = unpack_from('!??', data, offset)
-        offset += 2
+        exitnode, = unpack_from('!?', data, offset)
+        offset += 1
         offset, payload = super(TunnelConversion, self)._decode_introduction_response(placeholder, offset, data)
         payload._exitnode = exitnode
-        payload._connectable = connectable
         return (offset, payload)
 
     def _encode_introduction_request(self, message):
         payload = message.payload
-        data = [pack("!??", payload.exitnode, payload.connectable)]
+        data = [pack("!?", payload.exitnode,)]
         data += super(TunnelConversion, self)._encode_introduction_request(message)
         return data
 
     def _decode_introduction_request(self, placeholder, offset, data):
-        exitnode, connectable, = unpack_from('!??', data, offset)
-        offset += 2
+        exitnode, = unpack_from('!?', data, offset)
+        offset += 1
         offset, payload = super(TunnelConversion, self)._decode_introduction_request(placeholder, offset, data)
         payload._exitnode = exitnode
-        payload._connectable = connectable
         return (offset, payload)
 
     def _encode_cell(self, message):

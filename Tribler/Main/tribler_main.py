@@ -127,6 +127,7 @@ ALLOW_MULTIPLE = os.environ.get("TRIBLER_ALLOW_MULTIPLE", "False").lower() == "t
 SKIP_TUNNEL_DIALOG = os.environ.get("TRIBLER_SKIP_OPTIN_DLG", "False") == "True"
 # used by the anon tunnel tests as there's no way to mess with the Session before running the test ATM.
 FORCE_ENABLE_TUNNEL_COMMUNITY = False
+TUNNEL_COMMUNITY_DO_TEST = True
 
 #
 #
@@ -517,6 +518,7 @@ class ABCApp(object):
                 keypair = dispersy.crypto.generate_key(u"curve25519")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair),)
                 settings = TunnelSettings(session.get_install_dir(), tribler_session=session)
+                settings.do_test = TUNNEL_COMMUNITY_DO_TEST
                 tunnel_kwargs = {'tribler_session': session, 'settings': settings}
 
                 self.tunnel_community = dispersy.define_auto_load(HiddenTunnelCommunity, dispersy_member, load=True,

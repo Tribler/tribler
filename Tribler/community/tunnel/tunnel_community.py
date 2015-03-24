@@ -188,13 +188,17 @@ class TunnelSettings(object):
         self.max_packets_without_reply = 50
         
         if tribler_session:
-            state_dir = tribler_session.get_state_dir()
-            cfgfilename = tribler_session.get_default_config_filename(state_dir)
-            scfg = SessionStartupConfig.load(cfgfilename)
-            self.become_exitnode = scfg.get_tunnel_community_exitnode_enabled()
+            self.become_exitnode = tribler_session.get_tunnel_community_exitnode_enabled()
         else:
             self.become_exitnode = False
+         
             
+class ExitCandidate(object):
+    
+    def __init__(self, connectable, become_exit):
+        self.connectable = connectable
+        self.become_exit = become_exit
+        self.creation_time = time.time()
         
 
 class RoundRobin(object):
@@ -239,7 +243,6 @@ class TunnelCommunity(Community):
         self.exit_sockets = {}
         self.circuits_needed = {}
         self.exit_candidates = {}
-        self.connectable_candidates = {}
         self.notifier = None
         self.made_anon_session = False
         self.selection_strategy = RoundRobin(self)
@@ -285,7 +288,7 @@ class TunnelCommunity(Community):
             if not self.libtorrent_test.has_completed_before():
                 self._logger.debug("Scheduling Anonymous LibTorrent download")
                 self.register_task("start_test", reactor.callLater(
-                    5, lambda: reactor.callInThread(self.libtorrent_test.start)))
+                    60, lambda: reactor.callInThread(self.libtorrent_test.start)))
                 return True
         return False
 
@@ -308,31 +311,29 @@ class TunnelCommunity(Community):
         return [master]
 
     def initiate_meta_messages(self):
-        messages = super(TunnelCommunity, self).initiate_meta_messages()
-        copy_messages = messages[:]
-        for message in copy_messages:
-            if message.name == "dispersy-introduction-request" or message.name == "dispersy-introduction-response":
-                messages.remove(message)
-            
-        messages += [Message(self, u"dispersy-introduction-request",
+        meta_messages = super(TunnelCommunity, self).initiate_meta_messages()
+        for i, mm in enumerate(meta_messages):
+            if mm.name == "dispersy-introduction-request":
+                meta_messages[i] = Message(self, u"dispersy-introduction-request",
                                      MemberAuthentication(),
                                      PublicResolution(),
                                      DirectDistribution(),
                                      CandidateDestination(),
                                      TunnelIntroductionRequestPayload(),
                                      self.check_introduction_request,
-                                     self.on_introduction_request),
-                             Message(self, u"dispersy-introduction-response",
+                                     self.on_introduction_request)
+            elif mm.name == "dispersy-introduction-response":
+                meta_messages[i] = Message(self, u"dispersy-introduction-response",
                                      MemberAuthentication(),
                                      PublicResolution(),
                                      DirectDistribution(),
                                      CandidateDestination(),
                                      TunnelIntroductionResponsePayload(),
                                      self.check_introduction_response,
-                                     self.on_introduction_response)]
+                                     self.on_introduction_response)
             
-        return messages + \
-            [Message(self, u"cell", NoAuthentication(), PublicResolution(), DirectDistribution(),
+            
+        return meta_messages + [Message(self, u"cell", NoAuthentication(), PublicResolution(), DirectDistribution(),
                      CandidateDestination(), CellPayload(), self._generic_timeline_check, self.on_cell),
                 Message(self, u"create", NoAuthentication(), PublicResolution(), DirectDistribution(),
                         CandidateDestination(), CreatePayload(), self.check_create, self.on_create),
@@ -437,6 +438,19 @@ class TunnelCommunity(Community):
                 self.remove_exit_socket(circuit_id, 'too old')
             elif exit_socket.bytes_up + exit_socket.bytes_down > self.settings.max_traffic:
                 self.remove_exit_socket(circuit_id, 'traffic limit exceeded')
+                
+        # Remove exit_candidates that are not returned as dispersy verified candidates
+        current_candidates = {}
+        for c in self.dispersy_yield_verified_candidates():
+            pubkey = c.get_member().public_key
+            current_candidates[pubkey] = pubkey
+        ckeys = self.exit_candidates.keys()
+        for pubkey in ckeys:
+            if pubkey not in current_candidates:
+                self.exit_candidates.pop(pubkey)
+                logging.debug("Removed candidate from exit_candidates dictionary")
+        
+        
 
     def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None, max_retries=0, required_exit=None):
         assert required_exit is None or isinstance(required_exit, tuple), type(required_exit)
@@ -802,27 +816,25 @@ class TunnelCommunity(Community):
 
 
     def on_introduction_request(self, messages):
-        connectable = False # Todo. Unused so far
         exitnode = self.settings.become_exitnode
-        extra_payload = [exitnode, connectable]
+        extra_payload = [exitnode]
         super(TunnelCommunity, self).on_introduction_request(messages, extra_payload)
         for message in messages:
             pubkey = message.candidate.get_member().public_key
-            self.exit_candidates[pubkey] = message.payload.exitnode
-            self.connectable_candidates[pubkey] = message.payload.connectable
+            connectable = message.candidate.connection_type == u"public"
+            self.exit_candidates[pubkey] = ExitCandidate(message.payload.exitnode, connectable)
      
     def create_introduction_request(self, destination, allow_sync, forward=True, is_fast_walker=False):
-        connectable = False # Todo. Unused so far
         exitnode = self.settings.become_exitnode
-        extra_payload = [exitnode, connectable]
+        extra_payload = [exitnode]
         super(TunnelCommunity, self).create_introduction_request(destination, allow_sync, forward, is_fast_walker, extra_payload)
         
     def on_introduction_response(self, messages):
         super(TunnelCommunity, self).on_introduction_response(messages)
         for message in messages:
             pubkey = message.candidate.get_member().public_key
-            self.exit_candidates[pubkey] = message.payload.exitnode
-            self.connectable_candidates[pubkey] = message.payload.connectable
+            connectable = message.candidate.connection_type == u"public"
+            self.exit_candidates[pubkey] = ExitCandidate(message.payload.exitnode, connectable)
      
     def on_cell(self, messages):
         for message in messages:
@@ -874,7 +886,8 @@ class TunnelCommunity(Community):
             candidates = {}
             for c in self.dispersy_yield_verified_candidates():
                 pubkey = c.get_member().public_key
-                if message.payload.exit_candidates and not self.exit_candidates[pubkey]:
+                exit_candidate = self.exit_candidates[pubkey]
+                if message.payload.exit_candidates and not exit_candidate.connectable:
                     # Next candidates need to be exit nodes, and this candidate isn't
                     continue
                 

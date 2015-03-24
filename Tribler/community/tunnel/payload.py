@@ -6,42 +6,30 @@ class TunnelIntroductionRequestPayload(IntroductionRequestPayload):
     
     class Implementation(IntroductionRequestPayload.Implementation):
 
-        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier, exitnode = False, connectable = False):
+        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier, exitnode = False):
             super(TunnelIntroductionRequestPayload.Implementation, self).__init__(meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
             assert isinstance(exitnode, bool), type(exitnode)
-            assert isinstance(connectable, bool), type(connectable)
             self._exitnode = exitnode
-            self._connectable = connectable
         
         @property 
         def exitnode(self):
             return self._exitnode
-         
-        @property 
-        def connectable(self):
-            return self._connectable
             
 
 class TunnelIntroductionResponsePayload(IntroductionResponsePayload):
     
     class Implementation(IntroductionResponsePayload.Implementation):
 
-        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier, exitnode = False, connectable = False):
+        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier, exitnode = False):
             super(TunnelIntroductionResponsePayload.Implementation, self).__init__(meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier)
             assert isinstance(exitnode, bool), type(exitnode)
-            assert isinstance(connectable, bool), type(connectable)
             self._exitnode = exitnode
-            self._connectable = connectable
         
         
         @property 
         def exitnode(self):
             return self._exitnode
          
-        @property 
-        def connectable(self):
-            return self._connectable
-            
 
 class CellPayload(Payload):
 

@@ -116,6 +116,7 @@ class Tunnel(object):
         config.set_torrent_collecting(False)
         config.set_libtorrent(True)
         config.set_dht_torrent_collecting(False)
+        config.set_enable_torrent_search(False)
         config.set_videoplayer(False)
         config.set_dispersy_port(self.dispersy_port)
         self.session = Session(config)
