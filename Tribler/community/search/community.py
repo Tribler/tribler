@@ -348,7 +348,7 @@ class SearchCommunity(Community):
                     dbresult = list(dbresult[:8])
                     dbresult[2] = long(dbresult[2])  # length
                     dbresult[3] = int(dbresult[3])  # num_files
-                    dbresult[4] = dbresult[4]  # category
+                    dbresult[4] = [dbresult[4]]  # category
                     dbresult[5] = long(dbresult[5])  # creation_date
                     dbresult[6] = int(dbresult[6] or 0)  # num_seeders
                     dbresult[7] = int(dbresult[7] or 0)  # num_leechers

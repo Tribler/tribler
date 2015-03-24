@@ -72,13 +72,14 @@ class SearchResponsePayload(Payload):
                     assert isinstance(result, tuple), type(result)
                     assert len(result) > 8
 
-                    infohash, swarmname, length, nrfiles, category, creation_date, seeders, leechers, cid = result[:9]
+                    infohash, swarmname, length, nrfiles, category_list, creation_date, seeders, leechers, cid = result[:9]
                     assert isinstance(infohash, str), type(infohash)
                     assert len(infohash) == 20
                     assert isinstance(swarmname, unicode), type(swarmname)
                     assert isinstance(length, long), type(length)
                     assert isinstance(nrfiles, int), type(nrfiles)
-                    assert isinstance(category, unicode), type(category)
+                    assert isinstance(category_list, list), type(category_list)
+                    assert all(isinstance(key, unicode) for key in category_list), category_list
                     assert isinstance(creation_date, long), type(creation_date)
                     assert isinstance(seeders, int), type(seeders)
                     assert isinstance(leechers, int), type(leechers)

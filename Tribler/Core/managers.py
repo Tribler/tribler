@@ -97,7 +97,7 @@ class TorrentSearchManager(TaskManager):
                                      'name': result[1],
                                      'length': result[2],
                                      'num_files': result[3],
-                                     'category': result[4],
+                                     'category': result[4][0],
                                      'creation_date': result[5],
                                      'num_seeders': result[6],
                                      'num_leechers': result[7],
