@@ -675,7 +675,7 @@ class TorrentDBHandler(BasicDBHandler):
     def on_search_response(self, torrents):
         status = u'unknown'
 
-        torrents = [(bin2str(torrent[0]), torrent[1], torrent[2], torrent[3], torrent[4],
+        torrents = [(bin2str(torrent[0]), torrent[1], torrent[2], torrent[3], torrent[4][0],
                      torrent[5]) for torrent in torrents]
         infohash = [(torrent[0],) for torrent in torrents]
 

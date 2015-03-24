@@ -9,11 +9,17 @@ from Tribler.Main.vwxGUI.list_item import ChannelListItem
 
 class TestRemoteQuery(TestGuiAsServer):
 
+    def setUpPreSession(self):
+        super(TestRemoteQuery, self).setUpPreSession()
+        self.config.set_torrent_store(True)
+
     def test_remotesearch(self):
         def do_assert():
             self.screenshot('After doing mp3 search, got %d results' % self.frame.searchlist.GetNrResults())
-            self.assert_(self.frame.searchlist.GetNrResults() > 0, 'no results')
-            self.assert_(self.guiUtility.torrentsearch_manager.gotRemoteHits, 'no remote results')
+            self.assert_(self.frame.searchlist.GetNrResults() > 0, 'no results',
+                         tribler_session=self.guiUtility.utility.session, dump_statistics=True)
+            self.assert_(self.guiUtility.torrentsearch_manager.gotRemoteHits, 'no remote results',
+                         tribler_session=self.guiUtility.utility.session, dump_statistics=True)
             self.quit()
 
         def do_search():
@@ -26,7 +32,8 @@ class TestRemoteQuery(TestGuiAsServer):
     def test_ffsearch(self):
         def do_assert():
             self.screenshot('After doing xxx search, got %d results' % self.frame.searchlist.GetNrResults())
-            self.assert_(self.frame.searchlist.GetNrResults() == 0, 'got results')
+            self.assert_(self.frame.searchlist.GetNrResults() == 0, 'got results',
+                         tribler_session=self.guiUtility.utility.session, dump_statistics=True)
             self.quit()
 
         def do_search():
@@ -38,13 +45,15 @@ class TestRemoteQuery(TestGuiAsServer):
 
     def test_channelsearch(self):
         def do_assert():
-            self.assert_(self.guiUtility.guiPage == 'selectedchannel', 'no in selectedchannel page')
+            self.assert_(self.guiUtility.guiPage == 'selectedchannel', 'no in selectedchannel page',
+                         tribler_session=self.guiUtility.utility.session, dump_statistics=True)
 
             self.screenshot('After doubleclicking first channel')
             self.quit()
 
         def do_doubleclick():
-            self.assert_(self.frame.searchlist.GetNrChannels() > 0, 'no channels matching mp3')
+            self.assert_(self.frame.searchlist.GetNrChannels() > 0, 'no channels matching mp3',
+                         tribler_session=self.guiUtility.utility.session, dump_statistics=True)
 
             self.screenshot('After doing mp3 search, got %d results' % self.frame.searchlist.GetNrResults())
             items = self.frame.searchlist.GetItems()
@@ -53,7 +62,8 @@ class TestRemoteQuery(TestGuiAsServer):
                     item.OnDClick()
                     break
             else:
-                self.assert_(False, 'could not find ChannelListItem')
+                self.assert_(False, 'could not find ChannelListItem',
+                             tribler_session=self.guiUtility.utility.session, dump_statistics=True)
 
             self.Call(10, do_assert)
 
@@ -76,10 +86,12 @@ class TestRemoteQuery(TestGuiAsServer):
 
             self.frame.top_bg.OnDownload()
             self.CallConditional(
-                120, lambda: self.frame.librarylist.GetNrResults() > 0, do_assert, 'no download in librarylist')
+                120, lambda: self.frame.librarylist.GetNrResults() > 0, do_assert, 'no download in librarylist',
+                tribler_session=self.guiUtility.utility.session, dump_statistics=True)
 
         def do_select():
-            self.assert_(self.frame.searchlist.GetNrResults() > 0, 'no hits matching vodo + pioneer')
+            self.assert_(self.frame.searchlist.GetNrResults() > 0, 'no hits matching vodo + pioneer',
+                         tribler_session=self.guiUtility.utility.session, dump_statistics=True)
             self.screenshot('After doing vodo search + pioneer filter, got %d results' %
                             self.frame.searchlist.GetNrResults())
             items = self.frame.searchlist.GetItems()
@@ -89,7 +101,8 @@ class TestRemoteQuery(TestGuiAsServer):
             self.Call(5, do_download)
 
         def do_filter():
-            self.assert_(self.frame.searchlist.GetNrResults() > 0, 'no hits matching vodo + pioneer')
+            self.assert_(self.frame.searchlist.GetNrResults() > 0, 'no hits matching vodo + pioneer',
+                         tribler_session=self.guiUtility.utility.session, dump_statistics=True)
             self.screenshot('After doing vodo search, got %d results' % self.frame.searchlist.GetNrResults())
             self.frame.searchlist.GotFilter('pioneer')
 
