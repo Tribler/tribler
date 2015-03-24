@@ -1,19 +1,39 @@
 # see LICENSE.txt for license information
 
-import unittest
-import sys
-
 from Tribler.Test.test_as_server import TestGuiAsServer
 from Tribler.Main.vwxGUI.list_item import ChannelListItem
 
 
-class TestRemoteQuery(TestGuiAsServer):
+class BaseRemoteTest(TestGuiAsServer):
 
+    def startTest(self, callback, search_community=True):
+        if search_community:
+            def wait_for_search():
+                self._logger.debug("Frame ready, starting to wait for search to be ready")
+                self.CallConditional(300, lambda: self.frame.SRstatusbar.GetConnections()
+                                     > 0.75, callback, 'did not connect to 75% of expected peers within 300s')
+            super(BaseRemoteTest, self).startTest(wait_for_search)
+
+        else:
+            def wait_for_chansearch():
+                self._logger.debug("Frame ready, starting to wait for channelsearch to be ready")
+                self.CallConditional(300, lambda: self.frame.SRstatusbar.GetChannelConnections() > 10, callback,
+                                     'did not connect to more than 10 peers within 300s',
+                                     assertCallback=lambda *argv, **kwarg: callback())
+            super(BaseRemoteTest, self).startTest(wait_for_chansearch)
+
+
+class TestRemoteTorrentSearch(BaseRemoteTest):
+    """
+    Only searches for remote torrents (using SearchCommunity).
+    """
     def setUpPreSession(self):
-        super(TestRemoteQuery, self).setUpPreSession()
+        super(TestRemoteTorrentSearch, self).setUpPreSession()
         self.config.set_torrent_store(True)
+        self.config.set_enable_torrent_search(True)
+        self.config.set_enable_channel_search(False)
 
-    def test_remotesearch(self):
+    def test_remote_torrent_search(self):
         def do_assert():
             self.screenshot('After doing mp3 search, got %d results' % self.frame.searchlist.GetNrResults())
             self.assert_(self.frame.searchlist.GetNrResults() > 0, 'no results',
@@ -29,21 +49,18 @@ class TestRemoteQuery(TestGuiAsServer):
 
         self.startTest(do_search)
 
-    def test_ffsearch(self):
-        def do_assert():
-            self.screenshot('After doing xxx search, got %d results' % self.frame.searchlist.GetNrResults())
-            self.assert_(self.frame.searchlist.GetNrResults() == 0, 'got results',
-                         tribler_session=self.guiUtility.utility.session, dump_statistics=True)
-            self.quit()
 
-        def do_search():
-            self.guiUtility.toggleFamilyFilter(True)
-            self.guiUtility.dosearch(u'xxx')
-            self.Call(10, do_assert)
+class TestRemoteChannelSearch(BaseRemoteTest):
+    """
+    Only searches for remote channels (using AllChannelCommunity).
+    """
+    def setUpPreSession(self):
+        super(TestRemoteChannelSearch, self).setUpPreSession()
+        self.config.set_torrent_store(True)
+        self.config.set_enable_torrent_search(False)
+        self.config.set_enable_channel_search(True)
 
-        self.startTest(do_search)
-
-    def test_channelsearch(self):
+    def test_channel_search(self):
         def do_assert():
             self.assert_(self.guiUtility.guiPage == 'selectedchannel', 'no in selectedchannel page',
                          tribler_session=self.guiUtility.utility.session, dump_statistics=True)
@@ -72,7 +89,30 @@ class TestRemoteQuery(TestGuiAsServer):
             self.guiUtility.dosearch(u'mp3')
             self.Call(15, do_doubleclick)
 
-        self.startTest(do_search, search_comm=False)
+        self.startTest(do_search, search_community=False)
+
+
+class TestMixedRemoteSearch(BaseRemoteTest):
+
+    def setUpPreSession(self):
+        super(TestMixedRemoteSearch, self).setUpPreSession()
+        self.config.set_torrent_store(True)
+        self.config.set_enable_torrent_search(True)
+        self.config.set_enable_channel_search(True)
+
+    def test_ffsearch(self):
+        def do_assert():
+            self.screenshot('After doing xxx search, got %d results' % self.frame.searchlist.GetNrResults())
+            self.assert_(self.frame.searchlist.GetNrResults() == 0, 'got results',
+                         tribler_session=self.guiUtility.utility.session, dump_statistics=True)
+            self.quit()
+
+        def do_search():
+            self.guiUtility.toggleFamilyFilter(True)
+            self.guiUtility.dosearch(u'xxx')
+            self.Call(10, do_assert)
+
+        self.startTest(do_search)
 
     def test_remotedownload(self):
         def do_assert():
@@ -114,22 +154,3 @@ class TestRemoteQuery(TestGuiAsServer):
             self.Call(10, do_filter)
 
         self.startTest(do_search)
-
-    def startTest(self, callback, search_comm=True):
-        if search_comm:
-            def wait_for_search():
-                self._logger.debug("Frame ready, starting to wait for search to be ready")
-                self.CallConditional(300, lambda: self.frame.SRstatusbar.GetConnections()
-                                     > 0.75, callback, 'did not connect to 75% of expected peers within 300s')
-            super(TestRemoteQuery, self).startTest(wait_for_search)
-
-        else:
-            def wait_for_chansearch():
-                self._logger.debug("Frame ready, starting to wait for channelsearch to be ready")
-                self.CallConditional(300, lambda: self.frame.SRstatusbar.GetChannelConnections() > 10, callback,
-                                     'did not connect to more than 10 peers within 300s', assertCallback=lambda *argv, **kwarg: callback())
-            super(TestRemoteQuery, self).startTest(wait_for_chansearch)
-
-
-if __name__ == "__main__":
-    unittest.main()
