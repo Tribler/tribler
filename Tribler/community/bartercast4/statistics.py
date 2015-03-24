@@ -13,6 +13,7 @@ class BarterStatistics(object):
         self._db_counter = dict()
         self._lock = RLock()
         self.bartercast = defaultdict()
+        self.db_closed = True
         for t in BartercastStatisticTypes.reverse_mapping:
             self.bartercast[t] = defaultdict()
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -101,9 +102,10 @@ class BarterStatistics(object):
         """
         Initialise database for use in this class.
         """
-        if self.db is None:
+        if self.db is None or self.db_closed:
             self.db = StatisticsDatabase(dispersy)
             self.db.open()
+            self.db_closed = False
 
     def should_persist(self, key, n):
         """
@@ -120,8 +122,9 @@ class BarterStatistics(object):
         return False
 
     def close(self):
-        if self.db is not None:
+        if self.db is not None and not self.db_closed:
             self.db.close()
+            self.db_closed = True
 
 LATEST_VERSION = 1
 
