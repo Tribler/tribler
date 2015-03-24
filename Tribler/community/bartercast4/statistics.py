@@ -119,6 +119,10 @@ class BarterStatistics(object):
             return True
         return False
 
+    def close(self):
+        if self.db is not None:
+            self.db.close()
+
 LATEST_VERSION = 1
 
 schema = u"""

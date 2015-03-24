@@ -135,6 +135,16 @@ class BarterCommunity(Community):
         self._logger.debug("merging bartercast statistics")
         _barter_statistics.persist(self, 1)
 
+    def unload_community(self):
+        self._logger.debug("unloading the Barter4 community")
+        super(BarterCommunity, self).unload_community()
+
+        # store all cached statistics
+        self.backup_bartercast_statistics()
+
+        # close database
+        _barter_statistics.close()
+
 
 class BarterCommunityCrawler(BarterCommunity):
 
