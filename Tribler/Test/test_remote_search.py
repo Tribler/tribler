@@ -90,6 +90,8 @@ class TestMixedRemoteSearch(BaseRemoteTest):
         self.config.set_torrent_store(True)
         self.config.set_enable_torrent_search(True)
         self.config.set_enable_channel_search(True)
+        self.config.set_torrent_collecting(True)
+        self.config.set_torrent_checking(True)
 
     def test_ffsearch(self):
         def do_assert():

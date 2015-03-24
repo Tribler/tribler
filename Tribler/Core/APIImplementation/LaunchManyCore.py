@@ -11,7 +11,7 @@ from threading import Event, Thread, enumerate as enumerate_threads, currentThre
 from traceback import print_exc
 from twisted.internet import reactor
 
-from Tribler.Core.managers import SearchManager
+from Tribler.Core.Modules.search_manager import SearchManager
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.RawServer.RawServer import RawServer
