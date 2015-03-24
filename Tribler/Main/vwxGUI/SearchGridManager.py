@@ -13,7 +13,7 @@ from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.simpledefs import (NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST,
                                      NTFY_METADATA, DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK,
-                                     SIGNAL_ALLCHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT)
+                                     SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT)
 from Tribler.Core.Utilities.sort_utils import sort_torrent_fulltext
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import (Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent,
@@ -1016,7 +1016,7 @@ class ChannelManager(object):
 
             self.dispersy = session.lm.dispersy
 
-            self.session.add_observer(self.gotDispersyRemoteHits, SIGNAL_ALLCHANNEL, [SIGNAL_ON_SEARCH_RESULTS])
+            self.session.add_observer(self.gotDispersyRemoteHits, SIGNAL_CHANNEL, [SIGNAL_ON_SEARCH_RESULTS])
         else:
             raise RuntimeError('ChannelManager already connected')
 
@@ -1715,22 +1715,7 @@ class ChannelManager(object):
 
     @warnDispersyThread
     def searchDispersy(self):
-        nr_requests_made = 0
-        if self.dispersy:
-            for community in self.dispersy.get_communities():
-                if isinstance(community, AllChannelCommunity):
-                    nr_requests_made = community.create_channelsearch(self.searchkeywords)
-                    if not nr_requests_made:
-                        self._logger.info("Could not send search in AllChannelCommunity, no verified candidates found")
-                    break
-
-            else:
-                self._logger.info("Could not send search in AllChannelCommunity, community not found")
-
-        else:
-            self._logger.info("Could not send search in AllChannelCommunity, Dispersy not found")
-
-        return nr_requests_made
+        return self.session.search_remote_channels(self.searchkeywords)
 
     def searchLocalDatabase(self):
         """ Called by GetChannelHits() to search local DB. Caches previous query result. """
@@ -1758,10 +1743,10 @@ class ChannelManager(object):
 
     def gotDispersyRemoteHits(self, subject, changetype, objectID, results):
         kws = results['keywords']
-        answers = results['torrents']
+        result_list = results['result_list']
         if self.searchkeywords == kws:
-            channel_cids = answers.keys()
-            _, dispersyChannels = self.getChannelsByCID(channel_cids)
+            channels = result_list
+            _, dispersyChannels = self._createChannels(channels)
             try:
                 self.remoteLock.acquire()
 

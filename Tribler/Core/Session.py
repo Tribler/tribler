@@ -625,7 +625,14 @@ class Session(SessionConfigInterface):
         :param keywords: The given keywords.
         :return: The number of requests made.
         """
-        return self.lm.torrent_search_manager.search(keywords)
+        return self.lm.search_manager.search_for_torrents(keywords)
+
+    def search_remote_channels(self, keywords):
+        """
+        Searches for remote channels through AllChannelCommunity with the given keywords.
+        :param keywords: The given keywords.
+        """
+        self.lm.search_manager.search_for_channels(keywords)
 
     def check_torrent_health(self, infohash):
         """

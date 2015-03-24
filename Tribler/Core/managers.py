@@ -5,16 +5,17 @@ from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
 from Tribler.community.search.community import SearchCommunity
+from Tribler.community.allchannel.community import AllChannelCommunity
 
-from Tribler.Core.simpledefs import (SIGNAL_SEARCH_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, NTFY_CHANNELCAST,
-                                     SIGNAL_TORRENT)
+from Tribler.Core.simpledefs import (SIGNAL_SEARCH_COMMUNITY, SIGNAL_ALLCHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS,
+                                     NTFY_CHANNELCAST, SIGNAL_TORRENT, SIGNAL_CHANNEL)
 from Tribler.Core.Utilities.search_utils import split_into_keywords
 
 
-class TorrentSearchManager(TaskManager):
+class SearchManager(TaskManager):
 
     def __init__(self, session):
-        super(TorrentSearchManager, self).__init__()
+        super(SearchManager, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self.session = session
         self.dispersy = None
@@ -26,7 +27,10 @@ class TorrentSearchManager(TaskManager):
         self.dispersy = self.session.lm.dispersy
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
 
-        self.session.add_observer(self._on_search_results, SIGNAL_SEARCH_COMMUNITY, [SIGNAL_ON_SEARCH_RESULTS])
+        self.session.add_observer(self._on_torrent_search_results,
+                                  SIGNAL_SEARCH_COMMUNITY, [SIGNAL_ON_SEARCH_RESULTS])
+        self.session.add_observer(self._on_channel_search_results,
+                                  SIGNAL_ALLCHANNEL_COMMUNITY, [SIGNAL_ON_SEARCH_RESULTS])
 
     @blocking_call_on_reactor_thread
     def shutdown(self):
@@ -36,7 +40,7 @@ class TorrentSearchManager(TaskManager):
         self.session = None
 
     @call_on_reactor_thread
-    def search(self, keywords):
+    def search_for_torrents(self, keywords):
         """
         Searches for torrents using SearchCommunity with the given keywords.
         :param keywords: The given keywords.
@@ -51,13 +55,14 @@ class TorrentSearchManager(TaskManager):
                 nr_requests_made = community.create_search(keywords)
                 if not nr_requests_made:
                     self._logger.warn("Could not send search in SearchCommunity, no verified candidates found")
+                break
 
         return nr_requests_made
 
     @call_on_reactor_thread
-    def _on_search_results(self, subject, change_type, object_id, search_results):
+    def _on_torrent_search_results(self, subject, change_type, object_id, search_results):
         """
-        The callback function handles the search results.
+        The callback function handles the search results from SearchCommunity.
         :param subject: Must be SIGNAL_SEARCH_COMMUNITY.
         :param change_type: Must be SIGNAL_ON_SEARCH_RESULTS.
         :param object_id: Must be None.
@@ -161,3 +166,44 @@ class TorrentSearchManager(TaskManager):
                         'result_list': remote_torrent_result_list}
         # inform other components about the results
         self.session.uch.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_data)
+
+    @call_on_reactor_thread
+    def search_for_channels(self, keywords):
+        """
+        Searches for channels using AllChannelCommunity with the given keywords.
+        :param keywords: The given keywords.
+        """
+        if self.dispersy is None:
+            return
+
+        for community in self.dispersy.get_communities():
+            if isinstance(community, AllChannelCommunity):
+                self._current_keywords = keywords
+                community.create_channelsearch(keywords)
+                break
+
+    @call_on_reactor_thread
+    def _on_channel_search_results(self, subject, change_type, object_id, search_results):
+        """
+        The callback function handles the search results from AllChannelCommunity.
+        :param subject: Must be SIGNAL_ALLCHANNEL_COMMUNITY.
+        :param change_type: Must be SIGNAL_ON_SEARCH_RESULTS.
+        :param object_id: Must be None.
+        :param search_results: The result dictionary which has 'keywords', 'results', and 'candidate'.
+        """
+        keywords = search_results['keywords']
+        results = search_results['torrents']
+
+        self._logger.debug("Got channel search results %s. keywords %s",
+                           len(results), keywords)
+
+        if keywords != self._current_keywords:
+            return
+
+        channel_cids = results.keys()
+        channel_results = self.channelcast_db.getChannelsByCID(channel_cids)
+
+        results_data = {'keywords': keywords,
+                        'result_list': channel_results}
+        # inform other components about the results
+        self.session.uch.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_data)

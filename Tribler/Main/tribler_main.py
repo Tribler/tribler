@@ -482,8 +482,6 @@ class ABCApp(object):
         @call_on_reactor_thread
         def define_communities(*args):
             assert isInIOThread()
-            from Tribler.community.search.community import SearchCommunity
-            from Tribler.community.allchannel.community import AllChannelCommunity
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
             from Tribler.community.metadata.community import MetadataCommunity
@@ -503,9 +501,6 @@ class ABCApp(object):
 
             default_kwargs = {'tribler_session': session}
             # must be called on the Dispersy thread
-            if session.get_enable_torrent_search():
-                dispersy.define_auto_load(SearchCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
-            dispersy.define_auto_load(AllChannelCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
             dispersy.define_auto_load(BarterCommunity, session.dispersy_member, load=True)
 
             # load metadata community

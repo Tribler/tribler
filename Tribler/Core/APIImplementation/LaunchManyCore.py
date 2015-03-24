@@ -11,7 +11,7 @@ from threading import Event, Thread, enumerate as enumerate_threads, currentThre
 from traceback import print_exc
 from twisted.internet import reactor
 
-from Tribler.Core.managers import TorrentSearchManager
+from Tribler.Core.managers import SearchManager
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.RawServer.RawServer import RawServer
@@ -24,7 +24,7 @@ from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS,
                                      NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_ACT_UPNP)
 from Tribler.Core.torrentstore import TorrentStore
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.dispersy.util import blockingCallFromThread
+from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
 from Tribler.dispersy.endpoint import RawserverEndpoint
 
 
@@ -88,7 +88,7 @@ class TriblerLaunchMany(Thread):
         self.votecast_db = None
         self.channelcast_db = None
 
-        self.torrent_search_manager = None
+        self.search_manager = None
 
         self.videoplayer = None
 
@@ -174,9 +174,8 @@ class TriblerLaunchMany(Thread):
                                                 "fffffffd".decode('hex'), block_size=1024)
                 self.tftp_handler.initialize()
 
-            if self.session.get_enable_torrent_search():
-                self.torrent_search_manager = TorrentSearchManager(self.session)
-                self.torrent_search_manager.initialize()
+            self.search_manager = SearchManager(self.session)
+            self.search_manager.initialize()
 
         if not self.initComplete:
             self.init(autoload_discovery)
@@ -211,6 +210,22 @@ class TriblerLaunchMany(Thread):
 
             # notify dispersy finished loading
             self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
+
+            @blocking_call_on_reactor_thread
+            def load_communities():
+                # load communities
+                # Search Community
+                if self.session.get_enable_torrent_search():
+                    from Tribler.community.search.community import SearchCommunity
+                    self.dispersy.define_auto_load(SearchCommunity, self.session.dispersy_member, load=True,
+                                                   kargs={'tribler_session': self.session})
+
+                # AllChannel Community
+                if self.session.get_enable_channel_search():
+                    from Tribler.community.allchannel.community import AllChannelCommunity
+                    self.dispersy.define_auto_load(AllChannelCommunity, self.session.dispersy_member, load=True,
+                                                   kargs={'tribler_session': self.session})
+            load_communities()
 
         from Tribler.Core.DecentralizedTracking import mainlineDHT
         try:
@@ -637,9 +652,9 @@ class TriblerLaunchMany(Thread):
         if self.torrent_checker:
             self.torrent_checker.shutdown()
             self.torrent_checker = None
-        if self.torrent_search_manager:
-            self.torrent_search_manager.shutdown()
-            self.torrent_search_manager = None
+        if self.search_manager:
+            self.search_manager.shutdown()
+            self.search_manager = None
         if self.rtorrent_handler:
             self.rtorrent_handler.shutdown()
             self.rtorrent_handler = None

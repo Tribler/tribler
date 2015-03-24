@@ -34,7 +34,7 @@ DEFAULTPORT = 7760
 #  Version 4: remove swift
 #
 
-SESSDEFAULTS_VERSION = 6
+SESSDEFAULTS_VERSION = 7
 sessdefaults = OrderedDict()
 
 # General Tribler settings
@@ -59,6 +59,10 @@ sessdefaults['general']['mugshot'] = None
 sessdefaults['general']['videoanalyserpath'] = None
 sessdefaults['general']['peer_icon_path'] = None
 sessdefaults['general']['live_aux_seeders'] = []
+
+# AllChannel community section
+sessdefaults['allchannel_community'] = OrderedDict()
+sessdefaults['allchannel_community']['enabled'] = True
 
 # Search community section
 sessdefaults['search_community'] = OrderedDict()
