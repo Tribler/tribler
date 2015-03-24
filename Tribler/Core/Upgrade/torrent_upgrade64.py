@@ -47,8 +47,7 @@ class TorrentMigrator64(object):
         self.tmp_migration_tcd_file = os.path.join(self.session.get_state_dir(), u".tmp_migration_v64_tcd")
 
         # we put every migrated torrent file in a temporary directory
-        self.tmp_migration_dir = os.path.abspath(os.path.join(self.torrent_collecting_dir,
-                                                              u"..", u".tmp_migration_v64"))
+        self.tmp_migration_dir = os.path.abspath(os.path.join(self.session.get_state_dir(), u".tmp_migration_v64"))
 
     def start_migrate(self):
         """

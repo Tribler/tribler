@@ -48,7 +48,6 @@ STATEDIR_SESSCONFIG = 'libtribler.conf'
 # For observer/callback mechanism, see Session.add_observer()
 
 # subjects
-NTFY_MISC = 'misc'
 NTFY_METADATA = 'metadata'
 NTFY_PEERS = 'peers'
 NTFY_TORRENTS = 'torrents'
@@ -116,7 +115,11 @@ LIVE_AUTHMETHOD_RSA = "RSA"  # RSA signatures
 INFOHASH_LENGTH = 20
 
 
-# SIGNALS
-SIGNAL_ALLCHANNEL = 'allchannel'
-SIGNAL_SEARCH_COMMUNITY = 'search_community'
-SIGNAL_ONSEARCHRESULTS = 'onsearchresults'
+# SIGNALS (for internal use)
+SIGNAL_ALLCHANNEL = 'signal_allchannel'
+SIGNAL_SEARCH_COMMUNITY = 'signal_search_community'
+SIGNAL_ON_SEARCH_RESULTS = 'signal_on_search_results'
+
+
+# SIGNALS (for common use, like APIs)
+SIGNAL_TORRENT = 'signal_torrent'

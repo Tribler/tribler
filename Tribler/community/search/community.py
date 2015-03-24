@@ -7,7 +7,6 @@ from traceback import print_exc
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
-from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.community.channel.payload import TorrentPayload
 from Tribler.community.channel.preview import PreviewChannelCommunity
@@ -30,6 +29,7 @@ from Tribler.dispersy.resolution import PublicResolution
 
 
 DEBUG = False
+SWIFT_INFOHASHES = 0
 CREATE_TORRENT_COLLECT_INTERVAL = 5
 
 
@@ -40,18 +40,18 @@ class SearchCommunity(Community):
     """
     @classmethod
     def get_master_members(cls, dispersy):
-# generated: Tue Feb 10 14:37:00 2015
+# generated: Mon Nov 24 10:37:11 2014
 # curve: NID_sect571r1
 # len: 571 bits ~ 144 bytes signature
-# pub: 170 3081a7301006072a8648ce3d020106052b810400270381920004005af040626c7daade16e2eebfc9e890350910a102594037ff54d377253fdefcc4dac4b9acca7fe9733b949aee88fc415900f399b4067a6b569250e4ba6c0e290d1ce93adaa387a603dcfcc52cb14a62e5df1f441e44d4744ab64c47c3977cced6287e70694d6d5720b7bf63ab04a0ad2a1ec13c6579983abe8e53243cd1db62059d4faf39559a68f7122a8cfe8d3b53
-# pub-sha1 007a61708b5e96f322b1d465a5db109e5c289ace
+# pub: 170 3081a7301006072a8648ce3d020106052b810400270381920004034a9031d07ed6d5d98b0a98cacd4bef2e19125ea7635927708babefa8e66deeb6cb4e78cc0efda39a581a679032a95ebc4a0fbdf913aa08af31f14753839b620cb5547c6e6cf42f03629b1b3dc199a3b1a262401c7ae615e87a1cf13109c7fb532f45c492ba927787257bf994e989a15fb16f20751649515fc58d87e0c861ca5b467a5c450bf57f145743d794057e75
+# pub-sha1 fb04df93369587ec8fd9b74559186fa356cffda8
 # -----BEGIN PUBLIC KEY-----
-# MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQAWvBAYmx9qt4W4u6/yeiQNQkQoQJZ
-# QDf/VNN3JT/e/MTaxLmsyn/pczuUmu6I/EFZAPOZtAZ6a1aSUOS6bA4pDRzpOtqj
-# h6YD3PzFLLFKYuXfH0QeRNR0SrZMR8OXfM7WKH5waU1tVyC3v2OrBKCtKh7BPGV5
-# mDq+jlMkPNHbYgWdT685VZpo9xIqjP6NO1M=
+# MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQDSpAx0H7W1dmLCpjKzUvvLhkSXqdj
+# WSdwi6vvqOZt7rbLTnjMDv2jmlgaZ5AyqV68Sg+9+ROqCK8x8UdTg5tiDLVUfG5s
+# 9C8DYpsbPcGZo7GiYkAceuYV6Hoc8TEJx/tTL0XEkrqSd4cle/mU6YmhX7FvIHUW
+# SVFfxY2H4MhhyltGelxFC/V/FFdD15QFfnU=
 # -----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004005af040626c7daade16e2eebfc9e890350910a102594037ff54d377253fdefcc4dac4b9acca7fe9733b949aee88fc415900f399b4067a6b569250e4ba6c0e290d1ce93adaa387a603dcfcc52cb14a62e5df1f441e44d4744ab64c47c3977cced6287e70694d6d5720b7bf63ab04a0ad2a1ec13c6579983abe8e53243cd1db62059d4faf39559a68f7122a8cfe8d3b53".decode("HEX")
+        master_key = "3081a7301006072a8648ce3d020106052b810400270381920004034a9031d07ed6d5d98b0a98cacd4bef2e19125ea7635927708babefa8e66deeb6cb4e78cc0efda39a581a679032a95ebc4a0fbdf913aa08af31f14753839b620cb5547c6e6cf42f03629b1b3dc199a3b1a262401c7ae615e87a1cf13109c7fb532f45c492ba927787257bf994e989a15fb16f20751649515fc58d87e0c861ca5b467a5c450bf57f145743d794057e75".decode("HEX")
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
@@ -63,7 +63,6 @@ class SearchCommunity(Community):
         self.taste_buddies = []
 
         self._channelcast_db = None
-        self._misc_db = None
         self._torrent_db = None
         self._mypref_db = None
         self._notifier = None
@@ -85,18 +84,17 @@ class SearchCommunity(Community):
         # self.taste_buddies.append([1, time(), Candidate(("127.0.0.1", 1234), False))
 
         if self.integrate_with_tribler:
-            from Tribler.Core.simpledefs import NTFY_MISC, NTFY_CHANNELCAST, NTFY_TORRENTS, NTFY_MYPREFERENCES
+            from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS, NTFY_MYPREFERENCES
             from Tribler.Core.CacheDB.Notifier import Notifier
 
             # tribler channelcast database
             self._channelcast_db = tribler_session.open_dbhandler(NTFY_CHANNELCAST)
-            self._misc_db = tribler_session.open_dbhandler(NTFY_MISC)
             self._torrent_db = tribler_session.open_dbhandler(NTFY_TORRENTS)
             self._mypref_db = tribler_session.open_dbhandler(NTFY_MYPREFERENCES)
             self._notifier = Notifier.getInstance()
 
             # torrent collecting
-            self._rtorrent_handler = RemoteTorrentHandler.getInstance()
+            self._rtorrent_handler = tribler_session.lm.rtorrent_handler
         else:
             self._channelcast_db = ChannelCastDBStub(self._dispersy)
             self._torrent_db = None
@@ -342,7 +340,7 @@ class SearchCommunity(Community):
                 self.log_incomming_searches(message.candidate.sock_addr, keywords)
 
             results = []
-            dbresults = self._torrent_db.searchNames(keywords, local=False, keys=['infohash', 'T.name', 'T.length', 'T.num_files', 'T.category_id', 'T.creation_date', 'T.num_seeders', 'T.num_leechers'])
+            dbresults = self._torrent_db.searchNames(keywords, local=False, keys=['infohash', 'T.name', 'T.length', 'T.num_files', 'T.category', 'T.creation_date', 'T.num_seeders', 'T.num_leechers'])
             if len(dbresults) > 0:
                 for dbresult in dbresults:
                     channel_details = dbresult[-10:]
@@ -350,7 +348,7 @@ class SearchCommunity(Community):
                     dbresult = list(dbresult[:8])
                     dbresult[2] = long(dbresult[2])  # length
                     dbresult[3] = int(dbresult[3])  # num_files
-                    dbresult[4] = [self._misc_db.categoryId2Name(dbresult[4]), ]  # category_keys
+                    dbresult[4] = [dbresult[4]]  # category
                     dbresult[5] = long(dbresult[5])  # creation_date
                     dbresult[6] = int(dbresult[6] or 0)  # num_seeders
                     dbresult[7] = int(dbresult[7] or 0)  # num_leechers
@@ -392,11 +390,11 @@ class SearchCommunity(Community):
 
                     # emit signal of search results
                     if self.tribler_session is not None:
-                        from Tribler.Core.simpledefs import SIGNAL_SEARCH_COMMUNITY, SIGNAL_ONSEARCHRESULTS
+                        from Tribler.Core.simpledefs import SIGNAL_SEARCH_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS
                         search_results = {'keywords': search_request.keywords,
                                           'results': message.payload.results,
                                           'candidate': message.candidate}
-                        self.tribler_session.uch.notify(SIGNAL_SEARCH_COMMUNITY, SIGNAL_ONSEARCHRESULTS, None,
+                        self.tribler_session.uch.notify(SIGNAL_SEARCH_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, None,
                                                         search_results)
 
                     # see if we need to join some channels
@@ -493,29 +491,30 @@ class SearchCommunity(Community):
         to_collect_dict = {}
         to_popularity_dict = {}
         for message in messages:
-            # check if the identifier is still in the request_cache because it could have timed out
+            # check if the identifier is still in the request_cache because it could be timed out
             if not self.request_cache.has(u"ping", message.payload.identifier):
                 self._logger.warn(u"message from %s cannot be found in the request cache, skipping it",
                                   message.candidate)
                 continue
             self.request_cache.pop(u"ping", message.payload.identifier)
 
-            for infohash, seeders, leechers, ago in message.payload.torrents:
-                if not infohash:
-                    continue
-                elif infohash not in to_insert_list:
-                    to_insert_list.append(infohash)
-                to_popularity_dict[infohash] = [seeders, leechers, time() - (ago * 60)]
-                to_collect_dict.setdefault(infohash, []).append(message.candidate)
+            if message.payload.hashtype == SWIFT_INFOHASHES:
+                for infohash, seeders, leechers, ago in message.payload.torrents:
+                    if not infohash:
+                        continue
+                    elif infohash not in to_insert_list:
+                        to_insert_list.append(infohash)
+                    to_popularity_dict[infohash] = [seeders, leechers, time() - (ago * 60)]
+                    to_collect_dict.setdefault(infohash, []).append(message.candidate)
 
         if len(to_insert_list) > 0:
             while to_insert_list:
                 self._torrent_db.on_torrent_collect_response(to_insert_list[:50])
                 to_insert_list = to_insert_list[50:]
 
-        infohashes = [infohash_ for infohash_ in to_collect_dict if infohash_]
-        if infohashes:
-            infohashes_to_collect = self._torrent_db.select_torrents_to_collect(infohashes)
+        infohashes_to_collect = [infohash for infohash in to_collect_dict
+                                 if infohash and self.tribler_session.has_collected_torrent(infohash)]
+        if infohashes_to_collect:
             for infohash in infohashes_to_collect[:5]:
                 for candidate in to_collect_dict[infohash]:
                     self._logger.debug(u"requesting .torrent after receiving ping/pong %s %s",
@@ -545,7 +544,7 @@ class SearchCommunity(Community):
             meta = self.get_meta_message(meta_name)
             message = meta.impl(authentication=(self._my_member,),
                                 distribution=(self.global_time,), destination=(candidate,),
-                                payload=(identifier, torrents))
+                                payload=(identifier, SWIFT_INFOHASHES, torrents))
 
             self._dispersy._forward([message])
             self._logger.debug(u"send %s to %s", meta_name, candidate)

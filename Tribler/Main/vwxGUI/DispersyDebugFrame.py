@@ -2,11 +2,13 @@ import wx
 from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin
 import binascii
 
+from Tribler.Core.Utilities.misc_utils import compute_ratio
+
 from Tribler.Main.vwxGUI import LIST_GREY
 from Tribler.Main.vwxGUI.widgets import _set_font, SimpleNotebook
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
-from Tribler.Main.Utility.utility import compute_ratio, eta_value, size_format
+from Tribler.Main.Utility.utility import eta_value, size_format
 from operator import itemgetter
 from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
 

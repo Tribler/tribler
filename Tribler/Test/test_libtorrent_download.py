@@ -3,12 +3,13 @@
 import unittest
 import os
 from time import time
-
 import binascii
 
 from Tribler.Core.simpledefs import DOWNLOAD
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 
+TORRENT_R = r'http://torrent.fedoraproject.org/torrents/Fedora-Live-Workstation-x86_64-21.torrent'
+TORRENT_INFOHASH = binascii.unhexlify('89f0835dc2def218ec4bac73da6be6b8c20534ea')
 
 class TestLibtorrentDownload(TestGuiAsServer):
 
@@ -32,12 +33,13 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.frame.startDownload(
                 os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"), self.getDestDir())
 
-            self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready)
+            self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready,
+                                 'do_downloadfromfile() failed')
 
         self.startTest(do_downloadfromfile)
 
     def test_downloadfromurl(self):
-        infohash = binascii.unhexlify('8C3760CB651C863861FA9ABE2EF70246943C1994')
+        infohash = TORRENT_INFOHASH
 
         def make_screenshot():
             self.screenshot('After starting a libtorrent download from url')
@@ -53,10 +55,10 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
         def do_downloadfromurl():
             self.guiUtility.showLibrary()
-            self.frame.startDownloadFromUrl(
-                r'http://torrent.fedoraproject.org/torrents/Fedora-Live-Desktop-x86_64-19.torrent', self.getDestDir())
+            self.frame.startDownloadFromUrl(TORRENT_R, self.getDestDir())
 
-            self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready)
+            self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready,
+                                 'do_downloadfromurl() failed')
 
         self.startTest(do_downloadfromurl)
 
@@ -80,12 +82,13 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.frame.startDownloadFromMagnet(
                 r'magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', self.getDestDir())
 
-            self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready)
+            self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready,
+                                 'do_downloadfrommagnet() failed')
 
         self.startTest(do_downloadfrommagnet)
 
     def test_stopresumedelete(self):
-        infohash = binascii.unhexlify('8C3760CB651C863861FA9ABE2EF70246943C1994')
+        infohash = TORRENT_INFOHASH
 
         def do_final():
             self.screenshot('After deleting a libtorrent download')
@@ -125,9 +128,9 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
         def do_start():
             self.guiUtility.showLibrary()
-            self.frame.startDownloadFromUrl(
-                r'http://torrent.fedoraproject.org/torrents/Fedora-Live-Desktop-x86_64-19.torrent', self.getDestDir())
-            self.CallConditional(60, lambda: self.session.get_download(infohash), download_object_ready)
+            self.frame.startDownloadFromUrl(TORRENT_R, self.getDestDir())
+            self.CallConditional(60, lambda: self.session.get_download(infohash), download_object_ready,
+                                 'do_start() failed')
 
         self.startTest(do_start)
 

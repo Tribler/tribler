@@ -10,8 +10,8 @@ from hashlib import sha1
 from copy import copy
 from time import time
 from types import LongType
+from libtorrent import bencode
 
-from Tribler.Core.Utilities.bencode import bencode
 from Tribler.Core.Utilities.unicode import bin2unicode
 from Tribler.Core.APIImplementation.miscutils import offset2piece
 from Tribler.Core.osutils import fix_filebasename

@@ -143,8 +143,6 @@ setup(
             + filterincludes(includedir(LIBRARYNAME + "/Main/vwxGUI"), lambda x: x.endswith(".xrc"))
 
             # add crawler info and SQL statements
-            + filterincludes(includedir(LIBRARYNAME + "/Core/Statistics"), lambda x: x.endswith(".txt"))
-            + filterincludes(includedir(LIBRARYNAME + "/Core/Statistics"), lambda x: x.endswith(".sql"))
             + filterincludes(includedir(LIBRARYNAME + "/"), lambda x: x.endswith(".sql"))
 
             # add VLC plugins

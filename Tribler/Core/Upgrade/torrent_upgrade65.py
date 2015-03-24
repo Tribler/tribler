@@ -51,10 +51,9 @@ class TorrentMigrator65(TorrentMigrator64):
         """
         Migrates the torrent collecting directory.
         """
-        # check and create the temporary migration directory if necessary
-
-        if not os.path.isdir(self.torrent_collecting_dir):
-            raise RuntimeError(u"The torrent collecting directory doesn't exist: %s", self.torrent_collecting_dir)
+        if self.torrent_collecting_dir is None or not os.path.isdir(self.torrent_collecting_dir):
+            self._logger.warn(u"torrent collecting directory not found, skip: %s", self.torrent_collecting_dir)
+            return
 
         self._delete_swift_reseeds()
 
@@ -68,13 +67,6 @@ class TorrentMigrator65(TorrentMigrator64):
 
         # replace the old directory with the new one
         rmtree(self.torrent_collecting_dir)
-
-        # create the empty file to indicate that we have finished the torrent collecting directory migration
-        open(self.tmp_migration_tcd_file, "wb").close()
-
-        # set the unused torrent collecting dir to a dir that already exists
-        # so it stops being recreated.
-        self.session.set_torrent_collecting_dir(self.session.get_torrent_store_dir())
 
     def _ingest_torrent_files(self):
         """

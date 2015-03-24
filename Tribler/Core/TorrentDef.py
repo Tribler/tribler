@@ -7,20 +7,19 @@ import logging
 from hashlib import sha1
 from types import StringType, ListType, IntType, LongType
 from urllib2 import URLError
+from libtorrent import bencode, bdecode
+
 
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Core.defaults import TDEF_DEFAULTS
 from Tribler.Core.exceptions import (OperationNotPossibleAtRuntimeException, TorrentDefNotFinalizedException,
                                      NotYetImplementedException)
 from Tribler.Core.Base import ContentDefinition, Serializable, Copyable
-from Tribler.Core.Utilities.bencode import bencode, bdecode
 import Tribler.Core.APIImplementation.maketorrent as maketorrent
 
 from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL, parse_magnetlink
 from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
-
-from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 
 
 class TorrentDef(ContentDefinition, Serializable, Copyable):
@@ -128,7 +127,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
     _create = staticmethod(_create)
 
     @staticmethod
-    def retrieve_from_magnet(url, callback, timeout=30.0, timeout_callback=None, silent=False):
+    def retrieve_from_magnet(session, url, callback, timeout=30.0, timeout_callback=None, silent=False):
         """
         If the URL conforms to a magnet link, the .torrent info is
         downloaded and converted into a TorrentDef.  The resulting
@@ -153,9 +152,10 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
                 return
             if tdef:
                 callback(tdef)
-        if LibtorrentMgr.hasInstance():
-            LibtorrentMgr.getInstance().get_metainfo(url, metainfo_retrieved,
-                                                     timeout=timeout, timeout_callback=timeout_callback)
+        libtorrent_manager = session.get_libtorrent_process()
+        if libtorrent_manager:
+            libtorrent_manager.get_metainfo(url, metainfo_retrieved,
+                                            timeout=timeout, timeout_callback=timeout_callback)
             return True
         return False
 

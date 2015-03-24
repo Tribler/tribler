@@ -146,7 +146,7 @@ class SearchConversion(BinaryConversion):
             if len(result) < 9:
                 raise DropPacket("Invalid result length")
 
-            infohash, swarmname, length, nrfiles, categorykeys, creation_date, seeders, leechers, cid = result[:9]
+            infohash, swarmname, length, nrfiles, category_list, creation_date, seeders, leechers, cid = result[:9]
 
             if not isinstance(infohash, str):
                 raise DropPacket("Invalid infohash type")
@@ -162,11 +162,8 @@ class SearchConversion(BinaryConversion):
             if not isinstance(nrfiles, int):
                 raise DropPacket("Invalid nrfiles type")
 
-            if not isinstance(categorykeys, list):
-                raise DropPacket("Invalid categorykeys type")
-
-            if not all(isinstance(key, unicode) for key in categorykeys):
-                raise DropPacket("Invalid categorykey type")
+            if not isinstance(category_list, list) or not all(isinstance(key, unicode) for key in category_list):
+                raise DropPacket("Invalid category_list type")
 
             if not isinstance(creation_date, long):
                 raise DropPacket("Invalid creation_date type")
@@ -233,14 +230,14 @@ class SearchConversion(BinaryConversion):
 
         hashpack = '20sHHH' * len(message.payload.torrents)
         torrents = [item for sublist in message.payload.torrents for item in sublist]
-        return pack('!H' + hashpack, message.payload.identifier, *torrents),
+        return pack('!HH' + hashpack, message.payload.identifier, message.payload.hashtype, *torrents),
 
     def _decode_torrent_collect_request(self, placeholder, offset, data):
-        if len(data) < offset + 2:
+        if len(data) < offset + 4:
             raise DropPacket("Insufficient packet size")
 
-        identifier = unpack_from('!H', data, offset)[0]
-        offset += 2
+        identifier, hashtype = unpack_from('!HH', data, offset)
+        offset += 4
 
         length = len(data) - offset
         if length % 26 != 0:
@@ -256,7 +253,7 @@ class SearchConversion(BinaryConversion):
                 torrents.append([hashes[i], hashes[i + 1], hashes[i + 2], hashes[i + 3]])
         else:
             torrents = []
-        return offset, placeholder.meta.payload.implement(identifier, torrents)
+        return offset, placeholder.meta.payload.implement(identifier, hashtype, torrents)
 
     def _encode_torrent_collect_response(self, message):
         return self._encode_torrent_collect_request(message)

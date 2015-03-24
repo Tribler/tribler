@@ -18,7 +18,6 @@ from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.Video.VideoUtility import limit_resolution
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
-from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
 
 from Tribler.community.channel.community import ChannelCommunity
 
@@ -512,8 +511,8 @@ class TorrentDetails(AbstractDetails):
         todo = []
         todo.append((self.name, self.torrent.name))
         todo.append((self.description, ''))
-        todo.append((self.type, ', '.join(self.torrent.categories).capitalize()
-                    if isinstance(self.torrent.categories, list) else 'Unknown'))
+        todo.append((self.type, self.torrent.category.capitalize()
+                    if isinstance(self.torrent.category, basestring) else 'Unknown'))
         todo.append((self.uploaded, self.torrent.formatCreationDate()
                     if hasattr(self.torrent, 'formatCreationDate') else ''))
         todo.append((self.filesize, '%s in %d file(s)' % (size_format(self.torrent.length), len(self.torrent.files))
@@ -885,14 +884,13 @@ class TorrentDetails(AbstractDetails):
 
         self.torrent.updateSwarminfo(newTorrent.swarminfo)
         self.torrent.update_torrent_id(newTorrent.torrent_id)
-        del self.torrent.status
 
         if not curTorrent.exactCopy(newTorrent):
             # replace current torrent
             curTorrent.name = newTorrent.name
             curTorrent.length = newTorrent.length
-            curTorrent.category_id = newTorrent.category_id
-            curTorrent.status_id = newTorrent.status_id
+            curTorrent.category = newTorrent.category
+            curTorrent.status = newTorrent.status
 
             self.updateDetailsTab()
             if self.canEdit:
@@ -914,7 +912,7 @@ class TorrentDetails(AbstractDetails):
             diff = time() - last_check
 
             if diff > 1800:
-                TorrentChecking.getInstance().addGuiRequest(self.torrent)
+                self.utility.session.check_torrent_health(self.torrent.infohash)
                 self.ShowHealth(True)
             else:
                 self.ShowHealth(False)

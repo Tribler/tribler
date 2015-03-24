@@ -15,7 +15,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException
-from Tribler.Core.simpledefs import (STATEDIR_PEERICON_DIR, STATEDIR_DLPSTATE_DIR, NTFY_MISC, NTFY_PEERS, NTFY_TORRENTS,
+from Tribler.Core.simpledefs import (STATEDIR_PEERICON_DIR, STATEDIR_DLPSTATE_DIR, NTFY_PEERS, NTFY_TORRENTS,
                                      NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_UPDATE, NTFY_INSERT,
                                      NTFY_DELETE, NTFY_METADATA, STATEDIR_TORRENT_STORE_DIR)
 
@@ -398,9 +398,7 @@ class Session(SessionConfigInterface):
 
         # Called by any thread
         # with self.sesslock:
-        if subject == NTFY_MISC:
-            return self.lm.misc_db
-        elif subject == NTFY_METADATA:
+        if subject == NTFY_METADATA:
             return self.lm.metadata_db
         elif subject == NTFY_PEERS:
             return self.lm.peer_db
@@ -418,6 +416,10 @@ class Session(SessionConfigInterface):
     def close_dbhandler(self, dbhandler):
         """ Closes the given database connection """
         dbhandler.close()
+
+    def get_statistics(self):
+        from Tribler.Core.statistics import TriblerStatistics
+        return TriblerStatistics(self).dump_statistics()
 
     #
     # Persistence and shutdown
@@ -616,3 +618,18 @@ class Session(SessionConfigInterface):
         :param data: The torrent file data.
         """
         self.lm.torrent_store.put(hexlify(infohash), data)
+
+    def search_remote_torrents(self, keywords):
+        """
+        Searches for remote torrents through SearchCommunity with the given keywords.
+        :param keywords: The given keywords.
+        :return: The number of requests made.
+        """
+        return self.lm.torrent_search_manager.search(keywords)
+
+    def check_torrent_health(self, infohash):
+        """
+        Checks the given torrent's health on its trackers.
+        :param infohash: The given torrent infohash.
+        """
+        self.lm.torrent_checker.add_gui_request(infohash)

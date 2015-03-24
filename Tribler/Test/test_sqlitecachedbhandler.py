@@ -9,8 +9,8 @@ from twisted.internet import reactor
 
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import (TorrentDBHandler, MyPreferenceDBHandler, BasicDBHandler,
-                                                       PeerDBHandler, MiscDBHandler)
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, SQLiteCacheDB
+                                                       PeerDBHandler)
+from Tribler.Core.CacheDB.sqlitecachedb import str2bin, SQLiteCacheDB
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
@@ -165,12 +165,14 @@ class TestTorrentDBHandler(AbstractDB):
     def setUp(self):
         super(TestTorrentDBHandler, self).setUp()
 
-        self.misc_db = MiscDBHandler(self.session)
-        self.misc_db.initialize()
+        from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
+        from Tribler.Core.Modules.tracker_manager import TrackerManager
+        self.session.lm = TriblerLaunchMany()
+        self.session.lm.tracker_manager = TrackerManager(self.session)
+        self.session.lm.tracker_manager.initialize()
         self.tdb = TorrentDBHandler(self.session)
         self.tdb.torrent_dir = FILES_DIR
         self.tdb.category = Category.getInstance()
-        self.tdb.misc_db = self.misc_db
         self.tdb.mypref_db = MyPreferenceDBHandler(self.session)
 
     @blocking_call_on_reactor_thread
@@ -179,8 +181,6 @@ class TestTorrentDBHandler(AbstractDB):
         self.tdb.mypref_db = None
         self.tdb.close()
         self.tdb = None
-        self.misc_db.close()
-        self.misc_db = None
 
         super(TestTorrentDBHandler, self).tearDown()
 
@@ -244,12 +244,11 @@ class TestTorrentDBHandler(AbstractDB):
         m_size = self.tdb.getOne('length', torrent_id=multiple_torrent_id)
         assert m_size == 5358560, m_size
 
-        # TODO: action is flagged as XXX causing this torrent to be XXX instead of other
-        cat = self.tdb.getOne('category_id', torrent_id=multiple_torrent_id)
-        # assert cat == 8, cat  # other
+        cat = self.tdb.getOne('category', torrent_id=multiple_torrent_id)
+        assert cat == u'xxx', cat
 
-        s_status = self.tdb.getOne('status_id', torrent_id=single_torrent_id)
-        assert s_status == 0
+        s_status = self.tdb.getOne('status', torrent_id=single_torrent_id)
+        assert s_status == u'unknown', s_status
 
         m_comment = self.tdb.getOne('comment', torrent_id=multiple_torrent_id)
         comments = 'www.tribler.org'
@@ -259,7 +258,7 @@ class TestTorrentDBHandler(AbstractDB):
 
         m_trackers = self.tdb.getTrackerListByInfohash(m_infohash)
         assert len(m_trackers) == 8
-        assert 'http://tpb.tracker.thepiratebay.org:80/announce' in m_trackers, m_trackers
+        assert 'http://tpb.tracker.thepiratebay.org/announce' in m_trackers, m_trackers
 
         s_torrent = self.tdb.getTorrent(s_infohash)
         m_torrent = self.tdb.getTorrent(m_infohash)
@@ -271,15 +270,15 @@ class TestTorrentDBHandler(AbstractDB):
     def updateTorrent(self):
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')
         m_infohash = unhexlify('ed81da94d21ad1b305133f2726cdaec5a57fed98')
-        self.tdb.updateTorrent(m_infohash, relevance=3.1415926, category=['Videoclips'],
-                               status='good', seeder=123, leecher=321,
+        self.tdb.updateTorrent(m_infohash, relevance=3.1415926, category=u'Videoclips',
+                               status=u'good', seeder=123, leecher=321,
                                last_tracker_check=1234567,
                                other_key1='abcd', other_key2=123)
         multiple_torrent_id = self.tdb.getTorrentID(m_infohash)
-        cid = self.tdb.getOne('category_id', torrent_id=multiple_torrent_id)
-        # assert cid == 2, cid
-        sid = self.tdb.getOne('status_id', torrent_id=multiple_torrent_id)
-        assert sid == 1
+        category = self.tdb.getOne('category', torrent_id=multiple_torrent_id)
+        assert category == u'Videoclips', category
+        status = self.tdb.getOne('status', torrent_id=multiple_torrent_id)
+        assert status == u'good', status
         seeder = self.tdb.getOne('num_seeders', torrent_id=multiple_torrent_id)
         assert seeder == 123
         leecher = self.tdb.getOne('num_leechers', torrent_id=multiple_torrent_id)
@@ -306,17 +305,12 @@ class TestMyPreferenceDBHandler(AbstractDB):
     def setUp(self):
         super(TestMyPreferenceDBHandler, self).setUp()
 
-        self.misc_db = MiscDBHandler(self.session)
-        self.misc_db.initialize()
         self.tdb = TorrentDBHandler(self.session)
         self.mdb = MyPreferenceDBHandler(self.session)
-        self.mdb.status_good = self.misc_db.torrentStatusName2Id(u'good')
         self.mdb._torrent_db = self.tdb
 
     @blocking_call_on_reactor_thread
     def tearDown(self):
-        self.misc_db.close()
-        self.misc_db = None
         self.mdb.close()
         self.mdb = None
         self.tdb.close()

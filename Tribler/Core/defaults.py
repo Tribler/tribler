@@ -60,6 +60,10 @@ sessdefaults['general']['videoanalyserpath'] = None
 sessdefaults['general']['peer_icon_path'] = None
 sessdefaults['general']['live_aux_seeders'] = []
 
+# Search community section
+sessdefaults['search_community'] = OrderedDict()
+sessdefaults['search_community']['enabled'] = True
+
 # Tunnel community section
 sessdefaults['tunnel_community'] = OrderedDict()
 sessdefaults['tunnel_community']['optin_dialog_shown'] = False

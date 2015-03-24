@@ -29,11 +29,7 @@ MAX_PRIORITY = 1
 
 class RemoteTorrentHandler(TaskManager):
 
-    __single = None
-
-    def __init__(self):
-        RemoteTorrentHandler.__single = self
-
+    def __init__(self, session):
         super(RemoteTorrentHandler, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -47,30 +43,19 @@ class RemoteTorrentHandler(TaskManager):
 
         self.num_torrents = 0
 
-        self.session = None
+        self.session = session
         self.dispersy = None
         self.max_num_torrents = 0
         self.tor_col_dir = None
         self.torrent_db = None
 
-    def getInstance(*args, **kw):
-        if RemoteTorrentHandler.__single is None:
-            RemoteTorrentHandler(*args, **kw)
-        return RemoteTorrentHandler.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        RemoteTorrentHandler.__single = None
-    delInstance = staticmethod(delInstance)
-
-    def register(self, dispersy, session, max_num_torrents):
-        self.session = session
-        self.dispersy = dispersy
-        self.max_num_torrents = max_num_torrents
+    def initialize(self):
+        self.dispersy = self.session.get_dispersy_instance()
+        self.max_num_torrents = self.session.get_torrent_collecting_max_torrents()
 
         self.torrent_db = None
         if self.session.get_megacache():
-            self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
+            self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
             self.__check_overflow()
 
         for priority in (0, 1):
@@ -471,7 +456,7 @@ class MagnetRequester(Requester):
             self._logger.debug(u"requesting %s priority %s through magnet link %s",
                                infohash_str, self._priority, magnetlink)
 
-            TorrentDef.retrieve_from_magnet(magnetlink, self._success_callback, timeout=self.TIMEOUT,
+            TorrentDef.retrieve_from_magnet(self._session, magnetlink, self._success_callback, timeout=self.TIMEOUT,
                                             timeout_callback=self._failure_callback, silent=True)
             self._running_requests.append(infohash)
 

@@ -11,6 +11,7 @@ from threading import Event, Thread, enumerate as enumerate_threads, currentThre
 from traceback import print_exc
 from twisted.internet import reactor
 
+from Tribler.Core.managers import TorrentSearchManager
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.RawServer.RawServer import RawServer
@@ -80,7 +81,6 @@ class TriblerLaunchMany(Thread):
         self.tftp_handler = None
 
         self.cat = None
-        self.misc_db = None
         self.metadata_db = None
         self.peer_db = None
         self.torrent_db = None
@@ -88,11 +88,14 @@ class TriblerLaunchMany(Thread):
         self.votecast_db = None
         self.channelcast_db = None
 
+        self.torrent_search_manager = None
+
         self.videoplayer = None
 
         self.mainline_dht = None
         self.ltmgr = None
-        self.torrent_checking = None
+        self.tracker_manager = None
+        self.torrent_checker = None
         self.tunnel_community = None
 
     def register(self, session, sesslock, autoload_discovery=True):
@@ -117,11 +120,11 @@ class TriblerLaunchMany(Thread):
             # torrent collecting: RemoteTorrentHandler
             if self.session.get_torrent_collecting():
                 from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
-                self.rtorrent_handler = RemoteTorrentHandler()
+                self.rtorrent_handler = RemoteTorrentHandler(self.session)
 
             # TODO(emilon): move this to a megacache component or smth
             if self.session.get_megacache():
-                from Tribler.Core.CacheDB.SqliteCacheDBHandler import (MiscDBHandler, PeerDBHandler, TorrentDBHandler,
+                from Tribler.Core.CacheDB.SqliteCacheDBHandler import (PeerDBHandler, TorrentDBHandler,
                                                                        MyPreferenceDBHandler, VoteCastDBHandler,
                                                                        ChannelCastDBHandler, MetadataDBHandler)
                 from Tribler.Category.Category import Category
@@ -131,7 +134,6 @@ class TriblerLaunchMany(Thread):
                 self.cat = Category.getInstance(self.session.get_install_dir())
 
                 # create DBHandlers
-                self.misc_db = MiscDBHandler(self.session)
                 self.metadata_db = MetadataDBHandler(self.session)
                 self.peer_db = PeerDBHandler(self.session)
                 self.torrent_db = TorrentDBHandler(self.session)
@@ -140,13 +142,16 @@ class TriblerLaunchMany(Thread):
                 self.channelcast_db = ChannelCastDBHandler(self.session)
 
                 # initializes DBHandlers
-                self.misc_db.initialize()
                 self.metadata_db.initialize()
                 self.peer_db.initialize()
                 self.torrent_db.initialize()
                 self.mypref_db.initialize()
                 self.votecast_db.initialize()
                 self.channelcast_db.initialize()
+
+                from Tribler.Core.Modules.tracker_manager import TrackerManager
+                self.tracker_manager = TrackerManager(self.session)
+                self.tracker_manager.initialize()
 
             if self.session.get_videoplayer():
                 self.videoplayer = VideoPlayer(self.session)
@@ -168,6 +173,10 @@ class TriblerLaunchMany(Thread):
                 self.tftp_handler = TftpHandler(self.session, u'', endpoint,
                                                 "fffffffd".decode('hex'), block_size=1024)
                 self.tftp_handler.initialize()
+
+            if self.session.get_enable_torrent_search():
+                self.torrent_search_manager = TorrentSearchManager(self.session)
+                self.torrent_search_manager.initialize()
 
         if not self.initComplete:
             self.init(autoload_discovery)
@@ -213,23 +222,21 @@ class TriblerLaunchMany(Thread):
 
         if self.session.get_libtorrent():
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
-            self.ltmgr = LibtorrentMgr(self.session, ignore_singleton=self.session.ignore_singleton)
+            self.ltmgr = LibtorrentMgr(self.session)
 
         # add task for tracker checking
         if self.session.get_torrent_checking():
             try:
-                from Tribler.TrackerChecking.TorrentChecking import TorrentChecking
+                from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
                 self.torrent_checking_period = self.session.get_torrent_checking_period()
-                self.torrent_checking = TorrentChecking(self.session,
-                                                        torrent_select_interval=self.torrent_checking_period)
-                self.torrent_checking.start()
-                self.run_torrent_check()
+                self.torrent_checker = TorrentChecker(self.session,
+                                                      torrent_select_interval=self.torrent_checking_period)
+                self.torrent_checker.initialize()
             except:
                 print_exc()
 
         if self.rtorrent_handler:
-            self.rtorrent_handler.register(self.dispersy, self.session,
-                                           self.session.get_torrent_collecting_max_torrents())
+            self.rtorrent_handler.initialize()
 
         self.initComplete = True
 
@@ -627,18 +634,23 @@ class TriblerLaunchMany(Thread):
 
         # Note: sesslock not held
         self.shutdownstarttime = timemod.time()
+        if self.torrent_checker:
+            self.torrent_checker.shutdown()
+            self.torrent_checker = None
+        if self.torrent_search_manager:
+            self.torrent_search_manager.shutdown()
+            self.torrent_search_manager = None
         if self.rtorrent_handler:
             self.rtorrent_handler.shutdown()
-            self.rtorrent_handler.delInstance()
             self.rtorrent_handler = None
-        if self.torrent_checking:
-            self.torrent_checking.shutdown()
-            self.torrent_checking.delInstance()
-            self.torrent_checking = None
         if self.videoplayer:
             self.videoplayer.shutdown()
             self.videoplayer.delInstance()
             self.videoplayer = None
+
+        if self.tracker_manager:
+            self.tracker_manager.shutdown()
+            self.tracker_manager = None
 
         if self.tftp_handler:
             self.tftp_handler.shutdown()
@@ -670,7 +682,6 @@ class TriblerLaunchMany(Thread):
             self.torrent_db.close()
             self.peer_db.close()
             self.metadata_db.close()
-            self.misc_db.close()
 
             self.channelcast_db = None
             self.votecast_db = None
@@ -678,7 +689,6 @@ class TriblerLaunchMany(Thread):
             self.torrent_db = None
             self.peer_db = None
             self.metadata_db = None
-            self.misc_db = None
 
         if self.mainline_dht:
             from Tribler.Core.DecentralizedTracking import mainlineDHT
@@ -705,7 +715,6 @@ class TriblerLaunchMany(Thread):
         # Shutdown libtorrent session after checkpoints have been made
         if self.ltmgr:
             self.ltmgr.shutdown()
-            self.ltmgr.delInstance()
 
     def save_download_pstate(self, infohash, pstate):
         """ Called by network thread """
@@ -756,26 +765,6 @@ class TriblerLaunchMany(Thread):
     def set_activity(self, type, str='', arg2=None):
         """ Called by overlay + network thread """
         self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, type, str, arg2)
-
-    def update_torrent_checking_period(self):
-        # dynamically change the interval: update at least every 2h
-        if self.rtorrent_handler:
-            ntorrents = self.rtorrent_handler.num_torrents
-            if ntorrents > 0:
-                self.torrent_checking_period = min(max(7200 / ntorrents, 10), 100)
-
-    def run_torrent_check(self):
-        """ Called by network thread """
-        if not self.torrent_checking:
-            return
-
-        self.update_torrent_checking_period()
-        self.rawserver.add_task(self.run_torrent_check, self.torrent_checking_period)
-        try:
-            self.torrent_checking.setTorrentSelectionInterval(self.torrent_checking_period)
-        except Exception as e:
-            print_exc()
-            self.rawserver_nonfatalerrorfunc(e)
 
     def get_external_ip(self):
         """ Returns the external IP address of this Session, i.e., by which

@@ -89,7 +89,7 @@ from Tribler.Utilities.SingleInstanceChecker import SingleInstanceChecker
 from Tribler.Core.simpledefs import (UPLOAD, DOWNLOAD, NTFY_MODIFIED, NTFY_INSERT, NTFY_REACHABLE, NTFY_ACTIVITIES,
                                      NTFY_UPDATE, NTFY_CREATE, NTFY_CHANNELCAST, NTFY_STATE, NTFY_VOTECAST,
                                      NTFY_MYPREFERENCES, NTFY_TORRENTS, NTFY_COMMENTS, NTFY_PLAYLISTS, NTFY_DELETE,
-                                     NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_PEERS, NTFY_MARKINGS, NTFY_FINISHED,
+                                     NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_FINISHED,
                                      NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, NTFY_MAGNET_STARTED,
                                      NTFY_MAGNET_CLOSE, dlstatus_strings,
                                      DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING,
@@ -225,7 +225,7 @@ class ABCApp(object):
 
             # Create global rate limiter
             self.splash.tick('Setting up ratelimiters')
-            self.ratelimiter = UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager()
+            self.ratelimiter = UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(s)
 
             # Counter to suppress some event from occurring
             self.ratestatecallbackcount = 0
@@ -503,7 +503,8 @@ class ABCApp(object):
 
             default_kwargs = {'tribler_session': session}
             # must be called on the Dispersy thread
-            dispersy.define_auto_load(SearchCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
+            if session.get_enable_torrent_search():
+                dispersy.define_auto_load(SearchCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
             dispersy.define_auto_load(AllChannelCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
             dispersy.define_auto_load(BarterCommunity, session.dispersy_member, load=True)
 
@@ -631,12 +632,6 @@ class ABCApp(object):
 
         wantpeers = []
         self.ratestatecallbackcount += 1
-        if DEBUG:
-            torrentdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
-            peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
-            self._logger.debug(u"main: Stats: Total torrents found %s peers %s",
-                               repr(torrentdb.size()), repr(peerdb.size()))
-
         try:
             # Print stats on Console
             if self.ratestatecallbackcount % 5 == 0:
@@ -985,8 +980,8 @@ class ABCApp(object):
             try:
                 self._logger.info("ONEXIT cleaning database")
                 self.closewindow.tick('Cleaning database')
-                peerdb = self.utility.session.open_dbhandler(NTFY_PEERS)
-                peerdb._db.clean_db(randint(0, 24) == 0, exiting=True)
+                torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
+                torrent_db._db.clean_db(randint(0, 24) == 0, exiting=True)
             except:
                 print_exc()
 

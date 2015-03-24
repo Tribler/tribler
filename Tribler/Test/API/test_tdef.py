@@ -5,11 +5,11 @@
 #
 
 import os
+from libtorrent import bdecode
 
 from Tribler.Test.test_as_server import BaseTestCase
 
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.bencode import bdecode
 from Tribler.Core.Utilities.utilities import isValidTorrentFile
 from Tribler.Test.test_as_server import BASE_DIR
 
@@ -26,12 +26,6 @@ class TestTorrentDef(BaseTestCase):
     """
     Testing TorrentDef version 0
     """
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
 
     def test_add_content_file(self):
         self.subtest_add_content_file()
@@ -79,13 +73,6 @@ class TestTorrentDef(BaseTestCase):
 
         self.assert_(metainfo['info']['name'] == "video.avi")
         self.assert_(metainfo['info']['length'] == s)
-
-        """
-        bdata = bencode(t.get_metainfo())
-        f = open("gen.torrent","wb")
-        f.write(bdata)
-        f.close()
-        """
 
     def subtest_add_content_dir(self):
         """ Add a single dir to a TorrentDef """
