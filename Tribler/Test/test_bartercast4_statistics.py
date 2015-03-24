@@ -1,9 +1,8 @@
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.community.bartercast4.statistics import BarterStatistics, BartercastStatisticTypes
-import time
+from Tribler.dispersy.dispersy import Dispersy
+from Tribler.dispersy.endpoint import ManualEnpoint
 
 
 class TestBarterStatistics(TestAsServer):
@@ -16,31 +15,6 @@ class TestBarterStatistics(TestAsServer):
         self._peer3 = "peer3"
         self._peer4 = "peer4"
         self._peer5 = "peer5"
-        self.setUpPreSession()
-        self.session = Session(self.config)
-        upgrader = self.session.prestart()
-        while not upgrader.is_done:
-            time.sleep(0.1)
-        assert not upgrader.failed, upgrader.current_status
-        self.session.start()
-
-    def setUpPreSession(self):
-        """ Should set self.config_path and self.config """
-        self.config = SessionStartupConfig()
-        self.config.set_tunnel_community_enabled(False)
-        self.config.set_tunnel_community_optin_dialog_shown(True)
-        self.config.set_state_dir(self.getStateDir())
-        self.config.set_torrent_checking(False)
-        self.config.set_multicast_local_peer_discovery(False)
-        # required by db handler
-        self.config.set_megacache(True)
-        self.config.set_dispersy(True)
-        self.config.set_mainline_dht(False)
-        self.config.set_torrent_store(False)
-        self.config.set_torrent_collecting(False)
-        self.config.set_libtorrent(False)
-        self.config.set_dht_torrent_collecting(False)
-        self.config.set_videoplayer(False)
 
     def test_create_db(self):
         # check that values are initialized to 0
@@ -86,7 +60,7 @@ class TestBarterStatistics(TestAsServer):
 
     @blocking_call_on_reactor_thread
     def test_load_persist(self):
-        dispersy = self.session.get_dispersy_instance()
+        dispersy = Dispersy(ManualEnpoint(0), u".", u":memory:")
         self.stats.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED, self._peer1, 5)
         self.stats.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED, self._peer2, 5)
         self.stats.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED, self._peer3, 5)
@@ -102,7 +76,7 @@ class TestBarterStatistics(TestAsServer):
 
     @blocking_call_on_reactor_thread
     def test_log_interaction(self):
-        dispersy = self.session.get_dispersy_instance()
+        dispersy = Dispersy(ManualEnpoint(0), u".tmp_tribler", u"dispersy.db")
         self.stats.log_interaction(dispersy, BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED,
                                    self._peer1, self._peer2, 123)
 
@@ -113,5 +87,9 @@ class TestBarterStatistics(TestAsServer):
         assert r[2] == self._peer2
         assert r[3] == 123
 
+    def tearDown(self):
+        # # do nothing but override
+        self._logger.debug("tearing down bartercast4 unit tests")
 
+        return
 
