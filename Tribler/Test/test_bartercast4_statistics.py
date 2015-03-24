@@ -1,20 +1,21 @@
-from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.test_as_server import AbstractServer
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.community.bartercast4.statistics import BarterStatistics, BartercastStatisticTypes
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint
 
 
-class TestBarterStatistics(TestAsServer):
+class TestBarterStatistics(AbstractServer):
 
     def setUp(self):
-        super(TestAsServer, self).setUp()
+        super(TestBarterStatistics, self).setUp()
         self.stats = BarterStatistics()
         self._peer1 = "peer1"
         self._peer2 = "peer2"
         self._peer3 = "peer3"
         self._peer4 = "peer4"
         self._peer5 = "peer5"
+        self.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
 
     def test_create_db(self):
         # check that values are initialized to 0
@@ -60,24 +61,22 @@ class TestBarterStatistics(TestAsServer):
 
     @blocking_call_on_reactor_thread
     def test_load_persist(self):
-        dispersy = Dispersy(ManualEnpoint(0), u".", u":memory:")
         self.stats.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED, self._peer1, 5)
         self.stats.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED, self._peer2, 5)
         self.stats.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED, self._peer3, 5)
         self.stats.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED, self._peer4, 10)
         self.stats.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED, self._peer5, 15)
         assert len(self.stats.bartercast[BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED]) == 5
-        self.stats.persist(dispersy, 1)
+        self.stats.persist(self.dispersy, 1)
         self.stats.db.close()
         self.stats = BarterStatistics()
         assert len(self.stats.bartercast[BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED]) == 0
-        self.stats.load_statistics(dispersy)
+        self.stats.load_statistics(self.dispersy)
         assert len(self.stats.bartercast[BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED]) == 5
 
     @blocking_call_on_reactor_thread
     def test_log_interaction(self):
-        dispersy = Dispersy(ManualEnpoint(0), u".tmp_tribler", u"dispersy.db")
-        self.stats.log_interaction(dispersy, BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED,
+        self.stats.log_interaction(self.dispersy, BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED,
                                    self._peer1, self._peer2, 123)
 
         records = self.stats.db.execute(u"SELECT type, peer1, peer2, value FROM interaction_log")
@@ -86,10 +85,3 @@ class TestBarterStatistics(TestAsServer):
         assert r[1] == self._peer1
         assert r[2] == self._peer2
         assert r[3] == 123
-
-    def tearDown(self):
-        # # do nothing but override
-        self._logger.debug("tearing down bartercast4 unit tests")
-
-        return
-
