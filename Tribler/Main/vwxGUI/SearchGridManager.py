@@ -634,7 +634,7 @@ class LibraryManager(object):
         """
         Returns the VideoPlayer instance.
         """
-        return self.guiUtility.utility.session.lm.videoplayer
+        return self.guiUtility.videoplayer
 
     def download_state_callback(self, dslist):
         """

@@ -2377,7 +2377,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
                 self.vSizer.Remove(link)
                 self.OnChange()
 
-        vod_dl = self.guiutility.utility.session.lm.videoplayer.get_vod_download()
+        vod_dl = self.guiutility.videoplayer.get_vod_download()
         if vod_dl and vod_dl.get_vod_fileindex() == fileindex:
             self.library_manager.stopTorrent(self.tdef.get_infohash())
             self.library_manager.last_vod_torrent = None
