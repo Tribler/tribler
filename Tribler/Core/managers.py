@@ -68,6 +68,9 @@ class SearchManager(TaskManager):
         :param object_id: Must be None.
         :param search_results: The result dictionary which has 'keywords', 'results', and 'candidate'.
         """
+        if self.session is None:
+            return 0
+
         keywords = search_results['keywords']
         results = search_results['results']
         candidate = search_results['candidate']
@@ -191,6 +194,9 @@ class SearchManager(TaskManager):
         :param object_id: Must be None.
         :param search_results: The result dictionary which has 'keywords', 'results', and 'candidate'.
         """
+        if self.session is None:
+            return
+
         keywords = search_results['keywords']
         results = search_results['torrents']
 
