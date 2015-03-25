@@ -6,7 +6,8 @@ from Tribler.Main.vwxGUI.list_item import ChannelListItem
 
 class BaseRemoteTest(TestGuiAsServer):
 
-    def startTest(self, callback, search_community=True):
+    def startTest(self, callback, search_community=True,
+                  use_torrent_search=True, use_channel_search=True):
         if search_community:
             def wait_for_search():
                 self._logger.debug("Frame ready, starting to wait for search to be ready")
@@ -20,19 +21,15 @@ class BaseRemoteTest(TestGuiAsServer):
                 self.CallConditional(300, lambda: self.frame.SRstatusbar.GetChannelConnections() > 10, callback,
                                      'did not connect to more than 10 peers within 300s',
                                      assertCallback=lambda *argv, **kwarg: callback())
-            super(BaseRemoteTest, self).startTest(wait_for_chansearch)
+            super(BaseRemoteTest, self).startTest(wait_for_chansearch,
+                                                  use_torrent_search=use_torrent_search,
+                                                  use_channel_search=use_channel_search)
 
 
 class TestRemoteTorrentSearch(BaseRemoteTest):
     """
     Only searches for remote torrents (using SearchCommunity).
     """
-    def setUpPreSession(self):
-        super(TestRemoteTorrentSearch, self).setUpPreSession()
-        self.config.set_torrent_store(True)
-        self.config.set_enable_torrent_search(True)
-        self.config.set_enable_channel_search(False)
-
     def test_remote_torrent_search(self):
         def do_assert():
             self.screenshot('After doing mp3 search, got %d results' % self.frame.searchlist.GetNrResults())
@@ -47,19 +44,13 @@ class TestRemoteTorrentSearch(BaseRemoteTest):
             self.guiUtility.dosearch(u'mp3')
             self.Call(10, do_assert)
 
-        self.startTest(do_search)
+        self.startTest(do_search, use_torrent_search=True, use_channel_search=False)
 
 
 class TestRemoteChannelSearch(BaseRemoteTest):
     """
     Only searches for remote channels (using AllChannelCommunity).
     """
-    def setUpPreSession(self):
-        super(TestRemoteChannelSearch, self).setUpPreSession()
-        self.config.set_torrent_store(True)
-        self.config.set_enable_torrent_search(False)
-        self.config.set_enable_channel_search(True)
-
     def test_channel_search(self):
         def do_assert():
             self.assert_(self.guiUtility.guiPage == 'selectedchannel', 'no in selectedchannel page',
@@ -89,7 +80,7 @@ class TestRemoteChannelSearch(BaseRemoteTest):
             self.guiUtility.dosearch(u'mp3')
             self.Call(15, do_doubleclick)
 
-        self.startTest(do_search, search_community=False)
+        self.startTest(do_search, search_community=False, use_torrent_search=False, use_channel_search=True)
 
 
 class TestMixedRemoteSearch(BaseRemoteTest):
