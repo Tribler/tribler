@@ -136,8 +136,7 @@ setup(
              LIBRARYNAME + "/readme.txt",
              LIBRARYNAME + "/Main/Build/Mac/TriblerDoc.icns",
              ]
-            + ["/Users/tribler/Workspace/install/python-libs/lib/libsodium.dylib",
-               "/Users/tribler/Workspace/install/python-libs/lib/libsodium.13.dylib"]
+            + ["/Users/tribler/Workspace_new/install/lib/libsodium.dylib"]
 
             # add images
             + includedir(LIBRARYNAME + "/Main/vwxGUI/images")
