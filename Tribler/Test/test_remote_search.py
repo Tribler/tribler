@@ -11,8 +11,9 @@ class BaseRemoteTest(TestGuiAsServer):
         if search_community:
             def wait_for_search():
                 self._logger.debug("Frame ready, starting to wait for search to be ready")
-                self.CallConditional(300, lambda: self.frame.SRstatusbar.GetConnections()
-                                     > 0.75, callback, 'did not connect to 75% of expected peers within 300s')
+                self.CallConditional(300, lambda: self.frame.SRstatusbar.GetConnections() > 0.75, callback,
+                                     'did not connect to 75% of expected peers within 300s',
+                                     assertCallback=lambda *argv, **kwarg: callback())
             super(BaseRemoteTest, self).startTest(wait_for_search)
 
         else:
@@ -60,10 +61,10 @@ class TestRemoteChannelSearch(BaseRemoteTest):
             self.quit()
 
         def do_doubleclick():
-            self.assert_(self.frame.searchlist.GetNrChannels() > 0, 'no channels matching mp3',
+            self.assert_(self.frame.searchlist.GetNrChannels() > 0, 'no channels matching tv',
                          tribler_session=self.guiUtility.utility.session, dump_statistics=True)
 
-            self.screenshot('After doing mp3 search, got %d results' % self.frame.searchlist.GetNrResults())
+            self.screenshot('After doing tv search, got %d results' % self.frame.searchlist.GetNrResults())
             items = self.frame.searchlist.GetItems()
             for _, item in items.iteritems():
                 if isinstance(item, ChannelListItem):
@@ -77,7 +78,7 @@ class TestRemoteChannelSearch(BaseRemoteTest):
 
         def do_search():
             self.guiUtility.toggleFamilyFilter(newState=False, setCheck=True)
-            self.guiUtility.dosearch(u'mp3')
+            self.guiUtility.dosearch(u'tv')
             self.Call(15, do_doubleclick)
 
         self.startTest(do_search, search_community=False, use_torrent_search=False, use_channel_search=True)
