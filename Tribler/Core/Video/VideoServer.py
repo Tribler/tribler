@@ -17,20 +17,14 @@ from Tribler.Core.simpledefs import DLMODE_VOD
 
 
 class VideoServer(ThreadingMixIn, HTTPServer):
-    __single = None
 
-    def __init__(self, port, session):
-        if VideoServer.__single:
-            raise RuntimeError("VideoServer is Singleton")
-        VideoServer.__single = self
-
+    def __init__(self, port, session, video_player):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.port = port
         self.session = session
 
-        from Tribler.Core.Video.VideoPlayer import VideoPlayer
-        self.videoplayer = VideoPlayer.getInstance()
+        self.videoplayer = video_player
 
         HTTPServer.__init__(self, ("127.0.0.1", self.port), VideoRequestHandler)
 
@@ -38,16 +32,6 @@ class VideoServer(ThreadingMixIn, HTTPServer):
 
         self.daemon_threads = True
         self.allow_reuse_address = True
-
-    def getInstance(*args, **kw):
-        if VideoServer.__single is None:
-            VideoServer(*args, **kw)
-        return VideoServer.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        VideoServer.__single = None
-    delInstance = staticmethod(delInstance)
 
     def start(self):
         self.server_thread = Thread(target=self.serve_forever, name="VideoHTTPServerThread-1")
@@ -79,7 +63,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
         if self.request_version == 'HTTP/1.1':
             self.protocol_version = 'HTTP/1.1'
 
-        self._logger.debug("VideoServer: VOD request %s %s", self.client_address, self.path)
+        self._logger.debug("VOD request %s %s", self.client_address, self.path)
         downloadhash, fileindex = self.path.strip('/').split('/')
         downloadhash = unhexlify(downloadhash)
         download = self.server.session.get_download(downloadhash)
@@ -122,7 +106,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
             nbytes2send = length
             self.send_response(200)
 
-        self._logger.debug("VideoServer: requested range %d - %d", firstbyte, firstbyte + nbytes2send)
+        self._logger.debug("requested range %d - %d", firstbyte, firstbyte + nbytes2send)
 
         mimetype = mimetypes.guess_type(filename)[0]
         if mimetype:
@@ -167,7 +151,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
                     nbyteswritten += len(data)
 
             if nbyteswritten != nbytes2send:
-                self._logger.error("VideoServer: sent wrong amount, wanted %s got %s", nbytes2send, nbyteswritten)
+                self._logger.error("sent wrong amount, wanted %s got %s", nbytes2send, nbyteswritten)
 
             if not requested_range:
                 stream.close()

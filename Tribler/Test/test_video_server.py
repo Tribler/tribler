@@ -1,15 +1,12 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 import os
-import sys
 import time
 import socket
-import random
 import binascii
 from traceback import print_exc
 
 from Tribler.Test.test_as_server import BASE_DIR, TestAsServer
-from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 

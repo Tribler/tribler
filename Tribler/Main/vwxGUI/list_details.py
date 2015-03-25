@@ -17,7 +17,6 @@ from Tribler.Core.simpledefs import (DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAI
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.Video.VideoUtility import limit_resolution
-from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
 from Tribler.community.channel.community import ChannelCommunity
 
@@ -2378,7 +2377,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
                 self.vSizer.Remove(link)
                 self.OnChange()
 
-        vod_dl = VideoPlayer.getInstance().get_vod_download()
+        vod_dl = self.guiutility.videoplayer.get_vod_download()
         if vod_dl and vod_dl.get_vod_fileindex() == fileindex:
             self.library_manager.stopTorrent(self.tdef.get_infohash())
             self.library_manager.last_vod_torrent = None
