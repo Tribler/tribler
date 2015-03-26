@@ -287,7 +287,7 @@ class TunnelCommunity(Community):
             if not self.libtorrent_test.has_completed_before():
                 self._logger.debug("Scheduling Anonymous LibTorrent download")
                 self.register_task("start_test", reactor.callLater(
-                    60, lambda: reactor.callInThread(self.libtorrent_test.start)))
+                    5, lambda: reactor.callInThread(self.libtorrent_test.start)))
                 return True
         return False
 

@@ -9,7 +9,7 @@ import json
 import copy
 import logging
 
-from Tribler.Main.vwxGUI.widgets import CheckSelectableListCtrl, _set_font, AnonymousSlidebar
+from Tribler.Main.vwxGUI.widgets import CheckSelectableListCtrl, _set_font, AnonymityDialog
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler import LIBRARYNAME
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
@@ -82,10 +82,10 @@ class SaveAs(wx.Dialog):
 
         vSizer.Add(hSizer, 0, wx.EXPAND | wx.BOTTOM, 3)
 
-        self.anonymous_slidebar = None
+        self.anonimity_dialog = None
         if self.tunnel_community_enabled:
-            self.anonymous_slidebar = AnonymousSlidebar(self)
-            vSizer.Add(self.anonymous_slidebar, 0, wx.EXPAND, 3)
+            self.anonimity_dialog = AnonymityDialog(self)
+            vSizer.Add(self.anonimity_dialog, 0, wx.EXPAND, 3)
 
         self.Bind(EVT_COLLECTED, self.OnCollected)
 
@@ -231,8 +231,11 @@ class SaveAs(wx.Dialog):
         return None
 
     def GetHops(self):
-        return self.anonymous_slidebar.GetValue() if self.anonymous_slidebar else 0
-
+        return self.anonimity_dialog.GetExitnodesHops() if self.anonimity_dialog else 0
+    
+    def UseHiddenservices(self):
+        return self.anonimity_dialog.GetEndToEndValue()
+    
     def OnOk(self, event=None):
         if self.listCtrl:
             nrSelected = len(self.listCtrl.GetSelectedItems())

@@ -269,9 +269,9 @@ class LineHandler(LineReceiver):
                 tdef.finalize()
                 tdef.save(os.path.join(cur_path, filename + '.torrent'))
             else:
-                print "Loading torrent..",
+                print "Loading existing torrent..",
                 tdef = TorrentDef.load(filename + '.torrent')
-            print "done"
+            print "done, infohash of torrent: %s" % (tdef.get_infohash().encode('hex')[:10])
 
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
@@ -295,7 +295,11 @@ class LineHandler(LineReceiver):
 
             def start_download():
                 def cb(ds):
-                    print 'Download', tdef.get_infohash().encode('hex')[:10], '@', ds.get_current_speed('down'), ds.get_progress(), ds.get_status(), sum(ds.get_num_seeds_peers())
+                    print 'Download infohash=%s, down=%s, progress=%s, status=%s, seedpeers=%s' % (tdef.get_infohash().encode('hex')[:10], 
+                                                      ds.get_current_speed('down'), 
+                                                      ds.get_progress(), 
+                                                      ds.get_status(), 
+                                                      sum(ds.get_num_seeds_peers()))
                     return 1.0, False
                 download = anon_tunnel.session.start_download(tdef, dscfg)
                 download.set_state_callback(cb, delay=1)

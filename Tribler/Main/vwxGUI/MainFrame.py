@@ -510,7 +510,14 @@ class MainFrame(wx.Frame):
                             selectedFiles = dlg.GetSelectedFiles()
                         else:
                             destdir = dlg.GetPath()
-                        hops = dlg.GetHops()
+
+                        # Anonimity over exit nodes or hidden services
+                        if dlg.UseHiddenservices():
+                            hops = 2
+                            try_hidden_services = True
+                        else:
+                            hops = dlg.GetHops()
+
                     else:
                         cancelDownload = True
                     dlg.Destroy()

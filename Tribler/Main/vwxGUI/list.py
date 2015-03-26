@@ -1629,7 +1629,7 @@ class LibraryList(SizeList):
                    {'name': 'Connections', 'width': '15em', 'autoRefresh': False},
                    {'name': 'Ratio', 'width': '15em', 'fmt': self._format_ratio, 'autoRefresh': False},
                    {'name': 'Time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
-                   {'name': 'Anonymous', 'width': '15em', 'autoRefresh': False}]
+                   {'name': 'Anonymous', 'width': '20em', 'autoRefresh': False}]
 
         columns = self.guiutility.SetColumnInfo(LibraryListItem, columns, hide_defaults=[2, 7, 8])
         ColumnsManager.getInstance().setColumns(LibraryListItem, columns)
@@ -1786,7 +1786,8 @@ class LibraryList(SizeList):
 
         for infohash, item in self.list.items.iteritems():
             ds = item.original_data.ds
-            infohash = ds.get_download().get_def().get_infohash() if ds else None
+            tdef = ds.get_download().get_def() if ds else None
+            infohash = tdef.get_infohash() if tdef else None
             if True or newFilter or not self.__ds__eq__(ds, self.oldDS.get(infohash, None)):
                 if ds and hasattr(item, 'progressPanel'):
                     progress = item.progressPanel.Update(item.original_data)
@@ -1847,7 +1848,13 @@ class LibraryList(SizeList):
                 item.RefreshColumn(6, seeds + peers)
                 item.SetToolTipColumn(6, "Connected to %d Seeders and %d Leechers." % (seeds, peers) if ds else '')
 
-                item.RefreshColumn(9, 'Yes' if ds and ds.get_download() and ds.get_download().get_anon_mode() else 'No')
+                anonmode = 'No'
+                if ds and ds.get_download() and ds.get_download().get_anon_mode():
+                    anonmode = 'Yes (' + str(ds.get_download().get_hops()) + ' hops)'
+                    if tdef.is_anonymous():
+                        anonmode = 'Yes (end-to-end)'
+
+                item.RefreshColumn(9, anonmode)
 
                 # For updating torrent icons
                 torrent_ds = item.original_data.download_state
