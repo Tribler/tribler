@@ -22,7 +22,6 @@ from .message import DelayMessageReqChannelMessage
 from .payload import (ChannelPayload, TorrentPayload, PlaylistPayload, CommentPayload, ModificationPayload,
                       PlaylistTorrentPayload, MissingChannelPayload, MarkTorrentPayload)
 from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
-
 logger = logging.getLogger(__name__)
 
 
@@ -372,6 +371,7 @@ class ChannelCommunity(Community):
                 else:
                     peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)
 
+                # sha_other_peer = (sha1(str(message.candidate.sock_addr) + self.my_member.mid))
                 torrentlist.append(
                     (self._channel_id,
                      dispersy_id,
@@ -383,14 +383,15 @@ class ChannelCommunity(Community):
                      message.payload.trackers))
                 _barter_statistics.dict_inc_bartercast(
                     BartercastStatisticTypes.TORRENTS_RECEIVED,
-                    message.authentication.member.mid.encode('hex'))
+                    # sha_other_peer)
+                    "%s:%s" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
             self._channelcast_db.on_torrents_from_dispersy(torrentlist)
         else:
             for message in messages:
                 self._channelcast_db.newTorrent(message)
                 self._logger.debug("torrent received: %s on channel: %s", message.payload.infohash, self._master_member)
                 _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TORRENTS_RECEIVED,
-                                                       message.authentication.member.mid.encode('hex'))
+                                                       "%s:%s" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
 
     def _disp_undo_torrent(self, descriptors, redo=False):
         for _, _, packet in descriptors:
@@ -484,7 +485,7 @@ class ChannelCommunity(Community):
             reply_after_message = self._dispersy.load_message_by_packetid(self, reply_after)
         if playlist_id:
             playlist_message = self._get_message_from_playlist_id(playlist_id)
-        self._disp_create_comment( text, timestamp, reply_to_message,
+        self._disp_create_comment(text, timestamp, reply_to_message,
                                    reply_after_message, playlist_message,
                                    infohash, store, update, forward)
 
@@ -608,7 +609,7 @@ class ChannelCommunity(Community):
         for type, value in modifications.iteritems():
             type = unicode(type)
             timestamp = long(time())
-            self._disp_create_modification( type, value, timestamp,
+            self._disp_create_modification(type, value, timestamp,
                                             modification_on_message,
                                             latest_modifications[type], store,
                                             update, forward)
@@ -625,7 +626,7 @@ class ChannelCommunity(Community):
         for type, value in modifications.iteritems():
             type = unicode(type)
             timestamp = long(time())
-            self._disp_create_modification( type, value, timestamp,
+            self._disp_create_modification(type, value, timestamp,
                                             modification_on_message,
                                             latest_modifications[type], store,
                                             update, forward)
@@ -649,7 +650,7 @@ class ChannelCommunity(Community):
                                            latest_modifications[type], store,
                                            update, forward)
 
-    def _disp_create_modification( self, modification_type, modifcation_value, timestamp, modification_on,
+    def _disp_create_modification(self, modification_type, modifcation_value, timestamp, modification_on,
                                    latest_modification, store=True, update=True, forward=True):
         modification_type = unicode(modification_type)
         modifcation_value = unicode(modifcation_value[:1023])
@@ -986,7 +987,7 @@ class ChannelCommunity(Community):
                     if not latest or latest.packet_id == cause_message.packet_id:
                         updateTorrent = True
 
-                self._channelcast_db.on_moderation( self._channel_id,
+                self._channelcast_db.on_moderation(self._channel_id,
                                                     dispersy_id, peer_id,
                                                     by_peer_id, cause,
                                                     message.payload.text,
