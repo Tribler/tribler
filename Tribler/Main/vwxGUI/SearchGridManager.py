@@ -209,7 +209,9 @@ class TorrentManager(object):
 
     @warnDispersyThread
     def searchDispersy(self):
-        return self.session.search_remote_torrents(self.searchkeywords)
+        if self.session.get_enable_torrent_search():
+            return self.session.search_remote_torrents(self.searchkeywords)
+        return 0
 
     def getHitsInCategory(self, categorykey='all'):
         begintime = time()
@@ -1684,7 +1686,9 @@ class ChannelManager(object):
 
     @warnDispersyThread
     def searchDispersy(self):
-        return self.session.search_remote_channels(self.searchkeywords)
+        if self.session.get_enable_channel_search():
+            return self.session.search_remote_channels(self.searchkeywords)
+        return 0
 
     def searchLocalDatabase(self):
         """ Called by GetChannelHits() to search local DB. Caches previous query result. """

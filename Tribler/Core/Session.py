@@ -625,6 +625,8 @@ class Session(SessionConfigInterface):
         :param keywords: The given keywords.
         :return: The number of requests made.
         """
+        if not self.get_enable_torrent_search():
+            raise OperationNotEnabledByConfigurationException("torrent_search is not enabled")
         return self.lm.search_manager.search_for_torrents(keywords)
 
     def search_remote_channels(self, keywords):
@@ -632,6 +634,8 @@ class Session(SessionConfigInterface):
         Searches for remote channels through AllChannelCommunity with the given keywords.
         :param keywords: The given keywords.
         """
+        if not self.get_enable_channel_search():
+            raise OperationNotEnabledByConfigurationException("channel_search is not enabled")
         self.lm.search_manager.search_for_channels(keywords)
 
     def check_torrent_health(self, infohash):
