@@ -1665,46 +1665,15 @@ class ChannelManager(object):
         hitsUpdated = self.searchLocalDatabase()
         self._logger.debug('ChannelManager: getChannelHits: search found: %d items', len(self.hits))
 
-        try:
+        with self.remoteLock:
             # merge remoteHits
-            self.remoteLock.acquire()
-
             if len(self.remoteHits) > 0:
-                for remoteItem, permid in self.remoteHits:
-
-                    channel = None
-                    if not isinstance(remoteItem, Channel):
-                        channel_id, _, infohash, torrent_name, timestamp = remoteItem
-
-                        if channel_id not in self.hits:
-                            channel = self.getChannel(channel_id)
-                        else:
-                            channel = self.hits[channel_id]
-
-                        torrent = channel.getTorrent(infohash)
-                        if not torrent:
-                            torrent = RemoteChannelTorrent(
-                                torrent_id=None,
-                                infohash=infohash,
-                                name=torrent_name,
-                                channel=channel,
-                                query_candidates=set())
-                            channel.addTorrent(torrent)
-
-                        if not torrent.query_candidates:
-                            torrent.query_candidates = set()
-                        torrent.query_candidates.add(permid)
-
-                        channel.nr_torrents += 1
-                        channel.modified = max(channel.modified, timestamp)
-                    else:
-                        channel = remoteItem
-
+                for channel in self.remoteHits:
                     if channel and channel.id not in self.hits:
                         self.hits[channel.id] = channel
                         hitsUpdated = True
-        finally:
-            self.remoteLock.release()
+
+            self.remoteRefresh = False
 
         self._logger.debug("ChannelManager: getChannelHits took %s", time() - begintime)
 
@@ -1747,13 +1716,11 @@ class ChannelManager(object):
         if self.searchkeywords == kws:
             channels = result_list
             _, dispersyChannels = self._createChannels(channels)
-            try:
-                self.remoteLock.acquire()
 
+            with self.remoteLock:
                 for channel in dispersyChannels:
-                    self.remoteHits.append((channel, -1))
+                    self.remoteHits.append(channel)
 
-            finally:
                 refreshGrid = len(self.remoteHits) > 0
                 if refreshGrid:
                     # if already scheduled, dont schedule another
@@ -1762,10 +1729,8 @@ class ChannelManager(object):
                     else:
                         self.remoteRefresh = True
 
-                self.remoteLock.release()
-
-                if refreshGrid:
-                    self.refreshGrid()
+            if refreshGrid:
+                self.refreshGrid()
 
     def refreshGrid(self):
         if self.gridmgr is not None:
