@@ -68,6 +68,55 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         self.startTest(do_create_local_torrent)
 
+
+    @timed(120)
+    def test_anon_download_without_exitnodes(self):
+        def take_second_screenshot():
+            self.screenshot()
+            self.quit()
+
+        def take_screenshot(download_time):
+            self.screenshot("After an anonymous libtorrent download without exitnodes")
+            self.guiUtility.ShowPage('networkgraph')
+            self.Call(1, take_second_screenshot)
+
+        def on_fail(expected, reason, do_assert):
+            dispersy = self.session.lm.dispersy
+            tunnel_community = next(c for c in dispersy.get_communities() if isinstance(c, HiddenTunnelCommunity))
+
+            self.guiUtility.ShowPage('networkgraph')
+
+            def do_asserts():
+                self.assert_(len(tunnel_community.circuits) == 0,
+                             "No circuits should have been created (got %d)" % len(tunnel_community.circuits),
+                             False)
+                self.assert_(expected, reason, do_assert)
+
+            self.Call(1, do_asserts)
+
+        def do_progress(download, start_time):
+            self.CallConditional(120,
+                                 lambda: download.get_progress() == 0.0,
+                                 lambda: take_screenshot(time.time() - start_time),
+                                 'Anonymous download should not have any progress (%.1f%% downloaded)' % (
+                                     download.get_progress() * 100),
+                                 on_fail
+                                 )
+
+        def do_create_local_torrent(_):
+            tf = self.setupSeeder()
+            start_time = time.time()
+            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(),
+                                                           hops=3, try_hidden_services=False)
+
+            self.guiUtility.ShowPage('my_files')
+            self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
+
+            do_progress(download, start_time)
+
+        self.startTest(do_create_local_torrent, nr_exitnodes=0)
+
+
     @timed(120)
     def test_anon_tunnel(self):
         got_data = Event()
@@ -214,7 +263,7 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         self.startTest(setup_seeder)
 
-    def startTest(self, callback, min_timeout=5):
+    def startTest(self, callback, min_timeout=5, nr_relays=5, nr_exitnodes=3):
         from Tribler.Main import tribler_main
         tribler_main.FORCE_ENABLE_TUNNEL_COMMUNITY = True
         tribler_main.TUNNEL_COMMUNITY_DO_TEST = False
@@ -223,8 +272,13 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         def setup_proxies():
             tunnel_communities = []
-            for i in range(3, 10):
-                tunnel_communities.append(create_proxy(i, i > 7))
+            baseindex = 3
+            for i in range(baseindex, baseindex + nr_relays):  # Normal relays
+                tunnel_communities.append(create_proxy(i, False))
+
+            baseindex += nr_relays + 1
+            for i in range(baseindex, baseindex + nr_exitnodes):  # Exit nodes
+                tunnel_communities.append(create_proxy(i, True))
 
             # Connect the proxies to the Tribler instance
             for community in self.lm.dispersy.get_communities():
