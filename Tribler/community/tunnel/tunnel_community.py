@@ -314,24 +314,13 @@ class TunnelCommunity(Community):
         meta_messages = super(TunnelCommunity, self).initiate_meta_messages()
         for i, mm in enumerate(meta_messages):
             if mm.name == "dispersy-introduction-request":
-                meta_messages[i] = Message(self, u"dispersy-introduction-request",
-                                     MemberAuthentication(),
-                                     PublicResolution(),
-                                     DirectDistribution(),
-                                     CandidateDestination(),
-                                     TunnelIntroductionRequestPayload(),
-                                     self.check_introduction_request,
-                                     self.on_introduction_request)
+                meta_messages[i] = Message(self, mm.name, mm.authentication, mm.resolution, mm.distribution,
+                                           mm.destination, TunnelIntroductionRequestPayload(), 
+                                           mm.check_callback, mm.handle_callback)
             elif mm.name == "dispersy-introduction-response":
-                meta_messages[i] = Message(self, u"dispersy-introduction-response",
-                                     MemberAuthentication(),
-                                     PublicResolution(),
-                                     DirectDistribution(),
-                                     CandidateDestination(),
-                                     TunnelIntroductionResponsePayload(),
-                                     self.check_introduction_response,
-                                     self.on_introduction_response)
-            
+                meta_messages[i] = Message(self, mm.name, mm.authentication, mm.resolution, mm.distribution,
+                                           mm.destination, TunnelIntroductionResponsePayload(),
+                                           mm.check_callback, mm.handle_callback)
             
         return meta_messages + [Message(self, u"cell", NoAuthentication(), PublicResolution(), DirectDistribution(),
                      CandidateDestination(), CellPayload(), self._generic_timeline_check, self.on_cell),
