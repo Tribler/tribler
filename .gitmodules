@@ -1,6 +1,6 @@
 [submodule "Tribler/dispersy"]
 	path = Tribler/dispersy
-	url = https://github.com/tribler/dispersy.git
+	url = https://github.com/Tribler/dispersy.git
 [submodule "Tribler/Core/DecentralizedTracking/pymdht"]
 	path = Tribler/Core/DecentralizedTracking/pymdht
 	url = https://github.com/LipuFei/pymdht.git
