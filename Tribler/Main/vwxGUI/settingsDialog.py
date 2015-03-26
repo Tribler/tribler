@@ -209,17 +209,14 @@ class SettingsDialog(wx.Dialog):
             self.utility.write_config('use_webui', useWebUI)
             restart = True
 
-
         becomeExitNode = self._become_exitnode.IsChecked()
         if becomeExitNode != scfg.get_tunnel_community_exitnode_enabled():
             scfg.set_tunnel_community_exitnode_enabled(becomeExitNode)
-            self.saveDefaultSessionConfig(scfg)
             restart = True
 
         switchHsOnTimeout = self._switch_hs_timeout.IsChecked()
         if switchHsOnTimeout != scfg.get_tunnel_community_hs_timeout_switch():
             scfg.set_tunnel_community_hs_timeout_switch(switchHsOnTimeout)
-            self.saveDefaultSessionConfig(scfg)
             restart = True
 
         valwebuiport = self._webui_port.GetValue()
@@ -369,10 +366,6 @@ class SettingsDialog(wx.Dialog):
         scfg.save(cfgfilename)
 
     
-    def saveDefaultSessionConfig(self, scfg):
-        cfgfilename = Session.get_default_config_filename(scfg.get_state_dir())
-        scfg.save(cfgfilename)
-
     def moveCollectedTorrents(self, old_dir, new_dir):
         def rename_or_merge(old, new, ignore=True):
             if os.path.exists(old):
@@ -767,11 +760,8 @@ class SettingsDialog(wx.Dialog):
         exp_vsizer.Add(exp_s1_faq_text, 0, wx.EXPAND | wx.TOP, 10)
 
         # load values
-        state_dir = self.utility.session.get_state_dir()
-        cfgfilename = self.utility.session.get_default_config_filename(state_dir)
-        scfg = SessionStartupConfig.load(cfgfilename)
-        self._become_exitnode.SetValue(scfg.get_tunnel_community_exitnode_enabled())
-        self._switch_hs_timeout.SetValue(scfg.get_tunnel_community_hs_timeout_switch())
+        self._become_exitnode.SetValue(self.utility.session.get_tunnel_community_exitnode_enabled())
+        self._switch_hs_timeout.SetValue(self.utility.session.get_tunnel_community_hs_timeout_switch())
         
         
         return exp_panel, item_id
