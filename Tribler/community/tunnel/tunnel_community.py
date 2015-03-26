@@ -195,8 +195,7 @@ class TunnelSettings(object):
             
 class ExitCandidate(object):
     
-    def __init__(self, connectable, become_exit):
-        self.connectable = connectable
+    def __init__(self, become_exit):
         self.become_exit = become_exit
         self.creation_time = time.time()
         
@@ -810,8 +809,7 @@ class TunnelCommunity(Community):
         super(TunnelCommunity, self).on_introduction_request(messages, extra_payload)
         for message in messages:
             pubkey = message.candidate.get_member().public_key
-            connectable = message.candidate.connection_type == u"public"
-            self.exit_candidates[pubkey] = ExitCandidate(message.payload.exitnode, connectable)
+            self.exit_candidates[pubkey] = ExitCandidate(message.payload.exitnode)
      
     def create_introduction_request(self, destination, allow_sync, forward=True, is_fast_walker=False):
         exitnode = self.settings.become_exitnode
@@ -822,8 +820,7 @@ class TunnelCommunity(Community):
         super(TunnelCommunity, self).on_introduction_response(messages)
         for message in messages:
             pubkey = message.candidate.get_member().public_key
-            connectable = message.candidate.connection_type == u"public"
-            self.exit_candidates[pubkey] = ExitCandidate(message.payload.exitnode, connectable)
+            self.exit_candidates[pubkey] = ExitCandidate(message.payload.exitnode)
      
     def on_cell(self, messages):
         for message in messages:
@@ -876,8 +873,8 @@ class TunnelCommunity(Community):
             for c in self.dispersy_yield_verified_candidates():
                 pubkey = c.get_member().public_key
                 exit_candidate = self.exit_candidates[pubkey]
-                if message.payload.exit_candidates and not exit_candidate.connectable:
-                    # Next candidates need to be exit nodes, and this candidate isn't
+                if message.payload.exit_candidates and not (exit_candidate.become_exit and message.candidate.connection_type == u"public"):
+                    # Next candidates need to be connectable exit nodes, and this candidate isn't
                     continue
                 
                 candidates[pubkey] = c
