@@ -20,7 +20,7 @@ from Tribler.community.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDI
 from Tribler.community.tunnel.conversion import TunnelConversion
 from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, CreatedPayload, ExtendPayload,
                                               ExtendedPayload, DestroyPayload, PongPayload, PingPayload,
-                                              StatsRequestPayload, StatsResponsePayload, 
+                                              StatsRequestPayload, StatsResponsePayload,
                                               TunnelIntroductionResponsePayload, TunnelIntroductionRequestPayload)
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
 from Tribler.community.tunnel.tests.test_libtorrent import LibtorrentTest
@@ -39,8 +39,6 @@ from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.util import call_on_reactor_thread
 from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
 from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
-from Tribler.Main.Utility.utility import Utility
-from Tribler.Core.SessionConfig import SessionStartupConfig
 
 
 class CircuitRequestCache(NumberCache):
@@ -186,19 +184,19 @@ class TunnelSettings(object):
         self.max_traffic = 55 * 1024 * 1024
 
         self.max_packets_without_reply = 50
-        
+
         if tribler_session:
             self.become_exitnode = tribler_session.get_tunnel_community_exitnode_enabled()
         else:
             self.become_exitnode = False
-         
-            
+
+
 class ExitCandidate(object):
-    
+
     def __init__(self, become_exit):
         self.become_exit = become_exit
         self.creation_time = time.time()
-        
+
 
 class RoundRobin(object):
 
@@ -258,7 +256,7 @@ class TunnelCommunity(Community):
         self.trsession = tribler_session
         self.settings = settings if settings else TunnelSettings(tribler_session=tribler_session)
 
-        self._logger.debug("TunnelCommunity: become_exitnide = %s" % settings.become_exitnode)
+        self._logger.debug("TunnelCommunity: become_exitnode = %s" % settings.become_exitnode)
 
         super(TunnelCommunity, self).initialize()
 
@@ -878,6 +876,9 @@ class TunnelCommunity(Community):
                 if message.payload.exit_candidates and not (exit_candidate.become_exit and message.candidate.connection_type == u"public"):
                     # Next candidates need to be connectable exit nodes, and this candidate isn't
                     continue
+                if not message.payload.exit_candidates and (exit_candidate.become_exit):
+                    # Reserve exit node candidates just for exiting data
+                    continue
 
                 candidates[pubkey] = c
                 if len(candidates) >= 4:
@@ -965,11 +966,12 @@ class TunnelCommunity(Community):
 
             self._logger.info("extending circuit, got candidate with IP %s:%d from cache", *extend_candidate.sock_addr)
 
-            self.increase_bytes_sent(new_circuit_id, self.send_cell([extend_candidate], u"create", (new_circuit_id,
-                                                                                                    message.payload.node_id,
-                                                                                                    message.payload.node_public_key,
-                                                                                                    message.payload.key,
-                                                                                                    message.payload.exit_candidates)))
+            self.increase_bytes_sent(new_circuit_id, self.send_cell([extend_candidate],
+                                                                    u"create", (new_circuit_id,
+                                                                                message.payload.node_id,
+                                                                                message.payload.node_public_key,
+                                                                                message.payload.key,
+                                                                                message.payload.exit_candidates)))
 
     def on_extended(self, messages):
         for message in messages:
