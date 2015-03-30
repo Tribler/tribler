@@ -963,6 +963,8 @@ class ArtworkPanel(wx.Panel):
 
     @forceWxThread
     def SetData(self, delayedResult):
+        if not self or not self.list:
+            return
         data = []
         torrents = delayedResult.get()
 

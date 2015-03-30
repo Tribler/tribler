@@ -13,7 +13,7 @@ from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.simpledefs import (NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST,
                                      NTFY_METADATA, DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK,
-                                     SIGNAL_ALLCHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT)
+                                     SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT)
 from Tribler.Core.Utilities.sort_utils import sort_torrent_fulltext
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import (Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent,
@@ -209,7 +209,9 @@ class TorrentManager(object):
 
     @warnDispersyThread
     def searchDispersy(self):
-        return self.session.search_remote_torrents(self.searchkeywords)
+        if self.session.get_enable_torrent_search():
+            return self.session.search_remote_torrents(self.searchkeywords)
+        return 0
 
     def getHitsInCategory(self, categorykey='all'):
         begintime = time()
@@ -1016,7 +1018,7 @@ class ChannelManager(object):
 
             self.dispersy = session.lm.dispersy
 
-            self.session.add_observer(self.gotDispersyRemoteHits, SIGNAL_ALLCHANNEL, [SIGNAL_ON_SEARCH_RESULTS])
+            self.session.add_observer(self.gotDispersyRemoteHits, SIGNAL_CHANNEL, [SIGNAL_ON_SEARCH_RESULTS])
         else:
             raise RuntimeError('ChannelManager already connected')
 
@@ -1665,46 +1667,15 @@ class ChannelManager(object):
         hitsUpdated = self.searchLocalDatabase()
         self._logger.debug('ChannelManager: getChannelHits: search found: %d items', len(self.hits))
 
-        try:
+        with self.remoteLock:
             # merge remoteHits
-            self.remoteLock.acquire()
-
             if len(self.remoteHits) > 0:
-                for remoteItem, permid in self.remoteHits:
-
-                    channel = None
-                    if not isinstance(remoteItem, Channel):
-                        channel_id, _, infohash, torrent_name, timestamp = remoteItem
-
-                        if channel_id not in self.hits:
-                            channel = self.getChannel(channel_id)
-                        else:
-                            channel = self.hits[channel_id]
-
-                        torrent = channel.getTorrent(infohash)
-                        if not torrent:
-                            torrent = RemoteChannelTorrent(
-                                torrent_id=None,
-                                infohash=infohash,
-                                name=torrent_name,
-                                channel=channel,
-                                query_candidates=set())
-                            channel.addTorrent(torrent)
-
-                        if not torrent.query_candidates:
-                            torrent.query_candidates = set()
-                        torrent.query_candidates.add(permid)
-
-                        channel.nr_torrents += 1
-                        channel.modified = max(channel.modified, timestamp)
-                    else:
-                        channel = remoteItem
-
+                for channel in self.remoteHits:
                     if channel and channel.id not in self.hits:
                         self.hits[channel.id] = channel
                         hitsUpdated = True
-        finally:
-            self.remoteLock.release()
+
+            self.remoteRefresh = False
 
         self._logger.debug("ChannelManager: getChannelHits took %s", time() - begintime)
 
@@ -1715,22 +1686,9 @@ class ChannelManager(object):
 
     @warnDispersyThread
     def searchDispersy(self):
-        nr_requests_made = 0
-        if self.dispersy:
-            for community in self.dispersy.get_communities():
-                if isinstance(community, AllChannelCommunity):
-                    nr_requests_made = community.create_channelsearch(self.searchkeywords)
-                    if not nr_requests_made:
-                        self._logger.info("Could not send search in AllChannelCommunity, no verified candidates found")
-                    break
-
-            else:
-                self._logger.info("Could not send search in AllChannelCommunity, community not found")
-
-        else:
-            self._logger.info("Could not send search in AllChannelCommunity, Dispersy not found")
-
-        return nr_requests_made
+        if self.session.get_enable_channel_search():
+            return self.session.search_remote_channels(self.searchkeywords)
+        return 0
 
     def searchLocalDatabase(self):
         """ Called by GetChannelHits() to search local DB. Caches previous query result. """
@@ -1758,17 +1716,15 @@ class ChannelManager(object):
 
     def gotDispersyRemoteHits(self, subject, changetype, objectID, results):
         kws = results['keywords']
-        answers = results['torrents']
+        result_list = results['result_list']
         if self.searchkeywords == kws:
-            channel_cids = answers.keys()
-            _, dispersyChannels = self.getChannelsByCID(channel_cids)
-            try:
-                self.remoteLock.acquire()
+            channels = result_list
+            _, dispersyChannels = self._createChannels(channels)
 
+            with self.remoteLock:
                 for channel in dispersyChannels:
-                    self.remoteHits.append((channel, -1))
+                    self.remoteHits.append(channel)
 
-            finally:
                 refreshGrid = len(self.remoteHits) > 0
                 if refreshGrid:
                     # if already scheduled, dont schedule another
@@ -1777,10 +1733,8 @@ class ChannelManager(object):
                     else:
                         self.remoteRefresh = True
 
-                self.remoteLock.release()
-
-                if refreshGrid:
-                    self.refreshGrid()
+            if refreshGrid:
+                self.refreshGrid()
 
     def refreshGrid(self):
         if self.gridmgr is not None:

@@ -471,7 +471,8 @@ class TorrentDBHandler(BasicDBHandler):
                 torrentdef.infohash = infohash
 
                 torrent_id = self._addTorrentToDB(torrentdef, extra_info)
-                self._rtorrent_handler.notify_possible_torrent_infohash(infohash)
+                if self._rtorrent_handler:
+                    self._rtorrent_handler.notify_possible_torrent_infohash(infohash)
 
                 insert_files = [(torrent_id, unicode(path), length) for path, length in files]
                 if len(insert_files) > 0:

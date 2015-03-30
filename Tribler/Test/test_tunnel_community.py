@@ -1,9 +1,7 @@
 # Written by Niels Zeilemaker
 # see LICENSE.txt for license information
 import os
-import sys
 import time
-from os import environ
 from threading import Event
 from traceback import print_exc
 
