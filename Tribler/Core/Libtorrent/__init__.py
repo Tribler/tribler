@@ -1,5 +1,8 @@
 # Written by Egbert Bouman
 
+'''
+The Libtorrent package contains code to manage the torrent library.
+'''
 
 def checkHandleAndSynchronize(default=None):
     def wrap(f):
