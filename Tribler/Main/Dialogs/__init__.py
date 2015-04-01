@@ -1,3 +1,3 @@
 '''
-The Dialogs package contains the differnt dialogs that are showed within Tribler
+The Dialogs package contains the different dialogs that are shown within Tribler
 '''
