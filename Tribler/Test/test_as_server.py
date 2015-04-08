@@ -176,6 +176,7 @@ class TestAsServer(AbstractServer):
         self.config.set_mainline_dht(False)
         self.config.set_torrent_store(False)
         self.config.set_enable_torrent_search(False)
+        self.config.set_enable_channel_search(False)
         self.config.set_torrent_collecting(False)
         self.config.set_libtorrent(False)
         self.config.set_dht_torrent_collecting(False)
@@ -331,7 +332,8 @@ class TestGuiAsServer(TestAsServer):
             if do_assert:
                 assert boolean, reason
 
-    def startTest(self, callback, min_timeout=5, autoload_discovery=True):
+    def startTest(self, callback, min_timeout=5, autoload_discovery=True,
+                  use_torrent_search=True, use_channel_search=True):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
         from Tribler.Main import tribler_main
         tribler_main.ALLOW_MULTIPLE = True
@@ -374,7 +376,9 @@ class TestGuiAsServer(TestAsServer):
 
         # modify argv to let tribler think its running from a different directory
         sys.argv = [os.path.abspath('./.exe')]
-        tribler_main.run(autoload_discovery=autoload_discovery)
+        tribler_main.run(autoload_discovery=autoload_discovery,
+                         use_torrent_search=use_torrent_search,
+                         use_channel_search=use_channel_search)
 
         assert self.hadSession, 'Did not even create a session'
 

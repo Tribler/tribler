@@ -23,18 +23,11 @@ from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Core.Video.VLCWrapper import VLCWrapper
 
 
-logger = logging.getLogger(__name__)
-
-
 class VideoPlayer(object):
 
     __single = None
 
     def __init__(self, session, httpport=None):
-        if VideoPlayer.__single:
-            raise RuntimeError("VideoPlayer is singleton")
-        VideoPlayer.__single = self
-
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.session = session
@@ -51,29 +44,13 @@ class VideoPlayer(object):
         self.vlcwrap = VLCWrapper() if self.playbackmode == PLAYBACKMODE_INTERNAL else None
 
         # Start HTTP server for serving video
-        self.videoserver = VideoServer.getInstance(httpport or self.session.get_videoplayer_port(), self.session)
+        self.videoserver = VideoServer(httpport or self.session.get_videoplayer_port(), self.session, self)
         self.videoserver.start()
 
         self.notifier = Notifier.getInstance()
 
         self.player_out = None
         self.player_in = None
-
-    def getInstance(*args, **kw):
-        if VideoPlayer.__single is None:
-            VideoPlayer(*args, **kw)
-        return VideoPlayer.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        if VideoPlayer.__single and VideoPlayer.__single.videoserver:
-            VideoPlayer.__single.videoserver.delInstance()
-            VideoPlayer.__single = None
-    delInstance = staticmethod(delInstance)
-
-    def hasInstance():
-        return VideoPlayer.__single and VideoPlayer.__single.vlcwrap and VideoPlayer.__single.vlcwrap.initialized
-    hasInstance = staticmethod(hasInstance)
 
     def shutdown(self):
         if self.videoserver:
@@ -107,7 +84,7 @@ class VideoPlayer(object):
     def monitor_vod(self, ds):
         dl = ds.get_download() if ds else None
 
-        if dl != self.vod_download or not VideoPlayer.hasInstance():
+        if dl != self.vod_download:
             return 0, False
 
         bufferprogress = ds.get_vod_prebuffering_progress_consec()

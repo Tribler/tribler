@@ -486,7 +486,6 @@ class TunnelCommunity(Community):
                                                                      circuit.unverified_hop.dh_first_part,
                                                                      exit_candidates)))
 
-        _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_BYTES_SENT, circuit.mid)
         return True
 
     def readd_bittorrent_peers(self):

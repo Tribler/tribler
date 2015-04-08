@@ -358,11 +358,11 @@ class AllChannelCommunity(Community):
 
             # emit a results signal if integrated with Tribler
             if self.tribler_session is not None:
-                from Tribler.Core.simpledefs import SIGNAL_ALLCHANNEL, SIGNAL_ON_SEARCH_RESULTS
+                from Tribler.Core.simpledefs import SIGNAL_ALLCHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS
                 torrents = message.payload.torrents
                 results = {'keywords': keywords,
                            'torrents': torrents}
-                self.tribler_session.uch.notify(SIGNAL_ALLCHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results)
+                self.tribler_session.uch.notify(SIGNAL_ALLCHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, None, results)
 
     def disp_create_votecast(self, cid, vote, timestamp, store=True, update=True, forward=True):
         # reclassify community

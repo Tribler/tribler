@@ -2,6 +2,7 @@
 # see LICENSE.txt for license information
 import os
 import time
+from threading import Event
 from traceback import print_exc
 
 from nose.tools import timed
@@ -175,7 +176,7 @@ class TestTunnelCommunity(TestGuiAsServer):
             progress = download.get_progress()
             self.assert_(progress == lastprogress,
                          "Expected no progress, but actual progress was progress=%s, lastprogress=%s" % (progress, lastprogress))
-            quit()
+            self.quit()
 
         def check_progress(download, start_time):
             lastprogress = download.get_progress()

@@ -56,7 +56,6 @@ from Tribler.Main.vwxGUI.channel import SelectedChannelList, Playlist, ManageCha
 from Tribler.Main.vwxGUI.SRstatusbar import SRstatusbar
 
 from Tribler.Core.Video.utils import videoextdefaults
-from Tribler.Core.SessionConfig import SessionStartupConfig
 
 
 #
