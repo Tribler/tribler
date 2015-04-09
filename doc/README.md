@@ -9,7 +9,7 @@
 |                                                   | [APIImplementation](/Tribler/Core/APIImplementation)          | Contains the API for torrents, creating them and maintaining them.             |
 |                                                   | [CacheDB](/Tribler/Core/CacheDB)                              | Contains the cached database for Tribler, including a notifier, and manages different versions.              |
 |                                                   | [DecentralizedTracking](/Tribler/Core/DecentralizedTracking)  | Contains the pymdht library for profiling network information.              |
-|                                                   | [LibTorrent](/Tribler/Core/LibTorrent)                        | Contains code to manage the torrent library.              |
+|                                                   | [Libtorrent](/Tribler/Core/Libtorrent)                        | Contains code to manage the torrent library.              |
 |                                                   | [Modules](/Tribler/Core/Modules)                              | Contains the tracker manager.              |
 |                                                   | [RawServer](/Tribler/Core/RawServer)                          | Contains the Raw Server including a Socket Handler and a polling system.              |
 |                                                   | [TFTP](/Tribler/Core/TFTP)                                    | Contains the the TFTP handler that should be registered at the Raw Server to handle TFTP packets.              |
