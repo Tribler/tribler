@@ -75,18 +75,6 @@ class BarterCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), StatisticsConversion(self)]
 
-    @property
-    def dispersy_sync_response_limit(self):
-        return 1
-
-    @property
-    def dispersy_sync_skip_enable(self):
-        return False
-
-    @property
-    def dispersy_sync_cache_enable(self):
-        return False
-
     def create_stats_request(self, candidate, stats_type):
         log.msg("Creating stats-request for type %d to member: %s" % (stats_type, candidate._association.mid.encode("hex")))
         meta = self.get_meta_message(u"stats-request")
@@ -146,6 +134,16 @@ class BarterCommunity(Community):
     def backup_bartercast_statistics(self):
         self._logger.debug("merging bartercast statistics")
         _barter_statistics.persist(self, 1)
+
+    def unload_community(self):
+        self._logger.debug("unloading the Barter4 community")
+        super(BarterCommunity, self).unload_community()
+
+        # store all cached statistics
+        self.backup_bartercast_statistics()
+
+        # close database
+        _barter_statistics.close()
 
 
 class BarterCommunityCrawler(BarterCommunity):
