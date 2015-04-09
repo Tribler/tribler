@@ -1,5 +1,7 @@
 # Architectural Structure
 
+![Structural View](/Resources/Structure_Diagram)
+
 | Folder                                            | Subfolder                                                     | Description   |
 |---------------------------------------------------|---------------------------------------------------------------|---------------|
 | [Category](/Tribler/Category)                     | -                                                             | Contains code to categorize torrents and filter the categories according to filter preferences.               |
@@ -39,3 +41,6 @@
 |                                                   | [data](/Tribler/Test/data)                                    | Contains data needed for tests.              |
 | [Utilities](/Tribler/Utilities)                   | -                                                             | Contains different utility classes used in Tribler               |
 | [twisted](https://github.com/twisted)             | -                                                             | Event Driven Networking Engine        |
+
+######Maintenance
+Inside the [Resources](/Resources) folder, there is a .xml file that can be opened in [Draw.io](https://www.draw.io), where it can be adapted/altered as needed.
