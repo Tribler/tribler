@@ -354,8 +354,12 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
             _, rp_info = decode(self.crypto.decrypt_str(
                 message.payload.rp_sock_addr, session_keys[EXIT_NODE], session_keys[EXIT_NODE_SALT]))
+
             self.create_circuit(DEFAULT_HOPS, CIRCUIT_TYPE_RENDEZVOUS, callback=lambda circuit, cookie=rp_info[
-                                1], session_keys=session_keys, info_hash=cache.info_hash, sock_addr=cache.sock_addr: self.create_link_e2e(circuit, cookie, session_keys, info_hash, sock_addr), max_retries=5, required_exit=rp_info[0])
+                                1], session_keys=session_keys, info_hash=cache.info_hash,
+                                sock_addr=cache.sock_addr: self.create_link_e2e(circuit, cookie, session_keys,
+                                                                                info_hash, sock_addr),
+                                max_retries=5, required_exit=rp_info[0])
 
     def create_link_e2e(self, circuit, cookie, session_keys, info_hash, sock_addr):
         self.my_download_points[circuit.circuit_id] = (info_hash, circuit.goal_hops, sock_addr)
