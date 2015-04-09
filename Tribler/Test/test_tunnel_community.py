@@ -5,8 +5,6 @@ import time
 from threading import Event
 from traceback import print_exc
 
-from nose.tools import timed
-
 from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Core.simpledefs import dlstatus_strings
@@ -19,7 +17,6 @@ from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
 class TestTunnelCommunity(TestGuiAsServer):
 
-    @timed(120)
     def test_anon_download(self):
         def take_second_screenshot():
             self.screenshot()
@@ -66,7 +63,6 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         self.startTest(do_create_local_torrent)
 
-    @timed(180)
     def test_anon_download_without_relays(self):
         def take_second_screenshot():
             self.screenshot()
@@ -98,10 +94,8 @@ class TestTunnelCommunity(TestGuiAsServer):
             self.CallConditional(1,
                                  lambda: download.get_progress() == 0.0,
                                  lambda: on_success(download, start_time),
-                                 'Anonymous download without relays should not have any progress (%.1f%% downloaded)' % (
-                                     download.get_progress() * 100),
-                                 on_fail
-                                 )
+                                 'Anonymous download without relays should not have any progress (%.1f%% downloaded)' %
+                                 (download.get_progress() * 100), on_fail)
 
         def do_create_local_torrent(_):
             tf = self.setupSeeder()
@@ -115,7 +109,6 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         self.startTest(do_create_local_torrent, nr_exitnodes=5, nr_relays=0)
 
-    @timed(180)
     def test_anon_download_without_exitnodes(self):
         def take_second_screenshot():
             self.screenshot()
@@ -147,10 +140,8 @@ class TestTunnelCommunity(TestGuiAsServer):
             self.CallConditional(1,
                                  lambda: download.get_progress() == 0.0,
                                  lambda: on_success(download, start_time),
-                                 'Anonymous download without exit nodes should not have any progress (%.1f%% downloaded)' % (
-                                     download.get_progress() * 100),
-                                 on_fail
-                                 )
+                                 'Anonymous download without exit nodes should not make progress (%.1f%% downloaded)' %
+                                 (download.get_progress() * 100), on_fail)
 
         def do_create_local_torrent(_):
             tf = self.setupSeeder()
@@ -164,7 +155,6 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         self.startTest(do_create_local_torrent, nr_exitnodes=0, nr_relays=5)
 
-    @timed(120)
     def test_anon_download_exitnode_changeofmind(self):
 
         def changed_my_mind(tunnel_communities):
@@ -175,7 +165,8 @@ class TestTunnelCommunity(TestGuiAsServer):
         def compare_progress(lastprogress, download):
             progress = download.get_progress()
             self.assert_(progress == lastprogress,
-                         "Expected no progress, but actual progress was progress=%s, lastprogress=%s" % (progress, lastprogress))
+                         "Expected no progress, but actual progress was progress=%s, lastprogress=%s" % (progress,
+                                                                                                         lastprogress))
             self.quit()
 
         def check_progress(download, start_time):
@@ -195,7 +186,6 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         self.startTest(do_create_local_torrent, nr_exitnodes=4, nr_relays=6)
 
-    @timed(120)
     def test_anon_tunnel(self):
         got_data = Event()
         this = self
@@ -222,10 +212,10 @@ class TestTunnelCommunity(TestGuiAsServer):
         def replace_socks(tunnel_communities):
             for tunnel_community in tunnel_communities:
                 socks_server = tunnel_community.socks_server
-                socks_server.on_incoming_from_tunnel = lambda community, circuit, origin, data, socks_server = socks_server: on_incoming_from_tunnel(
-                    socks_server, community, circuit, origin, data)
-                tunnel_community.exit_data = lambda circuit_id, sock_addr, destination, data, community = tunnel_community: exit_data(
-                    community, circuit_id, sock_addr, destination, data)
+                socks_server.on_incoming_from_tunnel = lambda community, circuit, origin, data, \
+                    socks_server = socks_server: on_incoming_from_tunnel(socks_server, community, circuit, origin, data)
+                tunnel_community.exit_data = lambda circuit_id, sock_addr, destination, data, \
+                    community = tunnel_community: exit_data(community, circuit_id, sock_addr, destination, data)
             tunnel_communities[-1].circuits_needed[3] = 4
 
             self.CallConditional(30, lambda: len(tunnel_communities[-1].active_data_circuits()) == 4,
@@ -233,7 +223,6 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         self.startTest(replace_socks)
 
-    @timed(180)
     def test_hidden_services(self):
         def take_second_screenshot():
             self.screenshot()

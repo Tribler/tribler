@@ -257,7 +257,7 @@ class TunnelCommunity(Community):
         self.trsession = tribler_session
         self.settings = settings if settings else TunnelSettings(tribler_session=tribler_session)
 
-        self._logger.debug("TunnelCommunity: become_exitnode = %s" % settings.become_exitnode)
+        self._logger.debug("TunnelCommunity: setting become_exitnode = %s" % self.settings.become_exitnode)
 
         super(TunnelCommunity, self).initialize()
 
@@ -280,6 +280,15 @@ class TunnelCommunity(Community):
             from Tribler.Core.CacheDB.Notifier import Notifier
             self.notifier = Notifier.getInstance()
             self.trsession.lm.tunnel_community = self
+
+    def self_is_connectable(self):
+        return self._dispersy._connection_type == u"public"
+
+    def candidate_is_connectable(self, candidate):
+        return candidate.connection_type == u"public"
+
+    def become_exitnode(self):
+        return self.settings.become_exitnode
 
     def start_download_test(self):
         if self.trsession and self.trsession.get_libtorrent() and self.settings.do_test:
@@ -431,10 +440,7 @@ class TunnelCommunity(Community):
                 self.remove_exit_socket(circuit_id, 'traffic limit exceeded')
 
         # Remove exit_candidates that are not returned as dispersy verified candidates
-        current_candidates = {}
-        for c in self.dispersy_yield_verified_candidates():
-            pubkey = c.get_member().public_key
-            current_candidates[pubkey] = pubkey
+        current_candidates = set(c.get_member().public_key for c in self.dispersy_yield_verified_candidates())
         ckeys = self.exit_candidates.keys()
         for pubkey in ckeys:
             if pubkey not in current_candidates:
@@ -740,28 +746,32 @@ class TunnelCommunity(Community):
 
         if circuit.state == CIRCUIT_STATE_EXTENDING:
             become_exit = circuit.goal_hops - 1 == len(circuit.hops)
+            ignore_candidates = [self.crypto.key_to_bin(hop.public_key) for hop in circuit.hops] + \
+                [self.my_member.public_key]
+
             if become_exit:
                 if circuit.required_exit:
+                    # Set the required exit according to the circuit setting (e.g. for linking e2e circuits)
                     host, port, pub_key = circuit.required_exit
                     extend_hop_public_bin = pub_key
                     extend_hop_addr = (host, port)
                 else:
+                    # The exit node is a verified connectable exit node peer chosen by the circuit initiator
                     extend_hop_public_bin = None
                     for c in self.dispersy_yield_verified_candidates():
                         pubkey = c.get_member().public_key
                         exit_candidate = self.exit_candidates[pubkey]
-                        if exit_candidate.become_exit:
+                        if exit_candidate.become_exit and self.candidate_is_connectable(c) and pubkey not in ignore_candidates:
                             wan = c._wan_address
                             extend_hop_public_bin = pubkey
                             extend_hop_addr = wan
                             break
 
             else:
+                # The next candidate is chosen from the returned list of possible candidates
                 candidate_list_enc = message.payload.candidate_list
                 _, candidate_list = decode(self.crypto.decrypt_str(
                     candidate_list_enc, hop.session_keys[EXIT_NODE], hop.session_keys[EXIT_NODE_SALT]))
-                ignore_candidates = [self.crypto.key_to_bin(hop.public_key) for hop in circuit.hops] + \
-                                    [self.my_member.public_key]
                 if circuit.required_exit:
                     ignore_candidates.append(circuit.required_exit[2])
                 for ignore_candidate in ignore_candidates:
@@ -811,7 +821,7 @@ class TunnelCommunity(Community):
             self.notifier.notify(NTFY_TUNNEL, NTFY_CREATED if len(circuit.hops) == 1 else NTFY_EXTENDED, circuit)
 
     def on_introduction_request(self, messages):
-        exitnode = self.settings.become_exitnode
+        exitnode = self.become_exitnode()
         extra_payload = [exitnode]
         super(TunnelCommunity, self).on_introduction_request(messages, extra_payload)
         for message in messages:
@@ -819,7 +829,7 @@ class TunnelCommunity(Community):
             self.exit_candidates[pubkey] = ExitCandidate(message.payload.exitnode)
 
     def create_introduction_request(self, destination, allow_sync, forward=True, is_fast_walker=False):
-        exitnode = self.settings.become_exitnode
+        exitnode = self.become_exitnode()
         extra_payload = [exitnode]
         super(TunnelCommunity, self).create_introduction_request(destination, allow_sync, forward,
                                                                  is_fast_walker, extra_payload)
@@ -883,7 +893,7 @@ class TunnelCommunity(Community):
                 pubkey = c.get_member().public_key
                 vc = self.exit_candidates[pubkey]
                 if vc.become_exit:
-                    # Exit nodes are chosen by the circuit initiator, don't add them
+                    # Exit nodes are chosen by the circuit initiator, we decided not to use exit nodes as normal relay
                     continue
 
                 candidates[pubkey] = c
@@ -1120,7 +1130,7 @@ class TunnelCommunity(Community):
         self.send_data([Candidate(sock_addr, False)], u'data', packet)
 
     def exit_data(self, circuit_id, sock_addr, destination, data):
-        if not self.settings.become_exitnode:
+        if not self.become_exitnode():
             self._logger.error("Dropping data packets, refusing to be an exit node")
         elif circuit_id in self.exit_sockets:
             if not self.exit_sockets[circuit_id].enabled:
