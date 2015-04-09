@@ -38,3 +38,4 @@
 |                                                   | [API](/Tribler/Test/API)                                      | Contains tests for the API.              |
 |                                                   | [data](/Tribler/Test/data)                                    | Contains data needed for tests.              |
 | [Utilities](/Tribler/Utilities)                   | -                                                             | Contains different utility classes used in Tribler               |
+| [twisted](https://github.com/twisted)             | -                                                             | Event Driven Networking Engine        |
