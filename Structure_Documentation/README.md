@@ -1,6 +1,6 @@
 # Architectural Structure
 
-![Structural View](/Resources/Structure_Diagram)
+![Structural View](Resources/Structure_Diagram.png)
 
 | Folder                                            | Subfolder                                                     | Description   |
 |---------------------------------------------------|---------------------------------------------------------------|---------------|
@@ -43,4 +43,4 @@
 | [twisted](https://github.com/twisted)             | -                                                             | Event Driven Networking Engine        |
 
 ######Maintenance
-Inside the [Resources](/Resources) folder, there is a .xml file that can be opened in [Draw.io](https://www.draw.io), where it can be adapted/altered as needed.
+Inside the [Resources](Resources) folder, there is a .xml file that can be opened in [Draw.io](https://www.draw.io), where it can be adapted/altered as needed.
