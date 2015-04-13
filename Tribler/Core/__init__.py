@@ -2,7 +2,7 @@
 # see LICENSE.txt for license information
 
 '''
-The Core package contains the core functionalities of the tribler project
+The Core package contains the core functionalities of the Tribler project
 '''
 
 from threading import RLock
