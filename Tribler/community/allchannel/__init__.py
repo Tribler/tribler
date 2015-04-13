@@ -1,4 +1,3 @@
 '''
-The allchannel package contains contains code for a single community 
-that all Tribler members join and use to disseminate .torrent files.
+The allchannel package contains the AllChannel community which is used to collect votes for channels, and thereby discover which channels are most popular.
 '''
