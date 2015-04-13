@@ -1,3 +1,3 @@
 '''
-The metadata package contains TTTODO: what does this do?
+The metadata package contains a Dispersy community which can be used to disseminate metadata of torrents
 '''
