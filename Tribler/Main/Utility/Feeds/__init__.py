@@ -2,5 +2,5 @@
 # see LICENSE.txt for license information
 
 '''
-De Feeds package contains different feeds, rss and directory.
+The Feeds package contains different feeds, rss and directory.
 '''
