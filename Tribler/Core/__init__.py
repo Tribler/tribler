@@ -1,5 +1,10 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
+
+'''
+The Core package contains the core functionalities of the Tribler project
+'''
+
 from threading import RLock
 import logging
 
