@@ -463,12 +463,34 @@ class TunnelCommunity(Community):
                 first_hop = c
                 break
 
-        if not first_hop:
+        if not required_exit:
+            self._logger.debug("Look for connectable exit node to set as required_exit for this circuit")
+            # Each circuit's exit node should be a verified connectable exit node peer chosen by the circuit initiator
+            for c in self.dispersy_yield_verified_candidates():
+                pubkey = c.get_member().public_key
+                exit_candidate = self.exit_candidates[pubkey]
+                if exit_candidate.become_exit and self.candidate_is_connectable(c):
+                    self._logger.debug("Valid exit node found for this circuit")
+                    required_exit = (c.sock_addr[0], c.sock_addr[1], pubkey)
+                    # Stop looking for a better alternative if the exit-node is not used for exiting in another circuit
+                    if c.sock_addr not in hops:
+                        self._logger.debug("Exit node not used in other circuits, best choice")
+                        break
+
+        if not required_exit:
             if retry_lambda:
-                self._logger.info("could not create circuit, no available hops will retry in 5 seconds.")
+                self._logger.info("could not create circuit, no available exit-nodes found, will retry in 5 seconds.")
                 self.register_task(retry_lambda, reactor.callLater(5, retry_lambda))
             else:
-                self._logger.info("could not create circuit, no available hops.")
+                self._logger.info("could not create circuit, no available exit-nodes.")
+            return False
+
+        if not first_hop:
+            if retry_lambda:
+                self._logger.info("could not create circuit, no available relay for first hop, will retry in 5 seconds.")
+                self.register_task(retry_lambda, reactor.callLater(5, retry_lambda))
+            else:
+                self._logger.info("could not create circuit, no available relay for first hop.")
             return False
 
         circuit_id = self._generate_circuit_id(first_hop.sock_addr)
@@ -745,27 +767,15 @@ class TunnelCommunity(Community):
         circuit.unverified_hop = None
 
         if circuit.state == CIRCUIT_STATE_EXTENDING:
-            become_exit = circuit.goal_hops - 1 == len(circuit.hops)
             ignore_candidates = [self.crypto.key_to_bin(hop.public_key) for hop in circuit.hops] + \
                 [self.my_member.public_key]
 
-            if become_exit:
-                if circuit.required_exit:
-                    # Set the required exit according to the circuit setting (e.g. for linking e2e circuits)
-                    host, port, pub_key = circuit.required_exit
-                    extend_hop_public_bin = pub_key
-                    extend_hop_addr = (host, port)
-                else:
-                    # The exit node is a verified connectable exit node peer chosen by the circuit initiator
-                    extend_hop_public_bin = None
-                    for c in self.dispersy_yield_verified_candidates():
-                        pubkey = c.get_member().public_key
-                        exit_candidate = self.exit_candidates[pubkey]
-                        if exit_candidate.become_exit and self.candidate_is_connectable(c) and pubkey not in ignore_candidates:
-                            wan = c._wan_address
-                            extend_hop_public_bin = pubkey
-                            extend_hop_addr = wan
-                            break
+            become_exit = circuit.goal_hops - 1 == len(circuit.hops)
+            if become_exit and circuit.required_exit:
+                # Set the required exit according to the circuit setting (e.g. for linking e2e circuits)
+                host, port, pub_key = circuit.required_exit
+                extend_hop_public_bin = pub_key
+                extend_hop_addr = (host, port)
 
             else:
                 # The next candidate is chosen from the returned list of possible candidates
@@ -782,8 +792,8 @@ class TunnelCommunity(Community):
                     public_key = self.crypto.key_from_public_bin(candidate_list[i])
                     if not self.crypto.is_key_compatible(public_key):
                         candidate_list.pop(i)
-
-                extend_hop_public_bin = next(iter(candidate_list), None)
+                pub_key = next(iter(candidate_list), None)
+                extend_hop_public_bin = pub_key
                 extend_hop_addr = None
 
             if extend_hop_public_bin:

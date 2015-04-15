@@ -51,7 +51,7 @@ class RPRequestCache(RandomNumberCache):
         self.rp = rp
 
     def on_timeout(self):
-        self._logger.debug("RPRequestCache: no response on establish-rendezvous (circuit %d)", self.circuit.circuit_id)
+        self._logger.debug("RPRequestCache: no response on establish-rendezvous (circuit %d)", self.rp.circuit_id)
         self.community.remove_circuit(self.circuit.circuit_id, 'establish-rendezvous timeout')
 
 
