@@ -648,8 +648,8 @@ class NetworkGraphPanel(wx.Panel):
         self.circuit_list.InsertColumn(0, 'ID', wx.LIST_FORMAT_LEFT, 25)
         self.circuit_list.InsertColumn(1, 'Online', wx.LIST_FORMAT_RIGHT, 50)
         self.circuit_list.InsertColumn(2, 'Hops', wx.LIST_FORMAT_RIGHT, 45)
-        self.circuit_list.InsertColumn(3, u'Bytes \u2191', wx.LIST_FORMAT_RIGHT, 63)
-        self.circuit_list.InsertColumn(4, u'Bytes \u2193', wx.LIST_FORMAT_RIGHT, 63)
+        self.circuit_list.InsertColumn(3, u'Bytes \u2191', wx.LIST_FORMAT_RIGHT, 83)
+        self.circuit_list.InsertColumn(4, u'Bytes \u2193', wx.LIST_FORMAT_RIGHT, 83)
         self.circuit_list.InsertColumn(5, 'Uptime', wx.LIST_FORMAT_RIGHT, 54)
         self.circuit_list.setResizeColumn(0)
         self.circuit_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnItemSelected)
@@ -660,7 +660,8 @@ class NetworkGraphPanel(wx.Panel):
             self.log_text = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.BORDER_SIMPLE | wx.HSCROLL & wx.VSCROLL)
             self.log_text.SetEditable(False)
             self.log_text.Show(self.fullscreen)
-            self.num_circuits_label = wx.StaticText(self, -1, "You have 0 circuit(s); 0 relay(s); 0 exit socket(s)")
+            self.num_circuits_label = wx.StaticText(self, -1, "You have 0 circuit(s); 0 relay(s); \
+                0 exit socket(s); 0 candidate(s)")
 
         self.vSizer = wx.BoxSizer(wx.VERTICAL)
         self.vSizer.Add(self.circuit_list, 1, wx.EXPAND | wx.RESERVE_SPACE_EVEN_IF_HIDDEN, 0)
@@ -697,10 +698,11 @@ class NetworkGraphPanel(wx.Panel):
             return
 
         if self.fullscreen:
-            self.num_circuits_label.SetLabel("You have %d circuit(s); %d relay(s); %d exit socket(s)" %
+            self.num_circuits_label.SetLabel("You have %d circuit(s); %d relay(s); %d exit socket(s); %d candidate(s)" %
                                              (len(self.tunnel_community.circuits),
                                               len(self.tunnel_community.relay_from_to),
-                                              len(self.tunnel_community.exit_sockets)))
+                                              len(self.tunnel_community.exit_sockets),
+                                              sum(1 for _ in self.tunnel_community.dispersy_yield_verified_candidates())))
 
         new_circuits = dict(self.tunnel_community.circuits)
         self.circuits = {k: v for k, v in new_circuits.iteritems() if v.goal_hops == self.hops or self.hops < 0}

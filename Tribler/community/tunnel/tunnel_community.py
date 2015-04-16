@@ -39,6 +39,7 @@ from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.util import call_on_reactor_thread
 from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
 from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
+from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 
 
 class CircuitRequestCache(NumberCache):
@@ -413,6 +414,17 @@ class TunnelCommunity(Community):
 
         self.do_remove()
 
+    def tunnels_ready(self, hops, anonymous):
+        if hops > 0:
+            if anonymous:
+                current_hops = self.circuits_needed.get(hops, 0)
+                self.circuits_needed[hops] = max(1, current_hops)
+                return bool(self.active_data_circuits(hops))
+            else:
+                self.circuits_needed[hops] = self.settings.max_circuits
+                return min(1, len(self.active_data_circuits(hops)) / float(self.settings.min_circuits))
+        return 1
+
     def do_remove(self):
         # Remove circuits that are inactive / are too old / have transferred too many bytes.
         for key, circuit in self.circuits.items():
@@ -464,17 +476,17 @@ class TunnelCommunity(Community):
                 break
 
         if not required_exit:
-            self._logger.debug("Look for connectable exit node to set as required_exit for this circuit")
+            self._logger.debug("Look for exit node to set as required_exit for this circuit")
             # Each circuit's exit node should be a verified connectable exit node peer chosen by the circuit initiator
             for c in self.dispersy_yield_verified_candidates():
                 pubkey = c.get_member().public_key
                 exit_candidate = self.exit_candidates[pubkey]
-                if exit_candidate.become_exit and self.candidate_is_connectable(c):
-                    self._logger.debug("Valid exit node found for this circuit")
+                if exit_candidate.become_exit:
+                    self._logger.debug("Valid exit candidate found for this circuit")
                     required_exit = (c.sock_addr[0], c.sock_addr[1], pubkey)
                     # Stop looking for a better alternative if the exit-node is not used for exiting in another circuit
-                    if c.sock_addr not in hops:
-                        self._logger.debug("Exit node not used in other circuits, best choice")
+                    if c.sock_addr not in hops and self.candidate_is_connectable(c):
+                        self._logger.debug("Exit node is connectable and not used in other circuits, that's prefered")
                         break
 
         if not required_exit:
@@ -1175,6 +1187,7 @@ class TunnelCommunity(Community):
         if circuit and len(circuit.hops) > 0:
             # Remove all the encryption layers
             for hop in self.circuits[circuit_id].hops:
+                self._logger.debug("Decrypting encryption layer for hop %s in circuit %s" % (hop.address, circuit_id))
                 content = self.crypto.decrypt_str(
                     content, hop.session_keys[ORIGINATOR], hop.session_keys[ORIGINATOR_SALT])
             if circuit and is_data and circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:

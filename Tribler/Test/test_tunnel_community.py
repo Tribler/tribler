@@ -13,6 +13,7 @@ from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import blockingCallFromThread
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
+from Tribler.dispersy.crypto import NoCrypto
 
 
 class TestTunnelCommunity(TestGuiAsServer):
@@ -328,9 +329,9 @@ class TestTunnelCommunity(TestGuiAsServer):
             self.CallConditional(60, dht.is_set, lambda: self.Call(5, lambda: start_download(tf)),
                                  'Introduction point did not get announced')
 
-        self.startTest(setup_seeder)
+        self.startTest(setup_seeder, nr_relays=6, nr_exitnodes=4)
 
-    def startTest(self, callback, min_timeout=5, nr_relays=5, nr_exitnodes=3):
+    def startTest(self, callback, min_timeout=5, nr_relays=5, nr_exitnodes=3, crypto_enabled=True):
         from Tribler.Main import tribler_main
         tribler_main.FORCE_ENABLE_TUNNEL_COMMUNITY = True
         tribler_main.TUNNEL_COMMUNITY_DO_TEST = False
@@ -341,11 +342,11 @@ class TestTunnelCommunity(TestGuiAsServer):
             tunnel_communities = []
             baseindex = 3
             for i in range(baseindex, baseindex + nr_relays):  # Normal relays
-                tunnel_communities.append(create_proxy(i, False))
+                tunnel_communities.append(create_proxy(i, False, crypto_enabled))
 
             baseindex += nr_relays + 1
             for i in range(baseindex, baseindex + nr_exitnodes):  # Exit nodes
-                tunnel_communities.append(create_proxy(i, True))
+                tunnel_communities.append(create_proxy(i, True, crypto_enabled))
 
             # Connect the proxies to the Tribler instance
             for community in self.lm.dispersy.get_communities():
@@ -367,7 +368,7 @@ class TestTunnelCommunity(TestGuiAsServer):
 
             callback(tunnel_communities)
 
-        def create_proxy(index, become_exit_node):
+        def create_proxy(index, become_exit_node, crypto_enabled):
             from Tribler.Core.Session import Session
 
             self.setUpPreSession()
@@ -393,6 +394,8 @@ class TestTunnelCommunity(TestGuiAsServer):
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
                 settings = TunnelSettings(tribler_session=session)
                 settings.do_test = False
+                if not crypto_enabled:
+                    settings.crypto = NoCrypto()
                 settings.become_exitnode = become_exit_node
                 return dispersy.define_auto_load(HiddenTunnelCommunity, dispersy_member, (session, settings), load=True)[0]
 

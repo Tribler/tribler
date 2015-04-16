@@ -15,7 +15,7 @@ from Tribler.community.tunnel import CIRCUIT_TYPE_IP, CIRCUIT_TYPE_RP, CIRCUIT_T
 
 from Tribler.community.tunnel.payload import (
     EstablishIntroPayload, IntroEstablishedPayload, EstablishRendezvousPayload,
-                                              RendezvousEstablishedPayload, KeyResponsePayload, KeyRequestPayload,
+    RendezvousEstablishedPayload, KeyResponsePayload, KeyRequestPayload,
     CreateE2EPayload, CreatedE2EPayload, LinkE2EPayload, LinkedE2EPayload)
 from Tribler.community.tunnel.routing import RelayRoute, RendezvousPoint, Hop
 
@@ -51,8 +51,9 @@ class RPRequestCache(RandomNumberCache):
         self.rp = rp
 
     def on_timeout(self):
-        self._logger.debug("RPRequestCache: no response on establish-rendezvous (circuit %d)", self.rp.circuit_id)
-        self.community.remove_circuit(self.circuit.circuit_id, 'establish-rendezvous timeout')
+        self._logger.debug("RPRequestCache: no response on establish-rendezvous (circuit %d)", 
+                           self.rp.circuit.circuit_id)
+        self.community.remove_circuit(self.rp.circuit.circuit_id, 'establish-rendezvous timeout')
 
 
 class KeyRequestCache(RandomNumberCache):
@@ -251,11 +252,11 @@ class HiddenTunnelCommunity(TunnelCommunity):
         for message in messages:
             info_hash = message.payload.info_hash
             if not message.source.startswith(u"circuit_"):
-                if not info_hash in self.intro_point_for:
+                if info_hash not in self.intro_point_for:
                     yield DropMessage(message, "not an intro point for this infohash")
                     continue
             else:
-                if not info_hash in self.session_keys:
+                if info_hash not in self.session_keys:
                     yield DropMessage(message, "not seeding this infohash")
                     continue
 
@@ -314,18 +315,18 @@ class HiddenTunnelCommunity(TunnelCommunity):
                 relay_circuit.tunnel_data(message.candidate.sock_addr, TUNNEL_PREFIX + message.packet)
 
             else:
-                self.create_rendevous_point(
-                    DEFAULT_HOPS, lambda rendevous_point, message=message: self.create_created_e2e(rendevous_point, message))
+                self.create_rendezvous_point(
+                    DEFAULT_HOPS, lambda rendezvous_point, message=message: self.create_created_e2e(rendezvous_point, message))
 
-    def create_created_e2e(self, rendevous_point, message):
+    def create_created_e2e(self, rendezvous_point, message):
         info_hash = message.payload.info_hash
         key = self.session_keys[info_hash]
 
         circuit = self.circuits[int(message.source[8:])]
         shared_secret, Y, AUTH = self.crypto.generate_diffie_shared_secret(message.payload.key, key)
-        rendevous_point.circuit.hs_session_keys = self.crypto.generate_session_keys(shared_secret)
+        rendezvous_point.circuit.hs_session_keys = self.crypto.generate_session_keys(shared_secret)
         rp_info_enc = self.crypto.encrypt_str(
-            encode((rendevous_point.rp_info, rendevous_point.cookie)), *self.get_session_keys(rendevous_point.circuit.hs_session_keys, EXIT_NODE))
+            encode((rendezvous_point.rp_info, rendezvous_point.cookie)), *self.get_session_keys(rendezvous_point.circuit.hs_session_keys, EXIT_NODE))
 
         meta = self.get_meta_message(u'created-e2e')
         response = meta.impl(distribution=(self.global_time,), payload=(
@@ -477,7 +478,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
             self.request_cache.pop(u"establish-intro", message.payload.identifier)
             self._logger.info("Got intro-established from %s", message.candidate)
 
-    def create_rendevous_point(self, hops, finished_callback):
+    def create_rendezvous_point(self, hops, finished_callback):
         def callback(circuit):
             # We got a circuit, now let's create a rendezvous point
             circuit_id = circuit.circuit_id
