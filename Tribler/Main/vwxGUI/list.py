@@ -1227,6 +1227,9 @@ class GenericSearchList(SizeList):
             head = original_data
 
             # we need to merge the dslist from the current item
+            if not self.list.HasItem(head.infohash):
+                return
+
             prevItem = self.list.GetItem(head.infohash)
             if prevItem.original_data.download_state:
                 original_data.download_state = prevItem.original_data.download_state
