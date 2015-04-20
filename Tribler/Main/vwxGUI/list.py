@@ -110,11 +110,9 @@ class RemoteSearchManager(BaseManager):
 
         if self.oldkeywords:
             cancelWorker(u"RemoteSearchManager_refresh_%s" % self.oldkeywords)
-            cancelWorker(u"RemoteSearchManager_refresh_channel_%s" % self.oldkeywords)
 
         self.oldkeywords = ''
         self.torrentsearch_manager.oldsearchkeywords = None
-        self.data_channels = []
 
     def SetKeywords(self, keywords):
         if self.oldkeywords != keywords:
@@ -131,27 +129,25 @@ class RemoteSearchManager(BaseManager):
 
             keywords = self.oldkeywords
 
-            total_items, nrfiltered, new_items, data_files, modified_hits = self.torrentsearch_manager.getHitsInCategory(
-            )
-            total_channels, new_channels, self.data_channels = self.channelsearch_manager.getChannelHits()
-            self._logger.debug('RemoteSearchManager: refresh returning results took %s %s', time() - begintime, time())
+            total_items, nrfiltered, new_items, data_files, modified_hits = self.torrentsearch_manager.getHitsInCategory()
+            total_channels, new_channels, data_channels = self.channelsearch_manager.getChannelHits()
 
-            return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, modified_hits
+            self._logger.debug('RemoteSearchManager: refresh returning results took %s %s', time() - begintime, time())
+            return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, data_channels, modified_hits
+
         delay = 0.5 if remote else 0.0
         workerType = "guiTaskQueue" if remote else "dbThread"
-        startWorker(
-            self._on_refresh,
-            db_callback,
-            delay=delay,
-            uId=u"RemoteSearchManager_refresh_%s" %
-            self.oldkeywords,
-            retryOnBusy=True,
-            workerType=workerType,
-            priority=GUI_PRI_DISPERSY)
+        startWorker(self._on_refresh,
+                    db_callback,
+                    delay=delay,
+                    uId=u"RemoteSearchManager_refresh_%s" %
+                    self.oldkeywords,
+                    retryOnBusy=True,
+                    workerType=workerType,
+                    priority=GUI_PRI_DISPERSY)
 
     def _on_refresh(self, delayedResult):
-        keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, modified_hits = delayedResult.get(
-        )
+        keywords, data_files, _, _, new_items, _, new_channels, data_channels, modified_hits = delayedResult.get()
 
         if not self or not self.list:
             return
@@ -160,49 +156,34 @@ class RemoteSearchManager(BaseManager):
             if modified_hits:
                 self.list.RemoveItems(modified_hits)
 
-            if new_items or modified_hits:
-                self.list.SetData(data_files)
+            if new_items or modified_hits or new_channels:
+                self.list.SetData(data_files, data_channels)
             else:
                 self._logger.debug("RemoteSearchManager: not refreshing list, no new items")
         else:
             self._logger.debug("RemoteSearchManager: ignoring old keywords")
 
     def refresh_channel(self):
-        def db_callback():
-            [total_channels, new_hits, self.data_channels] = self.channelsearch_manager.getChannelHits()
-            return total_channels
-
-        startWorker(
-            self._on_refresh_channel,
-            db_callback,
-            uId=u"RemoteSearchManager_refresh_channel_%s" %
-            self.oldkeywords,
-            retryOnBusy=True,
-            priority=GUI_PRI_DISPERSY)
-
-    def _on_refresh_channel(self, delayedResult):
-        self.list.SetNrChannels(delayedResult.get())
+        self.refresh()
 
     def refresh_partial(self, infohashes=[], channelids=[]):
         for infohash in infohashes:
             if self.list.HasItem(infohash):
                 curTorrent = self.list.GetItem(infohash).original_data
                 if isinstance(curTorrent, ChannelTorrent):
-                    startWorker(
-                        self.list.RefreshDelayedData,
-                        self.channelsearch_manager.getTorrentFromChannelTorrentId,
-                        cargs=(infohash,),
-                        wargs=(curTorrent.channel, curTorrent.channeltorrent_id),
-                        retryOnBusy=True,
-                        priority=GUI_PRI_DISPERSY)
+                    startWorker(self.list.RefreshDelayedData,
+                                self.channelsearch_manager.getTorrentFromChannelTorrentId,
+                                cargs=(infohash,),
+                                wargs=(curTorrent.channel, curTorrent.channeltorrent_id),
+                                retryOnBusy=True,
+                                priority=GUI_PRI_DISPERSY)
                 else:
-                    startWorker(
-                        self.list.RefreshDelayedData,
-                        self.torrentsearch_manager.getTorrentByInfohash,
-                        cargs=(infohash,),
-                        wargs=(infohash,),
-                        retryOnBusy=True,
-                        priority=GUI_PRI_DISPERSY)
+                    startWorker(self.list.RefreshDelayedData,
+                                self.torrentsearch_manager.getTorrentByInfohash,
+                                cargs=(infohash,),
+                                wargs=(infohash,),
+                                retryOnBusy=True,
+                                priority=GUI_PRI_DISPERSY)
 
         if channelids:
             def do_db():
@@ -259,22 +240,20 @@ class LocalSearchManager(BaseManager):
         self.prev_refresh_if = 0
 
     def refresh(self):
-        startWorker(
-            self._on_data,
-            self.library_manager.getHitsInCategory,
-            uId=u"LocalSearchManager_refresh",
-            retryOnBusy=True,
-            priority=GUI_PRI_DISPERSY)
+        startWorker(self._on_data,
+                    self.library_manager.getHitsInCategory,
+                uId=u"LocalSearchManager_refresh",
+                retryOnBusy=True,
+                priority=GUI_PRI_DISPERSY)
 
     def refresh_partial(self, ids):
         for infohash in ids:
-            startWorker(
-                self.list.RefreshDelayedData,
-                self.library_manager.getTorrentFromInfohash,
-                cargs=(infohash,),
-                wargs=(infohash,),
-                retryOnBusy=True,
-                priority=GUI_PRI_DISPERSY)
+            startWorker(self.list.RefreshDelayedData,
+                        self.library_manager.getTorrentFromInfohash,
+                        cargs=(infohash,),
+                        wargs=(infohash,),
+                        retryOnBusy=True,
+                        priority=GUI_PRI_DISPERSY)
 
     def refresh_if_exists(self, infohashes, force=False):
         def db_call():
@@ -292,11 +271,10 @@ class LocalSearchManager(BaseManager):
             startWorker(None, db_call, uId=u"LocalSearchManager_refresh_if_exists",
                         retryOnBusy=True, priority=GUI_PRI_DISPERSY)
         else:
-            self._logger.info(
-                "%s Not scheduling a refresh, update limit %s %s",
-                long(time()),
-                long(time()),
-                long(self.prev_refresh_if))
+            self._logger.info("%s Not scheduling a refresh, update limit %s %s",
+                              long(time()),
+                              long(time()),
+                              long(self.prev_refresh_if))
 
     def refresh_or_expand(self, infohash):
         if not self.list.InList(infohash):
@@ -1436,7 +1414,7 @@ class SearchList(GenericSearchList):
         return footer
 
     @warnWxThread
-    def SetData(self, torrents):
+    def SetData(self, torrents, channels):
         if not self:
             return
         # Determine the associated channels
@@ -1451,13 +1429,12 @@ class SearchList(GenericSearchList):
                 associated[channel.id][1].append(torrent)
 
         # Determine the channels results
-        results = self.GetManager().data_channels
-        results = results if results else {}
-        results = dict([(key, result) for key, result in results.iteritems() if result.nr_torrents > 0])
-        results_ids = results.keys()
-        if results:
+        channels = channels if channels else {}
+        channels = dict([(key, channel) for key, channel in channels.iteritems() if channel.nr_torrents > 0])
+        channel_ids = channels.keys()
+        if channels:
             for chid in associated.keys():
-                if chid in results_ids:
+                if chid in channel_ids:
                     associated.pop(chid)
 
         # Sorting + filtering..
@@ -1465,8 +1442,8 @@ class SearchList(GenericSearchList):
         associated = associated.values()
         associated.sort(reverse=True)
         associated = [a[-1] for a in associated]
-        results = results.values()
-        results.sort(reverse=True, key=lambda x: x.nr_torrents)
+        channels = channels.values()
+        channels.sort(reverse=True, key=lambda x: x.nr_torrents)
 
         # We need to filter here, as otherwise our top-3 associated channels could only consist of
         # xxx channels, which will be filtered afterwards. Resulting in no channels being shown.
@@ -1476,11 +1453,11 @@ class SearchList(GenericSearchList):
 
         if self.guiutility.getFamilyFilter():
             associated = filter(channelFilter, associated)
-            results = filter(channelFilter, results)
+            channels = filter(channelFilter, channels)
 
         associated = associated[:3]
-        results = results[:3]
-        channels = results + associated
+        channels = channels[:3]
+        channels = channels + associated
         for index, channel in enumerate(channels):
             if channel in associated:
                 channels[index] = (channel, (index + 1) * 5, True, associated_torrents[channel])
@@ -1852,7 +1829,7 @@ class LibraryList(SizeList):
                 if ds and ds.get_download() and ds.get_download().get_anon_mode():
                     anonmode = 'Yes (' + str(ds.get_download().get_hops()) + ' hops)'
                     if tdef.is_anonymous():
-                        anonmode = 'Yes (end-to-end)'
+                        anonmode = 'Yes (hidden)'
 
                 item.RefreshColumn(9, anonmode)
 
@@ -2019,12 +1996,12 @@ class ChannelList(List):
             return self.mychannel, None, ''
         elif channel.isFavorite():
             return (self.favorite, self.normal, 'Remove from favourites',
-                    lambda evt, data = item.original_data: self.guiutility.RemoveFavorite(evt, data))
+                    lambda evt, data=item.original_data: self.guiutility.RemoveFavorite(evt, data))
         elif channel.isSpam():
             return self.spam, None, ''
         else:
             return (self.normal, self.favorite, 'Favourite this channel',
-                    lambda evt, data = item.original_data: self.guiutility.MarkAsFavorite(evt, data))
+                    lambda evt, data=item.original_data: self.guiutility.MarkAsFavorite(evt, data))
 
     def __format(self, val):
         val = int(val)

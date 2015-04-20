@@ -140,7 +140,8 @@ TUNNEL_COMMUNITY_DO_TEST = True
 
 class ABCApp(object):
 
-    def __init__(self, params, installdir, autoload_discovery=True):
+    def __init__(self, params, installdir, autoload_discovery=True,
+                 use_torrent_search=True, use_channel_search=True):
         assert not isInIOThread(), "isInIOThread() seems to not be working correctly"
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -173,7 +174,8 @@ class ABCApp(object):
         self.utility = None
 
         # Stage 1 start
-        session = self.InitStage1(installdir, autoload_discovery=autoload_discovery)
+        session = self.InitStage1(installdir, autoload_discovery=autoload_discovery,
+                                  use_torrent_search=use_torrent_search, use_channel_search=use_channel_search)
 
         self.splash = None
         try:
@@ -331,7 +333,8 @@ class ABCApp(object):
 
             self.onError(e)
 
-    def InitStage1(self, installdir, autoload_discovery=True):
+    def InitStage1(self, installdir, autoload_discovery=True,
+                   use_torrent_search=True, use_channel_search=True):
         """ Stage 1 start: pre-start the session to handle upgrade.
         """
         self.gui_image_manager = GuiImageManager.getInstance(installdir)
@@ -416,6 +419,11 @@ class ABCApp(object):
             optin_dialog.Destroy()
             del optin_dialog
 
+        if not use_torrent_search:
+            self.sconfig.set_enable_torrent_search(False)
+        if not use_channel_search:
+            self.sconfig.set_enable_torrent_search(False)
+
         session = Session(self.sconfig, autoload_discovery=autoload_discovery)
 
         # check and upgrade
@@ -483,8 +491,6 @@ class ABCApp(object):
         @call_on_reactor_thread
         def define_communities(*args):
             assert isInIOThread()
-            from Tribler.community.search.community import SearchCommunity
-            from Tribler.community.allchannel.community import AllChannelCommunity
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
             from Tribler.community.metadata.community import MetadataCommunity
@@ -504,9 +510,6 @@ class ABCApp(object):
 
             default_kwargs = {'tribler_session': session}
             # must be called on the Dispersy thread
-            if session.get_enable_torrent_search():
-                dispersy.define_auto_load(SearchCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
-            dispersy.define_auto_load(AllChannelCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
             dispersy.define_auto_load(BarterCommunity, session.dispersy_member, load=True)
 
             # load metadata community
@@ -1080,7 +1083,7 @@ class ABCApp(object):
 #
 #
 @attach_profiler
-def run(params=None, autoload_discovery=True):
+def run(params=None, autoload_discovery=True, use_torrent_search=True, use_channel_search=True):
     if params is None:
         params = [""]
 
@@ -1124,7 +1127,8 @@ def run(params=None, autoload_discovery=True):
             app = wx.GetApp()
             if not app:
                 app = wx.PySimpleApp(redirect=False)
-            abc = ABCApp(params, installdir, autoload_discovery=autoload_discovery)
+            abc = ABCApp(params, installdir, autoload_discovery=autoload_discovery,
+                         use_torrent_search=use_torrent_search, use_channel_search=use_channel_search)
             if abc.frame:
                 app.SetTopWindow(abc.frame)
                 abc.frame.set_wxapp(app)

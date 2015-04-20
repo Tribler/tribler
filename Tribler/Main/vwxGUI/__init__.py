@@ -1,6 +1,11 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker
 # ReWritten by Niels Zeilemaker
 # see LICENSE.txt for license information
+
+'''
+The vwxGUI package contains code for the regular (non-browser) GUI of Tribler 
+'''
+
 from time import time
 import wx
 import inspect

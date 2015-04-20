@@ -72,7 +72,7 @@ class TunnelOptin(wx.Dialog):
         vSizer.Add(long_text, 0, wx.EXPAND | wx.BOTTOM | wx.RIGHT, 3)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
-        hSizer.Add(wx.StaticText(self, -1, '\nI you aren\'t sure, press Cancel to disable the \n'
+        hSizer.Add(wx.StaticText(self, -1, '\nIf you aren\'t sure, press Cancel to disable the \n'
                                  'experimental anonymity feature'), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT | wx.BOTTOM,
                    3)
 

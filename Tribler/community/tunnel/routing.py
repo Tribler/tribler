@@ -44,6 +44,7 @@ class Circuit(object):
         self.callback = callback
         self.required_exit = required_exit
         self.mid = mid
+        self.hs_session_keys = None
 
     @property
     def hops(self):
@@ -89,7 +90,6 @@ class Circuit(object):
         @return bool: whether the tunnel request has succeeded, this is in no
          way an acknowledgement of delivery!
         """
-
         return self.proxy.tunnel_data_to_end(destination, payload, self)
 
     def destroy(self, reason='unknown'):

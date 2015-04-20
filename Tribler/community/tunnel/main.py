@@ -25,7 +25,7 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
 import logging.config
-#logging.config.fileConfig("logger.conf")
+logging.config.fileConfig("logger.conf")
 
 try:
     import yappi
@@ -119,6 +119,8 @@ class Tunnel(object):
         config.set_enable_torrent_search(False)
         config.set_videoplayer(False)
         config.set_dispersy_port(self.dispersy_port)
+        config.set_enable_torrent_search(False)
+        config.set_enable_channel_search(False)
         self.session = Session(config)
         upgrader = self.session.prestart()
         while not upgrader.is_done:
@@ -295,11 +297,12 @@ class LineHandler(LineReceiver):
 
             def start_download():
                 def cb(ds):
-                    print 'Download infohash=%s, down=%s, progress=%s, status=%s, seedpeers=%s' % (tdef.get_infohash().encode('hex')[:10], 
+                    print 'Download infohash=%s, down=%s, progress=%s, status=%s, seedpeers=%s, candidates=%d' % (tdef.get_infohash().encode('hex')[:10], 
                                                       ds.get_current_speed('down'), 
                                                       ds.get_progress(), 
                                                       ds.get_status(), 
-                                                      sum(ds.get_num_seeds_peers()))
+                                                      sum(ds.get_num_seeds_peers()),
+                                                      sum(1 for _ in anon_tunnel.community.dispersy_yield_verified_candidates()))
                     return 1.0, False
                 download = anon_tunnel.session.start_download(tdef, dscfg)
                 download.set_state_callback(cb, delay=1)

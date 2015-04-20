@@ -142,12 +142,11 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.quit()
 
         def check_playlist():
-            from Tribler.Core.Video.VideoPlayer import VideoPlayer
             from Tribler.Core.Video.utils import videoextdefaults
 
             buffer_complete = time()
 
-            d = VideoPlayer.getInstance().get_vod_download()
+            d = self.guiUtility.videoplayer.get_vod_download()
             videofiles = []
             for filename in d.get_def().get_files():
                 _, ext = os.path.splitext(filename)
@@ -159,22 +158,18 @@ class TestLibtorrentDownload(TestGuiAsServer):
             playlist = self.guiUtility.frame.actlist.expandedPanel_videoplayer
 
             do_check = lambda: len(playlist.links) == len(videofiles) and \
-                playlist.tdef.get_infohash() == VideoPlayer.getInstance().get_vod_download().get_def().get_infohash() and \
-                playlist.fileindex == VideoPlayer.getInstance().get_vod_fileindex()
+                playlist.tdef.get_infohash() == self.guiUtility.videoplayer.get_vod_download().get_def().get_infohash() and \
+                playlist.fileindex == self.guiUtility.videoplayer.get_vod_fileindex()
 
             self.CallConditional(10, do_check, lambda: self.Call(
                 5, lambda: take_screenshot(buffer_complete)), "playlist set incorrectly")
 
         def do_monitor():
-            from Tribler.Core.Video.VideoPlayer import VideoPlayer
-
             self.screenshot('After starting a VOD download')
-            self.CallConditional(60, lambda: VideoPlayer.getInstance()
+            self.CallConditional(60, lambda: self.guiUtility.videoplayer
                                  .vod_playing, check_playlist, "streaming did not start")
 
         def do_vod():
-            from Tribler.Core.Video.VideoPlayer import VideoPlayer
-
             ds = self.frame.startDownload(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"),
                                           self.getDestDir(),
                                           selectedFiles=[
@@ -183,7 +178,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
             # set the max prebuffsize to be smaller so that the unit test runs faster
             ds.max_prebuffsize = 16 * 1024
             self.guiUtility.ShowPlayer()
-            self.CallConditional(30, lambda: VideoPlayer.getInstance()
+            self.CallConditional(30, lambda: self.guiUtility.videoplayer
                                  .get_vod_download(), do_monitor, "VOD download not found")
 
         self.startTest(do_vod)

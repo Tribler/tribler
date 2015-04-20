@@ -21,7 +21,6 @@ from Tribler.Main.vwxGUI.widgets import (VideoProgress, FancyPanel, ActionButton
                                          VideoSlider)
 
 from Tribler.Core.Video.defs import MEDIASTATE_PLAYING, MEDIASTATE_ENDED, MEDIASTATE_STOPPED, MEDIASTATE_PAUSED
-from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
 
 class DelayTimer(wx.Timer):
@@ -64,7 +63,7 @@ class EmbeddedPlayerPanel(wx.Panel):
 
         self.utility = utility
         self.guiutility = utility.guiUtility
-        self.videoplayer = VideoPlayer.getInstance()
+        self.videoplayer = self.guiutility.videoplayer
         self.parent = parent
         self.SetBackgroundColour(bg_color)
 
@@ -472,8 +471,7 @@ class EmbeddedPlayerPanel(wx.Panel):
                 self.timeposition.SetLabel('%s / %s' % (cur_str, length_str))
                 self.ctrlsizer.Layout()
             elif self.GetState() == MEDIASTATE_ENDED:
-                vp = VideoPlayer.getInstance()
-                download, fileindex = (vp.get_vod_download(), vp.get_vod_fileindex())
+                download, fileindex = (self.videoplayer.get_vod_download(), self.videoplayer.get_vod_fileindex())
                 self.OnStop(None)
                 if download:
                     self.notifier.notify(NTFY_TORRENTS, NTFY_VIDEO_ENDED, (

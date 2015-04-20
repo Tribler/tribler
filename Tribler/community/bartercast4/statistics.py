@@ -13,6 +13,7 @@ class BarterStatistics(object):
         self._db_counter = dict()
         self._lock = RLock()
         self.bartercast = defaultdict()
+        self.db_closed = True
         for t in BartercastStatisticTypes.reverse_mapping:
             self.bartercast[t] = defaultdict()
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -72,15 +73,16 @@ class BarterStatistics(object):
             return
 
         self._init_database(dispersy)
-#        pickle_object = cPickle.dumps(data)
         self._logger.debug("persisting bc data")
-#        self.db.execute(u"INSERT OR REPLACE INTO statistic (name, object) values (?, ?)", (unicode(key), unicode(pickle_object)))
         for t in self.bartercast:
             for peer in self.bartercast[t]:
                 self.db.execute(u"INSERT OR REPLACE INTO statistic (type, peer, value) values (?, ?, ?)", (t, unicode(peer), self.bartercast[t][peer]))
         self._logger.debug("data persisted")
 
     def load_statistics(self, dispersy):
+        """
+        Loads the bartercast statistics from the sqlite database.
+        """
         self._init_database(dispersy)
         data = self.db.execute(u"SELECT type, peer, value FROM statistic")
         statistics = defaultdict()
@@ -93,24 +95,22 @@ class BarterStatistics(object):
             if not t in statistics:
                 statistics[t] = defaultdict()
             statistics[t][peer] = value
-        print statistics
         self.bartercast = statistics
         return statistics
 
-#        data = self.db.execute(u"SELECT object FROM statistic WHERE name = ? LIMIT 1", [unicode(key)])
-#        for row in data:
-#            return cPickle.loads(str(row[0]))
-#        return defaultdict()
-
     def _init_database(self, dispersy):
-        if self.db is None:
+        """
+        Initialise database for use in this class.
+        """
+        if self.db is None or self.db_closed:
             self.db = StatisticsDatabase(dispersy)
             self.db.open()
+            self.db_closed = False
 
     def should_persist(self, key, n):
         """
         Return true and reset counter for key iff the data should be persisted (for every n calls).
-        Otherwise increases the counter for key.
+        Otherwise increases the counter for key. This can reduce write traffic to the database if necessary.
         """
         if key not in self._db_counter:
             self._db_counter[key] = 1
@@ -121,16 +121,12 @@ class BarterStatistics(object):
             return True
         return False
 
-LATEST_VERSION = 1
+    def close(self):
+        if self.db is not None and not self.db_closed:
+            self.db.close()
+            self.db_closed = True
 
-# old
-# -- statistic contains a dump of the pickle object of a statistic. Mainly used to backup bartercast statistics.
-# CREATE TABLE statistic(
-# id INTEGER,                            -- primary key
-# name TEXT,                             -- name of the statistic
-# object TEXT,                           -- pickle object representing the statistic
-# PRIMARY KEY (id),
-# UNIQUE (name));
+LATEST_VERSION = 1
 
 schema = u"""
 CREATE TABLE statistic(
