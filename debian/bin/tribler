@@ -7,4 +7,4 @@ export PYTHONPATH="$PYTHONPATH":$_TRIBLERPATH
 
 echo "Starting Tribler..."
 cd $_TRIBLERPATH
-exec python -O Tribler/Main/tribler.py "$@" > `mktemp /tmp/$USER-tribler-XXXXXXXX.log` 2>&1
+exec /usr/bin/python2.7 -O Tribler/Main/tribler.py "$@" > `mktemp /tmp/$USER-tribler-XXXXXXXX.log` 2>&1
