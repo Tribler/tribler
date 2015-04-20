@@ -744,7 +744,8 @@ class TextCtrlAutoComplete(wx.TextCtrl):
                 self.SetValue(newval)
                 self.SetInsertionPointEnd()
 
-                self.selectcallback()
+                if self.selectcallback:
+                    self.selectcallback()
 
     def ShowDropDown(self, show=True):
         ''' Either display the drop down list (show = True) or hide it (show = False). '''
