@@ -126,22 +126,6 @@ class LibtorrentMgr(object):
 
         return self.ltsessions[hops]
 
-    def tunnels_ready(self, download):
-        hops = download.get_hops()
-        if hops > 0:
-            tunnel_community = self.trsession.lm.tunnel_community
-            if tunnel_community:
-                if download.get_def().is_anonymous():
-                    current_hops = tunnel_community.circuits_needed.get(hops, 0)
-                    tunnel_community.circuits_needed[hops] = max(1, current_hops)
-                    return bool(tunnel_community.active_data_circuits(hops))
-                else:
-                    tunnel_community.circuits_needed[hops] = tunnel_community.settings.max_circuits
-                    return min(1, len(tunnel_community.active_data_circuits(hops)) /
-                               float(tunnel_community.settings.min_circuits))
-            return 0
-        return 1
-
     def shutdown(self):
         # Save DHT state
         dhtstate_file = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME), 'w')

@@ -90,12 +90,14 @@ class SettingsDialog(wx.Dialog):
         self._bandwidth_panel, self._bandwidth_id = self.__create_s3(tree_root, hsizer)
         self._seeding_panel, self._seeding_id = self.__create_s4(tree_root, hsizer)
         self._experimental_panel, self._experimental_id = self.__create_s5(tree_root, hsizer)
+        self._tunnel_panel, self._tunnel_id = self.__create_s6(tree_root, hsizer)
 
         self._general_panel.Show(True)
         self._conn_panel.Show(False)
         self._bandwidth_panel.Show(False)
         self._seeding_panel.Show(False)
         self._experimental_panel.Show(False)
+        self._tunnel_panel.Show(False)
 
         self._save_btn = wx.Button(self, wx.ID_OK, label="Save")
         self._cancel_btn = wx.Button(self, wx.ID_CANCEL, label="Cancel")
@@ -205,6 +207,16 @@ class SettingsDialog(wx.Dialog):
         useWebUI = self._use_webui.IsChecked()
         if useWebUI != self.utility.read_config('use_webui'):
             self.utility.write_config('use_webui', useWebUI)
+            restart = True
+
+        becomeExitNode = self._become_exitnode.IsChecked()
+        if becomeExitNode != scfg.get_tunnel_community_exitnode_enabled():
+            scfg.set_tunnel_community_exitnode_enabled(becomeExitNode)
+            restart = True
+
+        switchHsOnTimeout = self._switch_hs_timeout.IsChecked()
+        if switchHsOnTimeout != scfg.get_tunnel_community_hs_timeout_switch():
+            scfg.set_tunnel_community_hs_timeout_switch(switchHsOnTimeout)
             restart = True
 
         valwebuiport = self._webui_port.GetValue()
@@ -353,6 +365,7 @@ class SettingsDialog(wx.Dialog):
 
         scfg.save(cfgfilename)
 
+    
     def moveCollectedTorrents(self, old_dir, new_dir):
         def rename_or_merge(old, new, ignore=True):
             if os.path.exists(old):
@@ -728,4 +741,27 @@ class SettingsDialog(wx.Dialog):
         self._use_webui.SetValue(self.utility.read_config('use_webui'))
         self._webui_port.SetValue(str(self.utility.read_config('webui_port')))
 
+        return exp_panel, item_id
+
+
+    def __create_s6(self, tree_root, sizer):
+        exp_panel, exp_vsizer = create_section(self, sizer, "Anonimity")
+
+        item_id = self._tree_ctrl.AppendItem(tree_root, "Anonimity", data=wx.TreeItemData(exp_panel))
+
+        exp_s1_sizer = create_subsection(exp_panel, exp_vsizer, "Relaying", 1, 3)
+        self._become_exitnode = wx.CheckBox(exp_panel, label="Allow being an exit node")
+        exp_s1_sizer.Add(self._become_exitnode, 0, wx.EXPAND)
+        self._switch_hs_timeout = wx.CheckBox(exp_panel, label="Switch from hidden services to exit nodes")
+        exp_s1_sizer.Add(self._switch_hs_timeout, 0, wx.EXPAND)
+        
+        exp_s1_faq_text = wx.StaticText(
+            exp_panel, label="By allowing Tribler to be an exit node, it's possible to become a proxy for someone elses traffic. \nThis may cause problems in some countries.")
+        exp_vsizer.Add(exp_s1_faq_text, 0, wx.EXPAND | wx.TOP, 10)
+
+        # load values
+        self._become_exitnode.SetValue(self.utility.session.get_tunnel_community_exitnode_enabled())
+        self._switch_hs_timeout.SetValue(self.utility.session.get_tunnel_community_hs_timeout_switch())
+        
+        
         return exp_panel, item_id

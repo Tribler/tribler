@@ -15,26 +15,110 @@ class TunnelConversion(BinaryConversion):
     def __init__(self, community):
         super(TunnelConversion, self).__init__(community, "\x02")
 
-        self.define_meta_message(chr(1), community.get_meta_message(u"cell"), self._encode_cell, self._decode_cell)
-        self.define_meta_message(chr(2), community.get_meta_message(u"create"), self._encode_create, self._decode_create)
-        self.define_meta_message(chr(3), community.get_meta_message(u"created"), self._encode_created, self._decode_created)
-        self.define_meta_message(chr(4), community.get_meta_message(u"extend"), self._encode_extend, self._decode_extend)
-        self.define_meta_message(chr(5), community.get_meta_message(u"extended"), self._encode_extended, self._decode_extended)
-        self.define_meta_message(chr(6), community.get_meta_message(u"ping"), self._encode_ping, self._decode_ping)
-        self.define_meta_message(chr(7), community.get_meta_message(u"pong"), self._encode_pong, self._decode_pong)
-        self.define_meta_message(chr(8), community.get_meta_message(u"stats-request"), self._encode_stats_request, self._decode_stats_request)
-        self.define_meta_message(chr(9), community.get_meta_message(u"stats-response"), self._encode_stats_response, self._decode_stats_response)
-        self.define_meta_message(chr(10), community.get_meta_message(u"destroy"), self._encode_destroy, self._decode_destroy)
-        self.define_meta_message(chr(11), community.get_meta_message(u"establish-intro"), self._encode_establish_intro, self._decode_establish_intro)
-        self.define_meta_message(chr(12), community.get_meta_message(u"intro-established"), self._encode_intro_established, self._decode_intro_established)
-        self.define_meta_message(chr(13), community.get_meta_message(u"key-request"), self._encode_keys_request, self._decode_keys_request)
-        self.define_meta_message(chr(14), community.get_meta_message(u"key-response"), self._encode_keys_response, self._decode_keys_response)
-        self.define_meta_message(chr(15), community.get_meta_message(u"establish-rendezvous"), self._encode_establish_rendezvous, self._decode_establish_rendezvous)
-        self.define_meta_message(chr(16), community.get_meta_message(u"rendezvous-established"), self._encode_rendezvous_established, self._decode_rendezvous_established)
-        self.define_meta_message(chr(17), community.get_meta_message(u"create-e2e"), self._encode_create_e2e, self._decode_create_e2e)
-        self.define_meta_message(chr(18), community.get_meta_message(u"created-e2e"), self._encode_created_e2e, self._decode_created_e2e)
-        self.define_meta_message(chr(19), community.get_meta_message(u"link-e2e"), self._encode_link_e2e, self._decode_link_e2e)
-        self.define_meta_message(chr(20), community.get_meta_message(u"linked-e2e"), self._encode_linked_e2e, self._decode_linked_e2e)
+        self.define_meta_message(chr(1),
+                                 community.get_meta_message(u"cell"),
+                                 self._encode_cell,
+                                 self._decode_cell)
+        self.define_meta_message(chr(2),
+                                 community.get_meta_message(u"create"),
+                                 self._encode_create,
+                                 self._decode_create)
+        self.define_meta_message(chr(3),
+                                 community.get_meta_message(u"created"),
+                                 self._encode_created,
+                                 self._decode_created)
+        self.define_meta_message(chr(4),
+                                 community.get_meta_message(u"extend"),
+                                 self._encode_extend,
+                                 self._decode_extend)
+        self.define_meta_message(chr(5),
+                                 community.get_meta_message(u"extended"),
+                                 self._encode_extended,
+                                 self._decode_extended)
+        self.define_meta_message(chr(6),
+                                 community.get_meta_message(u"ping"),
+                                 self._encode_ping,
+                                 self._decode_ping)
+        self.define_meta_message(chr(7),
+                                 community.get_meta_message(u"pong"),
+                                 self._encode_pong,
+                                 self._decode_pong)
+        self.define_meta_message(chr(8),
+                                 community.get_meta_message(u"stats-request"),
+                                 self._encode_stats_request, self._decode_stats_request)
+        self.define_meta_message(chr(9),
+                                 community.get_meta_message(u"stats-response"),
+                                 self._encode_stats_response,
+                                 self._decode_stats_response)
+        self.define_meta_message(chr(10),
+                                 community.get_meta_message(u"destroy"),
+                                 self._encode_destroy, self._decode_destroy)
+        self.define_meta_message(chr(11),
+                                 community.get_meta_message(u"establish-intro"),
+                                 self._encode_establish_intro,
+                                 self._decode_establish_intro)
+        self.define_meta_message(chr(12),
+                                 community.get_meta_message(u"intro-established"),
+                                 self._encode_intro_established,
+                                 self._decode_intro_established)
+        self.define_meta_message(chr(13),
+                                 community.get_meta_message(u"key-request"),
+                                 self._encode_keys_request,
+                                 self._decode_keys_request)
+        self.define_meta_message(chr(14),
+                                 community.get_meta_message(u"key-response"),
+                                 self._encode_keys_response,
+                                 self._decode_keys_response)
+        self.define_meta_message(chr(15),
+                                 community.get_meta_message(u"establish-rendezvous"),
+                                 self._encode_establish_rendezvous,
+                                 self._decode_establish_rendezvous)
+        self.define_meta_message(chr(16),
+                                 community.get_meta_message(u"rendezvous-established"),
+                                 self._encode_rendezvous_established,
+                                 self._decode_rendezvous_established)
+        self.define_meta_message(chr(17),
+                                 community.get_meta_message(u"create-e2e"),
+                                 self._encode_create_e2e,
+                                 self._decode_create_e2e)
+        self.define_meta_message(chr(18),
+                                 community.get_meta_message(u"created-e2e"),
+                                 self._encode_created_e2e,
+                                 self._decode_created_e2e)
+        self.define_meta_message(chr(19),
+                                 community.get_meta_message(u"link-e2e"),
+                                 self._encode_link_e2e,
+                                 self._decode_link_e2e)
+        self.define_meta_message(chr(20),
+                                 community.get_meta_message(u"linked-e2e"),
+                                 self._encode_linked_e2e,
+                                 self._decode_linked_e2e)
+
+    def _encode_introduction_response(self, message):
+        payload = message.payload
+        data = [pack("!?", payload.exitnode,)]
+        data += list(super(TunnelConversion, self)._encode_introduction_response(message))
+        return tuple(data)
+
+    def _decode_introduction_response(self, placeholder, offset, data):
+        exitnode, = unpack_from('!?', data, offset)
+        offset += 1
+        offset, payload = super(TunnelConversion, self)._decode_introduction_response(placeholder, offset, data)
+        payload._exitnode = exitnode
+        return (offset, payload)
+
+    def _encode_introduction_request(self, message):
+        payload = message.payload
+        data = [pack("!?", payload.exitnode,)]
+        data += super(TunnelConversion, self)._encode_introduction_request(message)
+        return data
+
+    def _decode_introduction_request(self, placeholder, offset, data):
+        exitnode, = unpack_from('!?', data, offset)
+        offset += 1
+        offset, payload = super(TunnelConversion, self)._decode_introduction_request(placeholder, offset, data)
+        payload._exitnode = exitnode
+        return (offset, payload)
 
     def _encode_cell(self, message):
         payload = message.payload
@@ -46,7 +130,7 @@ class TunnelConversion(BinaryConversion):
         circuit_id, = unpack_from('!I', data, offset)
         offset += 4
 
-        if not self._decode_message_map.has_key(data[offset]):
+        if not data[offset] in self._decode_message_map:
             raise DropPacket("Invalid message")
         message_type = self._decode_message_map[data[offset]].meta.name
         offset += 1
@@ -94,8 +178,8 @@ class TunnelConversion(BinaryConversion):
 
     def _encode_extend(self, message):
         payload = message.payload
-        packet = pack("!IHH20s", payload.circuit_id, len(payload.node_public_key), len(payload.key), payload.node_id) + \
-            payload.node_public_key + payload.key
+        packet = pack("!IHH20s", payload.circuit_id, len(payload.node_public_key), len(payload.key),
+                      payload.node_id) + payload.node_public_key + payload.key
 
         if message.payload.node_addr:
             host, port = message.payload.node_addr
@@ -122,7 +206,8 @@ class TunnelConversion(BinaryConversion):
 
     def _encode_extended(self, message):
         payload = message.payload
-        return pack("!IH32s", payload.circuit_id, len(payload.key), payload.auth) + payload.key + payload.candidate_list,
+        return pack("!IH32s", payload.circuit_id, len(payload.key), payload.auth) + \
+            payload.key + payload.candidate_list,
 
     def _decode_extended(self, placeholder, offset, data):
         circuit_id, len_key, auth = unpack_from('!IH32s', data, offset)
@@ -177,7 +262,8 @@ class TunnelConversion(BinaryConversion):
 
     def _encode_stats_response(self, message):
         stats_list = []
-        for key in ['uptime', 'bytes_up', 'bytes_down', 'bytes_relay_up', 'bytes_relay_down', 'bytes_enter', 'bytes_exit']:
+        for key in ['uptime', 'bytes_up', 'bytes_down', 'bytes_relay_up', 'bytes_relay_down',
+                    'bytes_enter', 'bytes_exit']:
             stats_list.append(message.payload.stats.get(key, 0))
 
         return pack('!HIQQQQQQ', *([message.payload.identifier] + stats_list)),
@@ -189,7 +275,8 @@ class TunnelConversion(BinaryConversion):
         stats_list = unpack_from('!IQQQQQQ', data, offset)
         offset += 52
         stats_dict = dict(
-            zip(['uptime', 'bytes_up', 'bytes_down', 'bytes_relay_up', 'bytes_relay_down', 'bytes_enter', 'bytes_exit'], stats_list))
+            zip(['uptime', 'bytes_up', 'bytes_down', 'bytes_relay_up', 'bytes_relay_down',
+                 'bytes_enter', 'bytes_exit'], stats_list))
 
         # Ignore the rest
         offset += len(data[offset:])
@@ -431,4 +518,3 @@ class TunnelConversion(BinaryConversion):
                 TunnelConversion.could_be_udp_tracker(data) or
                 TunnelConversion.could_be_dht(data) or
                 TunnelConversion.could_be_dispersy(data))
-

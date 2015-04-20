@@ -32,7 +32,7 @@ DEFAULTPORT = 7760
 #  Version 2: as released in Tribler 4.5.0
 #  Version 3: cleanup unused params
 #  Version 4: remove swift
-#
+#  Version 7: exitnode optin switch added
 
 SESSDEFAULTS_VERSION = 7
 sessdefaults = OrderedDict()
@@ -73,6 +73,9 @@ sessdefaults['tunnel_community'] = OrderedDict()
 sessdefaults['tunnel_community']['optin_dialog_shown'] = False
 sessdefaults['tunnel_community']['enabled'] = False
 sessdefaults['tunnel_community']['socks5_listen_ports'] = [-1] * 5
+sessdefaults['tunnel_community']['exitnode_enabled'] = False
+sessdefaults['tunnel_community']['hs_timeout_switch'] = True
+
 
 # Mainline DHT settings
 sessdefaults['mainline_dht'] = OrderedDict()

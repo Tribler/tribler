@@ -614,8 +614,8 @@ class MainFrame(wx.Frame):
     def monitorHiddenSerivcesProgress(self, ds, tdef, dscfg, selectedFiles):
         if ds.get_status() in [DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]:
             return (5.0, True)
-
-        if ds.get_current_speed(DOWNLOAD) == 0:
+        
+        if ds.get_current_speed(DOWNLOAD) == 0 and self.utility.session.get_tunnel_community_hs_timeout_switch():
             download = ds.get_download()
             self.utility.session.remove_download(download)
 

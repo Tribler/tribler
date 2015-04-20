@@ -1,5 +1,35 @@
-from Tribler.dispersy.payload import Payload
+from Tribler.dispersy.payload import Payload, IntroductionRequestPayload,\
+    IntroductionResponsePayload
 
+
+class TunnelIntroductionRequestPayload(IntroductionRequestPayload):
+    
+    class Implementation(IntroductionRequestPayload.Implementation):
+
+        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier, exitnode = False):
+            super(TunnelIntroductionRequestPayload.Implementation, self).__init__(meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
+            assert isinstance(exitnode, bool), type(exitnode)
+            self._exitnode = exitnode
+        
+        @property 
+        def exitnode(self):
+            return self._exitnode
+            
+
+class TunnelIntroductionResponsePayload(IntroductionResponsePayload):
+    
+    class Implementation(IntroductionResponsePayload.Implementation):
+
+        def __init__(self, meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier, exitnode = False):
+            super(TunnelIntroductionResponsePayload.Implementation, self).__init__(meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier)
+            assert isinstance(exitnode, bool), type(exitnode)
+            self._exitnode = exitnode
+        
+        
+        @property 
+        def exitnode(self):
+            return self._exitnode
+         
 
 class CellPayload(Payload):
 
@@ -102,7 +132,7 @@ class ExtendPayload(Payload):
             assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(node_id, basestring), type(node_id)
             assert isinstance(node_public_key, basestring), type(node_public_key)
-            assert node_addr == None or isinstance(node_addr, tuple), type(node_addr)
+            assert node_addr is None or isinstance(node_addr, tuple), type(node_addr)
             assert isinstance(key, basestring), type(key)
 
             super(ExtendPayload.Implementation, self).__init__(meta)
