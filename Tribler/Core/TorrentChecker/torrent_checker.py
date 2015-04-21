@@ -100,7 +100,7 @@ class TorrentChecker(TaskManager):
     def initialize(self):
         self._torrent_db = self._session.open_dbhandler(NTFY_TORRENTS)
 
-        self._update_torrent_select_interval()
+        self._reschedule_torrent_select()
 
         self._checker_thread = TorrentCheckerThread(self)
         self._checker_thread.start()
@@ -126,7 +126,7 @@ class TorrentChecker(TaskManager):
         self._torrent_db = None
         self._session = None
 
-    def _update_torrent_select_interval(self):
+    def _reschedule_torrent_select(self):
         """
         Changes the torrent selection interval dynamically and schedules the task.
         """
@@ -146,7 +146,7 @@ class TorrentChecker(TaskManager):
         The regularly scheduled task that selects torrent to check.
         """
         # update the torrent selection interval
-        self._update_torrent_select_interval()
+        self._reschedule_torrent_select()
 
         # start selecting torrents
         current_time = int(time.time())
