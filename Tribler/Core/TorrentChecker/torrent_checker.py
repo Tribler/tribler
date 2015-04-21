@@ -25,6 +25,10 @@ DEFAULT_TORRENT_CHECK_RETRY_INTERVAL = 30  # interval when the torrent was succe
 
 class TorrentCheckerThread(Thread):
 
+    """
+    Thread used to monitor for data arriving on the scrape sockets.
+    """
+
     def __init__(self, tracker_checker):
         super(TorrentCheckerThread, self).__init__(name=u"torrent_checker")
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -43,6 +47,10 @@ class TorrentCheckerThread(Thread):
         self._interrupt_socket.interrupt()
 
     def run(self):
+        """
+        Checks for data in the scrape sockets until it's time to stop.
+        Every time there's data on one of the sockets, TorrentChecker.check_sessions() will be called.
+        """
         check_read_socket_list = []
         check_write_socket_list = []
         while not self._torrent_checker.should_stop:
@@ -107,6 +115,11 @@ class TorrentChecker(TaskManager):
 
     @blocking_call_on_reactor_thread
     def shutdown(self):
+        """
+        Shutdown the torrent health checker.
+
+        Once shut down it can't be started again.
+        """
         self.cancel_all_pending_tasks()
 
         # stop the checking thread
@@ -156,7 +169,7 @@ class TorrentChecker(TaskManager):
             self._logger.warn(u"No tracker to select from, skip")
             return
 
-        tracker_url, tracker_info = result
+        tracker_url, _ = result
         self._logger.debug(u"Start selecting torrents on tracker %s.", tracker_url)
 
         all_torrent_list = self._torrent_db.getTorrentsOnTracker(tracker_url, current_time)
@@ -174,7 +187,7 @@ class TorrentChecker(TaskManager):
             self._pending_request_queue.append((torrent_id, infohash, [tracker_url, ]))
             scheduled_torrents += 1
 
-        self._logger.debug(u"Selected %d torrents to check on tracker: %s", scheduled_torrents, tracker_url)
+        self._logger.debug(u"Selected %d new torrents to check on tracker: %s", scheduled_torrents, tracker_url)
         if scheduled_torrents > 0:
             self._checker_thread.interrupt()
 
@@ -251,7 +264,7 @@ class TorrentChecker(TaskManager):
 
                 if session.retries > session.max_retries:
                     session._is_failed = True
-                    self._logger.debug(u"%s retried out", session)
+                    self._logger.debug(u"%s max retry count hit", session)
                 else:
                     # re-establish the connection
                     # Do it in a callLater so the timed out flag is not cleared until we are done with it.
