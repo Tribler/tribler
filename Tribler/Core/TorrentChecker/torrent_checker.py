@@ -177,11 +177,8 @@ class TorrentChecker(TaskManager):
         # get the torrents that should be checked
         scheduled_torrents = 0
         for torrent_id, infohash, last_check in all_torrent_list:
-            # check interval
-            interval = current_time - last_check
-
             # recheck interval is: interval * 2^(retries)
-            if interval < self._torrent_check_interval:
+            if current_time - last_check < self._torrent_check_interval:
                 continue
 
             self._pending_request_queue.append((torrent_id, infohash, [tracker_url, ]))
@@ -228,7 +225,7 @@ class TorrentChecker(TaskManager):
         self._checker_thread.interrupt()
 
     @blocking_call_on_reactor_thread
-    def check_sessions(self, read_socket_list, write_socket_list, error_socket_list):
+    def check_sessions(self, read_socket_list, write_socket_list, _):
         if self._should_stop:
             return
 
