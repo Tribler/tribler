@@ -254,8 +254,9 @@ class TorrentChecker(TaskManager):
                     self._logger.debug(u"%s retried out", session)
                 else:
                     # re-establish the connection
-                    session.recreate_connection()
-                    self._logger.debug(u"%s retry: %d", session, session.retries)
+                    # Do it in a callLater so the timed out flag is not cleared until we are done with it.
+                    self._logger.debug(u"%s retrying: %d/%d", session, session.retries, self._max_torrent_check_retries)
+                    reactor.callLater(0,session.recreate_connection)
 
         # >> Step 3: Remove completed sessions and update tracker info
         if len(self._session_list) > 0:
