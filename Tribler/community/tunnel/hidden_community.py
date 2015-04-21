@@ -231,17 +231,20 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
                     self.create_key_request(info_hash, peer)
 
+        self._logger.debug("Doing dht lookup for hidden community")
         self.last_dht_lookup[info_hash] = time.time()
         self.dht_lookup(info_hash, dht_callback)
 
     def create_key_request(self, info_hash, sock_addr):
         # 1. Select a circuit
+        self._logger.debug("Create key request: select circuit")
         circuit = self.selection_strategy.select(None, DEFAULT_HOPS)
         if not circuit:
             self._logger.error("No circuit for key-request")
             return False
 
         # 2. Send a key-request message
+        self._logger.debug("Create key request: send key request")
         cache = self.request_cache.add(KeyRequestCache(self, circuit, sock_addr, info_hash))
         meta = self.get_meta_message(u'key-request')
         message = meta.impl(distribution=(self.global_time,), payload=(cache.number, info_hash))
@@ -311,10 +314,11 @@ class HiddenTunnelCommunity(TunnelCommunity):
         for message in messages:
             # if we have received this message over a socket, we need to forward it
             if not message.source.startswith(u"circuit_"):
+                self._logger.debug('On create e2e: forward message because received over socket')
                 relay_circuit = self.intro_point_for[message.payload.info_hash]
                 relay_circuit.tunnel_data(message.candidate.sock_addr, TUNNEL_PREFIX + message.packet)
-
             else:
+                self._logger.debug('On create e2e: create rendezvous point')
                 self.create_rendezvous_point(
                     DEFAULT_HOPS, lambda rendezvous_point, message=message: self.create_created_e2e(rendezvous_point, message))
 

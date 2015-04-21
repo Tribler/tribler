@@ -1812,15 +1812,21 @@ class TorrentStatus(wx.Panel):
         torrent_state = torrent.state
         finished = progress == 1.0
         is_vod = torrent.ds.get_download().get_mode() == DLMODE_VOD if torrent.ds else False
+        hidden = torrent.ds.get_download().get_def().is_anonymous()
 
         if torrent.ds.status == 2 or 'checking' in torrent_state:
             status = 'Checking'
         elif 'circuits' in torrent_state:
-            status = 'Building circuits'
+            if hidden:
+                status = 'Building End to End'
+            else:
+                status = 'Building circuits'
         elif 'metadata' in torrent_state:
             status = 'Fetching torrent'
         elif 'seeding' in torrent_state:
             status = 'Seeding'
+            if hidden:
+                status = 'Hidden Seeding'
             if torrent.ds and UserDownloadChoice.get_singleton().get_download_state(torrent.ds.get_download().get_def().get_infohash()) == 'restartseed':
                 status = "[F] " + status
         elif finished:
@@ -1829,6 +1835,8 @@ class TorrentStatus(wx.Panel):
             status = 'Waiting'
         elif 'downloading' in torrent_state:
             status = 'Streaming' if is_vod else 'Downloading'
+            if hidden:
+                status = "Hidden " + status
         elif 'error' in torrent_state:
             status = 'Stopped on error'
         elif 'stopped' in torrent_state:
@@ -2564,18 +2572,24 @@ class VideoVolume(wx.Panel):
         gc.DrawPath(path)
 
 
-class AnonymousSlidebar(wx.Panel):
+class AnonymityDialog(wx.Panel):
 
     def __init__(self, parent):
-        super(AnonymousSlidebar, self).__init__(parent)
+        super(AnonymityDialog, self).__init__(parent)
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.anonymous_chkbox = wx.CheckBox(self, -1, "Enable anonymous download")
-        font = self.anonymous_chkbox.GetFont()
+        self.exitnodes_chkbox = wx.CheckBox(self, -1, "Enable anonimity over exit nodes")
+        font = self.exitnodes_chkbox.GetFont()
         font.SetWeight(wx.BOLD)
-        self.anonymous_chkbox.SetFont(font)
-        self.anonymous_chkbox.Bind(wx.EVT_CHECKBOX, self.OnAnonymousValueChanged)
+        self.exitnodes_chkbox.SetFont(font)
+        self.exitnodes_chkbox.Bind(wx.EVT_CHECKBOX, self.OnExitnodesValueChanged)
+
+        self.endtoend_chkbox = wx.CheckBox(self, -1, "Enable anonimity over hidden services")
+        font = self.endtoend_chkbox.GetFont()
+        font.SetWeight(wx.BOLD)
+        self.endtoend_chkbox.SetFont(font)
+        self.endtoend_chkbox.Bind(wx.EVT_CHECKBOX, self.OnEndToEndValueChanged)
 
         # Add slider
         self._lbls = []
@@ -2615,7 +2629,8 @@ class AnonymousSlidebar(wx.Panel):
         slider_sizer.Add(self.slider_bitmap)
 
         vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
-        vSizer.Add(self.anonymous_chkbox, 0, wx.EXPAND | wx.BOTTOM, 10)
+        vSizer.Add(self.exitnodes_chkbox, 0, wx.EXPAND | wx.BOTTOM, 10)
+        vSizer.Add(self.endtoend_chkbox, 0, wx.EXPAND | wx.BOTTOM, 10)
         self.st = wx.StaticText(self, -1, 'Please select how anonymous you want to download:')
         _set_font(self.st, fontweight=wx.FONTWEIGHT_BOLD)
         vSizer.Add(self.st, 0, wx.EXPAND | wx.BOTTOM, 10)
@@ -2623,29 +2638,47 @@ class AnonymousSlidebar(wx.Panel):
 
         self.SetSizer(vSizer)
 
-        self.anonymous_chkbox.SetValue(False)
-        self.OnAnonymousValueChanged(None)
+        self.exitnodes_chkbox.SetValue(False)
+        self.endtoend_chkbox.SetValue(False)
+        self.OnEndToEndValueChanged(None)
+        self.OnExitnodesValueChanged(None)
 
     def OnSlide(self, event):
         self.slider_bitmap.SetBitmap(self.slider_images[self.slider.GetValue()])
 
-    def OnAnonymousValueChanged(self, event):
-        to_show = self.anonymous_chkbox.GetValue()
+    def OnEndToEndValueChanged(self, event):
+        to_show = self.endtoend_chkbox.GetValue()
+        self.slider.Show(False)
+        self.slider_bitmap.Show(False)
+        self.st.Show(False)
+        self.exitnodes_chkbox.SetValue(False)
+        for lbl in self._lbls:
+            lbl.Show(False)
+
+    def OnExitnodesValueChanged(self, event):
+        to_show = self.exitnodes_chkbox.GetValue()
         self.slider.Show(to_show)
         self.slider_bitmap.Show(to_show)
         self.st.Show(to_show)
+        self.endtoend_chkbox.SetValue(False)
         for lbl in self._lbls:
             lbl.Show(to_show)
 
         self.Layout()
         self.GetParent().Layout()
 
-    def GetValue(self):
-        return self.slider.GetValue() if self.anonymous_chkbox.GetValue() else 0
+    def GetExitnodesHops(self):
+        return self.slider.GetValue() if self.exitnodes_chkbox.GetValue() else 0
 
-    def SetValue(self, value):
+    def SetExitnodesHops(self, value):
         if value == 0:
-            self.anonymous_chkbox.SetValue(False)
+            self.exitnodes_chkbox.SetValue(False)
         else:
-            self.anonymous_chkbox.SetValue(True)
+            self.exitnodes_chkbox.SetValue(True)
             self.slider.SetValue(value)
+
+    def GetEndToEndValue(self):
+        return self.endtoend_chkbox.GetValue()
+
+    def SetEndToEndValue(self, value):
+        self.endtoend_chkbox.SetValue(value)

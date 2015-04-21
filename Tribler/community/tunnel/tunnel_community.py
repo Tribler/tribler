@@ -39,7 +39,6 @@ from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.util import call_on_reactor_thread
 from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
 from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
-from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 
 
 class CircuitRequestCache(NumberCache):
@@ -127,7 +126,7 @@ class TunnelExitSocket(DatagramProtocol):
                 try:
                     self.transport.write(data, destination)
                 except Exception, _:
-                    self._logger.error("Failed to write data to transport: %s", str(destination).encode("HEX"))
+                    self._logger.error("Failed to write data to transport, destination: %s", repr(destination))
                     raise
 
                 self.community.increase_bytes_sent(self, len(data))
@@ -468,13 +467,6 @@ class TunnelCommunity(Community):
             retry_lambda = lambda h = goal_hops, t = ctype, c = callback, r = max_retries - 1, e = required_exit: \
                 self.create_circuit(h, t, c, r, e)
 
-        hops = set([c.first_hop for c in self.circuits.values()])
-        for c in self.dispersy_yield_verified_candidates():
-            if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec) and \
-               (not required_exit or c.sock_addr != tuple(required_exit[:2])):
-                first_hop = c
-                break
-
         if not required_exit:
             self._logger.debug("Look for exit node to set as required_exit for this circuit")
             # Each circuit's exit node should be a verified connectable exit node peer chosen by the circuit initiator
@@ -485,9 +477,16 @@ class TunnelCommunity(Community):
                     self._logger.debug("Valid exit candidate found for this circuit")
                     required_exit = (c.sock_addr[0], c.sock_addr[1], pubkey)
                     # Stop looking for a better alternative if the exit-node is not used for exiting in another circuit
-                    if c.sock_addr not in hops and self.candidate_is_connectable(c):
+                    if self.candidate_is_connectable(c):
                         self._logger.debug("Exit node is connectable and not used in other circuits, that's prefered")
                         break
+
+        hops = set([c.first_hop for c in self.circuits.values()])
+        for c in self.dispersy_yield_verified_candidates():
+            if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec) and \
+               (not required_exit or c.sock_addr != tuple(required_exit[:2])):
+                first_hop = c
+                break
 
         if not required_exit:
             if retry_lambda:
@@ -669,7 +668,6 @@ class TunnelCommunity(Community):
             self._logger.error(str(e))
             return 0
         packet = plaintext + encrypted
-
         return self.send_packet(candidates, u'data', packet)
 
     def send_packet(self, candidates, message_type, packet):
@@ -781,6 +779,8 @@ class TunnelCommunity(Community):
         if circuit.state == CIRCUIT_STATE_EXTENDING:
             ignore_candidates = [self.crypto.key_to_bin(hop.public_key) for hop in circuit.hops] + \
                 [self.my_member.public_key]
+            if circuit.required_exit:
+                ignore_candidates.append(circuit.required_exit[2])
 
             become_exit = circuit.goal_hops - 1 == len(circuit.hops)
             if become_exit and circuit.required_exit:
@@ -794,8 +794,6 @@ class TunnelCommunity(Community):
                 candidate_list_enc = message.payload.candidate_list
                 _, candidate_list = decode(self.crypto.decrypt_str(
                     candidate_list_enc, hop.session_keys[EXIT_NODE], hop.session_keys[EXIT_NODE_SALT]))
-                if circuit.required_exit:
-                    ignore_candidates.append(circuit.required_exit[2])
                 for ignore_candidate in ignore_candidates:
                     if ignore_candidate in candidate_list:
                         candidate_list.remove(ignore_candidate)
@@ -1144,10 +1142,13 @@ class TunnelCommunity(Community):
         self.send_packet([candidate], u"stats-request", request.packet)
 
     def tunnel_data_to_end(self, ultimate_destination, data, circuit):
+        self._logger.debug("Tunnel data to end for circuit %s with ultimate destination %s" %
+                           (circuit.circuit_id, ultimate_destination))
         packet = TunnelConversion.encode_data(circuit.circuit_id, ultimate_destination, ('0.0.0.0', 0), data)
         self.increase_bytes_sent(circuit, self.send_data([Candidate(circuit.first_hop, False)], u'data', packet))
 
     def tunnel_data_to_origin(self, circuit_id, sock_addr, source_address, data):
+        self._logger.debug("Tunnel data to origin %s for circuit %s" % (sock_addr, circuit_id))
         packet = TunnelConversion.encode_data(circuit_id, ('0.0.0.0', 0), source_address, data)
         self.send_data([Candidate(sock_addr, False)], u'data', packet)
 
@@ -1164,7 +1165,6 @@ class TunnelCommunity(Community):
                 self.exit_sockets[circuit_id].sendto(data, destination)
             except:
                 self._logger.error("Dropping data packets while EXITing")
-                print_exc()
         else:
             self._logger.error("Dropping data packets with unknown circuit_id")
 
@@ -1175,9 +1175,11 @@ class TunnelCommunity(Community):
                 direction = int(circuit.ctype == CIRCUIT_TYPE_RP)
                 content = self.crypto.encrypt_str(content, *self.get_session_keys(circuit.hs_session_keys, direction))
             for hop in reversed(circuit.hops):
+                self._logger.debug("Encrypting layer for hop %s in circuit %s" % (hop.address, circuit_id))
                 content = self.crypto.encrypt_str(content, *self.get_session_keys(hop.session_keys, EXIT_NODE))
             return content
         elif circuit_id in self.relay_session_keys:
+            self._logger.debug("Encrypt layer for relaying own circuit %s" % (circuit_id))
             return self.crypto.encrypt_str(content,
                                            *self.get_session_keys(self.relay_session_keys[circuit_id], ORIGINATOR))
         raise CryptoException("Don't know how to encrypt outgoing message for circuit_id %d" % circuit_id)
@@ -1187,7 +1189,8 @@ class TunnelCommunity(Community):
         if circuit and len(circuit.hops) > 0:
             # Remove all the encryption layers
             for hop in self.circuits[circuit_id].hops:
-                self._logger.debug("Decrypting encryption layer for hop %s in circuit %s" % (hop.address, circuit_id))
+                self._logger.debug("Decrypting encryption layer for hop %s in circuit %s" %
+                                   (hop.address, circuit_id))
                 content = self.crypto.decrypt_str(
                     content, hop.session_keys[ORIGINATOR], hop.session_keys[ORIGINATOR_SALT])
             if circuit and is_data and circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
@@ -1197,6 +1200,7 @@ class TunnelCommunity(Community):
                     content, circuit.hs_session_keys[direction], circuit.hs_session_keys[direction_salt])
             return content
         elif circuit_id in self.relay_session_keys:
+            self._logger.debug("Decrypt layer for relaying own circuit %s" % (circuit_id))
             return self.crypto.decrypt_str(content,
                                            self.relay_session_keys[circuit_id][EXIT_NODE],
                                            self.relay_session_keys[circuit_id][EXIT_NODE_SALT])
@@ -1205,9 +1209,13 @@ class TunnelCommunity(Community):
     def crypto_relay(self, circuit_id, content):
         direction = self.directions[circuit_id]
         if direction == ORIGINATOR:
+            self._logger.debug("Encrypt layer for relaying data to origin for circuit %s" %
+                               (circuit_id))
             return self.crypto.encrypt_str(content,
                                            *self.get_session_keys(self.relay_session_keys[circuit_id], ORIGINATOR))
         elif direction == EXIT_NODE:
+            self._logger.debug("Decrypt layer for relaying data to exit node for circuit %s" %
+                               (circuit_id))
             return self.crypto.decrypt_str(content,
                                            self.relay_session_keys[circuit_id][EXIT_NODE],
                                            self.relay_session_keys[circuit_id][EXIT_NODE_SALT])
