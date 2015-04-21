@@ -20,7 +20,6 @@ class TestTorrentChecking(TestAsServer):
         self.config.set_torrent_checking(True)
         self.config.set_megacache(True)
         self.config.set_torrent_store(True)
-        self.config.set_torrent_checking_period(5.0)
 
     def test_torrent_checking(self):
         tdef = TorrentDef.load(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"))

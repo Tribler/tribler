@@ -17,10 +17,10 @@ from Tribler.Core.Utilities.network_utils import InterruptSocket
 
 # some settings
 DEFAULT_TORRENT_SELECTION_INTERVAL = 20  # every 20 seconds, the thread will select torrents to check
-DEFAULT_TORRENT_CHECK_INTERVAL = 900  # a torrent will only be checked every 15 minutes
+DEFAULT_TORRENT_CHECK_INTERVAL = 900  # base multipier for the check delay
 
-DEFAULT_MAX_TORRENT_CHECK_RETRIES = 8
-DEFAULT_TORRENT_CHECK_RETRY_INTERVAL = 30
+DEFAULT_MAX_TORRENT_CHECK_RETRIES = 8  # max check delay increments when failed.
+DEFAULT_TORRENT_CHECK_RETRY_INTERVAL = 30  # interval when the torrent was successfully checked for the last time
 
 
 class TorrentCheckerThread(Thread):
@@ -71,7 +71,7 @@ class TorrentCheckerThread(Thread):
 
 class TorrentChecker(TaskManager):
 
-    def __init__(self, session, torrent_select_interval=DEFAULT_TORRENT_SELECTION_INTERVAL):
+    def __init__(self, session):
         super(TorrentChecker, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self._session = session
@@ -86,7 +86,6 @@ class TorrentChecker(TaskManager):
         self._pending_response_dict = {}
 
         self._torrent_check_interval = DEFAULT_TORRENT_CHECK_INTERVAL
-        self._torrent_select_interval = torrent_select_interval
         self._torrent_check_retry_interval = DEFAULT_TORRENT_CHECK_RETRY_INTERVAL
         self._max_torrent_check_retries = DEFAULT_MAX_TORRENT_CHECK_RETRIES
 
@@ -133,12 +132,14 @@ class TorrentChecker(TaskManager):
         """
         # dynamically change the interval: update at least every 2h
         num_torrents = self._torrent_db.getNumberCollectedTorrents()
-        if num_torrents > 0:
-            self._torrent_select_interval = min(max(7200 / num_torrents, 10), 100)
-        self._logger.debug(u"torrent selection interval changed to %s", self._torrent_select_interval)
+
+        torrent_select_interval = min(max(7200 / num_torrents, 10), 100) if num_torrents \
+                                  else DEFAULT_TORRENT_SELECTION_INTERVAL
+
+        self._logger.debug(u"torrent selection interval changed to %s", torrent_select_interval)
 
         self.register_task(u"torrent_checker torrent selection",
-                           reactor.callLater(self._torrent_select_interval, self._task_select_torrents))
+                           reactor.callLater(torrent_select_interval, self._task_select_torrents))
 
     def _task_select_torrents(self):
         """
