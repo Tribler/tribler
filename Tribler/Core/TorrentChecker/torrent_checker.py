@@ -283,7 +283,6 @@ class TorrentChecker(TaskManager):
                 self._update_torrent_result(response)
 
             if self._pending_response_dict[infohash][u'remaining_responses'] == 0:
-                self._check_response_final(response)
                 del self._pending_response_dict[infohash]
 
         self._logger.debug(u"total sessions: %d", len(self._session_list))
@@ -435,21 +434,3 @@ class TorrentChecker(TaskManager):
         self._torrent_db.updateTorrentCheckResult(torrent_id,
                                                   infohash, seeders, leechers, last_check, next_check,
                                                   status, retries)
-
-    def _check_response_final(self, response):
-        seeders = response[u'seeders']
-        leechers = response[u'leechers']
-
-        # the result logic
-        is_good_result = False
-        if seeders > 0 or leechers > 0:
-            is_good_result = True
-
-        if is_good_result:
-            return
-
-        response[u'seeders'] = 0
-        response[u'leechers'] = 0
-        response[u'last_check'] = int(time.time())
-
-        self._update_torrent_result(response)
