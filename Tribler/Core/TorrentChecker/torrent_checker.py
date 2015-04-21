@@ -242,6 +242,11 @@ class TorrentChecker(TaskManager):
         for session in session_dict.values():
             diff = current_time - session.last_contact
             if diff > session.retry_interval:
+                session._is_timed_out = True
+
+                for infohash in session.infohash_list:
+                    self._pending_response_dict[infohash][u'updated'] = True
+
                 session.increase_retries()
 
                 if session.retries > session.max_retries:

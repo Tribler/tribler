@@ -69,6 +69,7 @@ class TrackerSession(object):
         self._is_initiated = False  # you cannot add requests to a session if it has been initiated
         self._is_finished = False
         self._is_failed = False
+        self._is_timed_out = False
 
     def __str__(self):
         return "Tracker[%s, %s]" % (self._tracker_type, self._tracker_url)
@@ -112,10 +113,9 @@ class TrackerSession(object):
         """Creates a connection to the tracker."""
         pass
 
-    @abstractmethod
     def recreate_connection(self):
         """Re-creates a connection to the tracker."""
-        pass
+        self._is_timed_out = False
 
     @abstractmethod
     def _handle_connection(self):
@@ -180,6 +180,9 @@ class TrackerSession(object):
     def is_failed(self):
         return self._is_failed
 
+    @property
+    def is_timed_out(self):
+        return self._is_timed_out
 
 class HttpTrackerSession(TrackerSession):
 
@@ -205,6 +208,8 @@ class HttpTrackerSession(TrackerSession):
         return self.recreate_connection()
 
     def recreate_connection(self):
+        super(HttpTrackerSession, self).recreate_connection()
+
         # an exception may be raised if the socket is non-blocking
         try:
             self._socket.connect(self._tracker_address)
@@ -461,6 +466,8 @@ class UdpTrackerSession(TrackerSession):
         return self.recreate_connection()
 
     def recreate_connection(self):
+        super(UdpTrackerSession, self).recreate_connection()
+
         # prepare connection message
         self._connection_id = UDP_TRACKER_INIT_CONNECTION_ID
         self._action = TRACKER_ACTION_CONNECT
