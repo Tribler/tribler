@@ -269,7 +269,7 @@ class TorrentChecker(TaskManager):
                     reactor.callLater(0,session.recreate_connection)
 
         # >> Step 3: Remove completed sessions and update tracker info
-        if len(self._session_list) > 0:
+        if self._session_list:
             for i in range(len(self._session_list) - 1, -1, -1):
                 session = self._session_list[i]
 
@@ -422,11 +422,8 @@ class TorrentChecker(TaskManager):
         torrent_id = result[u'torrent_id']
         retries = result[u'tracker_check_retries']
 
-        # the result logic
-        is_good_result = seeders > 0 or leechers > 0
-
         # the status logic
-        if is_good_result:
+        if seeders > 0:
             retries = 0
             status = u'good'
         else:
