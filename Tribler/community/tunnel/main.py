@@ -7,7 +7,6 @@ import argparse
 import threading
 import cherrypy
 
-from traceback import print_exc
 from collections import defaultdict, deque
 
 from twisted.internet.task import LoopingCall
@@ -26,11 +25,12 @@ from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
 import logging.config
 logging.config.fileConfig("logger.conf")
+logger = logging.getLogger('TunnelMain')
 
 try:
     import yappi
 except ImportError:
-    print >> sys.stderr, "Yappi not installed, profiling options won't be available"
+    logger.error("Yappi not installed, profiling options won't be available")
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 
@@ -126,7 +126,7 @@ class Tunnel(object):
         while not upgrader.is_done:
             time.sleep(0.1)
         self.session.start()
-        print >> sys.stderr, "Using port %d" % self.session.get_dispersy_port()
+        logger.info("Using port %d" % self.session.get_dispersy_port())
 
     def start(self):
         def start_community():
@@ -150,7 +150,7 @@ class Tunnel(object):
         try:
             self.community.monitor_downloads(dslist)
         except:
-            print_exc()
+            logger.error("Monitoring downloads failed")
 
         return (4.0, [])
 
@@ -173,10 +173,10 @@ class Tunnel(object):
             while not self.session.has_shutdown():
                 diff = time.time() - session_shutdown_start
                 assert diff < waittime, "Took too long for Session to shutdown"
-                print >> sys.stderr, "ONEXIT Waiting for Session to shutdown, will wait for %d more seconds" % (
-                    waittime - diff)
+                logger.info("ONEXIT Waiting for Session to shutdown, will wait for %d more seconds" % (
+                    waittime - diff))
                 time.sleep(1)
-            print >> sys.stderr, "Session is shutdown"
+            logger.info("Session is shut down")
             Session.del_instance()
 
     def preprocess_stats(self, stats):
@@ -229,21 +229,21 @@ class LineHandler(LineReceiver):
                 for func_stats in yappi.get_func_stats().sort("subtime")[:50]:
                     print "YAPPI: %10dx  %10.3fs" % (func_stats.ncall, func_stats.tsub), func_stats.name
             else:
-                print >> sys.stderr, "Profiling disabled!"
+                logger.error("Profiling disabled!")
 
         elif line == 'P':
             if profile:
                 filename = 'callgrindc_%d.yappi' % anon_tunnel.dispersy.lan_address[1]
                 yappi.get_func_stats().save(filename, type='callgrind')
             else:
-                print >> sys.stderr, "Profiling disabled!"
+                logger.error("Profiling disabled!")
 
         elif line == 't':
             if profile:
                 yappi.get_thread_stats().sort("totaltime").print_all()
 
             else:
-                print >> sys.stderr, "Profiling disabled!"
+                logger.error("Profiling disabled!")
 
         elif line == 'c':
             print "========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)"
@@ -260,7 +260,7 @@ class LineHandler(LineReceiver):
             filename = 'test_file' if len(line_split) == 1 else line_split[1]
 
             if not os.path.exists(filename):
-                print "Creating torrent..",
+                logger.info("Creating torrent..")
                 with open(filename, 'wb') as fp:
                     fp.write(os.urandom(50 * 1024 * 1024))
                 tdef = TorrentDef()
@@ -271,9 +271,9 @@ class LineHandler(LineReceiver):
                 tdef.finalize()
                 tdef.save(os.path.join(cur_path, filename + '.torrent'))
             else:
-                print "Loading existing torrent..",
+                logger.info("Loading existing torrent..")
                 tdef = TorrentDef.load(filename + '.torrent')
-            print "done, infohash of torrent: %s" % (tdef.get_infohash().encode('hex')[:10])
+            logger.info("loading torrent done, infohash of torrent: %s" % (tdef.get_infohash().encode('hex')[:10]))
 
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
@@ -286,9 +286,9 @@ class LineHandler(LineReceiver):
             line_split = line.split(' ')
             filename = 'test_file' if len(line_split) == 1 else line_split[1]
 
-            print "Loading torrent..",
+            logger.info("Loading torrent..")
             tdef = TorrentDef.load(filename + '.torrent')
-            print "done"
+            logger.info("Loading torrent done")
 
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
@@ -297,12 +297,13 @@ class LineHandler(LineReceiver):
 
             def start_download():
                 def cb(ds):
-                    print 'Download infohash=%s, down=%s, progress=%s, status=%s, seedpeers=%s, candidates=%d' % (tdef.get_infohash().encode('hex')[:10], 
-                                                      ds.get_current_speed('down'), 
-                                                      ds.get_progress(), 
-                                                      ds.get_status(), 
-                                                      sum(ds.get_num_seeds_peers()),
-                                                      sum(1 for _ in anon_tunnel.community.dispersy_yield_verified_candidates()))
+                    logger.info('Download infohash=%s, down=%s, progress=%s, status=%s, seedpeers=%s, candidates=%d' %
+                                (tdef.get_infohash().encode('hex')[:10],
+                                 ds.get_current_speed('down'),
+                                 ds.get_progress(),
+                                 ds.get_status(),
+                                 sum(ds.get_num_seeds_peers()),
+                                 sum(1 for _ in anon_tunnel.community.dispersy_yield_verified_candidates())))
                     return 1.0, False
                 download = anon_tunnel.session.start_download(tdef, dscfg)
                 download.set_state_callback(cb, delay=1)
@@ -315,14 +316,11 @@ class LineHandler(LineReceiver):
 
         elif line == 'r':
             print "circuit\t\t\tdirection\tcircuit\t\t\tTraffic (MB)"
-
             from_to = anon_tunnel.community.relay_from_to
-
             for key in from_to.keys():
                 relay = from_to[key]
-
-                print "%s-->\t%s\t\t%.2f" % ((key[0], key[1]), (relay.sock_addr, relay.circuit_id),
-                                             relay.bytes[1] / 1024.0 / 1024.0,)
+                logger.info("%s-->\t%s\t\t%.2f" % ((key[0], key[1]), (relay.sock_addr, relay.circuit_id),
+                                                   relay.bytes[1] / 1024.0 / 1024.0,))
 
 
 def main(argv):
@@ -351,10 +349,10 @@ def main(argv):
     if profile:
         yappi.set_clock_type(profile)
         yappi.start(builtins=True)
-        print "Profiling using %s time" % yappi.get_clock_type()['type']
+        logger.error("Profiling using %s time" % yappi.get_clock_type()['type'])
 
     if crawl_keypair_filename and not os.path.exists(crawl_keypair_filename):
-        print "Could not find keypair filename", crawl_keypair_filename
+        logger.error("Could not find keypair filename", crawl_keypair_filename)
         sys.exit(1)
 
     settings = TunnelSettings()
@@ -362,13 +360,13 @@ def main(argv):
         settings.socks_listen_ports = range(socks5_port, socks5_port + 5)
     else:
         settings.socks_listen_ports = [random.randint(1000, 65535) for _ in range(5)]
-    
+
     settings.become_exitnode = True if args.exit in ['true'] else False
     if settings.become_exitnode:
-        print "Exit-node enabled"
+        logger.info("Exit-node enabled")
     else:
-        print "Exit-node disabled"
-        
+        logger.info("Exit-node disabled")
+
     settings.do_test = False
     tunnel = Tunnel(settings, crawl_keypair_filename, dispersy_port)
     StandardIO(LineHandler(tunnel, profile))
