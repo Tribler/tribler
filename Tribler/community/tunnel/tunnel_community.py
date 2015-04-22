@@ -1234,7 +1234,6 @@ class TunnelCommunity(Community):
         elif isinstance(obj, TunnelExitSocket):
             obj.bytes_up += num_bytes
             self.stats['bytes_exit'] += num_bytes
-            # todo check if obj.mid is the right mid!
             _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_SENT, "%s:%s" % (obj.sock_addr[0], obj.sock_addr[1]), num_bytes)
 
     def increase_bytes_received(self, obj, num_bytes):
