@@ -302,16 +302,16 @@ class TunnelCommunity(Community):
 
     @classmethod
     def get_master_members(cls, dispersy):
-        #generated: Mon Mar  9 16:21:28 2015
-        #curve: None
-        #len: 571 bits ~ 144 bytes signature
-        #pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000404dc19d38890e0de983aed312d0b0c8a27732d7499a3e0c5d7bebfb8451270215d788ca671040935b4b4fc7faa48fd021226f5580995d63d0e9c82b0586850f93768debf550f4459054e6fb91318d8a0346c4059a4e84c95e4b7769cadc296d567ad353752a630d20f077a9f068998136338f2f0663d327d8934110565fb41040ac2d94c4fb78308118206a3930b68a8
-        #pub-sha1 3df2df7afa551c6d876a94b44c4b37d417b7c4e8
+        # generated: Mon Mar  9 16:21:28 2015
+        # curve: None
+        # len: 571 bits ~ 144 bytes signature
+        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000404dc19d38890e0de983aed312d0b0c8a27732d7499a3e0c5d7bebfb8451270215d788ca671040935b4b4fc7faa48fd021226f5580995d63d0e9c82b0586850f93768debf550f4459054e6fb91318d8a0346c4059a4e84c95e4b7769cadc296d567ad353752a630d20f077a9f068998136338f2f0663d327d8934110565fb41040ac2d94c4fb78308118206a3930b68a8
+        # pub-sha1 3df2df7afa551c6d876a94b44c4b37d417b7c4e8
         #-----BEGIN PUBLIC KEY-----
-        #MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQE3BnTiJDg3pg67TEtCwyKJ3MtdJmj
-        #4MXXvr+4RRJwIV14jKZxBAk1tLT8f6pI/QISJvVYCZXWPQ6cgrBYaFD5N2jev1UP
-        #RFkFTm+5ExjYoDRsQFmk6EyV5Ld2nK3CltVnrTU3UqYw0g8Hep8GiZgTYzjy8GY9
-        #Mn2JNBEFZftBBArC2UxPt4MIEYIGo5MLaKg=
+        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQE3BnTiJDg3pg67TEtCwyKJ3MtdJmj
+        # 4MXXvr+4RRJwIV14jKZxBAk1tLT8f6pI/QISJvVYCZXWPQ6cgrBYaFD5N2jev1UP
+        # RFkFTm+5ExjYoDRsQFmk6EyV5Ld2nK3CltVnrTU3UqYw0g8Hep8GiZgTYzjy8GY9
+        # Mn2JNBEFZftBBArC2UxPt4MIEYIGo5MLaKg=
         #-----END PUBLIC KEY-----
         master_key = "3081a7301006072a8648ce3d020106052b81040027038192000404dc19d38890e0de983aed312d0b0c8a27732d7499a3e0c5d7bebfb8451270215d788ca671040935b4b4fc7faa48fd021226f5580995d63d0e9c82b0586850f93768debf550f4459054e6fb91318d8a0346c4059a4e84c95e4b7769cadc296d567ad353752a630d20f077a9f068998136338f2f0663d327d8934110565fb41040ac2d94c4fb78308118206a3930b68a8".decode(
             "HEX")
@@ -526,6 +526,7 @@ class TunnelCommunity(Community):
                                                                      circuit.unverified_hop.node_public_key,
                                                                      circuit.unverified_hop.dh_first_part)))
 
+        _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_CREATED, "%s:%s" % (first_hop.sock_addr[0], first_hop.sock_addr[1]))
         return True
 
     def readd_bittorrent_peers(self):
@@ -1225,32 +1226,26 @@ class TunnelCommunity(Community):
         if isinstance(obj, Circuit):
             obj.bytes_up += num_bytes
             self.stats['bytes_up'] += num_bytes
-            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_BYTES_SENT,
-                                                   obj.mid, num_bytes)
+            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_BYTES_SENT, "%s:%s" % (obj.first_hop[0], obj.first_hop[1]), num_bytes)
         elif isinstance(obj, RelayRoute):
             obj.bytes_up += num_bytes
             self.stats['bytes_relay_up'] += num_bytes
-            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_RELAY_BYTES_SENT,
-                                                   obj.mid, num_bytes)
+            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_RELAY_BYTES_SENT, "%s:%s" % (obj.sock_addr[0], obj.sock_addr[1]), num_bytes)
         elif isinstance(obj, TunnelExitSocket):
             obj.bytes_up += num_bytes
             self.stats['bytes_exit'] += num_bytes
-            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_SENT,
-                                                   obj.mid, num_bytes)
+            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_SENT, "%s:%s" % (obj.sock_addr[0], obj.sock_addr[1]), num_bytes)
 
     def increase_bytes_received(self, obj, num_bytes):
         if isinstance(obj, Circuit):
             obj.bytes_down += num_bytes
             self.stats['bytes_down'] += num_bytes
-            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_BYTES_RECEIVED,
-                                                   obj.mid, num_bytes)
+            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_BYTES_RECEIVED, "%s:%s" % (obj.first_hop[0], obj.first_hop[1]), num_bytes)
         elif isinstance(obj, RelayRoute):
             obj.bytes_down += num_bytes
             self.stats['bytes_relay_down'] += num_bytes
-            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_RELAY_BYTES_RECEIVED,
-                                                   obj.mid, num_bytes)
+            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_RELAY_BYTES_RECEIVED, "%s:%s" % (obj.sock_addr[0], obj.sock_addr[1]), num_bytes)
         elif isinstance(obj, TunnelExitSocket):
             obj.bytes_down += num_bytes
             self.stats['bytes_enter'] += num_bytes
-            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED,
-                                                   obj.mid, num_bytes)
+            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED, "%s:%s" % (obj.sock_addr[0], obj.sock_addr[1]), num_bytes)
