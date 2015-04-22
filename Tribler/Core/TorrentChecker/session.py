@@ -1,14 +1,17 @@
-from abc import ABCMeta, abstractmethod, abstractproperty
 import logging
 import random
 import socket
 import struct
+import sys
 import time
 import urllib
+from abc import ABCMeta, abstractmethod, abstractproperty
+from binascii import unhexlify
 
 from libtorrent import bdecode
 
 from Tribler.Core.Utilities.tracker_utils import parse_tracker_url
+from Tribler.dispersy.util import call_on_reactor_thread
 
 
 # Although these are the actions for UDP trackers, they can still be used as
@@ -25,6 +28,9 @@ UDP_TRACKER_MAX_RETRIES = 8
 
 HTTP_TRACKER_RECHECK_INTERVAL = 60
 HTTP_TRACKER_MAX_RETRIES = 0
+
+DHT_TRACKER_RECHECK_INTERVAL = 60
+DHT_TRACKER_MAX_RETRIES = 8
 
 MAX_TRACKER_MULTI_SCRAPE = 74
 
@@ -577,3 +583,55 @@ class UdpTrackerSession(TrackerSession):
         # close this socket and remove its transaction ID from the list
         UdpTrackerSession.remove_transaction_id(self)
         self._is_finished = True
+
+class FakeDHTSession(TrackerSession):
+    """
+    Fake TrackerSession that manages DHT requests
+    """
+    def __init__(self, session, on_result_callback):
+        super(FakeDHTSession, self).__init__(u'DHT', u'DHT', u'DHT', u'DHT', on_result_callback)
+
+        self._socket = None
+        self._session = session
+
+    def cleanup(self):
+        self._infohash_list = None
+        self._session = None
+
+    def can_add_request(self):
+        return True
+
+    def add_request(self, infohash):
+        @call_on_reactor_thread
+        def on_metainfo_received(metainfo):
+            self._on_result_callback(infohash, metainfo['seeders'], metainfo['leechers'])
+
+        @call_on_reactor_thread
+        def on_metainfo_timeout(infohash):
+            self._on_result_callback(infohash, seeders=0, leechers=0)
+
+        if self._session:
+            self._session.lm.ltmgr.get_metainfo(infohash, callback=on_metainfo_received,
+                                                timeout_callback=on_metainfo_timeout)
+
+    def create_connection(self):
+        pass
+
+    def _handle_connection(self):
+        pass
+
+    def _handle_response(self):
+        pass
+
+    @property
+    def max_retries(self):
+        return DHT_TRACKER_MAX_RETRIES
+
+    @property
+    def retry_interval(self):
+        return DHT_TRACKER_RECHECK_INTERVAL
+
+    @property
+    def last_contact(self):
+        # we never want this session to be cleaned up as it's faker than a 4 eur bill.
+        return time.time()
