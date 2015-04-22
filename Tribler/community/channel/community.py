@@ -381,17 +381,19 @@ class ChannelCommunity(Community):
                      message.payload.name,
                      message.payload.files,
                      message.payload.trackers))
-                _barter_statistics.dict_inc_bartercast(
-                    BartercastStatisticTypes.TORRENTS_RECEIVED,
-                    # sha_other_peer)
-                    "%s:%s" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
+                if message.candidate and message.candidate.sock_addr:
+                    _barter_statistics.dict_inc_bartercast(
+                        BartercastStatisticTypes.TORRENTS_RECEIVED,
+                        # sha_other_peer)
+                        "%s:%s" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
             self._channelcast_db.on_torrents_from_dispersy(torrentlist)
         else:
             for message in messages:
                 self._channelcast_db.newTorrent(message)
                 self._logger.debug("torrent received: %s on channel: %s", message.payload.infohash, self._master_member)
-                _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TORRENTS_RECEIVED,
-                                                       "%s:%s" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
+                if message.candidate and message.candidate.sock_addr:
+                    _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TORRENTS_RECEIVED,
+                                                           "%s:%s" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]))
 
     def _disp_undo_torrent(self, descriptors, redo=False):
         for _, _, packet in descriptors:
