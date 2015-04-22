@@ -306,10 +306,10 @@ class LibtorrentMgr(object):
         else:
             self.trsession.lm.rawserver.add_task(self.monitor_dht, 10)
 
-    def get_peers(self, infohash, callback, timeout=30):
+    def get_peers(self, infohash, callback, timeout=30, timeout_callback=None):
         def on_metainfo_retrieved(metainfo, infohash=infohash, callback=callback):
             callback(infohash, metainfo.get('initial peers', []))
-        self.get_metainfo(infohash, on_metainfo_retrieved, timeout, notify=False)
+        self.get_metainfo(infohash, on_metainfo_retrieved, timeout, timeout_callback=timeout_callback, notify=False)
 
     def get_metainfo(self, infohash_or_magnet, callback, timeout=30, timeout_callback=None, notify=True):
         if not self.is_dht_ready() and timeout > 5:
