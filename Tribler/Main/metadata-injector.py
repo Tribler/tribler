@@ -27,11 +27,12 @@ from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
+from Tribler.Core.Utilities.misc_utils import compute_ratio
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
 from Tribler.Main.Utility.Feeds.dirfeed import DirectoryFeedThread
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, LibraryManager, ChannelManager
 from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
-from Tribler.Main.Utility.utility import compute_ratio, eta_value, size_format
+from Tribler.Main.Utility.utility import eta_value, size_format
 
 
 class MetadataInjector(object):
@@ -58,12 +59,14 @@ class MetadataInjector(object):
 
         sscfg.set_megacache(True)
         sscfg.set_torrent_collecting(True)
+        sscfg.set_enable_torrent_search(False)
+        sscfg.set_enable_channel_search(True)
 
         self._logger.info(u"Starting session...")
         self.session = Session(sscfg)
+        self.session.prestart()
+
         # add dispersy start callbacks
-        # self.session.add_observer(self.init_managers, NTFY_DISPERSY, [NTFY_STARTED])
-        self.session.add_observer(self.define_communities, NTFY_DISPERSY, [NTFY_STARTED])
         self.session.add_observer(self.dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])
         self.session.start()
 
@@ -76,13 +79,13 @@ class MetadataInjector(object):
         library_manager.connect(self.session, torrent_manager, channel_manager)
         channel_manager.connect(self.session, library_manager, torrent_manager)
 
-        torrent_state_manager = TorrentStateManager()
-        torrent_state_manager.connect(torrent_manager, library_manager, channel_manager)
+        #torrent_state_manager = TorrentStateManager()
+        #torrent_state_manager.connect(torrent_manager, library_manager, channel_manager)
 
         self._torrent_manager = torrent_manager
         self._library_manager = library_manager
         self._channel_manager = channel_manager
-        self._torrent_state_manager = torrent_state_manager
+        #self._torrent_state_manager = torrent_state_manager
 
     def shutdown(self):
         self._logger.info(u"Shutting down metadata-injector...")
@@ -92,36 +95,18 @@ class MetadataInjector(object):
         dirfeed = DirectoryFeedThread.getInstance()
         dirfeed.shutdown()
 
-        self._torrent_state_manager.delInstance()
+        #self._torrent_state_manager.delInstance()
         self._channel_manager.delInstance()
         self._library_manager.delInstance()
         self._torrent_manager.delInstance()
 
         self.session.shutdown()
 
-        self._torrent_state_manager = None
+        #self._torrent_state_manager = None
         self._channel_manager = None
         self._library_manager = None
         self._torrent_manager = None
         self.session = None
-
-    @call_on_reactor_thread
-    def define_communities(self, *args):
-        from Tribler.community.allchannel.community import AllChannelCommunity
-        from Tribler.community.channel.community import ChannelCommunity
-        from Tribler.community.metadata.community import MetadataCommunity
-
-        dispersy = self.session.get_dispersy_instance()
-        dispersy.define_auto_load(AllChannelCommunity,
-                                  self.session.dispersy_member,
-                                  load=True)
-        dispersy.define_auto_load(ChannelCommunity,
-                                  self.session.dispersy_member,
-                                  load=True)
-        dispersy.define_auto_load(MetadataCommunity,
-                                  self.session.dispersy_member,
-                                  load=True)
-        self._logger.info(u"Dispersy communities are ready")
 
     def dispersy_started(self, *args):
         self._logger.info(u"Dispersy started, initializing bot...")
