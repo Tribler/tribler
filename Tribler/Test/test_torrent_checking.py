@@ -29,7 +29,7 @@ class TestTorrentChecking(TestAsServer):
 
         self.tdb.addExternalTorrent(tdef)
         self.session.check_torrent_health(tdef.get_infohash())
-        sleep(15)
+        sleep(31)
 
         torrent = self.tdb.getTorrent(tdef.get_infohash())
         self._logger.debug('got torrent %s', torrent)
