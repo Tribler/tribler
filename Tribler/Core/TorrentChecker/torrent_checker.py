@@ -56,7 +56,7 @@ class TorrentCheckerThread(Thread):
         while not self._torrent_checker.should_stop:
             check_read_socket_list.append(self._interrupt_socket.socket)
 
-            read_socket_list, write_socket_list, error_socket_list = select.select(check_read_socket_list,
+            read_socket_list, write_socket_list, _ = select.select(check_read_socket_list,
                                                                                    check_write_socket_list,
                                                                                    [], 5)
 
@@ -147,7 +147,7 @@ class TorrentChecker(TaskManager):
         num_torrents = self._torrent_db.getNumberCollectedTorrents()
 
         torrent_select_interval = min(max(7200 / num_torrents, 10), 100) if num_torrents \
-                                  else DEFAULT_TORRENT_SELECTION_INTERVAL
+            else DEFAULT_TORRENT_SELECTION_INTERVAL
 
         self._logger.debug(u"torrent selection interval changed to %s", torrent_select_interval)
 
@@ -266,7 +266,7 @@ class TorrentChecker(TaskManager):
                     # re-establish the connection
                     # Do it in a callLater so the timed out flag is not cleared until we are done with it.
                     self._logger.debug(u"%s retrying: %d/%d", session, session.retries, self._max_torrent_check_retries)
-                    reactor.callLater(0,session.recreate_connection)
+                    reactor.callLater(0, session.recreate_connection)
 
         # >> Step 3: Remove completed sessions and update tracker info
         if self._session_list:
@@ -332,7 +332,7 @@ class TorrentChecker(TaskManager):
         Processes all pending requests.
         """
         while len(self._pending_request_queue) > 0:
-            torrent_id, infohash, tracker_set = self._pending_request_queue.popleft()
+            _, infohash, tracker_set = self._pending_request_queue.popleft()
             for tracker_url in tracker_set:
                 self._create_session_for_request(infohash, tracker_url)
 

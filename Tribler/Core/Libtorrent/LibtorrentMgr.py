@@ -273,7 +273,7 @@ class LibtorrentMgr(object):
                 if infohash in self.torrents:
                     self.torrents[infohash][0].process_alert(alert, alert_type)
                 elif infohash in self.metainfo_requests:
-                    if type(alert) == lt.metadata_received_alert:
+                    if isinstance(alert, lt.metadata_received_alert):
                         self.got_metainfo(infohash)
                 else:
                     self._logger.debug("could not find torrent %s", infohash)
