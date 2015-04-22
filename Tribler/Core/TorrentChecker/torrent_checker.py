@@ -14,6 +14,7 @@ from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Core.TorrentChecker.session import TRACKER_ACTION_CONNECT, MAX_TRACKER_MULTI_SCRAPE, create_tracker_session
 from Tribler.Core.Utilities.network_utils import InterruptSocket
 
+from .session import FakeDHTSession
 
 # some settings
 DEFAULT_TORRENT_SELECTION_INTERVAL = 20  # every 20 seconds, the thread will select torrents to check
@@ -97,7 +98,7 @@ class TorrentChecker(TaskManager):
         self._torrent_check_retry_interval = DEFAULT_TORRENT_CHECK_RETRY_INTERVAL
         self._max_torrent_check_retries = DEFAULT_MAX_TORRENT_CHECK_RETRIES
 
-        self._session_list = []
+        self._session_list = [FakeDHTSession(session, self._on_result_from_session),]
         self._last_torrent_selection_time = 0
 
     @property
@@ -316,6 +317,9 @@ class TorrentChecker(TaskManager):
             session_dict[session.socket] = session
 
         for session_socket, session in session_dict.iteritems():
+            if session.tracker_type == u'DHT':
+                # FakeDHTSession doesn't really have a socket as it uses LibtorrentMgr's DHT
+                continue
             if session.tracker_type == u'UDP':
                 check_read_socket_list.append(session_socket)
             else:
@@ -337,8 +341,8 @@ class TorrentChecker(TaskManager):
                 self._create_session_for_request(infohash, tracker_url)
 
     def _create_session_for_request(self, infohash, tracker_url):
-        # skip DHT, for now
-        if tracker_url in (u'no-DHT', u'DHT'):
+        # skip no-DHT
+        if tracker_url == u'no-DHT':
             return
 
         # >> Step 1: Try to append the request to an existing session
