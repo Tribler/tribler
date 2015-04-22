@@ -376,7 +376,16 @@ class LibtorrentMgr(object):
                     if callbacks and not timeout:
                         metainfo = {"info": lt.bdecode(handle.get_torrent_info().metadata())}
                         trackers = [tracker.url for tracker in handle.get_torrent_info().trackers()]
-                        peers = [peer.ip for peer in handle.get_peer_info()]
+                        peers = []
+                        leechers = 0
+                        seeders = 0
+                        for peer in handle.get_peer_info():
+                            peers.append(peer.ip)
+                            if peer.progress == 1:
+                                seeders += 1
+                            else:
+                                leechers += 1
+
                         if trackers:
                             if len(trackers) > 1:
                                 metainfo["announce-list"] = [trackers]
@@ -385,6 +394,8 @@ class LibtorrentMgr(object):
                             metainfo["nodes"] = []
                         if peers:
                             metainfo["initial peers"] = peers
+                            metainfo["leechers"] = leechers
+                            metainfo["seeders"] = seeders
                             if notify:
                                 self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_GOT_PEERS, infohash_bin, len(peers))
 
