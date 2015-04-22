@@ -87,7 +87,7 @@ class TrackerSession(object):
         if self._socket is not None:
             self._socket.close()
             self._socket = None
-        _infohash_list = None
+        self._infohash_list = None
 
     def can_add_request(self):
         """
