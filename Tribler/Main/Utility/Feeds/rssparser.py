@@ -216,6 +216,7 @@ class RssParser(Thread):
                         urls_already_seen.read()
 
                         for title, description, url_list in self.rss_parser.parse(url):
+                            self._logger.debug(u"start parsing data %s", title)
                             if not self.isRegistered:
                                 return
 
@@ -456,14 +457,14 @@ class RSSFeedParser(object):
             if media_description_url_set:
                 all_url_set.update(media_description_url_set)
 
-            media_thumbnail_list = item.get(u'media_thumbnail', None)
+            media_thumbnail_list = item.get(u'media:thumbnail', None)
             if media_thumbnail_list:
                 for media_thumbnail in media_thumbnail_list:
                     url = media_thumbnail.get(u'url', None)
                     if url:
                         all_url_set.add(url)
 
-            # sssemble the information, including:
+            # assemble the information, including:
             # use media:title, and media:description as default information
             the_title = media_title if media_title else title
             the_title = the_title if the_title is not None else u''

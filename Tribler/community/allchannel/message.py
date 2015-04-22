@@ -12,8 +12,8 @@ class DelayMessageReqChannelMessage(DelayMessage):
         super(DelayMessageReqChannelMessage, self).__init__(delayed)
         if __debug__:
             from Tribler.dispersy.message import Message
-        assert isinstance(delayed, Message.Implementation), type(delayed)
-        assert isinstance(channel_community, ChannelCommunity), type(channel_community)
+            assert isinstance(delayed, Message.Implementation), type(delayed)
+            assert isinstance(channel_community, ChannelCommunity), type(channel_community)
 
         self._channel_community = channel_community
         self._includeSnapshot = includeSnapshot
