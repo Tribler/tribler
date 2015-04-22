@@ -216,6 +216,7 @@ class RssParser(Thread):
                         urls_already_seen.read()
 
                         for title, description, url_list in self.rss_parser.parse(url):
+                            self._logger.debug(u"start parsing data %s", title)
                             if not self.isRegistered:
                                 return
 
