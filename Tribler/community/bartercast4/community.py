@@ -127,7 +127,7 @@ class BarterCommunity(Community):
             for r in message.payload.records:
                 _barter_statistics.log_interaction(self._dispersy,
                                                            message.payload.stats_type,
-                                                           message.authentication.member.mid.encode('hex'),
+                                                           "%s:%s" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]),
                                                            r[0], int(r[1].encode('hex'), 16))
 
     # bartercast accounting stuff
