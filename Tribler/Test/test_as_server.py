@@ -307,7 +307,8 @@ class TestGuiAsServer(TestAsServer):
 
         self.app = wx.GetApp()
         if not self.app:
-            self.app = wx.PySimpleApp(redirect=False)
+            from Tribler.Main.tribler_main import TriblerApp
+            self.app = TriblerApp(redirect=False)
 
         self.guiUtility = None
         self.frame = None

@@ -932,11 +932,6 @@ class ABCApp(object):
 
         win.ShowModal()
 
-    def MacOpenFile(self, filename):
-        self._logger.info(repr(filename))
-        target = FileDropTarget(self.frame)
-        target.OnDropFiles(None, None, [filename])
-
     @forceWxThread
     def OnExit(self):
         bm = self.gui_image_manager.getImage(u'closescreen.png')
@@ -1074,6 +1069,22 @@ class ABCApp(object):
             wx.CallAfter(start_asked_download)
 
 
+class TriblerApp(wx.App):
+
+    def __init__(self, *args, **kwargs):
+        wx.App.__init__(self, *args, **kwargs)
+        self._logger = logging.getLogger(self.__class__.__name__)
+        self._abcapp = None
+
+    def set_abcapp(self, abcapp):
+        self._abcapp = abcapp
+
+    def MacOpenFile(self, filename):
+        self._logger.info(repr(filename))
+        target = FileDropTarget(self._abcapp.frame)
+        target.OnDropFiles(None, None, [filename])
+
+
 #
 #
 # Main Program Start Here
@@ -1123,9 +1134,10 @@ def run(params=None, autoload_discovery=True, use_torrent_search=True, use_chann
             # Launch first abc single instance
             app = wx.GetApp()
             if not app:
-                app = wx.PySimpleApp(redirect=False)
+                app = TriblerApp(redirect=False)
             abc = ABCApp(params, installdir, autoload_discovery=autoload_discovery,
                          use_torrent_search=use_torrent_search, use_channel_search=use_channel_search)
+            app.set_abcapp(abc)
             if abc.frame:
                 app.SetTopWindow(abc.frame)
                 abc.frame.set_wxapp(app)
