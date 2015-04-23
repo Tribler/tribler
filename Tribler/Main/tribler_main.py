@@ -36,9 +36,6 @@ original_open_https = urllib.URLopener.open_https
 import M2Crypto  # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
 
-# modify the sys.stderr and sys.stdout for safe output
-import Tribler.Debug.console
-
 import os
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
 from Tribler.dispersy.util import attach_profiler, call_on_reactor_thread
