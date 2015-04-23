@@ -68,6 +68,10 @@ class LibtorrentMgr(object):
             enable_utp = self.trsession.get_libtorrent_utp()
             settings.enable_outgoing_utp = enable_utp
             settings.enable_incoming_utp = enable_utp
+
+            pe_settings = lt.pe_settings()
+            pe_settings.prefer_rc4 = True
+            ltsession.set_pe_settings(pe_settings)
         else:
             settings.enable_outgoing_utp = True
             settings.enable_incoming_utp = True
