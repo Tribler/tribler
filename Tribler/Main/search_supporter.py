@@ -3,9 +3,6 @@
 # channels.  make sure that it gets an existing megacache where it is
 # subscribed to one or more channels.
 
-# modify the sys.stderr and sys.stdout for safe output
-import Tribler.Debug.console
-
 import os
 from datetime import date
 from time import time
