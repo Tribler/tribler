@@ -5,7 +5,6 @@ import time
 import random
 import logging
 
-from traceback import print_exc
 from collections import defaultdict
 
 from twisted.internet import reactor
@@ -39,6 +38,8 @@ from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.util import call_on_reactor_thread
 from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
 from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
+import socket
+from Tribler import dispersy
 
 
 class CircuitRequestCache(NumberCache):
@@ -123,10 +124,23 @@ class TunnelExitSocket(DatagramProtocol):
     def sendto(self, data, destination):
         if self.check_num_packets(destination, False):
             if TunnelConversion.is_allowed(data):
+                if dispersy.util.is_valid_address(destination):
+                    ip_address = destination[0]
+                else:
+                    try:
+                        ip_address = socket.gethostbyname(destination[0])
+                        self._logger.debug("Resolved ip address %s for hostname %s",
+                                           ip_address,
+                                           destination[0])
+                    except:
+                        self._logger.error("Can't resolve ip address for hostname %s", destination[0])
+
                 try:
-                    self.transport.write(data, destination)
-                except Exception, _:
-                    self._logger.error("Failed to write data to transport, destination: %s", repr(destination))
+                    self.transport.write(data, (ip_address, destination[1]))
+                except Exception, e:
+                    self._logger.error("Failed to write data to transport: %s. Destination: %s",
+                                       e[1],
+                                       repr(destination))
                     raise
 
                 self.community.increase_bytes_sent(self, len(data))
