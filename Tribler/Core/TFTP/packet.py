@@ -188,17 +188,19 @@ def decode_packet(packet_buff):
     :return: The decoded packet dictionary.
     """
     # get the opcode
-    if len(packet_buff) < 4:
-        raise InvalidPacketException(u"Packet too small (<4): %s" % hexlify(packet_buff))
-    opcode, session_id = struct.unpack_from("!HH", packet_buff, 0)
+    minimal_packet_length = 6
+    if len(packet_buff) < minimal_packet_length:
+        raise InvalidPacketException(u"Packet too small (<%s): %s" % (minimal_packet_length, hexlify(packet_buff)))
+    opcode, session_id, sequence_number = struct.unpack_from("!HHH", packet_buff, 0)
 
     if opcode not in PACKET_DECODE_DICT:
         raise InvalidPacketException(u"Invalid opcode: %s" % opcode)
 
     # decode the packet
     packet = {'opcode': opcode,
-              'session_id': session_id}
-    return PACKET_DECODE_DICT[opcode](packet, packet_buff, 4)
+              'session_id': session_id,
+              'sequence_number': sequence_number}
+    return PACKET_DECODE_DICT[opcode](packet, packet_buff, minimal_packet_length)
 
 
 def encode_packet(packet):
@@ -207,7 +209,7 @@ def encode_packet(packet):
     :return: The encoded packet buffer.
     """
     # get block number and data
-    packet_buff = struct.pack("!HH", packet['opcode'], packet['session_id'])
+    packet_buff = struct.pack("!HHH", packet['opcode'], packet['session_id'], packet['sequence_number'])
     if packet['opcode'] in (OPCODE_RRQ, OPCODE_WRQ):
         packet_buff += packet['file_name'] + "\x00"
 
