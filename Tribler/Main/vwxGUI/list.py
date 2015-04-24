@@ -1356,6 +1356,7 @@ class SearchList(GenericSearchList):
         self.category_names = {}
         for key, name in self.category.getCategoryNames(filter=False):
             self.category_names[key] = name
+            self.category_names[key.lower()] = name
         self.category_names[None] = 'Unknwon'
         self.category_names['other'] = 'Other'
 
