@@ -381,6 +381,7 @@ class ChannelCommunity(Community):
                      message.payload.name,
                      message.payload.files,
                      message.payload.trackers))
+                self._logger.debug("torrent received: %s on channel: %s", message.payload.infohash, self._master_member)
                 if message.candidate and message.candidate.sock_addr:
                     _barter_statistics.dict_inc_bartercast(
                         BartercastStatisticTypes.TORRENTS_RECEIVED,
