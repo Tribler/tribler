@@ -138,21 +138,28 @@ class TftpHandler(TaskManager):
         if not self._is_running:
             return
 
-        has_timeout = False
+        current_time = time()
+        need_cleanup = False
         for key, session in self._session_dict.items():
-            if session.last_contact_time + session.timeout < time():
-                has_timeout = True
+            if session.is_timed_out(current_time):
+                if session.retry_count < session.max_retries:
+                    # increase the retry count and resend the previous packet
+                    self._send_packet(session, session.last_sent_packet)
+                    session.retry_count += 1
+                else:
+                    # the maximum reties has been reached, consider the session as failed.
+                    need_cleanup = True
 
-                # fail as timeout
-                self._logger.info(u"%s timed out", session)
-                if session.failure_callback:
-                    callback = lambda cb = session.failure_callback, addr = session.address, fn = session.file_name,\
-                        msg = "timeout", ei = session.extra_info: cb(addr, fn, msg, ei)
-                    self._callbacks.append(callback)
+                    # fail as timeout
+                    self._logger.info(u"%s failed due to timeout", session)
+                    if session.failure_callback:
+                        callback = lambda cb = session.failure_callback, addr = session.address, fn = session.file_name,\
+                            msg = "timeout", ei = session.extra_info: cb(addr, fn, msg, ei)
+                        self._callbacks.append(callback)
 
-                self._cleanup_session(key)
+                    self._cleanup_session(key)
 
-        if has_timeout:
+        if need_cleanup:
             self._schedule_callback_processing()
 
     def _schedule_callback_processing(self):
@@ -208,13 +215,42 @@ class TftpHandler(TaskManager):
             return
 
         self._logger.debug(u"GOT packet opcode[%s] from %s:%s", packet['opcode'], ip, port)
+
+        # check if the packet is a retry
+        if packet['sequence_number'] < 0:
+            self._logger.error(u"Invalid sequence number %s < 0, request from %s:%s, opcode=%s: packet=%s",
+                               packet['sequence_number'], ip, port, packet['opcode'], repr(packet))
+            return
+        session_key = (ip, port, packet['session_id'])
+        session = self._session_dict.get(session_key)
+        if session is None:
+            # the packet sequence number must be 0
+            if packet['sequence_number'] != 0:
+                self._logger.error(u"Invalid sequence number %s != 0, request from %s:%s, opcode=%s: packet=%s",
+                                   packet['sequence_number'], ip, port, packet['opcode'], repr(packet))
+                return
+        else:
+            if session.last_received_packet is None:
+                if packet['sequence_number'] != 0:
+                    self._logger.warn(u"Invalid seq for the first packet for session: %s, seq %s != 0",
+                                      session, packet['sequence_number'])
+                    return
+            else:
+                if session.last_received_packet['sequence_number'] >= packet['sequence_number']:
+                    self._logger.warn(u"Ignore a retry package for session: %s, seq %s >= %s", session,
+                                      session.last_received_packet['sequence_number'], packet['sequence_number'])
+                    return
+                if packet['sequence_number'] != session.last_received_packet['sequence_number'] + 1:
+                    self._logger.error(u"higher package sequence number than expected: %s, session-seq %s < %s",
+                                       session, session.last_received_packet['sequence_number'], packet['sequence_number'])
+                    return
+
         # a new request
         if packet['opcode'] == OPCODE_RRQ:
             self._logger.debug(u"start handling new request: %s", packet)
             self._handle_new_request(ip, port, packet)
             return
 
-        session_key = (ip, port, packet['session_id'])
         if session_key not in self._session_dict:
             self._logger.warn(u"got non-existing session from %s:%s, id = %s", ip, port, packet['session_id'])
             return
@@ -222,6 +258,9 @@ class TftpHandler(TaskManager):
         # handle the response
         session = self._session_dict[session_key]
         self._process_packet(session, packet)
+
+        # TODO
+        session.last_received_packet = packet
 
         if not session.is_done and not session.is_failed:
             return
@@ -268,7 +307,8 @@ class TftpHandler(TaskManager):
         timeout = packet['options']['timeout']
 
         # check session_id
-        if (ip, port, packet['session_id']) in self._session_dict:
+        session_key = (ip, port, packet['session_id'])
+        if session_key in self._session_dict:
             self._logger.warn(u"Existing session_id %s from %s:%s", packet['session_id'], ip, port)
             dummy_session = Session(False, packet['session_id'], (ip, port), packet['opcode'],
                                     file_name, None, None, None, block_size=block_size, timeout=timeout)
@@ -297,7 +337,8 @@ class TftpHandler(TaskManager):
 
         # create a session object
         session = Session(False, packet['session_id'], (ip, port), packet['opcode'],
-                          file_name, file_data, file_size, checksum, block_size=block_size, timeout=timeout)
+                          file_name, file_data, file_size, checksum, block_size=block_size, timeout=timeout,
+                          last_received_packet=packet)
 
         # insert session_id and session
         self._add_new_session(session)
@@ -366,7 +407,6 @@ class TftpHandler(TaskManager):
         """ Loads a file into memory.
         :param file_name: The path of the file.
         """
-
         infohash = file_name[:-8]  # len('.torrent') = 8
 
         file_data = self.session.lm.torrent_store.get(infohash)
@@ -521,8 +561,12 @@ class TftpHandler(TaskManager):
         msg = error_msg if error_msg else ERROR_DICT.get(error_code, error_msg)
         self._send_error_packet(session, error_code, msg)
 
-    def _send_packet(self, session, packet):
-        packet['session_id'] = session.session_id
+    def _send_packet(self, session, packet, is_new_packet=True):
+        if is_new_packet:
+            # send a new packet and update the sequence number
+            packet['session_id'] = session.session_id
+            packet['sequence_number'] = session.last_send_packet_sequence
+            session.last_send_packet_sequence += 1
 
         packet_buff = encode_packet(packet)
         extra_msg = u" block_number = %s" % packet['block_number'] if packet.get('block_number') is not None else ""
