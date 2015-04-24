@@ -14,16 +14,21 @@ from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Core.TorrentChecker.session import TRACKER_ACTION_CONNECT, MAX_TRACKER_MULTI_SCRAPE, create_tracker_session
 from Tribler.Core.Utilities.network_utils import InterruptSocket
 
+from .session import FakeDHTSession
 
 # some settings
 DEFAULT_TORRENT_SELECTION_INTERVAL = 20  # every 20 seconds, the thread will select torrents to check
-DEFAULT_TORRENT_CHECK_INTERVAL = 900  # a torrent will only be checked every 15 minutes
+DEFAULT_TORRENT_CHECK_INTERVAL = 900  # base multipier for the check delay
 
-DEFAULT_MAX_TORRENT_CHECK_RETRIES = 8
-DEFAULT_TORRENT_CHECK_RETRY_INTERVAL = 30
+DEFAULT_MAX_TORRENT_CHECK_RETRIES = 8  # max check delay increments when failed.
+DEFAULT_TORRENT_CHECK_RETRY_INTERVAL = 30  # interval when the torrent was successfully checked for the last time
 
 
 class TorrentCheckerThread(Thread):
+
+    """
+    Thread used to monitor for data arriving on the scrape sockets.
+    """
 
     def __init__(self, tracker_checker):
         super(TorrentCheckerThread, self).__init__(name=u"torrent_checker")
@@ -43,12 +48,16 @@ class TorrentCheckerThread(Thread):
         self._interrupt_socket.interrupt()
 
     def run(self):
+        """
+        Checks for data in the scrape sockets until it's time to stop.
+        Every time there's data on one of the sockets, TorrentChecker.check_sessions() will be called.
+        """
         check_read_socket_list = []
         check_write_socket_list = []
         while not self._torrent_checker.should_stop:
             check_read_socket_list.append(self._interrupt_socket.socket)
 
-            read_socket_list, write_socket_list, error_socket_list = select.select(check_read_socket_list,
+            read_socket_list, write_socket_list, _ = select.select(check_read_socket_list,
                                                                                    check_write_socket_list,
                                                                                    [], 5)
 
@@ -71,7 +80,7 @@ class TorrentCheckerThread(Thread):
 
 class TorrentChecker(TaskManager):
 
-    def __init__(self, session, torrent_select_interval=DEFAULT_TORRENT_SELECTION_INTERVAL):
+    def __init__(self, session):
         super(TorrentChecker, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
         self._session = session
@@ -86,11 +95,10 @@ class TorrentChecker(TaskManager):
         self._pending_response_dict = {}
 
         self._torrent_check_interval = DEFAULT_TORRENT_CHECK_INTERVAL
-        self._torrent_select_interval = torrent_select_interval
         self._torrent_check_retry_interval = DEFAULT_TORRENT_CHECK_RETRY_INTERVAL
         self._max_torrent_check_retries = DEFAULT_MAX_TORRENT_CHECK_RETRIES
 
-        self._session_list = []
+        self._session_list = [FakeDHTSession(session, self._on_result_from_session),]
         self._last_torrent_selection_time = 0
 
     @property
@@ -101,13 +109,18 @@ class TorrentChecker(TaskManager):
     def initialize(self):
         self._torrent_db = self._session.open_dbhandler(NTFY_TORRENTS)
 
-        self._update_torrent_select_interval()
+        self._reschedule_torrent_select()
 
         self._checker_thread = TorrentCheckerThread(self)
         self._checker_thread.start()
 
     @blocking_call_on_reactor_thread
     def shutdown(self):
+        """
+        Shutdown the torrent health checker.
+
+        Once shut down it can't be started again.
+        """
         self.cancel_all_pending_tasks()
 
         # stop the checking thread
@@ -127,25 +140,27 @@ class TorrentChecker(TaskManager):
         self._torrent_db = None
         self._session = None
 
-    def _update_torrent_select_interval(self):
+    def _reschedule_torrent_select(self):
         """
         Changes the torrent selection interval dynamically and schedules the task.
         """
         # dynamically change the interval: update at least every 2h
         num_torrents = self._torrent_db.getNumberCollectedTorrents()
-        if num_torrents > 0:
-            self._torrent_select_interval = min(max(7200 / num_torrents, 10), 100)
-        self._logger.debug(u"torrent selection interval changed to %s", self._torrent_select_interval)
+
+        torrent_select_interval = min(max(7200 / num_torrents, 10), 100) if num_torrents \
+            else DEFAULT_TORRENT_SELECTION_INTERVAL
+
+        self._logger.debug(u"torrent selection interval changed to %s", torrent_select_interval)
 
         self.register_task(u"torrent_checker torrent selection",
-                           reactor.callLater(self._torrent_select_interval, self._task_select_torrents))
+                           reactor.callLater(torrent_select_interval, self._task_select_torrents))
 
     def _task_select_torrents(self):
         """
         The regularly scheduled task that selects torrent to check.
         """
         # update the torrent selection interval
-        self._update_torrent_select_interval()
+        self._reschedule_torrent_select()
 
         # start selecting torrents
         current_time = int(time.time())
@@ -155,7 +170,7 @@ class TorrentChecker(TaskManager):
             self._logger.warn(u"No tracker to select from, skip")
             return
 
-        tracker_url, tracker_info = result
+        tracker_url, _ = result
         self._logger.debug(u"Start selecting torrents on tracker %s.", tracker_url)
 
         all_torrent_list = self._torrent_db.getTorrentsOnTracker(tracker_url, current_time)
@@ -163,17 +178,14 @@ class TorrentChecker(TaskManager):
         # get the torrents that should be checked
         scheduled_torrents = 0
         for torrent_id, infohash, last_check in all_torrent_list:
-            # check interval
-            interval = current_time - last_check
-
             # recheck interval is: interval * 2^(retries)
-            if interval < self._torrent_check_interval:
+            if current_time - last_check < self._torrent_check_interval:
                 continue
 
             self._pending_request_queue.append((torrent_id, infohash, [tracker_url, ]))
             scheduled_torrents += 1
 
-        self._logger.debug(u"Selected %d torrents to check on tracker: %s", scheduled_torrents, tracker_url)
+        self._logger.debug(u"Selected %d new torrents to check on tracker: %s", scheduled_torrents, tracker_url)
         if scheduled_torrents > 0:
             self._checker_thread.interrupt()
 
@@ -214,7 +226,7 @@ class TorrentChecker(TaskManager):
         self._checker_thread.interrupt()
 
     @blocking_call_on_reactor_thread
-    def check_sessions(self, read_socket_list, write_socket_list, error_socket_list):
+    def check_sessions(self, read_socket_list, write_socket_list, _):
         if self._should_stop:
             return
 
@@ -241,18 +253,24 @@ class TorrentChecker(TaskManager):
         for session in session_dict.values():
             diff = current_time - session.last_contact
             if diff > session.retry_interval:
+                session._is_timed_out = True
+
+                for infohash in session.infohash_list:
+                    self._pending_response_dict[infohash][u'updated'] = True
+
                 session.increase_retries()
 
                 if session.retries > session.max_retries:
                     session._is_failed = True
-                    self._logger.debug(u"%s retried out", session)
+                    self._logger.debug(u"%s max retry count hit", session)
                 else:
                     # re-establish the connection
-                    session.recreate_connection()
-                    self._logger.debug(u"%s retry: %d", session, session.retries)
+                    # Do it in a callLater so the timed out flag is not cleared until we are done with it.
+                    self._logger.debug(u"%s retrying: %d/%d", session, session.retries, self._max_torrent_check_retries)
+                    reactor.callLater(0, session.recreate_connection)
 
         # >> Step 3: Remove completed sessions and update tracker info
-        if len(self._session_list) > 0:
+        if self._session_list:
             for i in range(len(self._session_list) - 1, -1, -1):
                 session = self._session_list[i]
 
@@ -276,7 +294,6 @@ class TorrentChecker(TaskManager):
                 self._update_torrent_result(response)
 
             if self._pending_response_dict[infohash][u'remaining_responses'] == 0:
-                self._check_response_final(response)
                 del self._pending_response_dict[infohash]
 
         self._logger.debug(u"total sessions: %d", len(self._session_list))
@@ -300,6 +317,9 @@ class TorrentChecker(TaskManager):
             session_dict[session.socket] = session
 
         for session_socket, session in session_dict.iteritems():
+            if session.tracker_type == u'DHT':
+                # FakeDHTSession doesn't really have a socket as it uses LibtorrentMgr's DHT
+                continue
             if session.tracker_type == u'UDP':
                 check_read_socket_list.append(session_socket)
             else:
@@ -316,13 +336,13 @@ class TorrentChecker(TaskManager):
         Processes all pending requests.
         """
         while len(self._pending_request_queue) > 0:
-            torrent_id, infohash, tracker_set = self._pending_request_queue.popleft()
+            _, infohash, tracker_set = self._pending_request_queue.popleft()
             for tracker_url in tracker_set:
                 self._create_session_for_request(infohash, tracker_url)
 
     def _create_session_for_request(self, infohash, tracker_url):
-        # skip DHT, for now
-        if tracker_url in (u'no-DHT', u'DHT'):
+        # skip no-DHT
+        if tracker_url == u'no-DHT':
             return
 
         # >> Step 1: Try to append the request to an existing session
@@ -406,11 +426,8 @@ class TorrentChecker(TaskManager):
         torrent_id = result[u'torrent_id']
         retries = result[u'tracker_check_retries']
 
-        # the result logic
-        is_good_result = seeders > 0 or leechers > 0
-
         # the status logic
-        if is_good_result:
+        if seeders > 0:
             retries = 0
             status = u'good'
         else:
@@ -428,21 +445,3 @@ class TorrentChecker(TaskManager):
         self._torrent_db.updateTorrentCheckResult(torrent_id,
                                                   infohash, seeders, leechers, last_check, next_check,
                                                   status, retries)
-
-    def _check_response_final(self, response):
-        seeders = response[u'seeders']
-        leechers = response[u'leechers']
-
-        # the result logic
-        is_good_result = False
-        if seeders > 0 or leechers > 0:
-            is_good_result = True
-
-        if is_good_result:
-            return
-
-        response[u'seeders'] = 0
-        response[u'leechers'] = 0
-        response[u'last_check'] = int(time.time())
-
-        self._update_torrent_result(response)

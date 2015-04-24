@@ -244,9 +244,7 @@ class TriblerLaunchMany(Thread):
         if self.session.get_torrent_checking():
             try:
                 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
-                self.torrent_checking_period = self.session.get_torrent_checking_period()
-                self.torrent_checker = TorrentChecker(self.session,
-                                                      torrent_select_interval=self.torrent_checking_period)
+                self.torrent_checker = TorrentChecker(self.session)
                 self.torrent_checker.initialize()
             except:
                 print_exc()
@@ -795,9 +793,6 @@ class TriblerLaunchMany(Thread):
         elif section == 'libtorrent' and name == 'lt_proxyauth':
             if self.ltmgr:
                 self.ltmgr.set_proxy_settings(None, *self.session.get_libtorrent_proxy_settings())
-        elif section == 'torrent_checking' and name == 'torrent_checking_period':
-            if self.rtorrent_handler and value_changed:
-                self.rtorrent_handler.set_max_num_torrents(new_value)
         # Return True/False, depending on whether or not the config value can be changed at runtime.
         elif (section == 'general' and name in ['nickname', 'mugshot', 'videoanalyserpath']) or \
              (section == 'libtorrent' and name in ['lt_proxytype', 'lt_proxyserver',

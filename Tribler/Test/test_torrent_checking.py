@@ -20,7 +20,7 @@ class TestTorrentChecking(TestAsServer):
         self.config.set_torrent_checking(True)
         self.config.set_megacache(True)
         self.config.set_torrent_store(True)
-        self.config.set_torrent_checking_period(5.0)
+        self.config.set_libtorrent(True)
 
     def test_torrent_checking(self):
         tdef = TorrentDef.load(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"))
@@ -29,7 +29,7 @@ class TestTorrentChecking(TestAsServer):
 
         self.tdb.addExternalTorrent(tdef)
         self.session.check_torrent_health(tdef.get_infohash())
-        sleep(15)
+        sleep(31)
 
         torrent = self.tdb.getTorrent(tdef.get_infohash())
         self._logger.debug('got torrent %s', torrent)

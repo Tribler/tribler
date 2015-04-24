@@ -414,17 +414,6 @@ class SessionConfigInterface(object):
         @return Boolean. """
         return self.sessconfig.get(u'torrent_checking', u'enabled')
 
-    def set_torrent_checking_period(self, value):
-        """ Interval between automatic torrent health checks.
-        @param value An interval in seconds.
-        """
-        self.sessconfig.set(u'torrent_checking', u'torrent_checking_period', value)
-
-    def get_torrent_checking_period(self):
-        """ Returns the check interval.
-        @return A number of seconds. """
-        return self.sessconfig.get(u'torrent_checking', u'torrent_checking_period')
-
     def set_stop_collecting_threshold(self, value):
         """ Stop collecting more torrents if the disk has less than this limit
         @param value A limit in MB.

@@ -144,7 +144,11 @@ class TrackerManager(object):
         next_tracker_info = None
         for idx in xrange(self._tracker_check_idx, len(self._tracker_dict)):
             tracker_url = self._tracker_dict.keys()[idx]
-            if tracker_url not in (u'no-DHT', u'DHT') and self.should_check_tracker(tracker_url):
+            if tracker_url == u'DHT':
+                next_tracker_url = tracker_url
+                next_tracker_info = {u'is_alive': True, u'last_check': int(time.time())}
+                break
+            elif tracker_url != u'no-DHT' and self.should_check_tracker(tracker_url):
                 next_tracker_url = tracker_url
                 next_tracker_info = self._tracker_dict[next_tracker_url]
                 break

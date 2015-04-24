@@ -35,8 +35,8 @@ def convertSessionConfig(oldfilename, newfilename):
             sconfig.sessconfig.set('general', key, value)
         if key in ['mainline_dht', 'mainline_dht_port']:
             sconfig.sessconfig.set('mainline_dht', 'enabled' if key == 'mainline_dht' else key, value)
-        if key in ['torrent_checking', 'torrent_checking_period']:
-            sconfig.sessconfig.set('torrent_checking', 'enabled' if key == 'torrent_checking' else key, value)
+        if key == 'torrent_checking':
+            sconfig.sessconfig.set('torrent_checking', 'enabled', value)
         if key in ['torrent_collecting', 'dht_torrent_collecting', 'torrent_collecting_max_torrents',
                    'torrent_collecting_dir', 'stop_collecting_threshold']:
             sconfig.sessconfig.set('torrent_collecting', 'enabled' if key == 'torrent_collecting' else key, value)

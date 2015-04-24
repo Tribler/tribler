@@ -1,14 +1,17 @@
-from abc import ABCMeta, abstractmethod, abstractproperty
 import logging
 import random
 import socket
 import struct
+import sys
 import time
 import urllib
+from abc import ABCMeta, abstractmethod, abstractproperty
+from binascii import unhexlify
 
 from libtorrent import bdecode
 
 from Tribler.Core.Utilities.tracker_utils import parse_tracker_url
+from Tribler.dispersy.util import call_on_reactor_thread
 
 
 # Although these are the actions for UDP trackers, they can still be used as
@@ -25,6 +28,9 @@ UDP_TRACKER_MAX_RETRIES = 8
 
 HTTP_TRACKER_RECHECK_INTERVAL = 60
 HTTP_TRACKER_MAX_RETRIES = 0
+
+DHT_TRACKER_RECHECK_INTERVAL = 60
+DHT_TRACKER_MAX_RETRIES = 8
 
 MAX_TRACKER_MULTI_SCRAPE = 74
 
@@ -69,6 +75,7 @@ class TrackerSession(object):
         self._is_initiated = False  # you cannot add requests to a session if it has been initiated
         self._is_finished = False
         self._is_failed = False
+        self._is_timed_out = False
 
     def __str__(self):
         return "Tracker[%s, %s]" % (self._tracker_type, self._tracker_url)
@@ -80,7 +87,7 @@ class TrackerSession(object):
         if self._socket is not None:
             self._socket.close()
             self._socket = None
-        _infohash_list = None
+        self._infohash_list = None
 
     def can_add_request(self):
         """
@@ -112,10 +119,9 @@ class TrackerSession(object):
         """Creates a connection to the tracker."""
         pass
 
-    @abstractmethod
     def recreate_connection(self):
         """Re-creates a connection to the tracker."""
-        pass
+        self._is_timed_out = False
 
     @abstractmethod
     def _handle_connection(self):
@@ -180,6 +186,9 @@ class TrackerSession(object):
     def is_failed(self):
         return self._is_failed
 
+    @property
+    def is_timed_out(self):
+        return self._is_timed_out
 
 class HttpTrackerSession(TrackerSession):
 
@@ -205,6 +214,8 @@ class HttpTrackerSession(TrackerSession):
         return self.recreate_connection()
 
     def recreate_connection(self):
+        super(HttpTrackerSession, self).recreate_connection()
+
         # an exception may be raised if the socket is non-blocking
         try:
             self._socket.connect(self._tracker_address)
@@ -461,6 +472,8 @@ class UdpTrackerSession(TrackerSession):
         return self.recreate_connection()
 
     def recreate_connection(self):
+        super(UdpTrackerSession, self).recreate_connection()
+
         # prepare connection message
         self._connection_id = UDP_TRACKER_INIT_CONNECTION_ID
         self._action = TRACKER_ACTION_CONNECT
@@ -570,3 +583,55 @@ class UdpTrackerSession(TrackerSession):
         # close this socket and remove its transaction ID from the list
         UdpTrackerSession.remove_transaction_id(self)
         self._is_finished = True
+
+class FakeDHTSession(TrackerSession):
+    """
+    Fake TrackerSession that manages DHT requests
+    """
+    def __init__(self, session, on_result_callback):
+        super(FakeDHTSession, self).__init__(u'DHT', u'DHT', u'DHT', u'DHT', on_result_callback)
+
+        self._socket = None
+        self._session = session
+
+    def cleanup(self):
+        self._infohash_list = None
+        self._session = None
+
+    def can_add_request(self):
+        return True
+
+    def add_request(self, infohash):
+        @call_on_reactor_thread
+        def on_metainfo_received(metainfo):
+            self._on_result_callback(infohash, metainfo['seeders'], metainfo['leechers'])
+
+        @call_on_reactor_thread
+        def on_metainfo_timeout(infohash):
+            self._on_result_callback(infohash, seeders=0, leechers=0)
+
+        if self._session:
+            self._session.lm.ltmgr.get_metainfo(infohash, callback=on_metainfo_received,
+                                                timeout_callback=on_metainfo_timeout)
+
+    def create_connection(self):
+        pass
+
+    def _handle_connection(self):
+        pass
+
+    def _handle_response(self):
+        pass
+
+    @property
+    def max_retries(self):
+        return DHT_TRACKER_MAX_RETRIES
+
+    @property
+    def retry_interval(self):
+        return DHT_TRACKER_RECHECK_INTERVAL
+
+    @property
+    def last_contact(self):
+        # we never want this session to be cleaned up as it's faker than a 4 eur bill.
+        return time.time()

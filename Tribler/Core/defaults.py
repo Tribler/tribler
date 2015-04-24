@@ -34,7 +34,7 @@ DEFAULTPORT = 7760
 #  Version 4: remove swift
 #  Version 7: exitnode optin switch added
 
-SESSDEFAULTS_VERSION = 7
+SESSDEFAULTS_VERSION = 8
 sessdefaults = OrderedDict()
 
 # General Tribler settings
@@ -85,8 +85,6 @@ sessdefaults['mainline_dht']['mainline_dht_port'] = -1
 # Torrent checking settings
 sessdefaults['torrent_checking'] = OrderedDict()
 sessdefaults['torrent_checking']['enabled'] = 1
-# will be changed to min(max(86400/ntorrents, 15), 300) at runtime
-sessdefaults['torrent_checking']['torrent_checking_period'] = 31
 
 # Torrent store settings
 sessdefaults['torrent_store'] = OrderedDict()
