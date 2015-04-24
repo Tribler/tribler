@@ -214,18 +214,19 @@ class TftpHandler(TaskManager):
             self._handle_new_request(ip, port, packet)
             return
 
-        if (ip, port, packet['session_id']) not in self._session_dict:
+        session_key = (ip, port, packet['session_id'])
+        if session_key not in self._session_dict:
             self._logger.warn(u"got non-existing session from %s:%s, id = %s", ip, port, packet['session_id'])
             return
 
         # handle the response
-        session = self._session_dict[(ip, port, packet['session_id'])]
+        session = self._session_dict[session_key]
         self._process_packet(session, packet)
 
         if not session.is_done and not session.is_failed:
             return
 
-        self._cleanup_session((ip, port, packet['session_id']))
+        self._cleanup_session(session_key)
 
         # schedule callback
         if session.is_failed:
@@ -521,6 +522,8 @@ class TftpHandler(TaskManager):
         self._send_error_packet(session, error_code, msg)
 
     def _send_packet(self, session, packet):
+        packet['session_id'] = session.session_id
+
         packet_buff = encode_packet(packet)
         extra_msg = u" block_number = %s" % packet['block_number'] if packet.get('block_number') is not None else ""
         extra_msg += u" block_size = %s" % len(packet['data']) if packet.get('data') is not None else ""
@@ -537,7 +540,6 @@ class TftpHandler(TaskManager):
         assert session.request == OPCODE_RRQ, u"Invalid request_opcode %s" % repr(session.request)
 
         packet = {'opcode': session.request,
-                  'session_id': session.session_id,
                   'file_name': session.file_name.encode('utf8'),
                   'options': {'blksize': session.block_size,
                               'timeout': session.timeout,
@@ -546,20 +548,17 @@ class TftpHandler(TaskManager):
 
     def _send_data_packet(self, session, block_number, data):
         packet = {'opcode': OPCODE_DATA,
-                  'session_id': session.session_id,
                   'block_number': block_number,
                   'data': data}
         self._send_packet(session, packet)
 
     def _send_ack_packet(self, session, block_number):
         packet = {'opcode': OPCODE_ACK,
-                  'session_id': session.session_id,
                   'block_number': block_number}
         self._send_packet(session, packet)
 
     def _send_error_packet(self, session, error_code, error_msg):
         packet = {'opcode': OPCODE_ERROR,
-                  'session_id': session.session_id,
                   'error_code': error_code,
                   'error_msg': error_msg
                   }
@@ -567,7 +566,6 @@ class TftpHandler(TaskManager):
 
     def _send_oack_packet(self, session):
         packet = {'opcode': OPCODE_OACK,
-                  'session_id': session.session_id,
                   'block_number': session.block_number,
                   'options': {'blksize': session.block_size,
                               'timeout': session.timeout,
