@@ -5,14 +5,13 @@ from Tribler.Test.test_as_server import TestAsServer
 
 from Tribler.community.bartercast4.community import BarterCommunity, BarterCommunityCrawler
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
-
-
+from Tribler.Core.Utilities.twisted_thread import reactor
 from time import sleep
 
 DEBUG = True
-CRAWLER_STATEDIR = "data"
+PEER_STATEDIR = "data"
 
 
 class TestBarterCommunity(TestAsServer):
@@ -33,25 +32,42 @@ class TestBarterCommunity(TestAsServer):
                     assert False, "No torrent statistics received"
                     return
 
-        # self.startTest(do_stats_test)
+        self.startTest(do_stats_test)
         pass
 
     def test_stats_messages(self):
-        self.setupCrawler()
+        is_finished = False
 
+        @call_on_reactor_thread
         def do_stats_messages():
             # check that the crawler receives messages here
-            pass
+            # tries_left = 60
+
+            rows = _barter_statistics.get_interactions(self.dispersy)
+            if len(rows) > 0:
+                assert True, "Some bartercast statistic was crawled"
+                is_finished = True
+                self.quit()
+                return
+            reactor.callLater(5, do_stats_messages)
+
+        def finished():
+            return is_finished
+
+        def noop():
+            assert True
 
         self.startTest(do_stats_messages)
+        self.CallConditional(300.0, finished, noop, u"Failed to crawl")
 
-    def setupCrawler(self):
+#    for future stuff; you can use this if you need another peer for some reason
+    def setupPeer(self):
         from Tribler.Core.Session import Session
 
         self.setUpPreSession()
 
         self.config2 = self.config.copy()
-        self.config2.set_state_dir(CRAWLER_STATEDIR)
+        self.config2.set_state_dir(PEER_STATEDIR)
 
         self.session2 = Session(self.config2, ignore_singleton=True)
 
@@ -60,7 +76,8 @@ class TestBarterCommunity(TestAsServer):
             sleep(0.1)
         assert not upgrader.failed, upgrader.current_status
         self.session2.start()
-        self.load_communities(self.session2, self.session2.get_dispersy_instance(), True)
+        self.dispersy2 = self.session2.get_dispersy_instance()
+        self.load_communities(self.session2, self.session2.get_dispersy_instance())
 
     def setUpPreSession(self):
         super(TestBarterCommunity, self).setUpPreSession()
@@ -82,9 +99,9 @@ class TestBarterCommunity(TestAsServer):
 
     def setUp(self):
         super(TestBarterCommunity, self).setUp()
-        dispersy = self.session.get_dispersy_instance()
-        self.load_communities(self.session, dispersy)
-        self.session2 = None
+        self.dispersy = self.session.get_dispersy_instance()
+        self.load_communities(self.session, self.dispersy, True)
+        self.setupPeer()
 
     def tearDown(self):
         if self.session2:
