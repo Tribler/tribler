@@ -139,7 +139,7 @@ class BarterCommunity(Community):
         self._logger.debug("unloading the Barter4 community")
         # store last cached statistics
         # this screws up for some reason so disable for now...
-        # we lose only a small part (max 2 minutes) of statistics but should be fixed
+        # TODO we lose only a small part (max 2 minutes) of statistics but should be fixed
         # self.backup_bartercast_statistics()
 
         # close database
