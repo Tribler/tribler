@@ -63,7 +63,12 @@ class BarterStatistics(object):
         self._init_database(dispersy)
         self.db.execute(u"INSERT INTO interaction_log (peer1, peer2, type, value, date) values (?, ?, ?, ?, strftime('%s', 'now'))", (unicode(peer1), unicode(peer2), type, value))
 
-    def persist(self, dispersy, key, n=1):
+    def get_interactions(self, dispersy):
+        self._init_database(dispersy)
+        sql = u"SELECT peer1, peer2, type, value, date FROM interaction_log GROUP BY peer1,peer2"
+        return self.db.execute(sql).fetchall()
+
+    def persist(self, dispersy, key=None, n=1):
         """
         Persists the statistical data with name 'key' in the statistics database.
         Note: performs the database update for every n-th call. This is to somewhat control the number of
