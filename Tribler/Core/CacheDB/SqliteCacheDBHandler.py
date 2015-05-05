@@ -1,5 +1,4 @@
 # Written by Jie Yang
-# Modified by George Milescu
 # see LICENSE.txt for license information
 # Note for Developers: Please write a unittest in Tribler/Test/test_sqlitecachedbhandler.py
 # for any function you add to database.
@@ -28,11 +27,6 @@ from Tribler.Core.simpledefs import (INFOHASH_LENGTH, NTFY_UPDATE, NTFY_INSERT, 
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 
-
-try:
-    WindowsError
-except NameError:
-    WindowsError = Exception
 
 SHOW_ERROR = False
 

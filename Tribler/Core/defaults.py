@@ -1,5 +1,4 @@
 # Written by Arno Bakker and Bram Cohen
-# Updated by George Milescu
 # Updated by Egbert Bouman, added subsection names + using OrderedDict + cleanup
 # see LICENSE.txt for license information
 

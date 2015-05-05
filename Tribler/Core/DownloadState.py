@@ -1,5 +1,4 @@
 # Written by Arno Bakker
-# Updated by George Milescu
 # see LICENSE.txt for license information
 """ Contains a snapshot of the state of the Download at a specific point in time. """
 import logging

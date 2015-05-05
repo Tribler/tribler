@@ -12,13 +12,13 @@ from Tribler.Test.test_as_server import TestAsServer, BASE_DIR
 from btconn import BTConnection
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.MessageID import EXTEND
+
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from unittest.case import skip
 
 DEBUG = True
-
+EXTEND = chr(20)
 
 class MagnetHelpers(object):
 
@@ -330,7 +330,7 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
 
     def test_bad_request(self):
         self.bad_request_and_disconnect({"msg_type": 0, "piece": len(self.metadata_list)})
-        self.bad_request_and_disconnect({"msg_type": 0, "piece": -1})
+        self.bad_request_and_disconnect({"msg_type": 0, "piece":-1})
         self.bad_request_and_disconnect({"msg_type": 0, "piece": "1"})
         self.bad_request_and_disconnect({"msg_type": 0, "piece": [1, 2]})
         self.bad_request_and_disconnect({"msg_type": 0, "PIECE": 1})

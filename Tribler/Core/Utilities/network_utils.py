@@ -6,6 +6,7 @@ import socket
 import struct
 import random
 import logging
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +91,19 @@ def _test_port(family, sock_type, port):
         if s:
             s.close()
     return is_port_working
+
+
+def autodetect_socket_style():
+    if sys.platform.find('linux') < 0:
+        return 1
+    else:
+        try:
+            f = open('/proc/sys/net/ipv6/bindv6only', 'r')
+            dual_socket_style = int(f.read())
+            f.close()
+            return int(not dual_socket_style)
+        except:
+            return 0
 
 
 class InterruptSocket(object):
