@@ -19,8 +19,7 @@
 |                                                   | [Video](/Tribler/Core/Video)                                  | Contains the VLCWrapper and code to stream live data in Tribler.              |
 | [Community](/Tribler/community)                   | -                                                             | Contains code to create and securely communicate with different communities.              |
 |                                                   | [allchannel](/Tribler/community/allchannel)                   | Contains contains code for a single community that all Tribler members join and use to disseminate .torrent files.              |
-|                                                   | [bartercast3](/Tribler/community/bartercast3)                 | Contains the protocol for indirect reciprocity. Provides the incentive to seeding and proxy relay in Tribler.              |
-|                                                   | [bartercast4](/Tribler/community/bartercast4)                 | ???              |
+|                                                   | [bartercast4](/Tribler/community/bartercast4)                 | Contains the protocol for indirect reciprocity. Will provide the incentive to seeding and proxy relay in Tribler.              |
 |                                                   | [channel](/Tribler/community/channel)                         | ???              |
 |                                                   | [demers](/Tribler/community/demers)                           | ???              |
 |                                                   | [metadata](/Tribler/community/metadata)                       | ???              |
