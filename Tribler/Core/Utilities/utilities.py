@@ -1,7 +1,7 @@
 # Written by Jie Yang
 # see LICENSE.txt for license information
 
-from base64 import encodestring, b32decode
+from base64 import b32decode
 from types import StringType, LongType, IntType, ListType, DictType
 import urlparse
 from traceback import print_exc
@@ -183,23 +183,6 @@ def isValidURL(url):
     if r[0] == '' or r[1] == '':
         return False
     return True
-
-
-def show_permid(permid):
-    # Full BASE64-encoded. Must not be abbreviated in any way.
-    if not permid:
-        return 'None'
-    return encodestring(permid).replace("\n", "")
-    # Short digest
-    # return sha(permid).hexdigest()
-
-
-def show_permid_short(permid):
-    if not permid:
-        return 'None'
-    s = encodestring(permid).replace("\n", "")
-    return s[-10:]
-    # return encodestring(sha(s).digest()).replace("\n","")
 
 
 def parse_magnetlink(url):
