@@ -10,16 +10,15 @@ logger = logging.getLogger(__name__)
 DEBUG = False
 
 DHT_IMPORTED = False
-if sys.version.split()[0] >= '2.5':
-    try:
-        import Tribler.Core.DecentralizedTracking.pymdht.core.pymdht as pymdht
-        import Tribler.Core.DecentralizedTracking.pymdht.core.node as node
-        import Tribler.Core.DecentralizedTracking.pymdht.plugins.routing_nice_rtt as routing_mod
-        import Tribler.Core.DecentralizedTracking.pymdht.plugins.lookup_a4 as lookup_mod
-        import Tribler.Core.DecentralizedTracking.pymdht.core.exp_plugin_template as experimental_m_mod
-        DHT_IMPORTED = True
-    except ImportError:
-        logger.exception(u"Could not import pymdht")
+try:
+    import Tribler.Core.DecentralizedTracking.pymdht.core.pymdht as pymdht
+    import Tribler.Core.DecentralizedTracking.pymdht.core.node as node
+    import Tribler.Core.DecentralizedTracking.pymdht.plugins.routing_nice_rtt as routing_mod
+    import Tribler.Core.DecentralizedTracking.pymdht.plugins.lookup_a4 as lookup_mod
+    import Tribler.Core.DecentralizedTracking.pymdht.core.exp_plugin_template as experimental_m_mod
+    DHT_IMPORTED = True
+except ImportError:
+    logger.exception(u"Could not import pymdht")
 
 
 def init(addr, conf_path):

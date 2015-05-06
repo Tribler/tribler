@@ -11,11 +11,12 @@ from Tribler.Test.test_as_server import TestAsServer, BASE_DIR
 from Tribler.Test.btconn import BTConnection
 
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
-from Tribler.Core.MessageID import CHOKE, EXTEND
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Session import Session
 
+CHOKE = chr(0)
+EXTEND = chr(20)
 
 class TestSeeding(TestAsServer):
 

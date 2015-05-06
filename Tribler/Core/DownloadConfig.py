@@ -1,5 +1,4 @@
 # Written by Arno Bakker
-# Updated by George Milescu
 # Updated by Egbert Bouman, now using ConfigParser
 # see LICENSE.txt for license information
 

@@ -79,8 +79,7 @@ from Tribler.Main.Utility.Feeds.rssparser import RssParser
 from Tribler.Category.Category import Category
 from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager
 from Tribler.Policies.SeedingManager import GlobalSeedingManager
-from Tribler.Utilities.Instance2Instance import (Instance2InstanceClient, Instance2InstanceServer,
-                                                 InstanceConnectionHandler)
+from Tribler.Utilities.Instance2Instance import Instance2InstanceClient, Instance2InstanceServer
 from Tribler.Utilities.SingleInstanceChecker import SingleInstanceChecker
 
 from Tribler.Core.simpledefs import (UPLOAD, DOWNLOAD, NTFY_MODIFIED, NTFY_INSERT, NTFY_REACHABLE, NTFY_ACTIVITIES,
@@ -165,7 +164,6 @@ class ABCApp(object):
         self.tunnel_community = None
 
         self.seedingmanager = None
-        self.i2is = None
         self.torrentfeed = None
         self.webUI = None
         self.utility = None
@@ -252,9 +250,7 @@ class ABCApp(object):
             if not ALLOW_MULTIPLE:
                 # Put it here so an error is shown in the startup-error popup
                 # Start server for instance2instance communication
-                self.i2iconnhandler = InstanceConnectionHandler(self.i2ithread_readlinecallback)
-                self.i2is = Instance2InstanceServer(self.utility.read_config('i2ilistenport'), self.i2iconnhandler)
-                self.i2is.start()
+                Instance2InstanceServer(self.utility.read_config('i2ilistenport'), self.i2ithread_readlinecallback)
 
             self.splash.tick('GUIUtility register')
             self.guiUtility.register()
@@ -952,8 +948,6 @@ class ABCApp(object):
 
         # write all persistent data to disk
         self.closewindow.tick('Write all persistent data to disk')
-        if self.i2is:
-            self.i2is.shutdown()
         if self.torrentfeed:
             self.torrentfeed.shutdown()
             self.torrentfeed.delInstance()
@@ -1109,13 +1103,8 @@ def run(params=None, autoload_discovery=True, use_torrent_search=True, use_chann
             # Send  torrent info to abc single instance
             if params[0] != "":
                 torrentfilename = params[0]
-                i2ic = Instance2InstanceClient(
-                    Utility(
-                        installdir,
-                        statedir).read_config(
-                            'i2ilistenport'),
-                    'START',
-                    torrentfilename)
+                i2i_port = Utility(installdir, statedir).read_config('i2ilistenport')
+                i2ic = Instance2InstanceClient(i2i_port, 'START', torrentfilename)
 
             logger.info("Client shutting down. Detected another instance.")
         else:

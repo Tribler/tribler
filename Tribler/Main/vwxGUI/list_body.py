@@ -1070,7 +1070,7 @@ class AbstractListBody():
                         _, item_data, original_data = curdata
                         create_method = ListItem
 
-                    self.items[key] = create_method(self.listpanel, self, self.columns,item_data, original_data,
+                    self.items[key] = create_method(self.listpanel, self, self.columns, item_data, original_data,
                                                     self.leftSpacer, self.rightSpacer, showChange=self.showChange,
                                                     list_selected=self.list_selected, list_expanded=self.list_expanded)
                     break

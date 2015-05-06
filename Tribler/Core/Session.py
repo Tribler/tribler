@@ -1,5 +1,4 @@
 # Written by Arno Bakker
-# Updated by George Milescu
 # see LICENSE.txt for license information
 """ A Session is a running instance of the Tribler Core and the Core's central class. """
 import copy
@@ -302,11 +301,7 @@ class Session(SessionConfigInterface):
         """ Returns the PermID of the Session, as determined by the
         SessionConfig.set_permid() parameter. A PermID is a public key
         @return The PermID encoded in a string in DER format. """
-        self.sesslock.acquire()
-        try:
-            return str(self.keypair.pub().get_der())
-        finally:
-            self.sesslock.release()
+        return str(self.keypair.pub().get_der())
 
     def get_external_ip(self):
         """ Returns the external IP address of this Session, i.e., by which
@@ -479,11 +474,7 @@ class Session(SessionConfigInterface):
         """ Returns the directory in which to checkpoint the Downloads in this
         Session. """
         # Called by network thread
-        self.sesslock.acquire()
-        try:
-            return os.path.join(self.get_state_dir(), STATEDIR_DLPSTATE_DIR)
-        finally:
-            self.sesslock.release()
+        return os.path.join(self.get_state_dir(), STATEDIR_DLPSTATE_DIR)
 
     def download_torrentfile(self, infohash=None, usercallback=None, prio=0):
         """ Try to download the torrentfile without a known source.
@@ -560,8 +551,7 @@ class Session(SessionConfigInterface):
         @param gracetime Time to allow for graceful shutdown + signoff (seconds).
         """
         # Called by any thread
-        self.sesslock.acquire()
-        try:
+        with self.sesslock:
             # Arno: Make checkpoint optional on shutdown. At the moment setting
             # the config at runtime is not possible (see SessionRuntimeConfig)
             # so this has little use, and interferes with our way of
@@ -570,15 +560,13 @@ class Session(SessionConfigInterface):
             if hacksessconfcheckpoint:
                 try:
                     self.save_pstate_sessconfig()
-                except Exception as e:
-                    self.lm.rawserver_nonfatalerrorfunc(e)
+                except Exception:
+                    self._logger.exception("Session: could not checkpoint_shutdown")
 
             # Checkpoint all Downloads and stop NetworkThread
             if stop:
                 self._logger.debug("Session: checkpoint_shutdown")
             self.lm.checkpoint(stop=stop, checkpoint=checkpoint, gracetime=gracetime)
-        finally:
-            self.sesslock.release()
 
     def save_pstate_sessconfig(self):
         """ Save the runtime SessionConfig to disk """

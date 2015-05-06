@@ -1,5 +1,4 @@
 # Written by Arno Bakker
-# Updated by George Milescu
 # Updated by Egbert Bouman, now using ConfigParser
 # see LICENSE.txt for license information
 """ Controls the operation of a Session """
@@ -18,9 +17,8 @@ import sys
 from distutils.spawn import find_executable
 
 from Tribler.Core.Base import Copyable, Serializable
-from Tribler.Core.RawServer.RawServer import autodetect_socket_style
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.Utilities.network_utils import get_random_port
+from Tribler.Core.Utilities.network_utils import get_random_port, autodetect_socket_style
 from Tribler.Core.defaults import sessdefaults
 from Tribler.Core.osutils import is_android, get_appstate_dir
 from Tribler.Core.simpledefs import STATEDIR_SESSCONFIG

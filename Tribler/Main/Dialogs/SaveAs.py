@@ -232,10 +232,10 @@ class SaveAs(wx.Dialog):
 
     def GetHops(self):
         return self.anonimity_dialog.GetExitnodesHops() if self.anonimity_dialog else 0
-    
+
     def UseHiddenservices(self):
-        return self.anonimity_dialog.GetEndToEndValue()
-    
+        return self.anonimity_dialog.GetEndToEndValue() if self.anonimity_dialog else False
+
     def OnOk(self, event=None):
         if self.listCtrl:
             nrSelected = len(self.listCtrl.GetSelectedItems())

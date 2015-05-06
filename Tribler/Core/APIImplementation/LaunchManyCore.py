@@ -1,5 +1,5 @@
 # Written by Arno Bakker
-# Updated by George Milescu
+# Updated by Niels Zeilemaker
 # see LICENSE.txt for license information
 import binascii
 import errno
@@ -14,8 +14,6 @@ from twisted.internet import reactor
 from Tribler.Core.Modules.search_manager import SearchManager
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.RawServer.RawServer import RawServer
-from Tribler.Core.ServerPortHandler import MultiHandler
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
@@ -25,7 +23,7 @@ from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS,
 from Tribler.Core.torrentstore import TorrentStore
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
-from Tribler.dispersy.endpoint import RawserverEndpoint
+from Tribler.Core.APIImplementation.TwistedRawServer import TwistedRawServer
 
 
 try:
@@ -74,8 +72,6 @@ class TriblerLaunchMany(Thread):
 
         # modules
         self.rawserver = None
-        self.multihandler = None
-
         self.torrent_store = None
         self.rtorrent_handler = None
         self.tftp_handler = None
@@ -105,14 +101,7 @@ class TriblerLaunchMany(Thread):
             self.session = session
             self.sesslock = sesslock
 
-            self.rawserver = RawServer(self.sessdoneflag,
-                                       self.session.get_timeout_check_interval(),
-                                       self.session.get_timeout(),
-                                       ipv6_enable=self.session.get_ipv6(),
-                                       fatal_func=self.rawserver_fatalerrorfunc,
-                                       nonfatal_func=self.rawserver_nonfatalerrorfunc)
-
-            self.multihandler = MultiHandler(self.rawserver, self.sessdoneflag)
+            self.rawserver = TwistedRawServer()
 
             if self.session.get_torrent_store():
                 self.torrent_store = TorrentStore(self.session.get_torrent_store_dir())
@@ -161,9 +150,10 @@ class TriblerLaunchMany(Thread):
             self.tftp_handler = None
             if self.session.get_dispersy():
                 from Tribler.dispersy.dispersy import Dispersy
+                from Tribler.dispersy.endpoint import StandaloneEndpoint
 
                 # set communication endpoint
-                endpoint = RawserverEndpoint(self.rawserver, self.session.get_dispersy_port(), ip=self.session.get_ip())
+                endpoint = StandaloneEndpoint(self.session.get_dispersy_port(), ip=self.session.get_ip())
 
                 working_directory = unicode(self.session.get_state_dir())
                 self.dispersy = Dispersy(endpoint, working_directory)
@@ -251,6 +241,8 @@ class TriblerLaunchMany(Thread):
 
         if self.rtorrent_handler:
             self.rtorrent_handler.initialize()
+
+        self.start_upnp()
 
         self.initComplete = True
 
@@ -404,47 +396,12 @@ class TriblerLaunchMany(Thread):
                     # Update collected torrents
                     self.rtorrent_handler._save_torrent(new_def)
 
-    def rawserver_fatalerrorfunc(self, e):
-        """ Called by network thread """
-        self._logger.debug("tlm: RawServer fatal error func called : %s", e)
-        print_exc()
-
-    def rawserver_nonfatalerrorfunc(self, e):
-        """ Called by network thread """
-        self._logger.debug("tlm: RawServer non fatal error func called: %s", e)
-        print_exc()
-        # Could log this somewhere, or phase it out
-
-    def _run(self):
-        """ Called only once by network thread """
-
-        try:
-            try:
-                self.start_upnp()
-                self.multihandler.listen_forever()
-            except:
-                print_exc()
-        finally:
-            self.stop_upnp()
-            self.rawserver.shutdown()
-
     #
     # State retrieval
     #
     def set_download_states_callback(self, usercallback, getpeerlist, when=0.0):
         """ Called by any thread """
-        self.sesslock.acquire()
-        try:
-            # Even if the list of Downloads changes in the mean time this is
-            # no problem. For removals, dllist will still hold a pointer to the
-            # Download, and additions are no problem (just won't be included
-            # in list of states returned via callback.
-            #
-            dllist = self.downloads.values()
-        finally:
-            self.sesslock.release()
-
-        for d in dllist:
+        for d in self.downloads.values():
             # Arno, 2012-05-23: At Niels' request to get total transferred
             # stats. Causes MOREINFO message to be sent from swift proc
             # for every initiated dl.
@@ -457,19 +414,8 @@ class TriblerLaunchMany(Thread):
 
     def network_set_download_states_callback(self, usercallback):
         """ Called by network thread """
-        self.sesslock.acquire()
-        try:
-            # Even if the list of Downloads changes in the mean time this is
-            # no problem. For removals, dllist will still hold a pointer to the
-            # Download, and additions are no problem (just won't be included
-            # in list of states returned via callback.
-            #
-            dllist = self.downloads.values()
-        finally:
-            self.sesslock.release()
-
         dslist = []
-        for d in dllist:
+        for d in self.downloads.values():
             try:
                 ds = d.network_get_state(None, False, sessioncalling=True)
                 dslist.append(ds)
@@ -517,14 +463,12 @@ class TriblerLaunchMany(Thread):
     def load_download_pstate_noexc(self, infohash):
         """ Called by any thread, assume sesslock already held """
         try:
-            dir = self.session.get_downloads_pstate_dir()
             basename = binascii.hexlify(infohash) + '.state'
             filename = os.path.join(dir, basename)
             return self.load_download_pstate(filename)
-        except Exception as e:
-            # TODO: remove saved checkpoint?
-            # self.rawserver_nonfatalerrorfunc(e)
-            return None
+
+        except Exception:
+            self._logger.exception("Exception while loading pstate: %s", infohash)
 
     def resume_download(self, filename, initialdlstatus=None, initialdlstatus_dict={}, setupDelay=0):
         tdef = dscfg = pstate = None
@@ -583,7 +527,7 @@ class TriblerLaunchMany(Thread):
                         self._logger.info("tlm: not resuming checkpoint because download has already been added")
 
                 except Exception as e:
-                    self.rawserver_nonfatalerrorfunc(e)
+                    self._logger.exception("tlm: load check_point: exception while adding download %s", tdef)
             else:
                 self._logger.info("tlm: removing checkpoint %s destdir is %s", filename, dscfg.get_dest_dir())
                 os.remove(filename)
@@ -622,8 +566,9 @@ class TriblerLaunchMany(Thread):
                     self._logger.debug("tlm: network checkpointing: %s %s", d.get_def().get_name(), pstate)
 
                     self.save_download_pstate(infohash, pstate)
+
                 except Exception as e:
-                    self.rawserver_nonfatalerrorfunc(e)
+                    self._logger.exception("Exception while checkpointing: %s", d.get_def().get_name())
 
         if stop:
             # Some grace time for early shutdown tasks
@@ -708,6 +653,8 @@ class TriblerLaunchMany(Thread):
             mainlineDHT.deinit(self.mainline_dht)
             self.mainline_dht = None
 
+        self.stop_upnp()
+
     def network_shutdown(self):
         try:
             self._logger.info("tlm: network_shutdown")
@@ -729,6 +676,9 @@ class TriblerLaunchMany(Thread):
         if self.ltmgr:
             self.ltmgr.shutdown()
 
+        if self.rawserver:
+            self.rawserver.cancel_all_pending_tasks()
+
     def save_download_pstate(self, infohash, pstate):
         """ Called by network thread """
         basename = binascii.hexlify(infohash) + '.state'
@@ -742,20 +692,6 @@ class TriblerLaunchMany(Thread):
         pstate = CallbackConfigParser()
         pstate.read_file(filename)
         return pstate
-
-    def run(self):
-        if prctlimported:
-            prctl.set_name("Tribler" + currentThread().getName())
-
-        if PROFILE:
-            fname = "profile-%s" % self.getName()
-            import cProfile
-            cProfile.runctx("self._run()", globals(), locals(), filename=fname)
-            import pstats
-            self._logger.info("profile: data for %s", self.getName())
-            pstats.Stats(fname, stream=sys.stderr).sort_stats("cumulative").print_stats(20)
-        else:
-            self._run()
 
     def start_upnp(self):
         if self.ltmgr:
