@@ -185,15 +185,6 @@ def isValidURL(url):
     return True
 
 
-def show_permid(permid):
-    # Full BASE64-encoded. Must not be abbreviated in any way.
-    if not permid:
-        return 'None'
-    return encodestring(permid).replace("\n", "")
-    # Short digest
-    # return sha(permid).hexdigest()
-
-
 def show_permid_short(permid):
     if not permid:
         return 'None'
