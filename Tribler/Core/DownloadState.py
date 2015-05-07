@@ -388,27 +388,6 @@ class DownloadState(Serializable):
         else:
             return self.stats['vod']
 
-    def get_vod_playable(self):
-        """ Returns whether or not the Download started in Video-On-Demand
-        mode has sufficient prebuffer and download speed to be played out
-        to the user.
-        @return Boolean.
-        """
-        if self.stats is None:
-            return False
-        else:
-            return self.stats['vod_playable']
-
-    def get_vod_playable_after(self):
-        """ Returns the estimated time until the Download started in Video-On-Demand
-        mode can be started to play out to the user.
-        @return A number of seconds.
-        """
-        if self.stats is None:
-            return float(2 ** 31)
-        else:
-            return self.stats['vod_playable_after']
-
     def get_vod_stats(self):
         """ Returns a dictionary of collected VOD statistics. The keys contained are:
         <pre>
