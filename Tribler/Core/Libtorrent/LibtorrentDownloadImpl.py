@@ -64,7 +64,6 @@ class VODFile(object):
             self._download.vod_seekpos = newpos
 
         self._logger.debug('VODFile: got bytes %s - %s', oldpos, newpos)
-        # assert self.verify_pieces(result, oldpos, newpos)
 
         return result
 
@@ -82,79 +81,6 @@ class VODFile(object):
         self._logger.debug('VODFile: seek, get pieces %s', self._download.handle.piece_priorities())
         self._logger.debug('VODFile: seek, got pieces %s', [
                            int(piece) for piece in self._download.handle.status().pieces])
-
-    def verify_pieces(self, original_data, frompos, topos):
-        allpiecesok = True
-        _frompos = frompos
-        _topos = topos
-
-        frompiece = self._download.handle.get_torrent_info().map_file(self._download.get_vod_fileindex(), frompos, 0)
-        topiece = self._download.handle.get_torrent_info().map_file(self._download.get_vod_fileindex(), topos, 0)
-        self._logger.info("VODFile: Libtorrent says we read pieces %s %s", frompiece.piece, topiece.piece)
-
-        if frompiece.start:
-            if frompos - frompiece.start < 0:
-                self._logger.info("VODFile: Cannot verify %s - %s", frompos, frompos + self.piecesize - frompiece.start)
-
-                # cannot read partial piece, skipping first X bytes
-                frompos += self.piecesize - frompiece.start
-                frompiece = frompiece.piece + 1
-            else:
-                # need to read more than this partial piece, extending with X bytes
-                frompos -= frompiece.start
-                frompiece = frompiece.piece
-
-        if topiece.piece == self.endpiece.piece:
-            self._logger.info("VODFile: Cannot verify %s - %s", topos - topiece.start, topos)
-
-            # cannot read partial piece, truncating last X bytes
-            topos -= topiece.start
-            topiece = topiece.piece - 1
-
-        else:
-            if topiece.start:
-                topos += self.piecesize - topiece.start
-            topiece = topiece.piece
-
-        if topiece >= frompiece:
-            oldpos = self._file.tell()
-            self._file.seek(frompos)
-            read_data = self._file.read(topos - frompos)
-            self._file.seek(oldpos)
-
-            assert len(read_data) == topos - frompos
-
-            # align two arrays
-            data_offsets = [0, len(read_data)]
-            original_data_offsets = [0, (len(original_data))]
-
-            if frompos > _frompos:
-                original_data_offsets[0] = frompos - _frompos
-            elif frompos < _frompos:
-                data_offsets[0] = _frompos - frompos
-
-            if topos > _topos:
-                data_offsets[1] -= topos - _topos
-            elif topos < _topos:
-                original_data_offsets[1] -= _topos - topos
-
-            assert data_offsets[1] - data_offsets[0] == original_data_offsets[1] - original_data_offsets[
-                0], (data_offsets[1] - data_offsets[0], original_data_offsets[1] - original_data_offsets[0])
-            assert read_data[data_offsets[0]:data_offsets[1]] == original_data[
-                original_data_offsets[0]:original_data_offsets[1]]
-
-            startindex = 0
-            for piece in range(frompiece, topiece + 1):
-                piecehash = sha1(read_data[startindex:startindex + self.piecesize]).digest()
-
-                if piecehash == self.pieces[piece]:
-                    self._logger.info("VODFile: Correct piece read %s", piece)
-                else:
-                    self._logger.info("VODFile: Incorrect piece read %s %s %s", piece, piecehash, self.pieces[piece])
-                    allpiecesok = False
-                startindex += self.piecesize
-
-        return allpiecesok
 
     def close(self, *args):
         self._file.close(*args)
