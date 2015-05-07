@@ -388,26 +388,6 @@ class DownloadState(Serializable):
         else:
             return self.stats['vod']
 
-    def get_vod_stats(self):
-        """ Returns a dictionary of collected VOD statistics. The keys contained are:
-        <pre>
-        'played' = number of pieces played. With seeking this may be more than npieces
-        'late' = number of pieces arrived after they were due
-        'dropped' = number of pieces lost
-        'stall' = estimation of time the player stalled, waiting for pieces (seconds)
-        'pos' = playback position, as an absolute piece number
-        'prebuf' = amount of prebuffering time that was needed (seconds,
-                   set when playback starts)
-        'firstpiece' = starting absolute piece number of selected file
-        'npieces' = number of pieces in selected file
-        </pre>, or no keys if no VOD is in progress.
-        @return Dict.
-        """
-        if self.stats is None:
-            return {}
-        else:
-            return self.stats['vod_stats']
-
     def get_log_messages(self):
         """ Returns the last 10 logged non-fatal error messages.
         @return A list of (time,msg) tuples. Time is Python time() format. """
