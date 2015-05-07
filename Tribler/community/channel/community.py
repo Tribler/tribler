@@ -1,5 +1,6 @@
 import json
 import logging
+from binascii import hexlify
 from struct import pack
 from time import time
 from traceback import print_stack
@@ -381,7 +382,7 @@ class ChannelCommunity(Community):
                      message.payload.name,
                      message.payload.files,
                      message.payload.trackers))
-                self._logger.debug("torrent received: %s on channel: %s", message.payload.infohash, self._master_member)
+                self._logger.debug("torrent received: %s on channel: %s", hexlify(message.payload.infohash), self._master_member)
                 if message.candidate and message.candidate.sock_addr:
                     _barter_statistics.dict_inc_bartercast(
                         BartercastStatisticTypes.TORRENTS_RECEIVED,
