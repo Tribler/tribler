@@ -388,14 +388,6 @@ class DownloadState(Serializable):
         else:
             return self.stats['vod']
 
-    def get_log_messages(self):
-        """ Returns the last 10 logged non-fatal error messages.
-        @return A list of (time,msg) tuples. Time is Python time() format. """
-        if self.logmsgs is None:
-            return []
-        else:
-            return self.logmsgs
-
     def get_peerlist(self):
         """ Returns a list of dictionaries, one for each connected peer
         containing the statistics for that peer. In particular, the
