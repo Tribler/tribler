@@ -1704,8 +1704,6 @@ class LibraryList(SizeList):
         # Compare connections
         if ds1.get_num_con_initiated() != ds2.get_num_con_initiated():
             return False
-        if ds1.get_num_con_candidates() != ds2.get_num_con_candidates():
-            return False
 
         # Compare current speed
         if ds1.get_current_speed('down') != ds2.get_current_speed('down'):
