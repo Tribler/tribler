@@ -194,20 +194,6 @@ class DownloadState(Serializable):
         else:
             return self.stats['time']
 
-    def get_num_con_candidates(self):
-        """
-        Returns the download's number of possible connections. This is used
-        to see if there is any progress when non-fatal errors have occured
-        (e.g. tracker timeout).
-        @return An integer.
-        """
-        if self.stats is None:
-            return 0
-
-        # Determine if we need statsobj to be requested, same as for spew
-        statsobj = self.stats['stats']
-        return statsobj.numConCandidates
-
     def get_num_con_initiated(self):
         """
         Returns the download's number of initiated connections. This is used
@@ -401,55 +387,6 @@ class DownloadState(Serializable):
             return False
         else:
             return self.stats['vod']
-
-    def get_vod_playable(self):
-        """ Returns whether or not the Download started in Video-On-Demand
-        mode has sufficient prebuffer and download speed to be played out
-        to the user.
-        @return Boolean.
-        """
-        if self.stats is None:
-            return False
-        else:
-            return self.stats['vod_playable']
-
-    def get_vod_playable_after(self):
-        """ Returns the estimated time until the Download started in Video-On-Demand
-        mode can be started to play out to the user.
-        @return A number of seconds.
-        """
-        if self.stats is None:
-            return float(2 ** 31)
-        else:
-            return self.stats['vod_playable_after']
-
-    def get_vod_stats(self):
-        """ Returns a dictionary of collected VOD statistics. The keys contained are:
-        <pre>
-        'played' = number of pieces played. With seeking this may be more than npieces
-        'late' = number of pieces arrived after they were due
-        'dropped' = number of pieces lost
-        'stall' = estimation of time the player stalled, waiting for pieces (seconds)
-        'pos' = playback position, as an absolute piece number
-        'prebuf' = amount of prebuffering time that was needed (seconds,
-                   set when playback starts)
-        'firstpiece' = starting absolute piece number of selected file
-        'npieces' = number of pieces in selected file
-        </pre>, or no keys if no VOD is in progress.
-        @return Dict.
-        """
-        if self.stats is None:
-            return {}
-        else:
-            return self.stats['vod_stats']
-
-    def get_log_messages(self):
-        """ Returns the last 10 logged non-fatal error messages.
-        @return A list of (time,msg) tuples. Time is Python time() format. """
-        if self.logmsgs is None:
-            return []
-        else:
-            return self.logmsgs
 
     def get_peerlist(self):
         """ Returns a list of dictionaries, one for each connected peer

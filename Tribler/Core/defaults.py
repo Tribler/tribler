@@ -139,8 +139,9 @@ sessdefaults['video']['preferredmode'] = PLAYBACKMODE_INTERNAL
 #  Version 10: add default anonymous level
 #  Version 11: remove createmerkletorrent, torrentsigkeypairfilename, makehash_md5, makehash_crc32, makehash_sha1
 #  Version 12: remove thumb
+#  Version 13: remove super_seeder
 
-DLDEFAULTS_VERSION = 11
+DLDEFAULTS_VERSION = 13
 dldefaults = OrderedDict()
 
 # General download settings
@@ -149,7 +150,6 @@ dldefaults['downloadconfig']['version'] = DLDEFAULTS_VERSION
 dldefaults['downloadconfig']['saveas'] = None  # Set to get_default_destdir()
 dldefaults['downloadconfig']['max_upload_rate'] = 0
 dldefaults['downloadconfig']['max_download_rate'] = 0
-dldefaults['downloadconfig']['super_seeder'] = 0
 dldefaults['downloadconfig']['mode'] = 0
 dldefaults['downloadconfig']['hops'] = 0
 dldefaults['downloadconfig']['selected_files'] = []
