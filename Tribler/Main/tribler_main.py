@@ -39,7 +39,6 @@ urllib.URLopener.open_https = original_open_https
 import os
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
 from Tribler.dispersy.util import attach_profiler, call_on_reactor_thread
-from Tribler.Core.CacheDB.Notifier import Notifier
 import traceback
 from random import randint
 try:
@@ -674,8 +673,7 @@ class ABCApp(object):
 
                         infohash = tdef.get_infohash()
 
-                        notifier = Notifier.getInstance()
-                        notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, infohash, safename)
+                        self.utility.session.notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, infohash, safename)
 
                         doCheckpoint = True
 
