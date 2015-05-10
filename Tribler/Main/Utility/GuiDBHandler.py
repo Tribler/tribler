@@ -27,7 +27,7 @@ DEFAULT_PRI_DISPERSY = 0
 logger = logging.getLogger(__name__)
 
 
-class GUIDBProducer(TaskManager):
+class GUIDBProducer(object):
     # Code to make this a singleton
     __single = None
     __singleton_lock = RLock()
@@ -39,8 +39,6 @@ class GUIDBProducer(TaskManager):
         super(GUIDBProducer, self).__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
-
-        self.guitaskqueue = GUITaskQueue.getInstance()
 
         # Lets get a reference to utility
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -79,7 +77,7 @@ class GUIDBProducer(TaskManager):
         if type == "dbThread" or isInIOThread():
             return isInIOThread()
 
-        return threading.currentThread().getName().startswith('GUITaskQueue')
+        return False
 
     def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay=0.0, uId=None, retryOnBusy=False, priority=0, workerType="dbthread"):
         """The sender will send the return value of
@@ -166,40 +164,33 @@ class GUIDBProducer(TaskManager):
         wrapper.__name__ = str(name)
 
         if not self.onSameThread(workerType) or delay:
-            if workerType == "dbThread":
-                task_name = uId
-                if not task_name:
-                    self._auto_counter += 1
-                    task_name = "guidbhandler %d" % self._auto_counter
+            task_name = uId
+            if not task_name:
+                self._auto_counter += 1
+                task_name = "guidbhandler %d" % self._auto_counter
 
-                reactor.callFromThread(lambda: self.register_task(task_name, reactor.callLater(delay, wrapper)))
+            if workerType == "dbThread":
+                self.utility.session.lm.rawserver.add_task(wrapper, delay, task_name)
+
             elif workerType == "guiTaskQueue":
-                self.guitaskqueue.add_task(wrapper, t=delay, id=uId)
+                self.utility.session.lm.rawserver.add_task_in_thread(wrapper, delay, task_name)
         else:
-            self._logger.debug(
-                "GUIDBHandler: Task(%s) scheduled for thread on same thread, executing immediately", name)
+            self._logger.debug("GUIDBHandler: Task(%s) scheduled for thread on same thread, executing immediately", name)
             wrapper()
 
     def Remove(self, uId):
         if uId in self.uIds:
             self._logger.debug("GUIDBHandler: removing Task(%s)", uId)
 
-            try:
-                self.uIdsLock.acquire()
+            with self.uIdsLock:
                 self.uIds.discard(uId)
 
                 if __debug__:
                     self.nrCallbacks[uId] = self.nrCallbacks.get(uId, 0) - 1
 
-            finally:
-                self.uIdsLock.release()
-
-            self.cancel_pending_task(uId)
-            self.guitaskqueue.remove_task(uId)
+            self.utility.session.lm.rawserver.cancel_pending_task(uId)
 
 # Wrapping Senders for new delayedResult impl
-
-
 class MySender(object):
 
     def __init__(self, delayedResult):

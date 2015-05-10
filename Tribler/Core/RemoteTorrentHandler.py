@@ -226,7 +226,7 @@ class RemoteTorrentHandler(TaskManager):
             return
 
         for callback in self.torrent_callbacks[infohash]:
-            self.session.uch.perform_usercallback(lambda ucb=callback, ih=hexlify(infohash): ucb(ih))
+            self.session.lm.rawserver.perform_usercallback(lambda ucb=callback, ih=hexlify(infohash): ucb(ih))
 
         del self.torrent_callbacks[infohash]
 
@@ -236,7 +236,7 @@ class RemoteTorrentHandler(TaskManager):
             return
 
         for callback in self.metadata_callbacks[infohash]:
-            self.session.uch.perform_usercallback(lambda ucb=callback, p=metadata_filepath: ucb(p))
+            self.session.lm.rawserver.perform_usercallback(lambda ucb=callback, p=metadata_filepath: ucb(p))
 
         del self.metadata_callbacks[infohash]
 
@@ -263,7 +263,7 @@ class RemoteTorrentHandler(TaskManager):
                 failed += requester.requests_failed
             total_requests = pending_requests + success + failed
 
-            return "%s: %d/%d" % (qname, success, total_requests),\
+            return "%s: %d/%d" % (qname, success, total_requests), \
                    "%s: pending %d, success %d, failed %d, total %d" % (
                        qname, pending_requests, success, failed, total_requests)
         return [(qstring, qtooltip) for qstring, qtooltip in [getQueueSuccess("TFTP", self.torrent_requesters),

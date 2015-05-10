@@ -100,7 +100,7 @@ class SearchManager(TaskManager):
         for result in results:
             remote_torrent_result = {'torrent_type': 'remote',  # indicates if it is a remote torrent
                                      'relevance_score': None,
-                                     'torrent_id': -1,
+                                     'torrent_id':-1,
                                      'infohash': result[0],
                                      'name': result[1],
                                      'length': result[2],
@@ -168,7 +168,7 @@ class SearchManager(TaskManager):
         results_data = {'keywords': keywords,
                         'result_list': remote_torrent_result_list}
         # inform other components about the results
-        self.session.uch.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_data)
+        self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_data)
 
     @call_on_reactor_thread
     def search_for_channels(self, keywords):
@@ -212,4 +212,4 @@ class SearchManager(TaskManager):
         results_data = {'keywords': keywords,
                         'result_list': channel_results}
         # inform other components about the results
-        self.session.uch.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_data)
+        self.session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_data)

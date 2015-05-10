@@ -15,7 +15,9 @@ from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED, NTFY_TORRENTS
 from Tribler.Core.version import version_id
-
+from Tribler.Core.exceptions import DuplicateDownloadException
+from Tribler.Core.Utilities.utilities import parse_magnetlink
+from Tribler.Core.simpledefs import NTFY_MAGNET_STARTED, NTFY_TORRENTS, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS
 
 DEBUG = False
 DHTSTATE_FILENAME = "ltdht.state"
@@ -30,7 +32,7 @@ class LibtorrentMgr(object):
 
         self.trsession = trsession
         self.ltsessions = {}
-        self.notifier = Notifier.getInstance()
+        self.notifier = trsession.notifier
         self.dht_ready = False
 
         main_ltsession = self.get_session()
@@ -176,13 +178,13 @@ class LibtorrentMgr(object):
 
     def set_upload_rate_limit(self, rate, hops=0):
         # Rate conversion due to the fact that we had a different system with Swift
-        # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes 
+        # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
         libtorrent_rate = -1 if rate == 0 else (1 if rate == -1 else rate * 1024)
         self.get_session(hops).set_upload_rate_limit(int(libtorrent_rate))
 
     def get_upload_rate_limit(self, hops=0):
         # Rate conversion due to the fact that we had a different system with Swift
-        # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes 
+        # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
         libtorrent_rate =  self.get_session(hops).upload_rate_limit()
         return 0 if libtorrent_rate == -1 else (-1 if libtorrent_rate == 1 else libtorrent_rate / 1024)
 
@@ -340,7 +342,7 @@ class LibtorrentMgr(object):
 
             cache_result = self._get_cached_metainfo(infohash)
             if cache_result:
-                self.trsession.uch.perform_usercallback(lambda cb=callback, mi=deepcopy(cache_result): cb(mi))
+                self.trsession.lm.rawserver.perform_usercallback(lambda cb=callback, mi=deepcopy(cache_result): cb(mi))
 
             elif infohash not in self.metainfo_requests:
                 # Flags = 4 (upload mode), should prevent libtorrent from creating files
@@ -420,7 +422,7 @@ class LibtorrentMgr(object):
                         self._add_cached_metainfo(infohash, metainfo)
 
                         for callback in callbacks:
-                            self.trsession.uch.perform_usercallback(lambda cb=callback, mi=deepcopy(metainfo): cb(mi))
+                            self.trsession.lm.rawserver.perform_usercallback(lambda cb=callback, mi=deepcopy(metainfo): cb(mi))
 
                         # let's not print the hashes of the pieces
                         debuginfo = deepcopy(metainfo)
@@ -429,7 +431,7 @@ class LibtorrentMgr(object):
 
                     elif timeout_callbacks and timeout:
                         for callback in timeout_callbacks:
-                            self.trsession.uch.perform_usercallback(lambda cb=callback, ih=infohash_bin: cb(ih))
+                            self.trsession.lm.rawserver.perform_usercallback(lambda cb=callback, ih=infohash_bin: cb(ih))
 
                 if handle:
                     self.get_session().remove_torrent(handle, 1)

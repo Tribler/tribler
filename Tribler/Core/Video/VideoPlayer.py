@@ -11,7 +11,6 @@ from traceback import print_exc
 from collections import defaultdict
 from threading import RLock
 
-from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VIDEO_STARTED, DLMODE_NORMAL, NTFY_VIDEO_BUFFERING
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
 
@@ -47,7 +46,7 @@ class VideoPlayer(object):
         self.videoserver = VideoServer(httpport or self.session.get_videoplayer_port(), self.session, self)
         self.videoserver.start()
 
-        self.notifier = Notifier.getInstance()
+        self.notifier = session.notifier
 
         self.player_out = None
         self.player_in = None
