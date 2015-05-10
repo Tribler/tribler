@@ -150,7 +150,7 @@ class MetadataCommunity(Community):
                                                 u"data_list": msg.payload.data_list[:]
                                                 }
                                 if self._integrate_with_tribler:
-                                    self._rth.session.uch.perform_usercallback(
+                                    self._rth.session.notifier.perform_usercallback(
                                         lambda metadata=msg_metadata: self._check_metadata_thumbs(metadata))
 
                             self._rth.download_metadata(message.candidate, infohash, sub_file_path,
@@ -241,7 +241,7 @@ class MetadataCommunity(Community):
             unique.add(key)
 
             if not message.authentication.member.database_id in times:
-                times[message.authentication.member.database_id] =\
+                times[message.authentication.member.database_id] = \
                     [global_time for global_time, in self._dispersy._database.execute(
                         u"SELECT global_time FROM sync WHERE community = ? AND member = ? AND meta_message = ?",
                         (message.community.database_id,

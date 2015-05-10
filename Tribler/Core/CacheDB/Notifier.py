@@ -19,36 +19,15 @@ class Notifier(object):
                 NTFY_VOTECAST, NTFY_DISPERSY, NTFY_TRACKERINFO, NTFY_TUNNEL,
                 SIGNAL_ALLCHANNEL_COMMUNITY, SIGNAL_SEARCH_COMMUNITY, SIGNAL_TORRENT, SIGNAL_CHANNEL]
 
-    # . . .
-    # todo: add all datahandler types+other observables
-    __single = None
-
-    def __init__(self, pool=None):
-        if Notifier.__single:
-            raise RuntimeError("Notifier is singleton")
-
+    def __init__(self, rawserver):
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.pool = pool
+        self.pool = rawserver
 
         self.observers = []
         self.observerscache = {}
         self.observertimers = {}
         self.observerLock = threading.Lock()
-
-        Notifier.__single = self
-
-    def getInstance(*args, **kw):
-        if Notifier.__single is None:
-            Notifier(*args, **kw)
-        return Notifier.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        if Notifier.__single:
-            Notifier.__single.remove_observers()
-        Notifier.__single = None
-    delInstance = staticmethod(delInstance)
 
     def add_observer(self, func, subject, changeTypes=[NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE], id=None, cache=0):
         """

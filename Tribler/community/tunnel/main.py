@@ -155,7 +155,7 @@ class Tunnel(object):
         return (4.0, [])
 
     def stop(self):
-        self.session.uch.perform_usercallback(self._stop)
+        self.session.notifier.perform_usercallback(self._stop)
 
     def _stop(self):
         if self.clean_messages_lc:
@@ -280,7 +280,7 @@ class LineHandler(LineReceiver):
             dscfg.set_hops(2)
             dscfg.set_dest_dir(cur_path)
 
-            anon_tunnel.session.uch.perform_usercallback(lambda: anon_tunnel.session.start_download(tdef, dscfg))
+            anon_tunnel.session.notifier.perform_usercallback(lambda: anon_tunnel.session.start_download(tdef, dscfg))
 
         elif line.startswith('d'):
             line_split = line.split(' ')
@@ -308,7 +308,7 @@ class LineHandler(LineReceiver):
                 download = anon_tunnel.session.start_download(tdef, dscfg)
                 download.set_state_callback(cb, delay=1)
 
-            anon_tunnel.session.uch.perform_usercallback(start_download)
+            anon_tunnel.session.notifier.perform_usercallback(start_download)
 
         elif line == 'q':
             anon_tunnel.stop()
