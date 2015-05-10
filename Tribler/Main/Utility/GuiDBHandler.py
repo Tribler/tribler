@@ -65,9 +65,7 @@ class GUIDBProducer(object):
     @classmethod
     def delInstance(cls, *args, **kw):
         with cls.__singleton_lock:
-            if GUIDBProducer.__single:
-                GUIDBProducer.__single.cancel_all_pending_tasks()
-                GUIDBProducer.__single = None
+            GUIDBProducer.__single = None
 
     @classmethod
     def hasInstance(cls):
