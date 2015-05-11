@@ -6,8 +6,13 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.lang import Builder
 
 from jnius import autoclass
-Context = autoclass('android.content.Context')
+mContext = autoclass('android.content.Context')
 PythonActivity = autoclass('org.renpy.android.PythonActivity')
+activity = PythonActivity.mActivity
+Intent = autoclass('android.content.Intent')
+mMediaStore = autoclass('android.provider.MediaStore')
+mComponentName = autoclass('android.content.ComponentName')
+mPackageManager = autoclass('android.content.pm.PackageManager')
   
 #class Hello(App):
 #    def build(self):
@@ -17,17 +22,36 @@ PythonActivity = autoclass('org.renpy.android.PythonActivity')
 #Hello().run()
 Builder.load_file('main.kv')
 
+
 class HomeScreen(Screen):
 
 	def likeMore(self):
 		self.ids.button1.text = self.ids.button1.text+"!"
 	def AndroidTest(self):
-		activity = PythonActivity.mActivity
-		vibrator = activity.getSystemService(Context.VIBRATOR_SERVICE)
+		vibrator = activity.getSystemService(mContext.VIBRATOR_SERVICE)
 		vibrator.vibrate(10000)
 
 class CameraScreen(Screen):
-	pass
+
+	def startCamera(self):
+		intention = Intent()
+		intention.setAction(mMediaStore.ACTION_VIDEO_CAPTURE)
+		#intention = Intent(mMediaStore.ACTION_VIDEO_CAPTURE)
+		#con = mContext		
+		print 'Context:'		
+		#print con
+		print 'PM:'
+		#print con.getPackageManager()
+		print 'intent:'		
+		print intention
+		print intention.resolveActivity
+		print 'cm'
+		#cm = intention.resolveActivity(mContext.getPackageManager())
+		print 'cm!'
+		#print cm		
+		#if cm.toString() != None:
+			#pass
+		activity.startActivityForResult(intention,1)
 
 sm = ScreenManager()
 sm.add_widget(HomeScreen(name='home'))

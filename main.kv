@@ -12,12 +12,9 @@
 <CameraScreen>
 	BoxLayout:
 		orientation:"vertical"
-		Camera:
-			id:camera
-			resolution:(-1, -1) 
-			play: False
-		ToggleButton:
-			text:'Play'
-			on_press: camera.play = not camera.play
+		Button:
+			id:cambutton
+			text:'start'
+			on_release: root.startCamera()
 			
 
