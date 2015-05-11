@@ -1,0 +1,19 @@
+<HomeScreen>
+	BoxLayout:
+		orientation:"vertical"
+		Button:
+			id:button1
+			text:"Camera"
+			on_release: root.manager.current='cam'
+<CameraScreen>
+	BoxLayout:
+		orientation:"vertical"
+		Camera:
+			id:camera
+			resolution:(4128, 3096) 
+			play: False
+		ToggleButton:
+			text:'Play'
+			on_press: camera.play = not camera.play
+			
+
