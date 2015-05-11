@@ -217,8 +217,8 @@ class ABCApp(object):
 
                 cat.set_family_filter(True)
 
-            # Create global rate limiter
-            self.splash.tick('Setting up ratelimiters')
+            # Create global speed limits
+            self.splash.tick('Setting up speed limits')
 
             # Counter to suppress some event from occurring
             self.ratestatecallbackcount = 0
@@ -228,7 +228,9 @@ class ABCApp(object):
 
             maxup = self.utility.read_config('maxuploadrate')
             maxdown = self.utility.read_config('maxdownloadrate')
-            # TODO: set using LibtorrentMgr
+            # set speed limits using LibtorrentMgr
+            s.set_max_upload_speed(maxup)
+            s.set_max_download_speed(maxdown)
 
             # Only allow updates to come in after we defined ratelimiter
             self.prevActiveDownloads = []

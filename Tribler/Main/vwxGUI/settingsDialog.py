@@ -174,8 +174,10 @@ class SettingsDialog(wx.Dialog):
         for config_option, value in [('maxdownloadrate', convert(valdown)), ('maxuploadrate', convert(valup))]:
             if self.utility.read_config(config_option) != value:
                 self.utility.write_config(config_option, value)
-                self.guiUtility.app.ratelimiter.set_global_max_speed(UPLOAD if config_option == 'maxuploadrate'
-                                                                     else DOWNLOAD, value)
+                if config_option == 'maxuploadrate':
+                    self.guiUtility.utility.session.set_max_upload_speed(value)
+                else:
+                    self.guiUtility.utility.session.set_max_download_speed(value)
 
         valport = self._firewall_value.GetValue()
         if valport != str(self.utility.session.get_listen_port()):
@@ -365,7 +367,7 @@ class SettingsDialog(wx.Dialog):
 
         scfg.save(cfgfilename)
 
-    
+
     def moveCollectedTorrents(self, old_dir, new_dir):
         def rename_or_merge(old, new, ignore=True):
             if os.path.exists(old):
@@ -754,7 +756,7 @@ class SettingsDialog(wx.Dialog):
         exp_s1_sizer.Add(self._become_exitnode, 0, wx.EXPAND)
         self._switch_hs_timeout = wx.CheckBox(exp_panel, label="Switch from hidden services to exit nodes")
         exp_s1_sizer.Add(self._switch_hs_timeout, 0, wx.EXPAND)
-        
+
         exp_s1_faq_text = wx.StaticText(
             exp_panel, label="By allowing Tribler to be an exit node, it's possible to become a proxy for someone elses traffic. \nThis may cause problems in some countries.")
         exp_vsizer.Add(exp_s1_faq_text, 0, wx.EXPAND | wx.TOP, 10)
@@ -762,6 +764,6 @@ class SettingsDialog(wx.Dialog):
         # load values
         self._become_exitnode.SetValue(self.utility.session.get_tunnel_community_exitnode_enabled())
         self._switch_hs_timeout.SetValue(self.utility.session.get_tunnel_community_hs_timeout_switch())
-        
-        
+
+
         return exp_panel, item_id
