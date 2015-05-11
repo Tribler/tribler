@@ -5,12 +5,16 @@
 			id:button1
 			text:"Camera"
 			on_release: root.manager.current='cam'
+		Button:
+			id:button2
+			text:'test'
+			on_release:root.AndroidTest()
 <CameraScreen>
 	BoxLayout:
 		orientation:"vertical"
 		Camera:
 			id:camera
-			resolution:(4128, 3096) 
+			resolution:(-1, -1) 
 			play: False
 		ToggleButton:
 			text:'Play'

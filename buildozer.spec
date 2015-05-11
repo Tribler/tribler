@@ -33,7 +33,7 @@ version.filename = %(source.dir)s/main.py
 
 # (list) Application requirements
 # comma seperated e.g. requirements = sqlite3,kivy
-requirements = openssl, kivy==master, pygame
+requirements = openssl, kivy==master, pyjnius
 
 
 # (list) Garden requirements
@@ -57,10 +57,13 @@ fullscreen = 1
 #
 
 # (list) Permissions
-#android.permissions = INTERNET
+android.permissions = INTERNET
+android.permissions = CAMERA
+android.permissions = VIBRATE
+
 
 # (int) Android API to use
-android.api = 21
+android.api = 16
 
 # (int) Minimum API required (8 = Android 2.2 devices)
 android.minapi = 16

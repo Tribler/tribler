@@ -4,6 +4,10 @@ from kivy.uix.button import Button
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.lang import Builder
+
+from jnius import autoclass
+Context = autoclass('android.content.Context')
+PythonActivity = autoclass('org.renpy.android.PythonActivity')
   
 #class Hello(App):
 #    def build(self):
@@ -17,6 +21,10 @@ class HomeScreen(Screen):
 
 	def likeMore(self):
 		self.ids.button1.text = self.ids.button1.text+"!"
+	def AndroidTest(self):
+		activity = PythonActivity.mActivity
+		vibrator = activity.getSystemService(Context.VIBRATOR_SERVICE)
+		vibrator.vibrate(10000)
 
 class CameraScreen(Screen):
 	pass
