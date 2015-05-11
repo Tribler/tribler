@@ -76,8 +76,6 @@ from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
 
 from Tribler.Category.Category import Category
-from Tribler.Policies.RateManager import UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager
-from Tribler.Policies.SeedingManager import GlobalSeedingManager
 from Tribler.Utilities.Instance2Instance import Instance2InstanceClient, Instance2InstanceServer
 from Tribler.Utilities.SingleInstanceChecker import SingleInstanceChecker
 
@@ -162,7 +160,6 @@ class ABCApp(object):
         self.barter_community = None
         self.tunnel_community = None
 
-        self.seedingmanager = None
         self.torrentfeed = None
         self.webUI = None
         self.utility = None
@@ -222,7 +219,6 @@ class ABCApp(object):
 
             # Create global rate limiter
             self.splash.tick('Setting up ratelimiters')
-            self.ratelimiter = UserDefinedMaxAlwaysOtherwiseDividedOverActiveSwarmsRateManager(s)
 
             # Counter to suppress some event from occurring
             self.ratestatecallbackcount = 0
@@ -231,12 +227,8 @@ class ABCApp(object):
             self.lastwantpeers = []
 
             maxup = self.utility.read_config('maxuploadrate')
-            self.ratelimiter.set_global_max_speed(UPLOAD, maxup)
-
             maxdown = self.utility.read_config('maxdownloadrate')
-            self.ratelimiter.set_global_max_speed(DOWNLOAD, maxdown)
-
-            self.seedingmanager = GlobalSeedingManager(self.utility.read_config)
+            # TODO: set using LibtorrentMgr
 
             # Only allow updates to come in after we defined ratelimiter
             self.prevActiveDownloads = []
@@ -683,25 +675,13 @@ class ABCApp(object):
             if doCheckpoint:
                 self.utility.session.checkpoint()
 
-            self.seedingmanager.apply_seeding_policy(no_collected_list)
-
             # Adjust speeds and call TunnelCommunity.monitor_downloads once every 4 seconds
             adjustspeeds = False
             if self.ratestatecallbackcount % 4 == 0:
                 adjustspeeds = True
 
-            if adjustspeeds:
-                self.ratelimiter.adjust_speeds()
-
-                if DEBUG_DOWNLOADS:
-                    for ds in dslist:
-                        tdef = ds.get_download().get_def()
-                        state = ds.get_status()
-                        self._logger.debug(u"tribler: BT %s %s %s", dlstatus_strings[state], tdef.get_name(),
-                                           ds.get_current_speed(UPLOAD))
-
-                if self.tunnel_community:
-                    self.tunnel_community.monitor_downloads(dslist)
+            if adjustspeeds and self.tunnel_community:
+                self.tunnel_community.monitor_downloads(dslist)
 
         except:
             print_exc()
