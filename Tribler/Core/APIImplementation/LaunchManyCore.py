@@ -85,6 +85,7 @@ class TriblerLaunchMany(Thread):
         self.channelcast_db = None
 
         self.search_manager = None
+        self.channel_manager = None
 
         self.videoplayer = None
 
@@ -167,6 +168,11 @@ class TriblerLaunchMany(Thread):
             if self.session.get_enable_torrent_search() or self.session.get_enable_channel_search():
                 self.search_manager = SearchManager(self.session)
                 self.search_manager.initialize()
+
+            if self.session.get_enable_channel_search():
+                from Tribler.Core.Modules.channel_manager import ChannelManager
+                self.channel_manager = ChannelManager(self.session)
+                self.channel_manager.initialize()
 
         if not self.initComplete:
             self.init(autoload_discovery)
@@ -599,6 +605,9 @@ class TriblerLaunchMany(Thread):
         if self.torrent_checker:
             self.torrent_checker.shutdown()
             self.torrent_checker = None
+        if self.channel_manager:
+            self.channel_manager.shutdown()
+            self.channel_manager = None
         if self.search_manager:
             self.search_manager.shutdown()
             self.search_manager = None
