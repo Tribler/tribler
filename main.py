@@ -2,7 +2,10 @@ __version__ = '1.0'
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
+from kivy.core.window import Window
 from kivy.lang import Builder
+import android
+
 
 from jnius import autoclass, cast
 from jnius import JavaClass
@@ -30,9 +33,11 @@ class CameraScreen(Screen):
 
 		intention = Intent(self.mMediaStore.ACTION_VIDEO_CAPTURE)
 		self.con = cast(mContext, PythonActivity.mActivity)			
-		intention.resolveActivity(con.getPackageManager())	
-		if intention.resolveActivity(con.getPackageManager()) != None:
+		intention.resolveActivity(self.con.getPackageManager())	
+		if intention.resolveActivity(self.con.getPackageManager()) != None:
 			activity.startActivityForResult(intention,1)
+	#def on_resume(self):
+	#	root.manager.current='home'
 class NfcScreen(Screen):
 	mNfcAdapter = autoclass('android.nfc.NfcAdapter')
 
@@ -45,9 +50,24 @@ sm.add_widget(NfcScreen(name='nfc'))
 
 
 class Skelly(App):
-
 	def build(self):
+		android.map_key(android.KEYCODE_BACK,1001)
+		win = Window
+		win.bind(on_keyboard=self.key_handler)
 		return sm
+
+	def on_pause(self):
+		return True
+	def on_stop(self):
+		pass
+	def on_resume(self):
+		pass
+	def key_handler(self,window,keycode1, keycode2, text, modifiers):
+		if keycode1 in [27,1001]:
+			if(sm.current!='home'):
+				sm.current = 'home'
+			else:
+				App.get_running_app().stop()
 
 if __name__== '__main__':
 	Skelly().run()
