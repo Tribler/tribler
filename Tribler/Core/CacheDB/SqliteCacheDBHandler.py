@@ -1297,8 +1297,6 @@ class VoteCastDBHandler(BasicDBHandler):
         super(VoteCastDBHandler, self).__init__(session, u"VoteCast")
 
         self.my_votes = None
-
-        self.voteLock = Lock()
         self.updatedChannels = set()
 
         self.channelcast_db = None
@@ -1322,7 +1320,7 @@ class VoteCastDBHandler(BasicDBHandler):
                 self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id, voter_id is None)
                 if self.my_votes is not None:
                     self.my_votes[channel_id] = vote
-            self._scheduleUpdateChannelVotes(channel_id)
+            self.updatedChannels.add(channel_id)
 
     def on_remove_votes_from_dispersy(self, votes, contains_my_vote):
         remove_vote = "UPDATE _ChannelVotes SET deleted_at = ? WHERE channel_id = ? AND dispersy_id = ?"
@@ -1333,16 +1331,11 @@ class VoteCastDBHandler(BasicDBHandler):
                 self.notifier.notify(NTFY_VOTECAST, NTFY_UPDATE, channel_id, contains_my_vote)
 
         for _, channel_id, _ in votes:
-            self._scheduleUpdateChannelVotes(channel_id)
-
-    def _scheduleUpdateChannelVotes(self, channel_id):
-        with self.voteLock:
             self.updatedChannels.add(channel_id)
 
     def _flush_to_database(self):
-        with self.voteLock:
-            channel_ids = list(self.updatedChannels)
-            self.updatedChannels.clear()
+        channel_ids = list(self.updatedChannels)
+        self.updatedChannels.clear()
 
         if channel_ids:
             parameters = ",".join("?" * len(channel_ids))
