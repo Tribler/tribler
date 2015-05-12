@@ -406,6 +406,8 @@ class TorrentChecker(TaskManager):
                                                      u'updated': False}
 
     def _on_result_from_session(self, infohash, seeders, leechers):
+        if self.should_stop:
+            return
         response = self._pending_response_dict[infohash]
         response[u'last_check'] = int(time.time())
         if response[u'seeders'] < seeders or (response[u'seeders'] == seeders and response[u'leechers'] < leechers):

@@ -2,6 +2,7 @@ from Tribler.dispersy.taskmanager import TaskManager
 from twisted.internet import reactor
 from threading import RLock
 
+
 class TwistedRawServer(TaskManager):
 
     def __init__(self):

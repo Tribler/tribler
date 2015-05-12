@@ -632,3 +632,21 @@ class Session(SessionConfigInterface):
         :param infohash: The given torrent infohash.
         """
         self.lm.torrent_checker.add_gui_request(infohash)
+
+    def set_max_upload_speed(self, rate):
+        """
+        Sets the maximum upload rate (kB/s).
+        :param rate: The upload rate (kB/s).
+        """
+        if not self.get_libtorrent():
+            raise OperationNotEnabledByConfigurationException("libtorrent is not enabled")
+        self.lm.ltmgr.set_upload_rate_limit(rate)
+
+    def set_max_download_speed(self, rate):
+        """
+        Sets the maximum download rate (kB/s).
+        :param rate: The download rate (kB/s).
+        """
+        if not self.lm.ltmgr:
+            raise OperationNotEnabledByConfigurationException("libtorrent is not enabled")
+        self.lm.ltmgr.set_download_rate_limit(rate)

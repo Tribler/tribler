@@ -108,9 +108,10 @@ class SRstatusbar(wx.StatusBar):
         if direction in [UPLOAD, DOWNLOAD]:
             if direction == UPLOAD:
                 self.utility.write_config('maxuploadrate', value)
+                self.guiutility.utility.session.set_max_upload_speed(value)
             else:
                 self.utility.write_config('maxdownloadrate', value)
-            self.guiutility.app.ratelimiter.set_global_max_speed(direction, value)
+                self.guiutility.utility.session.set_max_download_speed(value)
 
     def GetSpeedChoices(self, value):
         values = round_range(max(0, value)) if value != 0 else range(0, 1000, 100)

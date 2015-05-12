@@ -675,9 +675,11 @@ class TriblerLaunchMany(Thread):
         # Shutdown libtorrent session after checkpoints have been made
         if self.ltmgr:
             self.ltmgr.shutdown()
+            self.ltmgr = None
 
         if self.rawserver:
             self.rawserver.cancel_all_pending_tasks()
+            self.rawserver = None
 
     def save_download_pstate(self, infohash, pstate):
         """ Called by network thread """
