@@ -1,19 +1,21 @@
 # Written by Egbert Bouman
-import os
-import time
 import binascii
 import logging
+import os
 import threading
-import libtorrent as lt
-
+import time
+from binascii import hexlify
 from copy import deepcopy
 from shutil import rmtree
 
-from Tribler.Core.version import version_id
-from Tribler.Core.exceptions import DuplicateDownloadException
-from Tribler.Core.Utilities.utilities import parse_magnetlink
+import libtorrent as lt
+
 from Tribler.Core.CacheDB.Notifier import Notifier
-from Tribler.Core.simpledefs import NTFY_MAGNET_STARTED, NTFY_TORRENTS, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS
+from Tribler.Core.Utilities.utilities import parse_magnetlink
+from Tribler.Core.exceptions import DuplicateDownloadException
+from Tribler.Core.simpledefs import NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED, NTFY_TORRENTS
+from Tribler.Core.version import version_id
+
 
 DEBUG = False
 DHTSTATE_FILENAME = "ltdht.state"
@@ -340,7 +342,16 @@ class LibtorrentMgr(object):
                     atp['url'] = magnet
                 else:
                     atp['info_hash'] = lt.big_number(infohash_bin)
-                handle = self.get_session().add_torrent(encode_atp(atp))
+                try :
+                    handle = self.get_session().add_torrent(encode_atp(atp))
+                except TypeError, e:
+                    self._logger.warning("Failed to add torrent with infohash %s, using libtorrent version %s, "
+                                         "attempting to use it as it is and hoping for the better",
+                                         hexlify(infohash_bin), lt.version)
+                    self._logger.warning("Error was: %s", e)
+                    atp['info_hash'] = infohash_bin
+                    handle = self.get_session().add_torrent(encode_atp(atp))
+
                 if notify:
                     self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_STARTED, infohash_bin)
 
