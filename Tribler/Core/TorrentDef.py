@@ -19,7 +19,7 @@ import Tribler.Core.APIImplementation.maketorrent as maketorrent
 
 from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL, parse_magnetlink
 from Tribler.Core.Utilities.unicode import dunno2unicode
-from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
+from Tribler.Core.Utilities.timeouturlopen import open_url
 
 
 class TorrentDef(ContentDefinition, Serializable, Copyable):
@@ -173,8 +173,9 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         """
         # Class method, no locking required
         try:
-            f = urlOpenTimeout(url)
-            return TorrentDef._read(f)
+            data = open_url(url)
+            if data is not None:
+                return TorrentDef.load_from_memory(data)
 
         except URLError:
             pass
