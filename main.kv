@@ -9,6 +9,10 @@
 			id:button2
 			text:'test'
 			on_release:root.AndroidTest()
+		Button:
+			id:button3
+			text:'NFC'
+			on_release:root.manager.current='nfc'
 <CameraScreen>
 	BoxLayout:
 		orientation:"vertical"
@@ -16,5 +20,12 @@
 			id:cambutton
 			text:'start'
 			on_release: root.startCamera()
-			
+<NfcScreen>
+	BoxLayout:
+		orientation:"vertical"
+		Button:
+			id:filebut
+			text:'File'
+
+					
 
