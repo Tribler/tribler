@@ -5,21 +5,18 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.lang import Builder
 
-from jnius import autoclass
+from jnius import autoclass, cast
+from jnius import JavaClass
+from jnius import PythonJavaClass
+
 mContext = autoclass('android.content.Context')
 PythonActivity = autoclass('org.renpy.android.PythonActivity')
 activity = PythonActivity.mActivity
 Intent = autoclass('android.content.Intent')
-mMediaStore = autoclass('android.provider.MediaStore')
-mComponentName = autoclass('android.content.ComponentName')
-mPackageManager = autoclass('android.content.pm.PackageManager')
+#mMediaStore = autoclass('android.provider.MediaStore')
+#mComponentName = autoclass('android.content.ComponentName')
+#mPackageManager = autoclass('android.content.pm.PackageManager')
   
-#class Hello(App):
-#    def build(self):
-#        btn = Button(text='Hello World')
- #       return  btn
-  
-#Hello().run()
 Builder.load_file('main.kv')
 
 
@@ -32,26 +29,21 @@ class HomeScreen(Screen):
 		vibrator.vibrate(10000)
 
 class CameraScreen(Screen):
-
+	#Intent = autoclass('android.content.Intent')
+	#PythonActivity = autoclass('org.renpy.android.PythonActivity')
+	#activity = PythonActivity.mActivity
+	#Intent = autoclass('android.content.Intent')
+	mMediaStore = autoclass('android.provider.MediaStore')
+	#mPackageManager = autoclass('android.content.pm.PackageManager')
+	#mComponentName = autoclass('android.content.ComponentName')
+	#mContext = autoclass('android.content.Context')
+	
 	def startCamera(self):
-		intention = Intent()
-		intention.setAction(mMediaStore.ACTION_VIDEO_CAPTURE)
-		#intention = Intent(mMediaStore.ACTION_VIDEO_CAPTURE)
-		#con = mContext		
-		print 'Context:'		
-		#print con
-		print 'PM:'
-		#print con.getPackageManager()
-		print 'intent:'		
-		print intention
-		print intention.resolveActivity
-		print 'cm'
-		#cm = intention.resolveActivity(mContext.getPackageManager())
-		print 'cm!'
-		#print cm		
-		#if cm.toString() != None:
-			#pass
-		activity.startActivityForResult(intention,1)
+		intention = Intent(self.mMediaStore.ACTION_VIDEO_CAPTURE)
+		self.con = cast(mContext, PythonActivity.mActivity)			
+		intention.resolveActivity(mContext.getPackageManager())	
+		if intention.resolveActivity(mContext.getPackageManager()) != None:
+			activity.startActivityForResult(intention,1)
 
 sm = ScreenManager()
 sm.add_widget(HomeScreen(name='home'))
