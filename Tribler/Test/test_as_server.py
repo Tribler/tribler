@@ -254,7 +254,7 @@ class TestAsServer(AbstractServer):
                 time.sleep(seconds)
             callback()
 
-    def CallConditional(self, timeout, condition, callback, assertMsg=None, assertCallback=None,
+    def CallConditional(self, timeout, condition, callback, assert_message=None, assert_callback=None,
                         tribler_session=None, dump_statistics=False):
         t = time.time()
 
@@ -276,20 +276,20 @@ class TestAsServer(AbstractServer):
                     except:
                         print_exc()
                         self.assert_(False, '%s - Condition or callback raised an exception, quitting (%s)' %
-                                     (test_id, assertMsg or "no-assert-msg"), do_assert=False)
+                                     (test_id, assert_message or "no-assert-msg"), do_assert=False)
                 else:
                     self._logger.debug("%s - %s, condition was not satisfied in %d seconds (%s)",
                                        test_id,
-                                       ('calling callback' if assertCallback else 'quitting'),
+                                       ('calling callback' if assert_callback else 'quitting'),
                                        timeout,
-                                       assertMsg or "no-assert-msg")
-                    assertcall = assertCallback if assertCallback else self.assert_
+                                       assert_message or "no-assert-msg")
+                    assertcall = assert_callback if assert_callback else self.assert_
                     kwargs = {}
                     if assertcall == self.assert_:
                         kwargs = {'tribler_session': tribler_session, 'dump_statistics': dump_statistics}
 
                     assertcall(False, "%s - %s - Condition was not satisfied in %d seconds" %
-                               (test_id, assertMsg, timeout), do_assert=False, **kwargs)
+                               (test_id, assert_message, timeout), do_assert=False, **kwargs)
         self.callLater(0, DoCheck)
 
     def quit(self):

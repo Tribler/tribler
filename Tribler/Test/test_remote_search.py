@@ -13,7 +13,7 @@ class BaseRemoteTest(TestGuiAsServer):
                 self._logger.debug("Frame ready, starting to wait for search to be ready")
                 self.CallConditional(300, lambda: self.frame.SRstatusbar.GetConnections() > 0.75, callback,
                                      'did not connect to 75% of expected peers within 300s',
-                                     assertCallback=lambda *argv, **kwarg: callback())
+                                     assert_callback=lambda *argv, **kwarg: callback())
             super(BaseRemoteTest, self).startTest(wait_for_search)
 
         else:
@@ -21,7 +21,7 @@ class BaseRemoteTest(TestGuiAsServer):
                 self._logger.debug("Frame ready, starting to wait for channelsearch to be ready")
                 self.CallConditional(300, lambda: self.frame.SRstatusbar.GetChannelConnections() > 10, callback,
                                      'did not connect to more than 10 peers within 300s',
-                                     assertCallback=lambda *argv, **kwarg: callback())
+                                     assert_callback=lambda *argv, **kwarg: callback())
             super(BaseRemoteTest, self).startTest(wait_for_chansearch,
                                                   use_torrent_search=use_torrent_search,
                                                   use_channel_search=use_channel_search)
