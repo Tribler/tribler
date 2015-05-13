@@ -38,7 +38,7 @@ class TestMyChannel(TestGuiAsServer):
             m_index = self.managechannel.GetPage(self.managechannel.notebook, "Manage")
             self.managechannel.notebook.SetSelection(m_index)
 
-            self.Call(1, added_rss)
+            self.callLater(1, added_rss)
 
         def do_create():
             self.managechannel = self.frame.managechannel
@@ -52,7 +52,7 @@ class TestMyChannel(TestGuiAsServer):
 
         def do_page():
             self.guiUtility.ShowPage('mychannel')
-            self.Call(1, do_create)
+            self.callLater(1, do_create)
 
         self.startTest(do_page)
 
@@ -121,7 +121,7 @@ class TestMyChannel(TestGuiAsServer):
 
         def do_page():
             self.guiUtility.ShowPage('mychannel')
-            self.Call(1, do_create)
+            self.callLater(1, do_create)
 
         self.startTest(do_page)
 

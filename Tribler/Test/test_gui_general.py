@@ -15,7 +15,7 @@ class TestGuiGeneral(TestGuiAsServer):
 
         def do_page():
             self.guiUtility.ShowPage('stats')
-            self.Call(10, do_assert)
+            self.callLater(10, do_assert)
 
         self.startTest(do_page)
 

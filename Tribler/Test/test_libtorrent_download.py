@@ -130,7 +130,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.frame.librarylist.list.Select(infohash)
             self.frame.top_bg.OnDelete(silent=True)
             self.CallConditional(10, lambda: not self.frame.librarylist.list.HasItem(
-                infohash), lambda: self.Call(1, do_final), 'download not deleted')
+                infohash), lambda: self.callLater(1, do_final), 'download not deleted')
 
         def do_resume():
             self.screenshot('After stopping a libtorrent download')
@@ -191,7 +191,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
                 playlist.tdef.get_infohash() == self.guiUtility.videoplayer.get_vod_download().get_def().get_infohash() and \
                 playlist.fileindex == self.guiUtility.videoplayer.get_vod_fileindex()
 
-            self.CallConditional(10, do_check, lambda: self.Call(
+            self.CallConditional(10, do_check, lambda: self.callLater(
                 5, lambda: take_screenshot(buffer_complete)), "playlist set incorrectly")
 
         def do_monitor():

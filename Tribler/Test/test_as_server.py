@@ -248,7 +248,7 @@ class TestAsServer(AbstractServer):
         self.quitting = False
         callback()
 
-    def Call(self, seconds, callback):
+    def callLater(self, seconds, callback):
         if not self.quitting:
             if seconds:
                 time.sleep(seconds)
@@ -271,7 +271,7 @@ class TestAsServer(AbstractServer):
                                                test_id, time.time() - t, callback.__name__)
                             callback()
                         else:
-                            self.Call(0.5, DoCheck)
+                            self.callLater(0.5, DoCheck)
 
                     except:
                         print_exc()
@@ -290,7 +290,7 @@ class TestAsServer(AbstractServer):
 
                     assertcall(False, "%s - %s - Condition was not satisfied in %d seconds" %
                                (test_id, assertMsg, timeout), do_assert=False, **kwargs)
-        self.Call(0, DoCheck)
+        self.callLater(0, DoCheck)
 
     def quit(self):
         self.quitting = True
@@ -350,7 +350,7 @@ class TestGuiAsServer(TestAsServer):
             if took > min_timeout:
                 callback()
             else:
-                self.Call(min_timeout - took, callback)
+                self.callLater(min_timeout - took, callback)
 
         def wait_for_frame():
             self._logger.debug("GUIUtility ready, starting to wait for frame to be ready")
@@ -385,7 +385,7 @@ class TestGuiAsServer(TestAsServer):
 
         assert self.hadSession, 'Did not even create a session'
 
-    def Call(self, seconds, callback):
+    def callLater(self, seconds, callback):
         if not self.quitting:
             if seconds:
                 wx.CallLater(seconds * 1000, callback)
@@ -413,9 +413,9 @@ class TestGuiAsServer(TestAsServer):
                 self.app.ExitMainLoop()
                 wx.WakeUpMainThread()
 
-            self.Call(1, close_dialogs)
-            self.Call(2, do_quit)
-            self.Call(3, self.app.Exit)
+            self.callLater(1, close_dialogs)
+            self.callLater(2, do_quit)
+            self.callLater(3, self.app.Exit)
 
         self.quitting = True
 
