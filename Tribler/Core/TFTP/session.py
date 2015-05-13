@@ -11,7 +11,7 @@ DEFAULT_TIMEOUT = 2
 class Session(object):
 
     def __init__(self, is_client, session_id, address, request, file_name, file_data, file_size, checksum,
-                 extra_info=None, block_size=DEFAULT_BLOCK_SIZE, timeout=DEFAULT_TIMEOUT,
+                 extra_info=None, block_size=DEFAULT_BLOCK_SIZE, timeout=DEFAULT_TIMEOUT, last_received_packet=None,
                  success_callback=None, failure_callback=None):
         self.is_client = is_client
         self.session_id = session_id
@@ -31,9 +31,13 @@ class Session(object):
         self.failure_callback = failure_callback
 
         self.last_contact_time = time()
-        self.last_received_packet = None
+        self.last_received_packet = last_received_packet
         self.last_sent_packet = None
+        self.last_send_packet_sequence = 0
         self.is_waiting_for_last_ack = False
+
+        self.retry_count = 0
+        self.max_retries = 5
 
         self.is_done = False
         self.is_failed = False
@@ -48,3 +52,8 @@ class Session(object):
     def __unicode__(self):
         type_str = u"C" if self.is_client else u"S"
         return u"TFTP[%s %s %s:%s][%s]" % (self.session_id, type_str, self.address[0], self.address[1], self.file_name)
+
+    def is_timed_out(self, current_time):
+        # allowed time interval is: 2 * 2^<retry_count>
+        allowed_interval = 2 * (2 ** self.retry_count)
+        return self.last_contact_time + allowed_interval < current_time
