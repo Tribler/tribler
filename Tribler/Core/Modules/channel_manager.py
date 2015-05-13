@@ -93,6 +93,9 @@ class ChannelManager(TaskManager):
         :param channel_data: Data of the Channel.
         """
         self._logger.info(u"Channel created: %s", channel_data[u'name'])
+        if channel_data[u'name'] not in self._channel_callback_dict:
+            self._logger.warn(u"skip Channel %s, not found in callback dict", channel_data[u'name'])
+            return
 
         callback_dict = self._channel_callback_dict.pop(channel_data[u'name'])
         if callback_dict[u'rss_url'] is not None:
