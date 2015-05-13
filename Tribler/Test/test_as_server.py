@@ -336,7 +336,7 @@ class TestGuiAsServer(TestAsServer):
             if do_assert:
                 assert boolean, reason
 
-    def startTest(self, callback, min_timeout=5, autoload_discovery=True,
+    def startTest(self, callback, min_callback_delay=5, autoload_discovery=True,
                   use_torrent_search=True, use_channel_search=True):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
         from Tribler.Main import tribler_main
@@ -346,11 +346,13 @@ class TestGuiAsServer(TestAsServer):
         starttime = time.time()
 
         def call_callback():
-            took = time.time() - starttime
-            if took > min_timeout:
+            # If at least min_callback_delay seconds have passed, call the
+            # callback, else schedule it's call for when that happens.
+            time_elapsed = time.time() - starttime
+            if time_elapsed > min_callback_delay:
                 callback()
             else:
-                self.callLater(min_timeout - took, callback)
+                self.callLater(min_callback_delay - time_elapsed, callback)
 
         def wait_for_frame():
             self._logger.debug("GUIUtility ready, starting to wait for frame to be ready")

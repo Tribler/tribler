@@ -52,7 +52,7 @@ class TestGuiDialogs(TestGuiAsServer):
             self.callLater(5, do_assert)
             self.frame.top_bg.OnSettings(None)
 
-        self.startTest(do_settings, min_timeout=2)
+        self.startTest(do_settings, min_callback_delay=2)
 
     def test_remove_dialog(self):
         infohash = binascii.unhexlify('66ED7F30E3B30FA647ABAA19A36E7503AA071535')
@@ -126,7 +126,7 @@ class TestGuiDialogs(TestGuiAsServer):
             except Exception, e:
                 self.guiUtility.utility.app.onError(e)
 
-        self.startTest(do_error, min_timeout=10)
+        self.startTest(do_error, min_callback_delay=10)
 
     def test_add_save_create_dialog(self):
         def do_assert_create(add_dialog):
@@ -245,7 +245,7 @@ class TestGuiDialogs(TestGuiAsServer):
             self.frame.OnOpenDebugFrame()
             self.callLater(20, do_screenshot_tab)
 
-        self.startTest(do_error, min_timeout=5)
+        self.startTest(do_error, min_callback_delay=5)
 
 if __name__ == "__main__":
     unittest.main()
