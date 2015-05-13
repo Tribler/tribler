@@ -1,6 +1,7 @@
 <HomeScreen>
 	BoxLayout:
 		orientation:"vertical"
+		height:50
 		Button:
 			id:button1
 			text:"Camera"
@@ -26,6 +27,7 @@
 		Button:
 			id:filebut
 			text:'File'
+			on_release: root.printDir()
 
 					
 
