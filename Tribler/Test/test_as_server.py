@@ -22,16 +22,16 @@ import sys
 import time
 import unittest
 from tempfile import mkdtemp
-from threading import enumerate as enumerate_threads
+from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
 import wx
-from twisted.python.threadable import isInIOThread
-
 from .util import process_unhandled_exceptions
+
 from Tribler.Core import defaults
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
+from Tribler.Core.Utilities.instrumentation import WatchDog
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
@@ -48,7 +48,9 @@ DEBUG = False
 OUTPUT_DIR = os.environ.get('OUTPUT_DIR', 'output')
 
 
+
 class BaseTestCase(unittest.TestCase):
+
     def __init__(self, *args, **kwargs):
         super(BaseTestCase, self).__init__(*args, **kwargs)
 
@@ -73,6 +75,11 @@ class AbstractServer(BaseTestCase):
 
     _annotate_counter = 0
 
+    def __init__(self, *args, **kwargs):
+        super(AbstractServer, self).__init__(*args, **kwargs)
+
+        self.watchdog = WatchDog()
+
     def setUp(self, annotate=True):
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -89,6 +96,8 @@ class AbstractServer(BaseTestCase):
 
         if annotate:
             self.annotate(self._testMethodName, start=True)
+        self.watchdog.start()
+
 
     def setUpCleanup(self):
         shutil.rmtree(unicode(self.session_base_dir), ignore_errors=True)
@@ -107,6 +116,7 @@ class AbstractServer(BaseTestCase):
         self.assertFalse(Session.has_instance(), 'A session instance is still present when tearing down the test')
 
         process_unhandled_exceptions()
+        self.watchdog.join()
 
     def tearDownCleanup(self):
         self.setUpCleanup()
@@ -307,6 +317,15 @@ class TestGuiAsServer(TestAsServer):
     Parent class for testing the gui-side of Tribler
     """
 
+    def __init__(self, *argv, **kwargs):
+        """
+
+        """
+        super(TestGuiAsServer, self).__init__(*argv, **kwargs)
+
+        self.wx_watchdog = None
+        self.twisted_watchdog = None
+
     def setUp(self):
         self.assertFalse(Session.has_instance(), 'A session instance is already present when setting up the test')
         AbstractServer.setUp(self, annotate=False)
@@ -326,6 +345,24 @@ class TestGuiAsServer(TestAsServer):
 
         self.asserts = []
         self.annotate(self._testMethodName, start=True)
+
+        self.wx_watchdog = Event()
+        self.twisted_watchdog = Event()
+
+        def wx_watchdog_keepalive():
+            if self.wx_watchdog:
+                self.wx_watchdog.set()
+                wx.CallLater(500, wx_watchdog_keepalive)
+        wx_watchdog_keepalive()
+
+        def twisted_watchdog_keepalive():
+            if self.twisted_watchdog:
+                self.twisted_watchdog.set()
+                reactor.callLater(0.5, twisted_watchdog_keepalive)
+        reactor.callLater(0.5, twisted_watchdog_keepalive)
+
+        self.watchdog.register_event(self.wx_watchdog, "wx thread")
+        self.watchdog.register_event(self.twisted_watchdog, "twisted thread")
 
     def assert_(self, boolean, reason, do_assert=True, tribler_session=None, dump_statistics=False):
         if not boolean:
@@ -427,6 +464,11 @@ class TestGuiAsServer(TestAsServer):
         self.quitting = True
 
     def tearDown(self):
+        self.wx_watchdog = None
+        self.twisted_watchdog = None
+        self.watchdog.unregister_event("wx thread")
+        self.watchdog.unregister_event("twisted thread")
+
         self.annotate(self._testMethodName, start=False)
 
         """ unittest test tear down code """
