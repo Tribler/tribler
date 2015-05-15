@@ -2,6 +2,7 @@ __version__ = '1.0'
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.widget import Widget
 from kivy.core.window import Window
 from kivy.lang import Builder
 import android
@@ -42,6 +43,9 @@ class HomeScreen(Screen):
 		if intention.resolveActivity( self.con.getPackageManager()) != None:
 			activity.startActivityForResult(intention,1)
 
+	def addVideo(self):
+		self.ids.fileList.add_widget(FileWidget())
+		#this button is bugged out for some reason
 class CameraScreen(Screen):
 	mMediaStore = autoclass('android.provider.MediaStore')
 	def startCamera(self):
@@ -60,7 +64,12 @@ class NfcScreen(Screen):
 	def printDir(self):	
 		DCIMdir = mEnvironment.getExternalStoragePublicDirectory(mEnvironment.DIRECTORY_DCIM)
 		print DCIMdir.list()
-
+class FileWidget(Widget): #THIS SUBCLASSING IS VERY BROKEN. need to figure out how to do it proper
+	#def __init__(self):
+	#	Widget.__init__(self)
+	name = 'NO FILENAME SET'
+	uri = 'NO URI'
+	thumbnail = 'NO THUMBNAIL SET' #Gotta make a default for this later
 
 sm = ScreenManager()
 sm.add_widget(HomeScreen(name='home'))

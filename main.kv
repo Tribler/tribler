@@ -13,11 +13,15 @@
 				id:button3
 				text:'NFC'
 				on_release:root.manager.current='nfc'
+			Button:
+				text: 'Add Video'
+				on_release: root.addVideo()
 		ScrollView:
 			padding: 20
 			StackLayout:
 				size_hint: 1, None
 				height: self.minimum_height
+				id: fileList
 				Button:
 					size_hint: 1,None
 					text: 'Gridfiller'
@@ -45,6 +49,9 @@
 			id:filebut
 			text:'File'
 			on_release: root.printDir()
-
-					
-
+<FileWidget>
+	BoxLayout:
+		size_hint: 1, None
+		height: 150
+		Button:
+			text:'NO TEXT'
