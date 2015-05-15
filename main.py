@@ -22,7 +22,7 @@ Builder.load_file('main.kv')
 
 
 class HomeScreen(Screen):
-
+	mMediaStore = autoclass('android.provider.MediaStore')
 	def likeMore(self):
 		self.ids.button1.text = self.ids.button1.text+"!"
 	def AndroidTest(self):
@@ -33,6 +33,14 @@ class HomeScreen(Screen):
 		else:
 			print 'not android?'
 			print os.environ
+	
+	def startCamera(self):
+
+		intention = Intent(self.mMediaStore.ACTION_VIDEO_CAPTURE)
+		self.con = cast(mContext, PythonActivity.mActivity)			
+		intention.resolveActivity(self.con.getPackageManager())	
+		if intention.resolveActivity( self.con.getPackageManager()) != None:
+			activity.startActivityForResult(intention,1)
 
 class CameraScreen(Screen):
 	mMediaStore = autoclass('android.provider.MediaStore')

@@ -1,19 +1,36 @@
 <HomeScreen>
 	BoxLayout:
-		orientation:"vertical"
-		height:50
-		Button:
-			id:button1
-			text:"Camera"
-			on_release: root.manager.current='cam'
-		Button:
-			id:button2
-			text:'test'
-			on_release:root.AndroidTest()
-		Button:
-			id:button3
-			text:'NFC'
-			on_release:root.manager.current='nfc'
+		orientation: 'vertical'
+		BoxLayout:
+			orientation:"horizontal"
+			size_hint: 1,None
+			height:100
+			Button:
+				id:button2
+				text:'test'
+				on_release:root.AndroidTest()
+			Button:
+				id:button3
+				text:'NFC'
+				on_release:root.manager.current='nfc'
+		ScrollView:
+			padding: 20
+			StackLayout:
+				size_hint: 1, None
+				height: self.minimum_height
+				Button:
+					size_hint: 1,None
+					text: 'Gridfiller'
+					height: 1000
+		BoxLayout:
+			size_hint: 1, None
+			height: 100
+			Button: 
+				id:button3
+				text: 'Camera'
+				on_release: root.startCamera()
+				
+	
 <CameraScreen>
 	BoxLayout:
 		orientation:"vertical"
