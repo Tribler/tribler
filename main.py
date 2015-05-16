@@ -5,6 +5,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.widget import Widget
 from kivy.core.window import Window
 from kivy.lang import Builder
+from kivy.uix.button import Button
 import android
 import os
 
@@ -42,9 +43,12 @@ class HomeScreen(Screen):
 		intention.resolveActivity(self.con.getPackageManager())	
 		if intention.resolveActivity( self.con.getPackageManager()) != None:
 			activity.startActivityForResult(intention,1)
-
+	ButtonNumber = 0
 	def addVideo(self):
-		self.ids.fileList.add_widget(FileWidget())
+		wid = FileWidget()
+		wid.setName('Name %d' % self.ButtonNumber)
+		self.ButtonNumber = self.ButtonNumber+1
+		self.ids.fileList.add_widget(wid)
 		#this button is bugged out for some reason
 class CameraScreen(Screen):
 	mMediaStore = autoclass('android.provider.MediaStore')
@@ -64,12 +68,21 @@ class NfcScreen(Screen):
 	def printDir(self):	
 		DCIMdir = mEnvironment.getExternalStoragePublicDirectory(mEnvironment.DIRECTORY_DCIM)
 		print DCIMdir.list()
-class FileWidget(Widget): #THIS SUBCLASSING IS VERY BROKEN. need to figure out how to do it proper
+class FileWidget(BoxLayout):
 	#def __init__(self):
 	#	Widget.__init__(self)
+	
 	name = 'NO FILENAME SET'
-	uri = 'NO URI'
-	thumbnail = 'NO THUMBNAIL SET' #Gotta make a default for this later
+	uri = None
+	thumbnail = None  #Gotta make a default for this later
+	def setName(self, nom):
+		self.name = nom
+		self.ids.filebutton.text = nom
+	def setUri(self,ur):
+		self.uri = ur
+	def setThumb(self,thumb):
+		self.thumbnail = thumb
+		
 
 sm = ScreenManager()
 sm.add_widget(HomeScreen(name='home'))
