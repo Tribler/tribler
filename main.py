@@ -31,7 +31,6 @@ class HomeScreen(Screen):
 		self.ids.button1.text = self.ids.button1.text+"!"
 	def AndroidTest(self):
 		vibrator = activity.getSystemService(mContext.VIBRATOR_SERVICE)
-		#vibrator.vibrate(10000)
 		if 'ANDROID_ROOT' in os.environ:
 			vibrator.vibrate(3000)	
 		else:
@@ -51,7 +50,6 @@ class HomeScreen(Screen):
 		wid.setName('Name %d' % self.ButtonNumber)
 		self.ButtonNumber = self.ButtonNumber+1
 		self.ids.fileList.add_widget(wid)
-		#this button is bugged out for some reason
 
 class CameraScreen(Screen):
 	mMediaStore = autoclass('android.provider.MediaStore')
@@ -62,11 +60,8 @@ class CameraScreen(Screen):
 		intention.resolveActivity(self.con.getPackageManager())	
 		if intention.resolveActivity( self.con.getPackageManager()) != None:
 			activity.startActivityForResult(intention,1)
-	#def on_resume(self):
-	#	root.manager.current='home'
 
 class NfcScreen(Screen):
-	#mIO = autoclass('java.io')
 	mFile = autoclass('java.io.File')
 
 	def printDir(self):	
@@ -109,9 +104,6 @@ class MainActivity(JavaClass):
 		return photoUri
 
 class FileWidget(BoxLayout):
-	#def __init__(self):
-	#	Widget.__init__(self)
-	
 	name = 'NO FILENAME SET'
 	uri = None
 	thumbnail = None  #Gotta make a default for this later
@@ -124,19 +116,24 @@ class FileWidget(BoxLayout):
 		self.thumbnail = thumb
 		
 
-sm = ScreenManager()
-sm.add_widget(HomeScreen(name='home'))
-sm.add_widget(CameraScreen(name="cam"))
-sm.add_widget(NfcScreen(name='nfc'))
 
 
 
 class Skelly(App):
+	sm = ScreenManager()
+	history = []
+	HomeScr = HomeScreen(name='home')
+	NfcScr = NfcScreen(name='nfc')
+	sm.switch_to(HomeScr)
+
 	def build(self):
 		android.map_key(android.KEYCODE_BACK,1001)
 		win = Window
 		win.bind(on_keyboard=self.key_handler)
-		return sm
+		return self.sm
+	def swap_to(self, Screen):
+		self.history.append(self.sm.current_screen)
+		self.sm.switch_to(Screen, direction='left')
 
 	def on_pause(self):
 		return True
@@ -146,8 +143,9 @@ class Skelly(App):
 		pass
 	def key_handler(self,window,keycode1, keycode2, text, modifiers):
 		if keycode1 in [27,1001]:
-			if(sm.current!='home'):
-				sm.current = 'home'
+			if len(self.history ) != 0:
+				print self.history
+				self.sm.switch_to(self.history.pop(), direction = 'right')				
 			else:
 				App.get_running_app().stop()
 

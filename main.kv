@@ -12,7 +12,8 @@
 			Button:
 				id:button3
 				text:'NFC'
-				on_release:root.manager.current='nfc'
+				#on_release:root.manager.current='nfc'
+				on_release: app.swap_to(app.NfcScr)
 			Button:
 				text: 'Add Video'
 				on_release: root.addVideo()
