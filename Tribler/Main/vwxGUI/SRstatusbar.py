@@ -1,5 +1,6 @@
 # Written by Niels Zeilemaker
 import wx
+import logging
 
 from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
 
@@ -15,6 +16,7 @@ class SRstatusbar(wx.StatusBar):
 
     def __init__(self, parent):
         wx.StatusBar.__init__(self, parent, style=wx.ST_SIZEGRIP)
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         # On Linux/OS X the resize handle and icons overlap, therefore we add an extra field.
         # On Windows this field is automatically set to 1 when the wx.ST_SIZEGRIP is set.
@@ -168,6 +170,7 @@ class SRstatusbar(wx.StatusBar):
     def SetConnections(self, connectionPercentage, totalConnections, channelConnections):
         self.connection.SetPercentage(connectionPercentage)
         self.connection.SetToolTipString('Connected to %d peers' % totalConnections)
+        self._logger.error("Connections changed from %d to %d %d", self.channelconnections, totalConnections, channelConnections)
         self.channelconnections = channelConnections
 
     def GetConnections(self):
