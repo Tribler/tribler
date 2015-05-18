@@ -45,7 +45,8 @@ from Tribler.Main.Dialogs.systray import ABCTaskBarIcon
 from Tribler.Main.Dialogs.SaveAs import SaveAs
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY,\
+    DOWNLOAD_POLICY_HIDDEN_120_FALLBACK, DOWNLOAD_POLICY_HIDDEN_300_FALLBACK
 from Tribler.Main.vwxGUI.list import SearchList, ChannelList, LibraryList, ActivitiesList
 from Tribler.Main.vwxGUI.list_details import (SearchInfoPanel, ChannelInfoPanel, LibraryInfoPanel, PlaylistInfoPanel,
                                               SelectedchannelInfoPanel, TorrentDetails, LibraryDetails, ChannelDetails,
@@ -423,7 +424,7 @@ class MainFrame(wx.Frame):
 
     def startDownload(self, torrentfilename=None, destdir=None, infohash=None, tdef=None, cmdline=False,
                       vodmode=False, hops=0, try_hidden_services=False, selectedFiles=None,
-                      correctedFilename=None, hidden=False):
+                      correctedFilename=None, hidden=False, download_policy=None):
         self._logger.debug(u"startDownload: %s %s %s %s %s", torrentfilename, destdir, tdef, vodmode, selectedFiles)
 
         # TODO(lipu): remove the assertions after it becomes stable
@@ -511,11 +512,12 @@ class MainFrame(wx.Frame):
                             destdir = dlg.GetPath()
 
                         # Anonimity over exit nodes or hidden services
+                        download_policy = dlg.GetDownloadPolicyValue()
                         if dlg.UseHiddenservices():
                             hops = 2
                             try_hidden_services = True
-                        else:
-                            hops = dlg.GetHops()
+                        elif dlg.UseProxies():
+                            hops = self.utility.read_config('default_anonymous_level')
 
                     else:
                         cancelDownload = True
@@ -545,6 +547,7 @@ class MainFrame(wx.Frame):
                 monitorHiddenSerivcesProgress = False
 
             dscfg.set_hops(hops)
+            dscfg.set_download_policy(download_policy)
 
             if not cancelDownload:
                 if destdir is not None:
@@ -583,10 +586,17 @@ class MainFrame(wx.Frame):
                 if result and not hidden:
                     self.show_saved(tdef)
 
-                    if monitorHiddenSerivcesProgress:
+                    if dscfg.get_download_policy() is DOWNLOAD_POLICY_HIDDEN_120_FALLBACK:
+                        fallback_delay = 120.0
+                    elif dscfg.get_download_policy() is DOWNLOAD_POLICY_HIDDEN_300_FALLBACK:
+                        fallback_delay = 300.0
+                    else:
+                        fallback_delay = 0.0
+
+                    if monitorHiddenSerivcesProgress and fallback_delay > 0:
                         state_lambda = lambda ds, tdef = orig_tdef, dscfg = dscfg, selectedFiles = selectedFiles: self.monitorHiddenSerivcesProgress(
                             ds, tdef, dscfg, selectedFiles)
-                        result.set_state_callback(state_lambda, delay=40.0)
+                        result.set_state_callback(state_lambda, delay=fallback_delay)
 
                 return result
 
@@ -621,13 +631,14 @@ class MainFrame(wx.Frame):
     def monitorHiddenSerivcesProgress(self, ds, tdef, dscfg, selectedFiles):
         if ds.get_status() in [DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]:
             return (5.0, True)
-        
-        if ds.get_current_speed(DOWNLOAD) == 0 and self.utility.session.get_tunnel_community_hs_timeout_switch():
+
+        if ds.get_current_speed(DOWNLOAD) == 0:
             download = ds.get_download()
             self.utility.session.remove_download(download)
 
-            self._logger.error("Switching from hidden services to exit nodes")
+            self._logger.error("Switching from hidden services to downloading over exit nodes")
             dscfg = dscfg.copy()
+            dscfg.set_download_policy(None)
             dscfg.set_selected_files(selectedFiles or [])
             self.utility.session.start_download(tdef, dscfg)
         return (0, False)
