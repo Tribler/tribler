@@ -8,6 +8,7 @@ from kivy.lang import Builder
 from kivy.uix.button import Button
 import android
 import os
+import fnmatch
 
 
 from jnius import autoclass, cast
@@ -26,7 +27,11 @@ Builder.load_file('main.kv')
 
 
 class HomeScreen(Screen):
+	from threading import *
 	mMediaStore = autoclass('android.provider.MediaStore')
+	mFile = autoclass('java.io.File')
+	
+
 	def likeMore(self):
 		self.ids.button1.text = self.ids.button1.text+"!"
 	def AndroidTest(self):
@@ -51,6 +56,26 @@ class HomeScreen(Screen):
 		self.ButtonNumber = self.ButtonNumber+1
 		self.ids.fileList.add_widget(wid)
 
+
+	def printDir(self):	
+		DCIMdir = mEnvironment.getExternalStoragePublicDirectory(mEnvironment.DIRECTORY_DCIM)
+		print DCIMdir.list()
+	
+	def getStoredMedia(self):
+		for i in range(20):
+			print 'GOING TO GET THE FILES MAYBE'
+		DCIMdir = mEnvironment.getExternalStoragePublicDirectory(mEnvironment.DIRECTORY_DCIM)
+		print DCIMdir.getPath()	
+		self.ids.fileList.clear_widgets()
+		for root, dirnames, filenames in os.walk(DCIMdir.getAbsolutePath()):
+			for filename in fnmatch.filter(filenames,'*.mp4'):
+				wid = FileWidget()
+				wid.setName(filename)
+				wid.setUri(root+filename)
+				print root+filename
+				self.ids.fileList.add_widget(wid)
+				
+
 class CameraScreen(Screen):
 	mMediaStore = autoclass('android.provider.MediaStore')
 	def startCamera(self):
@@ -62,8 +87,6 @@ class CameraScreen(Screen):
 			activity.startActivityForResult(intention,1)
 
 class NfcScreen(Screen):
-	mFile = autoclass('java.io.File')
-
 	def printDir(self):	
 		DCIMdir = mEnvironment.getExternalStoragePublicDirectory(mEnvironment.DIRECTORY_DCIM)
 		print DCIMdir.list()
@@ -114,6 +137,8 @@ class FileWidget(BoxLayout):
 		self.uri = ur
 	def setThumb(self,thumb):
 		self.thumbnail = thumb
+	def pressed(self):
+		print self.uri
 		
 
 
@@ -130,6 +155,7 @@ class Skelly(App):
 		android.map_key(android.KEYCODE_BACK,1001)
 		win = Window
 		win.bind(on_keyboard=self.key_handler)
+		self.HomeScr.getStoredMedia()
 		return self.sm
 	def swap_to(self, Screen):
 		self.history.append(self.sm.current_screen)
@@ -140,7 +166,7 @@ class Skelly(App):
 	def on_stop(self):
 		pass
 	def on_resume(self):
-		pass
+		self.HomeScr.getStoredMedia()
 	def key_handler(self,window,keycode1, keycode2, text, modifiers):
 		if keycode1 in [27,1001]:
 			if len(self.history ) != 0:
