@@ -346,6 +346,8 @@ class CommunityPanel(wx.Panel):
                 "Global time": "%s" % community.global_time,
                 "Median global time": "%s" % median_global_time,
                 "Acceptable range": "%s" % community.dispersy_acceptable_global_time_range,
+                "Walk success": "%s" % compute_ratio(community.msg_statistics.walk_success_count,
+                                                     community.msg_statistics.walk_attempt_count),
                 "Sync bloom created": "%s" % community.sync_bloom_new,
                 "Sync bloom reused": "%s" % community.sync_bloom_reuse,
                 "Sync bloom skipped": "%s" % community.sync_bloom_skip,
@@ -405,7 +407,7 @@ class CommunityDetailPanel(wx.Panel):
         self.SetBackgroundColour(LIST_GREY)
 
         self.__FIELDS = ("Identifier", "Member", "Classification", "Global time",
-                         "Median global time", "Acceptable range", "Sync bloom created",
+                         "Median global time", "Acceptable range", "Walk success", "Sync bloom created",
                          "Sync bloom reused", "Sync bloom skipped",
                          "Packets Created", "Packets Sent", "Packets Received", "Packets Success", "Packets Dropped",
                          "Packets Delayed Sent", "Packets Delayed Received",
@@ -526,6 +528,13 @@ class RawInfoPanel(wx.Panel):
         for category in self.__CATEGORIES:
             if getattr(stats, category, None):
                 raw_info[category] = getattr(stats, category).items()
+                category_list.append(category)
+                self.__info.append((category, []))
+
+        for category in self.__IP_CATEGORIES:
+            from Tribler.dispersy.statistics import CommunityStatistics
+            if isinstance(stats, CommunityStatistics):
+                raw_info[category] = getattr(stats.msg_statistics, category).items()
                 category_list.append(category)
                 self.__info.append((category, []))
 
