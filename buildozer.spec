@@ -57,11 +57,7 @@ fullscreen = 1
 #
 
 # (list) Permissions
-android.permissions = INTERNET
-android.permissions = CAMERA
-android.permissions = VIBRATE
-android.permission = NFC
-android.permission = READ_EXTERNAL_STORAGE
+android.permissions = INTERNET, CAMERA, VIBRATE, NFC, READ_EXTERNAL_STORAGE
 
 
 # (int) Android API to use
