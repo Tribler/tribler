@@ -6,10 +6,17 @@ from kivy.uix.widget import Widget
 from kivy.core.window import Window
 from kivy.lang import Builder
 from kivy.uix.button import Button
+from kivy.core.image import Image as CoreImage
+from kivy.graphics.texture import Texture
+
+import numpy
+import array
 import android
 import os
 import fnmatch
 from nfc import CreateNfcBeamUrisCallback
+import io
+
 
 from jnius import autoclass, cast
 from jnius import JavaClass
@@ -42,7 +49,8 @@ class HomeScreen(Screen):
 	
 	def startCamera(self):
 
-		intention = Intent(self.mMediaStore.ACTION_VIDEO_CAPTURE)
+		#intention = Intent(self.mMediaStore.ACTION_VIDEO_CAPTURE)
+		intention = Intent(self.mMediaStore.INTENT_ACTION_VIDEO_CAMERA)
 		self.con = cast(mContext, activity)			
 		intention.resolveActivity(self.con.getPackageManager())	
 		if intention.resolveActivity( self.con.getPackageManager()) != None:
@@ -60,17 +68,15 @@ class HomeScreen(Screen):
 		print DCIMdir.list()
 	
 	def getStoredMedia(self):
-		for i in range(20):
-			print 'GOING TO GET THE FILES MAYBE'
 		DCIMdir = mEnvironment.getExternalStoragePublicDirectory(mEnvironment.DIRECTORY_DCIM)
-		print DCIMdir.getPath()	
+		print DCIMdir.toURI().getPath()	
 		self.ids.fileList.clear_widgets()
 		for root, dirnames, filenames in os.walk(DCIMdir.getAbsolutePath()):
 			for filename in fnmatch.filter(filenames,'*.mp4'):
 				wid = FileWidget()
 				wid.setName(filename)
-				wid.setUri(root+filename)
-				print root+filename
+				wid.setUri(root+'/'+filename)
+				#wid.makeThumbnail()
 				self.ids.fileList.add_widget(wid)
 				
 
@@ -91,9 +97,19 @@ class NfcScreen(Screen):
 
 
 class FileWidget(BoxLayout):
+
+	mBitmap = autoclass("android.graphics.Bitmap")
+	mCompressFormat = autoclass("android.graphics.Bitmap$CompressFormat")
+	mThumbnailUtils = autoclass ("android.media.ThumbnailUtils")
+	mByteArrayOutputStream = autoclass ("java.io.ByteArrayOutputStream")
+	mArrays = autoclass("java.util.Arrays")
+	#mThumbnails = autoclass("android.provider.MediaStore.Video.Thumbnails")
 	name = 'NO FILENAME SET'
 	uri = None
 	thumbnail = None  #Gotta make a default for this later
+	MICRO_KIND = 3
+	FULL_KIND = 2
+	MINI_KIND = 1
 	def setName(self, nom):
 		self.name = nom
 		self.ids.filebutton.text = nom
@@ -103,6 +119,49 @@ class FileWidget(BoxLayout):
 		self.thumbnail = thumb
 	def pressed(self):
 		print self.uri
+		self.makeThumbnail()
+	def switchFormats(self, pixels):
+		print pixels[0]
+		#b = bytearray()
+		#b.append(pixels[0])		
+		print format('B', str(pixels[0]))
+		return pixels
+	def makeThumbnail(self):
+		out = self.mByteArrayOutputStream()
+		'THUMBNAIL'		
+		self.thumbnail = self.mThumbnailUtils.createVideoThumbnail(self.uri,self.MICRO_KIND)
+		tex = Texture.create(size=(self.thumbnail.getWidth(),self.thumbnail.getHeight()) , colorfmt= 'rgba', bufferfmt='int')
+		#pixels = array('i', [0] *self.thumbnail.getWidth() * self.thumbnail.getHeight())
+		pixels = [0] *self.thumbnail.getWidth() * self.thumbnail.getHeight()
+		
+		self.thumbnail.getPixels(pixels, 0,self.thumbnail.getWidth(),0,0,self.thumbnail.getWidth(), self.thumbnail.getHeight())
+		#pixels = b''.join(map(chr, pixels))		
+		#print pixels
+		#pixels = array.array('B',pixels).tostring()		
+		pixels = numpy.asarray(pixels)		
+		tex.blit_buffer(pixels, colorfmt = 'rgba', bufferfmt = 'int')
+		print "OLD PIXELS!"		
+		print pixels
+		self.ids.img.texture = tex
+		self.ids.img.canvas.ask_update()
+
+		print 'COMPRESSION'		
+		#self.thumbnail.compress(self.mCompressFormat.valueOf("JPEG"), 100, out)
+	
+		print 'GONNA PRINT THE STREAM'		
+		print out
+		print 'GONNA PRINT THE BYTEARRAY!'
+		print 'it has length %d', out.size()
+		print out.toByteArray()
+		print 'DID I PRINT IT? GONNA READ IT IN	'
+		#outstr = self.mArrays.toString(out.toByteArray())
+		#ba = bytearray()
+		#ba.extend(outstr)
+		print "printed bytearray"
+		#self.ids.img.texture = CoreImage(io.BytesIO(ba), ext='jpg')
+		print 'THUMBNAIL BUDDY'
+		print self.uri
+		print self.thumbnail
 		
 
 
