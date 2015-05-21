@@ -481,6 +481,13 @@ class TunnelCommunity(Community):
             retry_lambda = lambda h = goal_hops, t = ctype, c = callback, r = max_retries - 1, e = required_exit: \
                 self.create_circuit(h, t, c, r, e)
 
+        hops = set([c.first_hop for c in self.circuits.values()])
+        for c in self.dispersy_yield_verified_candidates():
+            if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec) and \
+               (not required_exit or c.sock_addr != tuple(required_exit[:2])):
+                first_hop = c
+                break
+
         if not required_exit:
             self._logger.debug("Look for exit node to set as required_exit for this circuit")
             # Each circuit's exit node should be a verified connectable exit node peer chosen by the circuit initiator
@@ -490,17 +497,14 @@ class TunnelCommunity(Community):
                 if exit_candidate.become_exit:
                     self._logger.debug("Valid exit candidate found for this circuit")
                     required_exit = (c.sock_addr[0], c.sock_addr[1], pubkey)
+                    # When circuit length is one, the first hop should immediately be the exiting one
+                    if goal_hops == 1:
+                        first_hop = c
+
                     # Stop looking for a better alternative if the exit-node is not used for exiting in another circuit
                     if self.candidate_is_connectable(c):
                         self._logger.debug("Exit node is connectable and not used in other circuits, that's prefered")
                         break
-
-        hops = set([c.first_hop for c in self.circuits.values()])
-        for c in self.dispersy_yield_verified_candidates():
-            if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec) and \
-               (not required_exit or c.sock_addr != tuple(required_exit[:2])):
-                first_hop = c
-                break
 
         if not required_exit:
             if retry_lambda:
@@ -1010,9 +1014,14 @@ class TunnelCommunity(Community):
             else:
                 candidate_extend_mid = 0
 
+            if candidate.get_member() is not None:
+                candidate_mid = candidate.get_member().mid.encode('hex')
+            else:
+                candidate_mid = 0
+
             self.waiting_for.add(new_circuit_id)
             self.relay_from_to[new_circuit_id] = RelayRoute(circuit_id, candidate.sock_addr,
-                                                            mid=candidate.get_member().mid.encode('hex'))
+                                                            mid=candidate_mid)
             self.relay_from_to[circuit_id] = RelayRoute(new_circuit_id, extend_candidate.sock_addr,
                                                         mid=candidate_extend_mid)
 
