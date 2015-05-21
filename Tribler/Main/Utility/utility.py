@@ -7,7 +7,7 @@ from random import gauss
 from Tribler.Core.version import version_id
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.Main.vwxGUI import DOWNLOAD_POLICY_HIDDEN_300_FALLBACK
+from Tribler.Core.simpledefs import DOWNLOAD_POLICY_HIDDEN_300_FALLBACK
 
 
 #

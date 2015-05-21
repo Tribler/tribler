@@ -30,7 +30,8 @@ from Tribler.Core.simpledefs import (NTFY_ACT_NEW_VERSION, NTFY_ACT_NONE, NTFY_A
                                      NTFY_ACT_REACHABLE, NTFY_ACT_MEET, NTFY_ACT_GET_EXT_IP_FROM_PEERS,
                                      NTFY_ACT_GOT_METADATA, NTFY_ACT_RECOMMEND, NTFY_ACT_DISK_FULL,
                                      DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK,
-                                     DOWNLOAD)
+                                     DOWNLOAD,
+    DOWNLOAD_POLICY_HIDDEN_120_FALLBACK, DOWNLOAD_POLICY_HIDDEN_300_FALLBACK)
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
@@ -45,8 +46,7 @@ from Tribler.Main.Dialogs.systray import ABCTaskBarIcon
 from Tribler.Main.Dialogs.SaveAs import SaveAs
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
-from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY,\
-    DOWNLOAD_POLICY_HIDDEN_120_FALLBACK, DOWNLOAD_POLICY_HIDDEN_300_FALLBACK
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY
 from Tribler.Main.vwxGUI.list import SearchList, ChannelList, LibraryList, ActivitiesList
 from Tribler.Main.vwxGUI.list_details import (SearchInfoPanel, ChannelInfoPanel, LibraryInfoPanel, PlaylistInfoPanel,
                                               SelectedchannelInfoPanel, TorrentDetails, LibraryDetails, ChannelDetails,

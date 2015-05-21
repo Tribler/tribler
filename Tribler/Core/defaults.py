@@ -1,7 +1,6 @@
 # Written by Arno Bakker and Bram Cohen
 # Updated by Egbert Bouman, added subsection names + using OrderedDict + cleanup
 # see LICENSE.txt for license information
-from Tribler.Main.vwxGUI import DOWNLOAD_POLICY_HIDDEN_300_FALLBACK
 
 """ Default values for all configurarable parameters of the Core"""
 #

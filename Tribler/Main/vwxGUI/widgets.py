@@ -10,7 +10,7 @@ from wx.lib.mixins.listctrl import CheckListCtrlMixin, ListCtrlAutoWidthMixin
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.vwxGUI import (TRIBLER_RED, LIST_HIGHTLIGHT, GRADIENT_LRED, GRADIENT_DRED, SEPARATOR_GREY,
                                  FILTER_GREY, DEFAULT_BACKGROUND, COMPLETED_COLOUR, SEEDING_COLOUR, DOWNLOADING_COLOUR,
-                                 STOPPED_COLOUR, DOWNLOAD_POLICY_HIDDEN_300_FALLBACK)
+                                 STOPPED_COLOUR)
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
