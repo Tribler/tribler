@@ -25,6 +25,8 @@ MAX_INT16 = 2 ** 16 - 1
 DIR_SEPARATOR = u":"
 DIR_PREFIX = u"dir" + DIR_SEPARATOR
 
+DEFAULT_RETIES = 5
+
 
 class TftpHandler(TaskManager):
 
@@ -32,14 +34,16 @@ class TftpHandler(TaskManager):
     This is the TFTP handler that should be registered at the RawServer to handle TFTP packets.
     """
 
-    def __init__(self, session, root_dir, endpoint, prefix, block_size=DEFAULT_BLOCK_SIZE, timeout=DEFAULT_TIMEOUT):
+    def __init__(self, session, root_dir, endpoint, prefix, block_size=DEFAULT_BLOCK_SIZE, timeout=DEFAULT_TIMEOUT,
+                 max_retries=DEFAULT_RETIES):
         """ The constructor.
-        :param session:    The tribler session.
-        :param root_dir:   The root directory to use.
-        :param endpoint:   The endpoint to use.
-        :param prefix:     The prefix to use.
-        :param block_size: Transmission block size.
-        :param timeout:    Transmission timeout.
+        :param session:     The tribler session.
+        :param root_dir:    The root directory to use.
+        :param endpoint:    The endpoint to use.
+        :param prefix:      The prefix to use.
+        :param block_size:  Transmission block size.
+        :param timeout:     Transmission timeout.
+        :param max_retries: Transmission maximum retries.
         """
         super(TftpHandler, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -52,6 +56,7 @@ class TftpHandler(TaskManager):
 
         self._block_size = block_size
         self._timeout = timeout
+        self._max_retries = max_retries
 
         self._timeout_check_interval = 0.5
 
@@ -69,7 +74,7 @@ class TftpHandler(TaskManager):
         self._endpoint.listen_to(self._prefix, self.data_came_in)
         # start a looping call that checks timeout
         self.register_task(u"tftp timeout check",
-                           LoopingCall(self._check_timeout)).start(self._timeout_check_interval, now=True)
+                           LoopingCall(self._task_check_timeout)).start(self._timeout_check_interval, now=True)
         self._is_running = True
 
     @blocking_call_on_reactor_thread
@@ -132,16 +137,16 @@ class TftpHandler(TaskManager):
         self._logger.info(u"%s started", session)
 
     @attach_runtime_statistics(u"{0.__class__.__name__}.{function_name}")
-    def _check_timeout(self):
+    def _task_check_timeout(self):
         """ A scheduled task that checks for timeout.
         """
         if not self._is_running:
             return
 
-        has_timeout = False
+        need_session_cleanup = False
         for key, session in self._session_dict.items():
-            if session.last_contact_time + session.timeout < time():
-                has_timeout = True
+            if self._check_session_timeout(session):
+                need_session_cleanup = True
 
                 # fail as timeout
                 self._logger.info(u"%s timed out", session)
@@ -152,8 +157,25 @@ class TftpHandler(TaskManager):
 
                 self._cleanup_session(key)
 
-        if has_timeout:
+        if need_session_cleanup:
             self._schedule_callback_processing()
+
+    def _check_session_timeout(self, session):
+        """
+        Checks if a session has timed out and tries to retransmit packet if allowed.
+        :param session: The given session.
+        :return: True or False indicating if the session has failed.
+        """
+        has_failed = False
+        timeout = session.timeout * (2**session.retries)
+        if session.last_contact_time + timeout < time():
+            # we do NOT resend packets that are not data-related
+            if session.retries < self._max_retries and session.last_sent_packet['opcode'] in (OPCODE_ACK, OPCODE_DATA):
+                self._send_packet(session, session.last_sent_packet)
+                session.retries += 1
+            else:
+                has_failed = True
+        return has_failed
 
     def _schedule_callback_processing(self):
         """
@@ -454,6 +476,12 @@ class TftpHandler(TaskManager):
         self._logger.debug(u"%s Got data, #block = %s size = %s", session, packet['block_number'], len(packet['data']))
 
         # check block_number
+        # ignore old ones, they may be retransmissions
+        if packet['block_number'] < session.block_number:
+            self._logger.warn(u"%s ignore old block number DATA %s < %s",
+                              session, packet['block_number'], session.block_number)
+            return
+
         if packet['block_number'] != session.block_number:
             msg = "%s Got ACK with block# %s while expecting %s" %\
                   (session, packet['block_number'], session.block_number)
@@ -497,6 +525,12 @@ class TftpHandler(TaskManager):
             return
 
         # check block number
+        # ignore old ones, they may be retransmissions
+        if packet['block_number'] < session.block_number:
+            self._logger.warn(u"%s ignore old block number ACK %s < %s",
+                              session, packet['block_number'], session.block_number)
+            return
+
         if packet['block_number'] != session.block_number:
             msg = "%s got ACK with block# %s while expecting %s" %\
                   (session, packet['block_number'], session.block_number)

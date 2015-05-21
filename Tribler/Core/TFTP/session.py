@@ -35,6 +35,8 @@ class Session(object):
         self.last_sent_packet = None
         self.is_waiting_for_last_ack = False
 
+        self.retries = 0
+
         self.is_done = False
         self.is_failed = False
 
