@@ -103,6 +103,7 @@ class FileWidget(BoxLayout):
 	mThumbnailUtils = autoclass ("android.media.ThumbnailUtils")
 	mByteArrayOutputStream = autoclass ("java.io.ByteArrayOutputStream")
 	mArrays = autoclass("java.util.Arrays")
+	mColor = autoclass("android.graphics.Color")
 	#mThumbnails = autoclass("android.provider.MediaStore.Video.Thumbnails")
 	name = 'NO FILENAME SET'
 	uri = None
@@ -121,48 +122,26 @@ class FileWidget(BoxLayout):
 		print self.uri
 		self.makeThumbnail()
 	def switchFormats(self, pixels):
-		print pixels[0]
-		#b = bytearray()
-		#b.append(pixels[0])		
-		print format('B', str(pixels[0]))
-		return pixels
+		print self.mColor.red(pixels[0])
+		print self.mColor.green(pixels[0])
+		print self.mColor.blue(pixels[0])
+		print self.mColor.alpha(pixels[0])
+		bit = numpy.asarray([b for pixel in [((p & 0xFF0000) >> 16, (p & 0xFF00) >> 8, p & 0xFF, (p & 0xFF000000) >> 24) for p in pixels] for b in pixel],dtype=numpy.uint8)
+		#bit = bit[::-1]		
+		print bit[0], bit[1], bit[2], bit[3]		
+		return bit
 	def makeThumbnail(self):
-		out = self.mByteArrayOutputStream()
-		'THUMBNAIL'		
-		self.thumbnail = self.mThumbnailUtils.createVideoThumbnail(self.uri,self.MICRO_KIND)
-		tex = Texture.create(size=(self.thumbnail.getWidth(),self.thumbnail.getHeight()) , colorfmt= 'rgba', bufferfmt='int')
-		#pixels = array('i', [0] *self.thumbnail.getWidth() * self.thumbnail.getHeight())
+		self.thumbnail = self.mThumbnailUtils.createVideoThumbnail(self.uri,self.MINI_KIND)
+		tex = Texture.create(size=(self.thumbnail.getWidth(),self.thumbnail.getHeight()) , colorfmt= 'rgba', bufferfmt='ubyte')
 		pixels = [0] *self.thumbnail.getWidth() * self.thumbnail.getHeight()
 		
 		self.thumbnail.getPixels(pixels, 0,self.thumbnail.getWidth(),0,0,self.thumbnail.getWidth(), self.thumbnail.getHeight())
-		#pixels = b''.join(map(chr, pixels))		
-		#print pixels
-		#pixels = array.array('B',pixels).tostring()		
-		pixels = numpy.asarray(pixels)		
-		tex.blit_buffer(pixels, colorfmt = 'rgba', bufferfmt = 'int')
-		print "OLD PIXELS!"		
-		print pixels
+		pixels = self.switchFormats(pixels)		
+		tex.blit_buffer(pixels, colorfmt = 'rgba', bufferfmt = 'ubyte')
+		tex.flip_vertical()
 		self.ids.img.texture = tex
 		self.ids.img.canvas.ask_update()
-
-		print 'COMPRESSION'		
-		#self.thumbnail.compress(self.mCompressFormat.valueOf("JPEG"), 100, out)
-	
-		print 'GONNA PRINT THE STREAM'		
-		print out
-		print 'GONNA PRINT THE BYTEARRAY!'
-		print 'it has length %d', out.size()
-		print out.toByteArray()
-		print 'DID I PRINT IT? GONNA READ IT IN	'
-		#outstr = self.mArrays.toString(out.toByteArray())
-		#ba = bytearray()
-		#ba.extend(outstr)
-		print "printed bytearray"
-		#self.ids.img.texture = CoreImage(io.BytesIO(ba), ext='jpg')
-		print 'THUMBNAIL BUDDY'
-		print self.uri
-		print self.thumbnail
-		
+				
 
 
 class Skelly(App):
