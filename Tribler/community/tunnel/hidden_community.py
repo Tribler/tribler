@@ -53,7 +53,7 @@ class RPRequestCache(RandomNumberCache):
         self.rp = rp
 
     def on_timeout(self):
-        self._logger.debug("RPRequestCache: no response on establish-rendezvous (circuit %d)", 
+        self._logger.debug("RPRequestCache: no response on establish-rendezvous (circuit %d)",
                            self.rp.circuit.circuit_id)
         self.community.remove_circuit(self.rp.circuit.circuit_id, 'establish-rendezvous timeout')
 
@@ -323,7 +323,9 @@ class HiddenTunnelCommunity(TunnelCommunity):
             else:
                 self._logger.debug('On create e2e: create rendezvous point')
                 self.create_rendezvous_point(
-                    DEFAULT_HOPS, lambda rendezvous_point, message=message: self.create_created_e2e(rendezvous_point, message))
+                    DEFAULT_HOPS,
+                    lambda rendezvous_point, message=message: self.create_created_e2e(rendezvous_point,
+                                                                                      message))
 
     def create_created_e2e(self, rendezvous_point, message):
         info_hash = message.payload.info_hash
@@ -333,7 +335,8 @@ class HiddenTunnelCommunity(TunnelCommunity):
         shared_secret, Y, AUTH = self.crypto.generate_diffie_shared_secret(message.payload.key, key)
         rendezvous_point.circuit.hs_session_keys = self.crypto.generate_session_keys(shared_secret)
         rp_info_enc = self.crypto.encrypt_str(
-            encode((rendezvous_point.rp_info, rendezvous_point.cookie)), *self.get_session_keys(rendezvous_point.circuit.hs_session_keys, EXIT_NODE))
+            encode((rendezvous_point.rp_info, rendezvous_point.cookie)),
+            *self.get_session_keys(rendezvous_point.circuit.hs_session_keys, EXIT_NODE))
 
         meta = self.get_meta_message(u'created-e2e')
         response = meta.impl(distribution=(self.global_time,), payload=(

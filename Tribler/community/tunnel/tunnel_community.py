@@ -491,6 +491,7 @@ class TunnelCommunity(Community):
                 if exit_candidate.become_exit:
                     self._logger.debug("Valid exit candidate found for this circuit")
                     required_exit = (c.sock_addr[0], c.sock_addr[1], pubkey)
+
                     # Stop looking for a better alternative if the exit-node is not used for exiting in another circuit
                     if self.candidate_is_connectable(c):
                         self._logger.debug("Exit node is connectable and not used in other circuits, that's prefered")
@@ -1011,9 +1012,14 @@ class TunnelCommunity(Community):
             else:
                 candidate_extend_mid = 0
 
+            if candidate.get_member() is not None:
+                candidate_mid = candidate.get_member().mid.encode('hex')
+            else:
+                candidate_mid = 0
+
             self.waiting_for.add(new_circuit_id)
             self.relay_from_to[new_circuit_id] = RelayRoute(circuit_id, candidate.sock_addr,
-                                                            mid=candidate.get_member().mid.encode('hex'))
+                                                            mid=candidate_mid)
             self.relay_from_to[circuit_id] = RelayRoute(new_circuit_id, extend_candidate.sock_addr,
                                                         mid=candidate_extend_mid)
 

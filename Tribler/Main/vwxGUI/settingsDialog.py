@@ -221,6 +221,11 @@ class SettingsDialog(wx.Dialog):
             scfg.set_tunnel_community_exitnode_enabled(becomeExitNode)
             restart = True
 
+        enableTunnelcommunity = self._enable_tunnelcommunity.IsChecked()
+        if enableTunnelcommunity != scfg.get_tunnel_community_enabled():
+            scfg.set_tunnel_community_enabled(enableTunnelcommunity)
+            restart = True
+
         valwebuiport = self._webui_port.GetValue()
         if valwebuiport != str(self.utility.read_config('webui_port')):
             self.utility.write_config('webui_port', valwebuiport)
@@ -749,8 +754,11 @@ class SettingsDialog(wx.Dialog):
 
         item_id = self._tree_ctrl.AppendItem(tree_root, "Anonimity", data=wx.TreeItemData(exp_panel))
 
-        exp_s1_sizer = create_subsection(exp_panel, exp_vsizer, "Relaying", 1, 3)
+        exp_s1_sizer = create_subsection(exp_panel, exp_vsizer, "Anonimity in Tribler", 1, 3)
+        self._enable_tunnelcommunity = wx.CheckBox(exp_panel, label="Enable experimental anonimity features")
+        self._enable_tunnelcommunity.Bind(wx.EVT_CHECKBOX, self.OnEnableTunnelcommunityChanged)
         self._become_exitnode = wx.CheckBox(exp_panel, label="Allow being an exit node")
+        exp_s1_sizer.Add(self._enable_tunnelcommunity, 0, wx.EXPAND)
         exp_s1_sizer.Add(self._become_exitnode, 0, wx.EXPAND)
         exp_s1_faq_text = wx.StaticText(
             exp_panel, label="By allowing Tribler to be an exit node, it's possible to become a proxy for someone elses traffic. \nThis may cause problems in some countries.")
@@ -801,9 +809,20 @@ class SettingsDialog(wx.Dialog):
 
         # load values
         self._become_exitnode.SetValue(self.utility.session.get_tunnel_community_exitnode_enabled())
+        self._enable_tunnelcommunity.SetValue(self.utility.session.get_tunnel_community_enabled())
         self._sliderhops.SetValue(self.utility.read_config('default_anonymous_level'))
 
+        self.OnEnableTunnelcommunityChanged(None)
+
         return exp_panel, item_id
+
+    def OnEnableTunnelcommunityChanged(self, event):
+        if self._enable_tunnelcommunity.GetValue():
+            self._sliderhops.Enable()
+            self._become_exitnode.Enable()
+        else:
+            self._sliderhops.Disable()
+            self._become_exitnode.Disable()
 
     def OnSlideHops(self, event):
         self.slider_bitmap.SetBitmap(self.slider_images[self._sliderhops.GetValue()])

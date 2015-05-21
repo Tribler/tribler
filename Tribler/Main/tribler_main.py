@@ -19,6 +19,7 @@ from Tribler.Main.Utility.compat import (convertSessionConfig, convertMainConfig
                                          convertDownloadCheckpoints)
 from Tribler.Core.version import version_id, commit_id
 from Tribler.Core.osutils import get_free_space
+import copy
 
 logger = logging.getLogger(__name__)
 
@@ -611,7 +612,6 @@ class ABCApp(object):
             startWorker(do_wx, do_db, uId=u"tribler.set_reputation")
         startWorker(None, self.set_reputation, delay=5.0, workerType="guiTaskQueue")
 
-
     def sesscb_states_callback(self, dslist):
         if not self.ready:
             return 5.0, []
@@ -655,23 +655,30 @@ class ABCApp(object):
             doCheckpoint = False
             for ds in dslist:
                 state = ds.get_status()
-                tdef = ds.get_download().get_def()
+                download = ds.get_download()
+                tdef = download.get_def()
                 safename = tdef.get_name_as_unicode()
 
                 if state == DLSTATUS_DOWNLOADING:
                     newActiveDownloads.append(safename)
 
                 elif state == DLSTATUS_SEEDING:
-                    if safename in self.prevActiveDownloads:
-                        download = ds.get_download()
-                        tdef = download.get_def()
 
+                    if safename in self.prevActiveDownloads:
                         infohash = tdef.get_infohash()
 
                         notifier = Notifier.getInstance()
                         notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, infohash, safename)
 
                         doCheckpoint = True
+
+                    if not tdef.is_anonymous() and self.sconfig.get_tunnel_community_enabled():
+                        self._logger.error("Re-add torrent with hops=1 to prevent naked seeding")
+                        self.utility.session.remove_download(download)
+                        defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+                        dscfg = defaultDLConfig.copy()
+                        dscfg.set_hops(1)
+                        self.utility.session.start_download(tdef, dscfg)
 
             self.prevActiveDownloads = newActiveDownloads
             if doCheckpoint:
