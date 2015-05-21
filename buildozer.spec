@@ -98,7 +98,7 @@ android.ndk = 10
 
 # (list) List of Java files to add to the android project (can be java or a
 # directory containing the files)
-#android.add_src =
+android.add_src = CreateNfcBeamUrisCallback.java
 
 # (str) python-for-android branch to use, if not master, useful to try
 # not yet merged features.

@@ -1,9 +1,10 @@
 <activity
-	android:name="com.example.android.nfctransfer.ViewActivity"
+	android:name=".main"
 	android:label="Android Beam Viewer" >
 
 	<intent-filter>
-		<action android:name="android.intent.action.VIEW"/>
+		<action android:name="android.nfc.action.NDEF_DISCOVERED"/>
 		<category android:name="android.intent.category.DEFAULT"/>
+		<data android:mimeType="application/test.org.main"/>
 	</intent-filter>
 </activity>

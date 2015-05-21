@@ -13,6 +13,8 @@ import numpy
 import array
 import android
 import os
+#from nfc import CreateNfcBeamUrisCallback
+from nfc2 import CreateNfcMessageCallback
 import fnmatch
 from nfc import CreateNfcBeamUrisCallback
 import io
@@ -28,14 +30,23 @@ activity = PythonActivity.mActivity
 Intent = autoclass('android.content.Intent')
 mEnvironment = autoclass('android.os.Environment')
 Uri = autoclass('android.net.Uri')
+Nfc = autoclass('org.test.Nfc')
 Builder.load_file('main.kv')
 
+NfcAdapter = autoclass('android.nfc.NfcAdapter')
+IntentFilter = autoclass('android.content.IntentFilter')
+PendingIntent = autoclass('android.app.PendingIntent')
+
+NdefMessage = autoclass('android.nfc.NdefMessage')
+NdefRecord = autoclass('android.nfc.NdefRecord')
+String = autoclass('java.lang.String')
+File = autoclass('java.io.File')
+CreateNfcBeamUrisCallback = autoclass('org.test.CreateNfcBeamUrisCallback')
 
 class HomeScreen(Screen):
 	from threading import *
 	mMediaStore = autoclass('android.provider.MediaStore')
 	mFile = autoclass('java.io.File')
-	
 
 	def likeMore(self):
 		self.ids.button1.text = self.ids.button1.text+"!"
@@ -53,7 +64,7 @@ class HomeScreen(Screen):
 		intention = Intent(self.mMediaStore.INTENT_ACTION_VIDEO_CAMERA)
 		self.con = cast(mContext, activity)			
 		intention.resolveActivity(self.con.getPackageManager())	
-		if intention.resolveActivity( self.con.getPackageManager()) != None:
+		if intention.resolveActivity(self.con.getPackageManager()) != None:
 			activity.startActivityForResult(intention,1)
 	ButtonNumber = 0
 	def addVideo(self):
@@ -68,6 +79,7 @@ class HomeScreen(Screen):
 		print DCIMdir.list()
 	
 	def getStoredMedia(self):
+		global files
 		DCIMdir = mEnvironment.getExternalStoragePublicDirectory(mEnvironment.DIRECTORY_DCIM)
 		print DCIMdir.toURI().getPath()	
 		self.ids.fileList.clear_widgets()
@@ -151,14 +163,48 @@ class Skelly(App):
 	NfcScr = NfcScreen(name='nfc')
 	sm.switch_to(HomeScr)
 
+	def nfc_init(self):
+		self.j_context = context = activity
+		self.currentApp = File((cast(mContext, context)).getPackageResourcePath())
+
+		self.adapter = NfcAdapter.getDefaultAdapter(context)
+#		self.pending_intent = PendingIntent.getActivity(context, 0, Intent(context, context.getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0)
+
+#		self.ndef_detected = IntentFilter(NfcAdapter.ACTION_NDEF_DISCOVERED)
+#		self.ndef_detected.addDataType('text/plain')
+#		self.ndef_exchange_filters = [self.ndef_detected]
+
+#		self.callback = CreateNfcBeamUrisCallback()
+		self.callback = CreateNfcBeamUrisCallback()
+		self.callback.addContext(context)
+		self.adapter.setBeamPushUrisCallback(self.callback, context)
+
+#		self.call = CreateNfcMessageCallback()
+#		self.adapter.setNdefPushMessageCallback(self.call, context)
+
+		print self.adapter
+#		print self.ndef_exchange_filters
+
+	def on_new_intent(self, intent):
+		print 'On New Intent: ', intent.getAction()
+
+		if intent.getAction() != NfcAdapter.ACTION_NDEF_DISCOVERED:
+			print 'Invalid Intent detected.'
+			return
+
+	def nfc_enable(self):
+		print 'Enabled NFC.'
+		activity.bind(on_new_intent = self.on_new_intent)
+
 	def build(self):
 		android.map_key(android.KEYCODE_BACK,1001)
 		win = Window
 		win.bind(on_keyboard=self.key_handler)
 
-		self.provider = CreateNfcBeamUrisCallback()
 
 		self.HomeScr.getStoredMedia()
+		self.nfc_init()
+
 		return self.sm
 	def swap_to(self, Screen):
 		self.history.append(self.sm.current_screen)
@@ -170,6 +216,7 @@ class Skelly(App):
 		pass
 	def on_resume(self):
 		self.HomeScr.getStoredMedia()
+		self.nfc_enable()
 	def key_handler(self,window,keycode1, keycode2, text, modifiers):
 		if keycode1 in [27,1001]:
 			if len(self.history ) != 0:
