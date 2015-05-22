@@ -18,6 +18,7 @@ import os
 import fnmatch
 from nfc import CreateNfcBeamUrisCallback
 import io
+import time
 
 
 from jnius import autoclass, cast
@@ -41,9 +42,13 @@ NdefRecord = autoclass('android.nfc.NdefRecord')
 String = autoclass('java.lang.String')
 File = autoclass('java.io.File')
 CreateNfcBeamUrisCallback = autoclass('org.test.CreateNfcBeamUrisCallback')
+import time
+from threading import *
+
+
 
 class HomeScreen(Screen):
-	from threading import *
+
 	mMediaStore = autoclass('android.provider.MediaStore')
 	mFile = autoclass('java.io.File')
 
@@ -133,25 +138,24 @@ class FileWidget(BoxLayout):
 		print self.uri
 		self.makeThumbnail()
 	def switchFormats(self, pixels):
-		print self.mColor.red(pixels[0])
-		print self.mColor.green(pixels[0])
-		print self.mColor.blue(pixels[0])
-		print self.mColor.alpha(pixels[0])
-		bit = numpy.asarray([b for pixel in [((p & 0xFF0000) >> 16, (p & 0xFF00) >> 8, p & 0xFF, (p & 0xFF000000) >> 24) for p in pixels] for b in pixel],dtype=numpy.uint8)
-		#bit = bit[::-1]		
-		print bit[0], bit[1], bit[2], bit[3]		
+		print 'StartSwitch'
+		bit = numpy.asarray([b for pixel in [((p & 0xFF0000) >> 16, (p & 0xFF00) >> 8, p & 0xFF, (p & 0xFF000000) >> 24) for p in pixels] for b in pixel],dtype=numpy.uint8)	
 		return bit
 	def makeThumbnail(self):
-		self.thumbnail = self.mThumbnailUtils.createVideoThumbnail(self.uri,self.MINI_KIND)
+		self.thumbnail = self.mThumbnailUtils.createVideoThumbnail(self.uri,self.MINI_KIND
 		tex = Texture.create(size=(self.thumbnail.getWidth(),self.thumbnail.getHeight()) , colorfmt= 'rgba', bufferfmt='ubyte')
 		pixels = [0] *self.thumbnail.getWidth() * self.thumbnail.getHeight()
-		
 		self.thumbnail.getPixels(pixels, 0,self.thumbnail.getWidth(),0,0,self.thumbnail.getWidth(), self.thumbnail.getHeight())
-		pixels = self.switchFormats(pixels)		
+		pixels = self.switchFormats(pixels)	
 		tex.blit_buffer(pixels, colorfmt = 'rgba', bufferfmt = 'ubyte')
 		tex.flip_vertical()
 		self.ids.img.texture = tex
 		self.ids.img.canvas.ask_update()
+	
+	benchmark = time.time()
+	def bench(self):
+		print "BENCHMARK: ", time.time() - self.benchmark
+		self.benchmark = time.time()
 				
 
 
