@@ -8,6 +8,7 @@ from kivy.lang import Builder
 from kivy.uix.button import Button
 from kivy.core.image import Image as CoreImage
 from kivy.graphics.texture import Texture
+from kivy.clock import Clock
 
 import numpy
 import array
@@ -20,8 +21,10 @@ from nfc import CreateNfcBeamUrisCallback
 import io
 import time
 import threading
+import functools
 
-from jnius import autoclass, cast
+
+from jnius import autoclass, cast, detach
 from jnius import JavaClass
 from jnius import PythonJavaClass
 from android.runnable import run_on_ui_thread
@@ -93,7 +96,7 @@ class HomeScreen(Screen):
 				wid = FileWidget()
 				wid.setName(filename)
 				wid.setUri(root+'/'+filename)
-				#wid.makeThumbnail()
+				#threading.Thread(target=wid.makeThumbnail).start()
 				self.ids.fileList.add_widget(wid)
 				
 
@@ -117,14 +120,15 @@ class FileWidget(BoxLayout):
 
 	mBitmap = autoclass("android.graphics.Bitmap")
 	mCompressFormat = autoclass("android.graphics.Bitmap$CompressFormat")
-	mThumbnailUtils = autoclass ("android.media.ThumbnailUtils")
+	#mThumbnailUtils = autoclass ("android.media.ThumbnailUtils")
 	mByteArrayOutputStream = autoclass ("java.io.ByteArrayOutputStream")
 	mArrays = autoclass("java.util.Arrays")
 	mColor = autoclass("android.graphics.Color")
 	#mThumbnails = autoclass("android.provider.MediaStore.Video.Thumbnails")
 	name = 'NO FILENAME SET'
 	uri = None
-	thumbnail = None  #Gotta make a default for this later
+	texture = None
+	#thumbnail = None  #Gotta make a default for this later
 	MICRO_KIND = 3
 	FULL_KIND = 2
 	MINI_KIND = 1
@@ -138,22 +142,39 @@ class FileWidget(BoxLayout):
 	def pressed(self):
 		print self.uri
 		
-		#threading.Thread(target=self.makeThumbnail()).start()
-		Runnable(self.makeThumbnail)()
+		threading.Thread(target=self.makeThumbnail).start()
+		#Runnable(self.makeThumbnail)()
+		print 'Pressed'
 	def switchFormats(self, pixels):
 		print 'StartSwitch'
 		bit = numpy.asarray([b for pixel in [((p & 0xFF0000) >> 16, (p & 0xFF00) >> 8, p & 0xFF, (p & 0xFF000000) >> 24) for p in pixels] for b in pixel],dtype=numpy.uint8)	
 		return bit
 	#@run_on_ui_thread
-	def makeThumbnail(self):
-		self.thumbnail = self.mThumbnailUtils.createVideoThumbnail(self.uri,self.MINI_KIND)
-		tex = Texture.create(size=(self.thumbnail.getWidth(),self.thumbnail.getHeight()) , colorfmt= 'rgba', bufferfmt='ubyte')
-		pixels = [0] *self.thumbnail.getWidth() * self.thumbnail.getHeight()
-		self.thumbnail.getPixels(pixels, 0,self.thumbnail.getWidth(),0,0,self.thumbnail.getWidth(), self.thumbnail.getHeight())
+	def makeThumbnail(self):	
+#		while True:
+#			pass
+		mThumbnailUtils = autoclass ("android.media.ThumbnailUtils")
+		thumbnail = mThumbnailUtils.createVideoThumbnail(self.uri,self.MINI_KIND)
+		#tex = Texture.create(size=(thumbnail.getWidth(),thumbnail.getHeight()) , colorfmt= 'rgba', bufferfmt='ubyte')
+		pixels = [0] *thumbnail.getWidth() * thumbnail.getHeight()
+		thumbnail.getPixels(pixels, 0,thumbnail.getWidth(),0,0,thumbnail.getWidth(), thumbnail.getHeight())
 		pixels = self.switchFormats(pixels)	
+		#tex.blit_buffer(pixels, colorfmt = 'rgba', bufferfmt = 'ubyte')
+		#tex.flip_vertical()
+		#self.texture = tex
+		#print self.texture
+		#self.ids.img.canvas.ask_update()
+		Clock.schedule_once(functools.partial(self.displayThumbnail,thumbnail.getWidth(), thumbnail.getHeight(),pixels))
+		print "Detatching thread"
+		detach()
+	def displayThumbnail(self, width, height, pixels, *largs):
+		tex = Texture.create(size=(width,height) , colorfmt= 'rgba', bufferfmt='ubyte')
+		#pixels = self.switchFormats(pix)
 		tex.blit_buffer(pixels, colorfmt = 'rgba', bufferfmt = 'ubyte')
 		tex.flip_vertical()
-		self.ids.img.texture = tex
+		self.texture = tex
+		print self.texture
+		self.ids.img.texture = self.texture
 		self.ids.img.canvas.ask_update()
 	
 	benchmark = time.time()
