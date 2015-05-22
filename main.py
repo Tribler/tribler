@@ -19,11 +19,13 @@ import fnmatch
 from nfc import CreateNfcBeamUrisCallback
 import io
 import time
-
+import threading
 
 from jnius import autoclass, cast
 from jnius import JavaClass
 from jnius import PythonJavaClass
+from android.runnable import run_on_ui_thread
+from android.runnable import Runnable
 
 mContext = autoclass('android.content.Context')
 PythonActivity = autoclass('org.renpy.android.PythonActivity')
@@ -42,8 +44,7 @@ NdefRecord = autoclass('android.nfc.NdefRecord')
 String = autoclass('java.lang.String')
 File = autoclass('java.io.File')
 CreateNfcBeamUrisCallback = autoclass('org.test.CreateNfcBeamUrisCallback')
-import time
-from threading import *
+
 
 
 
@@ -136,13 +137,16 @@ class FileWidget(BoxLayout):
 		self.thumbnail = thumb
 	def pressed(self):
 		print self.uri
-		self.makeThumbnail()
+		
+		#threading.Thread(target=self.makeThumbnail()).start()
+		Runnable(self.makeThumbnail)()
 	def switchFormats(self, pixels):
 		print 'StartSwitch'
 		bit = numpy.asarray([b for pixel in [((p & 0xFF0000) >> 16, (p & 0xFF00) >> 8, p & 0xFF, (p & 0xFF000000) >> 24) for p in pixels] for b in pixel],dtype=numpy.uint8)	
 		return bit
+	#@run_on_ui_thread
 	def makeThumbnail(self):
-		self.thumbnail = self.mThumbnailUtils.createVideoThumbnail(self.uri,self.MINI_KIND
+		self.thumbnail = self.mThumbnailUtils.createVideoThumbnail(self.uri,self.MINI_KIND)
 		tex = Texture.create(size=(self.thumbnail.getWidth(),self.thumbnail.getHeight()) , colorfmt= 'rgba', bufferfmt='ubyte')
 		pixels = [0] *self.thumbnail.getWidth() * self.thumbnail.getHeight()
 		self.thumbnail.getPixels(pixels, 0,self.thumbnail.getWidth(),0,0,self.thumbnail.getWidth(), self.thumbnail.getHeight())
