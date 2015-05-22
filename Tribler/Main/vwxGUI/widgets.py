@@ -204,7 +204,14 @@ class LinkText(GenStaticText):
 
 class LinkStaticText(wx.BoxSizer):
 
-    def __init__(self, parent, text, icon="bullet_go.png", icon_type=None, icon_align=wx.ALIGN_RIGHT, font_increment=0, font_colour='#0473BB'):
+    def __init__(self,
+                 parent,
+                 text,
+                 icon="bullet_go.png",
+                 icon_type=None,
+                 icon_align=wx.ALIGN_RIGHT,
+                 font_increment=0,
+                 font_colour='#0473BB'):
         wx.BoxSizer.__init__(self, wx.HORIZONTAL)
         self.parent = parent
 
@@ -2577,108 +2584,54 @@ class AnonymityDialog(wx.Panel):
     def __init__(self, parent):
         super(AnonymityDialog, self).__init__(parent)
 
+        self.guiUtility = GUIUtility.getInstance()
+        self.utility = self.guiUtility.utility
+
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.exitnodes_chkbox = wx.CheckBox(self, -1, "Enable anonimity over exit nodes")
-        font = self.exitnodes_chkbox.GetFont()
-        font.SetWeight(wx.BOLD)
-        self.exitnodes_chkbox.SetFont(font)
-        self.exitnodes_chkbox.Bind(wx.EVT_CHECKBOX, self.OnExitnodesValueChanged)
+        self.anonimity_chkbox = wx.CheckBox(self, -1, "Download anonymously using proxies")
+        self.anonimity_chkbox.SetValue(self.utility.read_config('default_anonimity_enabled'))
+        self.anonimity_chkbox.Bind(wx.EVT_CHECKBOX, self.OnAnonimityValueChanged)
 
-        self.endtoend_chkbox = wx.CheckBox(self, -1, "Enable anonimity over hidden services")
-        font = self.endtoend_chkbox.GetFont()
-        font.SetWeight(wx.BOLD)
-        self.endtoend_chkbox.SetFont(font)
-        self.endtoend_chkbox.Bind(wx.EVT_CHECKBOX, self.OnEndToEndValueChanged)
+        self.download_policy = wx.RadioBox(self, choices=('Find hidden seeders, fallback to anonymous Bittorrent \nafter 2 minutes',
+                                                          'Find hidden seeders, fallback to anonymous Bittorrent \nafter 5 minutes',
+                                                          'Darknet Mode: no fallback, exclusively download with \nstrong end-to-end encryption'),
+                                           style=wx.RA_VERTICAL)
 
-        # Add slider
-        self._lbls = []
-        self.labels = wx.BoxSizer(wx.HORIZONTAL)
-        lbl = wx.StaticText(self, -1, 'High speed\nMinimum anonymity', style=wx.ALIGN_CENTRE_HORIZONTAL)
-        self._lbls.append(lbl)
-        self.labels.Add(lbl)
-        self.labels.AddStretchSpacer()
-        lbl = wx.StaticText(self, -1, 'Low speed\nStrong anonymity', style=wx.ALIGN_CENTRE_HORIZONTAL)
-        self._lbls.append(lbl)
-        self.labels.Add(lbl)
+        self.download_policy.SetSelection(self.utility.read_config('default_download_policy'))
 
-        self.slider_images = [GuiImageManager.getInstance().getImage(u"scale_%d.png" % i) for i in range(6)]
-        self.slider_bitmap = wx.StaticBitmap(self, -1, self.slider_images[0])
-
-        self.slider = wx.Slider(self, -1, 1, 1, 3, wx.DefaultPosition, style=wx.SL_AUTOTICKS | wx.SL_HORIZONTAL)
-        self.slider.Bind(wx.EVT_SLIDER, self.OnSlide)
-
-        hop_count = wx.BoxSizer(wx.HORIZONTAL)
-        hop_count.AddSpacer((10, -1))
-        for count in xrange(1, 4):
-            lbl = wx.StaticText(self, -1, '%d' % count, style=wx.ALIGN_CENTRE_HORIZONTAL)
-            self._lbls.append(lbl)
-            hop_count.Add(lbl)
-            if count != 3:
-                hop_count.AddStretchSpacer()
-            else:
-                hop_count.AddSpacer((10, -1))
-
-        labels_and_slider = wx.BoxSizer(wx.VERTICAL)
-        labels_and_slider.Add(self.labels, 0, wx.EXPAND)
-        labels_and_slider.Add(self.slider, 0, wx.EXPAND)
-        labels_and_slider.Add(hop_count, 0, wx.EXPAND)
-
-        slider_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        slider_sizer.Add(labels_and_slider, 1, wx.RIGHT, 10)
-        slider_sizer.Add(self.slider_bitmap)
+        self.darknet_chkbox = wx.CheckBox(self, -1, "Darknet mode: Hidden seeding, never seed naked in Bittorrent")
+        self.darknet_chkbox.SetValue(True)
+        self.darknet_chkbox.Disable()
 
         vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
-        vSizer.Add(self.exitnodes_chkbox, 0, wx.EXPAND | wx.BOTTOM, 10)
-        vSizer.Add(self.endtoend_chkbox, 0, wx.EXPAND | wx.BOTTOM, 10)
-        self.st = wx.StaticText(self, -1, 'Please select how anonymous you want to download:')
-        _set_font(self.st, fontweight=wx.FONTWEIGHT_BOLD)
-        vSizer.Add(self.st, 0, wx.EXPAND | wx.BOTTOM, 10)
-        vSizer.Add(slider_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        vSizer.Add(self.anonimity_chkbox, 0, wx.EXPAND | wx.BOTTOM, 10)
+        vSizer.Add(self.download_policy, 0, wx.EXPAND | wx.BOTTOM, 10)
+        vSizer.Add(self.darknet_chkbox, 0, wx.EXPAND | wx.BOTTOM, 10)
 
         self.SetSizer(vSizer)
+        self.OnAnonimityValueChanged(None)
 
-        self.exitnodes_chkbox.SetValue(False)
-        self.endtoend_chkbox.SetValue(False)
-        self.OnEndToEndValueChanged(None)
-        self.OnExitnodesValueChanged(None)
+    def OnAnonimityValueChanged(self, event):
+        if self.anonimity_chkbox.GetValue():
+            self.download_policy.Enable()
+        else:
+            self.download_policy.Disable()
 
-    def OnSlide(self, event):
-        self.slider_bitmap.SetBitmap(self.slider_images[self.slider.GetValue()])
-
-    def OnEndToEndValueChanged(self, event):
-        to_show = self.endtoend_chkbox.GetValue()
-        self.slider.Show(False)
-        self.slider_bitmap.Show(False)
-        self.st.Show(False)
-        self.exitnodes_chkbox.SetValue(False)
-        for lbl in self._lbls:
-            lbl.Show(False)
-
-    def OnExitnodesValueChanged(self, event):
-        to_show = self.exitnodes_chkbox.GetValue()
-        self.slider.Show(to_show)
-        self.slider_bitmap.Show(to_show)
-        self.st.Show(to_show)
-        self.endtoend_chkbox.SetValue(False)
-        for lbl in self._lbls:
-            lbl.Show(to_show)
+        try:
+            self.GetParent().OkButtonVisibility()
+        except AttributeError:
+            pass
 
         self.Layout()
         self.GetParent().Layout()
 
-    def GetExitnodesHops(self):
-        return self.slider.GetValue() if self.exitnodes_chkbox.GetValue() else 0
+    def UseProxies(self):
+        return self.anonimity_chkbox.GetValue()
 
-    def SetExitnodesHops(self, value):
-        if value == 0:
-            self.exitnodes_chkbox.SetValue(False)
-        else:
-            self.exitnodes_chkbox.SetValue(True)
-            self.slider.SetValue(value)
+    def UseHiddenServices(self):
+        # There is no proxy downloading option in the settings panel after 4.5.0, default is hidden
+        return self.anonimity_chkbox.GetValue()
 
-    def GetEndToEndValue(self):
-        return self.endtoend_chkbox.GetValue()
-
-    def SetEndToEndValue(self, value):
-        self.endtoend_chkbox.SetValue(value)
+    def GetDownloadPolicyValue(self):
+        return self.download_policy.GetSelection()

@@ -201,9 +201,19 @@ class SettingsDialog(wx.Dialog):
             self.moveCollectedTorrents(self.currentDestDir, valdir)
             restart = True
 
-        default_anonymous_level = self._default_anonimity_dialog.GetExitnodesHops()
+        default_anonymous_level = self._sliderhops.GetValue()
         if default_anonymous_level != self.utility.read_config('default_anonymous_level'):
             self.utility.write_config('default_anonymous_level', default_anonymous_level)
+            self.saveDefaultDownloadConfig(scfg)
+
+        default_anonimity_chkbox = self._default_anonimity_dialog.UseProxies()
+        if default_anonimity_chkbox != self.utility.read_config('default_anonimity_enabled'):
+            self.utility.write_config('default_anonimity_enabled', default_anonimity_chkbox)
+            self.saveDefaultDownloadConfig(scfg)
+
+        default_download_policy = self._default_anonimity_dialog.GetDownloadPolicyValue()
+        if default_download_policy != self.utility.read_config('default_download_policy'):
+            self.utility.write_config('default_download_policy', default_download_policy)
             self.saveDefaultDownloadConfig(scfg)
 
         useWebUI = self._use_webui.IsChecked()
@@ -214,11 +224,6 @@ class SettingsDialog(wx.Dialog):
         becomeExitNode = self._become_exitnode.IsChecked()
         if becomeExitNode != scfg.get_tunnel_community_exitnode_enabled():
             scfg.set_tunnel_community_exitnode_enabled(becomeExitNode)
-            restart = True
-
-        switchHsOnTimeout = self._switch_hs_timeout.IsChecked()
-        if switchHsOnTimeout != scfg.get_tunnel_community_hs_timeout_switch():
-            scfg.set_tunnel_community_hs_timeout_switch(switchHsOnTimeout)
             restart = True
 
         valwebuiport = self._webui_port.GetValue()
@@ -513,7 +518,6 @@ class SettingsDialog(wx.Dialog):
         self._disk_location_ctrl.SetValue(self.currentDestDir)
         self._disk_location_choice.SetValue(self.utility.read_config('showsaveas'))
         self.OnChooseLocationChecked(None)
-        self._default_anonimity_dialog.SetExitnodesHops(self.utility.read_config('default_anonymous_level'))
         # minimize to tray
         if sys.platform != "darwin":
             min_to_tray = self.utility.read_config('mintray') == 1
@@ -745,7 +749,6 @@ class SettingsDialog(wx.Dialog):
 
         return exp_panel, item_id
 
-
     def __create_s6(self, tree_root, sizer):
         exp_panel, exp_vsizer = create_section(self, sizer, "Anonimity")
 
@@ -754,16 +757,58 @@ class SettingsDialog(wx.Dialog):
         exp_s1_sizer = create_subsection(exp_panel, exp_vsizer, "Relaying", 1, 3)
         self._become_exitnode = wx.CheckBox(exp_panel, label="Allow being an exit node")
         exp_s1_sizer.Add(self._become_exitnode, 0, wx.EXPAND)
-        self._switch_hs_timeout = wx.CheckBox(exp_panel, label="Switch from hidden services to exit nodes")
-        exp_s1_sizer.Add(self._switch_hs_timeout, 0, wx.EXPAND)
-
         exp_s1_faq_text = wx.StaticText(
             exp_panel, label="By allowing Tribler to be an exit node, it's possible to become a proxy for someone elses traffic. \nThis may cause problems in some countries.")
-        exp_vsizer.Add(exp_s1_faq_text, 0, wx.EXPAND | wx.TOP, 10)
+        exp_s1_sizer.Add(exp_s1_faq_text, 0, wx.EXPAND | wx.TOP, 10)
+
+        # Add slider
+        self._lbls = []
+        self.sliderlabels = wx.BoxSizer(wx.HORIZONTAL)
+        lbl = wx.StaticText(exp_panel, -1, 'High speed\nMinimum anonymity', style=wx.ALIGN_CENTRE_HORIZONTAL)
+        self._lbls.append(lbl)
+        self.sliderlabels.Add(lbl)
+        self.sliderlabels.AddStretchSpacer()
+        lbl = wx.StaticText(exp_panel, -1, 'Low speed\nStrong anonymity', style=wx.ALIGN_CENTRE_HORIZONTAL)
+        self._lbls.append(lbl)
+        self.sliderlabels.Add(lbl)
+
+        self.slider_images = [GuiImageManager.getInstance().getImage(u"scale_%d.png" % i) for i in range(6)]
+        self.slider_bitmap = wx.StaticBitmap(exp_panel, -1, self.slider_images[0])
+
+        self._sliderhops = wx.Slider(exp_panel, -1, 1, 1, 3, wx.DefaultPosition, style=wx.SL_AUTOTICKS | wx.SL_HORIZONTAL)
+        self._sliderhops.Bind(wx.EVT_SLIDER, self.OnSlideHops)
+
+        hop_count = wx.BoxSizer(wx.HORIZONTAL)
+        hop_count.AddSpacer((10, -1))
+        for count in xrange(1, 4):
+            lbl = wx.StaticText(exp_panel, -1, '%d' % count, style=wx.ALIGN_CENTRE_HORIZONTAL)
+            self._lbls.append(lbl)
+            hop_count.Add(lbl)
+            if count != 3:
+                hop_count.AddStretchSpacer()
+            else:
+                hop_count.AddSpacer((10, -1))
+
+        labels_and_slider = wx.BoxSizer(wx.VERTICAL)
+        labels_and_slider.Add(self.sliderlabels, 0, wx.EXPAND)
+        labels_and_slider.Add(self._sliderhops, 0, wx.EXPAND)
+        labels_and_slider.Add(hop_count, 0, wx.EXPAND)
+
+        slider_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        slider_sizer.Add(labels_and_slider, 1, wx.RIGHT, 10)
+        slider_sizer.Add(self.slider_bitmap)
+
+        proxytext = wx.StaticText(exp_panel, -1, 'Please select how anonymous you want to download:')
+
+        exp_s2_sizer = create_subsection(exp_panel, exp_vsizer, "Proxy downloading", 1, 3)
+        exp_s2_sizer.Add(proxytext, 0, wx.EXPAND | wx.BOTTOM, 10)
+        exp_s2_sizer.Add(slider_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
 
         # load values
         self._become_exitnode.SetValue(self.utility.session.get_tunnel_community_exitnode_enabled())
-        self._switch_hs_timeout.SetValue(self.utility.session.get_tunnel_community_hs_timeout_switch())
-
+        self._sliderhops.SetValue(self.utility.read_config('default_anonymous_level'))
 
         return exp_panel, item_id
+
+    def OnSlideHops(self, event):
+        self.slider_bitmap.SetBitmap(self.slider_images[self._sliderhops.GetValue()])

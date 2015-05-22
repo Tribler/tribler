@@ -73,8 +73,6 @@ sessdefaults['tunnel_community']['optin_dialog_shown'] = False
 sessdefaults['tunnel_community']['enabled'] = False
 sessdefaults['tunnel_community']['socks5_listen_ports'] = [-1] * 5
 sessdefaults['tunnel_community']['exitnode_enabled'] = False
-sessdefaults['tunnel_community']['hs_timeout_switch'] = True
-
 
 # Mainline DHT settings
 sessdefaults['mainline_dht'] = OrderedDict()
@@ -141,7 +139,7 @@ sessdefaults['video']['preferredmode'] = PLAYBACKMODE_INTERNAL
 #  Version 12: remove thumb
 #  Version 13: remove super_seeder
 
-DLDEFAULTS_VERSION = 13
+DLDEFAULTS_VERSION = 14
 dldefaults = OrderedDict()
 
 # General download settings
@@ -154,7 +152,6 @@ dldefaults['downloadconfig']['mode'] = 0
 dldefaults['downloadconfig']['hops'] = 0
 dldefaults['downloadconfig']['selected_files'] = []
 dldefaults['downloadconfig']['correctedfilename'] = None
-dldefaults['downloadconfig']['default_anonymous_level'] = 0
 
 tdefdictdefaults = {}
 tdefdictdefaults['comment'] = None
