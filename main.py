@@ -216,7 +216,6 @@ class Skelly(App):
 		pass
 	def on_resume(self):
 		self.HomeScr.getStoredMedia()
-		self.nfc_enable()
 	def key_handler(self,window,keycode1, keycode2, text, modifiers):
 		if keycode1 in [27,1001]:
 			if len(self.history ) != 0:
