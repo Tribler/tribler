@@ -174,14 +174,15 @@ class Skelly(App):
 #		self.ndef_exchange_filters = [self.ndef_detected]
 
 #		self.callback = CreateNfcBeamUrisCallback()
-		self.callback = CreateNfcBeamUrisCallback()
-		self.callback.addContext(context)
-		self.adapter.setBeamPushUrisCallback(self.callback, context)
+		if self.adapter is not None:
+			self.callback = CreateNfcBeamUrisCallback()
+			self.callback.addContext(context)
+			self.adapter.setBeamPushUrisCallback(self.callback, context)
 
 #		self.call = CreateNfcMessageCallback()
 #		self.adapter.setNdefPushMessageCallback(self.call, context)
 
-		print self.adapter
+#		print self.adapter
 #		print self.ndef_exchange_filters
 
 	def on_new_intent(self, intent):
