@@ -36,6 +36,7 @@ NfcAdapter = autoclass('android.nfc.NfcAdapter')
 File = autoclass('java.io.File')
 CreateNfcBeamUrisCallback = autoclass('org.test.CreateNfcBeamUrisCallback')
 MediaStore = autoclass('android.provider.MediaStore')
+ThumbnailUtils = autoclass ("android.media.ThumbnailUtils")
 
 Builder.load_file('main.kv')
 
@@ -98,35 +99,31 @@ class NfcScreen(Screen):
 
 class FileWidget(BoxLayout):
 
-	mBitmap = autoclass("android.graphics.Bitmap")
-	mCompressFormat = autoclass("android.graphics.Bitmap$CompressFormat")
-	mByteArrayOutputStream = autoclass ("java.io.ByteArrayOutputStream")
-	mArrays = autoclass("java.util.Arrays")
-	mColor = autoclass("android.graphics.Color")
-	mThumbnailUtils = autoclass ("android.media.ThumbnailUtils")
 
-	#mThumbnails = autoclass("android.provider.MediaStore.Video.Thumbnails")
 	name = 'NO FILENAME SET'
 	uri = None
 	texture = None
-	#thumbnail = None  #Gotta make a default for this later
-	MICRO_KIND = 3
-	FULL_KIND = 2
+	benchmark = time.time()
+
 	MINI_KIND = 1
+	FULL_KIND = 2
+	MICRO_KIND = 3
+
 	def setName(self, nom):
 		self.name = nom
 		self.ids.filebutton.text = nom
+
 	def setUri(self,ur):
 		self.uri = ur
+
 	def setThumb(self,thumb):
 		self.thumbnail = thumb
+
 	def pressed(self):
 		print self.uri
-		
-		#threading.Thread(target=self.makeThumbnail).start()
-		#Runnable(self.makeThumbnail)()
 		print 'Pressed'
 		print nfc_video_set
+
 	def toggle_nfc(self, state):
 		print 'toggling', self.ids.nfc_toggler
 		if(state == 'normal'):
@@ -137,39 +134,29 @@ class FileWidget(BoxLayout):
 			nfc_video_set.append(self.uri)
 		
 	def switchFormats(self, pixels):
-		print 'StartSwitch'
 		bit = numpy.asarray([b for pixel in [((p & 0xFF0000) >> 16, (p & 0xFF00) >> 8, p & 0xFF, (p & 0xFF000000) >> 24) for p in pixels] for b in pixel],dtype=numpy.uint8)	
 		return bit
-	#@run_on_ui_thread
+
 	def makeThumbnail(self):	
-#		while True:
-#			pass
 		thumbnail_sem.acquire()
-		thumbnail = self.mThumbnailUtils.createVideoThumbnail(self.uri,self.MINI_KIND)
+		thumbnail = ThumbnailUtils.createVideoThumbnail(self.uri,self.MINI_KIND)
 		thumbnail_sem.release()
-		#tex = Texture.create(size=(thumbnail.getWidth(),thumbnail.getHeight()) , colorfmt= 'rgba', bufferfmt='ubyte')
 		pixels = [0] *thumbnail.getWidth() * thumbnail.getHeight()
 		thumbnail.getPixels(pixels, 0,thumbnail.getWidth(),0,0,thumbnail.getWidth(), thumbnail.getHeight())
 		pixels = self.switchFormats(pixels)	
-		#tex.blit_buffer(pixels, colorfmt = 'rgba', bufferfmt = 'ubyte')
-		#tex.flip_vertical()
-		#self.texture = tex
-		#print self.texture
-		#self.ids.img.canvas.ask_update()
 		Clock.schedule_once(functools.partial(self.displayThumbnail,thumbnail.getWidth(), thumbnail.getHeight(),pixels))
 		print "Detatching thread"
 		detach()
+
 	def displayThumbnail(self, width, height, pixels, *largs):
 		tex = Texture.create(size=(width,height) , colorfmt= 'rgba', bufferfmt='ubyte')
-		#pixels = self.switchFormats(pix)
 		tex.blit_buffer(pixels, colorfmt = 'rgba', bufferfmt = 'ubyte')
 		tex.flip_vertical()
 		self.texture = tex
 		print self.texture
 		self.ids.img.texture = self.texture
 		self.ids.img.canvas.ask_update()
-	
-	benchmark = time.time()
+		
 	def bench(self):
 		print "BENCHMARK: ", time.time() - self.benchmark
 		self.benchmark = time.time()
