@@ -42,8 +42,6 @@ Builder.load_file('main.kv')
 thumbnail_sem = threading.BoundedSemaphore()
 nfc_video_set = []
 
-
-
 class HomeScreen(Screen):
 	def likeMore(self):
 		self.ids.button1.text = self.ids.button1.text+"!"
