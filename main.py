@@ -44,31 +44,31 @@ thumbnail_sem = threading.BoundedSemaphore()
 nfc_video_set = []
 
 class HomeScreen(Screen):
-	def likeMore(self):
-		self.ids.button1.text = self.ids.button1.text+"!"
-
+	#Simple test function
 	def AndroidTest(self):
 		vibrator = activity.getSystemService(Context.VIBRATOR_SERVICE)
 		if 'ANDROID_ROOT' in os.environ:
 			vibrator.vibrate(3000)
-	
+	#Function for starting the camera application
 	def startCamera(self):
 		intention = Intent(MediaStore.INTENT_ACTION_VIDEO_CAMERA)
+		#When java requires a "Context" usually in the shape of "this",
+		#it has to be casted from our activity
 		self.con = cast(Context, activity)			
 		intention.resolveActivity(self.con.getPackageManager())	
 		if intention.resolveActivity(self.con.getPackageManager()) != None:
 			activity.startActivityForResult(intention,1)
-
+	#Test function for adding a number of fake video buttons
 	def addVideo(self):
 		wid = FileWidget()
-		wid.setName('Name %d' % self.ButtonNumber)
-		self.ButtonNumber = self.ButtonNumber+1
+		wid.setName('FakeVid!')
 		self.ids.fileList.add_widget(wid)
-
+	#Useful support function to print the location of the DCIM dir
 	def printDir(self):	
 		DCIMdir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
 		print DCIMdir.list()
-	
+	#Traverse DCIM folder for video files, and create a listing out of the discovered files
+	#Automatically generates Filewidgets and adds them to the Scrollview
 	def getStoredMedia(self):
 		DCIMdir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
 		print DCIMdir.toURI().getPath()	
@@ -78,34 +78,18 @@ class HomeScreen(Screen):
 				wid = FileWidget()
 				wid.setName(filename)
 				wid.setUri(root+'/'+filename)
+				#Making thumbnails is ungodly slow, so it's threaded
 				threading.Thread(target=wid.makeThumbnail).start()
 				self.ids.fileList.add_widget(wid)
-				
-
-class CameraScreen(Screen):
-	def startCamera(self):
-
-		intention = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
-		self.con = cast(Context, activity)			
-		intention.resolveActivity(self.con.getPackageManager())	
-		if intention.resolveActivity( self.con.getPackageManager()) != None:
-			activity.startActivityForResult(intention,1)
-
-class NfcScreen(Screen):
-	def printDir(self):	
-		DCIMdir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
-		print DCIMdir.list()
-
 
 class FileWidget(BoxLayout):
-
-
 	name = 'NO FILENAME SET'
 	uri = None
 	texture = None
 	benchmark = time.time()
 
-	MINI_KIND = 1
+	#Enumerator as per android.media.ThumbnailUtils
+	MINI_KIND = 1 
 	FULL_KIND = 2
 	MICRO_KIND = 3
 
@@ -115,15 +99,12 @@ class FileWidget(BoxLayout):
 
 	def setUri(self,ur):
 		self.uri = ur
-
-	def setThumb(self,thumb):
-		self.thumbnail = thumb
-
+	#Called when pressed on the big filewidget button
 	def pressed(self):
 		print self.uri
 		print 'Pressed'
 		print nfc_video_set
-
+	#Adds and removes the video files to the nfc set so that they can be transferred
 	def toggle_nfc(self, state):
 		print 'toggling', self.ids.nfc_toggler
 		if(state == 'normal'):
@@ -132,22 +113,29 @@ class FileWidget(BoxLayout):
 		if(state == 'down'):
 			print 'button state down'
 			nfc_video_set.append(self.uri)
-		
+	#Android's Bitmaps are in ARGB format, while kivy expects RGBA.
+	#This function swaps the bytes to their appropriate locations
+	#It's super slow, and another method should be considered	
 	def switchFormats(self, pixels):
 		bit = numpy.asarray([b for pixel in [((p & 0xFF0000) >> 16, (p & 0xFF00) >> 8, p & 0xFF, (p & 0xFF000000) >> 24) for p in pixels] for b in pixel],dtype=numpy.uint8)	
 		return bit
-
+	#Function designed with multithreading in mind. 
+	#Generates the appropriate pixel data for use with the Thumbnails
 	def makeThumbnail(self):	
+		#Android crashes when multiple threads call createVideoThumbnail, so we block access to it.
+		#Luckily requesting thumbnails is pretty quick
 		thumbnail_sem.acquire()
 		thumbnail = ThumbnailUtils.createVideoThumbnail(self.uri,self.MINI_KIND)
 		thumbnail_sem.release()
 		pixels = [0] *thumbnail.getWidth() * thumbnail.getHeight()
 		thumbnail.getPixels(pixels, 0,thumbnail.getWidth(),0,0,thumbnail.getWidth(), thumbnail.getHeight())
-		pixels = self.switchFormats(pixels)	
+		pixels = self.switchFormats(pixels)
+		#Schedule the main thread to update the thumbnail's texture	
 		Clock.schedule_once(functools.partial(self.displayThumbnail,thumbnail.getWidth(), thumbnail.getHeight(),pixels))
 		print "Detatching thread"
 		detach()
-
+	#Function called by makeThumbnail to set the thumbnail properly
+	#Displaying a new texture does not work on a seperate thread, so the main thread had to handle it
 	def displayThumbnail(self, width, height, pixels, *largs):
 		tex = Texture.create(size=(width,height) , colorfmt= 'rgba', bufferfmt='ubyte')
 		tex.blit_buffer(pixels, colorfmt = 'rgba', bufferfmt = 'ubyte')
@@ -156,7 +144,7 @@ class FileWidget(BoxLayout):
 		print self.texture
 		self.ids.img.texture = self.texture
 		self.ids.img.canvas.ask_update()
-		
+	#Benchmark function to help discover which function is slow	
 	def bench(self):
 		print "BENCHMARK: ", time.time() - self.benchmark
 		self.benchmark = time.time()
@@ -167,7 +155,6 @@ class Skelly(App):
 	sm = ScreenManager()
 	history = []
 	HomeScr = HomeScreen(name='home')
-	NfcScr = NfcScreen(name='nfc')
 	sm.switch_to(HomeScr)
 
 	#Method that request the device's NFC adapter and adds a Callback function to it to activate on an Android Beam Intent.

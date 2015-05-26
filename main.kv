@@ -7,14 +7,8 @@
 			size_hint: 1,None
 			height:'1cm'
 			Button:
-				id:button2
-				text:'test'
+				text:'Test'
 				on_release:root.AndroidTest()
-			Button:
-				id:button3
-				text:'NFC'
-				#on_release:root.manager.current='nfc'
-				on_release: app.swap_to(app.NfcScr)
 			Button:
 				text: 'Add Video'
 				on_release: root.addVideo()
@@ -30,22 +24,6 @@
 				id:button3
 				text: 'Camera'
 				on_release: root.startCamera()
-				
-	
-<CameraScreen>
-	BoxLayout:
-		orientation:"vertical"
-		Button:
-			id:cambutton
-			text:'start'
-			on_release: root.startCamera()
-<NfcScreen>
-	BoxLayout:
-		orientation:"vertical"
-		Button:
-			id:filebut
-			text:'File'
-			on_release: root.printDir()
 <FileWidget>
 	size_hint: 1, None
 	height: '2.4cm'
