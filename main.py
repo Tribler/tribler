@@ -14,15 +14,12 @@ import numpy
 import array
 import android
 import os
-#from nfc import CreateNfcBeamUrisCallback
-#from nfc2 import CreateNfcMessageCallback
 import fnmatch
 from nfc import CreateNfcBeamUrisCallback
 import io
 import time
 import threading
 import functools
-
 
 from jnius import autoclass, cast, detach
 from jnius import JavaClass
@@ -36,17 +33,11 @@ activity = PythonActivity.mActivity
 Intent = autoclass('android.content.Intent')
 mEnvironment = autoclass('android.os.Environment')
 Uri = autoclass('android.net.Uri')
-Builder.load_file('main.kv')
-
 NfcAdapter = autoclass('android.nfc.NfcAdapter')
-IntentFilter = autoclass('android.content.IntentFilter')
-PendingIntent = autoclass('android.app.PendingIntent')
-
-NdefMessage = autoclass('android.nfc.NdefMessage')
-NdefRecord = autoclass('android.nfc.NdefRecord')
-String = autoclass('java.lang.String')
 File = autoclass('java.io.File')
 CreateNfcBeamUrisCallback = autoclass('org.test.CreateNfcBeamUrisCallback')
+
+Builder.load_file('main.kv')
 
 thumbnail_sem = threading.BoundedSemaphore()
 nfc_video_set = []
@@ -210,25 +201,12 @@ class Skelly(App):
 	def nfc_init(self):
 		self.j_context = context = activity
 		self.currentApp = File((cast(mContext, context)).getPackageResourcePath())
-
 		self.adapter = NfcAdapter.getDefaultAdapter(context)
-#		self.pending_intent = PendingIntent.getActivity(context, 0, Intent(context, context.getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0)
 
-#		self.ndef_detected = IntentFilter(NfcAdapter.ACTION_NDEF_DISCOVERED)
-#		self.ndef_detected.addDataType('text/plain')
-#		self.ndef_exchange_filters = [self.ndef_detected]
-
-#		self.callback = CreateNfcBeamUrisCallback()
 		if self.adapter is not None:
 			self.callback = CreateNfcBeamUrisCallback()
 			self.callback.addContext(context)
 			self.adapter.setBeamPushUrisCallback(self.callback, context)
-
-#		self.call = CreateNfcMessageCallback()
-#		self.adapter.setNdefPushMessageCallback(self.call, context)
-
-#		print self.adapter
-#		print self.ndef_exchange_filters
 
 	def on_new_intent(self, intent):
 		print 'On New Intent: ', intent.getAction()
