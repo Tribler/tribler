@@ -154,8 +154,6 @@ class FileWidget(BoxLayout):
 	def bench(self):
 		print "BENCHMARK: ", time.time() - self.benchmark
 		self.benchmark = time.time()
-				
-
 
 class Skelly(App):
 	sm = ScreenManager()
@@ -187,6 +185,7 @@ class Skelly(App):
 		self.nfc_init()
 
 		return self.sm
+
 	#Function that helps properly implement the history function.
 	#use this instead of switch_to
 	def swap_to(self, Screen):
@@ -200,10 +199,12 @@ class Skelly(App):
 	#required function by android, called when asked to stop
 	def on_stop(self):
 		pass
+
 	#Required function by android, called when resumed from a pause	
 	def on_resume(self):
 		#forces a refresh of the entire video list
 		self.HomeScr.getStoredMedia()
+
 	#Button handler function
 	#also implements history function in tandem with swap_to()
 	def key_handler(self,window,keycode1, keycode2, text, modifiers):
