@@ -58,6 +58,8 @@ class HomeScreen(Screen):
 		self.con = cast(Context, activity)			
 		intention.resolveActivity(self.con.getPackageManager())	
 		if intention.resolveActivity(self.con.getPackageManager()) != None:
+			#Called with 1 as parameter so the application waits
+			#until the camera returns it's video			
 			activity.startActivityForResult(intention,1)
 
 	#Test function for adding a number of fake video buttons
