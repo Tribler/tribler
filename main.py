@@ -170,6 +170,7 @@ class Skelly(App):
 			self.adapter.setBeamPushUrisCallback(self.callback, context)
 
 	def build(self):
+		#Android back mapping
 		android.map_key(android.KEYCODE_BACK,1001)
 		win = Window
 		win.bind(on_keyboard=self.key_handler)
@@ -180,16 +181,24 @@ class Skelly(App):
 		self.nfc_init()
 
 		return self.sm
+	#Function that helps properly implement the history function.
+	#use this instead of switch_to
 	def swap_to(self, Screen):
 		self.history.append(self.sm.current_screen)
 		self.sm.switch_to(Screen, direction='left')
-
+	#required function by android, called when paused for multitasking
 	def on_pause(self):
 		return True
+
+	#required function by android, called when asked to stop
 	def on_stop(self):
 		pass
+	#Required function by android, called when resumed from a pause	
 	def on_resume(self):
+		#forces a refresh of the entire video list
 		self.HomeScr.getStoredMedia()
+	#Button handler function
+	#also implements history function in tandem with swap_to()
 	def key_handler(self,window,keycode1, keycode2, text, modifiers):
 		if keycode1 in [27,1001]:
 			if len(self.history ) != 0:
