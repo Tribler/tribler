@@ -49,6 +49,7 @@ class HomeScreen(Screen):
 		vibrator = activity.getSystemService(Context.VIBRATOR_SERVICE)
 		if 'ANDROID_ROOT' in os.environ:
 			vibrator.vibrate(3000)
+
 	#Function for starting the camera application
 	def startCamera(self):
 		intention = Intent(MediaStore.INTENT_ACTION_VIDEO_CAMERA)
@@ -58,15 +59,18 @@ class HomeScreen(Screen):
 		intention.resolveActivity(self.con.getPackageManager())	
 		if intention.resolveActivity(self.con.getPackageManager()) != None:
 			activity.startActivityForResult(intention,1)
+
 	#Test function for adding a number of fake video buttons
 	def addVideo(self):
 		wid = FileWidget()
 		wid.setName('FakeVid!')
 		self.ids.fileList.add_widget(wid)
+
 	#Useful support function to print the location of the DCIM dir
 	def printDir(self):	
 		DCIMdir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
 		print DCIMdir.list()
+
 	#Traverse DCIM folder for video files, and create a listing out of the discovered files
 	#Automatically generates Filewidgets and adds them to the Scrollview
 	def getStoredMedia(self):
