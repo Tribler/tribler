@@ -11,7 +11,6 @@ from kivy.graphics.texture import Texture
 from kivy.clock import Clock
 
 import numpy
-import array
 import android
 import os
 import fnmatch
@@ -27,15 +26,16 @@ from jnius import PythonJavaClass
 from android.runnable import run_on_ui_thread
 from android.runnable import Runnable
 
-mContext = autoclass('android.content.Context')
+Context = autoclass('android.content.Context')
 PythonActivity = autoclass('org.renpy.android.PythonActivity')
 activity = PythonActivity.mActivity
 Intent = autoclass('android.content.Intent')
-mEnvironment = autoclass('android.os.Environment')
+Environment = autoclass('android.os.Environment')
 Uri = autoclass('android.net.Uri')
 NfcAdapter = autoclass('android.nfc.NfcAdapter')
 File = autoclass('java.io.File')
 CreateNfcBeamUrisCallback = autoclass('org.test.CreateNfcBeamUrisCallback')
+MediaStore = autoclass('android.provider.MediaStore')
 
 Builder.load_file('main.kv')
 
@@ -45,43 +45,33 @@ nfc_video_set = []
 
 
 class HomeScreen(Screen):
-
-	mMediaStore = autoclass('android.provider.MediaStore')
-	mFile = autoclass('java.io.File')
-
 	def likeMore(self):
 		self.ids.button1.text = self.ids.button1.text+"!"
+
 	def AndroidTest(self):
-		vibrator = activity.getSystemService(mContext.VIBRATOR_SERVICE)
+		vibrator = activity.getSystemService(Context.VIBRATOR_SERVICE)
 		if 'ANDROID_ROOT' in os.environ:
-			vibrator.vibrate(3000)	
-		else:
-			print 'not android?'
-			print os.environ
+			vibrator.vibrate(3000)
 	
 	def startCamera(self):
-
-		#intention = Intent(self.mMediaStore.ACTION_VIDEO_CAPTURE)
-		intention = Intent(self.mMediaStore.INTENT_ACTION_VIDEO_CAMERA)
-		self.con = cast(mContext, activity)			
+		intention = Intent(MediaStore.INTENT_ACTION_VIDEO_CAMERA)
+		self.con = cast(Context, activity)			
 		intention.resolveActivity(self.con.getPackageManager())	
 		if intention.resolveActivity(self.con.getPackageManager()) != None:
 			activity.startActivityForResult(intention,1)
-	ButtonNumber = 0
+
 	def addVideo(self):
 		wid = FileWidget()
 		wid.setName('Name %d' % self.ButtonNumber)
 		self.ButtonNumber = self.ButtonNumber+1
 		self.ids.fileList.add_widget(wid)
 
-
 	def printDir(self):	
-		DCIMdir = mEnvironment.getExternalStoragePublicDirectory(mEnvironment.DIRECTORY_DCIM)
+		DCIMdir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
 		print DCIMdir.list()
 	
 	def getStoredMedia(self):
-		global files
-		DCIMdir = mEnvironment.getExternalStoragePublicDirectory(mEnvironment.DIRECTORY_DCIM)
+		DCIMdir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
 		print DCIMdir.toURI().getPath()	
 		self.ids.fileList.clear_widgets()
 		for root, dirnames, filenames in os.walk(DCIMdir.getAbsolutePath()):
@@ -89,25 +79,22 @@ class HomeScreen(Screen):
 				wid = FileWidget()
 				wid.setName(filename)
 				wid.setUri(root+'/'+filename)
-				if(wid.uri in nfc_video_set):
-					wid.ids.button_layout.nfc_toggle.state = 'down'
 				threading.Thread(target=wid.makeThumbnail).start()
 				self.ids.fileList.add_widget(wid)
 				
 
 class CameraScreen(Screen):
-	mMediaStore = autoclass('android.provider.MediaStore')
 	def startCamera(self):
 
-		intention = Intent(self.mMediaStore.ACTION_VIDEO_CAPTURE)
-		self.con = cast(mContext, activity)			
+		intention = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
+		self.con = cast(Context, activity)			
 		intention.resolveActivity(self.con.getPackageManager())	
 		if intention.resolveActivity( self.con.getPackageManager()) != None:
 			activity.startActivityForResult(intention,1)
 
 class NfcScreen(Screen):
 	def printDir(self):	
-		DCIMdir = mEnvironment.getExternalStoragePublicDirectory(mEnvironment.DIRECTORY_DCIM)
+		DCIMdir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
 		print DCIMdir.list()
 
 
@@ -200,7 +187,7 @@ class Skelly(App):
 
 	def nfc_init(self):
 		self.j_context = context = activity
-		self.currentApp = File((cast(mContext, context)).getPackageResourcePath())
+		self.currentApp = File((cast(Context, context)).getPackageResourcePath())
 		self.adapter = NfcAdapter.getDefaultAdapter(context)
 
 		if self.adapter is not None:
