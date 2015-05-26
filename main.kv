@@ -1,6 +1,7 @@
 <HomeScreen>
 	BoxLayout:
 		orientation: 'vertical'
+		id: homescreen
 		BoxLayout:
 			orientation:"horizontal"
 			size_hint: 1,None
@@ -56,3 +57,17 @@
 		id: filebutton
 		text: root.name
 		on_release: root.pressed()
+	BoxLayout:
+		size_hint: None, 1
+		width: '0.675cm'
+		orientation:"vertical"
+		id: button_layout
+		ToggleButton:
+			text: 'N'
+			id:nfc_toggler
+			on_state: root.toggle_nfc(self.state) 
+		ToggleButton:
+			text: 'T'
+			id:tribler_toggler
+
+

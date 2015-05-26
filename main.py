@@ -48,6 +48,8 @@ String = autoclass('java.lang.String')
 File = autoclass('java.io.File')
 CreateNfcBeamUrisCallback = autoclass('org.test.CreateNfcBeamUrisCallback')
 
+thumbnail_sem = threading.BoundedSemaphore()
+nfc_video_set = []
 
 
 
@@ -96,7 +98,9 @@ class HomeScreen(Screen):
 				wid = FileWidget()
 				wid.setName(filename)
 				wid.setUri(root+'/'+filename)
-				#threading.Thread(target=wid.makeThumbnail).start()
+				if(wid.uri in nfc_video_set):
+					wid.ids.button_layout.nfc_toggle.state = 'down'
+				threading.Thread(target=wid.makeThumbnail).start()
 				self.ids.fileList.add_widget(wid)
 				
 
@@ -120,10 +124,11 @@ class FileWidget(BoxLayout):
 
 	mBitmap = autoclass("android.graphics.Bitmap")
 	mCompressFormat = autoclass("android.graphics.Bitmap$CompressFormat")
-	#mThumbnailUtils = autoclass ("android.media.ThumbnailUtils")
 	mByteArrayOutputStream = autoclass ("java.io.ByteArrayOutputStream")
 	mArrays = autoclass("java.util.Arrays")
 	mColor = autoclass("android.graphics.Color")
+	mThumbnailUtils = autoclass ("android.media.ThumbnailUtils")
+
 	#mThumbnails = autoclass("android.provider.MediaStore.Video.Thumbnails")
 	name = 'NO FILENAME SET'
 	uri = None
@@ -142,9 +147,19 @@ class FileWidget(BoxLayout):
 	def pressed(self):
 		print self.uri
 		
-		threading.Thread(target=self.makeThumbnail).start()
+		#threading.Thread(target=self.makeThumbnail).start()
 		#Runnable(self.makeThumbnail)()
 		print 'Pressed'
+		print nfc_video_set
+	def toggle_nfc(self, state):
+		print 'toggling', self.ids.nfc_toggler
+		if(state == 'normal'):
+			print 'button state up'
+			nfc_video_set.remove(self.uri)
+		if(state == 'down'):
+			print 'button state down'
+			nfc_video_set.append(self.uri)
+		
 	def switchFormats(self, pixels):
 		print 'StartSwitch'
 		bit = numpy.asarray([b for pixel in [((p & 0xFF0000) >> 16, (p & 0xFF00) >> 8, p & 0xFF, (p & 0xFF000000) >> 24) for p in pixels] for b in pixel],dtype=numpy.uint8)	
@@ -153,8 +168,9 @@ class FileWidget(BoxLayout):
 	def makeThumbnail(self):	
 #		while True:
 #			pass
-		mThumbnailUtils = autoclass ("android.media.ThumbnailUtils")
-		thumbnail = mThumbnailUtils.createVideoThumbnail(self.uri,self.MINI_KIND)
+		thumbnail_sem.acquire()
+		thumbnail = self.mThumbnailUtils.createVideoThumbnail(self.uri,self.MINI_KIND)
+		thumbnail_sem.release()
 		#tex = Texture.create(size=(thumbnail.getWidth(),thumbnail.getHeight()) , colorfmt= 'rgba', bufferfmt='ubyte')
 		pixels = [0] *thumbnail.getWidth() * thumbnail.getHeight()
 		thumbnail.getPixels(pixels, 0,thumbnail.getWidth(),0,0,thumbnail.getWidth(), thumbnail.getHeight())
