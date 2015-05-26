@@ -170,22 +170,17 @@ class Skelly(App):
 	NfcScr = NfcScreen(name='nfc')
 	sm.switch_to(HomeScr)
 
+	#Method that request the device's NFC adapter and adds a Callback function to it to activate on an Android Beam Intent.
 	def nfc_init(self):
+		#Request the Activity to obtain the NFC Adapter and later add it to the Callback. 
 		self.j_context = context = activity
-		self.currentApp = File((cast(Context, context)).getPackageResourcePath())
 		self.adapter = NfcAdapter.getDefaultAdapter(context)
 
+		#Only activate the NFC functionality if the device supports it.
 		if self.adapter is not None:
 			self.callback = CreateNfcBeamUrisCallback()
 			self.callback.addContext(context)
 			self.adapter.setBeamPushUrisCallback(self.callback, context)
-
-	def on_new_intent(self, intent):
-		print 'On New Intent: ', intent.getAction()
-
-		if intent.getAction() != NfcAdapter.ACTION_NDEF_DISCOVERED:
-			print 'Invalid Intent detected.'
-			return
 
 	def build(self):
 		android.map_key(android.KEYCODE_BACK,1001)
@@ -194,6 +189,7 @@ class Skelly(App):
 
 
 		self.HomeScr.getStoredMedia()
+		#Initialize NFC
 		self.nfc_init()
 
 		return self.sm

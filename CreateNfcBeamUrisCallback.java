@@ -14,10 +14,12 @@ public class CreateNfcBeamUrisCallback implements NfcAdapter.CreateBeamUrisCallb
 	ArrayList<Uri> uris = new ArrayList<Uri>();
 	Activity context;
 
+	/* Method that allows the python code to attach its Activity to this Class. */
 	public void addContext(Activity act){
 		context = act;
 	}
 
+	/* Method that adds an Uri to the list of Files to be sent through Android Beam. */
 	public void addUris(Uri fileUri){
 		if (!changed) {
 			changed = true;
@@ -27,6 +29,7 @@ public class CreateNfcBeamUrisCallback implements NfcAdapter.CreateBeamUrisCallb
 		uris.add(fileUri);
 	}
 
+	/* Method that either sends the specified Files through Android Beam or the App itself, if no Files were specified. */
 	@Override
 	public Uri[] createBeamUris(NfcEvent event) {
 		if (!changed) {
