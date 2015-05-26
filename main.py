@@ -99,11 +99,13 @@ class FileWidget(BoxLayout):
 
 	def setUri(self,ur):
 		self.uri = ur
+
 	#Called when pressed on the big filewidget button
 	def pressed(self):
 		print self.uri
 		print 'Pressed'
 		print nfc_video_set
+
 	#Adds and removes the video files to the nfc set so that they can be transferred
 	def toggle_nfc(self, state):
 		print 'toggling', self.ids.nfc_toggler
@@ -113,12 +115,14 @@ class FileWidget(BoxLayout):
 		if(state == 'down'):
 			print 'button state down'
 			nfc_video_set.append(self.uri)
+
 	#Android's Bitmaps are in ARGB format, while kivy expects RGBA.
 	#This function swaps the bytes to their appropriate locations
 	#It's super slow, and another method should be considered	
 	def switchFormats(self, pixels):
 		bit = numpy.asarray([b for pixel in [((p & 0xFF0000) >> 16, (p & 0xFF00) >> 8, p & 0xFF, (p & 0xFF000000) >> 24) for p in pixels] for b in pixel],dtype=numpy.uint8)	
 		return bit
+
 	#Function designed with multithreading in mind. 
 	#Generates the appropriate pixel data for use with the Thumbnails
 	def makeThumbnail(self):	
@@ -134,6 +138,7 @@ class FileWidget(BoxLayout):
 		Clock.schedule_once(functools.partial(self.displayThumbnail,thumbnail.getWidth(), thumbnail.getHeight(),pixels))
 		print "Detatching thread"
 		detach()
+
 	#Function called by makeThumbnail to set the thumbnail properly
 	#Displaying a new texture does not work on a seperate thread, so the main thread had to handle it
 	def displayThumbnail(self, width, height, pixels, *largs):
@@ -144,6 +149,7 @@ class FileWidget(BoxLayout):
 		print self.texture
 		self.ids.img.texture = self.texture
 		self.ids.img.canvas.ask_update()
+
 	#Benchmark function to help discover which function is slow	
 	def bench(self):
 		print "BENCHMARK: ", time.time() - self.benchmark
@@ -186,6 +192,7 @@ class Skelly(App):
 	def swap_to(self, Screen):
 		self.history.append(self.sm.current_screen)
 		self.sm.switch_to(Screen, direction='left')
+
 	#required function by android, called when paused for multitasking
 	def on_pause(self):
 		return True
