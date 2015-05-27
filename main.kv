@@ -10,6 +10,10 @@
 				text:'Test'
 				on_release:root.AndroidTest()
 			Button:
+				text: "Download"
+				on_release: app.swap_to(app.SearchScr)
+				background: None
+			Button:
 				text: 'Add Video'
 				on_release: root.addVideo()
 		ScrollView:
@@ -48,4 +52,37 @@
 			text: 'T'
 			id:tribler_toggler
 
+<SearchScreen>
+	BoxLayout:
+		orientation: "vertical"
+		id: searchscreen
+		AnchorLayout:
+			canvas:
+				Color:
+					rgba: 0.5,0.5,0.5,1
+				Rectangle:
+					pos: self.pos
+					size: self.size
+				BorderImage:
+					pos: self.pos
+					size: self.size
+					border: 1,1,1,1
+			size_hint: 1,None
+			height: '1cm'
+			min_height: '1cm'
+			TextInput:
+				size_hint: 1, None
+				height: '0.7cm'
+				font_size: "16sp"
+				multiline: False
+				hint_text: "Search"
+				keyboard_suggestions: True
+				valign: 'middle'
+				id: searchfield
+				text: root.txt
+		ScrollView:
+			StackLayout:
+				size_hint: 1, None
+				height: self.minimum_height
+				id: fileList	
 

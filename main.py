@@ -9,6 +9,7 @@ from kivy.uix.button import Button
 from kivy.core.image import Image as CoreImage
 from kivy.graphics.texture import Texture
 from kivy.clock import Clock
+from kivy.properties import StringProperty
 
 import numpy
 import android
@@ -42,6 +43,7 @@ Builder.load_file('main.kv')
 
 thumbnail_sem = threading.BoundedSemaphore()
 nfc_video_set = []
+
 
 class HomeScreen(Screen):
 	#Simple test function
@@ -161,10 +163,20 @@ class FileWidget(BoxLayout):
 		print "BENCHMARK: ", time.time() - self.benchmark
 		self.benchmark = time.time()
 
+class SearchScreen(Screen):
+	txt = StringProperty(None)
+	def __init__(self, **kwargs):
+		pass		
+		#self.bind(txt=self.onSearchChange)
+	def onSearchChange(obj, value):
+		print value
+	
+
 class Skelly(App):
 	sm = ScreenManager()
 	history = []
 	HomeScr = HomeScreen(name='home')
+	SearchScr = SearchScreen(name='search')
 	sm.switch_to(HomeScr)
 
 	#Method that request the device's NFC adapter and adds a Callback function to it to activate on an Android Beam Intent.
