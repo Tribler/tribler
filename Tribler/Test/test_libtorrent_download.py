@@ -63,7 +63,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
         self.startTest(do_downloadfromurl)
 
     def test_downloadfrommagnet(self):
-        infohash = binascii.unhexlify('5ac55cf1b935291f6fc92ad7afd34597498ff2f7')
+        infohash = binascii.unhexlify('546cf15f724d19c4319cc17b179d7e035f89c1f4')
 
         def make_screenshot():
             self.screenshot('After starting a libtorrent download from magnet')
@@ -80,7 +80,8 @@ class TestLibtorrentDownload(TestGuiAsServer):
         def do_downloadfrommagnet():
             self.guiUtility.showLibrary()
             self.frame.startDownloadFromMagnet(
-                r'magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', self.getDestDir())
+                r'magnet:?xt=urn:btih:546cf15f724d19c4319cc17b179d7e035f89c1f4&dn=ubuntu-14.04.2-desktop-amd64.iso',
+                self.getDestDir())
 
             self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready,
                                  'do_downloadfrommagnet() failed')
