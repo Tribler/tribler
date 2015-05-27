@@ -147,7 +147,7 @@ class TestMagnet(TestAsServer):
                 event.set()
 
             event = threading.Event()
-            magnet_link = 'magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title='
+            magnet_link = 'magnet:?xt=urn:btih:546cf15f724d19c4319cc17b179d7e035f89c1f4'
             assert TorrentDef.retrieve_from_magnet(self.session, magnet_link, torrentdef_retrieved, timeout=120)
             assert event.wait(120)
 
