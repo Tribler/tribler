@@ -9,7 +9,8 @@ from kivy.uix.button import Button
 from kivy.core.image import Image as CoreImage
 from kivy.graphics.texture import Texture
 from kivy.clock import Clock
-from kivy.properties import StringProperty
+from kivy.properties import StringProperty, ObjectProperty
+
 
 from kivy.uix.anchorlayout import AnchorLayout
 from kivy.properties import ObjectProperty, ListProperty, BooleanProperty, \
@@ -174,12 +175,11 @@ class FileWidget(BoxLayout):
 		self.benchmark = time.time()
 
 class SearchScreen(Screen):
-	txt = StringProperty(None)
-	def __init__(self, **kwargs):
-		pass		
-		#self.bind(txt=self.onSearchChange)
-	def onSearchChange(obj, value):
-		print value
+	def on_txt_input(self):
+		Clock.unschedule(self.delayedSearch, all=True)
+		Clock.schedule_once(self.delayedSearch, 0.5)
+	def delayedSearch(self, dt):
+		print "TextSearch"
 	
 
 class CameraWidget(AnchorLayout):

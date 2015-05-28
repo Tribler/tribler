@@ -74,6 +74,7 @@
 			height: '1cm'
 			min_height: '1cm'
 			TextInput:
+				id: searchfield
 				size_hint: 1, None
 				height: '0.7cm'
 				font_size: "16sp"
@@ -81,8 +82,7 @@
 				hint_text: "Search"
 				keyboard_suggestions: True
 				valign: 'middle'
-				id: searchfield
-				text: root.txt
+				on_text: root.on_txt_input()
 		ScrollView:
 			StackLayout:
 				size_hint: 1, None
