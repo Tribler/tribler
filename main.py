@@ -177,10 +177,16 @@ class FileWidget(BoxLayout):
 class SearchScreen(Screen):
 	def on_txt_input(self):
 		Clock.unschedule(self.delayedSearch, all=True)
-		Clock.schedule_once(self.delayedSearch, 0.5)
+		if(self.ids.searchfield.text == ''):
+			self.ids.fileList.clear_widgets()
+		else:
+			Clock.schedule_once(self.delayedSearch, 0.5)
 	def delayedSearch(self, dt):
 		print "TextSearch"
-	
+		wid = FileWidget()
+		wid.setName(self.ids.searchfield.text)
+		self.ids.fileList.clear_widgets()
+		self.ids.fileList.add_widget(wid)
 
 class CameraWidget(AnchorLayout):
     camera_size = ListProperty([320, 240])
