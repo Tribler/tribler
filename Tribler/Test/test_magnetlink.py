@@ -8,6 +8,7 @@ import threading
 import libtorrent as lt
 from libtorrent import bencode, bdecode
 
+from Tribler.Test.common import UBUNTU_1504_INFOHASH
 from Tribler.Test.test_as_server import TestAsServer, BASE_DIR
 from btconn import BTConnection
 from Tribler.Core.TorrentDef import TorrentDef
@@ -147,7 +148,7 @@ class TestMagnet(TestAsServer):
                 event.set()
 
             event = threading.Event()
-            magnet_link = 'magnet:?xt=urn:btih:546cf15f724d19c4319cc17b179d7e035f89c1f4'
+            magnet_link = 'magnet:?xt=urn:btih:%s' % hexlify(UBUNTU_1504_INFOHASH)
             assert TorrentDef.retrieve_from_magnet(self.session, magnet_link, torrentdef_retrieved, timeout=120)
             assert event.wait(120)
 
