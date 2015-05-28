@@ -454,8 +454,9 @@ class GUIUtility(object):
                 def wx_thread(delayedResult):
                     nr_peers_connected = delayedResult.get()
 
-                    self.frame.searchlist.SetMaxResults(nr_peers_connected + 1, keywords)
-                    self.frame.searchlist.NewResult()
+                    if self and self.frame and self.frame.searchlist:
+                        self.frame.searchlist.SetMaxResults(nr_peers_connected + 1, keywords)
+                        self.frame.searchlist.NewResult()
 
                 startWorker(wx_thread, db_thread, priority=1024)
 
