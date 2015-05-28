@@ -6,7 +6,9 @@ from time import time
 import binascii
 
 from Tribler.Core.simpledefs import DOWNLOAD
+from Tribler.Test.common import UBUNTU_1504_INFOHASH
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
+
 
 TORRENT_R = r'http://torrent.fedoraproject.org/torrents/Fedora-Live-Workstation-x86_64-21.torrent'
 TORRENT_INFOHASH = binascii.unhexlify('89f0835dc2def218ec4bac73da6be6b8c20534ea')
@@ -63,7 +65,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
         self.startTest(do_downloadfromurl)
 
     def test_downloadfrommagnet(self):
-        infohash = binascii.unhexlify('546cf15f724d19c4319cc17b179d7e035f89c1f4')
+        infohash = UBUNTU_1504_INFOHASH
 
         def make_screenshot():
             self.screenshot('After starting a libtorrent download from magnet')
@@ -80,7 +82,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
         def do_downloadfrommagnet():
             self.guiUtility.showLibrary()
             self.frame.startDownloadFromMagnet(
-                r'magnet:?xt=urn:btih:546cf15f724d19c4319cc17b179d7e035f89c1f4&dn=ubuntu-14.04.2-desktop-amd64.iso',
+                r'magnet:?xt=urn:btih:%s&dn=ubuntu-14.04.2-desktop-amd64.iso' % binascii.hexlify(UBUNTU_1504_INFOHASH),
                 self.getDestDir())
 
             self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready,

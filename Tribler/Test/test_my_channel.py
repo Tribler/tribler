@@ -1,14 +1,13 @@
 # Written by Niels Zeilemaker
 # see LICENSE.txt for license information
 
+from binascii import hexlify
 import os
-import sys
-import time
 
+from Tribler.Test.common import UBUNTU_1504_INFOHASH
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.simpledefs import dlstatus_strings
 
 DEBUG = True
 
@@ -97,7 +96,7 @@ class TestMyChannel(TestGuiAsServer):
             manager.startDownloadFromUrl(
                 r'http://torrent.fedoraproject.org/torrents/Fedora-20-i386-DVD.torrent', fixtorrent=True)
             manager.startDownloadFromMagnet(
-                r'magnet:?xt=urn:btih:5ac55cf1b935291f6fc92ad7afd34597498ff2f7&dn=Pioneer+One+S01E01+Xvid-VODO&title=', fixtorrent=True)
+                r'magnet:?xt=urn:btih:%s&dn=ubuntu-14.04.2-desktop-amd64.iso' % hexlify(UBUNTU_1504_INFOHASH), fixtorrent=True)
 
             self.CallConditional(
                 10, lambda: self.managechannel.notebook.GetPageCount() > 1, lambda: do_switch_tab(torrentfilename))
