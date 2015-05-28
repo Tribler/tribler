@@ -130,6 +130,8 @@ class DispersyDebugFrame(wx.Frame):
             return self.__dispersy.statistics
 
         def do_gui(delayedResult):
+            if not self:
+                return
             stats = delayedResult.get()  # can contain an exception
             enabled = bool(self.__incstuff_checkbox.GetValue())
 
