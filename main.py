@@ -45,6 +45,7 @@ File = autoclass('java.io.File')
 CreateNfcBeamUrisCallback = autoclass('org.test.CreateNfcBeamUrisCallback')
 MediaStore = autoclass('android.provider.MediaStore')
 ThumbnailUtils = autoclass('android.media.ThumbnailUtils')
+ImageView = autoclass('android.widget.ImageView')
 
 MediaRecorder = autoclass('android.media.MediaRecorder')
 Camera = autoclass('android.hardware.Camera')
@@ -106,6 +107,7 @@ class FileWidget(BoxLayout):
 	uri = None
 	texture = None
 	benchmark = time.time()
+	lImageView = ImageView
 
 	#Enumerator as per android.media.ThumbnailUtils
 	MINI_KIND = 1 
@@ -150,11 +152,13 @@ class FileWidget(BoxLayout):
 		thumbnail_sem.acquire()
 		thumbnail = ThumbnailUtils.createVideoThumbnail(self.uri,self.MINI_KIND)
 		thumbnail_sem.release()
+		Clock.schedule_once(functools.partial(self.displayAndroidThumbnail, thumbnail))
 		pixels = [0] *thumbnail.getWidth() * thumbnail.getHeight()
 		thumbnail.getPixels(pixels, 0,thumbnail.getWidth(),0,0,thumbnail.getWidth(), thumbnail.getHeight())
-		pixels = self.switchFormats(pixels)
-		#Schedule the main thread to update the thumbnail's texture	
-		Clock.schedule_once(functools.partial(self.displayThumbnail,thumbnail.getWidth(), thumbnail.getHeight(),pixels))
+		#pixels = self.switchFormats(pixels)
+		#Schedule the main thread to update the thumbnail's texture
+	
+		#Clock.schedule_once(functools.partial(self.displayThumbnail,thumbnail.getWidth(), thumbnail.getHeight(),pixels))
 		print "Detatching thread"
 		detach()
 
@@ -169,6 +173,16 @@ class FileWidget(BoxLayout):
 		self.ids.img.texture = self.texture
 		self.ids.img.canvas.ask_update()
 
+	#Function called by makeThumbnail to set the thumbnail through android's widget
+	#So no conversion is needed
+	@run_on_ui_thread
+	def displayAndroidThumbnail(self, bmp, *largs):
+		print 'display'
+		img_view = ImageView(cast(Context, activity))
+		print 'created view'
+		img_view.setImageBitmap(bmp)
+		self.ids.android.view = img_view
+		
 	#Benchmark function to help discover which function is slow	
 	def bench(self):
 		print "BENCHMARK: ", time.time() - self.benchmark
