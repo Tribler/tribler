@@ -19,8 +19,8 @@ LinearLayout = autoclass('android.widget.LinearLayout')
 
 
 class PreviewCallback(PythonJavaClass):
-    '''Interface used to get back the preview frame of the Android Camera
-    '''
+	'''Interface used to get back the preview frame of the Android Camera
+	'''
 	__javainterfaces__ = ['android.hardware.Camera$PreviewCallback']
 
 	def __init__(self, callback):
@@ -32,9 +32,9 @@ class PreviewCallback(PythonJavaClass):
 		self.callback(camera, data)
 
 class SurfaceHolderCallback(PythonJavaClass):
-    '''Interface used to know exactly when the Surface used for the Android
-    Camera will be created and changed.
-    '''
+	'''Interface used to know exactly when the Surface used for the Android
+	Camera will be created and changed.
+	'''
 
 	__javainterfaces__ = ['android.view.SurfaceHolder$Callback']
 	__javacontext__ = 'app'
@@ -56,11 +56,11 @@ class SurfaceHolderCallback(PythonJavaClass):
 		pass
 
 class AndroidWidgetHolder(Widget):
-    '''Act as a placeholder for an Android widget.
-    It will automatically add / remove the android view depending if the widget
-    view is set or not. The android view will act as an overlay, so any graphics
-    instruction in this area will be covered by the overlay.
-    '''
+	'''Act as a placeholder for an Android widget.
+	It will automatically add / remove the android view depending if the widget
+	view is set or not. The android view will act as an overlay, so any graphics
+	instruction in this area will be covered by the overlay.
+	'''
 
 	view = ObjectProperty(allownone=True)
 	'''Must be an Android View
@@ -75,9 +75,9 @@ class AndroidWidgetHolder(Widget):
 
 	def on_view(self, instance, view):
 		if self._old_view is not None:
-		layout = cast(LinearLayout, self._old_view.getParent())
-		layout.removeView(self._old_view)
-		self._old_view = None
+			layout = cast(LinearLayout, self._old_view.getParent())
+			layout.removeView(self._old_view)
+			self._old_view = None
 
 		if view is None:
         		return
@@ -91,11 +91,11 @@ class AndroidWidgetHolder(Widget):
 
 	def on_size(self, instance, size):
 		if self.view:
-		params = self.view.getLayoutParams()
-		params.width = self.width
-		params.height = self.height
-		self.view.setLayoutParams(params)
-		self.view.setY(self._window.height - self.y - self.height)
+			params = self.view.getLayoutParams()
+			params.width = self.width
+			params.height = self.height
+			self.view.setLayoutParams(params)
+			self.view.setY(self._window.height - self.y - self.height)
 
 	def on_x(self, instance, x):
 		if self.view:
@@ -106,8 +106,8 @@ class AndroidWidgetHolder(Widget):
 			self.view.setY(self._window.height - self.y - self.height)
 
 class AndroidCamera(Widget):
-    '''Widget for controling an Android Camera.
-    '''
+	'''Widget for controling an Android Camera.
+	'''
 
 	index = NumericProperty(0)
 
