@@ -430,15 +430,10 @@ class TunnelCommunity(Community):
 
         self.do_remove()
 
-    def tunnels_ready(self, hops, anonymous):
+    def tunnels_ready(self, hops):
         if hops > 0:
-            if anonymous:
-                current_hops = self.circuits_needed.get(hops, 0)
-                self.circuits_needed[hops] = max(1, current_hops)
-                return bool(self.active_data_circuits(hops))
-            else:
-                self.circuits_needed[hops] = self.settings.max_circuits
-                return min(1, len(self.active_data_circuits(hops)) / float(self.settings.min_circuits))
+            self.circuits_needed[hops] = self.settings.max_circuits
+            return min(1, len(self.active_data_circuits(hops)) / float(self.settings.min_circuits))
         return 1
 
     def do_remove(self):

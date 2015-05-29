@@ -173,9 +173,8 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
         for ds in dslist:
             download = ds.get_download()
-            tdef = download.get_def()
-            if tdef.is_anonymous():
-                info_hash = tdef.get_infohash()
+            if download.get_hops() > 0:
+                info_hash = download.get_def().get_infohash()
                 hops[info_hash] = download.get_hops()
                 new_states[info_hash] = ds.get_status()
 
@@ -353,15 +352,16 @@ class HiddenTunnelCommunity(TunnelCommunity):
     def on_created_e2e(self, messages):
         for message in messages:
             cache = self.request_cache.pop(u"e2e-request", message.payload.identifier)
-            shared_secret = self.crypto.verify_and_generate_shared_secret(
-                cache.hop.dh_secret, message.payload.key, message.payload.auth, cache.hop.public_key.key.pk)
+            shared_secret = self.crypto.verify_and_generate_shared_secret(cache.hop.dh_secret, message.payload.key, 
+                                                                          message.payload.auth, 
+                                                                          cache.hop.public_key.key.pk)
             session_keys = self.crypto.generate_session_keys(shared_secret)
 
-            _, rp_info = decode(self.crypto.decrypt_str(
-                message.payload.rp_sock_addr, session_keys[EXIT_NODE], session_keys[EXIT_NODE_SALT]))
+            _, rp_info = decode(self.crypto.decrypt_str(message.payload.rp_sock_addr, session_keys[EXIT_NODE], 
+                                                        session_keys[EXIT_NODE_SALT]))
 
-            self.create_circuit(DEFAULT_HOPS, CIRCUIT_TYPE_RENDEZVOUS, callback=lambda circuit, cookie=rp_info[
-                                1], session_keys=session_keys, info_hash=cache.info_hash,
+            self.create_circuit(DEFAULT_HOPS, CIRCUIT_TYPE_RENDEZVOUS, callback=lambda circuit,
+                                cookie=rp_info[1], session_keys=session_keys, info_hash=cache.info_hash,
                                 sock_addr=cache.sock_addr: self.create_link_e2e(circuit, cookie, session_keys,
                                                                                 info_hash, sock_addr),
                                 max_retries=5, required_exit=rp_info[0])

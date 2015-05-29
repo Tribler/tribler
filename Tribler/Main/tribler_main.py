@@ -917,9 +917,7 @@ class ABCApp(object):
         # Remove anonymous test download
         self.closewindow.tick('Remove anonymous test download')
         for download in self.utility.session.get_downloads():
-            tdef = download.get_def()
-            if not tdef.is_anonymous() and download.get_anon_mode() and \
-               os.path.basename(download.get_dest_dir()) == "anon_test":
+            if download.get_anon_mode() and os.path.basename(download.get_dest_dir()) == "anon_test":
                 self.utility.session.remove_download(download)
 
         # write all persistent data to disk

@@ -193,10 +193,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 self.ltmgr = self.session.lm.ltmgr
                 dht_ok = not isinstance(self.tdef, TorrentDefNoMetainfo) or self.ltmgr.is_dht_ready()
                 tunnel_community = self.ltmgr.trsession.lm.tunnel_community
-                if tunnel_community:
-                    tunnels_ready = tunnel_community.tunnels_ready(self.get_hops(), self.get_def().is_anonymous())
-                else:
-                    tunnels_ready = 1
+                tunnels_ready = tunnel_community.tunnels_ready(self.get_hops()) if tunnel_community else 1
 
                 session_ok = tunnels_ready == 1
 
@@ -825,10 +822,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                     progress = self.progressbeforestop
                 else:
                     tunnel_community = self.ltmgr.trsession.lm.tunnel_community
-                    if tunnel_community:
-                        progress = tunnel_community.tunnels_ready(self.get_hops(), self.get_def().is_anonymous())
-                    else:
-                        progress = 1
+                    progress = tunnel_community.tunnels_ready(self.get_hops()) if tunnel_community else 1
+
                 ds = DownloadState(self, self.dlstate, self.error, progress)
             else:
                 (status, stats, seeding_stats, logmsgs) = self.network_get_stats(getpeerlist)
