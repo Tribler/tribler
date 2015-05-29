@@ -111,7 +111,7 @@ class AndroidCamera(Widget):
 
 	index = NumericProperty(0)
 
-	__events__ = ('on_preview_frame', )
+	__events__ = ['on_preview_frame']
 
 	def __init__(self, **kwargs):
 		self._holder = None
