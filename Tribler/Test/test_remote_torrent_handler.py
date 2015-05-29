@@ -5,7 +5,7 @@ from shutil import rmtree, copytree
 from time import sleep
 from threading import Event
 
-from Tribler.Test.test_as_server import TestAsServer, BASE_DIR
+from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import call_on_reactor_thread
 
@@ -80,7 +80,7 @@ class TestRemoteTorrentHandler(TestAsServer):
             self.file_names[i] = file_name = u"%s.torrent" % infohash
 
             # Put the torrents into the uploader's store
-            with open(os.path.join(BASE_DIR, u"data", file_name), 'r') as torrent_file:
+            with open(os.path.join(TESTS_DATA_DIR, file_name), 'r') as torrent_file:
                 self.session.lm.torrent_store.put(infohash, torrent_file.read())
 
         from Tribler.Core.Session import Session
@@ -139,7 +139,7 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.metadata_subpath = os.path.join(self.metadata_dir, u"421px-Pots_10k_100k.jpeg")
 
         # copy file to the uploader's torrent_collecting_dir
-        src_dir_path = os.path.join(BASE_DIR, u"data", self.metadata_dir)
+        src_dir_path = os.path.join(TESTS_DATA_DIR, self.metadata_dir)
         des_dir_path = os.path.join(u"", self.metadata_dir)
         self._logger.info(u"Uploader's torrent_collect_dir = %s", u"")
         copytree(src_dir_path, des_dir_path)

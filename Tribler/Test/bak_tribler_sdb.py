@@ -3,22 +3,22 @@ import sys
 
 from traceback import print_exc
 from shutil import copy as copyFile, move
-from Tribler.Test.test_as_server import FILES_DIR
+from Tribler.Test.test_as_server import TESTS_DATA_DIR
 
 
-def init_bak_tribler_sdb(backup='bak_tribler.sdb', destination='tribler.sdb', destination_path=FILES_DIR, overwrite=False):
-    backup_path = os.path.join(FILES_DIR, backup)
+def init_bak_tribler_sdb(backup='bak_tribler.sdb', destination='tribler.sdb', destination_path=TESTS_DATA_DIR, overwrite=False):
+    backup_path = os.path.join(TESTS_DATA_DIR, backup)
     destination_path = os.path.join(destination_path, destination)
 
     if not os.path.isfile(backup_path) or overwrite:
-        got = extract_db_files(FILES_DIR, backup_path + ".tar.gz", overwrite)
+        got = extract_db_files(TESTS_DATA_DIR, backup_path + ".tar.gz", overwrite)
         if not got:
             print >> sys.stderr, "Missing", backup_path + ".tar.gz"
             sys.exit(1)
 
-    for f in os.listdir(FILES_DIR):
+    for f in os.listdir(TESTS_DATA_DIR):
         if f.startswith(destination):
-            os.remove(os.path.join(FILES_DIR, f))
+            os.remove(os.path.join(TESTS_DATA_DIR, f))
 
     if os.path.isfile(backup_path):
         copyFile(backup_path, destination_path)

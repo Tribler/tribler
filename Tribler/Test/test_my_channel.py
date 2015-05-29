@@ -5,7 +5,7 @@ from binascii import hexlify
 import os
 
 from Tribler.Test.common import UBUNTU_1504_INFOHASH
-from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
+from Tribler.Test.test_as_server import TestGuiAsServer, TESTS_DATA_DIR
 
 from Tribler.Core.TorrentDef import TorrentDef
 
@@ -141,7 +141,7 @@ class TestMyChannel(TestGuiAsServer):
 
     def createTorrent(self):
         tdef = TorrentDef()
-        tdef.add_content(os.path.join(BASE_DIR, "data", "video.avi"))
+        tdef.add_content(os.path.join(TESTS_DATA_DIR, "video.avi"))
         tdef.set_tracker("http://fake.net/announce")
         tdef.finalize()
         torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")

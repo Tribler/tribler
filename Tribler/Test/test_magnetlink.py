@@ -9,7 +9,8 @@ import libtorrent as lt
 from libtorrent import bencode, bdecode
 
 from Tribler.Test.common import UBUNTU_1504_INFOHASH
-from Tribler.Test.test_as_server import TestAsServer, BASE_DIR
+from Tribler.Test.test_as_server import TestAsServer, TESTS_API_DIR
+
 from btconn import BTConnection
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
@@ -172,7 +173,7 @@ class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
 
         # the metadata that we want to transfer
         self.tdef = TorrentDef()
-        self.tdef.add_content(os.path.join(BASE_DIR, "API", "video.avi"))
+        self.tdef.add_content(os.path.join(TESTS_API_DIR, "video.avi"))
         self.tdef.set_tracker("http://fake.net/announce")
         # we use a small piece length to obtain multiple pieces
         self.tdef.set_piece_length(1)
@@ -255,7 +256,7 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
 
         # the metadata that we want to transfer
         self.tdef = TorrentDef()
-        self.tdef.add_content(os.path.join(BASE_DIR, "API", "file.wmv"))
+        self.tdef.add_content(os.path.join(TESTS_API_DIR, "file.wmv"))
         self.tdef.set_tracker("http://fake.net/announce")
         # we use a small piece length to obtain multiple pieces
         self.tdef.set_piece_length(1)
@@ -279,7 +280,7 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
         self.seeder_setup_complete = threading.Event()
 
         self.dscfg = DownloadStartupConfig()
-        self.dscfg.set_dest_dir(os.path.join(BASE_DIR, "API"))
+        self.dscfg.set_dest_dir(TESTS_API_DIR)
         self.download = self.session.start_download(self.tdef, self.dscfg)
         self.download.set_state_callback(self.seeder_state_callback)
 

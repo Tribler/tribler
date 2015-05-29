@@ -5,10 +5,12 @@ import time
 from threading import Event
 from traceback import print_exc
 
+# This needs to be imported before anything from tribler so the reactor gets initalied on the right thread
+from Tribler.Test.test_as_server import TestGuiAsServer, TESTS_DATA_DIR
+
 from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Core.simpledefs import dlstatus_strings
-from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import blockingCallFromThread
 from Tribler.community.tunnel import CIRCUIT_ID_PORT
@@ -271,8 +273,8 @@ class TestTunnelCommunity(TestGuiAsServer):
             seeder_session.set_anon_proxy_settings(
                 2, ("127.0.0.1", seeder_session.get_tunnel_community_socks5_listen_ports()))
             seeder_session.set_download_states_callback(download_states_callback, False)
-            
-            # Start seeding            
+
+            # Start seeding
             tf = self.setupSeeder(hops=2, session=seeder_session)
 
             # Wait for the introduction point to announce itself to the DHT
@@ -290,7 +292,7 @@ class TestTunnelCommunity(TestGuiAsServer):
                                  'Introduction point did not get announced')
 
         self.startTest(setup_seeder, nr_relays=6, nr_exitnodes=4, bypass_dht=True)
-        
+
     def test_hidden_services_with_exit_nodes(self):
         def take_second_screenshot():
             self.screenshot()
@@ -312,13 +314,13 @@ class TestTunnelCommunity(TestGuiAsServer):
                 self.assert_(expected, reason, do_assert)
 
             self.Call(1, do_asserts)
-            
+
 
         def do_progress(d, start_time):
             # Check for progress from both seeders
             hs_progress = Event()
             en_progress = Event()
-            
+
             def cb(ds):
                 for peer in ds.get_peerlist():
                     if peer['dtotal'] > 0:
@@ -327,9 +329,9 @@ class TestTunnelCommunity(TestGuiAsServer):
                         elif peer['port'] == CIRCUIT_ID_PORT:
                             hs_progress.set()
                 return 5.0, True
-                    
+
             d.set_state_callback(cb, True)
-            
+
             self.CallConditional(140,
                                  lambda: d.get_progress() == 1.0 and hs_progress.is_set() and en_progress.is_set(),
                                  lambda: take_screenshot(time.time() - start_time),
@@ -338,10 +340,10 @@ class TestTunnelCommunity(TestGuiAsServer):
         def start_download(tf):
             start_time = time.time()
             download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=2)
-            
+
             # Inject IP of the 2nd seeder so that the download starts using both hidden services & exit tunnels
             self.Call(15, lambda: download.add_peer(("127.0.0.1", self.sessions[1].get_listen_port())))
-            
+
             self.guiUtility.ShowPage('my_files')
             do_progress(download, start_time)
 
@@ -360,7 +362,7 @@ class TestTunnelCommunity(TestGuiAsServer):
             seeder_session.set_anon_proxy_settings(
                 2, ("127.0.0.1", seeder_session.get_tunnel_community_socks5_listen_ports()))
             seeder_session.set_download_states_callback(download_states_callback, False)
-            
+
             # Start seeding with hidden services
             tf = self.setupSeeder(hops=2, session=seeder_session)
 
@@ -403,19 +405,19 @@ class TestTunnelCommunity(TestGuiAsServer):
             if bypass_dht:
                 # Replace pymdht with a fake one
                 class FakeDHT(object):
-    
+
                     def __init__(self, dht_dict, mainline_dht):
                         self.dht_dict = dht_dict
                         self.mainline_dht = mainline_dht
-    
+
                     def get_peers(self, lookup_id, _, callback_f, bt_port=0):
                         if bt_port != 0:
                             self.dht_dict[lookup_id] = self.dht_dict.get(lookup_id, []) + [('127.0.0.1', bt_port)]
                         callback_f(lookup_id, self.dht_dict.get(lookup_id, None), None)
-    
+
                     def stop(self):
                         self.mainline_dht.stop()
-    
+
                 dht_dict = {}
                 for session in self.sessions + [self.session]:
                     session.lm.mainline_dht = FakeDHT(dht_dict, session.lm.mainline_dht)
@@ -494,7 +496,7 @@ class TestTunnelCommunity(TestGuiAsServer):
             session = self.session2
 
         tdef = TorrentDef()
-        tdef.add_content(os.path.join(BASE_DIR, "data", "video.avi"))
+        tdef.add_content(os.path.join(TESTS_DATA_DIR, "video.avi"))
         tdef.set_tracker("http://fake.net/announce")
         tdef.set_private()  # disable dht
         tdef.finalize()
@@ -502,7 +504,7 @@ class TestTunnelCommunity(TestGuiAsServer):
         tdef.save(torrentfn)
 
         dscfg = DownloadStartupConfig()
-        dscfg.set_dest_dir(os.path.join(BASE_DIR, "data"))  # basedir of the file we are seeding
+        dscfg.set_dest_dir(TESTS_DATA_DIR)  # basedir of the file we are seeding
         dscfg.set_hops(hops)
         d = session.start_download(tdef, dscfg)
         d.set_state_callback(self.seeder_state_callback)

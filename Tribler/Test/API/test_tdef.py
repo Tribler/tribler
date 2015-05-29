@@ -7,11 +7,10 @@
 import os
 from libtorrent import bdecode
 
-from Tribler.Test.test_as_server import BaseTestCase
+from Tribler.Test.test_as_server import BaseTestCase, TESTS_DATA_DIR, TESTS_API_DIR
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import isValidTorrentFile
-from Tribler.Test.test_as_server import BASE_DIR
 
 
 DEBUG = False
@@ -49,8 +48,8 @@ class TestTorrentDef(BaseTestCase):
         self.subtest_add_content_file_save()
 
     def test_is_private(self):
-        privatefn = os.path.join(BASE_DIR, "data", "private.torrent")
-        publicfn = os.path.join(BASE_DIR, "data", "bak_single.torrent")
+        privatefn = os.path.join(TESTS_DATA_DIR, "private.torrent")
+        publicfn = os.path.join(TESTS_DATA_DIR, "bak_single.torrent")
 
         t1 = TorrentDef.load(privatefn)
         t2 = TorrentDef.load(publicfn)
@@ -61,7 +60,7 @@ class TestTorrentDef(BaseTestCase):
     def subtest_add_content_file(self):
         """ Add a single file to a TorrentDef """
         t = TorrentDef()
-        fn = os.path.join(BASE_DIR, "API", "video.avi")
+        fn = os.path.join(TESTS_API_DIR, "video.avi")
         t.add_content(fn)
         t.set_tracker(TRACKER)
         t.finalize()
@@ -77,7 +76,7 @@ class TestTorrentDef(BaseTestCase):
     def subtest_add_content_dir(self):
         """ Add a single dir to a TorrentDef """
         t = TorrentDef()
-        dn = os.path.join(BASE_DIR, "API", "contentdir")
+        dn = os.path.join(TESTS_API_DIR, "contentdir")
         t.add_content(dn, "dirintorrent")
         t.set_tracker(TRACKER)
         t.finalize()
@@ -111,10 +110,10 @@ class TestTorrentDef(BaseTestCase):
         """ Add a single dir and single file to a TorrentDef """
         t = TorrentDef()
 
-        dn = os.path.join(BASE_DIR, "API", "contentdir")
+        dn = os.path.join(TESTS_API_DIR, "contentdir")
         t.add_content(dn, "dirintorrent")
 
-        fn = os.path.join(BASE_DIR, "API", "video.avi")
+        fn = os.path.join(TESTS_API_DIR, "video.avi")
         t.add_content(fn, os.path.join("dirintorrent", "video.avi"))
 
         t.set_tracker(TRACKER)
@@ -140,7 +139,8 @@ class TestTorrentDef(BaseTestCase):
     def subtest_add_content_announce_list(self):
         """ Add a single file with announce-list to a TorrentDef """
         t = TorrentDef()
-        fn = os.path.join(BASE_DIR, "API", "video.avi")
+        fn = os.path.join(TESTS_API_DIR, "video.avi")
+
         t.add_content(fn)
         t.set_tracker(TRACKER)
         exphier = [[TRACKER], ['http://tracker1.tribler.org:6969/announce', 'http://tracker2.tribler.org:7070/ann'],
@@ -156,7 +156,7 @@ class TestTorrentDef(BaseTestCase):
     def subtest_add_content_httpseeds(self):
         """ Add a single file with BitTornado httpseeds to a TorrentDef """
         t = TorrentDef()
-        fn = os.path.join(BASE_DIR, "API", "video.avi")
+        fn = os.path.join(TESTS_API_DIR, "video.avi")
         t.add_content(fn)
         t.set_tracker(TRACKER)
         expseeds = ['http://www.cs.vu.nl/index.html', 'http://www.st.ewi.tudelft.nl/index.html']
@@ -171,7 +171,7 @@ class TestTorrentDef(BaseTestCase):
     def subtest_add_content_piece_length(self):
         """ Add a single file with piece length to a TorrentDef """
         t = TorrentDef()
-        fn = os.path.join(BASE_DIR, "API", "video.avi")
+        fn = os.path.join(TESTS_API_DIR, "video.avi")
         t.add_content(fn)
         t.set_piece_length(2 ** 16)
         t.set_tracker(TRACKER)
@@ -184,7 +184,7 @@ class TestTorrentDef(BaseTestCase):
     def subtest_add_content_file_save(self):
         """ Add a single file to a TorrentDef and save the latter"""
         t = TorrentDef()
-        fn = os.path.join(BASE_DIR, "API", "video.avi")
+        fn = os.path.join(TESTS_API_DIR, "video.avi")
         t.add_content(fn)
         t.set_tracker(TRACKER)
         t.finalize()

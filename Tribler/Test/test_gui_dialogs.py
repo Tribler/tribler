@@ -7,7 +7,9 @@ import os
 from threading import Event
 from traceback import print_exc
 
-from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR, wx  # import wx after selecting the WX version
+
+# Import WX after selecting the version
+from Tribler.Test.test_as_server import TestGuiAsServer, TESTS_DATA_DIR, wx
 
 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
@@ -74,7 +76,7 @@ class TestGuiDialogs(TestGuiAsServer):
 
         def do_downloadfromfile():
             self.guiUtility.showLibrary()
-            self.frame.startDownload(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"),
+            self.frame.startDownload(os.path.join(TESTS_DATA_DIR, "Pioneer.One.S01E06.720p.x264-VODO.torrent"),
                                      self.getDestDir())
 
             self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready)

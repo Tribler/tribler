@@ -1,13 +1,12 @@
 # see LICENSE.txt for license information
-
-import unittest
-import os
-from time import time
 import binascii
+import os
+import unittest
+from time import time
 
-from Tribler.Core.simpledefs import DOWNLOAD
 from Tribler.Test.common import UBUNTU_1504_INFOHASH
-from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
+from Tribler.Test.test_as_server import TestGuiAsServer, TESTS_DATA_DIR
+from Tribler.Core.simpledefs import DOWNLOAD
 
 
 TORRENT_R = r'http://torrent.fedoraproject.org/torrents/Fedora-Live-Workstation-x86_64-21.torrent'
@@ -33,7 +32,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
         def do_downloadfromfile():
             self.guiUtility.showLibrary()
             self.frame.startDownload(
-                os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"), self.getDestDir())
+                os.path.join(TESTS_DATA_DIR, "Pioneer.One.S01E06.720p.x264-VODO.torrent"), self.getDestDir())
 
             self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready,
                                  'do_downloadfromfile() failed')
@@ -173,7 +172,9 @@ class TestLibtorrentDownload(TestGuiAsServer):
                                  .vod_playing, check_playlist, "streaming did not start")
 
         def do_vod():
-            ds = self.frame.startDownload(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"),
+            from Tribler.Core.Video.VideoPlayer import VideoPlayer
+
+            ds = self.frame.startDownload(os.path.join(TESTS_DATA_DIR, "Pioneer.One.S01E06.720p.x264-VODO.torrent"),
                                           self.getDestDir(),
                                           selectedFiles=[
                                               os.path.join('Sample', 'Pioneer.One.S01E06.720p.x264.Sample-VODO.mkv')],

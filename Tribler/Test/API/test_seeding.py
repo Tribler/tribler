@@ -7,7 +7,7 @@ import time
 import socket
 import threading
 
-from Tribler.Test.test_as_server import TestAsServer, BASE_DIR
+from Tribler.Test.test_as_server import TestAsServer, TESTS_API_DIR
 from Tribler.Test.btconn import BTConnection
 
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
@@ -56,7 +56,7 @@ class TestSeeding(TestAsServer):
 
     def setup_seeder(self, filename='video.avi'):
         self.tdef = TorrentDef()
-        self.sourcefn = os.path.join(BASE_DIR, "API", filename)
+        self.sourcefn = os.path.join(TESTS_API_DIR, filename)
         self.tdef.add_content(self.sourcefn)
         self.tdef.set_tracker("http://fake.net/announce")
         self.tdef.finalize()
@@ -67,7 +67,7 @@ class TestSeeding(TestAsServer):
         self._logger.debug("name is %s", self.tdef.metainfo['info']['name'])
 
         self.dscfg = DownloadStartupConfig()
-        self.dscfg.set_dest_dir(os.path.join(BASE_DIR, "API"))  # basedir of the file we are seeding
+        self.dscfg.set_dest_dir(TESTS_API_DIR)  # basedir of the file we are seeding
         d = self.session.start_download(self.tdef, self.dscfg)
         d.set_state_callback(self.seeder_state_callback)
 

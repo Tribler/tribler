@@ -11,6 +11,7 @@ import shutil
 import sys
 import time
 import unittest
+from tempfile import mkdtemp
 from threading import enumerate as enumerate_threads
 from traceback import print_exc
 
@@ -20,25 +21,22 @@ wxversion.select("2.8-unicode")
 
 import wx
 
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.Core.Utilities.twisted_thread import reactor
 
+from .util import process_unhandled_exceptions
 from Tribler.Core import defaults
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
-from Tribler.Core.Utilities.twisted_thread import reactor
-from .util import process_unhandled_exceptions
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
-STATE_DIR = os.path.join(BASE_DIR, u"_test_.Tribler")
-DEST_DIR = os.path.join(BASE_DIR, u"_test_TriblerDownloads")
-FILES_DIR = os.path.abspath(os.path.join(BASE_DIR, u"data"))
 
-defaults.sessdefaults['general']['state_dir'] = STATE_DIR
+TESTS_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
+TESTS_DATA_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"data"))
+TESTS_API_DIR = os.path.abspath(os.path.join(TESTS_DIR, u"API"))
+
 defaults.sessdefaults['general']['minport'] = -1
 defaults.sessdefaults['general']['maxport'] = -1
 defaults.sessdefaults['dispersy']['dispersy_port'] = -1
-
-defaults.dldefaults["downloadconfig"]["saveas"] = DEST_DIR
 
 DEBUG = False
 
@@ -73,20 +71,22 @@ class AbstractServer(BaseTestCase):
     def setUp(self, annotate=True):
         self._logger = logging.getLogger(self.__class__.__name__)
 
+        self.session_base_dir = mkdtemp(suffix="_tribler_test_session")
+        self.state_dir = os.path.join(self.session_base_dir, u"dot.Tribler")
+        self.dest_dir = os.path.join(self.session_base_dir, u"TriblerDownloads")
+
+        defaults.sessdefaults['general']['state_dir'] = self.state_dir
+        defaults.dldefaults["downloadconfig"]["saveas"] = self.dest_dir
+
         self.setUpCleanup()
+        os.makedirs(self.session_base_dir)
         self.annotate_dict = {}
 
         if annotate:
             self.annotate(self._testMethodName, start=True)
 
     def setUpCleanup(self):
-        # Elric: If the files are still there it means that either the last run segfaulted or
-        # that there was some kind of lock on those and the tearDown wasn't able to delete them.
-        # In either case the test would fail, so just remove the dirs.
-        for path in os.listdir(BASE_DIR):
-            path = os.path.join(BASE_DIR, path)
-            if path.startswith(STATE_DIR) or path.startswith(DEST_DIR):
-                shutil.rmtree(unicode(path))
+        shutil.rmtree(unicode(self.session_base_dir), ignore_errors=True)
 
     def tearDown(self, annotate=True):
         self.tearDownCleanup()
@@ -105,13 +105,13 @@ class AbstractServer(BaseTestCase):
         self.setUpCleanup()
 
     def getStateDir(self, nr=0):
-        state_dir = STATE_DIR + (str(nr) if nr else '')
+        state_dir = self.state_dir + (str(nr) if nr else '')
         if not os.path.exists(state_dir):
             os.mkdir(state_dir)
         return state_dir
 
     def getDestDir(self, nr=0):
-        dest_dir = DEST_DIR + (str(nr) if nr else '')
+        dest_dir = self.dest_dir + (str(nr) if nr else '')
         if not os.path.exists(dest_dir):
             os.mkdir(dest_dir)
         return dest_dir
@@ -437,7 +437,7 @@ class TestGuiAsServer(TestAsServer):
             for t in ts:
                 self._logger.debug("Thread still running %s, daemon %s, instance: %s", t.getName(), t.isDaemon(), t)
 
-        dhtlog = os.path.join(STATE_DIR, 'pymdht.log')
+        dhtlog = os.path.join(self.state_dir, 'pymdht.log')
         if os.path.exists(dhtlog):
             self._logger.debug("Content of pymdht.log")
             f = open(dhtlog, 'r')
