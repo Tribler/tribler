@@ -1819,21 +1819,15 @@ class TorrentStatus(wx.Panel):
         torrent_state = torrent.state
         finished = progress == 1.0
         is_vod = torrent.ds.get_download().get_mode() == DLMODE_VOD if torrent.ds else False
-        hidden = torrent.ds.get_download().get_def().is_anonymous()
 
         if torrent.ds.status == 2 or 'checking' in torrent_state:
             status = 'Checking'
         elif 'circuits' in torrent_state:
-            if hidden:
-                status = 'Building End to End'
-            else:
-                status = 'Building circuits'
+            status = 'Building circuits'
         elif 'metadata' in torrent_state:
             status = 'Fetching torrent'
         elif 'seeding' in torrent_state:
             status = 'Seeding'
-            if hidden:
-                status = 'Hidden Seeding'
             if torrent.ds and UserDownloadChoice.get_singleton().get_download_state(torrent.ds.get_download().get_def().get_infohash()) == 'restartseed':
                 status = "[F] " + status
         elif finished:
@@ -1842,8 +1836,6 @@ class TorrentStatus(wx.Panel):
             status = 'Waiting'
         elif 'downloading' in torrent_state:
             status = 'Streaming' if is_vod else 'Downloading'
-            if hidden:
-                status = "Hidden " + status
         elif 'error' in torrent_state:
             status = 'Stopped on error'
         elif 'stopped' in torrent_state:

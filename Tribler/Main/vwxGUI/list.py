@@ -1830,8 +1830,6 @@ class LibraryList(SizeList):
                 anonmode = 'No'
                 if ds and ds.get_download() and ds.get_download().get_anon_mode():
                     anonmode = 'Yes (' + str(ds.get_download().get_hops()) + ' hops)'
-                    if tdef.is_anonymous():
-                        anonmode = 'Yes (hidden)'
 
                 item.RefreshColumn(9, anonmode)
 
