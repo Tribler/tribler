@@ -465,7 +465,10 @@ class TriblerLaunchMany(Thread):
         try:
             basename = binascii.hexlify(infohash) + '.state'
             filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
-            return self.load_download_pstate(filename)
+            if os.path.exists(filename):
+                return self.load_download_pstate(filename)
+            else:
+                self._logger.info("%s not found", basename)
 
         except Exception:
             self._logger.exception("Exception while loading pstate: %s", infohash)
