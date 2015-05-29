@@ -54,8 +54,7 @@ class TestTunnelCommunity(TestGuiAsServer):
         def do_create_local_torrent(_):
             tf = self.setupSeeder()
             start_time = time.time()
-            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(),
-                                                           hops=3, try_hidden_services=False)
+            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=3)
 
             self.guiUtility.ShowPage('my_files')
             self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
@@ -101,8 +100,7 @@ class TestTunnelCommunity(TestGuiAsServer):
         def do_create_local_torrent(_):
             tf = self.setupSeeder()
             start_time = time.time()
-            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(),
-                                                           hops=3, try_hidden_services=False)
+            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=3)
 
             self.guiUtility.ShowPage('my_files')
             self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
@@ -147,8 +145,7 @@ class TestTunnelCommunity(TestGuiAsServer):
         def do_create_local_torrent(_):
             tf = self.setupSeeder()
             start_time = time.time()
-            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(),
-                                                           hops=3, try_hidden_services=False)
+            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=3)
 
             self.guiUtility.ShowPage('my_files')
             self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
@@ -177,8 +174,7 @@ class TestTunnelCommunity(TestGuiAsServer):
         def do_create_local_torrent(tunnel_communities):
             tf = self.setupSeeder()
             start_time = time.time()
-            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(),
-                                                           hops=3, try_hidden_services=False)
+            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=3)
 
             self.guiUtility.ShowPage('my_files')
             self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
@@ -257,8 +253,7 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         def start_download(tf):
             start_time = time.time()
-            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(),
-                                                           hops=2, try_hidden_services=True)
+            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=2)
             self.guiUtility.ShowPage('my_files')
             do_progress(download, start_time)
 

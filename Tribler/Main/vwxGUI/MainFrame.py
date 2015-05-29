@@ -28,10 +28,7 @@ from Tribler.Category.Category import Category
 from Tribler.Core.version import version_id
 from Tribler.Core.simpledefs import (NTFY_ACT_NEW_VERSION, NTFY_ACT_NONE, NTFY_ACT_ACTIVE, NTFY_ACT_UPNP,
                                      NTFY_ACT_REACHABLE, NTFY_ACT_MEET, NTFY_ACT_GET_EXT_IP_FROM_PEERS,
-                                     NTFY_ACT_GOT_METADATA, NTFY_ACT_RECOMMEND, NTFY_ACT_DISK_FULL,
-                                     DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK,
-                                     DOWNLOAD,
-    DOWNLOAD_POLICY_HIDDEN_120_FALLBACK, DOWNLOAD_POLICY_HIDDEN_300_FALLBACK)
+                                     NTFY_ACT_GOT_METADATA, NTFY_ACT_RECOMMEND, NTFY_ACT_DISK_FULL)
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
@@ -423,8 +420,7 @@ class MainFrame(wx.Frame):
         return False
 
     def startDownload(self, torrentfilename=None, destdir=None, infohash=None, tdef=None, cmdline=False,
-                      vodmode=False, hops=0, try_hidden_services=False, selectedFiles=None,
-                      correctedFilename=None, hidden=False, download_policy=None):
+                      vodmode=False, hops=0, selectedFiles=None, correctedFilename=None, hidden=False):
         self._logger.debug(u"startDownload: %s %s %s %s %s", torrentfilename, destdir, tdef, vodmode, selectedFiles)
 
         # TODO(lipu): remove the assertions after it becomes stable
@@ -512,10 +508,8 @@ class MainFrame(wx.Frame):
                             destdir = dlg.GetPath()
 
                         # Anonimity over exit nodes or hidden services
-                        download_policy = dlg.GetDownloadPolicyValue()
                         if dlg.UseHiddenservices():
                             hops = 2
-                            try_hidden_services = True
                         elif dlg.UseProxies():
                             hops = self.utility.read_config('default_anonymous_level')
 
@@ -535,19 +529,7 @@ class MainFrame(wx.Frame):
                 if not tdef:
                     raise Exception('Currently only torrents can be downloaded in anonymous mode')
 
-            if try_hidden_services and not vodmode and not isinstance(tdef, TorrentDefNoMetainfo) and \
-               not tdef.is_anonymous() and hops > 0:
-                monitorHiddenSerivcesProgress = True
-                # Set anonymous flag
-                metainfo = copy.deepcopy(tdef.metainfo)
-                metainfo['info']['anonymous'] = 1
-                orig_tdef = tdef
-                tdef = TorrentDef._create(metainfo)
-            else:
-                monitorHiddenSerivcesProgress = False
-
             dscfg.set_hops(hops)
-            dscfg.set_download_policy(download_policy)
 
             if not cancelDownload:
                 if destdir is not None:
@@ -586,18 +568,6 @@ class MainFrame(wx.Frame):
                 if result and not hidden:
                     self.show_saved(tdef)
 
-                    if dscfg.get_download_policy() is DOWNLOAD_POLICY_HIDDEN_120_FALLBACK:
-                        fallback_delay = 120.0
-                    elif dscfg.get_download_policy() is DOWNLOAD_POLICY_HIDDEN_300_FALLBACK:
-                        fallback_delay = 300.0
-                    else:
-                        fallback_delay = 0.0
-
-                    if monitorHiddenSerivcesProgress and fallback_delay > 0:
-                        state_lambda = lambda ds, tdef = orig_tdef, dscfg = dscfg, selectedFiles = selectedFiles: self.monitorHiddenSerivcesProgress(
-                            ds, tdef, dscfg, selectedFiles)
-                        result.set_state_callback(state_lambda, delay=fallback_delay)
-
                 return result
 
         except DuplicateDownloadException as e:
@@ -627,21 +597,6 @@ class MainFrame(wx.Frame):
             self.onWarning(e)
 
         return None
-
-    def monitorHiddenSerivcesProgress(self, ds, tdef, dscfg, selectedFiles):
-        if ds.get_status() in [DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_HASHCHECKING, DLSTATUS_WAITING4HASHCHECK]:
-            return (5.0, True)
-
-        if ds.get_current_speed(DOWNLOAD) == 0:
-            download = ds.get_download()
-            self.utility.session.remove_download(download)
-
-            self._logger.error("Switching from hidden services to downloading over exit nodes")
-            dscfg = dscfg.copy()
-            dscfg.set_download_policy(None)
-            dscfg.set_selected_files(selectedFiles or [])
-            self.utility.session.start_download(tdef, dscfg)
-        return (0, False)
 
     @forceWxThread
     def show_saved(self, tdef):
