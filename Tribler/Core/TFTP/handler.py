@@ -82,7 +82,9 @@ class TftpHandler(TaskManager):
         """ Shuts down the TFTP service.
         """
         self.cancel_all_pending_tasks()
-        self._endpoint.stop_listen_to(self._prefix)
+        if self._endpoint:
+            self._endpoint.stop_listen_to(self._prefix)
+            self._endpoint = None
 
         self._session_id_dict = None
         self._session_dict = None

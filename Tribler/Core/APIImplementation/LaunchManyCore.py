@@ -610,10 +610,6 @@ class TriblerLaunchMany(Thread):
             self.tracker_manager.shutdown()
             self.tracker_manager = None
 
-        if self.tftp_handler:
-            self.tftp_handler.shutdown()
-            self.tftp_handler = None
-
         if self.torrent_store is not None:
             self.torrent_store.close()
             self.torrent_store = None
@@ -632,6 +628,10 @@ class TriblerLaunchMany(Thread):
                 self._logger.info("lmc: Dispersy successfully shutdown in %.2f seconds", diff)
             else:
                 self._logger.info("lmc: Dispersy failed to shutdown in %.2f seconds", diff)
+
+        if self.tftp_handler:
+            self.tftp_handler.shutdown()
+            self.tftp_handler = None
 
         if self.session.get_megacache():
             self.channelcast_db.close()
