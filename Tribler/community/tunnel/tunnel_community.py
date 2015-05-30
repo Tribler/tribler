@@ -432,8 +432,11 @@ class TunnelCommunity(Community):
 
     def tunnels_ready(self, hops):
         if hops > 0:
-            self.circuits_needed[hops] = self.settings.max_circuits
-            return min(1, len(self.active_data_circuits(hops)) / float(self.settings.min_circuits))
+            self.circuits_needed[hops] = max(1, self.settings.max_circuits)
+            if self.settings.min_circuits:
+                return min(1, len(self.active_data_circuits(hops)) / float(self.settings.min_circuits))
+            else:
+                return int(bool(self.active_data_circuits(hops)))
         return 1
 
     def do_remove(self):
