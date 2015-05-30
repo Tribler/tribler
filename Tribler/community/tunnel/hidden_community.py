@@ -435,14 +435,6 @@ class HiddenTunnelCommunity(TunnelCommunity):
                     break
 
     def create_introduction_point(self, info_hash, hops, amount=1):
-        # Ensures that libtorrent tries to make an outgoing connection so that the socks5 server
-        # knows on which UDP port libtorrent is listening.
-        # Niels: is this really neccesary? Why would we need the UDP port of libtorrent?
-        for download in self.trsession.get_downloads():
-            if info_hash == self.get_lookup_info_hash(download.get_def().get_infohash()):
-                download.add_peer(('1.1.1.1', 1024))
-                break
-
         # Create a separate key per infohash
         if info_hash not in self.session_keys:
             self.session_keys[info_hash] = self.crypto.generate_key(u"curve25519")
