@@ -25,6 +25,7 @@ import io
 import time
 import threading
 import functools
+import Queue
 
 from cam import PreviewCallback, SurfaceHolderCallback, AndroidWidgetHolder, AndroidCamera
 
@@ -59,6 +60,12 @@ nfc_video_set = []
 
 class HomeScreen(Screen):
 	discovered_media = []
+	non_thumbnailed = Queue.Queue()
+	thumbnail_thread = None
+	wid_sem = threading.BoundedSemaphore()
+	def __init__(self, **kwargs):
+		self.thumbnail_thread = threading.Thread(target=self.loadThumbnails).start()
+		super(Screen,self).__init__(**kwargs)
 	#Simple test function
 	def AndroidTest(self):
 		vibrator = activity.getSystemService(Context.VIBRATOR_SERVICE)
@@ -115,7 +122,18 @@ class HomeScreen(Screen):
 		wid.setName(filename)
 		wid.setUri(uri)
 		self.ids.fileList.add_widget(wid)
-
+		#self.wid_sem.acquire()
+		self.non_thumbnailed.put(wid)
+		#if(self.thumbnail_thread.isAlive() == False) :
+		#	self.thumbnail_thread.start()
+	def loadThumbnails(self):
+		while True:
+			#self.wid_sem.acquire()
+			wid = self.non_thumbnailed.get()
+			#self.wid_sem.release()
+			print 'IMAGE TIME'
+			print wid.uri
+		detach()
 
 class FileWidget(BoxLayout):
 	name = 'NO FILENAME SET'
