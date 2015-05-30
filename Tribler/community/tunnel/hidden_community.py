@@ -13,7 +13,7 @@ from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 from Tribler.Core.Utilities.encoding import encode, decode
 
 from Tribler.community.tunnel import CIRCUIT_TYPE_IP, CIRCUIT_TYPE_RP, CIRCUIT_TYPE_RENDEZVOUS, \
-                                     DEFAULT_HOPS, EXIT_NODE, EXIT_NODE_SALT
+                                     DEFAULT_HOPS, EXIT_NODE, EXIT_NODE_SALT, CIRCUIT_ID_PORT
 
 from Tribler.community.tunnel.payload import (EstablishIntroPayload, IntroEstablishedPayload,
                                               EstablishRendezvousPayload, RendezvousEstablishedPayload,
@@ -431,7 +431,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
             for download in self.trsession.get_downloads():
                 if cache.info_hash == self.get_lookup_info_hash(download.get_def().get_infohash()):
-                    download.add_peer((self.circuit_id_to_ip(cache.circuit.circuit_id), 1024))
+                    download.add_peer((self.circuit_id_to_ip(cache.circuit.circuit_id), CIRCUIT_ID_PORT))
                     break
 
     def create_introduction_point(self, info_hash, hops, amount=1):

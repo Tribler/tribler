@@ -11,6 +11,7 @@ from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import blockingCallFromThread
+from Tribler.community.tunnel import CIRCUIT_ID_PORT
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.dispersy.crypto import NoCrypto
@@ -323,7 +324,7 @@ class TestTunnelCommunity(TestGuiAsServer):
                     if peer['dtotal'] > 0:
                         if peer['ip'] == '127.0.0.1' and peer['port'] == self.sessions[1].get_listen_port():
                             en_progress.set()
-                        elif peer['port'] == 1024:
+                        elif peer['port'] == CIRCUIT_ID_PORT:
                             hs_progress.set()
                 return 5.0, True
                     

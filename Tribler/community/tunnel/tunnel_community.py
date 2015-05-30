@@ -15,7 +15,7 @@ from Tribler.Core.Utilities.encoding import encode, decode
 
 from Tribler.community.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR,
                                       PING_INTERVAL, EXIT_NODE, CIRCUIT_TYPE_DATA, CIRCUIT_TYPE_RP,
-                                      CIRCUIT_TYPE_RENDEZVOUS, EXIT_NODE_SALT, ORIGINATOR_SALT)
+                                      CIRCUIT_TYPE_RENDEZVOUS, EXIT_NODE_SALT, ORIGINATOR_SALT, CIRCUIT_ID_PORT)
 from Tribler.community.tunnel.conversion import TunnelConversion
 from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, CreatedPayload, ExtendPayload,
                                               ExtendedPayload, DestroyPayload, PongPayload, PingPayload,
@@ -223,7 +223,7 @@ class RoundRobin(object):
         return len(self.community.active_data_circuits(hops)) > 0
 
     def select(self, destination, hops):
-        if destination and destination[1] == 1024:
+        if destination and destination[1] == CIRCUIT_ID_PORT:
             circuit_id = self.community.ip_to_circuit_id(destination[0])
             circuit = self.community.circuits.get(circuit_id, None)
 
