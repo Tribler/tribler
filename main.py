@@ -58,11 +58,13 @@ nfc_video_set = []
 
 
 class HomeScreen(Screen):
+	discovered_media = []
 	#Simple test function
 	def AndroidTest(self):
 		vibrator = activity.getSystemService(Context.VIBRATOR_SERVICE)
 		if 'ANDROID_ROOT' in os.environ:
 			vibrator.vibrate(3000)
+		print self.discovered_media
 
 	#Function for starting the camera application
 	def startCamera(self):
@@ -89,18 +91,31 @@ class HomeScreen(Screen):
 
 	#Traverse DCIM folder for video files, and create a listing out of the discovered files
 	#Automatically generates Filewidgets and adds them to the Scrollview
+	@run_on_ui_thread
 	def getStoredMedia(self):
+		files = []
 		DCIMdir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
 		print DCIMdir.toURI().getPath()	
 		self.ids.fileList.clear_widgets()
 		for root, dirnames, filenames in os.walk(DCIMdir.getAbsolutePath()):
 			for filename in fnmatch.filter(filenames,'*.mp4'):
-				wid = FileWidget()
-				wid.setName(filename)
-				wid.setUri(root+'/'+filename)
-				#Making thumbnails is ungodly slow, so it's threaded
-				threading.Thread(target=wid.makeThumbnail).start()
-				self.ids.fileList.add_widget(wid)
+				#wid = FileWidget()
+				#wid.setName(filename)
+				#wid.setUri(root+'/'+filename)
+				##Making thumbnails is ungodly slow, so it's threaded
+				#threading.Thread(target=wid.makeThumbnail).start()
+				#self.ids.fileList.add_widget(wid)
+				files.append( (filename, root+'/'+filename) )
+		self.discovered_media = files
+		for tup in self.discovered_media:
+			Clock.schedule_once(functools.partial(self.createFileWidget,tup))	
+	def createFileWidget(self, tup, *largs):
+		filename, uri = tup	
+		wid = FileWidget()
+		wid.setName(filename)
+		wid.setUri(uri)
+		self.ids.fileList.add_widget(wid)
+
 
 class FileWidget(BoxLayout):
 	name = 'NO FILENAME SET'
@@ -108,6 +123,7 @@ class FileWidget(BoxLayout):
 	texture = None
 	benchmark = time.time()
 	lImageView = ImageView
+	thumbnail = None
 
 	#Enumerator as per android.media.ThumbnailUtils
 	MINI_KIND = 1 
@@ -150,11 +166,12 @@ class FileWidget(BoxLayout):
 		#Android crashes when multiple threads call createVideoThumbnail, so we block access to it.
 		#Luckily requesting thumbnails is pretty quick
 		thumbnail_sem.acquire()
-		thumbnail = ThumbnailUtils.createVideoThumbnail(self.uri,self.MINI_KIND)
+		self.thumbnail = ThumbnailUtils.createVideoThumbnail(self.uri,self.MINI_KIND)
+		#self.displayAndroidThumbnail(self.thumbnail)
+		Clock.schedule_once(functools.partial(self.displayAndroidThumbnail, self.thumbnail))
 		thumbnail_sem.release()
-		Clock.schedule_once(functools.partial(self.displayAndroidThumbnail, thumbnail))
-		pixels = [0] *thumbnail.getWidth() * thumbnail.getHeight()
-		thumbnail.getPixels(pixels, 0,thumbnail.getWidth(),0,0,thumbnail.getWidth(), thumbnail.getHeight())
+		#pixels = [0] *thumbnail.getWidth() * thumbnail.getHeight()
+		#self.thumbnail.getPixels(pixels, 0,thumbnail.getWidth(),0,0,thumbnail.getWidth(), thumbnail.getHeight())
 		#pixels = self.switchFormats(pixels)
 		#Schedule the main thread to update the thumbnail's texture
 	
@@ -178,11 +195,12 @@ class FileWidget(BoxLayout):
 	@run_on_ui_thread
 	def displayAndroidThumbnail(self, bmp, *largs):
 		print 'display'
+		print self.thumbnail
 		img_view = ImageView(cast(Context, activity))
 		print 'created view'
-		img_view.setImageBitmap(bmp)
+		img_view.setImageBitmap(self.thumbnail)
 		self.ids.android.view = img_view
-		
+		print "sem released"
 	#Benchmark function to help discover which function is slow	
 	def bench(self):
 		print "BENCHMARK: ", time.time() - self.benchmark
