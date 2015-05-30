@@ -272,7 +272,7 @@ class Socks5Connection(Protocol):
                 socks5_data = conversion.encode_udp_packet(
                     0, 0, conversion.ADDRESS_TYPE_IPV4, origin[0], origin[1], data)
                 self._udp_socket.sendDatagram(socks5_data)
-            return True
+                return True
         return False
 
     def connectionLost(self, reason=connectionDone):
