@@ -4,6 +4,8 @@ import time
 import os
 import struct
 import socket
+import hashlib
+
 from collections import defaultdict
 
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED
@@ -11,12 +13,12 @@ from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 from Tribler.Core.Utilities.encoding import encode, decode
 
 from Tribler.community.tunnel import CIRCUIT_TYPE_IP, CIRCUIT_TYPE_RP, CIRCUIT_TYPE_RENDEZVOUS, \
-    DEFAULT_HOPS, EXIT_NODE, EXIT_NODE_SALT
+                                     DEFAULT_HOPS, EXIT_NODE, EXIT_NODE_SALT
 
-from Tribler.community.tunnel.payload import (
-    EstablishIntroPayload, IntroEstablishedPayload, EstablishRendezvousPayload,
-    RendezvousEstablishedPayload, KeyResponsePayload, KeyRequestPayload,
-    CreateE2EPayload, CreatedE2EPayload, LinkE2EPayload, LinkedE2EPayload)
+from Tribler.community.tunnel.payload import (EstablishIntroPayload, IntroEstablishedPayload,
+                                              EstablishRendezvousPayload, RendezvousEstablishedPayload,
+                                              KeyResponsePayload, KeyRequestPayload, CreateE2EPayload,
+                                              CreatedE2EPayload, LinkE2EPayload, LinkedE2EPayload)
 from Tribler.community.tunnel.routing import RelayRoute, RendezvousPoint, Hop
 
 from Tribler.dispersy.authentication import NoAuthentication
@@ -174,7 +176,9 @@ class HiddenTunnelCommunity(TunnelCommunity):
         for ds in dslist:
             download = ds.get_download()
             if download.get_hops() > 0:
-                info_hash = download.get_def().get_infohash()
+                # Convert the real infohash to the infohash used for looking up introduction points
+                real_info_hash = download.get_def().get_infohash()
+                info_hash = self.get_lookup_info_hash(real_info_hash)
                 hops[info_hash] = download.get_hops()
                 new_states[info_hash] = ds.get_status()
 
@@ -425,14 +429,19 @@ class HiddenTunnelCommunity(TunnelCommunity):
         for message in messages:
             cache = self.request_cache.pop(u"link-request", message.payload.identifier)
 
-            download = self.trsession.get_download(cache.info_hash)
-            download.add_peer((self.circuit_id_to_ip(cache.circuit.circuit_id), 1024))
+            for download in self.trsession.get_downloads():
+                if cache.info_hash == self.get_lookup_info_hash(download.get_def().get_infohash()):
+                    download.add_peer((self.circuit_id_to_ip(cache.circuit.circuit_id), 1024))
+                    break
 
     def create_introduction_point(self, info_hash, hops, amount=1):
         # Ensures that libtorrent tries to make an outgoing connection so that the socks5 server
         # knows on which UDP port libtorrent is listening.
         # Niels: is this really neccesary? Why would we need the UDP port of libtorrent?
-        self.trsession.get_download(info_hash).add_peer(('1.1.1.1', 1024))
+        for download in self.trsession.get_downloads():
+            if info_hash == self.get_lookup_info_hash(download.get_def().get_infohash()):
+                download.add_peer(('1.1.1.1', 1024))
+                break
 
         # Create a separate key per infohash
         if info_hash not in self.session_keys:
@@ -543,3 +552,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
             self.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb, bt_port=port)
         else:
             self._logger.error("Need a Tribler session to announce to the DHT")
+
+    def get_lookup_info_hash(self, info_hash):
+        return hashlib.sha1('tribler anyonymous download' + info_hash.encode('hex')).digest()
+    
