@@ -73,18 +73,6 @@ class LibtorrentTest(object):
 
                     thank_you(ds.get_length(), self.download_started_at, self.download_finished_at)
 
-                    download = ds.get_download()
-                    if not download.get_def().is_anonymous():
-                        dscfg = DownloadStartupConfig(download.dlconfig.copy())
-
-                        # Set anonymous flag
-                        metainfo = copy.deepcopy(download.get_def().metainfo)
-                        metainfo['info']['anonymous'] = 1
-                        tdef = TorrentDef._create(metainfo)
-
-                        self.tribler_session.remove_download(download)
-                        self.tribler_session.start_download(tdef, dscfg)
-
                 return 4.0, False
 
             return _callback

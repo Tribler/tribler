@@ -278,7 +278,6 @@ class TestTunnelCommunity(TestGuiAsServer):
             tdef.add_content(os.path.join(BASE_DIR, "data", "video.avi"))
             tdef.set_tracker("http://fake.net/announce")
             tdef.set_private()  # disable dht
-            tdef.set_anonymous(True)
             tdef.finalize()
             tf = os.path.join(seeder_session.get_state_dir(), "gen.torrent")
             tdef.save(tf)

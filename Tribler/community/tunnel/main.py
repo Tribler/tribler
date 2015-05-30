@@ -267,7 +267,6 @@ class LineHandler(LineReceiver):
                 tdef.add_content(os.path.join(cur_path, filename))
                 tdef.set_tracker("udp://fake.net/announce")
                 tdef.set_private()
-                tdef.set_anonymous()
                 tdef.finalize()
                 tdef.save(os.path.join(cur_path, filename + '.torrent'))
             else:
