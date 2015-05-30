@@ -19,6 +19,7 @@ from Tribler.dispersy.crypto import NoCrypto
 class TestTunnelCommunity(TestGuiAsServer):
 
     def test_anon_download(self):
+
         def take_second_screenshot():
             self.screenshot()
             self.quit()
@@ -27,6 +28,10 @@ class TestTunnelCommunity(TestGuiAsServer):
             self.screenshot("After an anonymous libtorrent download (took %.2f s)" % download_time)
             self.guiUtility.ShowPage('networkgraph')
             self.Call(1, take_second_screenshot)
+
+        def download_ready(download_time):
+            # Wait for the session to replace seed into anonymous one with introducing circuits
+            self.Call(20, lambda: take_screenshot(download_time))
 
         def on_fail(expected, reason, do_assert):
             dispersy = self.session.lm.dispersy
@@ -43,9 +48,9 @@ class TestTunnelCommunity(TestGuiAsServer):
             self.Call(1, do_asserts)
 
         def do_progress(download, start_time):
-            self.CallConditional(120,
+            self.CallConditional(140,
                                  lambda: download.get_progress() == 1.0,
-                                 lambda: take_screenshot(time.time() - start_time),
+                                 lambda: download_ready(time.time() - start_time),
                                  'Anonymous download should be finished in 120 seconds (%.1f%% downloaded)' % (
                                      download.get_progress() * 100),
                                  on_fail
@@ -292,7 +297,7 @@ class TestTunnelCommunity(TestGuiAsServer):
             from Tribler.Core.DownloadConfig import DownloadStartupConfig
             dscfg = DownloadStartupConfig()
             dscfg.set_dest_dir(os.path.join(BASE_DIR, "data"))  # basedir of the file we are seeding
-            dscfg.set_hops(2)
+            dscfg.set_hops(1)
             d = seeder_session.start_download(tdef, dscfg)
             d.set_state_callback(self.seeder_state_callback)
 

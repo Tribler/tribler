@@ -19,6 +19,8 @@ from Tribler.Main.Utility.compat import (convertSessionConfig, convertMainConfig
                                          convertDownloadCheckpoints)
 from Tribler.Core.version import version_id, commit_id
 from Tribler.Core.osutils import get_free_space
+from Tribler.Core.TorrentDef import TorrentDef
+import copy
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +88,8 @@ from Tribler.Core.simpledefs import (UPLOAD, DOWNLOAD, NTFY_MODIFIED, NTFY_INSER
                                      NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, NTFY_MAGNET_STARTED,
                                      NTFY_MAGNET_CLOSE, dlstatus_strings,
                                      DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING,
-                                     DLSTATUS_STOPPED, NTFY_DISPERSY, NTFY_STARTED)
+                                     DLSTATUS_STOPPED, NTFY_DISPERSY, NTFY_STARTED,
+    DOWNLOAD_POLICY_HIDDEN_NO_FALLBACK)
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.DownloadConfig import get_default_dest_dir, get_default_dscfg_filename
@@ -611,7 +614,6 @@ class ABCApp(object):
             startWorker(do_wx, do_db, uId=u"tribler.set_reputation")
         startWorker(None, self.set_reputation, delay=5.0, workerType="guiTaskQueue")
 
-
     def sesscb_states_callback(self, dslist):
         if not self.ready:
             return 5.0, []
@@ -655,23 +657,34 @@ class ABCApp(object):
             doCheckpoint = False
             for ds in dslist:
                 state = ds.get_status()
-                tdef = ds.get_download().get_def()
+                download = ds.get_download()
+                tdef = download.get_def()
                 safename = tdef.get_name_as_unicode()
 
                 if state == DLSTATUS_DOWNLOADING:
                     newActiveDownloads.append(safename)
 
                 elif state == DLSTATUS_SEEDING:
-                    if safename in self.prevActiveDownloads:
-                        download = ds.get_download()
-                        tdef = download.get_def()
 
+                    if safename in self.prevActiveDownloads:
                         infohash = tdef.get_infohash()
 
                         notifier = Notifier.getInstance()
                         notifier.notify(NTFY_TORRENTS, NTFY_FINISHED, infohash, safename)
 
                         doCheckpoint = True
+
+                    if not tdef.is_anonymous() and self.sconfig.get_tunnel_community_enabled():
+                        self._logger.error("Change torrent to anonymous=1 torrent to prevent naked seeding")
+                        self.utility.session.remove_download(download)
+                        defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+                        dscfg = defaultDLConfig.copy()
+                        dscfg.set_hops(1)
+                        dscfg.set_download_policy(DOWNLOAD_POLICY_HIDDEN_NO_FALLBACK)
+                        metainfo = copy.deepcopy(tdef.metainfo)
+                        metainfo['info']['anonymous'] = 1
+                        tdef = TorrentDef._create(metainfo)
+                        self.utility.session.start_download(tdef, dscfg)
 
             self.prevActiveDownloads = newActiveDownloads
             if doCheckpoint:

@@ -2600,9 +2600,9 @@ class AnonymityDialog(wx.Panel):
 
         self.download_policy.SetSelection(self.utility.read_config('default_download_policy'))
 
-        self.darknet_chkbox = wx.CheckBox(self, -1, "Darknet mode: Hidden seeding, never seed naked in Bittorrent")
+        self.darknet_chkbox = wx.CheckBox(self, -1, "Darknet mode: Hidden seeding, never seed naked \nin Bittorrent (can not be disabled)")
         self.darknet_chkbox.SetValue(True)
-        self.darknet_chkbox.Disable()
+        self.darknet_chkbox.Bind(wx.EVT_CHECKBOX, self.OnDarknetValueChanged)
 
         vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
         vSizer.Add(self.anonimity_chkbox, 0, wx.EXPAND | wx.BOTTOM, 10)
@@ -2611,6 +2611,9 @@ class AnonymityDialog(wx.Panel):
 
         self.SetSizer(vSizer)
         self.OnAnonimityValueChanged(None)
+
+    def OnDarknetValueChanged(self, event):
+        self.darknet_chkbox.SetValue(True)
 
     def OnAnonimityValueChanged(self, event):
         if self.anonimity_chkbox.GetValue():

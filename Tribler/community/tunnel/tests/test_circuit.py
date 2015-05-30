@@ -2,7 +2,7 @@ import time
 
 from unittest import TestCase
 
-from Tribler.community.tunnel import CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN
+from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN
 from Tribler.community.tunnel.routing import Circuit, Hop
 from Tribler.dispersy.candidate import Candidate
 
