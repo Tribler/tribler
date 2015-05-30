@@ -757,8 +757,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             peer_dict['extended_version'] = peer_info.client
             peer_dict['ip'] = peer_info.ip[0]
             peer_dict['port'] = peer_info.ip[1]
+            # optimistic_unchoke = 0x800 seems unavailable in python bindings
             peer_dict['optimistic'] = bool(peer_info.flags & 2048)
-                                           # optimistic_unchoke = 0x800 seems unavailable in python bindings
             peer_dict['direction'] = 'L' if bool(peer_info.flags & peer_info.local_connection) else 'R'
             peer_dict['uprate'] = peer_info.payload_up_speed
             peer_dict['uinterested'] = bool(peer_info.flags & peer_info.remote_interested)
