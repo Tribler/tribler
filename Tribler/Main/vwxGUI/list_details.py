@@ -154,6 +154,7 @@ class TorrentDetails(AbstractDetails):
         self.markings = None
         self.myMark = None
         self.isEditable = {}
+        self.tracker_checks = {}
 
         self.guiutility.library_manager.add_download_state_callback(self.OnRefresh)
 
@@ -905,15 +906,16 @@ class TorrentDetails(AbstractDetails):
         if not (self and self.torrent and self.torrent.swarminfo):
             return
 
-        # touch swarminfo property
-        _, _, last_check = self.torrent.swarminfo
-
         if getattr(self.torrent, 'trackers', None) and len(self.torrent.trackers) > 0:
-            diff = time() - last_check
+            # touch swarminfo property
+            _, _, last_successful_check = self.torrent.swarminfo
+            last_check = self.tracker_checks.get(self.torrent.infohash, 0)
+            now = time()
 
-            if diff > 1800:
+            if now - last_successful_check > 1800 and now - last_check > 300:
                 self.utility.session.check_torrent_health(self.torrent.infohash)
                 self.ShowHealth(True)
+                self.tracker_checks[self.torrent.infohash] = now
             else:
                 self.ShowHealth(False)
         else:
