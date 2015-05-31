@@ -336,5 +336,6 @@ class Socks5Server(object):
         if circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
             origin = (community.circuit_id_to_ip(circuit.circuit_id), CIRCUIT_ID_PORT)
 
-        if not any([session.on_incoming_from_tunnel(community, circuit, origin, data, force) for session in self.sessions]):
+        if not any([session.on_incoming_from_tunnel(community, circuit, origin, data, force)
+                    for session in self.sessions if session.hops == circuit.goal_hops]):
             self._logger.error("No session accepted this data from %s:%d", *origin)
