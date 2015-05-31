@@ -120,8 +120,9 @@ class HomeScreen(Screen):
 				#self.ids.fileList.add_widget(wid)
 				files.append( (filename, root+'/'+filename) )
 		self.discovered_media = files
-		for tup in self.discovered_media:
-			Clock.schedule_once(functools.partial(self.createFileWidget,tup))	
+		
+		Clock.schedule_once(functools.partial(self.createFileWidgets,self.discovered_media))
+				
 	def createFileWidget(self, tup, *largs):
 		filename, uri = tup	
 		wid = FileWidget()
@@ -132,6 +133,11 @@ class HomeScreen(Screen):
 		self.non_thumbnailed.put(wid)
 		#if(self.thumbnail_thread.isAlive() == False) :
 		#	self.thumbnail_thread.start()
+
+	def createFileWidgets(self,media, *largs):
+		for tup in media:
+			self.createFileWidget(tup)
+
 	def loadThumbnails(self):
 		while True:
 			print 'Thump', app_ending
