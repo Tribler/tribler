@@ -2609,9 +2609,5 @@ class AnonymityDialog(wx.Panel):
         self.Layout()
         self.GetParent().Layout()
 
-    def UseProxies(self):
-        return self.anonimity_chkbox.GetValue()
-
-    def UseHiddenServices(self):
-        # There is no proxy downloading option in the settings panel after 4.5.0, default is hidden
+    def UseTunnels(self):
         return self.anonimity_chkbox.GetValue()

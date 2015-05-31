@@ -206,7 +206,7 @@ class SettingsDialog(wx.Dialog):
             self.utility.write_config('default_anonymous_level', default_anonymous_level)
             self.saveDefaultDownloadConfig(scfg)
 
-        default_anonimity_chkbox = self._default_anonimity_dialog.UseProxies()
+        default_anonimity_chkbox = self._default_anonimity_dialog.UseTunnels()
         if default_anonimity_chkbox != self.utility.read_config('default_anonimity_enabled'):
             self.utility.write_config('default_anonimity_enabled', default_anonimity_chkbox)
             self.saveDefaultDownloadConfig(scfg)

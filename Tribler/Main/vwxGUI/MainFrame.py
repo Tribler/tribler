@@ -508,9 +508,7 @@ class MainFrame(wx.Frame):
                             destdir = dlg.GetPath()
 
                         # Anonimity over exit nodes or hidden services
-                        if dlg.UseHiddenservices():
-                            hops = 2
-                        elif dlg.UseProxies():
+                        if dlg.UseTunnels():
                             hops = self.utility.read_config('default_anonymous_level')
 
                     else:

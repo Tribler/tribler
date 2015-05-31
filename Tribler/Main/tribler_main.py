@@ -672,7 +672,7 @@ class ABCApp(object):
 
                         doCheckpoint = True
 
-                    if not tdef.is_anonymous() and self.sconfig.get_tunnel_community_enabled():
+                    if download.get_hops() == 0 and self.sconfig.get_tunnel_community_enabled():
                         self._logger.error("Re-add torrent with hops=1 to prevent naked seeding")
                         self.utility.session.remove_download(download)
                         defaultDLConfig = DefaultDownloadStartupConfig.getInstance()

@@ -142,7 +142,7 @@ class SaveAs(wx.Dialog):
         self.SetSizer(sizer)
 
     def OkButtonVisibility(self):
-        if self.UseProxies() and not self.ok_force_enabled:
+        if self.UseTunnels() and not self.ok_force_enabled:
             self.ok.Disable()
         else:
             self.ok.Enable()
@@ -240,14 +240,8 @@ class SaveAs(wx.Dialog):
                 return files
         return None
 
-    def UseHiddenservices(self):
-        return self.anonimity_dialog and self.anonimity_dialog.UseHiddenServices()
-
-    def UseProxies(self):
-        return self.anonimity_dialog and self.anonimity_dialog.UseProxies()
-
-    def GetDownloadPolicyValue(self):
-        return self.anonimity_dialog and self.anonimity_dialog.GetDownloadPolicyValue()
+    def UseTunnels(self):
+        return self.anonimity_dialog and self.anonimity_dialog.UseTunnels()
 
     def OnOk(self, event=None):
         if self.listCtrl:
