@@ -190,10 +190,10 @@ class HiddenTunnelCommunity(TunnelCommunity):
             force_dht_lookup = (time.time() - self.last_dht_lookup.get(info_hash, 0)) >= 300
 
             if (state_changed or force_dht_lookup) and new_state == DLSTATUS_DOWNLOADING:
-                self.do_lookup(info_hash, hops=hops.get(info_hash, 2))
+                self.do_lookup(info_hash, hops=hops[info_hash])
 
             elif state_changed and new_state == DLSTATUS_SEEDING:
-                self.create_introduction_point(info_hash, hops=hops.get(info_hash, DEFAULT_HOPS))
+                self.create_introduction_point(info_hash, hops=hops[info_hash])
 
             elif state_changed and new_state in [DLSTATUS_STOPPED, None]:
                 for cid, info_hash_hops in self.my_download_points.items():
@@ -232,16 +232,16 @@ class HiddenTunnelCommunity(TunnelCommunity):
                     # Blacklist this sock_addr for a period of at least 60s
                     self.dht_blacklist[info_hash].append((time.time(), peer))
 
-                    self.create_key_request(info_hash, peer)
+                    self.create_key_request(info_hash, peer, hops)
 
         self._logger.debug("Doing dht lookup for hidden community")
         self.last_dht_lookup[info_hash] = time.time()
         self.dht_lookup(info_hash, dht_callback)
 
-    def create_key_request(self, info_hash, sock_addr):
+    def create_key_request(self, info_hash, sock_addr, hops):
         # 1. Select a circuit
         self._logger.debug("Create key request: select circuit")
-        circuit = self.selection_strategy.select(None, DEFAULT_HOPS)
+        circuit = self.selection_strategy.select(None, hops)
         if not circuit:
             self._logger.error("No circuit for key-request")
             return False
