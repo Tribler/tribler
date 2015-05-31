@@ -66,7 +66,7 @@ def add_label(parent, sizer, label):
 class SettingsDialog(wx.Dialog):
 
     def __init__(self):
-        super(SettingsDialog, self).__init__(None, size=(600, 700),
+        super(SettingsDialog, self).__init__(None, size=(600, 600),
                                              title="Settings", name="settingsDialog", style=wx.DEFAULT_DIALOG_STYLE)
         self.SetExtraStyle(self.GetExtraStyle() | wx.WS_EX_VALIDATE_RECURSIVELY)
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -209,11 +209,6 @@ class SettingsDialog(wx.Dialog):
         default_anonimity_chkbox = self._default_anonimity_dialog.UseProxies()
         if default_anonimity_chkbox != self.utility.read_config('default_anonimity_enabled'):
             self.utility.write_config('default_anonimity_enabled', default_anonimity_chkbox)
-            self.saveDefaultDownloadConfig(scfg)
-
-        default_download_policy = self._default_anonimity_dialog.GetDownloadPolicyValue()
-        if default_download_policy != self.utility.read_config('default_download_policy'):
-            self.utility.write_config('default_download_policy', default_download_policy)
             self.saveDefaultDownloadConfig(scfg)
 
         useWebUI = self._use_webui.IsChecked()
