@@ -6,7 +6,7 @@ from kivy.uix.widget import Widget
 from kivy.core.window import Window
 from kivy.lang import Builder
 from kivy.uix.button import Button
-from kivy.core.image import Image as CoreImage
+from kivy.core.image import Image
 from kivy.graphics.texture import Texture
 from kivy.clock import Clock
 from kivy.properties import StringProperty, ObjectProperty
@@ -47,6 +47,8 @@ CreateNfcBeamUrisCallback = autoclass('org.test.CreateNfcBeamUrisCallback')
 MediaStore = autoclass('android.provider.MediaStore')
 ThumbnailUtils = autoclass('android.media.ThumbnailUtils')
 ImageView = autoclass('android.widget.ImageView')
+CompressFormat = autoclass('android/graphics/Bitmap$CompressFormat')
+FileOutputStream = autoclass('java.io.FileOutputStream')
 
 MediaRecorder = autoclass('android.media.MediaRecorder')
 Camera = autoclass('android.hardware.Camera')
@@ -56,6 +58,7 @@ Builder.load_file('main.kv')
 
 thumbnail_sem = threading.BoundedSemaphore()
 nfc_video_set = []
+app_ending = False;
 
 
 class HomeScreen(Screen):
@@ -63,8 +66,10 @@ class HomeScreen(Screen):
 	non_thumbnailed = Queue.Queue()
 	thumbnail_thread = None
 	wid_sem = threading.BoundedSemaphore()
+	Finished = object()
 	def __init__(self, **kwargs):
-		self.thumbnail_thread = threading.Thread(target=self.loadThumbnails).start()
+		self.thumbnail_thread = threading.Thread(target=self.loadThumbnails)
+		self.thumbnail_thread.start()
 		super(Screen,self).__init__(**kwargs)
 	#Simple test function
 	def AndroidTest(self):
@@ -72,6 +77,7 @@ class HomeScreen(Screen):
 		if 'ANDROID_ROOT' in os.environ:
 			vibrator.vibrate(3000)
 		print self.discovered_media
+		print activity.getFilesDir().getAbsolutePath()
 
 	#Function for starting the camera application
 	def startCamera(self):
@@ -128,12 +134,20 @@ class HomeScreen(Screen):
 		#	self.thumbnail_thread.start()
 	def loadThumbnails(self):
 		while True:
+			print 'Thump', app_ending
 			#self.wid_sem.acquire()
 			wid = self.non_thumbnailed.get()
-			#self.wid_sem.release()
+			if(wid is self.Finished):
+				print "Ending Thumbnail Thread"
+				detach()
+				break
 			print 'IMAGE TIME'
 			print wid.uri
+			wid.makeFileThumbnail()
 		detach()
+	def endThumbnailThread(self):
+		self.non_thumbnailed.queue.clear()
+		self.non_thumbnailed.put(self.Finished)
 
 class FileWidget(BoxLayout):
 	name = 'NO FILENAME SET'
@@ -147,6 +161,10 @@ class FileWidget(BoxLayout):
 	MINI_KIND = 1 
 	FULL_KIND = 2
 	MICRO_KIND = 3
+	#Enumerator as per Bitmap.CompressFormat
+	JPEG = 1
+	PNG = 2
+	WEBP = 3
 
 	def setName(self, nom):
 		self.name = nom
@@ -186,16 +204,38 @@ class FileWidget(BoxLayout):
 		thumbnail_sem.acquire()
 		self.thumbnail = ThumbnailUtils.createVideoThumbnail(self.uri,self.MINI_KIND)
 		#self.displayAndroidThumbnail(self.thumbnail)
-		Clock.schedule_once(functools.partial(self.displayAndroidThumbnail, self.thumbnail))
+		#Clock.schedule_once(functools.partial(self.displayAndroidThumbnail, self.thumbnail))
 		thumbnail_sem.release()
-		#pixels = [0] *thumbnail.getWidth() * thumbnail.getHeight()
-		#self.thumbnail.getPixels(pixels, 0,thumbnail.getWidth(),0,0,thumbnail.getWidth(), thumbnail.getHeight())
-		#pixels = self.switchFormats(pixels)
+		pixels = [0] *self.thumbnail.getWidth() * self.thumbnail.getHeight()
+		self.thumbnail.getPixels(pixels, 0,self.thumbnail.getWidth(),0,0,self.thumbnail.getWidth(), self.thumbnail.getHeight())
+		pixels = self.switchFormats(pixels)
 		#Schedule the main thread to update the thumbnail's texture
 	
-		#Clock.schedule_once(functools.partial(self.displayThumbnail,thumbnail.getWidth(), thumbnail.getHeight(),pixels))
+		Clock.schedule_once(functools.partial(self.displayThumbnail,self.thumbnail.getWidth(), self.thumbnail.getHeight(),pixels))
 		print "Detatching thread"
-		detach()
+		#detach()
+
+	def makeFileThumbnail(self):
+		path = activity.getFilesDir().toURI().getPath()+'THUMBS/'
+		if not os.path.exists(path):
+			os.makedirs(path)
+		path = path+self.name+'.jpg'
+		if os.path.exists(path):
+			print 'Thumbnail ', path, 'exists'
+			Clock.schedule_once(functools.partial(self.loadFileThumbnail, path))
+		else:
+			print 'Thumbnail ',path, ' does not exist'
+			thumb = ThumbnailUtils.createVideoThumbnail(self.uri,self.MINI_KIND)
+			print path
+			output = FileOutputStream(path, False)
+			thumb.compress(CompressFormat.valueOf('JPEG'), 80,output)
+			output.close()
+			Clock.schedule_once(functools.partial(self.loadFileThumbnail, path))
+	
+	def loadFileThumbnail(self, path, *largs):
+		print 'Attempting to set Image: ', path
+		self.ids.img.source = path
+		print self.ids.img.source	
 
 	#Function called by makeThumbnail to set the thumbnail properly
 	#Displaying a new texture does not work on a seperate thread, so the main thread had to handle it
@@ -323,7 +363,9 @@ class Skelly(App):
 
 	#required function by android, called when asked to stop
 	def on_stop(self):
-		pass
+		app_ending = True
+		print "Terminating Application NOW"
+		self.HomeScr.endThumbnailThread()
 
 	#Required function by android, called when resumed from a pause	
 	def on_resume(self):
