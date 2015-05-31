@@ -244,10 +244,10 @@ class TestTunnelCommunity(TestGuiAsServer):
             self.Call(1, do_asserts)
 
         def do_progress(download, start_time):
-            self.CallConditional(120,
+            self.CallConditional(140,
                                  lambda: download.get_progress() == 1.0,
                                  lambda: take_screenshot(time.time() - start_time),
-                                 'Hidden services download should be finished in 180 seconds (%.1f%% downloaded)' %
+                                 'Hidden services download should be finished in 140 seconds (%.1f%% downloaded)' %
                                      (download.get_progress() * 100),
                                  on_fail)
 
@@ -273,7 +273,7 @@ class TestTunnelCommunity(TestGuiAsServer):
             seeder_session.set_download_states_callback(download_states_callback, False)
             
             # Start seeding            
-            tf = self.setupSeeder(hops=2, use_session=seeder_session)
+            tf = self.setupSeeder(hops=2, session=seeder_session)
 
             # Wait for the introduction point to announce itself to the DHT
             dht = Event()
@@ -286,7 +286,7 @@ class TestTunnelCommunity(TestGuiAsServer):
                 community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb_dht, bt_port=port)
             for community in tunnel_communities:
                 community.dht_announce = lambda ih, com = community: dht_announce(ih, com)
-            self.CallConditional(60, dht.is_set, lambda: self.Call(5, lambda: start_download(tf)),
+            self.CallConditional(90, dht.is_set, lambda: self.Call(5, lambda: start_download(tf)),
                                  'Introduction point did not get announced')
 
         self.startTest(setup_seeder, nr_relays=6, nr_exitnodes=4, bypass_dht=True)
@@ -330,10 +330,10 @@ class TestTunnelCommunity(TestGuiAsServer):
                     
             d.set_state_callback(cb, True)
             
-            self.CallConditional(120,
+            self.CallConditional(140,
                                  lambda: d.get_progress() == 1.0 and hs_progress.is_set() and en_progress.is_set(),
                                  lambda: take_screenshot(time.time() - start_time),
-                                 'Hidden services download should be finished in 180s', on_fail)
+                                 'Hidden services download should be finished in 140s', on_fail)
 
         def start_download(tf):
             start_time = time.time()
@@ -362,10 +362,10 @@ class TestTunnelCommunity(TestGuiAsServer):
             seeder_session.set_download_states_callback(download_states_callback, False)
             
             # Start seeding with hidden services
-            tf = self.setupSeeder(hops=2, use_session=seeder_session)
+            tf = self.setupSeeder(hops=2, session=seeder_session)
 
             # Start another seeder from which we'll download using exit nodes
-            self.setupSeeder(hops=0, use_session=self.sessions[1])
+            self.setupSeeder(hops=0, session=self.sessions[1])
 
             # Wait for the introduction point to announce itself to the DHT
             dht = Event()
@@ -378,7 +378,7 @@ class TestTunnelCommunity(TestGuiAsServer):
                 community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb_dht, bt_port=port)
             for community in tunnel_communities:
                 community.dht_announce = lambda ih, com = community: dht_announce(ih, com)
-            self.CallConditional(60, dht.is_set, lambda: self.Call(5, lambda: start_download(tf)),
+            self.CallConditional(90, dht.is_set, lambda: self.Call(5, lambda: start_download(tf)),
                                  'Introduction point did not get announced')
 
         self.startTest(setup_seeder, nr_relays=6, nr_exitnodes=4, bypass_dht=True)
@@ -475,7 +475,7 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         TestGuiAsServer.startTest(self, setup_proxies, autoload_discovery=False)
 
-    def setupSeeder(self, hops=0, use_session=None):
+    def setupSeeder(self, hops=0, session=None):
         from Tribler.Core.Session import Session
         from Tribler.Core.TorrentDef import TorrentDef
         from Tribler.Core.DownloadConfig import DownloadStartupConfig
@@ -485,27 +485,26 @@ class TestTunnelCommunity(TestGuiAsServer):
 
         self.config2 = self.config.copy()
         self.config2.set_state_dir(self.getStateDir(2))
-        if not use_session:
+        if session is None:
             self.session2 = Session(self.config2, ignore_singleton=True, autoload_discovery=False)
             upgrader = self.session2.prestart()
             while not upgrader.is_done:
                 time.sleep(0.1)
             self.session2.start()
-        else:
-            self.session2 = use_session
+            session = self.session2
 
         tdef = TorrentDef()
         tdef.add_content(os.path.join(BASE_DIR, "data", "video.avi"))
         tdef.set_tracker("http://fake.net/announce")
         tdef.set_private()  # disable dht
         tdef.finalize()
-        torrentfn = os.path.join(self.session2.get_state_dir(), "gen.torrent")
+        torrentfn = os.path.join(session.get_state_dir(), "gen.torrent")
         tdef.save(torrentfn)
 
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(os.path.join(BASE_DIR, "data"))  # basedir of the file we are seeding
         dscfg.set_hops(hops)
-        d = self.session2.start_download(tdef, dscfg)
+        d = session.start_download(tdef, dscfg)
         d.set_state_callback(self.seeder_state_callback)
 
         return torrentfn
