@@ -135,8 +135,12 @@ class HomeScreen(Screen):
 		#	self.thumbnail_thread.start()
 
 	def createFileWidgets(self,media, *largs):
-		for tup in media:
-			self.createFileWidget(tup)
+		for i in range(0,10):
+			if( len(media) != 0):			
+				tup = media.pop(0)		
+				self.createFileWidget(tup)
+				Clock.schedule_once(functools.partial(self.createFileWidgets, media))
+			else: break		
 
 	def loadThumbnails(self):
 		while True:
