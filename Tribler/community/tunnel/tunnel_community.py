@@ -15,7 +15,7 @@ from Tribler.Core.Utilities.encoding import encode, decode
 
 from Tribler.community.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR,
                                       PING_INTERVAL, EXIT_NODE, CIRCUIT_TYPE_DATA, CIRCUIT_TYPE_RP,
-                                      CIRCUIT_TYPE_RENDEZVOUS, EXIT_NODE_SALT, ORIGINATOR_SALT)
+                                      CIRCUIT_TYPE_RENDEZVOUS, EXIT_NODE_SALT, ORIGINATOR_SALT, CIRCUIT_ID_PORT)
 from Tribler.community.tunnel.conversion import TunnelConversion
 from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, CreatedPayload, ExtendPayload,
                                               ExtendedPayload, DestroyPayload, PongPayload, PingPayload,
@@ -223,7 +223,7 @@ class RoundRobin(object):
         return len(self.community.active_data_circuits(hops)) > 0
 
     def select(self, destination, hops):
-        if destination and destination[1] == 1024:
+        if destination and destination[1] == CIRCUIT_ID_PORT:
             circuit_id = self.community.ip_to_circuit_id(destination[0])
             circuit = self.community.circuits.get(circuit_id, None)
 
@@ -316,19 +316,22 @@ class TunnelCommunity(Community):
 
     @classmethod
     def get_master_members(cls, dispersy):
-        # generated: Mon Mar  9 16:21:28 2015
+        # generated: Thu May 21 16:25:38 2015
         # curve: None
         # len: 571 bits ~ 144 bytes signature
-        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000404dc19d38890e0de983aed312d0b0c8a27732d7499a3e0c5d7bebfb8451270215d788ca671040935b4b4fc7faa48fd021226f5580995d63d0e9c82b0586850f93768debf550f4459054e6fb91318d8a0346c4059a4e84c95e4b7769cadc296d567ad353752a630d20f077a9f068998136338f2f0663d327d8934110565fb41040ac2d94c4fb78308118206a3930b68a8
-        # pub-sha1 3df2df7afa551c6d876a94b44c4b37d417b7c4e8
-        #-----BEGIN PUBLIC KEY-----
-        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQE3BnTiJDg3pg67TEtCwyKJ3MtdJmj
-        # 4MXXvr+4RRJwIV14jKZxBAk1tLT8f6pI/QISJvVYCZXWPQ6cgrBYaFD5N2jev1UP
-        # RFkFTm+5ExjYoDRsQFmk6EyV5Ld2nK3CltVnrTU3UqYw0g8Hep8GiZgTYzjy8GY9
-        # Mn2JNBEFZftBBArC2UxPt4MIEYIGo5MLaKg=
-        #-----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000404dc19d38890e0de983aed312d0b0c8a27732d7499a3e0c5d7bebfb8451270215d788ca671040935b4b4fc7faa48fd021226f5580995d63d0e9c82b0586850f93768debf550f4459054e6fb91318d8a0346c4059a4e84c95e4b7769cadc296d567ad353752a630d20f077a9f068998136338f2f0663d327d8934110565fb41040ac2d94c4fb78308118206a3930b68a8".decode(
-            "HEX")
+        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000403ba4a5a53c0aae73cd
+        # a16a60f1ddc4b600bdc201b24c7ae349acbaf2b4a0510a97ac7f7cc31825a5e59a5da3bbdaa88d85
+        # 49e01326ed9925c9229a35af88d645674deb3816c417306aa0182b7963134d61a6f2fef08533ea5c
+        # dde55b551f9d61ced20d67237e46d738b876f4c574fda46828a1432a2ad28534d2394b14836aa0be
+        # 395a87911866aa58325606a20c557
+        # pub-sha1 ca003cb1a2e7f3f770a6cb0908b27f2f7a1e5779
+        # -----BEGIN PUBLIC KEY-----
+        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQDukpaU8Cq5zzaFqYPHdxLYAvcIBsk
+        # x640msuvK0oFEKl6x/fMMYJaXlml2ju9qojYVJ4BMm7ZklySKaNa+I1kVnTes4Fs
+        # QXMGqgGCt5YxNNYaby/vCFM+pc3eVbVR+dYc7SDWcjfkbXOLh29MV0/aRoKKFDKi
+        # rShTTSOUsUg2qgvjlah5EYZqpYMlYGogxVc=
+        # -----END PUBLIC KEY-----
+        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403ba4a5a53c0aae73cda16a60f1ddc4b600bdc201b24c7ae349acbaf2b4a0510a97ac7f7cc31825a5e59a5da3bbdaa88d8549e01326ed9925c9229a35af88d645674deb3816c417306aa0182b7963134d61a6f2fef08533ea5cdde55b551f9d61ced20d67237e46d738b876f4c574fda46828a1432a2ad28534d2394b14836aa0be395a87911866aa58325606a20c557".decode("HEX")
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
@@ -427,15 +430,13 @@ class TunnelCommunity(Community):
 
         self.do_remove()
 
-    def tunnels_ready(self, hops, anonymous):
+    def tunnels_ready(self, hops):
         if hops > 0:
-            if anonymous:
-                current_hops = self.circuits_needed.get(hops, 0)
-                self.circuits_needed[hops] = max(1, current_hops)
-                return bool(self.active_data_circuits(hops))
-            else:
-                self.circuits_needed[hops] = self.settings.max_circuits
+            self.circuits_needed[hops] = max(1, self.settings.max_circuits)
+            if self.settings.min_circuits:
                 return min(1, len(self.active_data_circuits(hops)) / float(self.settings.min_circuits))
+            else:
+                return int(bool(self.active_data_circuits(hops)))
         return 1
 
     def do_remove(self):
@@ -490,6 +491,7 @@ class TunnelCommunity(Community):
                 if exit_candidate.become_exit:
                     self._logger.debug("Valid exit candidate found for this circuit")
                     required_exit = (c.sock_addr[0], c.sock_addr[1], pubkey)
+
                     # Stop looking for a better alternative if the exit-node is not used for exiting in another circuit
                     if self.candidate_is_connectable(c):
                         self._logger.debug("Exit node is connectable and not used in other circuits, that's prefered")
@@ -1010,9 +1012,14 @@ class TunnelCommunity(Community):
             else:
                 candidate_extend_mid = 0
 
+            if candidate.get_member() is not None:
+                candidate_mid = candidate.get_member().mid.encode('hex')
+            else:
+                candidate_mid = 0
+
             self.waiting_for.add(new_circuit_id)
             self.relay_from_to[new_circuit_id] = RelayRoute(circuit_id, candidate.sock_addr,
-                                                            mid=candidate.get_member().mid.encode('hex'))
+                                                            mid=candidate_mid)
             self.relay_from_to[circuit_id] = RelayRoute(new_circuit_id, extend_candidate.sock_addr,
                                                         mid=candidate_extend_mid)
 

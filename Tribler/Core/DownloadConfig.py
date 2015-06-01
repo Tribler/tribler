@@ -100,12 +100,6 @@ class DownloadConfigInterface(object):
     def get_hops(self):
         return self.dlconfig.get('downloadconfig', 'hops')
 
-    def set_download_policy(self, value):
-        self.dlconfig.set('downloadconfig', 'download_policy', value)
-
-    def get_download_policy(self):
-        return self.dlconfig.get('downloadconfig', 'download_policy')
-
     def set_selected_files(self, files):
         """ Select which files in the torrent to download. The filenames must
         be the names as they appear in the content def, including encoding.

@@ -811,20 +811,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
         self.input['private'] = 1 if private else 0
 
-    def is_anonymous(self):
-        """ Returns whether this TorrentDef is an anonymous torrent.
-        @return Boolean """
-        if not self.metainfo_valid:
-            raise NotYetImplementedException()
-
-        return int(self.metainfo['info'].get('anonymous', 0)) == 1
-
-    def set_anonymous(self, anonymous=True):
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
-        self.input['anonymous'] = 1 if anonymous else 0
-
     #
     # Internal methods
     #
@@ -890,6 +876,3 @@ class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
 
     def copy(self):
         return TorrentDefNoMetainfo(self.infohash, self.name)
-
-    def is_anonymous(self):
-        return False

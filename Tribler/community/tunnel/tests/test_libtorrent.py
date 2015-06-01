@@ -73,18 +73,6 @@ class LibtorrentTest(object):
 
                     thank_you(ds.get_length(), self.download_started_at, self.download_finished_at)
 
-                    download = ds.get_download()
-                    if not download.get_def().is_anonymous():
-                        dscfg = DownloadStartupConfig(download.dlconfig.copy())
-
-                        # Set anonymous flag
-                        metainfo = copy.deepcopy(download.get_def().metainfo)
-                        metainfo['info']['anonymous'] = 1
-                        tdef = TorrentDef._create(metainfo)
-
-                        self.tribler_session.remove_download(download)
-                        self.tribler_session.start_download(tdef, dscfg)
-
                 return 4.0, False
 
             return _callback
@@ -117,7 +105,7 @@ class LibtorrentTest(object):
             self._logger.error("Could not execute startDownload. Running Tribler without the GUI?")
             return
 
-        download = frame.startDownload(tdef=tdef, destdir=destination_dir, hops=2, try_hidden_services=True)
+        download = frame.startDownload(tdef=tdef, destdir=destination_dir, hops=2)
 
         if not download:
             self._logger.error("Could not start test download")
@@ -125,11 +113,5 @@ class LibtorrentTest(object):
 
         download.set_state_callback(state_call(), delay=4)
 
-        def check_fallback_download():
-            download = self.tribler_session.get_download(tdef.get_infohash())
-            if download:
-                for peer in hosts:
-                    download.add_peer(peer)
-                download.set_state_callback(state_call(), delay=4)
-
-        self.tribler_session.lm.rawserver.add_task(check_fallback_download, delay=50)
+        for peer in hosts:
+            download.add_peer(peer)

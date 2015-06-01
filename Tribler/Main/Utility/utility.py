@@ -7,7 +7,6 @@ from random import gauss
 from Tribler.Core.version import version_id
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.Core.simpledefs import DOWNLOAD_POLICY_HIDDEN_300_FALLBACK
 
 
 #
@@ -38,7 +37,6 @@ class Utility(object):
                             # anonymous
                             'default_anonymous_level': 0,
                             'default_anonimity_enabled': True,
-                            'default_download_policy': DOWNLOAD_POLICY_HIDDEN_300_FALLBACK,
 
                             # GUI
                             'window_width': 1024,

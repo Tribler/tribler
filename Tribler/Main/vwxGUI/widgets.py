@@ -1819,21 +1819,15 @@ class TorrentStatus(wx.Panel):
         torrent_state = torrent.state
         finished = progress == 1.0
         is_vod = torrent.ds.get_download().get_mode() == DLMODE_VOD if torrent.ds else False
-        hidden = torrent.ds.get_download().get_def().is_anonymous()
 
         if torrent.ds.status == 2 or 'checking' in torrent_state:
             status = 'Checking'
         elif 'circuits' in torrent_state:
-            if hidden:
-                status = 'Building End to End'
-            else:
-                status = 'Building circuits'
+            status = 'Building circuits'
         elif 'metadata' in torrent_state:
             status = 'Fetching torrent'
         elif 'seeding' in torrent_state:
             status = 'Seeding'
-            if hidden:
-                status = 'Hidden Seeding'
             if torrent.ds and UserDownloadChoice.get_singleton().get_download_state(torrent.ds.get_download().get_def().get_infohash()) == 'restartseed':
                 status = "[F] " + status
         elif finished:
@@ -1842,8 +1836,6 @@ class TorrentStatus(wx.Panel):
             status = 'Waiting'
         elif 'downloading' in torrent_state:
             status = 'Streaming' if is_vod else 'Downloading'
-            if hidden:
-                status = "Hidden " + status
         elif 'error' in torrent_state:
             status = 'Stopped on error'
         elif 'stopped' in torrent_state:
@@ -2593,30 +2585,21 @@ class AnonymityDialog(wx.Panel):
         self.anonimity_chkbox.SetValue(self.utility.read_config('default_anonimity_enabled'))
         self.anonimity_chkbox.Bind(wx.EVT_CHECKBOX, self.OnAnonimityValueChanged)
 
-        self.download_policy = wx.RadioBox(self, choices=('Find hidden seeders, fallback to anonymous Bittorrent \nafter 2 minutes',
-                                                          'Find hidden seeders, fallback to anonymous Bittorrent \nafter 5 minutes',
-                                                          'Darknet Mode: no fallback, exclusively download with \nstrong end-to-end encryption'),
-                                           style=wx.RA_VERTICAL)
-
-        self.download_policy.SetSelection(self.utility.read_config('default_download_policy'))
-
-        self.darknet_chkbox = wx.CheckBox(self, -1, "Darknet mode: Hidden seeding, never seed naked in Bittorrent")
+        self.darknet_chkbox = wx.CheckBox(self, -1, "Darknet mode: Hidden seeding, never seed naked \nin Bittorrent (can not be disabled)")
         self.darknet_chkbox.SetValue(True)
-        self.darknet_chkbox.Disable()
+        self.darknet_chkbox.Bind(wx.EVT_CHECKBOX, self.OnDarknetValueChanged)
 
         vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
         vSizer.Add(self.anonimity_chkbox, 0, wx.EXPAND | wx.BOTTOM, 10)
-        vSizer.Add(self.download_policy, 0, wx.EXPAND | wx.BOTTOM, 10)
         vSizer.Add(self.darknet_chkbox, 0, wx.EXPAND | wx.BOTTOM, 10)
 
         self.SetSizer(vSizer)
         self.OnAnonimityValueChanged(None)
 
+    def OnDarknetValueChanged(self, event):
+        self.darknet_chkbox.SetValue(True)
+
     def OnAnonimityValueChanged(self, event):
-        if self.anonimity_chkbox.GetValue():
-            self.download_policy.Enable()
-        else:
-            self.download_policy.Disable()
 
         try:
             self.GetParent().OkButtonVisibility()
@@ -2626,12 +2609,5 @@ class AnonymityDialog(wx.Panel):
         self.Layout()
         self.GetParent().Layout()
 
-    def UseProxies(self):
+    def UseTunnels(self):
         return self.anonimity_chkbox.GetValue()
-
-    def UseHiddenServices(self):
-        # There is no proxy downloading option in the settings panel after 4.5.0, default is hidden
-        return self.anonimity_chkbox.GetValue()
-
-    def GetDownloadPolicyValue(self):
-        return self.download_policy.GetSelection()

@@ -113,7 +113,7 @@ class SaveAs(wx.Dialog):
             sizer.Add(ag, 0, wx.ALIGN_CENTER_VERTICAL)
             sizer.AddStretchSpacer()
             vSizer.Add(sizer, 1, wx.EXPAND | wx.BOTTOM, 3)
-            self.SetSize((600, 385 if self.tunnel_community_enabled else 185))
+            self.SetSize((600, 285 if self.tunnel_community_enabled else 185))
 
             # convert tdef into guidbtuple, and collect it using torrentsearch_manager.downloadTorrentfileFromPeers
             torrent = Torrent.fromTorrentDef(tdef)
@@ -142,7 +142,7 @@ class SaveAs(wx.Dialog):
         self.SetSizer(sizer)
 
     def OkButtonVisibility(self):
-        if self.UseProxies() and not self.ok_force_enabled:
+        if self.UseTunnels() and not self.ok_force_enabled:
             self.ok.Disable()
         else:
             self.ok.Enable()
@@ -201,7 +201,7 @@ class SaveAs(wx.Dialog):
     def OnCollected(self, event):
         tdef = event.tdef
         self.collected = tdef
-        self.SetSize((600, 575 if self.tunnel_community_enabled else 475))
+        self.SetSize((600, 550 if self.tunnel_community_enabled else 450))
         vSizer = self.GetSizer().GetItem(0).GetSizer()
         hsizer = vSizer.GetItem(len(vSizer.GetChildren()) - 2).GetSizer()
         self.Freeze()
@@ -240,14 +240,8 @@ class SaveAs(wx.Dialog):
                 return files
         return None
 
-    def UseHiddenservices(self):
-        return self.anonimity_dialog and self.anonimity_dialog.UseHiddenServices()
-
-    def UseProxies(self):
-        return self.anonimity_dialog and self.anonimity_dialog.UseProxies()
-
-    def GetDownloadPolicyValue(self):
-        return self.anonimity_dialog and self.anonimity_dialog.GetDownloadPolicyValue()
+    def UseTunnels(self):
+        return self.anonimity_dialog and self.anonimity_dialog.UseTunnels()
 
     def OnOk(self, event=None):
         if self.listCtrl:

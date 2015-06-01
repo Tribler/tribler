@@ -33,6 +33,7 @@ from Tribler.Main.vwxGUI.widgets import (LinkStaticText, EditText, SelectableLis
                                          TransparentStaticBitmap, Graph, ProgressBar)
 
 from Tribler.Main.Utility.utility import eta_value, size_format, speed_format
+from Tribler.community.tunnel import CIRCUIT_ID_PORT, CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP
 
 
 class AbstractDetails(FancyPanel):
@@ -153,6 +154,7 @@ class TorrentDetails(AbstractDetails):
         self.markings = None
         self.myMark = None
         self.isEditable = {}
+        self.tracker_checks = {}
 
         self.guiutility.library_manager.add_download_state_callback(self.OnRefresh)
 
@@ -904,15 +906,16 @@ class TorrentDetails(AbstractDetails):
         if not (self and self.torrent and self.torrent.swarminfo):
             return
 
-        # touch swarminfo property
-        _, _, last_check = self.torrent.swarminfo
-
         if getattr(self.torrent, 'trackers', None) and len(self.torrent.trackers) > 0:
-            diff = time() - last_check
+            # touch swarminfo property
+            _, _, last_successful_check = self.torrent.swarminfo
+            last_check = self.tracker_checks.get(self.torrent.infohash, 0)
+            now = time()
 
-            if diff > 1800:
+            if now - last_successful_check > 1800 and now - last_check > 300:
                 self.utility.session.check_torrent_health(self.torrent.infohash)
                 self.ShowHealth(True)
+                self.tracker_checks[self.torrent.infohash] = now
             else:
                 self.ShowHealth(False)
         else:
@@ -1156,6 +1159,8 @@ class LibraryDetails(TorrentDetails):
         self.country_to_index = {}
         for code, flag in self.gui_image_manager.getCountryFlagDict().iteritems():
             self.country_to_index[code] = self.peersTab.il.Add(flag)
+            
+        self.country_to_index['hidden_services'] = self.peersTab.il.Add(self.gui_image_manager.getImage(u"lock.png"))
 
         self.availability_hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.availability = StaticText(self.peersTab)
@@ -1356,6 +1361,12 @@ class LibraryDetails(TorrentDetails):
                 self.peerList.SetStringItem(index, 3, state)
 
                 image_index = self.country_to_index.get(peer_dict.get('country', '00').lower(), -1)
+                # If this is a hidden services circuit, show a different icon                
+                tc = self.utility.session.lm.tunnel_community
+                if tc and peer_dict['port'] == CIRCUIT_ID_PORT:
+                    cid = tc.ip_to_circuit_id(peer_dict['ip'])
+                    if cid in tc.circuits and tc.circuits[cid].ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
+                        image_index = self.country_to_index['hidden_services']
                 self.peerList.SetItemColumnImage(index, 0, image_index)
 
                 if 'extended_version' in peer_dict:

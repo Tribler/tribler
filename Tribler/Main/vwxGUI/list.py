@@ -1610,7 +1610,7 @@ class LibraryList(SizeList):
                    {'name': 'Connections', 'width': '15em', 'autoRefresh': False},
                    {'name': 'Ratio', 'width': '15em', 'fmt': self._format_ratio, 'autoRefresh': False},
                    {'name': 'Time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
-                   {'name': 'Anonymous', 'width': '20em', 'autoRefresh': False}]
+                   {'name': 'Anonymous', 'width': '25em', 'autoRefresh': False}]
 
         columns = self.guiutility.SetColumnInfo(LibraryListItem, columns, hide_defaults=[2, 7, 8])
         ColumnsManager.getInstance().setColumns(LibraryListItem, columns)
@@ -1830,8 +1830,6 @@ class LibraryList(SizeList):
                 anonmode = 'No'
                 if ds and ds.get_download() and ds.get_download().get_anon_mode():
                     anonmode = 'Yes (' + str(ds.get_download().get_hops()) + ' hops)'
-                    if tdef.is_anonymous():
-                        anonmode = 'Yes (hidden)'
 
                 item.RefreshColumn(9, anonmode)
 

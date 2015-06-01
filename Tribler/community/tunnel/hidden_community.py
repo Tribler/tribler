@@ -4,6 +4,8 @@ import time
 import os
 import struct
 import socket
+import hashlib
+
 from collections import defaultdict
 
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED
@@ -11,12 +13,12 @@ from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 from Tribler.Core.Utilities.encoding import encode, decode
 
 from Tribler.community.tunnel import CIRCUIT_TYPE_IP, CIRCUIT_TYPE_RP, CIRCUIT_TYPE_RENDEZVOUS, \
-    DEFAULT_HOPS, EXIT_NODE, EXIT_NODE_SALT
+                                     DEFAULT_HOPS, EXIT_NODE, EXIT_NODE_SALT, CIRCUIT_ID_PORT
 
-from Tribler.community.tunnel.payload import (
-    EstablishIntroPayload, IntroEstablishedPayload, EstablishRendezvousPayload,
-    RendezvousEstablishedPayload, KeyResponsePayload, KeyRequestPayload,
-    CreateE2EPayload, CreatedE2EPayload, LinkE2EPayload, LinkedE2EPayload)
+from Tribler.community.tunnel.payload import (EstablishIntroPayload, IntroEstablishedPayload,
+                                              EstablishRendezvousPayload, RendezvousEstablishedPayload,
+                                              KeyResponsePayload, KeyRequestPayload, CreateE2EPayload,
+                                              CreatedE2EPayload, LinkE2EPayload, LinkedE2EPayload)
 from Tribler.community.tunnel.routing import RelayRoute, RendezvousPoint, Hop
 
 from Tribler.dispersy.authentication import NoAuthentication
@@ -51,7 +53,7 @@ class RPRequestCache(RandomNumberCache):
         self.rp = rp
 
     def on_timeout(self):
-        self._logger.debug("RPRequestCache: no response on establish-rendezvous (circuit %d)", 
+        self._logger.debug("RPRequestCache: no response on establish-rendezvous (circuit %d)",
                            self.rp.circuit.circuit_id)
         self.community.remove_circuit(self.rp.circuit.circuit_id, 'establish-rendezvous timeout')
 
@@ -173,9 +175,10 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
         for ds in dslist:
             download = ds.get_download()
-            tdef = download.get_def()
-            if tdef.is_anonymous():
-                info_hash = tdef.get_infohash()
+            if download.get_hops() > 0:
+                # Convert the real infohash to the infohash used for looking up introduction points
+                real_info_hash = download.get_def().get_infohash()
+                info_hash = self.get_lookup_info_hash(real_info_hash)
                 hops[info_hash] = download.get_hops()
                 new_states[info_hash] = ds.get_status()
 
@@ -187,10 +190,10 @@ class HiddenTunnelCommunity(TunnelCommunity):
             force_dht_lookup = (time.time() - self.last_dht_lookup.get(info_hash, 0)) >= 300
 
             if (state_changed or force_dht_lookup) and new_state == DLSTATUS_DOWNLOADING:
-                self.do_lookup(info_hash, hops=hops.get(info_hash, 2))
+                self.do_lookup(info_hash, hops=hops[info_hash])
 
             elif state_changed and new_state == DLSTATUS_SEEDING:
-                self.create_introduction_point(info_hash, hops=hops.get(info_hash, DEFAULT_HOPS))
+                self.create_introduction_point(info_hash, hops=hops[info_hash])
 
             elif state_changed and new_state in [DLSTATUS_STOPPED, None]:
                 for cid, info_hash_hops in self.my_download_points.items():
@@ -229,16 +232,16 @@ class HiddenTunnelCommunity(TunnelCommunity):
                     # Blacklist this sock_addr for a period of at least 60s
                     self.dht_blacklist[info_hash].append((time.time(), peer))
 
-                    self.create_key_request(info_hash, peer)
+                    self.create_key_request(info_hash, peer, hops)
 
         self._logger.debug("Doing dht lookup for hidden community")
         self.last_dht_lookup[info_hash] = time.time()
         self.dht_lookup(info_hash, dht_callback)
 
-    def create_key_request(self, info_hash, sock_addr):
+    def create_key_request(self, info_hash, sock_addr, hops):
         # 1. Select a circuit
         self._logger.debug("Create key request: select circuit")
-        circuit = self.selection_strategy.select(None, DEFAULT_HOPS)
+        circuit = self.selection_strategy.select(None, hops)
         if not circuit:
             self._logger.error("No circuit for key-request")
             return False
@@ -320,7 +323,9 @@ class HiddenTunnelCommunity(TunnelCommunity):
             else:
                 self._logger.debug('On create e2e: create rendezvous point')
                 self.create_rendezvous_point(
-                    DEFAULT_HOPS, lambda rendezvous_point, message=message: self.create_created_e2e(rendezvous_point, message))
+                    DEFAULT_HOPS,
+                    lambda rendezvous_point, message=message: self.create_created_e2e(rendezvous_point,
+                                                                                      message))
 
     def create_created_e2e(self, rendezvous_point, message):
         info_hash = message.payload.info_hash
@@ -330,7 +335,8 @@ class HiddenTunnelCommunity(TunnelCommunity):
         shared_secret, Y, AUTH = self.crypto.generate_diffie_shared_secret(message.payload.key, key)
         rendezvous_point.circuit.hs_session_keys = self.crypto.generate_session_keys(shared_secret)
         rp_info_enc = self.crypto.encrypt_str(
-            encode((rendezvous_point.rp_info, rendezvous_point.cookie)), *self.get_session_keys(rendezvous_point.circuit.hs_session_keys, EXIT_NODE))
+            encode((rendezvous_point.rp_info, rendezvous_point.cookie)),
+            *self.get_session_keys(rendezvous_point.circuit.hs_session_keys, EXIT_NODE))
 
         meta = self.get_meta_message(u'created-e2e')
         response = meta.impl(distribution=(self.global_time,), payload=(
@@ -353,15 +359,16 @@ class HiddenTunnelCommunity(TunnelCommunity):
     def on_created_e2e(self, messages):
         for message in messages:
             cache = self.request_cache.pop(u"e2e-request", message.payload.identifier)
-            shared_secret = self.crypto.verify_and_generate_shared_secret(
-                cache.hop.dh_secret, message.payload.key, message.payload.auth, cache.hop.public_key.key.pk)
+            shared_secret = self.crypto.verify_and_generate_shared_secret(cache.hop.dh_secret, message.payload.key, 
+                                                                          message.payload.auth, 
+                                                                          cache.hop.public_key.key.pk)
             session_keys = self.crypto.generate_session_keys(shared_secret)
 
-            _, rp_info = decode(self.crypto.decrypt_str(
-                message.payload.rp_sock_addr, session_keys[EXIT_NODE], session_keys[EXIT_NODE_SALT]))
+            _, rp_info = decode(self.crypto.decrypt_str(message.payload.rp_sock_addr, session_keys[EXIT_NODE], 
+                                                        session_keys[EXIT_NODE_SALT]))
 
-            self.create_circuit(DEFAULT_HOPS, CIRCUIT_TYPE_RENDEZVOUS, callback=lambda circuit, cookie=rp_info[
-                                1], session_keys=session_keys, info_hash=cache.info_hash,
+            self.create_circuit(DEFAULT_HOPS, CIRCUIT_TYPE_RENDEZVOUS, callback=lambda circuit,
+                                cookie=rp_info[1], session_keys=session_keys, info_hash=cache.info_hash,
                                 sock_addr=cache.sock_addr: self.create_link_e2e(circuit, cookie, session_keys,
                                                                                 info_hash, sock_addr),
                                 max_retries=5, required_exit=rp_info[0])
@@ -425,15 +432,12 @@ class HiddenTunnelCommunity(TunnelCommunity):
         for message in messages:
             cache = self.request_cache.pop(u"link-request", message.payload.identifier)
 
-            download = self.trsession.get_download(cache.info_hash)
-            download.add_peer((self.circuit_id_to_ip(cache.circuit.circuit_id), 1024))
+            for download in self.trsession.get_downloads():
+                if cache.info_hash == self.get_lookup_info_hash(download.get_def().get_infohash()):
+                    download.add_peer((self.circuit_id_to_ip(cache.circuit.circuit_id), CIRCUIT_ID_PORT))
+                    break
 
     def create_introduction_point(self, info_hash, hops, amount=1):
-        # Ensures that libtorrent tries to make an outgoing connection so that the socks5 server
-        # knows on which UDP port libtorrent is listening.
-        # Niels: is this really neccesary? Why would we need the UDP port of libtorrent?
-        self.trsession.get_download(info_hash).add_peer(('1.1.1.1', 1024))
-
         # Create a separate key per infohash
         if info_hash not in self.session_keys:
             self.session_keys[info_hash] = self.crypto.generate_key(u"curve25519")
@@ -543,3 +547,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
             self.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb, bt_port=port)
         else:
             self._logger.error("Need a Tribler session to announce to the DHT")
+
+    def get_lookup_info_hash(self, info_hash):
+        return hashlib.sha1('tribler anyonymous download' + info_hash.encode('hex')).digest()
+    

@@ -24,6 +24,7 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
 import logging.config
+from Tribler.Core.simpledefs import dlstatus_strings
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger('TunnelMain')
 
@@ -267,7 +268,6 @@ class LineHandler(LineReceiver):
                 tdef.add_content(os.path.join(cur_path, filename))
                 tdef.set_tracker("udp://fake.net/announce")
                 tdef.set_private()
-                tdef.set_anonymous()
                 tdef.finalize()
                 tdef.save(os.path.join(cur_path, filename + '.torrent'))
             else:
@@ -277,7 +277,7 @@ class LineHandler(LineReceiver):
 
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
-            dscfg.set_hops(2)
+            dscfg.set_hops(1)
             dscfg.set_dest_dir(cur_path)
 
             anon_tunnel.session.uch.perform_usercallback(lambda: anon_tunnel.session.start_download(tdef, dscfg))
@@ -292,7 +292,7 @@ class LineHandler(LineReceiver):
 
             defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
             dscfg = defaultDLConfig.copy()
-            dscfg.set_hops(2)
+            dscfg.set_hops(1)
             dscfg.set_dest_dir(os.path.join(os.getcwd(), 'downloader%s' % anon_tunnel.session.get_dispersy_port()))
 
             def start_download():
@@ -301,7 +301,7 @@ class LineHandler(LineReceiver):
                                 (tdef.get_infohash().encode('hex')[:10],
                                  ds.get_current_speed('down'),
                                  ds.get_progress(),
-                                 ds.get_status(),
+                                 dlstatus_strings[ds.get_status()],
                                  sum(ds.get_num_seeds_peers()),
                                  sum(1 for _ in anon_tunnel.community.dispersy_yield_verified_candidates())))
                     return 1.0, False
