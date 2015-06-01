@@ -550,4 +550,3 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
     def get_lookup_info_hash(self, info_hash):
         return hashlib.sha1('tribler anyonymous download' + info_hash.encode('hex')).digest()
-    
