@@ -182,8 +182,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
             # set the max prebuffsize to be smaller so that the unit test runs faster
             ds.max_prebuffsize = 16 * 1024
             self.guiUtility.ShowPlayer()
-            self.CallConditional(30, lambda: self.guiUtility.videoplayer
-                                 .get_vod_download(), do_monitor, "VOD download not found")
+            self.CallConditional(30, self.guiUtility.videoplayer.get_vod_download, do_monitor, "VOD download not found")
 
         self.startTest(do_vod)
 
