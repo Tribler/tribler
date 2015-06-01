@@ -158,7 +158,13 @@ class HomeScreen(Screen):
 	def endThumbnailThread(self):
 		self.non_thumbnailed.queue.clear()
 		self.non_thumbnailed.put(self.Finished)
+	def openGearMenu(self):
+		gearMenu = GearMenu()
+		gearMenu.setScreen(self)
+		self.ids.layer.add_widget(gearMenu)
 
+	def closeGearMenu(self):
+		self.ids.layer.remove_widget(GearMenu)
 class FileWidget(BoxLayout):
 	name = 'NO FILENAME SET'
 	uri = None
@@ -305,6 +311,12 @@ class CameraWidget(AnchorLayout):
 
 class CamScreen(Screen):
 	pass
+class GearMenu(BoxLayout):
+	screen = ObjectProperty(None)
+	def setScreen(self, scr):
+		self.screen = scr
+	pass
+	
 
 #class createCam():
 #	cam = Camera.open()

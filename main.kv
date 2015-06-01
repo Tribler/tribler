@@ -1,36 +1,43 @@
-<HomeScreen>
-	BoxLayout:
-		orientation: 'vertical'
-		id: homescreen
+<HomeScreen>			
+	RelativeLayout:
+		id: layer
 		BoxLayout:
-			orientation:"horizontal"
-			size_hint: 1,None
-			height:'1cm'
-			Button:
-				text:'Test'
-				on_release:root.AndroidTest()
-			Button:
-				text: "Download"
-				on_release: app.swap_to(app.SearchScr)
-				background: None
-			Button:
-				text: 'Add Video'
-				on_release: root.addVideo()
-			Button:
-				text:'Cam Test'
-				on_release:app.swap_to(app.CamScr)
-		ScrollView:
-			StackLayout:
+			orientation: 'vertical'
+			id: homescreen
+			AnchorLayout:
+				canvas:
+					Color:
+						rgba: 0.5,0.5,0.5,1
+					Rectangle:
+						pos: self.pos
+						size: self.size
+					BorderImage:
+						pos: self.pos
+						size: self.size
+						border: 1,1,1,1
+				size_hint: 1,None
+				height: '1cm'
+				min_height: '1cm'
+				anchor_x: 'right'
+				Button:
+					size_hint: None, 1
+					width: '1cm'
+					on_release: root.openGearMenu()
+					Image:
+						source: 'img/gear.png'
+
+			ScrollView:
+				StackLayout:
+					size_hint: 1, None
+					height: self.minimum_height
+					id: fileList
+			BoxLayout:
 				size_hint: 1, None
-				height: self.minimum_height
-				id: fileList
-		BoxLayout:
-			size_hint: 1, None
-			height: '1cm'
-			Button: 
-				id:button3
-				text: 'Camera'
-				on_release: root.startCamera()
+				height: '1cm'
+				Button: 
+					id:button3
+					text: 'Camera'
+					on_release: root.startCamera()
 <FileWidget>
 	size_hint: 1, None
 	height: '2.4cm'
@@ -38,22 +45,33 @@
 		size_hint: None, 1
 		width: '1.35cm'
 		id:img
-	Button:
-		id: filebutton
-		text: root.name
-		on_release: root.pressed()
-	BoxLayout:
-		size_hint: None, 1
-		width: '0.675cm'
-		orientation:"vertical"
-		id: button_layout
-		ToggleButton:
-			text: 'N'
-			id:nfc_toggler
-			on_state: root.toggle_nfc(self.state) 
-		ToggleButton:
-			text: 'T'
-			id:tribler_toggler
+	RelativeLayout:
+		AnchorLayout:
+			anchor_x: 'center'
+			anchor_y: 'center'
+			Button:
+				anchor_x: 'center'
+				anchor_y: 'center'
+				id: filebutton
+				text: root.name
+				on_release: root.pressed()
+		AnchorLayout:
+			anchor_x:'right'
+			anchor_y:'center'
+			BoxLayout:
+				size_hint: None, 1
+				anchor_x: 'right'
+				anchor_y: 'center'
+				width: '0.675cm'
+				orientation:"vertical"
+				id: button_layout
+				ToggleButton:
+					text: 'N'
+					id:nfc_toggler
+					on_state: root.toggle_nfc(self.state) 
+				ToggleButton:
+					text: 'T'
+					id:tribler_toggler
 
 <SearchScreen>
 	BoxLayout:
@@ -107,3 +125,30 @@
 			BoxLayout:
 				size_hint_y: None
 				height: '48dp'
+<GearMenu>
+	RelativeLayout:
+		Button:
+			opacity: 0
+			on_press: root.screen.ids.layer.remove_widget(root)
+		AnchorLayout:
+			anchor_x: 'right'
+			anchor_y: 'top'
+			BoxLayout:
+				on_touch_up: root.screen.ids.layer.remove_widget(root)
+				orientation:"vertical"
+				size_hint: None,None
+				width: '2cm'
+				height:'3cm'
+				Button:
+					text:'Test'
+					on_release:root.screen.AndroidTest()
+				Button:
+					text: "Download"
+					on_release: app.swap_to(app.SearchScr)
+					background: None
+				Button:
+					text: 'Add Video'
+					on_release: root.screen.addVideo()
+				Button:
+					text:'Cam Test'
+					on_release:app.swap_to(app.CamScr)
