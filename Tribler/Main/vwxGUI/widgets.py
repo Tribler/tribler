@@ -2600,12 +2600,6 @@ class AnonymityDialog(wx.Panel):
         self.darknet_chkbox.SetValue(True)
 
     def OnAnonimityValueChanged(self, event):
-
-        try:
-            self.GetParent().OkButtonVisibility()
-        except AttributeError:
-            pass
-
         self.Layout()
         self.GetParent().Layout()
 
