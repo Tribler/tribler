@@ -100,8 +100,6 @@ class SaveAs(wx.Dialog):
             self.AddFileList(tdef, selectedFiles, vSizer, len(vSizer.GetChildren()))
 
         elif isinstance(tdef, TorrentDefNoMetainfo):
-            self.ok_force_enabled = False
-            self.OkButtonVisibility()
             text = wx.StaticText(self, -1, "Attempting to retrieve .torrent...")
             _set_font(text, size_increment=1)
             ag = wx.animate.GIFAnimationCtrl(self, -1, os.path.join(
@@ -120,8 +118,6 @@ class SaveAs(wx.Dialog):
             torrentsearch_manager = self.guiutility.torrentsearch_manager
 
             def callback(saveas_id, infohash):
-                self.ok_force_enabled = True
-                self.OkButtonVisibility()
                 saveas = wx.FindWindowById(saveas_id)
                 if saveas:
                     tdef = TorrentDef.load_from_memory(self.utility.session.lm.torrent_store.get(infohash))
@@ -140,12 +136,6 @@ class SaveAs(wx.Dialog):
         sizer = wx.BoxSizer()
         sizer.Add(vSizer, 1, wx.EXPAND | wx.ALL, 10)
         self.SetSizer(sizer)
-
-    def OkButtonVisibility(self):
-        if self.UseTunnels() and not self.ok_force_enabled:
-            self.ok.Disable()
-        else:
-            self.ok.Enable()
 
     def AddFileList(self, tdef, selectedFiles, vSizer, index):
         self.listCtrl = CheckSelectableListCtrl(self)

@@ -497,12 +497,19 @@ class TunnelCommunity(Community):
                         self._logger.debug("Exit node is connectable and not used in other circuits, that's prefered")
                         break
 
-        hops = set([c.first_hop for c in self.circuits.values()])
-        for c in self.dispersy_yield_verified_candidates():
-            if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec) and \
-               (not required_exit or c.sock_addr != tuple(required_exit[:2])):
-                first_hop = c
-                break
+        # If the number of hops is 1, it should immediately be the required_exit hop.
+        if goal_hops == 1 and required_exit:
+            self._logger.debug("Associate firsthop with a candidate and member object")
+            first_hop = Candidate((required_exit[0], required_exit[1]), False)
+            first_hop.associate(self.get_member(public_key=required_exit[2]))
+        else:
+            # Otherwise, look for a first hop that is not used before.
+            hops = set([c.first_hop for c in self.circuits.values()])
+            for c in self.dispersy_yield_verified_candidates():
+                if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec) and \
+                   (not required_exit or c.sock_addr != tuple(required_exit[:2])):
+                    first_hop = c
+                    break
 
         if not required_exit:
             if retry_lambda:

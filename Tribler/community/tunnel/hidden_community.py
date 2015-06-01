@@ -202,7 +202,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
                 for cid, info_hash_hops_list in self.my_intro_points.items():
                     for i in xrange(len(info_hash_hops_list) - 1, -1, -1):
-                        if info_hash_hops[i][0] == info_hash:
+                        if info_hash_hops_list[i][0] == info_hash:
                             info_hash_hops_list.pop(i)
 
                     if len(info_hash_hops_list) == 0:
@@ -550,4 +550,3 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
     def get_lookup_info_hash(self, info_hash):
         return hashlib.sha1('tribler anyonymous download' + info_hash.encode('hex')).digest()
-    
