@@ -199,6 +199,7 @@ class TunnelSettings(object):
         self.max_traffic = 55 * 1024 * 1024
 
         self.max_packets_without_reply = 50
+        self.dht_lookup_interval = 30
 
         if tribler_session:
             self.become_exitnode = tribler_session.get_tunnel_community_exitnode_enabled()
@@ -473,7 +474,7 @@ class TunnelCommunity(Community):
                 self.exit_candidates.pop(pubkey)
                 logging.debug("Removed candidate from exit_candidates dictionary")
 
-    def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None, max_retries=0, required_exit=None):
+    def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None, max_retries=0, required_exit=None, info_hash=None):
         assert required_exit is None or isinstance(required_exit, tuple), type(required_exit)
         assert required_exit is None or len(required_exit) == 3, required_exit
         retry_lambda = first_hop = None
@@ -529,7 +530,7 @@ class TunnelCommunity(Community):
 
         circuit_id = self._generate_circuit_id(first_hop.sock_addr)
         circuit = Circuit(circuit_id, goal_hops, first_hop.sock_addr, self, ctype, callback,
-                          required_exit, first_hop.get_member().mid.encode('hex'))
+                          required_exit, first_hop.get_member().mid.encode('hex'), info_hash)
 
         self.request_cache.add(CircuitRequestCache(self, circuit, retry_lambda))
 

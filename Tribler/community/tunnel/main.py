@@ -25,6 +25,7 @@ from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
 import logging.config
 from Tribler.Core.simpledefs import dlstatus_strings
+from Tribler.dispersy.candidate import Candidate
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger('TunnelMain')
 
@@ -280,8 +281,25 @@ class LineHandler(LineReceiver):
             dscfg.set_hops(1)
             dscfg.set_dest_dir(cur_path)
 
-            anon_tunnel.session.uch.perform_usercallback(lambda: anon_tunnel.session.start_download(tdef, dscfg))
+            def start_seeding():
+                def cb(ds):
+                    logger.info('Seed infohash=%s, up=%s, progress=%s, status=%s, seedpeers=%s, candidates=%d' %
+                                (tdef.get_infohash().encode('hex')[:10],
+                                 ds.get_current_speed('up'),
+                                 ds.get_progress(),
+                                 dlstatus_strings[ds.get_status()],
+                                 sum(ds.get_num_seeds_peers()),
+                                 sum(1 for _ in anon_tunnel.community.dispersy_yield_verified_candidates())))
+                    return 1.0, False
+                download = anon_tunnel.session.start_download(tdef, dscfg)
+                download.set_state_callback(cb, delay=1)
 
+            anon_tunnel.session.uch.perform_usercallback(start_seeding)
+        elif line.startswith('i'):
+            # Introduce dispersy port from other main peer to this peer
+            line_split = line.split(' ')
+            to_introduce = int(line_split[1])
+            self.anon_tunnel.community.add_discovered_candidate(Candidate(('127.0.0.1', to_introduce), tunnel=False))
         elif line.startswith('d'):
             line_split = line.split(' ')
             filename = 'test_file' if len(line_split) == 1 else line_split[1]
