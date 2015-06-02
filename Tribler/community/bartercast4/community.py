@@ -133,7 +133,7 @@ class BarterCommunity(Community):
     # bartercast accounting stuff
     def backup_bartercast_statistics(self):
         self._logger.debug("merging bartercast statistics")
-        _barter_statistics.persist(self, self._dispersy)
+        _barter_statistics.persist(self._dispersy)
 
     def unload_community(self):
         self._logger.debug("unloading the Barter4 community")
