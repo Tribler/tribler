@@ -110,11 +110,11 @@ class TestMixedRemoteSearch(BaseRemoteTest):
 
     def test_remotedownload(self):
         def do_assert():
-            self.screenshot('After doing vodo search + pioneer filter + selecting item + download')
+            self.screenshot('After doing ubuntu search + desktop filter + selecting item + download')
             self.quit()
 
         def do_download():
-            self.screenshot('After doing vodo search + pioneer filter + selecting item')
+            self.screenshot('After doing ubuntu search + desktop filter + selecting item')
 
             self.guiUtility.utility.write_config('showsaveas', 0)
 
@@ -124,9 +124,9 @@ class TestMixedRemoteSearch(BaseRemoteTest):
                 tribler_session=self.guiUtility.utility.session, dump_statistics=True)
 
         def do_select():
-            self.assert_(self.frame.searchlist.GetNrResults() > 0, 'no hits matching vodo + pioneer',
+            self.assert_(self.frame.searchlist.GetNrResults() > 0, 'no hits matching ubuntu + desktop',
                          tribler_session=self.guiUtility.utility.session, dump_statistics=True)
-            self.screenshot('After doing vodo search + pioneer filter, got %d results' %
+            self.screenshot('After doing ubuntu search + desktop filter, got %d results' %
                             self.frame.searchlist.GetNrResults())
             items = self.frame.searchlist.GetItems()
             keys = items.keys()
@@ -135,16 +135,16 @@ class TestMixedRemoteSearch(BaseRemoteTest):
             self.Call(5, do_download)
 
         def do_filter():
-            self.assert_(self.frame.searchlist.GetNrResults() > 0, 'no hits matching vodo + pioneer',
+            self.assert_(self.frame.searchlist.GetNrResults() > 0, 'no hits matching ubuntu + desktop',
                          tribler_session=self.guiUtility.utility.session, dump_statistics=True)
-            self.screenshot('After doing vodo search, got %d results' % self.frame.searchlist.GetNrResults())
-            self.frame.searchlist.GotFilter('pioneer')
+            self.screenshot('After doing ubuntu search, got %d results' % self.frame.searchlist.GetNrResults())
+            self.frame.searchlist.GotFilter('desktop')
 
             self.Call(5, do_select)
 
         def do_search():
             self.guiUtility.toggleFamilyFilter(newState=False, setCheck=True)
-            self.guiUtility.dosearch(u'vodo')
+            self.guiUtility.dosearch(u'ubuntu')
             self.Call(10, do_filter)
 
         self.startTest(do_search)
