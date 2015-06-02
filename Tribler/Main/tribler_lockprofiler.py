@@ -72,8 +72,10 @@ def lock_profile(frame, event, arg):
                                 for line in threadlocal.lines:
                                     logger.info("\t%s", line)
 
-if __name__ == '__main__':
+def init_lockprofiler():
     sys.setprofile(lock_profile)
     setprofile(lock_profile)
 
+if __name__ == '__main__':
+    init_lockprofiler()
     run()
