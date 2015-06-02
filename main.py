@@ -78,6 +78,8 @@ class HomeScreen(Screen):
 			vibrator.vibrate(3000)
 		print self.discovered_media
 		print activity.getFilesDir().getAbsolutePath()
+		for root, dirnames, filenames in os.walk('./'):
+			print root,'/',filenames
 
 	#Function for starting the camera application
 	def startCamera(self):

@@ -11,34 +11,50 @@
 					Rectangle:
 						pos: self.pos
 						size: self.size
-					BorderImage:
-						pos: self.pos
-						size: self.size
-						border: 1,1,1,1
+
 				size_hint: 1,None
 				height: '1cm'
 				min_height: '1cm'
 				anchor_x: 'right'
 				Button:
 					size_hint: None, 1
-					width: '1cm'
+					width: self.height
 					on_release: root.openGearMenu()
-					Image:
-						source: 'img/gear.png'
+					background_color: 0.5,0.5,0.5,1
+					background_normal:''
+					BoxLayout:
+						pos: self.parent.pos
+						size: self.parent.size
+						Image:
+							source: './img/ic_more_vert_white_48dp.png'
 
 			ScrollView:
 				StackLayout:
 					size_hint: 1, None
 					height: self.minimum_height
 					id: fileList
+					spacing: '0.1cm'
+
 			BoxLayout:
 				size_hint: 1, None
 				height: '1cm'
 				Button: 
 					id:button3
-					text: 'Camera'
+					background_color: 0.5,0.5,0.5,1
+					background_normal:''
 					on_release: root.startCamera()
+					BoxLayout:
+						size: self.parent.size
+						pos: self.parent.pos
+						Image:
+							source: './img/ic_videocam_white_48dp.png'
 <FileWidget>
+	canvas:
+		Color:
+			rgba: 0.2,0.2,0.2,1
+		Rectangle:
+			pos: self.pos
+			size: self.size
 	size_hint: 1, None
 	height: '2.4cm'
 	Image:
@@ -50,6 +66,8 @@
 			anchor_x: 'center'
 			anchor_y: 'center'
 			Button:
+				background_color: 0.6,0.6,0.6,1
+				background_normal: ''
 				anchor_x: 'center'
 				anchor_y: 'center'
 				id: filebutton
@@ -57,21 +75,29 @@
 				on_release: root.pressed()
 		AnchorLayout:
 			anchor_x:'right'
-			anchor_y:'center'
+			anchor_y:'top'
 			BoxLayout:
-				size_hint: None, 1
+				size_hint: None, None
 				anchor_x: 'right'
 				anchor_y: 'center'
-				width: '0.675cm'
+				width: '0.8cm'
+				height: self.width
 				orientation:"vertical"
 				id: button_layout
 				ToggleButton:
-					text: 'N'
+					background_color: 0.6,0.6,0.6,1
+					background_normal: ''
+					background_down: ‘atlas://data/images/defaulttheme/button’
 					id:nfc_toggler
 					on_state: root.toggle_nfc(self.state) 
-				ToggleButton:
-					text: 'T'
-					id:tribler_toggler
+					BoxLayout:
+						size: self.parent.size
+						pos: self.parent.pos
+						Image:
+							source: './img/ic_tap_and_play_white_48dp.png'
+				#ToggleButton:
+				#	text: 'T'
+				#	id:tribler_toggler
 
 <SearchScreen>
 	BoxLayout:
@@ -131,6 +157,7 @@
 			opacity: 0
 			on_press: root.screen.ids.layer.remove_widget(root)
 		AnchorLayout:
+			padding: '0.2cm'
 			anchor_x: 'right'
 			anchor_y: 'top'
 			BoxLayout:
