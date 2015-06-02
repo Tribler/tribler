@@ -4,7 +4,7 @@ from time import sleep
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_MYPREFERENCES
 from Tribler.Core.TorrentDef import TorrentDef
 
-from Tribler.Test.test_as_server import BASE_DIR, TestAsServer
+from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
 
 
 class TestTorrentChecking(TestAsServer):
@@ -23,7 +23,7 @@ class TestTorrentChecking(TestAsServer):
         self.config.set_libtorrent(True)
 
     def test_torrent_checking(self):
-        tdef = TorrentDef.load(os.path.join(BASE_DIR, "data", "Pioneer.One.S01E06.720p.x264-VODO.torrent"))
+        tdef = TorrentDef.load(os.path.join(TESTS_DATA_DIR, "Pioneer.One.S01E06.720p.x264-VODO.torrent"))
         tdef.set_tracker("http://95.211.198.141:2710/announce")
         tdef.metainfo_valid = True
 

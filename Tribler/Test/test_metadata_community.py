@@ -6,7 +6,7 @@ import json
 import time
 from unittest.case import skip
 
-from Tribler.Test.test_as_server import TestGuiAsServer, BASE_DIR
+from Tribler.Test.test_as_server import TestGuiAsServer, TESTS_DATA_DIR
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings
@@ -96,14 +96,14 @@ class TestMetadataCommunity(TestGuiAsServer):
         self.session2.start()
 
         tdef = TorrentDef()
-        tdef.add_content(os.path.join(BASE_DIR, "data", "video.avi"))
+        tdef.add_content(os.path.join(TESTS_DATA_DIR, "video.avi"))
         tdef.set_tracker("http://fake.net/announce")
         tdef.finalize()
         torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
         tdef.save(torrentfn)
 
         dscfg = DownloadStartupConfig()
-        dscfg.set_dest_dir(os.path.join(BASE_DIR, "data"))  # basedir of the file we are seeding
+        dscfg.set_dest_dir(TESTS_DATA_DIR)  # basedir of the file we are seeding
         d = self.session2.start_download(tdef, dscfg)
         d.set_state_callback(self.seeder_state_callback)
 

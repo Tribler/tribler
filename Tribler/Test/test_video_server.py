@@ -6,7 +6,7 @@ import socket
 import binascii
 from traceback import print_exc
 
-from Tribler.Test.test_as_server import BASE_DIR, TestAsServer
+from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 
@@ -25,7 +25,7 @@ class TestVideoHTTPServer(TestAsServer):
         """ unittest test setup code """
         TestAsServer.setUp(self)
         self.port = self.session.get_videoplayer_port()
-        self.sourcefn = os.path.join(BASE_DIR, "data", "video.avi")
+        self.sourcefn = os.path.join(TESTS_DATA_DIR, "video.avi")
         self.sourcesize = os.path.getsize(self.sourcefn)
 
         # wait 5s to allow server to start

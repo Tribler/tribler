@@ -14,13 +14,13 @@ from Tribler.Core.CacheDB.sqlitecachedb import str2bin, SQLiteCacheDB
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Test.bak_tribler_sdb import FILES_DIR, init_bak_tribler_sdb
+from Tribler.Test.bak_tribler_sdb import TESTS_DATA_DIR, init_bak_tribler_sdb
 from Tribler.Test.test_as_server import AbstractServer
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
-S_TORRENT_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_single.torrent')
-M_TORRENT_PATH_BACKUP = os.path.join(FILES_DIR, 'bak_multiple.torrent')
+S_TORRENT_PATH_BACKUP = os.path.join(TESTS_DATA_DIR, 'bak_single.torrent')
+M_TORRENT_PATH_BACKUP = os.path.join(TESTS_DATA_DIR, 'bak_multiple.torrent')
 
 BUSYTIMEOUT = 5000
 DEBUG = False
@@ -171,7 +171,7 @@ class TestTorrentDBHandler(AbstractDB):
         self.session.lm.tracker_manager = TrackerManager(self.session)
         self.session.lm.tracker_manager.initialize()
         self.tdb = TorrentDBHandler(self.session)
-        self.tdb.torrent_dir = FILES_DIR
+        self.tdb.torrent_dir = TESTS_DATA_DIR
         self.tdb.category = Category.getInstance()
         self.tdb.mypref_db = MyPreferenceDBHandler(self.session)
 
