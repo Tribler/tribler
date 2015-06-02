@@ -30,4 +30,6 @@
 memorydump.out
 \.\#
 flycheck_*
+test_file
+test_file.torrent
 .DS_Store

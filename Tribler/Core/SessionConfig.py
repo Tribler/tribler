@@ -293,18 +293,6 @@ class SessionConfigInterface(object):
     def get_anon_listen_port(self):
         return self._obtain_port(u'libtorrent', u'anon_listen_port')
 
-    def set_tunnel_community_enabled(self, enabled=True):
-        self.sessconfig.set(u'tunnel_community', u'enabled', enabled)
-
-    def get_tunnel_community_enabled(self):
-        return self.sessconfig.get(u'tunnel_community', u'enabled')
-
-    def set_tunnel_community_optin_dialog_shown(self, shown=True):
-        self.sessconfig.set(u'tunnel_community', u'optin_dialog_shown', shown)
-
-    def get_tunnel_community_optin_dialog_shown(self):
-        return self.sessconfig.get(u'tunnel_community', u'optin_dialog_shown')
-
     def set_libtorrent_utp(self, value):
         """ Enable or disable LibTorrent uTP (default = True).
         @param value Boolean.

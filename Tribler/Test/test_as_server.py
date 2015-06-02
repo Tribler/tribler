@@ -167,8 +167,6 @@ class TestAsServer(AbstractServer):
     def setUpPreSession(self):
         """ Should set self.config_path and self.config """
         self.config = SessionStartupConfig()
-        self.config.set_tunnel_community_enabled(False)
-        self.config.set_tunnel_community_optin_dialog_shown(True)
         self.config.set_state_dir(self.getStateDir())
         self.config.set_torrent_checking(False)
         self.config.set_multicast_local_peer_discovery(False)
@@ -340,7 +338,6 @@ class TestGuiAsServer(TestAsServer):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
         from Tribler.Main import tribler_main
         tribler_main.ALLOW_MULTIPLE = True
-        tribler_main.SKIP_TUNNEL_DIALOG = True
 
         self.hadSession = False
         starttime = time.time()
