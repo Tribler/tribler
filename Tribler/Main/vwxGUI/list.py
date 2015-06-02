@@ -1871,6 +1871,9 @@ class LibraryList(SizeList):
 
     @warnWxThread
     def SetData(self, data):
+        if (not self) or (not self.list):
+            return
+
         SizeList.SetData(self, data)
 
         if len(data) > 0:
