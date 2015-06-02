@@ -175,16 +175,24 @@ class LibtorrentMgr(object):
         self.get_session(hops).set_max_connections(conns)
 
     def set_upload_rate_limit(self, rate, hops=0):
-        self.get_session(hops).set_upload_rate_limit(int(rate))
+        # Rate conversion due to the fact that we had a different system with Swift
+        # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes 
+        libtorrent_rate = -1 if rate == 0 else (1 if rate == -1 else rate * 1024)
+        self.get_session(hops).set_upload_rate_limit(int(libtorrent_rate))
 
     def get_upload_rate_limit(self, hops=0):
-        return self.get_session(hops).upload_rate_limit()
+        # Rate conversion due to the fact that we had a different system with Swift
+        # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes 
+        libtorrent_rate =  self.get_session(hops).upload_rate_limit()
+        return 0 if libtorrent_rate == -1 else (-1 if libtorrent_rate == 1 else libtorrent_rate / 1024)
 
     def set_download_rate_limit(self, rate, hops=0):
-        self.get_session(hops).set_download_rate_limit(int(rate))
+        libtorrent_rate = -1 if rate == 0 else (1 if rate == -1 else rate * 1024)
+        self.get_session(hops).set_download_rate_limit(int(libtorrent_rate))
 
     def get_download_rate_limit(self, hops=0):
-        return self.get_session(hops).download_rate_limit()
+        libtorrent_rate = self.get_session(hops).download_rate_limit()
+        return 0 if libtorrent_rate == -1 else (-1 if libtorrent_rate == 1 else libtorrent_rate / 1024)
 
     def get_external_ip(self):
         return self.external_ip
