@@ -233,7 +233,7 @@ class Socks5Connection(Protocol):
             self.close("not enough circuits")
 
     def select(self, destination):
-        if not destination in self.destinations:
+        if destination not in self.destinations:
             selected_circuit = self.selection_strategy.select(destination, self.hops)
             if not selected_circuit:
                 return None

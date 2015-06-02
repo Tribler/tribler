@@ -14,10 +14,13 @@ EXIT_NODE_SALT = 3
 ORIGINATOR_SALT_EXPLICIT = 4
 EXIT_NODE_SALT_EXPLICIT = 5
 
+# Data circuits are supposed to end in an exit peer that allows exiting data to the outside world
 CIRCUIT_TYPE_DATA = 'DATA'
+
+# The other circuits are supposed to end in a connectable node, not allowed to exit
+# anything else than dispersy messages, used for setting up end-to-end circuits
 CIRCUIT_TYPE_IP = 'IP'
 CIRCUIT_TYPE_RP = 'RP'
-CIRCUIT_TYPE_INTRODUCE = 'INTRODUCE'
 CIRCUIT_TYPE_RENDEZVOUS = 'RENDEZVOUS'
 
 CIRCUIT_STATE_READY = 'READY'

@@ -195,7 +195,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
                 for circuit_id in self.infohash_ip_circuits[info_hash]:
                     if circuit_id not in self.my_intro_points:
                         self.infohash_ip_circuits[info_hash].remove(circuit_id)
-                        self._logger.error('Recreate the introducing circuit for %s' % info_hash.encode('hex'))
+                        self._logger.debug('Recreate the introducing circuit for %s' % info_hash.encode('hex'))
                         self.create_introduction_point(info_hash)
 
             # If the rendezvous point circuit does not exist anymore: Initiate circuit generation again
@@ -402,7 +402,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
                                                                                                            session_keys,
                                                                                                            info_hash,
                                                                                                            sock_addr),
-                                required_exit=rp_info[0],
+                                required_endpoint=rp_info[0],
                                 info_hash=cache.info_hash)
 
     def create_link_e2e(self, circuit, cookie, session_keys, info_hash, sock_addr):
@@ -534,7 +534,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
             self.send_cell([Candidate(circuit.first_hop, False)],
                            u'establish-rendezvous', (circuit_id, cache.number, rp.cookie))
 
-        # create a new circuit to be used for transfering data
+        # create a new circuit to be used for transferring data
         circuit_id = self.create_circuit(hops,
                                          CIRCUIT_TYPE_RP,
                                          callback,
