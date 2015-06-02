@@ -144,22 +144,17 @@ class HiddenTunnelCommunity(TunnelCommunity):
                      CandidateDestination(), RendezvousEstablishedPayload(), self.check_rendezvous_established,
                      self.on_rendezvous_established)]
 
-    def remove_circuit(self, circuit_id, additional_info='', destroy=False, rebuild=False):
-        super(HiddenTunnelCommunity, self).remove_circuit(circuit_id, additional_info, destroy, rebuild)
+    def remove_circuit(self, circuit_id, additional_info='', destroy=False):
+        super(HiddenTunnelCommunity, self).remove_circuit(circuit_id, additional_info, destroy)
 
-        # Remove & rebuild introduction/rendezvous points
+        # Remove introduction/rendezvous points
         if circuit_id in self.my_intro_points:
-            self._logger.debug("removed introduction point %s", ', rebuilding' if rebuild else '')
-            downloads = self.my_intro_points.pop(circuit_id)
-            if rebuild:
-                for info_hash, hops in downloads:
-                    self.create_introduction_points(info_hash, hops)
+            self._logger.debug("removed introduction point")
+            self.my_intro_points.pop(circuit_id)
 
         if circuit_id in self.my_download_points:
-            self._logger.error("removed rendezvous point %s", ', rebuilding' if rebuild else '')
-            info_hash, hops, _ = self.my_download_points.pop(circuit_id)
-            if rebuild:
-                self.do_lookup(info_hash, hops)
+            self._logger.error("removed rendezvous point")
+            self.my_download_points.pop(circuit_id)
 
     def ip_to_circuit_id(self, ip_str):
         return struct.unpack("!I", socket.inet_aton(ip_str))[0]
@@ -198,7 +193,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
             elif state_changed and new_state in [DLSTATUS_STOPPED, None]:
                 for cid, info_hash_hops in self.my_download_points.items():
                     if info_hash_hops[0] == info_hash:
-                        self.remove_circuit(cid, 'download stopped', destroy=True, rebuild=False)
+                        self.remove_circuit(cid, 'download stopped', destroy=True)
 
                 for cid, info_hash_hops_list in self.my_intro_points.items():
                     for i in xrange(len(info_hash_hops_list) - 1, -1, -1):
@@ -206,7 +201,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
                             info_hash_hops_list.pop(i)
 
                     if len(info_hash_hops_list) == 0:
-                        self.remove_circuit(cid, 'all downloads stopped', destroy=True, rebuild=False)
+                        self.remove_circuit(cid, 'all downloads stopped', destroy=True)
 
         self.download_states = new_states
 
