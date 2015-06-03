@@ -23,6 +23,7 @@ from android.runnable import run_on_ui_thread
 LayoutParams = autoclass('android.view.ViewGroup$LayoutParams')
 ImageFormat = autoclass('android.graphics.ImageFormat')
 LinearLayout = autoclass('android.widget.LinearLayout')
+Integer = autoclass('java.lang.Integer')
 
 from collections import namedtuple
 from kivy.app import App
@@ -31,6 +32,8 @@ from kivy.uix.widget import Widget
 from kivy.uix.anchorlayout import AnchorLayout
 from kivy.graphics import Color, Line
 from kivy.core.window import Window
+
+import sys
 
 class PreviewCallback(PythonJavaClass):
 	__javainterfaces__ = ['android.hardware.Camera$PreviewCallback']
@@ -151,7 +154,8 @@ class CamTestCamera(Widget):
 
 	def _on_surface_changed(self, frmt, width, height):
 		params = self.vCamera.getParameters()
-		params.setPreviewSize(width, height)
+		wantedSize = params.getSupportedPreviewSizes().toArray()
+		params.setPreviewSize(wantedSize[0].width, wantedSize[0].height)
 		self.vCamera.setParameters(params)
 
 		# now that we know the camera size, we'll create 2 buffers for faster
@@ -228,3 +232,34 @@ class CamTestCamera(Widget):
 			return False
 
 		return True
+
+	def getOptimalPreviewSize(self, sizes, width, height):
+		ASPECT_TOLERANCE = 0.1
+		targetRatio =  1.0 * width / height
+
+		if sizes is None:
+			return None
+
+		optimalSize = None
+
+		minDiff = sys.float_info.max
+		targetHeight = height
+
+		for size in sizes.toArray():
+			ratio = 1.0 * size.width / size.height
+
+			if abs(ratio - targetRatio) > ASPECT_TOLERANCE:
+				continue
+			if abs(size.height - targetHeight) < minDiff:
+				optimalSize = size
+				minDiff = abs(size.height - targetHeight)
+
+		if optimalSize is None:
+			minDiff = sys.float_info.max
+
+			for size in sizes.toArray():
+				if abs(size.height - targetHeight) < minDiff:
+					optimalSize = size
+					minDiff = abs(size.height - targetHeight)
+
+		return optimalSize

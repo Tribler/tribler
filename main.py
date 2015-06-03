@@ -203,14 +203,16 @@ class FileWidget(BoxLayout):
 		print nfc_video_set
 
 	#Adds and removes the video files to the nfc set so that they can be transferred
-	def toggle_nfc(self, state):
+	def toggle_nfc(self, state, app):
 		print 'toggling', self.ids.nfc_toggler
 		if(state == 'normal'):
 			print 'button state up'
-			nfc_video_set.remove(self.uri)
+			app.nfcCallback.removeUris(self.uri)
+#			nfc_video_set.remove(self.uri)
 		if(state == 'down'):
 			print 'button state down'
-			nfc_video_set.append(self.uri)
+			app.nfcCallback.addUris(self.uri)
+#			nfc_video_set.append(self.uri)
 
 	#Android's Bitmaps are in ARGB format, while kivy expects RGBA.
 	#This function swaps the bytes to their appropriate locations
@@ -302,13 +304,13 @@ class SearchScreen(Screen):
 		self.ids.fileList.add_widget(wid)
 
 class CameraWidget(AnchorLayout):
-	camera_size = ListProperty([320, 240])
+	camera_size = ListProperty([800, 700])
 #	camera_size = ListProperty([480, 360])
 
 	def __init__(self, **kwargs):
 		super(CameraWidget, self).__init__(**kwargs)
 #		self._camera = AndroidCamera(size=self.camera_size, size_hint=(None, None))
-		self._camera = CamTestCamera(size=self.camera_size, size_hint=(None, None))
+		self._camera = CamTestCamera(size=self.size, size_hint=(None, None))
 	        self.add_widget(self._camera)
 
 	def start(self):
@@ -376,9 +378,9 @@ class Skelly(App):
 
 		#Only activate the NFC functionality if the device supports it.
 		if self.adapter is not None:
-			self.callback = CreateNfcBeamUrisCallback()
-			self.callback.addContext(context)
-			self.adapter.setBeamPushUrisCallback(self.callback, context)
+			self.nfcCallback = CreateNfcBeamUrisCallback()
+			self.nfcCallback.addContext(context)
+			self.adapter.setBeamPushUrisCallback(self.nfcCallback, context)
 
 	def build(self):
 		#Android back mapping
