@@ -124,3 +124,5 @@ SIGNAL_ON_SEARCH_RESULTS = 'signal_on_search_results'
 # SIGNALS (for common use, like APIs)
 SIGNAL_TORRENT = 'signal_torrent'
 SIGNAL_CHANNEL = 'signal_channel'
+
+SIGNAL_ON_CREATED = 'signal_on_created'

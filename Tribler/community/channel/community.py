@@ -49,6 +49,8 @@ class ChannelCommunity(Community):
         super(ChannelCommunity, self).__init__(*args, **kwargs)
 
         self._channel_id = None
+        self._channel_name = None
+        self._channel_description = None
 
         self.tribler_session = None
         self.integrate_with_tribler = None
@@ -72,10 +74,12 @@ class ChannelCommunity(Community):
             self._channelcast_db = tribler_session.open_dbhandler(NTFY_CHANNELCAST)
 
             # tribler channel_id
-            self._channel_id = self._channelcast_db._db.fetchone(
-                u"SELECT id FROM Channels WHERE dispersy_cid = ? and (peer_id <> -1 or peer_id ISNULL)",
+            result = self._channelcast_db._db.fetchone(
+                u"SELECT id, name, description FROM Channels WHERE dispersy_cid = ? and (peer_id <> -1 or peer_id ISNULL)",
                 (buffer(self._master_member.mid),
                  ))
+            if result is not None:
+                self._channel_id, self._channel_name, self._channel_description = result
 
             # modification_types
             self._modification_types = self._channelcast_db.modification_types
@@ -220,6 +224,12 @@ class ChannelCommunity(Community):
                                  u"moderation",
                                  u"mark_torrent"])
 
+    def get_channel_name(self):
+        return self._channel_name
+
+    def get_channel_description(self):
+        return self._channel_description
+
     def get_channel_mode(self):
         public = set()
         permitted = set()
@@ -308,6 +318,17 @@ class ChannelCommunity(Community):
                                                                                  peer_id,
                                                                                  message.payload.name,
                                                                                  message.payload.description)
+
+                # emit signal of channel creation if the channel is created by us
+                if authentication_member == self._my_member:
+                    self._channel_name = message.payload.name
+                    self._channel_description = message.payload.description
+
+                    from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_CREATED
+                    channel_data = {u'channel': self,
+                                    u'name': message.payload.name,
+                                    u'description': message.payload.description}
+                    self.tribler_session.uch.notify(SIGNAL_CHANNEL, SIGNAL_ON_CREATED, None, channel_data)
         else:
             for message in messages:
                 self._channel_id = self._master_member.mid

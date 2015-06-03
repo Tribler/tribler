@@ -626,6 +626,17 @@ class Session(SessionConfigInterface):
             raise OperationNotEnabledByConfigurationException("channel_search is not enabled")
         self.lm.search_manager.search_for_channels(keywords)
 
+    def create_channel(self, name, description, mode=u'open'):
+        """
+        Creates a new Channel.
+        :param name: Name of the Channel.
+        :param description: Description of the Channel.
+        :param mode: Mode of the Channel ('open', 'semi-open', or 'closed').
+        """
+        if not self.get_enable_channel_search():
+            raise OperationNotEnabledByConfigurationException("channel_search is not enabled")
+        self.lm.channel_manager.create_channel(name, description, mode)
+
     def check_torrent_health(self, infohash):
         """
         Checks the given torrent's health on its trackers.

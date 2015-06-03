@@ -8,45 +8,56 @@
 
 # modify the sys.stderr and sys.stdout for safe output
 
+import codecs
 import optparse
 import os
-import random
 import sys
 import time
-import json
-from hashlib import sha1
 import logging
 import logging.config
 from traceback import print_exc
 import binascii
 
+from Tribler.community.channel.community import ChannelCommunity
+from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.Core.Utilities.twisted_thread import reactor, stop_reactor, reactor_thread
-from Tribler.dispersy.util import call_on_reactor_thread
-
 from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED
-from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Utilities.misc_utils import compute_ratio
-from Tribler.Main.Utility.Feeds.rssparser import RssParser
-from Tribler.Main.Utility.Feeds.dirfeed import DirectoryFeedThread
-from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, LibraryManager, ChannelManager
-from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
 from Tribler.Main.Utility.utility import eta_value, size_format
 
+from Tribler.dispersy.taskmanager import TaskManager
+from Tribler.dispersy.util import call_on_reactor_thread
 
-class MetadataInjector(object):
+
+def parge_rss_config_file(file_path):
+    rss_list = []
+
+    f = codecs.open(file_path, 'r', encoding='utf-8')
+    for line in f.readlines():
+        line = line.strip()
+        if not line:
+            continue
+        fields = line.split(u'\t')
+        channel_name, rss_url = fields
+        rss_list.append({u'channel_name': channel_name,
+                         u'rss_url': rss_url})
+    f.close()
+
+    return rss_list
+
+
+class MetadataInjector(TaskManager):
 
     def __init__(self, opt):
+        super(MetadataInjector, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self._opt = opt
         self.session = None
 
-        self._torrent_manager = None
-        self._library_manager = None
-        self._channel_manager = None
-        self._torrent_state_manager = None
+        self.rss_list = None
 
     def initialize(self):
         sscfg = SessionStartupConfig()
@@ -57,9 +68,15 @@ class MetadataInjector(object):
         if self._opt.nickname:
             sscfg.set_nickname(self._opt.nickname)
 
+        # pass rss config
+        if not self._opt.rss_config:
+            self._logger.error(u"rss_config unspecified")
+        self.rss_list = parge_rss_config_file(self._opt.rss_config)
+
         sscfg.set_megacache(True)
         sscfg.set_torrent_collecting(True)
-        sscfg.set_enable_torrent_search(False)
+        sscfg.set_torrent_checking(True)
+        sscfg.set_enable_torrent_search(True)
         sscfg.set_enable_channel_search(True)
 
         self._logger.info(u"Starting session...")
@@ -70,154 +87,85 @@ class MetadataInjector(object):
         self.session.add_observer(self.dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])
         self.session.start()
 
-    def init_managers(self):
-        self._logger.info(u"Initializing managers...")
-        torrent_manager = TorrentManager(None)
-        library_manager = LibraryManager(None)
-        channel_manager = ChannelManager()
-        torrent_manager.connect(self.session, library_manager, channel_manager)
-        library_manager.connect(self.session, torrent_manager, channel_manager)
-        channel_manager.connect(self.session, library_manager, torrent_manager)
-
-        #torrent_state_manager = TorrentStateManager()
-        #torrent_state_manager.connect(torrent_manager, library_manager, channel_manager)
-
-        self._torrent_manager = torrent_manager
-        self._library_manager = library_manager
-        self._channel_manager = channel_manager
-        #self._torrent_state_manager = torrent_state_manager
-
     def shutdown(self):
-        self._logger.info(u"Shutting down metadata-injector...")
-        torrentfeed = RssParser.getInstance()
-        torrentfeed.shutdown()
+        self.cancel_all_pending_tasks()
 
-        dirfeed = DirectoryFeedThread.getInstance()
-        dirfeed.shutdown()
-
-        #self._torrent_state_manager.delInstance()
-        self._channel_manager.delInstance()
-        self._library_manager.delInstance()
-        self._torrent_manager.delInstance()
-
+        self._logger.info(u"Shutdown Session...")
         self.session.shutdown()
-
-        #self._torrent_state_manager = None
-        self._channel_manager = None
-        self._library_manager = None
-        self._torrent_manager = None
         self.session = None
 
+        self._logger.info(u"Sleep for 10 seconds...")
+        time.sleep(10)
+
+    @call_on_reactor_thread
     def dispersy_started(self, *args):
-        self._logger.info(u"Dispersy started, initializing bot...")
-        self.init_managers()
+        default_kwargs = {'tribler_session': self.session}
 
-        channelname = self._opt.channelname if hasattr(self._opt, 'channelname') else ''
-        nickname = self._opt.nickname if hasattr(self._opt, 'nickname') else ''
-        my_channel_name = channelname or nickname or 'MetadataInjector-Channel'
-        my_channel_name = unicode(my_channel_name)
+        dispersy = self.session.get_dispersy_instance()
+        dispersy.define_auto_load(ChannelCommunity, self.session.dispersy_member, load=True, kargs=default_kwargs)
+        dispersy.define_auto_load(PreviewChannelCommunity, self.session.dispersy_member, kargs=default_kwargs)
 
-        new_channel_created = False
-        my_channel_id = self._channel_manager.channelcast_db.getMyChannelId()
-        if not my_channel_id:
-            self._logger.info(u"Create a new channel")
-            self._channel_manager.createChannel(my_channel_name, u'')
-            new_channel_created = True
-        else:
-            self._logger.info(u"Use existing channel %s", str(my_channel_id))
-            my_channel = self._channel_manager.getChannel(my_channel_id)
-            if my_channel.name != my_channel_name:
-                self._logger.info(u"Rename channel to %s", my_channel_name)
-                self._channel_manager.modifyChannel(my_channel_id, {'name': my_channel_name})
-        my_channel_id = self._channel_manager.channelcast_db.getMyChannelId()
-        self._logger.info(u"Channel ID [%s]", my_channel_id)
+        self.register_task(u'prepare_channels', reactor.callLater(10, self._prepare_channels))
 
-        def create_torrent_feed():
-            self._logger.info(u"Creating RSS Feed...")
+    def _prepare_channels(self):
+        self._logger.info(u"Dispersy started, creating channels...")
 
-            torrentfeed = RssParser.getInstance()
-            torrentfeed.register(self.session, my_channel_id)
-            torrentfeed.addCallback(my_channel_id, self._channel_manager.createTorrentFromDef)
-            torrentfeed.addCallback(my_channel_id, self._torrent_manager.createMetadataModificationFromDef)
+        nickname = self._opt.nickname if hasattr(self._opt, 'nickname') else u''
 
-            for rss in self._opt.rss.split(";"):
-                torrentfeed.addURL(rss, my_channel_id)
+        # get the channels that do not exist
+        channel_list = []
 
-        if hasattr(self._opt, 'rss') and self._opt.rss:
-            create_torrent_feed()
+        for community in self.session.get_dispersy_instance().get_communities():
+            if not isinstance(community, ChannelCommunity):
+                continue
+            if community.master_member and community.master_member.private_key:
+                channel_list.append(community)
 
-        def create_dir_feed():
-            self._logger.info(u"Creating Dir Feed...")
+        existing_channels = []
+        channels_to_create = []
+        for rss_dict in self.rss_list:
+            channel_exists = False
+            for channel in channel_list:
+                if rss_dict[u'channel_name'] == channel.get_channel_name():
+                    rss_dict[u'channel'] = channel
+                    channel_exists = True
+                    break
 
-            def on_torrent_callback(dirpath, infohash, torrent_data):
-                torrentdef = TorrentDef.load_from_dict(torrent_data)
-                self._channel_manager.createTorrentFromDef(my_channel_id, torrentdef)
+            if channel_exists:
+                existing_channels.append(rss_dict)
+            else:
+                channels_to_create.append(rss_dict)
 
-                # save torrent to collectedtorrents
-                torrent = self._torrent_manager.getTorrentByInfohash(torrentdef.infohash)
-                filename = self._torrent_manager.getCollectedFilename(torrent) if torrent else None
-                if not os.path.isfile(filename):
-                    torrentdef.save(filename)
+        self._logger.info(u"channels to create: %s", len(channels_to_create))
+        self._logger.info(u"existing channels: %s", len(existing_channels))
 
-            dirfeed = DirectoryFeedThread.getInstance()
-            for dirpath in self._opt.dir.split(";"):
-                dirfeed.addDir(dirpath, callback=on_torrent_callback)
+        # attach rss feed to existing channels
+        for rss_dict in existing_channels:
+            self._logger.info(u"Creating RSS for existing Channel %s", rss_dict[u'channel_name'])
+            self.session.lm.channel_manager.attach_rss_to_channel(rss_dict[u'channel'], rss_dict[u'rss_url'])
 
-        if hasattr(self._opt, 'dir') and self._opt.dir:
-            create_dir_feed()
-
-        def create_file_feed():
-            self._logger.info(u"Creating File Feed...")
-            community = self._channel_manager._disp_get_community_from_channel_id(my_channel_id)
-
-            self._logger.info("Using community: %s", community._cid.encode('HEX'))
-
-            items = json.load(open(self._opt.file, 'rb'))
-            for item in items:
-                try:
-                    infohash = sha1(item['name']).digest()
-                except:
-                    infohash = sha1(str(random.randint(0, 1000000))).digest()
-                message = community._disp_create_torrent(infohash, long(time.time()), unicode(
-                    item['name']), ((u'fake.file', 10),), tuple(), update=False, forward=False)
-
-                self._logger.info("Created a new torrent")
-
-                latest_review = None
-                for modification in item['modifications']:
-                    reviewmessage = community._disp_create_modification('description', unicode(
-                        modification['text']), long(time.time()), message, latest_review, update=False, forward=False)
-
-                    self._logger.info("Created a new modification")
-
-                    if modification['revert']:
-                        community._disp_create_moderation(
-                            'reverted', long(time.time()), 0, reviewmessage.packet_id, update=False, forward=False)
-
-                        self._logger.info("Reverted the last modification")
-                    else:
-                        latest_review = reviewmessage
-
-        if hasattr(self._opt, 'file') and self._opt.file and new_channel_created:
-            create_file_feed()
+        # create new channels
+        for rss_dict in channels_to_create:
+            self._logger.info(u"Creating new Channel %s", rss_dict[u'channel_name'])
+            self.session.lm.channel_manager.create_channel(rss_dict[u'channel_name'], u'', u"closed",
+                                                           rss_dict[u'rss_url'])
 
 
 def main():
     command_line_parser = optparse.OptionParser()
-    command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir")
-    command_line_parser.add_option("--port", action="store", type="int", help="Listen at this port")
-    command_line_parser.add_option("--rss", action="store", type="string",
-                                   help="Url where to fetch rss feed, or several seperated with ';'")
-    command_line_parser.add_option("--dir", action="store", type="string",
-                                   help="Directory to watch for .torrent files, or several seperated with ';'")
-    command_line_parser.add_option("--file", action="store", type="string", help="JSON file which has a community")
-    command_line_parser.add_option("--nickname", action="store", type="string", help="The moderator name")
-    command_line_parser.add_option("--channelname", action="store", type="string", help="The channel name")
+    command_line_parser.add_option("--statedir", action="store", type="string",
+                                   help="Use an alternate statedir")
+    command_line_parser.add_option("--port", action="store", type="int",
+                                   help="Listen at this port")
+    command_line_parser.add_option("--rss_config", action="store", type="string",
+                                   help="The channel and rss config file")
+    command_line_parser.add_option("--nickname", action="store", type="string",
+                                   help="Nickname")
 
     # parse command-line arguments
     opt, args = command_line_parser.parse_args()
 
-    if not (opt.rss or opt.dir or opt.file):
+    if not opt.rss_config:
         command_line_parser.print_help()
         print >> sys.stderr, u"\nExample: python Tribler/Main/metadata-injector.py --rss http://frayja.com/rss.php --nickname frayja --channelname goldenoldies"
         sys.exit()
