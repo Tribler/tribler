@@ -15,9 +15,10 @@ class CreateNfcBeamUrisCallback(PythonJavaClass):
 	__javainterfaces__ = ['android/nfc/NfcAdapter$CreateBeamUrisCallback']
 	__javacontext__ = 'app'
 
-	def __init__(self):
+	def __init__(self, callback):
 		super(CreateNfcBeamUrisCallback, self).__init__()
 
+		self.callback = callback
 		self.uris = []
 		self.changed = False	
 

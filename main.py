@@ -27,7 +27,8 @@ import threading
 import functools
 import Queue
 
-from cam import PreviewCallback, SurfaceHolderCallback, AndroidWidgetHolder, AndroidCamera
+from camtest import CamTestCamera
+from cam import AndroidCamera
 
 from jnius import autoclass, cast, detach
 from jnius import JavaClass
@@ -297,19 +298,32 @@ class SearchScreen(Screen):
 		self.ids.fileList.add_widget(wid)
 
 class CameraWidget(AnchorLayout):
-    camera_size = ListProperty([320, 240])
+	camera_size = ListProperty([320, 240])
+#	camera_size = ListProperty([480, 360])
 
-    def __init__(self, **kwargs):
-        super(CameraWidget, self).__init__(**kwargs)
-        self._camera = AndroidCamera(size=self.camera_size, size_hint=(None, None))
-	print 'HOERA!!!'
-        self.add_widget(self._camera)
+	def __init__(self, **kwargs):
+		super(CameraWidget, self).__init__(**kwargs)
+#		self._camera = AndroidCamera(size=self.camera_size, size_hint=(None, None))
+		self._camera = CamTestCamera(size=self.camera_size, size_hint=(None, None))
+	        self.add_widget(self._camera)
 
-    def start(self):
-        self._camera.start()
+	def start(self):
+		print 'Start camera'
+		self._camera.start()
 
-    def stop(self):
-        self._camera.stop()
+	def stop(self):
+		print 'Stop camera'
+		self._camera.stop()
+
+class CamTestWidget(BoxLayout):
+
+	def __init__(self, **kwargs):
+		super(CamTestWidget, self).__init__(**kwargs)
+		self.camera = CamTestCamera()
+		self.add_widget(self.camera)
+
+	def push(self):
+		self.camera.pushButton()
 
 class CamScreen(Screen):
 	pass
@@ -371,7 +385,7 @@ class Skelly(App):
 
 		self.HomeScr.getStoredMedia()
 		#Initialize NFC
-		self.nfc_init()
+		self.nfc_init()		
 
 		return self.sm
 

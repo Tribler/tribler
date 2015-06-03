@@ -155,7 +155,7 @@ class AndroidCamera(Widget):
 			print 'KIJK'
 
 		#Step 5: Set the preview output
-		#self.mediaRecorder.setPreviewDisplay(mPreview.getHolder().getSurface())
+		self.mediaRecorder.setPreviewDisplay(self.surface.getHolder().getSurface())
 
 		try:
 			self.mediaRecorder.prepare()

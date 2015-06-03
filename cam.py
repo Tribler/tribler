@@ -168,9 +168,9 @@ class AndroidCamera(Widget):
 		self._previewCallback = PreviewCallback(self._on_preview_frame)
 
 		# connect everything and start the preview
-		self._android_camera.setPreviewCallbackWithBuffer(self._previewCallback);
+		self._android_camera.setPreviewCallbackWithBuffer(self._previewCallback)
 		self._android_camera.setPreviewDisplay(self._android_surface.getHolder())
-		self._android_camera.startPreview();
+		self._android_camera.startPreview()
 
 	def _on_preview_frame(self, camera, data):
 		# internal, called by the PreviewCallback when onPreviewFrame is
