@@ -371,7 +371,9 @@ class HiddenTunnelCommunity(TunnelCommunity):
             _, rp_info = decode(self.crypto.decrypt_str(message.payload.rp_sock_addr, session_keys[EXIT_NODE], 
                                                         session_keys[EXIT_NODE_SALT]))
             
-            self.create_circuit(self.hops[cache.info_hash],
+            # Since it is the seeder that chose the rendezvous_point, we're essentially losing 1 hop of anonymity
+            # at the downloader end. To compensate we add an extra hop.
+            self.create_circuit(self.hops[cache.info_hash] + 1,
                                 CIRCUIT_TYPE_RENDEZVOUS, callback=lambda circuit, cookie=rp_info[1], 
                                 session_keys=session_keys, info_hash=cache.info_hash, sock_addr=cache.sock_addr: 
                                 self.create_link_e2e(circuit, cookie, session_keys, info_hash, sock_addr),
