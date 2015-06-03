@@ -97,8 +97,8 @@ class TriblerLaunchMany(object):
             self.sesslock = sesslock
 
             if self.session.get_torrent_store():
-                from Tribler.Core.torrentstore import TorrentStore
-                self.torrent_store = TorrentStore(self.session.get_torrent_store_dir())
+                from Tribler.Core.leveldbstore import LevelDbStore
+                self.torrent_store = LevelDbStore(self.session.get_torrent_store_dir())
 
             # torrent collecting: RemoteTorrentHandler
             if self.session.get_torrent_collecting():

@@ -56,17 +56,16 @@ from Tribler.dispersy.taskmanager import TaskManager
 
 WRITEBACK_PERIOD = 120
 
-# TODO(emilon): This could be easily abstracted into a generic cached store
 # TODO(emilon): Make sure the caching makes an actual difference in IO and kill
 # it if it doesn't as it complicates the code.
 
 
-class TorrentStore(MutableMapping, TaskManager):
+class LevelDbStore(MutableMapping, TaskManager):
     _reactor = reactor
     _leveldb = LevelDB
 
     def __init__(self, store_dir):
-        super(TorrentStore, self).__init__()
+        super(LevelDbStore, self).__init__()
 
         self._store_dir = store_dir
         self._pending_torrents = {}
