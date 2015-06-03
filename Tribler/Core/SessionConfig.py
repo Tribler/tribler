@@ -607,6 +607,34 @@ class SessionConfigInterface(object):
         """
         self.sessconfig.set(u'allchannel_community', u'enabled', mode)
 
+    def get_enable_metadata(self):
+        """
+        Gets if to enable metadata.
+        :return: True or False.
+        """
+        return self.sessconfig.get(u'metadata', u'enabled')
+
+    def set_enable_metadata(self, mode):
+        """
+        Sets if to enable metadata.
+        :param mode: True or False.
+        """
+        return self.sessconfig.set(u'metadata', u'enabled', mode)
+
+    def get_metadata_store_dir(self):
+        """
+        Gets the metadata_store directory.
+        :return: The metadata_store directory.
+        """
+        return self.sessconfig.get(u'metadata', u'store_dir')
+
+    def set_metadata_store_dir(self, value):
+        """
+        Sets the metadata_store directory.
+        :param store_dir: The metadata_store directory.
+        """
+        return self.sessconfig.set(u'metadata', u'store_dir', value)
+
     #
     # Static methods
     #

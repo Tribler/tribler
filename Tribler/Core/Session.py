@@ -15,7 +15,8 @@ from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException
 from Tribler.Core.simpledefs import (STATEDIR_PEERICON_DIR, STATEDIR_DLPSTATE_DIR, NTFY_PEERS, NTFY_TORRENTS,
                                      NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_UPDATE, NTFY_INSERT,
-                                     NTFY_DELETE, NTFY_METADATA, STATEDIR_TORRENT_STORE_DIR)
+                                     NTFY_DELETE, NTFY_METADATA, STATEDIR_TORRENT_STORE_DIR,
+                                     STATEDIR_METADATA_STORE_DIR)
 from Tribler.Core.CacheDB.Notifier import Notifier
 
 
@@ -86,6 +87,11 @@ class Session(SessionConfigInterface):
         set_and_create_dir(scfg.get_torrent_store_dir(),
                            scfg.set_torrent_store_dir,
                            os.path.join(scfg.get_state_dir(), STATEDIR_TORRENT_STORE_DIR))
+
+        # metadata store
+        set_and_create_dir(scfg.get_metadata_store_dir(),
+                           scfg.set_metadata_store_dir,
+                           os.path.join(scfg.get_state_dir(), STATEDIR_METADATA_STORE_DIR))
 
         set_and_create_dir(scfg.get_peer_icon_path(), scfg.set_peer_icon_path,
                            os.path.join(scfg.get_state_dir(), STATEDIR_PEERICON_DIR))

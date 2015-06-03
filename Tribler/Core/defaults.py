@@ -33,7 +33,7 @@ DEFAULTPORT = 7760
 #  Version 4: remove swift
 #  Version 7: exitnode optin switch added
 
-SESSDEFAULTS_VERSION = 8
+SESSDEFAULTS_VERSION = 9
 sessdefaults = OrderedDict()
 
 # General Tribler settings
@@ -71,6 +71,11 @@ sessdefaults['search_community']['enabled'] = True
 sessdefaults['tunnel_community'] = OrderedDict()
 sessdefaults['tunnel_community']['socks5_listen_ports'] = [-1] * 5
 sessdefaults['tunnel_community']['exitnode_enabled'] = False
+
+# Metadata section
+sessdefaults['metadata'] = OrderedDict()
+sessdefaults['metadata']['enabled'] = True
+sessdefaults['metadata']['store_dir'] = None
 
 # Mainline DHT settings
 sessdefaults['mainline_dht'] = OrderedDict()

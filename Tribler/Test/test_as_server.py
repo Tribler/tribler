@@ -182,6 +182,8 @@ class TestAsServer(AbstractServer):
         self.config.set_libtorrent(False)
         self.config.set_dht_torrent_collecting(False)
         self.config.set_videoplayer(False)
+        self.config.set_enable_metadata_store(False)
+        self.config.set_enable_metadata_community(False)
 
     def tearDown(self):
         self.annotate(self._testMethodName, start=False)
