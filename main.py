@@ -288,6 +288,15 @@ class FileWidget(BoxLayout):
 	def bench(self):
 		print "BENCHMARK: ", time.time() - self.benchmark
 		self.benchmark = time.time()
+	def delete(self):
+		anim = Animation(opacity=0, duration = 0.5)
+		anim.start(self)
+		Clock.schedule_once(self.remove,0.5)
+
+	def remove(self, *largs):
+		self.parent.remove_widget(self)
+		#os.remove(self.uri)
+		#os.remove(self.ids.img.source)
 
 class SearchScreen(Screen):
 	def on_txt_input(self):
