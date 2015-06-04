@@ -406,7 +406,7 @@ class TorrentDBHandler(BasicDBHandler):
         for infohash in infohashes:
             if infohash not in to_return:
                 to_return[infohash] = self.infohash_id.get(infohash)
-        assert len(to_return) == len(infohashes)
+        assert len(to_return) == len(infohashes), "to_return = %s, infohashes = %s" % (len(to_return), len(infohashes))
         return to_return
 
     def getInfohash(self, torrent_id):
