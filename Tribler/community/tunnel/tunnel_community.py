@@ -560,7 +560,7 @@ class TunnelCommunity(Community):
                 torrent.add_peer(peer)
             del self.bittorrent_peers[torrent]
 
-    def remove_circuit(self, circuit_id, additional_info='', destroy=False, rebuild=False):
+    def remove_circuit(self, circuit_id, additional_info='', destroy=False):
         assert isinstance(circuit_id, (long, int)), type(circuit_id)
 
         if circuit_id in self.circuits:
