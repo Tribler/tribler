@@ -163,13 +163,18 @@
 	BoxLayout:
 		orientation: 'vertical'
 		id: camScreen
-
-		CameraWidget:
-			id: camera
-
-			BoxLayout:
-				size_hint_y: None
-				height: '48dp'
+		BoxLayout:
+			CameraWidget:
+				id: camera
+		BoxLayout:
+			size_hint_y: None
+			height: '48dp'
+			Button:
+				text: 'Start camera'
+				on_release: camera.start()
+			Button:
+				text: 'Stop camera'
+				on_release: camera.stop()
 <GearMenu>
 	RelativeLayout:
 		Button:
