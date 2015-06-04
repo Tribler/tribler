@@ -56,7 +56,7 @@ class ClockedLevelDbStore(LevelDbStore):
 class TestLevelDbStore(BaseTestCase):
 
     def __init__(self, *argv, **kwargs):
-        super(TestTorrentStore, self).__init__(*argv, **kwargs)
+        super(TestLevelDbStore, self).__init__(*argv, **kwargs)
 
         self.store_dir = None
         self.store = None

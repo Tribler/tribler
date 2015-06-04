@@ -4,13 +4,11 @@
 # Handles the case where the user did a remote query and now selected one of the
 # returned torrents for download.
 import logging
-import os
 import sys
 import urllib
-import shutil
 from collections import deque
 from abc import ABCMeta, abstractmethod
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
@@ -20,6 +18,7 @@ from Tribler.dispersy.util import call_on_reactor_thread
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH
+from Tribler.Core.TFTP.handler import METADATA_PREFIX
 
 TORRENT_OVERFLOW_CHECKING_INTERVAL = 30 * 60
 LOW_PRIO_COLLECTING = 0
@@ -176,50 +175,38 @@ class RemoteTorrentHandler(TaskManager):
         requester.add_request(infohash, candidate)
         self._logger.debug(u"adding torrent messages request: %s %s %s", hexlify(infohash), candidate, priority)
 
-    def get_metadata_path(self, infohash, thumbnail_subpath):
-        return os.path.join(self.tor_col_dir, thumbnail_subpath)
+    def has_metadata(self, thumb_hash):
+        thumb_hash_str = hexlify(thumb_hash)
+        return thumb_hash_str in self.session.lm.metadata_store
 
-    def has_metadata(self, infohash, thumbnail_subpath):
-        metadata_filepath = os.path.join(self.tor_col_dir, thumbnail_subpath)
-        return os.path.isfile(metadata_filepath)
-
-    @call_on_reactor_thread
-    def delete_metadata(self, infohash, thumbnail_subpath):
-        # delete the folder and the swift files
-        metadata_filepath = self.get_metadata_path(infohash, thumbnail_subpath)
-        if not os.path.exists(metadata_filepath):
-            self._logger.warn(u"trying to delete non-existing metadata: %s", metadata_filepath)
-        elif not os.path.isfile(metadata_filepath):
-            self._logger.warn(u"deleting directory while expecting file metadata: %s", metadata_filepath)
-            shutil.rmtree(metadata_filepath)
-        else:
-            os.unlink(metadata_filepath)
-            self._logger.debug(u"metadata file deleted: %s", metadata_filepath)
+    def get_metadata(self, thumb_hash):
+        thumb_hash_str = hexlify(thumb_hash)
+        return self.session.lm.metadata_store[thumb_hash_str]
 
     @call_on_reactor_thread
-    def download_metadata(self, candidate, infohash, thumbnail_subpath, usercallback=None, timeout=None):
-        if self.has_metadata(infohash, thumbnail_subpath):
+    def download_metadata(self, candidate, thumb_hash, usercallback=None, timeout=None):
+        if self.has_metadata(thumb_hash):
             return
 
         if usercallback:
-            self.metadata_callbacks.setdefault(infohash, set()).add(usercallback)
+            self.metadata_callbacks.setdefault(thumb_hash, set()).add(usercallback)
 
-        self.metadata_requester.add_request((infohash, thumbnail_subpath), candidate, timeout)
+        self.metadata_requester.add_request(thumb_hash, candidate, timeout, is_metadata=True)
 
-        infohash_str = hexlify(infohash or "")
-        self._logger.debug(u"adding metadata request: %s %s %s", infohash_str, thumbnail_subpath, candidate)
+        self._logger.debug(u"added metadata request: %s %s", hexlify(thumb_hash), candidate)
 
     @call_on_reactor_thread
-    def save_metadata(self, infohash, thumbnail_subpath, data):
+    def save_metadata(self, thumb_hash, data):
         # save data to a temporary tarball and extract it to the torrent collecting directory
-        thumbnail_path = self.get_metadata_path(infohash, thumbnail_subpath)
-        dir_name = os.path.dirname(thumbnail_path)
-        if not os.path.exists(dir_name):
-            os.mkdir(dir_name)
-        with open(thumbnail_path, "wb") as f:
-            f.write(data)
+        thumb_hash_str = hexlify(thumb_hash)
+        if thumb_hash_str not in self.session.lm.metadata_store:
+            self.session.lm.metadata_store[thumb_hash_str] = data
 
-        self.notify_possible_metadata_infohash(infohash, thumbnail_subpath)
+        # notify about the new metadata
+        for callback in self.metadata_callbacks[thumb_hash]:
+            self.session.lm.rawserver.call_in_thread(0, callback, hexlify(thumb_hash))
+
+        del self.metadata_callbacks[thumb_hash]
 
     def notify_possible_torrent_infohash(self, infohash):
         if infohash not in self.torrent_callbacks:
@@ -229,16 +216,6 @@ class RemoteTorrentHandler(TaskManager):
             self.session.lm.rawserver.call_in_thread(0, callback, hexlify(infohash))
 
         del self.torrent_callbacks[infohash]
-
-    def notify_possible_metadata_infohash(self, infohash, thumbnail_subpath):
-        metadata_filepath = os.path.join(self.tor_col_dir, self.get_metadata_path(infohash, thumbnail_subpath))
-        if infohash not in self.metadata_callbacks:
-            return
-
-        for callback in self.metadata_callbacks[infohash]:
-            self.session.lm.rawserver.call_in_thread(0, callback, metadata_filepath)
-
-        del self.metadata_callbacks[infohash]
 
     def getQueueSize(self):
         def getQueueSize(qname, requesters):
@@ -508,10 +485,11 @@ class TftpRequester(Requester):
         self._untried_sources = {}
         self._tried_sources = {}
 
-    def add_request(self, key, candidate, timeout=None):
+    def add_request(self, key, candidate, timeout=None, is_metadata=False):
         ip, port = candidate.sock_addr
-        if isinstance(key, tuple):
-            key_str = u"[%s, %s]" % (hexlify(key[0]), key[1])
+        if is_metadata:
+            key = "%s%s" % (METADATA_PREFIX, hexlify(key))
+            key_str = key
         else:
             key_str = hexlify(key)
 
@@ -545,21 +523,20 @@ class TftpRequester(Requester):
         self._tried_sources[key].append(candidate)
 
         ip, port = candidate.sock_addr
-        # metadata requests has a tuple as the key
-        if isinstance(key, tuple):
-            infohash, thumbnail_subpath = key
+
+        if key.startswith(METADATA_PREFIX):
+            # metadata requests has a METADATA_PREFIX prefix
+            thumb_hash = unhexlify(key.replace(METADATA_PREFIX, ''))
+            file_name = key
+            extra_info = {u'key': key, u'thumb_hash': thumb_hash}
         else:
-            infohash = key
-            thumbnail_subpath = None
+            # key is info hash
+            info_hash = key
+            file_name = hexlify(info_hash) + u'.torrent'
+            extra_info = {u'key': key, u'info_hash': info_hash}
 
-        self._logger.debug(u"start TFTP download for %s from %s:%s", hexlify(infohash), ip, port)
+        self._logger.debug(u"start TFTP download for %s from %s:%s", file_name, ip, port)
 
-        if thumbnail_subpath:
-            file_name = thumbnail_subpath
-        else:
-            file_name = hexlify(infohash) + '.torrent'
-
-        extra_info = {u"infohash": infohash, u"thumbnail_subpath": thumbnail_subpath}
         # do not download if TFTP has been shutdown
         if self._session.lm.tftp_handler is None:
             return
@@ -577,26 +554,25 @@ class TftpRequester(Requester):
     def _on_download_successful(self, address, file_name, file_data, extra_info):
         self._logger.debug(u"successfully downloaded %s from %s:%s", file_name, address[0], address[1])
 
-        # metadata has thumbnail_subpath info
-        infohash = extra_info.get(u"infohash")
-        thumbnail_subpath = extra_info.get(u"thumbnail_subpath")
-        key = (infohash, thumbnail_subpath) if thumbnail_subpath else infohash
-        assert key in self._active_request_list, "key = %s, active_request_list = %s" % (repr(key),
-                                                                                         self._active_request_list)
+        key = extra_info[u'key']
+        info_hash = extra_info.get(u"info_hash")
+        thumb_hash = extra_info.get(u"thumb_hash")
+
+        assert key in self._active_request_list, u"key = %s, active_request_list = %s" % (repr(key),
+                                                                                          self._active_request_list)
 
         self._requests_succeeded += 1
         self._total_bandwidth += len(file_data)
 
         # save data
         try:
-            if isinstance(key, tuple):
-                # save metadata
-                self._remote_torrent_handler.save_metadata(extra_info[u"infohash"], extra_info[u"thumbnail_subpath"],
-                                                           file_data)
-            else:
+            if info_hash is not None:
                 # save torrent
                 tdef = TorrentDef.load_from_memory(file_data)
                 self._remote_torrent_handler.save_torrent(tdef)
+            elif thumb_hash is not None:
+                # save metadata
+                self._remote_torrent_handler.save_metadata(thumb_hash, file_data)
         except Exception as e:
             self._logger.error(u"failed to save data for download %s: %s", file_name, e)
 
@@ -608,18 +584,15 @@ class TftpRequester(Requester):
     def _on_download_failed(self, address, file_name, error_msg, extra_info):
         self._logger.debug(u"failed to download %s from %s:%s: %s", file_name, address[0], address[1], error_msg)
 
-        # metadata has thumbnail_subpath info
-        infohash = extra_info.get(u"infohash")
-        thumbnail_subpath = extra_info.get(u"thumbnail_subpath")
-        key = (infohash, thumbnail_subpath) if thumbnail_subpath else infohash
-        assert key in self._active_request_list, "key = %s, active_request_list = %s" % (repr(key),
-                                                                                         self._active_request_list)
+        key = extra_info[u'key']
+        assert key in self._active_request_list, u"key = %s, active_request_list = %s" % (repr(key),
+                                                                                          self._active_request_list)
 
         self._requests_failed += 1
 
         if self._untried_sources[key]:
             # try to download this data from another candidate
-            self._logger.debug(u"scheduling next try for %s", hexlify(infohash))
+            self._logger.debug(u"scheduling next try for %s", key)
 
             self._pending_request_queue.appendleft(key)
             self._active_request_list.remove(key)

@@ -22,8 +22,8 @@ from .exception import InvalidPacketException, FileNotFound
 
 MAX_INT16 = 2 ** 16 - 1
 
-DIR_SEPARATOR = u":"
-DIR_PREFIX = u"dir" + DIR_SEPARATOR
+SEPARATOR = ":"
+METADATA_PREFIX = "metadata" + SEPARATOR
 
 DEFAULT_RETIES = 5
 
@@ -300,8 +300,8 @@ class TftpHandler(TaskManager):
 
         # read the file/directory into memory
         try:
-            if file_name.startswith(DIR_PREFIX):
-                file_data, file_size = self._load_directory(file_name)
+            if file_name.startswith(METADATA_PREFIX):
+                file_data, file_size = self._load_metadata(file_name.replace(METADATA_PREFIX, ''))
             else:
                 file_data, file_size = self._load_torrent(file_name)
             checksum = b64encode(sha1(file_data).digest())
@@ -329,67 +329,22 @@ class TftpHandler(TaskManager):
         # send back OACK now
         self._send_oack_packet(session)
 
-    def _load_file(self, file_name, file_path=None):
-        """ Loads a file into memory.
-        :param file_name: The path of the file.
+    def _load_metadata(self, thumb_hash):
+        """ Loads a thumbnail into memory.
+        :param thumb_hash: The thumbnail hash.
         """
-        # the _load_directory also uses this method to load zip file.
-        if file_path is None:
-            file_path = os.path.join(self.root_dir, file_name)
-
+        file_data = self.session.lm.metadata_store.get(thumb_hash)
         # check if file exists
-        if not os.path.exists(file_path):
-            msg = u"file doesn't exist: %s" % file_path
-            raise FileNotFound(msg)
-        elif not os.path.isfile(file_path):
-            msg = u"not a file: %s" % file_path
+        if not file_data:
+            msg = u"Metadata not in store: %s" % thumb_hash
             raise FileNotFound(msg)
 
-        # read the file into memory
-        f = None
-        try:
-            f = open(file_path, 'rb')
-            file_data = f.read()
-        except (OSError, IOError) as e:
-            msg = u"failed to read file [%s]: %s" % (file_path, e)
-            raise Exception(msg)
-        finally:
-            if f is not None:
-                f.close()
-        file_size = len(file_data)
-        return file_data, file_size
-
-    def _load_directory(self, file_name):
-        """ Loads a directory and all files, and compress using gzip to transfer.
-        :param file_name: The directory name.
-        """
-        dir_name = file_name.split(DIR_SEPARATOR, 1)[1]
-        dir_path = os.path.join(self.root_dir, dir_name)
-
-        # check if file exists
-        if not os.path.exists(dir_path):
-            msg = u"directory doesn't exist: %s" % dir_path
-            raise FileNotFound(msg)
-        elif not os.path.isdir(dir_path):
-            msg = u"not a directory: %s" % dir_path
-            raise FileNotFound(msg)
-
-        # create a temporary gzip file and compress the whole directory
-        tmpfile_no, tmpfile_path = mkstemp(suffix=u"_tribler_tftpdir", prefix=u"tmp_")
-        os.close(tmpfile_no)
-
-        tar_file = TarFile.open(tmpfile_path, "w")
-        tar_file.add(dir_path, arcname=dir_name, recursive=True)
-        tar_file.close()
-
-        # load the zip file as binary
-        return self._load_file(file_name, file_path=tmpfile_path)
+        return file_data, len(file_data)
 
     def _load_torrent(self, file_name):
         """ Loads a file into memory.
-        :param file_name: The path of the file.
+        :param file_name: The file name.
         """
-
         infohash = file_name[:-8]  # len('.torrent') = 8
 
         file_data = self.session.lm.torrent_store.get(infohash)
