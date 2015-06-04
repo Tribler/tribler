@@ -57,9 +57,6 @@ cp logger.conf dist/installdir/Tribler.app/Contents/Resources/
 cp Tribler/Category/category.conf dist/installdir/Tribler.app/Contents/Resources/Tribler/Category/
 cp Tribler/Category/filter_terms.filter dist/installdir/Tribler.app/Contents/Resources/Tribler/Category/
 
-# Copy anon_test.torrent
-cp anon_test.torrent dist/installdir/Tribler.app/Contents/Resources/
-
 # Forced 32-bit mode
 mv dist/installdir/Tribler.app dist/installdir/Tribler-origin.app
 ditto --rsrc --arch i386 dist/installdir/Tribler-origin.app dist/installdir/Tribler.app

@@ -367,7 +367,6 @@ def main(argv):
     else:
         logger.info("Exit-node disabled")
 
-    settings.do_test = False
     tunnel = Tunnel(settings, crawl_keypair_filename, dispersy_port)
     StandardIO(LineHandler(tunnel, profile))
     tunnel.start()

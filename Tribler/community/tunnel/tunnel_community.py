@@ -22,7 +22,6 @@ from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, Create
                                               StatsRequestPayload, StatsResponsePayload,
                                               TunnelIntroductionResponsePayload, TunnelIntroductionRequestPayload)
 from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
-from Tribler.community.tunnel.tests.test_libtorrent import LibtorrentTest
 from Tribler.community.tunnel.Socks5.server import Socks5Server
 from Tribler.community.tunnel.crypto.tunnelcrypto import TunnelCrypto, CryptoException
 
@@ -188,7 +187,6 @@ class TunnelSettings(object):
         self.circuit_length = 3
         self.crypto = TunnelCrypto()
         self.socks_listen_ports = range(1080, 1085)
-        self.do_test = True
 
         self.min_circuits = 4
         self.max_circuits = 8
@@ -265,7 +263,7 @@ class TunnelCommunity(Community):
                              'e79efd8853cef1640b93c149d7b0f067f6ccf221'.decode('hex')]
         self.bittorrent_peers = {}
 
-        self.trsession = self.settings = self.socks_server = self.libtorrent_test = None
+        self.trsession = self.settings = self.socks_server = None
 
     def initialize(self, tribler_session=None, settings=None):
         self.trsession = tribler_session
@@ -280,8 +278,6 @@ class TunnelCommunity(Community):
         self.crypto.initialize(self)
 
         self.dispersy.endpoint.listen_to(self.data_prefix, self.on_data)
-
-        self.start_download_test()
 
         self.register_task("do_circuits", LoopingCall(self.do_circuits)).start(5, now=True)
         self.register_task("do_ping", LoopingCall(self.do_ping)).start(PING_INTERVAL)
@@ -303,16 +299,6 @@ class TunnelCommunity(Community):
 
     def become_exitnode(self):
         return self.settings.become_exitnode
-
-    def start_download_test(self):
-        if self.trsession and self.trsession.get_libtorrent() and self.settings.do_test:
-            self.libtorrent_test = LibtorrentTest(self, self.trsession)
-            if not self.libtorrent_test.has_completed_before():
-                self._logger.debug("Scheduling Anonymous LibTorrent download")
-                self.register_task("start_test", reactor.callLater(
-                    60, lambda: reactor.callInThread(self.libtorrent_test.start)))
-                return True
-        return False
 
     @classmethod
     def get_master_members(cls, dispersy):

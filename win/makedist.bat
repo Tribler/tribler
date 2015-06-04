@@ -99,7 +99,6 @@ copy %SystemRoot%\msvcp71.dll dist\installdir
 copy %PYTHONHOME%\msvcp60.dll dist\installdir
 REM py2exe does this: copy SSLEAY32.dll dist\installdir
 REM copy LIBEAY32.dll dist\installdir
-copy anon_test.torrent dist\installdir
 
 type Tribler\LICENSE.txt Tribler\binary-LICENSE-postfix.txt > Tribler\binary-LICENSE.txt
 copy Tribler\binary-LICENSE.txt dist\installdir
