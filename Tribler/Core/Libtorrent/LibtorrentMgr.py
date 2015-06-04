@@ -35,8 +35,8 @@ class LibtorrentMgr(object):
 
         main_ltsession = self.get_session()
 
-        self.set_upload_rate_limit(-1)
-        self.set_download_rate_limit(-1)
+        self.set_upload_rate_limit(0)
+        self.set_download_rate_limit(0)
         self.upnp_mapper = main_ltsession.start_upnp()
 
         self.external_ip = None
