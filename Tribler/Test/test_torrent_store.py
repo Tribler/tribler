@@ -33,13 +33,13 @@
 #
 
 # Code:
+from nose.twistedtools import deferred, reactor
+
 from shutil import rmtree
 from tempfile import mkdtemp
 
-from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import Clock
 
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.torrentstore import TorrentStore, WRITEBACK_PERIOD
 from Tribler.Test.test_as_server import BaseTestCase
 
@@ -54,30 +54,33 @@ class ClockedTorrentStore(TorrentStore):
 
 class TestTorrentStore(BaseTestCase):
 
+    def __init__(self, *argv, **kwargs):
+        super(TestTorrentStore, self).__init__(*argv, **kwargs)
+
+        self.store_dir = None
+        self.store = None
+
     def setUp(self):
         self.openStore(mkdtemp(prefix=__name__))
 
     def tearDown(self):
         self.closeStore()
 
-    @deferred(timeout=5)
-    @inlineCallbacks
     def closeStore(self):
-        yield self.store.close()
-        self.store = None
+        self.store.close()
         rmtree(self.store_dir)
+        self.store = None
 
     def openStore(self, store_dir):
         self.store_dir = store_dir
         self.store = ClockedTorrentStore(store_dir=self.store_dir)
 
-    @deferred(timeout=5)
-    @inlineCallbacks
+
     def test_storeIsPersistent(self):
         self.store.put(K, V)
         self.assertEqual(self.store.get(K), V)
         store_dir = self.store._store_dir
-        yield self.store.close()
+        self.store.close()
         self.openStore(store_dir)
         self.assertEqual(self.store.get(K), V)
 
@@ -95,14 +98,12 @@ class TestTorrentStore(BaseTestCase):
         self.store._reactor.advance(WRITEBACK_PERIOD)
         self.assertEqual(0, len(self.store._pending_torrents))
 
-    @deferred(timeout=5)
-    @inlineCallbacks
     def test_len(self):
         self.assertEqual(0, len(self.store))
         self.store[K] = V
         self.assertEqual(1, len(self.store), 1)
         # test that even after writing the cached data, the lenght is still the same
-        yield self.store.flush()
+        self.store.flush()
         self.assertEqual(1, len(self.store), 2)
 
 #
