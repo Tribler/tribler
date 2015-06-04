@@ -250,7 +250,7 @@ class TestTunnelCommunity(TestGuiAsServer):
                                  lambda: download.get_progress() == 1.0,
                                  lambda: take_screenshot(time.time() - start_time),
                                  'Hidden services download should be finished in 140 seconds (%.1f%% downloaded)' %
-                                     (download.get_progress() * 100),
+                                 (download.get_progress() * 100),
                                  on_fail)
 
         def start_download(tf):
@@ -314,7 +314,6 @@ class TestTunnelCommunity(TestGuiAsServer):
                 self.assert_(expected, reason, do_assert)
 
             self.Call(1, do_asserts)
-
 
         def do_progress(d, start_time):
             # Check for progress from both seeders
@@ -387,7 +386,6 @@ class TestTunnelCommunity(TestGuiAsServer):
 
     def startTest(self, callback, min_timeout=5, nr_relays=5, nr_exitnodes=3, crypto_enabled=True, bypass_dht=False):
         from Tribler.Main import tribler_main
-        tribler_main.FORCE_ENABLE_TUNNEL_COMMUNITY = True
         tribler_main.TUNNEL_COMMUNITY_DO_TEST = False
 
         self.getStateDir()  # getStateDir copies the bootstrap file into the statedir
@@ -471,7 +469,10 @@ class TestTunnelCommunity(TestGuiAsServer):
                 if not crypto_enabled:
                     settings.crypto = NoCrypto()
                 settings.become_exitnode = become_exit_node
-                return dispersy.define_auto_load(HiddenTunnelCommunity, dispersy_member, (session, settings), load=True)[0]
+                return dispersy.define_auto_load(HiddenTunnelCommunity,
+                                                 dispersy_member,
+                                                 (session, settings),
+                                                 load=True)[0]
 
             return blockingCallFromThread(reactor, load_community, session)
 

@@ -19,7 +19,6 @@ from Tribler.Main.Utility.compat import (convertSessionConfig, convertMainConfig
                                          convertDownloadCheckpoints)
 from Tribler.Core.version import version_id, commit_id
 from Tribler.Core.osutils import get_free_space
-import copy
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +57,6 @@ import wx
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 from Tribler.Main.vwxGUI.MainFrame import FileDropTarget
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
-# import hotshot
 
 from collections import defaultdict
 from traceback import print_exc
@@ -94,21 +92,11 @@ from Tribler.Core.DownloadConfig import get_default_dest_dir, get_default_dscfg_
 
 from Tribler.Core.Video.VideoPlayer import return_feasible_playback_modes, PLAYBACKMODE_INTERNAL
 
-# Arno, 2012-06-20: h4x0t DHT import for py2...
-import Tribler.Core.DecentralizedTracking.pymdht.core
-import Tribler.Core.DecentralizedTracking.pymdht.core.identifier
-import Tribler.Core.DecentralizedTracking.pymdht.core.message
-import Tribler.Core.DecentralizedTracking.pymdht.core.node
-import Tribler.Core.DecentralizedTracking.pymdht.core.ptime
-import Tribler.Core.DecentralizedTracking.pymdht.core.routing_table
-
-
 # Boudewijn: keep this import BELOW the imports from Tribler.xxx.* as
 # one of those modules imports time as a module.
 from time import time, sleep
 
 from twisted.python.threadable import isInIOThread
-from twisted.internet import reactor
 
 SESSION_CHECKPOINT_INTERVAL = 900.0  # 15 minutes
 CHANNELMODE_REFRESH_INTERVAL = 5.0
@@ -118,9 +106,7 @@ DEBUG = False
 DEBUG_DOWNLOADS = False
 ALLOW_MULTIPLE = os.environ.get("TRIBLER_ALLOW_MULTIPLE", "False").lower() == "true"
 
-SKIP_TUNNEL_DIALOG = os.environ.get("TRIBLER_SKIP_OPTIN_DLG", "False") == "True"
 # used by the anon tunnel tests as there's no way to mess with the Session before running the test ATM.
-FORCE_ENABLE_TUNNEL_COMMUNITY = False
 TUNNEL_COMMUNITY_DO_TEST = True
 
 #
@@ -381,31 +367,6 @@ class ABCApp(object):
                         "tribler: quitting due to non-existing destination directory")
                     raise Exception()
 
-        if FORCE_ENABLE_TUNNEL_COMMUNITY:
-            self.sconfig.set_tunnel_community_enabled(True)
-
-        if not self.sconfig.get_tunnel_community_optin_dialog_shown() and not SKIP_TUNNEL_DIALOG:
-            optin_dialog = wx.MessageDialog(None,
-                                            'If you are not familiar with proxy technology, please opt-out.\n\n'
-                                            'This experimental anonymity feature using Tor-inspired onion routing '
-                                            'and multi-layered encryption.'
-                                            'You will become an exit node for other users downloads which could get you in '
-                                            'trouble in various countries.\n'
-                                            'This privacy enhancement will not protect you against spooks or '
-                                            'government agencies.\n'
-                                            'We are a torrent client and aim to protect you against lawyer-based '
-                                            'attacks and censorship.\n'
-                                            'With help from many volunteers we are continuously evolving and improving.'
-                                            '\n\nIf you aren\'t sure, press Cancel to disable the \n'
-                                            'experimental anonymity feature',
-                                            'Do you want to use the experimental anonymity feature?',
-                                            wx.ICON_WARNING | wx.OK | wx.CANCEL)
-            enable_tunnel_community = optin_dialog.ShowModal() == wx.ID_OK
-            self.sconfig.set_tunnel_community_enabled(enable_tunnel_community)
-            self.sconfig.set_tunnel_community_optin_dialog_shown(True)
-            optin_dialog.Destroy()
-            del optin_dialog
-
         if not use_torrent_search:
             self.sconfig.set_enable_torrent_search(False)
         if not use_channel_search:
@@ -451,7 +412,8 @@ class ABCApp(object):
         s.add_observer(self.sesscb_ntfy_markingupdates, NTFY_MARKINGS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_torrentfinished, NTFY_TORRENTS, [NTFY_FINISHED])
         s.add_observer(self.sesscb_ntfy_magnet,
-                       NTFY_TORRENTS, [NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE])
+                       NTFY_TORRENTS, [NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS,
+                                       NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE])
 
         # TODO(emilon): Use the LogObserver I already implemented
         # self.dispersy.callback.attach_exception_handler(self.frame.exceptionHandler)
@@ -480,7 +442,6 @@ class ABCApp(object):
             assert isInIOThread()
             from Tribler.community.channel.community import ChannelCommunity
             from Tribler.community.channel.preview import PreviewChannelCommunity
-            from Tribler.community.metadata.community import MetadataCommunity
             from Tribler.community.tunnel.tunnel_community import TunnelSettings
             from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
             from Tribler.community.bartercast4.community import BarterCommunity
@@ -504,17 +465,16 @@ class ABCApp(object):
             dispersy.define_auto_load(ChannelCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
             dispersy.define_auto_load(PreviewChannelCommunity, session.dispersy_member, kargs=default_kwargs)
 
-            if self.sconfig.get_tunnel_community_enabled():
-                keypair = dispersy.crypto.generate_key(u"curve25519")
-                dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair),)
-                settings = TunnelSettings(session.get_install_dir(), tribler_session=session)
-                settings.do_test = TUNNEL_COMMUNITY_DO_TEST
-                tunnel_kwargs = {'tribler_session': session, 'settings': settings}
+            keypair = dispersy.crypto.generate_key(u"curve25519")
+            dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair),)
+            settings = TunnelSettings(session.get_install_dir(), tribler_session=session)
+            settings.do_test = TUNNEL_COMMUNITY_DO_TEST
+            tunnel_kwargs = {'tribler_session': session, 'settings': settings}
 
-                self.tunnel_community = dispersy.define_auto_load(HiddenTunnelCommunity, dispersy_member, load=True,
-                                                                  kargs=tunnel_kwargs)[0]
+            self.tunnel_community = dispersy.define_auto_load(HiddenTunnelCommunity, dispersy_member, load=True,
+                                                              kargs=tunnel_kwargs)[0]
 
-                session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_tunnel_community_socks5_listen_ports()))
+            session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_tunnel_community_socks5_listen_ports()))
 
             diff = time() - now
             self._logger.info("tribler: communities are ready in %.2f seconds", diff)
@@ -577,7 +537,13 @@ class ABCApp(object):
 
     def progressHandler(self, title, message, maximum):
         from Tribler.Main.Dialogs.ThreadSafeProgressDialog import ThreadSafeProgressDialog
-        return ThreadSafeProgressDialog(title, message, maximum, None, wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME | wx.PD_ESTIMATED_TIME | wx.PD_REMAINING_TIME | wx.PD_AUTO_HIDE)
+        return ThreadSafeProgressDialog(title,
+                                        message,
+                                        maximum,
+                                        None,
+                                        wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME |
+                                        wx.PD_ESTIMATED_TIME | wx.PD_REMAINING_TIME |
+                                        wx.PD_AUTO_HIDE)
 
     def set_reputation(self):
         def do_db():
@@ -672,7 +638,7 @@ class ABCApp(object):
 
                         doCheckpoint = True
 
-                    if download.get_hops() == 0 and self.sconfig.get_tunnel_community_enabled():
+                    if download.get_hops() == 0:
                         self._logger.error("Re-add torrent with default nr of hops to prevent naked seeding")
                         self.utility.session.remove_download(download)
                         defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
@@ -708,7 +674,7 @@ class ABCApp(object):
         from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
         user_download_choice = UserDownloadChoice.get_singleton()
         initialdlstatus_dict = {}
-        for id, state in user_download_choice.get_download_states().iteritems():
+        for _, state in user_download_choice.get_download_states().iteritems():
             if state == 'stop':
                 initialdlstatus_dict[id] = DLSTATUS_STOPPED
 
@@ -901,7 +867,7 @@ class ABCApp(object):
     @forceWxThread
     def onError(self, e):
         print_exc()
-        type, value, stack = sys.exc_info()
+        _, value, stack = sys.exc_info()
         backtrace = traceback.format_exception(type, value, stack)
 
         win = FeedbackWindow("Unfortunately, Tribler ran into an internal error")
@@ -1085,7 +1051,7 @@ def run(params=None, autoload_discovery=True, use_torrent_search=True, use_chann
             if params[0] != "":
                 torrentfilename = params[0]
                 i2i_port = Utility(installdir, statedir).read_config('i2ilistenport')
-                i2ic = Instance2InstanceClient(i2i_port, 'START', torrentfilename)
+                Instance2InstanceClient(i2i_port, 'START', torrentfilename)
 
             logger.info("Client shutting down. Detected another instance.")
         else:

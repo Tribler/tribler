@@ -28,8 +28,7 @@ class SaveAs(wx.Dialog):
 
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
-        self.tunnel_community_enabled = self.utility.session.get_tunnel_community_enabled()
-        self.SetSize((600, 550 if self.tunnel_community_enabled else 450))
+        self.SetSize((600, 550))
 
         self.filehistory = []
         try:
@@ -89,9 +88,8 @@ class SaveAs(wx.Dialog):
         self.ok.Bind(wx.EVT_BUTTON, self.OnOk)
 
         self.anonimity_dialog = None
-        if self.tunnel_community_enabled:
-            self.anonimity_dialog = AnonymityDialog(self)
-            vSizer.Add(self.anonimity_dialog, 0, wx.EXPAND, 3)
+        self.anonimity_dialog = AnonymityDialog(self)
+        vSizer.Add(self.anonimity_dialog, 0, wx.EXPAND, 3)
 
         self.Bind(EVT_COLLECTED, self.OnCollected)
 
@@ -111,7 +109,7 @@ class SaveAs(wx.Dialog):
             sizer.Add(ag, 0, wx.ALIGN_CENTER_VERTICAL)
             sizer.AddStretchSpacer()
             vSizer.Add(sizer, 1, wx.EXPAND | wx.BOTTOM, 3)
-            self.SetSize((600, 285 if self.tunnel_community_enabled else 185))
+            self.SetSize((600, 285))
 
             # convert tdef into guidbtuple, and collect it using torrentsearch_manager.downloadTorrentfileFromPeers
             torrent = Torrent.fromTorrentDef(tdef)
@@ -191,7 +189,7 @@ class SaveAs(wx.Dialog):
     def OnCollected(self, event):
         tdef = event.tdef
         self.collected = tdef
-        self.SetSize((600, 550 if self.tunnel_community_enabled else 450))
+        self.SetSize((600, 550))
         vSizer = self.GetSizer().GetItem(0).GetSizer()
         hsizer = vSizer.GetItem(len(vSizer.GetChildren()) - 2).GetSizer()
         self.Freeze()
