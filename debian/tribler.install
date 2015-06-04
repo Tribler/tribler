@@ -4,4 +4,3 @@ Tribler/Main/Build/Ubuntu/tribler.xpm usr/share/pixmaps
 Tribler/Main/Build/Ubuntu/tribler_big.xpm usr/share/pixmaps
 debian/bin/* usr/bin
 logger.conf usr/share/tribler
-anon_test.torrent usr/share/tribler

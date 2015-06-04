@@ -106,9 +106,6 @@ DEBUG = False
 DEBUG_DOWNLOADS = False
 ALLOW_MULTIPLE = os.environ.get("TRIBLER_ALLOW_MULTIPLE", "False").lower() == "true"
 
-# used by the anon tunnel tests as there's no way to mess with the Session before running the test ATM.
-TUNNEL_COMMUNITY_DO_TEST = True
-
 #
 #
 # Class : ABCApp
@@ -468,7 +465,6 @@ class ABCApp(object):
             keypair = dispersy.crypto.generate_key(u"curve25519")
             dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair),)
             settings = TunnelSettings(session.get_install_dir(), tribler_session=session)
-            settings.do_test = TUNNEL_COMMUNITY_DO_TEST
             tunnel_kwargs = {'tribler_session': session, 'settings': settings}
 
             self.tunnel_community = dispersy.define_auto_load(HiddenTunnelCommunity, dispersy_member, load=True,
@@ -886,12 +882,6 @@ class ABCApp(object):
         self._logger.info("main: ONEXIT")
         self.ready = False
         self.done = True
-
-        # Remove anonymous test download
-        self.closewindow.tick('Remove anonymous test download')
-        for download in self.utility.session.get_downloads():
-            if download.get_anon_mode() and os.path.basename(download.get_dest_dir()) == "anon_test":
-                self.utility.session.remove_download(download)
 
         # write all persistent data to disk
         self.closewindow.tick('Write all persistent data to disk')

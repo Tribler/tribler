@@ -112,7 +112,6 @@ Section "!Main EXE" SecMain
  Delete "$INSTDIR\python*.dll"
  Delete "$INSTDIR\wx*.dll"
  File *.dll
- File anon_test.torrent
  CreateDirectory "$INSTDIR\Tribler"
  SetOutPath "$INSTDIR\Tribler"
  File Tribler\*.sql

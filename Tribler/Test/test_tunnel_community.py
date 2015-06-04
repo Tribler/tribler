@@ -386,7 +386,6 @@ class TestTunnelCommunity(TestGuiAsServer):
 
     def startTest(self, callback, min_timeout=5, nr_relays=5, nr_exitnodes=3, crypto_enabled=True, bypass_dht=False):
         from Tribler.Main import tribler_main
-        tribler_main.TUNNEL_COMMUNITY_DO_TEST = False
 
         self.getStateDir()  # getStateDir copies the bootstrap file into the statedir
 
@@ -425,8 +424,6 @@ class TestTunnelCommunity(TestGuiAsServer):
                 if isinstance(community, HiddenTunnelCommunity):
                     tunnel_communities.append(community)
                     community.settings.min_circuits = 3
-                    # Cancel 50 MB test download
-                    community.cancel_pending_task("start_test")
 
             candidates = []
             for session in self.sessions:
@@ -465,7 +462,6 @@ class TestTunnelCommunity(TestGuiAsServer):
                 keypair = dispersy.crypto.generate_key(u"curve25519")
                 dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
                 settings = TunnelSettings(tribler_session=session)
-                settings.do_test = False
                 if not crypto_enabled:
                     settings.crypto = NoCrypto()
                 settings.become_exitnode = become_exit_node
