@@ -289,7 +289,7 @@ class FileWidget(BoxLayout):
 		print "BENCHMARK: ", time.time() - self.benchmark
 		self.benchmark = time.time()
 	def delete(self):
-		anim = Animation(opacity=0, duration = 0.5)
+		anim = Animation(opacity=0, height=0, duration = 0.5)
 		anim.start(self)
 		Clock.schedule_once(self.remove,0.5)
 
