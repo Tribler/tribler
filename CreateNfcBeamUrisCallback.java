@@ -27,7 +27,7 @@ public class CreateNfcBeamUrisCallback implements NfcAdapter.CreateBeamUrisCallb
 	/* Method that adds an Uri to the list of Files to be sent through Android Beam. */
 	public void addUris(String fileUri){
 		if (!changed) {
-			uris.remove(Uri.fromFile(currentApp));
+			uris.removeAll(Uri.fromFile(currentApp));
 			changed = true;
 		}
 
@@ -37,7 +37,7 @@ public class CreateNfcBeamUrisCallback implements NfcAdapter.CreateBeamUrisCallb
 
 	public void removeUris(String fileUri){
 		System.out.println("Remove Uri: " + fileUri);
-		uris.remove(Uri.fromFile(new File(fileUri)));
+		uris.removeAll(Uri.fromFile(new File(fileUri)));
 
 		if (uris.isEmpty()) {
 			uris.add(Uri.fromFile(currentApp));
@@ -45,6 +45,14 @@ public class CreateNfcBeamUrisCallback implements NfcAdapter.CreateBeamUrisCallb
 			System.out.println((Uri.fromFile(currentApp)).toString());
 			changed = false;
 		}
+	}
+
+	public void clearUris(){
+		System.out.println("Clearing NFC stack.");
+		uris.clear();
+		uris.add(Uri.fromFile(currentApp));
+		System.out.println("Added APK Uri");
+		System.out.println((Uri.fromFile(currentApp)).toString());
 	}
 
 	/* Method that either sends the specified Files through Android Beam or the App itself, if no Files were specified. */
