@@ -322,9 +322,15 @@ class CameraWidget(AnchorLayout):
 
 	def __init__(self, **kwargs):
 		super(CameraWidget, self).__init__(**kwargs)
-#		self._camera = AndroidCamera(size=self.camera_size, size_hint=(None, None))
+##		self._camera = AndroidCamera(size=self.camera_size, size_hint=(None, None))
+		self._camera = CamTestCamera(size=self.size, size_hint=(None, None))
+#	        self.add_widget(self._camera)
+		self.bind(size=self.update)
+	def update(self, *args):
+		print 'Camera Size Changed to', self.size
 		self._camera = CamTestCamera(size=self.size, size_hint=(None, None))
 	        self.add_widget(self._camera)
+		self.unbind(size=self.update)
 
 	def start(self):
 		print 'Start camera'
