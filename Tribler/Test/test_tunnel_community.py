@@ -470,7 +470,7 @@ class TestTunnelCommunity(TestGuiAsServer):
                     settings.crypto = NoCrypto()
                 settings.become_exitnode = become_exit_node
 
-                # To test recovery: circuit breaks down after each 2 megebaytes
+                # To test circuit recovery: circuit breaks down after each 2 megabytes
                 settings.max_traffic = 2 * 1024 * 1024
 
                 return dispersy.define_auto_load(HiddenTunnelCommunity,
