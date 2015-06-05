@@ -360,7 +360,14 @@ class CamTestWidget(BoxLayout):
 		self.camera.pushButton()
 
 class CamScreen(Screen):
-	pass
+	def on_enter(self):
+		cam = self.ids.camera
+		if cam._camera != None:
+			cam.start()
+	def on_leave(self):
+		cam = self.ids.camera
+		if cam._camera != None:
+			cam.stop()
 class GearMenu(BoxLayout):
 	screen = ObjectProperty(None)
 	def setScreen(self, scr):

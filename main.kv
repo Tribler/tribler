@@ -163,7 +163,10 @@
 	BoxLayout:
 		orientation: 'vertical'
 		id: camScreen
-		BoxLayout:
+		AnchorLayout:
+			align_x: 'center'
+			align_y: 'center'
+			size_hint: 0.7,1
 			CameraWidget:
 				id: camera
 		BoxLayout:
