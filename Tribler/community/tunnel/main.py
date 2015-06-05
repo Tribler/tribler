@@ -374,6 +374,12 @@ def main(argv):
         sys.exit(1)
 
     settings = TunnelSettings()
+    settings.max_time = 60
+
+    # For disbling anonymous downloading, limiting download to hidden services only
+    settings.min_circuits = 0
+    settings.max_circuits = 0
+
     if socks5_port is not None:
         settings.socks_listen_ports = range(socks5_port, socks5_port + 5)
     else:

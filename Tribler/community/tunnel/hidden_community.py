@@ -108,9 +108,9 @@ class HiddenTunnelCommunity(TunnelCommunity):
         self.intro_point_for = {}
         self.rendezvous_point_for = {}
         self.infohash_rp_circuits = defaultdict(list)
-        self.seeding_introduction = {}
+        self.infohash_ip_circuits = defaultdict(list)
 
-        self.infohashes_ip_waiting_for_circuit = defaultdict(list)
+        self.infohash_ip_waiting_for_circuits = defaultdict(list)
 
         self.dht_blacklist = defaultdict(list)
         self.last_dht_lookup = {}
@@ -153,7 +153,10 @@ class HiddenTunnelCommunity(TunnelCommunity):
     def remove_circuit(self, circuit_id, additional_info='', destroy=False):
         if circuit_id in self.circuits:
             info_hash = self.circuits[circuit_id].info_hash
-            self.infohashes_ip_waiting_for_circuit.pop(info_hash, None)
+            required_exit = self.circuits[circuit_id].required_exit
+            if self.is_circuit_waiting_for_ip(info_hash, required_exit):
+                self._logger.debug("Removed waiting circuit for introduction point")
+                self.infohash_ip_waiting_for_circuits[info_hash].remove(required_exit)
 
         super(HiddenTunnelCommunity, self).remove_circuit(circuit_id, additional_info, destroy)
 
@@ -197,17 +200,18 @@ class HiddenTunnelCommunity(TunnelCommunity):
             force_dht_lookup = time_elapsed >= self.settings.dht_lookup_interval
 
             # If the introducing circuit does not exist anymore or timed out: Built a new circuit
-            if info_hash in self.seeding_introduction:
-                circuit_id, required_exit = self.seeding_introduction[info_hash]
-                if circuit_id not in self.my_intro_points and info_hash not in self.infohashes_ip_waiting_for_circuit:
-                    self._logger.debug('Recreate the introducing circuit for %s' % info_hash.encode('hex'))
-                    # check whether required_exit is still a candidate here
-                    if (required_exit[0], required_exit[1]) not in self._candidates:
-                        self._logger.debug('Candidate for exiting introducing circuit does not exist anymore')
-                        self.seeding_introduction.pop(info_hash)
-                        required_exit = None
-                    self.create_introduction_point(info_hash,
-                                                   required_exit=required_exit)
+            # It is preferred to build the circuit to the original introduction point, so the DHT
+            # is not polluted with old introduction points after each disconnect.
+            if info_hash in self.infohash_ip_circuits:
+                for item in self.infohash_ip_circuits[info_hash]:
+                    (circuit_id, required_exit) = item
+                    if circuit_id not in self.my_intro_points and not self.is_circuit_waiting_for_ip(info_hash, required_exit):
+                        self._logger.debug('Recreate the introducing circuit for %s' % info_hash.encode('hex'))
+                        # check whether required_exit is still a candidate here
+                        if (required_exit[0], required_exit[1]) not in self._candidates:
+                            self._logger.debug('Candidate for exiting introducing circuit does not exist anymore')
+                            required_exit = None
+                        self.create_introduction_point(info_hash, required_exit=required_exit)
 
             # If the rendezvous point circuit does not exist anymore: Initiate circuit generation again
             if info_hash in self.infohash_rp_circuits:
@@ -238,6 +242,11 @@ class HiddenTunnelCommunity(TunnelCommunity):
                         self.remove_circuit(cid, 'all downloads stopped', destroy=True)
 
         self.download_states = new_states
+
+    def is_circuit_waiting_for_ip(self, info_hash, required_exit):
+        if info_hash in self.infohash_ip_waiting_for_circuits:
+            return required_exit in self.infohash_ip_waiting_for_circuits[info_hash]
+        return False
 
     def find_download(self, lookup_info_hash):
         for download in self.trsession.get_downloads():
@@ -404,7 +413,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
                                                         session_keys[EXIT_NODE],
                                                         session_keys[EXIT_NODE_SALT]))
 
-            # Since it is the downloader that chose the rendezvous_point, we're essentially losing 1 hop of anonymity
+            # Since it is the seeder that chose the rendezvous_point, we're essentially losing 1 hop of anonymity
             # at the seeders end. To compensate we add an extra hop.
             self.create_circuit(self.hops[cache.info_hash] + 1,
                                 CIRCUIT_TYPE_RENDEZVOUS,
@@ -414,7 +423,6 @@ class HiddenTunnelCommunity(TunnelCommunity):
                                                                                                            session_keys,
                                                                                                            info_hash,
                                                                                                            sock_addr),
-                                max_retries=5,
                                 required_exit=rp_info[0],
                                 info_hash=cache.info_hash)
 
@@ -482,11 +490,6 @@ class HiddenTunnelCommunity(TunnelCommunity):
             else:
                 self._logger.error('On linked e2e: could not find download!')
 
-            for download in self.trsession.get_downloads():
-                if cache.info_hash == self.get_lookup_info_hash(download.get_def().get_infohash()):
-                    download.add_peer((self.circuit_id_to_ip(cache.circuit.circuit_id), CIRCUIT_ID_PORT))
-                    break
-
     def create_introduction_point(self, info_hash, amount=1, required_exit=None):
         # Create a separate key per infohash
         if info_hash not in self.session_keys:
@@ -498,8 +501,14 @@ class HiddenTunnelCommunity(TunnelCommunity):
             self._logger.debug("We got an introduction circuit ending in %s:%s" %
                                (circuit.required_exit[0], circuit.required_exit[1]))
             self.my_intro_points[circuit_id].append((info_hash))
-            self.seeding_introduction[info_hash] = (circuit_id, circuit.required_exit)
-            self.infohashes_ip_waiting_for_circuit.pop(info_hash)
+
+            # Replace any old circuits from the required_exit cache
+            for (iter_circuit_id, iter_required_exit) in self.infohash_ip_circuits[info_hash]:
+                if iter_required_exit is required_exit:
+                    self._logger.debug("Replaced old introduction circuit")
+                    self.infohash_ip_circuits[info_hash].remove((iter_circuit_id, iter_required_exit))
+            self.infohash_ip_circuits[info_hash].append((circuit_id, circuit.required_exit))
+            self.infohash_ip_waiting_for_circuits[info_hash].remove(required_exit)
 
             cache = self.request_cache.add(IPRequestCache(self, circuit))
             self.send_cell([Candidate(circuit.first_hop, False)],
@@ -507,13 +516,12 @@ class HiddenTunnelCommunity(TunnelCommunity):
             self._logger.debug("Established introduction tunnel %s", circuit_id)
 
         for _ in range(amount):
-            self.infohashes_ip_waiting_for_circuit[info_hash] = time.time()
-            # Create a circuit to the introduction point + 1 hop, to prevent the introduction 
+            self.infohash_ip_waiting_for_circuits[info_hash].append(required_exit)
+            # Create a circuit to the introduction point + 1 hop, to prevent the introduction
             # point from knowing what the seeder is seeding
             self.create_circuit(self.hops[info_hash] + 1,
                                 CIRCUIT_TYPE_IP,
                                 callback,
-                                max_retries=5,
                                 required_exit=required_exit,
                                 info_hash=info_hash)
 
@@ -563,7 +571,6 @@ class HiddenTunnelCommunity(TunnelCommunity):
         self.create_circuit(hops,
                             CIRCUIT_TYPE_RP,
                             callback,
-                            max_retries=5,
                             info_hash=info_hash)
 
     def check_establish_rendezvous(self, messages):
