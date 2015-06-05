@@ -7,6 +7,7 @@ import logging
 import os
 import threading
 from copy import deepcopy
+from pprint import pformat
 from struct import unpack_from
 from threading import Lock
 from time import time
@@ -384,6 +385,8 @@ class TorrentDBHandler(BasicDBHandler):
         return self.getTorrentIDS([infohash, ]).get(infohash)
 
     def getTorrentIDS(self, infohashes):
+        assert len(infohashes) == len(set(infohashes)), sorted([bin2str(infohash) for infohash in infohashes])
+
         to_return = {}
 
         to_select = []
@@ -406,7 +409,15 @@ class TorrentDBHandler(BasicDBHandler):
         for infohash in infohashes:
             if infohash not in to_return:
                 to_return[infohash] = self.infohash_id.get(infohash)
-        assert len(to_return) == len(infohashes)
+
+        if __debug__ and len(to_return) != len(infohashes):
+            self._logger.error("to_return doesn't match infohashes:")
+            self._logger.error("to_return:")
+            self._logger.error(pformat(to_return))
+            self._logger.error("infohashes:")
+            self._logger.error(pformat([bin2str(infohash) for infohash in infohashes]))
+            assert len(to_return) == len(infohashes), (len(to_return), len(infohashes))
+
         return to_return
 
     def getInfohash(self, torrent_id):
