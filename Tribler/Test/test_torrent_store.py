@@ -33,7 +33,7 @@
 #
 
 # Code:
-from nose.twistedtools import deferred, reactor
+from Tribler.Core.Utilities.twisted_thread import deferred, reactor
 
 from shutil import rmtree
 from tempfile import mkdtemp
