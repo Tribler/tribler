@@ -13,7 +13,7 @@ from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 from Tribler.Core.Utilities.encoding import encode, decode
 
 from Tribler.community.tunnel import CIRCUIT_TYPE_IP, CIRCUIT_TYPE_RP, CIRCUIT_TYPE_RENDEZVOUS, \
-                                     EXIT_NODE, EXIT_NODE_SALT, CIRCUIT_ID_PORT
+    EXIT_NODE, EXIT_NODE_SALT, CIRCUIT_ID_PORT
 
 from Tribler.community.tunnel.payload import (EstablishIntroPayload, IntroEstablishedPayload,
                                               EstablishRendezvousPayload, RendezvousEstablishedPayload,
@@ -107,10 +107,12 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
         self.intro_point_for = {}
         self.rendezvous_point_for = {}
+        self.infohash_rp_circuits = defaultdict(list)
+        self.infohash_ip_circuits = defaultdict(list)
 
         self.dht_blacklist = defaultdict(list)
         self.last_dht_lookup = {}
-        
+
         self.hops = {}
 
     def initiate_meta_messages(self):
@@ -149,13 +151,12 @@ class HiddenTunnelCommunity(TunnelCommunity):
     def remove_circuit(self, circuit_id, additional_info='', destroy=False):
         super(HiddenTunnelCommunity, self).remove_circuit(circuit_id, additional_info, destroy)
 
-        # Remove introduction/rendezvous points
         if circuit_id in self.my_intro_points:
             self._logger.debug("removed introduction point")
             self.my_intro_points.pop(circuit_id)
 
         if circuit_id in self.my_download_points:
-            self._logger.error("removed rendezvous point")
+            self._logger.debug("removed rendezvous point")
             self.my_download_points.pop(circuit_id)
 
     def ip_to_circuit_id(self, ip_str):
@@ -178,7 +179,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
                 info_hash = self.get_lookup_info_hash(real_info_hash)
                 hops[info_hash] = download.get_hops()
                 new_states[info_hash] = ds.get_status()
-                
+
         self.hops = hops
 
         for info_hash in set(new_states.keys() + self.download_states.keys()):
@@ -186,9 +187,27 @@ class HiddenTunnelCommunity(TunnelCommunity):
             old_state = self.download_states.get(info_hash, None)
             state_changed = new_state != old_state
 
-            force_dht_lookup = (time.time() - self.last_dht_lookup.get(info_hash, 0)) >= 300
+            time_elapsed = (time.time() - self.last_dht_lookup.get(info_hash, 0))
+            force_dht_lookup = time_elapsed >= self.settings.dht_lookup_interval
+
+            # If the introducing circuit does not exist anymore or timed out: Build a new circuit
+            if info_hash in self.infohash_ip_circuits:
+                for circuit_id in self.infohash_ip_circuits[info_hash]:
+                    if circuit_id not in self.my_intro_points:
+                        self.infohash_ip_circuits[info_hash].remove(circuit_id)
+                        self._logger.error('Recreate the introducing circuit for %s' % info_hash.encode('hex'))
+                        self.create_introduction_point(info_hash)
+
+            # If the rendezvous point circuit does not exist anymore: Initiate circuit generation again
+            if info_hash in self.infohash_rp_circuits:
+                for circuit_id in self.infohash_rp_circuits[info_hash]:
+                    if circuit_id not in self.my_download_points:
+                        self.infohash_rp_circuits[info_hash].remove(circuit_id)
+                        self._logger.debug('Force a new lookup for infohash %s' % info_hash.encode('hex'))
+                        force_dht_lookup = True
 
             if (state_changed or force_dht_lookup) and new_state == DLSTATUS_DOWNLOADING:
+                self._logger.debug('Do dht lookup for hidden services download %s' % info_hash.encode('hex'))
                 self.do_lookup(info_hash)
 
             elif state_changed and new_state == DLSTATUS_SEEDING:
@@ -208,7 +227,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
                         self.remove_circuit(cid, 'all downloads stopped', destroy=True)
 
         self.download_states = new_states
-        
+
     def find_download(self, lookup_info_hash):
         for download in self.trsession.get_downloads():
             if lookup_info_hash == self.get_lookup_info_hash(download.get_def().get_infohash()):
@@ -326,10 +345,10 @@ class HiddenTunnelCommunity(TunnelCommunity):
                 relay_circuit.tunnel_data(message.candidate.sock_addr, TUNNEL_PREFIX + message.packet)
             else:
                 self._logger.debug('On create e2e: create rendezvous point')
-                
                 self.create_rendezvous_point(self.hops[message.payload.info_hash],
-                                             lambda rendezvous_point, message=message: 
-                                             self.create_created_e2e(rendezvous_point, message))
+                                             lambda rendezvous_point, message=message:
+                                             self.create_created_e2e(rendezvous_point,
+                                             message), message.payload.info_hash)
 
     def create_created_e2e(self, rendezvous_point, message):
         info_hash = message.payload.info_hash
@@ -363,21 +382,28 @@ class HiddenTunnelCommunity(TunnelCommunity):
     def on_created_e2e(self, messages):
         for message in messages:
             cache = self.request_cache.pop(u"e2e-request", message.payload.identifier)
-            shared_secret = self.crypto.verify_and_generate_shared_secret(cache.hop.dh_secret, message.payload.key, 
-                                                                          message.payload.auth, 
+            shared_secret = self.crypto.verify_and_generate_shared_secret(cache.hop.dh_secret,
+                                                                          message.payload.key,
+                                                                          message.payload.auth,
                                                                           cache.hop.public_key.key.pk)
             session_keys = self.crypto.generate_session_keys(shared_secret)
 
-            _, rp_info = decode(self.crypto.decrypt_str(message.payload.rp_sock_addr, session_keys[EXIT_NODE], 
+            _, rp_info = decode(self.crypto.decrypt_str(message.payload.rp_sock_addr,
+                                                        session_keys[EXIT_NODE],
                                                         session_keys[EXIT_NODE_SALT]))
-            
+
             # Since it is the seeder that chose the rendezvous_point, we're essentially losing 1 hop of anonymity
             # at the downloader end. To compensate we add an extra hop.
             self.create_circuit(self.hops[cache.info_hash] + 1,
-                                CIRCUIT_TYPE_RENDEZVOUS, callback=lambda circuit, cookie=rp_info[1], 
-                                session_keys=session_keys, info_hash=cache.info_hash, sock_addr=cache.sock_addr: 
-                                self.create_link_e2e(circuit, cookie, session_keys, info_hash, sock_addr),
-                                max_retries=5, required_exit=rp_info[0])
+                                CIRCUIT_TYPE_RENDEZVOUS,
+                                callback=lambda circuit, cookie=rp_info[1], session_keys=session_keys,
+                                info_hash=cache.info_hash, sock_addr=cache.sock_addr: self.create_link_e2e(circuit,
+                                                                                                           cookie,
+                                                                                                           session_keys,
+                                                                                                           info_hash,
+                                                                                                           sock_addr),
+                                required_exit=rp_info[0],
+                                info_hash=cache.info_hash)
 
     def create_link_e2e(self, circuit, cookie, session_keys, info_hash, sock_addr):
         self.my_download_points[circuit.circuit_id] = (info_hash, circuit.goal_hops, sock_addr)
@@ -437,7 +463,6 @@ class HiddenTunnelCommunity(TunnelCommunity):
     def on_linked_e2e(self, messages):
         for message in messages:
             cache = self.request_cache.pop(u"link-request", message.payload.identifier)
-            
             download = self.find_download(cache.info_hash)
             if download:
                 download.add_peer((self.circuit_id_to_ip(cache.circuit.circuit_id), CIRCUIT_ID_PORT))
@@ -450,9 +475,9 @@ class HiddenTunnelCommunity(TunnelCommunity):
             self.session_keys[info_hash] = self.crypto.generate_key(u"curve25519")
 
         def callback(circuit):
-            # We got a circuit, now let's create a introduction point
+            # We got a circuit, now let's create an introduction point
             circuit_id = circuit.circuit_id
-            self.my_intro_points[circuit_id].append(info_hash)
+            self.my_intro_points[circuit_id].append((info_hash))
 
             cache = self.request_cache.add(IPRequestCache(self, circuit))
             self.send_cell([Candidate(circuit.first_hop, False)],
@@ -460,7 +485,13 @@ class HiddenTunnelCommunity(TunnelCommunity):
             self._logger.debug("Established introduction tunnel %s", circuit_id)
 
         for _ in range(amount):
-            self.create_circuit(self.hops[info_hash], CIRCUIT_TYPE_IP, callback, max_retries=5)
+            # Create a circuit to the introduction point + 1 hop, to prevent the introduction
+            # point from knowing what the seeder is seeding
+            circuit_id = self.create_circuit(self.hops[info_hash] + 1,
+                                             CIRCUIT_TYPE_IP,
+                                             callback,
+                                             info_hash=info_hash)
+            self.infohash_ip_circuits[info_hash].append(circuit_id)
 
     def check_establish_intro(self, messages):
         for message in messages:
@@ -493,7 +524,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
             self.request_cache.pop(u"establish-intro", message.payload.identifier)
             self._logger.info("Got intro-established from %s", message.candidate)
 
-    def create_rendezvous_point(self, hops, finished_callback):
+    def create_rendezvous_point(self, hops, finished_callback, info_hash):
         def callback(circuit):
             # We got a circuit, now let's create a rendezvous point
             circuit_id = circuit.circuit_id
@@ -503,8 +534,12 @@ class HiddenTunnelCommunity(TunnelCommunity):
             self.send_cell([Candidate(circuit.first_hop, False)],
                            u'establish-rendezvous', (circuit_id, cache.number, rp.cookie))
 
-        # create a new circuit to be used to transfer data
-        self.create_circuit(hops, CIRCUIT_TYPE_RP, callback, max_retries=5)
+        # create a new circuit to be used for transfering data
+        circuit_id = self.create_circuit(hops,
+                                         CIRCUIT_TYPE_RP,
+                                         callback,
+                                         info_hash=info_hash)
+        self.infohash_rp_circuits[info_hash].append(circuit_id)
 
     def check_establish_rendezvous(self, messages):
         for message in messages:
@@ -548,7 +583,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
     def dht_announce(self, info_hash):
         if self.trsession:
             def cb(info_hash, peers, source):
-                self._logger.error("Announced %s to the DHT", info_hash.encode('hex'))
+                self._logger.debug("Announced %s to the DHT", info_hash.encode('hex'))
 
             port = self.trsession.get_dispersy_port()
             self.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb, bt_port=port)
