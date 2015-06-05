@@ -333,9 +333,12 @@ class CameraWidget(AnchorLayout):
 		self.bind(size=self.update)
 	def update(self, *args):
 		print self.passes
-		if self.passes == 1:
+		print self.size
+		if self.passes == 2:
 			print 'Camera Size Changed to', self.size
-			self._camera = CamTestCamera(size=self.size, size_hint=(1, 1))
+			width_ratio = (self.size[1] * (9./16.0) )  / self.size[0]
+			print width_ratio
+			self._camera = CamTestCamera(size=self.size, size_hint=(width_ratio, 1))
 		        self.add_widget(self._camera)
 			self.unbind(size=self.update)
 		else:
