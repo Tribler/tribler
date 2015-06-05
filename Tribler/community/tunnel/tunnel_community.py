@@ -551,7 +551,7 @@ class TunnelCommunity(Community):
                                                                      circuit.unverified_hop.dh_first_part)))
 
         _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_CREATED, "%s:%s" % (first_hop.sock_addr[0], first_hop.sock_addr[1]))
-        return True
+        return circuit_id
 
     def readd_bittorrent_peers(self):
         for torrent, peers in self.bittorrent_peers.items():

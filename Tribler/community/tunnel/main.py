@@ -248,13 +248,18 @@ class LineHandler(LineReceiver):
                 logger.error("Profiling disabled!")
 
         elif line == 'c':
-            print "========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)"
+            print "========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)\tinfohash\ttype"
             for circuit_id, circuit in anon_tunnel.community.circuits.items():
-                print "%d\t%s:%d\t%d\t%d\t\t%.2f\t\t%.2f" % (circuit_id, circuit.first_hop[0],
-                                                             circuit.first_hop[1], circuit.goal_hops,
+                info_hash = circuit.info_hash.encode('hex')[:10] if circuit.info_hash else '?'
+                print "%d\t%s:%d\t%d\t%d\t\t%.2f\t\t%.2f\t\t%s\t%s" % (circuit_id,
+                                                             circuit.first_hop[0],
+                                                             circuit.first_hop[1],
+                                                             circuit.goal_hops,
                                                              len(circuit.hops),
                                                              circuit.bytes_down / 1024.0 / 1024.0,
-                                                             circuit.bytes_up / 1024.0 / 1024.0)
+                                                             circuit.bytes_up / 1024.0 / 1024.0,
+                                                             info_hash,
+                                                             circuit.ctype)
 
         elif line.startswith('s'):
             cur_path = os.getcwd()
