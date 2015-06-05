@@ -432,7 +432,7 @@ class Skelly(App):
 				filenameIndex = pathCursor.getColumnIndex(MediaColumns.DATA)
 				fileName = pathCursor.getString(filenameIndex)
 				copiedFile = File(fileName)
-				return File(copiedFile.getParent())
+				return copiedFile.getParentFile()
 			else:
 				return None
 
