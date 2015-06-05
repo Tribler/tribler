@@ -38,9 +38,7 @@ from itertools import chain
 
 from leveldb import LevelDB, WriteBatch
 from twisted.internet import reactor
-from twisted.internet.defer import succeed
 from twisted.internet.task import LoopingCall
-from twisted.internet.threads import deferToThread
 
 from Tribler.dispersy.taskmanager import TaskManager
 
@@ -124,15 +122,12 @@ class TorrentStore(MutableMapping, TaskManager):
             for k, v in self._pending_torrents.iteritems():
                 write_batch.Put(k, v)
             self._pending_torrents.clear()
-            return deferToThread(self._db.Write, write_batch)
-        else:
-            return succeed(None)
+            return self._db.Write(write_batch)
 
     def close(self):
         self.cancel_all_pending_tasks()
-        d = self.flush()
+        self.flush()
         self._db = None
-        return d
 
 
 #
