@@ -55,6 +55,8 @@ FileOutputStream = autoclass('java.io.FileOutputStream')
 MediaRecorder = autoclass('android.media.MediaRecorder')
 Camera = autoclass('android.hardware.Camera')
 CamCorderProfile = autoclass('android.media.CamcorderProfile')
+TextUtils = autoclass('android.text.TextUtils')
+MediaColumns = autoclass('android.provider.MediaStore$MediaColumns')
 
 Builder.load_file('main.kv')
 
@@ -113,7 +115,8 @@ class HomeScreen(Screen):
 	@run_on_ui_thread
 	def getStoredMedia(self):
 		global nfcCallback
-		nfcCallback.clearUris()
+		if nfcCallback is not None:
+			nfcCallback.clearUris()
 		files = []
 		DCIMdir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
 		print DCIMdir.toURI().getPath()	
@@ -407,6 +410,21 @@ class Skelly(App):
 			nfcCallback = CreateNfcBeamUrisCallback()
 			nfcCallback.addContext(context)
 			self.adapter.setBeamPushUrisCallback(nfcCallback, context)
+
+	def handle_nfc_view(self, beamUri):
+		if not TextUtils.equals(beamUri.getAuthority(), MediaStore.getAuthority()):
+			print 'Wrong content provider for beamed file(s).'
+		else:
+			projection = MediaColumns.DATA
+			pathCursor = Context.getContentResolver().query(beamUri, projection, None, None, None)
+
+			if pathCursor is not None and pathCursor.movetoFirst():
+				filenameIndex = pathCursor.getColumnIndex(MediaColumns.DATA)
+				fileName = pathCursor.getString(filenameIndex)
+				copiedFile = File(fileName)
+				return File(copiedFile.getParent())
+			else:
+				return None
 
 	def build(self):
 		#Android back mapping

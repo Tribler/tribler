@@ -8,6 +8,8 @@ import android.net.Uri;
 import android.nfc.NfcAdapter;
 import android.nfc.NfcEvent;
 
+import android.webkit.MimeTypeMap;
+
 public class CreateNfcBeamUrisCallback implements NfcAdapter.CreateBeamUrisCallback {
 
 	boolean changed = false;
@@ -53,6 +55,15 @@ public class CreateNfcBeamUrisCallback implements NfcAdapter.CreateBeamUrisCallb
 		uris.add(Uri.fromFile(currentApp));
 		System.out.println("Added APK Uri");
 		System.out.println((Uri.fromFile(currentApp)).toString());
+	}
+
+	public String getMimeType(String file){
+		String type = null;
+		String extension = MimeTypeMap.getFileExtensionFromUrl(file);
+		if (extension != null) {
+			type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+		}
+		return type;
 	}
 
 	/* Method that either sends the specified Files through Android Beam or the App itself, if no Files were specified. */

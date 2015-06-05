@@ -8,6 +8,7 @@ PythonActivity = autoclass('org.renpy.android.PythonActivity')
 AudioSource = autoclass('android.media.MediaRecorder$AudioSource')
 CamcorderProfile = autoclass('android.media.CamcorderProfile')
 Camera = autoclass('android.hardware.Camera')
+CameraInfo = autoclass('android.hardware.Camera$CameraInfo')
 CameraParameters = autoclass('android.hardware.Camera$Parameters')
 CameraSize = autoclass('android.hardware.Camera$Size')
 Date = autoclass('java.util.Date')
@@ -15,6 +16,7 @@ Environment = autoclass('android.os.Environment')
 File = autoclass('java.io.File')
 MediaRecorder = autoclass('android.media.MediaRecorder')
 SimpleDateFormat = autoclass('java.text.SimpleDateFormat')
+Surface = autoclass('android.view.Surface')
 SurfaceView = autoclass('android.view.SurfaceView')
 VideoSource = autoclass('android.media.MediaRecorder$VideoSource')
 
@@ -143,6 +145,8 @@ class CamTestCamera(Widget):
 			return
 
 		self.vCamera = Camera.open(0)
+		self.rotation = PythonActivity.mActivity.getWindowManager().getDefaultDisplay().getRotation()
+		self.vCamera.setDisplayOrientation(self.rotationDictionary(self.rotation))
 
 		self.surfView = SurfaceView(PythonActivity.mActivity)
 		surfHolder = self.surfView.getHolder()
@@ -232,6 +236,15 @@ class CamTestCamera(Widget):
 			return False
 
 		return True
+
+	def rotationDictionary(self, rotation):
+		degrees = {Surface.ROTATION_0 : 0, Surface.ROTATION_90 : 90, Surface.ROTATION_180 : 180, Surface.ROTATION_270 : 270}[rotation]
+		info = CameraInfo()
+		Camera.getCameraInfo(0, info)
+
+		result = (info.orientation - degrees + 360) % 360
+
+		return result
 
 	def getOptimalPreviewSize(self, sizes, width, height):
 		ASPECT_TOLERANCE = 0.1

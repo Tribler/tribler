@@ -3,8 +3,8 @@
 	android:label="Android Beam Viewer" >
 
 	<intent-filter>
-		<action android:name="android.nfc.action.NDEF_DISCOVERED"/>
+		<action android:name="android.nfc.action.VIEW"/>
 		<category android:name="android.intent.category.DEFAULT"/>
-		<data android:mimeType="application/test.org.main"/>
+		<data android:mimeType="video/*"/>
 	</intent-filter>
 </activity>
