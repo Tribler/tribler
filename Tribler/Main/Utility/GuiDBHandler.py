@@ -305,15 +305,14 @@ def startWorker(
         raise Exception("no worker function specified")
 
     if jobID is None:
+        jobID = unicode(randint(1, 10000000))
         if __debug__:
             try:
-                filename, line, function, text = extract_stack(limit=2)[0]
+                filename, line, function, _ = extract_stack(limit=2)[0]
                 _, filename = os.path.split(filename)
                 jobID = u"%s:%s (%s)" % (filename, line, function)
             except:
                 pass
-        else:
-            jobID = unicode(randint(1, 10000000))
 
     result = ASyncDelayedResult(jobID)
     app = wx.GetApp()
