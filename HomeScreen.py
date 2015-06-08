@@ -37,16 +37,13 @@ MediaStore = autoclass('android.provider.MediaStore')
 Camera = autoclass('android.hardware.Camera')
 
 
-
-
-
-
 class HomeScreen(Screen):
 	discovered_media = []
 	non_thumbnailed = Queue.Queue()
 	thumbnail_thread = None
 	wid_sem = threading.BoundedSemaphore()
 	Finished = object()
+	#upon initilization, start the thumbnail thread
 	def __init__(self, **kwargs):
 		self.thumbnail_thread = threading.Thread(target=self.loadThumbnails)
 		self.thumbnail_thread.start()
@@ -86,7 +83,7 @@ class HomeScreen(Screen):
 		print DCIMdir.list()
 
 	#Traverse DCIM folder for video files, and create a listing out of the discovered files
-	#Automatically generates Filewidgets and adds them to the Scrollview
+	#Schedules generation of Filewidgets
 	@run_on_ui_thread
 	def getStoredMedia(self):
 		if  globalvars.nfcCallback is not None:
@@ -97,28 +94,24 @@ class HomeScreen(Screen):
 		self.ids.fileList.clear_widgets()
 		for root, dirnames, filenames in os.walk(DCIMdir.getAbsolutePath()):
 			for filename in fnmatch.filter(filenames,'*.mp4'):
-				#wid = FileWidget()
-				#wid.setName(filename)
-				#wid.setUri(root+'/'+filename)
-				##Making thumbnails is ungodly slow, so it's threaded
-				#threading.Thread(target=wid.makeThumbnail).start()
-				#self.ids.fileList.add_widget(wid)
 				files.append( (filename, root+'/'+filename) )
 		self.discovered_media = files
 		
 		Clock.schedule_once(functools.partial(self.createFileWidgets,self.discovered_media))
-				
+	#Function creates a filewidget and adds it to the ScrollList
+	#then, it adds itself to the Queue for the thumbnail thread to load it's thumbnails	
 	def createFileWidget(self, tup, *largs):
 		filename, uri = tup	
 		wid = FileWidget()
 		wid.setName(filename)
 		wid.setUri(uri)
 		self.ids.fileList.add_widget(wid)
-		#self.wid_sem.acquire()
 		self.non_thumbnailed.put(wid)
-		#if(self.thumbnail_thread.isAlive() == False) :
-		#	self.thumbnail_thread.start()
 
+
+	#looping function that creates filewidgets from a list of files.
+	#Will create 10 widgets per frame before rescheduling itself for the next
+	#was required to stop application from freezing when large files are present
 	def createFileWidgets(self,media, *largs):
 		for i in range(0,10):
 			if( len(media) != 0):			
@@ -126,23 +119,25 @@ class HomeScreen(Screen):
 				self.createFileWidget(tup)
 				Clock.schedule_once(functools.partial(self.createFileWidgets, media))
 			else: break		
-
+	#The thumbnail thread responsible for loading the images
 	def loadThumbnails(self):
 		while True:
-			print 'Thump', globalvars.app_ending
 			#self.wid_sem.acquire()
-			wid = self.non_thumbnailed.get()
-			if(wid is self.Finished):
+			wid = self.non_thumbnailed.get() #Queue blocks thread until not-empty
+			#if the object is a specific finished object,
+			#we close the thread so the application can close
+			if(wid is self.Finished): 
 				print "Ending Thumbnail Thread"
 				detach()
 				break
-			print 'IMAGE TIME'
 			print wid.uri
 			wid.makeFileThumbnail()
 		detach()
+	#function that ends the thumbnail thread
 	def endThumbnailThread(self):
 		self.non_thumbnailed.queue.clear()
 		self.non_thumbnailed.put(self.Finished)
+	#Opens the GearMenu with a fancy animation
 	def openGearMenu(self):
 		gearMenu = GearMenu()
 		gearMenu.setScreen(self)
@@ -150,12 +145,13 @@ class HomeScreen(Screen):
 		anim = Animation(opacity = 1,duration=0.2)
 		self.ids.layer.add_widget(gearMenu)
 		anim.start(gearMenu)
-
+	#closes the GearMenu
 	def closeGearMenu(self):
 		self.ids.layer.remove_widget(GearMenu)
 
 class GearMenu(BoxLayout):
 	screen = ObjectProperty(None)
+	#sets the screen to remove itself from
 	def setScreen(self, scr):
 		self.screen = scr
 	pass

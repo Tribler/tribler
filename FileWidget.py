@@ -107,7 +107,8 @@ class FileWidget(BoxLayout):
 		Clock.schedule_once(functools.partial(self.displayThumbnail,self.thumbnail.getWidth(), self.thumbnail.getHeight(),pixels))
 		print "Detatching thread"
 		#detach()
-
+	#New updated variant of Thumbnail creation. Generates and saves thumbnails to local storage
+	#If file already exists or after generation, it will load the thumbnail
 	def makeFileThumbnail(self):
 		path = activity.getFilesDir().toURI().getPath()+'THUMBS/'
 		if not os.path.exists(path):
@@ -124,7 +125,7 @@ class FileWidget(BoxLayout):
 			thumb.compress(CompressFormat.valueOf('JPEG'), 80,output)
 			output.close()
 			Clock.schedule_once(functools.partial(self.loadFileThumbnail, path))
-	
+	#Loads the thumbnail from a given path and sets it in the FileWidget
 	def loadFileThumbnail(self, path, *largs):
 		print 'Attempting to set Image: ', path
 		self.ids.img.source = path
@@ -156,11 +157,12 @@ class FileWidget(BoxLayout):
 	def bench(self):
 		print "BENCHMARK: ", time.time() - self.benchmark
 		self.benchmark = time.time()
+	#Deletes file and thumbnail associated with this widget
 	def delete(self):
 		anim = Animation(opacity=0, height=0, duration = 0.5)
 		anim.start(self)
 		Clock.schedule_once(self.remove,0.5)
-
+	#Removes this widget from the list with a transition effect
 	def remove(self, *largs):
 		self.parent.remove_widget(self)
 		os.remove(self.uri)
