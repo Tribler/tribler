@@ -36,7 +36,7 @@ else:
 version = version_short + ' (' + product_name + ')'
 
 
-def warnDisperyThread(func):
+def warnIfDispersyThread(func):
     def invoke_func(*args, **kwargs):
         from twisted.python.threadable import isInIOThread
         from traceback import print_stack
@@ -64,10 +64,10 @@ class NoDispersyRLock():
         self.__enter__ = self.lock.__enter__
         self.__exit__ = self.lock.__exit__
 
-    @warnDisperyThread
+    @warnIfDispersyThread
     def acquire(self, blocking=1):
         return self.lock.acquire(blocking)
 
-    @warnDisperyThread
+    @warnIfDispersyThread
     def release(self):
         return self.lock.release()
