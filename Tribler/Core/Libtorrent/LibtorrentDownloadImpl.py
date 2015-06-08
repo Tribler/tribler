@@ -494,6 +494,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             self.checkpoint_after_next_hashcheck = False
             self.checkpoint()
 
+    @checkHandleAndSynchronize()
     def on_torrent_finished_alert(self, alert):
         self.update_lt_stats()
         if self.get_mode() == DLMODE_VOD:
