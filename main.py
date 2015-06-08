@@ -60,28 +60,6 @@ class SearchScreen(Screen):
 		self.ids.fileList.clear_widgets()
 		self.ids.fileList.add_widget(wid)
 
-	
-
-#class createCam():
-#	cam = Camera.open()
-#	Camera.setPreviewDisplay()
-#	Camera.startPreview()
-#
-#	def prepareCamera(self):
-#		self.camera = getCameraInstance()
-#		self.mediaRecorder = MediaRecorder()
-#
-#		self.camera.unlock()
-#		self.mediaRecorder.setCamera(self.camera)
-#
-#		self.mediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER)
-#		self.mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA)
-#
-#		self.mediaRecorder.setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH))
-#
-#		self.mediaRecorder.setOutputFile(getOutputMediaFile(MEDIA_TYPE_VIDEO).toString())
-#
-#		self.mediaRecorder.setPreviewDisplay(mPreview.getHolder().getSurface())
 
 class CameraWidget(AnchorLayout):
 	camera_size = ListProperty([800, 700])
