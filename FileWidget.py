@@ -2,7 +2,6 @@ __version__ = '1.0'
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.widget import Widget
-
 from kivy.uix.button import Button
 from kivy.core.image import Image
 from kivy.graphics.texture import Texture

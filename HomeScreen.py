@@ -5,7 +5,7 @@ from kivy.properties import ObjectProperty, ListProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.animation import Animation
 from kivy.clock import Clock
-
+from kivy.core.window import Window
 
 import fnmatch
 import io
