@@ -130,7 +130,7 @@ class Tunnel(object):
         self.session.start()
         logger.info("Using port %d" % self.session.get_dispersy_port())
 
-    def start(self):
+    def start(self, introduce_port):
         def start_community():
             if self.crawl_keypair_filename:
                 keypair = read_keypair(self.crawl_keypair_filename)
@@ -143,7 +143,8 @@ class Tunnel(object):
 
             self.session.set_anon_proxy_settings(
                 2, ("127.0.0.1", self.session.get_tunnel_community_socks5_listen_ports()))
-
+            if introduce_port:
+                self.community.add_discovered_candidate(Candidate(('127.0.0.1', introduce_port), tunnel=False))
         blockingCallFromThread(reactor, start_community)
 
         self.session.set_download_states_callback(self.download_states_callback, False)
@@ -352,6 +353,7 @@ def main(argv):
     try:
         parser.add_argument('-p', '--socks5', help='Socks5 port')
         parser.add_argument('-x', '--exit', help='Allow being an exit-node')
+        parser.add_argument('-i', '--introduce', help='Introduce the dispersy port of another tribler instance')
         parser.add_argument('-d', '--dispersy', help='Dispersy port')
         parser.add_argument('-c', '--crawl', help='Enable crawler and use the keypair specified in the given filename')
         parser.add_argument('-j', '--json', help='Enable JSON api, which will run on the provided port number ' +
@@ -365,6 +367,7 @@ def main(argv):
         sys.exit(2)
 
     socks5_port = int(args.socks5) if args.socks5 else None
+    introduce_port = int(args.introduce) if args.introduce else None
     dispersy_port = int(args.dispersy) if args.dispersy else -1
     crawl_keypair_filename = args.crawl
     profile = args.yappi if args.yappi in ['wall', 'cpu'] else None
@@ -398,7 +401,7 @@ def main(argv):
 
     tunnel = Tunnel(settings, crawl_keypair_filename, dispersy_port)
     StandardIO(LineHandler(tunnel, profile))
-    tunnel.start()
+    tunnel.start(introduce_port)
 
     if crawl_keypair_filename and args.json > 0:
         cherrypy.config.update({'server.socket_host': '0.0.0.0', 'server.socket_port': args.json})
