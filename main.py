@@ -62,8 +62,6 @@ class SearchScreen(Screen):
 
 
 class CameraWidget(AnchorLayout):
-	camera_size = ListProperty([800, 700])
-#	camera_size = ListProperty([480, 360])
 	passes = 0
 
 	def __init__(self, **kwargs):
@@ -72,6 +70,8 @@ class CameraWidget(AnchorLayout):
 		self._camera = CamTestCamera(size=self.size, size_hint=(None, None))
 #	        self.add_widget(self._camera)
 		self.bind(size=self.update)
+
+	#
 	def update(self, *args):
 		print self.passes
 		print self.size
@@ -85,23 +85,15 @@ class CameraWidget(AnchorLayout):
 		else:
 			self.passes+=1
 
+	#Starts Camera
 	def start(self):
 		print 'Start camera'
 		self._camera.start()
 
+	#Stops Camera
 	def stop(self):
 		print 'Stop camera'
 		self._camera.stop()
-
-class CamTestWidget(BoxLayout):
-
-	def __init__(self, **kwargs):
-		super(CamTestWidget, self).__init__(**kwargs)
-		self.camera = CamTestCamera()
-		self.add_widget(self.camera)
-
-	def push(self):
-		self.camera.pushButton()
 
 class CamScreen(Screen):
 	def on_enter(self):
