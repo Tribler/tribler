@@ -5,55 +5,35 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.widget import Widget
 from kivy.core.window import Window
 from kivy.lang import Builder
-from kivy.uix.button import Button
-from kivy.core.image import Image
-from kivy.graphics.texture import Texture
 from kivy.clock import Clock
-from kivy.properties import StringProperty, ObjectProperty
-from kivy.animation import Animation
-
-
 from kivy.uix.anchorlayout import AnchorLayout
-from kivy.properties import ObjectProperty, ListProperty, BooleanProperty, \
-    NumericProperty
+from kivy.properties import ObjectProperty, ListProperty
 
-import numpy
 import android
 import os
-import fnmatch
 from nfc import CreateNfcBeamUrisCallback
 import io
-import time
 import threading
-import functools
-import Queue
-
 
 from HomeScreen import HomeScreen
 from FileWidget import FileWidget
+from camtest import CamTestCamera
 import globalvars
 
 from jnius import autoclass, cast, detach
 from jnius import JavaClass
 from jnius import PythonJavaClass
 from android.runnable import run_on_ui_thread
-from android.runnable import Runnable
 
 Context = autoclass('android.content.Context')
 PythonActivity = autoclass('org.renpy.android.PythonActivity')
 activity = PythonActivity.mActivity
 Intent = autoclass('android.content.Intent')
-Environment = autoclass('android.os.Environment')
 Uri = autoclass('android.net.Uri')
 NfcAdapter = autoclass('android.nfc.NfcAdapter')
 File = autoclass('java.io.File')
 CreateNfcBeamUrisCallback = autoclass('org.test.CreateNfcBeamUrisCallback')
 MediaStore = autoclass('android.provider.MediaStore')
-ThumbnailUtils = autoclass('android.media.ThumbnailUtils')
-ImageView = autoclass('android.widget.ImageView')
-CompressFormat = autoclass('android/graphics/Bitmap$CompressFormat')
-FileOutputStream = autoclass('java.io.FileOutputStream')
-
 MediaRecorder = autoclass('android.media.MediaRecorder')
 Camera = autoclass('android.hardware.Camera')
 CamCorderProfile = autoclass('android.media.CamcorderProfile')
@@ -62,22 +42,17 @@ MediaColumns = autoclass('android.provider.MediaStore$MediaColumns')
 
 Builder.load_file('main.kv')
 
-#thumbnail_sem = threading.BoundedSemaphore()
-#app_ending = False
-#nfcCallback = None
-
-
-
-
-
-
 class SearchScreen(Screen):
+	#Predefined kivy function that gets called every time the text in the inputfield changes
+	#Calls delayedSearch if the last change was over 0.5 seconds ago
 	def on_txt_input(self):
 		Clock.unschedule(self.delayedSearch, all=True)
 		if(self.ids.searchfield.text == ''):
 			self.ids.fileList.clear_widgets()
 		else:
 			Clock.schedule_once(self.delayedSearch, 0.5)
+	#Currently a filler function that gets called when a search is attempted
+	#currently displays a filewidget with the contents of the search
 	def delayedSearch(self, dt):
 		print "TextSearch"
 		wid = FileWidget()
