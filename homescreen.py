@@ -23,7 +23,7 @@ from camtest import CamTestCamera
 from android.runnable import run_on_ui_thread
 
 import globalvars
-from FileWidget import FileWidget
+from filewidget import FileWidget
 
 
 Context = autoclass('android.content.Context')

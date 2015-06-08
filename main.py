@@ -15,8 +15,8 @@ from nfc import CreateNfcBeamUrisCallback
 import io
 import threading
 
-from HomeScreen import HomeScreen
-from FileWidget import FileWidget
+from homescreen import HomeScreen
+from filewidget import FileWidget
 from camtest import CamTestCamera
 import globalvars
 
