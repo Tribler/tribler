@@ -356,7 +356,7 @@ class LibtorrentMgr(object):
                     handle = self.get_session().add_torrent(encode_atp(atp))
                 except TypeError, e:
                     self._logger.warning("Failed to add torrent with infohash %s, using libtorrent version %s, "
-                                         "attempting to use it as it is and hoping for the better",
+                                         "attempting to use it as it is and hoping for the best",
                                          hexlify(infohash_bin), lt.version)
                     self._logger.warning("Error was: %s", e)
                     atp['info_hash'] = infohash_bin
