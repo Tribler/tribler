@@ -13,7 +13,7 @@ from Tribler.Test.test_as_server import TestGuiAsServer, TESTS_DATA_DIR, wx
 
 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
-from Tribler.Main.Dialogs.CreateTorrent import CreateTorrent
+from Tribler.Main.Dialogs.CreateTorrentDialog import CreateTorrentDialog
 from Tribler.Main.Dialogs.SaveAs import SaveAs
 from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
 from Tribler.Main.vwxGUI.list_item import ChannelListItem
@@ -131,7 +131,7 @@ class TestGuiDialogs(TestGuiAsServer):
     def test_add_save_create_dialog(self):
         def do_assert_create(add_dialog):
             dialog = wx.FindWindowByName('CreateTorrentDialog')
-            self.assert_(isinstance(dialog, CreateTorrent), 'could not find CreateTorrent')
+            self.assert_(isinstance(dialog, CreateTorrentDialog), 'could not find CreateTorrent')
 
             self.screenshot('Screenshot of CreateTorrent', window=dialog)
             self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
