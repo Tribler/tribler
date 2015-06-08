@@ -18,7 +18,7 @@ from jnius import autoclass, cast, detach
 from jnius import JavaClass
 from jnius import PythonJavaClass
 
-from camtest import CamTestCamera
+from androidcamera import AndroidCamera
 
 from android.runnable import run_on_ui_thread
 

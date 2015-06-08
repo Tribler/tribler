@@ -17,7 +17,7 @@ import threading
 
 from homescreen import HomeScreen
 from filewidget import FileWidget
-from camtest import CamTestCamera
+from androidcamera import AndroidCamera
 import globalvars
 
 from jnius import autoclass, cast, detach
@@ -78,7 +78,7 @@ class CameraWidget(AnchorLayout):
 			print 'Camera Size Changed to', self.size
 			width_ratio = (self.size[1] * (9./16.0) )  / self.size[0]
 			print width_ratio
-			self._camera = CamTestCamera(size=self.size, size_hint=(width_ratio, 1))
+			self._camera = AndroidCamera(size=self.size, size_hint=(width_ratio, 1))
 		        self.add_widget(self._camera)
 			self.unbind(size=self.update)
 		else:
