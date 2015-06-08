@@ -28,8 +28,10 @@ import threading
 import functools
 import Queue
 
-from camtest import CamTestCamera
-from cam import AndroidCamera
+
+from HomeScreen import HomeScreen
+from FileWidget import FileWidget
+import globalvars
 
 from jnius import autoclass, cast, detach
 from jnius import JavaClass
@@ -60,251 +62,14 @@ MediaColumns = autoclass('android.provider.MediaStore$MediaColumns')
 
 Builder.load_file('main.kv')
 
-thumbnail_sem = threading.BoundedSemaphore()
-nfc_video_set = []
-app_ending = False
-nfcCallback = None
+#thumbnail_sem = threading.BoundedSemaphore()
+#app_ending = False
+#nfcCallback = None
 
 
-class HomeScreen(Screen):
-	discovered_media = []
-	non_thumbnailed = Queue.Queue()
-	thumbnail_thread = None
-	wid_sem = threading.BoundedSemaphore()
-	Finished = object()
-	def __init__(self, **kwargs):
-		self.thumbnail_thread = threading.Thread(target=self.loadThumbnails)
-		self.thumbnail_thread.start()
-		super(Screen,self).__init__(**kwargs)
-	#Simple test function
-	def AndroidTest(self):
-		vibrator = activity.getSystemService(Context.VIBRATOR_SERVICE)
-		if 'ANDROID_ROOT' in os.environ:
-			vibrator.vibrate(3000)
-		print self.discovered_media
-		print activity.getFilesDir().getAbsolutePath()
-		#for root, dirnames, filenames in os.walk('./'):
-		#	print root,'/',filenames
-		print Window.size
 
-	#Function for starting the camera application
-	def startCamera(self):
-		intention = Intent(MediaStore.INTENT_ACTION_VIDEO_CAMERA)
-		#When java requires a "Context" usually in the shape of "this",
-		#it has to be casted from our activity
-		self.con = cast(Context, activity)			
-		intention.resolveActivity(self.con.getPackageManager())	
-		if intention.resolveActivity(self.con.getPackageManager()) != None:
-			#Called with 1 as parameter so the application waits
-			#until the camera returns it's video			
-			activity.startActivityForResult(intention,1)
 
-	#Test function for adding a number of fake video buttons
-	def addVideo(self):
-		wid = FileWidget()
-		wid.setName('FakeVid!')
-		self.ids.fileList.add_widget(wid)
 
-	#Useful support function to print the location of the DCIM dir
-	def printDir(self):	
-		DCIMdir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
-		print DCIMdir.list()
-
-	#Traverse DCIM folder for video files, and create a listing out of the discovered files
-	#Automatically generates Filewidgets and adds them to the Scrollview
-	@run_on_ui_thread
-	def getStoredMedia(self):
-		global nfcCallback
-		if nfcCallback is not None:
-			nfcCallback.clearUris()
-		files = []
-		DCIMdir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
-		print DCIMdir.toURI().getPath()	
-		self.ids.fileList.clear_widgets()
-		for root, dirnames, filenames in os.walk(DCIMdir.getAbsolutePath()):
-			for filename in fnmatch.filter(filenames,'*.mp4'):
-				#wid = FileWidget()
-				#wid.setName(filename)
-				#wid.setUri(root+'/'+filename)
-				##Making thumbnails is ungodly slow, so it's threaded
-				#threading.Thread(target=wid.makeThumbnail).start()
-				#self.ids.fileList.add_widget(wid)
-				files.append( (filename, root+'/'+filename) )
-		self.discovered_media = files
-		
-		Clock.schedule_once(functools.partial(self.createFileWidgets,self.discovered_media))
-				
-	def createFileWidget(self, tup, *largs):
-		filename, uri = tup	
-		wid = FileWidget()
-		wid.setName(filename)
-		wid.setUri(uri)
-		self.ids.fileList.add_widget(wid)
-		#self.wid_sem.acquire()
-		self.non_thumbnailed.put(wid)
-		#if(self.thumbnail_thread.isAlive() == False) :
-		#	self.thumbnail_thread.start()
-
-	def createFileWidgets(self,media, *largs):
-		for i in range(0,10):
-			if( len(media) != 0):			
-				tup = media.pop(0)		
-				self.createFileWidget(tup)
-				Clock.schedule_once(functools.partial(self.createFileWidgets, media))
-			else: break		
-
-	def loadThumbnails(self):
-		while True:
-			print 'Thump', app_ending
-			#self.wid_sem.acquire()
-			wid = self.non_thumbnailed.get()
-			if(wid is self.Finished):
-				print "Ending Thumbnail Thread"
-				detach()
-				break
-			print 'IMAGE TIME'
-			print wid.uri
-			wid.makeFileThumbnail()
-		detach()
-	def endThumbnailThread(self):
-		self.non_thumbnailed.queue.clear()
-		self.non_thumbnailed.put(self.Finished)
-	def openGearMenu(self):
-		gearMenu = GearMenu()
-		gearMenu.setScreen(self)
-		gearMenu.opacity = 0
-		anim = Animation(opacity = 1,duration=0.2)
-		self.ids.layer.add_widget(gearMenu)
-		anim.start(gearMenu)
-
-	def closeGearMenu(self):
-		self.ids.layer.remove_widget(GearMenu)
-class FileWidget(BoxLayout):
-	name = 'NO FILENAME SET'
-	uri = None
-	texture = None
-	benchmark = time.time()
-	lImageView = ImageView
-	thumbnail = None
-
-	#Enumerator as per android.media.ThumbnailUtils
-	MINI_KIND = 1 
-	FULL_KIND = 2
-	MICRO_KIND = 3
-	#Enumerator as per Bitmap.CompressFormat
-	JPEG = 1
-	PNG = 2
-	WEBP = 3
-
-	def setName(self, nom):
-		self.name = nom
-		self.ids.filebutton.text = nom
-
-	def setUri(self,ur):
-		self.uri = ur
-
-	#Called when pressed on the big filewidget button
-	def pressed(self):
-		print self.uri
-		print 'Pressed'
-		print nfc_video_set
-
-	#Adds and removes the video files to the nfc set so that they can be transferred
-	def toggle_nfc(self, state):
-		global nfcCallback
-		print 'toggling', self.ids.nfc_toggler
-		if(state == 'normal'):
-			print 'button state up'
-			nfcCallback.removeUris(self.uri)
-#			nfc_video_set.remove(self.uri)
-		if(state == 'down'):
-			print 'button state down'
-			nfcCallback.addUris(self.uri)
-#			nfc_video_set.append(self.uri)
-
-	#Android's Bitmaps are in ARGB format, while kivy expects RGBA.
-	#This function swaps the bytes to their appropriate locations
-	#It's super slow, and another method should be considered	
-	def switchFormats(self, pixels):
-		bit = numpy.asarray([b for pixel in [((p & 0xFF0000) >> 16, (p & 0xFF00) >> 8, p & 0xFF, (p & 0xFF000000) >> 24) for p in pixels] for b in pixel],dtype=numpy.uint8)	
-		return bit
-
-	#Function designed with multithreading in mind. 
-	#Generates the appropriate pixel data for use with the Thumbnails
-	def makeThumbnail(self):	
-		#Android crashes when multiple threads call createVideoThumbnail, so we block access to it.
-		#Luckily requesting thumbnails is pretty quick
-		thumbnail_sem.acquire()
-		self.thumbnail = ThumbnailUtils.createVideoThumbnail(self.uri,self.MINI_KIND)
-		#self.displayAndroidThumbnail(self.thumbnail)
-		#Clock.schedule_once(functools.partial(self.displayAndroidThumbnail, self.thumbnail))
-		thumbnail_sem.release()
-		pixels = [0] *self.thumbnail.getWidth() * self.thumbnail.getHeight()
-		self.thumbnail.getPixels(pixels, 0,self.thumbnail.getWidth(),0,0,self.thumbnail.getWidth(), self.thumbnail.getHeight())
-		pixels = self.switchFormats(pixels)
-		#Schedule the main thread to update the thumbnail's texture
-	
-		Clock.schedule_once(functools.partial(self.displayThumbnail,self.thumbnail.getWidth(), self.thumbnail.getHeight(),pixels))
-		print "Detatching thread"
-		#detach()
-
-	def makeFileThumbnail(self):
-		path = activity.getFilesDir().toURI().getPath()+'THUMBS/'
-		if not os.path.exists(path):
-			os.makedirs(path)
-		path = path+self.name+'.jpg'
-		if os.path.exists(path):
-			print 'Thumbnail ', path, 'exists'
-			Clock.schedule_once(functools.partial(self.loadFileThumbnail, path))
-		else:
-			print 'Thumbnail ',path, ' does not exist'
-			thumb = ThumbnailUtils.createVideoThumbnail(self.uri,self.MINI_KIND)
-			print path
-			output = FileOutputStream(path, False)
-			thumb.compress(CompressFormat.valueOf('JPEG'), 80,output)
-			output.close()
-			Clock.schedule_once(functools.partial(self.loadFileThumbnail, path))
-	
-	def loadFileThumbnail(self, path, *largs):
-		print 'Attempting to set Image: ', path
-		self.ids.img.source = path
-		print self.ids.img.source	
-
-	#Function called by makeThumbnail to set the thumbnail properly
-	#Displaying a new texture does not work on a seperate thread, so the main thread had to handle it
-	def displayThumbnail(self, width, height, pixels, *largs):
-		tex = Texture.create(size=(width,height) , colorfmt= 'rgba', bufferfmt='ubyte')
-		tex.blit_buffer(pixels, colorfmt = 'rgba', bufferfmt = 'ubyte')
-		tex.flip_vertical()
-		self.texture = tex
-		print self.texture
-		self.ids.img.texture = self.texture
-		self.ids.img.canvas.ask_update()
-
-	#Function called by makeThumbnail to set the thumbnail through android's widget
-	#So no conversion is needed
-	@run_on_ui_thread
-	def displayAndroidThumbnail(self, bmp, *largs):
-		print 'display'
-		print self.thumbnail
-		img_view = ImageView(cast(Context, activity))
-		print 'created view'
-		img_view.setImageBitmap(self.thumbnail)
-		self.ids.android.view = img_view
-		print "sem released"
-	#Benchmark function to help discover which function is slow	
-	def bench(self):
-		print "BENCHMARK: ", time.time() - self.benchmark
-		self.benchmark = time.time()
-	def delete(self):
-		anim = Animation(opacity=0, height=0, duration = 0.5)
-		anim.start(self)
-		Clock.schedule_once(self.remove,0.5)
-
-	def remove(self, *largs):
-		self.parent.remove_widget(self)
-		os.remove(self.uri)
-		os.remove(self.ids.img.source)
 
 class SearchScreen(Screen):
 	def on_txt_input(self):
@@ -319,6 +84,29 @@ class SearchScreen(Screen):
 		wid.setName(self.ids.searchfield.text)
 		self.ids.fileList.clear_widgets()
 		self.ids.fileList.add_widget(wid)
+
+	
+
+#class createCam():
+#	cam = Camera.open()
+#	Camera.setPreviewDisplay()
+#	Camera.startPreview()
+#
+#	def prepareCamera(self):
+#		self.camera = getCameraInstance()
+#		self.mediaRecorder = MediaRecorder()
+#
+#		self.camera.unlock()
+#		self.mediaRecorder.setCamera(self.camera)
+#
+#		self.mediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER)
+#		self.mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA)
+#
+#		self.mediaRecorder.setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH))
+#
+#		self.mediaRecorder.setOutputFile(getOutputMediaFile(MEDIA_TYPE_VIDEO).toString())
+#
+#		self.mediaRecorder.setPreviewDisplay(mPreview.getHolder().getSurface())
 
 class CameraWidget(AnchorLayout):
 	camera_size = ListProperty([800, 700])
@@ -371,35 +159,6 @@ class CamScreen(Screen):
 		cam = self.ids.camera
 		if cam._camera != None:
 			cam.stop()
-class GearMenu(BoxLayout):
-	screen = ObjectProperty(None)
-	def setScreen(self, scr):
-		self.screen = scr
-	pass
-	
-
-#class createCam():
-#	cam = Camera.open()
-#	Camera.setPreviewDisplay()
-#	Camera.startPreview()
-#
-#	def prepareCamera(self):
-#		self.camera = getCameraInstance()
-#		self.mediaRecorder = MediaRecorder()
-#
-#		self.camera.unlock()
-#		self.mediaRecorder.setCamera(self.camera)
-#
-#		self.mediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER)
-#		self.mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA)
-#
-#		self.mediaRecorder.setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH))
-#
-#		self.mediaRecorder.setOutputFile(getOutputMediaFile(MEDIA_TYPE_VIDEO).toString())
-#
-#		self.mediaRecorder.setPreviewDisplay(mPreview.getHolder().getSurface())
-
-
 class Skelly(App):
 	sm = ScreenManager()
 	history = []
@@ -416,10 +175,10 @@ class Skelly(App):
 
 		#Only activate the NFC functionality if the device supports it.
 		if self.adapter is not None:
-			global nfcCallback
-			nfcCallback = CreateNfcBeamUrisCallback()
-			nfcCallback.addContext(context)
-			self.adapter.setBeamPushUrisCallback(nfcCallback, context)
+			#global nfcCallback
+			globalvars.nfcCallback = CreateNfcBeamUrisCallback()
+			globalvars.nfcCallback.addContext(context)
+			self.adapter.setBeamPushUrisCallback(globalvars.nfcCallback, context)
 
 	def handle_nfc_view(self, beamUri):
 		if not TextUtils.equals(beamUri.getAuthority(), MediaStore.getAuthority()):
@@ -460,7 +219,7 @@ class Skelly(App):
 
 	#required function by android, called when asked to stop
 	def on_stop(self):
-		app_ending = True
+		globalvars.app_ending = True
 		print "Terminating Application NOW"
 		self.HomeScr.endThumbnailThread()
 
