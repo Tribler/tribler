@@ -385,12 +385,12 @@ class TorrentDBHandler(BasicDBHandler):
         return self.getTorrentIDS([infohash, ]).get(infohash)
 
     def getTorrentIDS(self, infohashes):
-        assert len(infohashes) == len(set(infohashes)), sorted([bin2str(infohash) for infohash in infohashes])
+        unique_infohashes = set(infohashes)
 
         to_return = {}
 
         to_select = []
-        for infohash in infohashes:
+        for infohash in unique_infohashes:
             assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
             assert len(infohash) == INFOHASH_LENGTH, "INFOHASH has invalid length: %d" % len(infohash)
 
@@ -406,17 +406,17 @@ class TorrentDBHandler(BasicDBHandler):
         for torrent_id, infohash in torrents:
             self.infohash_id[str2bin(infohash)] = torrent_id
 
-        for infohash in infohashes:
+        for infohash in unique_infohashes:
             if infohash not in to_return:
                 to_return[infohash] = self.infohash_id.get(infohash)
 
-        if __debug__ and len(to_return) != len(infohashes):
+        if __debug__ and len(to_return) != len(unique_infohashes):
             self._logger.error("to_return doesn't match infohashes:")
             self._logger.error("to_return:")
             self._logger.error(pformat(to_return))
             self._logger.error("infohashes:")
-            self._logger.error(pformat([bin2str(infohash) for infohash in infohashes]))
-            assert len(to_return) == len(infohashes), (len(to_return), len(infohashes))
+            self._logger.error(pformat([bin2str(infohash) for infohash in unique_infohashes]))
+            assert len(to_return) == len(unique_infohashes), (len(to_return), len(unique_infohashes))
 
         return to_return
 
