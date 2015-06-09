@@ -10,7 +10,7 @@ from shutil import rmtree
 
 import libtorrent as lt
 
-from Tribler.dispersy.taskmanager import TaskManager
+from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 from Tribler.Core.simpledefs import NTFY_REACHABLE, NTFY_INSERT
@@ -69,6 +69,9 @@ class LibtorrentMgr(TaskManager):
         self.register_task(u'process_alerts', reactor.callLater(1, self._task_process_alerts))
         self.register_task(u'check_reachability', reactor.callLater(1, self._task_check_reachability))
         self.register_task(u'check_dht', reactor.callLater(5, self._task_check_dht))
+
+        self.register_task(u'task_cleanup_metacache',
+                           LoopingCall(self._task_cleanup_metainfo_cache)).start(60, now=True)
 
     @blocking_call_on_reactor_thread
     def shutdown(self):
@@ -414,27 +417,21 @@ class LibtorrentMgr(TaskManager):
                     if notify:
                         self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_CLOSE, infohash_bin)
 
-    def _clean_metainfo_cache(self):
-        oldest_valid_ts = time.time() - METAINFO_CACHE_PERIOD
-
-        for key, values in self.metainfo_cache.items():
-            ts, _ = values
-            if ts < oldest_valid_ts:
-                del self.metainfo_cache[key]
-
     def _get_cached_metainfo(self, infohash):
-        self._clean_metainfo_cache()
-
         if infohash in self.metainfo_cache:
-            return self.metainfo_cache[infohash][1]
+            return self.metainfo_cache[infohash]['meta_info']
 
     def _add_cached_metainfo(self, infohash, metainfo):
-        self._clean_metainfo_cache()
+        self.metainfo_cache[infohash] = {'time': time.time(),
+                                         'meta_info': metainfo}
 
-        if infohash not in self.metainfo_cache:
-            self.metainfo_cache[infohash] = (time.time(), metainfo)
-        else:
-            self.metainfo_cache[infohash][1] = metainfo
+    def _task_cleanup_metainfo_cache(self):
+        oldest_time = time.time() - METAINFO_CACHE_PERIOD
+
+        for info_hash, values in self.metainfo_cache.items():
+            last_time, metainfo = values
+            if last_time < oldest_time:
+                del self.metainfo_cache[info_hash]
 
     def _task_process_alerts(self):
         for ltsession in self.ltsessions.itervalues():
