@@ -14,7 +14,7 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInt
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.Libtorrent import checkHandleAndSynchronize, waitForHandleAndSynchronize
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
-from Tribler.Core.Utilities.twisted_thread import reactor
+from Tribler.Core.Utilities.twisted_thread import callInThreadPool
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.simpledefs import (DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_METADATA,
                                      DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE,
@@ -844,7 +844,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                             # Schedule next invocation, either on general or DL specific
                             self.session.lm.rawserver.add_task(lambda: self.network_get_state(usercallback, getpeerlist), when)
 
-                    reactor.callFromThread(lambda: reactor.callInThread(session_getstate_usercallback_target))
+                    callInThreadPool(session_getstate_usercallback_target)
             else:
                 return ds
 

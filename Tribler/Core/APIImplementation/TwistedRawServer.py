@@ -35,15 +35,6 @@ class TwistedRawServer(TaskManager):
 
         reactor.callFromThread(delayed_call, delay, task_name)
 
-    def perform_getstate_usercallback(self, usercallback, data, returncallback):
-        def session_getstate_usercallback_target():
-            try:
-                (when, getpeerlist) = usercallback(data)
-                returncallback(usercallback, when, getpeerlist)
-            except:
-                self._logger.exception('Could not perform usercallback')
-
-        reactor.callFromThread(lambda: reactor.callInThread(session_getstate_usercallback_target))
 
     def perform_usercallback(self, callback):
         reactor.callFromThread(lambda: reactor.callInThread(callback))
