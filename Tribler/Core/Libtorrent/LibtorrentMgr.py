@@ -10,9 +10,13 @@ from shutil import rmtree
 
 import libtorrent as lt
 
-from Tribler.Core.Utilities.twisted_thread import callInThreadPool
+from Tribler.dispersy.taskmanager import TaskManager
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
+from Tribler.Core.simpledefs import NTFY_REACHABLE, NTFY_INSERT
+from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.Utilities.utilities import parse_magnetlink
+from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED, NTFY_TORRENTS
 
@@ -23,21 +27,20 @@ METAINFO_CACHE_PERIOD = 5 * 60
 METAINFO_TMPDIR = 'metadata_tmpdir'
 
 
-class LibtorrentMgr(object):
+class LibtorrentMgr(TaskManager):
 
     def __init__(self, trsession):
+        super(LibtorrentMgr, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.trsession = trsession
         self.ltsessions = {}
-        self.notifier = trsession.notifier
-        self.dht_ready = False
 
-        main_ltsession = self.get_session()
+        self.notifier = trsession.notifier
 
         self.set_upload_rate_limit(0)
         self.set_download_rate_limit(0)
-        self.upnp_mapper = main_ltsession.start_upnp()
+        self.upnp_mapper = None
 
         self.external_ip = None
 
@@ -47,16 +50,44 @@ class LibtorrentMgr(object):
         self.metainfo_lock = threading.RLock()
         self.metainfo_cache = {}
 
-        self.trsession.lm.rawserver.add_task(self.process_alerts, 1)
-        self.trsession.lm.rawserver.add_task(self.reachability_check, 1)
-        self.trsession.lm.rawserver.add_task(self.monitor_dht, 5)
-
         self.upnp_mappings = {}
 
         # make tmp-dir to be used for dht collection
         self.metadata_tmpdir = os.path.join(self.trsession.get_state_dir(), METAINFO_TMPDIR)
         if not os.path.exists(self.metadata_tmpdir):
             os.mkdir(self.metadata_tmpdir)
+
+        self._dht_check_remaining_retries = 1
+        self.dht_ready = False
+
+    @blocking_call_on_reactor_thread
+    def initialize(self):
+        main_ltsession = self.get_session()
+        self.upnp_mapper = main_ltsession.start_upnp()
+
+        # register tasks
+        self.register_task(u'process_alerts', reactor.callLater(1, self._task_process_alerts))
+        self.register_task(u'check_reachability', reactor.callLater(1, self._task_check_reachability))
+        self.register_task(u'check_dht', reactor.callLater(5, self._task_check_dht))
+
+    @blocking_call_on_reactor_thread
+    def shutdown(self):
+        self.cancel_all_pending_tasks()
+
+        # Save DHT state
+        dhtstate_file = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME), 'w')
+        dhtstate_file.write(lt.bencode(self.get_session().dht_state()))
+        dhtstate_file.close()
+
+        for ltsession in self.ltsessions.itervalues():
+            del ltsession
+        self.ltsessions = None
+
+        # Empty/remove metadata tmp-dir
+        if os.path.exists(self.metadata_tmpdir):
+            rmtree(self.metadata_tmpdir)
+
+        self.trsession = None
 
     def create_session(self, hops=0):
         settings = lt.session_settings()
@@ -131,20 +162,6 @@ class LibtorrentMgr(object):
             self.ltsessions[hops] = self.create_session(hops)
 
         return self.ltsessions[hops]
-
-    def shutdown(self):
-        # Save DHT state
-        dhtstate_file = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME), 'w')
-        dhtstate_file.write(lt.bencode(self.get_session().dht_state()))
-        dhtstate_file.close()
-
-        for ltsession in self.ltsessions.itervalues():
-            del ltsession
-        self.ltsessions = {}
-
-        # Empty/remove metadata tmp-dir
-        if os.path.exists(self.metadata_tmpdir):
-            rmtree(self.metadata_tmpdir)
 
     def set_proxy_settings(self, ltsession, ptype, server=None, auth=None):
         proxy_settings = lt.proxy_settings()
@@ -256,16 +273,6 @@ class LibtorrentMgr(object):
             for mapping in self.upnp_mappings.itervalues():
                 self.upnp_mapper.delete_mapping(mapping)
 
-    def process_alerts(self):
-        for ltsession in self.ltsessions.itervalues():
-            if ltsession:
-                alert = ltsession.pop_alert()
-                while alert:
-                    self.process_alert(alert)
-                    alert = ltsession.pop_alert()
-
-        self.trsession.lm.rawserver.add_task(self.process_alerts, 1)
-
     def process_alert(self, alert):
         alert_type = str(type(alert)).split("'")[1].split(".")[-1]
         if alert_type == 'external_ip_alert':
@@ -286,32 +293,6 @@ class LibtorrentMgr(object):
                     self._logger.debug("could not find torrent %s", infohash)
             else:
                 self._logger.debug("alert for invalid torrent")
-
-    def reachability_check(self):
-        if self.get_session() and self.get_session().status().has_incoming_connections:
-            self.trsession.lm.rawserver.add_task(self.trsession.lm.dialback_reachable_callback, 3)
-        else:
-            self.trsession.lm.rawserver.add_task(self.reachability_check, 10)
-
-    def monitor_dht(self, chances_remaining=1):
-        # Sometimes the dht fails to start. To workaround this issue we monitor the #dht_nodes, and restart if needed.
-        if self.get_session():
-            if self.get_dht_nodes() <= 25:
-                if self.get_dht_nodes() >= 5 and chances_remaining:
-                    self._logger.info("giving the dht a chance (%d, %d)",
-                                      self.get_session().status().dht_nodes, chances_remaining)
-                    self.trsession.lm.rawserver.add_task(lambda: self.monitor_dht(chances_remaining - 1), 5)
-                else:
-                    self._logger.info("restarting dht because not enough nodes are found (%d, %d)",
-                                      self.get_session().status().dht_nodes, chances_remaining)
-                    self.get_session().start_dht(None)
-                    self.trsession.lm.rawserver.add_task(self.monitor_dht, 10)
-            else:
-                self._logger.info("dht is working enough nodes are found (%d)", self.get_session().status().dht_nodes)
-                self.dht_ready = True
-                return
-        else:
-            self.trsession.lm.rawserver.add_task(self.monitor_dht, 10)
 
     def get_peers(self, infohash, callback, timeout=30, timeout_callback=None):
         def on_metainfo_retrieved(metainfo, infohash=infohash, callback=callback):
@@ -454,6 +435,45 @@ class LibtorrentMgr(object):
             self.metainfo_cache[infohash] = (time.time(), metainfo)
         else:
             self.metainfo_cache[infohash][1] = metainfo
+
+    def _task_process_alerts(self):
+        for ltsession in self.ltsessions.itervalues():
+            if ltsession:
+                alert = ltsession.pop_alert()
+                while alert:
+                    self.process_alert(alert)
+                    alert = ltsession.pop_alert()
+
+        self.register_task(u'process_alerts', reactor.callLater(1, self._task_process_alerts))
+
+    def _task_check_reachability(self):
+        if self.get_session() and self.get_session().status().has_incoming_connections:
+            notify_reachability = lambda: self.trsession.uch.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
+            self.register_task(u'notify_reachability', reactor.callLater(3, notify_reachability))
+        else:
+            self.register_task(u'check_reachability', reactor.callLater(10, self._task_check_reachability))
+
+    def _task_check_dht(self):
+        # Sometimes the dht fails to start. To workaround this issue we monitor the #dht_nodes, and restart if needed.
+        lt_session = self.get_session()
+        if lt_session:
+            if self.get_dht_nodes() <= 25:
+                if self.get_dht_nodes() >= 5 and self._dht_check_remaining_retries > 0:
+                    self._logger.info(u"No enough DHT nodes %s, will try again", lt_session.status().dht_nodes)
+                    self._dht_check_remaining_retries -= 1
+                    self.register_task(u'check_dht', reactor.callLater(5, self._task_check_dht))
+                else:
+                    self._logger.info(u"No enough DHT nodes %s, will restart DHT", lt_session.status().dht_nodes)
+                    lt_session.start_dht(None)
+                    self._dht_check_remaining_retries = 1
+                    self.register_task(u'check_dht', reactor.callLater(10, self._task_check_dht))
+            else:
+                self._logger.info("dht is working enough nodes are found (%d)", self.get_session().status().dht_nodes)
+                self.dht_ready = True
+                return
+        else:
+            self._dht_check_remaining_retries = 1
+            self.register_task(u'check_dht', reactor.callLater(10, self._task_check_dht))
 
 
 def encode_atp(atp):

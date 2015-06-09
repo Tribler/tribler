@@ -19,7 +19,7 @@ from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_INSERT,
-                                     NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_ACT_UPNP)
+                                     NTFY_ACTIVITIES, NTFY_ACT_UPNP)
 
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
@@ -230,6 +230,7 @@ class TriblerLaunchMany(object):
         if self.session.get_libtorrent():
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
             self.ltmgr = LibtorrentMgr(self.session)
+            self.ltmgr.initialize()
 
         # add task for tracker checking
         if self.session.get_torrent_checking():
@@ -729,10 +730,6 @@ class TriblerLaunchMany(object):
 
     # Events from core meant for API user
     #
-    def dialback_reachable_callback(self):
-        """ Called by overlay+network thread """
-        self.session.notifier.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
-
     def sessconfig_changed_callback(self, section, name, new_value, old_value):
         value_changed = new_value != old_value
         if section == 'libtorrent' and name == 'utp':
