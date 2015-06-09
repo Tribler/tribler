@@ -15,7 +15,6 @@ from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 from Tribler.Core.simpledefs import NTFY_REACHABLE, NTFY_INSERT
-from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Core.exceptions import DuplicateDownloadException
