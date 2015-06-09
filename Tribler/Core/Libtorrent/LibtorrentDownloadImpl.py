@@ -1,25 +1,26 @@
 # Based on SwiftDownloadImpl.py by Arno Bakker, modified by Egbert Bouman for the use with libtorrent
-
+import logging
 import os
 import sys
 import time
-import logging
-import libtorrent as lt
-from hashlib import sha1
 from binascii import hexlify
 from traceback import print_exc
 
+import libtorrent as lt
+
 from Tribler.Core import NoDispersyRLock
+from Tribler.Core.APIImplementation import maketorrent
+from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface
+from Tribler.Core.DownloadState import DownloadState
+from Tribler.Core.Libtorrent import checkHandleAndSynchronize, waitForHandleAndSynchronize
+from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
+from Tribler.Core.Utilities.twisted_thread import reactor
+from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.simpledefs import (DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_METADATA,
                                      DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE,
                                      DLSTATUS_CIRCUITS, DLSTATUS_STOPPED, DLMODE_VOD, DLSTATUS_STOPPED_ON_ERROR,
                                      UPLOAD, DOWNLOAD, DLMODE_NORMAL, PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings)
-from Tribler.Core.DownloadState import DownloadState
-from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface
-from Tribler.Core.APIImplementation import maketorrent
-from Tribler.Core.osutils import fix_filebasename
-from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
-from Tribler.Core.Libtorrent import checkHandleAndSynchronize, waitForHandleAndSynchronize
+
 
 if sys.platform == "win32":
     try:
@@ -831,23 +832,21 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                                    seeding_stats=seeding_stats, filepieceranges=self.filepieceranges, logmsgs=logmsgs)
                 self.progressbeforestop = ds.get_progress()
 
-
             if usercallback:
                 # Invoke the usercallback function via a new thread.
                 # After the callback is invoked, the return values will be passed to the
                 # returncallback for post-callback processing.
                 if not self.done:
-                    self.session.lm.rawserver.perform_getstate_usercallback(usercallback, ds, self.sesscb_get_state_returncallback)
+                    # runs on the reactor
+                    def session_getstate_usercallback_target():
+                        when, getpeerlist = usercallback(ds)
+                        if when > 0.0:
+                            # Schedule next invocation, either on general or DL specific
+                            self.session.lm.rawserver.add_task(lambda: self.network_get_state(usercallback, getpeerlist), when)
+
+                    reactor.callFromThread(lambda: reactor.callInThread(session_getstate_usercallback_target))
             else:
                 return ds
-
-    def sesscb_get_state_returncallback(self, usercallback, when, newgetpeerlist):
-        """ Called by SessionCallbackThread """
-        with self.dllock:
-            if when > 0.0:
-                # Schedule next invocation, either on general or DL specific
-                network_get_state_lambda = lambda: self.network_get_state(usercallback, newgetpeerlist)
-                self.session.lm.rawserver.add_task(network_get_state_lambda, when)
 
     def stop(self):
         """ Called by any thread """
