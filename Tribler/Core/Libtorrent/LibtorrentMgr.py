@@ -40,7 +40,6 @@ class LibtorrentMgr(TaskManager):
 
         self.set_upload_rate_limit(0)
         self.set_download_rate_limit(0)
-        self.upnp_mapper = None
 
         self.external_ip = None
 
@@ -50,7 +49,7 @@ class LibtorrentMgr(TaskManager):
         self.metainfo_lock = threading.RLock()
         self.metainfo_cache = {}
 
-        self.upnp_mappings = {}
+        self.upnp_mapping_dict = {}
 
         # make tmp-dir to be used for dht collection
         self.metadata_tmpdir = os.path.join(self.trsession.get_state_dir(), METAINFO_TMPDIR)
@@ -62,8 +61,8 @@ class LibtorrentMgr(TaskManager):
 
     @blocking_call_on_reactor_thread
     def initialize(self):
-        main_ltsession = self.get_session()
-        self.upnp_mapper = main_ltsession.start_upnp()
+        # start upnp
+        self.get_session().start_upnp()
 
         # register tasks
         self.register_task(u'process_alerts', reactor.callLater(1, self._task_process_alerts))
@@ -76,6 +75,13 @@ class LibtorrentMgr(TaskManager):
     @blocking_call_on_reactor_thread
     def shutdown(self):
         self.cancel_all_pending_tasks()
+
+        # remove all upnp mapping
+        for upnp_handle in self.upnp_mapping_dict.itervalues():
+            self.get_session().delete_port_mapping(upnp_handle)
+        self.upnp_mapping_dict = None
+
+        self.get_session().stop_upnp()
 
         # Save DHT state
         dhtstate_file = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME), 'w')
@@ -261,20 +267,25 @@ class LibtorrentMgr(TaskManager):
         else:
             self._logger.debug("cannot remove invalid torrent")
 
-    def add_mapping(self, port, protocol='TCP'):
-        if self.upnp_mapper:
-            protocol_type = 2 if protocol == 'TCP' else 1
-            self.upnp_mappings[(port, protocol)] = self.upnp_mapper.add_mapping(protocol_type, port, port)
+    def add_upnp_mapping(self, port, protocol='TCP'):
+        protocol_name = protocol.lower()
+        assert protocol_name in (u'udp', u'tcp'), "protocl is neither UDP nor TCP: %s" % repr(protocol)
 
-    def delete_mapping(self, port, protocol='TCP'):
-        if self.upnp_mapper:
-            mapping = self.upnp_mappings[(port, protocol)]
-            self.upnp_mapper.delete_mapping(mapping)
+        protocol_type = 2 if protocol_name == 'tcp' else 1
+        upnp_handle = self.get_session().add_port_mapping(protocol_type, port, port)
+        self.upnp_mapping_dict[(port, protocol_name)] = upnp_handle
 
-    def delete_mappings(self):
-        if self.upnp_mapper:
-            for mapping in self.upnp_mappings.itervalues():
-                self.upnp_mapper.delete_mapping(mapping)
+        self._logger.info(u"uPnP port added : %s %s", port, protocol_name)
+
+    def remove_upnp_mapping(self, port, protocol='TCP'):
+        protocol_name = protocol.lower()
+        assert protocol_name in (u'udp', u'tcp'), "protocl is neither UDP nor TCP: %s" % repr(protocol)
+
+        upnp_handle = self.upnp_mapping_dict[(port, protocol_name)]
+        self.get_session().delete_port_mapping(upnp_handle)
+        del self.upnp_mapping_dict[(port, protocol_name)]
+
+        self._logger.info(u"uPnP port removed: %s %s", port, protocol_name)
 
     def process_alert(self, alert):
         alert_type = str(type(alert)).split("'")[1].split(".")[-1]

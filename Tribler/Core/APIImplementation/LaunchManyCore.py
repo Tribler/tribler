@@ -7,7 +7,7 @@ import logging
 import os
 import sys
 import time as timemod
-from threading import Event, enumerate as enumerate_threads, currentThread
+from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 from twisted.internet import reactor
 
@@ -18,9 +18,7 @@ from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.exceptions import DuplicateDownloadException
-from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_INSERT,
-                                     NTFY_ACTIVITIES, NTFY_ACT_UPNP)
-
+from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
 from Tribler.Core.APIImplementation.TwistedRawServer import TwistedRawServer
@@ -231,6 +229,8 @@ class TriblerLaunchMany(object):
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
             self.ltmgr = LibtorrentMgr(self.session)
             self.ltmgr.initialize()
+            for port, protocol in self.upnp_ports:
+                self.ltmgr.add_upnp_mapping(port, protocol)
 
         # add task for tracker checking
         if self.session.get_torrent_checking():
@@ -243,8 +243,6 @@ class TriblerLaunchMany(object):
 
         if self.rtorrent_handler:
             self.rtorrent_handler.initialize()
-
-        self.start_upnp()
 
         self.initComplete = True
 
@@ -677,8 +675,6 @@ class TriblerLaunchMany(object):
             mainlineDHT.deinit(self.mainline_dht)
             self.mainline_dht = None
 
-        self.stop_upnp()
-
     def network_shutdown(self):
         try:
             self._logger.info("tlm: network_shutdown")
@@ -715,18 +711,6 @@ class TriblerLaunchMany(object):
         pstate = CallbackConfigParser()
         pstate.read_file(filename)
         return pstate
-
-    def start_upnp(self):
-        if self.ltmgr:
-            self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_UPNP, '', None)
-
-            for port, protocol in self.upnp_ports:
-                self._logger.debug("tlm: adding upnp mapping for %d %s", port, protocol)
-                self.ltmgr.add_mapping(port, protocol)
-
-    def stop_upnp(self):
-        if self.ltmgr:
-            self.ltmgr.delete_mappings()
 
     # Events from core meant for API user
     #
