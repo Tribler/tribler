@@ -717,7 +717,7 @@ class TriblerLaunchMany(object):
 
     def start_upnp(self):
         if self.ltmgr:
-            self.set_activity(NTFY_ACT_UPNP)
+            self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, NTFY_ACT_UPNP, '', None)
 
             for port, protocol in self.upnp_ports:
                 self._logger.debug("tlm: adding upnp mapping for %d %s", port, protocol)
@@ -732,10 +732,6 @@ class TriblerLaunchMany(object):
     def dialback_reachable_callback(self):
         """ Called by overlay+network thread """
         self.session.notifier.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
-
-    def set_activity(self, type, str='', arg2=None):
-        """ Called by overlay + network thread """
-        self.session.notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, type, str, arg2)
 
     def get_external_ip(self):
         """ Returns the external IP address of this Session, i.e., by which
