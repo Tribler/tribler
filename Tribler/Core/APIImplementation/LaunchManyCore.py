@@ -733,12 +733,6 @@ class TriblerLaunchMany(object):
         """ Called by overlay+network thread """
         self.session.notifier.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
 
-    def get_external_ip(self):
-        """ Returns the external IP address of this Session, i.e., by which
-        it is reachable from the Internet. This address is determined by libtorrent.
-        @return A string. """
-        return self.ltmgr.get_external_ip() if self.ltmgr else None
-
     def sessconfig_changed_callback(self, section, name, new_value, old_value):
         value_changed = new_value != old_value
         if section == 'libtorrent' and name == 'utp':

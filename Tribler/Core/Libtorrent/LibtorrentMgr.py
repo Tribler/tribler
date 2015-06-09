@@ -194,9 +194,6 @@ class LibtorrentMgr(object):
         libtorrent_rate = self.get_session(hops).download_rate_limit()
         return 0 if libtorrent_rate == -1 else (-1 if libtorrent_rate == 1 else libtorrent_rate / 1024)
 
-    def get_external_ip(self):
-        return self.external_ip
-
     def get_dht_nodes(self, hops=0):
         return self.get_session(hops).status().dht_nodes
 

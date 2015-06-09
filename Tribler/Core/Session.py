@@ -302,12 +302,6 @@ class Session(SessionConfigInterface):
         @return The PermID encoded in a string in DER format. """
         return str(self.keypair.pub().get_der())
 
-    def get_external_ip(self):
-        """ Returns the external IP address of this Session, i.e., by which
-        it is reachable from the Internet. This address is determined by libtorrent.
-        @return A string. """
-        return self.lm.get_external_ip()
-
     def get_current_startup_config_copy(self):
         """ Returns a SessionStartupConfig that is a copy of the current runtime
         SessionConfig.
