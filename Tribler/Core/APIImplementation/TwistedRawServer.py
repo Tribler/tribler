@@ -5,6 +5,7 @@ import logging
 
 
 class TwistedRawServer(TaskManager):
+    _reactor = reactor
 
     def __init__(self):
         super(TwistedRawServer, self).__init__()
@@ -19,9 +20,9 @@ class TwistedRawServer(TaskManager):
             with self._lock:
                 self._auto_counter += 1
             task_name = "twisted_rawserver %d" % self._auto_counter
-        reactor.callFromThread(lambda: self.register_task(task_name, reactor.callLater(delay, wrapper)))
+        reactor.callFromThread(lambda: self.register_task(task_name, self._reactor.callLater(delay, wrapper)))
 
-    def add_task_in_thread(self, wrapper, delay, task_name=None):
+    def add_task_in_thread(self, wrapper, delay=0, task_name=None):
         assert wrapper
 
         if not task_name:
@@ -29,10 +30,10 @@ class TwistedRawServer(TaskManager):
                 self._auto_counter += 1
             task_name = "twisted_rawserver %d" % self._auto_counter
 
-        if delay:
-            reactor.callFromThread(lambda: reactor.callInThread(wrapper))
-        else:
-            reactor.callFromThread(lambda: self.register_task(task_name, reactor.callLater(delay, lambda: reactor.callInThread(wrapper))))
+        def delayed_call(delay, task_name):
+            self.register_task(task_name, self._reactor.callLater(delay, reactor.callInThread, wrapper))
+
+        reactor.callFromThread(delayed_call, delay, task_name)
 
     def perform_getstate_usercallback(self, usercallback, data, returncallback):
         def session_getstate_usercallback_target():
