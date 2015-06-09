@@ -41,8 +41,6 @@ class LibtorrentMgr(TaskManager):
         self.set_upload_rate_limit(0)
         self.set_download_rate_limit(0)
 
-        self.external_ip = None
-
         self.torrents = {}
 
         self.metainfo_requests = {}
@@ -289,11 +287,6 @@ class LibtorrentMgr(TaskManager):
 
     def process_alert(self, alert):
         alert_type = str(type(alert)).split("'")[1].split(".")[-1]
-        if alert_type == 'external_ip_alert':
-            external_ip = str(alert).split()[-1]
-            if self.external_ip != external_ip:
-                self.external_ip = external_ip
-                self._logger.info('external IP is now %s', self.external_ip)
         handle = getattr(alert, 'handle', None)
         if handle:
             if handle.is_valid():
