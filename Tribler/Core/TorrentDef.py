@@ -12,9 +12,7 @@ from libtorrent import bencode, bdecode
 
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Core.defaults import TDEF_DEFAULTS
-from Tribler.Core.exceptions import (OperationNotPossibleAtRuntimeException, TorrentDefNotFinalizedException,
-                                     NotYetImplementedException)
-from Tribler.Core.Base import ContentDefinition, Serializable, Copyable
+from Tribler.Core.exceptions import TorrentDefNotFinalizedException, NotYetImplementedException
 import Tribler.Core.APIImplementation.maketorrent as maketorrent
 
 from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL, parse_magnetlink
@@ -22,7 +20,7 @@ from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 
 
-class TorrentDef(ContentDefinition, Serializable, Copyable):
+class TorrentDef(object):
 
     """
     Definition of a torrent, that is, all params required for a torrent file,
@@ -791,7 +789,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             raise ValueError("File not found in single-file torrent")
 
 
-class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
+class TorrentDefNoMetainfo(object):
 
     def __init__(self, infohash, name, url=None):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
@@ -832,6 +830,3 @@ class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
             _, _, trs = parse_magnetlink(self.url)
             return tuple(trs)
         return ()
-
-    def copy(self):
-        return TorrentDefNoMetainfo(self.infohash, self.name)
