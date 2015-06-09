@@ -124,39 +124,6 @@ class TorrentDef(object):
     _create = staticmethod(_create)
 
     @staticmethod
-    def retrieve_from_magnet(session, url, callback, timeout=30.0, timeout_callback=None, silent=False):
-        """
-        If the URL conforms to a magnet link, the .torrent info is
-        downloaded and converted into a TorrentDef.  The resulting
-        TorrentDef is provided through CALLBACK.
-
-        Returns True when attempting to obtain the TorrentDef, in this
-        case CALLBACK will ONLY be called if the TorrentDef has been
-        obtained successfully.  Otherwise False is returned, in this
-        case CALLBACK will not be called.
-
-        The thread making the callback should be used very briefly.
-        """
-        assert isinstance(url, str), "URL has invalid type: %s" % type(url)
-        assert callable(callback), "CALLBACK must be callable"
-
-        def metainfo_retrieved(metadata):
-            try:
-                tdef = TorrentDef.load_from_dict(metadata)
-            except UnicodeDecodeError:
-                if not silent:
-                    raise
-                return
-            if tdef:
-                callback(tdef)
-        libtorrent_manager = session.get_libtorrent_process()
-        if libtorrent_manager:
-            libtorrent_manager.get_metainfo(url, metainfo_retrieved,
-                                            timeout=timeout, timeout_callback=timeout_callback)
-            return True
-        return False
-
-    @staticmethod
     def load_from_url(url):
         """
         If the URL starts with 'http:' load a BT .torrent or Tribler .tstream
