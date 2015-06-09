@@ -4,6 +4,7 @@ import logging
 import os
 import threading
 import time
+import tempfile
 from binascii import hexlify
 from copy import deepcopy
 from shutil import rmtree
@@ -24,7 +25,6 @@ from Tribler.Core.version import version_id
 DEBUG = False
 DHTSTATE_FILENAME = "ltdht.state"
 METAINFO_CACHE_PERIOD = 5 * 60
-METAINFO_TMPDIR = 'metadata_tmpdir'
 
 
 class LibtorrentMgr(TaskManager):
@@ -43,24 +43,23 @@ class LibtorrentMgr(TaskManager):
 
         self.torrents = {}
 
-        self.metainfo_requests = {}
-        self.metainfo_lock = threading.RLock()
-        self.metainfo_cache = {}
-
         self.upnp_mapping_dict = {}
-
-        # make tmp-dir to be used for dht collection
-        self.metadata_tmpdir = os.path.join(self.trsession.get_state_dir(), METAINFO_TMPDIR)
-        if not os.path.exists(self.metadata_tmpdir):
-            os.mkdir(self.metadata_tmpdir)
 
         self._dht_check_remaining_retries = 1
         self.dht_ready = False
+
+        self.metadata_tmpdir = None
+        self.metainfo_requests = {}
+        self.metainfo_lock = threading.RLock()
+        self.metainfo_cache = {}
 
     @blocking_call_on_reactor_thread
     def initialize(self):
         # start upnp
         self.get_session().start_upnp()
+
+        # make temporary directory for metadata collecting through DHT
+        self.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
 
         # register tasks
         self.register_task(u'process_alerts', reactor.callLater(1, self._task_process_alerts))
@@ -90,9 +89,9 @@ class LibtorrentMgr(TaskManager):
             del ltsession
         self.ltsessions = None
 
-        # Empty/remove metadata tmp-dir
-        if os.path.exists(self.metadata_tmpdir):
-            rmtree(self.metadata_tmpdir)
+        # remove metadata temporary directory
+        rmtree(self.metadata_tmpdir)
+        self.metadata_tmpdir = None
 
         self.trsession = None
 
