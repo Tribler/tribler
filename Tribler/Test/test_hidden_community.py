@@ -39,10 +39,10 @@ class TestHiddenCommunity(TestTunnelBase):
             self.Call(1, do_asserts)
 
         def do_progress(download, start_time):
-            self.CallConditional(140,
+            self.CallConditional(240,
                                  lambda: download.get_progress() == 1.0,
                                  lambda: take_screenshot(time.time() - start_time),
-                                 'Hidden services download should be finished in 140 seconds (%.1f%% downloaded)' %
+                                 'Hidden services download should be finished in 240 seconds (%.1f%% downloaded)' %
                                  (download.get_progress() * 100),
                                  on_fail)
 
@@ -129,10 +129,10 @@ class TestHiddenCommunity(TestTunnelBase):
 
             d.set_state_callback(cb, True)
 
-            self.CallConditional(140,
+            self.CallConditional(240,
                                  lambda: d.get_progress() == 1.0 and hs_progress.is_set() and en_progress.is_set(),
                                  lambda: take_screenshot(time.time() - start_time),
-                                 'Hidden services download should be finished in 140s', on_fail)
+                                 'Hidden services download should be finished in 240s', on_fail)
 
         def start_download(tf):
             start_time = time.time()
