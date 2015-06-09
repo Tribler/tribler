@@ -19,9 +19,8 @@ from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED, NTFY_TORRENTS
-
 from Tribler.Core.version import version_id
-DEBUG = False
+
 DHTSTATE_FILENAME = "ltdht.state"
 METAINFO_CACHE_PERIOD = 5 * 60
 
