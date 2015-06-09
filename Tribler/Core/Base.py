@@ -7,18 +7,6 @@ from Tribler.Core.exceptions import NotYetImplementedException
 #
 # Tribler API base classes
 #
-
-
-class Serializable(object):
-
-    """
-    Interface to signal that the object is pickleable.
-    """
-
-    def __init__(self):
-        pass
-
-
 class Copyable(object):
 
     """
