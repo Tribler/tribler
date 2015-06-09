@@ -178,3 +178,10 @@ def deferred(timeout=None):
         wrapper = make_decorator(func)(wrapper)
         return wrapper
     return decorate
+
+
+def callInThreadPool(fun, *args, **kwargs):
+    """
+    Calls fun(*args, **kwargs) in the reactor's thread pool.
+    """
+    reactor.callFromThread(reactor.callInThread, fun,  *args, **kwargs)

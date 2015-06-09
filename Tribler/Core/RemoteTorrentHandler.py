@@ -18,6 +18,7 @@ from twisted.internet.task import LoopingCall
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import call_on_reactor_thread
 
+from Tribler.Core.Utilities.twisted_thread import callInThreadPool
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH
 
@@ -226,7 +227,7 @@ class RemoteTorrentHandler(TaskManager):
             return
 
         for callback in self.torrent_callbacks[infohash]:
-            self.session.lm.rawserver.perform_usercallback(lambda ucb=callback, ih=hexlify(infohash): ucb(ih))
+            callInThreadPool(callback, hexlify(infohash))
 
         del self.torrent_callbacks[infohash]
 
@@ -236,7 +237,7 @@ class RemoteTorrentHandler(TaskManager):
             return
 
         for callback in self.metadata_callbacks[infohash]:
-            self.session.lm.rawserver.perform_usercallback(lambda ucb=callback, p=metadata_filepath: ucb(p))
+            callInThreadPool(callback, metadata_filepath)
 
         del self.metadata_callbacks[infohash]
 

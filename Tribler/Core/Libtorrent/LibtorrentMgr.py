@@ -10,15 +10,13 @@ from shutil import rmtree
 
 import libtorrent as lt
 
-from Tribler.Core.CacheDB.Notifier import Notifier
+from Tribler.Core.Utilities.twisted_thread import callInThreadPool
+
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED, NTFY_TORRENTS
-from Tribler.Core.version import version_id
-from Tribler.Core.exceptions import DuplicateDownloadException
-from Tribler.Core.Utilities.utilities import parse_magnetlink
-from Tribler.Core.simpledefs import NTFY_MAGNET_STARTED, NTFY_TORRENTS, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS
 
+from Tribler.Core.version import version_id
 DEBUG = False
 DHTSTATE_FILENAME = "ltdht.state"
 METAINFO_CACHE_PERIOD = 5 * 60
@@ -342,7 +340,7 @@ class LibtorrentMgr(object):
 
             cache_result = self._get_cached_metainfo(infohash)
             if cache_result:
-                self.trsession.lm.rawserver.perform_usercallback(lambda cb=callback, mi=deepcopy(cache_result): cb(mi))
+                callInThreadPool(callback, deepcopy(cache_result))
 
             elif infohash not in self.metainfo_requests:
                 # Flags = 4 (upload mode), should prevent libtorrent from creating files
@@ -422,7 +420,7 @@ class LibtorrentMgr(object):
                         self._add_cached_metainfo(infohash, metainfo)
 
                         for callback in callbacks:
-                            self.trsession.lm.rawserver.perform_usercallback(lambda cb=callback, mi=deepcopy(metainfo): cb(mi))
+                            callInThreadPool(callback, deepcopy(metainfo))
 
                         # let's not print the hashes of the pieces
                         debuginfo = deepcopy(metainfo)
@@ -431,7 +429,7 @@ class LibtorrentMgr(object):
 
                     elif timeout_callbacks and timeout:
                         for callback in timeout_callbacks:
-                            self.trsession.lm.rawserver.perform_usercallback(lambda cb=callback, ih=infohash_bin: cb(ih))
+                            callInThreadPool(callback, infohash_bin)
 
                 if handle:
                     self.get_session().remove_torrent(handle, 1)

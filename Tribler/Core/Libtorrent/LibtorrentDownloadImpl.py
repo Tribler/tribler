@@ -844,7 +844,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                             # Schedule next invocation, either on general or DL specific
                             self.session.lm.rawserver.add_task(lambda: self.network_get_state(usercallback, getpeerlist), when)
 
-                    callInThreadPool(session_getstate_usercallback_target)
+                    self.session.lm.rawserver.add_task_in_thread(session_getstate_usercallback_target)
             else:
                 return ds
 

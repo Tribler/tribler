@@ -17,7 +17,7 @@ from twisted.internet.threads import blockingCallFromThread
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Session import Session
-from Tribler.Core.Utilities.twisted_thread import reactor
+from Tribler.Core.Utilities.twisted_thread import callInThreadPool, reactor
 from Tribler.Core.permid import read_keypair
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Main.globals import DefaultDownloadStartupConfig
@@ -158,7 +158,7 @@ class Tunnel(object):
         return (4.0, [])
 
     def stop(self):
-        self.session.notifier.perform_usercallback(self._stop)
+        callInThreadPool(self._stop)
 
     def _stop(self):
         if self.clean_messages_lc:
@@ -287,7 +287,7 @@ class LineHandler(LineReceiver):
             dscfg.set_hops(1)
             dscfg.set_dest_dir(cur_path)
 
-            anon_tunnel.session.notifier.perform_usercallback(lambda: anon_tunnel.session.start_download(tdef, dscfg))
+            callInThreadPool(anon_tunnel.session.start_download, tdef, dscfg)
         elif line.startswith('i'):
             # Introduce dispersy port from other main peer to this peer
             line_split = line.split(' ')
@@ -319,7 +319,7 @@ class LineHandler(LineReceiver):
                 download = anon_tunnel.session.start_download(tdef, dscfg)
                 download.set_state_callback(cb, delay=1)
 
-            anon_tunnel.session.notifier.perform_usercallback(start_download)
+            callInThreadPool(start_download)
 
         elif line == 'q':
             anon_tunnel.stop()

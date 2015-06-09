@@ -1,6 +1,7 @@
 import binascii
 import json
 
+from Tribler.Core.Utilities.twisted_thread import callInThreadPool
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME
 from Tribler.dispersy.community import Community
@@ -150,8 +151,7 @@ class MetadataCommunity(Community):
                                                 u"data_list": msg.payload.data_list[:]
                                                 }
                                 if self._integrate_with_tribler:
-                                    self._rth.session.notifier.perform_usercallback(
-                                        lambda metadata=msg_metadata: self._check_metadata_thumbs(metadata))
+                                    callInThreadPool(self._check_metadata_thumbs, msg_metadata)
 
                             self._rth.download_metadata(message.candidate, infohash, sub_file_path,
                                                         timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
