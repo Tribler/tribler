@@ -44,7 +44,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.readonly = False
         if input is not None:  # copy constructor
             self.input = input
             # self.metainfo_valid set in copy()
@@ -225,9 +224,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         @param playtime (optional) String representing the duration of the
         multimedia file when played, in [hh:]mm:ss format.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         s = os.stat(inpath)
         d = {'inpath': inpath, 'outpath': outpath, 'playtime': playtime, 'length': s.st_size}
         self.input['files'].append(d)
@@ -240,9 +236,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         @param inpath Absolute name of file or directory on local filesystem,
         as Unicode string.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         for d in self.input['files']:
             if d['inpath'] == inpath:
                 self.input['files'].remove(d)
@@ -263,9 +256,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         """ Sets the tracker (i.e. the torrent file's 'announce' field).
         @param url The announce URL.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         if not isValidURL(url):
             raise ValueError("Invalid URL")
 
@@ -285,9 +275,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         at http://www.bittornado.com/docs/multitracker-spec.txt
         @param hier A hierarchy of trackers as a list of lists.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         # TODO: check input, in particular remove / at end
         newhier = []
         if not isinstance(hier, ListType):
@@ -335,9 +322,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         See http://www.bittorrent.org/beps/bep_0005.html
         @param nodes A list of [hostname,port] lists.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         # Check input
         if not isinstance(nodes, ListType):
             raise ValueError("nodes not a list")
@@ -362,9 +346,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         """ Set comment field.
         @param value A Unicode string.
          """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         self.input['comment'] = value
         self.metainfo_valid = False
 
@@ -382,9 +363,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         """ Set 'created by' field.
         @param value A Unicode string.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         self.input['created by'] = value
         self.metainfo_valid = False
 
@@ -398,9 +376,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         http://www.bittorrent.org/beps/bep_0019.html
         @param value A list of URLs.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         for url in value:
             if not isValidURL(url):
                 raise ValueError("Invalid URL: " + repr(url))
@@ -418,9 +393,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         http://www.bittorrent.org/beps/bep_0017.html
         @param value A list of URLs.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         for url in value:
             if not isValidURL(url):
                 raise ValueError("Invalid URL: " + repr(url))
@@ -441,9 +413,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         (value 0).
         @param value A number of bytes as per the text.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         if not (isinstance(value, IntType) or isinstance(value, LongType)):
             raise ValueError("Piece length not an int/long")
 
@@ -494,9 +463,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         @param userprogresscallback Function accepting a fraction as first
         argument.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         if self.metainfo_valid:
             return
 
@@ -558,9 +524,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         """ Set the name of this torrent
         @param name name of torrent as String
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         self.input['name'] = name
         self.metainfo_valid = False
 
@@ -644,8 +607,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         return len(self.encode())
 
     def encode(self):
-        if not self.readonly:
-            self.finalize()
+        self.finalize()
 
         # Boudewijn, 10/09/10: do not save the 'initial peers'.  (1)
         # they should not be saved, as they are unlikely to be there
@@ -806,9 +768,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         return int(self.metainfo['info'].get('private', 0)) == 1
 
     def set_private(self, private=True):
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         self.input['private'] = 1 if private else 0
 
     #
