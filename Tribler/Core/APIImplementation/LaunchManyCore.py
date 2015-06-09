@@ -423,17 +423,16 @@ class TriblerLaunchMany(object):
                 # We're catching it here to continue building the downloadstates
                 print_exc()
 
-        # Invoke the usercallback function via a new thread.
-        # After the callback is invoked, the return values will be passed to
-        # the returncallback for post-callback processing.
-        self.rawserver.perform_getstate_usercallback(usercallback, dslist,
-                                                       self.sesscb_set_download_states_returncallback)
+        # Invoke the usercallback function on a separate thread.
+        # After the callback is invoked, the return values will be passed to the
+        # returncallback for post-callback processing.
+        def session_getstate_usercallback_target():
+            when, newgetpeerlist = usercallback(dslist)
+            if when > 0.0:
+                # reschedule
+                self.set_download_states_callback(usercallback, newgetpeerlist, when=when)
 
-    def sesscb_set_download_states_returncallback(self, usercallback, when, newgetpeerlist):
-        """ Called by SessionCallbackThread """
-        if when > 0.0:
-            # reschedule
-            self.set_download_states_callback(usercallback, newgetpeerlist, when=when)
+        self.rawserver.add_task(session_getstate_usercallback_target)
 
     #
     # Persistence methods
