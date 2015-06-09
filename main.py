@@ -175,14 +175,19 @@ class Skelly(App):
 		self.HomeScr.getStoredMedia()
 
 	#Button handler function
-	#also implements history function in tandem with swap_to()
+	#also calls history function in tandem with swap_to()
 	def key_handler(self,window,keycode1, keycode2, text, modifiers):
 		if keycode1 in [27,1001]:
-			if len(self.history ) != 0:
-				print self.history
-				self.sm.switch_to(self.history.pop(), direction = 'right')				
-			else:
-				App.get_running_app().stop()
+			self.goBack()
+
+	#History function, quits out of application if no history present
+	def goBack(self):
+		if len(self.history ) != 0:
+			print self.history
+			self.sm.switch_to(self.history.pop(), direction = 'right')				
+		else:
+			App.get_running_app().stop()
+		
 
 if __name__== '__main__':
 	Skelly().run()

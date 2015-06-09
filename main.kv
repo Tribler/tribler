@@ -170,17 +170,22 @@
 			id: anchor
 			Image:
 				source:''
+				opacity: 0
 			CameraWidget:
 				id: camera
 		BoxLayout:
 			size_hint_y: None
-			height: '48dp'
+			height: '1cm'
 			Button:
-				text: 'Start camera'
-				on_release: camera.start()
-			Button:
-				text: 'Stop camera'
-				on_release: camera.stop()
+				background_color: 0.5,0.5,0.5,1
+				background_normal:''
+				text: ''
+				on_release: app.goBack()
+				BoxLayout:
+					pos: self.parent.pos
+					size: self.parent.size
+					Image: 
+						source: 'img/ic_videocam_off_white_48dp.png'
 <GearMenu>
 	RelativeLayout:
 		Button:
