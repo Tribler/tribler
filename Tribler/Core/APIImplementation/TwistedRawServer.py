@@ -34,6 +34,3 @@ class TwistedRawServer(TaskManager):
             self.register_task(task_name, self._reactor.callLater(delay, reactor.callInThread, wrapper))
 
         reactor.callFromThread(delayed_call, delay, task_name)
-
-    def queueTask(self, callback, args):
-        reactor.callFromThread(lambda: reactor.callInThread(callback, *args))

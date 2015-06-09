@@ -4,6 +4,7 @@
 import threading
 import logging
 
+from Tribler.Core.Utilities.twisted_thread import callInThreadPool
 from Tribler.Core.simpledefs import (NTFY_TORRENTS, NTFY_PLAYLISTS, NTFY_COMMENTS,
                                      NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_MYPREFERENCES,
                                      NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_CHANNELCAST, NTFY_VOTECAST, NTFY_DISPERSY,
@@ -19,10 +20,10 @@ class Notifier(object):
                 NTFY_VOTECAST, NTFY_DISPERSY, NTFY_TRACKERINFO, NTFY_TUNNEL,
                 SIGNAL_ALLCHANNEL_COMMUNITY, SIGNAL_SEARCH_COMMUNITY, SIGNAL_TORRENT, SIGNAL_CHANNEL]
 
-    def __init__(self, rawserver):
+    def __init__(self, use_pool):
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.pool = rawserver
+        self.use_pool = use_pool
 
         self.observers = []
         self.observerscache = {}
@@ -98,8 +99,8 @@ class Notifier(object):
                                 self.observerLock.release()
 
                                 if events:
-                                    if self.pool:
-                                        self.pool.queueTask(ofunc, (events,))
+                                    if self.use_pool:
+                                        callInThreadPool(ofunc, events)
                                     else:
                                         ofunc(events)
 
@@ -116,7 +117,7 @@ class Notifier(object):
 
         self.observerLock.release()
         for task in tasks:
-            if self.pool:
-                self.pool.queueTask(task, args)
+            if self.use_pool:
+                callInThreadPool(task, *args)
             else:
                 task(*args)  # call observer function in this thread

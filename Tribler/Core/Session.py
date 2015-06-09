@@ -140,7 +140,7 @@ class Session(SessionConfigInterface):
 
         # Create handler for calling back the user via separate threads
         self.lm = TriblerLaunchMany()
-        self.notifier = Notifier(self.lm.rawserver)
+        self.notifier = Notifier(use_pool=True)
 
         # Checkpoint startup config
         self.save_pstate_sessconfig()
