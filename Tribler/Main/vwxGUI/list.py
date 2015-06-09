@@ -304,7 +304,7 @@ class LocalSearchManager(BaseManager):
         infohashes = [infohash for infohash in infohashes if self.list.InList(infohash)]
         self.do_or_schedule_partial(infohashes)
 
-    def downloadStarted(self, infohash):
+    def downloadStarted(self, _):
         self.prev_refresh_if = 0
         self.refresh()
 
