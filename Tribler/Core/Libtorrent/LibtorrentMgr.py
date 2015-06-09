@@ -215,9 +215,6 @@ class LibtorrentMgr(TaskManager):
         libtorrent_rate = self.get_session(hops).download_rate_limit()
         return 0 if libtorrent_rate == -1 else (-1 if libtorrent_rate == 1 else libtorrent_rate / 1024)
 
-    def get_dht_nodes(self, hops=0):
-        return self.get_session(hops).status().dht_nodes
-
     def is_dht_ready(self):
         return self.dht_ready
 
@@ -450,8 +447,9 @@ class LibtorrentMgr(TaskManager):
         # Sometimes the dht fails to start. To workaround this issue we monitor the #dht_nodes, and restart if needed.
         lt_session = self.get_session()
         if lt_session:
-            if self.get_dht_nodes() <= 25:
-                if self.get_dht_nodes() >= 5 and self._dht_check_remaining_retries > 0:
+            dht_nodes = lt_session.status().dht_nodes
+            if dht_nodes <= 25:
+                if dht_nodes >= 5 and self._dht_check_remaining_retries > 0:
                     self._logger.info(u"No enough DHT nodes %s, will try again", lt_session.status().dht_nodes)
                     self._dht_check_remaining_retries -= 1
                     self.register_task(u'check_dht', reactor.callLater(5, self._task_check_dht))
