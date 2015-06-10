@@ -14,8 +14,9 @@ from traceback import extract_stack, format_exc, print_exc, print_stack
 import wx
 from twisted.internet import reactor
 from twisted.python.threadable import isInIOThread
-from wx.lib.delayedresult import SenderWxEvent, SenderCallAfter, AbortedException, SenderNoWx
+from wx.lib.delayedresult import (AbortedException, SenderCallAfter, SenderNoWx, SenderWxEvent)
 
+from Tribler.Core.Utilities.twisted_thread import isInThreadPool
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.dispersy.taskmanager import TaskManager
 
@@ -70,12 +71,6 @@ class GUIDBProducer(object):
     @classmethod
     def hasInstance(cls):
         return GUIDBProducer.__single is not None
-
-    def onSameThread(self, type):
-        if type == "dbThread" or isInIOThread():
-            return isInIOThread()
-
-        return False
 
     def Add(self, sender, workerFn, args=(), kwargs={}, name=None, delay=0.0, uId=None, retryOnBusy=False, priority=0, workerType="dbthread"):
         """The sender will send the return value of
@@ -161,19 +156,21 @@ class GUIDBProducer(object):
 
         wrapper.__name__ = str(name)
 
-        if not self.onSameThread(workerType) or delay:
-            task_name = uId
-            if not task_name:
-                self._auto_counter += 1
-                task_name = "guidbhandler %d" % self._auto_counter
-
+        # Have in mind that setting workerType to "guiTaskQueue" means that the
+        # task wants to be executed OUT of the GUI thread, nothing more.
+        if delay or not (isInIOThread() or isInThreadPool()):
             if workerType == "dbThread":
-                self.utility.session.lm.rawserver.add_task(wrapper, delay, task_name)
-
+                # Schedule the task to be called later in the reactor thread.
+                self.utility.session.lm.rawserver.add_task(wrapper, delay)
             elif workerType == "guiTaskQueue":
-                self.utility.session.lm.rawserver.add_task_in_thread(wrapper, delay, task_name)
+                self.utility.session.lm.rawserver.add_task_in_thread(wrapper, delay)
+            else:
+                raise RuntimeError("Asked to schedule a task with unknown workerType: %s", workerType)
+        elif workerType == "dbThread" and not isInIOThread():
+            reactor.callFromThread(wrapper)
         else:
-            self._logger.debug("GUIDBHandler: Task(%s) scheduled for thread on same thread, executing immediately", name)
+            self._logger.debug("GUIDBHandler: Task(%s) scheduled to be called on non GUI thread from non GUI thread, "
+                               "executing synchronously.", name)
             wrapper()
 
     def Remove(self, uId):
