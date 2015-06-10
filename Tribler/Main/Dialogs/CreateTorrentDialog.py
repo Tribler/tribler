@@ -3,29 +3,23 @@
 
 import wx
 import os
-import logging
+import libtorrent
 from threading import Event
 from traceback import print_exc
 
 from Tribler.Core.version import version_id
-from Tribler.Core.TorrentDef import TorrentDef
 
 from Tribler.Main.vwxGUI import forceWxThread
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.widgets import _set_font, BetterText as StaticText
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 
-logger = logging.getLogger(__name__)
 
+class CreateTorrentDialog(wx.Dialog):
 
-class CreateTorrent(wx.Dialog):
-
-    def __init__(self, parent, configfile, fileconfigfile, suggestedTrackers, toChannel=False):
-        self._logger = logging.getLogger(self.__class__.__name__)
-
+    def __init__(self, parent, recent_creation_config_file, recent_trackers_config_file,
+                 suggested_trackers, to_channel=False):
         wx.Dialog.__init__(self, parent, -1, 'Create a .torrent', size=(600, 200), name="CreateTorrentDialog")
-        self.guiutility = GUIUtility.getInstance()
-        self.toChannel = toChannel
+        self.to_channel = to_channel
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -46,10 +40,6 @@ class CreateTorrent(wx.Dialog):
         hSizer.Add(browseButton)
         hSizer.Add(browseDirButton)
         vSizer.Add(hSizer, 0, wx.ALIGN_RIGHT | wx.BOTTOM, 3)
-
-        # self.recursive = wx.CheckBox(self, -1, 'Include all subdirectories')
-        # self.recursive.Bind(wx.EVT_CHECKBOX, self.OnRecursive)
-        # vSizer.Add(self.recursive, 0, wx.ALIGN_RIGHT|wx.BOTTOM, 3)
 
         vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
 
@@ -83,15 +73,15 @@ class CreateTorrent(wx.Dialog):
         self.trackerList.SetMinSize((500, -1))
 
         self.trackerHistory = wx.FileHistory(10)
-        self.config = wx.FileConfig(appName="Tribler", localFilename=configfile)
+        self.config = wx.FileConfig(appName="Tribler", localFilename=recent_creation_config_file)
         self.trackerHistory.Load(self.config)
 
         if self.trackerHistory.GetCount() > 0:
             trackers = [self.trackerHistory.GetHistoryFile(i) for i in range(self.trackerHistory.GetCount())]
-            if len(trackers) < len(suggestedTrackers):
-                trackers.extend(suggestedTrackers[:len(suggestedTrackers) - len(trackers)])
+            if len(trackers) < len(suggested_trackers):
+                trackers.extend(suggested_trackers[:len(suggested_trackers) - len(trackers)])
         else:
-            trackers = suggestedTrackers
+            trackers = suggested_trackers
 
         for tracker in trackers:
             self.trackerList.AppendText(tracker + "\n")
@@ -152,7 +142,7 @@ class CreateTorrent(wx.Dialog):
         self.cancelEvent = Event()
 
         self.filehistory = wx.FileHistory(1)
-        self.fileconfig = wx.FileConfig(appName="Tribler", localFilename=fileconfigfile)
+        self.fileconfig = wx.FileConfig(appName="Tribler", localFilename=recent_trackers_config_file)
         self.filehistory.Load(self.fileconfig)
 
         if self.filehistory.GetCount() > 0:
@@ -182,9 +172,6 @@ class CreateTorrent(wx.Dialog):
         else:
             dlg.Destroy()
 
-    def OnRecursive(self, event):
-        self._browsePaths()
-
     def OnCombine(self, event=None):
         combine = self.combineRadio.GetValue()
         self.specifiedName.Enable(False)
@@ -204,7 +191,7 @@ class CreateTorrent(wx.Dialog):
 
     def OnOk(self, event):
         max = 1 if self.combineRadio.GetValue() else len(self.selectedPaths)
-        if self.toChannel:
+        if self.to_channel:
             dlg = wx.MessageDialog(self, "This will add %d new .torrents to this Channel.\nDo you want to continue?" %
                                    max, "Are you sure?", style=wx.YES_NO | wx.ICON_QUESTION)
         else:
@@ -229,8 +216,9 @@ class CreateTorrent(wx.Dialog):
             self.filehistory.Save(self.fileconfig)
             self.fileconfig.Flush()
 
-            params['announce'] = trackers[0]
-            params['announce-list'] = [trackers]
+            if trackers:
+                params['announce'] = trackers[0]
+                params['announce-list'] = trackers
 
             if self.webSeed.GetValue():
                 params['urllist'] = [self.webSeed.GetValue()]
@@ -366,8 +354,6 @@ class CreateTorrent(wx.Dialog):
 
 
 def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfilenameCallback):
-    tdef = TorrentDef()
-
     basedir = None
 
     nrFiles = len([file for file in srcpaths if os.path.isfile(file)])
@@ -378,46 +364,51 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
         # should be c:\ and outpaths should be a\1, a\2, a\b\1 and a\b\2
         basepath = os.path.abspath(os.path.commonprefix(srcpaths))
         basepath, basedir = os.path.split(basepath)
-        for srcpath in srcpaths:
-            if os.path.isfile(srcpath):
-                outpath = os.path.relpath(srcpath, basepath)
 
-                tdef.add_content(srcpath, outpath)
     else:
         srcpaths = [file for file in srcpaths if os.path.isfile(file)]
 
         srcpath = srcpaths[0]
         basepath, _ = os.path.split(srcpath)
-        tdef.add_content(srcpath)
 
-        if params.get('urllist', False):
-            tdef.set_urllist(params['urllist'])
+    fs = libtorrent.file_storage()
+    for f in srcpaths:
+        libtorrent.add_files(fs, f)
 
-    if params['name']:
-        tdef.set_name(params['name'])
+    torrent = libtorrent.create_torrent(fs, piece_size=params['piece length'])
     if params['comment']:
-        tdef.set_comment(params['comment'])
+        torrent.set_comment(params['comment'])
     if params['created by']:
-        tdef.set_created_by(params['created by'])
+        torrent.set_creator(params['created by'])
+    # main tracker
     if params['announce']:
-        tdef.set_tracker(params['announce'])
+        torrent.add_tracker(params['announce'])
+    # tracker list
     if params['announce-list']:
-        tdef.set_tracker_hierarchy(params['announce-list'])
-    if params['nodes']:  # mainline DHT
-        tdef.set_dht_nodes(params['nodes'])
+        tier = 1
+        for tracker in params['announce-list']:
+            torrent.add_tracker(params['announce'], tier=tier)
+            tier += 1
+    # DHT nodes
+    if params['nodes']:
+        for node in params['nodes']:
+            torrent.add_node(node)
+    # HTTP seeding
     if params['httpseeds']:
-        tdef.set_httpseeds(params['httpseeds'])
-    if params['encoding']:
-        tdef.set_encoding(params['encoding'])
-    if params['piece length']:
-        tdef.set_piece_length(params['piece length'])
+        torrent.add_http_seed(params['httpseeds'])
 
-    tdef.finalize(userabortflag=userabortflag, userprogresscallback=progressCallback)
+    if nrFiles == 1:
+        if params.get('urllist', False):
+            torrent.add_url_seed(params['urllist'])
+
+    t1 = torrent.generate()
+    torrent = libtorrent.bencode(t1)
 
     postfix = '.torrent'
 
-    torrentfilename = os.path.join(basepath, tdef.get_name() + postfix)
-    tdef.save(torrentfilename)
+    torrentfilename = os.path.join(basepath, t1['info']['name'] + postfix)
+    with open(torrentfilename, 'wb') as f:
+        f.write(torrent)
 
     # Inform higher layer we created torrent
     torrentfilenameCallback(basepath, basedir, torrentfilename)

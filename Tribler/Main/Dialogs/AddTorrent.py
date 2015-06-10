@@ -6,7 +6,7 @@ import os
 
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.widgets import _set_font
-from Tribler.Main.Dialogs.CreateTorrent import CreateTorrent
+from Tribler.Main.Dialogs.CreateTorrentDialog import CreateTorrentDialog
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 
 
@@ -165,7 +165,7 @@ class AddTorrent(wx.Dialog):
         configfile2 = os.path.join(self.guiutility.utility.session.get_state_dir(), 'recent_created')
         trackers = self.guiutility.channelsearch_manager.torrent_db.getRecentlyAliveTrackers()
 
-        dlg = CreateTorrent(None, configfile, configfile2, trackers, self.toChannel)
+        dlg = CreateTorrentDialog(None, configfile, configfile2, trackers, self.toChannel)
         if dlg.ShowModal() == wx.ID_OK:
             for destdir, correctedfilename, torrentfilename in dlg.createdTorrents:
                 # Niels: important do not pass fixtorrent to startDownload, used to

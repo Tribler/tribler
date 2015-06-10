@@ -72,10 +72,10 @@ class TestTunnelCommunitySuccess(TestTunnelBase):
             self.Call(1, do_asserts)
 
         def do_progress(download, start_time):
-            self.CallConditional(120,
+            self.CallConditional(240,
                                  lambda: download.get_progress() == 1.0,
                                  lambda: take_screenshot(time.time() - start_time),
-                                 'Anonymous download should be finished in 120 seconds (%.1f%% downloaded)' % (
+                                 'Anonymous download should be finished in 240 seconds (%.1f%% downloaded)' % (
                                      download.get_progress() * 100),
                                  on_fail
                                  )
