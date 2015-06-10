@@ -11,14 +11,26 @@ from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import blockingCallFromThread
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
-from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.dispersy.crypto import NoCrypto
+from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
 
 class TestTunnelBase(TestGuiAsServer):
 
     def startTest(self, callback, min_timeout=5, nr_relays=5, nr_exitnodes=3, crypto_enabled=True, bypass_dht=False):
-        self.getStateDir()  # getStateDir copies the bootstrap file into the statedir
+
+        # Create a global community identifier
+        from Tribler.dispersy.crypto import ECCrypto
+        eccrypto = ECCrypto()
+        ec = eccrypto.generate_key(u'NID_sect571r1')
+        master_key = eccrypto.key_to_bin(ec.pub())
+
+        # Monkey patching the master key for the HiddenTunnelCommunity
+        def test_get_master_members(cls, dispersy):
+            return [dispersy.get_member(public_key=master_key)]
+        HiddenTunnelCommunity.get_master_members = classmethod(test_get_master_members)
+
+        self.getStateDir()   # getStateDir copies the bootstrap file into the statedir
 
         def setup_proxies():
             tunnel_communities = []
@@ -53,16 +65,18 @@ class TestTunnelBase(TestGuiAsServer):
             # Connect the proxies to the Tribler instance
             for community in self.lm.dispersy.get_communities():
                 if isinstance(community, HiddenTunnelCommunity):
+                    self._logger.debug("Hidden tunnel community appended to the list")
                     tunnel_communities.append(community)
-                    community.settings.min_circuits = 3
 
             candidates = []
             for session in self.sessions:
+                self._logger.debug("Appending candidate from this session to the list")
                 dispersy = session.get_dispersy_instance()
                 candidates.append(Candidate(dispersy.lan_address, tunnel=False))
 
             for community in tunnel_communities:
                 for candidate in candidates:
+                    self._logger.debug("Add appended candidate as discovered candidate to this community")
                     # We are letting dispersy deal with addins the community's candidate to itself.
                     community.add_discovered_candidate(candidate)
 
