@@ -20,11 +20,10 @@ from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import (NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_INSERT,
                                      NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_ACT_UPNP)
-from Tribler.Core.torrentstore import TorrentStore
+
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
 from Tribler.Core.APIImplementation.TwistedRawServer import TwistedRawServer
-
 
 try:
     prctlimported = True
@@ -105,6 +104,7 @@ class TriblerLaunchMany(Thread):
             self.rawserver = TwistedRawServer()
 
             if self.session.get_torrent_store():
+                from Tribler.Core.torrentstore import TorrentStore
                 self.torrent_store = TorrentStore(self.session.get_torrent_store_dir())
 
             # torrent collecting: RemoteTorrentHandler
