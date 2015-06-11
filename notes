@@ -16,7 +16,7 @@ Tribler search
 Kivy	-	pro = python, java methodes aanroepbaar, 
 		neg = geen documentatie, gui niet herbruikbaar, 
 
-10 juni verslag: research, intro, probleem, sprint 1, sprint 2, moscow, aanpassen PvA
+10 juni verslag: research, intro, probleem, sprint 1, sprint x2, moscow, aanpassen PvA
 
 hamburger menu
 search icon
@@ -43,9 +43,17 @@ sprint 2:	polished prototype
 	
 	
 sprint 3:	product release sprint
-	google store page	
+	google store page
 	tribler search - txt + png
 	channel search
 	nfc file catch
 	my channel
 	(music support)
+
+	round buttons
+	youtube sleek gui feel	-	all  white, landscape thumbnails, contrasting colors
+	landscape camera
+	personal dot screen	
+		beam this file, only one file beamed at a time
+		rename (movie) name
+		delete
