@@ -232,7 +232,7 @@ class ABCApp(object):
             self.splash.tick('GUIUtility register')
             self.guiUtility.register()
 
-            self.frame = MainFrame(
+            self.frame = MainFrame(self,
                 None,
                 PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(),
                 self.splash.tick)
@@ -287,6 +287,13 @@ class ABCApp(object):
                     self.webUI.start()
                 except Exception:
                     print_exc()
+                    
+            self.emercoin_mgr = None
+            try:
+                from Tribler.Main.Emercoin.EmercoinMgr import EmercoinMgr
+                self.emercoin_mgr = EmercoinMgr(self.utility)
+            except Exception:
+                print_exc()
 
             wx.CallAfter(self.PostInit2)
 

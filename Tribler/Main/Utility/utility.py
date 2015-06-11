@@ -56,6 +56,12 @@ class Utility(object):
                             # WebUI
                             'use_webui': 0,
                             'webui_port': 8080,
+                            # Emercoin
+                            'use_emc':0,
+                            'emc_ip':'127.0.0.1',
+                            'emc_port':'8332',
+                            'emc_username':'tribler',
+                            'emc_password':'tribler',
                             'showsaveas': 1,
                             'i2ilistenport': 57891,
                             'mintray': 2 if sys.platform == 'win32' else 0,
