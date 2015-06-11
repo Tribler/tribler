@@ -139,11 +139,12 @@ class GuiImageManager(object):
                 if not os.path.isfile(flag_path):
                     msg = u"Not a file %s" % flag_path
                     self._logger.error(msg)
-                    raise Exception(msg)
+                    continue
+                
                 if not flag.endswith(u".png"):
                     msg = u"Not a PNG file %s" % flag_path
                     self._logger.error(msg)
-                    raise Exception(msg)
+                    continue
 
                 bitmap = wx.Bitmap(flag_path, wx.BITMAP_TYPE_ANY)
 
