@@ -178,6 +178,8 @@ class TopSearchPanel(FancyPanel):
         self.Thaw()
 
     def ShowSearching(self, max):
+        if not self or not self.go:
+            return
         self.go.SetRange(max + 16)
 
         cancelWorker(u"FakeResult")
