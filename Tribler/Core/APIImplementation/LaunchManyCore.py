@@ -342,11 +342,8 @@ class TriblerLaunchMany(object):
             return self.downloads.get(infohash, None)
 
     def download_exists(self, infohash):
-        self.sesslock.acquire()
-        try:
+        with self.sesslock:
             return infohash in self.downloads
-        finally:
-            self.sesslock.release()
 
     def update_trackers(self, infohash, trackers):
         """ Update the trackers for a download.
