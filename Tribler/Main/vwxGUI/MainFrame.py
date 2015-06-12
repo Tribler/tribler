@@ -115,7 +115,8 @@ class FileDropTarget(wx.FileDropTarget):
 
 class MainFrame(wx.Frame):
 
-    def __init__(self, parent, internalvideo, progress):
+    def __init__(self, abc, parent, internalvideo, progress):
+        self.abc = abc
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self._logger.info('GUI started')
@@ -378,6 +379,8 @@ class MainFrame(wx.Frame):
                 self.startDownloadFromMagnet(self.params[0], cmdline=True, selectedFiles=selectedFiles, vodmode=vod)
             elif url_filename.startswith("http"):
                 self.startDownloadFromUrl(self.params[0], cmdline=True, selectedFiles=selectedFiles, vodmode=vod)
+            elif url_filename.startswith("emc:"):
+                self.startDownloadFromEMC(self.params[0], cmdline=True, selectedFiles=selectedFiles, vodmode=vod)
             else:
                 self.startDownload(url_filename, cmdline=True, selectedFiles=selectedFiles, vodmode=vod)
 
@@ -414,9 +417,17 @@ class MainFrame(wx.Frame):
                 else:
                     wx.CallAfter(self.startDownload, *kwargs)
                 return True
-        except:
+        except: 
             print_exc()
         self.guiUtility.Notify("Download from url failed", icon=wx.ART_WARNING)
+        return False
+    
+    def startDownloadFromEMC(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False, hops=0):
+        if self.utility.read_config('use_emc'):
+            url = "magnet:"+url[4:] #replace emc: with magnet:
+            magnet_link = self.abc.emercoin_mgr.fetch_key(url)
+            
+            return self.startDownloadFromMagnet(magnet_link, destdir, cmdline, selectedFiles, vodmode, hops)
         return False
 
     def startDownload(self, torrentfilename=None, destdir=None, infohash=None, tdef=None, cmdline=False,

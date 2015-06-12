@@ -409,6 +409,11 @@ class GUIUtility(object):
             if self.frame.startDownloadFromMagnet(str(input)):
                 self.frame.top_bg.searchField.Clear()
                 self.ShowPage('my_files')
+                
+        elif input.startswith("emc:"):
+            if self.frame.startDownloadFromEMC(str(input)):
+                self.frame.top_bg.searchField.Clear()
+                self.ShowPage('my_files')
 
         else:
             keywords = split_into_keywords(input)

@@ -589,6 +589,8 @@ class Session(SessionConfigInterface):
         :param infohash: The given infohash binary.
         :return: True or False indicating if we have the torrent.
         """
+        if not self.get_torrent_store():
+            raise OperationNotEnabledByConfigurationException("torrent_store is not enabled")
         return hexlify(infohash) in self.lm.torrent_store
 
     def get_collected_torrent(self, infohash):
@@ -597,6 +599,8 @@ class Session(SessionConfigInterface):
         :param infohash: The given infohash binary.
         :return: The torrent data if exists, None otherwise.
         """
+        if not self.get_torrent_store():
+            raise OperationNotEnabledByConfigurationException("torrent_store is not enabled")
         return self.lm.torrent_store.get(hexlify(infohash))
 
     def save_collected_torrent(self, infohash, data):
@@ -605,6 +609,8 @@ class Session(SessionConfigInterface):
         :param infohash: The given infohash binary.
         :param data: The torrent file data.
         """
+        if not self.get_torrent_store():
+            raise OperationNotEnabledByConfigurationException("torrent_store is not enabled")
         self.lm.torrent_store.put(hexlify(infohash), data)
 
     def search_remote_torrents(self, keywords):

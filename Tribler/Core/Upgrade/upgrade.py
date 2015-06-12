@@ -7,7 +7,6 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION, LOWEST_SUPPORTED_DB_VERSION
 from Tribler.Core.Upgrade.db_upgrader import DBUpgrader, VersionNoLongerSupportedError
 from Tribler.Core.Upgrade.torrent_upgrade65 import TorrentMigrator65
-from Tribler.Core.torrentstore import TorrentStore
 from Tribler.dispersy.util import call_on_reactor_thread
 
 
@@ -53,6 +52,7 @@ class TriblerUpgrader(object):
         else:
             # upgrade
             try:
+                from Tribler.Core.torrentstore import TorrentStore
                 torrent_store = TorrentStore(self.session.get_torrent_store_dir())
                 torrent_migrator = TorrentMigrator65(
                     self.session, self.db, torrent_store=torrent_store, status_update_func=self.update_status)
