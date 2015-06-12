@@ -409,7 +409,7 @@ class GUIUtility(object):
             if self.frame.startDownloadFromMagnet(str(input)):
                 self.frame.top_bg.searchField.Clear()
                 self.ShowPage('my_files')
-                
+
         elif input.startswith("emc:"):
             if self.frame.startDownloadFromEMC(str(input)):
                 self.frame.top_bg.searchField.Clear()
@@ -568,7 +568,7 @@ class GUIUtility(object):
 
     @forceWxThread
     def Notify(self, title, msg='', icon=wx.ART_INFORMATION):
-        if not self.frame:
+        if not self or not self.frame or not self.frame.actlist:
             return
         if sys.platform == 'win32' and not self.frame.IsShownOnScreen():
             self.frame.tbicon.Notify(title, msg, icon)
