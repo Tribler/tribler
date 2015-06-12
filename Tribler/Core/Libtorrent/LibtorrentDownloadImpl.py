@@ -509,6 +509,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 # If we are in VOD mode and still need to download pieces and libtorrent
                 # says we are finished, reset the piece priorities to 1.
                 def reset_priorities():
+                    if not self:
+                        return
                     if self.handle.status().progress == 1.0:
                         self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
                 self.session.lm.rawserver.add_task(reset_priorities, 5)
