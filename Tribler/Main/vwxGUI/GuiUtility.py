@@ -568,6 +568,8 @@ class GUIUtility(object):
 
     @forceWxThread
     def Notify(self, title, msg='', icon=wx.ART_INFORMATION):
+        if not self.frame:
+            return
         if sys.platform == 'win32' and not self.frame.IsShownOnScreen():
             self.frame.tbicon.Notify(title, msg, icon)
         else:
