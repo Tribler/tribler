@@ -37,6 +37,15 @@ version = version_short + ' (' + product_name + ')'
 
 
 def warnIfDispersyThread(func):
+    """
+    We'd rather not be on the Dispersy thread, but if we are lets continue and
+    hope for the best. This was introduced after the database thread stuffs
+    caused deadlocks. We weren't sure we got all of them, so we implemented
+    warnings instead of errors because they probably wouldn't cause a deadlock,
+    but if they did we would have the warning somewhere.
+
+    Niels dixit.
+    """
     def invoke_func(*args, **kwargs):
         from twisted.python.threadable import isInIOThread
         from traceback import print_stack
