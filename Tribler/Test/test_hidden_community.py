@@ -84,7 +84,7 @@ class TestHiddenCommunity(TestTunnelBase):
             self.CallConditional(90, dht.is_set, lambda: self.Call(5, lambda: start_download(tf)),
                                  'Introduction point did not get announced')
 
-        self.startTest(setup_seeder, nr_relays=6, nr_exitnodes=4, bypass_dht=True)
+        self.startTest(setup_seeder, bypass_dht=True)
 
     def test_hidden_services_with_exit_nodes(self):
         def take_second_screenshot():
@@ -180,4 +180,4 @@ class TestHiddenCommunity(TestTunnelBase):
             self.CallConditional(90, dht.is_set, lambda: self.Call(5, lambda: start_download(tf)),
                                  'Introduction point did not get announced')
 
-        self.startTest(setup_seeder, nr_relays=6, nr_exitnodes=4, bypass_dht=True)
+        self.startTest(setup_seeder, bypass_dht=True)

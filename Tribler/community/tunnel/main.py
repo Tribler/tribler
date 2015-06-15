@@ -291,8 +291,9 @@ class LineHandler(LineReceiver):
         elif line.startswith('i'):
             # Introduce dispersy port from other main peer to this peer
             line_split = line.split(' ')
-            to_introduce = int(line_split[1])
-            self.anon_tunnel.community.add_discovered_candidate(Candidate(('127.0.0.1', to_introduce), tunnel=False))
+            to_introduce_ip = line_split[1]
+            to_introduce_port = int(line_split[2])
+            self.anon_tunnel.community.add_discovered_candidate(Candidate((to_introduce_ip, to_introduce_port), tunnel=False))
         elif line.startswith('d'):
             line_split = line.split(' ')
             filename = 'test_file' if len(line_split) == 1 else line_split[1]

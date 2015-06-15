@@ -17,18 +17,7 @@ from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
 class TestTunnelBase(TestGuiAsServer):
 
-    def startTest(self, callback, min_timeout=5, nr_relays=5, nr_exitnodes=3, crypto_enabled=True, bypass_dht=False):
-
-        # Create a global community identifier
-        from Tribler.dispersy.crypto import ECCrypto
-        eccrypto = ECCrypto()
-        ec = eccrypto.generate_key(u'NID_sect571r1')
-        master_key = eccrypto.key_to_bin(ec.pub())
-
-        # Monkey patching the master key for the HiddenTunnelCommunity
-        def test_get_master_members(cls, dispersy):
-            return [dispersy.get_member(public_key=master_key)]
-        HiddenTunnelCommunity.get_master_members = classmethod(test_get_master_members)
+    def startTest(self, callback, min_timeout=5, nr_relays=8, nr_exitnodes=4, crypto_enabled=True, bypass_dht=False):
 
         self.getStateDir()   # getStateDir copies the bootstrap file into the statedir
 
@@ -168,6 +157,31 @@ class TestTunnelBase(TestGuiAsServer):
         self.sessions = []
         self.session2 = None
 
+        # Create a global community identifier
+        from Tribler.dispersy.crypto import ECCrypto
+        eccrypto = ECCrypto()
+        ec = eccrypto.generate_key(u'NID_sect571r1')
+        master_key = eccrypto.key_to_bin(ec.pub())
+
+        # Monkey patching the master key for the HiddenTunnelCommunity
+        def test_get_master_members(cls, dispersy):
+            return [dispersy.get_member(public_key=master_key)]
+        self.original_get_master_members = HiddenTunnelCommunity.get_master_members
+        HiddenTunnelCommunity.get_master_members = classmethod(test_get_master_members)
+
+    def tearDown(self):
+        if self.session2:
+            self._shutdown_session(self.session2)
+
+        for session in self.sessions:
+            self._shutdown_session(session)
+
+        # Undo monkey patching of master key for the HiddenTunnelCommunity
+        HiddenTunnelCommunity.get_master_members = self.original_get_master_members
+
+        time.sleep(10)
+        TestGuiAsServer.tearDown(self)
+
     def quit(self):
         if self.session2:
             self._shutdown_session(self.session2)
@@ -179,13 +193,3 @@ class TestTunnelBase(TestGuiAsServer):
         self.sessions = []
 
         TestGuiAsServer.quit(self)
-
-    def tearDown(self):
-        if self.session2:
-            self._shutdown_session(self.session2)
-
-        for session in self.sessions:
-            self._shutdown_session(session)
-
-        time.sleep(10)
-        TestGuiAsServer.tearDown(self)

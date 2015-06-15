@@ -8,7 +8,7 @@ from Tribler.Test.test_tunnel_base import TestTunnelBase
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
 
-class TestTunnelCommunityFails(TestTunnelBase):
+class TestTunnelCommunityNegative(TestTunnelBase):
 
     def test_anon_download_exitnode_changeofmind(self):
 
@@ -38,7 +38,7 @@ class TestTunnelCommunityFails(TestTunnelBase):
             self.Call(20, lambda: changed_my_mind(tunnel_communities))
             self.Call(40, lambda d=download, s=start_time: check_progress(d, s))
 
-        self.startTest(do_create_local_torrent, nr_exitnodes=4, nr_relays=6)
+        self.startTest(do_create_local_torrent)
 
     def test_anon_download_without_relays(self):
         def take_second_screenshot():
