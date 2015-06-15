@@ -34,3 +34,15 @@ class TwistedRawServer(TaskManager):
             self.register_task(task_name, self._reactor.callLater(delay, reactor.callInThread, wrapper))
 
         reactor.callFromThread(delayed_call, delay, task_name)
+
+    def call(self, delay, fun, *args, **kwargs):
+        task_name = kwargs.pop("task_name", None)
+        def caller():
+            fun(*args, **kwargs)
+        self.add_task(caller, delay=delay, task_name=task_name)
+
+    def call_in_thread(self, delay, fun, *args, **kwargs):
+        task_name = kwargs.pop("task_name", None)
+        def caller():
+            fun(*args, **kwargs)
+        self.add_task_in_thread(caller, delay=delay, task_name=task_name)
