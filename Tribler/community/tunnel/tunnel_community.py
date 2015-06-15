@@ -316,6 +316,7 @@ class TunnelCommunity(Community):
         # QXMGqgGCt5YxNNYaby/vCFM+pc3eVbVR+dYc7SDWcjfkbXOLh29MV0/aRoKKFDKi
         # rShTTSOUsUg2qgvjlah5EYZqpYMlYGogxVc=
         # -----END PUBLIC KEY-----
+        print "Hidden tunnel community master member here!"
         master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403ba4a5a53c0aae73cda16a60f1ddc4b600bdc201b24c7ae349acbaf2b4a0510a97ac7f7cc31825a5e59a5da3bbdaa88d8549e01326ed9925c9229a35af88d645674deb3816c417306aa0182b7963134d61a6f2fef08533ea5cdde55b551f9d61ced20d67237e46d738b876f4c574fda46828a1432a2ad28534d2394b14836aa0be395a87911866aa58325606a20c557".decode("HEX")
         master = dispersy.get_member(public_key=master_key)
         return [master]
