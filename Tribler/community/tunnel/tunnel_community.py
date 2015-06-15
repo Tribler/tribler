@@ -476,6 +476,7 @@ class TunnelCommunity(Community):
                     self._logger.debug("Try to find a connectable node to set as required_endpoint for this circuit")
                     required_endpoint = (c.sock_addr[0], c.sock_addr[1], pubkey)
                     if self.candidate_is_connectable(c) and not exit_candidate.become_exit:
+                        # Prefer non exit candidate, because the real exit candidates are scarce, save their bandwidth
                         self._logger.debug("Valid connectable non-exit required_endpoint found, stop looking further")
                         break
 
@@ -1065,7 +1066,7 @@ class TunnelCommunity(Community):
                 self.increase_bytes_received(self.circuits[circuit_id], len(packet))
 
                 if TunnelConversion.could_be_dispersy(data):
-                    self._logger.error("Giving incoming data packet to dispersy")
+                    self._logger.debug("Giving incoming data packet to dispersy")
                     self.dispersy.on_incoming_packets(
                         [(Candidate(origin, False), data[TUNNEL_PREFIX_LENGHT:])],
                         False, source=u"circuit_%d" % circuit_id)
