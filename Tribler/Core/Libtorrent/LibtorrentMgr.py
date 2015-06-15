@@ -183,7 +183,7 @@ class LibtorrentMgr(object):
     def get_upload_rate_limit(self, hops=0):
         # Rate conversion due to the fact that we had a different system with Swift
         # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
-        libtorrent_rate =  self.get_session(hops).upload_rate_limit()
+        libtorrent_rate = self.get_session(hops).upload_rate_limit()
         return 0 if libtorrent_rate == -1 else (-1 if libtorrent_rate == 1 else libtorrent_rate / 1024)
 
     def set_download_rate_limit(self, rate, hops=0):
@@ -350,9 +350,9 @@ class LibtorrentMgr(object):
                     atp['url'] = magnet
                 else:
                     atp['info_hash'] = lt.big_number(infohash_bin)
-                try :
+                try:
                     handle = self.get_session().add_torrent(encode_atp(atp))
-                except TypeError, e:
+                except TypeError as e:
                     self._logger.warning("Failed to add torrent with infohash %s, using libtorrent version %s, "
                                          "attempting to use it as it is and hoping for the best",
                                          hexlify(infohash_bin), lt.version)
