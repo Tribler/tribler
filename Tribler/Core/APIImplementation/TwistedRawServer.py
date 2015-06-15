@@ -13,7 +13,7 @@ class TwistedRawServer(TaskManager):
         self._lock = RLock()
         self._logger = logging.getLogger(self.__class__.__name__)
 
-    def add_task(self, wrapper, delay, task_name=None):
+    def add_task(self, wrapper, delay=0, task_name=None):
         assert wrapper
 
         if not task_name:
