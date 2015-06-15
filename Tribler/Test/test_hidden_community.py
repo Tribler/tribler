@@ -39,16 +39,16 @@ class TestHiddenCommunity(TestTunnelBase):
             self.Call(1, do_asserts)
 
         def do_progress(download, start_time):
-            self.CallConditional(240,
+            self.CallConditional(180,
                                  lambda: download.get_progress() == 1.0,
                                  lambda: take_screenshot(time.time() - start_time),
-                                 'Hidden services download should be finished in 240 seconds (%.1f%% downloaded)' %
+                                 'Hidden services download should be finished in 180 seconds (%.1f%% downloaded)' %
                                  (download.get_progress() * 100),
                                  on_fail)
 
         def start_download(tf):
             start_time = time.time()
-            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=2)
+            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=1)
             self.guiUtility.ShowPage('my_files')
             do_progress(download, start_time)
 
@@ -68,7 +68,7 @@ class TestHiddenCommunity(TestTunnelBase):
             seeder_session.set_download_states_callback(download_states_callback, False)
 
             # Start seeding
-            tf = self.setupSeeder(hops=2, session=seeder_session)
+            tf = self.setupSeeder(hops=1, session=seeder_session)
 
             # Wait for the introduction point to announce itself to the DHT
             dht = Event()
@@ -129,14 +129,14 @@ class TestHiddenCommunity(TestTunnelBase):
 
             d.set_state_callback(cb, True)
 
-            self.CallConditional(240,
+            self.CallConditional(120,
                                  lambda: d.get_progress() == 1.0 and hs_progress.is_set() and en_progress.is_set(),
                                  lambda: take_screenshot(time.time() - start_time),
-                                 'Hidden services download should be finished in 240s', on_fail)
+                                 'Hidden services download should be finished in 120s', on_fail)
 
         def start_download(tf):
             start_time = time.time()
-            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=2)
+            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=1)
 
             # Inject IP of the 2nd seeder so that the download starts using both hidden services & exit tunnels
             self.Call(15, lambda: download.add_peer(("127.0.0.1", self.sessions[1].get_listen_port())))
@@ -161,7 +161,7 @@ class TestHiddenCommunity(TestTunnelBase):
             seeder_session.set_download_states_callback(download_states_callback, False)
 
             # Start seeding with hidden services
-            tf = self.setupSeeder(hops=2, session=seeder_session)
+            tf = self.setupSeeder(hops=1, session=seeder_session)
 
             # Start another seeder from which we'll download using exit nodes
             self.setupSeeder(hops=0, session=self.sessions[1])
