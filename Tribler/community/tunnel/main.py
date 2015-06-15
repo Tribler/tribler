@@ -109,7 +109,7 @@ class Tunnel(object):
 
     def start_tribler(self):
         config = SessionStartupConfig()
-        config.set_state_dir(os.path.join(BASE_DIR, ".Tribler-%d") % self.settings.socks_listen_ports[0])
+        config.set_state_dir(os.path.join(config.get_state_dir(), "tunnel-%d") % self.settings.socks_listen_ports[0])
         config.set_torrent_checking(False)
         config.set_multicast_local_peer_discovery(False)
         config.set_megacache(False)

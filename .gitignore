@@ -12,7 +12,6 @@
 /.project
 /.pydevproject
 /TAGS
-/Tribler/community/tunnel/.Tribler*
 /bootstraptribler.txt
 /core
 /debian/files
