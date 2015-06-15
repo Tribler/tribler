@@ -340,7 +340,7 @@ class LibtorrentMgr(object):
 
             cache_result = self._get_cached_metainfo(infohash)
             if cache_result:
-                callInThreadPool(callback, deepcopy(cache_result))
+                self.trsession.lm.rawserver.call_in_thread(0, callback, deepcopy(cache_result))
 
             elif infohash not in self.metainfo_requests:
                 # Flags = 4 (upload mode), should prevent libtorrent from creating files
@@ -420,7 +420,7 @@ class LibtorrentMgr(object):
                         self._add_cached_metainfo(infohash, metainfo)
 
                         for callback in callbacks:
-                            callInThreadPool(callback, deepcopy(metainfo))
+                            self.trsession.lm.rawserver.call_in_thread(0, callback, deepcopy(metainfo))
 
                         # let's not print the hashes of the pieces
                         debuginfo = deepcopy(metainfo)
@@ -429,7 +429,7 @@ class LibtorrentMgr(object):
 
                     elif timeout_callbacks and timeout:
                         for callback in timeout_callbacks:
-                            callInThreadPool(callback, infohash_bin)
+                            self.trsession.lm.rawserver.call_in_thread(0, callback, infohash_bin)
 
                 if handle:
                     self.get_session().remove_torrent(handle, 1)

@@ -151,7 +151,7 @@ class MetadataCommunity(Community):
                                                 u"data_list": msg.payload.data_list[:]
                                                 }
                                 if self._integrate_with_tribler:
-                                    callInThreadPool(self._check_metadata_thumbs, msg_metadata)
+                                    self._rth.session.lm.rawserver.call_in_thread(0, self._check_metadata_thumbs, msg_metadata)
 
                             self._rth.download_metadata(message.candidate, infohash, sub_file_path,
                                                         timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
