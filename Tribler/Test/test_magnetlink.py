@@ -22,6 +22,7 @@ from unittest.case import skip
 DEBUG = True
 EXTEND = chr(20)
 
+
 class MagnetHelpers(object):
 
     def __init__(self, tdef):
@@ -150,7 +151,7 @@ class TestMagnet(TestAsServer):
 
             event = threading.Event()
             magnet_link = 'magnet:?xt=urn:btih:%s' % hexlify(UBUNTU_1504_INFOHASH)
-            assert TorrentDef.retrieve_from_magnet(self.session, magnet_link, torrentdef_retrieved, timeout=120)
+            self.session.lm.ltmgr.get_metainfo(magnet_link, torrentdef_retrieved, timeout=120)
             assert event.wait(120)
 
         self.startTest(do_transfer)
@@ -202,13 +203,13 @@ class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
 
     @skip("not working, seems to return binary data")
     def test_good_transfer(self):
-        def torrentdef_retrieved(tdef):
+        def torrentdef_retrieved(meta_info):
+            tags["metainfo"] = meta_info
             tags["retrieved"].set()
-            tags["metainfo"] = tdef.get_metainfo()
 
         tags = {"retrieved": threading.Event()}
 
-        assert TorrentDef.retrieve_from_magnet(self.create_good_url(), torrentdef_retrieved, timeout=60)
+        self.session.lm.ltmgr.get_metainfo(self.create_good_url(), torrentdef_retrieved, timeout=60)
 
         def do_supply():
             # supply fake addresses (regular dht obviously wont work here)

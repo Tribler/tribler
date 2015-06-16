@@ -4,59 +4,94 @@ import logging
 import os
 import threading
 import time
+import tempfile
 from binascii import hexlify
 from copy import deepcopy
 from shutil import rmtree
 
 import libtorrent as lt
 
-from Tribler.Core.Utilities.twisted_thread import callInThreadPool
+from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
+from Tribler.Core.simpledefs import NTFY_REACHABLE, NTFY_INSERT
 from Tribler.Core.Utilities.utilities import parse_magnetlink
+from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED, NTFY_TORRENTS
-
 from Tribler.Core.version import version_id
-DEBUG = False
+
 DHTSTATE_FILENAME = "ltdht.state"
 METAINFO_CACHE_PERIOD = 5 * 60
-METAINFO_TMPDIR = 'metadata_tmpdir'
 
 
-class LibtorrentMgr(object):
+class LibtorrentMgr(TaskManager):
 
     def __init__(self, trsession):
+        super(LibtorrentMgr, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.trsession = trsession
         self.ltsessions = {}
-        self.notifier = trsession.notifier
-        self.dht_ready = False
 
-        main_ltsession = self.get_session()
+        self.notifier = trsession.notifier
 
         self.set_upload_rate_limit(0)
         self.set_download_rate_limit(0)
-        self.upnp_mapper = main_ltsession.start_upnp()
-
-        self.external_ip = None
 
         self.torrents = {}
 
+        self.upnp_mapping_dict = {}
+
+        self._dht_check_remaining_retries = 1
+        self.dht_ready = False
+
+        self.metadata_tmpdir = None
         self.metainfo_requests = {}
         self.metainfo_lock = threading.RLock()
         self.metainfo_cache = {}
 
-        self.trsession.lm.rawserver.add_task(self.process_alerts, 1)
-        self.trsession.lm.rawserver.add_task(self.reachability_check, 1)
-        self.trsession.lm.rawserver.add_task(self.monitor_dht, 5)
+    @blocking_call_on_reactor_thread
+    def initialize(self):
+        # start upnp
+        self.get_session().start_upnp()
 
-        self.upnp_mappings = {}
+        # make temporary directory for metadata collecting through DHT
+        self.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
 
-        # make tmp-dir to be used for dht collection
-        self.metadata_tmpdir = os.path.join(self.trsession.get_state_dir(), METAINFO_TMPDIR)
-        if not os.path.exists(self.metadata_tmpdir):
-            os.mkdir(self.metadata_tmpdir)
+        # register tasks
+        self.register_task(u'process_alerts', reactor.callLater(1, self._task_process_alerts))
+        self.register_task(u'check_reachability', reactor.callLater(1, self._task_check_reachability))
+        self.register_task(u'check_dht', reactor.callLater(5, self._task_check_dht))
+
+        self.register_task(u'task_cleanup_metacache',
+                           LoopingCall(self._task_cleanup_metainfo_cache)).start(60, now=True)
+
+    @blocking_call_on_reactor_thread
+    def shutdown(self):
+        self.cancel_all_pending_tasks()
+
+        # remove all upnp mapping
+        for upnp_handle in self.upnp_mapping_dict.itervalues():
+            self.get_session().delete_port_mapping(upnp_handle)
+        self.upnp_mapping_dict = None
+
+        self.get_session().stop_upnp()
+
+        # Save DHT state
+        dhtstate_file = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME), 'w')
+        dhtstate_file.write(lt.bencode(self.get_session().dht_state()))
+        dhtstate_file.close()
+
+        for ltsession in self.ltsessions.itervalues():
+            del ltsession
+        self.ltsessions = None
+
+        # remove metadata temporary directory
+        rmtree(self.metadata_tmpdir)
+        self.metadata_tmpdir = None
+
+        self.trsession = None
 
     def create_session(self, hops=0):
         settings = lt.session_settings()
@@ -132,20 +167,6 @@ class LibtorrentMgr(object):
 
         return self.ltsessions[hops]
 
-    def shutdown(self):
-        # Save DHT state
-        dhtstate_file = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME), 'w')
-        dhtstate_file.write(lt.bencode(self.get_session().dht_state()))
-        dhtstate_file.close()
-
-        for ltsession in self.ltsessions.itervalues():
-            del ltsession
-        self.ltsessions = {}
-
-        # Empty/remove metadata tmp-dir
-        if os.path.exists(self.metadata_tmpdir):
-            rmtree(self.metadata_tmpdir)
-
     def set_proxy_settings(self, ltsession, ptype, server=None, auth=None):
         proxy_settings = lt.proxy_settings()
         proxy_settings.type = lt.proxy_type(ptype)
@@ -194,12 +215,6 @@ class LibtorrentMgr(object):
         libtorrent_rate = self.get_session(hops).download_rate_limit()
         return 0 if libtorrent_rate == -1 else (-1 if libtorrent_rate == 1 else libtorrent_rate / 1024)
 
-    def get_external_ip(self):
-        return self.external_ip
-
-    def get_dht_nodes(self, hops=0):
-        return self.get_session(hops).status().dht_nodes
-
     def is_dht_ready(self):
         return self.dht_ready
 
@@ -244,38 +259,28 @@ class LibtorrentMgr(object):
         else:
             self._logger.debug("cannot remove invalid torrent")
 
-    def add_mapping(self, port, protocol='TCP'):
-        if self.upnp_mapper:
-            protocol_type = 2 if protocol == 'TCP' else 1
-            self.upnp_mappings[(port, protocol)] = self.upnp_mapper.add_mapping(protocol_type, port, port)
+    def add_upnp_mapping(self, port, protocol='TCP'):
+        protocol_name = protocol.lower()
+        assert protocol_name in (u'udp', u'tcp'), "protocl is neither UDP nor TCP: %s" % repr(protocol)
 
-    def delete_mapping(self, port, protocol='TCP'):
-        if self.upnp_mapper:
-            mapping = self.upnp_mappings[(port, protocol)]
-            self.upnp_mapper.delete_mapping(mapping)
+        protocol_type = 2 if protocol_name == 'tcp' else 1
+        upnp_handle = self.get_session().add_port_mapping(protocol_type, port, port)
+        self.upnp_mapping_dict[(port, protocol_name)] = upnp_handle
 
-    def delete_mappings(self):
-        if self.upnp_mapper:
-            for mapping in self.upnp_mappings.itervalues():
-                self.upnp_mapper.delete_mapping(mapping)
+        self._logger.info(u"uPnP port added : %s %s", port, protocol_name)
 
-    def process_alerts(self):
-        for ltsession in self.ltsessions.itervalues():
-            if ltsession:
-                alert = ltsession.pop_alert()
-                while alert:
-                    self.process_alert(alert)
-                    alert = ltsession.pop_alert()
+    def remove_upnp_mapping(self, port, protocol='TCP'):
+        protocol_name = protocol.lower()
+        assert protocol_name in (u'udp', u'tcp'), "protocl is neither UDP nor TCP: %s" % repr(protocol)
 
-        self.trsession.lm.rawserver.add_task(self.process_alerts, 1)
+        upnp_handle = self.upnp_mapping_dict[(port, protocol_name)]
+        self.get_session().delete_port_mapping(upnp_handle)
+        del self.upnp_mapping_dict[(port, protocol_name)]
+
+        self._logger.info(u"uPnP port removed: %s %s", port, protocol_name)
 
     def process_alert(self, alert):
         alert_type = str(type(alert)).split("'")[1].split(".")[-1]
-        if alert_type == 'external_ip_alert':
-            external_ip = str(alert).split()[-1]
-            if self.external_ip != external_ip:
-                self.external_ip = external_ip
-                self._logger.info('external IP is now %s', self.external_ip)
         handle = getattr(alert, 'handle', None)
         if handle:
             if handle.is_valid():
@@ -289,37 +294,6 @@ class LibtorrentMgr(object):
                     self._logger.debug("could not find torrent %s", infohash)
             else:
                 self._logger.debug("alert for invalid torrent")
-
-    def reachability_check(self):
-        if self.get_session() and self.get_session().status().has_incoming_connections:
-            self.trsession.lm.rawserver.add_task(self.trsession.lm.dialback_reachable_callback, 3)
-        else:
-            self.trsession.lm.rawserver.add_task(self.reachability_check, 10)
-
-    def monitor_dht(self, chances_remaining=1):
-        # Sometimes the dht fails to start. To workaround this issue we monitor the #dht_nodes, and restart if needed.
-        if self.get_session():
-            if self.get_dht_nodes() <= 25:
-                if self.get_dht_nodes() >= 5 and chances_remaining:
-                    self._logger.info("giving the dht a chance (%d, %d)",
-                                      self.get_session().status().dht_nodes, chances_remaining)
-                    self.trsession.lm.rawserver.add_task(lambda: self.monitor_dht(chances_remaining - 1), 5)
-                else:
-                    self._logger.info("restarting dht because not enough nodes are found (%d, %d)",
-                                      self.get_session().status().dht_nodes, chances_remaining)
-                    self.get_session().start_dht(None)
-                    self.trsession.lm.rawserver.add_task(self.monitor_dht, 10)
-            else:
-                self._logger.info("dht is working enough nodes are found (%d)", self.get_session().status().dht_nodes)
-                self.dht_ready = True
-                return
-        else:
-            self.trsession.lm.rawserver.add_task(self.monitor_dht, 10)
-
-    def get_peers(self, infohash, callback, timeout=30, timeout_callback=None):
-        def on_metainfo_retrieved(metainfo, infohash=infohash, callback=callback):
-            callback(infohash, metainfo.get('initial peers', []))
-        self.get_metainfo(infohash, on_metainfo_retrieved, timeout, timeout_callback=timeout_callback, notify=False)
 
     def get_metainfo(self, infohash_or_magnet, callback, timeout=30, timeout_callback=None, notify=True):
         if not self.is_dht_ready() and timeout > 5:
@@ -345,7 +319,7 @@ class LibtorrentMgr(object):
             elif infohash not in self.metainfo_requests:
                 # Flags = 4 (upload mode), should prevent libtorrent from creating files
                 atp = {'save_path': self.metadata_tmpdir, 'duplicate_is_error': True, 'paused': False,
-                       'auto_managed': False, 'flags': 4}
+                       'auto_managed': False, 'upload_mode': True}
                 if magnet:
                     atp['url'] = magnet
                 else:
@@ -436,27 +410,61 @@ class LibtorrentMgr(object):
                     if notify:
                         self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_CLOSE, infohash_bin)
 
-    def _clean_metainfo_cache(self):
-        oldest_valid_ts = time.time() - METAINFO_CACHE_PERIOD
-
-        for key, values in self.metainfo_cache.items():
-            ts, _ = values
-            if ts < oldest_valid_ts:
-                del self.metainfo_cache[key]
-
     def _get_cached_metainfo(self, infohash):
-        self._clean_metainfo_cache()
-
         if infohash in self.metainfo_cache:
-            return self.metainfo_cache[infohash][1]
+            return self.metainfo_cache[infohash]['meta_info']
 
     def _add_cached_metainfo(self, infohash, metainfo):
-        self._clean_metainfo_cache()
+        self.metainfo_cache[infohash] = {'time': time.time(),
+                                         'meta_info': metainfo}
 
-        if infohash not in self.metainfo_cache:
-            self.metainfo_cache[infohash] = (time.time(), metainfo)
+    def _task_cleanup_metainfo_cache(self):
+        oldest_time = time.time() - METAINFO_CACHE_PERIOD
+
+        for info_hash, values in self.metainfo_cache.items():
+            last_time, metainfo = values
+            if last_time < oldest_time:
+                del self.metainfo_cache[info_hash]
+
+    def _task_process_alerts(self):
+        for ltsession in self.ltsessions.itervalues():
+            if ltsession:
+                alert = ltsession.pop_alert()
+                while alert:
+                    self.process_alert(alert)
+                    alert = ltsession.pop_alert()
+
+        self.register_task(u'process_alerts', reactor.callLater(1, self._task_process_alerts))
+
+    def _task_check_reachability(self):
+        if self.get_session() and self.get_session().status().has_incoming_connections:
+            notify_reachability = lambda: self.trsession.uch.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
+            self.register_task(u'notify_reachability', reactor.callLater(3, notify_reachability))
         else:
-            self.metainfo_cache[infohash][1] = metainfo
+            self.register_task(u'check_reachability', reactor.callLater(10, self._task_check_reachability))
+
+    def _task_check_dht(self):
+        # Sometimes the dht fails to start. To workaround this issue we monitor the #dht_nodes, and restart if needed.
+        lt_session = self.get_session()
+        if lt_session:
+            dht_nodes = lt_session.status().dht_nodes
+            if dht_nodes <= 25:
+                if dht_nodes >= 5 and self._dht_check_remaining_retries > 0:
+                    self._logger.info(u"No enough DHT nodes %s, will try again", lt_session.status().dht_nodes)
+                    self._dht_check_remaining_retries -= 1
+                    self.register_task(u'check_dht', reactor.callLater(5, self._task_check_dht))
+                else:
+                    self._logger.info(u"No enough DHT nodes %s, will restart DHT", lt_session.status().dht_nodes)
+                    lt_session.start_dht(None)
+                    self._dht_check_remaining_retries = 1
+                    self.register_task(u'check_dht', reactor.callLater(10, self._task_check_dht))
+            else:
+                self._logger.info("dht is working enough nodes are found (%d)", self.get_session().status().dht_nodes)
+                self.dht_ready = True
+                return
+        else:
+            self._dht_check_remaining_retries = 1
+            self.register_task(u'check_dht', reactor.callLater(10, self._task_check_dht))
 
 
 def encode_atp(atp):

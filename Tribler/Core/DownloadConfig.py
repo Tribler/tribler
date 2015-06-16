@@ -18,7 +18,7 @@ from types import StringType
 
 from Tribler.Core.simpledefs import DLMODE_VOD, UPLOAD
 from Tribler.Core.defaults import dldefaults
-from Tribler.Core.Base import Serializable, Copyable
+from Tribler.Core.Base import Copyable
 from Tribler.Core.osutils import get_home_dir
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 
@@ -147,7 +147,7 @@ class DownloadConfigInterface(object):
             return self.dlconfig.get('downloadconfig', 'max_download_rate')
 
 
-class DownloadStartupConfig(DownloadConfigInterface, Serializable, Copyable):
+class DownloadStartupConfig(DownloadConfigInterface, Copyable):
 
     """
     (key,value) pair config of per-torrent runtime parameters,

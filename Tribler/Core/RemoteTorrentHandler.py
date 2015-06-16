@@ -457,15 +457,16 @@ class MagnetRequester(Requester):
             self._logger.debug(u"requesting %s priority %s through magnet link %s",
                                infohash_str, self._priority, magnetlink)
 
-            TorrentDef.retrieve_from_magnet(self._session, magnetlink, self._success_callback, timeout=self.TIMEOUT,
-                                            timeout_callback=self._failure_callback, silent=True)
+            self._session.lm.ltmgr.get_metainfo(magnetlink, self._success_callback,
+                                                timeout=self.TIMEOUT, timeout_callback=self._failure_callback)
             self._running_requests.append(infohash)
 
     @call_on_reactor_thread
-    def _success_callback(self, tdef):
+    def _success_callback(self, meta_info):
         """
         The callback that will be called by LibtorrentMgr when a download was successful.
         """
+        tdef = TorrentDef.load_from_dict(meta_info)
         assert tdef.get_infohash() in self._running_requests
 
         infohash = tdef.get_infohash()

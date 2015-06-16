@@ -12,9 +12,7 @@ from libtorrent import bencode, bdecode
 
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Core.defaults import TDEF_DEFAULTS
-from Tribler.Core.exceptions import (OperationNotPossibleAtRuntimeException, TorrentDefNotFinalizedException,
-                                     NotYetImplementedException)
-from Tribler.Core.Base import ContentDefinition, Serializable, Copyable
+from Tribler.Core.exceptions import TorrentDefNotFinalizedException, NotYetImplementedException
 import Tribler.Core.APIImplementation.maketorrent as maketorrent
 
 from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL, parse_magnetlink
@@ -22,7 +20,7 @@ from Tribler.Core.Utilities.unicode import dunno2unicode
 from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 
 
-class TorrentDef(ContentDefinition, Serializable, Copyable):
+class TorrentDef(object):
 
     """
     Definition of a torrent, that is, all params required for a torrent file,
@@ -44,7 +42,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.readonly = False
         if input is not None:  # copy constructor
             self.input = input
             # self.metainfo_valid set in copy()
@@ -127,39 +124,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
     _create = staticmethod(_create)
 
     @staticmethod
-    def retrieve_from_magnet(session, url, callback, timeout=30.0, timeout_callback=None, silent=False):
-        """
-        If the URL conforms to a magnet link, the .torrent info is
-        downloaded and converted into a TorrentDef.  The resulting
-        TorrentDef is provided through CALLBACK.
-
-        Returns True when attempting to obtain the TorrentDef, in this
-        case CALLBACK will ONLY be called if the TorrentDef has been
-        obtained successfully.  Otherwise False is returned, in this
-        case CALLBACK will not be called.
-
-        The thread making the callback should be used very briefly.
-        """
-        assert isinstance(url, str), "URL has invalid type: %s" % type(url)
-        assert callable(callback), "CALLBACK must be callable"
-
-        def metainfo_retrieved(metadata):
-            try:
-                tdef = TorrentDef.load_from_dict(metadata)
-            except UnicodeDecodeError:
-                if not silent:
-                    raise
-                return
-            if tdef:
-                callback(tdef)
-        libtorrent_manager = session.get_libtorrent_process()
-        if libtorrent_manager:
-            libtorrent_manager.get_metainfo(url, metainfo_retrieved,
-                                            timeout=timeout, timeout_callback=timeout_callback)
-            return True
-        return False
-
-    @staticmethod
     def load_from_url(url):
         """
         If the URL starts with 'http:' load a BT .torrent or Tribler .tstream
@@ -225,9 +189,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         @param playtime (optional) String representing the duration of the
         multimedia file when played, in [hh:]mm:ss format.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         s = os.stat(inpath)
         d = {'inpath': inpath, 'outpath': outpath, 'playtime': playtime, 'length': s.st_size}
         self.input['files'].append(d)
@@ -240,9 +201,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         @param inpath Absolute name of file or directory on local filesystem,
         as Unicode string.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         for d in self.input['files']:
             if d['inpath'] == inpath:
                 self.input['files'].remove(d)
@@ -263,9 +221,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         """ Sets the tracker (i.e. the torrent file's 'announce' field).
         @param url The announce URL.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         if not isValidURL(url):
             raise ValueError("Invalid URL")
 
@@ -285,9 +240,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         at http://www.bittornado.com/docs/multitracker-spec.txt
         @param hier A hierarchy of trackers as a list of lists.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         # TODO: check input, in particular remove / at end
         newhier = []
         if not isinstance(hier, ListType):
@@ -335,9 +287,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         See http://www.bittorrent.org/beps/bep_0005.html
         @param nodes A list of [hostname,port] lists.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         # Check input
         if not isinstance(nodes, ListType):
             raise ValueError("nodes not a list")
@@ -362,9 +311,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         """ Set comment field.
         @param value A Unicode string.
          """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         self.input['comment'] = value
         self.metainfo_valid = False
 
@@ -382,9 +328,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         """ Set 'created by' field.
         @param value A Unicode string.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         self.input['created by'] = value
         self.metainfo_valid = False
 
@@ -398,9 +341,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         http://www.bittorrent.org/beps/bep_0019.html
         @param value A list of URLs.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         for url in value:
             if not isValidURL(url):
                 raise ValueError("Invalid URL: " + repr(url))
@@ -418,9 +358,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         http://www.bittorrent.org/beps/bep_0017.html
         @param value A list of URLs.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         for url in value:
             if not isValidURL(url):
                 raise ValueError("Invalid URL: " + repr(url))
@@ -441,9 +378,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         (value 0).
         @param value A number of bytes as per the text.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         if not (isinstance(value, IntType) or isinstance(value, LongType)):
             raise ValueError("Piece length not an int/long")
 
@@ -494,9 +428,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         @param userprogresscallback Function accepting a fraction as first
         argument.
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         if self.metainfo_valid:
             return
 
@@ -558,9 +489,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         """ Set the name of this torrent
         @param name name of torrent as String
         """
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         self.input['name'] = name
         self.metainfo_valid = False
 
@@ -644,8 +572,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         return len(self.encode())
 
     def encode(self):
-        if not self.readonly:
-            self.finalize()
+        self.finalize()
 
         # Boudewijn, 10/09/10: do not save the 'initial peers'.  (1)
         # they should not be saved, as they are unlikely to be there
@@ -806,9 +733,6 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
         return int(self.metainfo['info'].get('private', 0)) == 1
 
     def set_private(self, private=True):
-        if self.readonly:
-            raise OperationNotPossibleAtRuntimeException()
-
         self.input['private'] = 1 if private else 0
 
     #
@@ -832,7 +756,7 @@ class TorrentDef(ContentDefinition, Serializable, Copyable):
             raise ValueError("File not found in single-file torrent")
 
 
-class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
+class TorrentDefNoMetainfo(object):
 
     def __init__(self, infohash, name, url=None):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
@@ -873,6 +797,3 @@ class TorrentDefNoMetainfo(ContentDefinition, Serializable, Copyable):
             _, _, trs = parse_magnetlink(self.url)
             return tuple(trs)
         return ()
-
-    def copy(self):
-        return TorrentDefNoMetainfo(self.infohash, self.name)

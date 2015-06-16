@@ -979,11 +979,13 @@ class ManageChannelFilesManager(BaseManager):
 
     def startDownloadFromMagnet(self, url, *args, **kwargs):
         try:
-            return TorrentDef.retrieve_from_magnet(self.guiutility.utility.session, url, self.AddTDef, timeout=300)
+            callback = lambda meta_info: self.AddTDef(TorrentDef.load_from_dict(meta_info))
+            self.guiutility.utility.session.lm.ltmgr.get_metainfo(url, callback, timeout=300)
+            return True
 
         except:
             print_exc()
-        return False
+            return False
 
     def startDownload(self, torrentfilename, *args, **kwargs):
         try:
