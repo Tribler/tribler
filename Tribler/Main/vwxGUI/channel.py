@@ -1001,29 +1001,6 @@ class ManageChannelFilesManager(BaseManager):
             print_exc()
         return False
 
-    def startDownloads(self, filenames, *args, **kwargs):
-        torrentdefs = []
-
-        while len(filenames) > 0:
-            for torrentfilename in filenames[:500]:
-                try:
-                    # if fixtorrent not in kwargs -> new torrent created
-                    tdef = TorrentDef.load(torrentfilename)
-                    if 'fixtorrent' not in kwargs:
-                        download = self.guiutility.frame.startDownload(torrentfilename=torrentfilename,
-                                                            destdir=kwargs.get( 'destdir', None),
-                                                            correctedFilename=kwargs.get('correctedFilename', None))
-
-                    torrentdefs.append(tdef)
-                except:
-                    pass
-
-            if not self.AddTDefs(torrentdefs):
-                return False
-
-            filenames = filenames[500:]
-        return True
-
     def startDownloadFromTorrent(self, torrent):
         self.channelsearch_manager.createTorrent(self.channel, torrent)
         return True
