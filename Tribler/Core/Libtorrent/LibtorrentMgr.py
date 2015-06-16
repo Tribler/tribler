@@ -438,7 +438,7 @@ class LibtorrentMgr(TaskManager):
 
     def _task_check_reachability(self):
         if self.get_session() and self.get_session().status().has_incoming_connections:
-            notify_reachability = lambda: self.trsession.uch.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
+            notify_reachability = lambda: self.notifier.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
             self.register_task(u'notify_reachability', reactor.callLater(3, notify_reachability))
         else:
             self.register_task(u'check_reachability', reactor.callLater(10, self._task_check_reachability))
