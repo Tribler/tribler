@@ -569,14 +569,6 @@ class Channel(Helper):
                 if torrent.infohash == infohash:
                     return torrent
 
-    def loadPopularTorrentNames(self, num_torrents, force_refresh=False):
-        if not self.popular_torrents or force_refresh:
-            from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-            from Tribler.Main.vwxGUI.SearchGridManager import ChannelManager
-            results = ChannelManager.getInstance().getMostPopularTorrentsFromChannel(
-                self.id, ['Torrent.Name'], family_filter=GUIUtility.getInstance().getFamilyFilter(), limit=num_torrents)
-            self.popular_torrents = [result[0] for result in results]
-
     def __eq__(self, other):
         if other:
             if isinstance(other, Channel):
