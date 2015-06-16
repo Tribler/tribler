@@ -2459,12 +2459,6 @@ class ChannelCastDBHandler(BasicDBHandler):
             return self._channel_id
         return self._db.fetchone('SELECT id FROM Channels WHERE peer_id ISNULL LIMIT 1')
 
-    def getSubscribersCount(self, channel_id):
-        """returns the number of subscribers in integer format"""
-
-        nr_favorites, nr_spam = self.votecast_db.getPosNegVotes(channel_id)
-        return nr_favorites
-
     def getTorrentMarkings(self, channeltorrent_id):
         counts = {}
         sql = "SELECT type, peer_id FROM TorrentMarkings WHERE channeltorrent_id = ?"
