@@ -493,13 +493,6 @@ class GUIUtility(object):
 
         startWorker(None, db_callback, priority=GUI_PRI_DISPERSY)
 
-    def showChannelFromPermid(self, channel_permid):
-        def db_callback():
-            channel = self.channelsearch_manager.getChannelByPermid(channel_permid)
-            self.showChannel(channel)
-
-        startWorker(None, db_callback, priority=GUI_PRI_DISPERSY)
-
     @forceWxThread
     def showChannel(self, channel):
         if channel:
@@ -509,7 +502,7 @@ class GUIUtility(object):
             self.ShowPage('selectedchannel')
 
             if isinstance(channel, RemoteChannel):
-                self.showChannelFromPermid(channel.permid)
+                self.showChannelFromId(channel.id)
 
     def showChannels(self):
         self.frame.actlist.selectTab('channels')

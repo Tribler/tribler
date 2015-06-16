@@ -2316,14 +2316,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         if len(channels) > 0:
             return channels[0]
 
-    def getChannelFromPermid(self, channel_permid):
-        sql = "Select C.id, C.name, C.description, C.dispersy_cid, " + \
-              "C.modified, C.nr_torrents, C.nr_favorite, C.nr_spam " + \
-              "FROM Channels as C, Peer WHERE C.peer_id = Peer.peer_id AND Peer.permid = ?"
-        channels = self._getChannels(sql, (channel_permid,))
-        if len(channels) > 0:
-            return channels[0]
-
     def getChannels(self, channel_ids):
         channel_ids = "','".join(map(str, channel_ids))
         sql = "Select id, name, description, dispersy_cid, modified, " + \

@@ -1029,10 +1029,6 @@ class ChannelManager(object):
         channel = self.channelcast_db.getChannel(channel_id)
         return self._getChannel(channel)
 
-    def getChannelByPermid(self, channel_permid):
-        channel = self.channelcast_db.getChannelFromPermid(channel_permid)
-        return self._getChannel(channel)
-
     def _getChannel(self, channel):
         if channel:
             channel = self._createChannel(channel)
