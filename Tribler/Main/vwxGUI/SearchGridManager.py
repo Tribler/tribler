@@ -1346,9 +1346,6 @@ class ChannelManager(object):
 
         return returnList
 
-    def getSubscribersCount(self, channel):
-        return self.channelcast_db.getSubscribersCount(channel.id)
-
     def _applyFF(self, hits):
         enabled_category_keys = [key for key, _ in self.category.getCategoryNames()]
 
