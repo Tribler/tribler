@@ -1017,18 +1017,6 @@ class ManageChannelFilesManager(BaseManager):
             return True
         return False
 
-    def AddTDefs(self, tdefs):
-        if tdefs:
-            self.channelsearch_manager.createTorrentsFromDefs(self.channel.id, tdefs)
-            if not self.channel.isMyChannel():
-                notification = "%d new torrents added to %s's channel" % (len(tdefs), self.channel.name)
-            else:
-                notification = '%d new torrents added to My Channel' % len(tdefs)
-            self.guiutility.Notify(notification, icon=wx.ART_INFORMATION)
-
-            return True
-        return False
-
     def DoExport(self, target_dir):
         if os.path.isdir(target_dir):
             _, _, torrents = self.channelsearch_manager.getTorrentsFromChannel(self.channel, filterTorrents=False)
