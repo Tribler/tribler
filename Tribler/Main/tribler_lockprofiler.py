@@ -1,9 +1,10 @@
-import sys
 import logging
-
+import sys
 from threading import current_thread, local, setprofile
 from time import time
+
 from Tribler.Main.tribler import run
+
 
 stats = {}
 threadlocal = local()
@@ -28,7 +29,7 @@ def lock_profile(frame, event, arg):
             if len(threadlocal.lines) > 35:
                 threadlocal.lines = threadlocal.lines[1:]
 
-    if arg and getattr(arg, '__name__', None):
+    if arg is not None and getattr(arg, '__name__', None):
         callname = arg.__name__
 
         if callname in ['acquire', 'release', 'wait']:
