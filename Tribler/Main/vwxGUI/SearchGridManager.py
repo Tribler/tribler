@@ -1164,9 +1164,6 @@ class ChannelManager(object):
             playlist = Playlist(*hit[1:] + (torrent.channel,))
             torrent.playlist = playlist
 
-    def getMostPopularTorrentsFromChannel(self, channel_id, keys, family_filter=False, limit=None):
-        return self.channelcast_db.getMostPopularTorrentsFromChannel(channel_id, keys, limit, family_filter)
-
     def _createTorrent(self, tuple, channel, playlist=None, collectedOnly=True, addDs=True):
         if tuple:
             ct = ChannelTorrent(*tuple[1:] + [channel, playlist])
