@@ -563,9 +563,6 @@ class AllChannelCommunity(Community):
             raise RuntimeError("Unknown dispersy_id")
         return str(packet)
 
-    def _drop_all_newer(self, dispersy_id):
-        self._channelcast_db.drop_all_newer(dispersy_id)
-
 
 class ChannelCastDBStub():
 
