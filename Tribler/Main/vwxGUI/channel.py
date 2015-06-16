@@ -1799,12 +1799,6 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
             manager.createPlaylist(name, description, infohashes)
         dlg.Destroy()
 
-#    def OnRemoveAll(self, event):
-#        dlg = wx.MessageDialog(None, 'Are you sure you want to remove all playlists from your channel?', 'Remove playlists', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
-#        if dlg.ShowModal() == wx.ID_YES:
-#            self.GetManager().RemoveAllItems()
-#        dlg.Destroy()
-
     def OnRemoveSelected(self, playlist_id, panel):
         dlg = wx.MessageDialog(
             None, 'Are you sure you want to remove this playlist from your channel?',
