@@ -1112,10 +1112,6 @@ class ChannelManager(object):
         data = self.channelcast_db.getTorrentFromChannelId(channel.id, infohash, CHANNEL_REQ_COLUMNS)
         return self._createTorrent(data, channel, collectedOnly=collectedOnly)
 
-    def getChannnelTorrents(self, infohash, filterTorrents=False):
-        hits = self.channelcast_db.getChannelTorrents(infohash, CHANNEL_REQ_COLUMNS)
-        return self._createTorrents(hits, filterTorrents)
-
     def getTorrentFromChannelTorrentId(self, channel, channeltorrent_id, collectedOnly=True):
         data = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, CHANNEL_REQ_COLUMNS)
         return self._createTorrent(data, channel, collectedOnly=collectedOnly)
