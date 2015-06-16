@@ -2060,24 +2060,6 @@ class ChannelCastDBHandler(BasicDBHandler):
             sql += " LIMIT %d" % limit
         return self._db.fetchall(sql, (channel_id,))
 
-    def getMostPopularTorrentsFromChannel(self, channel_id, isDispersy, keys, limit=None):
-        if isDispersy:
-            sql = "SELECT " + ", ".join(keys) + """ FROM Torrent, ChannelTorrents
-                  WHERE Torrent.torrent_id = ChannelTorrents.torrent_id
-                  AND channel_id = ?
-                  GROUP BY Torrent.torrent_id
-                  ORDER BY ChannelTorrents.time_stamp DESC"""
-        else:
-            sql = "SELECT " + ", ".join(keys) + """ FROM CollectedTorrent as Torrent, ChannelTorrents
-                  WHERE Torrent.torrent_id = ChannelTorrents.torrent_id
-                  AND channel_id = ?
-                  GROUP BY Torrent.torrent_id
-                  ORDER BY ChannelTorrents.time_stamp DESC"""
-
-        if limit:
-            sql += " LIMIT %d" % limit
-        return self._db.fetchall(sql, (channel_id,))
-
     def getTorrentsFromPlaylist(self, playlist_id, keys, limit=None):
         sql = "SELECT " + ", ".join(keys) + """ FROM Torrent, ChannelTorrents, PlaylistTorrents
               WHERE Torrent.torrent_id = ChannelTorrents.torrent_id
