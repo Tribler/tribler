@@ -1,42 +1,44 @@
 <HomeScreen>
 	RelativeLayout:
-		id: layer
 		BoxLayout:
 			orientation: 'vertical'
-			id: homescreen
 			AnchorLayout:
-				canvas:
-					Color:
-						rgba: 0.5,0.5,0.5,1
-					Rectangle:
-						pos: self.pos
-						size: self.size
-
+				anchor_x: 'center'
+				anchor_y: 'top'
 				size_hint: 1,None
 				height: '1cm'
-				min_height: '1cm'
-				anchor_x: 'right'
-				Button:
-					size_hint: None, 1
-					width: self.height
-					on_release: root.openGearMenu()
-					background_color: 0.5,0.5,0.5,1
-					background_normal:''
-					BoxLayout:
+				canvas:
+					Color:
+						rgba: 1,0.1,0.1,1
+					Rectangle:
+						pos: self.pos
+						size: self.size	
+				Button: 
+					size_hint: None, None
+					height: '1cm'
+					width: '1cm'
+					background_normal: 'img/but_normal.png'
+					background_down: 'img/but_down.png'
+					border:	30,30,30,30
+					on_release: app.swap_to(app.SearchScr)
+					BoxLayout:	
 						pos: self.parent.pos
 						size: self.parent.size
 						Image:
-							source: './img/ic_more_vert_white_48dp.png'
-
+							source: './img/ic_search_white_48dp.png'
 			ScrollView:
+				anchor_x: 'center'
+				anchor_y: 'center'
 				StackLayout:
 					size_hint: 1, None
 					height: self.minimum_height
 					id: fileList
 					spacing: '0.1cm'
-
-			BoxLayout:
-				size_hint: 1, None
+		AnchorLayout:
+			anchor_x:'center'
+			anchor_y:'bottom'
+			Button:
+				size_hint: None,None
 				height: '1cm'
 				Button:
 					id:button3
@@ -48,6 +50,73 @@
 						pos: self.parent.pos
 						Image:
 							source: './img/ic_videocam_white_48dp.png'
+				width: '1cm'
+				background_normal: 'img/but_normal.png'
+				background_down: 'img/but_down.png'
+				border:	30,30,30,30
+				on_release: root.startCamera()
+				BoxLayout:
+					pos: self.parent.pos
+					size: self.parent.size
+					Image:
+						source: './img/ic_videocam_white_48dp.png'
+
+
+
+#<HomeScreen>			
+#	AnchorLayout:
+#		id: layer
+#		ScrollView:
+#			StackLayout:
+#				size_hint: 1, None
+#				height: self.minimum_height
+#				id: fileList
+#				spacing: '0.1cm'
+#	
+#
+#		AnchorLayout:
+#			anchor_y: 'top'
+#			orientation: 'vertical'
+#			id: homescreen
+#			AnchorLayout:
+#				opacity: 0.5
+#				
+#				canvas:
+#					Color:
+#						rgba: 0.5,0.5,0.5,1
+#					Rectangle:
+#						pos: self.pos
+#						size: self.size
+#				size_hint: 1,None
+#				height: '1cm'
+#				min_height: '1cm'
+#				anchor_x: 'right'
+#				Button:
+#					size_hint: None, 1
+#					width: self.height
+#					on_release: root.openGearMenu()
+#					background_color: 0.5,0.5,0.5,1
+#					background_normal:''
+#					BoxLayout:
+#						pos: self.parent.pos
+#						size: self.parent.size
+#						Image:
+#							source: './img/ic_more_vert_white_48dp.png'
+#		BoxLayout:
+#			anchor_y: 'bottom'
+#			opacity: 0.5
+#			size_hint: 1, None
+#			height: '1cm'
+#			Button: 
+#				id:button3
+#				background_color: 0.5,0.5,0.5,1
+#				background_normal:''
+#				on_release: root.startCamera()
+#			BoxLayout:
+#				size: self.parent.size
+#				pos: self.parent.pos
+#				Image:
+#					source: './img/ic_videocam_white_48dp.png'
 <FileWidget>
 	canvas:
 		Color:
