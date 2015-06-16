@@ -17,7 +17,7 @@ from twisted.internet.threads import blockingCallFromThread
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Session import Session
-from Tribler.Core.Utilities.twisted_thread import reactor
+from Tribler.Core.Utilities.twisted_thread import callInThreadPool, reactor
 from Tribler.Core.permid import read_keypair
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Main.globals import DefaultDownloadStartupConfig
@@ -158,7 +158,7 @@ class Tunnel(object):
         return (4.0, [])
 
     def stop(self):
-        self.session.uch.perform_usercallback(self._stop)
+        self.session.lm.rawserver.call(0, self._stop)
 
     def _stop(self):
         if self.clean_messages_lc:
@@ -287,20 +287,7 @@ class LineHandler(LineReceiver):
             dscfg.set_hops(1)
             dscfg.set_dest_dir(cur_path)
 
-            def start_seeding():
-                def cb(ds):
-                    logger.info('Seed infohash=%s, up=%s, progress=%s, status=%s, seedpeers=%s, candidates=%d' %
-                                (tdef.get_infohash().encode('hex')[:10],
-                                 ds.get_current_speed('up'),
-                                 ds.get_progress(),
-                                 dlstatus_strings[ds.get_status()],
-                                 sum(ds.get_num_seeds_peers()),
-                                 sum(1 for _ in anon_tunnel.community.dispersy_yield_verified_candidates())))
-                    return 1.0, False
-                download = anon_tunnel.session.start_download(tdef, dscfg)
-                download.set_state_callback(cb, delay=1)
-
-            anon_tunnel.session.uch.perform_usercallback(start_seeding)
+            anon_tunnel.session.lm.rawserver.call(0, anon_tunnel.session.start_download, tdef, dscfg)
         elif line.startswith('i'):
             # Introduce dispersy port from other main peer to this peer
             line_split = line.split(' ')
@@ -332,7 +319,7 @@ class LineHandler(LineReceiver):
                 download = anon_tunnel.session.start_download(tdef, dscfg)
                 download.set_state_callback(cb, delay=1)
 
-            anon_tunnel.session.uch.perform_usercallback(start_download)
+            anon_tunnel.session.lm.rawserver.call(0, start_download)
 
         elif line == 'q':
             anon_tunnel.stop()

@@ -286,8 +286,7 @@ class TunnelCommunity(Community):
         self.socks_server.start()
 
         if self.trsession:
-            from Tribler.Core.CacheDB.Notifier import Notifier
-            self.notifier = Notifier.getInstance()
+            self.notifier = self.trsession.notifier
             self.trsession.lm.tunnel_community = self
 
     def self_is_connectable(self):

@@ -26,7 +26,7 @@ from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _
 logger = logging.getLogger(__name__)
 
 
-def warnDispersyThread(func):
+def warnIfNotDispersyThread(func):
     def invoke_func(*args, **kwargs):
         if not isInIOThread():
             logger.critical("This method MUST be called on the DispersyThread")
@@ -1122,7 +1122,7 @@ class ChannelCommunity(Community):
             self._channelcast_db.on_dynamic_settings(self._channel_id)
 
     # helper functions
-    @warnDispersyThread
+    @warnIfNotDispersyThread
     def _get_latest_channel_message(self):
         channel_meta = self.get_meta_message(u"channel")
 
@@ -1231,7 +1231,7 @@ class ChannelCommunity(Community):
             (type_id, playlist_id, self._channel_id))
         return self._determine_latest_modification(dispersy_ids)
 
-    @warnDispersyThread
+    @warnIfNotDispersyThread
     def _determine_latest_modification(self, list):
 
         if len(list) > 0:
@@ -1271,7 +1271,7 @@ class ChannelCommunity(Community):
                 # 4. return first message
                 return conflicting_messages[0]
 
-    @warnDispersyThread
+    @warnIfNotDispersyThread
     def _get_packet_id(self, global_time, mid):
         if global_time and mid:
             try:

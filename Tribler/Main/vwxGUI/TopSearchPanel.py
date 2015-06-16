@@ -187,6 +187,9 @@ class TopSearchPanel(FancyPanel):
 
     @forceWxThread
     def FakeResult(self, times=1):
+        if not self:
+            return
+
         newValue = min(self.go.GetValue() + 1, self.go.GetRange())
         if times < 16:
             self.go.SetValue(newValue)

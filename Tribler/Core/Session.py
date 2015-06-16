@@ -9,7 +9,6 @@ from binascii import hexlify
 
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
-from Tribler.Core.APIImplementation.UserCallbackHandler import UserCallbackHandler
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
@@ -17,6 +16,7 @@ from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnab
 from Tribler.Core.simpledefs import (STATEDIR_PEERICON_DIR, STATEDIR_DLPSTATE_DIR, NTFY_PEERS, NTFY_TORRENTS,
                                      NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_UPDATE, NTFY_INSERT,
                                      NTFY_DELETE, NTFY_METADATA, STATEDIR_TORRENT_STORE_DIR)
+from Tribler.Core.CacheDB.Notifier import Notifier
 
 
 GOTM2CRYPTO = False
@@ -139,8 +139,8 @@ class Session(SessionConfigInterface):
         self.get_tunnel_community_socks5_listen_ports()
 
         # Create handler for calling back the user via separate threads
-        self.uch = UserCallbackHandler(self)
-        self.lm = None
+        self.lm = TriblerLaunchMany()
+        self.notifier = Notifier(use_pool=True)
 
         # Checkpoint startup config
         self.save_pstate_sessconfig()
@@ -276,7 +276,6 @@ class Session(SessionConfigInterface):
                 return
 
         self.lm.remove_id(infohash)
-        self.uch.perform_removestate_callback(infohash, [])
 
     def set_download_states_callback(self, usercallback, getpeerlist=None):
         """
@@ -364,13 +363,13 @@ class Session(SessionConfigInterface):
 
         """
         # Called by any thread
-        self.uch.notifier.add_observer(func, subject, changeTypes, objectID, cache=cache)  # already threadsafe
+        self.notifier.add_observer(func, subject, changeTypes, objectID, cache=cache)  # already threadsafe
 
     def remove_observer(self, func):
         """ Remove observer function. No more callbacks will be made.
         @param func The observer function to remove. """
         # Called by any thread
-        self.uch.notifier.remove_observer(func)  # already threadsafe
+        self.notifier.remove_observer(func)  # already threadsafe
 
     def open_dbhandler(self, subject):
         """ Opens a connection to the specified database. Only the thread
@@ -441,9 +440,7 @@ class Session(SessionConfigInterface):
         """ Create the LaunchManyCore instance and start it"""
 
         # Create engine with network thread
-        self.lm = TriblerLaunchMany()
         self.lm.register(self, self.sesslock, autoload_discovery=self.autoload_discovery)
-        self.lm.start()
 
         self.sessconfig.set_callback(self.lm.sessconfig_changed_callback)
 
@@ -456,8 +453,6 @@ class Session(SessionConfigInterface):
         self.lm.early_shutdown()
         self.checkpoint_shutdown(stop=True, checkpoint=checkpoint,
                                  gracetime=gracetime, hacksessconfcheckpoint=hacksessconfcheckpoint)
-        # Arno, 2010-08-09: now shutdown after gracetime
-        self.uch.shutdown()
 
         self.sqlite_db.close()
         self.sqlite_db = None

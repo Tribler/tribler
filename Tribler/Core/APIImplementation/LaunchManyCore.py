@@ -7,7 +7,7 @@ import logging
 import os
 import sys
 import time as timemod
-from threading import Event, Thread, enumerate as enumerate_threads, currentThread
+from threading import Event, enumerate as enumerate_threads, currentThread
 from traceback import print_exc
 from twisted.internet import reactor
 
@@ -45,15 +45,12 @@ PROFILE = False
 #
 
 
-class TriblerLaunchMany(Thread):
+class TriblerLaunchMany(object):
 
     def __init__(self):
         """ Called only once (unless we have multiple Sessions) by MainThread """
         super(TriblerLaunchMany, self).__init__()
 
-        self.setDaemon(True)
-        name = u"Network" + self.getName()
-        self.setName(name)
         self.initComplete = False
         self.registered = False
         self.dispersy = None
@@ -70,7 +67,7 @@ class TriblerLaunchMany(Thread):
         self.shutdownstarttime = None
 
         # modules
-        self.rawserver = None
+        self.rawserver = TwistedRawServer()
         self.torrent_store = None
         self.rtorrent_handler = None
         self.tftp_handler = None
@@ -100,8 +97,6 @@ class TriblerLaunchMany(Thread):
 
             self.session = session
             self.sesslock = sesslock
-
-            self.rawserver = TwistedRawServer()
 
             if self.session.get_torrent_store():
                 from Tribler.Core.torrentstore import TorrentStore
@@ -206,7 +201,7 @@ class TriblerLaunchMany(Thread):
                 self.dispersy.database.attach_commit_callback(self.session.sqlite_db.commit_now)
 
             # notify dispersy finished loading
-            self.session.uch.notify(NTFY_DISPERSY, NTFY_STARTED, None)
+            self.session.notifier.notify(NTFY_DISPERSY, NTFY_STARTED, None)
 
             @blocking_call_on_reactor_thread
             def load_communities():
@@ -347,11 +342,8 @@ class TriblerLaunchMany(Thread):
             return self.downloads.get(infohash, None)
 
     def download_exists(self, infohash):
-        self.sesslock.acquire()
-        try:
+        with self.sesslock:
             return infohash in self.downloads
-        finally:
-            self.sesslock.release()
 
     def update_trackers(self, infohash, trackers):
         """ Update the trackers for a download.
@@ -391,9 +383,7 @@ class TriblerLaunchMany(Thread):
                         torrent_id = self.torrent_db.getTorrentID(infohash)
                         if torrent_id is not None:
                             self.torrent_db.addTorrentTrackerMappingInBatch(torrent_id, new_trackers)
-                            self.session.uch.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
-
-
+                            self.session.notifier.notify(NTFY_TORRENTS, NTFY_UPDATE, infohash)
 
                     if self.session.get_megacache():
                         update_trackers_db(infohash, new_trackers)
@@ -423,24 +413,23 @@ class TriblerLaunchMany(Thread):
         dslist = []
         for d in self.downloads.values():
             try:
-                ds = d.network_get_state(None, False, sessioncalling=True)
+                ds = d.network_get_state(None, False)
                 dslist.append(ds)
             except:
                 # Niels, 2012-10-18: If Swift connection is crashing, it will raise an exception
                 # We're catching it here to continue building the downloadstates
                 print_exc()
 
-        # Invoke the usercallback function via a new thread.
-        # After the callback is invoked, the return values will be passed to
-        # the returncallback for post-callback processing.
-        self.session.uch.perform_getstate_usercallback(usercallback, dslist,
-                                                       self.sesscb_set_download_states_returncallback)
+        # Invoke the usercallback function on a separate thread.
+        # After the callback is invoked, the return values will be passed to the
+        # returncallback for post-callback processing.
+        def session_getstate_usercallback_target():
+            when, newgetpeerlist = usercallback(dslist)
+            if when > 0.0:
+                # reschedule
+                self.set_download_states_callback(usercallback, newgetpeerlist, when=when)
 
-    def sesscb_set_download_states_returncallback(self, usercallback, when, newgetpeerlist):
-        """ Called by SessionCallbackThread """
-        if when > 0.0:
-            # reschedule
-            self.set_download_states_callback(usercallback, newgetpeerlist, when=when)
+        self.rawserver.add_task(session_getstate_usercallback_target)
 
     #
     # Persistence methods
@@ -556,7 +545,6 @@ class TriblerLaunchMany(Thread):
         network_checkpoint_callback_lambda = lambda: self.network_checkpoint_callback(dllist, stop, checkpoint,
                                                                                       gracetime)
         self.rawserver.add_task(network_checkpoint_callback_lambda, 0.0)
-        # TODO: checkpoint overlayapps / friendship msg handler
 
     def network_checkpoint_callback(self, dllist, stop, checkpoint, gracetime):
         """ Called by network thread """
@@ -592,6 +580,29 @@ class TriblerLaunchMany(Thread):
                     return
 
             self.network_shutdown()
+
+    def remove_pstate(self, infohash):
+        network_remove_pstate_callback_lambda = lambda: self.network_remove_pstate_callback(infohash)
+        self.rawserver.add_task(network_remove_pstate_callback_lambda, 0.0)
+
+    def network_remove_pstate_callback(self, infohash):
+        if not self.download_exists(infohash):
+            dlpstatedir = self.session.get_downloads_pstate_dir()
+
+            # Remove checkpoint
+            hexinfohash = binascii.hexlify(infohash)
+            try:
+                basename = hexinfohash + '.state'
+                filename = os.path.join(dlpstatedir, basename)
+                self._logger.debug("remove pstate: removing dlcheckpoint entry %s", filename)
+                if os.access(filename, os.F_OK):
+                    os.remove(filename)
+            except:
+                # Show must go on
+                self._logger.exception("Could not remove state")
+        else:
+            self._logger.warning("remove pstate: download is back, restarted? Canceling removal! %s",
+                                  repr(infohash))
 
     def early_shutdown(self):
         """ Called as soon as Session shutdown is initiated. Used to start
@@ -681,9 +692,6 @@ class TriblerLaunchMany(Thread):
         # Stop network thread
         self.sessdoneflag.set()
 
-        # Arno, 2010-08-09: Stop Session pool threads only after gracetime
-        self.session.uch.shutdown()
-
         # Shutdown libtorrent session after checkpoints have been made
         if self.ltmgr:
             self.ltmgr.shutdown()
@@ -723,11 +731,11 @@ class TriblerLaunchMany(Thread):
     #
     def dialback_reachable_callback(self):
         """ Called by overlay+network thread """
-        self.session.uch.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
+        self.session.notifier.notify(NTFY_REACHABLE, NTFY_INSERT, None, '')
 
     def set_activity(self, type, str='', arg2=None):
         """ Called by overlay + network thread """
-        self.session.uch.notify(NTFY_ACTIVITIES, NTFY_INSERT, type, str, arg2)
+        self.session.notifier.notify(NTFY_ACTIVITIES, NTFY_INSERT, type, str, arg2)
 
     def get_external_ip(self):
         """ Returns the external IP address of this Session, i.e., by which

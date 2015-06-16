@@ -16,7 +16,6 @@ from collections import OrderedDict
 from libtorrent import bencode
 from twisted.internet.task import LoopingCall
 
-from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.search_utils import split_into_keywords, filter_keywords
@@ -65,7 +64,7 @@ class BasicDBHandler(TaskManager):
         self.session = session
         self._db = self.session.sqlite_db
         self.table_name = table_name
-        self.notifier = Notifier.getInstance()
+        self.notifier = session.notifier
 
     def initialize(self, *args, **kwargs):
         """

@@ -85,13 +85,12 @@ class SearchCommunity(Community):
 
         if self.integrate_with_tribler:
             from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS, NTFY_MYPREFERENCES
-            from Tribler.Core.CacheDB.Notifier import Notifier
 
             # tribler channelcast database
             self._channelcast_db = tribler_session.open_dbhandler(NTFY_CHANNELCAST)
             self._torrent_db = tribler_session.open_dbhandler(NTFY_TORRENTS)
             self._mypref_db = tribler_session.open_dbhandler(NTFY_MYPREFERENCES)
-            self._notifier = Notifier.getInstance()
+            self._notifier = tribler_session.notifier
 
             # torrent collecting
             self._rtorrent_handler = tribler_session.lm.rtorrent_handler
@@ -394,7 +393,7 @@ class SearchCommunity(Community):
                         search_results = {'keywords': search_request.keywords,
                                           'results': message.payload.results,
                                           'candidate': message.candidate}
-                        self.tribler_session.uch.notify(SIGNAL_SEARCH_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, None,
+                        self._notifier.notify(SIGNAL_SEARCH_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS, None,
                                                         search_results)
 
                     # see if we need to join some channels

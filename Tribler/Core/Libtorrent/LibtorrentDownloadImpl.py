@@ -1,26 +1,26 @@
 # Based on SwiftDownloadImpl.py by Arno Bakker, modified by Egbert Bouman for the use with libtorrent
-
+import logging
 import os
 import sys
 import time
-import logging
-import libtorrent as lt
-from hashlib import sha1
 from binascii import hexlify
 from traceback import print_exc
 
+import libtorrent as lt
+
 from Tribler.Core import NoDispersyRLock
+from Tribler.Core.APIImplementation import maketorrent
+from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface
+from Tribler.Core.DownloadState import DownloadState
+from Tribler.Core.Libtorrent import checkHandleAndSynchronize, waitForHandleAndSynchronize
+from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
+from Tribler.Core.Utilities.twisted_thread import callInThreadPool
+from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.simpledefs import (DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_METADATA,
                                      DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE,
                                      DLSTATUS_CIRCUITS, DLSTATUS_STOPPED, DLMODE_VOD, DLSTATUS_STOPPED_ON_ERROR,
                                      UPLOAD, DOWNLOAD, DLMODE_NORMAL, PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings)
-from Tribler.Core.DownloadState import DownloadState
-from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface
-from Tribler.Core.APIImplementation import maketorrent
-from Tribler.Core.osutils import fix_filebasename
-from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
-from Tribler.Core.CacheDB.Notifier import Notifier
-from Tribler.Core.Libtorrent import checkHandleAndSynchronize, waitForHandleAndSynchronize
+
 
 if sys.platform == "win32":
     try:
@@ -102,8 +102,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.tdef = tdef
         self.handle = None
         self.vod_index = None
-
-        self.notifier = Notifier.getInstance()
 
         # Just enough so error saving and get_state() works
         self.error = None
@@ -497,6 +495,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             self.checkpoint_after_next_hashcheck = False
             self.checkpoint()
 
+    @checkHandleAndSynchronize()
     def on_torrent_finished_alert(self, alert):
         self.update_lt_stats()
         if self.get_mode() == DLMODE_VOD:
@@ -815,7 +814,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             network_get_state_lambda = lambda: self.network_get_state(usercallback, getpeerlist)
             self.session.lm.rawserver.add_task(network_get_state_lambda, delay)
 
-    def network_get_state(self, usercallback, getpeerlist, sessioncalling=False):
+    def network_get_state(self, usercallback, getpeerlist):
         """ Called by network thread """
         with self.dllock:
             if self.handle is None:
@@ -833,22 +832,21 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                                    seeding_stats=seeding_stats, filepieceranges=self.filepieceranges, logmsgs=logmsgs)
                 self.progressbeforestop = ds.get_progress()
 
-            if sessioncalling:
+            if usercallback:
+                # Invoke the usercallback function via a new thread.
+                # After the callback is invoked, the return values will be passed to the
+                # returncallback for post-callback processing.
+                if not self.done:
+                    # runs on the reactor
+                    def session_getstate_usercallback_target():
+                        when, getpeerlist = usercallback(ds)
+                        if when > 0.0:
+                            # Schedule next invocation, either on general or DL specific
+                            self.session.lm.rawserver.add_task(lambda: self.network_get_state(usercallback, getpeerlist), when)
+
+                    self.session.lm.rawserver.add_task_in_thread(session_getstate_usercallback_target)
+            else:
                 return ds
-
-            # Invoke the usercallback function via a new thread.
-            # After the callback is invoked, the return values will be passed to the
-            # returncallback for post-callback processing.
-            if not self.done:
-                self.session.uch.perform_getstate_usercallback(usercallback, ds, self.sesscb_get_state_returncallback)
-
-    def sesscb_get_state_returncallback(self, usercallback, when, newgetpeerlist):
-        """ Called by SessionCallbackThread """
-        with self.dllock:
-            if when > 0.0:
-                # Schedule next invocation, either on general or DL specific
-                network_get_state_lambda = lambda: self.network_get_state(usercallback, newgetpeerlist)
-                self.session.lm.rawserver.add_task(network_get_state_lambda, when)
 
     def stop(self):
         """ Called by any thread """
@@ -897,7 +895,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
             # Offload the removal of the dlcheckpoint to another thread
             if removestate:
-                self.session.uch.perform_removestate_callback(self.tdef.get_infohash(), None)
+                self.session.lm.remove_pstate(self.tdef.get_infohash())
 
             return (self.tdef.get_infohash(), pstate)
 
@@ -995,7 +993,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         else:
             pstate.set('state', 'metainfo', self.tdef.get_metainfo())
 
-        ds = self.network_get_state(None, False, sessioncalling=True)
+        ds = self.network_get_state(None, False)
         dlstate = {'status': ds.get_status(), 'progress': ds.get_progress(), 'swarmcache': None}
         pstate.set('state', 'dlstate', dlstate)
 

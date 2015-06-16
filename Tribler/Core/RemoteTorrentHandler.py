@@ -18,6 +18,7 @@ from twisted.internet.task import LoopingCall
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import call_on_reactor_thread
 
+from Tribler.Core.Utilities.twisted_thread import callInThreadPool
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH
 
@@ -226,7 +227,7 @@ class RemoteTorrentHandler(TaskManager):
             return
 
         for callback in self.torrent_callbacks[infohash]:
-            self.session.uch.perform_usercallback(lambda ucb=callback, ih=hexlify(infohash): ucb(ih))
+            self.session.lm.rawserver.call_in_thread(0, callback, hexlify(infohash))
 
         del self.torrent_callbacks[infohash]
 
@@ -236,7 +237,7 @@ class RemoteTorrentHandler(TaskManager):
             return
 
         for callback in self.metadata_callbacks[infohash]:
-            self.session.uch.perform_usercallback(lambda ucb=callback, p=metadata_filepath: ucb(p))
+            self.session.lm.rawserver.call_in_thread(0, callback, metadata_filepath)
 
         del self.metadata_callbacks[infohash]
 
@@ -263,7 +264,7 @@ class RemoteTorrentHandler(TaskManager):
                 failed += requester.requests_failed
             total_requests = pending_requests + success + failed
 
-            return "%s: %d/%d" % (qname, success, total_requests),\
+            return "%s: %d/%d" % (qname, success, total_requests), \
                    "%s: pending %d, success %d, failed %d, total %d" % (
                        qname, pending_requests, success, failed, total_requests)
         return [(qstring, qtooltip) for qstring, qtooltip in [getQueueSuccess("TFTP", self.torrent_requesters),

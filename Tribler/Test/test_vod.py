@@ -64,12 +64,12 @@ class TestVideoOnDemand(TestAsServer):
         ds = dslist[0]
         d = ds.get_download()
         self._logger.debug('%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s',
-                           (d.get_def().get_name(),
-                            dlstatus_strings[ds.get_status()],
-                            ds.get_progress() * 100,
-                            ds.get_error(),
-                            ds.get_current_speed(UPLOAD),
-                            ds.get_current_speed(DOWNLOAD)))
+                           d.get_def().get_name(),
+                           dlstatus_strings[ds.get_status()],
+                           ds.get_progress() * 100,
+                           ds.get_error(),
+                           ds.get_current_speed(UPLOAD),
+                           ds.get_current_speed(DOWNLOAD))
 
         return (1.0, [])
 

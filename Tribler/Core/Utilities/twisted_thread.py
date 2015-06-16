@@ -2,7 +2,8 @@
 Helpers to run the reactor in a separate thread, adapted from Nose's twistedtools.py
 """
 import sys
-from Queue import Queue, Empty
+from Queue import Empty, Queue
+from threading import current_thread
 
 from twisted.internet import reactor
 from twisted.python import log
@@ -178,3 +179,20 @@ def deferred(timeout=None):
         wrapper = make_decorator(func)(wrapper)
         return wrapper
     return decorate
+
+
+def callInThreadPool(fun, *args, **kwargs):
+    """
+    Calls fun(*args, **kwargs) in the reactor's thread pool.
+    """
+    if isInThreadPool():
+        fun(*args, **kwargs)
+    else:
+        reactor.callFromThread(reactor.callInThread, fun, *args, **kwargs)
+
+
+def isInThreadPool():
+    """
+    Check if we are currently on one of twisted threadpool threads.
+    """
+    return current_thread() in reactor.threadpool.threads
