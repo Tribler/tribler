@@ -2,6 +2,7 @@
 *.pyc
 *.pyo
 *~
+.DS_Store
 .ropeproject
 /*.log
 /.Tribler
@@ -11,10 +12,6 @@
 /.project
 /.pydevproject
 /TAGS
-/Tribler/Test/data/*.sdb
-/Tribler/Test/test_.Tribler/
-/Tribler/Test/test_.Tribler2
-/Tribler/Test/test_TriblerDownloads2
 /Tribler/community/tunnel/.Tribler*
 /bootstraptribler.txt
 /core
@@ -27,9 +24,8 @@
 /debian/tribler/
 /output
 \#*\#
-memorydump.out
 \.\#
 flycheck_*
+memorydump.out
 test_file
 test_file.torrent
-.DS_Store
