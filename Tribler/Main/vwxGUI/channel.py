@@ -1579,17 +1579,6 @@ class ManageChannel(AbstractDetails):
         f.write(self.channel.dispersy_cid)
         f.close()
 
-    def _import_torrents(self, files):
-        tdefs = [TorrentDef.load(file) for file in files if file.endswith(".torrent")]
-        self.channelsearch_manager.createTorrentsFromDefs(self.channel.id, tdefs)
-        nr_imported = len(tdefs)
-
-        if nr_imported > 0:
-            if nr_imported == 1:
-                self.guiutility.Notify('New torrent added to My Channel', icon=wx.ART_INFORMATION)
-            else:
-                self.guiutility.Notify('Added %d torrents to your Channel' % nr_imported, icon=wx.ART_INFORMATION)
-
     def Show(self, show=True):
         if not show:
             if self.IsChanged():
