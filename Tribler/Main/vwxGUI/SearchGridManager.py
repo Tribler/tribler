@@ -1510,18 +1510,6 @@ class ChannelManager(object):
         return False
 
     @call_on_reactor_thread
-    def createTorrentsFromDefs(self, channel_id, tdefs):
-        if not channel_id:
-            channel_id = self.channelcast_db.getMyChannelId()
-
-        if not channel_id:
-            self._logger.info("No channel")
-            return
-
-        for tdef in tdefs:
-            self.createTorrentFromDef(channel_id, tdef, forward=False)
-
-    @call_on_reactor_thread
     def removeTorrent(self, channel, infohash):
         torrent = self.getTorrentFromChannel(channel, infohash, collectedOnly=False)
         if torrent:
