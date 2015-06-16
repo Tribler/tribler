@@ -1631,9 +1631,6 @@ class ChannelManager(object):
         community = self._disp_get_community_from_channel_id(channel.id)
         community._disp_create_moderation(text, long(time()), severity, cause)
 
-    def getChannelForTorrent(self, infohash):
-        return self.channelcast_db.getMostPopularChannelFromTorrent(infohash)[:-1]
-
     def getNrTorrentsDownloaded(self, publisher_id):
         return self.channelcast_db.getNrTorrentsDownloaded(publisher_id)
 
