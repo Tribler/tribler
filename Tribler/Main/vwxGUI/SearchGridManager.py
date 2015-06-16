@@ -655,11 +655,6 @@ class LibraryManager(object):
             self.magnet_started(infohash)
         self.magnetlist[infohash][1] = total_peers
 
-    def magnet_got_piece(self, infohash, progress):
-        if infohash not in self.magnetlist:
-            self.magnet_started(infohash)
-        self.magnetlist[infohash][2] = progress
-
     def magnet_close(self, infohash):
         if infohash in self.magnetlist:
             del self.magnetlist[infohash]
