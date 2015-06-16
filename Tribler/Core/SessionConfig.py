@@ -16,7 +16,6 @@ import os.path
 import sys
 from distutils.spawn import find_executable
 
-from Tribler.Core.Base import Copyable
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.network_utils import get_random_port, autodetect_socket_style
 from Tribler.Core.defaults import sessdefaults
@@ -620,7 +619,7 @@ class SessionConfigInterface(object):
 
 
 
-class SessionStartupConfig(SessionConfigInterface, Copyable):
+class SessionStartupConfig(SessionConfigInterface):
 
     """ Class to configure a Session """
 
@@ -661,8 +660,5 @@ class SessionStartupConfig(SessionConfigInterface, Copyable):
         # Called by any thread
         self.sessconfig.write_file(filename)
 
-    #
-    # Copyable interface
-    #
     def copy(self):
         return SessionStartupConfig(self.sessconfig.copy())
