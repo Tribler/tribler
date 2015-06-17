@@ -11,14 +11,15 @@ from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import blockingCallFromThread
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
-from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.dispersy.crypto import NoCrypto
+from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
 
 class TestTunnelBase(TestGuiAsServer):
 
-    def startTest(self, callback, min_timeout=5, nr_relays=5, nr_exitnodes=3, crypto_enabled=True, bypass_dht=False):
-        self.getStateDir()  # getStateDir copies the bootstrap file into the statedir
+    def startTest(self, callback, min_timeout=5, nr_relays=8, nr_exitnodes=4, crypto_enabled=True, bypass_dht=False):
+
+        self.getStateDir()   # getStateDir copies the bootstrap file into the statedir
 
         def setup_proxies():
             tunnel_communities = []
@@ -53,16 +54,18 @@ class TestTunnelBase(TestGuiAsServer):
             # Connect the proxies to the Tribler instance
             for community in self.lm.dispersy.get_communities():
                 if isinstance(community, HiddenTunnelCommunity):
+                    self._logger.debug("Hidden tunnel community appended to the list")
                     tunnel_communities.append(community)
-                    community.settings.min_circuits = 3
 
             candidates = []
             for session in self.sessions:
+                self._logger.debug("Appending candidate from this session to the list")
                 dispersy = session.get_dispersy_instance()
                 candidates.append(Candidate(dispersy.lan_address, tunnel=False))
 
             for community in tunnel_communities:
                 for candidate in candidates:
+                    self._logger.debug("Add appended candidate as discovered candidate to this community")
                     # We are letting dispersy deal with addins the community's candidate to itself.
                     community.add_discovered_candidate(candidate)
 
@@ -96,9 +99,6 @@ class TestTunnelBase(TestGuiAsServer):
                 if not crypto_enabled:
                     settings.crypto = NoCrypto()
                 settings.become_exitnode = become_exit_node
-
-                # To test circuit recovery: circuit breaks down after each 2 megabytes
-                settings.max_traffic = 2 * 1024 * 1024
 
                 return dispersy.define_auto_load(HiddenTunnelCommunity,
                                                  dispersy_member,
@@ -154,6 +154,16 @@ class TestTunnelBase(TestGuiAsServer):
         self.sessions = []
         self.session2 = None
 
+    def tearDown(self):
+        if self.session2:
+            self._shutdown_session(self.session2)
+
+        for session in self.sessions:
+            self._shutdown_session(session)
+
+        time.sleep(10)
+        TestGuiAsServer.tearDown(self)
+
     def quit(self):
         if self.session2:
             self._shutdown_session(self.session2)
@@ -165,13 +175,3 @@ class TestTunnelBase(TestGuiAsServer):
         self.sessions = []
 
         TestGuiAsServer.quit(self)
-
-    def tearDown(self):
-        if self.session2:
-            self._shutdown_session(self.session2)
-
-        for session in self.sessions:
-            self._shutdown_session(session)
-
-        time.sleep(10)
-        TestGuiAsServer.tearDown(self)

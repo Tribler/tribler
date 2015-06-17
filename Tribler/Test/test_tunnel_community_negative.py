@@ -8,7 +8,7 @@ from Tribler.Test.test_tunnel_base import TestTunnelBase
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
 
-class TestTunnelCommunityFails(TestTunnelBase):
+class TestTunnelCommunityNegative(TestTunnelBase):
 
     def test_anon_download_exitnode_changeofmind(self):
 
@@ -31,14 +31,14 @@ class TestTunnelCommunityFails(TestTunnelBase):
         def do_create_local_torrent(tunnel_communities):
             tf = self.setupSeeder()
             start_time = time.time()
-            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=3)
+            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=2)
 
             self.guiUtility.ShowPage('my_files')
             self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
             self.Call(20, lambda: changed_my_mind(tunnel_communities))
             self.Call(40, lambda d=download, s=start_time: check_progress(d, s))
 
-        self.startTest(do_create_local_torrent, nr_exitnodes=4, nr_relays=6)
+        self.startTest(do_create_local_torrent)
 
     def test_anon_download_without_relays(self):
         def take_second_screenshot():
@@ -78,11 +78,11 @@ class TestTunnelCommunityFails(TestTunnelBase):
         def do_create_local_torrent(_):
             tf = self.setupSeeder()
             start_time = time.time()
-            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=3)
+            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=2)
 
             self.guiUtility.ShowPage('my_files')
             self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
-            self.Call(240, lambda: check_progress(download, start_time))
+            self.Call(60, lambda: check_progress(download, start_time))
 
         self.startTest(do_create_local_torrent, nr_exitnodes=5, nr_relays=0)
 
@@ -124,10 +124,10 @@ class TestTunnelCommunityFails(TestTunnelBase):
         def do_create_local_torrent(_):
             tf = self.setupSeeder()
             start_time = time.time()
-            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=3)
+            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=2)
 
             self.guiUtility.ShowPage('my_files')
             self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
-            self.Call(240, lambda: check_progress(download, start_time))
+            self.Call(60, lambda: check_progress(download, start_time))
 
         self.startTest(do_create_local_torrent, nr_exitnodes=0, nr_relays=5)

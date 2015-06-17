@@ -465,9 +465,9 @@ class TunnelCommunity(Community):
         if not required_endpoint:
             for c in self.dispersy_yield_verified_candidates():
                 pubkey = c.get_member().public_key
+                exit_candidate = self.exit_candidates[pubkey]
                 if ctype == CIRCUIT_TYPE_DATA:
                     self._logger.debug("Look for an exit node to set as required_endpoint for this circuit")
-                    exit_candidate = self.exit_candidates[pubkey]
                     if exit_candidate.become_exit:
                         self._logger.debug("Valid exit candidate found for this circuit")
                         required_endpoint = (c.sock_addr[0], c.sock_addr[1], pubkey)
@@ -475,21 +475,23 @@ class TunnelCommunity(Community):
                 else:
                     self._logger.debug("Try to find a connectable node to set as required_endpoint for this circuit")
                     required_endpoint = (c.sock_addr[0], c.sock_addr[1], pubkey)
-                    if self.candidate_is_connectable(c):
-                        self._logger.debug("Valid required_endpoint found for this circuit, stop looking further")
+                    if self.candidate_is_connectable(c) and not exit_candidate.become_exit:
+                        # Prefer non exit candidate, because the real exit candidates are scarce, save their bandwidth
+                        self._logger.debug("Valid connectable non-exit required_endpoint found, stop looking further")
                         break
 
         # If the number of hops is 1, it should immediately be the required_endpoint hop.
         if goal_hops == 1 and required_endpoint:
-            self._logger.debug("Associate firsthop with a candidate and member object")
+            self._logger.debug("Associate first hop with a candidate and member object")
             first_hop = Candidate((required_endpoint[0], required_endpoint[1]), False)
             first_hop.associate(self.get_member(public_key=required_endpoint[2]))
         else:
-            self._logger.debug("Look for a first hop that is not used before.")
+            self._logger.debug("Look for a first hop that is not an exit node and is not used before")
             hops = set([c.first_hop for c in self.circuits.values()])
             for c in self.dispersy_yield_verified_candidates():
                 if (c.sock_addr not in hops) and self.crypto.is_key_compatible(c.get_member()._ec) and \
-                   (not required_endpoint or c.sock_addr != tuple(required_endpoint[:2])):
+                   (not required_endpoint or c.sock_addr != tuple(required_endpoint[:2])) and \
+                   not self.exit_candidates[c.get_member().public_key].become_exit:
                     first_hop = c
                     break
 
@@ -1064,7 +1066,7 @@ class TunnelCommunity(Community):
                 self.increase_bytes_received(self.circuits[circuit_id], len(packet))
 
                 if TunnelConversion.could_be_dispersy(data):
-                    self._logger.error("Giving incoming data packet to dispersy")
+                    self._logger.debug("Giving incoming data packet to dispersy")
                     self.dispersy.on_incoming_packets(
                         [(Candidate(origin, False), data[TUNNEL_PREFIX_LENGHT:])],
                         False, source=u"circuit_%d" % circuit_id)

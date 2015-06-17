@@ -8,7 +8,7 @@ from Tribler.Test.test_tunnel_base import TestTunnelBase
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
 
-class TestTunnelCommunitySuccess(TestTunnelBase):
+class TestTunnelCommunityPositive(TestTunnelBase):
 
     def test_anon_tunnel(self):
         from threading import Event
@@ -72,10 +72,10 @@ class TestTunnelCommunitySuccess(TestTunnelBase):
             self.Call(1, do_asserts)
 
         def do_progress(download, start_time):
-            self.CallConditional(240,
+            self.CallConditional(160,
                                  lambda: download.get_progress() == 1.0,
                                  lambda: take_screenshot(time.time() - start_time),
-                                 'Anonymous download should be finished in 240 seconds (%.1f%% downloaded)' % (
+                                 'Anonymous download should be finished in 160 seconds (%.1f%% downloaded)' % (
                                      download.get_progress() * 100),
                                  on_fail
                                  )
@@ -83,7 +83,7 @@ class TestTunnelCommunitySuccess(TestTunnelBase):
         def do_create_local_torrent(_):
             tf = self.setupSeeder()
             start_time = time.time()
-            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=3)
+            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=2)
 
             self.guiUtility.ShowPage('my_files')
             self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
