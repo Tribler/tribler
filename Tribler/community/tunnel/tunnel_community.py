@@ -727,11 +727,11 @@ class TunnelCommunity(Community):
 
     def check_create(self, messages):
         for message in messages:
-            if self.crypto.key.key_to_hash() != message.payload.node_id:
+            if self.crypto.key and self.crypto.key.key_to_hash() != message.payload.node_id:
                 yield DropMessage(message, "nodeids do not match")
                 continue
 
-            if self.crypto.key.pub().key_to_bin() != message.payload.node_public_key:
+            if self.crypto.key and self.crypto.key.pub().key_to_bin() != message.payload.node_public_key:
                 yield DropMessage(message, "TunnelCommunity: public keys do not match")
                 continue
 
