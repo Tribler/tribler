@@ -100,9 +100,6 @@ class TestTunnelBase(TestGuiAsServer):
                     settings.crypto = NoCrypto()
                 settings.become_exitnode = become_exit_node
 
-                # To test circuit recovery: circuit breaks down after each 2 megabytes
-                settings.max_traffic = 2 * 1024 * 1024
-
                 return dispersy.define_auto_load(HiddenTunnelCommunity,
                                                  dispersy_member,
                                                  (session, settings),
@@ -157,27 +154,12 @@ class TestTunnelBase(TestGuiAsServer):
         self.sessions = []
         self.session2 = None
 
-        # Create a global community identifier
-        from Tribler.dispersy.crypto import ECCrypto
-        eccrypto = ECCrypto()
-        ec = eccrypto.generate_key(u'NID_sect571r1')
-        master_key = eccrypto.key_to_bin(ec.pub())
-
-        # Monkey patching the master key for the HiddenTunnelCommunity
-        def test_get_master_members(cls, dispersy):
-            return [dispersy.get_member(public_key=master_key)]
-        self.original_get_master_members = HiddenTunnelCommunity.get_master_members
-        HiddenTunnelCommunity.get_master_members = classmethod(test_get_master_members)
-
     def tearDown(self):
         if self.session2:
             self._shutdown_session(self.session2)
 
         for session in self.sessions:
             self._shutdown_session(session)
-
-        # Undo monkey patching of master key for the HiddenTunnelCommunity
-        HiddenTunnelCommunity.get_master_members = self.original_get_master_members
 
         time.sleep(10)
         TestGuiAsServer.tearDown(self)
