@@ -328,7 +328,7 @@ class ChannelCommunity(Community):
                     channel_data = {u'channel': self,
                                     u'name': message.payload.name,
                                     u'description': message.payload.description}
-                    self.tribler_session.uch.notify(SIGNAL_CHANNEL, SIGNAL_ON_CREATED, None, channel_data)
+                    self.tribler_session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_CREATED, None, channel_data)
         else:
             for message in messages:
                 self._channel_id = self._master_member.mid
