@@ -162,11 +162,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 self.dlconfig.lock = self.dllock
                 self.dlconfig.set_callback(self.dlconfig_changed_callback)
 
-                # Things that only exist at runtime
-                self.dlruntimeconfig = {}
-                self.dlruntimeconfig['max_desired_upload_rate'] = 0
-                self.dlruntimeconfig['max_desired_download_rate'] = 0
-
                 if not isinstance(self.tdef, TorrentDefNoMetainfo):
                     self.set_corrected_infoname()
                     self.set_filepieceranges()
@@ -923,22 +918,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             else:
                 self.handle.resume()
                 self.set_vod_mode(self.get_mode() == DLMODE_VOD)
-
-    def set_max_desired_speed(self, direct, speed):
-        self._logger.debug("LibtorrentDownloadImpl: set_max_desired_speed %s %s", direct, speed)
-
-        with self.dllock:
-            if direct == UPLOAD:
-                self.dlruntimeconfig['max_desired_upload_rate'] = speed
-            else:
-                self.dlruntimeconfig['max_desired_download_rate'] = speed
-
-    def get_max_desired_speed(self, direct):
-        with self.dllock:
-            if direct == UPLOAD:
-                return self.dlruntimeconfig['max_desired_upload_rate']
-            else:
-                return self.dlruntimeconfig['max_desired_download_rate']
 
     @checkHandleAndSynchronize([])
     def get_dest_files(self, exts=None):
