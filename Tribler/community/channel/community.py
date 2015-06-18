@@ -743,8 +743,9 @@ class ChannelCommunity(Community):
                                 "Will try to download swift-thumbnails with infohash %s from %s",
                                 infohash.encode("HEX"),
                                 message.candidate.sock_addr[0])
-                            th_handler.download_metadata("thumbs", message.candidate, infohash, thumbnail_subpath,
-                                                         timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
+                            # FIXME(lipu): enable thumbnail download when it's ready
+                            #th_handler.download_metadata("thumbs", message.candidate, infohash, thumbnail_subpath,
+                            #                             timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
                             continue
 
             yield message
