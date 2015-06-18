@@ -37,7 +37,6 @@ from collections import MutableMapping
 from itertools import chain
 
 try:
-    raise ImportError("Fake import error")
     from leveldb import LevelDB, WriteBatch
     LEVELDBPROVIDER = "leveldb"
 except:
@@ -133,6 +132,7 @@ class TorrentStore(MutableMapping, TaskManager):
 
     def put(self, k, v):
         self.__setitem__(k, v)
+        # self._db.Put(key, value)
 
     if LEVELDBPROVIDER == "leveldb":
         def rangescan(self, start=None, end=None):
