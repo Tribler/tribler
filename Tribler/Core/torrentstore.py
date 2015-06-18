@@ -36,7 +36,13 @@
 from collections import MutableMapping
 from itertools import chain
 
-from leveldb import LevelDB, WriteBatch
+try:
+    raise ImportError("Fake import error")
+    from leveldb import LevelDB, WriteBatch
+    LEVELDBPROVIDER = "leveldb"
+except:
+    import plyvel
+    LEVELDBPROVIDER = "plyvel"
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 
@@ -58,31 +64,51 @@ class TorrentStore(MutableMapping, TaskManager):
 
         self._store_dir = store_dir
         self._pending_torrents = {}
-        self._db = LevelDB(store_dir)
+
+        if LEVELDBPROVIDER == "leveldb":
+            self._db = LevelDB(store_dir)
+        elif LEVELDBPROVIDER == "plyvel":
+            self._db = plyvel.DB(store_dir, create_if_missing = True)
 
         self._writeback_lc = self.register_task("flush cache ", LoopingCall(self.flush))
         self._writeback_lc.clock = self._reactor
         self._writeback_lc.start(WRITEBACK_PERIOD)
 
-    def __getitem__(self, key):
-        try:
-            return self._pending_torrents[key]
-        except KeyError:
-            return self._db.Get(key)
+
+    if LEVELDBPROVIDER == "leveldb":
+        def __getitem__(self, key):
+            try:
+                return self._pending_torrents[key]
+            except KeyError:
+                return self._db.Get(key)
+    elif LEVELDBPROVIDER == "plyvel":
+        def __getitem__(self, key):
+            try:
+                return self._pending_torrents[key]
+            except KeyError:
+                res = self._db.get(key)
+                if res == None:
+                    raise KeyError("Key not found")
+                return res
 
     def __setitem__(self, key, value):
         self._pending_torrents[key] = value
-        # self._db.Put(key, value)
 
-    def __delitem__(self, key):
-        if key in self._pending_torrents:
-            self._pending_torrents.pop(key)
-        self._db.Delete(key)
+    if LEVELDBPROVIDER == "leveldb":
+        def __delitem__(self, key):
+            if key in self._pending_torrents:
+                self._pending_torrents.pop(key)
+            self._db.Delete(key)
+    elif LEVELDBPROVIDER == "plyvel":
+        def __delitem__(self, key):
+            if key in self._pending_torrents:
+                self._pending_torrents.pop(key)
+            self._db.delete(key)
 
     def __iter__(self):
         for k in self._pending_torrents.iterkeys():
             yield k
-        for k, _ in self._db.RangeIter():
+        for k, _ in rangescan():
             yield k
 
     def __contains__(self, key):
@@ -100,33 +126,45 @@ class TorrentStore(MutableMapping, TaskManager):
         return len(self._pending_torrents) + len(list(self.keys()))
 
     def keys(self):
-        return [k for k, _ in self._db.RangeIter()]
+        return [k for k, _ in rangescan()]
 
     def iteritems(self):
-        return chain(self._pending_torrents, self._db.RangeIter())
+        return chain(self._pending_torrents, rangescan())
 
     def put(self, k, v):
         self.__setitem__(k, v)
 
-    def rangescan(self, start=None, end=None):
-        if start is None and end is None:
-            return self._db.RangeIter()
-        elif end is None:
-            return self._db.RangeIter(start)
-        else:
-            return self._db.RangeIter(start, end)
+    if LEVELDBPROVIDER == "leveldb":
+        def rangescan(self, start=None, end=None):
+            if start is None and end is None:
+                return self._db.RangeIter()
+            elif end is None:
+                return self._db.RangeIter(start)
+            else:
+                return self._db.RangeIter(start, end)
+    elif LEVELDBPROVIDER == "plyvel":
+        def rangescan(self, start=None, end=None):
+            return self._db.iterator(start=start, end=end)
 
-    def flush(self):
-        if self._pending_torrents:
-            write_batch = WriteBatch()
-            for k, v in self._pending_torrents.iteritems():
-                write_batch.Put(k, v)
-            self._pending_torrents.clear()
-            return self._db.Write(write_batch)
+    if LEVELDBPROVIDER == "leveldb":
+        def flush(self):
+            if self._pending_torrents:
+                write_batch = WriteBatch()
+                for k, v in self._pending_torrents.iteritems():
+                    write_batch.Put(k, v)
+                self._pending_torrents.clear()
+                return self._db.Write(write_batch)
+    elif LEVELDBPROVIDER == "plyvel":
+        def flush(self):
+            with self._db.write_batch() as wb:
+                for k, v in self._pending_torrents.iteritems():
+                    wb.put(k, v)
 
     def close(self):
         self.cancel_all_pending_tasks()
         self.flush()
+        if LEVELDBPROVIDER == "plyvel":
+            self._db.close()
         self._db = None
 
 
