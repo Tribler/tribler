@@ -101,6 +101,8 @@ class AbstractServer(BaseTestCase):
         self.assertFalse(delayed_calls, "The reactor was dirty when tearing down the test")
         self.assertFalse(Session.has_instance(), 'A session instance is still present when tearing down the test')
 
+        process_unhandled_exceptions()
+
     def tearDownCleanup(self):
         self.setUpCleanup()
 
