@@ -1,10 +1,7 @@
-import os
 import logging
 from socket import inet_aton
 from struct import unpack
 from random import randint
-from tempfile import mkstemp
-from tarfile import TarFile
 from binascii import hexlify
 from time import time
 from hashlib import sha1
@@ -34,11 +31,10 @@ class TftpHandler(TaskManager):
     This is the TFTP handler that should be registered at the RawServer to handle TFTP packets.
     """
 
-    def __init__(self, session, root_dir, endpoint, prefix, block_size=DEFAULT_BLOCK_SIZE, timeout=DEFAULT_TIMEOUT,
+    def __init__(self, session, endpoint, prefix, block_size=DEFAULT_BLOCK_SIZE, timeout=DEFAULT_TIMEOUT,
                  max_retries=DEFAULT_RETIES):
         """ The constructor.
         :param session:     The tribler session.
-        :param root_dir:    The root directory to use.
         :param endpoint:    The endpoint to use.
         :param prefix:      The prefix to use.
         :param block_size:  Transmission block size.
@@ -49,7 +45,6 @@ class TftpHandler(TaskManager):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.session = session
-        self.root_dir = root_dir
 
         self._endpoint = endpoint
         self._prefix = prefix
