@@ -8,7 +8,7 @@ from hashlib import sha1
 from types import StringType, ListType, IntType, LongType
 from urllib2 import URLError
 from libtorrent import bencode, bdecode
-
+import requests
 
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Core.defaults import TDEF_DEFAULTS
@@ -17,7 +17,6 @@ import Tribler.Core.APIImplementation.maketorrent as maketorrent
 
 from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL, parse_magnetlink
 from Tribler.Core.Utilities.unicode import dunno2unicode
-from Tribler.Core.Utilities.timeouturlopen import urlOpenTimeout
 
 
 class TorrentDef(object):
@@ -137,8 +136,9 @@ class TorrentDef(object):
         """
         # Class method, no locking required
         try:
-            f = urlOpenTimeout(url)
-            return TorrentDef._read(f)
+            response = requests.get(url, timeout=30)
+            if response.ok:
+                return TorrentDef.load_from_memory(response.content)
 
         except URLError:
             pass
