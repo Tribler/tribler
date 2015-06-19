@@ -1493,31 +1493,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         sql = u"SELECT COUNT(*), MAX(inserted) FROM ChannelTorrents WHERE channel_id = ? LIMIT 1"
         return self._db.fetchone(sql, (channel_id,))
 
-    def drop_all_newer(self, dispersy_id):
-        sql = "DELETE FROM _TorrentMarkings WHERE dipsersy_id > ?"
-        self._db.execute_write(sql, (dispersy_id))
-
-        sql = "DELETE FROM _ChannelVotes WHERE dipsersy_id > ?"
-        self._db.execute_write(sql, (dispersy_id))
-
-        sql = "DELETE FROM _ChannelMetaData WHERE dipsersy_id > ?"
-        self._db.execute_write(sql, (dispersy_id))
-
-        sql = "DELETE FROM _Moderations WHERE dipsersy_id > ?"
-        self._db.execute_write(sql, (dispersy_id))
-
-        sql = "DELETE FROM _Comments WHERE dipsersy_id > ?"
-        self._db.execute_write(sql, (dispersy_id))
-
-        sql = "DELETE FROM _PlaylistTorrents WHERE dipsersy_id > ?"
-        self._db.execute_write(sql, (dispersy_id))
-
-        sql = "DELETE FROM _Playlists WHERE dipsersy_id > ?"
-        self._db.execute_write(sql, (dispersy_id))
-
-        sql = "DELETE FROM _ChannelTorrents WHERE dipsersy_id > ?"
-        self._db.execute_write(sql, (dispersy_id))
-
     def on_channel_from_dispersy(self, dispersy_cid, peer_id, name, description):
         if isinstance(dispersy_cid, (str)):
             _dispersy_cid = buffer(dispersy_cid)
@@ -2085,24 +2060,6 @@ class ChannelCastDBHandler(BasicDBHandler):
             sql += " LIMIT %d" % limit
         return self._db.fetchall(sql, (channel_id,))
 
-    def getMostPopularTorrentsFromChannel(self, channel_id, isDispersy, keys, limit=None):
-        if isDispersy:
-            sql = "SELECT " + ", ".join(keys) + """ FROM Torrent, ChannelTorrents
-                  WHERE Torrent.torrent_id = ChannelTorrents.torrent_id
-                  AND channel_id = ?
-                  GROUP BY Torrent.torrent_id
-                  ORDER BY ChannelTorrents.time_stamp DESC"""
-        else:
-            sql = "SELECT " + ", ".join(keys) + """ FROM CollectedTorrent as Torrent, ChannelTorrents
-                  WHERE Torrent.torrent_id = ChannelTorrents.torrent_id
-                  AND channel_id = ?
-                  GROUP BY Torrent.torrent_id
-                  ORDER BY ChannelTorrents.time_stamp DESC"""
-
-        if limit:
-            sql += " LIMIT %d" % limit
-        return self._db.fetchall(sql, (channel_id,))
-
     def getTorrentsFromPlaylist(self, playlist_id, keys, limit=None):
         sql = "SELECT " + ", ".join(keys) + """ FROM Torrent, ChannelTorrents, PlaylistTorrents
               WHERE Torrent.torrent_id = ChannelTorrents.torrent_id
@@ -2359,14 +2316,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         if len(channels) > 0:
             return channels[0]
 
-    def getChannelFromPermid(self, channel_permid):
-        sql = "Select C.id, C.name, C.description, C.dispersy_cid, " + \
-              "C.modified, C.nr_torrents, C.nr_favorite, C.nr_spam " + \
-              "FROM Channels as C, Peer WHERE C.peer_id = Peer.peer_id AND Peer.permid = ?"
-        channels = self._getChannels(sql, (channel_permid,))
-        if len(channels) > 0:
-            return channels[0]
-
     def getChannels(self, channel_ids):
         channel_ids = "','".join(map(str, channel_ids))
         sql = "Select id, name, description, dispersy_cid, modified, " + \
@@ -2483,12 +2432,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         if self._channel_id:
             return self._channel_id
         return self._db.fetchone('SELECT id FROM Channels WHERE peer_id ISNULL LIMIT 1')
-
-    def getSubscribersCount(self, channel_id):
-        """returns the number of subscribers in integer format"""
-
-        nr_favorites, nr_spam = self.votecast_db.getPosNegVotes(channel_id)
-        return nr_favorites
 
     def getTorrentMarkings(self, channeltorrent_id):
         counts = {}

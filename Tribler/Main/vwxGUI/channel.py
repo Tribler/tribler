@@ -1001,29 +1001,6 @@ class ManageChannelFilesManager(BaseManager):
             print_exc()
         return False
 
-    def startDownloads(self, filenames, *args, **kwargs):
-        torrentdefs = []
-
-        while len(filenames) > 0:
-            for torrentfilename in filenames[:500]:
-                try:
-                    # if fixtorrent not in kwargs -> new torrent created
-                    tdef = TorrentDef.load(torrentfilename)
-                    if 'fixtorrent' not in kwargs:
-                        download = self.guiutility.frame.startDownload(torrentfilename=torrentfilename,
-                                                            destdir=kwargs.get( 'destdir', None),
-                                                            correctedFilename=kwargs.get('correctedFilename', None))
-
-                    torrentdefs.append(tdef)
-                except:
-                    pass
-
-            if not self.AddTDefs(torrentdefs):
-                return False
-
-            filenames = filenames[500:]
-        return True
-
     def startDownloadFromTorrent(self, torrent):
         self.channelsearch_manager.createTorrent(self.channel, torrent)
         return True
@@ -1035,18 +1012,6 @@ class ManageChannelFilesManager(BaseManager):
                 notification = "New torrent added to %s's channel" % self.channel.name
             else:
                 notification = 'New torrent added to My Channel'
-            self.guiutility.Notify(notification, icon=wx.ART_INFORMATION)
-
-            return True
-        return False
-
-    def AddTDefs(self, tdefs):
-        if tdefs:
-            self.channelsearch_manager.createTorrentsFromDefs(self.channel.id, tdefs)
-            if not self.channel.isMyChannel():
-                notification = "%d new torrents added to %s's channel" % (len(tdefs), self.channel.name)
-            else:
-                notification = '%d new torrents added to My Channel' % len(tdefs)
             self.guiutility.Notify(notification, icon=wx.ART_INFORMATION)
 
             return True
@@ -1579,17 +1544,6 @@ class ManageChannel(AbstractDetails):
         f.write(self.channel.dispersy_cid)
         f.close()
 
-    def _import_torrents(self, files):
-        tdefs = [TorrentDef.load(file) for file in files if file.endswith(".torrent")]
-        self.channelsearch_manager.createTorrentsFromDefs(self.channel.id, tdefs)
-        nr_imported = len(tdefs)
-
-        if nr_imported > 0:
-            if nr_imported == 1:
-                self.guiutility.Notify('New torrent added to My Channel', icon=wx.ART_INFORMATION)
-            else:
-                self.guiutility.Notify('Added %d torrents to your Channel' % nr_imported, icon=wx.ART_INFORMATION)
-
     def Show(self, show=True):
         if not show:
             if self.IsChanged():
@@ -1844,12 +1798,6 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
             manager = self.GetManager()
             manager.createPlaylist(name, description, infohashes)
         dlg.Destroy()
-
-#    def OnRemoveAll(self, event):
-#        dlg = wx.MessageDialog(None, 'Are you sure you want to remove all playlists from your channel?', 'Remove playlists', wx.ICON_QUESTION | wx.YES_NO | wx.NO_DEFAULT)
-#        if dlg.ShowModal() == wx.ID_YES:
-#            self.GetManager().RemoveAllItems()
-#        dlg.Destroy()
 
     def OnRemoveSelected(self, playlist_id, panel):
         dlg = wx.MessageDialog(

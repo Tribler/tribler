@@ -81,7 +81,7 @@ from Tribler.Core.simpledefs import (UPLOAD, DOWNLOAD, NTFY_MODIFIED, NTFY_INSER
                                      NTFY_UPDATE, NTFY_CREATE, NTFY_CHANNELCAST, NTFY_STATE, NTFY_VOTECAST,
                                      NTFY_MYPREFERENCES, NTFY_TORRENTS, NTFY_COMMENTS, NTFY_PLAYLISTS, NTFY_DELETE,
                                      NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_FINISHED,
-                                     NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS, NTFY_MAGNET_STARTED,
+                                     NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED,
                                      NTFY_MAGNET_CLOSE, dlstatus_strings,
                                      DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING,
                                      DLSTATUS_STOPPED, NTFY_DISPERSY, NTFY_STARTED)
@@ -415,8 +415,7 @@ class ABCApp(object):
         s.add_observer(self.sesscb_ntfy_markingupdates, NTFY_MARKINGS, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_torrentfinished, NTFY_TORRENTS, [NTFY_FINISHED])
         s.add_observer(self.sesscb_ntfy_magnet,
-                       NTFY_TORRENTS, [NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_PROGRESS,
-                                       NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE])
+                       NTFY_TORRENTS, [NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE])
 
         # TODO(emilon): Use the LogObserver I already implemented
         # self.dispersy.callback.attach_exception_handler(self.frame.exceptionHandler)
@@ -814,8 +813,6 @@ class ABCApp(object):
             self.guiUtility.library_manager.magnet_started(objectID)
         elif changetype == NTFY_MAGNET_GOT_PEERS:
             self.guiUtility.library_manager.magnet_got_peers(objectID, args[0])
-        elif changetype == NTFY_MAGNET_PROGRESS:
-            self.guiUtility.library_manager.magnet_got_piece(objectID, args[0])
         elif changetype == NTFY_MAGNET_CLOSE:
             self.guiUtility.library_manager.magnet_close(objectID)
 

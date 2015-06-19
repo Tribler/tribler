@@ -655,11 +655,6 @@ class LibraryManager(object):
             self.magnet_started(infohash)
         self.magnetlist[infohash][1] = total_peers
 
-    def magnet_got_piece(self, infohash, progress):
-        if infohash not in self.magnetlist:
-            self.magnet_started(infohash)
-        self.magnetlist[infohash][2] = progress
-
     def magnet_close(self, infohash):
         if infohash in self.magnetlist:
             del self.magnetlist[infohash]
@@ -1029,10 +1024,6 @@ class ChannelManager(object):
         channel = self.channelcast_db.getChannel(channel_id)
         return self._getChannel(channel)
 
-    def getChannelByPermid(self, channel_permid):
-        channel = self.channelcast_db.getChannelFromPermid(channel_permid)
-        return self._getChannel(channel)
-
     def _getChannel(self, channel):
         if channel:
             channel = self._createChannel(channel)
@@ -1112,10 +1103,6 @@ class ChannelManager(object):
         data = self.channelcast_db.getTorrentFromChannelId(channel.id, infohash, CHANNEL_REQ_COLUMNS)
         return self._createTorrent(data, channel, collectedOnly=collectedOnly)
 
-    def getChannnelTorrents(self, infohash, filterTorrents=False):
-        hits = self.channelcast_db.getChannelTorrents(infohash, CHANNEL_REQ_COLUMNS)
-        return self._createTorrents(hits, filterTorrents)
-
     def getTorrentFromChannelTorrentId(self, channel, channeltorrent_id, collectedOnly=True):
         data = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, CHANNEL_REQ_COLUMNS)
         return self._createTorrent(data, channel, collectedOnly=collectedOnly)
@@ -1163,9 +1150,6 @@ class ChannelManager(object):
             torrent = torrentdict[hit[0]]
             playlist = Playlist(*hit[1:] + (torrent.channel,))
             torrent.playlist = playlist
-
-    def getMostPopularTorrentsFromChannel(self, channel_id, keys, family_filter=False, limit=None):
-        return self.channelcast_db.getMostPopularTorrentsFromChannel(channel_id, keys, limit, family_filter)
 
     def _createTorrent(self, tuple, channel, playlist=None, collectedOnly=True, addDs=True):
         if tuple:
@@ -1346,12 +1330,6 @@ class ChannelManager(object):
 
         return returnList
 
-    def getMyVote(self, channel):
-        return self.votecastdb.getVoteOnChannel(channel.id, None)
-
-    def getSubscribersCount(self, channel):
-        return self.channelcast_db.getSubscribersCount(channel.id)
-
     def _applyFF(self, hits):
         enabled_category_keys = [key for key, _ in self.category.getCategoryNames()]
 
@@ -1510,18 +1488,6 @@ class ChannelManager(object):
         return False
 
     @call_on_reactor_thread
-    def createTorrentsFromDefs(self, channel_id, tdefs):
-        if not channel_id:
-            channel_id = self.channelcast_db.getMyChannelId()
-
-        if not channel_id:
-            self._logger.info("No channel")
-            return
-
-        for tdef in tdefs:
-            self.createTorrentFromDef(channel_id, tdef, forward=False)
-
-    @call_on_reactor_thread
     def removeTorrent(self, channel, infohash):
         torrent = self.getTorrentFromChannel(channel, infohash, collectedOnly=False)
         if torrent:
@@ -1642,9 +1608,6 @@ class ChannelManager(object):
 
         community = self._disp_get_community_from_channel_id(channel.id)
         community._disp_create_moderation(text, long(time()), severity, cause)
-
-    def getChannelForTorrent(self, infohash):
-        return self.channelcast_db.getMostPopularChannelFromTorrent(infohash)[:-1]
 
     def getNrTorrentsDownloaded(self, publisher_id):
         return self.channelcast_db.getNrTorrentsDownloaded(publisher_id)
