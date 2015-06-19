@@ -36,7 +36,18 @@
 from collections import MutableMapping
 from itertools import chain
 
-from leveldb import LevelDB, WriteBatch
+try:
+    from leveldb import LevelDB, WriteBatch
+
+    def get_write_batch(_):
+        return WriteBatch()
+
+except ImportError:
+    from plyveladapter import LevelDB, WriteBatch
+
+    def get_write_batch(db):
+        return WriteBatch(db)
+
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 
@@ -52,13 +63,14 @@ WRITEBACK_PERIOD = 120
 
 class TorrentStore(MutableMapping, TaskManager):
     _reactor = reactor
+    _leveldb = LevelDB
 
     def __init__(self, store_dir):
         super(TorrentStore, self).__init__()
 
         self._store_dir = store_dir
         self._pending_torrents = {}
-        self._db = LevelDB(store_dir)
+        self._db = self._leveldb(store_dir)
 
         self._writeback_lc = self.register_task("flush cache ", LoopingCall(self.flush))
         self._writeback_lc.clock = self._reactor
@@ -112,13 +124,13 @@ class TorrentStore(MutableMapping, TaskManager):
         if start is None and end is None:
             return self._db.RangeIter()
         elif end is None:
-            return self._db.RangeIter(start)
+            return self._db.RangeIter(key_from=start)
         else:
-            return self._db.RangeIter(start, end)
+            return self._db.RangeIter(key_from=start, key_to=end)
 
     def flush(self):
         if self._pending_torrents:
-            write_batch = WriteBatch()
+            write_batch = get_write_batch(self._db)
             for k, v in self._pending_torrents.iteritems():
                 write_batch.Put(k, v)
             self._pending_torrents.clear()
