@@ -20,6 +20,7 @@ import time
 import threading
 import functools
 
+from Tribler.Core import TorrentDef
 
 import globalvars
 
@@ -46,6 +47,7 @@ class FileWidget(BoxLayout):
 	benchmark = time.time()
 	lImageView = ImageView
 	thumbnail = None
+	tdef = None
 
 	#Enumerator as per android.media.ThumbnailUtils
 	MINI_KIND = 1
@@ -56,12 +58,18 @@ class FileWidget(BoxLayout):
 	PNG = 2
 	WEBP = 3
 
+	def __init__(self):
+		#TODO: Load tdef if it exists and if it does, change icon to upload
+
 	def setName(self, nom):
 		self.name = nom
 		self.ids.filebutton.text = nom
 
 	def setUri(self,ur):
 		self.uri = ur
+
+	def get_playtime(self):
+		return None
 
 	#Called when pressed on the big filewidget button
 	def pressed(self):
@@ -167,8 +175,17 @@ class FileWidget(BoxLayout):
 		os.remove(self.uri)
 		os.remove(self.ids.img.source)
 
+	# Create .torrent for this video
+	def create_torrent(self):
+		tdef = TorrentDef()
+		tdef.add_content(self.uri, playtime = self.get_playtime())
+		fin_thread = threading.Thread(target=TorrentDef.TorrentDef.finalize,name="Finalize Torrent Thread",args=tdef, kwargs={userprogresscallback = self._torrent_finalize_callback})
+
 	# Seed torrent using Tribler
 	def seed_torrent(self):
-		print("Add torrent to Tribler")
+		print("TODO: Add torrent to Tribler")
 		if(globalvars.skelly.tw.keep_running()):
 			print("Triber running")
+
+	def _torrent_finalize_callback(self, fraction):
+		print("Fraction done: " + fraction)
