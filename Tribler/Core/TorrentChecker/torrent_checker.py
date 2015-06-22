@@ -123,7 +123,7 @@ class TorrentChecker(TaskManager):
         # stop the checking thread first because it can block on the reactor thread
         self._should_stop = True
         self._checker_thread.interrupt()
-        self._checker_thread.join()
+        self._checker_thread.join(10)  # do not block forever, 10 seconds should be way sufficient
         self._checker_thread = None
 
         # it's now safe to block on the reactor thread
