@@ -16,7 +16,7 @@ from twisted.internet import reactor
 from twisted.python.threadable import isInIOThread
 from wx.lib.delayedresult import (AbortedException, SenderCallAfter, SenderNoWx, SenderWxEvent)
 
-from Tribler.Core.Utilities.twisted_thread import isInThreadPool
+from Tribler.Core.Utilities.twisted_utils import isInThreadPool
 from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.dispersy.taskmanager import TaskManager
 

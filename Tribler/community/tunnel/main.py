@@ -17,7 +17,7 @@ from twisted.internet.threads import blockingCallFromThread
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Session import Session
-from Tribler.Core.Utilities.twisted_thread import callInThreadPool, reactor
+from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Core.permid import read_keypair
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Main.globals import DefaultDownloadStartupConfig
