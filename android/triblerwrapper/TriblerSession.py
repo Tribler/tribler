@@ -90,8 +90,11 @@ class TriblerSession(BaseManager):
         _logger.info("Set tribler_install_dir to %s" % install_dir)
         self._sconfig.set_install_dir(install_dir)
 
+        self._sconfig.set_state_dir(os.environ['TRIBLER_STATE_DIR'])
+
         # Disable unwanted dependencies:
         self._sconfig.set_torrent_store(True)
+        self._sconfig.set_enable_channel_search(False)
         self._sconfig.set_videoplayer(False) # Now what?
         self._sconfig.set_preferred_playback_mode(42) # Now what? 2
         self._sconfig.set_torrent_checking(True)

@@ -22,6 +22,9 @@ class TriblerWrapper():
     def stop(self):
         self.tribler.stop_session()
 
+    def keep_running(self):
+        return self.tribler.is_running()
+
     def start(self):
         self.tribler.start_session()
 

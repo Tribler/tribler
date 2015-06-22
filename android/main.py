@@ -19,6 +19,7 @@ import os
 from nfc import CreateNfcBeamUrisCallback
 import io
 import threading
+import time
 
 from homescreen import HomeScreen
 from filewidget import FileWidget
@@ -201,4 +202,9 @@ class Skelly(App):
 
 
 if __name__== '__main__':
-	Skelly().run()
+	skelly = Skelly()
+	skelly.run()
+
+	# Needed when using the twisted XMLRPC server
+	while skelly.tw.keep_running():
+		time.sleep(1)
