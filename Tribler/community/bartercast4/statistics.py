@@ -48,7 +48,7 @@ class BarterStatistics(object):
                 fixed_n = n - random_n
                 sorted_list = sorted(d.items(), key=itemgetter(1), reverse=True)
                 top_stats = sorted_list[0:fixed_n]
-                self._logger.error("len d: %d, fixed_n: %d" % (len(d), fixed_n))
+                self._logger.debug("len d: %d, fixed_n: %d" % (len(d), fixed_n))
                 if len(d) <= fixed_n:
                     random_stats = []
                 else:
