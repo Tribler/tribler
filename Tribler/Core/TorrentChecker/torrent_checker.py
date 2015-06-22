@@ -2,17 +2,15 @@ from binascii import hexlify
 from collections import deque
 import logging
 import select
-from threading import Thread
 import time
 
 from twisted.internet import reactor
 
-from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
+from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
 from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Core.TorrentChecker.session import TRACKER_ACTION_CONNECT, create_tracker_session
-from Tribler.Core.Utilities.network_utils import InterruptSocket
 
 from .session import FakeDHTSession
 
@@ -23,59 +21,7 @@ DEFAULT_TORRENT_CHECK_INTERVAL = 900  # base multipier for the check delay
 DEFAULT_MAX_TORRENT_CHECK_RETRIES = 8  # max check delay increments when failed.
 DEFAULT_TORRENT_CHECK_RETRY_INTERVAL = 30  # interval when the torrent was successfully checked for the last time
 
-
-class TorrentCheckerThread(Thread):
-
-    """
-    Thread used to monitor for data arriving on the scrape sockets.
-    """
-
-    def __init__(self, tracker_checker):
-        super(TorrentCheckerThread, self).__init__(name=u"torrent_checker")
-        self._logger = logging.getLogger(self.__class__.__name__)
-        self._torrent_checker = tracker_checker
-
-        self._interrupt_socket = InterruptSocket()
-
-        self._session_dict = {}
-
-    def cleanup(self):
-        self._session_dict = None
-        self._interrupt_socket.close()
-        self._interrupt_socket = None
-
-    def interrupt(self):
-        self._interrupt_socket.interrupt()
-
-    def run(self):
-        """
-        Checks for data in the scrape sockets until it's time to stop.
-        Every time there's data on one of the sockets, TorrentChecker.check_sessions() will be called.
-        """
-        check_read_socket_list = []
-        check_write_socket_list = []
-        while not self._torrent_checker.should_stop:
-            check_read_socket_list.append(self._interrupt_socket.socket)
-
-            read_socket_list, write_socket_list, _ = select.select(check_read_socket_list,
-                                                                                   check_write_socket_list,
-                                                                                   [], 5)
-
-            if self._torrent_checker.should_stop:
-                break
-
-            if self._interrupt_socket.socket in read_socket_list:
-                self._interrupt_socket.clear()
-                read_socket_list = [sock for sock in read_socket_list if sock != self._interrupt_socket.socket]
-
-            result = self._torrent_checker.check_sessions(read_socket_list, write_socket_list, [])
-
-            if result is None:
-                break
-            check_read_socket_list, check_write_socket_list = result
-
-        self.cleanup()
-        self._logger.info(u"stopped")
+DEFAULT_SOCKET_SELECTION_INTERVAL = 0.3  # interval between two socket selections
 
 
 class TorrentChecker(TaskManager):
@@ -89,17 +35,19 @@ class TorrentChecker(TaskManager):
 
         self._should_stop = False
 
-        self._checker_thread = None
-
         self._pending_request_queue = deque()
         self._pending_response_dict = {}
 
         self._torrent_check_interval = DEFAULT_TORRENT_CHECK_INTERVAL
         self._torrent_check_retry_interval = DEFAULT_TORRENT_CHECK_RETRY_INTERVAL
         self._max_torrent_check_retries = DEFAULT_MAX_TORRENT_CHECK_RETRIES
+        self._socket_selection_interval = DEFAULT_SOCKET_SELECTION_INTERVAL
 
         self._session_list = [FakeDHTSession(session, self._on_result_from_session),]
         self._last_torrent_selection_time = 0
+
+        self._check_read_socket_list = []
+        self._check_write_socket_list = []
 
     @property
     def should_stop(self):
@@ -111,8 +59,8 @@ class TorrentChecker(TaskManager):
 
         self._reschedule_torrent_select()
 
-        self._checker_thread = TorrentCheckerThread(self)
-        self._checker_thread.start()
+        self.register_task(u"task_check_sockets", reactor.callLater(self._socket_selection_interval,
+                                                                    self._task_select_sockets))
 
     @blocking_call_on_reactor_thread
     def shutdown(self):
@@ -121,13 +69,9 @@ class TorrentChecker(TaskManager):
 
         Once shut down it can't be started again.
         """
-        self.cancel_all_pending_tasks()
-
-        # stop the checking thread
+        # stop the checking task
         self._should_stop = True
-        self._checker_thread.interrupt()
-        self._checker_thread.join()
-        self._checker_thread = None
+        self.cancel_all_pending_tasks()
 
         # kill all the tracker sessions
         for session in self._session_list:
@@ -139,6 +83,24 @@ class TorrentChecker(TaskManager):
 
         self._torrent_db = None
         self._session = None
+        self._check_read_socket_list = None
+        self._check_write_socket_list = None
+
+    def _task_select_sockets(self):
+        """
+        The LoopingCall task that checks the sockets using select().
+        """
+        read_socket_list, write_socket_list, _ = select.select(self._check_read_socket_list,
+                                                               self._check_write_socket_list,
+                                                               [], 0.0)
+
+        result = self._check_sessions(read_socket_list, write_socket_list, [])
+        if result is None:
+            return
+        self._check_read_socket_list, self._check_write_socket_list = result
+
+        self.register_task(u"task_check_sockets", reactor.callLater(self._socket_selection_interval,
+                                                                    self._task_select_sockets))
 
     def _reschedule_torrent_select(self):
         """
@@ -186,8 +148,6 @@ class TorrentChecker(TaskManager):
             scheduled_torrents += 1
 
         self._logger.debug(u"Selected %d new torrents to check on tracker: %s", scheduled_torrents, tracker_url)
-        if scheduled_torrents > 0:
-            self._checker_thread.interrupt()
 
     @call_on_reactor_thread
     def add_gui_request(self, infohash):
@@ -223,13 +183,9 @@ class TorrentChecker(TaskManager):
             return
 
         self._pending_request_queue.append((torrent_id, infohash, tracker_set))
-        self._checker_thread.interrupt()
 
     @blocking_call_on_reactor_thread
-    def check_sessions(self, read_socket_list, write_socket_list, _):
-        if self._should_stop:
-            return
-
+    def _check_sessions(self, read_socket_list, write_socket_list, _):
         current_time = int(time.time())
 
         session_dict = {}
