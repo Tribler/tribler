@@ -179,7 +179,7 @@ class Skelly(App):
 		android.map_key(android.KEYCODE_BACK,1001)
 		win = Window
 		win.bind(on_keyboard=self.key_handler)
-
+		win.clearcolor = (1,1,1,1)
 		globalvars.skelly = self
 
 		self.nfc_init()

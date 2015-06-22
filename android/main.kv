@@ -3,7 +3,7 @@
 		BoxLayout:
 			orientation: 'vertical'
 			AnchorLayout:
-				anchor_x: 'center'
+				anchor_x: 'right'
 				anchor_y: 'top'
 				size_hint: 1,None
 				height: '1cm'
@@ -19,6 +19,7 @@
 					width: '1cm'
 					background_normal: 'img/but_normal.png'
 					background_down: 'img/but_down.png'
+					background_color: 1,1,1,0
 					border:	30,30,30,30
 					on_release: app.swap_to(app.SearchScr)
 					BoxLayout:	
@@ -53,13 +54,25 @@
 				width: '1cm'
 				background_normal: 'img/but_normal.png'
 				background_down: 'img/but_down.png'
+				background_color: 0,0,0,0
 				border:	30,30,30,30
-				on_release: root.startCamera()
-				BoxLayout:
+				on_press: cam_icon.color = (1, 0,0,1)
+				on_release: 
+					cam_icon.color = (1,1,1,1)
+					root.startCamera()
+				canvas:
+					Color: 
+						rgba: 0,0,0,0.5
+						id: col
+					Ellipse:
+						size: self.size
+						pos: self.pos
+				AnchorLayout:
 					pos: self.parent.pos
 					size: self.parent.size
 					Image:
 						source: './img/ic_videocam_white_48dp.png'
+						id: cam_icon
 
 
 
