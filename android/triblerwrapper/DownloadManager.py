@@ -6,9 +6,7 @@ import threading
 import binascii
 import os
 
-# Setup logger
-import logging
-_logger = logging.getLogger(__name__)
+from kivy.logger import Logger
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
@@ -73,7 +71,7 @@ class DownloadManager(BaseManager):
         hash recheck is needed.
         :return: Nothing.
         """
-        _logger.info("Running session checkpoint..")
+        Logger.info("Running session checkpoint..")
         self._session.checkpoint()
 
         # Schedule next checkpoint
@@ -108,7 +106,7 @@ class DownloadManager(BaseManager):
                 bin_infohash = binascii.unhexlify(infohash)
 
                 tdef = TorrentDefNoMetainfo(bin_infohash, name)
-                _logger.info("[%s] Adding torrent by magnet link" % infohash)
+                Logger.info("[%s] Adding torrent by magnet link" % infohash)
 
                 defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
                 dscfg = defaultDLConfig.copy()
@@ -119,7 +117,7 @@ class DownloadManager(BaseManager):
                 self._session.checkpoint()
 
             except Exception, e:
-                _logger.error("Error adding torrent (infohash=%s,name=%s) (%s)" % (infohash, name, e.args))
+                Logger.error("Error adding torrent (infohash=%s,name=%s) (%s)" % (infohash, name, e.args))
                 return False
 
             return True
@@ -136,7 +134,7 @@ class DownloadManager(BaseManager):
 
         self._dllock.acquire()
         try:
-            _logger.info("Got download status callback (%s: %s; %s)" % (type(ds).__name__, ds.get_status(), ds.get_progress()))
+            Logger.info("Got download status callback (%s: %s; %s)" % (type(ds).__name__, ds.get_status(), ds.get_progress()))
 
             dldict = self._getDownloadState(ds, progress=True, vod=True)
             if dldict:
@@ -149,7 +147,7 @@ class DownloadManager(BaseManager):
                     # TODO: Not supported in Tribler anymore but might be needed
                     #self._ratelimiter.add_downloadstate(ds)
             else:
-                _logger.warn("Error updating download state")
+                Logger.warn("Error updating download state")
 
         finally:
             self._dllock.release()
@@ -163,7 +161,7 @@ class DownloadManager(BaseManager):
         """
         def remove_torrent_callback():
             try:
-                _logger.info("Removing torrent with infohash %s" % infohash)
+                Logger.info("Removing torrent with infohash %s" % infohash)
                 dl = self._session.get_download(binascii.unhexlify(infohash))
                 self._session.remove_download(dl, removecontent)
 
@@ -175,7 +173,7 @@ class DownloadManager(BaseManager):
                 return True
 
             except Exception, e:
-                _logger.error("Couldn't remove torrent with infohash %s (%s)" % (infohash, e.args))
+                Logger.error("Couldn't remove torrent with infohash %s (%s)" % (infohash, e.args))
                 return False
 
         self._session.lm.rawserver.add_task(remove_torrent_callback, delay=1)
@@ -207,19 +205,19 @@ class DownloadManager(BaseManager):
         DownloadManager.
         :return: Nothing.
         """
-        _logger.info("Downloads cache check hit..")
+        Logger.info("Downloads cache check hit..")
 
         with self._dllock:
             for dl in self._session.get_downloads():
                 try:
                     infohash = binascii.hexlify(dl.get_def().get_infohash())
                     if not infohash in self._downloads.keys():
-                        _logger.info("Added %s to download cache" % infohash)
+                        Logger.info("Added %s to download cache" % infohash)
                         dl.set_state_callback(self._update_dl_state, delay=1)
                     else:
-                        _logger.info("Already in download cache: " % infohash)
+                        Logger.info("Already in download cache: " % infohash)
                 except Exception, e:
-                    _logger.info("Error checking download: " % e.args)
+                    Logger.info("Error checking download: " % e.args)
                     pass
 
         threading.Timer(DOWNLOAD_UPDATE_CACHE, self._download_update_cache, ()).start()
@@ -229,7 +227,7 @@ class DownloadManager(BaseManager):
         Load the checkpoint for any downloads that can be resumed.
         :return: Nothing.
         """
-        _logger.info("Loading download checkpoints..")
+        Logger.info("Loading download checkpoints..")
 
         # Niels: first remove all "swift" torrent collect checkpoints
         dir = self._session.get_downloads_pstate_dir()
@@ -246,7 +244,7 @@ class DownloadManager(BaseManager):
                 if saveas:
                     destdir = os.path.basename(saveas)
                     if destdir == coldir or destdir == os.path.join(self._session.get_state_dir(), "anon_test"):
-                        _logger.info("Removing swift checkpoint %s" % file)
+                        Logger.info("Removing swift checkpoint %s" % file)
                         os.remove(file)
             except:
                 pass
@@ -320,7 +318,7 @@ class DownloadManager(BaseManager):
                     pass
                 findex += 1
 
-            _logger.info("Selecting %s for VOD" % selected_file)
+            Logger.info("Selecting %s for VOD" % selected_file)
 
             if selected_file is None:
                 #selected_file = files[0][0]
@@ -334,7 +332,7 @@ class DownloadManager(BaseManager):
             return False
 
         voduri = self.get_vod_uri(infohash, fileindex=findex)
-        _logger.info("Returning VOD uri: %s" % voduri)
+        Logger.info("Returning VOD uri: %s" % voduri)
 
         return voduri
 

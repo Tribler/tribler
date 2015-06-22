@@ -7,9 +7,7 @@ import binascii
 from time import time
 import sys
 
-# Init logger
-import logging
-_logger = logging.getLogger(__name__)
+from kivy.logger import Logger
 
 # Tribler defs
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_MYPREFERENCES, \
@@ -118,7 +116,7 @@ class TorrentManager(BaseManager):
 
                 results = map(create_torrent, results)
 
-            _logger.debug('TorrentSearchGridManager: _doSearchLocalDatabase took: %s of which tuple creation took %s', time() - begintime, time() - begintuples)
+            Logger.debug('TorrentSearchGridManager: _doSearchLocalDatabase took: %s of which tuple creation took %s', time() - begintime, time() - begintuples)
             return results
 
         results = self._prepare_torrents(local_search(keywords))
@@ -157,16 +155,16 @@ class TorrentManager(BaseManager):
                     self._session.add_observer(self._search_remote_callback, SIGNAL_SEARCH_COMMUNITY, [SIGNAL_ON_SEARCH_RESULTS])
                     nr_requests_made = community.create_search(self._keywords)
                     if not nr_requests_made:
-                        _logger.error("@@@@ Could not send search in SearchCommunity, no verified candidates found")
+                        Logger.error("@@@@ Could not send search in SearchCommunity, no verified candidates found")
                     break
 
             else:
-                _logger.error("@@@@ Could not send search in SearchCommunity, community not found")
+                Logger.error("@@@@ Could not send search in SearchCommunity, community not found")
 
         else:
-            _logger.error("@@@@ Could not send search in SearchCommunity, Dispersy not found")
+            Logger.error("@@@@ Could not send search in SearchCommunity, Dispersy not found")
 
-        _logger.info("@@@@ Made %s requests to the search community" % nr_requests_made)
+        Logger.info("@@@@ Made %s requests to the search community" % nr_requests_made)
 
         # TODO: FIX RETURN VALUE (CURRENTLY ALWAYS NONE)
         return nr_requests_made
@@ -183,11 +181,11 @@ class TorrentManager(BaseManager):
         keywords = search_results['keywords']
         results = search_results['results']
         candidate = search_results['candidate']
-        _logger.info("******************** got %s unfiltered results for %s %s %s" % (len(results), keywords, candidate, time()))
+        Logger.info("******************** got %s unfiltered results for %s %s %s" % (len(results), keywords, candidate, time()))
 
         # Ignore searches we don't want (anymore)
         if not self._keywords == keywords:
-            _logger.info("Ignored results for %s, we are looking for %s now" % (keywords, self._keywords))
+            Logger.info("Ignored results for %s, we are looking for %s now" % (keywords, self._keywords))
             return
 
         for result in results:
@@ -221,12 +219,12 @@ class TorrentManager(BaseManager):
                 remoteHit.channelcast_db = self._channelcast_db
 
                 if remoteHit.category.lower() == u'xxx' and self._category.family_filter_enabled():
-                    _logger.info("Ignore XXX torrent: %s" % remoteHit.name)
+                    Logger.info("Ignore XXX torrent: %s" % remoteHit.name)
                 else:
                     # Add to result list.
                     self._add_remote_result(remoteHit)
             except Exception, e:
-                _logger.info("Ignored one result in results from %s because of the following exception: %s" % (keywords, e))
+                Logger.info("Ignored one result in results from %s because of the following exception: %s" % (keywords, e))
                 pass
 
         return
@@ -245,7 +243,7 @@ class TorrentManager(BaseManager):
 
             # Do not add duplicates
             if torrent.infohash in self._result_infohashes:
-                _logger.error("Torrent duplicate: %s [%s]" % (torrent.name, binascii.hexlify(torrent.infohash)))
+                Logger.error("Torrent duplicate: %s [%s]" % (torrent.name, binascii.hexlify(torrent.infohash)))
                 return False
 
             self._results.append(torrent)
@@ -255,7 +253,7 @@ class TorrentManager(BaseManager):
             for fn in self._callbacks:
                 fn()
 
-            _logger.error("Torrent added: %s [%s]" % (torrent.name, binascii.hexlify(torrent.infohash)))
+            Logger.error("Torrent added: %s [%s]" % (torrent.name, binascii.hexlify(torrent.infohash)))
             return True
         finally:
             self._remote_lock.release()
@@ -316,7 +314,7 @@ class TorrentManager(BaseManager):
             try:
                 torrents.append(self._prepare_torrent(tr))
             except:
-                _logger.error("prepare torrent fail: %s" % tr.name)
+                Logger.error("prepare torrent fail: %s" % tr.name)
                 pass
 
         return torrents

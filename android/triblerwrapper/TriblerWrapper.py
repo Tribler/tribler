@@ -1,8 +1,5 @@
-import logging
+from kivy.logger import Logger
 import time
-
-logging.basicConfig(level=logging.DEBUG)
-_logger = logging.getLogger(__name__)
 
 from TriblerSession import TriblerSession
 from DownloadManager import DownloadManager
@@ -10,7 +7,7 @@ from SettingsManager import SettingsManager
 from TorrentManager import TorrentManager
 from ChannelManager import ChannelManager
 
-class TriblerWrapper():
+class TriblerWrapper:
     tribler = None
     dm = None
     tm = None
@@ -32,16 +29,16 @@ class TriblerWrapper():
         while not self.tribler.is_running():
             time.sleep(0.1)
 
-        #_logger.error("Loading ChannelManager")
+        #Logger.error("Loading ChannelManager")
         #self.cm = ChannelManager.getInstance(self.tribler.get_session())
 
-        _logger.error("Loading TorrentManager")
+        Logger.error("Loading TorrentManager")
         self.tm = TorrentManager.getInstance(self.tribler.get_session())
 
-        _logger.error("Loading DownloadManager")
+        Logger.error("Loading DownloadManager")
         self.dm = DownloadManager.getInstance(self.tribler.get_session())
 
-        _logger.error("Loading ConfigurationManager")
+        Logger.error("Loading ConfigurationManager")
         # Load this last because it sets settings in other managers
         self.sm = SettingsManager.getInstance(self.tribler.get_session())
 

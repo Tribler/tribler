@@ -6,9 +6,7 @@ import threading
 import binascii
 from time import time
 
-# Init logger
-import logging
-_logger = logging.getLogger(__name__)
+from kivy.logger import Logger
 
 # Tribler defs
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_MYPREFERENCES, \
@@ -71,7 +69,7 @@ class ChannelManager(BaseManager):
 
         _, channels = self._createChannels(hits)
 
-        _logger.error("@@@ Found %s local channels in %ss" % (len(channels), time() - begintime))
+        Logger.error("@@@ Found %s local channels in %ss" % (len(channels), time() - begintime))
 
         return self._prepare_channels(channels)
 
@@ -124,14 +122,14 @@ class ChannelManager(BaseManager):
                     self._session.add_observer(self._search_remote_callback, SIGNAL_ALLCHANNEL_COMMUNITY, [SIGNAL_ON_SEARCH_RESULTS])
                     nr_requests_made = community.create_channelsearch(self._keywords)
                     if not nr_requests_made:
-                        _logger.info("Could not send search in AllChannelCommunity, no verified candidates found")
+                        Logger.info("Could not send search in AllChannelCommunity, no verified candidates found")
                     break
 
             else:
-                _logger.info("Could not send search in AllChannelCommunity, community not found")
+                Logger.info("Could not send search in AllChannelCommunity, community not found")
 
         else:
-            _logger.info("Could not send search in AllChannelCommunity, Dispersy not found")
+            Logger.info("Could not send search in AllChannelCommunity, Dispersy not found")
 
         return nr_requests_made
 
@@ -143,12 +141,12 @@ class ChannelManager(BaseManager):
         """
         kws = results['keywords']
         answers = results['torrents']
-        _logger.error("@@@@@@@@@ DISPERY CALLBACK!")
-        _logger.error("@@@@@ CALL BACK DATA: %s\n%s" % (kws, answers))
+        Logger.error("@@@@@@@@@ DISPERY CALLBACK!")
+        Logger.error("@@@@@ CALL BACK DATA: %s\n%s" % (kws, answers))
 
         # Ignore searches we don't want (anymore)
         if not self._keywords == kws:
-            _logger.error("Disregard search results for %s" % kws)
+            Logger.error("Disregard search results for %s" % kws)
             return
 
         try:
@@ -170,13 +168,13 @@ class ChannelManager(BaseManager):
         # TODO: RLocks instead of normal locks.
 
         if channel.dispersy_cid in self._result_cids:
-            _logger.error("Channel duplicate: %s [%s]" % (channel.name, binascii.hexlify(channel.dispersy_cid)))
+            Logger.error("Channel duplicate: %s [%s]" % (channel.name, binascii.hexlify(channel.dispersy_cid)))
             return False
 
         self._results.append(channel)
         self._result_cids.append(channel.dispersy_cid)
 
-        _logger.error("Channel added: %s [%s]" % (channel.name, binascii.hexlify(channel.dispersy_cid)))
+        Logger.error("Channel added: %s [%s]" % (channel.name, binascii.hexlify(channel.dispersy_cid)))
         return True
 
     def get_remote_results(self):
@@ -187,7 +185,7 @@ class ChannelManager(BaseManager):
         begintime = time()
 
         ret = self._prepare_channels(self._results)
-        _logger.error("@@@ Found %s remote channels in %ss" % (len(ret), time() - begintime))
+        Logger.error("@@@ Found %s remote channels in %ss" % (len(ret), time() - begintime))
         return ret
 
         """
@@ -230,9 +228,9 @@ class ChannelManager(BaseManager):
         finally:
             self._remote_lock.release()
 
-        _logger.debug("#### HITS ARE UPDATED? %s" % hitsUpdated)
+        Logger.debug("#### HITS ARE UPDATED? %s" % hitsUpdated)
 
-        _logger.debug("ChannelManager: getChannelHits took %s", time() - begintime)
+        Logger.debug("ChannelManager: getChannelHits took %s", time() - begintime)
 
         ret = self._prepare_channels(self._channel_results)
         print ret

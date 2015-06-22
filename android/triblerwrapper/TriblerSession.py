@@ -7,11 +7,7 @@ import sys
 import os
 import shutil
 
-# Init logging
-import logging
-
-logging.basicConfig(level=logging.DEBUG)
-_logger = logging.getLogger(__name__)
+from kivy.logger import Logger
 
 # TODO: FIND OUT WHICH OF THESE CAN BE REMOVED. IF ALL ARE REMOVED, DISPERSY HANGS ON STARTUP.
 from threading import Thread, Event
@@ -54,21 +50,21 @@ class TriblerSession(BaseManager):
         if self._running:
             return False
 
-        _logger.info("Set tribler_state_dir to %s" % os.environ['TRIBLER_STATE_DIR'])
+        Logger.info("Set tribler_state_dir to %s" % os.environ['TRIBLER_STATE_DIR'])
 
         # Load configuration file (if exists)
         cfgfilename = Session.get_default_config_filename(os.environ['TRIBLER_STATE_DIR'])
         try:
             self._sconfig = SessionStartupConfig.load(cfgfilename)
-            _logger.info("Loaded previous configuration file from %s" % cfgfilename)
+            Logger.info("Loaded previous configuration file from %s" % cfgfilename)
         except:
             self._sconfig = SessionStartupConfig()
             self._sconfig.set_state_dir(os.environ['TRIBLER_STATE_DIR'])
-            _logger.info("No previous configuration file found, creating one in %s" % os.environ['TRIBLER_STATE_DIR'])
+            Logger.info("No previous configuration file found, creating one in %s" % os.environ['TRIBLER_STATE_DIR'])
 
         # Set torrent collecting directory:
         dlcfgfilename = get_default_dscfg_filename(self._sconfig.get_state_dir())
-        _logger.debug("main: Download config %s", dlcfgfilename)
+        Logger.debug("main: Download config %s", dlcfgfilename)
         try:
             defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
         except:
@@ -80,14 +76,14 @@ class TriblerSession(BaseManager):
         # Create download directory:
         if not os.path.isdir(defaultDLConfig.get_dest_dir()):
             try:
-                _logger.info("Creating download directory: %s" % defaultDLConfig.get_dest_dir())
+                Logger.info("Creating download directory: %s" % defaultDLConfig.get_dest_dir())
                 os.makedirs(defaultDLConfig.get_dest_dir())
             except:
-                _logger.error("Couldn't create download directory! (%s)" % defaultDLConfig.get_dest_dir())
+                Logger.error("Couldn't create download directory! (%s)" % defaultDLConfig.get_dest_dir())
 
         # Set install_dir
         install_dir = os.environ['ANDROID_PRIVATE'] + u'/lib/python2.7/site-packages'
-        _logger.info("Set tribler_install_dir to %s" % install_dir)
+        Logger.info("Set tribler_install_dir to %s" % install_dir)
         self._sconfig.set_install_dir(install_dir)
 
         self._sconfig.set_state_dir(os.environ['TRIBLER_STATE_DIR'])
@@ -103,13 +99,13 @@ class TriblerSession(BaseManager):
         self._sconfig.set_dht_torrent_collecting(True)
         self._sconfig.set_torrent_collecting_max_torrents(5000)
 
-        _logger.info("Starting Tribler session..")
+        Logger.info("Starting Tribler session..")
         self._session = Session(self._sconfig)
         upgrader = self._session.prestart()
         while not upgrader.is_done:
             time.sleep(0.1)
         self._session.start()
-        _logger.info("Tribler session started!")
+        Logger.info("Tribler session started!")
 
         self._dispersy = self._session.get_dispersy_instance()
         self.define_communities()
@@ -130,19 +126,19 @@ class TriblerSession(BaseManager):
         from Tribler.community.channel.preview import PreviewChannelCommunity
         from Tribler.community.metadata.community import MetadataCommunity
 
-        _logger.info("Preparing to load dispersy communities...")
+        Logger.info("Preparing to load dispersy communities...")
 
         comm = self._dispersy.define_auto_load(SearchCommunity, self._session.dispersy_member, load=True,
                                                kargs=comm_args)
-        _logger.debug("Currently loaded dispersy communities: %s" % comm)
+        Logger.debug("Currently loaded dispersy communities: %s" % comm)
         #comm = self._dispersy.define_auto_load(AllChannelCommunity, self._session.dispersy_member, load=True,
         #                                       kargs=comm_args)
-        #_logger.debug("Currently loaded dispersy communities: %s" % comm)
+        #Logger.debug("Currently loaded dispersy communities: %s" % comm)
 
         # load metadata community
         #comm = self._dispersy.define_auto_load(MetadataCommunity, self._session.dispersy_member, load=True,
          #                                      kargs=comm_args) # TODO: used to be kargs=comm_args, but MetadataCommunity uses _integrate_with_tribler (notice lower dash) and even that won't work
-        _logger.info("@@@@@@@@@@ Loaded dispersy communities: %s" % comm)
+        Logger.info("@@@@@@@@@@ Loaded dispersy communities: %s" % comm)
 
         # 17/07/13 Boudewijn: the missing-member message send by the BarterCommunity on the swift port is crashing
         # 6.1 clients.  We will disable the BarterCommunity for version 6.2, giving people some time to upgrade
@@ -155,9 +151,9 @@ class TriblerSession(BaseManager):
 
         #comm = self._dispersy.define_auto_load(ChannelCommunity, self._session.dispersy_member, load=True,
         #                                       kargs=comm_args)
-        #_logger.debug("Currently loaded dispersy communities: %s" % comm)
+        #Logger.debug("Currently loaded dispersy communities: %s" % comm)
         #comm = self._dispersy.define_auto_load(PreviewChannelCommunity, self._session.dispersy_member, kargs=comm_args)
-        #_logger.debug("Currently loaded dispersy communities: %s" % comm)
+        #Logger.debug("Currently loaded dispersy communities: %s" % comm)
 
         self._running = True
 
@@ -169,16 +165,16 @@ class TriblerSession(BaseManager):
         Unloads the Tribler session.
         :return: Nothing.
         """
-        _logger.info("Create checkpoint..")
+        Logger.info("Create checkpoint..")
         self._session.checkpoint()
 
-        _logger.info("Shutting down Tribler..")
+        Logger.info("Shutting down Tribler..")
         self._session.shutdown()
 
         # Just a tad of extra time
         time.sleep(1)
 
         self._running = False
-        _logger.info("Bye bye")
+        Logger.info("Bye bye")
 
         return True

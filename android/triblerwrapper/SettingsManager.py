@@ -5,9 +5,7 @@
 import os
 import ast
 
-# Setup logger
-import logging
-_logger = logging.getLogger(__name__)
+from kivy.logger import Logger
 
 from Tribler.Category.Category import Category
 
@@ -50,12 +48,12 @@ class SettingsManager(BaseManager):
                 try:
                     function_name = "set_%s" % envkey[len(ENVIRONMENT_SETTINGS_PREFIX):].lower()
                     function_value = os.environ[envkey]
-                    _logger.info("Setting preset setting with %s(%s)" % (function_name, function_value))
+                    Logger.info("Setting preset setting with %s(%s)" % (function_name, function_value))
 
                     # Call setter
                     getattr(self, function_name)(get_value(function_value))
                 except Exception, e:
-                    _logger.warn("Could not set settings for key %s: %s" % (envkey, e.args))
+                    Logger.warn("Could not set settings for key %s: %s" % (envkey, e.args))
 
     def get_thumbs_directory(self):
         """
