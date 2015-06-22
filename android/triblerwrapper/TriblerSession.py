@@ -85,17 +85,15 @@ class TriblerSession(BaseManager):
             except:
                 _logger.error("Couldn't create download directory! (%s)" % defaultDLConfig.get_dest_dir())
 
-        # TODO: This is temporary for testing:
-        from jnius import autoclass
-        python_activity = autoclass('org.renpy.android.PythonActivity')
-        files_dir = python_activity.mActivity.getFilesDir().getAbsolutePath()
-        install_dir = files_dir + u'/lib/python2.7/site-packages'
+        # Set install_dir
+        install_dir = os.environ['ANDROID_PRIVATE'] + u'/lib/python2.7/site-packages'
         _logger.info("Set tribler_install_dir to %s" % install_dir)
         self._sconfig.set_install_dir(install_dir)
-        # TODO: ^End of temporary test.
 
         # Disable unwanted dependencies:
         self._sconfig.set_torrent_store(True)
+        self._sconfig.set_videoplayer(False) # Now what?
+        self._sconfig.set_preferred_playback_mode(42) # Now what? 2
         self._sconfig.set_torrent_checking(True)
         self._sconfig.set_multicast_local_peer_discovery(False)
         self._sconfig.set_mainline_dht(True)

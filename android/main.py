@@ -12,7 +12,7 @@ from kivy.properties import ObjectProperty, ListProperty
 from Tribler.Core.Utilities.twisted_thread import reactor, stop_reactor
 from triblerwrapper.Environment import init_environment
 init_environment()
-from triblerwrapper import TriblerWrapper
+from triblerwrapper.TriblerWrapper import TriblerWrapper
 
 import android
 import os

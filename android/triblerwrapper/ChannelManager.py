@@ -37,7 +37,7 @@ class ChannelManager(BaseManager):
     _results = []
     _result_cids = []
 
-    def __init__(self):
+    def __init__(self, session):
         """
         Load database handles and Dispersy.
         :return: Nothing.

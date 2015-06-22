@@ -1,3 +1,15 @@
+import logging
+import time
+
+logging.basicConfig(level=logging.DEBUG)
+_logger = logging.getLogger(__name__)
+
+from TriblerSession import TriblerSession
+from DownloadManager import DownloadManager
+from SettingsManager import SettingsManager
+from TorrentManager import TorrentManager
+from ChannelManager import ChannelManager
+
 class TriblerWrapper():
     tribler = None
     dm = None
@@ -5,7 +17,7 @@ class TriblerWrapper():
     cm = None
 
     def __init__(self):
-        self.tribler = TriblerSession()
+        self.tribler = TriblerSession(None)
 
     def stop(self):
         self.tribler.stop_session()
@@ -17,16 +29,15 @@ class TriblerWrapper():
         while not self.tribler.is_running():
             time.sleep(0.1)
 
-        # Disable ChannelManager
         #_logger.error("Loading ChannelManager")
-        #self.cm = ChannelManager.getInstance(self.tribler.get_session(), self.xmlrpc)
+        #self.cm = ChannelManager.getInstance(self.tribler.get_session())
 
         _logger.error("Loading TorrentManager")
-        self.tm = TorrentManager.getInstance(self.tribler.get_session(), self.xmlrpc)
+        self.tm = TorrentManager.getInstance(self.tribler.get_session())
 
         _logger.error("Loading DownloadManager")
-        self.dm = DownloadManager.getInstance(self.tribler.get_session(), self.xmlrpc)
+        self.dm = DownloadManager.getInstance(self.tribler.get_session())
 
         _logger.error("Loading ConfigurationManager")
         # Load this last because it sets settings in other managers
-        self.sm = SettingsManager.getInstance(self.tribler.get_session(), self.xmlrpc)
+        self.sm = SettingsManager.getInstance(self.tribler.get_session())
