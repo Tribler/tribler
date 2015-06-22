@@ -64,11 +64,11 @@ class HomeScreen(Screen):
 		intention = Intent(MediaStore.INTENT_ACTION_VIDEO_CAMERA)
 		#When java requires a "Context" usually in the shape of "this",
 		#it has to be casted from our activity
-		self.con = cast(Context, activity)			
-		intention.resolveActivity(self.con.getPackageManager())	
+		self.con = cast(Context, activity)
+		intention.resolveActivity(self.con.getPackageManager())
 		if intention.resolveActivity(self.con.getPackageManager()) != None:
 			#Called with 1 as parameter so the application waits
-			#until the camera returns it's video			
+			#until the camera returns it's video
 			activity.startActivityForResult(intention,1)
 
 	#Test function for adding a number of fake video buttons
@@ -78,7 +78,7 @@ class HomeScreen(Screen):
 		self.ids.fileList.add_widget(wid)
 
 	#Useful support function to print the location of the DCIM dir
-	def printDir(self):	
+	def printDir(self):
 		DCIMdir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
 		print DCIMdir.list()
 
@@ -90,18 +90,18 @@ class HomeScreen(Screen):
 			globalvars.nfcCallback.clearUris()
 		files = []
 		DCIMdir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
-		print DCIMdir.toURI().getPath()	
+		globalvars.storagedir = DCIMdir.toURI().getPath()
 		self.ids.fileList.clear_widgets()
 		for root, dirnames, filenames in os.walk(DCIMdir.getAbsolutePath()):
 			for filename in fnmatch.filter(filenames,'*.mp4'):
 				files.append( (filename, root+'/'+filename) )
 		self.discovered_media = files
-		
+
 		Clock.schedule_once(functools.partial(self.createFileWidgets,self.discovered_media))
 	#Function creates a filewidget and adds it to the ScrollList
-	#then, it adds itself to the Queue for the thumbnail thread to load it's thumbnails	
+	#then, it adds itself to the Queue for the thumbnail thread to load it's thumbnails
 	def createFileWidget(self, tup, *largs):
-		filename, uri = tup	
+		filename, uri = tup
 		wid = FileWidget()
 		wid.setName(filename)
 		wid.setUri(uri)
@@ -114,11 +114,11 @@ class HomeScreen(Screen):
 	#was required to stop application from freezing when large files are present
 	def createFileWidgets(self,media, *largs):
 		for i in range(0,10):
-			if( len(media) != 0):			
-				tup = media.pop(0)		
+			if( len(media) != 0):
+				tup = media.pop(0)
 				self.createFileWidget(tup)
 				Clock.schedule_once(functools.partial(self.createFileWidgets, media))
-			else: break		
+			else: break
 	#The thumbnail thread responsible for loading the images
 	def loadThumbnails(self):
 		while True:
@@ -126,7 +126,7 @@ class HomeScreen(Screen):
 			wid = self.non_thumbnailed.get() #Queue blocks thread until not-empty
 			#if the object is a specific finished object,
 			#we close the thread so the application can close
-			if(wid is self.Finished): 
+			if(wid is self.Finished):
 				print "Ending Thumbnail Thread"
 				detach()
 				break

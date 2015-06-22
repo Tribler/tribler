@@ -20,7 +20,8 @@ import time
 import threading
 import functools
 
-from Tribler.Core import TorrentDef
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
 
 import globalvars
 
@@ -57,9 +58,6 @@ class FileWidget(BoxLayout):
 	JPEG = 1
 	PNG = 2
 	WEBP = 3
-
-	def __init__(self):
-		#TODO: Load tdef if it exists and if it does, change icon to upload
 
 	def setName(self, nom):
 		self.name = nom
@@ -177,9 +175,20 @@ class FileWidget(BoxLayout):
 
 	# Create .torrent for this video
 	def create_torrent(self):
-		tdef = TorrentDef()
-		tdef.add_content(self.uri, playtime = self.get_playtime())
-		fin_thread = threading.Thread(target=TorrentDef.TorrentDef.finalize,name="Finalize Torrent Thread",args=tdef, kwargs={userprogresscallback = self._torrent_finalize_callback})
+		self.tdef = TorrentDef()
+		self.tdef.add_content(self.uri, playtime = self.get_playtime())
+		self.tdef.set_tracker("udp://tracker.openbittorrent.com:80")
+		fin_thread = threading.Thread(target=TorrentDef.finalize, args = (self.tdef, None, self._torrent_finalize_callback))
+		fin_thread.start()
+		fin_thread.join()
+		if self.tdef.is_finalized():
+			# Update button to show that .torrent has been generated. For now, auto seed
+			self.tdef.save(self.uri + ".torrent")
+			print("Infohash: ", self.tdef.get_infohash())
+			sess = globalvars.skelly.tw.get_session_mgr().get_session()
+			dscfg = DownloadStartupConfig()
+			dscfg.set_dest_dir(globalvars.storagedir)
+			sess.start_download(self.tdef, dscfg)
 
 	# Seed torrent using Tribler
 	def seed_torrent(self):
@@ -188,4 +197,4 @@ class FileWidget(BoxLayout):
 			print("Triber running")
 
 	def _torrent_finalize_callback(self, fraction):
-		print("Fraction done: " + fraction)
+		print("Fraction: ", fraction)
