@@ -243,11 +243,11 @@ class CreateTorrentDialog(wx.Dialog):
                 try:
                     if self.combineRadio.GetValue():
                         params['name'] = self.specifiedName.GetValue()
-                        make_meta_file(self.selectedPaths, params, self.cancelEvent, None, self._torrentCreated)
+                        make_meta_file(self.selectedPaths, params, self._torrentCreated)
                     else:
                         for path in self.selectedPaths:
                             if os.path.isfile(path):
-                                make_meta_file([path], params, self.cancelEvent, None, self._torrentCreated)
+                                make_meta_file([path], params, self._torrentCreated)
                 except:
                     print_exc()
 
@@ -353,7 +353,7 @@ class CreateTorrentDialog(wx.Dialog):
         self.createdTorrents.append((path, correctedfilename, torrentfilename))
 
 
-def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfilenameCallback):
+def make_meta_file(srcpaths, params, torrentfilenameCallback):
     basedir = None
 
     nrFiles = len([file for file in srcpaths if os.path.isfile(file)])
