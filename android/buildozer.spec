@@ -33,7 +33,7 @@ version.filename = %(source.dir)s/main.py
 
 # (list) Application requirements
 # comma seperated e.g. requirements = sqlite3,kivy
-requirements = openssl==1.0.2c, kivy==master, pyjnius, numpy, Tribler
+requirements = kivy, pyjnius, numpy, Tribler
 
 
 # (list) Garden requirements
@@ -61,16 +61,16 @@ android.permissions = CAMERA, INTERNET, NFC, READ_EXTERNAL_STORAGE, RECORD_AUDIO
 
 
 # (int) Android API to use
-android.api = 16
+android.api = 19
 
 # (int) Minimum API required (8 = Android 2.2 devices)
-android.minapi = 16
+android.minapi = 19
 
 # (int) Android SDK version to use
-android.sdk = 22
+#android.sdk = 22
 
 # (str) Android NDK version to use
-android.ndk = 10
+#android.ndk = 10
 
 # (bool) Use --private data storage (True) or --dir public storage (False)
 #android.private_storage = True
@@ -85,7 +85,7 @@ android.ndk = 10
 #android.p4a_dir =
 
 # (list) python-for-android whitelist
-#android.p4a_whitelist =$P4ADIR
+android.p4a_whitelist = _lsprof.so, _csv.so
 
 # (str) Android entry point, default is ok for Kivy-based app
 #android.entrypoint = org.renpy.android.PythonActivity
@@ -146,7 +146,7 @@ android.manifest.intent_filters = ./filters.xml
 [buildozer]
 
 # (int) Log level (0 = error only, 1 = info, 2 = debug (with command output))
-log_level = 1
+log_level = 2
 
 # (int) Display warning if buildozer is run as root (0 = False, 1 = True)
 warn_on_root = 1
