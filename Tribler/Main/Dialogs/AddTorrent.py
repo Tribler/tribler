@@ -47,8 +47,7 @@ class AddTorrent(wx.Dialog):
         header = wx.StaticText(self, -1, 'Url')
         _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
         vSizer.Add(header, 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 3)
-        vSizer.Add(
-            wx.StaticText(self, -1, 'This could either be a direct http-link (starting with http://), or a magnet link'), 0, wx.BOTTOM, 3)
+        vSizer.Add(wx.StaticText(self, -1, 'This could either be a http, magnet, emc, or file link'), 0, wx.BOTTOM, 3)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         self.magnet = wx.TextCtrl(self, -1)
@@ -93,14 +92,9 @@ class AddTorrent(wx.Dialog):
         self.SetSizerAndFit(sizer)
 
     def OnAdd(self, event):
-        input = self.magnet.GetValue().strip()
-        if input.startswith("http://"):
-            if self.frame.startDownloadFromUrl(str(input)):
-                self.EndModal(wx.ID_OK)
-
-        elif input.startswith("magnet:"):
-            if self.frame.startDownloadFromMagnet(str(input)):
-                self.EndModal(wx.ID_OK)
+        filename = self.magnet.GetValue().strip()
+        if self.frame.startDownloadFromArg(filename):
+            self.EndModal(wx.ID_OK)
 
     def OnLibrary(self, event):
         selection = self.libraryChoice.GetCurrentSelection()
@@ -112,9 +106,9 @@ class AddTorrent(wx.Dialog):
 
     def __processPaths(self, paths):
         filenames = []
-        for file in paths:
-            if file.endswith('.torrent'):
-                filenames.append(file)
+        for filename in paths:
+            if filename.endswith('.torrent'):
+                filenames.append(filename)
 
         cancel = len(filenames) == 0
         if len(filenames) > 10:

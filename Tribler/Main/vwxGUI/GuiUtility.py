@@ -400,21 +400,9 @@ class GUIUtility(object):
             return
         self.frame.top_bg.searchField.SetValue(input)
 
-        if input.startswith("http://") or input.startswith("https://"):
-            if self.frame.startDownloadFromUrl(str(input)):
-                self.frame.top_bg.searchField.Clear()
-                self.ShowPage('my_files')
-
-        elif input.startswith("magnet:"):
-            if self.frame.startDownloadFromMagnet(str(input)):
-                self.frame.top_bg.searchField.Clear()
-                self.ShowPage('my_files')
-
-        elif input.startswith("emc:"):
-            if self.frame.startDownloadFromEMC(str(input)):
-                self.frame.top_bg.searchField.Clear()
-                self.ShowPage('my_files')
-
+        if self.frame.startDownloadFromArg(input):
+            self.frame.top_bg.searchField.Clear()
+            self.ShowPage('my_files')
         else:
             keywords = split_into_keywords(input)
             keywords = [keyword for keyword in keywords if len(keyword) > 1]
