@@ -117,7 +117,7 @@ class Skelly(App):
 	SearchScr = SearchScreen(name='search')
 	CamScr = CamScreen(name='cam')
 	sm.switch_to(HomeScr)
-	tw = TribleWrapper()
+	tw = TriblerWrapper()
 
 	#Method that request the device's NFC adapter and adds a Callback function to it to activate on an Android Beam Intent.
 	def nfc_init(self):
