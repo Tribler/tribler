@@ -10,7 +10,7 @@ from kivy.uix.anchorlayout import AnchorLayout
 from kivy.properties import ObjectProperty, ListProperty
 
 from Tribler.Core.Utilities.twisted_thread import reactor, stop_reactor
-from triblewrapper.Environment import init_environment
+from triblerwrapper.Environment import init_environment
 init_environment()
 from triblerwrapper import TriblerWrapper
 
@@ -165,7 +165,8 @@ class Skelly(App):
 		self.history.append(self.sm.current_screen)
 		self.sm.switch_to(Screen, direction='left')
 
-    def on_start(self):
+	#required function by android, called when starting app
+	def on_start(self):
 		self.tw.start()
 
 	#required function by android, called when paused for multitasking
