@@ -251,7 +251,7 @@ class TorrentManager(BaseManager):
 
             # Notify observers that a torrent was added:
             for fn in self._callbacks:
-                fn()
+                fn(self._keywords)
 
             Logger.error("Torrent added: %s [%s]" % (torrent.name, binascii.hexlify(torrent.infohash)))
             return True
@@ -286,8 +286,7 @@ class TorrentManager(BaseManager):
         :param keywords: Keyword string that should be searched for.
         :return: Boolean indicating success.
         """
-        keywords = split_into_keywords(unicode(keywords))
-        keywords = [keyword for keyword in keywords if len(keyword) > 1]
+        keywords = self.format_keywords(keywords)
 
         if keywords == self._keywords:
             return True
@@ -302,6 +301,16 @@ class TorrentManager(BaseManager):
             self._remote_lock.release()
 
         return True
+
+    def format_keywords(self, keywords):
+        """
+        Formats the keywords entered by the user.
+        :param keywords: User entered keywords.
+        :return: The formatted keywords.
+        """
+        res = split_into_keywords(unicode(keywords))
+        res = [res for res in res if len(res) > 1]
+        return res
 
     def _prepare_torrents(self, trs):
         """

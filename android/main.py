@@ -49,11 +49,16 @@ MediaColumns = autoclass('android.provider.MediaStore$MediaColumns')
 Builder.load_file('main.kv')
 
 class SearchScreen(Screen):
+
+	def __init__(self):
+		super(SearchScreen, self).__init___()
+		self._torrents = [] #TODO
+
 	#Predefined kivy function that gets called every time the text in the inputfield changes
 	#Calls delayedSearch if the last change was over 0.5 seconds ago
 	def on_txt_input(self):
 		Clock.unschedule(self.delayedSearch, all=True)
-		if(self.ids.searchfield.text == ''):
+		if self.ids.searchfield.text == '':
 			self.ids.fileList.clear_widgets()
 		else:
 			Clock.schedule_once(self.delayedSearch, 0.5)
@@ -68,15 +73,22 @@ class SearchScreen(Screen):
 		torrent_mgr.subscribe_for_changed_search_results(self.on_search_results_change)
 		torrent_mgr.search_remote(search_text)
 
-	def on_search_results_change(self):
+	def on_search_results_change(self, keywords):
 		"""
 		Called when search results have been added.
+		:param keywords: The keywords entered.
+		:return: Nothing.
 		"""
+		torrent_mgr = globalvars.skelly.tw.get_torrent_mgr()
+
+		# Ignore old results:
+		if keywords != torrent_mgr.format_keywords(self.ids.searchfield.text):
+			return
+
 		# Empty the results list:
 		self.ids.fileList.clear_widgets()
 
 		# Retrieve and show the new torrent results:
-		torrent_mgr = globalvars.skelly.tw.get_torrent_mgr()
 		torrents = torrent_mgr.get_remote_results()
 		for torrent in torrents:
 			fwid = FileWidget()
