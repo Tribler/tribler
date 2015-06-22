@@ -114,20 +114,20 @@ class TorrentChecker(TaskManager):
         self._checker_thread = TorrentCheckerThread(self)
         self._checker_thread.start()
 
-    @blocking_call_on_reactor_thread
     def shutdown(self):
         """
         Shutdown the torrent health checker.
 
         Once shut down it can't be started again.
         """
-        self.cancel_all_pending_tasks()
-
-        # stop the checking thread
+        # stop the checking thread first because it can block on the reactor thread
         self._should_stop = True
         self._checker_thread.interrupt()
         self._checker_thread.join()
         self._checker_thread = None
+
+        # it's now safe to block on the reactor thread
+        self.cancel_all_pending_tasks()
 
         # kill all the tracker sessions
         for session in self._session_list:
