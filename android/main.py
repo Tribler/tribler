@@ -61,10 +61,27 @@ class SearchScreen(Screen):
 	#currently displays a filewidget with the contents of the search
 	def delayedSearch(self, dt):
 		print "TextSearch"
-		wid = FileWidget()
-		wid.setName(self.ids.searchfield.text)
+
+		# Starts a Tribler search for user submitted keyword:
+		search_text = self.ids.searchfield.text
+		torrent_mgr = globalvars.skelly.tw.get_torrent_mgr()
+		torrent_mgr.subscribe_for_changed_search_results(self.on_search_results_change)
+		torrent_mgr.search_remote(search_text)
+
+	def on_search_results_change(self):
+		"""
+		Called when search results have been added.
+		"""
+		# Empty the results list:
 		self.ids.fileList.clear_widgets()
-		self.ids.fileList.add_widget(wid)
+
+		# Retrieve and show the new torrent results:
+		torrent_mgr = globalvars.skelly.tw.get_torrent_mgr()
+		torrents = torrent_mgr.get_remote_results()
+		for torrent in torrents:
+			fwid = FileWidget()
+			fwid.setName(torrent['name']) # TODO: load in Torrent object in list kept by this SearchScreen
+			self.ids.fileList.add_widget(fwid)
 
 
 class CameraWidget(AnchorLayout):
@@ -154,6 +171,7 @@ class Skelly(App):
 		win = Window
 		win.bind(on_keyboard=self.key_handler)
 
+		globalvars.skelly = self
 
 		self.nfc_init()
 		self.HomeScr.getStoredMedia()

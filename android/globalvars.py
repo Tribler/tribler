@@ -6,3 +6,5 @@ global app_ending
 app_ending = False
 global nfcCallback
 nfcCallback = None
+global skelly
+skelly = None

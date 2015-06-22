@@ -44,3 +44,15 @@ class TriblerWrapper():
         _logger.error("Loading ConfigurationManager")
         # Load this last because it sets settings in other managers
         self.sm = SettingsManager.getInstance(self.tribler.get_session())
+
+    def get_session_mgr(self):
+        return self.tribler
+
+    def get_download_mgr(self):
+        return self.dm
+
+    def get_torrent_mgr(self):
+        return self.tm
+
+    def get_settings_mgr(self):
+        return self.sm

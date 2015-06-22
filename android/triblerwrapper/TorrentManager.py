@@ -42,6 +42,8 @@ class TorrentManager(BaseManager):
     _results = []
     _result_infohashes = []
 
+    _callbacks = []
+
     def init(self):
         """
         Load database handles and Dispersy.
@@ -61,6 +63,14 @@ class TorrentManager(BaseManager):
             self._dispersy = self._session.lm.dispersy
         else:
             raise RuntimeError('TorrentManager already connected')
+
+    def subscribe_for_changed_search_results(self, callback):
+        """
+        :param callback: Callback function that gets called when there are new search
+        results.
+        :return: Nothing.
+        """
+        self._callbacks.append(callback)
 
     def get_local(self, filter):
         """
@@ -161,7 +171,6 @@ class TorrentManager(BaseManager):
         # TODO: FIX RETURN VALUE (CURRENTLY ALWAYS NONE)
         return nr_requests_made
 
-
     @call_on_reactor_thread
     def _search_remote_callback(self, subject, change_type, object_id, search_results):
         """
@@ -241,6 +250,10 @@ class TorrentManager(BaseManager):
 
             self._results.append(torrent)
             self._result_infohashes.append(torrent.infohash)
+
+            # Notify observers that a torrent was added:
+            for fn in self._callbacks:
+                fn()
 
             _logger.error("Torrent added: %s [%s]" % (torrent.name, binascii.hexlify(torrent.infohash)))
             return True
