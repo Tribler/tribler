@@ -31,3 +31,4 @@ test_file
 test_file.torrent
 android/.buildozer
 android/bin
+.idea
