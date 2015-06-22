@@ -48,7 +48,7 @@ class FileWidget(BoxLayout):
 	thumbnail = None
 
 	#Enumerator as per android.media.ThumbnailUtils
-	MINI_KIND = 1 
+	MINI_KIND = 1
 	FULL_KIND = 2
 	MICRO_KIND = 3
 	#Enumerator as per Bitmap.CompressFormat
@@ -70,7 +70,7 @@ class FileWidget(BoxLayout):
 
 	#Adds and removes the video files to the nfc set so that they can be transferred
 	def toggle_nfc(self, state):
-		
+
 		print 'toggling', self.ids.nfc_toggler
 		if(state == 'normal'):
 			print 'button state up'
@@ -83,14 +83,14 @@ class FileWidget(BoxLayout):
 
 	#Android's Bitmaps are in ARGB format, while kivy expects RGBA.
 	#This function swaps the bytes to their appropriate locations
-	#It's super slow, and another method should be considered	
+	#It's super slow, and another method should be considered
 	def switchFormats(self, pixels):
-		bit = numpy.asarray([b for pixel in [((p & 0xFF0000) >> 16, (p & 0xFF00) >> 8, p & 0xFF, (p & 0xFF000000) >> 24) for p in pixels] for b in pixel],dtype=numpy.uint8)	
+		bit = numpy.asarray([b for pixel in [((p & 0xFF0000) >> 16, (p & 0xFF00) >> 8, p & 0xFF, (p & 0xFF000000) >> 24) for p in pixels] for b in pixel],dtype=numpy.uint8)
 		return bit
 
-	#Function designed with multithreading in mind. 
+	#Function designed with multithreading in mind.
 	#Generates the appropriate pixel data for use with the Thumbnails
-	def makeThumbnail(self):	
+	def makeThumbnail(self):
 		#Android crashes when multiple threads call createVideoThumbnail, so we block access to it.
 		#Luckily requesting thumbnails is pretty quick
 		globalvars.thumbnail_sem.acquire()
@@ -102,7 +102,7 @@ class FileWidget(BoxLayout):
 		self.thumbnail.getPixels(pixels, 0,self.thumbnail.getWidth(),0,0,self.thumbnail.getWidth(), self.thumbnail.getHeight())
 		pixels = self.switchFormats(pixels)
 		#Schedule the main thread to update the thumbnail's texture
-	
+
 		Clock.schedule_once(functools.partial(self.displayThumbnail,self.thumbnail.getWidth(), self.thumbnail.getHeight(),pixels))
 		print "Detatching thread"
 		#detach()
@@ -128,7 +128,7 @@ class FileWidget(BoxLayout):
 	def loadFileThumbnail(self, path, *largs):
 		print 'Attempting to set Image: ', path
 		self.ids.img.source = path
-		print self.ids.img.source	
+		print self.ids.img.source
 
 	#Function called by makeThumbnail to set the thumbnail properly
 	#Displaying a new texture does not work on a seperate thread, so the main thread had to handle it
@@ -152,7 +152,7 @@ class FileWidget(BoxLayout):
 		img_view.setImageBitmap(self.thumbnail)
 		self.ids.android.view = img_view
 		print "sem released"
-	#Benchmark function to help discover which function is slow	
+	#Benchmark function to help discover which function is slow
 	def bench(self):
 		print "BENCHMARK: ", time.time() - self.benchmark
 		self.benchmark = time.time()
@@ -166,3 +166,9 @@ class FileWidget(BoxLayout):
 		self.parent.remove_widget(self)
 		os.remove(self.uri)
 		os.remove(self.ids.img.source)
+
+	# Seed torrent using Tribler
+	def seed_torrent(self):
+		print("Add torrent to Tribler")
+		if(globalvars.skelly.tw.keep_running()):
+			print("Triber running")

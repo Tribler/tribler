@@ -1,4 +1,4 @@
-<HomeScreen>			
+<HomeScreen>
 	RelativeLayout:
 		id: layer
 		BoxLayout:
@@ -38,7 +38,7 @@
 			BoxLayout:
 				size_hint: 1, None
 				height: '1cm'
-				Button: 
+				Button:
 					id:button3
 					background_color: 0.5,0.5,0.5,1
 					background_normal:''
@@ -89,7 +89,7 @@
 					background_normal: ''
 					border: 15, 15, 15, 15
 					id:nfc_toggler
-					on_state: root.toggle_nfc(self.state) 
+					on_state: root.toggle_nfc(self.state)
 					BoxLayout:
 						size: self.parent.size
 						pos: self.parent.pos
@@ -99,10 +99,11 @@
 					background_color: 0.6,0.6,0.6,1
 					background_normal: ''
 					id: editBut
+					on_release: root.seed_torrent()
 					BoxLayout:
 						pos: self.parent.pos
 						size: self.parent.size
-						Image: 
+						Image:
 							source: 'img/ic_edit_white_48dp.png'
 				Button:
 					background_color: 0.6,0.6,0.6,1
@@ -112,7 +113,7 @@
 					BoxLayout:
 						pos: self.parent.pos
 						size: self.parent.size
-						Image: 
+						Image:
 							source: 'img/ic_delete_white_48dp.png'
 				#ToggleButton:
 				#	text: 'T'
@@ -150,7 +151,7 @@
 			StackLayout:
 				size_hint: 1, None
 				height: self.minimum_height
-				id: fileList	
+				id: fileList
 
 				Button:
 					text: 'Start camera'
@@ -184,7 +185,7 @@
 				BoxLayout:
 					pos: self.parent.pos
 					size: self.parent.size
-					Image: 
+					Image:
 						source: 'img/ic_videocam_off_white_48dp.png'
 <GearMenu>
 	RelativeLayout:
