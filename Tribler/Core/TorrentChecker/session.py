@@ -2,11 +2,9 @@ import logging
 import random
 import socket
 import struct
-import sys
 import time
 import urllib
 from abc import ABCMeta, abstractmethod, abstractproperty
-from binascii import unhexlify
 
 from libtorrent import bdecode
 
