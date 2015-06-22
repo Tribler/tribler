@@ -42,7 +42,7 @@ class TorrentManager(BaseManager):
     _results = []
     _result_infohashes = []
 
-    def __init__(self):
+    def init(self):
         """
         Load database handles and Dispersy.
         :return: Nothing.

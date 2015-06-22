@@ -21,6 +21,11 @@ class BaseManager(object):
 
         self._session = session
 
+        self.init()
+        
+    def init(self):
+        pass
+
     @classmethod
     def getInstance(cls, *args, **kw):
         if cls.__single is None:

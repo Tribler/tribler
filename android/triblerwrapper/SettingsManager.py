@@ -18,7 +18,7 @@ ENVIRONMENT_SETTINGS_PREFIX = "TRIBLER_SETTING_"
 
 
 class SettingsManager(BaseManager):
-    def __init__(self):
+    def init(self):
         """
         Load settings from environment variables.
         :return: Nothing.
