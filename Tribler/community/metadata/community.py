@@ -1,7 +1,6 @@
 import binascii
 import json
 
-from Tribler.Core.Utilities.twisted_thread import callInThreadPool
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME
 from Tribler.dispersy.community import Community

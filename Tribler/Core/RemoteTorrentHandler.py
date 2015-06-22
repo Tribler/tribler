@@ -18,7 +18,6 @@ from twisted.internet.task import LoopingCall
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import call_on_reactor_thread
 
-from Tribler.Core.Utilities.twisted_thread import callInThreadPool
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH
 
