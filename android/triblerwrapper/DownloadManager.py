@@ -43,7 +43,7 @@ class DownloadManager(BaseManager):
 
     _downloads = {}
 
-    def _connect(self):
+    def __init__(self):
         """
         Load database handles and Dispersy.
         :return: Nothing.
@@ -78,26 +78,6 @@ class DownloadManager(BaseManager):
 
         # Schedule next checkpoint
         threading.Timer(DOWNLOAD_CHECKPOINT_INTERVAL, self._run_session_checkpoint, ()).start()
-
-    def _xmlrpc_register(self, xmlrpc):
-        """
-        Register the public functions in this manager with an XML-RPC Manager.
-        :param xmlrpc: The XML-RPC Manager it should register to.
-        :return: Nothing.
-        """
-        xmlrpc.register_function(self.add_torrent, 'downloads.add')
-        xmlrpc.register_function(self.remove_torrent, 'downloads.remove')
-        xmlrpc.register_function(self.get_progress, 'downloads.get_progress_info')
-        xmlrpc.register_function(self.get_progress_all, 'downloads.get_all_progress_info')
-        #xmlrpc.register_function(self.get_vod, 'downloads.get_vod_info')
-        #xmlrpc.register_function(self.get_full, 'downloads.get_full_info')
-        xmlrpc.register_function(self.start_vod, 'downloads.start_vod')
-        xmlrpc.register_function(self.stop_vod, 'downloads.stop_vod')
-        xmlrpc.register_function(self.get_vod_uri, 'downloads.get_vod_uri')
-        xmlrpc.register_function(self.set_state, 'downloads.set_state')
-
-        #test
-        xmlrpc.register_function(self.launch_vlc, "downloads.launch_vlc")
 
     def set_max_download(self, maxspeed):
         """
@@ -208,10 +188,6 @@ class DownloadManager(BaseManager):
         :return: Progress of a torrent or False on failure.
         """
         with self._dllock:
-            print "-----------------------------------------CHECKING KEYS. "
-            for key in self._downloads.keys():
-                print "-----------------------------------------CONTAINS KEY: " + str(key)
-            print "-----------------------------------------DONE CHECKING KEYS (should have given at least 1 result). "
             if infohash in self._downloads.keys():
                 return self._downloads[infohash]
             else:
@@ -401,12 +377,6 @@ class DownloadManager(BaseManager):
             _ = t.metadata
             return t
 
-    def launch_vlc(self, infohash):
-        assert os.environ['ANDROID_HOST'].startswith("ANDROID")
-        from vlcutil import launchVLC
-
-        launchVLC(self.get_vod_uri(infohash))
-
     def _getDownload(self, torrentimpl, vod=False, progress=False, files=False, network=False):
         """
         Convert a LibTorrentDownloadImpl object to a dictionary.
@@ -500,7 +470,7 @@ class DownloadManager(BaseManager):
                                'vod': dstate.is_vod(),
                                'vod_playable': False if dstate.stats is None else dstate.stats['vod_playable'], #dstate.get_vod_playable()
                                })
-                
+
             return dlinfo
         except Exception, e:
             print "Error getting downloadstate: %s" % e.args

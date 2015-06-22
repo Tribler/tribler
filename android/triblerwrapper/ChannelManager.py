@@ -37,7 +37,7 @@ class ChannelManager(BaseManager):
     _results = []
     _result_cids = []
 
-    def _connect(self):
+    def __init__(self):
         """
         Load database handles and Dispersy.
         :return: Nothing.
@@ -53,18 +53,6 @@ class ChannelManager(BaseManager):
             self._dispersy = self._session.lm.dispersy
         else:
             raise RuntimeError('ChannelManager already connected')
-
-    def _xmlrpc_register(self, xmlrpc):
-        """
-        Register the public functions in this manager with an XML-RPC Manager.
-        :param xmlrpc: The XML-RPC Manager it should register to.
-        :return: Nothing.
-        """
-        xmlrpc.register_function(self.get_local, "channels.get_local")
-        xmlrpc.register_function(self.search_remote, "channels.search_remote")
-        xmlrpc.register_function(self.get_remote_results_count, "channels.get_remote_results_count")
-        xmlrpc.register_function(self.get_remote_results, "channels.get_remote_results")
-        xmlrpc.register_function(self.subscribe, "channels.subscribe")
 
     def get_local(self, filter):
         """

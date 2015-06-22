@@ -38,61 +38,6 @@ class TriblerSession(BaseManager):
 
     _running = False
 
-    def _connect(self):
-        """
-        Copies the libswift and ffmpeg binaries when on Android.
-        :return:
-        """
-
-        if not self._connected:
-            self._connected = True
-
-            # Copy the swift and ffmpeg binaries
-            if is_android(strict=True):
-                binaries = ['swift', 'ffmpeg']
-
-                for binary in binaries:
-                    _logger.info("Setting up the %s binary.." % binary)
-
-                    if not self._copy_binary(binary):
-                        _logger.error("Unable to find or copy the %s binary!" % binary)
-        else:
-            raise RuntimeError('TriblerSession already connected')
-
-    def _xmlrpc_register(self, xmlrpc):
-        """
-        Register the public functions in this manager with an XML-RPC Manager.
-        :param xmlrpc: The XML-RPC Manager it should register to.
-        :return: Nothing.
-        """
-        xmlrpc.register_function(self.start_session, "tribler.start_session")
-        xmlrpc.register_function(self.stop_session, "tribler.stop_session")
-
-    def _copy_binary(self, binary_name):
-        """
-        Copy a binary, such as swift, from the sdcard (which is mounted with noexec) to the ANDROID_PRIVATE folder which
-        does allow it. If the binary already exists, do nothing.
-        :param binary_name: The name of the binary that should be copied.
-        :return: Boolean indicating success.
-        """
-        # We are on android, setup the swift binary!
-        sdcard_path = os.getcwd()
-        binary_source = os.path.join(sdcard_path, binary_name)
-        binary_dest = os.path.join(os.environ['ANDROID_PRIVATE'], binary_name)
-
-        if not os.path.exists(binary_dest):
-            if not os.path.exists(binary_source):
-                _logger.error(
-                    "Looked at %s and %s, but couldn't find a '%s' binary!" % (binary_source, binary_dest, binary_name))
-                return False
-
-            _logger.warn("Copy '%s' binary (%s -> %s)" % (binary_name, binary_source, binary_dest))
-            shutil.copy2(binary_source, binary_dest)
-            # TODO: Set a more conservative permission
-            os.chmod(binary_dest, 0777)
-
-        return True
-
     def get_session(self):
         """
         Get the current Tribler session.

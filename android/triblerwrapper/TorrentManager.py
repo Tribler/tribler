@@ -42,7 +42,7 @@ class TorrentManager(BaseManager):
     _results = []
     _result_infohashes = []
 
-    def _connect(self):
+    def __init__(self):
         """
         Load database handles and Dispersy.
         :return: Nothing.
@@ -62,19 +62,6 @@ class TorrentManager(BaseManager):
         else:
             raise RuntimeError('TorrentManager already connected')
 
-    def _xmlrpc_register(self, xmlrpc):
-        """
-        Register the public functions in this manager with an XML-RPC Manager.
-        :param xmlrpc: The XML-RPC Manager it should register to.
-        :return: Nothing.
-        """
-        xmlrpc.register_function(self.get_local, "torrents.get_local")
-        xmlrpc.register_function(self.search_remote, "torrents.search_remote")
-        xmlrpc.register_function(self.get_remote_results_count, "torrents.get_remote_results_count")
-        xmlrpc.register_function(self.get_remote_results, "torrents.get_remote_results")
-        #xmlrpc.register_function(self.get_by_channel, "torrents.get_by_channel")
-        xmlrpc.register_function(self.get_full_info, "torrents.get_full_info")
-
     def get_local(self, filter):
         """
         Search the local torrent database for torrent files by keyword.
@@ -93,8 +80,6 @@ class TorrentManager(BaseManager):
             begintime = time()
 
             results = self._torrent_db.searchNames(keywords, doSort=False, keys=TORRENT_REQ_COLUMNS)
-            print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
-            print results
 
             begintuples = time()
 
@@ -122,13 +107,11 @@ class TorrentManager(BaseManager):
                     return t
 
                 results = map(create_torrent, results)
-            print ">>>>>>> LOCAL RESULTS: %s" % results
 
             _logger.debug('TorrentSearchGridManager: _doSearchLocalDatabase took: %s of which tuple creation took %s', time() - begintime, time() - begintuples)
             return results
 
         results = self._prepare_torrents(local_search(keywords))
-        print ">>>>>>> LOCAL RESDICT: %s" % results
 
         return results
 

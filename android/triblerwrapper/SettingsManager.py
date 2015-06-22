@@ -18,7 +18,7 @@ ENVIRONMENT_SETTINGS_PREFIX = "TRIBLER_SETTING_"
 
 
 class SettingsManager(BaseManager):
-    def _connect(self):
+    def __init__(self):
         """
         Load settings from environment variables.
         :return: Nothing.
@@ -29,18 +29,6 @@ class SettingsManager(BaseManager):
             self._load_settings_from_env()
         else:
             raise RuntimeError('SettingsManager already connected')
-
-    def _xmlrpc_register(self, xmlrpc):
-        """
-        Register the public functions in this manager with an XML-RPC Manager.
-        :param xmlrpc: The XML-RPC Manager it should register to.
-        :return: Nothing.
-        """
-        xmlrpc.register_function(self.get_thumbs_directory, "settings.get_thumbs_directory")
-        xmlrpc.register_function(self.get_family_filter, "settings.get_family_filter")
-        xmlrpc.register_function(self.set_family_filter, "settings.set_family_filter")
-        xmlrpc.register_function(self.set_max_download, "settings.set_max_download")
-        xmlrpc.register_function(self.set_max_download, "settings.set_max_upload")
 
     def _load_settings_from_env(self):
         """

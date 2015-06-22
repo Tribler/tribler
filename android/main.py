@@ -9,6 +9,11 @@ from kivy.clock import Clock
 from kivy.uix.anchorlayout import AnchorLayout
 from kivy.properties import ObjectProperty, ListProperty
 
+from Tribler.Core.Utilities.twisted_thread import reactor, stop_reactor
+from triblewrapper.Environment import init_environment
+init_environment()
+from triblerwrapper import TriblerWrapper
+
 import android
 import os
 from nfc import CreateNfcBeamUrisCallback
@@ -112,10 +117,11 @@ class Skelly(App):
 	SearchScr = SearchScreen(name='search')
 	CamScr = CamScreen(name='cam')
 	sm.switch_to(HomeScr)
+	tw = TribleWrapper()
 
 	#Method that request the device's NFC adapter and adds a Callback function to it to activate on an Android Beam Intent.
 	def nfc_init(self):
-		#Request the Activity to obtain the NFC Adapter and later add it to the Callback. 
+		#Request the Activity to obtain the NFC Adapter and later add it to the Callback.
 		self.j_context = context = activity
 		self.adapter = NfcAdapter.getDefaultAdapter(context)
 
@@ -159,6 +165,9 @@ class Skelly(App):
 		self.history.append(self.sm.current_screen)
 		self.sm.switch_to(Screen, direction='left')
 
+    def on_start(self):
+		self.tw.start()
+
 	#required function by android, called when paused for multitasking
 	def on_pause(self):
 		return True
@@ -168,8 +177,9 @@ class Skelly(App):
 		globalvars.app_ending = True
 		print "Terminating Application NOW"
 		self.HomeScr.endThumbnailThread()
+		self.tw.stop()
 
-	#Required function by android, called when resumed from a pause	
+	#Required function by android, called when resumed from a pause
 	def on_resume(self):
 		#forces a refresh of the entire video list
 		self.HomeScr.getStoredMedia()
@@ -184,10 +194,10 @@ class Skelly(App):
 	def goBack(self):
 		if len(self.history ) != 0:
 			print self.history
-			self.sm.switch_to(self.history.pop(), direction = 'right')				
+			self.sm.switch_to(self.history.pop(), direction = 'right')
 		else:
 			App.get_running_app().stop()
-		
+
 
 if __name__== '__main__':
 	Skelly().run()
