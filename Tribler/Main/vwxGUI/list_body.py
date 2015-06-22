@@ -1434,6 +1434,8 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         pass
 
     def OnMouseWheel(self, event):
+        if not self:
+            return
         try:
             if self.processingMousewheel:
                 return
@@ -1452,6 +1454,8 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
             GUIUtility.getInstance().frame.Unbind(wx.EVT_MOUSEWHEEL)
 
     def Show(self, show=True):
+        if not self:
+            return
         scrolled.ScrolledPanel.Show(self, show)
         if show:
             self.scrollTimer.Start(1000)
@@ -1459,6 +1463,8 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
             self.scrollTimer.Stop()
 
     def checkScroll(self, event):
+        if not self:
+            return
         maxY = self.vSizer.GetSize()[1]
         doMore = maxY * 0.8
 
