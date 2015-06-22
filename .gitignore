@@ -29,3 +29,5 @@ flycheck_*
 memorydump.out
 test_file
 test_file.torrent
+android/.buildozer
+android/bin
