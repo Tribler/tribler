@@ -375,31 +375,35 @@ def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfil
     for f in srcpaths:
         libtorrent.add_files(fs, f)
 
-    torrent = libtorrent.create_torrent(fs, piece_size=params['piece length'])
-    if params['comment']:
+    flags = libtorrent.create_torrent_flags_t.optimize | libtorrent.create_torrent_flags_t.calculate_file_hashes
+    torrent = libtorrent.create_torrent(fs, piece_size=params['piece length'], flags=flags)
+    if params.get('comment'):
         torrent.set_comment(params['comment'])
-    if params['created by']:
+    if params.get('created by'):
         torrent.set_creator(params['created by'])
     # main tracker
-    if params['announce']:
+    if params.get('announce'):
         torrent.add_tracker(params['announce'])
     # tracker list
-    if params['announce-list']:
+    if params.get('announce-list'):
         tier = 1
         for tracker in params['announce-list']:
             torrent.add_tracker(params['announce'], tier=tier)
             tier += 1
     # DHT nodes
-    if params['nodes']:
+    if params.get('nodes'):
         for node in params['nodes']:
             torrent.add_node(node)
     # HTTP seeding
-    if params['httpseeds']:
+    if params.get('httpseeds'):
         torrent.add_http_seed(params['httpseeds'])
 
     if nrFiles == 1:
         if params.get('urllist', False):
             torrent.add_url_seed(params['urllist'])
+
+    # read the files and calculate the hashes
+    libtorrent.set_piece_hashes(torrent, basepath)
 
     t1 = torrent.generate()
     torrent = libtorrent.bencode(t1)
