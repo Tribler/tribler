@@ -92,9 +92,7 @@ class FileWidget(BoxLayout):
 			if self._check_torrent_made():
 				globalvars.nfcCallback.addUris(self.uri + ".torrent")
 				d = self._seed_torrent()
-				if d.get_status() == DLSTATUS_SEEDING:
-					Clipboard.put(d.get_magnet_link(), 'text/string')
-					Logger.info("Magnet link copied")
+				d.force_recheck()
 
 	#Android's Bitmaps are in ARGB format, while kivy expects RGBA.
 	#This function swaps the bytes to their appropriate locations
@@ -190,6 +188,12 @@ class FileWidget(BoxLayout):
 		os.remove(self.uri)
 		os.remove(self.ids.img.source)
 
+	def copy_magnet_link(self):
+		sess = globalvars.skelly.tw.get_session_mgr().get_session()
+		magnet = sess.get_download(self.tdef.infohash).get_magnet_link()
+		if magnet is not None:
+			Clipboard.put(magnet, 'text/string')
+
 	def _check_torrent_made(self):
 		""" Check if a .torrent exists for this file and if it does, import
 		Return boolean result
@@ -207,11 +211,7 @@ class FileWidget(BoxLayout):
 			self.tdef = TorrentDef()
 			self.tdef.add_content(self.uri, playtime=self.get_playtime())
 			self.tdef.set_dht_nodes([["router.bittorrent.com", 8991]])
-			fin_thread = threading.Thread(target=TorrentDef.finalize,
-				args=(self.tdef, None, None))
-			fin_thread.start()
-			fin_thread.join()
-			assert self.tdef.is_finalized()
+			self.tdef.finalize()  # Should run on another thread
 			self.tdef.save(self.uri + ".torrent")
 			self._check_torrent_made()
 		else:
