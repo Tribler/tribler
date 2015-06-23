@@ -4,6 +4,7 @@ from kivy.graphics.texture import Texture
 from kivy.clock import Clock
 from kivy.animation import Animation
 from kivy.logger import Logger
+from kivy.clipboard import Clipboard
 
 import numpy
 import os
@@ -29,7 +30,6 @@ ThumbnailUtils = autoclass('android.media.ThumbnailUtils')
 ImageView = autoclass('android.widget.ImageView')
 CompressFormat = autoclass('android/graphics/Bitmap$CompressFormat')
 FileOutputStream = autoclass('java.io.FileOutputStream')
-
 
 class FileWidget(BoxLayout):
 	name = "No Name Set"
