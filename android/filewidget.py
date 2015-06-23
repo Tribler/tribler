@@ -1,5 +1,9 @@
 __version__ = '1.0'
-from kivy.uix.boxlayout import BoxLayout
+from kivy.app import App
+from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.widget import Widget
+from kivy.uix.button import Button
+from kivy.core.image import Image
 from kivy.graphics.texture import Texture
 from kivy.clock import Clock
 from kivy.animation import Animation
@@ -31,7 +35,8 @@ ImageView = autoclass('android.widget.ImageView')
 CompressFormat = autoclass('android/graphics/Bitmap$CompressFormat')
 FileOutputStream = autoclass('java.io.FileOutputStream')
 
-class FileWidget(BoxLayout):
+
+class FileWidget(RelativeLayout):
 	name = "No Name Set"
 	uri = "/pls/set/uri"
 	texture = None
@@ -50,7 +55,7 @@ class FileWidget(BoxLayout):
 	WEBP = 3
 
 	def __init__(self, torrentname=None, uri=None, **kwargs):
-		BoxLayout.__init__(self, **kwargs)
+		RelativeLayout.__init__(self, **kwargs)
 		if torrentname is not None:
 			self.setName(torrentname)
 		if uri is not None:

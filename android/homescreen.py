@@ -72,9 +72,13 @@ class HomeScreen(Screen):
 			activity.startActivityForResult(intention,1)
 
 	#Test function for adding a number of fake video buttons
-	def addVideo(self):
+	def addVideo(self, z_order = -1):
 		wid = FileWidget(torrentname='FakeVid!', uri=None)
-		self.ids.fileList.add_widget(wid)
+		wid.setName('FakeVid!')
+		if(self.z_order < 0 ):
+			self.ids.fileList.add_widget(wid)
+		else: 
+			self.ids.fileList.add_widget(wid, z_order)
 
 	#Useful support function to print the location of the DCIM dir
 	def printDir(self):
