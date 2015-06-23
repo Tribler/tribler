@@ -22,8 +22,11 @@ class TorrentWidget(BoxLayout):
         self.ids.filebutton.text = self.name = self.torrent.name
 
     def on_press(self):
+        """
+        Called when this torrent widget is pressed. Opens the torrent info screen.
+        """
         main = globalvars.skelly
-        main.TorrentInfoScr.torrent = self.torrent
+        main.TorrentInfoScr.open_screen(self.torrent)
         main.swap_to(main.TorrentInfoScr)
 
 """
@@ -33,6 +36,16 @@ class TorrentInfoScreen(Screen):
     torrent = None
     download_in_vod_mode = False
     started_player = False
+    vod_uri = None
+
+    def open_screen(self, torrent):
+        """
+        To be called when this screen is opened for a torrent.
+        :param torrent: The torrent this screen is opened for.
+        :return: Nothing.
+        """
+        self._reset()
+        self.torrent = torrent
 
     def start_download(self):
         """
@@ -102,4 +115,14 @@ class TorrentInfoScreen(Screen):
         intent = Intent(Intent.ACTION_VIEW)
         intent.setDataAndType(Uri.parse(self.vod_uri), "video/*")
         PythonActivity.mActivity.startActivity(Intent.createChooser(intent, "Complete action using"))
+
+    def _reset(self):
+        """
+        Resets the screen. To be used when a new torrent info screen is opened.
+        :return: Nothing.
+        """
+        self.torrent = None
+        self.download_in_vod_mode = False
+        self.started_player = False
+        self.vod_uri = None
 
