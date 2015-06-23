@@ -81,8 +81,8 @@ class TestTunnelCommunityNegative(TestTunnelBase):
             download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=2)
 
             self.guiUtility.ShowPage('my_files')
-            self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
-            self.Call(60, lambda: check_progress(download, start_time))
+            self.Call(2, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
+            self.Call(30, lambda: check_progress(download, start_time))
 
         self.startTest(do_create_local_torrent, nr_exitnodes=5, nr_relays=0)
 
@@ -127,7 +127,7 @@ class TestTunnelCommunityNegative(TestTunnelBase):
             download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=2)
 
             self.guiUtility.ShowPage('my_files')
-            self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
-            self.Call(60, lambda: check_progress(download, start_time))
+            self.Call(2, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
+            self.Call(30, lambda: check_progress(download, start_time))
 
         self.startTest(do_create_local_torrent, nr_exitnodes=0, nr_relays=5)
