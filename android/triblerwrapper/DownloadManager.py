@@ -41,6 +41,8 @@ class DownloadManager(BaseManager):
 
     _downloads = {}
 
+    _progress_info_callbacks = []
+
     def init(self):
         """
         Load database handles and Dispersy.
@@ -64,6 +66,13 @@ class DownloadManager(BaseManager):
 
         else:
             raise RuntimeError('DownloadManager already connected')
+
+    def subscribe_for_changed_progress_info(self, callback):
+        """
+        :param callback: Callback function that gets called when progress info updates.
+        :return: Nothing.
+        """
+        self._progress_info_callbacks.append(callback)
 
     def _run_session_checkpoint(self):
         """
@@ -103,9 +112,7 @@ class DownloadManager(BaseManager):
 
         def add_torrent_callback():
             try:
-                bin_infohash = binascii.unhexlify(infohash)
-
-                tdef = TorrentDefNoMetainfo(bin_infohash, name)
+                tdef = TorrentDefNoMetainfo(infohash, name)
                 Logger.info("[%s] Adding torrent by magnet link" % infohash)
 
                 defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
@@ -138,14 +145,18 @@ class DownloadManager(BaseManager):
 
             dldict = self._getDownloadState(ds, progress=True, vod=True)
             if dldict:
-                if dldict['infohash'] in self._downloads.keys():
-                    self._downloads[dldict['infohash']].update(dldict)
+                info_hash = dldict['infohash']
+                info_hash_ascii = binascii.hexlify(info_hash)
+                if info_hash_ascii in self._downloads.keys():
+                    self._downloads[info_hash_ascii].update(dldict)
                     # TODO: Not supported in Tribler anymore but might be needed
                     #self._ratelimiter.add_downloadstate(ds)
                 else:
-                    self._downloads[dldict['infohash']] = dldict
+                    self._downloads[info_hash_ascii] = dldict
                     # TODO: Not supported in Tribler anymore but might be needed
                     #self._ratelimiter.add_downloadstate(ds)
+                for fn in self._progress_info_callbacks:
+                    fn(info_hash)
             else:
                 Logger.warn("Error updating download state")
 
@@ -162,11 +173,12 @@ class DownloadManager(BaseManager):
         def remove_torrent_callback():
             try:
                 Logger.info("Removing torrent with infohash %s" % infohash)
-                dl = self._session.get_download(binascii.unhexlify(infohash))
+                dl = self._session.get_download(infohash)
                 self._session.remove_download(dl, removecontent)
 
-                if infohash in self._downloads.keys():
-                    self._downloads.pop(infohash, None)
+                info_hash_ascii = binascii.hexlify(infohash)
+                if info_hash_ascii in self._downloads.keys():
+                    self._downloads.pop(info_hash_ascii, None)
 
                 self._session.checkpoint()
 
@@ -186,8 +198,9 @@ class DownloadManager(BaseManager):
         :return: Progress of a torrent or False on failure.
         """
         with self._dllock:
-            if infohash in self._downloads.keys():
-                return self._downloads[infohash]
+            info_hash_ascii = binascii.hexlify(infohash)
+            if info_hash_ascii in self._downloads.keys():
+                return self._downloads[info_hash_ascii]
             else:
                 return False
 
@@ -210,12 +223,12 @@ class DownloadManager(BaseManager):
         with self._dllock:
             for dl in self._session.get_downloads():
                 try:
-                    infohash = binascii.hexlify(dl.get_def().get_infohash())
-                    if not infohash in self._downloads.keys():
-                        Logger.info("Added %s to download cache" % infohash)
+                    info_hash_ascii = binascii.hexlify(dl.get_def().get_infohash())
+                    if not info_hash_ascii in self._downloads.keys():
+                        Logger.info("Added %s to download cache" % info_hash_ascii)
                         dl.set_state_callback(self._update_dl_state, delay=1)
                     else:
-                        Logger.info("Already in download cache: " % infohash)
+                        Logger.info("Already in download cache: " % info_hash_ascii)
                 except Exception, e:
                     Logger.info("Error checking download: " % e.args)
                     pass
@@ -286,7 +299,7 @@ class DownloadManager(BaseManager):
         :return: Dictionary with information about the download.
         """
         try:
-            download = self._session.get_download(binascii.unhexlify(infohash))
+            download = self._session.get_download(infohash)
             return self._getDownload(download, **args)
         except:
             return False
@@ -298,7 +311,7 @@ class DownloadManager(BaseManager):
         :return: Vod uri on success, False otherwise.
         """
         try:
-            download = self._session.get_download(binascii.unhexlify(infohash))
+            download = self._session.get_download(infohash)
 
             from Tribler.Core.Video.utils import videoextdefaults
 
@@ -331,7 +344,7 @@ class DownloadManager(BaseManager):
             print "Start_vod error: %s" % e.args
             return False
 
-        voduri = self.get_vod_uri(infohash, fileindex=findex)
+        voduri = self.get_vod_uri(binascii.hexlify(infohash), fileindex=findex)
         Logger.info("Returning VOD uri: %s" % voduri)
 
         return voduri
@@ -343,7 +356,7 @@ class DownloadManager(BaseManager):
         :return: Boolean indicating success.
         """
         try:
-            download = self._session.get_download(binascii.unhexlify(infohash))
+            download = self._session.get_download(infohash)
             download.set_vod_mode(False)
         except:
             return False
@@ -356,13 +369,13 @@ class DownloadManager(BaseManager):
         :param infohash: Infohash of the torrent.
         :return: Uri that can be used to stream the torrent.
         """
-        return "http://127.0.0.1:%s/%s/%s" % (self._session.get_videoplayer_port(), infohash, fileindex)
+        return "http://127.0.0.1:%s/%s/%s" % (self._session.get_videoplayer_port(), binascii.hexlify(infohash), fileindex)
 
     def set_state(self, infohash):
         pass
 
     def _get_torrent_from_infohash(self, infohash):
-        dict = self._torrent_db.getTorrent(infohash, keys=['C.torrent_id', 'infohash', 'name', 'length', 'category', 'status', 'num_seeders', 'num_leechers'])
+        dict = self._torrent_db.getTorrent(binascii.hexlify(infohash), keys=['C.torrent_id', 'infohash', 'name', 'length', 'category', 'status', 'num_seeders', 'num_leechers'])
         if dict:
             t = Torrent(dict['C.torrent_id'], dict['infohash'], dict['name'], dict['length'], dict['category'], dict['status'], dict['num_seeders'], dict['num_leechers'], None)
             t.torrent_db = self._torrent_db
@@ -390,7 +403,7 @@ class DownloadManager(BaseManager):
         #full = progress + {files, metadata (description, thumbnail), dest}, speed_max
 
         try:
-            dlinfo = {'infohash': binascii.hexlify(torrentimpl.get_def().get_infohash())}
+            dlinfo = {'infohash': torrentimpl.get_def().get_infohash()}
 
             if progress:
                 dlinfo.update({'name': torrentimpl.tdef.get_name(),
@@ -448,7 +461,7 @@ class DownloadManager(BaseManager):
         #full = progress + {files, metadata (description, thumbnail), dest}, speed_max
 
         try:
-            dlinfo = {'infohash': binascii.hexlify(dstate.get_download().get_def().get_infohash())}
+            dlinfo = {'infohash': dstate.get_download().get_def().get_infohash()}
 
             if progress:
                 dlinfo.update({'name': dstate.get_download().get_def().get_name(),

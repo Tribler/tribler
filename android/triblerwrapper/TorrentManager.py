@@ -40,7 +40,7 @@ class TorrentManager(BaseManager):
     _results = []
     _result_infohashes = []
 
-    _callbacks = []
+    _search_result_callbacks = []
 
     def init(self):
         """
@@ -68,13 +68,13 @@ class TorrentManager(BaseManager):
         results.
         :return: Nothing.
         """
-        self._callbacks.append(callback)
+        self._search_result_callbacks.append(callback)
 
     def get_local(self, filter):
         """
         Search the local torrent database for torrent files by keyword.
         :param filter: (Optional) keyword filter.
-        :return: List of torrents in dictionary format.
+        :return: List of torrent objects .
         """
         keywords = split_into_keywords(unicode(filter))
         keywords = [keyword for keyword in keywords if len(keyword) > 1]
@@ -119,7 +119,7 @@ class TorrentManager(BaseManager):
             Logger.debug('TorrentSearchGridManager: _doSearchLocalDatabase took: %s of which tuple creation took %s', time() - begintime, time() - begintuples)
             return results
 
-        results = self._prepare_torrents(local_search(keywords))
+        results = local_search(keywords)
 
         return results
 
@@ -230,7 +230,7 @@ class TorrentManager(BaseManager):
 
         # Notify observers that one or more torrents were added:
         if result_added:
-            for fn in self._callbacks:
+            for fn in self._search_result_callbacks:
                 fn(self._keywords)
 
         return
@@ -263,9 +263,9 @@ class TorrentManager(BaseManager):
     def get_remote_results(self):
         """
         Return any results that were found during the last remote search.
-        :return: List of Torrent dictionaries.
+        :return: List of Torrents.
         """
-        return self._prepare_torrents(self._results)
+        return self._results
 
     def get_remote_results_count(self):
         """
@@ -273,14 +273,6 @@ class TorrentManager(BaseManager):
         :return: Integer indicating the number of results.
         """
         return len(self._results)
-
-    def get_full_info(self):
-        """
-        Get the full info of a torrent from our peers.
-        :return: Torrent dictionary.
-        """
-        # TODO: GET FULL INFO FROM TORRENT
-        pass
 
     def _set_keywords(self, keywords):
         """
@@ -314,22 +306,6 @@ class TorrentManager(BaseManager):
         res = [res for res in res if len(res) > 1]
         return res
 
-    def _prepare_torrents(self, trs):
-        """
-        Convert a list of Torrent objects to a list of Torrent dictionaries.
-        :param trs: List of Torrent objects.
-        :return: List of Torrent dictionaries.
-        """
-        torrents = []
-        for tr in trs:
-            try:
-                torrents.append(self._prepare_torrent(tr))
-            except:
-                Logger.error("prepare torrent fail: %s" % tr.name)
-                pass
-
-        return torrents
-
     def get_torrent_metadata(self, torrent):
         message_list = self._metadata_db.getMetadataMessageList(
             torrent.infohash, torrent.swift_hash,
@@ -344,50 +320,3 @@ class TorrentManager(BaseManager):
                 metadata_mod_list.append(MetadataModification(torrent, message_id, key, value))
 
         return metadata_mod_list
-
-    def _prepare_torrent(self, tr):
-        """
-        Convert a Torrent object to a Torrent dictionary.
-        :param trs: Torrent object.
-        :return: Torrent dictionary.
-        """
-        assert isinstance(tr, RemoteTorrent) or isinstance(tr, Torrent) or isinstance(tr, ChannelTorrent)
-
-        """
-            self.infohash = infohash
-            self.swift_hash = swift_hash
-            self.swift_torrent_hash = swift_torrent_hash
-            self.torrent_file_name = torrent_file_name
-            self.name = name
-            self.length = length or 0
-            self.category_id = category_id
-            self.status_id = status_id
-
-            self.num_seeders = num_seeders or 0
-            self.num_leechers = num_leechers or 0
-
-            self.update_torrent_id(torrent_id)
-            self.updateChannel(channel)
-
-            self.channeltorrents_id = None
-            self.misc_db = None
-            self.torrent_db = None
-            self.channelcast_db = None
-            self.metadata_db = None
-
-            self.relevance_score = None
-            self.query_candidates = None
-            self._progress = None
-            self.dslist = None
-            self.magnetstatus = None
-        """
-
-        return {'infohash': binascii.hexlify(tr.infohash) if tr.infohash else False,
-                'name': tr.name,
-                'length': str(tr.length) if tr.length else "-1",
-                'category': tr.category,
-                'status': tr.status,
-                'num_seeders': tr.num_seeders if tr.num_seeders else -1,
-                'num_leechers': tr.num_leechers if tr.num_leechers else -1,
-                'relevance': tr.relevance_score if tr.relevance_score else -1,
-        }

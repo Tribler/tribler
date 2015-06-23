@@ -55,17 +55,16 @@ class SearchScreen(Screen):
 	def on_txt_input(self):
 		Clock.unschedule(self.delayedSearch, all=True)
 		if self.ids.searchfield.text == '':
-			self.reset_results()
+			self.ids.fileList.clear_widgets()
 		else:
 			Clock.schedule_once(self.delayedSearch, 0.5)
 
 	#Currently a filler function that gets called when a search is attempted
 	#currently displays a TorrentWidget with the contents of the search
 	def delayedSearch(self, dt):
-		print "TextSearch"
 
 		# Empty the result list:
-		self.reset_results()
+		self.ids.fileList.clear_widgets()
 
 		# Starts a Tribler search for user submitted keyword:
 		search_text = self.ids.searchfield.text
@@ -88,24 +87,9 @@ class SearchScreen(Screen):
 		# Retrieve and show the new torrent results:
 		torrents = torrent_mgr.get_remote_results()
 		for torrent in torrents:
-
-			# Check if the torrent was not already added:
-			already_added = False
-			for t in self._torrents:
-				if t['name'] == torrent['name']:
-					already_added = True
-					break
-
-			# Add torrent to list:
-			if not already_added:
-				twid = TorrentWidget()
-				twid.set_name(torrent['name']) # TODO: load in Torrent object in torrents list kept by this SearchScreen
-				self.ids.fileList.add_widget(twid)
-				self._torrents.append(torrent)
-
-	def reset_results(self):
-		self.ids.fileList.clear_widgets()
-		self._torrents = []
+			twidget = TorrentWidget()
+			twidget.set_torrent(torrent)
+			self.ids.fileList.add_widget(twidget)
 
 
 class CameraWidget(AnchorLayout):
@@ -126,7 +110,7 @@ class CameraWidget(AnchorLayout):
 			width_ratio = (self.size[1] * (9./16.0) )  / self.size[0]
 			print width_ratio
 			self._camera = AndroidCamera(size=self.size, size_hint=(width_ratio, 1))
-		        self.add_widget(self._camera)
+			self.add_widget(self._camera)
 			self.unbind(size=self.update)
 		else:
 			self.passes+=1
