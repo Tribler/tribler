@@ -3,11 +3,11 @@
 
 import wx
 import os
-import libtorrent
 from threading import Event
 from traceback import print_exc
 
 from Tribler.Core.version import version_id
+from Tribler.Core.Utilities.torrent_utils import create_torrent_file
 
 from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.Main.vwxGUI.widgets import _set_font, BetterText as StaticText
@@ -19,8 +19,10 @@ class CreateTorrentDialog(wx.Dialog):
     def __init__(self, parent, recent_creation_config_file, recent_trackers_config_file,
                  suggested_trackers, to_channel=False):
         wx.Dialog.__init__(self, parent, -1, 'Create a .torrent', size=(600, 200), name="CreateTorrentDialog")
+
         self.to_channel = to_channel
 
+        # setup layout
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
         header = wx.StaticText(self, -1, 'Browse for a file or files')
@@ -84,7 +86,7 @@ class CreateTorrentDialog(wx.Dialog):
             trackers = suggested_trackers
 
         for tracker in trackers:
-            self.trackerList.AppendText(tracker + "\n")
+            self.trackerList.AppendText(tracker + os.linesep)
 
         vSizer.Add(self.trackerList, 0, wx.EXPAND | wx.BOTTOM, 3)
 
@@ -206,7 +208,7 @@ class CreateTorrentDialog(wx.Dialog):
             params['created by'] = '%s version: %s' % ('Tribler', version_id)
 
             trackers = self.trackerList.GetValue()
-            trackers = [tracker for tracker in trackers.split('\n') if tracker]
+            trackers = [tracker for tracker in trackers.split(os.linesep) if tracker]
 
             for tracker in trackers:
                 self.trackerHistory.AddFileToHistory(tracker)
@@ -243,11 +245,11 @@ class CreateTorrentDialog(wx.Dialog):
                 try:
                     if self.combineRadio.GetValue():
                         params['name'] = self.specifiedName.GetValue()
-                        make_meta_file(self.selectedPaths, params, self.cancelEvent, None, self._torrentCreated)
+                        create_torrent_file(self.selectedPaths, params, self._torrentCreated)
                     else:
                         for path in self.selectedPaths:
                             if os.path.isfile(path):
-                                make_meta_file([path], params, self.cancelEvent, None, self._torrentCreated)
+                                create_torrent_file([path], params, self._torrentCreated)
                 except:
                     print_exc()
 
@@ -344,71 +346,17 @@ class CreateTorrentDialog(wx.Dialog):
             self.Layout()
 
     @forceWxThread
-    def _torrentCreated(self, path, correctedfilename, torrentfilename):
+    def _torrentCreated(self, result):
+        if not result['success']:
+            self.cancelEvent.set()
+
+        path = result['base_path']
+        correctedfilename = result['base_dir']
+        torrentfilename = result['torrent_file_path']
+
         self.progressDlg.cur += 1
         keepGoing, _ = self.progressDlg.Update(self.progressDlg.cur)
         if not keepGoing:
-            self.cancelEvent.Set()
+            self.cancelEvent.set()
 
         self.createdTorrents.append((path, correctedfilename, torrentfilename))
-
-
-def make_meta_file(srcpaths, params, userabortflag, progressCallback, torrentfilenameCallback):
-    basedir = None
-
-    nrFiles = len([file for file in srcpaths if os.path.isfile(file)])
-    if nrFiles > 1:
-        # outpaths should start with a common prefix, this prefix is the swarmname of the torrent
-        # if srcpaths contain c:\a\1, c:\a\2 -> basepath should be c:\ and basedir a and outpaths should be a\1 and a\2
-        # if srcpaths contain c:\a\1, c:\a\2, c:\a\b\1, c:\a\b\2 -> basepath
-        # should be c:\ and outpaths should be a\1, a\2, a\b\1 and a\b\2
-        basepath = os.path.abspath(os.path.commonprefix(srcpaths))
-        basepath, basedir = os.path.split(basepath)
-
-    else:
-        srcpaths = [file for file in srcpaths if os.path.isfile(file)]
-
-        srcpath = srcpaths[0]
-        basepath, _ = os.path.split(srcpath)
-
-    fs = libtorrent.file_storage()
-    for f in srcpaths:
-        libtorrent.add_files(fs, f)
-
-    torrent = libtorrent.create_torrent(fs, piece_size=params['piece length'])
-    if params['comment']:
-        torrent.set_comment(params['comment'])
-    if params['created by']:
-        torrent.set_creator(params['created by'])
-    # main tracker
-    if params['announce']:
-        torrent.add_tracker(params['announce'])
-    # tracker list
-    if params['announce-list']:
-        tier = 1
-        for tracker in params['announce-list']:
-            torrent.add_tracker(params['announce'], tier=tier)
-            tier += 1
-    # DHT nodes
-    if params['nodes']:
-        for node in params['nodes']:
-            torrent.add_node(node)
-    # HTTP seeding
-    if params['httpseeds']:
-        torrent.add_http_seed(params['httpseeds'])
-
-    if nrFiles == 1:
-        if params.get('urllist', False):
-            torrent.add_url_seed(params['urllist'])
-
-    t1 = torrent.generate()
-    torrent = libtorrent.bencode(t1)
-
-    postfix = '.torrent'
-
-    torrentfilename = os.path.join(basepath, t1['info']['name'] + postfix)
-    with open(torrentfilename, 'wb') as f:
-        f.write(torrent)
-
-    # Inform higher layer we created torrent
-    torrentfilenameCallback(basepath, basedir, torrentfilename)
