@@ -207,7 +207,7 @@ class FileWidget(BoxLayout):
 			Logger.info("Creating TDEF for: ", self.name)
 			self.tdef = TorrentDef()
 			self.tdef.add_content(self.uri, playtime=self.get_playtime())
-			self.tdef.set_tracker("udp://tracker.openbittorrent.com:80")
+			self.tdef.set_dht_nodes([["router.bittorrent.com", 8991]])
 			fin_thread = threading.Thread(target=TorrentDef.finalize,
 				args=(self.tdef, None, None))
 			fin_thread.start()
