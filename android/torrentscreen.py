@@ -1,5 +1,6 @@
 from kivy.uix.boxlayout import BoxLayout
 from kivy.logger import Logger
+from kivy.uix.screenmanager import Screen
 import globalvars
 
 from jnius import autoclass
@@ -8,7 +9,7 @@ Uri = autoclass('android.net.Uri')
 PythonActivity = autoclass('org.renpy.android.PythonActivity')
 
 """
-A widget for torrents so that they can be downloaded or streamed.
+A widget for torrents that takes users to the torrent info screen when pressed.
 """
 class TorrentWidget(BoxLayout):
     torrent = None
@@ -18,19 +19,29 @@ class TorrentWidget(BoxLayout):
         self.torrent = torrent
         self.ids.filebutton.text = self.name = self.torrent.name
 
-    def pressed(self):
-        """
-        Called when this widget is pressed.
-        :return: Nothing.
-        """
-        Logger.info('Pressed TorrentWidget (should now take them to more info from where they can still choose to download or stream).') # TODO
+    def on_press(self):
+        main = globalvars.skelly
+        main.TorrentInfoScr.torrent = self.torrent
+        main.swap_to(main.TorrentInfoScr)
+
+"""
+The screen shown when a torrent is pressed. Here the user can select to download or stream a torrent.
+"""
+class TorrentInfoScreen(Screen):
+    torrent = None
+
+    def start_download(self):
+        Logger.info('Start download in TorrentInfoScreen.')
+        download_mgr = globalvars.skelly.tw.get_download_mgr()
+        download_mgr.add_torrent(self.torrent.infohash, self.torrent.name)
+        # TODO: navigate user to screen with downloaded torrents and show this torrent with a progress bar
 
     def start_stream(self):
-        Logger.info('Starting download for stream in TorrentWidget.')
+        Logger.info('Starting download for stream in TorrentInfoScreen.')
         download_mgr = globalvars.skelly.tw.get_download_mgr()
         download_mgr.subscribe_for_changed_progress_info(self._start_stream_callback)
         self.start_download()
-        # TODO: take user to show progress screen, whoch is updated by _start_stream_callback
+        # TODO: Show progress to user, which is updated by _start_stream_callback
 
     def _start_stream_callback(self, info_hash):
         if info_hash != self.torrent.infohash:
@@ -56,11 +67,4 @@ class TorrentWidget(BoxLayout):
         intent = Intent(Intent.ACTION_VIEW)
         intent.setDataAndType(Uri.parse(self.vod_uri), "video/*")
         PythonActivity.mActivity.startActivity(Intent.createChooser(intent, "Complete action using"))
-
-    def start_download(self):
-        Logger.info('Start download in TorrentWidget.')
-        download_mgr = globalvars.skelly.tw.get_download_mgr()
-        download_mgr.add_torrent(self.torrent.infohash, self.torrent.name)
-        # TODO: navigate user to screen with downloaded torrents and show this torrent with a progress bar
-
 

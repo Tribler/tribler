@@ -22,7 +22,7 @@ import threading
 import time
 
 from homescreen import HomeScreen
-from torrentwidget import TorrentWidget
+from torrentscreen import TorrentWidget, TorrentInfoScreen
 from androidcamera import AndroidCamera
 import globalvars
 
@@ -142,6 +142,7 @@ class Skelly(App):
 	HomeScr = HomeScreen(name='home')
 	SearchScr = SearchScreen(name='search')
 	CamScr = CamScreen(name='cam')
+	TorrentInfoScr = TorrentInfoScreen(name='torrentinfo')
 	sm.switch_to(HomeScr)
 	tw = TriblerWrapper()
 

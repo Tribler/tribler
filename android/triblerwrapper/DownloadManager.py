@@ -111,9 +111,10 @@ class DownloadManager(BaseManager):
         """
 
         def add_torrent_callback():
+            info_hash_ascii = binascii.hexlify(infohash)
             try:
                 tdef = TorrentDefNoMetainfo(infohash, name)
-                Logger.info("[%s] Adding torrent by magnet link" % infohash)
+                Logger.info("[%s] Adding torrent by magnet link" % info_hash_ascii)
 
                 defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
                 dscfg = defaultDLConfig.copy()
@@ -124,7 +125,7 @@ class DownloadManager(BaseManager):
                 self._session.checkpoint()
 
             except Exception, e:
-                Logger.error("Error adding torrent (infohash=%s,name=%s) (%s)" % (infohash, name, e.args))
+                Logger.error("Error adding torrent (infohash=%s,name=%s) (%s)" % (info_hash_ascii, name, e.args))
                 return False
 
             return True
@@ -172,11 +173,11 @@ class DownloadManager(BaseManager):
         """
         def remove_torrent_callback():
             try:
-                Logger.info("Removing torrent with infohash %s" % infohash)
+                info_hash_ascii = binascii.hexlify(infohash)
+                Logger.info("Removing torrent with infohash %s" % info_hash_ascii)
                 dl = self._session.get_download(infohash)
                 self._session.remove_download(dl, removecontent)
 
-                info_hash_ascii = binascii.hexlify(infohash)
                 if info_hash_ascii in self._downloads.keys():
                     self._downloads.pop(info_hash_ascii, None)
 
@@ -185,7 +186,7 @@ class DownloadManager(BaseManager):
                 return True
 
             except Exception, e:
-                Logger.error("Couldn't remove torrent with infohash %s (%s)" % (infohash, e.args))
+                Logger.error("Couldn't remove torrent with infohash %s (%s)" % (info_hash_ascii, e.args))
                 return False
 
         self._session.lm.rawserver.add_task(remove_torrent_callback, delay=1)
