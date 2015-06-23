@@ -1,6 +1,6 @@
 # test_torrent_store.py ---
 #
-# Filename: test_torrent_store.py
+# Filename: test_leveldb_store.py
 # Description:
 # Author: Elric Milon
 # Maintainer:
@@ -40,7 +40,8 @@ from tempfile import mkdtemp
 
 from twisted.internet.task import Clock
 
-from Tribler.Core.torrentstore import TorrentStore, WRITEBACK_PERIOD
+from Tribler.Core.Utilities.twisted_thread import deferred
+from Tribler.Core.leveldbstore import LevelDbStore, WRITEBACK_PERIOD
 from Tribler.Test.test_as_server import BaseTestCase
 
 
@@ -48,14 +49,14 @@ K = "foo"
 V = "bar"
 
 
-class ClockedTorrentStore(TorrentStore):
+class ClockedLevelDbStore(LevelDbStore):
     _reactor = Clock()
 
 
-class TestTorrentStore(BaseTestCase):
+class TestLevelDbStore(BaseTestCase):
 
     def __init__(self, *argv, **kwargs):
-        super(TestTorrentStore, self).__init__(*argv, **kwargs)
+        super(TestLevelDbStore, self).__init__(*argv, **kwargs)
 
         self.store_dir = None
         self.store = None
@@ -73,7 +74,7 @@ class TestTorrentStore(BaseTestCase):
 
     def openStore(self, store_dir):
         self.store_dir = store_dir
-        self.store = ClockedTorrentStore(store_dir=self.store_dir)
+        self.store = ClockedLevelDbStore(store_dir=self.store_dir)
 
 
     def test_storeIsPersistent(self):
@@ -107,4 +108,4 @@ class TestTorrentStore(BaseTestCase):
         self.assertEqual(1, len(self.store), 2)
 
 #
-# test_torrent_store.py ends here
+# test_leveldb_store.py ends here

@@ -1,15 +1,15 @@
 # see LICENSE.txt for license information
 
 import os
-from shutil import rmtree, copytree
+from binascii import hexlify
+from hashlib import sha1
+from shutil import rmtree
 from time import sleep
 from threading import Event
 
 from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import call_on_reactor_thread
-
-from unittest import skip
 
 
 class TestRemoteTorrentHandler(TestAsServer):
@@ -28,6 +28,7 @@ class TestRemoteTorrentHandler(TestAsServer):
         super(TestRemoteTorrentHandler, self).setUpPreSession()
         self.config.set_dispersy(True)
         self.config.set_torrent_store(True)
+        self.config.set_enable_metadata(True)
 
     def tearDown(self):
         self._shutdown_session(self.session2)
@@ -102,55 +103,53 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.session2.start()
         sleep(1)
 
-    @skip("The metadata collecting is not used ATM, broken by the new torrent store stuff too")
-    def test_metadatadownload(self):
+    def test_metadata_download(self):
         self._logger.info(u"Start metadata download test...")
 
         def do_check_download(torrent_file=None):
-            des_file_path = os.path.join(u"", self.metadata_dir)
-            self.assertTrue(os.path.exists(des_file_path) and os.path.isdir(des_file_path),
-                            u"Failed to download metadata.")
+            self.assertTrue(self.session2.lm.rtorrent_handler.has_metadata(self.thumb_hash))
+            retrieved_data = self.session2.lm.rtorrent_handler.get_metadata(self.thumb_hash)
+            assert retrieved_data == self.thumb_data, "metadata doesn't match"
 
             self._logger.info(u"metadata downloaded successfully.")
             self.quit()
             self.download_event.set()
 
         def do_start_download():
-            self.setup_metadatadownloader()
+            self.setup_metadata_downloader()
 
             timeout = 10
 
             candidate = Candidate(("127.0.0.1", self.session1_port), False)
-            self.session2.lm.rtorrent_handler.download_metadata(candidate, self.infohash, self.metadata_subpath,
+            self.session2.lm.rtorrent_handler.download_metadata(candidate, self.thumb_hash,
                                                                 usercallback=do_check_download)
             self.CallConditional(timeout, self.download_event.is_set, do_check_download,
                                  u"Failed to download metadata within %s seconds" % timeout)
 
         self.startTest(do_start_download)
 
-    def setup_metadatadownloader(self):
+    def setup_metadata_downloader(self):
         self.download_event = Event()
         self.session1_port = self.session.get_dispersy_port()
 
+        # load thumbnail, calculate hash, and save into the metadata_store
         infohash_str = "41aea20908363a80d44234e8fef07fab506cd3b4"
         self.infohash = infohash_str.decode('hex')
         self.metadata_dir = u"%s" % infohash_str
 
-        self.metadata_subpath = os.path.join(self.metadata_dir, u"421px-Pots_10k_100k.jpeg")
+        self.thumb_file = os.path.join(u"Tribler", u"Test", u"data", self.metadata_dir, u"421px-Pots_10k_100k.jpeg")
+        with open(self.thumb_file, 'rb') as f:
+            self.thumb_data = f.read()
+        self.thumb_hash = sha1(self.thumb_data).digest()
 
-        # copy file to the uploader's torrent_collecting_dir
-        src_dir_path = os.path.join(TESTS_DATA_DIR, self.metadata_dir)
-        des_dir_path = os.path.join(u"", self.metadata_dir)
-        self._logger.info(u"Uploader's torrent_collect_dir = %s", u"")
-        copytree(src_dir_path, des_dir_path)
-
+        # start session
         from Tribler.Core.Session import Session
-
         self.setUpPreSession()
 
         self.config2 = self.config.copy()
         self.config2.set_megacache(True)
         self.config2.set_torrent_collecting(True)
+        self.config2.set_enable_metadata(True)
 
         self.session2_state_dir = self.session.get_state_dir() + u"2"
         self.config2.set_state_dir(self.session2_state_dir)
@@ -162,6 +161,10 @@ class TestRemoteTorrentHandler(TestAsServer):
         assert not upgrader.failed, upgrader.current_status
         self.session2.start()
         sleep(1)
+
+        # save thumbnail into metadata_store
+        thumb_hash_str = hexlify(self.thumb_hash)
+        self.session.lm.metadata_store[thumb_hash_str] = self.thumb_data
 
         self._logger.info(u"Downloader's torrent_collect_dir = %s", u"")
         self._logger.info(u"Uploader port: %s, Downloader port: %s",

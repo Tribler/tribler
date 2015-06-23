@@ -67,6 +67,7 @@ class TriblerLaunchMany(object):
         # modules
         self.rawserver = TwistedRawServer()
         self.torrent_store = None
+        self.metadata_store = None
         self.rtorrent_handler = None
         self.tftp_handler = None
 
@@ -97,8 +98,12 @@ class TriblerLaunchMany(object):
             self.sesslock = sesslock
 
             if self.session.get_torrent_store():
-                from Tribler.Core.torrentstore import TorrentStore
-                self.torrent_store = TorrentStore(self.session.get_torrent_store_dir())
+                from Tribler.Core.leveldbstore import LevelDbStore
+                self.torrent_store = LevelDbStore(self.session.get_torrent_store_dir())
+
+            if self.session.get_enable_metadata():
+                from Tribler.Core.leveldbstore import LevelDbStore
+                self.metadata_store = LevelDbStore(self.session.get_metadata_store_dir())
 
             # torrent collecting: RemoteTorrentHandler
             if self.session.get_torrent_collecting():
@@ -154,8 +159,7 @@ class TriblerLaunchMany(object):
 
                 # register TFTP service
                 from Tribler.Core.TFTP.handler import TftpHandler
-                self.tftp_handler = TftpHandler(self.session, u'', endpoint,
-                                                "fffffffd".decode('hex'), block_size=1024)
+                self.tftp_handler = TftpHandler(self.session, endpoint, "fffffffd".decode('hex'), block_size=1024)
                 self.tftp_handler.initialize()
 
             if self.session.get_enable_torrent_search() or self.session.get_enable_channel_search():
@@ -651,6 +655,10 @@ class TriblerLaunchMany(object):
                 self._logger.info("lmc: Dispersy successfully shutdown in %.2f seconds", diff)
             else:
                 self._logger.info("lmc: Dispersy failed to shutdown in %.2f seconds", diff)
+
+        if self.metadata_store is not None:
+            self.metadata_store.close()
+            self.metadata_store = None
 
         if self.tftp_handler:
             self.tftp_handler.shutdown()
