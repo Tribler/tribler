@@ -35,20 +35,19 @@
 # Code:
 from twisted.internet.task import Clock
 
-from tempfile import mkdtemp
-
-from Tribler.Core.torrentstore import TorrentStore
+from Tribler.Core.leveldbstore import LevelDbStore
 from Tribler.Core.plyveladapter import LevelDB
-from Tribler.Test.test_torrent_store import TestTorrentStore, K, V
+from Tribler.Test.test_leveldb_store import TestLevelDbStore, K, V
 
 
-class ClockedTorrentStore(TorrentStore):
+class ClockedTorrentStore(LevelDbStore):
     _reactor = Clock()
     _leveldb = LevelDB
 
-class TestTorrentStore_Plyvel(TestTorrentStore):
+
+class TestLevelDbStore_Plyvel(TestLevelDbStore):
     pass
     
 
 #
-# test_torrent_store_plyvel.py ends here
+# test_leveldb_store_plyvel.py ends here
