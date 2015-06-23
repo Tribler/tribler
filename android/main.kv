@@ -347,40 +347,19 @@
 		orientation: "vertical"
 		id: torrentinfoscreen
 		AnchorLayout:
-			canvas:
-				Color:
-					rgba: 0.5,0.5,0.5,1
-				Rectangle:
-					pos: self.pos
-					size: self.size
-				BorderImage:
-					pos: self.pos
-					size: self.size
-					border: 1,1,1,1
-			size_hint: 1,None
-			height: '1cm'
-			min_height: '1cm'
-			Button:
-				text:'Download'
-				size_hint: None, 1
-				width: self.height
-				on_release: root.start_download()
-				background_color: 0.5,0.5,0.5,1
-				background_normal:''
-				BoxLayout:
-					pos: self.parent.pos
-					size: self.parent.size
-					Image:
-						source: './img/ic_more_vert_white_48dp.png'
-			Button:
-				text:'Play'
-				size_hint: None, 1
-				width: self.height
-				on_release: root.start_stream()
-				background_color: 0.5,0.5,0.5,1
-				background_normal:''
-				BoxLayout:
-					pos: self.parent.pos
-					size: self.parent.size
-					Image:
-						source: './img/ic_more_vert_white_48dp.png'
+			anchor_x:'right'
+			anchor_y:'top'
+			BoxLayout:
+				anchor_x: 'right'
+				anchor_y: 'center'
+				orientation:"vertical"
+				Button:
+					text:'Download'
+					on_release: root.start_download()
+					background_color: 0.5,0.5,0.5,1
+					background_normal:''
+				Button:
+					text:'Play'
+					on_release: root.start_stream()
+					background_color: 0.5,0.5,0.5,1
+					background_normal:''
