@@ -89,7 +89,7 @@ class TriblerSession(BaseManager):
         self._sconfig.set_state_dir(os.environ['TRIBLER_STATE_DIR'])
 
         # Disable unwanted dependencies:
-        self._sconfig.set_torrent_store(True)
+        self._sconfig.set_torrent_store(False)
         self._sconfig.set_enable_channel_search(False)
         self._sconfig.set_videoplayer(False) # Now what?
         self._sconfig.set_preferred_playback_mode(42) # Now what? 2
