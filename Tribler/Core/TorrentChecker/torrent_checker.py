@@ -121,9 +121,13 @@ class TorrentChecker(TaskManager):
         Once shut down it can't be started again.
         """
         # stop the checking thread first because it can block on the reactor thread
+        join_timeout = 10.0  # 10 seconds should be way sufficient
+
         self._should_stop = True
         self._checker_thread.interrupt()
-        self._checker_thread.join(10)  # do not block forever, 10 seconds should be way sufficient
+        self._checker_thread.join(join_timeout)  # do not block forever
+        if self._checker_thread.is_alive():
+            self._logger.critical("_checker_thread.join(%s) timed out.", join_timeout)
         self._checker_thread = None
 
         # it's now safe to block on the reactor thread
