@@ -227,10 +227,5 @@ class Skelly(App):
 			App.get_running_app().stop()
 
 
-if __name__== '__main__':
-	skelly = Skelly()
-	skelly.run()
-
-	# Needed when using the twisted XMLRPC server
-	while skelly.tw.keep_running():
-		time.sleep(1)
+if __name__ == '__main__':
+	Skelly().run()

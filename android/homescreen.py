@@ -89,7 +89,6 @@ class HomeScreen(Screen):
 			globalvars.nfcCallback.clearUris()
 		files = []
 		DCIMdir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
-		globalvars.storagedir = DCIMdir.toURI().getPath()
 		self.ids.fileList.clear_widgets()
 		for root, dirnames, filenames in os.walk(DCIMdir.getAbsolutePath()):
 			for filename in fnmatch.filter(filenames,'*.mp4'):

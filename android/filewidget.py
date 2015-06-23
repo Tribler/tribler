@@ -1,37 +1,24 @@
 __version__ = '1.0'
-from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.widget import Widget
-from kivy.uix.button import Button
-from kivy.core.image import Image
 from kivy.graphics.texture import Texture
 from kivy.clock import Clock
 from kivy.animation import Animation
 from kivy.logger import Logger
 
-
-from kivy.uix.anchorlayout import AnchorLayout
-from kivy.properties import ObjectProperty
-
 import numpy
-import android
 import os
-import io
 import time
 import threading
 import functools
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.exceptions import DuplicateDownloadException
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING
 
 import globalvars
 
-from jnius import autoclass, cast, detach
-from jnius import JavaClass
-from jnius import PythonJavaClass
+from jnius import autoclass, cast
 from android.runnable import run_on_ui_thread
-
 
 Context = autoclass('android.content.Context')
 PythonActivity = autoclass('org.renpy.android.PythonActivity')
@@ -43,9 +30,10 @@ ImageView = autoclass('android.widget.ImageView')
 CompressFormat = autoclass('android/graphics/Bitmap$CompressFormat')
 FileOutputStream = autoclass('java.io.FileOutputStream')
 
+
 class FileWidget(BoxLayout):
 	name = "No Name Set"
-	uri = None
+	uri = "/pls/set/uri"
 	texture = None
 	benchmark = time.time()
 	lImageView = ImageView
@@ -70,10 +58,12 @@ class FileWidget(BoxLayout):
 		self._check_torrent_made()
 
 	def setName(self, nom):
+		assert nom is not None
 		self.name = nom
 		self.ids.filebutton.text = nom
 
 	def setUri(self, ur):
+		assert ur is not None
 		self.uri = ur
 
 	def get_playtime(self):
@@ -179,25 +169,42 @@ class FileWidget(BoxLayout):
 	def delete(self):
 		anim = Animation(opacity=0, height=0, duration = 0.5)
 		anim.start(self)
-		Clock.schedule_once(self.remove,0.5)
+		Clock.schedule_once(self._remove,0.5)
 
-	#Removes this widget from the list with a transition effect
-	def remove(self, *largs):
+	def _remove(self, _):
+		"""Removes this widget from the list with a transition effect
+		In addition, remove the video and associated files, stop seeding
+		"""
+		self._delete_torrent()
 		self.parent.remove_widget(self)
 		os.remove(self.uri)
 		os.remove(self.ids.img.source)
 
 	def _check_torrent_made(self):
-		""" Check if a .torrent exists for this file and load it when it does"""
+		""" Check if a .torrent exists for this file and if it does, import
+		Return boolean result
+		"""
 		if os.path.isfile(self.uri + ".torrent"):
-			Logger.debug("Torrent for ", self.name, " found")
+			Logger.info("Found torrent: " + self.uri + ".torrent")
 			self.tdef = TorrentDef.load(self.uri + ".torrent")
-			self.add_as_torrent()
+			return True
+		return False
 
-	def create_torrent(self):
-		"""Create tdef, save .torrent and add to Tribler"""
-		self._check_torrent_made()
-		if self.tdef is None:
+	def torrent_button(self):
+		""" Torrent button handler"""
+		if self._check_torrent_made():
+			d = self._seed_torrent()
+		else:
+			self._create_torrent()
+			d = self._seed_torrent()
+		if d.get_status() == DLSTATUS_SEEDING:
+			Clipboard.put(d.get_magnet_link(), 'text/string')
+			Logger.info("Magnet link copied")
+
+	def _create_torrent(self):
+		"""Create tdef, save .torrent"""
+		if self._check_torrent_made() is False:
+			Logger.info("Creating TDEF for: ", self.name)
 			self.tdef = TorrentDef()
 			self.tdef.add_content(self.uri, playtime=self.get_playtime())
 			self.tdef.set_tracker("udp://tracker.openbittorrent.com:80")
@@ -205,16 +212,32 @@ class FileWidget(BoxLayout):
 				args=(self.tdef, None, None))
 			fin_thread.start()
 			fin_thread.join()
-			if self.tdef.is_finalized():
-				self.tdef.save(self.uri + ".torrent")
-				Logger.debug("Infohash: ", self.tdef.get_infohash())
-				self.add_as_torrent()
+			assert self.tdef.is_finalized()
+			self.tdef.save(self.uri + ".torrent")
+			self._check_torrent_made()
+		else:
+			Logger.info("TDEF already created for: ", self.name)
 
-	def add_as_torrent(self):
-		""" Add the tdef of this filewidget as torrent to Tribler"""
+	def _delete_torrent(self):
+		""" Delete .torrent,tdef to None and remove download from Tribler"""
+		if os.path.isfile(self.uri + ".torrent"):
+			os.remove(self.uri + ".torrent")
+		sess = globalvars.skelly.tw.get_session_mgr().get_session()
+		if sess.has_download(self.tdef.infohash):
+			sess.remove_download_by_id(self.tdef.infohash)
+		tdef = None
+
+	def _seed_torrent(self):
+		""" Seed with Tribler
+		Returns the Download handler
+		"""
 		assert self.tdef is not None and self.tdef.is_finalized()
 		sess = globalvars.skelly.tw.get_session_mgr().get_session()
 		if not sess.has_download(self.tdef.infohash):
+			Logger.info("Adding torrent to tribler: " + self.tdef.get_name())
 			dscfg = DownloadStartupConfig()
-			dscfg.set_dest_dir(globalvars.storagedir)
-			sess.start_download(self.tdef, dscfg)
+			dscfg.set_dest_dir(os.path.dirname(self.uri))
+			return sess.start_download(self.tdef, dscfg)
+		else:
+			Logger.info("Already added to Tribler: " + self.tdef.get_name())
+			return sess.get_download(self.tdef.infohash)

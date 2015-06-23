@@ -5,13 +5,15 @@ from TriblerSession import TriblerSession
 from DownloadManager import DownloadManager
 from SettingsManager import SettingsManager
 from TorrentManager import TorrentManager
-from ChannelManager import ChannelManager
+# from ChannelManager import ChannelManager
+
 
 class TriblerWrapper:
     tribler = None
     dm = None
     tm = None
     cm = None
+    sm = None
 
     def __init__(self):
         self.tribler = TriblerSession(None)
@@ -27,10 +29,10 @@ class TriblerWrapper:
 
         # Wait for dispersy to initialize
         while not self.tribler.is_running():
-            time.sleep(0.1)
+            time.sleep(1)
 
-        #Logger.error("Loading ChannelManager")
-        #self.cm = ChannelManager.getInstance(self.tribler.get_session())
+        # Logger.error("Loading ChannelManager")
+        # self.cm = ChannelManager.getInstance(self.tribler.get_session())
 
         Logger.error("Loading TorrentManager")
         self.tm = TorrentManager.getInstance(self.tribler.get_session())
