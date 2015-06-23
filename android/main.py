@@ -22,7 +22,7 @@ import threading
 import time
 
 from homescreen import HomeScreen
-from filewidget import FileWidget
+from torrentwidget import TorrentWidget
 from androidcamera import AndroidCamera
 import globalvars
 
@@ -55,22 +55,21 @@ class SearchScreen(Screen):
 	def on_txt_input(self):
 		Clock.unschedule(self.delayedSearch, all=True)
 		if self.ids.searchfield.text == '':
-			self.ids.fileList.clear_widgets()
+			self.reset_results()
 		else:
 			Clock.schedule_once(self.delayedSearch, 0.5)
+
 	#Currently a filler function that gets called when a search is attempted
-	#currently displays a filewidget with the contents of the search
+	#currently displays a TorrentWidget with the contents of the search
 	def delayedSearch(self, dt):
 		print "TextSearch"
+
+		# Empty the result list:
+		self.reset_results()
 
 		# Starts a Tribler search for user submitted keyword:
 		search_text = self.ids.searchfield.text
 		torrent_mgr = globalvars.skelly.tw.get_torrent_mgr()
-
-		# Empty the results list:
-		self.ids.fileList.clear_widgets()
-		self._torrents = []
-
 		torrent_mgr.subscribe_for_changed_search_results(self.on_search_results_change)
 		torrent_mgr.search_remote(search_text)
 
@@ -99,10 +98,14 @@ class SearchScreen(Screen):
 
 			# Add torrent to list:
 			if not already_added:
-				fwid = FileWidget()
-				fwid.setName(torrent['name']) # TODO: load in Torrent object in torrents list kept by this SearchScreen
-				self.ids.fileList.add_widget(fwid)
+				twid = TorrentWidget()
+				twid.set_name(torrent['name']) # TODO: load in Torrent object in torrents list kept by this SearchScreen
+				self.ids.fileList.add_widget(twid)
 				self._torrents.append(torrent)
+
+	def reset_results(self):
+		self.ids.fileList.clear_widgets()
+		self._torrents = []
 
 
 class CameraWidget(AnchorLayout):

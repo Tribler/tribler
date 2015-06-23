@@ -232,3 +232,60 @@
 				Button:
 					text:'Cam Test'
 					on_release:app.swap_to(app.CamScr)
+
+<TorrentWidget>
+	canvas:
+		Color:
+			rgba: 0.2,0.2,0.2,1
+		Rectangle:
+			pos: self.pos
+			size: self.size
+	size_hint: 1, None
+	height: '2.4cm'
+	Image:
+		size_hint: None, 1
+		width: '1.35cm'
+		id:img
+	RelativeLayout:
+		AnchorLayout:
+			anchor_x: 'center'
+			anchor_y: 'center'
+			Button:
+				background_color: 0.6,0.6,0.6,1
+				background_normal: ''
+				anchor_x: 'center'
+				anchor_y: 'center'
+				id: filebutton
+				text: root.name
+				on_release: root.pressed()
+		AnchorLayout:
+			anchor_x:'right'
+			anchor_y:'top'
+			BoxLayout:
+				size_hint: None, None
+				anchor_x: 'right'
+				anchor_y: 'center'
+				width: '0.8cm'
+				height: self.width*3
+				orientation:"vertical"
+				id: button_layout
+				Button:
+					background_color: 0.6,0.6,0.6,1
+					background_normal: ''
+					id: editBut
+					on_release: root.start_stream()
+					BoxLayout:
+						pos: self.parent.pos
+						size: self.parent.size
+						Image:
+							source: 'img/ic_edit_white_48dp.png'
+				Button:
+					background_color: 0.6,0.6,0.6,1
+					background_normal: ''
+					id: eraseBut
+					on_release: root.start_download()
+					BoxLayout:
+						pos: self.parent.pos
+						size: self.parent.size
+						Image:
+							source: 'img/ic_delete_white_48dp.png'

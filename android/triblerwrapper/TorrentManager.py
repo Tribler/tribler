@@ -188,6 +188,7 @@ class TorrentManager(BaseManager):
             Logger.info("Ignored results for %s, we are looking for %s now" % (keywords, self._keywords))
             return
 
+        result_added = False
         for result in results:
             try:
                 infohash = result[0]
@@ -222,10 +223,15 @@ class TorrentManager(BaseManager):
                     Logger.info("Ignore XXX torrent: %s" % remoteHit.name)
                 else:
                     # Add to result list.
-                    self._add_remote_result(remoteHit)
+                    result_added = self._add_remote_result(remoteHit) or result_added
             except Exception, e:
                 Logger.info("Ignored one result in results from %s because of the following exception: %s" % (keywords, e))
                 pass
+
+        # Notify observers that one or more torrents were added:
+        if result_added:
+            for fn in self._callbacks:
+                fn(self._keywords)
 
         return
 
@@ -248,10 +254,6 @@ class TorrentManager(BaseManager):
 
             self._results.append(torrent)
             self._result_infohashes.append(torrent.infohash)
-
-            # Notify observers that a torrent was added:
-            for fn in self._callbacks:
-                fn(self._keywords)
 
             Logger.error("Torrent added: %s [%s]" % (torrent.name, binascii.hexlify(torrent.infohash)))
             return True
