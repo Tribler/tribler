@@ -526,7 +526,7 @@ class TftpRequester(Requester):
 
         if key.startswith(METADATA_PREFIX):
             # metadata requests has a METADATA_PREFIX prefix
-            thumb_hash = unhexlify(key.replace(METADATA_PREFIX, ''))
+            thumb_hash = unhexlify(key[len(METADATA_PREFIX):])
             file_name = key
             extra_info = {u'key': key, u'thumb_hash': thumb_hash}
         else:

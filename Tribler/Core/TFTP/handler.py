@@ -296,7 +296,7 @@ class TftpHandler(TaskManager):
         # read the file/directory into memory
         try:
             if file_name.startswith(METADATA_PREFIX):
-                file_data, file_size = self._load_metadata(file_name.replace(METADATA_PREFIX, ''))
+                file_data, file_size = self._load_metadata(file_name[len(METADATA_PREFIX):])
             else:
                 file_data, file_size = self._load_torrent(file_name)
             checksum = b64encode(sha1(file_data).digest())
