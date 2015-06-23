@@ -1,13 +1,13 @@
 [app]
 
 # (str) Title of your application
-title = SkeletonApp
+title = ShadowInternet
 
 # (str) Package name
-package.name = skelly
+package.name = shadowinternet
 
 # (str) Package domain (needed for android/ios packaging)
-package.domain = org.test
+package.domain = org.tribler
 
 # (str) Source code where the main.py live
 source.dir = .
@@ -43,7 +43,7 @@ requirements = kivy, pyjnius, numpy, libtribler
 #presplash.filename = %(source.dir)s/data/presplash.png
 
 # (str) Icon of the application
-#icon.filename = %(source.dir)s/data/icon.png
+icon.filename = ./img/logo.png
 
 # (str) Supported orientation (one of landscape, portrait or all)
 orientation = all

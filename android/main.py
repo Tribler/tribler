@@ -1,4 +1,4 @@
-__version__ = '1.0'
+__version__ = '1.1'
 from kivy.app import App
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
@@ -38,7 +38,7 @@ Intent = autoclass('android.content.Intent')
 Uri = autoclass('android.net.Uri')
 NfcAdapter = autoclass('android.nfc.NfcAdapter')
 File = autoclass('java.io.File')
-CreateNfcBeamUrisCallback = autoclass('org.test.CreateNfcBeamUrisCallback')
+CreateNfcBeamUrisCallback = autoclass('org.tribler.CreateNfcBeamUrisCallback')
 MediaStore = autoclass('android.provider.MediaStore')
 MediaRecorder = autoclass('android.media.MediaRecorder')
 Camera = autoclass('android.hardware.Camera')

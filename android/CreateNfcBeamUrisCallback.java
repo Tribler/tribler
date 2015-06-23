@@ -1,4 +1,4 @@
-package org.test;
+package org.tribler;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -55,6 +55,7 @@ public class CreateNfcBeamUrisCallback implements NfcAdapter.CreateBeamUrisCallb
 		uris.add(Uri.fromFile(currentApp));
 		System.out.println("Added APK Uri");
 		System.out.println((Uri.fromFile(currentApp)).toString());
+		changed = false;
 	}
 
 	public String getMimeType(String file){
