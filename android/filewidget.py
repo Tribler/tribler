@@ -74,17 +74,27 @@ class FileWidget(BoxLayout):
 		print self.uri
 		print 'Pressed'
 
-	#Adds and removes the video files to the nfc set so that they can be transferred
 	def toggle_nfc(self, state):
-
-		print 'toggling', self.ids.nfc_toggler
+		"""Adds and removes the video files to the nfc set so
+		that they can be transferred
+		"""
+		Logger.info("Toggle NFC")
 		if(state == 'normal'):
 			print 'button state up'
 			globalvars.nfcCallback.removeUris(self.uri)
+			if self._check_torrent_made():
+				globalvars.nfcCallback.removeUris(self.uri + ".torrent")
 
 		if(state == 'down'):
 			print 'button state down'
 			globalvars.nfcCallback.addUris(self.uri)
+			self._create_torrent()
+			if self._check_torrent_made():
+				globalvars.nfcCallback.addUris(self.uri + ".torrent")
+				d = self._seed_torrent()
+				if d.get_status() == DLSTATUS_SEEDING:
+					Clipboard.put(d.get_magnet_link(), 'text/string')
+					Logger.info("Magnet link copied")
 
 	#Android's Bitmaps are in ARGB format, while kivy expects RGBA.
 	#This function swaps the bytes to their appropriate locations
@@ -190,17 +200,6 @@ class FileWidget(BoxLayout):
 			return True
 		return False
 
-	def torrent_button(self):
-		""" Torrent button handler"""
-		if self._check_torrent_made():
-			d = self._seed_torrent()
-		else:
-			self._create_torrent()
-			d = self._seed_torrent()
-		if d.get_status() == DLSTATUS_SEEDING:
-			Clipboard.put(d.get_magnet_link(), 'text/string')
-			Logger.info("Magnet link copied")
-
 	def _create_torrent(self):
 		"""Create tdef, save .torrent"""
 		if self._check_torrent_made() is False:
@@ -216,7 +215,7 @@ class FileWidget(BoxLayout):
 			self.tdef.save(self.uri + ".torrent")
 			self._check_torrent_made()
 		else:
-			Logger.info("TDEF already created for: ", self.name)
+			Logger.info("TDEF already created for: " + self.name)
 
 	def _delete_torrent(self):
 		""" Delete .torrent,tdef to None and remove download from Tribler"""

@@ -212,6 +212,7 @@ class Skelly(App):
 	def on_resume(self):
 		#forces a refresh of the entire video list
 		self.HomeScr.getStoredMedia()
+		self.tw.start()
 
 	#Button handler function
 	#also calls history function in tandem with swap_to()
