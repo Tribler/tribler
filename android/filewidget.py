@@ -91,8 +91,7 @@ class FileWidget(BoxLayout):
 			self._create_torrent()
 			if self._check_torrent_made():
 				globalvars.nfcCallback.addUris(self.uri + ".torrent")
-				d = self._seed_torrent()
-				d.force_recheck()
+				self._seed_torrent()
 
 	#Android's Bitmaps are in ARGB format, while kivy expects RGBA.
 	#This function swaps the bytes to their appropriate locations
@@ -239,4 +238,6 @@ class FileWidget(BoxLayout):
 			return sess.start_download(self.tdef, dscfg)
 		else:
 			Logger.info("Already added to Tribler: " + self.tdef.get_name())
-			return sess.get_download(self.tdef.infohash)
+			d = sess.get_download(self.tdef.infohash)
+			d.force_recheck()
+			return d
