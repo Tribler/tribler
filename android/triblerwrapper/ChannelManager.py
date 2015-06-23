@@ -9,18 +9,19 @@ from time import time
 from kivy.logger import Logger
 
 # Tribler defs
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_MYPREFERENCES, \
-    NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_METADATA, \
-    DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK, SIGNAL_ALLCHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_VOTECAST, \
+    NTFY_CHANNELCAST, SIGNAL_ALLCHANNEL_COMMUNITY, SIGNAL_ON_SEARCH_RESULTS
 
 # DB Tuples
-from Tribler.Main.Utility.GuiDBTuples import Channel, RemoteChannel, ChannelTorrent, RemoteChannelTorrent
+from Tribler.Main.Utility.GuiDBTuples import Channel, RemoteChannel, \
+    ChannelTorrent, RemoteChannelTorrent
 
 # Tribler communities
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.Core.Utilities.search_utils import split_into_keywords
 
 from BaseManager import BaseManager
+
 
 class ChannelManager(BaseManager):
     # Code to make this a singleton
@@ -52,16 +53,16 @@ class ChannelManager(BaseManager):
         else:
             raise RuntimeError('ChannelManager already connected')
 
-    def get_local(self, filter):
+    def get_local(self, filt):
         """
         Search the local channel database for channels by keyword.
-        :param filter: (Optional) keyword filter.
+        :param filt: (Optional) keyword filter.
         :return: List of channels in dictionary format.
         """
         begintime = time()
 
         try:
-            self._set_keywords(filter)
+            self._set_keywords(filt)
         except:
             return False
 
@@ -69,7 +70,8 @@ class ChannelManager(BaseManager):
 
         _, channels = self._createChannels(hits)
 
-        Logger.error("@@@ Found %s local channels in %ss" % (len(channels), time() - begintime))
+        Logger.error("@@@ Found %s local channels in %ss" % (len(channels), \
+            time() - begintime))
 
         return self._prepare_channels(channels)
 
@@ -99,8 +101,8 @@ class ChannelManager(BaseManager):
                 'my_vote': ch.my_vote,
                 'modified': ch.modified,
                 'my_channel': ch.my_channel,
-                #'torrents': None,
-                #'populair_torrents': None,
+                # 'torrents': None,
+                # 'populair_torrents': None,
                 }
 
     def search_remote(self, keywords):
