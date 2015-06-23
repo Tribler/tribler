@@ -47,11 +47,6 @@ try:
 except ImportError as e:
     prctlimported = False
 
-# Arno, 2008-03-21: see what happens when we disable this locale thing. Gives
-# errors on Vista in "Regional and Language Settings Options" different from
-# "English[United Kingdom]"
-# import locale
-
 import wx
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 from Tribler.Main.vwxGUI.MainFrame import FileDropTarget

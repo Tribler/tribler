@@ -32,7 +32,35 @@ class TestLibtorrentDownload(TestGuiAsServer):
         def do_downloadfromfile():
             self.guiUtility.showLibrary()
             self.frame.startDownload(
-                os.path.join(TESTS_DATA_DIR, "Pioneer.One.S01E06.720p.x264-VODO.torrent"), self.getDestDir())
+                            os.path.join(TESTS_DATA_DIR, "Pioneer.One.S01E06.720p.x264-VODO.torrent"), 
+                            self.getDestDir())
+
+            self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready,
+                                 'do_downloadfromfile() failed')
+
+        self.startTest(do_downloadfromfile)
+        
+    def test_downloadfromfileuri(self):
+        infohash = binascii.unhexlify('66ED7F30E3B30FA647ABAA19A36E7503AA071535')
+
+        def make_screenshot():
+            self.screenshot('After starting a libtorrent download from file URI')
+            self.quit()
+
+        def item_shown_in_list():
+            self.CallConditional(30, lambda: self.frame.librarylist.list.GetItem(infohash).original_data.ds and self.frame.librarylist.list.GetItem(
+                infohash).original_data.ds.get_current_speed(DOWNLOAD) > 0, make_screenshot, 'no download progress')
+
+        def download_object_ready():
+            self.CallConditional(10, lambda: self.frame.librarylist.list.HasItem(
+                infohash), item_shown_in_list, 'no download in librarylist')
+
+        def do_downloadfromfile():
+            self.guiUtility.showLibrary()
+            
+            from urllib import pathname2url
+            file_uri = "file:" + pathname2url(os.path.join(TESTS_DATA_DIR, "Pioneer.One.S01E06.720p.x264-VODO.torrent"))
+            self.frame.startDownloadFromArg(file_uri, self.getDestDir())
 
             self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready,
                                  'do_downloadfromfile() failed')
@@ -56,7 +84,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
         def do_downloadfromurl():
             self.guiUtility.showLibrary()
-            self.frame.startDownloadFromUrl(TORRENT_R, self.getDestDir())
+            self.frame.startDownloadFromArg(TORRENT_R, self.getDestDir())
 
             self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready,
                                  'do_downloadfromurl() failed')
@@ -80,7 +108,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
         def do_downloadfrommagnet():
             self.guiUtility.showLibrary()
-            self.frame.startDownloadFromMagnet(
+            self.frame.startDownloadFromArg(
                 r'magnet:?xt=urn:btih:%s&dn=ubuntu-14.04.2-desktop-amd64.iso' % binascii.hexlify(UBUNTU_1504_INFOHASH),
                 self.getDestDir())
 
@@ -130,7 +158,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
         def do_start():
             self.guiUtility.showLibrary()
-            self.frame.startDownloadFromUrl(TORRENT_R, self.getDestDir())
+            self.frame.startDownloadFromArg(TORRENT_R, self.getDestDir())
             self.CallConditional(60, lambda: self.session.get_download(infohash), download_object_ready,
                                  'do_start() failed')
 

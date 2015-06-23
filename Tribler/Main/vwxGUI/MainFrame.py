@@ -21,6 +21,7 @@ import atexit
 import threading
 import time
 from traceback import print_exc, print_stack
+from urllib import url2pathname
 import copy
 
 from Tribler.Category.Category import Category
@@ -366,7 +367,6 @@ class MainFrame(wx.Frame):
     def startCMDLineTorrent(self):
         if self.params[0] != "" and not self.params[0].startswith("--"):
             vod = False
-            url_filename = self.params[0]
             selectedFiles = [self.params[1]] if len(self.params) == 2 else None
             if selectedFiles:
                 _, ext = os.path.splitext(selectedFiles[0])
@@ -374,15 +374,32 @@ class MainFrame(wx.Frame):
                     ext = ext[1:]
                 if ext.lower() in videoextdefaults:
                     vod = True
+            
+            self.startDownloadFromArg(self.params[0], cmdline=True, selectedFiles=selectedFiles, vodmode=vod)
 
-            if url_filename.startswith("magnet:"):
-                self.startDownloadFromMagnet(self.params[0], cmdline=True, selectedFiles=selectedFiles, vodmode=vod)
-            elif url_filename.startswith("http"):
-                self.startDownloadFromUrl(self.params[0], cmdline=True, selectedFiles=selectedFiles, vodmode=vod)
-            elif url_filename.startswith("emc:"):
-                self.startDownloadFromEMC(self.params[0], cmdline=True, selectedFiles=selectedFiles, vodmode=vod)
-            else:
-                self.startDownload(url_filename, cmdline=True, selectedFiles=selectedFiles, vodmode=vod)
+    def startDownloadFromArg(self, argument, destdir=None, cmdline=False, selectedFiles = None, vodmode=False):
+        if argument.startswith("magnet:"):
+            self.startDownloadFromMagnet(argument, destdir=destdir, cmdline=cmdline, selectedFiles=selectedFiles, vodmode=vodmode)
+            return True
+        
+        if argument.startswith("http"):
+            self.startDownloadFromUrl(argument, destdir=destdir, cmdline=cmdline, selectedFiles=selectedFiles, vodmode=vodmode)
+            return True
+        
+        if argument.startswith("emc:"):
+            self.startDownloadFromEMC(argument, destdir=destdir, cmdline=cmdline, selectedFiles=selectedFiles, vodmode=vodmode)
+            return True
+        
+        if argument.startswith("file:"):
+            argument = url2pathname(argument[5:])
+            self.startDownload(argument, destdir=destdir, cmdline=cmdline, selectedFiles=selectedFiles, vodmode=vodmode)
+            return True
+        
+        if cmdline:
+            self.startDownload(argument, destdir=destdir, cmdline=cmdline, selectedFiles=selectedFiles, vodmode=vodmode)
+            return True
+        
+        return False
 
     def startDownloadFromMagnet(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False, hops=0):
         name, infohash, _ = parse_magnetlink(url)
