@@ -2,6 +2,11 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.logger import Logger
 from kivy.uix.screenmanager import Screen
 from videoplayer import open_player
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
+import os
+
+
 import globalvars
 
 """
@@ -55,9 +60,16 @@ class TorrentInfoScreen(Screen):
         :return: Nothing.
         """
         Logger.info('Start download in TorrentInfoScreen.')
-        download_mgr = globalvars.skelly.tw.get_download_mgr()
-        download_mgr.add_torrent(self.torrent.infohash, self.torrent.name)
-        # TODO: navigate user to screen with previously downloaded torrents and show this torrent with a progress bar
+
+        session = globalvars.skelly.tw.get_session_mgr().get_session()
+        dscfg = DownloadStartupConfig()
+        #dscfg.set_dest_dir() #TODO
+        tdef = TorrentDefNoMetainfo(self.torrent.infohash, self.torrent.name)
+        session.start_download(tdef, dscfg)
+
+        #download_mgr = globalvars.skelly.tw.get_download_mgr()
+        #download_mgr.add_torrent(self.torrent.infohash, self.torrent.name)
+        # TODO: navigate user to (home?) screen with previously downloaded torrents and show this torrent with a progress bar
 
     def start_stream(self):
         """
