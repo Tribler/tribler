@@ -65,7 +65,6 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
                                      NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings)
 from Tribler.Core.version import commit_id, version_id
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
 from Tribler.Main.Utility.GuiDBHandler import GUIDBProducer, startWorker
 from Tribler.Main.Utility.compat import (convertDefaultDownloadConfig, convertDownloadCheckpoints, convertMainConfig,
@@ -123,7 +122,6 @@ class ABCApp(object):
         self.done = False
         self.frame = None
 
-        self.guiserver = GUITaskQueue.getInstance()
         self.said_start_playback = False
         self.decodeprogress = 0
 
@@ -213,7 +211,7 @@ class ABCApp(object):
 
             # Schedule task for checkpointing Session, to avoid hash checks after
             # crashes.
-            self.guiserver.add_task(self.guiservthread_checkpoint_timer, SESSION_CHECKPOINT_INTERVAL)
+            startWorker(consumer=None, workerFn=self.guiservthread_checkpoint_timer, delay=SESSION_CHECKPOINT_INTERVAL)
 
             if not ALLOW_MULTIPLE:
                 # Put it here so an error is shown in the startup-error popup
@@ -264,7 +262,7 @@ class ABCApp(object):
 
             self.splash.Destroy()
             self.frame.Show(True)
-            self.guiserver.add_task(self.guiservthread_free_space_check, 0)
+            session.lm.rawserver.call_in_thread(0, self.guiservthread_free_space_check)
 
             self.torrentfeed = RssParser.getInstance()
 
@@ -695,7 +693,7 @@ class ABCApp(object):
             wx.CallAfter(wx.MessageBox, "Tribler has detected low disk space. Related downloads have been stopped.",
                          "Error")
 
-        self.guiserver.add_task(self.guiservthread_free_space_check, FREE_SPACE_CHECK_INTERVAL)
+        self.utility.session.lm.rawserver.call_in_thread(FREE_SPACE_CHECK_INTERVAL, self.guiservthread_free_space_check)
 
     def guiservthread_checkpoint_timer(self):
         """ Periodically checkpoint Session """
@@ -705,7 +703,7 @@ class ABCApp(object):
             self._logger.info("main: Checkpointing Session")
             self.utility.session.checkpoint()
 
-            self.guiserver.add_task(self.guiservthread_checkpoint_timer, SESSION_CHECKPOINT_INTERVAL)
+            self.utility.session.lm.rawserver.call_in_thread(SESSION_CHECKPOINT_INTERVAL, self.guiservthread_checkpoint_timer)
         except:
             print_exc()
 
@@ -884,9 +882,6 @@ class ABCApp(object):
         if self.webUI:
             self.webUI.stop()
             self.webUI.delInstance()
-        if self.guiserver:
-            self.guiserver.shutdown(True)
-            self.guiserver.delInstance()
 
         if self.frame:
             self.frame.Destroy()
