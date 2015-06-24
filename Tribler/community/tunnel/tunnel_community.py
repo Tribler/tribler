@@ -453,7 +453,8 @@ class TunnelCommunity(Community):
                 self.exit_candidates.pop(pubkey)
                 logging.debug("Removed candidate from exit_candidates dictionary")
 
-    def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None, max_retries=0, required_endpoint=None, info_hash=None):
+    def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None, max_retries=0,
+                       required_endpoint=None, info_hash=None):
         assert required_endpoint is None or isinstance(required_endpoint, tuple), type(required_endpoint)
         assert required_endpoint is None or len(required_endpoint) == 3, required_endpoint
         retry_lambda = first_hop = None
@@ -521,8 +522,8 @@ class TunnelCommunity(Community):
         circuit.unverified_hop.address = first_hop.sock_addr
         circuit.unverified_hop.dh_secret, circuit.unverified_hop.dh_first_part = self.crypto.generate_diffie_secret()
 
-        self._logger.debug("creating circuit %d of %d hops. First hop: %s:%d", circuit_id,
-                          circuit.goal_hops, first_hop.sock_addr[0], first_hop.sock_addr[1])
+        self._logger.debug("creating circuit %d of %d hops. First hop: %s:%d", circuit_id, circuit.goal_hops,
+                           first_hop.sock_addr[0], first_hop.sock_addr[1])
 
         self.circuits[circuit_id] = circuit
         self.waiting_for.add(circuit_id)
@@ -533,7 +534,8 @@ class TunnelCommunity(Community):
                                                                      circuit.unverified_hop.node_public_key,
                                                                      circuit.unverified_hop.dh_first_part)))
 
-        _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_CREATED, "%s:%s" % (first_hop.sock_addr[0], first_hop.sock_addr[1]))
+        _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_CREATED, "%s:%s" %
+                                               (first_hop.sock_addr[0], first_hop.sock_addr[1]))
         return circuit_id
 
     def readd_bittorrent_peers(self):
@@ -1242,26 +1244,32 @@ class TunnelCommunity(Community):
         if isinstance(obj, Circuit):
             obj.bytes_up += num_bytes
             self.stats['bytes_up'] += num_bytes
-            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_BYTES_SENT, "%s:%s" % (obj.first_hop[0], obj.first_hop[1]), num_bytes)
+            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_BYTES_SENT, "%s:%s" %
+                                                   (obj.first_hop[0], obj.first_hop[1]), num_bytes)
         elif isinstance(obj, RelayRoute):
             obj.bytes_up += num_bytes
             self.stats['bytes_relay_up'] += num_bytes
-            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_RELAY_BYTES_SENT, "%s:%s" % (obj.sock_addr[0], obj.sock_addr[1]), num_bytes)
+            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_RELAY_BYTES_SENT, "%s:%s" %
+                                                   (obj.sock_addr[0], obj.sock_addr[1]), num_bytes)
         elif isinstance(obj, TunnelExitSocket):
             obj.bytes_up += num_bytes
             self.stats['bytes_exit'] += num_bytes
-            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_SENT, "%s:%s" % (obj.sock_addr[0], obj.sock_addr[1]), num_bytes)
+            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_SENT, "%s:%s" %
+                                                   (obj.sock_addr[0], obj.sock_addr[1]), num_bytes)
 
     def increase_bytes_received(self, obj, num_bytes):
         if isinstance(obj, Circuit):
             obj.bytes_down += num_bytes
             self.stats['bytes_down'] += num_bytes
-            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_BYTES_RECEIVED, "%s:%s" % (obj.first_hop[0], obj.first_hop[1]), num_bytes)
+            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_BYTES_RECEIVED, "%s:%s" %
+                                                   (obj.first_hop[0], obj.first_hop[1]), num_bytes)
         elif isinstance(obj, RelayRoute):
             obj.bytes_down += num_bytes
             self.stats['bytes_relay_down'] += num_bytes
-            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_RELAY_BYTES_RECEIVED, "%s:%s" % (obj.sock_addr[0], obj.sock_addr[1]), num_bytes)
+            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_RELAY_BYTES_RECEIVED, "%s:%s" %
+                                                   (obj.sock_addr[0], obj.sock_addr[1]), num_bytes)
         elif isinstance(obj, TunnelExitSocket):
             obj.bytes_down += num_bytes
             self.stats['bytes_enter'] += num_bytes
-            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED, "%s:%s" % (obj.sock_addr[0], obj.sock_addr[1]), num_bytes)
+            _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED, "%s:%s" %
+                                                   (obj.sock_addr[0], obj.sock_addr[1]), num_bytes)

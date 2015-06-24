@@ -250,7 +250,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
             exclude = [rp[2] for rp in self.my_download_points.values()] + [sock_addr for _, sock_addr in blacklist]
             for peer in set(peers):
                 if peer not in exclude:
-                    self._logger.info("Requesting key from %s", peer)
+                    self._logger.debug("Requesting key from %s", peer)
 
                     # Blacklist this sock_addr for a period of at least 60s
                     self.dht_blacklist[info_hash].append((time.time(), peer))
@@ -279,6 +279,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
     def check_key_request(self, messages):
         for message in messages:
+            self._logger.debug("Check key request")
             info_hash = message.payload.info_hash
             if not message.source.startswith(u"circuit_"):
                 if info_hash not in self.intro_point_for:
@@ -295,6 +296,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
         for message in messages:
             # if we have received this message over a socket, we need to forward it
             if not message.source.startswith(u"circuit_"):
+                self._logger.debug("On key request: relay key request")
                 relay_circuit = self.intro_point_for[message.payload.info_hash]
                 relay_circuit.tunnel_data(message.candidate.sock_addr, TUNNEL_PREFIX + message.packet)
 
@@ -302,7 +304,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
                 info_hash = message.payload.info_hash
                 key = self.session_keys[info_hash]
                 circuit = self.circuits[int(message.source[8:])]
-
+                self._logger.debug("On key request: respond with keys")
                 meta = self.get_meta_message(u'key-response')
                 response = meta.impl(distribution=(self.global_time,), payload=(
                     message.payload.identifier, key.pub().key_to_bin()))
@@ -323,13 +325,14 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
     def on_key_response(self, messages):
         for message in messages:
+            self._logger.debug("On key response: received keys")
             cache = self.request_cache.pop(u"key-request", message.payload.identifier)
             self.create_e2e(cache.circuit, cache.sock_addr, cache.info_hash, message.payload.public_key)
 
     def create_e2e(self, circuit, sock_addr, info_hash, public_key):
         hop = Hop(self.crypto.key_from_public_bin(public_key))
         hop.dh_secret, hop.dh_first_part = self.crypto.generate_diffie_secret()
-
+        self._logger.debug("Create end to end initiated here")
         cache = self.request_cache.add(E2ERequestCache(self, info_hash, circuit, hop, sock_addr))
         meta = self.get_meta_message(u'create-e2e')
         message = meta.impl(distribution=(self.global_time,), payload=(cache.number, info_hash, hop.node_id,
@@ -507,7 +510,6 @@ class HiddenTunnelCommunity(TunnelCommunity):
             self.intro_point_for[message.payload.info_hash] = circuit
 
             self.send_cell([message.candidate], u"intro-established", (circuit.circuit_id, message.payload.identifier))
-
             self.dht_announce(message.payload.info_hash)
 
     def check_intro_established(self, messages):
@@ -591,4 +593,4 @@ class HiddenTunnelCommunity(TunnelCommunity):
             self._logger.error("Need a Tribler session to announce to the DHT")
 
     def get_lookup_info_hash(self, info_hash):
-        return hashlib.sha1('tribler anyonymous download' + info_hash.encode('hex')).digest()
+        return hashlib.sha1('tribler anonymous download' + info_hash.encode('hex')).digest()
