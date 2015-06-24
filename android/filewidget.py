@@ -90,7 +90,6 @@ class FileWidget(RelativeLayout):
 			globalvars.nfcCallback.removeUris(self.uri)
 			if self._check_torrent_made():
 				globalvars.nfcCallback.removeUris(self.uri + ".torrent")
-				self._stop_tribler()
 
 		if(state == 'down'):
 			print 'button state down'

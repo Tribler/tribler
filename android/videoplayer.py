@@ -7,7 +7,7 @@ Uri = autoclass('android.net.Uri')
 PythonActivity = autoclass('org.renpy.android.PythonActivity')
 
 
-def start_internal_player(uri, thumb=None):
+def start_internal_player(uri):
     """
     Starts the internal Kivy video player with the VOD uri from Tribler's
     video server.
@@ -17,9 +17,6 @@ def start_internal_player(uri, thumb=None):
     vp = globalvars.skelly.VidScr.ids.videoPlay
     vp.source = uri
     vp.options = {'allow_stretch': True}
-
-    if thumb is not None and isfile(thumb):
-        vp.image_overlay_play = thumb
 
     globalvars.skelly.swap_to(globalvars.skelly.VidScr)
     vp.state = 'play'

@@ -271,6 +271,8 @@ class Skelly(App):
 	def goBack(self):
 		if len(self.history ) != 0:
 			print self.history
+			self.VidScr.ids.videoPlay.state = 'stop'
+			self.VidScr.ids.videoPlay.source = ''
 			self.sm.switch_to(self.history.pop(), direction = 'right')
 		else:
 			App.get_running_app().stop()
