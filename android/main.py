@@ -52,7 +52,7 @@ Environment = autoclass('android.os.Environment')
 Builder.load_file('main.kv')
 
 """
-The screen for searching
+The screen for searching for torrents using Dispersy.
 """
 class SearchScreen(Screen):
 
