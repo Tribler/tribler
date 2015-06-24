@@ -346,32 +346,35 @@
 	BoxLayout:
 		orientation: "vertical"
 		id: torrentinfoscreen
-		AnchorLayout:
-			anchor_x:'right'
-			anchor_y:'top'
-			BoxLayout:
-				anchor_x: 'left'
-				anchor_y: 'center'
-				orientation:"vertical"
-				Label:
-					text:root.type_label_text
-					rgba:0,0,0.8,0.5
-				Label:
-					text:root.filesize_label_text
-					rgba:0,0,0.8,0.5
-				Label:
-					text:root.seeders_label_text
-					rgba:0,0,0.8,0.5
-				Label:
-					text:root.leechers_label_text
-					rgba:0,0,0.8,0.5
-				Button:
-					text:'Play'
-					on_release: root.start_stream()
-					background_color: 0.5,0.5,0.5,1
-					background_normal:''
-				Button:
-					text:'Download'
-					on_release: root.start_download()
-					background_color: 0.5,0.5,0.5,1
-					background_normal:''
+		anchor_x: 'left'
+		anchor_y: 'center'
+		Label:
+			id:name_label
+			height: '1cm'
+			color:0,0,0.8,0.5
+		Label:
+			id:type_label
+			height: '1cm'
+			color:0,0,0.8,0.5
+		Label:
+			id:filesize_label
+			height: '1cm'
+			color:0,0,0.8,0.5
+		Label:
+			id:seeders_label
+			height: '1cm'
+			color:0,0,0.8,0.5
+		Label:
+			id:leechers_label
+			height: '1cm'
+			color:0,0,0.8,0.5
+		Button:
+			text:'Play'
+			on_release: root.start_stream()
+			background_color: 0.5,0.5,0.5,1
+			background_normal:''
+		Button:
+			text:'Download'
+			on_release: root.start_download()
+			background_color: 0.5,0.5,0.5,1
+			background_normal:''

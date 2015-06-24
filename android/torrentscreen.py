@@ -32,11 +32,6 @@ class TorrentInfoScreen(Screen):
     started_player = False
     vod_uri = None
 
-    type_label_text = 'Type'
-    filesize_label_text = 'Filesize'
-    seeders_label_text = 'Seeders'
-    leechers_label_text = 'Leechers'
-
     def open_screen(self, torrent):
         """
         To be called when this screen is opened for a torrent.
@@ -45,10 +40,11 @@ class TorrentInfoScreen(Screen):
         """
         self._reset()
         self.torrent = torrent
-        self.type_label_text = 'Type: ' + str(torrent.category)
-        self.filesize_label_text = 'Filesize: ' + str(torrent.length) if torrent.length else "Unknown" #TODO
-        self.seeders_label_text = 'Seeders: ' + str(torrent.num_seeders) if torrent.num_seeders and torrent.num_seeders != -1 else "Unknown"
-        self.leechers_label_text = 'Leechers: ' + str(torrent.num_leechers) if torrent.num_leechers and torrent.num_leechers != -1 else "Unknown"
+        self.ids.name_label.text = self.torrent.name
+        self.ids.type_label.text = 'Type: ' + str(torrent.category)
+        self.ids.filesize_label.text = 'Filesize: ' + (str(torrent.length) if torrent.length else "Unknown") #TODO
+        self.ids.seeders_label.text = 'Seeders: ' + (str(torrent.num_seeders) if torrent.num_seeders and torrent.num_seeders != -1 else "Unknown")
+        self.ids.leechers_label.text = 'Leechers: ' + (str(torrent.num_leechers) if torrent.num_leechers and torrent.num_leechers != -1 else "Unknown")
 
     def start_download(self):
         """

@@ -233,7 +233,7 @@ class FileWidget(RelativeLayout):
 		if self._check_torrent_made():
 			self._stop_tribler()
 			os.remove(self.uri + ".torrent")
-			tdef = None
+			self.tdef = None
 
 	def _stop_tribler(self):
 		"""Stop downloading with tribler"""
