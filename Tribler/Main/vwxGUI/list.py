@@ -99,7 +99,6 @@ class RemoteSearchManager(BaseManager):
         super(RemoteSearchManager, self).__init__(list)
         self.oldkeywords = ''
 
-        self.guiserver = self.guiutility.frame.guiserver
         self.torrentsearch_manager = self.guiutility.torrentsearch_manager
         self.channelsearch_manager = self.guiutility.channelsearch_manager
 

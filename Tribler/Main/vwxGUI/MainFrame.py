@@ -39,7 +39,6 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
 from Tribler.Main.Dialogs.systray import ABCTaskBarIcon
 from Tribler.Main.Dialogs.SaveAs import SaveAs
 
@@ -133,8 +132,6 @@ class MainFrame(wx.Frame):
         self.videoframe = None
         self.category = Category.getInstance()
         self.shutdown_and_upgrade_notes = None
-
-        self.guiserver = GUITaskQueue.getInstance()
 
         title = "Tribler %s" % version_id
 
