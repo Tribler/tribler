@@ -244,7 +244,8 @@ class Skelly(App):
 
 	#required function by android, called when starting app
 	def on_start(self):
-		self.tw.start()
+		if globalvars.triblerfun:
+			self.tw.start()
 
 	#required function by android, called when paused for multitasking
 	def on_pause(self):
@@ -255,13 +256,15 @@ class Skelly(App):
 		globalvars.app_ending = True
 		print "Terminating Application NOW"
 		self.HomeScr.endThumbnailThread()
-		self.tw.stop()
+		if globalvars.triblerfun:
+			self.tw.stop()
 
 	#Required function by android, called when resumed from a pause
 	def on_resume(self):
 		#forces a refresh of the entire video list
 		self.HomeScr.getStoredMedia()
-		self.tw.start()
+		if globalvars.triblerfun:
+			self.tw.start()
 
 	#Button handler function
 	#also calls history function in tandem with swap_to()

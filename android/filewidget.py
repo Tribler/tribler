@@ -16,10 +16,11 @@ import time
 import threading
 import functools
 
+import globalvars
+
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 
-import globalvars
 from videoplayer import open_player
 
 from jnius import autoclass, cast
@@ -61,8 +62,8 @@ class FileWidget(RelativeLayout):
 			self.setName(torrentname)
 		if uri is not None:
 			self.setUri(uri)
-		#if self._check_torrent_made():
-		#	self._seed_torrent()
+		if self._check_torrent_made() and globalvars.triblerfun:
+			self._start_tribler()
 
 	def setName(self, nom):
 		assert nom is not None
@@ -96,7 +97,8 @@ class FileWidget(RelativeLayout):
 			globalvars.nfcCallback.addUris(self.uri)
 			if self._check_torrent_made():
 				globalvars.nfcCallback.addUris(self.uri + ".torrent")
-				self._start_tribler()
+				if globalvars.triblerfun:
+					self._start_tribler()
 
 	#Android's Bitmaps are in ARGB format, while kivy expects RGBA.
 	#This function swaps the bytes to their appropriate locations
@@ -193,12 +195,12 @@ class FileWidget(RelativeLayout):
 		os.remove(self.ids.img.source)
 
 	def copy_magnet_link(self):
-		if self._check_torrent_made():
+		if self._check_torrent_made() and globalvars.triblerfun:
 			sess = globalvars.skelly.tw.get_session_mgr().get_session()
 			magnet = sess.get_download(self.tdef.infohash).get_magnet_link()
 			if magnet is not None:
 				Clipboard.put(magnet, 'text/string')
-		elif not self.creating:
+		elif not self.creating and globalvars.triblerfun:
 			self.creating = True
 			threading.Thread(target=self._create_torrent).start()
 
@@ -214,6 +216,7 @@ class FileWidget(RelativeLayout):
 
 	def _create_torrent(self):
 		"""Create tdef, save .torrent"""
+		assert globalvars.triblerfun
 		if self._check_torrent_made() is False:
 			Logger.info("Creating TDEF for: ", self.name)
 			self.tdef = TorrentDef()
@@ -227,7 +230,7 @@ class FileWidget(RelativeLayout):
 
 	def _delete_torrent(self):
 		""" Delete .torrent,tdef to None and remove download from Tribler"""
-		if self._check_torrent_made():
+		if self._check_torrent_made() and globalvars.triblerfun:
 			self._stop_tribler()
 			os.remove(self.uri + ".torrent")
 			self.tdef = None
@@ -235,6 +238,7 @@ class FileWidget(RelativeLayout):
 	def _stop_tribler(self):
 		"""Stop downloading with tribler"""
 		assert self.tdef is not None and self.tdef.is_finalized()
+		assert globalvars.triblerfun
 		sess = globalvars.skelly.tw.get_session_mgr().get_session()
 		if sess.has_download(self.tdef.infohash):
 			sess.remove_download_by_id(self.tdef.infohash)
@@ -245,6 +249,7 @@ class FileWidget(RelativeLayout):
 		Returns the Download handler
 		"""
 		assert self.tdef is not None and self.tdef.is_finalized()
+		assert globalvars.triblerfun
 		sess = globalvars.skelly.tw.get_session_mgr().get_session()
 		if not sess.has_download(self.tdef.infohash):
 			Logger.info("Adding torrent to tribler: " + self.tdef.get_name())

@@ -14,5 +14,7 @@ global videopref
 videopref = "INTERNAL"
 global torrentFolder
 torrentFolder = None
+global triblerfun
+triblerfun = False
 global videoFolder
 videoFolder = None

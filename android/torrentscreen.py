@@ -1,7 +1,7 @@
 from kivy.uix.boxlayout import BoxLayout
 from kivy.logger import Logger
 from kivy.uix.screenmanager import Screen
-from videoplayer import start_internal_player
+from videoplayer import open_player
 import globalvars
 
 """
@@ -88,7 +88,7 @@ class TorrentInfoScreen(Screen):
             Logger.info('Starting video player.')
             self.started_player = True
             session_mgr = globalvars.skelly.tw.get_session_mgr()
-            start_internal_player(session_mgr.get_session().get_download(self.torrent.infohash), self.vod_uri)
+            open_player(session_mgr.get_session().get_download(self.torrent.infohash), self.vod_uri)
             # start_external_player(self.vod_uri)
         else:
 

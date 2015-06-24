@@ -36,8 +36,6 @@ class DownloadManager(BaseManager):
     _remote_lock = None
 
     _torrent_db = None
-    _channelcast_db = None
-    _votecast_db = None
 
     _downloads = {}
 
@@ -53,8 +51,6 @@ class DownloadManager(BaseManager):
             self._remote_lock = threading.Lock()
 
             self._torrent_db = self._session.open_dbhandler(NTFY_TORRENTS)
-            self._channelcast_db = self._session.open_dbhandler(NTFY_CHANNELCAST)
-            self._votecast_db = self._session.open_dbhandler(NTFY_VOTECAST)
 
             self._dispersy = self._session.lm.dispersy
 
@@ -380,13 +376,6 @@ class DownloadManager(BaseManager):
         if dict:
             t = Torrent(dict['C.torrent_id'], dict['infohash'], dict['name'], dict['length'], dict['category'], dict['status'], dict['num_seeders'], dict['num_leechers'], None)
             t.torrent_db = self._torrent_db
-            t.channelcast_db = self._channelcast_db
-            # TODO: ENABLE metadata_db WHEN METADATA COMMUNITY IS ENABLED
-            t.metadata_db = None  #self._metadata_db
-
-            # prefetching channel, metadata
-            _ = t.channel
-            _ = t.metadata
             return t
 
     def _getDownload(self, torrentimpl, vod=False, progress=False, files=False, network=False):

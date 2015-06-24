@@ -1,6 +1,8 @@
 from kivy.logger import Logger
 import time
 
+import globalvars
+
 from TriblerSession import TriblerSession
 from DownloadManager import DownloadManager
 from SettingsManager import SettingsManager
@@ -25,6 +27,7 @@ class TriblerWrapper:
         return self.tribler.is_running()
 
     def start(self):
+        assert globalvars.triblerfun
         self.tribler.start_session()
 
         # Wait for dispersy to initialize
