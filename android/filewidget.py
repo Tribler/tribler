@@ -1,6 +1,7 @@
 __version__ = '1.0'
 from kivy.app import App
 from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.stacklayout import StackLayout
 from kivy.uix.widget import Widget
 from kivy.uix.button import Button
 from kivy.core.image import Image
@@ -9,6 +10,8 @@ from kivy.clock import Clock
 from kivy.animation import Animation
 from kivy.logger import Logger
 from kivy.clipboard import Clipboard
+from kivy.properties import ObjectProperty
+from kivy.metrics import Metrics
 
 import numpy
 import os
@@ -262,3 +265,32 @@ class FileWidget(RelativeLayout):
 			d = sess.get_download(self.tdef.infohash)
 			d.force_recheck()
 			return d
+
+	def openMenu(self, target):
+		FileTripleDot(target, self)
+
+class FileTripleDot(RelativeLayout):
+	target = ObjectProperty(None)
+	owner = ObjectProperty(None)
+	#self.opacity = 0;
+	def __init__(self, tar = None, owner = None, **kwargs):
+		RelativeLayout.__init__(self, **kwargs)
+		if(tar is not None):
+			self.target = tar
+		if self.target is not None:
+			self.target.add_widget(self)
+			print "Menu added?"
+		if owner is not None:
+			self.owner = owner
+		self.pos = self.owner.to_window(self.owner.x, self.owner.y)
+		self.y = self.y + self.owner.height - self.ids.buttons.height
+		if self.y  < 0:
+			print 'too low'
+			self.y = 0
+		if self.y+self.ids.buttons.height+self.ids.container.padding[1]+self.ids.container.padding[3] > self.target.height:
+			print 'too high', self.y+self.ids.buttons.height, self.target.height
+			self.y = self.target.height - self.ids.buttons.height - self.ids.container.padding[1]-self.ids.container.padding[3]
+	def close(self):
+		self.target.remove_widget(self)
+
+	

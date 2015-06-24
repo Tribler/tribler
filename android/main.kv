@@ -64,6 +64,8 @@
 					Image:
 						source: './img/ic_videocam_white_48dp.png'
 						id: cam_icon
+	RelativeLayout:
+		id: layer
 
 
 
@@ -146,7 +148,7 @@
 					anchor_y: 'center'
 					id: filebutton
 					text: root.name
-					on_release: root.pressed()
+					on_release: print(app.HomeScr.ids.bottomlayout)
 			AnchorLayout:
 				anchor_x:'right'
 				anchor_y:'top'
@@ -189,6 +191,10 @@
 							size: self.parent.size
 							Image:
 								source: 'img/ic_delete_white_48dp.png'
+					Button:
+						id: tdot
+						text: 'G'
+						on_press: root.openMenu(app.HomeScr.ids.layer)
 					#ToggleButton:
 					#	text: 'T'
 					#	id:tribler_toggler
@@ -201,6 +207,37 @@
 #			size_hint: 0.5, 0.5
 #
 #			text: 'test'
+
+<FileTripleDot>
+	RelativeLayout:
+		Button:
+			opacity: 0
+			on_press: root.close()
+		AnchorLayout:
+			id: container
+			padding: '0.2cm'
+			anchor_x: 'right'
+			anchor_y: 'bottom'
+			BoxLayout:
+				id: buttons
+				on_touch_up: root.close()
+				orientation:"vertical"
+				size_hint: None,None
+				width: '2cm'
+				height:'3cm'
+				Button:
+					text:'Test'
+					on_release:root.screen.AndroidTest()
+				Button:
+					text: "Download"
+					on_release: app.swap_to(app.SearchScr)
+					background: None
+				Button:
+					text: 'Add Video'
+					on_release: root.screen.addVideo()
+				Button:
+					text:'Cam Test'
+					on_release:app.swap_to(app.CamScr)
 
 <SearchScreen>
 	BoxLayout:
