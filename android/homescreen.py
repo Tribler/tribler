@@ -36,7 +36,6 @@ File = autoclass('java.io.File')
 MediaStore = autoclass('android.provider.MediaStore')
 Camera = autoclass('android.hardware.Camera')
 
-
 class HomeScreen(Screen):
 	discovered_media = []
 	non_thumbnailed = Queue.Queue()
@@ -61,7 +60,8 @@ class HomeScreen(Screen):
 
 	#Function for starting the camera application
 	def startCamera(self):
-		intention = Intent(MediaStore.INTENT_ACTION_VIDEO_CAMERA)
+		intention = Intent(MediaStore.INTENT_ACTION_VIDEO_CAPTURE)
+			
 		#When java requires a "Context" usually in the shape of "this",
 		#it has to be casted from our activity
 		self.con = cast(Context, activity)

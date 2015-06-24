@@ -31,6 +31,8 @@ from jnius import JavaClass
 from jnius import PythonJavaClass
 from android.runnable import run_on_ui_thread
 
+from filescanner import FileScanner
+
 Context = autoclass('android.content.Context')
 PythonActivity = autoclass('org.renpy.android.PythonActivity')
 activity = PythonActivity.mActivity
@@ -45,7 +47,7 @@ Camera = autoclass('android.hardware.Camera')
 CamCorderProfile = autoclass('android.media.CamcorderProfile')
 TextUtils = autoclass('android.text.TextUtils')
 MediaColumns = autoclass('android.provider.MediaStore$MediaColumns')
-
+Environment = autoclass('android.os.Environment')
 Builder.load_file('main.kv')
 
 class SearchScreen(Screen):
@@ -153,7 +155,7 @@ class Skelly(App):
 	CamScr = CamScreen(name='cam')
 	TorrentInfoScr = TorrentInfoScreen(name='torrentinfo')
 	sm.switch_to(HomeScr)
-	tw = TriblerWrapper()
+	#tw = TriblerWrapper()
 
 	#Method that request the device's NFC adapter and adds a Callback function to it to activate on an Android Beam Intent.
 	def nfc_init(self):
@@ -183,6 +185,32 @@ class Skelly(App):
 			else:
 				return None
 
+	def makeLocalFolder(self):
+		self.act = cast(Context, activity)
+		globalvars.scanner = FileScanner(self.act)
+
+		self.newDirec = File(Environment.getExternalStorageDirectory(), 'ShadowInternet')
+		globalvars.torrentFolder = self.torrentFolder = File(self.newDirec.getAbsolutePath(), 'Torrents')
+		globalvars.videoFolder = self.videoFolder = File(self.newDirec.getAbsolutePath(), 'Videos')
+		self.torrentFile = File(self.torrentFolder.getAbsolutePath(), 'test.txt')
+		self.videoFile = File(self.videoFolder.getAbsolutePath(), 'test.txt')
+
+		if not self.newDirec.exists():
+			print 'Creating local storage folder.'
+
+			print 'Creating test file for torrent folder scan.'
+			self.torrentFile.mkdirs()
+			print 'Creating test File for video folder scan.'		
+			self.videoFile.mkdirs()
+
+			globalvars.scanner.addScanFile(self.torrentFile)
+			globalvars.scanner.addScanFile(self.videoFile)
+			globalvars.scanner.scanFiles()
+
+		elif self.torrentFile.exists() and self.videoFile.exists():
+			self.torrentFile.delete()
+			self.videoFile.delete()
+
 	def build(self):
 		#Android back mapping
 		android.map_key(android.KEYCODE_BACK,1001)
@@ -191,6 +219,7 @@ class Skelly(App):
 		win.clearcolor = (1,1,1,1)
 		globalvars.skelly = self
 
+		self.makeLocalFolder()
 		self.nfc_init()
 		self.HomeScr.getStoredMedia()
 

@@ -8,3 +8,9 @@ global nfcCallback
 nfcCallback = None
 global skelly
 skelly = None
+global scanner
+scanner = None
+global torrentFolder
+torrentFolder = None
+global videoFolder
+videoFolder = None
