@@ -45,6 +45,7 @@ class FileWidget(RelativeLayout):
 	lImageView = ImageView
 	thumbnail = None
 	tdef = None
+	creating = False
 
 	# Enumerator as per android.media.ThumbnailUtils
 	MINI_KIND = 1
@@ -91,14 +92,14 @@ class FileWidget(RelativeLayout):
 			globalvars.nfcCallback.removeUris(self.uri)
 			if self._check_torrent_made():
 				globalvars.nfcCallback.removeUris(self.uri + ".torrent")
+				self._stop_tribler()
 
 		if(state == 'down'):
 			print 'button state down'
 			globalvars.nfcCallback.addUris(self.uri)
-			self._create_torrent()
 			if self._check_torrent_made():
 				globalvars.nfcCallback.addUris(self.uri + ".torrent")
-				self._seed_torrent()
+				self._start_tribler()
 
 	#Android's Bitmaps are in ARGB format, while kivy expects RGBA.
 	#This function swaps the bytes to their appropriate locations
@@ -195,10 +196,14 @@ class FileWidget(RelativeLayout):
 		os.remove(self.ids.img.source)
 
 	def copy_magnet_link(self):
-		sess = globalvars.skelly.tw.get_session_mgr().get_session()
-		magnet = sess.get_download(self.tdef.infohash).get_magnet_link()
-		if magnet is not None:
-			Clipboard.put(magnet, 'text/string')
+		if self._check_torrent_made():
+			sess = globalvars.skelly.tw.get_session_mgr().get_session()
+			magnet = sess.get_download(self.tdef.infohash).get_magnet_link()
+			if magnet is not None:
+				Clipboard.put(magnet, 'text/string')
+		elif not self.creating:
+			self.creating = True
+			threading.Thread(target=self._create_torrent).start()
 
 	def _check_torrent_made(self):
 		""" Check if a .torrent exists for this file and if it does, import
@@ -217,23 +222,29 @@ class FileWidget(RelativeLayout):
 			self.tdef = TorrentDef()
 			self.tdef.add_content(self.uri, playtime=self.get_playtime())
 			self.tdef.set_dht_nodes([["router.bittorrent.com", 8991]])
-			self.tdef.finalize()  # Should run on another thread
+			self.tdef.finalize()
 			self.tdef.save(self.uri + ".torrent")
 			self._check_torrent_made()
 		else:
-			Logger.info("TDEF already created for: " + self.name)
+			Logger.info("Torrent already created for: " + self.name)
 
 	def _delete_torrent(self):
 		""" Delete .torrent,tdef to None and remove download from Tribler"""
-		if os.path.isfile(self.uri + ".torrent"):
+		if self._check_torrent_made():
+			self._stop_tribler()
 			os.remove(self.uri + ".torrent")
+			tdef = None
+
+	def _stop_tribler(self):
+		"""Stop downloading with tribler"""
+		assert self.tdef is not None and self.tdef.is_finalized()
 		sess = globalvars.skelly.tw.get_session_mgr().get_session()
 		if sess.has_download(self.tdef.infohash):
 			sess.remove_download_by_id(self.tdef.infohash)
-		tdef = None
+			Logger.info("Download removed from Tribler: " + self.tdef.get_name())
 
-	def _seed_torrent(self):
-		""" Seed with Tribler
+	def _start_tribler(self):
+		""" Start download with Tribler. Seeds when file already exists
 		Returns the Download handler
 		"""
 		assert self.tdef is not None and self.tdef.is_finalized()
