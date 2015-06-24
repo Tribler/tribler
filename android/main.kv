@@ -325,10 +325,6 @@
 			size: self.size
 	size_hint: 1, None
 	height: '2.4cm'
-	Image:
-		size_hint: None, 1
-		width: '1.35cm'
-		id:img
 	RelativeLayout:
 		AnchorLayout:
 			anchor_x: 'center'
@@ -340,6 +336,7 @@
 				anchor_y: 'center'
 				id: filebutton
 				text: root.name
+				text_size: self.size
 				on_release: root.on_press()
 
 <TorrentInfoScreen>
@@ -350,23 +347,23 @@
 		anchor_y: 'center'
 		Label:
 			id:name_label
-			height: '1cm'
+			text_size: self.size
 			color:0,0,0.8,0.5
 		Label:
 			id:type_label
-			height: '1cm'
+			text_size: self.size
 			color:0,0,0.8,0.5
 		Label:
 			id:filesize_label
-			height: '1cm'
+			text_size: self.size
 			color:0,0,0.8,0.5
 		Label:
 			id:seeders_label
-			height: '1cm'
+			text_size: self.size
 			color:0,0,0.8,0.5
 		Label:
 			id:leechers_label
-			height: '1cm'
+			text_size: self.size
 			color:0,0,0.8,0.5
 		Button:
 			text:'Play'
