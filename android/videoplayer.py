@@ -1,23 +1,31 @@
+from os.path import isfile
 import globalvars
-
-from kivyvideoplayer.videoplayer import VideoPlayer
 
 from jnius import autoclass
 Intent = autoclass('android.content.Intent')
 Uri = autoclass('android.net.Uri')
 PythonActivity = autoclass('org.renpy.android.PythonActivity')
 
-def start_internal_kivy_player(download, uri):
+
+def start_internal_player(uri, thumb=None):
     """
-    Starts the internal Kivy video player with the VOD uri from Tribler's video server.
+    Starts the internal Kivy video player with the VOD uri from Tribler's
+    video server.
     :return: Nothing.
     """
-    video_player = VideoPlayer()
-    video_player.download = download
-    video_player.source = uri # TODO: test this
-    video_player.state = 'play'
+    assert uri is not None
+    vp = globalvars.skelly.VidScr.ids.videoPlay
+    vp.source = uri
+    vp.options = {'allow_stretch': True}
 
-def start_external_android_player(uri):
+    if thumb is not None and isfile(thumb):
+        vp.image_overlay_play = thumb
+
+    globalvars.skelly.swap_to(globalvars.skelly.VidScr)
+    vp.state = 'play'
+
+
+def start_external_player(uri):
     """
     Start the action chooser intent for viewing a video using the VOD uri from Tribler's video server.
     :return: Nothing.
@@ -25,4 +33,3 @@ def start_external_android_player(uri):
     intent = Intent(Intent.ACTION_VIEW)
     intent.setDataAndType(Uri.parse(uri), "video/*")
     PythonActivity.mActivity.startActivity(Intent.createChooser(intent, "Complete action using"))
-

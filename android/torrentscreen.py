@@ -1,7 +1,7 @@
 from kivy.uix.boxlayout import BoxLayout
 from kivy.logger import Logger
 from kivy.uix.screenmanager import Screen
-from videoplayer import start_internal_kivy_player
+from videoplayer import start_internal_player
 import globalvars
 
 """
@@ -85,7 +85,8 @@ class TorrentInfoScreen(Screen):
             Logger.info('Starting video player.')
             self.started_player = True
             session_mgr = globalvars.skelly.tw.get_session_mgr()
-            start_internal_kivy_player(session_mgr.get_session().get_download(self.torrent.infohash), self.vod_uri) # start_external_android_player(self.vod_uri)
+            start_internal_player(session_mgr.get_session().get_download(self.torrent.infohash), self.vod_uri)
+            # start_external_player(self.vod_uri)
         else:
 
             # When metadata etc. has been downloaded then start downloading the actual video content in vod mode:
@@ -104,4 +105,3 @@ class TorrentInfoScreen(Screen):
         self.download_in_vod_mode = False
         self.started_player = False
         self.vod_uri = None
-

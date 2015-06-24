@@ -13,8 +13,8 @@
 						rgba: 1,0.1,0.1,1
 					Rectangle:
 						pos: self.pos
-						size: self.size	
-				Button: 
+						size: self.size
+				Button:
 					size_hint: None, None
 					height: '1cm'
 					width: '1cm'
@@ -23,7 +23,7 @@
 					background_color: 1,1,1,0
 					border:	30,30,30,30
 					on_release: app.swap_to(app.SearchScr)
-					BoxLayout:	
+					BoxLayout:
 						pos: self.parent.pos
 						size: self.parent.size
 						Image:
@@ -48,11 +48,11 @@
 				background_color: 0,0,0,0
 				border:	30,30,30,30
 				on_press: cam_icon.color = (1, 0,0,1)
-				on_release: 
+				on_release:
 					cam_icon.color = (1,1,1,1)
 					root.startCamera()
 				canvas:
-					Color: 
+					Color:
 						rgba: 0,0,0,0.5
 						id: col
 					Ellipse:
@@ -67,7 +67,7 @@
 
 
 
-#<HomeScreen>			
+#<HomeScreen>
 #	AnchorLayout:
 #		id: layer
 #		ScrollView:
@@ -76,7 +76,7 @@
 #				height: self.minimum_height
 #				id: fileList
 #				spacing: '0.1cm'
-#	
+#
 #
 #		AnchorLayout:
 #			anchor_y: 'top'
@@ -84,7 +84,7 @@
 #			id: homescreen
 #			AnchorLayout:
 #				opacity: 0.5
-#				
+#
 #				canvas:
 #					Color:
 #						rgba: 0.5,0.5,0.5,1
@@ -111,7 +111,7 @@
 #			opacity: 0.5
 #			size_hint: 1, None
 #			height: '1cm'
-#			Button: 
+#			Button:
 #				id:button3
 #				background_color: 0.5,0.5,0.5,1
 #				background_normal:''
@@ -163,7 +163,7 @@
 						background_normal: ''
 						border: 15, 15, 15, 15
 						id:nfc_toggler
-						on_state: root.toggle_nfc(self.state) 
+						on_state: root.toggle_nfc(self.state)
 						BoxLayout:
 							size: self.parent.size
 							pos: self.parent.pos
@@ -177,7 +177,7 @@
 						BoxLayout:
 							pos: self.parent.pos
 							size: self.parent.size
-							Image: 
+							Image:
 								source: 'img/ic_edit_white_48dp.png'
 					Button:
 						background_color: 0.6,0.6,0.6,1
@@ -187,17 +187,17 @@
 						BoxLayout:
 							pos: self.parent.pos
 							size: self.parent.size
-							Image: 
+							Image:
 								source: 'img/ic_delete_white_48dp.png'
 					#ToggleButton:
 					#	text: 'T'
 					#	id:tribler_toggler
-#	AnchorLayout: 
+#	AnchorLayout:
 #		size_hint: 1, 1
 #		anchor_x: 'left'
 #		anchor_y: 'top'
 #		y: '0.5cm'
-#		Button: 
+#		Button:
 #			size_hint: 0.5, 0.5
 #
 #			text: 'test'
@@ -270,6 +270,11 @@
 					size: self.parent.size
 					Image:
 						source: 'img/ic_videocam_off_white_48dp.png'
+
+<VideoScreen>
+	VideoPlayer:
+		id: videoPlay
+
 <GearMenu>
 	RelativeLayout:
 		Button:
