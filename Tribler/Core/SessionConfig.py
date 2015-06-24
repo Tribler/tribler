@@ -651,16 +651,12 @@ class SessionConfigInterface(object):
         return os.path.join(state_dir, STATEDIR_SESSCONFIG)
 
 
-
 class SessionStartupConfig(SessionConfigInterface):
 
     """ Class to configure a Session """
 
-    def __init__(self, sessconfig=None):
-        SessionConfigInterface.__init__(self, sessconfig)
-
     #
-    # Class method
+    # Class methods
     #
     @staticmethod
     def load(filename=None):
@@ -682,9 +678,13 @@ class SessionStartupConfig(SessionConfigInterface):
         try:
             sessconfig.read_file(filename)
         except:
-            raise IOError, "Failed to open session config file"
+            raise IOError("Failed to open session config file")
 
         return SessionStartupConfig(sessconfig)
+
+    #
+    # Instance methods
+    #
 
     def save(self, filename):
         """ Save the SessionStartupConfig to disk.

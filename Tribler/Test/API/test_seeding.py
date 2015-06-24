@@ -2,18 +2,18 @@
 # see LICENSE.txt for license information
 
 import os
-import sys
-import time
 import socket
+import sys
 import threading
+import time
 
-from Tribler.Test.test_as_server import TestAsServer, TESTS_API_DIR
-from Tribler.Test.btconn import BTConnection
-
-from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
-from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Session import Session
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
+from Tribler.Test.btconn import BTConnection
+from Tribler.Test.test_as_server import TESTS_API_DIR, TestAsServer
+
 
 CHOKE = chr(0)
 EXTEND = chr(20)

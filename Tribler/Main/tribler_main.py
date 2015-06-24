@@ -12,16 +12,6 @@
 # see LICENSE.txt for license information
 #
 
-import sys
-import logging
-
-from Tribler.Main.Utility.compat import (convertSessionConfig, convertMainConfig, convertDefaultDownloadConfig,
-                                         convertDownloadCheckpoints)
-from Tribler.Core.version import version_id, commit_id
-from Tribler.Core.osutils import get_free_space
-
-logger = logging.getLogger(__name__)
-
 # Arno: M2Crypto overrides the method for https:// in the
 # standard Python libraries. This causes msnlib to fail and makes Tribler
 # freakout when "http://www.tribler.org/version" is redirected to
@@ -36,61 +26,68 @@ original_open_https = urllib.URLopener.open_https
 import M2Crypto  # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
 
-import os
-from Tribler.Main.Utility.GuiDBHandler import startWorker, GUIDBProducer
-from Tribler.dispersy.util import attach_profiler, call_on_reactor_thread
-import traceback
-from random import randint
 try:
     prctlimported = True
     import prctl
 except ImportError as e:
     prctlimported = False
 
-import wx
-from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
-from Tribler.Main.vwxGUI.MainFrame import FileDropTarget
-from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
+# Make sure the in thread reactor is installed.
+from Tribler.Core.Utilities.twisted_thread import reactor
 
-from collections import defaultdict
-from traceback import print_exc
-import urllib2
+# importmagic: manage
+
+import logging
+import os
+import sys
 import tempfile
+import traceback
+import urllib2
+from collections import defaultdict
+from random import randint
+from traceback import print_exc
 
-from Tribler.Main.vwxGUI.TriblerUpgradeDialog import TriblerUpgradeDialog
-from Tribler.Main.vwxGUI.MainFrame import MainFrame  # py2exe needs this import
-from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
-from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame
-from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.Main.globals import DefaultDownloadStartupConfig
-
-from Tribler.Main.Utility.utility import Utility
-from Tribler.Main.Utility.Feeds.rssparser import RssParser
+import wx
+from twisted.python.threadable import isInIOThread
 
 from Tribler.Category.Category import Category
-from Tribler.Utilities.Instance2Instance import Instance2InstanceClient, Instance2InstanceServer
-from Tribler.Utilities.SingleInstanceChecker import SingleInstanceChecker
-
-from Tribler.Core.simpledefs import (UPLOAD, DOWNLOAD, NTFY_MODIFIED, NTFY_INSERT, NTFY_REACHABLE, NTFY_ACTIVITIES,
-                                     NTFY_UPDATE, NTFY_CREATE, NTFY_CHANNELCAST, NTFY_STATE, NTFY_VOTECAST,
-                                     NTFY_MYPREFERENCES, NTFY_TORRENTS, NTFY_COMMENTS, NTFY_PLAYLISTS, NTFY_DELETE,
-                                     NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_FINISHED,
-                                     NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED,
-                                     NTFY_MAGNET_CLOSE, dlstatus_strings,
-                                     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING,
-                                     DLSTATUS_STOPPED, NTFY_DISPERSY, NTFY_STARTED)
+from Tribler.Core.DownloadConfig import get_default_dest_dir, get_default_dscfg_filename
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
-from Tribler.Core.DownloadConfig import get_default_dest_dir, get_default_dscfg_filename
+from Tribler.Core.Video.VideoPlayer import PLAYBACKMODE_INTERNAL, return_feasible_playback_modes
+from Tribler.Core.osutils import get_free_space
+from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
+                                     DLSTATUS_STOPPED_ON_ERROR, DOWNLOAD, NTFY_ACTIVITIES, NTFY_CHANNELCAST,
+                                     NTFY_COMMENTS, NTFY_CREATE, NTFY_DELETE, NTFY_DISPERSY, NTFY_FINISHED, NTFY_INSERT,
+                                     NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED, NTFY_MARKINGS,
+                                     NTFY_MODERATIONS, NTFY_MODIFICATIONS, NTFY_MODIFIED, NTFY_MYPREFERENCES,
+                                     NTFY_PLAYLISTS, NTFY_REACHABLE, NTFY_STARTED, NTFY_STATE, NTFY_TORRENTS,
+                                     NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings)
+from Tribler.Core.version import commit_id, version_id
+from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
+from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+from Tribler.Main.Utility.Feeds.rssparser import RssParser
+from Tribler.Main.Utility.GuiDBHandler import GUIDBProducer, startWorker
+from Tribler.Main.Utility.compat import (convertDefaultDownloadConfig, convertDownloadCheckpoints, convertMainConfig,
+                                         convertSessionConfig)
+from Tribler.Main.Utility.utility import Utility
+from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
+from Tribler.Main.vwxGUI.MainFrame import FileDropTarget, MainFrame
+from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame
+from Tribler.Main.vwxGUI.TriblerUpgradeDialog import TriblerUpgradeDialog
+from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
+from Tribler.Utilities.Instance2Instance import Instance2InstanceClient, Instance2InstanceServer
+from Tribler.Utilities.SingleInstanceChecker import SingleInstanceChecker
+from Tribler.dispersy.util import attach_profiler, call_on_reactor_thread
 
-from Tribler.Core.Video.VideoPlayer import return_feasible_playback_modes, PLAYBACKMODE_INTERNAL
+
+logger = logging.getLogger(__name__)
 
 # Boudewijn: keep this import BELOW the imports from Tribler.xxx.* as
 # one of those modules imports time as a module.
 from time import time, sleep
-
-from twisted.python.threadable import isInIOThread
 
 SESSION_CHECKPOINT_INTERVAL = 900.0  # 15 minutes
 CHANNELMODE_REFRESH_INTERVAL = 5.0
@@ -227,9 +224,9 @@ class ABCApp(object):
             self.guiUtility.register()
 
             self.frame = MainFrame(self,
-                None,
-                PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(),
-                self.splash.tick)
+                                   None,
+                                   PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(),
+                                   self.splash.tick)
             self.frame.SetIcon(wx.Icon(os.path.join(self.installdir, 'Tribler',
                                                     'Main', 'vwxGUI', 'images',
                                                     'tribler.ico'),
@@ -281,7 +278,7 @@ class ABCApp(object):
                     self.webUI.start()
                 except Exception:
                     print_exc()
-                    
+
             self.emercoin_mgr = None
             try:
                 from Tribler.Main.Emercoin.EmercoinMgr import EmercoinMgr

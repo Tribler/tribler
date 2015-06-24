@@ -130,6 +130,7 @@ class MainFrame(wx.Frame):
         self.params = self.guiUtility.params
         self.utility.frame = self
         self.torrentfeed = None
+        self.videoframe = None
         self.category = Category.getInstance()
         self.shutdown_and_upgrade_notes = None
 
@@ -374,31 +375,31 @@ class MainFrame(wx.Frame):
                     ext = ext[1:]
                 if ext.lower() in videoextdefaults:
                     vod = True
-            
+
             self.startDownloadFromArg(self.params[0], cmdline=True, selectedFiles=selectedFiles, vodmode=vod)
 
     def startDownloadFromArg(self, argument, destdir=None, cmdline=False, selectedFiles = None, vodmode=False):
         if argument.startswith("magnet:"):
             self.startDownloadFromMagnet(argument, destdir=destdir, cmdline=cmdline, selectedFiles=selectedFiles, vodmode=vodmode)
             return True
-        
+
         if argument.startswith("http"):
             self.startDownloadFromUrl(argument, destdir=destdir, cmdline=cmdline, selectedFiles=selectedFiles, vodmode=vodmode)
             return True
-        
+
         if argument.startswith("emc:"):
             self.startDownloadFromEMC(argument, destdir=destdir, cmdline=cmdline, selectedFiles=selectedFiles, vodmode=vodmode)
             return True
-        
+
         if argument.startswith("file:"):
             argument = url2pathname(argument[5:])
             self.startDownload(argument, destdir=destdir, cmdline=cmdline, selectedFiles=selectedFiles, vodmode=vodmode)
             return True
-        
+
         if cmdline:
             self.startDownload(argument, destdir=destdir, cmdline=cmdline, selectedFiles=selectedFiles, vodmode=vodmode)
             return True
-        
+
         return False
 
     def startDownloadFromMagnet(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False, hops=0):
@@ -434,16 +435,16 @@ class MainFrame(wx.Frame):
                 else:
                     wx.CallAfter(self.startDownload, *kwargs)
                 return True
-        except: 
+        except:
             print_exc()
         self.guiUtility.Notify("Download from url failed", icon=wx.ART_WARNING)
         return False
-    
+
     def startDownloadFromEMC(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False, hops=0):
         if self.utility.read_config('use_emc'):
             url = "magnet:"+url[4:] #replace emc: with magnet:
             magnet_link = self.abc.emercoin_mgr.fetch_key(url)
-            
+
             return self.startDownloadFromMagnet(magnet_link, destdir, cmdline, selectedFiles, vodmode, hops)
         return False
 

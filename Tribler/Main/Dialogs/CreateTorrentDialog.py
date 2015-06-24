@@ -1,17 +1,17 @@
 # Written by Niels Zeilemaker
 # see LICENSE.txt for license information
 
-import wx
 import os
 from threading import Event
 from traceback import print_exc
 
-from Tribler.Core.version import version_id
-from Tribler.Core.Utilities.torrent_utils import create_torrent_file
+import wx
 
+from Tribler.Core.Utilities.torrent_utils import create_torrent_file
+from Tribler.Core.version import version_id
 from Tribler.Main.vwxGUI import forceWxThread
-from Tribler.Main.vwxGUI.widgets import _set_font, BetterText as StaticText
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
+from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
+from Tribler.Main.vwxGUI.widgets import BetterText as StaticText, _set_font
 
 
 class CreateTorrentDialog(wx.Dialog):
@@ -258,11 +258,16 @@ class CreateTorrentDialog(wx.Dialog):
             def start():
                 if self.combineRadio.GetValue():
                     self.progressDlg = wx.ProgressDialog(
-                        "Creating new .torrents", "Please wait while Tribler is creating your .torrents.\nThis could take a while due to creating the required hashes.", maximum=max, parent=self, style=wx.PD_APP_MODAL | wx.PD_AUTO_HIDE)
+                        "Creating new .torrents", "Please wait while Tribler is creating your .torrents.\n"
+                        "This could take a while due to creating the required hashes.",
+                        maximum=max, parent=self,
+                        style=wx.PD_APP_MODAL | wx.PD_AUTO_HIDE)
                 else:
                     self.progressDlg = wx.ProgressDialog(
-                        "Creating new .torrents", "Please wait while Tribler is creating your .torrents.\nThis could take a while due to creating the required hashes.",
-                                                         maximum=max, parent=self, style=wx.PD_CAN_ABORT | wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME | wx.PD_AUTO_HIDE)
+                        "Creating new .torrents", "Please wait while Tribler is creating your .torrents.\n"
+                        "This could take a while due to creating the required hashes.",
+                        maximum=max, parent=self,
+                        style=wx.PD_CAN_ABORT | wx.PD_APP_MODAL | wx.PD_ELAPSED_TIME | wx.PD_AUTO_HIDE)
                 self.progressDlg.Pulse()
                 self.progressDlg.cur = 0
 
@@ -280,7 +285,8 @@ class CreateTorrentDialog(wx.Dialog):
 
                 nrPieces = total_size / params['piece length']
                 if nrPieces > 2500:
-                    dlg2 = wx.MessageDialog(self, "The selected piecesize will cause a torrent to have %d pieces.\nThis is more than the recommended max 2500 pieces.\nDo you want to continue?" %
+                    dlg2 = wx.MessageDialog(self, "The selected piecesize will cause a torrent to have %d pieces.\n"
+                                            "This is more than the recommended max 2500 pieces.\nDo you want to continue?" %
                                             nrPieces, "Are you sure?", style=wx.YES_NO | wx.ICON_QUESTION)
                     if dlg2.ShowModal() == wx.ID_YES:
                         start()

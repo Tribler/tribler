@@ -1,6 +1,16 @@
 # Written by Arno Bakker, Jie Yang
 # Improved and Modified by Niels Zeilemaker
 # see LICENSE.txt for license information
+
+# set wxpython version before importing wx or anything from Tribler
+import wxversion
+wxversion.select("2.8-unicode")
+
+# Make sure the in thread reactor is installed.
+from Tribler.Core.Utilities.twisted_thread import reactor
+
+
+# importmagic: manage
 import functools
 import gc
 import inspect
@@ -15,13 +25,8 @@ from tempfile import mkdtemp
 from threading import enumerate as enumerate_threads
 from traceback import print_exc
 
-# set wxpython version before importing wx or anything from Tribler
-import wxversion
-wxversion.select("2.8-unicode")
-
 import wx
-
-from Tribler.Core.Utilities.twisted_thread import reactor
+from twisted.python.threadable import isInIOThread
 
 from .util import process_unhandled_exceptions
 from Tribler.Core import defaults

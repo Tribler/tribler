@@ -3,7 +3,6 @@
 # Additionally DelayedResult is returned, allowing a thread to wait for result
 import logging
 import os
-import threading
 from collections import namedtuple
 from inspect import isgeneratorfunction
 from random import randint
@@ -14,11 +13,9 @@ from traceback import extract_stack, format_exc, print_exc, print_stack
 import wx
 from twisted.internet import reactor
 from twisted.python.threadable import isInIOThread
-from wx.lib.delayedresult import (AbortedException, SenderCallAfter, SenderNoWx, SenderWxEvent)
+from wx.lib.delayedresult import AbortedException, SenderCallAfter, SenderNoWx, SenderWxEvent
 
 from Tribler.Core.Utilities.twisted_utils import isInThreadPool
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.dispersy.taskmanager import TaskManager
 
 
 # Arno, 2012-07-18: Priority for real user visible GUI tasks (e.g. list update)
@@ -186,6 +183,8 @@ class GUIDBProducer(object):
             self.utility.session.lm.rawserver.cancel_pending_task(uId)
 
 # Wrapping Senders for new delayedResult impl
+
+
 class MySender(object):
 
     def __init__(self, delayedResult):
