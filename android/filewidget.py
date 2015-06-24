@@ -62,7 +62,8 @@ class FileWidget(RelativeLayout):
 			self.setName(torrentname)
 		if uri is not None:
 			self.setUri(uri)
-		self._check_torrent_made()
+		#if self._check_torrent_made():
+		#	self._seed_torrent()
 
 	def setName(self, nom):
 		assert nom is not None
