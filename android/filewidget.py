@@ -21,6 +21,7 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING
 
 import globalvars
+from videoplayer import start_external_android_player
 
 from jnius import autoclass, cast
 from android.runnable import run_on_ui_thread
@@ -78,6 +79,7 @@ class FileWidget(RelativeLayout):
 	def pressed(self):
 		print self.uri
 		print 'Pressed'
+		start_external_android_player(self.uri)
 
 	def toggle_nfc(self, state):
 		"""Adds and removes the video files to the nfc set so

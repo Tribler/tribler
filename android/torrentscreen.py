@@ -1,14 +1,8 @@
 from kivy.uix.boxlayout import BoxLayout
 from kivy.logger import Logger
 from kivy.uix.screenmanager import Screen
+from videoplayer import start_internal_kivy_player
 import globalvars
-
-from kivyvideoplayer.videoplayer import VideoPlayer
-
-from jnius import autoclass
-Intent = autoclass('android.content.Intent')
-Uri = autoclass('android.net.Uri')
-PythonActivity = autoclass('org.renpy.android.PythonActivity')
 
 """
 A widget for torrents that takes users to the torrent info screen when pressed.
@@ -38,6 +32,11 @@ class TorrentInfoScreen(Screen):
     started_player = False
     vod_uri = None
 
+    type_label_text = 'Type'
+    filesize_label_text = 'Filesize'
+    seeders_label_text = 'Seeders'
+    leechers_label_text = 'Leechers'
+
     def open_screen(self, torrent):
         """
         To be called when this screen is opened for a torrent.
@@ -46,6 +45,10 @@ class TorrentInfoScreen(Screen):
         """
         self._reset()
         self.torrent = torrent
+        self.type_label_text = 'Type: ' + str(torrent.category)
+        self.filesize_label_text = 'Filesize: ' + str(torrent.length) if torrent.length else "Unknown" #TODO
+        self.seeders_label_text = 'Seeders: ' + str(torrent.num_seeders) if torrent.num_seeders and torrent.num_seeders != -1 else "Unknown"
+        self.leechers_label_text = 'Leechers: ' + str(torrent.num_leechers) if torrent.num_leechers and torrent.num_leechers != -1 else "Unknown"
 
     def start_download(self):
         """
@@ -84,7 +87,9 @@ class TorrentInfoScreen(Screen):
         # Start video player:
         if progress_dict['vod_playable']:
             Logger.info('Starting video player.')
-            self._start_internal_kivy_player() # self._start_external_android_player()
+            self.started_player = True
+            session_mgr = globalvars.skelly.tw.get_session_mgr()
+            start_internal_kivy_player(session_mgr.get_session().get_download(self.torrent.infohash), self.vod_uri) # start_external_android_player(self.vod_uri)
         else:
 
             # When metadata etc. has been downloaded then start downloading the actual video content in vod mode:
@@ -93,28 +98,6 @@ class TorrentInfoScreen(Screen):
                 Logger.info('Starting VOD mode.')
                 self.vod_uri = download_mgr.start_vod(self.torrent.infohash)
                 self.download_in_vod_mode = True
-
-    def _start_internal_kivy_player(self):
-        """
-        Starts the internal Kivy video player with the VOD uri from Tribler's video server.
-        :return: Nothing.
-        """
-        self.started_player = True
-        session_mgr = globalvars.skelly.tw.get_session_mgr()
-        video_player = VideoPlayer()
-        video_player.download = session_mgr.get_session().get_download(self.torrent.infohash)
-        video_player.source = self.vod_uri # TODO: test this
-        video_player.state = 'play'
-
-    def _start_external_android_player(self):
-        """
-        Start the action chooser intent for viewing a video using the VOD uri from Tribler's video server.
-        :return: Nothing.
-        """
-        self.started_player = True
-        intent = Intent(Intent.ACTION_VIEW)
-        intent.setDataAndType(Uri.parse(self.vod_uri), "video/*")
-        PythonActivity.mActivity.startActivity(Intent.createChooser(intent, "Complete action using"))
 
     def _reset(self):
         """

@@ -350,16 +350,28 @@
 			anchor_x:'right'
 			anchor_y:'top'
 			BoxLayout:
-				anchor_x: 'right'
+				anchor_x: 'left'
 				anchor_y: 'center'
 				orientation:"vertical"
-				Button:
-					text:'Download'
-					on_release: root.start_download()
-					background_color: 0.5,0.5,0.5,1
-					background_normal:''
+				Label:
+					text:root.type_label_text
+					rgba:0,0,0.8,0.5
+				Label:
+					text:root.filesize_label_text
+					rgba:0,0,0.8,0.5
+				Label:
+					text:root.seeders_label_text
+					rgba:0,0,0.8,0.5
+				Label:
+					text:root.leechers_label_text
+					rgba:0,0,0.8,0.5
 				Button:
 					text:'Play'
 					on_release: root.start_stream()
+					background_color: 0.5,0.5,0.5,1
+					background_normal:''
+				Button:
+					text:'Download'
+					on_release: root.start_download()
 					background_color: 0.5,0.5,0.5,1
 					background_normal:''
