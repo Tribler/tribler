@@ -10,6 +10,8 @@ global skelly
 skelly = None
 global scanner
 scanner = None
+global videopref
+videopref = "INTERNAL"
 global torrentFolder
 torrentFolder = None
 global videoFolder

@@ -20,7 +20,7 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 
 import globalvars
-from videoplayer import start_internal_player
+from videoplayer import open_player
 
 from jnius import autoclass, cast
 from android.runnable import run_on_ui_thread
@@ -78,7 +78,7 @@ class FileWidget(RelativeLayout):
 
 	#Called when pressed on the big filewidget button
 	def pressed(self):
-		start_internal_player(self.uri)
+		open_player(self.uri)
 
 	def toggle_nfc(self, state):
 		"""Adds and removes the video files to the nfc set so

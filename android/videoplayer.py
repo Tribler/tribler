@@ -1,10 +1,16 @@
-from os.path import isfile
 import globalvars
 
 from jnius import autoclass
 Intent = autoclass('android.content.Intent')
 Uri = autoclass('android.net.Uri')
 PythonActivity = autoclass('org.renpy.android.PythonActivity')
+
+
+def open_player(uri):
+    if globalvars.videopref == "INTERNAL":
+        start_internal_player(uri)
+    else:
+        start_external_player(uri)
 
 
 def start_internal_player(uri):
