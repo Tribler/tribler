@@ -50,12 +50,14 @@ Builder.load_file('main.kv')
 
 class SearchScreen(Screen):
 
+	result_info_hashes = []
+
 	#Predefined kivy function that gets called every time the text in the inputfield changes
 	#Calls delayedSearch if the last change was over 0.5 seconds ago
 	def on_txt_input(self):
 		Clock.unschedule(self.delayedSearch, all=True)
 		if self.ids.searchfield.text == '':
-			self.ids.fileList.clear_widgets()
+			self._reset()
 		else:
 			Clock.schedule_once(self.delayedSearch, 0.5)
 
@@ -64,15 +66,15 @@ class SearchScreen(Screen):
 	def delayedSearch(self, dt):
 
 		# Empty the result list:
-		self.ids.fileList.clear_widgets()
+		self._reset()
 
 		# Starts a Tribler search for user submitted keyword:
 		search_text = self.ids.searchfield.text
 		torrent_mgr = globalvars.skelly.tw.get_torrent_mgr()
-		torrent_mgr.subscribe_for_changed_search_results(self.on_search_results_change)
+		torrent_mgr.subscribe_for_changed_search_results(self._on_search_results_change)
 		torrent_mgr.search_remote(search_text)
 
-	def on_search_results_change(self, keywords):
+	def _on_search_results_change(self, keywords):
 		"""
 		Called when search results have been added.
 		:param keywords: The keywords entered.
@@ -87,9 +89,16 @@ class SearchScreen(Screen):
 		# Retrieve and show the new torrent results:
 		torrents = torrent_mgr.get_remote_results()
 		for torrent in torrents:
+			if torrent.infohash in self.result_info_hashes:
+				continue
+			self.result_info_hashes.append(torrent.infohash)
 			twidget = TorrentWidget()
 			twidget.set_torrent(torrent)
 			self.ids.fileList.add_widget(twidget)
+
+	def _reset(self):
+		self.result_info_hashes = []
+		self.ids.fileList.clear_widgets()
 
 
 class CameraWidget(AnchorLayout):
