@@ -391,7 +391,7 @@ class TriblerLaunchMany(object):
 
                 elif not isinstance(old_def, TorrentDefNoMetainfo) and self.rtorrent_handler:
                     # Update collected torrents
-                    self.rtorrent_handler._save_torrent(new_def)
+                    self.rtorrent_handler.save_torrent(new_def)
 
     #
     # State retrieval
