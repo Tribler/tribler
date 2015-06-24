@@ -39,10 +39,10 @@ class TestHiddenCommunity(TestTunnelBase):
             self.Call(1, do_asserts)
 
         def do_progress(download, start_time):
-            self.CallConditional(180,
+            self.CallConditional(40,
                                  lambda: download.get_progress() == 1.0,
                                  lambda: take_screenshot(time.time() - start_time),
-                                 'Hidden services download should be finished in 180 seconds (%.1f%% downloaded)' %
+                                 'Hidden services download should be finished in 40 seconds (%.1f%% downloaded)' %
                                  (download.get_progress() * 100),
                                  on_fail)
 
@@ -81,7 +81,7 @@ class TestHiddenCommunity(TestTunnelBase):
                 community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb_dht, bt_port=port)
             for community in tunnel_communities:
                 community.dht_announce = lambda ih, com = community: dht_announce(ih, com)
-            self.CallConditional(90, dht.is_set, lambda: self.Call(5, lambda: start_download(tf)),
+            self.CallConditional(30, dht.is_set, lambda: self.Call(5, lambda: start_download(tf)),
                                  'Introduction point did not get announced')
 
         self.startTest(setup_seeder, bypass_dht=True)
@@ -129,10 +129,10 @@ class TestHiddenCommunity(TestTunnelBase):
 
             d.set_state_callback(cb, True)
 
-            self.CallConditional(120,
+            self.CallConditional(30,
                                  lambda: d.get_progress() == 1.0 and hs_progress.is_set() and en_progress.is_set(),
                                  lambda: take_screenshot(time.time() - start_time),
-                                 'Hidden services download should be finished in 120s', on_fail)
+                                 'Hidden services download should be finished in 30s', on_fail)
 
         def start_download(tf):
             start_time = time.time()

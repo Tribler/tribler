@@ -31,7 +31,7 @@ class TestTunnelCommunityPositive(TestTunnelBase):
             tunnel_community = tunnel_communities[-1]
             first_circuit = tunnel_community.active_data_circuits().values()[0]
             first_circuit.tunnel_data(("127.0.0.1", 12345), "42")
-            self.CallConditional(30, got_data.is_set, self.quit)
+            self.CallConditional(10, got_data.is_set, self.quit)
 
         def replace_socks(tunnel_communities):
             for tunnel_community in tunnel_communities:
@@ -41,7 +41,7 @@ class TestTunnelCommunityPositive(TestTunnelBase):
                 tunnel_community.exit_data = lambda circuit_id, sock_addr, destination, data, \
                     community = tunnel_community: exit_data(community, circuit_id, sock_addr, destination, data)
             tunnel_communities[-1].circuits_needed[3] = 4
-            self.CallConditional(30, lambda: len(tunnel_communities[-1].active_data_circuits()) >= 4,
+            self.CallConditional(20, lambda: len(tunnel_communities[-1].active_data_circuits()) >= 4,
                                  lambda: start_test(tunnel_communities))
 
         self.startTest(replace_socks)
@@ -72,10 +72,10 @@ class TestTunnelCommunityPositive(TestTunnelBase):
             self.Call(1, do_asserts)
 
         def do_progress(download, start_time):
-            self.CallConditional(160,
+            self.CallConditional(40,
                                  lambda: download.get_progress() == 1.0,
                                  lambda: take_screenshot(time.time() - start_time),
-                                 'Anonymous download should be finished in 160 seconds (%.1f%% downloaded)' % (
+                                 'Anonymous download should be finished in 40 seconds (%.1f%% downloaded)' % (
                                      download.get_progress() * 100),
                                  on_fail
                                  )

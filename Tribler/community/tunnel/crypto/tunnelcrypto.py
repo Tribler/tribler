@@ -91,6 +91,7 @@ class NoTunnelCrypto(TunnelCrypto):
 
     def initialize(self, community):
         self.community = community
+        self.key = self.community.my_member._ec
 
     def is_key_compatible(self, key):
         return True
