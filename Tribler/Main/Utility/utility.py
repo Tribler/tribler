@@ -14,7 +14,7 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig
 #
 class Utility(object):
 
-    def __init__(self, abcpath, configpath):
+    def __init__(self, abcpath, configpath, app=None, session=None):
 
         self.version = version_id
         self.abcpath = abcpath
@@ -26,6 +26,9 @@ class Utility(object):
 
         # Is ABC in the process of shutting down?
         self.abcquitting = False
+
+        self.app = app
+        self.session = session
 
     def setupConfig(self):
         tribler_defaults = {'confirmonclose': 1,
@@ -96,6 +99,12 @@ class Utility(object):
 
     def getPath(self):
         return self.abcpath
+
+    def set_session(self, session):
+        self.session = session
+
+    def set_app(self, app):
+        self.app = app
 
     def read_config(self, option, section='Tribler', literal_eval=True):
         if not self.config.has_option(section, option):

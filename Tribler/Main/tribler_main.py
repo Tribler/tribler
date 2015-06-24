@@ -158,8 +158,8 @@ class ABCApp(object):
             s = self.startAPI(session, self.splash.tick)
 
             self.utility = Utility(self.installdir, s.get_state_dir())
-            self.utility.app = self
-            self.utility.session = s
+            self.utility.set_app(self)
+            self.utility.set_session(s)
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
             GUIDBProducer.getInstance()
 
