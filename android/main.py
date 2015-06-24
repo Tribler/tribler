@@ -51,7 +51,9 @@ MediaColumns = autoclass('android.provider.MediaStore$MediaColumns')
 Environment = autoclass('android.os.Environment')
 Builder.load_file('main.kv')
 
-
+"""
+The screen for searching
+"""
 class SearchScreen(Screen):
 
 	result_info_hashes = []

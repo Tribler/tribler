@@ -13,7 +13,10 @@ class TorrentWidget(BoxLayout):
 
     def set_torrent(self, torrent):
         self.torrent = torrent
-        self.ids.filebutton.text = self.name = self.torrent.name
+        self.name = self.torrent.name
+        #seeders_text = 'Seeders: ' + (str(torrent.num_seeders) if torrent.num_seeders and torrent.num_seeders != -1 else "Unknown")
+        #file_size_text = 'File size: ' + (file_size_to_string(torrent.length) if torrent.length else "Unknown") #TODO
+        self.ids.filebutton.text = self.torrent.name #+ '\n' + seeders_text + '\n' + file_size_text
 
     def on_press(self):
         """
@@ -42,7 +45,7 @@ class TorrentInfoScreen(Screen):
         self.torrent = torrent
         self.ids.name_label.text = self.torrent.name
         self.ids.type_label.text = 'Type: ' + str(torrent.category)
-        self.ids.filesize_label.text = 'Filesize: ' + (str(torrent.length) if torrent.length else "Unknown") #TODO
+        self.ids.file_size_label.text = 'File size: ' + (file_size_to_string(torrent.length) if torrent.length else "Unknown") #TODO
         self.ids.seeders_label.text = 'Seeders: ' + (str(torrent.num_seeders) if torrent.num_seeders and torrent.num_seeders != -1 else "Unknown")
         self.ids.leechers_label.text = 'Leechers: ' + (str(torrent.num_leechers) if torrent.num_leechers and torrent.num_leechers != -1 else "Unknown")
 
@@ -105,3 +108,10 @@ class TorrentInfoScreen(Screen):
         self.download_in_vod_mode = False
         self.started_player = False
         self.vod_uri = None
+
+def file_size_to_string(bytes, suffix='B'):
+    for unit in ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z']:
+        if abs(bytes) < 1024.0:
+            return "%3.1f %s%s" % (bytes, unit, suffix)
+        bytes /= 1024.0
+    return "%.1f %s%s" % (bytes, 'Y', suffix)
