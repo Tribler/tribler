@@ -410,7 +410,7 @@ class ABCApp(object):
         # TODO(emilon): Use the LogObserver I already implemented
         # self.dispersy.callback.attach_exception_handler(self.frame.exceptionHandler)
 
-        startWorker(None, self.loadSessionCheckpoint, delay=5.0, workerType="guiTaskQueue")
+        startWorker(None, self.loadSessionCheckpoint, delay=5.0, workerType="ThreadPool")
 
         # initialize the torrent feed thread
         channelcast = s.open_dbhandler(NTFY_CHANNELCAST)
@@ -566,7 +566,7 @@ class ABCApp(object):
         """ set the reputation in the GUI"""
         if self._frame_and_ready():
             startWorker(do_wx, do_db, uId=u"tribler.set_reputation")
-        startWorker(None, self.set_reputation, delay=5.0, workerType="guiTaskQueue")
+        startWorker(None, self.set_reputation, delay=5.0, workerType="ThreadPool")
 
     def sesscb_states_callback(self, dslist):
         if not self.ready:

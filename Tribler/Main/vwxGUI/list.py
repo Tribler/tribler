@@ -135,7 +135,7 @@ class RemoteSearchManager(BaseManager):
             return keywords, data_files, total_items, nrfiltered, new_items, total_channels, new_channels, data_channels, modified_hits
 
         delay = 0.5 if remote else 0.0
-        workerType = "guiTaskQueue" if remote else "dbThread"
+        workerType = "ThreadPool" if remote else "dbThread"
         startWorker(self._on_refresh,
                     db_callback,
                     delay=delay,

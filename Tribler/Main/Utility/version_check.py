@@ -23,7 +23,7 @@ def checkVersion(self):
 
 
 def _checkVersion(self):
-    # Called by GUITaskQueue thread
+    # Called from the ThreadPool
     my_version = self.utility.getVersion()
     try:
         curr_status = urllib.urlopen('http://tribler.org/version').readlines()

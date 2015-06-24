@@ -277,7 +277,7 @@ class MainFrame(wx.Frame):
         def preload_data():
             self.guiUtility.showChannelCategory('All', False)
             self.guiUtility.showLibrary(False)
-        startWorker(None, preload_data, delay=1.5, workerType="guiTaskQueue")
+        startWorker(None, preload_data, delay=1.5, workerType="ThreadPool")
 
         if sys.platform != 'darwin':
             dragdroplist = FileDropTarget(self)

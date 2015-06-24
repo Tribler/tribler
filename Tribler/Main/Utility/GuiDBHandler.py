@@ -153,13 +153,13 @@ class GUIDBProducer(object):
 
         wrapper.__name__ = str(name)
 
-        # Have in mind that setting workerType to "guiTaskQueue" means that the
+        # Have in mind that setting workerType to "ThreadPool" means that the
         # task wants to be executed OUT of the GUI thread, nothing more.
         if delay or not (isInIOThread() or isInThreadPool()):
             if workerType == "dbThread":
                 # Schedule the task to be called later in the reactor thread.
                 self.utility.session.lm.rawserver.add_task(wrapper, delay)
-            elif workerType == "guiTaskQueue":
+            elif workerType == "ThreadPool":
                 self.utility.session.lm.rawserver.add_task_in_thread(wrapper, delay)
             else:
                 raise RuntimeError("Asked to schedule a task with unknown workerType: %s", workerType)
