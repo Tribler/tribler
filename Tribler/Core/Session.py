@@ -9,15 +9,14 @@ from binascii import hexlify
 
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
+from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException
-from Tribler.Core.simpledefs import (STATEDIR_PEERICON_DIR, STATEDIR_DLPSTATE_DIR, NTFY_PEERS, NTFY_TORRENTS,
-                                     NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_UPDATE, NTFY_INSERT,
-                                     NTFY_DELETE, NTFY_METADATA, STATEDIR_TORRENT_STORE_DIR,
-                                     STATEDIR_METADATA_STORE_DIR)
-from Tribler.Core.CacheDB.Notifier import Notifier
+from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_METADATA, NTFY_MYPREFERENCES,
+                                     NTFY_PEERS, NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
+                                     STATEDIR_METADATA_STORE_DIR, STATEDIR_PEERICON_DIR, STATEDIR_TORRENT_STORE_DIR)
 
 
 GOTM2CRYPTO = False
@@ -112,13 +111,11 @@ class Session(SessionConfigInterface):
             #
             # 1. keypair
             #
-            pairfilename = os.path.join(scfg.get_state_dir(), 'ec.pem')
-            if scfg.get_permid_keypair_filename() is None:
-                scfg.set_permid_keypair_filename(pairfilename)
+            pairfilename = scfg.get_permid_keypair_filename()
 
-            if os.access(scfg.get_permid_keypair_filename(), os.F_OK):
+            if os.access(pairfilename, os.F_OK):
                 # May throw exceptions
-                self.keypair = permidmod.read_keypair(scfg.get_permid_keypair_filename())
+                self.keypair = permidmod.read_keypair(pairfilename)
             else:
                 self.keypair = permidmod.generate_keypair()
 

@@ -12,14 +12,15 @@
 #
 #
 import logging
+import os
 import os.path
 import sys
 from distutils.spawn import find_executable
 
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.Utilities.network_utils import get_random_port, autodetect_socket_style
+from Tribler.Core.Utilities.network_utils import autodetect_socket_style, get_random_port
 from Tribler.Core.defaults import sessdefaults
-from Tribler.Core.osutils import is_android, get_appstate_dir
+from Tribler.Core.osutils import get_appstate_dir, is_android
 from Tribler.Core.simpledefs import STATEDIR_SESSCONFIG
 
 
@@ -164,7 +165,11 @@ class SessionConfigInterface(object):
     def get_permid_keypair_filename(self):
         """ Returns the filename of the Session's keypair.
         @return An absolute path name. """
-        return self.sessconfig.get(u'general', u'eckeypairfilename')
+        file_name = self.sessconfig.get(u'general', u'eckeypairfilename')
+        if not file_name:
+            file_name = os.path.join(self.get_state_dir(), 'ec.pem')
+            self.set_permid_keypair_filename(file_name)
+        return file_name
 
     def set_listen_port(self, port):
         """ Set the UDP and TCP listen port for this Session.
