@@ -63,7 +63,7 @@ class TorrentInfoScreen(Screen):
 
         session = globalvars.skelly.tw.get_session_mgr().get_session()
         dscfg = DownloadStartupConfig()
-        #dscfg.set_dest_dir() #TODO
+        dscfg.set_dest_dir(globalvars.videoFolder.getAbsolutePath())
         tdef = TorrentDefNoMetainfo(self.torrent.infohash, self.torrent.name)
         session.start_download(tdef, dscfg)
 
@@ -78,9 +78,15 @@ class TorrentInfoScreen(Screen):
         :return: Nothing.
         """
         Logger.info('Starting download for stream in TorrentInfoScreen.')
-        download_mgr = globalvars.skelly.tw.get_download_mgr()
-        download_mgr.subscribe_for_changed_progress_info(self._check_streamable_callback)
+
+        #download_mgr = globalvars.skelly.tw.get_download_mgr()
+        #download_mgr.subscribe_for_changed_progress_info(self._check_streamable_callback)
+
         self.start_download()
+
+        session = globalvars.skelly.tw.get_session_mgr().get_session()
+        download = session.get_download(self.torrent.infohash)
+        download.set_state_callback(self._check_streamable_callback, delay=1)
         # TODO: Show progress to user, which is available in progress_dict variable in _check_streamable_callback
 
     def _check_streamable_callback(self, info_hash):
