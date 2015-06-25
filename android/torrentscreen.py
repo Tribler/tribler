@@ -72,7 +72,7 @@ class TorrentInfoScreen(Screen):
         download_mgr = globalvars.skelly.tw.get_download_mgr()
         download_destination_dir = globalvars.videoFolder.getAbsolutePath()
         download_mgr.add_torrent(self.torrent.infohash, self.torrent.name, download_destination_dir)
-        
+
         if navigate_to_home:
             self.navigate_to_home()
 
@@ -100,25 +100,23 @@ class TorrentInfoScreen(Screen):
 
         self.navigate_to_home()
 
-    def _check_streamable_callback(self, info_hash):
+    def _check_streamable_callback(self, info_hash, *largs):
         """
         Called when download progress changes. Will start VOD download mode when
         possible and after that start a video player when enough has been downloaded.
         :param info_hash: The info hash of the torrent with new download progress.
         :return: Nothing.
         """
-        Logger.log('TEST: FUNCTION CALLED!')
         if self.started_player or info_hash != self.torrent.infohash:
             return
         download_mgr = globalvars.skelly.tw.get_download_mgr()
         progress_dict = download_mgr.get_progress(self.torrent.infohash)
 
         # Start video player:
-        if progress_dict['vod_playable']:
+        if progress_dict['vod_playable'] and self.download_in_vod_mode: # TODO: self.download_in_vod_mode might not be needed but for now it sets the vod_uri
             Logger.info('Starting video player.')
             self.started_player = True
-            session_mgr = globalvars.skelly.tw.get_session_mgr()
-            open_player(session_mgr.get_session().get_download(self.torrent.infohash), self.vod_uri)
+            open_player(self.vod_uri)
         else:
 
             # TODO: Show progress to user
@@ -173,4 +171,4 @@ def seconds_to_string(seconds):
         return "more than a day"
 
 def bytes_per_sec_to_string(speed_in_bytes):
-    file_size_to_string(speed_in_bytes) + '/s'
+    return file_size_to_string(speed_in_bytes) + '/s'

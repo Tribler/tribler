@@ -5,8 +5,10 @@
 import threading
 import binascii
 import os
+import functools
 
 from kivy.logger import Logger
+from kivy.clock import Clock
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
@@ -155,7 +157,7 @@ class DownloadManager(BaseManager):
                     # TODO: Not supported in Tribler anymore but might be needed
                     #self._ratelimiter.add_downloadstate(ds)
                 for fn in self._progress_info_callbacks:
-                    fn(info_hash)
+                    Clock.schedule_once(functools.partial(fn, info_hash))
             else:
                 Logger.warn("Error updating download state")
 
