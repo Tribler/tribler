@@ -54,7 +54,7 @@ class TorrentInfoScreen(Screen):
         self.ids.seeders_label.text = 'Seeders: ' + (str(torrent.num_seeders) if torrent.num_seeders and torrent.num_seeders != -1 else "Unknown")
         self.ids.leechers_label.text = 'Leechers: ' + (str(torrent.num_leechers) if torrent.num_leechers and torrent.num_leechers != -1 else "Unknown")
 
-    def start_download(self):
+    def start_download(self, navigate_to_home=True):
         """
         Starts a download from a torrent file.
         :return: Nothing.
@@ -69,7 +69,12 @@ class TorrentInfoScreen(Screen):
 
         #download_mgr = globalvars.skelly.tw.get_download_mgr()
         #download_mgr.add_torrent(self.torrent.infohash, self.torrent.name)
+        if navigate_to_home:
+            self.navigate_to_home()
+
+    def navigate_to_home(self):
         # TODO: navigate user to (home?) screen with previously downloaded torrents and show this torrent with a progress bar
+        pass
 
     def start_stream(self):
         """
@@ -82,12 +87,14 @@ class TorrentInfoScreen(Screen):
         #download_mgr = globalvars.skelly.tw.get_download_mgr()
         #download_mgr.subscribe_for_changed_progress_info(self._check_streamable_callback)
 
-        self.start_download()
+        self.start_download(False)
 
         session = globalvars.skelly.tw.get_session_mgr().get_session()
         download = session.get_download(self.torrent.infohash)
         download.set_state_callback(self._check_streamable_callback, delay=1)
         # TODO: Show progress to user, which is available in progress_dict variable in _check_streamable_callback
+
+        self.navigate_to_home()
 
     def _check_streamable_callback(self, info_hash):
         """
@@ -101,13 +108,14 @@ class TorrentInfoScreen(Screen):
         download_mgr = globalvars.skelly.tw.get_download_mgr()
         progress_dict = download_mgr.get_progress(self.torrent.infohash)
 
+        Logger.info('Checking whether video is streamable callback. ETA: ' + str(progress_dict['eta']))
+
         # Start video player:
         if progress_dict['vod_playable']:
             Logger.info('Starting video player.')
             self.started_player = True
             session_mgr = globalvars.skelly.tw.get_session_mgr()
             open_player(session_mgr.get_session().get_download(self.torrent.infohash), self.vod_uri)
-            # start_external_player(self.vod_uri)
         else:
 
             # When metadata etc. has been downloaded then start downloading the actual video content in vod mode:

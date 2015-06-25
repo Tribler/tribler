@@ -20,6 +20,7 @@ from nfc import CreateNfcBeamUrisCallback
 import io
 import threading
 import time
+import functools
 
 from homescreen import HomeScreen
 from torrentscreen import TorrentWidget, TorrentInfoScreen
@@ -98,9 +99,12 @@ class SearchScreen(Screen):
 			if torrent.infohash in self.result_info_hashes:
 				continue
 			self.result_info_hashes.append(torrent.infohash)
-			twidget = TorrentWidget()
-			twidget.set_torrent(torrent)
-			self.ids.fileList.add_widget(twidget)
+			Clock.schedule_once(functools.partial(self._add_torrent_widget, torrent))
+
+	def _add_torrent_widget(self, torrent, *largs):
+		twidget = TorrentWidget()
+		twidget.set_torrent(torrent)
+		self.ids.fileList.add_widget(twidget)
 
 	def _reset(self):
 		self.result_info_hashes = []

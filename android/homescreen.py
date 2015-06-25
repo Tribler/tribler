@@ -112,13 +112,14 @@ class HomeScreen(Screen):
 	#looping function that creates filewidgets from a list of files.
 	#Will create 10 widgets per frame before rescheduling itself for the next
 	#was required to stop application from freezing when large files are present
-	def createFileWidgets(self,media, *largs):
+	def createFileWidgets(self, media, *largs):
 		for i in range(0,10):
 			if( len(media) != 0):
 				tup = media.pop(0)
 				self.createFileWidget(tup)
-				Clock.schedule_once(functools.partial(self.createFileWidgets, media))
 			else: break
+			Clock.schedule_once(functools.partial(self.createFileWidgets, media))
+
 	#The thumbnail thread responsible for loading the images
 	def loadThumbnails(self):
 		while True:
