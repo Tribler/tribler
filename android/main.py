@@ -33,6 +33,7 @@ from jnius import JavaClass
 from jnius import PythonJavaClass
 from android.runnable import run_on_ui_thread
 
+from activityreceiver import ActivityReceiver
 from filereceiver import FileReceiver
 from filescanner import FileScanner
 
@@ -188,6 +189,9 @@ class Skelly(App):
 	def registerListeners(self):
 		self.intentListener = FileReceiver()
 		PythonActivity.registerNewIntentListener(self.intentListener)
+
+		self.activityListener = ActivityReceiver()
+#		PythonActivity.registerActivityResultListener(self.activityListener)
 
 		self.intentListener.onNewIntent(activity.getIntent())
 

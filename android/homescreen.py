@@ -24,7 +24,7 @@ from android.runnable import run_on_ui_thread
 
 import globalvars
 from filewidget import FileWidget
-
+from camerahelper import CameraHelper
 
 Context = autoclass('android.content.Context')
 PythonActivity = autoclass('org.renpy.android.PythonActivity')
@@ -61,7 +61,9 @@ class HomeScreen(Screen):
 	#Function for starting the camera application
 	def startCamera(self):
 		intention = Intent(MediaStore.INTENT_ACTION_VIDEO_CAPTURE)
-			
+		helper = CameraHelper()
+		location = helper.getOutputMediaFile()
+		intention.putExtra(MediaStore.EXTRA_OUTPUT, cast('android.os.Parcelable', Uri.fromFile(location)))
 		#When java requires a "Context" usually in the shape of "this",
 		#it has to be casted from our activity
 		self.con = cast(Context, activity)

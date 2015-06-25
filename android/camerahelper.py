@@ -2,6 +2,7 @@ __all__ = ['CameraHelper']
 
 from jnius import autoclass
 import sys
+import globalvars
 
 Camera = autoclass('android.hardware.Camera')
 CameraInfo = autoclass('android.hardware.Camera$CameraInfo')
@@ -14,18 +15,9 @@ Surface = autoclass('android.view.Surface')
 class CameraHelper(object):
 	#Function to generate an output path for a new Video
 	def getOutputMediaFile(self):
-		#Checks if the Storage is mounted
-		if not (Environment.getExternalStorageState()).lower() == (Environment.MEDIA_MOUNTED).lower():
-			return None
-
-		#Gets file folder and creates it, if necessary
-		mediaStorageDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), 'Camera')
-		if not mediaStorageDir.exists():
-			mediaStorageDir.mkdirs()
-
 		#Create file name using a timestamp and standard file indentifiers
 		timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
-		mediaFile = File(mediaStorageDir.getPath() + File.separator + 'VID_' + timeStamp + '.mp4')
+		mediaFile = File(globalvars.videoFolder.getPath() + File.separator + 'VID_' + timeStamp + '.mp4')
 
 		return mediaFile
 
