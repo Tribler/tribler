@@ -342,7 +342,7 @@ class DownloadManager(BaseManager):
             print "Start_vod error: %s" % e.args
             return False
 
-        voduri = self.get_vod_uri(binascii.hexlify(infohash), fileindex=findex)
+        voduri = self.get_vod_uri(infohash, fileindex=findex)
         Logger.info("Returning VOD uri: %s" % voduri)
 
         return voduri
