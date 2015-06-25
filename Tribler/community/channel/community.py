@@ -829,11 +829,6 @@ class ChannelCommunity(Community):
                         self._channelcast_db.on_channel_modification_from_dispersy(
                             self._channel_id, modification_type, modification_value)
 
-            if __debug__:
-                for message in messages:
-                    if message.payload.modification_on.name == u"torrent" and message.payload.modification_type == "video-info":
-                        self._logger.debug("Incoming video-info with value %s", message.payload.modification_value)
-
     def _disp_undo_modification(self, descriptors, redo=False):
         if self.integrate_with_tribler:
             for _, _, packet in descriptors:
