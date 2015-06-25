@@ -39,7 +39,7 @@ ThumbnailUtils = autoclass('android.media.ThumbnailUtils')
 ImageView = autoclass('android.widget.ImageView')
 CompressFormat = autoclass('android/graphics/Bitmap$CompressFormat')
 FileOutputStream = autoclass('java.io.FileOutputStream')
-
+File = autoclass('java.io.File')
 
 class FileWidget(RelativeLayout):
 	name = "No Name Set"
@@ -77,6 +77,9 @@ class FileWidget(RelativeLayout):
 	def setUri(self, ur):
 		assert ur is not None
 		self.uri = ur
+		strSplit = self.uri.split('/')
+		strSplit.reverse()
+		self.torUri = globalvars.torrentFolder.getAbsolutePath() + '/' + strSplit[0]
 
 	def get_playtime(self):
 		return None
@@ -219,9 +222,9 @@ class FileWidget(RelativeLayout):
 		""" Check if a .torrent exists for this file and if it does, import
 		Return boolean result
 		"""
-		if os.path.isfile(self.uri + ".torrent"):
-			Logger.info("Found torrent: " + self.uri + ".torrent")
-			self.tdef = TorrentDef.load(self.uri + ".torrent")
+		if os.path.isfile(self.torUri + ".torrent"):
+			Logger.info("Found torrent: " + self.torUri + ".torrent")
+			self.tdef = TorrentDef.load(self.torUri + ".torrent")
 			return True
 		return False
 
@@ -234,7 +237,7 @@ class FileWidget(RelativeLayout):
 			self.tdef.add_content(self.uri, playtime=self.get_playtime())
 			self.tdef.set_dht_nodes([["router.bittorrent.com", 8991]])
 			self.tdef.finalize()
-			self.tdef.save(self.uri + ".torrent")
+			self.tdef.save(self.torUri + ".torrent")
 			self._check_torrent_made()
 		else:
 			Logger.info("Torrent already created for: " + self.name)
@@ -243,7 +246,7 @@ class FileWidget(RelativeLayout):
 		""" Delete .torrent,tdef to None and remove download from Tribler"""
 		if self._check_torrent_made() and globalvars.triblerfun:
 			self._stop_tribler()
-			os.remove(self.uri + ".torrent")
+			os.remove(self.torUri + ".torrent")
 			self.tdef = None
 
 	def _stop_tribler(self):

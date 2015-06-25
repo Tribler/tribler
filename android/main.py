@@ -191,7 +191,7 @@ class Skelly(App):
 		PythonActivity.registerNewIntentListener(self.intentListener)
 
 		self.activityListener = ActivityReceiver()
-#		PythonActivity.registerActivityResultListener(self.activityListener)
+		PythonActivity.registerActivityResultListener(self.activityListener)
 
 		self.intentListener.onNewIntent(activity.getIntent())
 

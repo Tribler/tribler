@@ -94,9 +94,13 @@ class HomeScreen(Screen):
 		if  globalvars.nfcCallback is not None:
 			globalvars.nfcCallback.clearUris()
 		files = []
-		DCIMdir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
+		#Deprecated due to local storage		
+		#DCIMdir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
 		self.ids.fileList.clear_widgets()
-		for root, dirnames, filenames in os.walk(DCIMdir.getAbsolutePath()):
+		#for root, dirnames, filenames in os.walk(DCIMdir.getAbsolutePath()):
+		#.mp4	.3gp	.webm	.mkv
+
+		for root, dirnames, filenames in os.walk(globalvars.videoFolder.getAbsolutePath()):
 			for filename in fnmatch.filter(filenames,'*.mp4'):
 				files.append( (filename, root+'/'+filename) )
 		self.discovered_media = files
