@@ -72,7 +72,7 @@ class FileWidget(RelativeLayout):
 	def setName(self, nom):
 		assert nom is not None
 		self.name = nom
-		self.ids.filebutton.text = nom
+		self.ids.namelabel.text = nom
 
 	def setUri(self, ur):
 		assert ur is not None

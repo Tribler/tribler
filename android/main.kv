@@ -125,7 +125,7 @@
 #					source: './img/ic_videocam_white_48dp.png'
 <FileWidget>
 	size_hint: 1, None
-	height: '2.4cm'
+	height: '1.35cm'
 	BoxLayout:
 		canvas:
 			Color:
@@ -135,73 +135,71 @@
 				size: self.size
 		Image:
 			size_hint: None, 1
-			width: '1.35cm'
+			width: '2.4cm'
 			id:img
 		RelativeLayout:
 			AnchorLayout:
-				anchor_x: 'center'
-				anchor_y: 'center'
+				anchor_x: 'left'
+				anchor_y: 'top'
 				Button:
-					background_color: 0.6,0.6,0.6,1
+					background_color: 1,1,1,1
 					background_normal: ''
 					anchor_x: 'center'
 					anchor_y: 'center'
 					id: filebutton
-					text: root.name
+					text: ''
 					on_release: root.pressed()
-			AnchorLayout:
-				anchor_x:'right'
-				anchor_y:'top'
-				BoxLayout:
-					size_hint: None, None
-					anchor_x: 'right'
-					anchor_y: 'center'
-					width: '0.8cm'
-					height: self.width*3
-					orientation:"vertical"
-					id: button_layout
-					ToggleButton:
-						background_color: 0.6,0.6,0.6,1
-						background_normal: ''
-						border: 15, 15, 15, 15
-						id:nfc_toggler
-						on_state: root.toggle_nfc(self.state)
-						BoxLayout:
-							size: self.parent.size
-							pos: self.parent.pos
-							Image:
-								source: './img/ic_tap_and_play_white_48dp.png'
-					Button:
-						background_color: 0.6,0.6,0.6,1
-						background_normal: ''
-						id: editBut
-						on_release: root.share_magnet_link()
-						BoxLayout:
-							pos: self.parent.pos
-							size: self.parent.size
-							Image:
-								source: 'img/ic_edit_white_48dp.png'
-					Button:
-						background_color: 0.6,0.6,0.6,1
-						background_normal: ''
-						id: eraseBut
-						on_release: root.delete()
-						BoxLayout:
-							pos: self.parent.pos
-							size: self.parent.size
-							Image:
-								source: 'img/ic_delete_white_48dp.png'
-					Button:
-						id: tdot
-						text: 'G'
-						on_press: root.openMenu(app.HomeScr.ids.layer)
-					#ToggleButton:
-					#	text: 'T'
-					#	id:tribler_toggler
-#	AnchorLayout:
-#		size_hint: 1, 1
-#		anchor_x: 'left'
-#		anchor_y: 'top'
+			BoxLayout:
+				padding: '0.1cm','0.1cm','0.1cm',0
+				orientation: 'horizontal'			
+				StackLayout:
+					anchor_x: 'left'
+					anchor_y: 'top'
+					pos: self.parent.pos
+					size: self.parent.size
+					Label: 
+						size_hint:1, None
+						height: self.font_size
+						id: namelabel
+						text: root.name
+						halign: 'left'
+						text_size: self.size
+						shorten: True
+						shorten_from: 'right'
+						color: 0,0,0,1
+						
+				AnchorLayout:
+					anchor_x:'right'
+					anchor_y:'top'
+					size_hint: None, 1
+					width: '0.5cm'
+					BoxLayout:
+						size_hint: 1, None
+						anchor_x: 'right'
+						anchor_y: 'center'
+
+						height: self.parent.width
+						orientation:"vertical"
+						id: button_layout
+						Button:
+							background_color: 0.6,0.6,0.6,0
+							background_normal: ''
+							on_release: root.openMenu(app.HomeScr.ids.layer)
+							size_hint: 1, 1
+							height: '0.8cm'
+							BoxLayout:
+								pos: self.parent.pos
+								size: self.parent.size
+								Image:
+									color: 0.5,0.5,0.5,1
+									source: './img/ic_more_vert_white_48dp.png'
+						#ToggleButton:
+						#	text: 'T'
+						#	id:tribler_toggler
+#		AnchorLayout:
+#			size_hint: 1, 1
+#			anchor_x: 'left'
+#			anchor_y: 'top'
 #		y: '0.5cm'
 #		Button:
 #			size_hint: 0.5, 0.5
@@ -255,6 +253,7 @@
 							#source: './img/ic_tap_and_play_white_48dp.png'
 							size_hint: None, 1
 							width: '0.5cm'
+							color: 1,1,1,0 #remove when adding icon
 						Label:
 							text: 'Seed Video'
 							halign: 'left'
@@ -271,6 +270,7 @@
 							#source: './img/ic_tap_and_play_white_48dp.png'
 							size_hint: None, 1
 							width: '0.5cm'
+							color: 1,1,1,0 #remove when adding icon
 						Label:
 							text: 'Share magnet'
 							halign: 'left'
