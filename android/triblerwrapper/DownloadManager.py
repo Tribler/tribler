@@ -32,6 +32,7 @@ RATELIMIT_UPDATE_DELAY = 15.0
 
 from BaseManager import BaseManager
 
+
 class DownloadManager(BaseManager):
     _dllock = threading.Lock()
     _dispersy = None
@@ -80,9 +81,6 @@ class DownloadManager(BaseManager):
         """
         Logger.info("Running session checkpoint..")
         self._session.checkpoint()
-
-        # Schedule next checkpoint
-        threading.Timer(DOWNLOAD_CHECKPOINT_INTERVAL, self._run_session_checkpoint, ()).start()
 
     def set_max_download(self, maxspeed):
         """
