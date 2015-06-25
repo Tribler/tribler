@@ -469,12 +469,13 @@
 			text_size: self.size
 			color:0,0,0.8,1
 		Button:
+			id:play_button
 			text:'Play'
 			on_release: root.start_stream()
 			background_color: 0.5,0.5,0.5,1
 			background_normal:''
-		Button:
-			text:'Download'
-			on_release: root.start_download()
-			background_color: 0.5,0.5,0.5,1
-			background_normal:''
+		#Button:
+			#text:'Download'
+			#on_release: root.start_download()
+			#background_color: 0.5,0.5,0.5,1
+			#background_normal:''

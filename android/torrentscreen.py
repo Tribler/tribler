@@ -40,6 +40,7 @@ class TorrentInfoScreen(Screen):
     download_in_vod_mode = False
     started_player = False
     vod_uri = None
+    download_started = False
 
     def open_screen(self, torrent):
         """
@@ -61,6 +62,10 @@ class TorrentInfoScreen(Screen):
         :return: Nothing.
         """
         Logger.info('Start download in TorrentInfoScreen.')
+
+        if self.download_started:
+            return
+        self.download_started = True
 
         # Old code in case we did not want to use DownloadManager (as below):
         #session = globalvars.skelly.tw.get_session_mgr().get_session()
@@ -119,7 +124,6 @@ class TorrentInfoScreen(Screen):
             open_player(self.vod_uri)
         else:
 
-            # TODO: Show progress to user
             self.send_vod_message(progress_dict)
 
             # When metadata etc. has been downloaded then start downloading the actual video content in vod mode:
@@ -135,7 +139,11 @@ class TorrentInfoScreen(Screen):
         download_speed = progress_dict['speed_down']
         message = 'Video starts playing in ' + seconds_to_string(vod_eta) + ' (' + bytes_per_sec_to_string(download_speed) + ').'
         progress = str(ceil(progress * 100))
-        # TODO: show message and progress to user
+        # TODO: show message and progress to user properly
+        play = self.ids.play_button
+        play.text = 'Progress: ' + progress + '.\n' + message
+        play.on_release = self.do_nothing_on_button_release
+        play.background_color = [0.5, 0.5, 0.5, 0.5]
         Logger.info('Video preparing for streaming info: ' + message + ' Progress: ' + progress)
 
     def _reset(self):
@@ -146,7 +154,11 @@ class TorrentInfoScreen(Screen):
         self.torrent = None
         self.download_in_vod_mode = False
         self.started_player = False
+        self.download_started = False
         self.vod_uri = None
+
+    def do_nothing_on_button_release(self):
+        pass
 
 
 def file_size_to_string(bytes, suffix='B'):

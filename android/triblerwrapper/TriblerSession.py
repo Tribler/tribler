@@ -98,6 +98,13 @@ class TriblerSession(BaseManager):
         self._sconfig.set_preferred_playback_mode(42)
 
 
+        self._sconfig.set_torrent_store(True)
+        self._sconfig.set_torrent_checking(True)
+        self._sconfig.set_multicast_local_peer_discovery(False)
+        self._sconfig.set_mainline_dht(True)
+        self._sconfig.set_dht_torrent_collecting(True)
+        self._sconfig.set_torrent_collecting_max_torrents(5000)
+
         Logger.info("Starting Tribler session..")
         self._session = Session(self._sconfig)
         upgrader = self._session.prestart()
