@@ -2,25 +2,6 @@ BEGIN TRANSACTION create_table;
 
 ----------------------------------------
 
-CREATE TABLE MetadataMessage (
-  message_id             INTEGER PRIMARY KEY AUTOINCREMENT,
-  dispersy_id            INTEGER NOT NULL,
-  this_global_time       INTEGER NOT NULL,
-  this_mid               TEXT NOT NULL,
-  infohash               TEXT NOT NULL,
-  previous_mid           TEXT,
-  previous_global_time   INTEGER
-);
-
-CREATE TABLE MetadataData (
-  message_id  INTEGER,
-  data_key    TEXT NOT NULL,
-  data_value  INTEGER,
-  FOREIGN KEY (message_id) REFERENCES MetadataMessage(message_id) ON DELETE CASCADE
-);
-
-----------------------------------------
-
 CREATE TABLE MyInfo (
   entry  PRIMARY KEY,
   value  text

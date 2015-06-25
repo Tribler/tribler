@@ -29,7 +29,6 @@ from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import (ChannelCommunity, warnIfNotDispersyThread)
-from Tribler.community.metadata.community import MetadataCommunity
 from Tribler.dispersy.exception import CommunityNotFoundException
 from Tribler.dispersy.util import call_on_reactor_thread
 
@@ -534,7 +533,9 @@ class TorrentManager(object):
 
     @call_on_reactor_thread
     def modifyTorrent(self, torrent, modifications):
+        # TODO: change this
         for community in self.dispersy.get_communities():
+            from Tribler.community.metadata.community import MetadataCommunity
             if isinstance(community, MetadataCommunity):
                 community.create_metadata_message(torrent.infohash, modifications)
                 break
