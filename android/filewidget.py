@@ -25,6 +25,7 @@ from videoplayer import open_player
 
 from jnius import autoclass, cast
 from android.runnable import run_on_ui_thread
+import android
 
 Context = autoclass('android.content.Context')
 PythonActivity = autoclass('org.renpy.android.PythonActivity')
@@ -199,7 +200,7 @@ class FileWidget(RelativeLayout):
 			sess = globalvars.skelly.tw.get_session_mgr().get_session()
 			magnet = sess.get_download(self.tdef.infohash).get_magnet_link()
 			if magnet is not None:
-				Clipboard.put(magnet, 'text/string')
+				android.action_send('text/plain', text=magnet)
 		elif not self.creating and globalvars.triblerfun:
 			self.creating = True
 			threading.Thread(target=self._create_torrent).start()
