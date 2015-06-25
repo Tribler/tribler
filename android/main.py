@@ -189,6 +189,8 @@ class Skelly(App):
 		self.intentListener = FileReceiver()
 		PythonActivity.registerNewIntentListener(self.intentListener)
 
+		self.intentListener.onNewIntent(activity.getIntent())
+
 	def makeLocalFolder(self):
 		self.act = cast(Context, activity)
 		globalvars.scanner = FileScanner(self.act)
@@ -222,8 +224,8 @@ class Skelly(App):
 		win.clearcolor = (1,1,1,1)
 		globalvars.skelly = self
 
-		self.registerListeners()
 		self.makeLocalFolder()
+		self.registerListeners()
 		self.nfc_init()
 		self.HomeScr.getStoredMedia()
 

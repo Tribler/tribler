@@ -19,27 +19,36 @@ class FileReceiver(PythonJavaClass):
 	def onNewIntent(self, intent):
 		#Method that can be used to parse the intent and pass it to the relevant function.
 		print 'Received new Intent.'
-		self.handleViewIntent(intent)
+		self.action = intent.getAction()
+
+		#If application starts normally
+		if self.action == Intent.ACTION_MAIN:
+			print 'Normal starting Intent'
+			return
+		#If application start with or receives Action_View Intent (currently through Android Beam)
+		elif self.action == Intent.ACTION_VIEW:
+			self.handleViewIntent(intent)
+
+		#Following code can be added if other types of Intents are filtered
+		#elif self.action == Intent. 'relevant intent type':
+		#	do function
 
 	#Method for handling the Action_VIEW Intent
 	def handleViewIntent(self, intent):
-		self.action = intent.getAction()
+		self.beamUri = intent.getData()
 
-		print 'Intent action is:'
-		print self.action
-		
-		if self.action == Intent.ACTION_VIEW:
-			self.beamUri = intent.getData()
+		#Do nothing if a file was sent
+		if self.beamUri.getScheme() == 'file':
+			pass
 
-			#Do nothing if a file was sent
-			if self.beamUri.getScheme() == 'file':
-				pass
+		#Retrieve the files sent if it is a video and then proceed to move them to the correct folder
+		elif self.beamUri.getScheme() == 'content':
+			self.beamFile = self.handleContentUri(self.beamUri)
 
-			#Retrieve the files sent if it is a video and then proceed to move them to the correct folder
-			elif self.beamUri.getScheme() == 'content':
-				self.beamFile = self.handleContentUri(self.beamUri)
+			self.parentFile = self.beamFile.getParentFile()
 
-				self.parentFile = self.beamFile.getParentFile()
+			#If several files (video and torrent) were sent
+			if not self.parentFile.getName() == 'beam':
 				self.files = self.parentFile.listFiles()
 
 				for f in self.files:
@@ -49,14 +58,17 @@ class FileReceiver(PythonJavaClass):
 						torrentFile = File(globalvars.torrentFolder, f.getName())
 						if torrentFile.exists():
 							torrentFile.delete()
+
 						print 'to Torrents as'
 						print torrentFile.getAbsolutePath()
 						print f.renameTo(torrentFile)
 						globalvars.scanner.addScanFile(torrentFile)
+
 					else:
 						videoFile = File(globalvars.videoFolder, f.getName())
 						if videoFile.exists():
 							videoFile.delete()
+
 						print 'to Videos as'
 						print videoFile.getAbsolutePath()
 						print f.renameTo(videoFile)
@@ -64,10 +76,21 @@ class FileReceiver(PythonJavaClass):
 
 				print 'Delete folder'
 				print self.parentFile.delete()
-
-				#Scan the new file changes
 				globalvars.scanner.addScanFile(self.parentFile)
-				globalvars.scanner.scanFiles()
+
+			#Else scan a single video
+			else:
+				videoFile = File(globalvars.videoFolder, self.beamFile.getName())
+				if videoFile.exists():
+					videoFile.delete()
+
+				print 'to Videos as'
+				print videoFile.getAbsolutePath()
+				print self.beamFile.renameTo(videoFile)
+				globalvars.scanner.addScanFile(videoFile)
+				globalvars.scanner.addScanFile(self.beamFile)
+
+			globalvars.scanner.scanFiles()
 
 	#Method that retrieves the sent video file from the MediaStore provider
 	def handleContentUri(self, uri):
