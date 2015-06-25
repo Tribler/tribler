@@ -66,8 +66,8 @@ class FileWidget(RelativeLayout):
 			self.setName(torrentname)
 		if uri is not None:
 			self.setUri(uri)
-		if self._check_torrent_made() and globalvars.triblerfun:
-			self._start_tribler()
+		if not self._check_torrent_made() and globalvars.triblerfun:
+			threading.Thread(target=self._create_torrent).start()
 
 	def setName(self, nom):
 		assert nom is not None
@@ -101,8 +101,15 @@ class FileWidget(RelativeLayout):
 			globalvars.nfcCallback.addUris(self.uri)
 			if self._check_torrent_made():
 				globalvars.nfcCallback.addUris(self.uri + ".torrent")
-				if globalvars.triblerfun:
-					self._start_tribler()
+
+	def toggle_seed(self, state):
+		"""Start and stop seeding with Tribler"""
+		Logger.info("Toggle seeding")
+		if globalvars.triblerfun and self._check_torrent_made():
+			if state == 'normal':
+				self._start_tribler()
+			else:
+				self._stop_tribler()
 
 	#Android's Bitmaps are in ARGB format, while kivy expects RGBA.
 	#This function swaps the bytes to their appropriate locations
@@ -198,15 +205,15 @@ class FileWidget(RelativeLayout):
 		os.remove(self.uri)
 		os.remove(self.ids.img.source)
 
-	def copy_magnet_link(self):
+	def share_magnet_link(self):
 		if self._check_torrent_made() and globalvars.triblerfun:
 			sess = globalvars.skelly.tw.get_session_mgr().get_session()
 			magnet = sess.get_download(self.tdef.infohash).get_magnet_link()
 			if magnet is not None:
 				android.action_send('text/plain', text=magnet)
-		elif not self.creating and globalvars.triblerfun:
-			self.creating = True
-			threading.Thread(target=self._create_torrent).start()
+		else:
+			# Show error that magnet is not yet ready?
+			pass
 
 	def _check_torrent_made(self):
 		""" Check if a .torrent exists for this file and if it does, import
@@ -292,5 +299,3 @@ class FileTripleDot(RelativeLayout):
 			self.y = self.target.height - self.ids.buttons.height - self.ids.container.padding[1]-self.ids.container.padding[3]
 	def close(self):
 		self.target.remove_widget(self)
-
-	

@@ -175,7 +175,7 @@
 						background_color: 0.6,0.6,0.6,1
 						background_normal: ''
 						id: editBut
-						on_release: root.copy_magnet_link()
+						on_release: root.share_magnet_link()
 						BoxLayout:
 							pos: self.parent.pos
 							size: self.parent.size
@@ -230,7 +230,7 @@
 					#background_normal: ''
 					border: 15, 15, 15, 15
 					id:nfc_toggler
-					on_state: root.owner.toggle_nfc(self.state) 
+					on_state: root.owner.toggle_nfc(self.state)
 					BoxLayout:
 						size: self.parent.size
 						pos: self.parent.pos
@@ -246,8 +246,8 @@
 					background_color: 1,.75,.75,1
 					#background_normal: ''
 					border: 15, 15, 15, 15
-					id:nfc_toggler
-					on_state: root.owner.toggle_nfc(self.state) 
+					id: seed_toggle
+					on_state: root.owner.toggle_seed(self.state)
 					BoxLayout:
 						size: self.parent.size
 						pos: self.parent.pos
@@ -256,14 +256,14 @@
 							size_hint: None, 1
 							width: '0.5cm'
 						Label:
-							text: 'Upload Video'
+							text: 'Seed Video'
 							halign: 'left'
 				Button:
 					background_color: 1,.75,.75,1
 					#background_normal: ''
 					border: 15, 15, 15, 15
-					id:nfc_toggler
-					on_state: root.owner.toggle_nfc(self.state) 
+					id: share_magnet
+					on_state: root.owner.share_magnet_link()
 					BoxLayout:
 						size: self.parent.size
 						pos: self.parent.pos
@@ -278,11 +278,11 @@
 					background_color: 1,.75,.75,1
 					#background_normal: ''
 					id: editBut
-					on_release: root.owner.copy_magnet_link()
+					on_release: root.owner.share_magnet_link()
 					BoxLayout:
 						pos: self.parent.pos
 						size: self.parent.size
-						Image: 
+						Image:
 							source: 'img/ic_edit_white_48dp.png'
 							size_hint: None, 1
 							width: '0.5cm'
@@ -297,7 +297,7 @@
 					BoxLayout:
 						pos: self.parent.pos
 						size: self.parent.size
-						Image: 
+						Image:
 							source: 'img/ic_delete_white_48dp.png'
 							size_hint: None, 1
 							width: '0.5cm'
