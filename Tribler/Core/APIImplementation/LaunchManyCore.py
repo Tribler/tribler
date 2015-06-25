@@ -637,10 +637,6 @@ class TriblerLaunchMany(object):
             self.tracker_manager.shutdown()
             self.tracker_manager = None
 
-        if self.torrent_store is not None:
-            self.torrent_store.close()
-            self.torrent_store = None
-
         if self.dispersy:
             self._logger.info("lmc: Shutting down Dispersy...")
             now = timemod.time()
@@ -683,6 +679,10 @@ class TriblerLaunchMany(object):
             from Tribler.Core.DecentralizedTracking import mainlineDHT
             mainlineDHT.deinit(self.mainline_dht)
             self.mainline_dht = None
+
+        if self.torrent_store is not None:
+            self.torrent_store.close()
+            self.torrent_store = None
 
     def network_shutdown(self):
         try:

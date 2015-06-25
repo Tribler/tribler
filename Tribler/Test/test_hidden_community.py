@@ -20,7 +20,7 @@ class TestHiddenCommunity(TestTunnelBase):
         def take_screenshot(download_time):
             self.screenshot("After libtorrent download over hidden services (took %.2f s)" % download_time)
             self.guiUtility.ShowPage('networkgraph')
-            self.Call(1, take_second_screenshot)
+            self.callLater(1, take_second_screenshot)
 
         def on_fail(expected, reason, do_assert):
             dispersy = self.session.lm.dispersy
@@ -36,7 +36,7 @@ class TestHiddenCommunity(TestTunnelBase):
                 self.assert_(expected, reason, do_assert)
                 self.quit()
 
-            self.Call(1, do_asserts)
+            self.callLater(1, do_asserts)
 
         def do_progress(download, start_time):
             self.CallConditional(40,
@@ -81,7 +81,7 @@ class TestHiddenCommunity(TestTunnelBase):
                 community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb_dht, bt_port=port)
             for community in tunnel_communities:
                 community.dht_announce = lambda ih, com = community: dht_announce(ih, com)
-            self.CallConditional(30, dht.is_set, lambda: self.Call(5, lambda: start_download(tf)),
+            self.CallConditional(30, dht.is_set, lambda: self.callLater(5, lambda: start_download(tf)),
                                  'Introduction point did not get announced')
 
         self.startTest(setup_seeder, bypass_dht=True)
@@ -95,7 +95,7 @@ class TestHiddenCommunity(TestTunnelBase):
             self.screenshot("After libtorrent download with hidden services over exitnodes (took %.2f s)" %
                             download_time)
             self.guiUtility.ShowPage('networkgraph')
-            self.Call(1, take_second_screenshot)
+            self.callLater(1, take_second_screenshot)
 
         def on_fail(expected, reason, do_assert):
             dispersy = self.session.lm.dispersy
@@ -111,7 +111,7 @@ class TestHiddenCommunity(TestTunnelBase):
                 self.assert_(expected, reason, do_assert)
                 self.quit()
 
-            self.Call(1, do_asserts)
+            self.callLater(1, do_asserts)
 
         def do_progress(d, start_time):
             # Check for progress from both seeders
@@ -139,7 +139,7 @@ class TestHiddenCommunity(TestTunnelBase):
             download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=1)
 
             # Inject IP of the 2nd seeder so that the download starts using both hidden services & exit tunnels
-            self.Call(15, lambda: download.add_peer(("127.0.0.1", self.sessions[1].get_listen_port())))
+            self.callLater(15, lambda: download.add_peer(("127.0.0.1", self.sessions[1].get_listen_port())))
 
             self.guiUtility.ShowPage('my_files')
             do_progress(download, start_time)
@@ -177,7 +177,7 @@ class TestHiddenCommunity(TestTunnelBase):
                 community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb_dht, bt_port=port)
             for community in tunnel_communities:
                 community.dht_announce = lambda ih, com = community: dht_announce(ih, com)
-            self.CallConditional(90, dht.is_set, lambda: self.Call(5, lambda: start_download(tf)),
+            self.CallConditional(90, dht.is_set, lambda: self.callLater(5, lambda: start_download(tf)),
                                  'Introduction point did not get announced')
 
         self.startTest(setup_seeder, bypass_dht=True)

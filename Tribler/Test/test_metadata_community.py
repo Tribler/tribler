@@ -42,7 +42,7 @@ class TestMetadataCommunity(TestGuiAsServer):
                                 videoinfo_dict['duration'] == 6)
 
                 return videoinfo_valid and swiftthumbnails_valid
-            self.CallConditional(10, check_for_modifications, lambda: self.Call(
+            self.CallConditional(10, check_for_modifications, lambda: self.callLater(
                 5, do_overview), 'No valid channel modifications received')
 
         def do_thumbnails(torrentfilename):
@@ -55,7 +55,7 @@ class TestMetadataCommunity(TestGuiAsServer):
             download = self.guiUtility.frame.startDownload(torrentfilename=torrentfilename, destdir=self.getDestDir())
 
             self.guiUtility.ShowPage('my_files')
-            self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
+            self.callLater(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
             self.CallConditional(10, lambda: download.get_progress() == 1.0, lambda:
                                  do_thumbnails(torrentfilename), 'Failed to download torrent in time')
 

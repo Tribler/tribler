@@ -54,7 +54,7 @@ class TestTunnelCommunityPositive(TestTunnelBase):
         def take_screenshot(download_time):
             self.screenshot("After an anonymous libtorrent download (took %.2f s)" % download_time)
             self.guiUtility.ShowPage('networkgraph')
-            self.Call(1, take_second_screenshot)
+            self.callLater(1, take_second_screenshot)
 
         def on_fail(expected, reason, do_assert):
             dispersy = self.session.lm.dispersy
@@ -69,7 +69,7 @@ class TestTunnelCommunityPositive(TestTunnelBase):
                              False)
                 self.assert_(expected, reason, do_assert)
 
-            self.Call(1, do_asserts)
+            self.callLater(1, do_asserts)
 
         def do_progress(download, start_time):
             self.CallConditional(40,
@@ -86,7 +86,7 @@ class TestTunnelCommunityPositive(TestTunnelBase):
             download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=2)
 
             self.guiUtility.ShowPage('my_files')
-            self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
+            self.callLater(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
 
             do_progress(download, start_time)
 

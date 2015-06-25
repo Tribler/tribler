@@ -6,6 +6,7 @@
 .ropeproject
 /*.log
 /.Tribler
+/.coverage
 /.dir-locals.el
 /.gdb_history
 /.noseids

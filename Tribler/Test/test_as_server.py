@@ -248,13 +248,13 @@ class TestAsServer(AbstractServer):
         self.quitting = False
         callback()
 
-    def Call(self, seconds, callback):
+    def callLater(self, seconds, callback):
         if not self.quitting:
             if seconds:
                 time.sleep(seconds)
             callback()
 
-    def CallConditional(self, timeout, condition, callback, assertMsg=None, assertCallback=None,
+    def CallConditional(self, timeout, condition, callback, assert_message=None, assert_callback=None,
                         tribler_session=None, dump_statistics=False):
         t = time.time()
 
@@ -271,26 +271,26 @@ class TestAsServer(AbstractServer):
                                                test_id, time.time() - t, callback.__name__)
                             callback()
                         else:
-                            self.Call(0.5, DoCheck)
+                            self.callLater(0.5, DoCheck)
 
                     except:
                         print_exc()
                         self.assert_(False, '%s - Condition or callback raised an exception, quitting (%s)' %
-                                     (test_id, assertMsg or "no-assert-msg"), do_assert=False)
+                                     (test_id, assert_message or "no-assert-msg"), do_assert=False)
                 else:
                     self._logger.debug("%s - %s, condition was not satisfied in %d seconds (%s)",
                                        test_id,
-                                       ('calling callback' if assertCallback else 'quitting'),
+                                       ('calling callback' if assert_callback else 'quitting'),
                                        timeout,
-                                       assertMsg or "no-assert-msg")
-                    assertcall = assertCallback if assertCallback else self.assert_
+                                       assert_message or "no-assert-msg")
+                    assertcall = assert_callback if assert_callback else self.assert_
                     kwargs = {}
                     if assertcall == self.assert_:
                         kwargs = {'tribler_session': tribler_session, 'dump_statistics': dump_statistics}
 
                     assertcall(False, "%s - %s - Condition was not satisfied in %d seconds" %
-                               (test_id, assertMsg, timeout), do_assert=False, **kwargs)
-        self.Call(0, DoCheck)
+                               (test_id, assert_message, timeout), do_assert=False, **kwargs)
+        self.callLater(0, DoCheck)
 
     def quit(self):
         self.quitting = True
@@ -336,7 +336,7 @@ class TestGuiAsServer(TestAsServer):
             if do_assert:
                 assert boolean, reason
 
-    def startTest(self, callback, min_timeout=5, autoload_discovery=True,
+    def startTest(self, callback, min_callback_delay=5, autoload_discovery=True,
                   use_torrent_search=True, use_channel_search=True):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
         from Tribler.Main import tribler_main
@@ -346,11 +346,13 @@ class TestGuiAsServer(TestAsServer):
         starttime = time.time()
 
         def call_callback():
-            took = time.time() - starttime
-            if took > min_timeout:
+            # If at least min_callback_delay seconds have passed, call the
+            # callback, else schedule it's call for when that happens.
+            time_elapsed = time.time() - starttime
+            if time_elapsed > min_callback_delay:
                 callback()
             else:
-                self.Call(min_timeout - took, callback)
+                self.callLater(min_callback_delay - time_elapsed, callback)
 
         def wait_for_frame():
             self._logger.debug("GUIUtility ready, starting to wait for frame to be ready")
@@ -385,7 +387,7 @@ class TestGuiAsServer(TestAsServer):
 
         assert self.hadSession, 'Did not even create a session'
 
-    def Call(self, seconds, callback):
+    def callLater(self, seconds, callback):
         if not self.quitting:
             if seconds:
                 wx.CallLater(seconds * 1000, callback)
@@ -413,9 +415,9 @@ class TestGuiAsServer(TestAsServer):
                 self.app.ExitMainLoop()
                 wx.WakeUpMainThread()
 
-            self.Call(1, close_dialogs)
-            self.Call(2, do_quit)
-            self.Call(3, self.app.Exit)
+            self.callLater(1, close_dialogs)
+            self.callLater(2, do_quit)
+            self.callLater(3, self.app.Exit)
 
         self.quitting = True
 

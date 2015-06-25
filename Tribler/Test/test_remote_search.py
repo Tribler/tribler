@@ -13,7 +13,7 @@ class BaseRemoteTest(TestGuiAsServer):
                 self._logger.debug("Frame ready, starting to wait for search to be ready")
                 self.CallConditional(300, lambda: self.frame.SRstatusbar.GetConnections() > 0.75, callback,
                                      'did not connect to 75% of expected peers within 300s',
-                                     assertCallback=lambda *argv, **kwarg: callback())
+                                     assert_callback=lambda *argv, **kwarg: callback())
             super(BaseRemoteTest, self).startTest(wait_for_search)
 
         else:
@@ -21,7 +21,7 @@ class BaseRemoteTest(TestGuiAsServer):
                 self._logger.debug("Frame ready, starting to wait for channelsearch to be ready")
                 self.CallConditional(300, lambda: self.frame.SRstatusbar.GetChannelConnections() > 10, callback,
                                      'did not connect to more than 10 peers within 300s',
-                                     assertCallback=lambda *argv, **kwarg: callback())
+                                     assert_callback=lambda *argv, **kwarg: callback())
             super(BaseRemoteTest, self).startTest(wait_for_chansearch,
                                                   use_torrent_search=use_torrent_search,
                                                   use_channel_search=use_channel_search)
@@ -43,7 +43,7 @@ class TestRemoteTorrentSearch(BaseRemoteTest):
         def do_search():
             self.guiUtility.toggleFamilyFilter(newState=False, setCheck=True)
             self.guiUtility.dosearch(u'mp3')
-            self.Call(10, do_assert)
+            self.callLater(10, do_assert)
 
         self.startTest(do_search, use_torrent_search=True, use_channel_search=False)
 
@@ -74,12 +74,12 @@ class TestRemoteChannelSearch(BaseRemoteTest):
                 self.assert_(False, 'could not find ChannelListItem',
                              tribler_session=self.guiUtility.utility.session, dump_statistics=True)
 
-            self.Call(10, do_assert)
+            self.callLater(10, do_assert)
 
         def do_search():
             self.guiUtility.toggleFamilyFilter(newState=False, setCheck=True)
             self.guiUtility.dosearch(u'tv')
-            self.Call(15, do_doubleclick)
+            self.callLater(15, do_doubleclick)
 
         self.startTest(do_search, search_community=False, use_torrent_search=False, use_channel_search=True)
 
@@ -104,7 +104,7 @@ class TestMixedRemoteSearch(BaseRemoteTest):
         def do_search():
             self.guiUtility.toggleFamilyFilter(True)
             self.guiUtility.dosearch(u'xxx')
-            self.Call(10, do_assert)
+            self.callLater(10, do_assert)
 
         self.startTest(do_search)
 
@@ -132,7 +132,7 @@ class TestMixedRemoteSearch(BaseRemoteTest):
             keys = items.keys()
 
             self.frame.searchlist.Select(keys[0])
-            self.Call(5, do_download)
+            self.callLater(5, do_download)
 
         def do_filter():
             self.assert_(self.frame.searchlist.GetNrResults() > 0, 'no hits matching ubuntu + desktop',
@@ -140,11 +140,11 @@ class TestMixedRemoteSearch(BaseRemoteTest):
             self.screenshot('After doing ubuntu search, got %d results' % self.frame.searchlist.GetNrResults())
             self.frame.searchlist.GotFilter('desktop')
 
-            self.Call(5, do_select)
+            self.callLater(5, do_select)
 
         def do_search():
             self.guiUtility.toggleFamilyFilter(newState=False, setCheck=True)
             self.guiUtility.dosearch(u'ubuntu')
-            self.Call(10, do_filter)
+            self.callLater(10, do_filter)
 
         self.startTest(do_search)

@@ -26,7 +26,7 @@ class TestTunnelCommunityNegative(TestTunnelBase):
 
         def check_progress(download, start_time):
             lastprogress = download.get_progress()
-            self.Call(10, lambda d=download, lp=lastprogress: compare_progress(lp, d))
+            self.callLater(10, lambda d=download, lp=lastprogress: compare_progress(lp, d))
 
         def do_create_local_torrent(tunnel_communities):
             tf = self.setupSeeder()
@@ -34,9 +34,9 @@ class TestTunnelCommunityNegative(TestTunnelBase):
             download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=2)
 
             self.guiUtility.ShowPage('my_files')
-            self.Call(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
-            self.Call(20, lambda: changed_my_mind(tunnel_communities))
-            self.Call(40, lambda d=download, s=start_time: check_progress(d, s))
+            self.callLater(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
+            self.callLater(20, lambda: changed_my_mind(tunnel_communities))
+            self.callLater(40, lambda d=download, s=start_time: check_progress(d, s))
 
         self.startTest(do_create_local_torrent)
 
@@ -48,7 +48,7 @@ class TestTunnelCommunityNegative(TestTunnelBase):
         def take_screenshot(download_time):
             self.screenshot("After an anonymous libtorrent download without relays")
             self.guiUtility.ShowPage('networkgraph')
-            self.Call(1, take_second_screenshot)
+            self.callLater(1, take_second_screenshot)
 
         def on_success(download, start_time):
             take_screenshot(time.time() - start_time)
@@ -66,7 +66,7 @@ class TestTunnelCommunityNegative(TestTunnelBase):
                              False)
                 self.assert_(expected, reason, do_assert)
 
-            self.Call(1, do_asserts)
+            self.callLater(1, do_asserts)
 
         def check_progress(download, start_time):
             self.CallConditional(1,
@@ -81,8 +81,8 @@ class TestTunnelCommunityNegative(TestTunnelBase):
             download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=2)
 
             self.guiUtility.ShowPage('my_files')
-            self.Call(2, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
-            self.Call(30, lambda: check_progress(download, start_time))
+            self.callLater(2, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
+            self.callLater(30, lambda: check_progress(download, start_time))
 
         self.startTest(do_create_local_torrent, nr_exitnodes=5, nr_relays=0)
 
@@ -94,7 +94,7 @@ class TestTunnelCommunityNegative(TestTunnelBase):
         def take_screenshot(download_time):
             self.screenshot("After an anonymous libtorrent download without exitnodes")
             self.guiUtility.ShowPage('networkgraph')
-            self.Call(1, take_second_screenshot)
+            self.callLater(1, take_second_screenshot)
 
         def on_success(download, start_time):
             take_screenshot(time.time() - start_time)
@@ -112,7 +112,7 @@ class TestTunnelCommunityNegative(TestTunnelBase):
                              False)
                 self.assert_(expected, reason, do_assert)
 
-            self.Call(1, do_asserts)
+            self.callLater(1, do_asserts)
 
         def check_progress(download, start_time):
             self.CallConditional(1,
@@ -127,7 +127,7 @@ class TestTunnelCommunityNegative(TestTunnelBase):
             download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=2)
 
             self.guiUtility.ShowPage('my_files')
-            self.Call(2, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
-            self.Call(30, lambda: check_progress(download, start_time))
+            self.callLater(2, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
+            self.callLater(30, lambda: check_progress(download, start_time))
 
         self.startTest(do_create_local_torrent, nr_exitnodes=0, nr_relays=5)

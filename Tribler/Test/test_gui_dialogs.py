@@ -46,13 +46,13 @@ class TestGuiDialogs(TestGuiAsServer):
             dialog.EndModal(wx.ID_CANCEL)
 
             self.assert_(saved_event.is_set(), 'did not save dialog')
-            self.Call(1, self.quit)
+            self.callLater(1, self.quit)
 
         def do_settings():
-            self.Call(5, do_assert)
+            self.callLater(5, do_assert)
             self.frame.top_bg.OnSettings(None)
 
-        self.startTest(do_settings, min_timeout=2)
+        self.startTest(do_settings, min_callback_delay=2)
 
     def test_remove_dialog(self):
         infohash = binascii.unhexlify('66ED7F30E3B30FA647ABAA19A36E7503AA071535')
@@ -62,11 +62,11 @@ class TestGuiDialogs(TestGuiAsServer):
             self.assert_(isinstance(dialog, RemoveTorrent), 'could not find RemoveTorrent')
 
             self.screenshot('Screenshot of RemoveTorrent', window=dialog)
-            self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
-            self.Call(2, self.quit)
+            self.callLater(1, lambda: dialog.EndModal(wx.ID_CANCEL))
+            self.callLater(2, self.quit)
 
         def item_shown_in_list():
-            self.Call(1, do_assert)
+            self.callLater(1, do_assert)
             self.frame.librarylist.Select(infohash)
             self.frame.top_bg.OnDelete()
 
@@ -89,22 +89,22 @@ class TestGuiDialogs(TestGuiAsServer):
             self.assert_(isinstance(dialog, SaveAs), 'could not find SaveAs')
 
             self.screenshot('Screenshot of SaveAs', window=dialog)
-            self.Call(1, lambda: dialog and dialog.EndModal(wx.ID_CANCEL))
-            self.Call(2, lambda: add_dialog and add_dialog.EndModal(wx.ID_CANCEL))
-            self.Call(3, self.quit)
+            self.callLater(1, lambda: dialog and dialog.EndModal(wx.ID_CANCEL))
+            self.callLater(2, lambda: add_dialog and add_dialog.EndModal(wx.ID_CANCEL))
+            self.callLater(3, self.quit)
 
         def do_save_dialog():
             dialog = wx.FindWindowByName('AddTorrentDialog')
             self.assert_(isinstance(dialog, AddTorrent), 'could not find AddTorrent')
 
-            self.Call(1, lambda: do_assert(dialog))
+            self.callLater(1, lambda: do_assert(dialog))
             dialog.magnet.SetValue(r'http://torrent.fedoraproject.org/torrents/Fedora-20-i386-DVD.torrent')
             dialog.OnAdd(None)
 
         def do_add_dialog():
             self.guiUtility.utility.write_config('showsaveas', 1)
 
-            self.Call(1, do_save_dialog)
+            self.callLater(1, do_save_dialog)
             self.frame.top_bg.OnAdd(None)
 
         self.startTest(do_add_dialog)
@@ -115,18 +115,18 @@ class TestGuiDialogs(TestGuiAsServer):
             self.assert_(isinstance(dialog, wx.Dialog), 'could not find FeedbackWindow')
 
             self.screenshot('Screenshot of FeedbackWindow', window=dialog)
-            self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
-            self.Call(2, self.quit)
+            self.callLater(1, lambda: dialog.EndModal(wx.ID_CANCEL))
+            self.callLater(2, self.quit)
 
         def do_error():
-            self.Call(1, do_assert)
+            self.callLater(1, do_assert)
             try:
                 raise RuntimeError("Unit-testing")
 
             except Exception, e:
                 self.guiUtility.utility.app.onError(e)
 
-        self.startTest(do_error, min_timeout=10)
+        self.startTest(do_error, min_callback_delay=10)
 
     def test_add_save_create_dialog(self):
         def do_assert_create(add_dialog):
@@ -134,12 +134,12 @@ class TestGuiDialogs(TestGuiAsServer):
             self.assert_(isinstance(dialog, CreateTorrentDialog), 'could not find CreateTorrent')
 
             self.screenshot('Screenshot of CreateTorrent', window=dialog)
-            self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
-            self.Call(2, lambda: add_dialog.EndModal(wx.ID_CANCEL))
-            self.Call(3, self.quit)
+            self.callLater(1, lambda: dialog.EndModal(wx.ID_CANCEL))
+            self.callLater(2, lambda: add_dialog.EndModal(wx.ID_CANCEL))
+            self.callLater(3, self.quit)
 
         def do_assert_add():
-            self.Call(1, lambda: do_assert_create(dialog))
+            self.callLater(1, lambda: do_assert_create(dialog))
 
             dialog = wx.FindWindowByName('AddTorrentDialog')
             self.assert_(isinstance(dialog, AddTorrent), 'could not find AddTorrent')
@@ -148,7 +148,7 @@ class TestGuiDialogs(TestGuiAsServer):
             dialog.OnCreate(None)
 
         def do_add_dialog():
-            self.Call(1, do_assert_add)
+            self.callLater(1, do_assert_add)
 
             managefiles = self.managechannel.fileslist
             managefiles.OnAdd(None)
@@ -172,7 +172,7 @@ class TestGuiDialogs(TestGuiAsServer):
             dispersy._endpoint.open(dispersy)
 
             self.guiUtility.ShowPage('mychannel')
-            self.Call(1, do_create)
+            self.callLater(1, do_create)
 
         self.startTest(disable_dispersy)
 
@@ -182,13 +182,13 @@ class TestGuiDialogs(TestGuiAsServer):
             self.assert_(isinstance(dialog, ConfirmationDialog), 'could not find ConfirmationDialog')
 
             self.screenshot('Screenshot of ConfirmationDialog', window=dialog)
-            self.Call(1, lambda: dialog.EndModal(wx.ID_CANCEL))
-            self.Call(2, self.quit)
+            self.callLater(1, lambda: dialog.EndModal(wx.ID_CANCEL))
+            self.callLater(2, self.quit)
 
         def do_mark(item):
             self.assert_(isinstance(item, ChannelListItem), 'do_mark called without a ChannelListItem')
 
-            self.Call(10, do_assert)
+            self.callLater(10, do_assert)
             self.guiUtility.MarkAsFavorite(None, item.original_data)
 
         def do_favorite():
@@ -208,7 +208,7 @@ class TestGuiDialogs(TestGuiAsServer):
                 do_mark(items.itervalues().next())
             else:
                 self.guiUtility.dosearch(u'mp3')
-                self.Call(10, do_favorite)
+                self.callLater(10, do_favorite)
 
         def wait_for_channel():
             def has_connections_or_channel():
@@ -229,8 +229,8 @@ class TestGuiDialogs(TestGuiAsServer):
         def do_screenshot(dialog):
             self.screenshot('Screenshot of DispersyDebugFrame', window=dialog)
 
-            self.Call(1, dialog.Destroy)
-            self.Call(2, self.quit)
+            self.callLater(1, dialog.Destroy)
+            self.callLater(2, self.quit)
 
         def do_screenshot_tab():
             dialog = wx.FindWindowByName('DispersyDebugFrame')
@@ -239,13 +239,13 @@ class TestGuiDialogs(TestGuiAsServer):
             self.screenshot('Screenshot of DispersyDebugFrame', window=dialog)
 
             dialog.SwitchTab(1)
-            self.Call(1, lambda: do_screenshot(dialog))
+            self.callLater(1, lambda: do_screenshot(dialog))
 
         def do_error():
             self.frame.OnOpenDebugFrame()
-            self.Call(20, do_screenshot_tab)
+            self.callLater(20, do_screenshot_tab)
 
-        self.startTest(do_error, min_timeout=5)
+        self.startTest(do_error, min_callback_delay=5)
 
 if __name__ == "__main__":
     unittest.main()
