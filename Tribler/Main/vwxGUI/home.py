@@ -737,10 +737,14 @@ class NetworkGraphPanel(wx.Panel):
         self.graph_panel.Refresh()
 
     def AppendToLog(self, msg):
+        if not self:
+            return
         self.log_text.AppendText('[%s]: %s' % (datetime.datetime.now().strftime("%H:%M:%S"), msg))
 
     @forceWxThread
     def OnExtended(self, subject, changeType, circuit):
+        if not self:
+            return
         if changeType == NTFY_CREATED:
             self.AppendToLog("Created circuit %s\n" % (circuit.circuit_id))
         if changeType == NTFY_EXTENDED:
@@ -750,14 +754,20 @@ class NetworkGraphPanel(wx.Panel):
 
     @forceWxThread
     def OnSelect(self, subject, changeType, circuit, address):
+        if not self:
+            return
         self.AppendToLog("Circuit %d has been selected for destination %s\n" % (circuit, address))
 
     @forceWxThread
     def OnJoined(self, subject, changeType, address, circuit_id):
+        if not self:
+            return
         self.AppendToLog("Joined an external circuit %d with %s:%d\n" % (circuit_id, address[0], address[1]))
 
     @forceWxThread
     def OnExtendedFor(self, subject, changeType, extended_for, extended_with):
+        if not self:
+            return
         self.AppendToLog("Extended an external circuit (%s:%d, %d) with (%s:%d, %d)\n" % (
             extended_for[0].sock_addr[0], extended_for[0].sock_addr[1], extended_for[1], extended_with[0].sock_addr[0],
             extended_with[0].sock_addr[1], extended_with[1]))
