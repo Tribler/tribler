@@ -108,7 +108,7 @@ class FileWidget(RelativeLayout):
 		if globalvars.triblerfun and self._check_torrent_made():
 			if state == 'normal':
 				self._start_tribler()
-			else:
+			elif state == 'down':
 				self._stop_tribler()
 
 	#Android's Bitmaps are in ARGB format, while kivy expects RGBA.
