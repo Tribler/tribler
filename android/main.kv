@@ -223,21 +223,89 @@
 				on_touch_up: root.close()
 				orientation:"vertical"
 				size_hint: None,None
-				width: '2cm'
-				height:'3cm'
+				width: '2.2cm'
+				height:'4cm'
+				ToggleButton:
+					background_color: 1,.75,.75,1
+					#background_normal: ''
+					border: 15, 15, 15, 15
+					id:nfc_toggler
+					on_state: root.owner.toggle_nfc(self.state) 
+					BoxLayout:
+						size: self.parent.size
+						pos: self.parent.pos
+						Image:
+							source: './img/ic_tap_and_play_white_48dp.png'
+							size_hint: None, 1
+							width: '0.5cm'
+						Label:
+							text: 'Beam this file'
+							halign: 'left'
+							#text_size: self.texture_size
 				Button:
-					text:'Test'
-					on_release:root.screen.AndroidTest()
+					background_color: 1,.75,.75,1
+					#background_normal: ''
+					border: 15, 15, 15, 15
+					id:nfc_toggler
+					on_state: root.owner.toggle_nfc(self.state) 
+					BoxLayout:
+						size: self.parent.size
+						pos: self.parent.pos
+						Image:
+							#source: './img/ic_tap_and_play_white_48dp.png'
+							size_hint: None, 1
+							width: '0.5cm'
+						Label:
+							text: 'Upload Video'
+							halign: 'left'
 				Button:
-					text: "Download"
-					on_release: app.swap_to(app.SearchScr)
-					background: None
+					background_color: 1,.75,.75,1
+					#background_normal: ''
+					border: 15, 15, 15, 15
+					id:nfc_toggler
+					on_state: root.owner.toggle_nfc(self.state) 
+					BoxLayout:
+						size: self.parent.size
+						pos: self.parent.pos
+						Image:
+							#source: './img/ic_tap_and_play_white_48dp.png'
+							size_hint: None, 1
+							width: '0.5cm'
+						Label:
+							text: 'Share magnet'
+							halign: 'left'
 				Button:
-					text: 'Add Video'
-					on_release: root.screen.addVideo()
+					background_color: 1,.75,.75,1
+					#background_normal: ''
+					id: editBut
+					on_release: root.owner.copy_magnet_link()
+					BoxLayout:
+						pos: self.parent.pos
+						size: self.parent.size
+						Image: 
+							source: 'img/ic_edit_white_48dp.png'
+							size_hint: None, 1
+							width: '0.5cm'
+						Label:
+							text: 'Rename Video'
+							halign: 'left'
 				Button:
-					text:'Cam Test'
-					on_release:app.swap_to(app.CamScr)
+					background_color: 1,.75,.75,1
+					#background_normal: ''
+					id: eraseBut
+					on_release: root.owner.delete()
+					BoxLayout:
+						pos: self.parent.pos
+						size: self.parent.size
+						Image: 
+							source: 'img/ic_delete_white_48dp.png'
+							size_hint: None, 1
+							width: '0.5cm'
+						Label:
+							text: 'Delete Video'
+							halign: 'left'
+				#share magnet
+				#create torrent / seed
 
 <SearchScreen>
 	BoxLayout:
