@@ -33,6 +33,7 @@ class TriblerSession(BaseManager):
     _dispersy = None
 
     _running = False
+    _stopping = False
 
     def get_session(self):
         """
@@ -158,21 +159,21 @@ class TriblerSession(BaseManager):
     def is_running(self):
         return self._running
 
+    @call_on_reactor_thread
     def stop_session(self):
         """
         Unloads the Tribler session.
         :return: Nothing.
         """
-        Logger.info("Create checkpoint..")
-        self._session.checkpoint()
+        if not self._stopping:
+            self._stopping = True
+            Logger.info("Shutting down Tribler..")
+            self._session.shutdown(checkpoint=True, gracetime=0.0, hacksessconfcheckpoint=False)
 
-        Logger.info("Shutting down Tribler..")
-        self._session.shutdown()
+            # Just a tad of extra time
+            time.sleep(2)
 
-        # Just a tad of extra time
-        time.sleep(1)
-
-        self._running = False
-        Logger.info("Bye bye")
+            self._running = False
+            Logger.info("Bye bye")
 
         return True
