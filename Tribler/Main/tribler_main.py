@@ -423,8 +423,6 @@ class ABCApp(object):
             if my_channel:
                 self.torrentfeed.register(self.utility.session, my_channel)
                 self.torrentfeed.addCallback(my_channel, self.guiUtility.channelsearch_manager.createTorrentFromDef)
-                # self.torrentfeed.addCallback(my_channel,
-                # self.guiUtility.torrentsearch_manager.createMetadataModificationFromDef)
 
         startWorker(wx_thread, db_thread, delay=5.0)
 
@@ -750,8 +748,6 @@ class ABCApp(object):
 
                     self.torrentfeed.register(self.utility.session, objectID)
                     self.torrentfeed.addCallback(objectID, self.guiUtility.channelsearch_manager.createTorrentFromDef)
-                    # self.torrentfeed.addCallback(objectID,
-                    # self.guiUtility.torrentsearch_manager.createMetadataModificationFromDef)
 
                 self.frame.managechannel.channelUpdated(
                     objectID,

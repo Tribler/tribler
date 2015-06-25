@@ -158,7 +158,6 @@ class TorrentManager(object):
                         dict['category'], dict['status'], dict['num_seeders'], dict['num_leechers'], None)
             t.torrent_db = self.torrent_db
             t.channelcast_db = self.channelcast_db
-            t.metadata_db = self.metadata_db
 
             # prefetching channel, metadata
             _ = t.channel
@@ -173,7 +172,6 @@ class TorrentManager(object):
             self.connected = True
             self.session = session
 
-            self.metadata_db = None
             self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
             self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
             self.votecastdb = session.open_dbhandler(NTFY_VOTECAST)
@@ -366,7 +364,6 @@ class TorrentManager(object):
 
                 t.torrent_db = self.torrent_db
                 t.channelcast_db = self.channelcast_db
-                t.metadata_db = self.metadata_db
                 t.assignRelevance(a[16])
                 return t
 
@@ -516,66 +513,29 @@ class TorrentManager(object):
         if self.gridmgr:
             self.gridmgr.refresh(remote)
 
-    @call_on_reactor_thread
-    def modifyTorrent(self, torrent, modifications):
-        # TODO: change this
-        for community in self.dispersy.get_communities():
-            from Tribler.community.metadata.community import MetadataCommunity
-            if isinstance(community, MetadataCommunity):
-                community.create_metadata_message(torrent.infohash, modifications)
-                break
-
-    def getTorrentModifications(self, torrent):
-        if not self.metadata_db:
-            return []
-
-        message_list = self.metadata_db.getMetadataMessageList(torrent.infohash, columns=("message_id",))
-        if not message_list:
-            return []
-
-        metadata_mod_list = []
-        for message_id, in message_list:
-            data_list = self.metadata_db.getMetadataData(message_id)
-            for key, value in data_list:
-                metadata_mod_list.append(MetadataModification(torrent, message_id, key, value))
-
-        return metadata_mod_list
-
-    def createMetadataModificationFromDef(self, channel_id, tdef, extraInfo={}, forward=True, guitorrent=None):
-        torrent = guitorrent if guitorrent else Torrent.fromTorrentDef(tdef)
-
-        modifications = []
-        for key, value in extraInfo.iteritems():
-            if key == 'thumbnail-file':
-                continue
-            modifications.append((key, value))
-
-        # handle the downloaded thumbnails
-        if extraInfo.get('thumbnail-file'):
-            self.guiUtility.torrentstate_manager.create_and_seed_metadata_thumbnail(extraInfo['thumbnail-file'],
-                                                                                    torrent, modifications)
-
-        return True
-
     def getThumbnailTorrents(self, limit=20):
+        # TODO(lipu): fix this to show front page pictures
+        return []
+
         result = []
-        if self.metadata_db:
-            for t in self.metadata_db.getThumbnailTorrents(TUMBNAILTORRENT_REQ_COLUMNS, limit=limit):
-                t = Torrent(*(list(t) + [None]))
-                t.torrent_db = self.torrent_db
-                result.append(t)
+        for t in self.metadata_db.getThumbnailTorrents(TUMBNAILTORRENT_REQ_COLUMNS, limit=limit):
+            t = Torrent(*(list(t) + [None]))
+            t.torrent_db = self.torrent_db
+            result.append(t)
 
         return result
 
     def getNotCollectedThumbnailTorrents(self, limit=20):
+        # TODO(lipu): fix this to show front page pictures
+        return []
         result = []
-        if self.metadata_db:
-            for t in self.metadata_db.getNotCollectedThumbnailTorrents(TUMBNAILTORRENT_REQ_COLUMNS, limit=limit):
-                if t[0] is None:
-                    continue
-                t = Torrent(*(list(t) + [None]))
-                t.torrent_db = self.torrent_db
-                result.append(t)
+
+        for t in self.metadata_db.getNotCollectedThumbnailTorrents(TUMBNAILTORRENT_REQ_COLUMNS, limit=limit):
+            if t[0] is None:
+                continue
+            t = Torrent(*(list(t) + [None]))
+            t.torrent_db = self.torrent_db
+            result.append(t)
 
         return result
 
