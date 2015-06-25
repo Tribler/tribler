@@ -101,9 +101,7 @@ class GUIUtility(object):
             self.torrentsearch_manager.connect(self.utility.session, self.library_manager, self.channelsearch_manager)
             self.channelsearch_manager.connect(self.utility.session, self.library_manager, self.torrentsearch_manager)
             self.library_manager.connect(self.utility.session, self.torrentsearch_manager, self.channelsearch_manager)
-            self.torrentstate_manager.connect(self.torrentsearch_manager,
-                                              self.library_manager,
-                                              self.channelsearch_manager)
+            self.torrentstate_manager.connect(self.torrentsearch_manager, self.library_manager)
 
             self.videoplayer = self.utility.session.lm.videoplayer
         else:
