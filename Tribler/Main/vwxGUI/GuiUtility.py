@@ -83,7 +83,7 @@ class GUIUtility(object):
                 GUIUtility.__single.listicon.delInstance()
                 GUIUtility.__single.library_manager = None
                 GUIUtility.__single.channelsearch_manager.delInstance()
-                GUIUtility.__single.torrentsearch_manager.delInstance()
+                GUIUtility.__single.torrentsearch_manager = None
                 GUIUtility.__single.torrentstate_manager = None
 
             GUIUtility.__single = None
@@ -93,7 +93,7 @@ class GUIUtility(object):
         if not self.registered:
             self.registered = True
 
-            self.torrentsearch_manager = TorrentManager.getInstance(self)
+            self.torrentsearch_manager = TorrentManager(self)
             self.channelsearch_manager = ChannelManager.getInstance()
             self.library_manager = LibraryManager(self)
             self.torrentstate_manager = TorrentStateManager(self.utility.session)

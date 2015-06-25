@@ -34,13 +34,8 @@ from Tribler.dispersy.util import call_on_reactor_thread
 
 
 class TorrentManager(object):
-    # Code to make this a singleton
-    __single = None
 
     def __init__(self, guiUtility):
-        if TorrentManager.__single:
-            raise RuntimeError("TorrentManager is singleton")
-
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.guiUtility = guiUtility
@@ -64,16 +59,6 @@ class TorrentManager(object):
         self.filteredResults = 0
 
         self.category = Category.getInstance()
-
-    def getInstance(*args, **kw):
-        if TorrentManager.__single is None:
-            TorrentManager.__single = TorrentManager(*args, **kw)
-        return TorrentManager.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        TorrentManager.__single = None
-    delInstance = staticmethod(delInstance)
 
     def downloadTorrentfileFromPeers(self, torrent, callback, duplicate=True, prio=0):
         """
