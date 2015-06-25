@@ -156,6 +156,9 @@ class Torrent(Helper):
     def metadata(self):
         self._logger.debug("Torrent: fetching metadata from DB %s", self)
 
+        if not self.metadata_db:
+            return {}
+
         metadata_result = self.metadata_db.getMetdataDateByInfohash(self.infohash)
         if metadata_result:
             metadata_dict = {}
@@ -716,16 +719,16 @@ class MetadataModification(Helper):
 
 
 class Modification(Helper):
-    __slots__ = ('id', 'dispersy_id', 'peer_id', 'type_id', 'value', 'time_stamp',
+    __slots__ = ('id', 'dispersy_id', 'peer_id', 'type', 'value', 'time_stamp',
                  'inserted', 'moderation', 'channeltorrent_id', 'channelcast_db', 'get_nickname')
 
-    def __init__(self, id, dispersy_id, peer_id, type_id, value, time_stamp, inserted, channeltorrent_id):
+    def __init__(self, id, dispersy_id, peer_id, type, value, time_stamp, inserted, channeltorrent_id):
         Helper.__init__(self)
 
         self.id = id
         self.dispersy_id = dispersy_id
         self.peer_id = peer_id
-        self.type_id = type_id
+        self.type = type
         self.value = value
         self.time_stamp = time_stamp
         self.inserted = inserted
@@ -733,9 +736,9 @@ class Modification(Helper):
 
         self.moderation = None
 
-    @cacheProperty
+    @property
     def name(self):
-        return self.channelcast_db.id2modification[self.type_id]
+        return self.type
 
     @cacheProperty
     def peer_name(self):

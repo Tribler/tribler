@@ -26,6 +26,9 @@ from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _
 logger = logging.getLogger(__name__)
 
 
+METADATA_TYPES = [u'name', u'description', u'swift-url', u'swift-thumbnails', u'video-info']
+
+
 def warnIfNotDispersyThread(func):
     def invoke_func(*args, **kwargs):
         if not isInIOThread():
@@ -58,8 +61,6 @@ class ChannelCommunity(Community):
         self._peer_db = None
         self._channelcast_db = None
 
-        self._modification_types = None
-
     def initialize(self, tribler_session=None):
         self.tribler_session = tribler_session
         self.integrate_with_tribler = tribler_session is not None
@@ -80,9 +81,6 @@ class ChannelCommunity(Community):
                  ))
             if result is not None:
                 self._channel_id, self._channel_name, self._channel_description = result
-
-            # modification_types
-            self._modification_types = self._channelcast_db.modification_types
 
         else:
             try:
@@ -627,8 +625,7 @@ class ChannelCommunity(Community):
         latest_modifications = {}
         for type, value in modifications.iteritems():
             type = unicode(type)
-            type_id = self._modification_types[type]
-            latest_modifications[type] = self._get_latest_modification_from_channel_id(type_id)
+            latest_modifications[type] = self._get_latest_modification_from_channel_id(type)
         modification_on_message = self._get_latest_channel_message()
 
         for type, value in modifications.iteritems():
@@ -644,8 +641,7 @@ class ChannelCommunity(Community):
         latest_modifications = {}
         for type, value in modifications.iteritems():
             type = unicode(type)
-            type_id = self._modification_types[type]
-            latest_modifications[type] = self._get_latest_modification_from_playlist_id(playlist_id, type_id)
+            latest_modifications[type] = self._get_latest_modification_from_playlist_id(playlist_id, type)
 
         modification_on_message = self._get_message_from_playlist_id(playlist_id)
         for type, value in modifications.iteritems():
@@ -661,9 +657,8 @@ class ChannelCommunity(Community):
         latest_modifications = {}
         for type, value in modifications.iteritems():
             type = unicode(type)
-            type_id = self._modification_types[type]
             try:
-                latest_modifications[type] = self._get_latest_modification_from_torrent_id(channeltorrent_id, type_id)
+                latest_modifications[type] = self._get_latest_modification_from_torrent_id(channeltorrent_id, type)
             except:
                 logger.error(exc_info=True)
 
@@ -761,8 +756,7 @@ class ChannelCommunity(Community):
                 mid_global_time = "%s@%d" % (message.authentication.member.mid, message.distribution.global_time)
 
                 modifying_dispersy_id = message.payload.modification_on.packet_id
-                modification_type = message.payload.modification_type
-                modification_type_id = self._modification_types[modification_type]
+                modification_type = unicode(message.payload.modification_type)
                 modification_value = message.payload.modification_value
                 timestamp = message.payload.timestamp
 
@@ -797,7 +791,7 @@ class ChannelCommunity(Community):
                                                                dispersy_id,
                                                                peer_id,
                                                                mid_global_time,
-                                                               modification_type_id,
+                                                               modification_type,
                                                                modification_value,
                                                                timestamp,
                                                                prev_modification_id,
@@ -808,8 +802,7 @@ class ChannelCommunity(Community):
                 message_name = message.payload.modification_on.name
 
                 modifying_dispersy_id = message.payload.modification_on.packet_id
-                modification_type = message.payload.modification_type
-                modification_type_id = self._modification_types[modification_type]
+                modification_type = unicode(message.payload.modification_type)
                 modification_value = message.payload.modification_value
 
                 # see if this is new information, if so call on_X_from_dispersy to update local 'cached' information
@@ -817,7 +810,7 @@ class ChannelCommunity(Community):
                     channeltorrent_id = channeltorrentDict[modifying_dispersy_id]
 
                     if channeltorrent_id:
-                        latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
+                        latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type)
                         if not latest or latest.packet_id == dispersy_id:
                             self._channelcast_db.on_torrent_modification_from_dispersy(
                                 channeltorrent_id, modification_type, modification_value)
@@ -825,13 +818,13 @@ class ChannelCommunity(Community):
                 elif message_name == u"playlist":
                     playlist_id = playlistDict[modifying_dispersy_id]
 
-                    latest = self._get_latest_modification_from_playlist_id(playlist_id, modification_type_id)
+                    latest = self._get_latest_modification_from_playlist_id(playlist_id, modification_type)
                     if not latest or latest.packet_id == dispersy_id:
                         self._channelcast_db.on_playlist_modification_from_dispersy(
                             playlist_id, modification_type, modification_value)
 
                 elif message_name == u"channel":
-                    latest = self._get_latest_modification_from_channel_id(modification_type_id)
+                    latest = self._get_latest_modification_from_channel_id(modification_type)
                     if not latest or latest.packet_id == dispersy_id:
                         self._channelcast_db.on_channel_modification_from_dispersy(
                             self._channel_id, modification_type, modification_value)
@@ -849,8 +842,7 @@ class ChannelCommunity(Community):
                 message = packet.load_message()
                 message_name = message.name
                 modifying_dispersy_id = message.payload.modification_on.packet_id
-                modification_type = message.payload.modification_type
-                modification_type_id = self._modification_types[modification_type]
+                modification_type = unicode(message.payload.modification_type)
 
                 # load local ids from database
                 playlist_id = channeltorrent_id = None
@@ -862,7 +854,7 @@ class ChannelCommunity(Community):
                 self._channelcast_db.on_remove_metadata_from_dispersy(self._channel_id, dispersy_id, redo)
 
                 if message_name == u"torrent":
-                    latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
+                    latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type)
 
                     if not latest or latest.packet_id == dispersy_id:
                         modification_value = latest.payload.modification_value if latest else ''
@@ -870,7 +862,7 @@ class ChannelCommunity(Community):
                             channeltorrent_id, modification_type, modification_value)
 
                 elif message_name == u"playlist":
-                    latest = self._get_latest_modification_from_playlist_id(playlist_id, modification_type_id)
+                    latest = self._get_latest_modification_from_playlist_id(playlist_id, modification_type)
 
                     if not latest or latest.packet_id == dispersy_id:
                         modification_value = latest.payload.modification_value if latest else ''
@@ -878,7 +870,7 @@ class ChannelCommunity(Community):
                             playlist_id, modification_type, modification_value)
 
                 elif message_name == u"channel":
-                    latest = self._get_latest_modification_from_channel_id(modification_type_id)
+                    latest = self._get_latest_modification_from_channel_id(modification_type)
 
                     if not latest or latest.packet_id == dispersy_id:
                         modification_value = latest.payload.modification_value if latest else ''
@@ -1006,10 +998,9 @@ class ChannelCommunity(Community):
                 modifying_dispersy_id = cause_message.payload.modification_on.packet_id
                 channeltorrent_id = self._get_torrent_id_from_message(modifying_dispersy_id)
                 if channeltorrent_id:
-                    modification_type = cause_message.payload.modification_type
-                    modification_type_id = self._modification_types[modification_type]
+                    modification_type = unicode(cause_message.payload.modification_type)
 
-                    latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
+                    latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type)
                     if not latest or latest.packet_id == cause_message.packet_id:
                         updateTorrent = True
 
@@ -1021,7 +1012,7 @@ class ChannelCommunity(Community):
                                                     message.payload.severity)
 
                 if updateTorrent:
-                    latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type_id)
+                    latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type)
 
                     modification_value = latest.payload.modification_value if latest else ''
                     self._channelcast_db.on_torrent_modification_from_dispersy(
@@ -1187,49 +1178,49 @@ class ChannelCommunity(Community):
 
         return self._channelcast_db._db.fetchone(u"SELECT id FROM _ChannelTorrents WHERE dispersy_id = ?", (dispersy_id,))
 
-    def _get_latest_modification_from_channel_id(self, type_id):
-        assert isinstance(type_id, (int, long)), "type_id type is '%s'" % type(type_id)
+    def _get_latest_modification_from_channel_id(self, type_name):
+        assert isinstance(type_name, basestring), "type_name is not a basestring: %s" % repr(type_name)
 
         # 1. get the dispersy identifier from the channel_id
         dispersy_ids = self._channelcast_db._db.fetchall(
             u"SELECT dispersy_id, prev_global_time " + \
-            u"FROM ChannelMetaData WHERE type_id = ? " + \
+            u"FROM ChannelMetaData WHERE type = ? " + \
             u"AND channel_id = ? " + \
             u"AND id NOT IN (SELECT metadata_id FROM MetaDataTorrent) " + \
             u"AND id NOT IN (SELECT metadata_id FROM MetaDataPlaylist) " + \
             u"AND dispersy_id not in (SELECT cause FROM Moderations " + \
             u"WHERE channel_id = ?) ORDER BY prev_global_time DESC",
-            (type_id, self._channel_id, self._channel_id))
+            (type_name, self._channel_id, self._channel_id))
         return self._determine_latest_modification(dispersy_ids)
 
-    def _get_latest_modification_from_torrent_id(self, channeltorrent_id, type_id):
+    def _get_latest_modification_from_torrent_id(self, channeltorrent_id, type_name):
         assert isinstance(channeltorrent_id, (int, long)), "channeltorrent_id type is '%s'" % type(channeltorrent_id)
-        assert isinstance(type_id, (int, long)), "type_id type is '%s'" % type(type_id)
+        assert isinstance(type_name, basestring), "type_name is not a basestring: %s" % repr(type_name)
 
         # 1. get the dispersy identifier from the channel_id
         dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time " + \
                                                          u"FROM ChannelMetaData, MetaDataTorrent " + \
                                                          u"WHERE ChannelMetaData.id = MetaDataTorrent.metadata_id " + \
-                                                         u"AND type_id = ? AND channeltorrent_id = ? " + \
+                                                         u"AND type = ? AND channeltorrent_id = ? " + \
                                                          u"AND dispersy_id not in " + \
                                                          u"(SELECT cause FROM Moderations WHERE channel_id = ?) " + \
                                                          u"ORDER BY prev_global_time DESC",
-            (type_id, channeltorrent_id, self._channel_id))
+            (type_name, channeltorrent_id, self._channel_id))
         return self._determine_latest_modification(dispersy_ids)
 
-    def _get_latest_modification_from_playlist_id(self, playlist_id, type_id):
+    def _get_latest_modification_from_playlist_id(self, playlist_id, type_name):
         assert isinstance(playlist_id, (int, long)), "playlist_id type is '%s'" % type(playlist_id)
-        assert isinstance(type_id, (int, long)), "type_id type is '%s'" % type(type_id)
+        assert isinstance(type_name, basestring), "type_name is not a basestring: %s" % repr(type_name)
 
         # 1. get the dispersy identifier from the channel_id
         dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time " + \
                                                          u"FROM ChannelMetaData, MetaDataPlaylist " + \
                                                          u"WHERE ChannelMetaData.id = MetaDataPlaylist.metadata_id " + \
-                                                         u"AND type_id = ? AND playlist_id = ? " + \
+                                                         u"AND type = ? AND playlist_id = ? " + \
                                                          u"AND dispersy_id not in " + \
                                                          u"(SELECT cause FROM Moderations WHERE channel_id = ?) " + \
                                                          u"ORDER BY prev_global_time DESC",
-            (type_id, playlist_id, self._channel_id))
+            (type_name, playlist_id, self._channel_id))
         return self._determine_latest_modification(dispersy_ids)
 
     @warnIfNotDispersyThread

@@ -1305,16 +1305,10 @@ class ChannelCastDBHandler(BasicDBHandler):
         self._channel_id = None
         self.my_dispersy_cid = None
 
-        self.modification_types = None
-        self.id2modification = None
-
         self.votecast_db = None
         self.torrent_db = None
 
     def initialize(self, *args, **kwargs):
-        self.modification_types = dict(self._db.fetchall("SELECT name, id FROM MetaDataTypes"))
-        self.id2modification = dict([(v, k) for k, v in self.modification_types.iteritems()])
-
         self._channel_id = self.getMyChannelId()
         self._logger.debug(u"Channels: my channel is %s", self._channel_id)
 
@@ -1336,9 +1330,6 @@ class ChannelCastDBHandler(BasicDBHandler):
         super(ChannelCastDBHandler, self).close()
         self._channel_id = None
         self.my_dispersy_cid = None
-
-        self.modification_types = None
-        self.id2modification = None
 
         self.votecast_db = None
         self.torrent_db = None
@@ -1626,16 +1617,16 @@ class ChannelCastDBHandler(BasicDBHandler):
             self.notifier.notify(NTFY_PLAYLISTS, NTFY_UPDATE, playlist_id)
 
     def on_metadata_from_dispersy(self, type, channeltorrent_id, playlist_id, channel_id, dispersy_id, peer_id,
-                                  mid_global_time, modification_type_id, modification_value, timestamp,
+                                  mid_global_time, modification_type, modification_value, timestamp,
                                   prev_modification_id, prev_modification_global_time):
         if isinstance(prev_modification_id, (str)):
             prev_modification_id = buffer(prev_modification_id)
 
         sql = """INSERT OR REPLACE INTO _ChannelMetaData
-        (dispersy_id, channel_id, peer_id, type_id, value, time_stamp, prev_modification, prev_global_time)
+        (dispersy_id, channel_id, peer_id, type, value, time_stamp, prev_modification, prev_global_time)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?); SELECT last_insert_rowid();"""
         metadata_id = self._db.fetchone(sql, (dispersy_id, channel_id, peer_id,
-                                              modification_type_id,
+                                              modification_type,
                                               modification_value, timestamp,
                                               prev_modification_id,
                                               prev_modification_global_time))
