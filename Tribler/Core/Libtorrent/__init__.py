@@ -25,7 +25,7 @@ def waitForHandleAndSynchronize(default=None):
                     return f(*args, **kwargs)
                 else:
                     lambda_f = lambda a = args, kwa = kwargs: invoke_func(*a, **kwa)
-                    download.session.lm.rawserver.add_task(lambda_f, 1)
+                    download.session.lm.threadpool.add_task(lambda_f, 1)
                     return default
         return invoke_func
 

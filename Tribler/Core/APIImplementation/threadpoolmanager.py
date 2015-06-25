@@ -1,14 +1,20 @@
+
 from Tribler.dispersy.taskmanager import TaskManager
 from twisted.internet import reactor
 from threading import RLock
 import logging
 
 
-class TwistedRawServer(TaskManager):
+class ThreadPoolManager(TaskManager):
+    """
+    Enhanced TaskManager that allows you to schedule jobs in the twisted
+    threadpool.
+    """
+
     _reactor = reactor
 
     def __init__(self):
-        super(TwistedRawServer, self).__init__()
+        super(ThreadPoolManager, self).__init__()
         self._auto_counter = 0
         self._lock = RLock()
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -19,7 +25,7 @@ class TwistedRawServer(TaskManager):
         if not task_name:
             with self._lock:
                 self._auto_counter += 1
-            task_name = "twisted_rawserver %d" % self._auto_counter
+            task_name = "threadpool_manager %d" % self._auto_counter
         reactor.callFromThread(lambda: self.register_task(task_name, self._reactor.callLater(delay, wrapper)))
 
     def add_task_in_thread(self, wrapper, delay=0, task_name=None):
@@ -28,7 +34,7 @@ class TwistedRawServer(TaskManager):
         if not task_name:
             with self._lock:
                 self._auto_counter += 1
-            task_name = "twisted_rawserver %d" % self._auto_counter
+            task_name = "threadpool_manager %d" % self._auto_counter
 
         def delayed_call(delay, task_name):
             self.register_task(task_name, self._reactor.callLater(delay, reactor.callInThread, wrapper))

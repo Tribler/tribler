@@ -193,12 +193,12 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                     self._logger.info(u"LTMGR/DHT/session not ready, rescheduling create_engine_wrapper")
                     create_engine_wrapper_lambda = lambda: self.create_engine_wrapper(
                         lm_network_engine_wrapper_created_callback, pstate, initialdlstatus=initialdlstatus)
-                    self.session.lm.rawserver.add_task(create_engine_wrapper_lambda, 5)
+                    self.session.lm.threadpool.add_task(create_engine_wrapper_lambda, 5)
                     self.dlstate = DLSTATUS_CIRCUITS if not session_ok else DLSTATUS_METADATA
                 else:
                     network_create_engine_wrapper_lambda = lambda: self.network_create_engine_wrapper(
                         lm_network_engine_wrapper_created_callback, pstate, initialdlstatus)
-                    self.session.lm.rawserver.add_task(network_create_engine_wrapper_lambda, wrapperDelay)
+                    self.session.lm.threadpool.add_task(network_create_engine_wrapper_lambda, wrapperDelay)
                     self.cew_scheduled = True
 
     def network_create_engine_wrapper(self, lm_network_engine_wrapper_created_callback, pstate, initialdlstatus=None):
@@ -506,7 +506,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                         return
                     if self.handle.status().progress == 1.0:
                         self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
-                self.session.lm.rawserver.add_task(reset_priorities, 5)
+                self.session.lm.threadpool.add_task(reset_priorities, 5)
 
             if self.endbuffsize:
                 self.set_byte_priority([(self.get_vod_fileindex(), 0, -1)], 1)
@@ -806,7 +806,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         """ Called by any thread """
         with self.dllock:
             network_get_state_lambda = lambda: self.network_get_state(usercallback, getpeerlist)
-            self.session.lm.rawserver.add_task(network_get_state_lambda, delay)
+            self.session.lm.threadpool.add_task(network_get_state_lambda, delay)
 
     def network_get_state(self, usercallback, getpeerlist):
         """ Called by network thread """
@@ -836,9 +836,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                         when, getpeerlist = usercallback(ds)
                         if when > 0.0:
                             # Schedule next invocation, either on general or DL specific
-                            self.session.lm.rawserver.add_task(lambda: self.network_get_state(usercallback, getpeerlist), when)
+                            self.session.lm.threadpool.add_task(lambda: self.network_get_state(usercallback, getpeerlist), when)
 
-                    self.session.lm.rawserver.add_task_in_thread(session_getstate_usercallback_target)
+                    self.session.lm.threadpool.add_task_in_thread(session_getstate_usercallback_target)
             else:
                 return ds
 
@@ -938,7 +938,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         """ Called by any thread """
         (infohash, pstate) = self.network_checkpoint()
         checkpoint = lambda: self.session.lm.save_download_pstate(infohash, pstate)
-        self.session.lm.rawserver.add_task(checkpoint, 0)
+        self.session.lm.threadpool.add_task(checkpoint, 0)
 
     def network_checkpoint(self):
         """ Called by network thread """

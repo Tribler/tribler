@@ -7,32 +7,32 @@ from threading import RLock, enumerate as enumerate_threads
 from twisted.internet.defer import Deferred
 from twisted.internet.task import Clock
 
-from Tribler.Core.APIImplementation.TwistedRawServer import TwistedRawServer
+from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
 from Tribler.Core.Utilities.twisted_thread import deferred, reactor
 from Tribler.Test.test_as_server import AbstractServer
 
 
-class TestTwistedRawServer(AbstractServer):
+class TestThreadPoolManager(AbstractServer):
 
     """
-    Test TwistedRawServer thread pool and task scheduler
+    Test ThreadPoolManager thread pool and task scheduler
     """
 
     def setUp(self):
         AbstractServer.setUp(self)
-        self.rawserver = TwistedRawServer()
-        self.clock = self.rawserver._reactor = Clock()
+        self.threadpool = ThreadPoolManager()
+        self.clock = self.threadpool._reactor = Clock()
         self.exp = []
         self.gotlock = RLock()
         self.got = []
 
     def tearDown(self):
-        self.rawserver.cancel_all_pending_tasks()
+        self.threadpool.cancel_all_pending_tasks()
         self.clock.advance(len(self.exp))
         # self.got.sort()
         self.assertEquals(self.exp, self.got)
 
-        super(TestTwistedRawServer, self).tearDown()
+        super(TestThreadPoolManager, self).tearDown()
 
     def do_task(self, val):
         self.gotlock.acquire()
@@ -47,19 +47,19 @@ class TestTwistedRawServer(AbstractServer):
         """
         self.exp = range(11)
         d = Deferred()
-        self.rawserver.add_task(lambda: self.do_task(0), 0)
-        self.rawserver.add_task(lambda: self.do_task(1), 1)
-        self.rawserver.add_task(lambda: self.do_task(2), 2)
-        self.rawserver.add_task(lambda: self.do_task(3), 3)
-        self.rawserver.add_task(lambda: self.do_task(4), 4)
-        self.rawserver.add_task(lambda: self.do_task(5), 5)
-        self.rawserver.add_task(lambda: self.do_task(6), 6)
-        self.rawserver.add_task(lambda: self.do_task(7), 7)
-        self.rawserver.add_task(lambda: self.do_task(8), 8)
-        self.rawserver.add_task(lambda: self.do_task(9), 9)
-        self.rawserver.add_task(lambda: self.do_task(10), 10)
+        self.threadpool.add_task(lambda: self.do_task(0), 0)
+        self.threadpool.add_task(lambda: self.do_task(1), 1)
+        self.threadpool.add_task(lambda: self.do_task(2), 2)
+        self.threadpool.add_task(lambda: self.do_task(3), 3)
+        self.threadpool.add_task(lambda: self.do_task(4), 4)
+        self.threadpool.add_task(lambda: self.do_task(5), 5)
+        self.threadpool.add_task(lambda: self.do_task(6), 6)
+        self.threadpool.add_task(lambda: self.do_task(7), 7)
+        self.threadpool.add_task(lambda: self.do_task(8), 8)
+        self.threadpool.add_task(lambda: self.do_task(9), 9)
+        self.threadpool.add_task(lambda: self.do_task(10), 10)
 
-        self.rawserver.add_task(lambda: d.callback(None), 11)
+        self.threadpool.add_task(lambda: d.callback(None), 11)
 
         reactor.callFromThread(self.clock.advance, 11)
         return d
@@ -73,19 +73,19 @@ class TestTwistedRawServer(AbstractServer):
         """
         self.exp = range(11)
         d = Deferred()
-        self.rawserver.add_task(lambda: self.do_task(0), 0)
-        self.rawserver.add_task(lambda: self.do_task(1), 0)
-        self.rawserver.add_task(lambda: self.do_task(2), 0)
-        self.rawserver.add_task(lambda: self.do_task(3), 0)
-        self.rawserver.add_task(lambda: self.do_task(4), 0)
-        self.rawserver.add_task(lambda: self.do_task(5), 0)
-        self.rawserver.add_task(lambda: self.do_task(6), 0)
-        self.rawserver.add_task(lambda: self.do_task(7), 0)
-        self.rawserver.add_task(lambda: self.do_task(8), 0)
-        self.rawserver.add_task(lambda: self.do_task(9), 0)
-        self.rawserver.add_task(lambda: self.do_task(10), 0)
+        self.threadpool.add_task(lambda: self.do_task(0), 0)
+        self.threadpool.add_task(lambda: self.do_task(1), 0)
+        self.threadpool.add_task(lambda: self.do_task(2), 0)
+        self.threadpool.add_task(lambda: self.do_task(3), 0)
+        self.threadpool.add_task(lambda: self.do_task(4), 0)
+        self.threadpool.add_task(lambda: self.do_task(5), 0)
+        self.threadpool.add_task(lambda: self.do_task(6), 0)
+        self.threadpool.add_task(lambda: self.do_task(7), 0)
+        self.threadpool.add_task(lambda: self.do_task(8), 0)
+        self.threadpool.add_task(lambda: self.do_task(9), 0)
+        self.threadpool.add_task(lambda: self.do_task(10), 0)
 
-        self.rawserver.add_task(lambda: d.callback(None), 1)
+        self.threadpool.add_task(lambda: d.callback(None), 1)
 
         reactor.callFromThread(self.clock.advance, 1)
         return d
@@ -98,19 +98,19 @@ class TestTwistedRawServer(AbstractServer):
         """
         self.exp = range(5)
         d = Deferred()
-        self.rawserver.add_task(lambda: self.do_task(0), 0)
-        self.rawserver.add_task(lambda: self.do_task(1), 1)
-        self.rawserver.add_task(lambda: self.do_task(2), 2)
-        self.rawserver.add_task(lambda: self.do_task(3), 3)
-        self.rawserver.add_task(lambda: self.do_task(4), 4)
+        self.threadpool.add_task(lambda: self.do_task(0), 0)
+        self.threadpool.add_task(lambda: self.do_task(1), 1)
+        self.threadpool.add_task(lambda: self.do_task(2), 2)
+        self.threadpool.add_task(lambda: self.do_task(3), 3)
+        self.threadpool.add_task(lambda: self.do_task(4), 4)
 
-        self.rawserver.add_task(lambda: d.callback(None), 5)
+        self.threadpool.add_task(lambda: d.callback(None), 5)
 
-        self.rawserver.add_task(lambda: self.do_task(6), 6)
-        self.rawserver.add_task(lambda: self.do_task(7), 7)
-        self.rawserver.add_task(lambda: self.do_task(8), 8)
-        self.rawserver.add_task(lambda: self.do_task(9), 9)
-        self.rawserver.add_task(lambda: self.do_task(10), 10)
+        self.threadpool.add_task(lambda: self.do_task(6), 6)
+        self.threadpool.add_task(lambda: self.do_task(7), 7)
+        self.threadpool.add_task(lambda: self.do_task(8), 8)
+        self.threadpool.add_task(lambda: self.do_task(9), 9)
+        self.threadpool.add_task(lambda: self.do_task(10), 10)
 
         reactor.callFromThread(self.clock.advance, 5)
         return d
@@ -123,19 +123,19 @@ class TestTwistedRawServer(AbstractServer):
         """
         self.exp = range(11)
         d = Deferred()
-        self.rawserver.add_task_in_thread(lambda: self.do_task(0), 0)
-        self.rawserver.add_task_in_thread(lambda: self.do_task(1), 1)
-        self.rawserver.add_task_in_thread(lambda: self.do_task(2), 2)
-        self.rawserver.add_task_in_thread(lambda: self.do_task(3), 3)
-        self.rawserver.add_task_in_thread(lambda: self.do_task(4), 4)
-        self.rawserver.add_task_in_thread(lambda: self.do_task(5), 5)
-        self.rawserver.add_task_in_thread(lambda: self.do_task(6), 6)
-        self.rawserver.add_task_in_thread(lambda: self.do_task(7), 7)
-        self.rawserver.add_task_in_thread(lambda: self.do_task(8), 8)
-        self.rawserver.add_task_in_thread(lambda: self.do_task(9), 9)
-        self.rawserver.add_task_in_thread(lambda: self.do_task(10), 10)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(0), 0)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(1), 1)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(2), 2)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(3), 3)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(4), 4)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(5), 5)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(6), 6)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(7), 7)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(8), 8)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(9), 9)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(10), 10)
 
-        self.rawserver.add_task_in_thread(lambda: d.callback(None), 11)
+        self.threadpool.add_task_in_thread(lambda: d.callback(None), 11)
 
         reactor.callFromThread(self.clock.advance, 11)
         return d
@@ -148,19 +148,19 @@ class TestTwistedRawServer(AbstractServer):
         """
         self.exp = range(5)
         d = Deferred()
-        self.rawserver.add_task_in_thread(lambda: self.do_task(0), 0)
-        self.rawserver.add_task_in_thread(lambda: self.do_task(1), 1)
-        self.rawserver.add_task_in_thread(lambda: self.do_task(2), 2)
-        self.rawserver.add_task_in_thread(lambda: self.do_task(3), 3)
-        self.rawserver.add_task_in_thread(lambda: self.do_task(4), 4)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(0), 0)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(1), 1)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(2), 2)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(3), 3)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(4), 4)
 
-        self.rawserver.add_task_in_thread(lambda: d.callback(None), 5)
+        self.threadpool.add_task_in_thread(lambda: d.callback(None), 5)
 
-        self.rawserver.add_task_in_thread(lambda: self.do_task(6), 6)
-        self.rawserver.add_task_in_thread(lambda: self.do_task(7), 7)
-        self.rawserver.add_task_in_thread(lambda: self.do_task(8), 8)
-        self.rawserver.add_task_in_thread(lambda: self.do_task(9), 9)
-        self.rawserver.add_task_in_thread(lambda: self.do_task(10), 10)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(6), 6)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(7), 7)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(8), 8)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(9), 9)
+        self.threadpool.add_task_in_thread(lambda: self.do_task(10), 10)
 
         reactor.callFromThread(self.clock.advance, 5)
         return d

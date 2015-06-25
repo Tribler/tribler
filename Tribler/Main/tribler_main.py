@@ -262,7 +262,7 @@ class ABCApp(object):
 
             self.splash.Destroy()
             self.frame.Show(True)
-            session.lm.rawserver.call_in_thread(0, self.guiservthread_free_space_check)
+            session.lm.threadpool.call_in_thread(0, self.guiservthread_free_space_check)
 
             self.torrentfeed = RssParser.getInstance()
 
@@ -693,7 +693,7 @@ class ABCApp(object):
             wx.CallAfter(wx.MessageBox, "Tribler has detected low disk space. Related downloads have been stopped.",
                          "Error")
 
-        self.utility.session.lm.rawserver.call_in_thread(FREE_SPACE_CHECK_INTERVAL, self.guiservthread_free_space_check)
+        self.utility.session.lm.threadpool.call_in_thread(FREE_SPACE_CHECK_INTERVAL, self.guiservthread_free_space_check)
 
     def guiservthread_checkpoint_timer(self):
         """ Periodically checkpoint Session """
@@ -703,7 +703,7 @@ class ABCApp(object):
             self._logger.info("main: Checkpointing Session")
             self.utility.session.checkpoint()
 
-            self.utility.session.lm.rawserver.call_in_thread(SESSION_CHECKPOINT_INTERVAL, self.guiservthread_checkpoint_timer)
+            self.utility.session.lm.threadpool.call_in_thread(SESSION_CHECKPOINT_INTERVAL, self.guiservthread_checkpoint_timer)
         except:
             print_exc()
 

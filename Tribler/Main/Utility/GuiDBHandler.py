@@ -158,9 +158,9 @@ class GUIDBProducer(object):
         if delay or not (isInIOThread() or isInThreadPool()):
             if workerType == "dbThread":
                 # Schedule the task to be called later in the reactor thread.
-                self.utility.session.lm.rawserver.add_task(wrapper, delay)
+                self.utility.session.lm.threadpool.add_task(wrapper, delay)
             elif workerType == "ThreadPool":
-                self.utility.session.lm.rawserver.add_task_in_thread(wrapper, delay)
+                self.utility.session.lm.threadpool.add_task_in_thread(wrapper, delay)
             else:
                 raise RuntimeError("Asked to schedule a task with unknown workerType: %s", workerType)
         elif workerType == "dbThread" and not isInIOThread():
@@ -180,7 +180,7 @@ class GUIDBProducer(object):
                 if __debug__:
                     self.nrCallbacks[uId] = self.nrCallbacks.get(uId, 0) - 1
 
-            self.utility.session.lm.rawserver.cancel_pending_task(uId)
+            self.utility.session.lm.threadpool.cancel_pending_task(uId)
 
 # Wrapping Senders for new delayedResult impl
 

@@ -21,7 +21,7 @@ from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
-from Tribler.Core.APIImplementation.TwistedRawServer import TwistedRawServer
+from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
 
 try:
     prctlimported = True
@@ -65,7 +65,7 @@ class TriblerLaunchMany(object):
         self.shutdownstarttime = None
 
         # modules
-        self.rawserver = TwistedRawServer()
+        self.threadpool = ThreadPoolManager()
         self.torrent_store = None
         self.metadata_store = None
         self.rtorrent_handler = None
@@ -404,7 +404,7 @@ class TriblerLaunchMany(object):
             d.set_moreinfo_stats(True in getpeerlist or d.get_def().get_infohash() in getpeerlist)
 
         network_set_download_states_callback_lambda = lambda: self.network_set_download_states_callback(usercallback)
-        self.rawserver.add_task(network_set_download_states_callback_lambda, when)
+        self.threadpool.add_task(network_set_download_states_callback_lambda, when)
 
     def network_set_download_states_callback(self, usercallback):
         """ Called by network thread """
@@ -427,7 +427,7 @@ class TriblerLaunchMany(object):
                 # reschedule
                 self.set_download_states_callback(usercallback, newgetpeerlist, when=when)
 
-        self.rawserver.add_task(session_getstate_usercallback_target)
+        self.threadpool.add_task(session_getstate_usercallback_target)
 
     #
     # Persistence methods
@@ -437,7 +437,7 @@ class TriblerLaunchMany(object):
         if not self.initComplete:
             network_load_checkpoint_callback_lambda = lambda: self.load_checkpoint(initialdlstatus,
                                                                                    initialdlstatus_dict)
-            self.rawserver.add_task(network_load_checkpoint_callback_lambda, 1.0)
+            self.threadpool.add_task(network_load_checkpoint_callback_lambda, 1.0)
 
         else:
             self.sesslock.acquire()
@@ -542,7 +542,7 @@ class TriblerLaunchMany(object):
 
         network_checkpoint_callback_lambda = lambda: self.network_checkpoint_callback(dllist, stop, checkpoint,
                                                                                       gracetime)
-        self.rawserver.add_task(network_checkpoint_callback_lambda, 0.0)
+        self.threadpool.add_task(network_checkpoint_callback_lambda, 0.0)
 
     def network_checkpoint_callback(self, dllist, stop, checkpoint, gracetime):
         """ Called by network thread """
@@ -574,14 +574,14 @@ class TriblerLaunchMany(object):
                     self._logger.info("tlm: shutdown: delaying for early shutdown tasks %s", gracetime - diff)
                     delay = gracetime - diff
                     network_shutdown_callback_lambda = lambda: self.network_shutdown()
-                    self.rawserver.add_task(network_shutdown_callback_lambda, delay)
+                    self.threadpool.add_task(network_shutdown_callback_lambda, delay)
                     return
 
             self.network_shutdown()
 
     def remove_pstate(self, infohash):
         network_remove_pstate_callback_lambda = lambda: self.network_remove_pstate_callback(infohash)
-        self.rawserver.add_task(network_remove_pstate_callback_lambda, 0.0)
+        self.threadpool.add_task(network_remove_pstate_callback_lambda, 0.0)
 
     def network_remove_pstate_callback(self, infohash):
         if not self.download_exists(infohash):
@@ -695,9 +695,9 @@ class TriblerLaunchMany(object):
             self.ltmgr.shutdown()
             self.ltmgr = None
 
-        if self.rawserver:
-            self.rawserver.cancel_all_pending_tasks()
-            self.rawserver = None
+        if self.threadpool:
+            self.threadpool.cancel_all_pending_tasks()
+            self.threadpool = None
 
     def save_download_pstate(self, infohash, pstate):
         """ Called by network thread """
