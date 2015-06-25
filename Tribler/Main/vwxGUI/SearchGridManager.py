@@ -567,9 +567,8 @@ class TorrentManager(object):
 
         # handle the downloaded thumbnails
         if extraInfo.get('thumbnail-file'):
-            from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
-            TorrentStateManager.getInstance().create_and_seed_metadata_thumbnail(extraInfo['thumbnail-file'],
-                                                                                 torrent, modifications)
+            self.guiUtility.torrentstate_manager.create_and_seed_metadata_thumbnail(extraInfo['thumbnail-file'],
+                                                                                    torrent, modifications)
 
         return True
 
