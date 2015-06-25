@@ -98,7 +98,7 @@ class DownloadManager(BaseManager):
         """
         self._session.set_max_upload_speed(maxspeed)
 
-    def add_torrent(self, infohash, name):
+    def add_torrent(self, infohash, name, dest_dir=None):
         """
         Add a download to the download list by its infohash.
         :param infohash: The infohash of the torrent.
@@ -114,6 +114,8 @@ class DownloadManager(BaseManager):
 
                 defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
                 dscfg = defaultDLConfig.copy()
+                if dest_dir is not None:
+                    dscfg.set_dest_dir(dest_dir)
 
                 dl = self._session.start_download(tdef, dscfg)
                 dl.set_state_callback(self._update_dl_state, delay=1)

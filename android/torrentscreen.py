@@ -7,6 +7,7 @@ from Tribler.Core.TorrentDef import TorrentDefNoMetainfo
 import os
 
 
+from math import ceil
 import globalvars
 
 """
@@ -61,14 +62,17 @@ class TorrentInfoScreen(Screen):
         """
         Logger.info('Start download in TorrentInfoScreen.')
 
-        session = globalvars.skelly.tw.get_session_mgr().get_session()
-        dscfg = DownloadStartupConfig()
-        dscfg.set_dest_dir(globalvars.videoFolder.getAbsolutePath())
-        tdef = TorrentDefNoMetainfo(self.torrent.infohash, self.torrent.name)
-        session.start_download(tdef, dscfg)
+        # Old code in case we did not want to use DownloadManager (as below):
+        #session = globalvars.skelly.tw.get_session_mgr().get_session()
+        #dscfg = DownloadStartupConfig()
+        #dscfg.set_dest_dir(globalvars.videoFolder.getAbsolutePath())
+        #tdef = TorrentDefNoMetainfo(self.torrent.infohash, self.torrent.name)
+        #session.start_download(tdef, dscfg)
 
-        #download_mgr = globalvars.skelly.tw.get_download_mgr()
-        #download_mgr.add_torrent(self.torrent.infohash, self.torrent.name)
+        download_mgr = globalvars.skelly.tw.get_download_mgr()
+        download_destination_dir = globalvars.videoFolder.getAbsolutePath()
+        download_mgr.add_torrent(self.torrent.infohash, self.torrent.name, download_destination_dir)
+        
         if navigate_to_home:
             self.navigate_to_home()
 
@@ -84,15 +88,15 @@ class TorrentInfoScreen(Screen):
         """
         Logger.info('Starting download for stream in TorrentInfoScreen.')
 
-        #download_mgr = globalvars.skelly.tw.get_download_mgr()
-        #download_mgr.subscribe_for_changed_progress_info(self._check_streamable_callback)
+        download_mgr = globalvars.skelly.tw.get_download_mgr()
+        download_mgr.subscribe_for_changed_progress_info(self._check_streamable_callback)
 
         self.start_download(False)
 
-        session = globalvars.skelly.tw.get_session_mgr().get_session()
-        download = session.get_download(self.torrent.infohash)
-        download.set_state_callback(self._check_streamable_callback, delay=1)
-        # TODO: Show progress to user, which is available in progress_dict variable in _check_streamable_callback
+        # Old code in case we did not want to use DownloadManager (as above):
+        #session = globalvars.skelly.tw.get_session_mgr().get_session()
+        #download = session.get_download(self.torrent.infohash)
+        #download.set_state_callback(self._check_streamable_callback, delay=1)
 
         self.navigate_to_home()
 
@@ -103,12 +107,11 @@ class TorrentInfoScreen(Screen):
         :param info_hash: The info hash of the torrent with new download progress.
         :return: Nothing.
         """
+        Logger.log('TEST: FUNCTION CALLED!')
         if self.started_player or info_hash != self.torrent.infohash:
             return
         download_mgr = globalvars.skelly.tw.get_download_mgr()
         progress_dict = download_mgr.get_progress(self.torrent.infohash)
-
-        Logger.info('Checking whether video is streamable callback. ETA: ' + str(progress_dict['eta']))
 
         # Start video player:
         if progress_dict['vod_playable']:
@@ -118,12 +121,24 @@ class TorrentInfoScreen(Screen):
             open_player(session_mgr.get_session().get_download(self.torrent.infohash), self.vod_uri)
         else:
 
+            # TODO: Show progress to user
+            self.send_vod_message(progress_dict)
+
             # When metadata etc. has been downloaded then start downloading the actual video content in vod mode:
             status_code = progress_dict['status']
             if 3 <= status_code <= 5 and not self.download_in_vod_mode:
                 Logger.info('Starting VOD mode.')
                 self.vod_uri = download_mgr.start_vod(self.torrent.infohash)
                 self.download_in_vod_mode = True
+
+    def send_vod_message(self, progress_dict):
+        vod_eta = progress_dict['vod_eta']
+        progress = progress_dict['progress']
+        download_speed = progress_dict['speed_down']
+        message = 'Video starts playing in ' + seconds_to_string(vod_eta) + ' (' + bytes_per_sec_to_string(download_speed) + ').'
+        progress = str(ceil(progress * 100))
+        # TODO: show message and progress to user
+        Logger.info('Video preparing for streaming info: ' + message + ' Progress: ' + progress)
 
     def _reset(self):
         """
@@ -142,3 +157,20 @@ def file_size_to_string(bytes, suffix='B'):
             return "%3.1f %s%s" % (bytes, unit, suffix)
         bytes /= 1024.0
     return "%.1f %s%s" % (bytes, 'Y', suffix)
+
+def seconds_to_string(seconds):
+    if seconds < 10:
+        return "a few seconds"
+    elif seconds < 60:
+        return "about " + str((round(seconds / 10) * 10)) + " seconds"
+    elif seconds < 3600:
+        value = str(round(seconds / 10))
+        return "about " + value + " minute" + ("s" if value > 1 else "")
+    elif seconds < 24 * 3600:
+        value = str(round(seconds / 3600))
+        return "about " + value + " hour" + ("s" if value > 1 else "")
+    else:
+        return "more than a day"
+
+def bytes_per_sec_to_string(speed_in_bytes):
+    file_size_to_string(speed_in_bytes) + '/s'
