@@ -1,10 +1,5 @@
-<activity
-	android:name=".main"
-	android:label="Android Beam Viewer" >
-
-	<intent-filter>
-		<action android:name="android.nfc.action.VIEW"/>
-		<category android:name="android.intent.category.DEFAULT"/>
-		<data android:mimeType="video/*"/>
-	</intent-filter>
-</activity>
+<intent-filter>
+	<action android:name="android.intent.action.VIEW"/>
+	<category android:name="android.intent.category.DEFAULT"/>
+	<data android:mimeType="video/*"/>
+</intent-filter>

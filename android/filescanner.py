@@ -25,7 +25,11 @@ class FileScanner(PythonJavaClass):
 			self.mediaConnection.connect()
 
 	def sendScan(self):
+		if len(self.paths) == 0:
+			print 'No files to scan.'
+			return
 		print 'Scanning: '
+		self.paths.reverse()
 		package = self.paths.pop()
 		print package
 		self.mediaConnection.scanFile(package, None)
