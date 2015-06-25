@@ -127,6 +127,7 @@ class TorrentInfoScreen(Screen):
         self.started_player = False
         self.vod_uri = None
 
+
 def file_size_to_string(bytes, suffix='B'):
     for unit in ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z']:
         if abs(bytes) < 1024.0:
