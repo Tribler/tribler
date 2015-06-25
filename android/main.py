@@ -33,6 +33,7 @@ from jnius import JavaClass
 from jnius import PythonJavaClass
 from android.runnable import run_on_ui_thread
 
+from filereceiver import FileReceiver
 from filescanner import FileScanner
 
 Context = autoclass('android.content.Context')
@@ -47,7 +48,6 @@ MediaStore = autoclass('android.provider.MediaStore')
 MediaRecorder = autoclass('android.media.MediaRecorder')
 Camera = autoclass('android.hardware.Camera')
 CamCorderProfile = autoclass('android.media.CamcorderProfile')
-TextUtils = autoclass('android.text.TextUtils')
 MediaColumns = autoclass('android.provider.MediaStore$MediaColumns')
 Environment = autoclass('android.os.Environment')
 Builder.load_file('main.kv')
@@ -185,20 +185,9 @@ class Skelly(App):
 			globalvars.nfcCallback.addContext(context)
 			self.adapter.setBeamPushUrisCallback(globalvars.nfcCallback, context)
 
-	def handle_nfc_view(self, beamUri):
-		if not TextUtils.equals(beamUri.getAuthority(), MediaStore.getAuthority()):
-			print 'Wrong content provider for beamed file(s).'
-		else:
-			projection = MediaColumns.DATA
-			pathCursor = Context.getContentResolver().query(beamUri, projection, None, None, None)
-
-			if pathCursor is not None and pathCursor.movetoFirst():
-				filenameIndex = pathCursor.getColumnIndex(MediaColumns.DATA)
-				fileName = pathCursor.getString(filenameIndex)
-				copiedFile = File(fileName)
-				return copiedFile.getParentFile()
-			else:
-				return None
+	def registerListeners(self):
+		self.intentListener = FileReceiver()
+		PythonActivity.registerNewIntentListener(self.intentListener)
 
 	def makeLocalFolder(self):
 		self.act = cast(Context, activity)
@@ -212,19 +201,18 @@ class Skelly(App):
 
 		if not self.newDirec.exists():
 			print 'Creating local storage folder.'
-
 			print 'Creating test file for torrent folder scan.'
-			self.torrentFile.mkdirs()
+			self.torrentFolder.mkdirs()
 			print 'Creating test File for video folder scan.'		
-			self.videoFile.mkdirs()
+			self.videoFolder.mkdirs()
 
 			globalvars.scanner.addScanFile(self.torrentFile)
 			globalvars.scanner.addScanFile(self.videoFile)
 			globalvars.scanner.scanFiles()
 
-		elif self.torrentFile.exists() and self.videoFile.exists():
-			self.torrentFile.delete()
-			self.videoFile.delete()
+		#elif self.torrentFile.exists() and self.videoFile.exists():
+		#	self.torrentFile.delete()
+		#	self.videoFile.delete()
 
 	def build(self):
 		#Android back mapping
@@ -234,6 +222,7 @@ class Skelly(App):
 		win.clearcolor = (1,1,1,1)
 		globalvars.skelly = self
 
+		self.registerListeners()
 		self.makeLocalFolder()
 		self.nfc_init()
 		self.HomeScr.getStoredMedia()
@@ -266,6 +255,7 @@ class Skelly(App):
 	#Required function by android, called when resumed from a pause
 	def on_resume(self):
 		#forces a refresh of the entire video list
+		print 'Resuming:'
 		self.HomeScr.getStoredMedia()
 		if globalvars.triblerfun:
 			self.tw.start()
