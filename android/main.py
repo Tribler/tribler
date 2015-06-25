@@ -253,6 +253,9 @@ class Skelly(App):
 		self.HomeScr.endThumbnailThread()
 		if globalvars.triblerfun:
 			self.tw.stop()
+		treds = threading.enumerate()
+		for t in treds:
+			print(t)
 
 	#Required function by android, called when resumed from a pause
 	def on_resume(self):

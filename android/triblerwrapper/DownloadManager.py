@@ -57,10 +57,10 @@ class DownloadManager(BaseManager):
             self._dispersy = self._session.lm.dispersy
 
             # Schedule load checkpoints
-            threading.Timer(1.0, self._load_checkpoints, ()).start()
+            Clock.schedule_once(lambda dt: self._load_checkpoints(), 1.0)
 
             # Schedule download checkpoints
-            threading.Timer(DOWNLOAD_CHECKPOINT_INTERVAL, self._run_session_checkpoint, ()).start()
+            Clock.schedule_interval(lambda dt: self._run_session_checkpoint(), DOWNLOAD_CHECKPOINT_INTERVAL)
 
         else:
             raise RuntimeError('DownloadManager already connected')
@@ -234,8 +234,6 @@ class DownloadManager(BaseManager):
                     Logger.info("Error checking download: " % e.args)
                     pass
 
-        threading.Timer(DOWNLOAD_UPDATE_CACHE, self._download_update_cache, ()).start()
-
     def _load_checkpoints(self):
         """
         Load the checkpoint for any downloads that can be resumed.
@@ -274,7 +272,8 @@ class DownloadManager(BaseManager):
         except:
             pass
 
-        threading.Timer(1.0, self._download_update_cache, ()).start()
+        Clock.schedule_once(lambda dt: self._download_update_cache, 1.0)
+        Clock.schedule_interval(lambda dt: self._download_update_cache, DOWNLOAD_UPDATE_CACHE)
 
     def get_full(self, infohash):
         """
