@@ -596,13 +596,8 @@ class TorrentManager(object):
 
 
 class LibraryManager(object):
-    # Code to make this a singleton
-    __single = None
 
     def __init__(self, guiUtility):
-        if LibraryManager.__single:
-            raise RuntimeError("LibraryManager is singleton")
-
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.guiUtility = guiUtility
@@ -625,16 +620,6 @@ class LibraryManager(object):
         self.wantpeers = []
 
         self.last_vod_torrent = None
-
-    def getInstance(*args, **kw):
-        if LibraryManager.__single is None:
-            LibraryManager.__single = LibraryManager(*args, **kw)
-        return LibraryManager.__single
-    getInstance = staticmethod(getInstance)
-
-    def delInstance(*args, **kw):
-        LibraryManager.__single = None
-    delInstance = staticmethod(delInstance)
 
     @warnWxThread
     def _get_videoplayer(self):
