@@ -156,6 +156,10 @@ class TorrentInfoScreen(Screen):
         self.started_player = False
         self.download_started = False
         self.vod_uri = None
+        play = self.ids.play_button
+        play.text = 'Play'
+        play.on_release = self.start_stream
+        play.background_color = [0.5, 0.5, 0.5, 1]
 
     def do_nothing_on_button_release(self):
         pass
