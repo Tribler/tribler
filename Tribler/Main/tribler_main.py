@@ -458,7 +458,6 @@ class ABCApp(object):
             dispersy.define_auto_load(BarterCommunity, session.dispersy_member, load=True)
 
             # load metadata community
-            # dispersy.define_auto_load(MetadataCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
             dispersy.define_auto_load(ChannelCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
             dispersy.define_auto_load(PreviewChannelCommunity, session.dispersy_member, kargs=default_kwargs)
 

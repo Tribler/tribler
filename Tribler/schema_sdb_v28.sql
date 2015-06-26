@@ -2,25 +2,6 @@ BEGIN TRANSACTION create_table;
 
 ----------------------------------------
 
-CREATE TABLE MetadataMessage (
-  message_id             INTEGER PRIMARY KEY AUTOINCREMENT,
-  dispersy_id            INTEGER NOT NULL,
-  this_global_time       INTEGER NOT NULL,
-  this_mid               TEXT NOT NULL,
-  infohash               TEXT NOT NULL,
-  previous_mid           TEXT,
-  previous_global_time   INTEGER
-);
-
-CREATE TABLE MetadataData (
-  message_id  INTEGER,
-  data_key    TEXT NOT NULL,
-  data_value  INTEGER,
-  FOREIGN KEY (message_id) REFERENCES MetadataMessage(message_id) ON DELETE CASCADE
-);
-
-----------------------------------------
-
 CREATE TABLE MyInfo (
   entry  PRIMARY KEY,
   value  text
@@ -222,22 +203,16 @@ CREATE TABLE IF NOT EXISTS _ChannelMetaData (
   dispersy_id           integer         NOT NULL,
   channel_id            integer         NOT NULL,
   peer_id               integer,
-  type_id               integer         NOT NULL,
+  type                  text            NOT NULL,
   value                 text            NOT NULL,
   prev_modification     integer,
   prev_global_time      integer,
   time_stamp            integer         NOT NULL,
   inserted              integer         DEFAULT (strftime('%s','now')),
   deleted_at            integer,
-  UNIQUE (dispersy_id),
-  FOREIGN KEY (type_id) REFERENCES MetaDataTypes(id) ON DELETE CASCADE
+  UNIQUE (dispersy_id)
 );
 CREATE VIEW ChannelMetaData AS SELECT * FROM _ChannelMetaData WHERE deleted_at IS NULL;
-CREATE TABLE IF NOT EXISTS MetaDataTypes (
-  id                    integer         PRIMARY KEY ASC,
-  name                  text            NOT NULL,
-  type                  text            NOT NULL DEFAULT('text')
-);
 
 CREATE TABLE IF NOT EXISTS MetaDataTorrent (
   metadata_id           integer,
@@ -302,13 +277,7 @@ COMMIT TRANSACTION create_table;
 
 BEGIN TRANSACTION init_values;
 
-INSERT INTO MyInfo VALUES ('version', 27);
-
-INSERT INTO MetaDataTypes ('name') VALUES ('name');
-INSERT INTO MetaDataTypes ('name') VALUES ('description');
-INSERT INTO MetaDataTypes ('name') VALUES ('swift-url');
-INSERT INTO MetaDataTypes ('name') VALUES ('swift-thumbnails');
-INSERT INTO MetaDataTypes ('name') VALUES ('video-info');
+INSERT INTO MyInfo VALUES ('version', 28);
 
 INSERT INTO TrackerInfo (tracker) VALUES ('no-DHT');
 INSERT INTO TrackerInfo (tracker) VALUES ('DHT');

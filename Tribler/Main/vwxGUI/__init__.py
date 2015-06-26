@@ -64,7 +64,7 @@ TUMBNAILTORRENT_REQ_COLUMNS = ['torrent_id', 'MetadataMessage.infohash', 'name',
 COMMENT_REQ_COLUMNS = ['Comments.id', 'Comments.dispersy_id', 'CommentTorrent.channeltorrent_id', 'name', 'Peer.peer_id', 'comment', 'reply_to_id', 'inserted', 'time_stamp']
 
 MODERATION_REQ_COLUMNS = ['Moderations.id', 'Moderations.channel_id', 'Moderations.peer_id', 'Moderations.by_peer_id', 'Moderations.severity', 'Moderations.message', 'Moderations.time_stamp', 'Moderations.inserted']
-MODIFICATION_REQ_COLUMNS = ['ChannelMetaData.id', 'ChannelMetaData.dispersy_id', 'ChannelMetaData.peer_id', 'ChannelMetaData.type_id', 'ChannelMetaData.value', 'ChannelMetaData.time_stamp', 'ChannelMetaData.inserted', 'MetaDataTorrent.channeltorrent_id']
+MODIFICATION_REQ_COLUMNS = ['ChannelMetaData.id', 'ChannelMetaData.dispersy_id', 'ChannelMetaData.peer_id', 'ChannelMetaData.type', 'ChannelMetaData.value', 'ChannelMetaData.time_stamp', 'ChannelMetaData.inserted', 'MetaDataTorrent.channeltorrent_id']
 MARKING_REQ_COLUMNS = ['TorrentMarkings.dispersy_id', 'TorrentMarkings.channeltorrent_id', 'TorrentMarkings.peer_id', 'TorrentMarkings.type', 'TorrentMarkings.time_stamp']
 
 tmp = MODERATION_REQ_COLUMNS + MODIFICATION_REQ_COLUMNS

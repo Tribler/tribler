@@ -12,7 +12,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnD
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.simpledefs import (NTFY_TORRENTS, NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST,
-                                     NTFY_METADATA, DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK,
+                                     DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK,
                                      SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT)
 from Tribler.Core.Utilities.sort_utils import sort_torrent_fulltext
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
@@ -29,7 +29,6 @@ from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import (ChannelCommunity, warnIfNotDispersyThread)
-from Tribler.community.metadata.community import MetadataCommunity
 from Tribler.dispersy.exception import CommunityNotFoundException
 from Tribler.dispersy.util import call_on_reactor_thread
 
@@ -189,7 +188,7 @@ class TorrentManager(object):
             self.connected = True
             self.session = session
 
-            self.metadata_db = session.open_dbhandler(NTFY_METADATA)
+            self.metadata_db = None
             self.torrent_db = session.open_dbhandler(NTFY_TORRENTS)
             self.mypref_db = session.open_dbhandler(NTFY_MYPREFERENCES)
             self.votecastdb = session.open_dbhandler(NTFY_VOTECAST)
@@ -534,12 +533,17 @@ class TorrentManager(object):
 
     @call_on_reactor_thread
     def modifyTorrent(self, torrent, modifications):
+        # TODO: change this
         for community in self.dispersy.get_communities():
+            from Tribler.community.metadata.community import MetadataCommunity
             if isinstance(community, MetadataCommunity):
                 community.create_metadata_message(torrent.infohash, modifications)
                 break
 
     def getTorrentModifications(self, torrent):
+        if not self.metadata_db:
+            return []
+
         message_list = self.metadata_db.getMetadataMessageList(torrent.infohash, columns=("message_id",))
         if not message_list:
             return []
@@ -571,21 +575,23 @@ class TorrentManager(object):
 
     def getThumbnailTorrents(self, limit=20):
         result = []
-        for t in self.metadata_db.getThumbnailTorrents(TUMBNAILTORRENT_REQ_COLUMNS, limit=limit):
-            t = Torrent(*(list(t) + [None]))
-            t.torrent_db = self.torrent_db
-            result.append(t)
+        if self.metadata_db:
+            for t in self.metadata_db.getThumbnailTorrents(TUMBNAILTORRENT_REQ_COLUMNS, limit=limit):
+                t = Torrent(*(list(t) + [None]))
+                t.torrent_db = self.torrent_db
+                result.append(t)
 
         return result
 
     def getNotCollectedThumbnailTorrents(self, limit=20):
         result = []
-        for t in self.metadata_db.getNotCollectedThumbnailTorrents(TUMBNAILTORRENT_REQ_COLUMNS, limit=limit):
-            if t[0] is None:
-                continue
-            t = Torrent(*(list(t) + [None]))
-            t.torrent_db = self.torrent_db
-            result.append(t)
+        if self.metadata_db:
+            for t in self.metadata_db.getNotCollectedThumbnailTorrents(TUMBNAILTORRENT_REQ_COLUMNS, limit=limit):
+                if t[0] is None:
+                    continue
+                t = Torrent(*(list(t) + [None]))
+                t.torrent_db = self.torrent_db
+                result.append(t)
 
         return result
 

@@ -487,10 +487,12 @@ class TftpRequester(Requester):
 
     def add_request(self, key, candidate, timeout=None, is_metadata=False):
         ip, port = candidate.sock_addr
+        # no binary for keys
         if is_metadata:
             key = "%s%s" % (METADATA_PREFIX, hexlify(key))
             key_str = key
         else:
+            key = hexlify(key)
             key_str = hexlify(key)
 
         if key in self._pending_request_queue or key in self._active_request_list:
@@ -530,8 +532,8 @@ class TftpRequester(Requester):
             file_name = key
             extra_info = {u'key': key, u'thumb_hash': thumb_hash}
         else:
-            # key is info hash
-            info_hash = key
+            # key is the hexlified info hash
+            info_hash = unhexlify(key)
             file_name = hexlify(info_hash) + u'.torrent'
             extra_info = {u'key': key, u'info_hash': info_hash}
 
@@ -592,7 +594,7 @@ class TftpRequester(Requester):
 
         if self._untried_sources[key]:
             # try to download this data from another candidate
-            self._logger.debug(u"scheduling next try for %s", key)
+            self._logger.debug(u"scheduling next try for %s", repr(key))
 
             self._pending_request_queue.appendleft(key)
             self._active_request_list.remove(key)

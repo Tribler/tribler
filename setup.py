@@ -9,7 +9,7 @@ setup(
     url='https://github.com/Tribler/tribler',
     license='LICENSE.txt',
     description='AT3 package for Python for Android',
-    package_data={'Tribler': ['schema_sdb_v27.sql', 'anon_test.torrent'],
+    package_data={'Tribler': ['schema_sdb_v28.sql', 'anon_test.torrent'],
                   'Tribler.Category' : ['filter_terms.filter', 'filter_terms.filter'],
                   'Tribler.Category' : ['category.conf', 'category.conf']},
     include_package_data=True,

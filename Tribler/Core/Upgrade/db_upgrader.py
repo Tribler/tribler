@@ -77,6 +77,10 @@ class DBUpgrader(object):
         if self.db.version == 26:
             self._upgrade_26_to_27()
 
+        # version 27 -> 28
+        if self.db.version == 27:
+            self._upgrade_27_to_28()
+
         # check if we managed to upgrade to the latest DB version.
         if self.db.version == LATEST_DB_VERSION:
             self.status_update_func(u"Database upgrade finished.")
@@ -424,7 +428,7 @@ CREATE VIEW CollectedTorrent AS SELECT * FROM Torrent WHERE is_collected == 1;
         self.db.write_version(26)
 
     def _upgrade_26_to_27(self):
-        self.status_update_func(u"Upgrading database from v%s to v%s..." % (25, 26))
+        self.status_update_func(u"Upgrading database from v%s to v%s..." % (26, 27))
 
         # replace status_id and category_id in Torrent table with status and category
         self.status_update_func(u"Updating Torrent table and removing unused tables...")
@@ -468,6 +472,50 @@ DROP TABLE TorrentStatus;
 
         # update database version
         self.db.write_version(27)
+
+    def _upgrade_27_to_28(self):
+        self.status_update_func(u"Upgrading database from v%s to v%s..." % (27, 28))
+
+        # remove old metadata stuff
+        self.status_update_func(u"Removing old metadata tables...")
+        self.db.execute(u"""
+DROP TABLE IF EXISTS MetadataMessage;
+DROP TABLE IF EXISTS MetadataData;
+""")
+        # replace type_id with type in ChannelMetadata
+        self.db.execute(u"""
+DROP TABLE IF EXISTS _ChannelMetaData_new;
+
+CREATE TABLE _ChannelMetaData_new (
+  id                    integer         PRIMARY KEY ASC,
+  dispersy_id           integer         NOT NULL,
+  channel_id            integer         NOT NULL,
+  peer_id               integer,
+  type                  text            NOT NULL,
+  value                 text            NOT NULL,
+  prev_modification     integer,
+  prev_global_time      integer,
+  time_stamp            integer         NOT NULL,
+  inserted              integer         DEFAULT (strftime('%s','now')),
+  deleted_at            integer,
+  UNIQUE (dispersy_id)
+);
+
+INSERT INTO _ChannelMetaData_new
+SELECT _ChannelMetaData.id, dispersy_id, channel_id, peer_id, MetadataTypes.name, value, prev_modification, prev_global_time, time_stamp, inserted, deleted_at
+FROM _ChannelMetaData
+LEFT JOIN MetadataTypes ON _ChannelMetaData.type_id == MetadataTypes.id;
+
+DROP VIEW IF EXISTS ChannelMetaData;
+DROP TABLE IF EXISTS _ChannelMetaData;
+
+ALTER TABLE _ChannelMetaData_new RENAME TO _ChannelMetaData;
+CREATE VIEW ChannelMetaData AS SELECT * FROM _ChannelMetaData WHERE deleted_at IS NULL;
+DROP TABLE IF EXISTS MetaDataTypes;
+""")
+
+        # update database version
+        self.db.write_version(28)
 
     def reimport_torrents(self):
         """Import all torrent files in the collected torrent dir, all the files already in the database will be ignored.
