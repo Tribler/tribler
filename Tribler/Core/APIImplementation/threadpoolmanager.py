@@ -1,8 +1,6 @@
 
-from Tribler.dispersy.taskmanager import TaskManager
-from twisted.internet import reactor
-from threading import RLock
 import logging
+from os import sys
 from threading import RLock
 
 from twisted.internet import reactor
@@ -70,8 +68,9 @@ class ThreadPoolManager(TaskManager):
     def stop(self):
         dlist = []
         self.cancel_all_pending_tasks()
-        for task in self._pending_tasks.values():
+        for name, task in self._pending_tasks.items():
             if isinstance(task, Deferred):
+                print >> sys.stderr, "WAITING FOR DEFERRED:", name
                 dlist.append(task)
         d = DeferredList(dlist)
         yield d
