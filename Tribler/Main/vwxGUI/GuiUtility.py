@@ -81,10 +81,10 @@ class GUIUtility(object):
         with GUIUtility.__single_lock:
             if GUIUtility.__single and GUIUtility.__single.registered:
                 GUIUtility.__single.listicon.delInstance()
-                GUIUtility.__single.library_manager.delInstance()
+                GUIUtility.__single.library_manager = None
                 GUIUtility.__single.channelsearch_manager.delInstance()
-                GUIUtility.__single.torrentsearch_manager.delInstance()
-                GUIUtility.__single.torrentstate_manager.delInstance()
+                GUIUtility.__single.torrentsearch_manager = None
+                GUIUtility.__single.torrentstate_manager = None
 
             GUIUtility.__single = None
     delInstance = staticmethod(delInstance)
@@ -93,17 +93,15 @@ class GUIUtility(object):
         if not self.registered:
             self.registered = True
 
-            self.torrentsearch_manager = TorrentManager.getInstance(self)
+            self.torrentsearch_manager = TorrentManager(self)
             self.channelsearch_manager = ChannelManager.getInstance()
-            self.library_manager = LibraryManager.getInstance(self)
-            self.torrentstate_manager = TorrentStateManager.getInstance(self.utility.session)
+            self.library_manager = LibraryManager(self)
+            self.torrentstate_manager = TorrentStateManager(self.utility.session)
 
             self.torrentsearch_manager.connect(self.utility.session, self.library_manager, self.channelsearch_manager)
             self.channelsearch_manager.connect(self.utility.session, self.library_manager, self.torrentsearch_manager)
             self.library_manager.connect(self.utility.session, self.torrentsearch_manager, self.channelsearch_manager)
-            self.torrentstate_manager.connect(self.torrentsearch_manager,
-                                              self.library_manager,
-                                              self.channelsearch_manager)
+            self.torrentstate_manager.connect(self.torrentsearch_manager, self.library_manager)
 
             self.videoplayer = self.utility.session.lm.videoplayer
         else:
