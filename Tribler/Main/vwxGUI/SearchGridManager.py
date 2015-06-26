@@ -247,7 +247,7 @@ class TorrentManager(object):
 
                 # boudewijn: now that we have sorted the search results we
                 # want to prefetch the top N torrents.
-                startWorker(None, self.prefetch_hits, delay=1, uId=u"PREFETCH_RESULTS", workerType="guiTaskQueue")
+                startWorker(None, self.prefetch_hits, delay=1, uId=u"PREFETCH_RESULTS", workerType="ThreadPool")
 
         finally:
             self.hitsLock.release()
@@ -649,7 +649,7 @@ class LibraryManager(object):
         Called by any thread
         """
         self.dslist = dslist
-        startWorker(None, self._do_gui_callback, uId=u"LibraryManager_refresh_callbacks", workerType="guiTaskQueue")
+        startWorker(None, self._do_gui_callback, uId=u"LibraryManager_refresh_callbacks", workerType="ThreadPool")
 
         return self.wantpeers
 

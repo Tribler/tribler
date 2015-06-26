@@ -204,7 +204,7 @@ class RemoteTorrentHandler(TaskManager):
 
         # notify about the new metadata
         for callback in self.metadata_callbacks[thumb_hash]:
-            self.session.lm.rawserver.call_in_thread(0, callback, hexlify(thumb_hash))
+            self.session.lm.threadpool.call_in_thread(0, callback, hexlify(thumb_hash))
 
         del self.metadata_callbacks[thumb_hash]
 
@@ -213,7 +213,7 @@ class RemoteTorrentHandler(TaskManager):
             return
 
         for callback in self.torrent_callbacks[infohash]:
-            self.session.lm.rawserver.call_in_thread(0, callback, hexlify(infohash))
+            self.session.lm.threadpool.call_in_thread(0, callback, hexlify(infohash))
 
         del self.torrent_callbacks[infohash]
 

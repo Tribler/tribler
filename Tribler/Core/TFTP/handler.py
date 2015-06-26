@@ -28,7 +28,7 @@ DEFAULT_RETIES = 5
 class TftpHandler(TaskManager):
 
     """
-    This is the TFTP handler that should be registered at the RawServer to handle TFTP packets.
+    This is the TFTP handler that should be registered at the thread pool to handle TFTP packets.
     """
 
     def __init__(self, session, endpoint, prefix, block_size=DEFAULT_BLOCK_SIZE, timeout=DEFAULT_TIMEOUT,
@@ -206,7 +206,7 @@ class TftpHandler(TaskManager):
     @attach_runtime_statistics(u"{0.__class__.__name__}.{function_name}")
     @call_on_reactor_thread
     def data_came_in(self, addr, data):
-        """ The callback function that the RawServer will call when there is incoming data.
+        """ The callback function that the thread pool will call when there is incoming data.
         :param addr: The (IP, port) address tuple of the sender.
         :param data: The data received.
         """

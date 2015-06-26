@@ -183,7 +183,7 @@ class TopSearchPanel(FancyPanel):
         self.go.SetRange(max + 16)
 
         cancelWorker(u"FakeResult")
-        startWorker(None, self.FakeResult, uId=u"FakeResult", delay=0.25, workerType="guiTaskQueue")
+        startWorker(None, self.FakeResult, uId=u"FakeResult", delay=0.25, workerType="ThreadPool")
 
     @forceWxThread
     def FakeResult(self, times=1):
@@ -195,7 +195,7 @@ class TopSearchPanel(FancyPanel):
             self.go.SetValue(newValue)
 
             startWorker(None, self.FakeResult, wargs=(times + 1,), uId=u"FakeResult", delay=0.25,
-                        workerType="guiTaskQueue")
+                        workerType="ThreadPool")
 
     def NewResult(self):
         maxValue = self.go.GetRange()

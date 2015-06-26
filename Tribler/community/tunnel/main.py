@@ -158,7 +158,7 @@ class Tunnel(object):
         return (4.0, [])
 
     def stop(self):
-        self.session.lm.rawserver.call(0, self._stop)
+        self.session.lm.threadpool.call(0, self._stop)
 
     def _stop(self):
         if self.clean_messages_lc:
@@ -287,7 +287,7 @@ class LineHandler(LineReceiver):
             dscfg.set_hops(1)
             dscfg.set_dest_dir(cur_path)
 
-            anon_tunnel.session.lm.rawserver.call(0, anon_tunnel.session.start_download, tdef, dscfg)
+            anon_tunnel.session.lm.threadpool.call(0, anon_tunnel.session.start_download, tdef, dscfg)
         elif line.startswith('i'):
             # Introduce dispersy port from other main peer to this peer
             line_split = line.split(' ')
@@ -320,7 +320,7 @@ class LineHandler(LineReceiver):
                 download = anon_tunnel.session.start_download(tdef, dscfg)
                 download.set_state_callback(cb, delay=1)
 
-            anon_tunnel.session.lm.rawserver.call(0, start_download)
+            anon_tunnel.session.lm.threadpool.call(0, start_download)
 
         elif line == 'q':
             anon_tunnel.stop()

@@ -9,15 +9,14 @@ from binascii import hexlify
 
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
+from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException
-from Tribler.Core.simpledefs import (STATEDIR_PEERICON_DIR, STATEDIR_DLPSTATE_DIR, NTFY_PEERS, NTFY_TORRENTS,
-                                     NTFY_MYPREFERENCES, NTFY_VOTECAST, NTFY_CHANNELCAST, NTFY_UPDATE, NTFY_INSERT,
-                                     NTFY_DELETE, NTFY_METADATA, STATEDIR_TORRENT_STORE_DIR,
-                                     STATEDIR_METADATA_STORE_DIR)
-from Tribler.Core.CacheDB.Notifier import Notifier
+from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_METADATA, NTFY_MYPREFERENCES,
+                                     NTFY_PEERS, NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
+                                     STATEDIR_METADATA_STORE_DIR, STATEDIR_PEERICON_DIR, STATEDIR_TORRENT_STORE_DIR)
 
 
 GOTM2CRYPTO = False
@@ -112,13 +111,11 @@ class Session(SessionConfigInterface):
             #
             # 1. keypair
             #
-            pairfilename = os.path.join(scfg.get_state_dir(), 'ec.pem')
-            if scfg.get_permid_keypair_filename() is None:
-                scfg.set_permid_keypair_filename(pairfilename)
+            pairfilename = scfg.get_permid_keypair_filename()
 
-            if os.access(scfg.get_permid_keypair_filename(), os.F_OK):
+            if os.access(pairfilename, os.F_OK):
                 # May throw exceptions
-                self.keypair = permidmod.read_keypair(scfg.get_permid_keypair_filename())
+                self.keypair = permidmod.read_keypair(pairfilename)
             else:
                 self.keypair = permidmod.generate_keypair()
 
@@ -172,6 +169,7 @@ class Session(SessionConfigInterface):
     #
     # Class methods
     #
+    @staticmethod
     def get_instance(*args, **kw):
         """ Returns the Session singleton if it exists or otherwise
             creates it first, in which case you need to pass the constructor
@@ -180,15 +178,14 @@ class Session(SessionConfigInterface):
         if Session.__single is None:
             Session(*args, **kw)
         return Session.__single
-    get_instance = staticmethod(get_instance)
 
+    @staticmethod
     def has_instance():
         return Session.__single is not None
-    has_instance = staticmethod(has_instance)
 
+    @staticmethod
     def del_instance():
         Session.__single = None
-    del_instance = staticmethod(del_instance)
 
     #
     # Public methods
@@ -314,13 +311,10 @@ class Session(SessionConfigInterface):
         @return SessionStartupConfig
         """
         # Called by any thread
-        self.sesslock.acquire()
-        try:
+        with self.sesslock:
             sessconfig = copy.copy(self.sessconfig)
             sessconfig.set_callback(None)
             return SessionStartupConfig(sessconfig=sessconfig)
-        finally:
-            self.sesslock.release()
 
     #
     # Notification of events in the Session
@@ -377,8 +371,9 @@ class Session(SessionConfigInterface):
             raise OperationNotEnabledByConfigurationException()
 
         # Called by any thread
-        # with self.sesslock:
-        if subject == NTFY_PEERS:
+        if subject == NTFY_METADATA:
+            return self.lm.metadata_db
+        elif subject == NTFY_PEERS:
             return self.lm.peer_db
         elif subject == NTFY_TORRENTS:
             return self.lm.torrent_db
@@ -539,8 +534,8 @@ class Session(SessionConfigInterface):
             if hacksessconfcheckpoint:
                 try:
                     self.save_pstate_sessconfig()
-                except Exception:
-                    self._logger.exception("Session: could not checkpoint_shutdown")
+                except Exception as e:
+                    self._logger.error("save_pstate_sessconfig() failed with error: %s", e)
 
             # Checkpoint all Downloads and stop NetworkThread
             if stop:

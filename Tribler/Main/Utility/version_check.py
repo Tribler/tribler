@@ -18,11 +18,12 @@ from Tribler.Main.vwxGUI import forceWxThread
 
 
 def checkVersion(self):
-    self.guiserver.add_task(self._checkVersion, 5.0)
+    raise NotImplementedError("This next line needs to be called on the thread pool.")
+    #call in thread pool(self._checkVersion, 5.0)
 
 
 def _checkVersion(self):
-    # Called by GUITaskQueue thread
+    # Called from the ThreadPool
     my_version = self.utility.getVersion()
     try:
         curr_status = urllib.urlopen('http://tribler.org/version').readlines()

@@ -3,7 +3,6 @@
 # Additionally DelayedResult is returned, allowing a thread to wait for result
 import logging
 import os
-import threading
 from collections import namedtuple
 from inspect import isgeneratorfunction
 from random import randint
@@ -14,11 +13,9 @@ from traceback import extract_stack, format_exc, print_exc, print_stack
 import wx
 from twisted.internet import reactor
 from twisted.python.threadable import isInIOThread
-from wx.lib.delayedresult import (AbortedException, SenderCallAfter, SenderNoWx, SenderWxEvent)
+from wx.lib.delayedresult import AbortedException, SenderCallAfter, SenderNoWx, SenderWxEvent
 
 from Tribler.Core.Utilities.twisted_utils import isInThreadPool
-from Tribler.Main.Dialogs.GUITaskQueue import GUITaskQueue
-from Tribler.dispersy.taskmanager import TaskManager
 
 
 # Arno, 2012-07-18: Priority for real user visible GUI tasks (e.g. list update)
@@ -156,14 +153,14 @@ class GUIDBProducer(object):
 
         wrapper.__name__ = str(name)
 
-        # Have in mind that setting workerType to "guiTaskQueue" means that the
+        # Have in mind that setting workerType to "ThreadPool" means that the
         # task wants to be executed OUT of the GUI thread, nothing more.
         if delay or not (isInIOThread() or isInThreadPool()):
             if workerType == "dbThread":
                 # Schedule the task to be called later in the reactor thread.
-                self.utility.session.lm.rawserver.add_task(wrapper, delay)
-            elif workerType == "guiTaskQueue":
-                self.utility.session.lm.rawserver.add_task_in_thread(wrapper, delay)
+                self.utility.session.lm.threadpool.add_task(wrapper, delay)
+            elif workerType == "ThreadPool":
+                self.utility.session.lm.threadpool.add_task_in_thread(wrapper, delay)
             else:
                 raise RuntimeError("Asked to schedule a task with unknown workerType: %s", workerType)
         elif workerType == "dbThread" and not isInIOThread():
@@ -183,9 +180,11 @@ class GUIDBProducer(object):
                 if __debug__:
                     self.nrCallbacks[uId] = self.nrCallbacks.get(uId, 0) - 1
 
-            self.utility.session.lm.rawserver.cancel_pending_task(uId)
+            self.utility.session.lm.threadpool.cancel_pending_task(uId)
 
 # Wrapping Senders for new delayedResult impl
+
+
 class MySender(object):
 
     def __init__(self, delayedResult):

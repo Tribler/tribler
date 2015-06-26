@@ -690,7 +690,7 @@ class TorrentListItem(DoubleLineListItemWithButtons):
         if not storage_moved:
             self._logger.info("Moving from %s to %s newdir %s", old, new, new_dir)
             movelambda = lambda: rename_or_merge(old, new)
-            self.guiutility.utility.session.lm.rawserver.add_task(movelambda, 0.0)
+            self.guiutility.utility.session.lm.threadpool.add_task(movelambda, 0.0)
 
     def OnDClick(self, event):
         self.guiutility.frame.top_bg.OnDownload(None, [self.original_data])

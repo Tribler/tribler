@@ -3,11 +3,11 @@
 
 import ast
 import codecs
-
-from ConfigParser import RawConfigParser, DEFAULTSECT
+from ConfigParser import DEFAULTSECT, RawConfigParser
 from threading import RLock
 
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class CallbackConfigParser(RawConfigParser):
@@ -59,7 +59,6 @@ class CallbackConfigParser(RawConfigParser):
 
     def write(self, fp):
         with self.lock:
-            """Fixed for Unicode output"""
             if self._defaults:
                 fp.write(u"[%s]\n" % DEFAULTSECT)
                 for (key, value) in self._defaults.items():
