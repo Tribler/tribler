@@ -93,6 +93,14 @@ class TunnelConversion(BinaryConversion):
                                  community.get_meta_message(u"linked-e2e"),
                                  self._encode_linked_e2e,
                                  self._decode_linked_e2e)
+        self.define_meta_message(chr(21),
+                                 community.get_meta_message(u"dht-request"),
+                                 self._encode_dht_request,
+                                 self._decode_dht_request)
+        self.define_meta_message(chr(22),
+                                 community.get_meta_message(u"dht-response"),
+                                 self._encode_dht_response,
+                                 self._decode_dht_response)
 
     def _encode_introduction_response(self, message):
         payload = message.payload
@@ -325,12 +333,12 @@ class TunnelConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(circuit_id, identifier, rendezvous_point_addr)
 
     def _encode_keys_request(self, message):
-        return pack('!H20s', message.payload.identifier, message.payload.info_hash),
+        return pack('!IH20s', message.payload.circuit_id, message.payload.identifier, message.payload.info_hash),
 
     def _decode_keys_request(self, placeholder, offset, data):
-        identifier, info_hash = unpack_from('!H20s', data, offset)
-        offset += 22
-        return offset, placeholder.meta.payload.implement(identifier, info_hash)
+        circuit_id, identifier, info_hash = unpack_from('!IH20s', data, offset)
+        offset += 26
+        return offset, placeholder.meta.payload.implement(circuit_id, identifier, info_hash)
 
     def _encode_keys_response(self, message):
         return pack('!HH', message.payload.identifier, len(message.payload.public_key)) + message.payload.public_key,
@@ -395,8 +403,33 @@ class TunnelConversion(BinaryConversion):
     def _decode_linked_e2e(self, placeholder, offset, data):
         circuit_id, identifier = unpack_from('!IH', data, offset)
         offset += 6
-
         return offset, placeholder.meta.payload.implement(circuit_id, identifier)
+
+    def _encode_dht_request(self, message):
+        return pack('!IH20s',
+                    message.payload.circuit_id,
+                    message.payload.identifier,
+                    message.payload.info_hash),
+
+    def _decode_dht_request(self, placeholder, offset, data):
+        circuit_id, identifier, info_hash = unpack_from('!IH20s', data, offset)
+        offset += 26
+        return offset, placeholder.meta.payload.implement(circuit_id, identifier, info_hash)
+
+    def _encode_dht_response(self, message):
+        return pack('!IH20s',
+                    message.payload.circuit_id,
+                    message.payload.identifier,
+                    message.payload.info_hash) + message.payload.peers,
+
+    def _decode_dht_response(self, placeholder, offset, data):
+        circuit_id, identifier, info_hash = unpack_from('!IH20s', data, offset)
+        offset += 26
+
+        peers = data[offset:]
+        offset += len(peers)
+
+        return offset, placeholder.meta.payload.implement(circuit_id, identifier, info_hash, peers)
 
     @staticmethod
     def swap_circuit_id(packet, message_type, old_circuit_id, new_circuit_id):

@@ -300,22 +300,20 @@ class TunnelCommunity(Community):
 
     @classmethod
     def get_master_members(cls, dispersy):
-        # generated: Thu May 21 16:25:38 2015
+        # generated: Mon Jun 29 01:24:31 2015
         # curve: None
         # len: 571 bits ~ 144 bytes signature
-        # pub: 170 3081a7301006072a8648ce3d020106052b81040027038192000403ba4a5a53c0aae73cd
-        # a16a60f1ddc4b600bdc201b24c7ae349acbaf2b4a0510a97ac7f7cc31825a5e59a5da3bbdaa88d85
-        # 49e01326ed9925c9229a35af88d645674deb3816c417306aa0182b7963134d61a6f2fef08533ea5c
-        # dde55b551f9d61ced20d67237e46d738b876f4c574fda46828a1432a2ad28534d2394b14836aa0be
-        # 395a87911866aa58325606a20c557
-        # pub-sha1 ca003cb1a2e7f3f770a6cb0908b27f2f7a1e5779
+        # pub: 170 3081a7301006072a8648ce3d020106052b8104002703819200040569f1caf0f72fa417d4309cef8569eaee357f4c4c9ea486a86b42bdead6216dc02c720fb3cecf964fc1ccd2761609d0a44667ba69373b71933fa44d505bb196c2c77b0673e76bc304ad4a33e61911141e9bda2d38323f1d0f13e5b3a2a0bf839cc65eac791ba50f8dadaddca7502df5980bf23c37e252dc8430267fe995df54006239295f3b096619d3e1f76e762f9d
+        # prv: 241 3081ee0201010448035ba610c640be9c576a81a57816d590848c8a0fa3cd51274b58ef8eb163e0d700fcdd41d7bd3e9d86636cb866dfa6c7d3a76a96a7eea365a544b2009e2caf607ebab78364c7458ea00706052b81040027a1819503819200040569f1caf0f72fa417d4309cef8569eaee357f4c4c9ea486a86b42bdead6216dc02c720fb3cecf964fc1ccd2761609d0a44667ba69373b71933fa44d505bb196c2c77b0673e76bc304ad4a33e61911141e9bda2d38323f1d0f13e5b3a2a0bf839cc65eac791ba50f8dadaddca7502df5980bf23c37e252dc8430267fe995df54006239295f3b096619d3e1f76e762f9d
+        # pub-sha1 c22387381a2c490a70f0ef519946913a4d138c6e
+        # prv-sha1 85f6da3e8c6eb9c689c43ee0ad00de49ef018d30
         # -----BEGIN PUBLIC KEY-----
-        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQDukpaU8Cq5zzaFqYPHdxLYAvcIBsk
-        # x640msuvK0oFEKl6x/fMMYJaXlml2ju9qojYVJ4BMm7ZklySKaNa+I1kVnTes4Fs
-        # QXMGqgGCt5YxNNYaby/vCFM+pc3eVbVR+dYc7SDWcjfkbXOLh29MV0/aRoKKFDKi
-        # rShTTSOUsUg2qgvjlah5EYZqpYMlYGogxVc=
+        # MIGnMBAGByqGSM49AgEGBSuBBAAnA4GSAAQFafHK8PcvpBfUMJzvhWnq7jV/TEye
+        # pIaoa0K96tYhbcAscg+zzs+WT8HM0nYWCdCkRme6aTc7cZM/pE1QW7GWwsd7BnPn
+        # a8MErUoz5hkRFB6b2i04Mj8dDxPls6Kgv4Ocxl6seRulD42trdynUC31mAvyPDfi
+        # UtyEMCZ/6ZXfVABiOSlfOwlmGdPh9252L50=
         # -----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b81040027038192000403ba4a5a53c0aae73cda16a60f1ddc4b600bdc201b24c7ae349acbaf2b4a0510a97ac7f7cc31825a5e59a5da3bbdaa88d8549e01326ed9925c9229a35af88d645674deb3816c417306aa0182b7963134d61a6f2fef08533ea5cdde55b551f9d61ced20d67237e46d738b876f4c574fda46828a1432a2ad28534d2394b14836aa0be395a87911866aa58325606a20c557".decode("HEX")
+        master_key = "3081a7301006072a8648ce3d020106052b8104002703819200040569f1caf0f72fa417d4309cef8569eaee357f4c4c9ea486a86b42bdead6216dc02c720fb3cecf964fc1ccd2761609d0a44667ba69373b71933fa44d505bb196c2c77b0673e76bc304ad4a33e61911141e9bda2d38323f1d0f13e5b3a2a0bf839cc65eac791ba50f8dadaddca7502df5980bf23c37e252dc8430267fe995df54006239295f3b096619d3e1f76e762f9d".decode("HEX")
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
@@ -451,7 +449,7 @@ class TunnelCommunity(Community):
         for pubkey in ckeys:
             if pubkey not in current_candidates:
                 self.exit_candidates.pop(pubkey)
-                logging.debug("Removed candidate from exit_candidates dictionary")
+                self._logger.debug("Removed candidate from exit_candidates dictionary")
 
     def create_circuit(self, goal_hops, ctype=CIRCUIT_TYPE_DATA, callback=None, max_retries=0,
                        required_endpoint=None, info_hash=None):
