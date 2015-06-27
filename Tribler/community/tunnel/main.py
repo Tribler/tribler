@@ -265,7 +265,7 @@ class LineHandler(LineReceiver):
         elif line.startswith('s'):
             cur_path = os.getcwd()
             line_split = line.split(' ')
-            filename = 'test_file' if len(line_split) == 1 else line_split[1]
+            filename = 'bigtest' if len(line_split) == 1 else line_split[1]
 
             if not os.path.exists(filename):
                 logger.info("Creating torrent..")
@@ -370,7 +370,6 @@ def main(argv):
         sys.exit(1)
 
     settings = TunnelSettings()
-    settings.max_time = 60
 
     # For disbling anonymous downloading, limiting download to hidden services only
     settings.min_circuits = 0

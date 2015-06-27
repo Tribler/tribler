@@ -8,7 +8,10 @@ import hashlib
 
 from collections import defaultdict
 
-from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED
+from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED,\
+    NTFY_TUNNEL, NTFY_IP_REMOVED, NTFY_RP_REMOVED, NTFY_IP_RECREATE,\
+    NTFY_DHT_LOOKUP, NTFY_KEY_REQUEST, NTFY_KEY_RESPOND, NTFY_KEY_RESPONSE,\
+    NTFY_CREATE_E2E, NTFY_ONCREATED_E2E, NTFY_IP_CREATED
 from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 from Tribler.Core.Utilities.encoding import encode, decode
 
@@ -41,7 +44,7 @@ class IPRequestCache(RandomNumberCache):
         self.community = community
 
     def on_timeout(self):
-        self._logger.debug("IPRequestCache: no response on establish-intro (circuit %d)", self.circuit.circuit_id)
+        self._logger.error("IPRequestCache: no response on establish-intro (circuit %d)", self.circuit.circuit_id)
         self.community.remove_circuit(self.circuit.circuit_id, 'establish-intro timeout')
 
 
@@ -53,7 +56,7 @@ class RPRequestCache(RandomNumberCache):
         self.rp = rp
 
     def on_timeout(self):
-        self._logger.debug("RPRequestCache: no response on establish-rendezvous (circuit %d)",
+        self._logger.error("RPRequestCache: no response on establish-rendezvous (circuit %d)",
                            self.rp.circuit.circuit_id)
         self.community.remove_circuit(self.rp.circuit.circuit_id, 'establish-rendezvous timeout')
 
@@ -65,6 +68,17 @@ class KeyRequestCache(RandomNumberCache):
         self.circuit = circuit
         self.sock_addr = sock_addr
         self.info_hash = info_hash
+
+    def on_timeout(self):
+        pass
+
+
+class KeyRelayCache(RandomNumberCache):
+
+    def __init__(self, community, identifier, circuit_id):
+        super(KeyRelayCache, self).__init__(community.request_cache, u"key-request")
+        self.identifier = identifier
+        self.circuit_id = circuit_id
 
     def on_timeout(self):
         pass
@@ -152,11 +166,15 @@ class HiddenTunnelCommunity(TunnelCommunity):
         super(HiddenTunnelCommunity, self).remove_circuit(circuit_id, additional_info, destroy)
 
         if circuit_id in self.my_intro_points:
-            self._logger.debug("removed introduction point")
+            if self.notifier:
+                self.notifier.notify(NTFY_TUNNEL, NTFY_IP_REMOVED, circuit_id)
+            self._logger.error("removed introduction point %d" % circuit_id)
             self.my_intro_points.pop(circuit_id)
 
         if circuit_id in self.my_download_points:
-            self._logger.debug("removed rendezvous point")
+            if self.notifier:
+                self.notifier.notify(NTFY_TUNNEL, NTFY_RP_REMOVED, circuit_id)
+            self._logger.error("removed rendezvous point %d" % circuit_id)
             self.my_download_points.pop(circuit_id)
 
     def ip_to_circuit_id(self, ip_str):
@@ -192,10 +210,12 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
             # If the introducing circuit does not exist anymore or timed out: Build a new circuit
             if info_hash in self.infohash_ip_circuits:
-                for circuit_id in self.infohash_ip_circuits[info_hash]:
-                    if circuit_id not in self.my_intro_points:
-                        self.infohash_ip_circuits[info_hash].remove(circuit_id)
-                        self._logger.debug('Recreate the introducing circuit for %s' % info_hash.encode('hex'))
+                for (circuit_id, time_created) in self.infohash_ip_circuits[info_hash]:
+                    if circuit_id not in self.my_intro_points and time_created < time.time() - 30:
+                        self.infohash_ip_circuits[info_hash].remove((circuit_id, time_created))
+                        if self.notifier:
+                            self.notifier.notify(NTFY_TUNNEL, NTFY_IP_RECREATE, circuit_id, info_hash.encode('hex')[:6])
+                        self._logger.error('Recreate the introducing circuit for %s' % info_hash.encode('hex'))
                         self.create_introduction_point(info_hash)
 
             # If the rendezvous point circuit does not exist anymore: Initiate circuit generation again
@@ -203,11 +223,11 @@ class HiddenTunnelCommunity(TunnelCommunity):
                 for circuit_id in self.infohash_rp_circuits[info_hash]:
                     if circuit_id not in self.my_download_points:
                         self.infohash_rp_circuits[info_hash].remove(circuit_id)
-                        self._logger.debug('Force a new lookup for infohash %s' % info_hash.encode('hex'))
+                        self._logger.error('Force a new lookup for infohash %s' % info_hash.encode('hex'))
                         force_dht_lookup = True
 
             if (state_changed or force_dht_lookup) and new_state == DLSTATUS_DOWNLOADING:
-                self._logger.debug('Do dht lookup for hidden services download %s' % info_hash.encode('hex'))
+                self._logger.error('Do dht lookup for hidden services download %s' % info_hash.encode('hex'))
                 self.do_lookup(info_hash)
 
             elif state_changed and new_state == DLSTATUS_SEEDING:
@@ -237,6 +257,9 @@ class HiddenTunnelCommunity(TunnelCommunity):
         # Get seeders from the DHT and establish an e2e encrypted tunnel to them
         @call_on_reactor_thread
         def dht_callback(info_hash, peers, _):
+            if self.notifier:
+                self.notifier.notify(NTFY_TUNNEL, NTFY_DHT_LOOKUP, info_hash.encode('hex')[:6], peers)
+
             if not peers:
                 return
 
@@ -250,36 +273,39 @@ class HiddenTunnelCommunity(TunnelCommunity):
             exclude = [rp[2] for rp in self.my_download_points.values()] + [sock_addr for _, sock_addr in blacklist]
             for peer in set(peers):
                 if peer not in exclude:
-                    self._logger.debug("Requesting key from %s", peer)
+                    self._logger.error("Requesting key from %s", peer)
 
                     # Blacklist this sock_addr for a period of at least 60s
                     self.dht_blacklist[info_hash].append((time.time(), peer))
 
                     self.create_key_request(info_hash, peer)
 
-        self._logger.debug("Doing dht lookup for hidden community")
+        self._logger.error("Doing dht lookup for hidden community")
         self.last_dht_lookup[info_hash] = time.time()
         self.dht_lookup(info_hash, dht_callback)
 
     def create_key_request(self, info_hash, sock_addr):
         # 1. Select a circuit
-        self._logger.debug("Create key request: select circuit")
+        self._logger.error("Create key request: select circuit")
         circuit = self.selection_strategy.select(None, self.hops[info_hash])
         if not circuit:
             self._logger.error("No circuit for key-request")
             return False
 
         # 2. Send a key-request message
-        self._logger.debug("Create key request: send key request")
+        if self.notifier:
+            self.notifier.notify(NTFY_TUNNEL, NTFY_KEY_REQUEST, info_hash.encode('hex')[:6], sock_addr)
+        self._logger.error("Create key request: send key request")
         cache = self.request_cache.add(KeyRequestCache(self, circuit, sock_addr, info_hash))
         meta = self.get_meta_message(u'key-request')
-        message = meta.impl(distribution=(self.global_time,), payload=(cache.number, info_hash))
+        message = meta.impl(distribution=(self.global_time,), payload=(circuit.circuit_id, cache.number, info_hash))
         circuit.tunnel_data(sock_addr, TUNNEL_PREFIX + message.packet)
+
         return True
 
     def check_key_request(self, messages):
         for message in messages:
-            self._logger.debug("Check key request")
+            self._logger.error("Check key request")
             info_hash = message.payload.info_hash
             if not message.source.startswith(u"circuit_"):
                 if info_hash not in self.intro_point_for:
@@ -294,17 +320,22 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
     def on_key_request(self, messages):
         for message in messages:
-            # if we have received this message over a socket, we need to forward it
             if not message.source.startswith(u"circuit_"):
-                self._logger.debug("On key request: relay key request")
+                # The intropoint receives the message over a socket, and forwards it to the seeder
+                self._logger.error("On key request: relay key request")
+                cache = self.request_cache.add(KeyRelayCache(self, message.payload.identifier, message.payload.circuit_id))
+                meta = self.get_meta_message(u'key-request')
+                message = meta.impl(distribution=(self.global_time,), payload=(message.payload.circuit_id, cache.number, message.payload.info_hash))
                 relay_circuit = self.intro_point_for[message.payload.info_hash]
-                relay_circuit.tunnel_data(message.candidate.sock_addr, TUNNEL_PREFIX + message.packet)
-
+                relay_circuit.tunnel_data(self.dispersy.wan_address, TUNNEL_PREFIX + message.packet)
             else:
+                # The seeder responds with keys back to the intropoint
                 info_hash = message.payload.info_hash
                 key = self.session_keys[info_hash]
                 circuit = self.circuits[int(message.source[8:])]
-                self._logger.debug("On key request: respond with keys")
+                if self.notifier:
+                    self.notifier.notify(NTFY_TUNNEL, NTFY_KEY_RESPOND, info_hash.encode('hex')[:6], circuit.circuit_id)
+                self._logger.error("On key request: respond with keys to %s" % repr(message.candidate.sock_addr))
                 meta = self.get_meta_message(u'key-response')
                 response = meta.impl(distribution=(self.global_time,), payload=(
                     message.payload.identifier, key.pub().key_to_bin()))
@@ -312,27 +343,34 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
     def check_key_response(self, messages):
         for message in messages:
-            if not message.source.startswith(u"circuit_"):
-                yield DropMessage(message, "must be received from a circuit")
-                continue
-
+            self._logger.error("Check key response")
             request = self.request_cache.get(u"key-request", message.payload.identifier)
             if not request:
+                self._logger.error("invalid key-response identifier")
                 yield DropMessage(message, "invalid key-response identifier")
                 continue
-
             yield message
 
     def on_key_response(self, messages):
         for message in messages:
-            self._logger.debug("On key response: received keys")
-            cache = self.request_cache.pop(u"key-request", message.payload.identifier)
-            self.create_e2e(cache.circuit, cache.sock_addr, cache.info_hash, message.payload.public_key)
+            if not message.source.startswith(u"circuit_"):
+                self._logger.error('On key response: forward message because received over socket')
+                cache = self.request_cache.pop(u"key-request", message.payload.identifier)
+                relay_circuit = self.circuits[cache.circuit_id]
+                relay_circuit.tunnel_data(message.candidate.sock_addr, TUNNEL_PREFIX + message.packet)
+            else:
+                self._logger.error("On key response: received keys")
+                cache = self.request_cache.pop(u"key-request", message.payload.identifier)
+                if self.notifier:
+                    self.notifier.notify(NTFY_TUNNEL, NTFY_KEY_RESPONSE, cache.info_hash.encode('hex')[:6], cache.circuit.circuit_id)
+                self.create_e2e(cache.circuit, cache.sock_addr, cache.info_hash, message.payload.public_key)
 
     def create_e2e(self, circuit, sock_addr, info_hash, public_key):
         hop = Hop(self.crypto.key_from_public_bin(public_key))
         hop.dh_secret, hop.dh_first_part = self.crypto.generate_diffie_secret()
-        self._logger.debug("Create end to end initiated here")
+        if self.notifier:
+            self.notifier.notify(NTFY_TUNNEL, NTFY_CREATE_E2E, info_hash.encode('hex')[:6])
+        self._logger.error("Create end to end initiated here")
         cache = self.request_cache.add(E2ERequestCache(self, info_hash, circuit, hop, sock_addr))
         meta = self.get_meta_message(u'create-e2e')
         message = meta.impl(distribution=(self.global_time,), payload=(cache.number, info_hash, hop.node_id,
@@ -343,11 +381,11 @@ class HiddenTunnelCommunity(TunnelCommunity):
         for message in messages:
             # if we have received this message over a socket, we need to forward it
             if not message.source.startswith(u"circuit_"):
-                self._logger.debug('On create e2e: forward message because received over socket')
+                self._logger.error('On create e2e: forward message because received over socket')
                 relay_circuit = self.intro_point_for[message.payload.info_hash]
                 relay_circuit.tunnel_data(message.candidate.sock_addr, TUNNEL_PREFIX + message.packet)
             else:
-                self._logger.debug('On create e2e: create rendezvous point')
+                self._logger.error('On create e2e: create rendezvous point')
                 self.create_rendezvous_point(self.hops[message.payload.info_hash],
                                              lambda rendezvous_point, message=message:
                                              self.create_created_e2e(rendezvous_point,
@@ -394,6 +432,9 @@ class HiddenTunnelCommunity(TunnelCommunity):
             _, rp_info = decode(self.crypto.decrypt_str(message.payload.rp_sock_addr,
                                                         session_keys[EXIT_NODE],
                                                         session_keys[EXIT_NODE_SALT]))
+
+            if self.notifier:
+                self.notifier.notify(NTFY_TUNNEL, NTFY_ONCREATED_E2E, cache.info_hash.encode('hex')[:6], rp_info[0])
 
             # Since it is the seeder that chose the rendezvous_point, we're essentially losing 1 hop of anonymity
             # at the downloader end. To compensate we add an extra hop.
@@ -485,7 +526,9 @@ class HiddenTunnelCommunity(TunnelCommunity):
             cache = self.request_cache.add(IPRequestCache(self, circuit))
             self.send_cell([Candidate(circuit.first_hop, False)],
                            u'establish-intro', (circuit_id, cache.number, info_hash))
-            self._logger.debug("Established introduction tunnel %s", circuit_id)
+            self._logger.error("Established introduction tunnel %s", circuit_id)
+            if self.notifier:
+                self.notifier.notify(NTFY_TUNNEL, NTFY_IP_CREATED, info_hash.encode('hex')[:6], circuit_id)
 
         for _ in range(amount):
             # Create a circuit to the introduction point + 1 hop, to prevent the introduction
@@ -494,7 +537,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
                                              CIRCUIT_TYPE_IP,
                                              callback,
                                              info_hash=info_hash)
-            self.infohash_ip_circuits[info_hash].append(circuit_id)
+            self.infohash_ip_circuits[info_hash].append((circuit_id, time.time()))
 
     def check_establish_intro(self, messages):
         for message in messages:
@@ -533,6 +576,9 @@ class HiddenTunnelCommunity(TunnelCommunity):
             rp = RendezvousPoint(circuit, os.urandom(20), finished_callback)
 
             cache = self.request_cache.add(RPRequestCache(self, rp))
+            if self.notifier:
+                self.notifier.notify(NTFY_TUNNEL, NTFY_IP_CREATED, info_hash.encode('hex')[:6], circuit_id)
+
             self.send_cell([Candidate(circuit.first_hop, False)],
                            u'establish-rendezvous', (circuit_id, cache.number, rp.cookie))
 
@@ -585,7 +631,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
     def dht_announce(self, info_hash):
         if self.trsession:
             def cb(info_hash, peers, source):
-                self._logger.debug("Announced %s to the DHT", info_hash.encode('hex'))
+                self._logger.error("Announced %s to the DHT", info_hash.encode('hex'))
 
             port = self.trsession.get_dispersy_port()
             self.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb, bt_port=port)
