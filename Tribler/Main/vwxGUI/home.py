@@ -15,7 +15,10 @@ from traceback import print_exc
 
 from Tribler.Category.Category import Category
 from Tribler.Core.simpledefs import (NTFY_TORRENTS, NTFY_CHANNELCAST, NTFY_INSERT, NTFY_TUNNEL, NTFY_CREATED,
-                                     NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, NTFY_EXTENDED_FOR)
+                                     NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, NTFY_EXTENDED_FOR,
+                                     NTFY_IP_REMOVED, NTFY_RP_REMOVED, NTFY_IP_RECREATE, NTFY_DHT_LOOKUP,
+                                     NTFY_KEY_REQUEST, NTFY_KEY_RESPOND, NTFY_KEY_RESPONSE, NTFY_CREATE_E2E,
+                                     NTFY_ONCREATED_E2E, NTFY_IP_CREATED, NTFY_RP_CREATED)
 from Tribler.Core.Session import Session
 
 from Tribler.Main.vwxGUI import SEPARATOR_GREY, DEFAULT_BACKGROUND, LIST_BLUE, THUMBNAIL_FILETYPES
@@ -636,6 +639,17 @@ class NetworkGraphPanel(wx.Panel):
             self.session.add_observer(self.OnSelect, NTFY_TUNNEL, [NTFY_SELECT])
             self.session.add_observer(self.OnJoined, NTFY_TUNNEL, [NTFY_JOINED])
             self.session.add_observer(self.OnExtendedFor, NTFY_TUNNEL, [NTFY_EXTENDED_FOR])
+            self.session.add_observer(self.OnIpRemoved, NTFY_TUNNEL, [NTFY_IP_REMOVED])
+            self.session.add_observer(self.OnRpRemoved, NTFY_TUNNEL, [NTFY_RP_REMOVED])
+            self.session.add_observer(self.OnIpRecreate, NTFY_TUNNEL, [NTFY_IP_RECREATE])
+            self.session.add_observer(self.OnDhtLookup, NTFY_TUNNEL, [NTFY_DHT_LOOKUP])
+            self.session.add_observer(self.OnKeyRequest, NTFY_TUNNEL, [NTFY_KEY_REQUEST])
+            self.session.add_observer(self.OnKeyRespond, NTFY_TUNNEL, [NTFY_KEY_RESPOND])
+            self.session.add_observer(self.OnKeyResponse, NTFY_TUNNEL, [NTFY_KEY_RESPONSE])
+            self.session.add_observer(self.OnCreateE2E, NTFY_TUNNEL, [NTFY_CREATE_E2E])
+            self.session.add_observer(self.OnCreatedE2E, NTFY_TUNNEL, [NTFY_ONCREATED_E2E])
+            self.session.add_observer(self.OnIpCreated, NTFY_TUNNEL, [NTFY_IP_CREATED])
+            self.session.add_observer(self.OnRpCreated, NTFY_TUNNEL, [NTFY_RP_CREATED])
 
     def AddComponents(self):
         self.graph_panel = wx.Panel(self, -1)
@@ -771,6 +785,72 @@ class NetworkGraphPanel(wx.Panel):
         self.AppendToLog("Extended an external circuit (%s:%d, %d) with (%s:%d, %d)\n" % (
             extended_for[0].sock_addr[0], extended_for[0].sock_addr[1], extended_for[1], extended_with[0].sock_addr[0],
             extended_with[0].sock_addr[1], extended_with[1]))
+
+    @forceWxThread
+    def OnIpRemoved(self, subject, changeType, circuit_id):
+        if not self:
+            return
+        self.AppendToLog("Removed introduction circuit %d\n" % (circuit_id))
+
+    @forceWxThread
+    def OnIpRecreate(self, subject, changeType, circuit_id, info_hash):
+        if not self:
+            return
+        self.AppendToLog("Recreate introduction circuit to replace circuit %d for info_hash %s\n" % (circuit_id, info_hash))
+
+    @forceWxThread
+    def OnRpRemoved(self, subject, changeType, circuit_id):
+        if not self:
+            return
+        self.AppendToLog("Removed rendezvous circuit %d\n" % (circuit_id))
+
+    @forceWxThread
+    def OnDhtLookup(self, subject, changeType, info_hash, peers):
+        if not self:
+            return
+        self.AppendToLog("DHT lookup for info_hash %s resulted in peers: %s\n" % (info_hash, repr(peers)))
+
+    @forceWxThread
+    def OnKeyRequest(self, subject, changeType, info_hash, peer):
+        if not self:
+            return
+        self.AppendToLog("Request key for info_hash %s from %s\n" % (info_hash, repr(peer)))
+
+    @forceWxThread
+    def OnKeyRespond(self, subject, changeType, info_hash, circuit_id):
+        if not self:
+            return
+        self.AppendToLog("Respond with key for info_hash %s to circuit %s\n" % (info_hash, circuit_id))
+
+    @forceWxThread
+    def OnKeyResponse(self, subject, changeType, info_hash, circuit_id):
+        if not self:
+            return
+        self.AppendToLog("Respond with key for info_hash %s to circuit %s\n" % (info_hash, circuit_id))
+
+    @forceWxThread
+    def OnCreateE2E(self, subject, changeType, info_hash):
+        if not self:
+            return
+        self.AppendToLog("Create end-to-end for info_hash %s\n" % (info_hash))
+
+    @forceWxThread
+    def OnCreatedE2E(self, subject, changeType, info_hash, rp_addr):
+        if not self:
+            return
+        self.AppendToLog("Connect rendezvous %s for info_hash %s\n" % (repr(rp_addr[0]), info_hash))
+
+    @forceWxThread
+    def OnIpCreated(self, subject, changeType, info_hash, circuit_id):
+        if not self:
+            return
+        self.AppendToLog("Created introduction point %s for info_hash on circuit %d\n" % (info_hash, circuit_id))
+
+    @forceWxThread
+    def OnRpCreated(self, subject, changeType, info_hash, circuit_id):
+        if not self:
+            return
+        self.AppendToLog("Created rendezvous point %s for info_hash on circuit %d\n" % (info_hash, circuit_id))
 
     def OnMouse(self, event):
         if event.Moving():

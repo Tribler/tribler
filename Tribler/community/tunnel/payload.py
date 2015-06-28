@@ -3,33 +3,32 @@ from Tribler.dispersy.payload import Payload, IntroductionRequestPayload,\
 
 
 class TunnelIntroductionRequestPayload(IntroductionRequestPayload):
-    
+
     class Implementation(IntroductionRequestPayload.Implementation):
 
         def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier, exitnode = False):
             super(TunnelIntroductionRequestPayload.Implementation, self).__init__(meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
             assert isinstance(exitnode, bool), type(exitnode)
             self._exitnode = exitnode
-        
-        @property 
+
+        @property
         def exitnode(self):
             return self._exitnode
-            
+
 
 class TunnelIntroductionResponsePayload(IntroductionResponsePayload):
-    
+
     class Implementation(IntroductionResponsePayload.Implementation):
 
         def __init__(self, meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier, exitnode = False):
             super(TunnelIntroductionResponsePayload.Implementation, self).__init__(meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier)
             assert isinstance(exitnode, bool), type(exitnode)
             self._exitnode = exitnode
-        
-        
-        @property 
+
+        @property
         def exitnode(self):
             return self._exitnode
-         
+
 
 class CellPayload(Payload):
 
@@ -384,14 +383,20 @@ class KeyRequestPayload(Payload):
 
     class Implementation(Payload.Implementation):
 
-        def __init__(self, meta, identifier, info_hash):
+        def __init__(self, meta, circuit_id, identifier, info_hash):
+            assert isinstance(circuit_id, (int, long)), type(circuit_id)
             assert isinstance(identifier, int), type(identifier)
             assert isinstance(info_hash, basestring), type(info_hash)
             assert len(info_hash) == 20, len(info_hash)
 
             super(KeyRequestPayload.Implementation, self).__init__(meta)
+            self._circuit_id = circuit_id
             self._identifier = identifier
             self._info_hash = info_hash
+
+        @property
+        def circuit_id(self):
+            return self._circuit_id
 
         @property
         def identifier(self):
