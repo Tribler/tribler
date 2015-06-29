@@ -2,11 +2,11 @@
 import os
 import sys
 import re
-import binascii
 from time import time
 import logging
 import copy
 import wx
+from StringIO import StringIO
 
 from Tribler.Core.osutils import startfile
 from Tribler.Core.simpledefs import (DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING,
@@ -22,7 +22,7 @@ from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Main.Utility.GuiDBTuples import Torrent, ChannelTorrent, CollectedTorrent, Channel, Playlist
 from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, startWorker
 from Tribler.Main.vwxGUI import (warnWxThread, forceWxThread, GRADIENT_LGREY, GRADIENT_DGREY,
-                                 THUMBNAIL_FILETYPES, DEFAULT_BACKGROUND, FILTER_GREY, SEPARATOR_GREY,
+                                 DEFAULT_BACKGROUND, FILTER_GREY, SEPARATOR_GREY,
                                  DOWNLOADING_COLOUR, SEEDING_COLOUR, TRIBLER_RED, LIST_LIGHTBLUE, format_time)
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
@@ -129,6 +129,9 @@ class TorrentDetails(AbstractDetails):
 
         self.parent = parent
         self.torrent = Torrent('0', '0', '', 0, 0, 0, 0, 0, None)
+        self.torrent.torrent_db = self.guiutility.channelsearch_manager.torrent_db
+        self.torrent.channelcast_db = self.guiutility.channelsearch_manager.channelcast_db
+
         self.state = -1
         self.timeouttimer = None
 
@@ -522,20 +525,23 @@ class TorrentDetails(AbstractDetails):
         self.channel.Show(show_channel)
 
         # Toggle thumbnails
-        # FIXME(lipu): fix the thumbnail path to use metadata
-        thumb_dir = os.path.join(u"",
-                                 binascii.hexlify(self.torrent.infohash))
-        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir)
-                       for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
-        show_thumbnails = bool(thumb_files)
+        if self.torrent.metadata and 'thumb_hash' in self.torrent.metadata:
+            show_thumbnails = True
+            thumbnail_data = self.guiutility.utility.session.get_thumbnail_data(self.torrent.metadata['thumb_hash'])
+
+            image = wx.EmptyImage()
+            image.LoadStream(StringIO(thumbnail_data))
+            bitmap = wx.BitmapFromImage(image)
+
+            resolution = limit_resolution(bitmap.GetSize(), (175, 175))
+            bitmaps = [bitmap.ConvertToImage().Scale(*resolution, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap()]
+            self.thumbnails.SetBitmaps(bitmaps)
+
+        else:
+            show_thumbnails = False
+
         self.thumbnails.Show(show_thumbnails)
         self.no_thumb_bitmap.Show(not show_thumbnails)
-        if show_thumbnails:
-            bmps = [wx.Bitmap(thumb, wx.BITMAP_TYPE_ANY) for thumb in thumb_files[:4]]
-            res = limit_resolution(bmps[0].GetSize(), (175, 175)) if bmps else None
-            bmps = [bmp.ConvertToImage().Scale(*res, quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap()
-                    for bmp in bmps if bmp.IsOk()] if res else []
-            self.thumbnails.SetBitmaps(bmps)
 
         # Toggle 'Mark this torrent' option
         self.marking_vSizer.ShowItems(self.canComment)
@@ -547,12 +553,6 @@ class TorrentDetails(AbstractDetails):
         self.Thaw()
 
     def _updateDescription(self):
-        def do_db():
-            # try metadata
-            metadata = self.torrent.get('metadata', None)
-            if metadata:
-                return metadata.get('description', '')
-
         def set_description(widget_id, description):
             if not wx.FindWindowById(widget_id):
                 return
@@ -573,9 +573,11 @@ class TorrentDetails(AbstractDetails):
         the_description = self.torrent.get('description', '')
         wid = self.GetId()
         if not the_description:
-            startWorker(lambda delayedResult, widget_id=wid: set_description(widget_id, delayedResult.get()), do_db)
-        else:
-            set_description(wid, the_description)
+            metadata = self.torrent.get('metadata', None)
+            if metadata:
+                the_description = metadata.get('description', '')
+
+        set_description(wid, the_description)
 
     def updateFilesTab(self):
         self.filesList.DeleteAllItems()
@@ -1634,13 +1636,15 @@ class PlaylistDetails(AbstractDetails):
                     self.playlist_torrents = delayedResult.get()
                     bmps = []
                     for torrent in self.playlist_torrents:
-                        # FIXME(lipu): fix the thumbnail path to use metadata
-                        thumb_dir = os.path.join(u"",
-                                                 binascii.hexlify(torrent.infohash))
-                        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir)
-                                       for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
-                        if thumb_files:
-                            bmps.append(wx.Bitmap(thumb_files[0], wx.BITMAP_TYPE_ANY))
+                        if torrent.metadata:
+                            thumbnail_data = self.guiutility.utility.session.get_thumbnail_data(torrent.metadata['thumb_hash'])
+
+                            img = wx.EmptyImage()
+                            img.LoadStream(StringIO(thumbnail_data))
+                            bitmap = wx.BitmapFromImage(img)
+
+                            bmps.append(bitmap)
+
                         if len(bmps) > 3:
                             break
 

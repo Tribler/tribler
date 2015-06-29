@@ -94,10 +94,10 @@ class Helper(object):
 
 class Torrent(Helper):
     __slots__ = ('infohash', 'name', 'length', 'category', 'status', 'num_seeders',
-                 'num_leechers', '_channel', 'channeltorrents_id', 'torrent_db', 'channelcast_db',
+                 'num_leechers', '_channel', 'channeltorrents_id', 'torrent_db', 'channelcast_db', 'metadata_dict',
                  'download_state', 'relevance_score', 'query_candidates', 'magnetstatus')
 
-    def __init__(self, torrent_id, infohash, name, length, category, status, num_seeders, num_leechers, channel):
+    def __init__(self, torrent_id, infohash, name, length, category, status, num_seeders, num_leechers, channel, metadata_dict=None):
         Helper.__init__(self)
 
         assert isinstance(infohash, str), type(infohash)
@@ -118,6 +118,7 @@ class Torrent(Helper):
         self.channeltorrents_id = None
         self.torrent_db = None
         self.channelcast_db = None
+        self.metadata_dict = metadata_dict
 
         self.relevance_score = None
         self.query_candidates = None
@@ -153,8 +154,12 @@ class Torrent(Helper):
 
     @cacheProperty
     def metadata(self):
-        # TODO(lipu): fix this to get metadata
-        return {}
+        if not self.metadata_dict:
+            channel = self.channelcast_db.getMostPopularChannelFromTorrent(self.infohash)
+            if channel:
+                self.channeltorrents_id = channel[-1]
+            self.metadata_dict = self.channelcast_db.get_torrent_metadata(self.channeltorrents_id)
+        return self.metadata_dict
 
     @property
     def swarminfo(self):
@@ -273,7 +278,7 @@ class Torrent(Helper):
     def __getstate__(self):
         statedict = {}
         for key in Torrent.__slots__:
-            if key not in ['download_state', 'channelcast_db', 'torrent_db']:
+            if key not in ['download_state', 'channelcast_db', 'torrent_db', 'metadata_dict']:
                 statedict[key] = getattr(self, key, None)
         return statedict
 

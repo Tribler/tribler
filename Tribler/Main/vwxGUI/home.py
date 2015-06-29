@@ -1037,11 +1037,12 @@ class ArtworkPanel(wx.Panel):
         startWorker(self.SetData, self.GetTorrents)
 
     def GetTorrents(self):
-        torrents = self.guiutility.torrentsearch_manager.getThumbnailTorrents(limit=self.max_torrents)
+        torrents = self.guiutility.torrentsearch_manager.getThumbnailTorrents(is_collected=True,
+                                                                              limit=self.max_torrents)
 
         if len(torrents) == 0:
-            non_torrents = self.guiutility.torrentsearch_manager.getNotCollectedThumbnailTorrents(
-                limit=self.max_torrents)
+            non_torrents = self.guiutility.torrentsearch_manager.getThumbnailTorrents(
+                is_collected=False, limit=self.max_torrents)
             for torrent in non_torrents:
                 self.guiutility.torrentsearch_manager.downloadTorrentfileFromPeers(torrent,
                                                                                    lambda _: self.refreshNow(),
@@ -1057,13 +1058,7 @@ class ArtworkPanel(wx.Panel):
         torrents = delayedResult.get()
 
         for torrent in torrents:
-            # FIXME(lipu): fix the thumbnail path to use metadata
-            thumb_path = os.path.join(
-                u"",
-                binascii.hexlify(torrent.infohash))
-            if os.path.isdir(thumb_path):
-                if not self.guiutility.getFamilyFilter() or not self.IsXXX(torrent, thumb_path):
-                    data.append((torrent.infohash, [torrent.name], torrent, ThumbnailListItemNoTorrent))
+            data.append((torrent.infohash, [torrent.name], torrent, ThumbnailListItemNoTorrent))
 
         self.list.SetData(data)
         self.list.SetupScrolling()
