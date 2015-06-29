@@ -641,3 +641,13 @@ class Session(SessionConfigInterface):
         if not self.lm.ltmgr:
             raise OperationNotEnabledByConfigurationException("libtorrent is not enabled")
         self.lm.ltmgr.set_download_rate_limit(rate)
+
+    def get_thumbnail_data(self, thumb_hash):
+        """
+        Gets the thumbnail data.
+        :param thumb_hash: The thumbnail SHA1 hash.
+        :return: The thumbnail data.
+        """
+        if not self.lm.metadata_store:
+            raise OperationNotEnabledByConfigurationException("libtorrent is not enabled")
+        return self.lm.rtorrent_handler.get_metadata(thumb_hash)
