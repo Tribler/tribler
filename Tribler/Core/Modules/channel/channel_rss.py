@@ -1,16 +1,19 @@
 from binascii import hexlify
-import hashlib
 import logging
 import tempfile
+import hashlib
+import json
 import time
-
-import feedparser
 import os
 import re
+import feedparser
+
 from twisted.web.client import getPage
 
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
+
+from Tribler.Core.simpledefs import SIGNAL_CHANNEL_COMMUNITY, SIGNAL_ON_TORRENT_UPDATED
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Modules.channel.cache import SimpleCache
 from Tribler.Core.Utilities.twisted_thread import reactor
@@ -31,6 +34,8 @@ class ChannelRssParser(TaskManager):
 
         self._tmp_dir = None
         self._url_cache = None
+
+        self._pending_metadata_requests = {}
 
         self._to_stop = False
 
@@ -55,6 +60,10 @@ class ChannelRssParser(TaskManager):
         # schedule the scraping task
         self.register_task(u"rss_scrape",
                            reactor.callLater(2, self._task_scrape))
+
+        # subscribe to channel torrent creation
+        self.session.notifier.add_observer(self.on_channel_torrent_created, SIGNAL_CHANNEL_COMMUNITY,
+                                           [SIGNAL_ON_TORRENT_UPDATED], self.channel_community.get_channel_id())
 
     @blocking_call_on_reactor_thread
     def shutdown(self):
@@ -91,6 +100,14 @@ class ChannelRssParser(TaskManager):
         tdef = TorrentDef.load_from_memory(torrent_data)
         self.session.lm.rtorrent_handler.save_torrent(tdef)
 
+        # add metadata pending request
+        info_hash = tdef.get_infohash()
+        if u'thumbnail_list' in rss_item and rss_item[u'thumbnail_list']:
+            # only use the first thumbnail
+            rss_item[u'thumbnail_url'] = rss_item[u'thumbnail_list'][0]
+            if info_hash not in self._pending_metadata_requests:
+                self._pending_metadata_requests[info_hash] = rss_item
+
         # create channel torrent
         self.channel_community._disp_create_torrent_from_torrentdef(tdef, long(time.time()))
 
@@ -99,6 +116,31 @@ class ChannelRssParser(TaskManager):
         self._url_cache.save()
 
         self._logger.info(u"Channel torrent %s created", tdef.get_name_as_unicode())
+
+    def on_channel_torrent_created(self, subject, events, object_id, data_list):
+        if self._to_stop:
+            return
+
+        for data in data_list:
+            if data[u'info_hash'] in self._pending_metadata_requests:
+                rss_item = self._pending_metadata_requests.pop(data[u'info_hash'])
+                rss_item[u'info_hash'] = data[u'info_hash']
+                rss_item[u'channel_torrent_id'] = data[u'channel_torrent_id']
+
+                metadata_deferred = getPage(rss_item[u'thumbnail_url'].encode('utf-8'))
+                metadata_deferred.addCallback(lambda md, r=rss_item: self.on_got_metadata(md, rss_item=r))
+
+    def on_got_metadata(self, metadata_data, rss_item=None):
+        # save metadata
+        thumb_hash = hashlib.sha1(metadata_data).digest()
+        self.session.lm.rtorrent_handler.save_metadata(thumb_hash, metadata_data)
+
+        # create modification message for channel
+        modifications = {u'metadata-json': json.dumps({u'title': rss_item['title'][:64],
+                                                       u'description': rss_item['description'][:768],
+                                                       u'thumb_hash': thumb_hash.encode('hex')},
+                                                      separators=(',',':'))}
+        self.channel_community.modifyTorrent(rss_item[u'channel_torrent_id'], modifications)
 
 
 class RSSFeedParser(object):
@@ -157,13 +199,14 @@ class RSSFeedParser(object):
             if link is None or cache.has(link):
                 continue
 
-            title = self._html2plaintext(item[u'title'])
-            description = self._html2plaintext(item.get(u'media:description', u''))
+            title = self._html2plaintext(item[u'title']).strip()
+            description = self._html2plaintext(item.get(u'media_description', u'')).strip()
             torrent_url = item[u'link']
 
-            thumbnail_list = item.get(u'media:thumbnail', None)
-            if thumbnail_list:
-                for thumbnail in thumbnail_list:
+            thumbnail_list = []
+            media_thumbnail_list = item.get(u'media_thumbnail', None)
+            if media_thumbnail_list:
+                for thumbnail in media_thumbnail_list:
                     thumbnail_list.append(thumbnail[u'url'])
 
             # assemble the information
