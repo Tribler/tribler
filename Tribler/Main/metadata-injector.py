@@ -17,6 +17,7 @@ import logging
 import logging.config
 from traceback import print_exc
 import binascii
+from ConfigParser import ConfigParser
 
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
@@ -31,21 +32,31 @@ from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import call_on_reactor_thread
 
 
-def parge_rss_config_file(file_path):
-    rss_list = []
+def parge_channel_config_file(file_path):
+    config = ConfigParser()
+    with codecs.open(file_path, 'r', encoding='utf-8') as f:
+        config.readfp(f)
 
-    f = codecs.open(file_path, 'r', encoding='utf-8')
-    for line in f.readlines():
-        line = line.strip()
-        if not line:
-            continue
-        fields = line.split(u'\t')
-        channel_name, rss_url = fields
-        rss_list.append({u'channel_name': channel_name,
-                         u'rss_url': rss_url})
-    f.close()
+    channel_list = []
 
-    return rss_list
+    # validate and parse the config file
+    if not config.sections():
+        print >> sys.stderr, "no section in config file!"
+        sys.exit(1)
+    for section in config.sections():
+        channel_info = {}
+
+        OPTIONS = (u'channel_name', u'channel_description', u'rss_url')
+        for option in OPTIONS:
+            if not config.has_option(section, option):
+                print >> sys.stderr, "no option [%s] in section [%s]!" % (option, section)
+                sys.exit(1)
+
+            channel_info[option] = config.get(section, option)
+
+        channel_list.append(channel_info)
+
+    return channel_list
 
 
 class MetadataInjector(TaskManager):
@@ -57,7 +68,7 @@ class MetadataInjector(TaskManager):
         self._opt = opt
         self.session = None
 
-        self.rss_list = None
+        self.channel_list = None
 
     def initialize(self):
         sscfg = SessionStartupConfig()
@@ -71,7 +82,7 @@ class MetadataInjector(TaskManager):
         # pass rss config
         if not self._opt.rss_config:
             self._logger.error(u"rss_config unspecified")
-        self.rss_list = parge_rss_config_file(self._opt.rss_config)
+        self.channel_list = parge_channel_config_file(self._opt.rss_config)
 
         sscfg.set_megacache(True)
         sscfg.set_torrent_collecting(True)
@@ -123,32 +134,34 @@ class MetadataInjector(TaskManager):
 
         existing_channels = []
         channels_to_create = []
-        for rss_dict in self.rss_list:
+        for channel_dict in self.channel_list:
             channel_exists = False
             for channel in channel_list:
-                if rss_dict[u'channel_name'] == channel.get_channel_name():
-                    rss_dict[u'channel'] = channel
+                if channel_dict[u'channel_name'] == channel.get_channel_name():
+                    channel_dict[u'channel'] = channel
                     channel_exists = True
                     break
 
             if channel_exists:
-                existing_channels.append(rss_dict)
+                existing_channels.append(channel_dict)
             else:
-                channels_to_create.append(rss_dict)
+                channels_to_create.append(channel_dict)
 
         self._logger.info(u"channels to create: %s", len(channels_to_create))
         self._logger.info(u"existing channels: %s", len(existing_channels))
 
         # attach rss feed to existing channels
-        for rss_dict in existing_channels:
-            self._logger.info(u"Creating RSS for existing Channel %s", rss_dict[u'channel_name'])
-            self.session.lm.channel_manager.attach_rss_to_channel(rss_dict[u'channel'], rss_dict[u'rss_url'])
+        for channel_dict in existing_channels:
+            self._logger.info(u"Creating RSS for existing Channel %s", channel_dict[u'channel_name'])
+            self.session.lm.channel_manager.attach_rss_to_channel(channel_dict[u'channel'], channel_dict[u'rss_url'])
 
         # create new channels
-        for rss_dict in channels_to_create:
-            self._logger.info(u"Creating new Channel %s", rss_dict[u'channel_name'])
-            self.session.lm.channel_manager.create_channel(rss_dict[u'channel_name'], u'', u"closed",
-                                                           rss_dict[u'rss_url'])
+        for channel_dict in channels_to_create:
+            self._logger.info(u"Creating new Channel %s", channel_dict[u'channel_name'])
+            self.session.lm.channel_manager.create_channel(channel_dict[u'channel_name'],
+                                                           channel_dict[u'channel_description'],
+                                                           u"closed",
+                                                           channel_dict[u'rss_url'])
 
 
 def main():
