@@ -322,7 +322,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
             exclude = [rp[2] for rp in self.my_download_points.values()] + [sock_addr for _, sock_addr in blacklist]
             for peer in peers:
                 if peer not in exclude:
-                    self.add_discovered_candidate(Candidate((peer[0], peer[1]), tunnel=False))
+                    #self.add_discovered_candidate(Candidate((peer[0], peer[1]), tunnel=False))
                     self._logger.debug("Requesting key from %s", peer)
                     # Blacklist this sock_addr for a period of at least 60s
                     self.dht_blacklist[info_hash].append((time.time(), peer))
@@ -350,7 +350,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
             return False
 
         required_endpoint = (sock_addr[0], sock_addr[1], candidate.get_member().public_key)
-        # Since the required_endpoint is chosen, an extra layer of anonimity is added here. 
+        # Since the required_endpoint is chosen, an extra layer of anonimity is added here.
         self.create_circuit(self.hops[info_hash] + 1,
                             CIRCUIT_TYPE_KEYS,
                             callback=cb,
@@ -382,12 +382,11 @@ class HiddenTunnelCommunity(TunnelCommunity):
                 meta = self.get_meta_message(u'key-request')
                 message = meta.impl(distribution=(self.global_time,), payload=(message.payload.circuit_id, cache.number, message.payload.info_hash))
                 relay_circuit = self.intro_point_for[message.payload.info_hash]
-				#Niels: i'm not too happy about this self.dispersy.wan_address stuffs, maybe we should change 
-				#tunnel_community:1080 to accept dispersy messages destined for 0.0.0.0
-				#allowing peers to send messages to the either end of the circuit by choosing 0.0.0.0 as the destination
-				#because we're using wan_address here, we're actually using the exit-socket to send a message to ourselves
+                #Niels: i'm not too happy about this self.dispersy.wan_address stuffs, maybe we should change 
+                #tunnel_community:1080 to accept dispersy messages destined for 0.0.0.0
+                #allowing peers to send messages to the either end of the circuit by choosing 0.0.0.0 as the destination
+                #because we're using wan_address here, we're actually using the exit-socket to send a message to ourselves
                 relay_circuit.tunnel_data(self.dispersy.wan_address, TUNNEL_PREFIX + message.packet)
-
             else:
                 # The seeder responds with keys back to the intropoint
                 info_hash = message.payload.info_hash
@@ -413,14 +412,14 @@ class HiddenTunnelCommunity(TunnelCommunity):
     def on_key_response(self, messages):
         for message in messages:
             if not message.source.startswith(u"circuit_"): 
-				#Niels: however, if you implement this 0.0.0.0 change, this isn't going to work anymore
-				#as the packets will always have a circuit as the source
-				#change this to verify the circuit_id using the cache.
+                #Niels: however, if you implement this 0.0.0.0 change, this isn't going to work anymore
+                #as the packets will always have a circuit as the source
+                #change this to verify the circuit_id using the cache.
                 self._logger.debug('On key response: forward message because received over socket')
                 cache = self.request_cache.pop(u"key-request", message.payload.identifier)
                 meta = self.get_meta_message(u'key-response')
                 relay_message = meta.impl(distribution=(self.global_time,), payload=(cache.identifier, message.payload.public_key))
-				self.send_data([Candidate(ca=che.return_sock_addr, False)], u'data', TUNNEL_PREFIX + relay_message.packet)
+                self.send_data([Candidate(cache.return_sock_addr, False)], u'data', TUNNEL_PREFIX + relay_message.packet)
             else:
                 self._logger.debug("On key response: received keys")
                 cache = self.request_cache.pop(u"key-request", message.payload.identifier)
