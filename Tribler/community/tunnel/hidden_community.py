@@ -387,6 +387,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
 				#allowing peers to send messages to the either end of the circuit by choosing 0.0.0.0 as the destination
 				#because we're using wan_address here, we're actually using the exit-socket to send a message to ourselves
                 relay_circuit.tunnel_data(self.dispersy.wan_address, TUNNEL_PREFIX + message.packet)
+
             else:
                 # The seeder responds with keys back to the intropoint
                 info_hash = message.payload.info_hash
@@ -419,8 +420,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
                 cache = self.request_cache.pop(u"key-request", message.payload.identifier)
                 meta = self.get_meta_message(u'key-response')
                 relay_message = meta.impl(distribution=(self.global_time,), payload=(cache.identifier, message.payload.public_key))
-                relay_circuit = self.exit_sockets[cache.circuit_id]
-                relay_circuit.tunnel_data(cache.return_sock_addr, TUNNEL_PREFIX + relay_message.packet)
+				self.send_data([Candidate(ca=che.return_sock_addr, False)], u'data', TUNNEL_PREFIX + relay_message.packet)
             else:
                 self._logger.debug("On key response: received keys")
                 cache = self.request_cache.pop(u"key-request", message.payload.identifier)
