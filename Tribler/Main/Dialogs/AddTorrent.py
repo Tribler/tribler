@@ -161,11 +161,10 @@ class AddTorrent(wx.Dialog):
 
         dlg = CreateTorrentDialog(None, configfile, configfile2, trackers, self.toChannel)
         if dlg.ShowModal() == wx.ID_OK:
-            for destdir, correctedfilename, torrentfilename in dlg.createdTorrents:
+            for destdir, torrentfilename in dlg.createdTorrents:
                 # Niels: important do not pass fixtorrent to startDownload, used to
                 # differentiate between created and imported torrents
-                self.frame.startDownload(
-                    torrentfilename=torrentfilename, destdir=destdir, correctedFilename=correctedfilename)
+                self.frame.startDownload(torrentfilename=torrentfilename, destdir=destdir)
 
             dlg.Destroy()
             self.EndModal(wx.ID_OK)

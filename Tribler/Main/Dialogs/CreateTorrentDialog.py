@@ -356,7 +356,6 @@ class CreateTorrentDialog(wx.Dialog):
             self.cancelEvent.set()
 
         path = result['base_path']
-        correctedfilename = result['base_dir']
         torrentfilename = result['torrent_file_path']
 
         self.progressDlg.cur += 1
@@ -364,4 +363,4 @@ class CreateTorrentDialog(wx.Dialog):
         if not keepGoing:
             self.cancelEvent.set()
 
-        self.createdTorrents.append((path, correctedfilename, torrentfilename))
+        self.createdTorrents.append((path, torrentfilename))
