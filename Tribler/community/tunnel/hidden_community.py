@@ -88,10 +88,10 @@ class DHTRequestCache(RandomNumberCache):
 
 class KeyRelayCache(RandomNumberCache):
 
-    def __init__(self, community, identifier, circuit_id):
+    def __init__(self, community, identifier, sock_addr):
         super(KeyRelayCache, self).__init__(community.request_cache, u"key-request")
         self.identifier = identifier
-        self.circuit_id = circuit_id
+        self.return_sock_addr = sock_addr
 
     def on_timeout(self):
         pass
@@ -378,10 +378,14 @@ class HiddenTunnelCommunity(TunnelCommunity):
             if not message.source.startswith(u"circuit_"):
                 # The intropoint receives the message over a socket, and forwards it to the seeder
                 self._logger.debug("On key request: relay key request")
-                cache = self.request_cache.add(KeyRelayCache(self, message.payload.identifier, message.payload.circuit_id))
+                cache = self.request_cache.add(KeyRelayCache(self, message.payload.identifier, message.candidate.sock_addr))
                 meta = self.get_meta_message(u'key-request')
                 message = meta.impl(distribution=(self.global_time,), payload=(message.payload.circuit_id, cache.number, message.payload.info_hash))
                 relay_circuit = self.intro_point_for[message.payload.info_hash]
+				#Niels: i'm not too happy about this self.dispersy.wan_address stuffs, maybe we should change 
+				#tunnel_community:1080 to accept dispersy messages destined for 0.0.0.0
+				#allowing peers to send messages to the either end of the circuit by choosing 0.0.0.0 as the destination
+				#because we're using wan_address here, we're actually using the exit-socket to send a message to ourselves
                 relay_circuit.tunnel_data(self.dispersy.wan_address, TUNNEL_PREFIX + message.packet)
             else:
                 # The seeder responds with keys back to the intropoint
@@ -407,13 +411,16 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
     def on_key_response(self, messages):
         for message in messages:
-            if not message.source.startswith(u"circuit_"):
+            if not message.source.startswith(u"circuit_"): 
+				#Niels: however, if you implement this 0.0.0.0 change, this isn't going to work anymore
+				#as the packets will always have a circuit as the source
+				#change this to verify the circuit_id using the cache.
                 self._logger.debug('On key response: forward message because received over socket')
                 cache = self.request_cache.pop(u"key-request", message.payload.identifier)
                 meta = self.get_meta_message(u'key-response')
                 relay_message = meta.impl(distribution=(self.global_time,), payload=(cache.identifier, message.payload.public_key))
                 relay_circuit = self.exit_sockets[cache.circuit_id]
-                relay_circuit.tunnel_data(message.candidate.sock_addr, TUNNEL_PREFIX + relay_message.packet)
+                relay_circuit.tunnel_data(cache.return_sock_addr, TUNNEL_PREFIX + relay_message.packet)
             else:
                 self._logger.debug("On key response: received keys")
                 cache = self.request_cache.pop(u"key-request", message.payload.identifier)
