@@ -383,20 +383,14 @@ class KeyRequestPayload(Payload):
 
     class Implementation(Payload.Implementation):
 
-        def __init__(self, meta, circuit_id, identifier, info_hash):
-            assert isinstance(circuit_id, (int, long)), type(circuit_id)
+        def __init__(self, meta, identifier, info_hash):
             assert isinstance(identifier, int), type(identifier)
             assert isinstance(info_hash, basestring), type(info_hash)
             assert len(info_hash) == 20, len(info_hash)
 
             super(KeyRequestPayload.Implementation, self).__init__(meta)
-            self._circuit_id = circuit_id
             self._identifier = identifier
             self._info_hash = info_hash
-
-        @property
-        def circuit_id(self):
-            return self._circuit_id
 
         @property
         def identifier(self):

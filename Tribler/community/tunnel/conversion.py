@@ -333,12 +333,12 @@ class TunnelConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(circuit_id, identifier, rendezvous_point_addr)
 
     def _encode_keys_request(self, message):
-        return pack('!IH20s', message.payload.circuit_id, message.payload.identifier, message.payload.info_hash),
+        return pack('!H20s', message.payload.identifier, message.payload.info_hash),
 
     def _decode_keys_request(self, placeholder, offset, data):
-        circuit_id, identifier, info_hash = unpack_from('!IH20s', data, offset)
-        offset += 26
-        return offset, placeholder.meta.payload.implement(circuit_id, identifier, info_hash)
+        identifier, info_hash = unpack_from('!H20s', data, offset)
+        offset += 22
+        return offset, placeholder.meta.payload.implement(identifier, info_hash)
 
     def _encode_keys_response(self, message):
         return pack('!HH', message.payload.identifier, len(message.payload.public_key)) + message.payload.public_key,
