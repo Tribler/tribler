@@ -288,8 +288,11 @@ class HiddenTunnelCommunity(TunnelCommunity):
                                                                                             message.payload.identifier,
                                                                                             message.payload.info_hash,
                                                                                             encode(peers)))
-                circuit = self.exit_sockets[circuit_id]
-                circuit.tunnel_data(message.candidate.sock_addr, TUNNEL_PREFIX + dht_response_message.packet)
+                if circuit_id in self.exit_sockets:
+                    circuit = self.exit_sockets[circuit_id]
+                    circuit.tunnel_data(message.candidate.sock_addr, TUNNEL_PREFIX + dht_response_message.packet)
+                else:
+                    self._logger.debug("Circuit %d is not existing anymore, can't send back dht-response" % circuit_id)
 
             self._logger.debug("Doing dht hidden seeders lookup for info_hash %s" % info_hash.encode('HEX'))
             self.dht_lookup(info_hash, dht_callback)
