@@ -163,6 +163,9 @@ class TorrentChecker(TaskManager):
         """
         The regularly scheduled task that selects torrent to check.
         """
+        if self._should_stop:
+            return
+
         # update the torrent selection interval
         self._reschedule_torrent_select()
 
