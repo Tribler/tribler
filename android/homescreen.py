@@ -60,7 +60,7 @@ class HomeScreen(Screen):
 
 	#Function for starting the camera application
 	def startCamera(self):
-		intention = Intent(MediaStore.INTENT_ACTION_VIDEO_CAPTURE)
+		intention = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
 		helper = CameraHelper()
 		location = helper.getOutputMediaFile()
 		intention.putExtra(MediaStore.EXTRA_OUTPUT, cast('android.os.Parcelable', Uri.fromFile(location)))
