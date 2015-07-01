@@ -791,7 +791,9 @@ class ABCApp(object):
             args[0], icon='seed')
 
         if self._frame_and_ready():
-            self.guiUtility.torrentstate_manager.torrentFinished(objectID)
+            infohash = objectID
+            torrent = self.guiUtility.torrentsearch_manager.getTorrentByInfohash(infohash)
+            self.guiUtility.library_manager.addDownloadState(torrent)
 
     def sesscb_ntfy_magnet(self, subject, changetype, objectID, *args):
         if changetype == NTFY_MAGNET_STARTED:
