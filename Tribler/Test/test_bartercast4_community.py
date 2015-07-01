@@ -1,21 +1,29 @@
 # Written by Cor-Paul Bezemer
 # see LICENSE.txt for license information
 
-from Tribler.Test.test_as_server import TestAsServer
+from time import sleep
 
+from twisted.internet.task import LoopingCall
+
+from Tribler.Core.Utilities.twisted_thread import reactor
+from Tribler.Test.test_as_server import TestAsServer
 from Tribler.community.bartercast4.community import BarterCommunity, BarterCommunityCrawler
+from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
-from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
-from Tribler.Core.Utilities.twisted_thread import reactor
-from time import sleep
+
 
 DEBUG = True
 PEER_STATEDIR = "data"
 
 
 class TestBarterCommunity(TestAsServer):
+
     """Start a tribler session and wait for the statistics to be increased."""
+
+    def __init__(self, *argv, **kwargs):
+        super(TestBarterCommunity, self).__init__(*argv, **kwargs)
+        self._test_condition_lc = None
 
     def test_local_stats(self):
         def do_stats_test():
@@ -33,34 +41,38 @@ class TestBarterCommunity(TestAsServer):
                     return
 
         self.startTest(do_stats_test)
-        pass
 
     def test_stats_messages(self):
-        is_finished = False
 
-        @call_on_reactor_thread
         def do_stats_messages():
-            # check that the crawler receives messages here
-            # tries_left = 60
-
-            rows = _barter_statistics.get_interactions(self.dispersy)
-            if len(rows) > 0:
-                assert True, "Some bartercast statistic was crawled"
-                is_finished = True
+            # check if the crawler receives messages
+            if len(_barter_statistics.get_interactions(self.dispersy)):
+                # Some bartercast statistic was crawled.
+                self._test_condition_lc.stop()
                 self.quit()
-                return
-            reactor.callLater(5, do_stats_messages)
 
-        def finished():
-            return is_finished
+        def has_finished():
+            return not self._test_condition_lc.running
 
         def noop():
-            assert True
+            pass
 
-        self.startTest(do_stats_messages)
-        self.CallConditional(300.0, finished, noop, u"Failed to crawl")
+        # Make it blocking so CallConditional can't do a check before the LoopingCall exists.
+        @blocking_call_on_reactor_thread
+        def start():
+            self._test_condition_lc = LoopingCall(do_stats_messages)
+            self._test_condition_lc.start(5, now=True)
 
-#    for future stuff; you can use this if you need another peer for some reason
+        @blocking_call_on_reactor_thread
+        def cleanup_and_fail(succeeded, err_msg):
+            self._test_condition_lc.stop()
+            self._test_condition_lc = None
+            self.assert_(succeeded, err_msg)
+
+        self.startTest(start)
+        self.CallConditional(300.0, has_finished, noop, u"Failed to crawl", assert_callback=cleanup_and_fail)
+
+    # for future stuff; you can use this if you need another peer for some reason
     def setupPeer(self):
         from Tribler.Core.Session import Session
 
