@@ -9,7 +9,7 @@ from kivy.graphics.texture import Texture
 from kivy.clock import Clock
 from kivy.animation import Animation
 from kivy.logger import Logger
-from kivy.clipboard import Clipboard
+from kivy.core.clipboard import Clipboard
 from kivy.properties import ObjectProperty
 from kivy.metrics import Metrics
 

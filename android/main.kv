@@ -343,23 +343,6 @@
 				Button:
 					text:'Cam Test'
 					on_release:app.swap_to(app.CamScr)
-				orientation:"vertical"
-				size_hint: None,None
-				width: '2cm'
-				height:'3cm'
-				Button:
-					text:'Test'
-					on_release:root.screen.AndroidTest()
-				Button:
-					text: "Download"
-					on_release: app.swap_to(app.SearchScr)
-					background: None
-				Button:
-					text: 'Add Video'
-					on_release: root.screen.addVideo()
-				Button:
-					text:'Cam Test'
-					on_release:app.swap_to(app.CamScr)
 #Needs a massive redesign, filewidgets used in the search screen
 <TorrentWidget>
 	canvas:

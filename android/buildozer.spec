@@ -33,7 +33,7 @@ version.filename = %(source.dir)s/main.py
 
 # (list) Application requirements
 # comma seperated e.g. requirements = sqlite3,kivy
-requirements = kivy, pyjnius, numpy, libtribler, ffmpeg
+requirements = kivy, pyjnius, numpy, libtribler
 
 
 # (list) Garden requirements

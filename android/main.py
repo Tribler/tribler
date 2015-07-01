@@ -171,7 +171,7 @@ class Skelly(App):
 	VidScr = VideoScreen(name='video')
 	TorrentInfoScr = TorrentInfoScreen(name='torrentinfo')
 	sm.switch_to(HomeScr)
-	#tw = TriblerWrapper()
+	tw = TriblerWrapper()
 
 	#Method that request the device's NFC adapter and adds a Callback function to it to activate on an Android Beam Intent.
 	def nfc_init(self):
