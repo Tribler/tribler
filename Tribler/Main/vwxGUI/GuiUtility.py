@@ -21,7 +21,6 @@ from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
 from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.vwxGUI.TorrentStateManager import TorrentStateManager
 from threading import Lock
 
 
@@ -84,7 +83,6 @@ class GUIUtility(object):
                 GUIUtility.__single.library_manager = None
                 GUIUtility.__single.channelsearch_manager.delInstance()
                 GUIUtility.__single.torrentsearch_manager = None
-                GUIUtility.__single.torrentstate_manager = None
 
             GUIUtility.__single = None
     delInstance = staticmethod(delInstance)
@@ -96,12 +94,10 @@ class GUIUtility(object):
             self.torrentsearch_manager = TorrentManager(self)
             self.channelsearch_manager = ChannelManager.getInstance()
             self.library_manager = LibraryManager(self)
-            self.torrentstate_manager = TorrentStateManager(self.utility.session)
 
             self.torrentsearch_manager.connect(self.utility.session, self.library_manager, self.channelsearch_manager)
             self.channelsearch_manager.connect(self.utility.session, self.library_manager, self.torrentsearch_manager)
             self.library_manager.connect(self.utility.session, self.torrentsearch_manager, self.channelsearch_manager)
-            self.torrentstate_manager.connect(self.torrentsearch_manager, self.library_manager)
 
             self.videoplayer = self.utility.session.lm.videoplayer
         else:
