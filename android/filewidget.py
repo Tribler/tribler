@@ -68,6 +68,9 @@ class FileWidget(RelativeLayout):
 			self.setUri(uri)
 		if not self._check_torrent_made() and globalvars.triblerfun:
 			threading.Thread(target=self._create_torrent).start()
+			#for f in torrents:
+			#	globalvars.scanner.addScanFile(f)
+			#globalvars.scanner.scanFiles()
 
 	def setName(self, nom):
 		assert nom is not None
@@ -92,18 +95,23 @@ class FileWidget(RelativeLayout):
 		"""Adds and removes the video files to the nfc set so
 		that they can be transferred
 		"""
-		Logger.info("Toggle NFC")
-		if(state == 'normal'):
-			print 'button state up'
-			globalvars.nfcCallback.removeUris(self.uri)
-			if self._check_torrent_made():
-				globalvars.nfcCallback.removeUris(self.uri + ".torrent")
+		if globalvars.nfcCallback is not None:
+			Logger.info("Toggle NFC")
+			if(state == 'normal'):
+				print 'button state up'
+				globalvars.nfcCallback.removeUris(self.uri)
+				if self._check_torrent_made():
+					globalvars.nfcCallback.removeUris(self.uri + ".torrent")
 
-		if(state == 'down'):
-			print 'button state down'
-			globalvars.nfcCallback.addUris(self.uri)
-			if self._check_torrent_made():
-				globalvars.nfcCallback.addUris(self.uri + ".torrent")
+			if(state == 'down'):
+				print 'button state down'
+				globalvars.nfcCallback.addUris(self.uri)
+				if self._check_torrent_made():
+					globalvars.nfcCallback.addUris(self.uri + ".torrent")
+
+		else:
+			#Add method to throw a popup explaining that the feature is unavailable.
+			pass
 
 	def toggle_seed(self, state):
 		"""Start and stop seeding with Tribler"""
@@ -248,6 +256,7 @@ class FileWidget(RelativeLayout):
 			self._stop_tribler()
 			os.remove(self.torUri + ".torrent")
 			self.tdef = None
+			#self.files.append
 
 	def _stop_tribler(self):
 		"""Stop downloading with tribler"""
