@@ -1,0 +1,59 @@
+start streaming
+lib tribler
+nfc hardware
+libaries importen
+
+Single button recording
+Scroll list 
+thumbnail
+nfc werkend
+offline file transfer
+camera plus scroll list production level
+Tribler search
+
+-----------------------
+
+Kivy	-	pro = python, java methodes aanroepbaar, 
+		neg = geen documentatie, gui niet herbruikbaar, 
+
+10 juni verslag: research, intro, probleem, sprint 1, sprint x2, moscow, aanpassen PvA
+
+hamburger menu
+search icon
+nfc after refresh toggle
+
+
+intro
+
+problem
+
+sprint 1:	orientation sprint
+	kivy
+	pyjnius
+	basic gui
+	android beam
+	prior work
+
+sprint 2:	polished prototype
+	camera - hoofdpijn
+	file list
+	nfc extension
+	threading renewal
+	thumbnails
+	
+	
+sprint 3:	product release sprint
+	google store page
+	tribler search - txt + png
+	channel search
+	nfc file catch
+	my channel
+	(music support)
+
+	round buttons
+	youtube sleek gui feel	-	all  white, landscape thumbnails, contrasting colors
+	landscape camera
+	personal dot screen	
+		beam this file, only one file beamed at a time
+		rename (movie) name
+		delete

@@ -1,0 +1,407 @@
+#This is the Main screen's layout
+<HomeScreen>
+	#Everything's put inside a RelativeLayout in order to allow widgets being stacked on top of eachother. This is used to display the tripledot menus and the camera button. 
+	RelativeLayout:
+		id: bottomlayout
+		#This entire section is the top border. 
+		BoxLayout:
+			orientation: 'vertical'
+			AnchorLayout:
+				anchor_x: 'right'
+				anchor_y: 'top'
+				size_hint: 1,None #You have to set a size to None if you want to put a custom value in
+				height: '1cm' #Specify your sizes in something that isn't pixels. Different phones have different pixel densities
+				#This defines the color
+				canvas:
+					Color:
+						rgba: 1,0.1,0.1,1
+					Rectangle:
+						pos: self.pos
+						size: self.size
+				Button:
+					size_hint: None, None
+					height: '1cm'
+					width: '1cm'
+					background_normal: 'img/but_normal.png'
+					background_down: 'img/but_down.png'
+					background_color: 1,1,1,0
+					border:	30,30,30,30
+					on_release: app.swap_to(app.SearchScr) #We use our swap_to instead of kivy's switch_to in order to build a history. This allows the back button to work as a back button.
+					#This is how you put an icon on a button
+					BoxLayout:
+						pos: self.parent.pos #It doesn't know it's size or position so you have to set it manually
+						size: self.parent.size
+						Image:
+							source: './img/ic_search_white_48dp.png'
+			#This contains the filewidgets
+			ScrollView:
+				anchor_x: 'center'
+				anchor_y: 'center'
+				StackLayout:
+					size_hint: 1, None
+					height: self.minimum_height #If you don't set this, the stack layout will be as high as the Scrollview, so it won't scroll
+					id: fileList
+					spacing: '0.1cm'
+		#By putting this in the bottomlayout, it will put the camera button  on top of the ScrollLayout containing the videos 
+		AnchorLayout:
+			anchor_x:'center'
+			anchor_y:'bottom'
+			Button:
+				size_hint: None,None
+				height: '1cm'
+				width: '1cm'
+				background_normal: 'img/but_normal.png'
+				background_down: 'img/but_down.png'
+				background_color: 0,0,0,0
+				border:	30,30,30,30
+				on_press: cam_icon.color = (1, 0,0,1)
+				on_release:
+					cam_icon.color = (1,1,1,1)
+					root.startCamera()
+				canvas:
+					Color:
+						rgba: 0,0,0,0.5
+						id: col
+					Ellipse:
+						size: self.size
+						pos: self.pos
+				AnchorLayout:
+					pos: self.parent.pos
+					size: self.parent.size
+					Image:
+						source: './img/ic_videocam_white_48dp.png'
+						id: cam_icon
+	#This is the target for the tripledot menus. By putting it last it ensures that they always spawn on top
+	RelativeLayout:
+		id: layer 
+
+#The FileWidgets that show the video files in the homescree
+<FileWidget>
+	size_hint: 1, None
+	height: '1.35cm'
+	#The Thumbnail view
+	BoxLayout:
+		canvas:
+			Color:
+				rgba: 0.2,0.2,0.2,1 #Slightly off-black so the user get's cued when a video is recorded vertically
+			Rectangle:
+				pos: self.pos
+				size: self.size
+		Image:
+			size_hint: None, 1
+			width: '2.4cm'
+			id:img
+		#The main content of the Filewidget. Contains the name and the buttons.
+		RelativeLayout:
+			#Bottom layer for the data container and the main button
+			AnchorLayout:
+				anchor_x: 'left'
+				anchor_y: 'top'
+				Button:
+					background_color: 1,1,1,1
+					background_normal: ''
+					anchor_x: 'center'
+					anchor_y: 'center'
+					id: filebutton
+					text: ''
+					on_release: root.pressed() #main button
+			#Container for the button data, used for Name, should be used for other such data too
+			BoxLayout:
+				padding: '0.1cm','0.1cm','0.1cm',0
+				orientation: 'horizontal'			
+				StackLayout:
+					anchor_x: 'left'
+					anchor_y: 'top'
+					pos: self.parent.pos
+					size: self.parent.size
+					Label: 
+						size_hint:1, None
+						height: self.font_size
+						id: namelabel
+						text: root.name
+						halign: 'left'
+						text_size: self.size #if you don't set this, the text will go out of bounds
+						shorten: True
+						shorten_from: 'right'
+						color: 0,0,0,1
+						
+				#Container for the triple dot menus
+				AnchorLayout:
+					anchor_x:'right'
+					anchor_y:'top'
+					size_hint: None, 1
+					width: '0.5cm'
+					BoxLayout:
+						size_hint: 1, None
+						anchor_x: 'right'
+						anchor_y: 'center'
+
+						height: self.parent.width
+						orientation:"vertical"
+						id: button_layout
+						Button:
+							background_color: 0.6,0.6,0.6,0
+							background_normal: ''
+							on_release: root.openMenu(app.HomeScr.ids.layer) #This spawns the menu in the homescreen's top layer 
+							size_hint: 1, 1
+							height: '0.8cm'
+							BoxLayout:
+								pos: self.parent.pos
+								size: self.parent.size
+								Image:
+									color: 0.5,0.5,0.5,1
+									source: './img/ic_more_vert_white_48dp.png'
+#The Tripledot menu spawned by the filewidgets
+<FileTripleDot> 
+	RelativeLayout:
+		Button:
+			opacity: 0
+			on_press: root.close() #It spawns a giant full screen button behind the menu to make it close when someone taps beside the menu.
+		AnchorLayout:
+			id: container
+			padding: '0.2cm'
+			anchor_x: 'right'
+			anchor_y: 'bottom'
+			BoxLayout:
+				id: buttons
+				on_touch_up: root.close() #After you press a button, close the menu 
+				orientation:"vertical"
+				size_hint: None,None
+				width: '2.2cm'
+				height:'4cm' #Be sure to change this if you add buttons. I couldnt get it to work with a StackLayout so you're going to have to do it manually.
+				ToggleButton:
+					background_color: 1,.75,.75,1
+					border: 15, 15, 15, 15
+					id:nfc_toggler
+					on_state: root.owner.toggle_nfc(self.state)
+					BoxLayout:
+						size: self.parent.size
+						pos: self.parent.pos
+						Image:
+							source: './img/ic_tap_and_play_white_48dp.png'
+							size_hint: None, 1
+							width: '0.5cm'
+						Label:
+							text: 'Beam this file'
+							halign: 'left'
+				Button:
+					background_color: 1,.75,.75,1
+					border: 15, 15, 15, 15
+					id: seed_toggle
+					on_state: root.owner.toggle_seed(self.state)
+					BoxLayout:
+						size: self.parent.size
+						pos: self.parent.pos
+						Image:
+							#source: './img/ic_tap_and_play_white_48dp.png'
+							size_hint: None, 1
+							width: '0.5cm'
+							color: 1,1,1,0 #remove when adding icon
+						Label:
+							text: 'Seed Video'
+							halign: 'left'
+				Button:
+					background_color: 1,.75,.75,1
+					#background_normal: ''
+					border: 15, 15, 15, 15
+					id: share_magnet
+					on_state: root.owner.share_magnet_link()
+					BoxLayout:
+						size: self.parent.size
+						pos: self.parent.pos
+						Image:
+							#source: './img/ic_tap_and_play_white_48dp.png'
+							size_hint: None, 1
+							width: '0.5cm'
+							color: 1,1,1,0 #remove when adding icon
+						Label:
+							text: 'Share magnet'
+							halign: 'left'
+				Button:
+					background_color: 1,.75,.75,1
+					#background_normal: ''
+					id: editBut
+					on_release: root.owner.share_magnet_link()
+					BoxLayout:
+						pos: self.parent.pos
+						size: self.parent.size
+						Image:
+							source: 'img/ic_edit_white_48dp.png'
+							size_hint: None, 1
+							width: '0.5cm'
+						Label:
+							text: 'Rename Video'
+							halign: 'left'
+				Button:
+					background_color: 1,.75,.75,1
+					#background_normal: ''
+					id: eraseBut
+					on_release: root.owner.delete()
+					BoxLayout:
+						pos: self.parent.pos
+						size: self.parent.size
+						Image:
+							source: 'img/ic_delete_white_48dp.png'
+							size_hint: None, 1
+							width: '0.5cm'
+						Label:
+							text: 'Delete Video'
+							halign: 'left'
+
+#Screen used for tribler integration. Still a mess due to the last week integration of tribler. Future UI updates should be focused around this screen
+<SearchScreen>
+	BoxLayout:
+		orientation: "vertical"
+		id: searchscreen
+		AnchorLayout:
+			#This is how we change the top color, should change this
+			canvas:
+				Color:
+					rgba: 1,0.1,0.1,1
+				Rectangle:
+					pos: self.pos
+					size: self.size
+			size_hint: 1,None
+			height: '1cm'
+			min_height: '1cm'
+			TextInput:
+				id: searchfield
+				size_hint: 1, None
+				height: '0.7cm'
+				font_size: "16sp" #Vital to use sp, again related to pixel densities
+				multiline: False
+				hint_text: "Search"
+				keyboard_suggestions: True
+				valign: 'middle'
+				on_text: root.on_txt_input() #Triggers the delayed auto-search function.
+		ScrollView:
+			StackLayout:
+				size_hint: 1, None
+				height: self.minimum_height
+				id: fileList
+				spacing: '0.1cm'
+
+#Screen for the integrated camera. Currently not production ready so we opted to use the default camera. Switching to this screen will start it automatically.
+<CamScreen>
+	BoxLayout:
+		orientation: 'vertical'
+		id: camScreen
+		AnchorLayout:
+			align_x: 'center'
+			align_y: 'center'
+			size_hint: 1,1
+			id: anchor
+			Image:
+				source:''
+				opacity: 0
+			CameraWidget:
+				id: camera #This is the widget where the camera view spawns.
+		BoxLayout:
+			size_hint_y: None
+			height: '1cm'
+			Button:
+				background_color: 0.5,0.5,0.5,1
+				background_normal:''
+				text: ''
+				on_release: app.goBack()
+				BoxLayout:
+					pos: self.parent.pos
+					size: self.parent.size
+					Image:
+						source: 'img/ic_videocam_off_white_48dp.png'
+
+<VideoScreen>
+	VideoPlayer:
+		id: videoPlay
+
+#old Gearmenu, works similar 
+<GearMenu> 
+	RelativeLayout:
+		Button:
+			opacity: 0
+			on_press: root.screen.ids.layer.remove_widget(root)
+		AnchorLayout:
+			padding: '0.2cm'
+			anchor_x: 'right'
+			anchor_y: 'top'
+			BoxLayout:
+				on_touch_up: root.screen.ids.layer.remove_widget(root)
+				orientation:"vertical"
+				size_hint: None,None
+				width: '2cm'
+				height:'3cm'
+				Button:
+					text:'Test'
+					on_release:root.screen.AndroidTest()
+				Button:
+					text: "Download"
+					on_release: app.swap_to(app.SearchScr)
+					background: None
+				Button:
+					text: 'Add Video'
+					on_release: root.screen.addVideo()
+				Button:
+					text:'Cam Test'
+					on_release:app.swap_to(app.CamScr)
+#Needs a massive redesign, filewidgets used in the search screen
+<TorrentWidget>
+	canvas:
+		Color:
+			rgba: 0.2,0.2,0.2,1
+		Rectangle:
+			pos: self.pos
+			size: self.size
+	size_hint: 1, None
+	height: '2.4cm'
+	RelativeLayout:
+		AnchorLayout:
+			anchor_x: 'center'
+			anchor_y: 'center'
+			Button:
+				background_color: 0.6,0.6,0.6,1
+				background_normal: ''
+				anchor_x: 'center'
+				anchor_y: 'center'
+				id: filebutton
+				text: root.name
+				text_size: self.size
+				on_release: root.on_press()
+
+#Needs a redesign, part of the tribler integration
+<TorrentInfoScreen>
+	BoxLayout:
+		orientation: "vertical"
+		id: torrentinfoscreen
+		anchor_x: 'left'
+		anchor_y: 'center'
+		Label:
+			id:name_label
+			text_size: self.size
+			color:0,0,0.8,1
+		Label:
+			id:type_label
+			text_size: self.size
+			color:0,0,0.8,1
+		Label:
+			id:file_size_label
+			text_size: self.size
+			color:0,0,0.8,1
+		Label:
+			id:seeders_label
+			text_size: self.size
+			color:0,0,0.8,1
+		Label:
+			id:leechers_label
+			text_size: self.size
+			color:0,0,0.8,1
+		Button:
+			id:play_button
+			text:'Play'
+			on_release: root.start_stream()
+			background_color: 0.5,0.5,0.5,1
+			background_normal:''
+		#Button:
+			#text:'Download'
+			#on_release: root.start_download()
+			#background_color: 0.5,0.5,0.5,1
+			#background_normal:''
