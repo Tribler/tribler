@@ -2170,9 +2170,14 @@ class ActivitiesList(List):
         wx.CallAfter(self.__SetData)
 
     def __SetData(self):
-        self.list.SetData(
-            [(1, ['Home'], None, ActivityListItem), (2, ['Results'], None, ActivityListItem), (3, ['Channels'], None, ActivityListItem),
-             (4, ['Downloads'], None, ActivityListItem), (5, ['Videoplayer'], None, ActivityListItem)])
+        data_list = [(1, ['Home'], None, ActivityListItem),
+                     (2, ['Results'], None, ActivityListItem),
+                     (3, ['Channels'], None, ActivityListItem),
+                     (4, ['Downloads'], None, ActivityListItem)]
+        if sys.platform != 'darwin':
+            data_list.append((5, ['Videoplayer'], None, ActivityListItem))
+
+        self.list.SetData(data_list)
         self.ResizeListItems()
         self.DisableItem(2)
         if not self.guiutility.frame.videoparentpanel:
