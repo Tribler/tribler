@@ -446,7 +446,7 @@ class MainFrame(wx.Frame):
         return False
 
     def startDownload(self, torrentfilename=None, destdir=None, infohash=None, tdef=None, cmdline=False,
-                      vodmode=False, hops=0, selectedFiles=None, correctedFilename=None, hidden=False):
+                      vodmode=False, hops=0, selectedFiles=None, hidden=False):
         self._logger.debug(u"startDownload: %s %s %s %s %s", torrentfilename, destdir, tdef, vodmode, selectedFiles)
 
         # TODO(lipu): remove the assertions after it becomes stable
@@ -508,9 +508,7 @@ class MainFrame(wx.Frame):
             cancelDownload = False
             useDefault = not self.utility.read_config('showsaveas')
             if not useDefault and not destdir:
-                defaultname = correctedFilename
-                if not correctedFilename and tdef and tdef.is_multifile_torrent():
-                    defaultname = tdef.get_name_as_unicode()
+                defaultname = tdef.get_name_as_unicode()
 
                 if wx.Thread_IsMain():
                     dlg = SaveAs(None, tdef, dscfg.get_dest_dir(), defaultname, selectedFiles)
@@ -528,7 +526,7 @@ class MainFrame(wx.Frame):
 
                         # for multifile we enabled correctedFilenames, use split to remove the filename from the path
                         if tdef and tdef.is_multifile_torrent():
-                            destdir, correctedFilename = os.path.split(dlg.GetPath())
+                            destdir, _ = os.path.split(dlg.GetPath())
                             selectedFiles = dlg.GetSelectedFiles()
                         else:
                             destdir = dlg.GetPath()
@@ -558,9 +556,6 @@ class MainFrame(wx.Frame):
             if not cancelDownload:
                 if destdir is not None:
                     dscfg.set_dest_dir(destdir)
-
-                if correctedFilename:
-                    dscfg.set_corrected_filename(correctedFilename)
 
                 if selectedFiles and len(selectedFiles) == 1:
                     # we should filter files to see if they are all playable

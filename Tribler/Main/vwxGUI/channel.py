@@ -993,8 +993,7 @@ class ManageChannelFilesManager(BaseManager):
             tdef = TorrentDef.load(torrentfilename)
             if 'fixtorrent' not in kwargs:
                 download = self.guiutility.frame.startDownload(torrentfilename=torrentfilename,
-                                                               destdir=kwargs.get('destdir', None),
-                                                               correctedFilename=kwargs.get('correctedFilename', None))
+                                                               destdir=kwargs.get('destdir', None))
             return self.AddTDef(tdef)
 
         except:
