@@ -581,7 +581,7 @@ class NetworkGraphPanel(wx.Panel):
         self.session = self.utility.session
         self.dispersy = self.utility.session.lm.dispersy
 
-        self.swarm = GuiImageManager.getInstance().getImage(u"cloud.png")
+        self.swarm = GuiImageManager.getInstance().getImage(u"darknet.png")
         self.font_small = self.GetFont()
         self.font_large = self.GetFont()
         self.font_large.SetPointSize(self.font_large.GetPointSize() + 2)
@@ -923,14 +923,8 @@ class NetworkGraphPanel(wx.Panel):
                 gc.SetBrush(wx.Brush(colour))
                 gc.DrawEllipse(x - self.radius / 2, y - self.radius / 2, self.radius, self.radius)
 
-        # Draw swarm
+        # Draw swarm and darknet
         gc.DrawBitmap(self.swarm, swarm_pos[0], swarm_pos[1], *swarm_size)
-        dc.SetTextForeground(wx.BLACK)
-        dc.DrawLabel(
-            "Bittorrent swarm",
-            wx.Rect(*(swarm_pos + swarm_size.Get())),
-            alignment=wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
-
         self.DrawHoverAndInfo(gc, dc, circuit_points)
 
     def DrawHoverAndInfo(self, gc, dc, circuit_points):
