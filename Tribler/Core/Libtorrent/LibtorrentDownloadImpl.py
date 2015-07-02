@@ -830,7 +830,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 # Invoke the usercallback function via a new thread.
                 # After the callback is invoked, the return values will be passed to the
                 # returncallback for post-callback processing.
-                if not self.done:
+                if not self.done and self.session.lm.threadpool:
                     # runs on the reactor
                     def session_getstate_usercallback_target():
                         when, getpeerlist = usercallback(ds)
