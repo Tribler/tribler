@@ -668,6 +668,9 @@ class ABCApp(object):
         self.utility.session.load_checkpoint(initialdlstatus_dict=initialdlstatus_dict)
 
     def guiservthread_free_space_check(self):
+        if not (self and self.frame and self.frame.SRstatusbar):
+            return
+
         free_space = get_free_space(DefaultDownloadStartupConfig.getInstance().get_dest_dir())
         self.frame.SRstatusbar.RefreshFreeSpace(free_space)
 
