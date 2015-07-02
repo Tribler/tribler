@@ -81,7 +81,7 @@ class TestHiddenCommunity(TestTunnelBase):
                 community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb_dht, bt_port=port)
             for community in tunnel_communities:
                 community.dht_announce = lambda ih, com = community: dht_announce(ih, com)
-            self.CallConditional(20, dht.is_set, lambda: self.callLater(5, lambda: start_download(tf)),
+            self.CallConditional(40, dht.is_set, lambda: self.callLater(5, lambda: start_download(tf)),
                                  'Introduction point did not get announced')
 
         self.startTest(setup_seeder, bypass_dht=True)
@@ -177,7 +177,7 @@ class TestHiddenCommunity(TestTunnelBase):
                 community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb_dht, bt_port=port)
             for community in tunnel_communities:
                 community.dht_announce = lambda ih, com = community: dht_announce(ih, com)
-            self.CallConditional(20, dht.is_set, lambda: self.callLater(5, lambda: start_download(tf)),
+            self.CallConditional(40, dht.is_set, lambda: self.callLater(5, lambda: start_download(tf)),
                                  'Introduction point did not get announced')
 
         self.startTest(setup_seeder, bypass_dht=True)
