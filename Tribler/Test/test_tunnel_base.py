@@ -161,7 +161,6 @@ class TestTunnelBase(TestGuiAsServer):
         for session in self.sessions:
             self._shutdown_session(session)
 
-        time.sleep(10)
         TestGuiAsServer.tearDown(self)
 
     def quit(self):
