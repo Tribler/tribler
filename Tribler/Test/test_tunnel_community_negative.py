@@ -36,7 +36,7 @@ class TestTunnelCommunityNegative(TestTunnelBase):
             self.guiUtility.ShowPage('my_files')
             self.callLater(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
             self.callLater(20, lambda: changed_my_mind(tunnel_communities))
-            self.callLater(40, lambda d=download, s=start_time: check_progress(d, s))
+            self.callLater(50, lambda d=download, s=start_time: check_progress(d, s))
 
         self.startTest(do_create_local_torrent)
 
