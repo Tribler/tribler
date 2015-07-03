@@ -575,12 +575,10 @@ class TftpRequester(Requester):
             elif thumb_hash is not None:
                 # save metadata
                 self._remote_torrent_handler.save_metadata(thumb_hash, file_data)
-        except Exception as e:
-            self._logger.error(u"failed to save data for download %s: %s", file_name, e)
-
-        # start the next request
-        self._clear_active_request(key)
-        self._start_pending_requests()
+        finally:
+            # start the next request
+            self._clear_active_request(key)
+            self._start_pending_requests()
 
     @call_on_reactor_thread
     def _on_download_failed(self, address, file_name, error_msg, extra_info):
