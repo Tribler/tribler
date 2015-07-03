@@ -228,6 +228,8 @@ class TestAsServer(AbstractServer):
 
             self._logger.debug(
                 "Waiting for Session to shutdown, will wait for an additional %d seconds", (waittime - diff))
+
+            wx.SafeYield()
             time.sleep(1)
 
         self._logger.debug("Session has shut down")
