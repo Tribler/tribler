@@ -6,24 +6,30 @@
 import logging
 import sys
 import urllib
-from collections import deque
 from abc import ABCMeta, abstractmethod
 from binascii import hexlify, unhexlify
+from collections import deque
 
+from decorator import decorator
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 
+from Tribler.Core.TFTP.handler import METADATA_PREFIX
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.simpledefs import INFOHASH_LENGTH, NTFY_TORRENTS
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import call_on_reactor_thread
 
-from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.simpledefs import NTFY_TORRENTS, INFOHASH_LENGTH
-from Tribler.Core.TFTP.handler import METADATA_PREFIX
 
 TORRENT_OVERFLOW_CHECKING_INTERVAL = 30 * 60
 LOW_PRIO_COLLECTING = 0
 MAGNET_TIMEOUT = 5.0
 MAX_PRIORITY = 1
+
+@decorator
+def pass_when_stopped(f, self, *argv, **kwargs):
+    if self.running:
+        return f(self, *argv, **kwargs)
 
 
 class RemoteTorrentHandler(TaskManager):
@@ -31,6 +37,8 @@ class RemoteTorrentHandler(TaskManager):
     def __init__(self, session):
         super(RemoteTorrentHandler, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
+
+        self.running = False
 
         self.torrent_callbacks = {}
         self.metadata_callbacks = {}
@@ -57,6 +65,8 @@ class RemoteTorrentHandler(TaskManager):
             self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
             self.__check_overflow()
 
+        self.running = True
+
         for priority in (0, 1):
             self.magnet_requesters[priority] = MagnetRequester(self.session, self, priority)
             self.torrent_requesters[priority] = TftpRequester(u"tftp_torrent_%s" % priority,
@@ -65,7 +75,11 @@ class RemoteTorrentHandler(TaskManager):
 
         self.metadata_requester = TftpRequester(u"tftp_metadata_%s" % 0, self.session, self, 0)
 
+
     def shutdown(self):
+        self.running = False
+        for requester in self.torrent_requesters.itervalues():
+            requester.stop()
         self.cancel_all_pending_tasks()
 
     @call_on_reactor_thread
@@ -276,6 +290,12 @@ class Requester(object):
         self._requests_failed = 0
         self._total_bandwidth = 0
 
+        self.running = True
+
+    def stop(self):
+        self._remote_torrent_handler.cancel_pending_task(self._name)
+        self.running = False
+
     @property
     def priority(self):
         return self._priority
@@ -296,12 +316,14 @@ class Requester(object):
     def total_bandwidth(self):
         return self._total_bandwidth
 
+    @pass_when_stopped
     def schedule_task(self, task, delay_time=0.0, *args, **kwargs):
         """
         Uses RemoteTorrentHandler to schedule a task.
         """
         self._remote_torrent_handler.schedule_task(self._name, task, delay_time=delay_time, *args, **kwargs)
 
+    @pass_when_stopped
     def _start_pending_requests(self):
         """
         Starts pending requests.
@@ -339,6 +361,7 @@ class TorrentMessageRequester(Requester):
         self._source_dict = {}
         self._search_community = None
 
+    @pass_when_stopped
     def add_request(self, infohash, candidate, timeout=None):
         addr = candidate.sock_addr
         queue_was_empty = len(self._pending_request_queue) == 0
@@ -361,6 +384,7 @@ class TorrentMessageRequester(Requester):
         if queue_was_empty:
             self._start_pending_requests()
 
+    @pass_when_stopped
     def _do_request(self):
         # find search community
         if not self._search_community:
@@ -403,6 +427,7 @@ class MagnetRequester(Requester):
 
         self._running_requests = []
 
+    @pass_when_stopped
     def add_request(self, infohash, candidate=None, timeout=None):
         queue_was_empty = len(self._pending_request_queue) == 0
         if infohash not in self._pending_request_queue and infohash not in self._running_requests:
@@ -412,6 +437,7 @@ class MagnetRequester(Requester):
         if queue_was_empty:
             self._start_pending_requests()
 
+    @pass_when_stopped
     def _do_request(self):
         while self._pending_request_queue:
             if len(self._running_requests) >= self.MAX_CONCURRENT:
@@ -485,6 +511,7 @@ class TftpRequester(Requester):
         self._untried_sources = {}
         self._tried_sources = {}
 
+    @pass_when_stopped
     def add_request(self, key, candidate, timeout=None, is_metadata=False):
         ip, port = candidate.sock_addr
         # no binary for keys
@@ -515,6 +542,7 @@ class TftpRequester(Requester):
         if not self._active_request_list:
             self._start_pending_requests()
 
+    @pass_when_stopped
     def _do_request(self):
         assert not self._active_request_list, "active_request_list is not empty = %s" % repr(self._active_request_list)
 
