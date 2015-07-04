@@ -341,7 +341,8 @@ class TunnelConversion(BinaryConversion):
         return offset, placeholder.meta.payload.implement(identifier, info_hash)
 
     def _encode_keys_response(self, message):
-        return pack('!HH', message.payload.identifier, len(message.payload.public_key)) + message.payload.public_key,
+        return pack('!HH', message.payload.identifier, len(message.payload.public_key)) \
+            + message.payload.public_key + message.payload.pex_peers,
 
     def _decode_keys_response(self, placeholder, offset, data):
         identifier, len_public_key = unpack_from('!HH', data, offset)
@@ -350,7 +351,10 @@ class TunnelConversion(BinaryConversion):
         public_key = data[offset: offset + len_public_key]
         offset += len_public_key
 
-        return offset, placeholder.meta.payload.implement(identifier, public_key)
+        pex_peers = data[offset:]
+        offset += len(pex_peers)
+
+        return offset, placeholder.meta.payload.implement(identifier, public_key, pex_peers)
 
     def _encode_create_e2e(self, message):
         payload = message.payload

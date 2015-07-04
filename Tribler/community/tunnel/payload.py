@@ -405,13 +405,15 @@ class KeyResponsePayload(Payload):
 
     class Implementation(Payload.Implementation):
 
-        def __init__(self, meta, identifier, public_key):
+        def __init__(self, meta, identifier, public_key, pex_peers):
             assert isinstance(identifier, int), type(identifier)
             assert isinstance(public_key, basestring), type(public_key)
+            assert all(isinstance(pex_peer, basestring) for pex_peer in pex_peers)
 
             super(KeyResponsePayload.Implementation, self).__init__(meta)
             self._identifier = identifier
             self._public_key = public_key
+            self._pex_peers = pex_peers
 
         @property
         def identifier(self):
@@ -420,6 +422,10 @@ class KeyResponsePayload(Payload):
         @property
         def public_key(self):
             return self._public_key
+
+        @property
+        def pex_peers(self):
+            return self._pex_peers
 
 
 class CreateE2EPayload(Payload):
