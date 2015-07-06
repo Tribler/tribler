@@ -1188,10 +1188,11 @@ class TunnelCommunity(Community):
             self.tunnel_logger.error("Dropping data packets, refusing to be an exit node for data")
         elif circuit_id in self.exit_sockets:
             if not self.exit_sockets[circuit_id].enabled:
-                # We got the correct circuit_id, but from a wrong IP.
-                assert sock_addr == self.exit_sockets[circuit_id].sock_addr, "%s != %s" % (
-                    str(sock_addr), str(self.exit_sockets[circuit_id].sock_addr))
-                self.exit_sockets[circuit_id].enable()
+                # Check that we got the correct circuit_id, but from a wrong IP.
+                if sock_addr[0] == self.exit_sockets[circuit_id].sock_addr[0]:
+                    self.exit_sockets[circuit_id].enable()
+                else:
+                    self._logger.error("Dropping outbound relayed packet: IP's are %s != %s", str(sock_addr), str(self.exit_sockets[circuit_id].sock_addr))
             try:
                 self.exit_sockets[circuit_id].sendto(data, destination)
             except:
