@@ -81,7 +81,7 @@ class TestHiddenCommunity(TestTunnelBase):
                 community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb_dht, bt_port=port)
             for community in tunnel_communities:
                 community.dht_announce = lambda ih, com = community: dht_announce(ih, com)
-            self.CallConditional(30, dht.is_set, lambda: self.callLater(5, lambda: start_download(tf)),
+            self.CallConditional(40, dht.is_set, lambda: self.callLater(5, lambda: start_download(tf)),
                                  'Introduction point did not get announced')
 
         self.startTest(setup_seeder, bypass_dht=True)
@@ -129,14 +129,14 @@ class TestHiddenCommunity(TestTunnelBase):
 
             d.set_state_callback(cb, True)
 
-            self.CallConditional(30,
+            self.CallConditional(50,
                                  lambda: d.get_progress() == 1.0 and hs_progress.is_set() and en_progress.is_set(),
                                  lambda: take_screenshot(time.time() - start_time),
-                                 'Hidden services download should be finished in 30s', on_fail)
+                                 'Hidden services download should be finished in 50s', on_fail)
 
         def start_download(tf):
             start_time = time.time()
-            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=1)
+            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=3)
 
             # Inject IP of the 2nd seeder so that the download starts using both hidden services & exit tunnels
             self.callLater(15, lambda: download.add_peer(("127.0.0.1", self.sessions[1].get_listen_port())))
@@ -161,7 +161,7 @@ class TestHiddenCommunity(TestTunnelBase):
             seeder_session.set_download_states_callback(download_states_callback, False)
 
             # Start seeding with hidden services
-            tf = self.setupSeeder(hops=1, session=seeder_session)
+            tf = self.setupSeeder(hops=2, session=seeder_session)
 
             # Start another seeder from which we'll download using exit nodes
             self.setupSeeder(hops=0, session=self.sessions[1])
@@ -177,7 +177,7 @@ class TestHiddenCommunity(TestTunnelBase):
                 community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb_dht, bt_port=port)
             for community in tunnel_communities:
                 community.dht_announce = lambda ih, com = community: dht_announce(ih, com)
-            self.CallConditional(90, dht.is_set, lambda: self.callLater(5, lambda: start_download(tf)),
+            self.CallConditional(40, dht.is_set, lambda: self.callLater(5, lambda: start_download(tf)),
                                  'Introduction point did not get announced')
 
         self.startTest(setup_seeder, bypass_dht=True)

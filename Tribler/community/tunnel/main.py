@@ -370,7 +370,6 @@ def main(argv):
         sys.exit(1)
 
     settings = TunnelSettings()
-    settings.max_time = 60
 
     # For disbling anonymous downloading, limiting download to hidden services only
     settings.min_circuits = 0

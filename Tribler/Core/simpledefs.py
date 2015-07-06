@@ -65,6 +65,18 @@ NTFY_CHANNELCAST = 'channelcast'
 NTFY_TUNNEL = 'tunnel'
 NTFY_TRACKERINFO = 'trackerinfo'
 
+NTFY_IP_REMOVED = 'intropointremoved'
+NTFY_RP_REMOVED = 'rendezvouspointremoved'
+NTFY_IP_RECREATE = 'intropointrecreate'
+NTFY_DHT_LOOKUP = 'dhtlookupanontorrent'
+NTFY_KEY_REQUEST = 'keyrequest'
+NTFY_KEY_RESPOND = 'ipkeyrespond'
+NTFY_KEY_RESPONSE = 'keyresponsereceived'
+NTFY_CREATE_E2E = 'createendtoend'
+NTFY_ONCREATED_E2E = 'oncreatedendtoend'
+NTFY_IP_CREATED = 'intropointcreated'
+NTFY_RP_CREATED = 'rendezvouspointcreated'
+
 # non data handler subjects
 NTFY_ACTIVITIES = 'activities'  # an activity was set (peer met/dns resolved)
 NTFY_REACHABLE = 'reachable'  # the Session is reachable from the Internet

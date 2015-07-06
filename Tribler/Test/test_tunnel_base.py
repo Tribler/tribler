@@ -17,7 +17,7 @@ from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
 class TestTunnelBase(TestGuiAsServer):
 
-    def startTest(self, callback, min_timeout=5, nr_relays=8, nr_exitnodes=4, crypto_enabled=True, bypass_dht=False):
+    def startTest(self, callback, min_timeout=5, nr_relays=12, nr_exitnodes=4, crypto_enabled=True, bypass_dht=False):
 
         self.getStateDir()   # getStateDir copies the bootstrap file into the statedir
 
@@ -161,7 +161,6 @@ class TestTunnelBase(TestGuiAsServer):
         for session in self.sessions:
             self._shutdown_session(session)
 
-        time.sleep(10)
         TestGuiAsServer.tearDown(self)
 
     def quit(self):

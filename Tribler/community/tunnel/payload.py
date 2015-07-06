@@ -3,33 +3,32 @@ from Tribler.dispersy.payload import Payload, IntroductionRequestPayload,\
 
 
 class TunnelIntroductionRequestPayload(IntroductionRequestPayload):
-    
+
     class Implementation(IntroductionRequestPayload.Implementation):
 
         def __init__(self, meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier, exitnode = False):
             super(TunnelIntroductionRequestPayload.Implementation, self).__init__(meta, destination_address, source_lan_address, source_wan_address, advice, connection_type, sync, identifier)
             assert isinstance(exitnode, bool), type(exitnode)
             self._exitnode = exitnode
-        
-        @property 
+
+        @property
         def exitnode(self):
             return self._exitnode
-            
+
 
 class TunnelIntroductionResponsePayload(IntroductionResponsePayload):
-    
+
     class Implementation(IntroductionResponsePayload.Implementation):
 
         def __init__(self, meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier, exitnode = False):
             super(TunnelIntroductionResponsePayload.Implementation, self).__init__(meta, destination_address, source_lan_address, source_wan_address, lan_introduction_address, wan_introduction_address, connection_type, tunnel, identifier)
             assert isinstance(exitnode, bool), type(exitnode)
             self._exitnode = exitnode
-        
-        
-        @property 
+
+        @property
         def exitnode(self):
             return self._exitnode
-         
+
 
 class CellPayload(Payload):
 
@@ -406,13 +405,15 @@ class KeyResponsePayload(Payload):
 
     class Implementation(Payload.Implementation):
 
-        def __init__(self, meta, identifier, public_key):
+        def __init__(self, meta, identifier, public_key, pex_peers):
             assert isinstance(identifier, int), type(identifier)
             assert isinstance(public_key, basestring), type(public_key)
+            assert all(isinstance(pex_peer, basestring) for pex_peer in pex_peers)
 
             super(KeyResponsePayload.Implementation, self).__init__(meta)
             self._identifier = identifier
             self._public_key = public_key
+            self._pex_peers = pex_peers
 
         @property
         def identifier(self):
@@ -421,6 +422,10 @@ class KeyResponsePayload(Payload):
         @property
         def public_key(self):
             return self._public_key
+
+        @property
+        def pex_peers(self):
+            return self._pex_peers
 
 
 class CreateE2EPayload(Payload):
@@ -493,6 +498,68 @@ class CreatedE2EPayload(Payload):
         @property
         def rp_sock_addr(self):
             return self._rp_sock_addr
+
+
+class DHTRequestPayload(Payload):
+
+    class Implementation(Payload.Implementation):
+
+        def __init__(self, meta, circuit_id, identifier, info_hash):
+            assert isinstance(circuit_id, (int, long)), type(circuit_id)
+            assert isinstance(identifier, int), type(identifier)
+            assert isinstance(info_hash, basestring), type(info_hash)
+            assert len(info_hash) == 20, len(info_hash)
+
+            super(DHTRequestPayload.Implementation, self).__init__(meta)
+            self._circuit_id = circuit_id
+            self._identifier = identifier
+            self._info_hash = info_hash
+
+        @property
+        def circuit_id(self):
+            return self._circuit_id
+
+        @property
+        def identifier(self):
+            return self._identifier
+
+        @property
+        def info_hash(self):
+            return self._info_hash
+
+
+class DHTResponsePayload(Payload):
+
+    class Implementation(Payload.Implementation):
+
+        def __init__(self, meta, circuit_id, identifier, info_hash, peers):
+            assert isinstance(circuit_id, (int, long)), type(circuit_id)
+            assert isinstance(identifier, int), type(identifier)
+            assert isinstance(info_hash, basestring), type(info_hash)
+            assert len(info_hash) == 20, len(info_hash)
+            assert all(isinstance(peer, basestring) for peer in peers)
+
+            super(DHTResponsePayload.Implementation, self).__init__(meta)
+            self._circuit_id = circuit_id
+            self._identifier = identifier
+            self._info_hash = info_hash
+            self._peers = peers
+
+        @property
+        def circuit_id(self):
+            return self._circuit_id
+
+        @property
+        def identifier(self):
+            return self._identifier
+
+        @property
+        def info_hash(self):
+            return self._info_hash
+
+        @property
+        def peers(self):
+            return self._peers
 
 
 class LinkE2EPayload(Payload):

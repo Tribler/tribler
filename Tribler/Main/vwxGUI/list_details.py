@@ -1129,7 +1129,7 @@ class LibraryDetails(TorrentDetails):
         self.country_to_index = {}
         for code, flag in self.gui_image_manager.getCountryFlagDict().iteritems():
             self.country_to_index[code] = self.peersTab.il.Add(flag)
-            
+
         self.country_to_index['hidden_services'] = self.peersTab.il.Add(self.gui_image_manager.getImage(u"lock.png"))
 
         self.availability_hSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -1287,6 +1287,15 @@ class LibraryDetails(TorrentDetails):
 
             for peer_dict in peers:
                 peer_name = peer_dict['ip'] + ':%d' % peer_dict['port']
+                image_index = self.country_to_index.get(peer_dict.get('country', '00').lower(), -1)
+                # If this is a hidden services circuit, show a different icon
+                tc = self.utility.session.lm.tunnel_community
+                if tc and peer_dict['port'] == CIRCUIT_ID_PORT:
+                    cid = tc.ip_to_circuit_id(peer_dict['ip'])
+                    if cid in tc.circuits and tc.circuits[cid].ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
+                        image_index = self.country_to_index['hidden_services']
+                        peer_name = 'Darknet circuit ID %d' % cid
+                self.peerList.SetItemColumnImage(index, 0, image_index)
 
                 connection_type = peer_dict.get('connection_type', 0)
                 if connection_type == 1:
@@ -1329,15 +1338,6 @@ class LibraryDetails(TorrentDetails):
                     state += "S,"
                 state += peer_dict.get('direction', '')
                 self.peerList.SetStringItem(index, 3, state)
-
-                image_index = self.country_to_index.get(peer_dict.get('country', '00').lower(), -1)
-                # If this is a hidden services circuit, show a different icon                
-                tc = self.utility.session.lm.tunnel_community
-                if tc and peer_dict['port'] == CIRCUIT_ID_PORT:
-                    cid = tc.ip_to_circuit_id(peer_dict['ip'])
-                    if cid in tc.circuits and tc.circuits[cid].ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
-                        image_index = self.country_to_index['hidden_services']
-                self.peerList.SetItemColumnImage(index, 0, image_index)
 
                 if 'extended_version' in peer_dict:
                     try:
