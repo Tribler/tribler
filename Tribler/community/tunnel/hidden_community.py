@@ -11,7 +11,7 @@ from collections import defaultdict
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED,\
     NTFY_TUNNEL, NTFY_IP_REMOVED, NTFY_RP_REMOVED, NTFY_IP_RECREATE,\
     NTFY_DHT_LOOKUP, NTFY_KEY_REQUEST, NTFY_KEY_RESPOND, NTFY_KEY_RESPONSE,\
-    NTFY_CREATE_E2E, NTFY_ONCREATED_E2E, NTFY_IP_CREATED
+    NTFY_CREATE_E2E, NTFY_ONCREATED_E2E, NTFY_IP_CREATED, DLSTATUS_DOWNLOADING
 from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 from Tribler.Core.Utilities.encoding import encode, decode
 
@@ -251,7 +251,8 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
             time_elapsed = (time.time() - self.last_dht_lookup.get(info_hash, 0))
             force_dht_lookup = time_elapsed >= self.settings.dht_lookup_interval
-            if (state_changed or force_dht_lookup):
+            if (state_changed or force_dht_lookup) and \
+               (new_state == DLSTATUS_SEEDING or new_state == DLSTATUS_DOWNLOADING):
                 self.tunnel_logger.info('Do dht lookup to find hidden services peers for %s' % info_hash.encode('hex'))
                 self.do_dht_lookup(info_hash)
 
