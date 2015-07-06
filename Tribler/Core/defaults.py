@@ -155,6 +155,7 @@ dldefaults['downloadconfig']['mode'] = 0
 dldefaults['downloadconfig']['hops'] = 0
 dldefaults['downloadconfig']['selected_files'] = []
 dldefaults['downloadconfig']['correctedfilename'] = None
+dldefaults['downloadconfig']['safe_seeding'] = True
 
 tdefdictdefaults = {}
 tdefdictdefaults['comment'] = None

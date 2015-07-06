@@ -507,6 +507,7 @@ class MainFrame(wx.Frame):
 
             cancelDownload = False
             useDefault = not self.utility.read_config('showsaveas')
+            safe_seeding = self.utility.read_config('default_safeseeding_enabled')
             if not useDefault and not destdir:
                 defaultname = tdef.get_name_as_unicode()
 
@@ -532,8 +533,9 @@ class MainFrame(wx.Frame):
                             destdir = dlg.GetPath()
 
                         # Anonimity over exit nodes or hidden services
+                        safe_seeding = dlg.UseSafeSeeding()
                         if dlg.UseTunnels():
-                            hops = self.utility.read_config('default_anonymous_level')
+                            hops = self.utility.read_config('default_number_hops')
 
                     else:
                         cancelDownload = True
@@ -545,13 +547,14 @@ class MainFrame(wx.Frame):
             else:
                 if useDefault:
                     # only load default anonymous level if we use default settings
-                    hops = self.utility.read_config('default_anonymous_level')
+                    hops = self.utility.read_config('default_number_hops')
 
             if hops > 0:
                 if not tdef:
                     raise Exception('Currently only torrents can be downloaded in anonymous mode')
 
             dscfg.set_hops(hops)
+            dscfg.set_safe_seeding(safe_seeding)
 
             if not cancelDownload:
                 if destdir is not None:

@@ -201,16 +201,21 @@ class SettingsDialog(wx.Dialog):
             self.moveCollectedTorrents(self.currentDestDir, valdir)
             restart = True
 
-        default_anonymous_level = self._sliderhops.GetValue()
-        if default_anonymous_level != self.utility.read_config('default_anonymous_level'):
-            self.utility.write_config('default_anonymous_level', default_anonymous_level)
+        default_number_hops = self._sliderhops.GetValue()
+        if default_number_hops != self.utility.read_config('default_number_hops'):
+            self.utility.write_config('default_number_hops', default_number_hops)
             self.saveDefaultDownloadConfig(scfg)
 
         default_anonimity_chkbox = self._default_anonimity_dialog.UseTunnels()
         if default_anonimity_chkbox != self.utility.read_config('default_anonimity_enabled'):
             self.utility.write_config('default_anonimity_enabled', default_anonimity_chkbox)
             self.saveDefaultDownloadConfig(scfg)
-            
+
+        default_safeseeding_chkbox = self._default_anonimity_dialog.UseSafeSeeding()
+        if default_safeseeding_chkbox != self.utility.read_config('default_safeseeding_enabled'):
+            self.utility.write_config('default_safeseeding_enabled', default_safeseeding_chkbox)
+            self.saveDefaultDownloadConfig(scfg)
+
         becomeExitNode = self._become_exitnode.IsChecked()
         if becomeExitNode != scfg.get_tunnel_community_exitnode_enabled():
             scfg.set_tunnel_community_exitnode_enabled(becomeExitNode)
@@ -225,27 +230,27 @@ class SettingsDialog(wx.Dialog):
         if valwebuiport != str(self.utility.read_config('webui_port')):
             self.utility.write_config('webui_port', valwebuiport)
             restart = True
-        
+
         useEMC = self._use_emc.IsChecked()
         if useEMC != self.utility.read_config('use_emc'):
             self.utility.write_config('use_emc', useEMC)
-        
+
         valemcip = self._emc_ip.GetValue()
         if valemcip != str(self.utility.read_config('emc_ip')):
             self.utility.write_config('emc_ip', valemcip)
-            
+
         valemcport = self._emc_port.GetValue()
         if valemcport != str(self.utility.read_config('emc_port')):
             self.utility.write_config('emc_port', valemcport)
-            
+
         valemcusername = self._emc_username.GetValue()
         if valemcusername != str(self.utility.read_config('emc_username')):
             self.utility.write_config('emc_username', valemcusername)
-            
+
         valemcpassword = self._emc_password.GetValue()
         if valemcpassword != str(self.utility.read_config('emc_password')):
             self.utility.write_config('emc_pasword', valemcpassword)
-            
+
         curMintray = self.utility.read_config('mintray')
         if self._minimize_to_tray:
             minimizeToTray = 1 if self._minimize_to_tray.IsChecked() else 0
@@ -779,7 +784,7 @@ class SettingsDialog(wx.Dialog):
         self._emc_password = wx.TextCtrl(exp_panel, style=wx.TE_PROCESS_ENTER | wx.TE_PASSWORD)
         self._emc_password.SetMaxLength(255)
         exp_s2_sizer.Add(self._emc_password, 0, wx.EXPAND)
-        
+
         exp_s2_faq_text = wx.StaticText(
             exp_panel, label="Tribler connects to Emercoin over its JSON-RPC API.\nThis requires you to enable it by editing the emercoin.conf file and setting\nserver=1, rpcport, rpcuser, rpcpassword, and rpcconnect.")
         exp_vsizer.Add(exp_s2_faq_text, 0, wx.EXPAND | wx.TOP, 10)
@@ -787,7 +792,7 @@ class SettingsDialog(wx.Dialog):
         # load values
         self._use_webui.SetValue(self.utility.read_config('use_webui'))
         self._webui_port.SetValue(str(self.utility.read_config('webui_port')))
-        
+
         self._use_emc.SetValue(self.utility.read_config('use_emc'))
         self._emc_ip.SetValue(self.utility.read_config('emc_ip'))
         self._emc_port.SetValue(self.utility.read_config('emc_port'))
@@ -853,7 +858,7 @@ class SettingsDialog(wx.Dialog):
 
         # load values
         self._become_exitnode.SetValue(self.utility.session.get_tunnel_community_exitnode_enabled())
-        self._sliderhops.SetValue(self.utility.read_config('default_anonymous_level'))
+        self._sliderhops.SetValue(self.utility.read_config('default_number_hops'))
 
         return exp_panel, item_id
 
