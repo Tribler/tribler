@@ -2585,8 +2585,8 @@ class AnonymityDialog(wx.Panel):
         self.anonimity_chkbox.SetValue(self.utility.read_config('default_anonimity_enabled'))
         self.anonimity_chkbox.Bind(wx.EVT_CHECKBOX, self.OnAnonimityValueChanged)
 
-        self.darknet_chkbox = wx.CheckBox(self, -1, "Darknet mode: Hidden seeding, never seed naked \nin Bittorrent (can not be disabled)")
-        self.darknet_chkbox.SetValue(True)
+        self.darknet_chkbox = wx.CheckBox(self, -1, "Safe seeding using proxies")
+        self.anonimity_chkbox.SetValue(self.utility.read_config('default_safeseeding_enabled'))
         self.darknet_chkbox.Bind(wx.EVT_CHECKBOX, self.OnDarknetValueChanged)
 
         vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
@@ -2597,11 +2597,19 @@ class AnonymityDialog(wx.Panel):
         self.OnAnonimityValueChanged(None)
 
     def OnDarknetValueChanged(self, event):
-        self.darknet_chkbox.SetValue(True)
+        if self.UseTunnels():
+            self.darknet_chkbox.SetValue(True)
+            self.darknet_chkbox.Disable()
+        else:
+            self.darknet_chkbox.Enable()
 
     def OnAnonimityValueChanged(self, event):
         self.Layout()
         self.GetParent().Layout()
+        self.OnDarknetValueChanged(None)
 
     def UseTunnels(self):
         return self.anonimity_chkbox.GetValue()
+
+    def UseSafeSeeding(self):
+        return self.darknet_chkbox.GetValue()

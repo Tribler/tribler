@@ -38,8 +38,9 @@ class Utility(object):
                             # Misc
                             'torrentassociationwarned': 0,
                             # anonymous
-                            'default_anonymous_level': 1,
+                            'default_number_hops': 1,
                             'default_anonimity_enabled': True,
+                            'default_safeseeding_enabled': True,
 
                             # GUI
                             'window_width': 1024,

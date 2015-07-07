@@ -231,6 +231,9 @@ class SaveAs(wx.Dialog):
     def UseTunnels(self):
         return self.anonimity_dialog and self.anonimity_dialog.UseTunnels()
 
+    def UseSafeSeeding(self):
+        return self.anonimity_dialog and self.anonimity_dialog.UseSafeSeeding()
+
     def OnOk(self, event=None):
         if self.listCtrl:
             nrSelected = len(self.listCtrl.GetSelectedItems())

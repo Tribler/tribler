@@ -99,6 +99,12 @@ class DownloadConfigInterface(object):
     def get_hops(self):
         return self.dlconfig.get('downloadconfig', 'hops')
 
+    def set_safe_seeding(self, value):
+        self.dlconfig.set('downloadconfig', 'safe_seeding', value)
+
+    def get_safe_seeding(self):
+        return self.dlconfig.get('downloadconfig', 'safe_seeding')
+
     def set_selected_files(self, files):
         """ Select which files in the torrent to download. The filenames must
         be the names as they appear in the content def, including encoding.
