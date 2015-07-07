@@ -18,7 +18,7 @@ from .session import FakeDHTSession
 
 # some settings
 DEFAULT_TORRENT_SELECTION_INTERVAL = 20  # every 20 seconds, the thread will select torrents to check
-DEFAULT_TORRENT_CHECK_INTERVAL = 900  # base multipier for the check delay
+DEFAULT_TORRENT_CHECK_INTERVAL = 900  # base multiplier for the check delay
 
 DEFAULT_MAX_TORRENT_CHECK_RETRIES = 8  # max check delay increments when failed.
 DEFAULT_TORRENT_CHECK_RETRY_INTERVAL = 30  # interval when the torrent was successfully checked for the last time
