@@ -607,8 +607,8 @@ class FakeDHTSession(TrackerSession):
             self._on_result_callback(infohash, metainfo['seeders'], metainfo['leechers'])
 
         @call_on_reactor_thread
-        def on_metainfo_timeout(infohash):
-            self._on_result_callback(infohash, seeders=0, leechers=0)
+        def on_metainfo_timeout(result_info_hash):
+            self._on_result_callback(result_info_hash, seeders=0, leechers=0)
 
         if self._session:
             self._session.lm.ltmgr.get_metainfo(infohash, callback=on_metainfo_received,
