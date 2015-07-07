@@ -7,18 +7,18 @@ import time
 
 from twisted.internet import reactor
 
-from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
+from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
 from Tribler.Core.simpledefs import NTFY_TORRENTS
-from Tribler.Core.TorrentChecker.session import TRACKER_ACTION_CONNECT, MAX_TRACKER_MULTI_SCRAPE, create_tracker_session
+from Tribler.Core.TorrentChecker.session import TRACKER_ACTION_CONNECT, create_tracker_session
 from Tribler.Core.Utilities.network_utils import InterruptSocket
 
 from .session import FakeDHTSession
 
 # some settings
 DEFAULT_TORRENT_SELECTION_INTERVAL = 20  # every 20 seconds, the thread will select torrents to check
-DEFAULT_TORRENT_CHECK_INTERVAL = 900  # base multipier for the check delay
+DEFAULT_TORRENT_CHECK_INTERVAL = 900  # base multiplier for the check delay
 
 DEFAULT_MAX_TORRENT_CHECK_RETRIES = 8  # max check delay increments when failed.
 DEFAULT_TORRENT_CHECK_RETRY_INTERVAL = 30  # interval when the torrent was successfully checked for the last time
@@ -58,8 +58,8 @@ class TorrentCheckerThread(Thread):
             check_read_socket_list.append(self._interrupt_socket.socket)
 
             read_socket_list, write_socket_list, _ = select.select(check_read_socket_list,
-                                                                                   check_write_socket_list,
-                                                                                   [], 5)
+                                                                   check_write_socket_list,
+                                                                   [], 5)
 
             if self._torrent_checker.should_stop:
                 break
@@ -98,7 +98,7 @@ class TorrentChecker(TaskManager):
         self._torrent_check_retry_interval = DEFAULT_TORRENT_CHECK_RETRY_INTERVAL
         self._max_torrent_check_retries = DEFAULT_MAX_TORRENT_CHECK_RETRIES
 
-        self._session_list = [FakeDHTSession(session, self._on_result_from_session),]
+        self._session_list = [FakeDHTSession(session, self._on_result_from_session), ]
         self._last_torrent_selection_time = 0
 
     @property
@@ -376,6 +376,12 @@ class TorrentChecker(TaskManager):
 
         # >> Step 2: No session to append to, create a new one
         # create a new session for this request
+
+        # before creating a new session, check if the tracker is alive
+        if not self._session.lm.tracker_manager.should_check_tracker(tracker_url):
+            self._logger.warn(u"skipping dead tracker %s", tracker_url)
+            return
+
         session = None
         try:
             session = create_tracker_session(tracker_url, self._on_result_from_session)

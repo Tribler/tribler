@@ -2,11 +2,9 @@ import logging
 import random
 import socket
 import struct
-import sys
 import time
 import urllib
 from abc import ABCMeta, abstractmethod, abstractproperty
-from binascii import unhexlify
 
 from libtorrent import bdecode
 
@@ -189,6 +187,7 @@ class TrackerSession(object):
     @property
     def is_timed_out(self):
         return self._is_timed_out
+
 
 class HttpTrackerSession(TrackerSession):
 
@@ -584,6 +583,7 @@ class UdpTrackerSession(TrackerSession):
         UdpTrackerSession.remove_transaction_id(self)
         self._is_finished = True
 
+
 class FakeDHTSession(TrackerSession):
     """
     Fake TrackerSession that manages DHT requests
@@ -607,8 +607,8 @@ class FakeDHTSession(TrackerSession):
             self._on_result_callback(infohash, metainfo['seeders'], metainfo['leechers'])
 
         @call_on_reactor_thread
-        def on_metainfo_timeout(infohash):
-            self._on_result_callback(infohash, seeders=0, leechers=0)
+        def on_metainfo_timeout(result_info_hash):
+            self._on_result_callback(result_info_hash, seeders=0, leechers=0)
 
         if self._session:
             self._session.lm.ltmgr.get_metainfo(infohash, callback=on_metainfo_received,
