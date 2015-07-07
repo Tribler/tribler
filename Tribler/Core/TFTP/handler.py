@@ -301,17 +301,17 @@ class TftpHandler(TaskManager):
                 file_data, file_size = self._load_torrent(file_name)
             checksum = b64encode(sha1(file_data).digest())
         except FileNotFound as e:
-            self._logger.warn(u"[READ %s:%s] file/dir not found: %s", ip, port, e)
+            self._logger.warn(u"[READ %s:%s] file not found: %s", ip, port, e)
             dummy_session = Session(False, packet['session_id'], (ip, port), packet['opcode'],
                                     file_name, None, None, None, block_size=block_size, timeout=timeout)
             self._handle_error(dummy_session, 1)
             return
         except Exception as e:
-            self._logger.error(u"[READ %s:%s] failed to load file/dir: %s", ip, port, e)
+            self._logger.error(u"[READ %s:%s] failed to load file: %s", ip, port, e)
             dummy_session = Session(False, packet['session_id'], (ip, port), packet['opcode'],
                                     file_name, None, None, None, block_size=block_size, timeout=timeout)
             self._handle_error(dummy_session, 2)
-            return
+            raise
 
         # create a session object
         session = Session(False, packet['session_id'], (ip, port), packet['opcode'],
