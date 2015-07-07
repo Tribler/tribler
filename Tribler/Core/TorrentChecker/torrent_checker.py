@@ -376,6 +376,12 @@ class TorrentChecker(TaskManager):
 
         # >> Step 2: No session to append to, create a new one
         # create a new session for this request
+
+        # before creating a new session, check if the tracker is alive
+        if not self._session.lm.tracker_manager.should_check_tracker(tracker_url):
+            self._logger.warn(u"skipping dead tracker %s", tracker_url)
+            return
+
         session = None
         try:
             session = create_tracker_session(tracker_url, self._on_result_from_session)
