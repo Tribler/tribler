@@ -328,7 +328,7 @@ class TftpHandler(TaskManager):
         """ Loads a thumbnail into memory.
         :param thumb_hash: The thumbnail hash.
         """
-        file_data = self.session.lm.metadata_store.get(thumb_hash)
+        file_data = self.session.lm.metadata_store.get(thumb_hash.encode('utf8'))
         # check if file exists
         if not file_data:
             msg = u"Metadata not in store: %s" % thumb_hash
@@ -340,7 +340,7 @@ class TftpHandler(TaskManager):
         """ Loads a file into memory.
         :param file_name: The file name.
         """
-        infohash = file_name[:-8]  # len('.torrent') = 8
+        infohash = (file_name[:-8]).encode('utf8')  # len('.torrent') = 8
 
         file_data = self.session.lm.torrent_store.get(infohash)
         # check if file exists
