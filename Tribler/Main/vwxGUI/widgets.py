@@ -2585,7 +2585,7 @@ class AnonymityDialog(wx.Panel):
         self.anonimity_chkbox.SetValue(self.utility.read_config('default_anonimity_enabled'))
         self.anonimity_chkbox.Bind(wx.EVT_CHECKBOX, self.OnAnonimityValueChanged)
 
-        self.darknet_chkbox = wx.CheckBox(self, -1, "Safe seeding using proxies")
+        self.darknet_chkbox = wx.CheckBox(self, -1, "Encrypted anonymous seeding using proxies")
         self.anonimity_chkbox.SetValue(self.utility.read_config('default_safeseeding_enabled'))
         self.darknet_chkbox.Bind(wx.EVT_CHECKBOX, self.OnDarknetValueChanged)
 
