@@ -188,6 +188,7 @@ class TrackerSession(object):
     def is_timed_out(self):
         return self._is_timed_out
 
+
 class HttpTrackerSession(TrackerSession):
 
     def __init__(self, tracker_url, tracker_address, announce_page, on_result_callback):
@@ -581,6 +582,7 @@ class UdpTrackerSession(TrackerSession):
         # close this socket and remove its transaction ID from the list
         UdpTrackerSession.remove_transaction_id(self)
         self._is_finished = True
+
 
 class FakeDHTSession(TrackerSession):
     """

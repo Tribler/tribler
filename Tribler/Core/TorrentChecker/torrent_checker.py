@@ -58,8 +58,8 @@ class TorrentCheckerThread(Thread):
             check_read_socket_list.append(self._interrupt_socket.socket)
 
             read_socket_list, write_socket_list, _ = select.select(check_read_socket_list,
-                                                                                   check_write_socket_list,
-                                                                                   [], 5)
+                                                                   check_write_socket_list,
+                                                                   [], 5)
 
             if self._torrent_checker.should_stop:
                 break
@@ -98,7 +98,7 @@ class TorrentChecker(TaskManager):
         self._torrent_check_retry_interval = DEFAULT_TORRENT_CHECK_RETRY_INTERVAL
         self._max_torrent_check_retries = DEFAULT_MAX_TORRENT_CHECK_RETRIES
 
-        self._session_list = [FakeDHTSession(session, self._on_result_from_session),]
+        self._session_list = [FakeDHTSession(session, self._on_result_from_session), ]
         self._last_torrent_selection_time = 0
 
     @property
