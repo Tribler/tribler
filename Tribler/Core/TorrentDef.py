@@ -250,7 +250,8 @@ class TorrentDef(object):
             newtier = []
             for url in tier:
                 if not isValidURL(url):
-                    raise ValueError("Invalid URL: " + repr(url))
+                    self._logger.error("Invalid tracker URL: %s", repr(url))
+                    continue
 
                 if url.endswith('/'):
                     # Some tracker code can't deal with / at end
