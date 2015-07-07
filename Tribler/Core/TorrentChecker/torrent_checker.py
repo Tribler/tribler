@@ -7,11 +7,11 @@ import time
 
 from twisted.internet import reactor
 
-from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
+from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
 from Tribler.Core.simpledefs import NTFY_TORRENTS
-from Tribler.Core.TorrentChecker.session import TRACKER_ACTION_CONNECT, MAX_TRACKER_MULTI_SCRAPE, create_tracker_session
+from Tribler.Core.TorrentChecker.session import TRACKER_ACTION_CONNECT, create_tracker_session
 from Tribler.Core.Utilities.network_utils import InterruptSocket
 
 from .session import FakeDHTSession
