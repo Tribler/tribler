@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 includeModules = ["encodings.hex_codec", "encodings.utf_8", "encodings.latin_1", "xml.sax", "email.iterators",
                   "netifaces", "apsw", "libtorrent", "twisted", "M2Crypto", "pyasn1", "PIL", "feedparser",
                   "urllib3", "requests", "leveldb", "cryptography", "libnacl", "pycparser", "six", "hashlib", "enum34",
-                  "csv", "cherrypy",
+                  "csv", "cherrypy", "decorator",
 
                   "cryptography",
                   "cryptography._Cryptography_cffi_2a871178xb3816a41",
