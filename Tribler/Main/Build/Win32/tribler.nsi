@@ -161,6 +161,12 @@ Section "!Main EXE" SecMain
  File C:\Python27\x86\Lib\site-packages\cryptography-0.7.2-py2.7-win32.egg\cryptography\hazmat\primitives\src\constant_time.c
  File C:\Python27\x86\Lib\site-packages\cryptography-0.7.2-py2.7-win32.egg\cryptography\hazmat\primitives\src\constant_time.h
 
+FileOpen $9 "$INSTDIR\tribler.exe.log" w
+FileWrite $9 ""
+FileClose $9
+AccessControl::GrantOnFile "$INSTDIR\tribler.exe.log" "(BU)" "FullAccess"
+AccessControl::GrantOnFile "$INSTDIR\tribler.exe.log" "(S-1-5-32-545)" "FullAccess"
+
  ; End
  SetOutPath "$INSTDIR"
  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "DisplayName" "${PRODUCT}"
