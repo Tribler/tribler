@@ -301,17 +301,17 @@ class TftpHandler(TaskManager):
                 file_data, file_size = self._load_torrent(file_name)
             checksum = b64encode(sha1(file_data).digest())
         except FileNotFound as e:
-            self._logger.warn(u"[READ %s:%s] file/dir not found: %s", ip, port, e)
+            self._logger.warn(u"[READ %s:%s] file not found: %s", ip, port, e)
             dummy_session = Session(False, packet['session_id'], (ip, port), packet['opcode'],
                                     file_name, None, None, None, block_size=block_size, timeout=timeout)
             self._handle_error(dummy_session, 1)
             return
         except Exception as e:
-            self._logger.error(u"[READ %s:%s] failed to load file/dir: %s", ip, port, e)
+            self._logger.error(u"[READ %s:%s] failed to load file: %s", ip, port, e)
             dummy_session = Session(False, packet['session_id'], (ip, port), packet['opcode'],
                                     file_name, None, None, None, block_size=block_size, timeout=timeout)
             self._handle_error(dummy_session, 2)
-            return
+            raise
 
         # create a session object
         session = Session(False, packet['session_id'], (ip, port), packet['opcode'],
@@ -328,7 +328,7 @@ class TftpHandler(TaskManager):
         """ Loads a thumbnail into memory.
         :param thumb_hash: The thumbnail hash.
         """
-        file_data = self.session.lm.metadata_store.get(thumb_hash)
+        file_data = self.session.lm.metadata_store.get(thumb_hash.encode('utf8'))
         # check if file exists
         if not file_data:
             msg = u"Metadata not in store: %s" % thumb_hash
@@ -340,7 +340,7 @@ class TftpHandler(TaskManager):
         """ Loads a file into memory.
         :param file_name: The file name.
         """
-        infohash = file_name[:-8]  # len('.torrent') = 8
+        infohash = (file_name[:-8]).encode('utf8')  # len('.torrent') = 8
 
         file_data = self.session.lm.torrent_store.get(infohash)
         # check if file exists
