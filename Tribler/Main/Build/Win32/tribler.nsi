@@ -164,6 +164,8 @@ Section "!Main EXE" SecMain
 FileOpen $9 "$INSTDIR\tribler.exe.log" w
 FileWrite $9 ""
 FileClose $9
+AccessControl::GrantOnFile "$INSTDIR\tribler.exe.log" "(BU)" "FullAccess"
+AccessControl::GrantOnFile "$INSTDIR\tribler.exe.log" "(S-1-5-32-545)" "FullAccess"
 
  ; End
  SetOutPath "$INSTDIR"
