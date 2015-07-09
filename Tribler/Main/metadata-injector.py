@@ -21,7 +21,7 @@ from ConfigParser import ConfigParser
 
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
-from Tribler.Core.Utilities.twisted_thread import reactor, stop_reactor, reactor_thread
+from Tribler.Core.Utilities.twisted_thread import reactor, stop_reactor
 from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
@@ -123,22 +123,16 @@ class MetadataInjector(TaskManager):
 
         nickname = self._opt.nickname if hasattr(self._opt, 'nickname') else u''
 
-        # get the channels that do not exist
-        channel_list = []
-
-        for community in self.session.get_dispersy_instance().get_communities():
-            if not isinstance(community, ChannelCommunity):
-                continue
-            if community.master_member and community.master_member.private_key:
-                channel_list.append(community)
+        # get all channels
+        channel_object_list = self.session.lm.channel_manager.get_channel_list()
 
         existing_channels = []
         channels_to_create = []
         for channel_dict in self.channel_list:
             channel_exists = False
-            for channel in channel_list:
-                if channel_dict[u'channel_name'] == channel.get_channel_name():
-                    channel_dict[u'channel'] = channel
+            for channel_object in channel_object_list:
+                if channel_dict[u'channel_name'] == channel_object.name:
+                    channel_dict[u'channel_object'] = channel_object
                     channel_exists = True
                     break
 
@@ -152,16 +146,16 @@ class MetadataInjector(TaskManager):
 
         # attach rss feed to existing channels
         for channel_dict in existing_channels:
-            self._logger.info(u"Creating RSS for existing Channel %s", channel_dict[u'channel_name'])
-            self.session.lm.channel_manager.attach_rss_to_channel(channel_dict[u'channel'], channel_dict[u'rss_url'])
+            self._logger.info(u"Creating RSS for existing Channel '%s'", channel_dict[u'channel_name'])
+            channel_dict[u'channel_object'].create_rss_feed(channel_dict[u'rss_url'])
 
         # create new channels
         for channel_dict in channels_to_create:
-            self._logger.info(u"Creating new Channel %s", channel_dict[u'channel_name'])
+            self._logger.info(u"Creating new Channel '%s'", channel_dict[u'channel_name'])
             self.session.lm.channel_manager.create_channel(channel_dict[u'channel_name'],
                                                            channel_dict[u'channel_description'],
                                                            u"closed",
-                                                           channel_dict[u'rss_url'])
+                                                           rss_url=channel_dict[u'rss_url'])
 
 
 def main():
