@@ -1,20 +1,19 @@
-import binascii
-import feedparser
+from binascii import hexlify
+import hashlib
 import logging
 import tempfile
-import os
-import re
 import time
 
+import feedparser
+import os
+import re
 from twisted.web.client import getPage
 
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
-
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Modules.cache import SimpleCache
+from Tribler.Core.Modules.channel.cache import SimpleCache
 from Tribler.Core.Utilities.twisted_thread import reactor
-
 
 DEFAULT_CHECK_INTERVAL = 1800  # half an hour
 
@@ -38,7 +37,14 @@ class ChannelRssParser(TaskManager):
     @blocking_call_on_reactor_thread
     def initialize(self):
         # initialize URL cache
-        url_cache_name = u"rss_cache_%s.txt" % binascii.hexlify(self.channel_community.cid)
+        # use the SHA1 of channel cid + rss_url as key
+        cache_key = hashlib.sha1(self.channel_community.cid)
+        cache_key.update(self.rss_url)
+        cache_key_str = hexlify(cache_key.digest())
+        self._logger.debug(u"using key %s for channel %s, rss %s",
+                           cache_key_str, hexlify(self.channel_community.cid), self.rss_url)
+
+        url_cache_name = u"rss_cache_%s.txt" % cache_key_str
         url_cache_path = os.path.join(self.session.get_state_dir(), url_cache_name)
         self._url_cache = SimpleCache(url_cache_path)
         self._url_cache.load()
