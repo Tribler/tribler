@@ -140,5 +140,7 @@ SIGNAL_ON_TORRENT_UPDATED = 'singal_on_torrent_updated'
 # SIGNALS (for common use, like APIs)
 SIGNAL_TORRENT = 'signal_torrent'
 SIGNAL_CHANNEL = 'signal_channel'
+SIGNAL_RSS_FEED = 'signal_rss_feed'
 
 SIGNAL_ON_CREATED = 'signal_on_created'
+SIGNAL_ON_UPDATED = 'signal_on_updated'

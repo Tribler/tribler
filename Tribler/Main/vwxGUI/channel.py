@@ -35,7 +35,6 @@ from Tribler.Main.vwxGUI.list_details import (AbstractDetails, SelectedchannelIn
 from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.Main.Utility.GuiDBTuples import Torrent, CollectedTorrent, ChannelTorrent
-from Tribler.Main.Utility.Feeds.rssparser import RssParser
 
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
 
@@ -1141,7 +1140,6 @@ class ManageChannel(AbstractDetails):
         self.rss_url = None
 
         self.guiutility = GUIUtility.getInstance()
-        self.torrentfeed = RssParser.getInstance()
         self.channelsearch_manager = self.guiutility.channelsearch_manager
 
         self.SetBackgroundColour(LIST_LIGHTBLUE)
@@ -1285,6 +1283,10 @@ class ManageChannel(AbstractDetails):
         self.managepage.SetSizer(vSizer)
         self.managepage.Show(False)
 
+        from Tribler.Core.simpledefs import SIGNAL_RSS_FEED, SIGNAL_ON_UPDATED
+        self.guiutility.utility.session.add_observer(self._on_rss_feed_updated,
+                                                     SIGNAL_RSS_FEED, [SIGNAL_ON_UPDATED])
+
         boxSizer.Add(self.notebook, 1, wx.EXPAND | wx.ALL, 5)
         self.SetSizer(boxSizer)
         self.Layout()
@@ -1295,7 +1297,8 @@ class ManageChannel(AbstractDetails):
         rssSizer = wx.BoxSizer(wx.VERTICAL)
 
         if self.channel:
-            urls = self.torrentfeed.getUrls(self.channel.id)
+            my_channel_object = self.guiutility.utility.session.lm.channel_manager.get_my_channel(self.channel.id)
+            urls = my_channel_object.get_rss_feed_url_list()
         else:
             urls = []
 
@@ -1358,7 +1361,6 @@ class ManageChannel(AbstractDetails):
             self.header.SetNrTorrents(channel.nr_torrents, channel.nr_favorites)
 
             if channel.isMyChannel():
-                self.torrentfeed.register(self.guiutility.utility.session, channel.id)
                 self.overviewheader.SetLabel('Welcome to the management interface for your channel.')
 
             self.name.SetValue(channel.name)
@@ -1519,20 +1521,26 @@ class ManageChannel(AbstractDetails):
             self.playlistlist.Focus()
         event.Skip()
 
+    def _on_rss_feed_updated(self, subject, change_type, object_id, rss_data):
+        if rss_data['channel'].get_channel_id() != self.channel.id:
+            return
+
+        wx.CallAfter(self.RebuildRssPanel)
+
     def OnAddRss(self, event=None):
         url = self.rss_url.GetValue().strip()
         if len(url) > 0:
-            self.torrentfeed.addURL(url, self.channel.id)
-            self.RebuildRssPanel()
+            my_channel_object = self.guiutility.utility.session.lm.channel_manager.get_my_channel(self.channel.id)
+            my_channel_object.create_rss_feed(url)
 
     def OnDeleteRss(self, event):
         item = event.GetEventObject()
 
-        self.torrentfeed.deleteURL(item.url, self.channel.id)
-        self.RebuildRssPanel()
+        my_channel_object = self.guiutility.utility.session.lm.channel_manager.get_my_channel(self.channel.id)
+        my_channel_object.remove_rss_feed(item.url)
 
     def OnRefreshRss(self, event):
-        self.torrentfeed.doRefresh()
+        # TODO(lipu): fix this
 
         button = event.GetEventObject()
         button.Enable(False)

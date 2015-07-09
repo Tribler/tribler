@@ -8,7 +8,7 @@ import os
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import call_on_reactor_thread
 
-from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_CREATED
+from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_CREATED, SIGNAL_RSS_FEED, SIGNAL_ON_UPDATED
 from Tribler.Core.Modules.channel.channel_rss import ChannelRssParser
 
 
@@ -27,8 +27,15 @@ class ChannelObject(TaskManager):
         self._rss_file_path = os.path.join(self._session.get_state_dir(), rss_name)
 
     @property
+    def channel_id(self):
+        return self._channel_community.get_channel_id()
+
+    @property
     def name(self):
         return self._channel_community.get_channel_name()
+
+    def get_rss_feed_url_list(self):
+        return [url for url in self._rss_feed_dict.iterkeys()]
 
     @call_on_reactor_thread
     def initialize(self):
@@ -66,6 +73,8 @@ class ChannelObject(TaskManager):
         if channel_data[u'channel'].cid != self._channel_community.cid:
             return
 
+        self._is_created = True
+
         # create rss feed parsers
         self._logger.debug(u"channel %s %s created", self.name, hexlify(self._channel_community.cid))
         for rss_feed_url in self._rss_feed_dict:
@@ -93,3 +102,18 @@ class ChannelObject(TaskManager):
         with codecs.open(self._rss_file_path, 'wb', encoding='utf8') as f:
             rss_list = [rss_url for rss_url in self._rss_feed_dict.iterkeys()]
             json.dump(rss_list, f)
+
+    @call_on_reactor_thread
+    def remove_rss_feed(self, rss_feed_url):
+        if rss_feed_url not in self._rss_feed_dict:
+            self._logger.warn(u"skip existing rss feed: %s", repr(rss_feed_url))
+            return
+
+        rss_parser = self._rss_feed_dict[rss_feed_url]
+        if rss_parser is not None:
+            rss_parser.shutdown()
+        del self._rss_feed_dict[rss_feed_url]
+
+        rss_feed_data = {u'channel': self._channel_community,
+                         u'rss_feed_url': rss_feed_url}
+        self._session.notifier.notify(SIGNAL_RSS_FEED, SIGNAL_ON_UPDATED, None, rss_feed_data)

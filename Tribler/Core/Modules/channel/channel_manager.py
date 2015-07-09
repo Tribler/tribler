@@ -65,7 +65,7 @@ class ChannelManager(TaskManager):
         assert isinstance(name, basestring), u"name is not a basestring: %s" % type(name)
         assert isinstance(description, basestring), u"description is not a basestring: %s" % type(description)
         assert mode in self._channel_mode_map, u"invalid mode: %s" % mode
-        assert isinstance(rss_url, basestring), u"rss_url is not a basestring: %s" % type(rss_url)
+        assert isinstance(rss_url, basestring) or rss_url is None, u"rss_url is not a basestring or None: %s" % type(rss_url)
 
         # if two channels have the same name, this will not work
         for channel_object in self._channel_list:
@@ -90,6 +90,18 @@ class ChannelManager(TaskManager):
             channel_obj.create_rss_feed(rss_url)
 
         self._logger.debug(u"creating channel '%s', %s", channel_obj.name, hexlify(community.cid))
+
+    def get_my_channel(self, channel_id):
+        """
+        Gets the ChannelObject with the given channel id.
+        :return: The ChannelObject if exists, otherwise None.
+        """
+        channel_object = None
+        for obj in self._channel_list:
+            if obj.channel_id == channel_id:
+                channel_object = obj
+                break
+        return channel_object
 
     def get_channel(self, name):
         """

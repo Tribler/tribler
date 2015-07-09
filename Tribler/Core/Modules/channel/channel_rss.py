@@ -13,7 +13,8 @@ from twisted.web.client import getPage
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
-from Tribler.Core.simpledefs import SIGNAL_CHANNEL_COMMUNITY, SIGNAL_ON_TORRENT_UPDATED
+from Tribler.Core.simpledefs import (SIGNAL_CHANNEL_COMMUNITY, SIGNAL_ON_TORRENT_UPDATED, SIGNAL_RSS_FEED,
+                                     SIGNAL_ON_UPDATED)
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Modules.channel.cache import SimpleCache
 from Tribler.Core.Utilities.twisted_thread import reactor
@@ -65,6 +66,11 @@ class ChannelRssParser(TaskManager):
         self.session.notifier.add_observer(self.on_channel_torrent_created, SIGNAL_CHANNEL_COMMUNITY,
                                            [SIGNAL_ON_TORRENT_UPDATED], self.channel_community.get_channel_id())
 
+        # notify that a RSS feed has been created
+        rss_feed_data = {u'channel': self.channel_community,
+                         u'rss_feed_url': self.rss_url}
+        self.session.notifier.notify(SIGNAL_RSS_FEED, SIGNAL_ON_UPDATED, None, rss_feed_data)
+
     @blocking_call_on_reactor_thread
     def shutdown(self):
         self._to_stop = True
@@ -83,6 +89,7 @@ class ChannelRssParser(TaskManager):
         for rss_item in rss_parser.parse(self.rss_url, self._url_cache):
             if self._to_stop:
                 return
+
             torrent_deferred = getPage(rss_item[u'torrent_url'].encode('utf-8'))
             torrent_deferred.addCallback(lambda t, r=rss_item: self.on_got_torrent(t, rss_item=r))
 
@@ -139,7 +146,7 @@ class ChannelRssParser(TaskManager):
         modifications = {u'metadata-json': json.dumps({u'title': rss_item['title'][:64],
                                                        u'description': rss_item['description'][:768],
                                                        u'thumb_hash': thumb_hash.encode('hex')},
-                                                      separators=(',',':'))}
+                                                      separators=(',', ':'))}
         self.channel_community.modifyTorrent(rss_item[u'channel_torrent_id'], modifications)
 
 
