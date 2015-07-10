@@ -5,6 +5,7 @@ import time
 import random
 import logging
 
+import os
 from collections import defaultdict
 
 from twisted.internet import reactor
@@ -205,7 +206,9 @@ class TunnelSettings(object):
         self.max_packets_without_reply = 50
         self.dht_lookup_interval = 30
 
-        if tribler_session:
+        if os.environ.get("TRIBLER_ENABLE_EXIT_NODE", "False").lower() == "true":
+            self.become_exitnode = True
+        elif tribler_session:
             self.become_exitnode = tribler_session.get_tunnel_community_exitnode_enabled()
         else:
             self.become_exitnode = False
