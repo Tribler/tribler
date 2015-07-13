@@ -5,6 +5,8 @@ import json
 import logging
 import os
 
+from twisted.internet import reactor
+
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import call_on_reactor_thread
 
@@ -68,20 +70,23 @@ class ChannelObject(TaskManager):
         self._channel_community = None
         self._session = None
 
-    @call_on_reactor_thread
     def _on_channel_created(self, subject, change_type, object_id, channel_data):
         if channel_data[u'channel'].cid != self._channel_community.cid:
             return
 
-        self._is_created = True
+        def _create_rss_feed(channel_date):
+            self._is_created = True
 
-        # create rss feed parsers
-        self._logger.debug(u"channel %s %s created", self.name, hexlify(self._channel_community.cid))
-        for rss_feed_url in self._rss_feed_dict:
-            assert self._rss_feed_dict[rss_feed_url] is None
-            rss_parser = ChannelRssParser(self._session, self._channel_community, rss_feed_url)
-            rss_parser.initialize()
-            self._rss_feed_dict[rss_feed_url] = rss_parser
+            # create rss feed parsers
+            self._logger.debug(u"channel %s %s created", self.name, hexlify(self._channel_community.cid))
+            for rss_feed_url in self._rss_feed_dict:
+                assert self._rss_feed_dict[rss_feed_url] is None
+                rss_parser = ChannelRssParser(self._session, self._channel_community, rss_feed_url)
+                rss_parser.initialize()
+                self._rss_feed_dict[rss_feed_url] = rss_parser
+
+        task_name = u'create_rss_%s' % hexlify(channel_data[u'channel'].cid)
+        self.register_task(task_name, reactor.callLater(0, _create_rss_feed, channel_data))
 
     @call_on_reactor_thread
     def create_rss_feed(self, rss_feed_url):
