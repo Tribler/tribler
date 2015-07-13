@@ -41,7 +41,7 @@ class ChannelManager(TaskManager):
 
                 self._logger.debug(u"loaded channel '%s', %s", channel_obj.name, hexlify(community.cid))
 
-    @blocking_call_on_reactor_thread
+    @call_on_reactor_thread
     def shutdown(self):
         self.cancel_all_pending_tasks()
         self._channel_mode_map = None
