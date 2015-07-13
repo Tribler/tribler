@@ -32,7 +32,7 @@ from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import call_on_reactor_thread
 
 
-def parge_channel_config_file(file_path):
+def parse_channel_config_file(file_path):
     config = ConfigParser()
     with codecs.open(file_path, 'r', encoding='utf-8') as f:
         config.readfp(f)
@@ -82,7 +82,7 @@ class MetadataInjector(TaskManager):
         # pass rss config
         if not self._opt.rss_config:
             self._logger.error(u"rss_config unspecified")
-        self.channel_list = parge_channel_config_file(self._opt.rss_config)
+        self.channel_list = parse_channel_config_file(self._opt.rss_config)
 
         sscfg.set_megacache(True)
         sscfg.set_torrent_collecting(True)
