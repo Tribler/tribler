@@ -129,6 +129,7 @@ class BarterStatistics(object):
     def close(self):
         if self.db is not None and not self.db_closed:
             self.db.close()
+            self.db = None
             self.db_closed = True
 
 LATEST_VERSION = 1
