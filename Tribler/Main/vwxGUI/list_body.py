@@ -763,6 +763,9 @@ class AbstractListBody():
 
     @warnWxThread
     def OnChange(self, scrollToTop=False):
+        if GUIUtility.getInstance().utility.abcquitting:
+            return
+
         self._logger.debug("ListBody: OnChange")
         self.Freeze()
 
