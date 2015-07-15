@@ -895,7 +895,7 @@ class TunnelCommunity(Community):
                     try:
                         encrypted = self.crypto_in(circuit_id, encrypted)
                     except CryptoException, e:
-                        self.tunnel_logger.error(str(e))
+                        self.tunnel_logger.warning(str(e))
                         continue
 
                 packet = plaintext + encrypted
