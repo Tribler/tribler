@@ -6,7 +6,7 @@ from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 
 
 MAX_TRACKER_FAILURES = 5
-DEAD_TRACKER_RETRY_INTERVAL = 60    # A "dead" tracker will be retired every 60 seconds
+TRACKER_RETRY_INTERVAL = 60    # A "dead" tracker will be retired every 60 seconds
 
 
 class TrackerManager(object):
@@ -22,7 +22,7 @@ class TrackerManager(object):
         self._max_tracker_failures = MAX_TRACKER_FAILURES
 
         # A "dead" tracker will be retired every this amount of time (in seconds)
-        self._dead_tracker_retry_interval = DEAD_TRACKER_RETRY_INTERVAL
+        self._tracker_retry_interval = TRACKER_RETRY_INTERVAL
 
         # we use round-robin for automatic tracker checking.
         # this index points to the tracker we are going to check next.
@@ -121,12 +121,11 @@ class TrackerManager(object):
         """
         current_time = int(time.time())
 
-        tracker_info = self._tracker_dict.get(tracker_url, {u'is_alive': True, u'last_check': 0})
-        if tracker_info[u'is_alive']:
-            return True
+        tracker_info = self._tracker_dict.get(tracker_url, {u'is_alive': True, u'last_check': 0, u'failures': 0})
 
-        interval = current_time - tracker_info[u'last_check']
-        return interval >= self._dead_tracker_retry_interval
+        # this_interval = retry_interval * 2^failures
+        next_check_time = tracker_info[u'last_check'] + self._tracker_retry_interval * (2**tracker_info[u'failures'])
+        return next_check_time <= current_time
 
     @call_on_reactor_thread
     def get_next_tracker_for_auto_check(self):
