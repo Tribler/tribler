@@ -208,7 +208,7 @@ class TestAsServer(AbstractServer):
     Parent class for testing the server-side of Tribler
     """
 
-    def setUp(self):
+    def setUp(self, autoload_discovery=True):
         super(TestAsServer, self).setUp(annotate=False)
         self.setUpPreSession()
 
