@@ -645,6 +645,21 @@ class SessionConfigInterface(object):
         """
         return self.sessconfig.set(u'metadata', u'store_dir', value)
 
+    def set_enable_multichain(self, value):
+        """
+        Sets if to enable MultiChain
+        :param value: True of False
+        """
+        self.sessconfig.set(u'multichain', u'enabled', value)
+
+    def get_enable_multichain(self):
+        """
+        Gets if to enable MultiChain.
+        :return: (bool) True or False
+        """
+        return self.sessconfig.get(u'multichain', u'enabled')
+
+
     #
     # Static methods
     #
