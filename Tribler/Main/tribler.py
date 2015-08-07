@@ -1,5 +1,9 @@
 import logging.config
 import sys
+import os
+
+if sys.platform == 'win32':
+    os.environ["PATH"] += os.pathsep + os.path.abspath(u'vlc')
 
 try:
     logging.config.fileConfig("logger.conf")
