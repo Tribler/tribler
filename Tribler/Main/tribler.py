@@ -20,9 +20,13 @@ from Tribler.Core.Utilities.twisted_thread import reactor, stop_reactor
 # set wxpython version
 try:
     import wxversion
-    wxversion.select("2.8-unicode")
+    # in the windows and mac distribution, there may be no version available.
+    # so select a version only when there is any available.
+    if wxversion.getInstalled():
+        wxversion.select("2.8-unicode")
 except:
-    logger.exception("Unable to use wxversion, Error: %s.")
+    import wxversion
+    logger.exception("Unable to use wxversion installed wxversions: %s", repr(wxversion.getInstalled()))
 
 
 def run():
