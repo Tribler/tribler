@@ -732,9 +732,6 @@ class ChannelCommunity(Community):
                             infohash.encode("HEX"),
                             message.candidate.sock_addr[0])
 
-                        print "Incoming metadata-json with infohash %s from %s" % (infohash.encode("HEX"),
-                                                                                   message.candidate.sock_addr[0])
-
                         if not th_handler.has_metadata(thumbnail_hash):
                             @call_on_reactor_thread
                             def callback(_, message=message):
