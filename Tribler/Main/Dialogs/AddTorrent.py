@@ -60,7 +60,7 @@ class AddTorrent(wx.Dialog):
         vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
         if libraryTorrents is not None:
             if len(libraryTorrents) > 0:
-                header = wx.StaticText(self, -1, 'Choose one from you library')
+                header = wx.StaticText(self, -1, 'Choose one from your library')
                 _set_font(header, fontweight=wx.FONTWEIGHT_BOLD)
                 vSizer.Add(header, 0, wx.EXPAND | wx.BOTTOM | wx.TOP, 3)
 

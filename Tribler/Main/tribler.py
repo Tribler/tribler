@@ -1,5 +1,9 @@
 import logging.config
 import sys
+import os
+
+if sys.platform == 'win32':
+    os.environ["PATH"] += os.pathsep + os.path.abspath(u'vlc')
 
 try:
     logging.config.fileConfig("logger.conf")
@@ -14,11 +18,14 @@ logger = logging.getLogger(__name__)
 from Tribler.Core.Utilities.twisted_thread import reactor, stop_reactor
 
 # set wxpython version
+import wxversion
 try:
-    import wxversion
-    wxversion.select("2.8-unicode")
-except:
-    logger.exception("Unable to use wxversion, Error: %s.")
+    # in the windows and mac distribution, there may be no version available.
+    # so select a version only when there is any available.
+    if wxversion.getInstalled():
+        wxversion.select("2.8-unicode")
+except wxversion.VersionError:
+    logger.exception("Unable to use wxversion installed wxversions: %s", repr(wxversion.getInstalled()))
 
 
 def run():
