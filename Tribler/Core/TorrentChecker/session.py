@@ -256,7 +256,7 @@ class HttpTrackerSession(TrackerSession):
         try:
             self._socket.sendall(message)
         except Exception as e:
-            self._logger.error(u"%s Failed to send HTTP SCRAPE message: %s", self, e)
+            self._logger.info(u"%s Failed to send HTTP SCRAPE message: %s", self, e)
             self._is_failed = True
             return
 
@@ -271,7 +271,7 @@ class HttpTrackerSession(TrackerSession):
             # TODO: this buffer size may be changed
             response = self._socket.recv(8192)
         except Exception as e:
-            self._logger.error(u"%s Failed to receive HTTP SCRAPE response: %s", self, e)
+            self._logger.info(u"%s Failed to receive HTTP SCRAPE response: %s", self, e)
             self._is_failed = True
             return
 
@@ -347,8 +347,8 @@ class HttpTrackerSession(TrackerSession):
                         self.recreate_connection()
 
                 except RuntimeError as run_err:
-                    self._logger.error(u"%s: Runtime Error: %s, address: %s, announce: %s",
-                                       self, run_err, self._tracker_address, self._announce_page)
+                    self._logger.info(u"%s: Runtime Error: %s, address: %s, announce: %s",
+                                      self, run_err, self._tracker_address, self._announce_page)
                     self._is_failed = True
 
                 except Exception as err:
@@ -494,13 +494,13 @@ class UdpTrackerSession(TrackerSession):
             # TODO: this number may be increased
             response = self._socket.recv(32)
         except Exception as e:
-            self._logger.error(u"%s Failed to receive UDP CONNECT response: %s", self, e)
+            self._logger.info(u"%s Failed to receive UDP CONNECT response: %s", self, e)
             self._is_failed = True
             return
 
         # check message size
         if len(response) < 16:
-            self._logger.error(u"%s Invalid response for UDP CONNECT: %s", self, repr(response))
+            self._logger.info(u"%s Invalid response for UDP CONNECT: %s", self, repr(response))
             self._is_failed = True
             return
 
@@ -511,8 +511,8 @@ class UdpTrackerSession(TrackerSession):
             errmsg_length = len(response) - 8
             error_message = struct.unpack_from('!' + str(errmsg_length) + 's', response, 8)
 
-            self._logger.error(u"%s Error response for UDP CONNECT [%s]: %s",
-                               self, repr(response), repr(error_message))
+            self._logger.info(u"%s Error response for UDP CONNECT [%s]: %s",
+                              self, repr(response), repr(error_message))
             self._is_failed = True
             return
 
@@ -542,13 +542,13 @@ class UdpTrackerSession(TrackerSession):
             # TODO: the receive number may be changed
             response = self._socket.recv(1024)
         except Exception as e:
-            self._logger.error(u"%s Failed to receive UDP SCRAPE response: %s", self, e)
+            self._logger.info(u"%s Failed to receive UDP SCRAPE response: %s", self, e)
             self._is_failed = True
             return
 
         # check message size
         if len(response) < 8:
-            self._logger.error(u"%s Invalid response for UDP SCRAPE: %s", self, repr(response))
+            self._logger.info(u"%s Invalid response for UDP SCRAPE: %s", self, repr(response))
             self._is_failed = True
             return
 
@@ -560,14 +560,14 @@ class UdpTrackerSession(TrackerSession):
             error_message = \
                 struct.unpack_from('!' + str(errmsg_length) + 's', response, 8)
 
-            self._logger.error(u"%s Error response for UDP SCRAPE: [%s] [%s]",
-                               self, repr(response), repr(error_message))
+            self._logger.info(u"%s Error response for UDP SCRAPE: [%s] [%s]",
+                              self, repr(response), repr(error_message))
             self._is_failed = True
             return
 
         # get results
         if len(response) - 8 != len(self._infohash_list) * 12:
-            self._logger.error(u"%s UDP SCRAPE response mismatch: %s", self, repr(response))
+            self._logger.info(u"%s UDP SCRAPE response mismatch: %s", self, repr(response))
             self._is_failed = True
             return
 
