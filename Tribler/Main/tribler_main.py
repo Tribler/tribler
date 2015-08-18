@@ -695,15 +695,17 @@ class ABCApp(object):
                 torrent = t.torrent if isinstance(t, CollectedTorrent) else t
                 self.frame.librarydetailspanel.setTorrent(torrent)
 
-    def sesscb_ntfy_torrentfinished(self, subject, changeType, objectID, *args):
+    def sesscb_ntfy_torrentfinished(self, subject, changeType, infohash, *args):
         self.guiUtility.Notify(
             "Download Completed", "Torrent '%s' has finished downloading. Now seeding." %
             args[0], icon='seed')
 
         if self._frame_and_ready():
-            infohash = objectID
             torrent = self.guiUtility.torrentsearch_manager.getTorrentByInfohash(infohash)
-            self.guiUtility.library_manager.addDownloadState(torrent)
+            # Check if we got the actual torrent as the bandwith investor
+            # downloads aren't going to be there.
+            if torrent:
+                self.guiUtility.library_manager.addDownloadState(torrent)
 
     @forceWxThread
     def sesscb_ntfy_newversion(self, subject, changeType, objectID, *args):
