@@ -128,7 +128,6 @@ class MainFrame(wx.Frame):
         self.utility = self.guiUtility.utility
         self.params = self.guiUtility.params
         self.utility.frame = self
-        self.torrentfeed = None
         self.videoframe = None
         self.category = Category.getInstance()
         self.shutdown_and_upgrade_notes = None

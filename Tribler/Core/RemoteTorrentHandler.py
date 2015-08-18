@@ -217,10 +217,11 @@ class RemoteTorrentHandler(TaskManager):
             self.session.lm.metadata_store[thumb_hash_str] = data
 
         # notify about the new metadata
-        for callback in self.metadata_callbacks[thumb_hash]:
-            self.session.lm.threadpool.call_in_thread(0, callback, hexlify(thumb_hash))
+        if thumb_hash in self.metadata_callbacks:
+            for callback in self.metadata_callbacks[thumb_hash]:
+                self.session.lm.threadpool.call_in_thread(0, callback, hexlify(thumb_hash))
 
-        del self.metadata_callbacks[thumb_hash]
+            del self.metadata_callbacks[thumb_hash]
 
     def notify_possible_torrent_infohash(self, infohash):
         if infohash not in self.torrent_callbacks:

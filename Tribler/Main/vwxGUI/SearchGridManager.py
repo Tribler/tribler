@@ -1307,10 +1307,7 @@ class ChannelManager(object):
 
     @call_on_reactor_thread
     def createChannel(self, name, description):
-        community = ChannelCommunity.create_community(self.dispersy, self.session.dispersy_member,
-                                                      tribler_session=self.session)
-        community.set_channel_mode(ChannelCommunity.CHANNEL_OPEN)
-        community.create_channel(name, description)
+        self.session.lm.channel_manager.create_channel(name, description, u'open')
 
     @call_on_reactor_thread
     def createPlaylist(self, channel_id, name, description, infohashes=[]):

@@ -26,7 +26,7 @@ from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _
 logger = logging.getLogger(__name__)
 
 
-METADATA_TYPES = [u'name', u'description', u'swift-url', u'swift-thumbnails', u'video-info']
+METADATA_TYPES = [u'name', u'description', u'swift-url', u'swift-thumbnails', u'video-info', u'metadata-json']
 
 
 def warnIfNotDispersyThread(func):
@@ -221,6 +221,9 @@ class ChannelCommunity(Community):
                                  u"playlist_torrent",
                                  u"moderation",
                                  u"mark_torrent"])
+
+    def get_channel_id(self):
+        return self._channel_id
 
     def get_channel_name(self):
         return self._channel_name
@@ -632,9 +635,9 @@ class ChannelCommunity(Community):
             type = unicode(type)
             timestamp = long(time())
             self._disp_create_modification(type, value, timestamp,
-                                            modification_on_message,
-                                            latest_modifications[type], store,
-                                            update, forward)
+                                           modification_on_message,
+                                           latest_modifications[type], store,
+                                           update, forward)
 
     @call_on_reactor_thread
     def modifyPlaylist(self, playlist_id, modifications, store=True, update=True, forward=True):
@@ -648,9 +651,9 @@ class ChannelCommunity(Community):
             type = unicode(type)
             timestamp = long(time())
             self._disp_create_modification(type, value, timestamp,
-                                            modification_on_message,
-                                            latest_modifications[type], store,
-                                            update, forward)
+                                           modification_on_message,
+                                           latest_modifications[type], store,
+                                           update, forward)
 
     @call_on_reactor_thread
     def modifyTorrent(self, channeltorrent_id, modifications, store=True, update=True, forward=True):
@@ -671,7 +674,7 @@ class ChannelCommunity(Community):
                                            update, forward)
 
     def _disp_create_modification(self, modification_type, modifcation_value, timestamp, modification_on,
-                                   latest_modification, store=True, update=True, forward=True):
+                                  latest_modification, store=True, update=True, forward=True):
         modification_type = unicode(modification_type)
         modifcation_value = unicode(modifcation_value[:1023])
 
@@ -708,11 +711,10 @@ class ChannelCommunity(Community):
                 yield DelayMessageByProof(message)
                 continue
 
-            if message.payload.modification_on.name == u"torrent" and message.payload.modification_type == u"swift-thumbnails":
+            if message.payload.modification_on.name == u"torrent" and message.payload.modification_type == u"metadata-json":
                 try:
                     data = json.loads(message.payload.modification_value)
-                    thumbnail_subpath = data[1]
-                    thumbnail_hashstr = data[2]
+                    thumbnail_hash = data[u'thumb_hash'].decode('hex')
                 except:
                     yield DropMessage(message, "Not compatible json format")
                     continue
@@ -726,21 +728,20 @@ class ChannelCommunity(Community):
                     if infohash:
                         infohash = str2bin(infohash)
                         logger.debug(
-                            "Incoming swift-thumbnails with infohash %s from %s",
+                            "Incoming metadata-json with infohash %s from %s",
                             infohash.encode("HEX"),
                             message.candidate.sock_addr[0])
 
-                        if not th_handler.has_metadata("thumbs", infohash, thumbnail_subpath):
+                        if not th_handler.has_metadata(thumbnail_hash):
                             @call_on_reactor_thread
                             def callback(_, message=message):
                                 self.on_messages([message])
                             logger.debug(
-                                "Will try to download swift-thumbnails with infohash %s from %s",
+                                "Will try to download metadata-json thumbnail with infohash %s from %s",
                                 infohash.encode("HEX"),
                                 message.candidate.sock_addr[0])
-                            # FIXME(lipu): enable thumbnail download when it's ready
-                            #th_handler.download_metadata("thumbs", message.candidate, infohash, thumbnail_subpath,
-                            #                             timeout=CANDIDATE_WALK_LIFETIME, usercallback=callback)
+                            th_handler.download_metadata(message.candidate, thumbnail_hash, usercallback=callback,
+                                                         timeout=CANDIDATE_WALK_LIFETIME)
                             continue
 
             yield message
