@@ -400,7 +400,7 @@ class TorrentChecker(TaskManager):
             self._logger.debug(u"Session created for infohash %s", hexlify(infohash))
 
         except Exception as e:
-            self._logger.error(u"Failed to create session for tracker %s: %s", tracker_url, e)
+            self._logger.info(u"Failed to create session for tracker %s: %s", tracker_url, e)
 
             if session:
                 session.cleanup()
