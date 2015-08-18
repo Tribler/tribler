@@ -1540,8 +1540,6 @@ class ManageChannel(AbstractDetails):
         my_channel_object.remove_rss_feed(item.url)
 
     def OnRefreshRss(self, event):
-        # TODO(lipu): fix this
-
         button = event.GetEventObject()
         button.Enable(False)
         wx.CallLater(5000, button.Enable, True)
