@@ -102,9 +102,7 @@ class Home(wx.Panel):
 
         self.aw_panel = ArtworkPanel(self)
         self.aw_panel.SetMinSize((-1, 275))
-        # TODO(lipu): enable this when metadata PR is merged
-        #self.aw_panel.Show(self.guiutility.ReadGuiSetting('show_artwork', True))
-        self.aw_panel.Show(False)
+        self.aw_panel.Show(self.guiutility.ReadGuiSetting('show_artwork', True))
         vSizer.Add(self.aw_panel, 0, wx.EXPAND)
 
         self.SetSizer(vSizer)
