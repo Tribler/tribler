@@ -25,28 +25,28 @@ class TestBoostingManagerPolicies(unittest.TestCase):
     def test_RandomPolicy(self):
         policy = bm.RandomPolicy(self.session)
         torrents_start, torrents_stop = policy.apply(self.torrents, 2)
-        ids_start = [torrent["metainfo"].get_id() for torrent in
+        ids_start = [torrent["metainfo"].get_infohash() for torrent in
                      torrents_start]
         self.assertEqual(ids_start, [4, 8])
-        ids_stop = [torrent["metainfo"].get_id() for torrent in torrents_stop]
+        ids_stop = [torrent["metainfo"].get_infohash() for torrent in torrents_stop]
         self.assertEqual(ids_stop, [3, 9, 5, 7, 1])
 
     def test_SeederRatioPolicy(self):
         policy = bm.SeederRatioPolicy(self.session)
         torrents_start, torrents_stop = policy.apply(self.torrents, 6)
-        ids_start = [torrent["metainfo"].get_id() for torrent in
+        ids_start = [torrent["metainfo"].get_infohash() for torrent in
                      torrents_start]
         self.assertEqual(ids_start, [10, 8, 6])
-        ids_stop = [torrent["metainfo"].get_id() for torrent in torrents_stop]
+        ids_stop = [torrent["metainfo"].get_infohash() for torrent in torrents_stop]
         self.assertEqual(ids_stop, [3, 1])
 
     def test_CreationDatePolicy(self):
         policy = bm.CreationDatePolicy(self.session)
         torrents_start, torrents_stop = policy.apply(self.torrents, 5)
-        ids_start = [torrent["metainfo"].get_id() for torrent in
+        ids_start = [torrent["metainfo"].get_infohash() for torrent in
                      torrents_start]
         self.assertEqual(ids_start, [10, 8, 6])
-        ids_stop = [torrent["metainfo"].get_id() for torrent in torrents_stop]
+        ids_stop = [torrent["metainfo"].get_infohash() for torrent in torrents_stop]
         self.assertEqual(ids_stop, [5, 3, 1])
 
 if __name__ == "__main__":
