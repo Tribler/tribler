@@ -189,9 +189,9 @@ class RSSFeedParser(object):
 
         parsed_html_content = u''
         for line in content.split('\n'):
-            trimed_line = line.strip()
-            if trimed_line:
-                parsed_html_content += trimed_line + u'\n'
+            trimmed_line = line.strip()
+            if trimmed_line:
+                parsed_html_content += trimmed_line + u'\n'
 
         return parsed_html_content
 
