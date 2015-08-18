@@ -631,7 +631,7 @@ class ABCApp(object):
                         defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
                         dscfg = defaultDLConfig.copy()
                         dscfg.set_hops(self.utility.read_config('default_number_hops'))
-                        self.utility.session.start_download(tdef, dscfg)
+                        reactor.callInThread(self.utility.session.start_download, tdef, dscfg)
 
             self.prevActiveDownloads = newActiveDownloads
             if doCheckpoint:
