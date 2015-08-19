@@ -626,10 +626,11 @@ class ABCApp(object):
                         doCheckpoint = True
 
                     if download.get_hops() == 0 and download.get_safe_seeding():
-                        self._logger.error("Re-add torrent with default nr of hops to prevent naked seeding")
+                        self._logger.info("Re-add torrent with default nr of hops to prevent naked seeding")
                         self.utility.session.remove_download(download)
-                        defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
-                        dscfg = defaultDLConfig.copy()
+
+                        # copy the old download_config and change the hop count
+                        dscfg = download.copy()
                         dscfg.set_hops(self.utility.read_config('default_number_hops'))
                         reactor.callInThread(self.utility.session.start_download, tdef, dscfg)
 

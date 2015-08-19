@@ -60,6 +60,9 @@ class DownloadConfigInterface(object):
         if not self.get_dest_dir():
             self.set_dest_dir(get_default_dest_dir())
 
+    def copy(self):
+        return DownloadConfigInterface(self.dlconfig.copy())
+
     def set_dest_dir(self, path):
         """ Sets the directory where to save this Download.
         @param path A path of a directory.

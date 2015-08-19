@@ -147,7 +147,7 @@ class LibtorrentMgr(TaskManager):
                 dht_state = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME)).read()
                 ltsession.start_dht(lt.bdecode(dht_state))
             except:
-                self._logger.error("could not restore dht state, starting from scratch")
+                self._logger.info("could not restore dht state, starting from scratch")
                 ltsession.start_dht(None)
         else:
             ltsession.listen_on(self.trsession.get_anon_listen_port(), self.trsession.get_anon_listen_port() + 20)
