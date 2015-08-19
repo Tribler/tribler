@@ -662,7 +662,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         stats['vod'] = self.get_mode()
         stats['vod_playable'] = self.progress == 1.0 or (
             stats['vod_prebuf_frac'] == 1.0 and self.curspeeds[DOWNLOAD] > 0.0)
-        stats['vod_playable_after'] = self.network_calc_prebuf_eta()
         stats['vod_stats'] = self.network_get_vod_stats()
         stats['spew'] = self.network_create_spew_from_peerlist() if getpeerlist or self.askmoreinfo else None
         stats['tracker_status'] = self.network_tracker_status() if getpeerlist or self.askmoreinfo else None
@@ -717,11 +716,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 return self.get_byte_progress([(self.get_vod_fileindex(), self.vod_seekpos, self.vod_seekpos + self.prebuffsize)], consecutive=True)
         else:
             return 0.0
-
-    def network_calc_prebuf_eta(self):
-        bytestogof = (1.0 - self.network_calc_prebuf_frac()) * float(self.prebuffsize)
-        dlspeed = max(0.000001, self.curspeeds[DOWNLOAD])
-        return bytestogof / dlspeed
 
     def network_get_vod_stats(self):
         d = {}
