@@ -35,6 +35,7 @@
 # Code:
 from collections import MutableMapping
 from itertools import chain
+import sys
 
 try:
     from leveldb import LevelDB, WriteBatch
@@ -69,7 +70,7 @@ class LevelDbStore(MutableMapping, TaskManager):
 
         self._store_dir = store_dir
         self._pending_torrents = {}
-        self._db = self._leveldb(store_dir)
+        self._db = self._leveldb(store_dir.encode(sys.getfilesystemencoding()))
 
         self._writeback_lc = self.register_task("flush cache ", LoopingCall(self.flush))
         self._writeback_lc.clock = self._reactor
