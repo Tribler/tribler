@@ -154,10 +154,14 @@ class Torrent(Helper):
 
     @cacheProperty
     def metadata(self):
-        if not self.metadata_dict:
-            channel = self.channelcast_db.getMostPopularChannelFromTorrent(self.infohash)
-            if channel:
-                self.channeltorrents_id = channel[-1]
+        if self.metadata_dict is None:
+            # ChannelTorrents already have channeltorrents_ids, so don't try to load it because the loaded one
+            # may be wrong
+            if self.channeltorrents_id is None:
+                channel = self.channelcast_db.getMostPopularChannelFromTorrent(self.infohash)
+                if channel:
+                    self.channeltorrents_id = channel[-1]
+
             self.metadata_dict = self.channelcast_db.get_torrent_metadata(self.channeltorrents_id)
         return self.metadata_dict
 
