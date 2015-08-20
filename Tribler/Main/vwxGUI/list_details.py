@@ -128,7 +128,7 @@ class TorrentDetails(AbstractDetails):
         self.utility = self.guiutility.utility
 
         self.parent = parent
-        self.torrent = Torrent('0', '0', '', 0, 0, 0, 0, 0, None)
+        self.torrent = Torrent('0', '0', '', 0, 0, 0, 0, 0, None, False)
         self.torrent.torrent_db = self.guiutility.channelsearch_manager.torrent_db
         self.torrent.channelcast_db = self.guiutility.channelsearch_manager.channelcast_db
 
