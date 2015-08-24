@@ -276,11 +276,11 @@ class BoostingManager(TaskManager):
             torrent['prio'] = 100
 
         # Preload the TorrentDef.
-        if torrent['metainfo']:
-            if not isinstance(torrent['metainfo'], TorrentDef):
-                torrent['metainfo'] = TorrentDef.load(torrent['metainfo'])
-        else:
-            torrent['metainfo'] = TorrentDefNoMetainfo(infohash, torrent['name'])
+        if not isinstance(torrent['metainfo'], TorrentDef):
+            print ">>>>>>>>>>>>>>>>>>>>>", torrent['infohash']
+            torrent['metainfo'] = TorrentDef.load_from_memory(self.session.lm.torrent_store.get(torrent['infohash']))
+        #else:
+        #    torrent['metainfo'] = TorrentDefNoMetainfo(infohash, torrent['name'])
 
         # If duplicates exist, set is_duplicate to True, except for the one with the most seeders.
         duplicates = [other for other in self.torrents.values() if self.compare_torrents(torrent, other)]
@@ -479,7 +479,7 @@ class BoostingSource(object):
         self.archive = False
 
     def kill_tasks(self):
-        self.session.lm.threadpool.remove_task(self.source)
+        self.session.lm.threadpool.cancel_pending_task(self.source)
 
     def _load(self, source):
         pass
@@ -514,7 +514,7 @@ class ChannelSource(BoostingSource):
         def join_community():
             try:
                 self.community = dispersy.get_community(dispersy_cid, True)
-                self.session.lm.threadpool.add_task(get_channel_id, 0, task_name=self.source)
+                self.session.lm.threadpool.add_task(get_channel_id, 0, task_name=str(self.source)+"_get_channel_id")
 
             except KeyError:
 
@@ -529,7 +529,7 @@ class ChannelSource(BoostingSource):
                     self.community = ChannelCommunity.init_community(dispersy, dispersy.get_member(mid=dispersy_cid), allchannelcommunity._my_member, True)
                     logger.info("Joined channel community %s",
                                 dispersy_cid.encode("HEX"))
-                    self.session.lm.threadpool.add_task(get_channel_id, 0, task_name=self.source)
+                    self.session.lm.threadpool.add_task(get_channel_id, 0, task_name=str(self.source)+"_get_channel_id")
                 else:
                     logger.error("Could not find AllChannelCommunity")
 
@@ -537,11 +537,12 @@ class ChannelSource(BoostingSource):
             # pylint: disable=protected-access
             if self.community and self.community._channel_id:
                 self.channel_id = self.community._channel_id
-                self.session.lm.threadpool.add_task(self._update, 0, task_name=self.source)
+
+                self.session.lm.threadpool.add_task(self._update, 0, task_name=str(self.source)+"_update")
                 logger.info("Got channel id %s", self.channel_id)
             else:
                 logger.warning("Could not get channel id, retrying in 10 s")
-                self.session.lm.threadpool.add_task(get_channel_id, 10, task_name=self.source)
+                self.session.lm.threadpool.add_task(get_channel_id, 10, task_name=str(self.source)+"_get_channel_id")
 
         join_community()
 
@@ -551,8 +552,8 @@ class ChannelSource(BoostingSource):
             if self.database_updated:
                 infohashes_old = set(self.torrents.keys())
 
-                torrent_keys_db = ['infohash', 'Torrent.name', 'torrent_file_name', 'creation_date', 'length', 'num_files', 'num_seeders', 'num_leechers']
-                torrent_keys_dict = ['infohash', 'name', 'metainfo', 'creation_date', 'length', 'num_files', 'num_seeders', 'num_leechers']
+                torrent_keys_db = ['infohash', 'Torrent.name', 'creation_date', 'length', 'num_files', 'num_seeders', 'num_leechers']
+                torrent_keys_dict = ['infohash', 'name', 'creation_date', 'length', 'num_files', 'num_seeders', 'num_leechers']
                 torrent_values = self.channelcast_db.getTorrentsFromChannelId(self.channel_id, True, torrent_keys_db, self.max_torrents)
                 self.torrents = dict((torrent[0], dict(zip(torrent_keys_dict[1:], torrent[1:]))) for torrent in torrent_values)
 
@@ -563,7 +564,7 @@ class ChannelSource(BoostingSource):
 
                 self.database_updated = False
 
-            self.session.lm.threadpool.add_task(self._update, self.interval, task_name=self.source)
+            self.session.lm.threadpool.add_task(self._update, self.interval, task_name=str(self.source)+"_update")
 
     def _on_database_updated(self, subject, change_type, infohash):
         if (subject, change_type, infohash) is None:
@@ -581,7 +582,7 @@ class RSSFeedSource(BoostingSource):
 
         self.feed_handle = None
 
-        self.session.lm.threadpool.add_task(lambda feed=rss_feed: self._load(feed), 0, task_name=self.source)
+        self.session.lm.threadpool.add_task(lambda feed=rss_feed: self._load(feed), 0, task_name=str(self.source)+"_load")
 
     def _load(self, rss_feed):
         self.feed_handle = self.session.lm.ltmgr.get_session().add_feed({'url': rss_feed, 'auto_download': False, 'auto_map_handles': False})
@@ -590,17 +591,17 @@ class RSSFeedSource(BoostingSource):
             # Wait until the RSS feed is longer updating.
             feed_status = self.feed_handle.get_feed_status()
             if feed_status['updating']:
-                self.session.lm.threadpool.add_task(wait_for_feed, 1, task_name=self.source)
+                self.session.lm.threadpool.add_task(wait_for_feed, 1, task_name=str(self.source)+"_wait_for_feed")
             elif len(feed_status['error']) > 0:
                 logger.error("Got error for RSS feed %s : %s",
                              feed_status['url'], feed_status['error'])
                 if "503" in feed_status["error"]:
                     time.sleep(5 * random.random())
                     self.feed_handle.update_feed()
-                    self.session.lm.threadpool.add_task(wait_for_feed, 1, task_name=self.source)
+                    self.session.lm.threadpool.add_task(wait_for_feed, 1, task_name=str(self.source)+"_wait_for_feed")
             else:
                 # The feed is done updating. Now periodically start retrieving torrents.
-                self.session.lm.threadpool.add_task(self._update, 0, task_name=self.source)
+                self.session.lm.threadpool.add_task(self._update, 0, task_name=str(self.source)+"_update")
                 logger.info("Got RSS feed %s", feed_status['url'])
 
         wait_for_feed()
@@ -638,7 +639,7 @@ class RSSFeedSource(BoostingSource):
                     if self.callback:
                         self.callback(self.source, tdef.get_infohash(), self.torrents[infohash])
 
-            self.session.lm.threadpool.add_task(self._update, self.interval, task_name=self.source)
+            self.session.lm.threadpool.add_task(self._update, self.interval, task_name=str(self.source)+"_update")
 
 
 class DirectorySource(BoostingSource):
@@ -652,7 +653,7 @@ class DirectorySource(BoostingSource):
         if os.path.isdir(directory):
             # Wait for __init__ to finish so the source is registered with the
             # BoostinManager, otherwise adding torrents won't work
-            self.session.lm.threadpool.add_task(self._update, 1, task_name=self.source)
+            self.session.lm.threadpool.add_task(self._update, 1, task_name=str(self.source)+"_update")
             logger.info("Got directory %s", directory)
         else:
             logger.error("Could not find directory %s", directory)
@@ -677,4 +678,4 @@ class DirectorySource(BoostingSource):
                     if self.callback:
                         self.callback(self.source, tdef.get_infohash(), self.torrents[torrent_filename])
 
-            self.session.lm.threadpool.add_task(self._update, self.interval, task_name=self.source)
+            self.session.lm.threadpool.add_task(self._update, self.interval, task_name=str(self.source)+"_update")
