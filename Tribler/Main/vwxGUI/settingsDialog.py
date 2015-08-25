@@ -288,28 +288,6 @@ class SettingsDialog(wx.Dialog):
                 self.utility.write_config("t4t_hours", hours_min[0] or 0)
                 self.utility.write_config("t4t_mins", 0)
 
-        # give-2-get
-        g2g_option = self.utility.read_config('g2g_option')
-        for i in range(4):
-            if getattr(self, '_g2g%d' % i).GetValue():
-                self.utility.write_config("g2g_option", i)
-
-                if i != g2g_option:
-                    restart = True
-                break
-        g2g_ratio = int(float(self._g2g0choice.GetStringSelection()) * 100)
-        self.utility.write_config("g2g_ratio", g2g_ratio)
-
-        hours_min = self._g2g2text.GetValue()
-        hours_min = hours_min.split(':')
-        if len(hours_min) > 0:
-            if len(hours_min) > 1:
-                self.utility.write_config("g2g_hours", hours_min[0] or 0)
-                self.utility.write_config("g2g_mins", hours_min[1] or 0)
-            else:
-                self.utility.write_config("g2g_hours", hours_min[0] or 0)
-                self.utility.write_config("g2g_mins", 0)
-
         # Proxy settings
         old_ptype, old_server, old_auth = self.utility.session.get_libtorrent_proxy_settings()
         new_ptype = self._lt_proxytype.GetSelection()
@@ -689,34 +667,6 @@ class SettingsDialog(wx.Dialog):
         self._t4t3 = wx.RadioButton(seeding_panel, label="No seeding")
         sd_s1_sizer.Add(self._t4t3, 0, wx.ALIGN_CENTER_VERTICAL)
 
-        # Tribler-peers
-        sd_s2_sizer = create_subsection(seeding_panel, sd_vsizer, "Tribler-peers", 2)
-        self._g2g0 = wx.RadioButton(seeding_panel, label="Seed to peers with UL/DL ratio", style=wx.RB_GROUP)
-        sd_s2_sizer.Add(self._g2g0, 0, wx.ALIGN_CENTER_VERTICAL)
-        self._g2g0choice = wx.Choice(seeding_panel)
-        self._g2g0choice.AppendItems(["0.5", "0.75", "1.0", "1.5", "2.0", "3.0", "5.0"])
-        sd_s2_sizer.Add(self._g2g0choice, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
-
-        self._g2g1 = wx.RadioButton(seeding_panel, label="Unlimited seeding (Boost your reputation)")
-        sd_s2_sizer.Add(self._g2g1, 0, wx.ALIGN_CENTER_VERTICAL)
-        sd_s2_sizer.AddStretchSpacer(1)
-
-        self._g2g2 = wx.RadioButton(seeding_panel, label="Seeding for (hours:minutes)")
-        sd_s2_sizer.Add(self._g2g2, 0, wx.ALIGN_CENTER_VERTICAL)
-        self._g2g2text = wx.lib.masked.textctrl.TextCtrl(seeding_panel)
-        self._g2g2text.SetCtrlParameters(mask="##:##", defaultValue="00:00", useFixedWidthFont=False)
-        sd_s2_sizer.Add(self._g2g2text)
-
-        self._g2g3 = wx.RadioButton(seeding_panel,
-                                    label="No seeding")
-        sd_s2_sizer.Add(self._g2g3, 0, wx.ALIGN_CENTER_VERTICAL)
-
-        sd_vsizer.AddStretchSpacer(1)
-
-        sd_faq_text = wx.StaticText(
-            seeding_panel, label="Why differ between 'normal' BitTorrent and Tribler-peers?\nBecause between Tribler-peers you will build up a reputation.\nThis is not the case for 'normal' BitTorrent-peers.")
-        sd_vsizer.Add(sd_faq_text)
-
         # other things
         t4t_option = self.utility.read_config('t4t_option')
         getattr(self, '_t4t%d' % t4t_option).SetValue(True)
@@ -728,17 +678,6 @@ class SettingsDialog(wx.Dialog):
         t4t_hours = self.utility.read_config('t4t_hours')
         t4t_minutes = self.utility.read_config('t4t_mins')
         self._t4t2text.SetValue("%02d:%02d" % (t4t_hours, t4t_minutes))
-
-        g2g_option = self.utility.read_config('g2g_option')
-        getattr(self, '_g2g%d' % g2g_option).SetValue(True)
-        g2g_ratio = self.utility.read_config('g2g_ratio') / 100.0
-        index = self._g2g0choice.FindString(str(g2g_ratio))
-        if index != wx.NOT_FOUND:
-            self._g2g0choice.Select(index)
-
-        g2g_hours = self.utility.read_config('g2g_hours')
-        g2g_mins = self.utility.read_config('g2g_mins')
-        self._g2g2text.SetLabel("%02d:%02d" % (g2g_hours, g2g_mins))
 
         return seeding_panel, item_id
 
