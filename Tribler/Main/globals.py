@@ -36,7 +36,7 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
 
     def load(filename):
         dlconfig = CallbackConfigParser()
-        if not dlconfig.read(filename):
+        if not dlconfig.read_file(filename):
             raise IOError, "Failed to open download config file"
         return DefaultDownloadStartupConfig(dlconfig)
     load = staticmethod(load)
