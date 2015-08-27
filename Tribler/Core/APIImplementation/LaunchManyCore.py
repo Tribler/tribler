@@ -487,8 +487,6 @@ class TriblerLaunchMany(object):
             dscfg = DownloadStartupConfig(pstate)
 
         except:
-            # FIXME(lipu): I think this part of the code has never been tested
-            print_exc()
             # pstate is invalid or non-existing
             _, file = os.path.split(filename)
 

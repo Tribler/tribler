@@ -132,6 +132,8 @@ copy vlc.py dist\installdir\vlc.py
 mkdir dist\installdir\tools
 copy win\tools\reset*.bat dist\installdir\tools
 
+copy C:\build\vcredist10_x86.exe dist\installdir
+
 REM MainClient specific
 
 mkdir dist\installdir\Tribler\Main
