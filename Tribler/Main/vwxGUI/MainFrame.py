@@ -509,7 +509,7 @@ class MainFrame(wx.Frame):
             useDefault = not self.utility.read_config('showsaveas')
             safe_seeding = self.utility.read_config('default_safeseeding_enabled')
             if not useDefault and not destdir:
-                defaultname = tdef.get_name_as_unicode()
+                defaultname = tdef.get_name_as_unicode() if tdef.is_multifile_torrent() else None
 
                 if wx.Thread_IsMain():
                     dlg = SaveAs(None, tdef, dscfg.get_dest_dir(), defaultname, selectedFiles)
