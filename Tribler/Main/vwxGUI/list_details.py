@@ -1297,7 +1297,9 @@ class LibraryDetails(TorrentDetails):
                     if cid in tc.circuits and tc.circuits[cid].ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
                         image_index = self.country_to_index['hidden_services']
                         peer_name = 'Darknet circuit ID %d' % cid
-                self.peerList.SetItemColumnImage(index, 0, image_index)
+
+                if image_index != -1:
+                    self.peerList.SetItemColumnImage(index, 0, image_index)
 
                 connection_type = peer_dict.get('connection_type', 0)
                 if connection_type == 1:

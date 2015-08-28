@@ -50,10 +50,6 @@ class Utility(object):
                             't4t_ratio': 100,  # T4T seeding ratio added by Niels
                             't4t_hours': 0,
                             't4t_mins': 30,
-                            'g2g_option': 1,
-                            'g2g_ratio': 75,
-                            'g2g_hours': 0,
-                            'g2g_mins': 30,
                             'family_filter': 1,
                             'window_x': "",
                             'window_y': "",

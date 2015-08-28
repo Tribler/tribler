@@ -127,9 +127,9 @@ class SessionConfigInterface(object):
         return in_config_path or self.get_default_state_dir()
 
     @staticmethod
-    def get_default_state_dir(homedirpostfix='.Tribler'):
+    def get_default_state_dir(homedirpostfix=u'.Tribler'):
         # Allow override
-        statedirvar = '${TSTATEDIR}'
+        statedirvar = u'${TSTATEDIR}'
         statedir = os.path.expandvars(statedirvar)
         if statedir and statedir != statedirvar:
             return statedir

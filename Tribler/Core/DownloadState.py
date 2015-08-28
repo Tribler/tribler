@@ -397,8 +397,6 @@ class DownloadState(object):
         'ip' = IP address as string or URL of httpseed
         'port' = Port
         'pex_received' = True/False
-        'g2g' = True/False (Tribler peer yes/no)
-        'g2g_score' = List
         'optimistic' = True/False
         'direction' = 'L'/'R' (outgoing/incoming)
         'uprate' = Upload rate in KB/s
