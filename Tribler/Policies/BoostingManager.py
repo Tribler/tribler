@@ -126,8 +126,10 @@ class BoostingManager(TaskManager):
 
     __single = None
 
-    def __init__(self, session, utility=None, policy=SeederRatioPolicy, src_interval=20, sw_interval=20, max_per_source=100, max_active=2):
+    def __init__(self, session, utility=None, policy=SeederRatioPolicy, src_interval=20, sw_interval=20,
+                 max_per_source=100, max_active=2):
         super(BoostingManager, self).__init__()
+        self._logger = logging.getLogger(self.__class__.__name__)
 
         BoostingManager.__single = self
 
@@ -271,16 +273,23 @@ class BoostingManager(TaskManager):
             source_str = 'unknown source'
         torrent['source'] = source_str
 
-        if self.boosting_sources[source].archive:
+        boost_source = self.boosting_sources.get(source, None)
+        if not boost_source:
+            self._logger.info("Dropping torrent insert from removed source: %s" % repr(torrent))
+            return
+        elif boost_source.archive:
             torrent['preload'] = True
             torrent['prio'] = 100
 
         # Preload the TorrentDef.
-        if not isinstance(torrent['metainfo'], TorrentDef):
-            print ">>>>>>>>>>>>>>>>>>>>>", torrent['infohash']
-            torrent['metainfo'] = TorrentDef.load_from_memory(self.session.lm.torrent_store.get(torrent['infohash']))
-        #else:
-        #    torrent['metainfo'] = TorrentDefNoMetainfo(infohash, torrent['name'])
+        if not isinstance(torrent.get('metainfo', None), TorrentDef):
+            torrent_data = self.session.lm.torrent_store.get(infohash)
+            if torrent_data:
+                torrent['metainfo'] = TorrentDef.load_from_memory(torrent_data)
+            else:
+                # TODO(emilon): Handle the case where the torrent hasn't been collected. (collected from the DHT)
+                # torrent['metainfo'] = TorrentDefNoMetainfo(infohash, torrent['name'])
+                pass
 
         # If duplicates exist, set is_duplicate to True, except for the one with the most seeders.
         duplicates = [other for other in self.torrents.values() if self.compare_torrents(torrent, other)]

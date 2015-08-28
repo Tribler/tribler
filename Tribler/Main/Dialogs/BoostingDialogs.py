@@ -17,7 +17,7 @@ class AddBoostingSource(wx.Dialog):
         self.source = ''
 
         text = wx.StaticText(self, -1, 'Please enter a RSS feed URL or select a channel to start boosting swarms:')
-        self.channel_radio = wx.RadioButton(self, -1, 'Channel:', style=wx.RB_GROUP)
+        self.channel_radio = wx.RadioButton(self, -1, 'Subscribed Channel:', style=wx.RB_GROUP)
         self.channel_choice = wx.Choice(self, -1)
         self.channel_choice.Bind(wx.EVT_CHOICE, lambda evt: self.channel_radio.SetValue(True))
 
@@ -56,7 +56,7 @@ class AddBoostingSource(wx.Dialog):
         self.SetSizer(vSizer)
 
         def do_db():
-            return self.guiutility.channelsearch_manager.getAllChannels()
+            return self.guiutility.channelsearch_manager.getMySubscriptions()
 
         def do_gui(delayedResult):
             _, channels = delayedResult.get()
