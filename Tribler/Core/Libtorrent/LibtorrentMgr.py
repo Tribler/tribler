@@ -1,5 +1,6 @@
 # Written by Egbert Bouman
 import binascii
+import os
 import logging
 import tempfile
 import threading
@@ -11,7 +12,6 @@ from shutil import rmtree
 
 import libtorrent as lt
 
-from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.exceptions import DuplicateDownloadException
@@ -19,11 +19,12 @@ from Tribler.Core.simpledefs import (NTFY_INSERT, NTFY_MAGNET_CLOSE, NTFY_MAGNET
                                      NTFY_REACHABLE, NTFY_TORRENTS)
 from Tribler.Core.version import version_id
 from Tribler.dispersy.taskmanager import LoopingCall, TaskManager
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
 
 DHTSTATE_FILENAME = "ltdht.state"
 METAINFO_CACHE_PERIOD = 5 * 60
+DHT_CHECK_RETRIES = 1
 
 
 class LibtorrentMgr(TaskManager):
@@ -44,7 +45,6 @@ class LibtorrentMgr(TaskManager):
 
         self.upnp_mapping_dict = {}
 
-        self._dht_check_remaining_retries = 1
         self.dht_ready = False
 
         self.metadata_tmpdir = None
@@ -63,7 +63,7 @@ class LibtorrentMgr(TaskManager):
         # register tasks
         self.register_task(u'process_alerts', reactor.callLater(1, self._task_process_alerts))
         self.register_task(u'check_reachability', reactor.callLater(1, self._task_check_reachability))
-        self.register_task(u'check_dht', reactor.callLater(5, self._task_check_dht))
+        self._schedule_next_check(5, DHT_CHECK_RETRIES)
 
         self.register_task(u'task_cleanup_metacache',
                            LoopingCall(self._task_cleanup_metainfo_cache)).start(60, now=True)
@@ -311,7 +311,7 @@ class LibtorrentMgr(TaskManager):
         if not self.is_dht_ready() and timeout > 5:
             self._logger.info("DHT not ready, rescheduling get_metainfo")
             self.trsession.lm.threadpool.add_task(lambda i=infohash_or_magnet, c=callback, t=timeout - 5,
-                                                 tcb=timeout_callback, n=notify: self.get_metainfo(i, c, t, tcb, n), 5)
+                                                  tcb=timeout_callback, n=notify: self.get_metainfo(i, c, t, tcb, n), 5)
             return
 
         magnet = infohash_or_magnet if infohash_or_magnet.startswith('magnet') else None
@@ -455,28 +455,33 @@ class LibtorrentMgr(TaskManager):
         else:
             self.register_task(u'check_reachability', reactor.callLater(10, self._task_check_reachability))
 
-    def _task_check_dht(self):
+    @call_on_reactor_thread
+    def _schedule_next_check(self, delay, retries_left):
+        self.register_task(u'check_dht', reactor.callLater(delay, self._task_check_dht, retries_left))
+
+    def _task_check_dht(self, retries_left):
         # Sometimes the dht fails to start. To workaround this issue we monitor the #dht_nodes, and restart if needed.
-        lt_session = self.get_session()
-        if lt_session:
-            dht_nodes = lt_session.status().dht_nodes
-            if dht_nodes <= 25:
-                if dht_nodes >= 5 and self._dht_check_remaining_retries > 0:
-                    self._logger.info(u"No enough DHT nodes %s, will try again", lt_session.status().dht_nodes)
-                    self._dht_check_remaining_retries -= 1
-                    self.register_task(u'check_dht', reactor.callLater(5, self._task_check_dht))
+
+        def do_dht_check():
+            lt_session = self.get_session()
+            if lt_session:
+                dht_nodes = lt_session.status().dht_nodes
+                if dht_nodes <= 25:
+                    if dht_nodes >= 5 and retries_left > 0:
+                        self._logger.info(u"No enough DHT nodes %s, will try again", lt_session.status().dht_nodes)
+                        self._schedule_next_check(5, retries_left - 1)
+                    else:
+                        self._logger.info(u"No enough DHT nodes %s, will restart DHT", lt_session.status().dht_nodes)
+                        lt_session.start_dht(None)
+                        self._schedule_next_check(10, 1)
                 else:
-                    self._logger.info(u"No enough DHT nodes %s, will restart DHT", lt_session.status().dht_nodes)
-                    lt_session.start_dht(None)
-                    self._dht_check_remaining_retries = 1
-                    self.register_task(u'check_dht', reactor.callLater(10, self._task_check_dht))
+                    self._logger.info("dht is working enough nodes are found (%d)", self.get_session().status().dht_nodes)
+                    self.dht_ready = True
+                    return
             else:
-                self._logger.info("dht is working enough nodes are found (%d)", self.get_session().status().dht_nodes)
-                self.dht_ready = True
-                return
-        else:
-            self._dht_check_remaining_retries = 1
-            self.register_task(u'check_dht', reactor.callLater(10, self._task_check_dht))
+                self._schedule_next_check(10, 1)
+
+        self.trsession.lm.threadpool.call(0, do_dht_check)
 
     def _map_call_on_ltsessions(self, hops, funcname, *args, **kwargs):
         if hops is None:
