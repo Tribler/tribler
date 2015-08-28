@@ -4,6 +4,7 @@ import logging
 import threading
 from time import time
 from traceback import print_exc
+import json
 
 import wx
 
@@ -18,13 +19,11 @@ from Tribler.Core.Utilities.sort_utils import sort_torrent_fulltext
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import (Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent,
                                               NotCollectedTorrent, LibraryTorrent, Comment, Modification, Channel,
-                                              RemoteChannel, Playlist, Moderation, RemoteChannelTorrent, Marking,
-                                              MetadataModification)
+                                              RemoteChannel, Playlist, Moderation, RemoteChannelTorrent, Marking)
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI import (warnWxThread, forceWxThread, TORRENT_REQ_COLUMNS,
                                  CHANNEL_REQ_COLUMNS, PLAYLIST_REQ_COLUMNS, MODIFICATION_REQ_COLUMNS,
-                                 MODERATION_REQ_COLUMNS, MARKING_REQ_COLUMNS, COMMENT_REQ_COLUMNS,
-                                 TUMBNAILTORRENT_REQ_COLUMNS)
+                                 MODERATION_REQ_COLUMNS, MARKING_REQ_COLUMNS, COMMENT_REQ_COLUMNS)
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 from Tribler.community.allchannel.community import AllChannelCommunity
@@ -513,28 +512,27 @@ class TorrentManager(object):
         if self.gridmgr:
             self.gridmgr.refresh(remote)
 
-    def getThumbnailTorrents(self, limit=20):
-        # TODO(lipu): fix this to show front page pictures
-        return []
-
+    def getThumbnailTorrents(self, is_collected=True, limit=20):
         result = []
-        for t in self.metadata_db.getThumbnailTorrents(TUMBNAILTORRENT_REQ_COLUMNS, limit=limit):
-            t = Torrent(*(list(t) + [None]))
+        for torrent_dict in self.channelcast_db.get_metadata_torrents(is_collected=is_collected, limit=limit):
+            # convert metadata-json to a dict
+            torrent_dict['metadata_dict'] = json.loads(torrent_dict.pop('metadata-json'))
+            torrent_dict['metadata_dict']['thumb_hash'] = torrent_dict['metadata_dict']['thumb_hash'].decode('hex')
+
+            t = Torrent(torrent_dict['id'],
+                        torrent_dict['info_hash'],
+                        torrent_dict['name'],
+                        torrent_dict['length'],
+                        torrent_dict['category'],
+                        torrent_dict['status'],
+                        torrent_dict['num_seeders'],
+                        torrent_dict['num_leechers'],
+                        None,
+                        metadata_dict=torrent_dict['metadata_dict'])
+
             t.torrent_db = self.torrent_db
-            result.append(t)
+            t.channelcast_db = self.channelcast_db
 
-        return result
-
-    def getNotCollectedThumbnailTorrents(self, limit=20):
-        # TODO(lipu): fix this to show front page pictures
-        return []
-        result = []
-
-        for t in self.metadata_db.getNotCollectedThumbnailTorrents(TUMBNAILTORRENT_REQ_COLUMNS, limit=limit):
-            if t[0] is None:
-                continue
-            t = Torrent(*(list(t) + [None]))
-            t.torrent_db = self.torrent_db
             result.append(t)
 
         return result

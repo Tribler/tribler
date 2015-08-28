@@ -125,6 +125,60 @@ class TestMyChannel(TestGuiAsServer):
 
         self.startTest(do_page)
 
+    def test_metadata(self):
+        """
+        Uses RSS feed to test metadata.
+        """
+        def take_screenshot_quit():
+            self.screenshot('Home')
+            self.quit()
+
+        def check_home():
+            self.guiUtility.ShowPage('home')
+            self.CallConditional(20, lambda: len(self.guiUtility.frame.home.aw_panel.list.GetItems()) == 1,
+                                 take_screenshot_quit, "No thumbnail torrent in Home panel")
+
+        def added_rss():
+            self.screenshot('Rssfeed added')
+
+            # switch to files tab
+            mt_index = self.managechannel.GetPage(self.managechannel.notebook, "Manage torrents")
+            self.managechannel.notebook.SetSelection(mt_index)
+
+            managefiles = self.managechannel.fileslist
+            self.CallConditional(
+                60, lambda: len(managefiles.GetItems()) > 0, check_home, 'Channel did not have torrents')
+
+        def do_rss():
+            self.managechannel.rss_url.SetValue(os.path.join(TESTS_DATA_DIR, 'test_rss.xml'))
+            self.managechannel.OnAddRss()
+
+            # switch to manage tab
+            m_index = self.managechannel.GetPage(self.managechannel.notebook, "Manage")
+            self.managechannel.notebook.SetSelection(m_index)
+
+            self.callLater(1, added_rss)
+
+        def do_create():
+            self.screenshot('After selecting mychannel page')
+
+            self.managechannel = self.frame.managechannel
+
+            self.managechannel.name.SetValue('UNITTEST')
+            self.managechannel.description.SetValue('Channel created for UNITTESTING purposes')
+
+            self.managechannel.Save()
+            self.screenshot('After clicking save')
+
+            self.CallConditional(60, lambda: self.frame.managechannel.channel,
+                                 do_rss, 'Channel instance did not arrive at managechannel')
+
+        def do_page():
+            self.guiUtility.ShowPage('mychannel')
+            self.callLater(1, do_create)
+
+        self.startTest(do_page)
+
     def startTest(self, callback):
 
         def get_and_modify_dispersy():
@@ -146,5 +200,7 @@ class TestMyChannel(TestGuiAsServer):
         tdef.finalize()
         torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
         tdef.save(torrentfn)
+
+        self._torrent_info_hash = tdef.get_infohash()
 
         return torrentfn

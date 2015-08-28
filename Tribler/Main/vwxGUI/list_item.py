@@ -8,6 +8,7 @@ import urllib
 import logging
 import binascii
 from datetime import timedelta
+from StringIO import StringIO
 
 from Tribler.Core.simpledefs import (DOWNLOAD, UPLOAD, DLSTATUS_METADATA, DLSTATUS_HASHCHECKING,
                                      DLSTATUS_WAITING4HASHCHECK)
@@ -1044,22 +1045,21 @@ class ThumbnailListItemNoTorrent(FancyPanel, ListItem):
 
         bitmap = None
 
-        # FIXME(lipu): fix the thumbnail path to use metadata
-        thumb_dir = os.path.join(
-            u"",
-            binascii.hexlify(self.original_data.infohash))
-        thumb_files = [os.path.join(dp, fn) for dp, _, fns in os.walk(thumb_dir)
-                       for fn in fns if os.path.splitext(fn)[1] in THUMBNAIL_FILETYPES]
+        thumb_data = None
+        if self.original_data.metadata and u'thumb_hash' in self.original_data.metadata:
+            thumb_data = self.guiutility.utility.session.get_thumbnail_data(self.original_data.metadata[u'thumb_hash'])
 
-        if thumb_files:
-            bmp = wx.Bitmap(thumb_files[0], wx.BITMAP_TYPE_ANY)
+        if thumb_data:
+            img = wx.EmptyImage()
+            img.LoadStream(StringIO(thumb_data))
+            bmp = wx.BitmapFromImage(img)
+
             res = limit_resolution(bmp.GetSize(), self.max_bitmap_size)
             bitmap = bmp.ConvertToImage(
             ).Scale(
                 *res,
                 quality=wx.IMAGE_QUALITY_HIGH).ConvertToBitmap(
-            ) if bmp.IsOk(
-            ) and res else None
+            ) if bmp.IsOk() and res else None
 
         if not bitmap:
             bitmap = GuiImageManager.getInstance().drawBitmap("no-thumbnail",

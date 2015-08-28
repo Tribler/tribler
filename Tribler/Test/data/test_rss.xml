@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+  xmlns:atom="http://www.w3.org/2005/Atom"
+  xmlns:media="http://search.yahoo.com/mrss">
+<channel>
+  <!-- required channel elements -->
+  <title>Test RSS</title>
+  <link>test.xml</link>
+  <description>Test RSS feed.</description>
+  <!-- optoinal channel elements -->
+  <language>en</language>
+  <pubDate>Tue, 12 May 2015 08:39:23 GMT</pubDate>
+  <lastBuildDate>Tue, 12 May 2015 08:39:23 GMT</lastBuildDate>
+  <atom:link href="test.xml" rel="self" type="application/rss+xml" />
+
+  <!-- items -->
+  <item>
+    <title>ubuntu-15.04-desktop-amd64.iso</title>
+    <link>http://releases.ubuntu.com/15.04/ubuntu-15.04-desktop-amd64.iso.torrent</link>
+    <enclosure url="http://releases.ubuntu.com/15.04/ubuntu-15.04-desktop-amd64.iso.torrent" length="44258" type="application/x-bittorrent" />
+    <guid>http://releases.ubuntu.com/15.04/ubuntu-15.04-desktop-amd64.iso.torrent</guid>
+    <!-- media RSS -->
+    <media:title type="html">ubuntu-14.04.2-desktop-amd64.iso</media:title>
+    <media:thumbnail url="http://design.ubuntu.com/wp-content/uploads/ubuntu-logo14.png" />
+  </item>
+
+  </channel>
+</rss>
