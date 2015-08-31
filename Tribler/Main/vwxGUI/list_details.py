@@ -1296,9 +1296,6 @@ class LibraryDetails(TorrentDetails):
                         image_index = self.country_to_index['hidden_services']
                         peer_name = 'Darknet circuit ID %d' % cid
 
-                if image_index != -1:
-                    self.peerList.SetItemColumnImage(index, 0, image_index)
-
                 connection_type = peer_dict.get('connection_type', 0)
                 if connection_type == 1:
                     peer_name += ' [WebSeed]'
@@ -1311,6 +1308,9 @@ class LibraryDetails(TorrentDetails):
                     self.peerList.SetStringItem(index, 0, peer_name)
                 else:
                     self.peerList.InsertStringItem(index, peer_name)
+
+                if image_index != -1:
+                    self.peerList.SetItemColumnImage(index, 0, image_index)
 
                 self.peerList.SetStringItem(index, 1, '%d%%' % (peer_dict.get('completed', 0) * 100.0))
 
