@@ -1141,7 +1141,7 @@ class TunnelCommunity(Community):
                 self.remove_circuit(circuit_id, "Got destroy")
 
             else:
-                self.tunnel_logger.error("Circuit is already removed? %s %s", circuit_id, cand_sock_addr)
+                self.tunnel_logger.warning("Circuit is already removed? %s %s", circuit_id, cand_sock_addr)
 
     def on_stats_request(self, messages):
         for request in messages:
