@@ -145,7 +145,7 @@ def get_free_space(path):
 
     if sys.platform == 'win32':
         from win32file import GetDiskFreeSpaceEx
-        return GetDiskFreeSpaceEx(path)[0]
+        return GetDiskFreeSpaceEx(os.path.splitdrive(os.path.abspath(path))[0])[0]
     else:
         data = os.statvfs(path.encode("utf-8"))
         return data.f_bavail * data.f_frsize
