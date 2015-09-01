@@ -73,11 +73,9 @@ class LevelDbStore(MutableMapping, TaskManager):
         self._pending_torrents = {}
         if sys.platform.startswith('win'):
             # resolve unicode path problem on Windows
-            old_cwd = os.path.abspath(u'.')
             relative_path = os.path.relpath(store_dir, state_dir)
             os.chdir(state_dir)
             self._db = self._leveldb(relative_path)
-            os.chdir(old_cwd)
         else:
             self._db = self._leveldb(store_dir)
 
