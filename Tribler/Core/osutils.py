@@ -22,19 +22,19 @@ logger = logging.getLogger(__name__)
 
 if sys.platform == "win32":
     try:
-        from win32com.shell import shell
+        from win32com.shell import shell, shellcon
 
         def get_home_dir():
             # http://www.mvps.org/access/api/api0054.htm
             # CSIDL_PROFILE = &H28
             # C:\Documents and Settings\username
-            return shell.SHGetSpecialFolderPath(0, 0x28)
+            return shell.SHGetSpecialFolderPath(0, shellcon.CSIDL_PROFILE)
 
         def get_appstate_dir():
             # http://www.mvps.org/access/api/api0054.htm
             # CSIDL_APPDATA = &H1A
             # C:\Documents and Settings\username\Application Data
-            return shell.SHGetSpecialFolderPath(0, 0x1a)
+            return shell.SHGetSpecialFolderPath(0, shellcon.CSIDL_APPDATA)
 
         def get_picture_dir():
             # http://www.mvps.org/access/api/api0054.htm
@@ -145,7 +145,7 @@ def get_free_space(path):
 
     if sys.platform == 'win32':
         from win32file import GetDiskFreeSpaceEx
-        return GetDiskFreeSpaceEx(path)[0]
+        return GetDiskFreeSpaceEx(os.path.splitdrive(os.path.abspath(path))[0])[0]
     else:
         data = os.statvfs(path.encode("utf-8"))
         return data.f_bavail * data.f_frsize

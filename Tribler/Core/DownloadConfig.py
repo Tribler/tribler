@@ -214,7 +214,7 @@ def get_default_dest_dir():
     if os.path.isdir(t_downloaddir):
         return os.path.abspath(t_downloaddir)
 
-    downloads_dir = os.path.join(get_home_dir(), "Downloads")
+    downloads_dir = os.path.join(get_home_dir(), u"Downloads")
     if os.path.isdir(downloads_dir):
         return os.path.join(downloads_dir, t_downloaddir)
     else:

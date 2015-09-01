@@ -2,7 +2,7 @@ import plyvel
 
 class LevelDB(object):
 
-    def __init__(self, store_dir, create_if_missing=True):
+    def __init__(self, state_dir, store_dir, create_if_missing=True):
         self._db = plyvel.DB(store_dir, create_if_missing=create_if_missing)
 
     def Get(self, key, verify_checksums=False, fill_cache=True):
