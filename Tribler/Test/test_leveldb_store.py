@@ -74,8 +74,7 @@ class TestLevelDbStore(BaseTestCase):
 
     def openStore(self, store_dir):
         self.store_dir = store_dir
-        self.store = ClockedLevelDbStore(store_dir=self.store_dir)
-
+        self.store = ClockedLevelDbStore(self.store_dir, self.store_dir)
 
     def test_storeIsPersistent(self):
         self.store.put(K, V)
