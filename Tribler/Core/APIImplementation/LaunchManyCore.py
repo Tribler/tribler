@@ -120,7 +120,7 @@ class TriblerLaunchMany(object):
 
                 self._logger.debug('tlm: Reading Session state from %s', self.session.get_state_dir())
 
-                self.cat = Category.getInstance(self.session.get_install_dir())
+                self.cat = Category.getInstance(self.session)
 
                 # create DBHandlers
                 self.peer_db = PeerDBHandler(self.session)

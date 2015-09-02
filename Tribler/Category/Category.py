@@ -18,12 +18,13 @@ class Category(object):
     __single = None
     __size_change = 1024 * 1024
 
-    def __init__(self, install_dir='.', ffEnabled=False):
+    def __init__(self, session, ffEnabled=False):
         self._logger = logging.getLogger(self.__class__.__name__)
+        self._session = session
 
         if Category.__single:
             raise RuntimeError("Category is singleton")
-        filename = os.path.join(install_dir, LIBRARYNAME, 'Category', CATEGORY_CONFIG_FILE)
+        filename = os.path.join(self._session.get_install_dir(), LIBRARYNAME, u'Category', CATEGORY_CONFIG_FILE)
         Category.__single = self
         try:
             self.category_info = getCategoryInfo(filename)
@@ -32,7 +33,7 @@ class Category(object):
             self.category_info = []
             self._logger.critical('', exc_info=True)
 
-        self.xxx_filter = XXXFilter(install_dir)
+        self.xxx_filter = XXXFilter(self._session.get_install_dir())
 
         self._logger.debug("category: Categories defined by user: %s", self.getCategoryNames())
 
