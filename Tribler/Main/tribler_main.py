@@ -179,7 +179,7 @@ class ABCApp(object):
             UserDownloadChoice.get_singleton().set_utility(self.utility)
 
             self.splash.tick('Initializing Family Filter')
-            cat = Category.getInstance()
+            cat = Category.getInstance(session)
 
             state = self.utility.read_config('family_filter')
             if state in (1, 0):
