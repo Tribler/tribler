@@ -652,7 +652,8 @@ class MainFrame(wx.Frame):
         elif sys.platform == "darwin":
             executable = "?"
 
-        executable = os.path.join(path, executable)
+        if sys.platform != "win32":
+            executable = os.path.join(path, executable)
         self._logger.info(repr(executable))
 
         def start_tribler():
