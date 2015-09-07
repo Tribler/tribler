@@ -170,7 +170,7 @@ class TestMyChannel(TestGuiAsServer):
             self.managechannel.Save()
             self.screenshot('After clicking save')
 
-            self.CallConditional(60, lambda: self.frame.managechannel.channel,
+            self.CallConditional(60, lambda: self.frame.managechannel.channel and self.frame.managechannel.rss_url,
                                  do_rss, 'Channel instance did not arrive at managechannel')
 
         def do_page():
