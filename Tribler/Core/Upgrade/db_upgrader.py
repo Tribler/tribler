@@ -523,7 +523,7 @@ DROP TABLE IF EXISTS MetaDataTypes;
         self.status_update_func("Opening TorrentDBHandler...")
         # TODO(emilon): That's a freakishly ugly hack.
         torrent_db_handler = TorrentDBHandler(self.session)
-        torrent_db_handler.category = Category.getInstance()
+        torrent_db_handler.category = Category.getInstance(self.session)
 
         # TODO(emilon): It would be nice to drop the corrupted torrent data from the store as a bonus.
         self.status_update_func("Registering recovered torrents...")

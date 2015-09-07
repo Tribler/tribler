@@ -190,7 +190,7 @@ class Socks5Connection(Protocol):
                 self.transport.write(response)
 
             else:
-                self.deny_request(request)
+                self.deny_request(request, "CMD not recognized")
 
         except:
             response = conversion.encode_reply(0x05, conversion.REP_COMMAND_NOT_SUPPORTED, 0x00,
@@ -200,7 +200,7 @@ class Socks5Connection(Protocol):
 
         return True
 
-    def deny_request(self, request):
+    def deny_request(self, request, reason):
         """
         Deny SOCKS5 request
         @param Request request: the request to deny
@@ -211,7 +211,7 @@ class Socks5Connection(Protocol):
                                            conversion.ADDRESS_TYPE_IPV4, "0.0.0.0", 0)
 
         self.transport.write(response)
-        self._logger.error("DENYING SOCKS5 request")
+        self._logger.error("DENYING SOCKS5 request, reason: %s" % reason)
 
     def on_udp_associate_request(self, connection, request):
         if self.selection_strategy.has_options(self.hops):
@@ -229,8 +229,9 @@ class Socks5Connection(Protocol):
             self.transport.write(response)
 
         else:
-            self.deny_request(request)
-            self.close("not enough circuits")
+            reason = "not enough circuits"
+            self.deny_request(request, reason)
+            self.close(reason)
 
     def select(self, destination):
         if destination not in self.destinations:

@@ -172,7 +172,7 @@ class TestTorrentDBHandler(AbstractDB):
         self.session.lm.tracker_manager.initialize()
         self.tdb = TorrentDBHandler(self.session)
         self.tdb.torrent_dir = TESTS_DATA_DIR
-        self.tdb.category = Category.getInstance()
+        self.tdb.category = Category.getInstance(self.session)
         self.tdb.mypref_db = MyPreferenceDBHandler(self.session)
 
     @blocking_call_on_reactor_thread

@@ -3,12 +3,16 @@ import sys
 import os
 
 if sys.platform == 'win32':
-    os.environ["PATH"] += os.pathsep + os.path.abspath(u'vlc')
+    import win32api
+    path_env = win32api.GetEnvironmentVariableW(u'PATH')
+    path_env = os.path.abspath(u'vlc') + os.pathsep + path_env
+    path_env = os.path.abspath(u'.') + os.pathsep + path_env
+    win32api.SetEnvironmentVariableW(u'PATH', path_env)
 
 try:
     logging.config.fileConfig("logger.conf")
-except:
-    print >> sys.stderr, "Unable to load logging config from 'logger.conf' file."
+except Exception as e:
+    print >> sys.stderr, "Unable to load logging config from 'logger.conf' file: %s" % repr(e)
 logging.basicConfig(format="%(asctime)-15s [%(levelname)s] %(message)s")
 
 logger = logging.getLogger(__name__)

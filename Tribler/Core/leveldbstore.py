@@ -36,6 +36,7 @@
 from collections import MutableMapping
 from itertools import chain
 import sys
+import os
 
 try:
     from leveldb import LevelDB, WriteBatch
@@ -65,12 +66,18 @@ class LevelDbStore(MutableMapping, TaskManager):
     _reactor = reactor
     _leveldb = LevelDB
 
-    def __init__(self, store_dir):
+    def __init__(self, state_dir, store_dir):
         super(LevelDbStore, self).__init__()
 
         self._store_dir = store_dir
         self._pending_torrents = {}
-        self._db = self._leveldb(store_dir.encode(sys.getfilesystemencoding()))
+        if sys.platform.startswith('win'):
+            # resolve unicode path problem on Windows
+            relative_path = os.path.relpath(store_dir, state_dir)
+            os.chdir(state_dir)
+            self._db = self._leveldb(relative_path)
+        else:
+            self._db = self._leveldb(store_dir)
 
         self._writeback_lc = self.register_task("flush cache ", LoopingCall(self.flush))
         self._writeback_lc.clock = self._reactor

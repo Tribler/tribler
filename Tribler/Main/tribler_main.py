@@ -177,7 +177,7 @@ class ABCApp(object):
             UserDownloadChoice.get_singleton().set_utility(self.utility)
 
             self.splash.tick('Initializing Family Filter')
-            cat = Category.getInstance()
+            cat = Category.getInstance(session)
 
             state = self.utility.read_config('family_filter')
             if state in (1, 0):
@@ -644,9 +644,9 @@ class ABCApp(object):
         from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
         user_download_choice = UserDownloadChoice.get_singleton()
         initialdlstatus_dict = {}
-        for _, state in user_download_choice.get_download_states().iteritems():
+        for infohash, state in user_download_choice.get_download_states().iteritems():
             if state == 'stop':
-                initialdlstatus_dict[id] = DLSTATUS_STOPPED
+                initialdlstatus_dict[infohash] = DLSTATUS_STOPPED
 
         self.utility.session.load_checkpoint(initialdlstatus_dict=initialdlstatus_dict)
 
