@@ -198,7 +198,6 @@ class SettingsDialog(wx.Dialog):
             self.defaultDLConfig.set_dest_dir(valdir)
 
             self.saveDefaultDownloadConfig(scfg)
-            self.moveCollectedTorrents(self.currentDestDir, valdir)
             restart = True
 
         default_number_hops = self._sliderhops.GetValue()
@@ -369,46 +368,6 @@ class SettingsDialog(wx.Dialog):
         cfgfilename = Session.get_default_config_filename(state_dir)
 
         scfg.save(cfgfilename)
-
-
-    def moveCollectedTorrents(self, old_dir, new_dir):
-        def rename_or_merge(old, new, ignore=True):
-            if os.path.exists(old):
-                if os.path.exists(new):
-                    files = os.listdir(old)
-                    for file in files:
-                        oldfile = os.path.join(old, file)
-                        newfile = os.path.join(new, file)
-
-                        if os.path.isdir(oldfile):
-                            rename_or_merge(oldfile, newfile)
-
-                        elif os.path.exists(newfile):
-                            if not ignore:
-                                os.remove(newfile)
-                                shutil.move(oldfile, newfile)
-                        else:
-                            shutil.move(oldfile, newfile)
-                else:
-                    os.renames(old, new)
-
-        def move(old_dir, new_dir):
-            # physical move
-            old_dirtf = os.path.join(old_dir, 'collected_torrent_files')
-            new_dirtf = os.path.join(new_dir, 'collected_torrent_files')
-            rename_or_merge(old_dirtf, new_dirtf, False)
-
-        atexit.register(move, old_dir, new_dir)
-
-        msg = "Please wait while we update your MegaCache..."
-        busyDlg = wx.BusyInfo(msg)
-        try:
-            time.sleep(0.3)
-            wx.Yield()
-        except:
-            pass
-
-        busyDlg.Destroy()
 
     def process_input(self):
         try:
