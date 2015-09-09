@@ -646,7 +646,8 @@ class MainFrame(wx.Frame):
     def Restart(self):
         path = os.getcwd()
         if sys.platform == "win32":
-            executable = "tribler.exe"
+            import win32api
+            executable = win32api.FindExecutable(u'tribler.exe')[1]
         elif sys.platform == "linux2":
             executable = "tribler.sh"
         elif sys.platform == "darwin":
