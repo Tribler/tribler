@@ -194,7 +194,8 @@ class SettingsDialog(wx.Dialog):
             self.saveDefaultDownloadConfig(scfg)
 
         valdir = self._disk_location_ctrl.GetValue()
-        if valdir != self.currentDestDir:
+        if valdir != self.utility.read_config(u'saveas'):
+            self.utility.write_config(u'saveas', valdir)
             self.defaultDLConfig.set_dest_dir(valdir)
 
             self.saveDefaultDownloadConfig(scfg)
@@ -471,8 +472,11 @@ class SettingsDialog(wx.Dialog):
             mugshot = data2wxBitmap(mime, data)
         self._thumb.SetBitmap(mugshot)
         # download location
-        self.currentDestDir = self.defaultDLConfig.get_dest_dir()
-        self._disk_location_ctrl.SetValue(self.currentDestDir)
+        if self.utility.read_config('saveas'):
+            location_dir = self.utility.read_config('saveas')
+        else:
+            location_dir = self.defaultDLConfig.get_dest_dir()
+        self._disk_location_ctrl.SetValue(location_dir)
         self._disk_location_choice.SetValue(self.utility.read_config('showsaveas'))
         self.OnChooseLocationChecked(None)
         # minimize to tray
