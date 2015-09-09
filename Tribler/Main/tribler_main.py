@@ -582,6 +582,7 @@ class ABCApp(object):
             # Check to see if a download has finished
             newActiveDownloads = []
             doCheckpoint = False
+            seeding_download_list = []
             for ds in dslist:
                 state = ds.get_status()
                 download = ds.get_download()
@@ -592,6 +593,9 @@ class ABCApp(object):
                     newActiveDownloads.append(safename)
 
                 elif state == DLSTATUS_SEEDING:
+                    seeding_download_list.append({u'infohash': tdef.get_infohash(),
+                                                  u'download': download,
+                                                  })
 
                     if safename in self.prevActiveDownloads:
                         infohash = tdef.get_infohash()
@@ -600,7 +604,7 @@ class ABCApp(object):
 
                         doCheckpoint = True
 
-                    if download.get_hops() == 0 and download.get_safe_seeding():
+                    elif download.get_hops() == 0 and download.get_safe_seeding():
                         self._logger.info("Re-add torrent with default nr of hops to prevent naked seeding")
                         self.utility.session.remove_download(download)
 
@@ -612,6 +616,13 @@ class ABCApp(object):
             self.prevActiveDownloads = newActiveDownloads
             if doCheckpoint:
                 self.utility.session.checkpoint()
+
+            # 3 is "no seeding" (see SettingsDialog)
+            if self.utility.read_config(u't4t_option') == 3:
+                for data in seeding_download_list:
+                    data[u'download'].stop()
+                    from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
+                    UserDownloadChoice.get_singleton().set_download_state(data[u'infohash'], "stop")
 
             # Adjust speeds and call TunnelCommunity.monitor_downloads once every 4 seconds
             adjustspeeds = False
