@@ -356,7 +356,7 @@ class ABCApp(object):
         if not use_torrent_search:
             self.sconfig.set_enable_torrent_search(False)
         if not use_channel_search:
-            self.sconfig.set_enable_torrent_search(False)
+            self.sconfig.set_enable_channel_search(False)
 
         session = Session(self.sconfig, autoload_discovery=autoload_discovery)
 
