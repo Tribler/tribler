@@ -541,6 +541,10 @@ class ABCApp(object):
                         ds.get_num_peers())
                     if ds.get_status() == DLSTATUS_STOPPED_ON_ERROR:
                         self._logger.error("main: Error: %s", repr(ds.get_error()))
+                        download = self.utility.session.lm.downloads.get(ds.get_infohash())
+                        if download:
+                            download.stop()
+
                         # show error dialog
                         dlg = wx.MessageDialog(self.frame,
                                                "Download stopped on error: %s" % repr(ds.get_error()),
