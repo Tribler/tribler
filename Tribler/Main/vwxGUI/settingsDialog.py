@@ -158,7 +158,7 @@ class SettingsDialog(wx.Dialog):
         self._upload_ctrl.SetForegroundColour(wx.BLACK)
         self._download_ctrl.SetForegroundColour(wx.BLACK)
 
-    def saveAll(self, event):
+    def saveAll(self, event, skip_restart_dialog=False):
         if not self.Validate():
             return
 
@@ -308,7 +308,7 @@ class SettingsDialog(wx.Dialog):
 
         self.utility.flush_config()
 
-        if restart:
+        if restart and not skip_restart_dialog:
             dlg = wx.MessageDialog(
                 self, "A restart is required for these changes to take effect.\nDo you want to restart Tribler now?",
                                    "Restart required", wx.ICON_QUESTION | wx.YES_NO | wx.YES_DEFAULT)
