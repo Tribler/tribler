@@ -109,7 +109,7 @@ class Utility(object):
 
         return self.config.get(section, option, literal_eval=literal_eval)
 
-    def write_config(self, option, value, section='Tribler', flush=False):
+    def write_config(self, option, value, section='Tribler', flush=True):
         self.config.set(section, option, value)
         if flush:
             self.flush_config()
