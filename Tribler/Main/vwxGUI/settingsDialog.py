@@ -158,7 +158,7 @@ class SettingsDialog(wx.Dialog):
         self._upload_ctrl.SetForegroundColour(wx.BLACK)
         self._download_ctrl.SetForegroundColour(wx.BLACK)
 
-    def saveAll(self, event):
+    def saveAll(self, event, skip_restart_dialog=False):
         if not self.Validate():
             return
 
@@ -194,11 +194,11 @@ class SettingsDialog(wx.Dialog):
             self.saveDefaultDownloadConfig(scfg)
 
         valdir = self._disk_location_ctrl.GetValue()
-        if valdir != self.currentDestDir:
+        if valdir != self.utility.read_config(u'saveas'):
+            self.utility.write_config(u'saveas', valdir)
             self.defaultDLConfig.set_dest_dir(valdir)
 
             self.saveDefaultDownloadConfig(scfg)
-            self.moveCollectedTorrents(self.currentDestDir, valdir)
             restart = True
 
         default_number_hops = self._sliderhops.GetValue()
@@ -308,7 +308,7 @@ class SettingsDialog(wx.Dialog):
 
         self.utility.flush_config()
 
-        if restart:
+        if restart and not skip_restart_dialog:
             dlg = wx.MessageDialog(
                 self, "A restart is required for these changes to take effect.\nDo you want to restart Tribler now?",
                                    "Restart required", wx.ICON_QUESTION | wx.YES_NO | wx.YES_DEFAULT)
@@ -369,46 +369,6 @@ class SettingsDialog(wx.Dialog):
         cfgfilename = Session.get_default_config_filename(state_dir)
 
         scfg.save(cfgfilename)
-
-
-    def moveCollectedTorrents(self, old_dir, new_dir):
-        def rename_or_merge(old, new, ignore=True):
-            if os.path.exists(old):
-                if os.path.exists(new):
-                    files = os.listdir(old)
-                    for file in files:
-                        oldfile = os.path.join(old, file)
-                        newfile = os.path.join(new, file)
-
-                        if os.path.isdir(oldfile):
-                            rename_or_merge(oldfile, newfile)
-
-                        elif os.path.exists(newfile):
-                            if not ignore:
-                                os.remove(newfile)
-                                shutil.move(oldfile, newfile)
-                        else:
-                            shutil.move(oldfile, newfile)
-                else:
-                    os.renames(old, new)
-
-        def move(old_dir, new_dir):
-            # physical move
-            old_dirtf = os.path.join(old_dir, 'collected_torrent_files')
-            new_dirtf = os.path.join(new_dir, 'collected_torrent_files')
-            rename_or_merge(old_dirtf, new_dirtf, False)
-
-        atexit.register(move, old_dir, new_dir)
-
-        msg = "Please wait while we update your MegaCache..."
-        busyDlg = wx.BusyInfo(msg)
-        try:
-            time.sleep(0.3)
-            wx.Yield()
-        except:
-            pass
-
-        busyDlg.Destroy()
 
     def process_input(self):
         try:
@@ -512,8 +472,11 @@ class SettingsDialog(wx.Dialog):
             mugshot = data2wxBitmap(mime, data)
         self._thumb.SetBitmap(mugshot)
         # download location
-        self.currentDestDir = self.defaultDLConfig.get_dest_dir()
-        self._disk_location_ctrl.SetValue(self.currentDestDir)
+        if self.utility.read_config('saveas'):
+            location_dir = self.utility.read_config('saveas')
+        else:
+            location_dir = self.defaultDLConfig.get_dest_dir()
+        self._disk_location_ctrl.SetValue(location_dir)
         self._disk_location_choice.SetValue(self.utility.read_config('showsaveas'))
         self.OnChooseLocationChecked(None)
         # minimize to tray
