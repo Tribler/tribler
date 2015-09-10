@@ -33,14 +33,13 @@ class TestGuiDialogs(TestGuiAsServer):
             saved_event = Event()
 
             class FakeEvent():
-
                 def __init__(self, event):
                     self.event = event
 
                 def Skip(self):
                     self.event.set()
             try:
-                dialog.saveAll(FakeEvent(saved_event))
+                dialog.saveAll(FakeEvent(saved_event), skip_restart_dialog=True)
             except:
                 print_exc()
             dialog.EndModal(wx.ID_CANCEL)
