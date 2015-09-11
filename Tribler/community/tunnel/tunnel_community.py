@@ -1173,13 +1173,13 @@ class TunnelCommunity(Community):
         self.send_packet([candidate], u"stats-request", request.packet)
 
     def tunnel_data_to_end(self, ultimate_destination, data, circuit):
-        self.tunnel_logger.debug("Tunnel data to end for circuit %s with ultimate destination %s" %
-                                 (circuit.circuit_id, ultimate_destination))
+        self.tunnel_logger.debug("Tunnel data to end for circuit %s with ultimate destination %s",
+                                 circuit.circuit_id, ultimate_destination)
         packet = TunnelConversion.encode_data(circuit.circuit_id, ultimate_destination, ('0.0.0.0', 0), data)
         self.increase_bytes_sent(circuit, self.send_data([Candidate(circuit.first_hop, False)], u'data', packet))
 
     def tunnel_data_to_origin(self, circuit_id, sock_addr, source_address, data):
-        self.tunnel_logger.debug("Tunnel data to origin %s for circuit %s" % (sock_addr, circuit_id))
+        self.tunnel_logger.debug("Tunnel data to origin %s for circuit %s", sock_addr, circuit_id)
         packet = TunnelConversion.encode_data(circuit_id, ('0.0.0.0', 0), source_address, data)
         self.send_data([Candidate(sock_addr, False)], u'data', packet)
 
