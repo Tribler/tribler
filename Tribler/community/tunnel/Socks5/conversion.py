@@ -123,8 +123,8 @@ def encode_method_selection_message(version, method):
 def __encode_address(address_type, address):
     if address_type == ADDRESS_TYPE_IPV4:
         data = socket.inet_aton(address)
-        raise ValueError("IPv6 not implemented")
     elif address_type == ADDRESS_TYPE_IPV6:
+        raise IPV6AddrError()
     elif address_type == ADDRESS_TYPE_DOMAIN_NAME:
         data = struct.pack("!B", len(address)) + address
     else:
@@ -143,8 +143,8 @@ def __decode_address(address_type, offset, data):
         offset += 1
         destination_address = data[offset:offset + domain_length]
         offset += domain_length
-        return offset, None
     elif address_type == ADDRESS_TYPE_IPV6:
+        raise IPV6AddrError()
     else:
         raise ValueError("Unsupported address type")
 
@@ -249,3 +249,8 @@ def encode_udp_packet(rsv, frag, address_type, address, port, payload):
     ]
 
     return ''.join(strings)
+
+
+class IPV6AddrError(NotImplementedError):
+    def __str__(self):
+        return "IPV6 support not implemented"
