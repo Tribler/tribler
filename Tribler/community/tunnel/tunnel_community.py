@@ -1102,7 +1102,7 @@ class TunnelCommunity(Community):
                 self.send_cell([message.candidate], u"pong", (message.payload.circuit_id, message.payload.identifier))
                 self.tunnel_logger.info("Got ping from %s", message.candidate)
             else:
-                self.tunnel_logger.error("Got ping from %s (not responding)", message.candidate)
+                self.tunnel_logger.warning("Got ping from %s (not responding)", message.candidate)
 
     def on_pong(self, messages):
         for message in messages:
