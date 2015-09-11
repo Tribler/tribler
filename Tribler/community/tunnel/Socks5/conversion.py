@@ -6,7 +6,7 @@ SOCKS_VERSION = 0x05
 
 ADDRESS_TYPE_IPV4 = 0x01
 ADDRESS_TYPE_DOMAIN_NAME = 0x03
-ADDRESS_TYP_IPV6 = 0x04
+ADDRESS_TYPE_IPV6 = 0x04
 
 REQ_CMD_CONNECT = 0x01
 REQ_CMD_BIND = 0x02
@@ -123,8 +123,8 @@ def encode_method_selection_message(version, method):
 def __encode_address(address_type, address):
     if address_type == ADDRESS_TYPE_IPV4:
         data = socket.inet_aton(address)
-    elif address_type == ADDRESS_TYP_IPV6:
         raise ValueError("IPv6 not implemented")
+    elif address_type == ADDRESS_TYPE_IPV6:
     elif address_type == ADDRESS_TYPE_DOMAIN_NAME:
         data = struct.pack("!B", len(address)) + address
     else:
@@ -143,8 +143,8 @@ def __decode_address(address_type, offset, data):
         offset += 1
         destination_address = data[offset:offset + domain_length]
         offset += domain_length
-    elif address_type == ADDRESS_TYP_IPV6:
         return offset, None
+    elif address_type == ADDRESS_TYPE_IPV6:
     else:
         raise ValueError("Unsupported address type")
 
