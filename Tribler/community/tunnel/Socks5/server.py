@@ -49,7 +49,12 @@ class SocksUDPConnection(DatagramProtocol):
             self.remote_udp_address = source
 
         if self.remote_udp_address == source:
-            request = conversion.decode_udp_packet(data)
+            try:
+                request = conversion.decode_udp_packet(data)
+            except conversion.IPV6AddrError:
+                self._logger.warning("Received an IPV6 udp datagram, dropping it (Not implemented yet)")
+                return
+
             if request.frag == 0:
                 circuit = self.socksconnection.select(request.destination)
 
