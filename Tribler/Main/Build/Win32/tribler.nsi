@@ -84,7 +84,6 @@ LangString DESC_SecStart ${LANG_ENGLISH} "Create Start Menu Shortcuts"
 LangString DESC_SecDefaultTorrent ${LANG_ENGLISH} "Associate .torrent files with ${PRODUCT}"
 LangString DESC_SecDefaultTStream ${LANG_ENGLISH} "Associate .tstream files with ${PRODUCT}"
 LangString DESC_SecDefaultMagnet ${LANG_ENGLISH} "Associate magnet links with ${PRODUCT}"
-LangString DESC_SecDefaultPpsp ${LANG_ENGLISH} "Associate ppsp links with ${PRODUCT}"
 
 ;--------------------------------
 ;Installer Sections
@@ -251,14 +250,6 @@ Section "Make Default For magnet://" SecDefaultMagnet
    WriteRegStr HKCR "magnet\DefaultIcon" "" "$INSTDIR\Tribler\Main\vwxGUI\images\torrenticon.ico"
    WriteRegStr HKCR "magnet\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
    WriteRegStr HKLM "SOFTWARE\Classes\magnet\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
-SectionEnd
-
-Section "Make Default For ppsp://" SecDefaultPpsp
-   WriteRegStr HKCR "ppsp" "" "URL: Ppsp Link Protocol"
-   WriteRegStr HKCR "ppsp" "URL Protocol" ""
-   WriteRegStr HKCR "ppsp\DefaultIcon" "" "$INSTDIR\Tribler\Main\vwxGUI\images\torrenticon.ico"
-   WriteRegStr HKCR "ppsp\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
-   WriteRegStr HKLM "SOFTWARE\Classes\ppsp\shell\open\command" "" '"$INSTDIR\${PRODUCT}.exe" "%1"'
 SectionEnd
 
 ;--------------------------------
