@@ -1426,7 +1426,9 @@ class LibraryDetails(TorrentDetails):
 
                 # Update list
                 items = [self.trackersList.GetItem(i, 0).GetText() for i in range(self.trackersList.GetItemCount())]
-                for url, info in sorted(ds.get_tracker_status().items()):
+                tracker_status_items = [(url.encode('ascii', "ignore"), info) for url, info in ds.get_tracker_status().items()]
+
+                for url, info in sorted(tracker_status_items):
                     num_peers, status = info
                     if url in items:
                         self.trackersList.SetStringItem(items.index(url), 1, status)
