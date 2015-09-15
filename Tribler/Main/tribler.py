@@ -10,9 +10,24 @@ if sys.platform == 'win32':
     win32api.SetEnvironmentVariableW(u'PATH', path_env)
 
 try:
-    logging.config.fileConfig("logger.conf")
+    filepath = os.path.abspath(u"logger.conf")
+    logging.config.fileConfig(filepath)
 except Exception as e:
-    print >> sys.stderr, "Unable to load logging config from 'logger.conf' file: %s" % repr(e)
+    print >> sys.stderr, u"Unable to load logging config from '%s' file: %s" % (repr(filepath), repr(e))
+    if not os.path.exists(filepath):
+        print >> sys.stderr, "File doesn't exist"
+    elif not os.path.isfile(filepath):
+        print >> sys.stderr, "It is not a file"
+    else:
+        print >> sys.stderr, "logger.conf file contents follow:"
+        print >> sys.stderr, "8<--------------" * 5
+
+        with open(filepath, 'r') as conf:
+            print >> sys.stderr, conf.read()
+
+        print >> sys.stderr,  "8<--------------" * 5
+
+
 logging.basicConfig(format="%(asctime)-15s [%(levelname)s] %(message)s")
 
 logger = logging.getLogger(__name__)
