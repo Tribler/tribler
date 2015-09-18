@@ -25,7 +25,8 @@ If you have issues, please [open an issue] (https://github.com/Tribler/tribler/i
 
 #### Debian/Ubuntu/Mint
 ```bash
-sudo apt-get install libav-tools libjs-excanvas libjs-mootools libsodium13 libx11-6 python-apsw python-cherrypy3 python-crypto python-cryptography python-feedparser python-gmpy python-leveldb python-libtorrent python-m2crypto python-netifaces python-pil python-pyasn1 python-requests python-twisted python-wxgtk2.8 python2.7 vlc
+sudo apt-get install libav-tools libjs-excanvas libjs-mootools libsodium13 libx11-6 python-apsw python-cherrypy3 python-crypto python-cryptography python-feedparser python-gmpy python-leveldb python-libtorrent python-m2crypto python-netifaces python-pil python-pyasn1 python-requests python-twisted python-wxgtk2.8 python2.7 vlc python-pip
+pip install decorator
 ```
 ##### **Installing libsodium13 and python-cryptography on Ubuntu 14.04**
 
