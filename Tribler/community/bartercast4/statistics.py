@@ -144,7 +144,7 @@ CREATE TABLE statistic(
  UNIQUE (type, peer));
 
 CREATE TABLE option(key TEXT PRIMARY KEY, value BLOB);
-INSERT INTO option(key, value) VALUES('database_version', '""" + str(LATEST_VERSION) + """');
+INSERT INTO option(key, value) VALUES('database_version', '""" + str(LATEST_VERSION) + u"""');
 
 CREATE TABLE interaction_log(
  id INTEGER,                            -- primary key

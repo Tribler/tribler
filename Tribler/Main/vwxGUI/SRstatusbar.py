@@ -10,17 +10,12 @@ from Tribler.Main.vwxGUI.widgets import HorizontalGauge, ActionButton
 
 from Tribler.Main.Utility.utility import size_format, round_range, speed_format
 
+from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
 
 class SRstatusbar(wx.StatusBar):
 
     def __init__(self, parent):
         wx.StatusBar.__init__(self, parent, style=wx.ST_SIZEGRIP)
-
-        # On Linux/OS X the resize handle and icons overlap, therefore we add an extra field.
-        # On Windows this field is automatically set to 1 when the wx.ST_SIZEGRIP is set.
-        self.SetFieldsCount(7)
-        self.SetStatusStyles([wx.SB_FLAT] * 7)
-        self.SetStatusWidths([-1, 250, 50, 19, 19, 19, 19])
 
         self._gui_image_manager = GuiImageManager.getInstance()
 
@@ -32,11 +27,17 @@ class SRstatusbar(wx.StatusBar):
         self.ff_checkbox.Bind(wx.EVT_CHECKBOX, self.OnCheckbox)
         self.ff_checkbox.SetValue(self.guiutility.getFamilyFilter())
 
+        self.tunnel_contrib = wx.StaticText(self, -1, '')
+        self.tunnel_contrib.SetToolTipString('Total Anonymity Contribution')
+        self.tunnel_contribNet = wx.StaticText(self, -1, '')
+        self.tunnel_contribNet.SetToolTipString('Anonymity Contribution Balance')
+        
         self.speed_down_icon = self._gui_image_manager.getBitmap(self, u"arrow", self.GetBackgroundColour(), state=0)
         self.speed_down_sbmp = wx.StaticBitmap(self, -1, self.speed_down_icon)
         self.speed_down_sbmp.Bind(wx.EVT_RIGHT_UP, self.OnDownloadPopup)
         self.speed_down = wx.StaticText(self, -1, '')
         self.speed_down.Bind(wx.EVT_RIGHT_UP, self.OnDownloadPopup)
+        
         self.speed_up_icon = self.speed_down_icon.ConvertToImage().Rotate90().Rotate90().ConvertToBitmap()
         self.speed_up_sbmp = wx.StaticBitmap(self, -1, self.speed_up_icon)
         self.speed_up_sbmp.Bind(wx.EVT_RIGHT_UP, self.OnUploadPopup)
@@ -67,10 +68,39 @@ class SRstatusbar(wx.StatusBar):
         self.firewallStatus.Enable(False)
         self.firewallStatus.SetBitmapDisabled(self.bmp_firewall_warning)
 
+        # On Linux/OS X the resize handle and icons overlap, therefore we add an extra field.
+        # On Windows this field is automatically set to 1 when the wx.ST_SIZEGRIP (parent class constructor) is set.
+        self.fields = [
+                  (-1,   wx.SB_FLAT, [self.ff_checkbox]),
+                  (100,  wx.SB_FLAT, [self.tunnel_contrib, self.tunnel_contribNet]),
+                  (200,  wx.SB_FLAT, [self.speed_down_sbmp, self.speed_down, self.speed_up_sbmp, self.speed_up]),
+                  (75,   wx.SB_FLAT, [self.free_space_sbmp, self.free_space]),
+                  (19,   wx.SB_FLAT, [self.connection]),
+                  (19,   wx.SB_FLAT, [self.activity]),
+                  (19,   wx.SB_FLAT, [self.firewallStatus]),
+                  (19,   wx.SB_FLAT, [])]
+        self.SetFieldsCount(len(self.fields))
+        self.SetStatusWidths([field[0] for field in self.fields])
+        self.SetStatusStyles([field[1] for field in self.fields])
+
         self.SetTransferSpeeds(0, 0)
         self.Bind(wx.EVT_SIZE, self.OnSize)
-
         self.library_manager.add_download_state_callback(self.RefreshTransferSpeed)
+
+    def UpdateTunnelContrib(self):
+        totalup = (sum(_barter_statistics.bartercast[BartercastStatisticTypes.TUNNELS_BYTES_SENT].values()) +
+                   sum(_barter_statistics.bartercast[BartercastStatisticTypes.TUNNELS_RELAY_BYTES_SENT].values()) +
+                   sum(_barter_statistics.bartercast[BartercastStatisticTypes.TUNNELS_EXIT_BYTES_SENT].values()))
+        totaldown = (sum(_barter_statistics.bartercast[BartercastStatisticTypes.TUNNELS_BYTES_RECEIVED].values()) +
+                     sum(_barter_statistics.bartercast[BartercastStatisticTypes.TUNNELS_RELAY_BYTES_RECEIVED].values()) +
+                     sum(_barter_statistics.bartercast[BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED].values()))
+        self.SetTunnelContrib(totalup + totaldown, totalup - totaldown)
+
+    @warnWxThread
+    def SetTunnelContrib(self, totalcontrib, netcontrib):
+        self.tunnel_contrib.SetLabel('Total: %s' % size_format(totalcontrib, truncate=2))
+        self.tunnel_contribNet.SetLabel('Balance: %s' % size_format(netcontrib, truncate=2))
+        self.Reposition()
 
     @forceWxThread
     def RefreshFreeSpace(self, space):
@@ -92,6 +122,7 @@ class SRstatusbar(wx.StatusBar):
         if not self:
             return
 
+        self.UpdateTunnelContrib()
         total_down, total_up = 0.0, 0.0
         for ds in dslist:
             total_down += ds.get_current_speed(DOWNLOAD)
@@ -211,43 +242,30 @@ class SRstatusbar(wx.StatusBar):
     def Reposition(self):
         self.Freeze()
 
+        # default spacing rules
+        #  - field has 1 control, center it
+        #  - field has -1 width (fill), skip it
+        #  - starting from the right align all controls with 10 spacing between them, or 7 if it it a bitmap
+        for field_index, field in enumerate(self.fields):
+            if field[0] == -1:
+                continue
+            rect = self.GetFieldRect(field_index)
+            if len(field[2]) == 1:
+                control = field[2][0]
+                control.SetPosition((
+                                     rect.x + (rect.width - control.GetSize()[0])/2,
+                                     rect.y + (rect.height - control.GetSize()[1])/2))
+            else:
+                x = rect.x + rect.width
+                for control in reversed(field[2]):
+                    spacer = 10 if not isinstance(control, wx.StaticBitmap) else 7
+                    x -= control.GetSize()[0] + spacer
+                    control.SetPosition((x, rect.y + (rect.height - control.GetSize()[1])/2))
+
+        # any other layout work not covered by the default rules should happen here.
         rect = self.GetFieldRect(0)
         self.ff_checkbox.SetPosition((rect.x + 2, rect.y + 2))
         self.ff_checkbox.SetSize((-1, rect.height - 4))
-
-        rect = self.GetFieldRect(1)
-        x = rect.x + rect.width - 15
-        for control in reversed([self.speed_down_sbmp, self.speed_down, self.speed_up_sbmp, self.speed_up]):
-            spacer = 10 if not isinstance(control, wx.StaticBitmap) else 7
-            x -= control.GetSize()[0] + spacer
-            yAdd = (rect.height - control.GetSize()[1]) / 2
-            control.SetPosition((x, rect.y + yAdd))
-
-        rect = self.GetFieldRect(2)
-        x = rect.x + rect.width
-        for control in [self.free_space, self.free_space_sbmp]:
-            size = control.GetSize()
-            yAdd = (rect.height - size[1]) / 2
-            x -= size[0] + 5
-            control.SetPosition((x, rect.y + yAdd))
-
-        rect = self.GetFieldRect(3)
-        size = self.connection.GetSize()
-        yAdd = (rect.height - size[1]) / 2
-        xAdd = (rect.width - size[0]) / 2
-        self.connection.SetPosition((rect.x + xAdd, rect.y + yAdd))
-
-        rect = self.GetFieldRect(4)
-        size = self.activity.GetSize()
-        yAdd = (rect.height - size[1]) / 2
-        xAdd = (rect.width - size[0]) / 2
-        self.activity.SetPosition((rect.x + xAdd, rect.y + yAdd))
-
-        rect = self.GetFieldRect(5)
-        size = self.firewallStatus.GetSize()
-        yAdd = (rect.height - size[1]) / 2
-        xAdd = (rect.width - size[0]) / 2
-        self.firewallStatus.SetPosition((rect.x + xAdd, rect.y + yAdd))
 
         self.sizeChanged = False
         self.Thaw()
