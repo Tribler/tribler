@@ -77,7 +77,7 @@ class LevelDbStore(MutableMapping, TaskManager):
             os.chdir(state_dir)
             self._db = self._leveldb(relative_path)
         else:
-            self._db = self._leveldb(store_dir)
+            self._db = self._leveldb(store_dir, state_dir)
 
         self._writeback_lc = self.register_task("flush cache ", LoopingCall(self.flush))
         self._writeback_lc.clock = self._reactor
