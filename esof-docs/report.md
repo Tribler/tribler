@@ -7,4 +7,6 @@ _Tribler_ is a Peer-to-Peer file sharing program that uses a dedicated Tor-like 
 
 ****
 
+###Activity
 
+_Tribler_ currently has 10.912 commits and 28 contributors. As of last month, excluding merges, 6 authors have pushed 3 commits to devel and 25 commits to all branches. On devel, 2 files have changed and there have been 0 additions and 1 deletions.
