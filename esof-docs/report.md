@@ -42,4 +42,4 @@ The basic idea behind this method is to develop a system through repeated cycles
 * Incremental delivery may not be possible for **replacement systems** as increments have less functionality than the system being replaced.
 * The nature of incremental development of the specification together with the software may not be adequate for establishing a development contract at the beginning.
 
-It seems to us this is an excelent model for an open-source project since the golden rule seems to be _Release often, release early_. For a project with various contributors this looks like a good way to mange the project because it allows for fast releases once a new increment is concluded.
+It seems to us this is an excelent model for an open-source project since the golden rule seems to be _Release often, release early_. For a project with various contributors this looks like a good way to manage the project because it allows for fast releases once a new increment is concluded.
