@@ -16,6 +16,6 @@ _Tribler_ currently has **10.912 commits** and **28 contributors**. As of last m
 
 ###Development process
 
-As of today (03/10/2015), we weren't able to get a reply from the main contributors regarding the development process used in this project. Based on the existing processes and the project at hand, we chose what was, in our opinion, the most adequate development process for this specific project, the **incremental development and delivery**.
+As of today (03/10/2015), we weren't able to get a reply from the main contributors regarding the development process used in this project. Based on the existing processes and the project at hand, we chose what was, in our opinion, the most adequate development process for this specific project, the **Iterative and Incremental Development**.
 
 The basic idea behind this method is to develop a system through repeated cycles (iterative) and in smaller portions at a time (incremental), allowing software developers to take advantage of what was learned during development of earlier parts or versions of the system, what makes this method great for the development of an open source project with a large number of contributors like _Tribler_.
