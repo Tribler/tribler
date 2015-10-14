@@ -14,7 +14,7 @@ try:
     logging.config.fileConfig(filepath)
 except Exception as e:
     print >> sys.stderr, u"Unable to load logging config from '%s' file: %s" % (repr(filepath), repr(e))
-    print >> sys.stderr, u"Current working directory: %s" % os.path.abspath(u'.')
+    print >> sys.stderr, u"Current working directory: %s" % repr(os.path.abspath(u'.'))
     if not os.path.exists(filepath):
         print >> sys.stderr, "File doesn't exist"
     elif not os.path.isfile(filepath):
