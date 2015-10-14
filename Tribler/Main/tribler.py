@@ -9,6 +9,10 @@ if sys.platform == 'win32':
     path_env = os.path.abspath(u'.') + os.pathsep + path_env
     win32api.SetEnvironmentVariableW(u'PATH', path_env)
 
+    # CHDIR to the install dir in case Tribler gets called to open a .torrent
+    # file (which will make Windows set PWD to the torrent file location)
+    os.chdir(os.path.dirname(sys.argv[0]))
+
 try:
     filepath = os.path.abspath(u"logger.conf")
     logging.config.fileConfig(filepath)
