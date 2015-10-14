@@ -1000,6 +1000,9 @@ def run(params=None, autoload_discovery=True, use_torrent_search=True, use_chann
     if params is None:
         params = [""]
 
+    from .hacks import patch_crypto_be_discovery
+    patch_crypto_be_discovery()
+
     if len(sys.argv) > 1:
         params = sys.argv[1:]
     try:
