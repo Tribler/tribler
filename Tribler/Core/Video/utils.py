@@ -116,6 +116,12 @@ def return_feasible_playback_modes():
 
     l = []
     try:
+        # Make sure libvlc.dll will be found on windows
+        if sys.platform.startswith('win'):
+            env_entry =  os.path.join(os.path.dirname(sys.argv[0]), "vlc")
+            if not env_entry in os.environ['PATH']:
+                os.environ['PATH'] += ";" + env_entry
+
         import Tribler.vlc as vlc
 
         # Niels: check version of vlc
