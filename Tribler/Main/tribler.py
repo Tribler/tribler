@@ -3,12 +3,6 @@ import sys
 import os
 
 if sys.platform == 'win32':
-    import win32api
-    path_env = win32api.GetEnvironmentVariableW(u'PATH')
-    path_env = os.path.abspath(u'vlc') + os.pathsep + path_env
-    path_env = os.path.abspath(u'.') + os.pathsep + path_env
-    win32api.SetEnvironmentVariableW(u'PATH', path_env)
-
     # CHDIR to the install dir in case Tribler gets called to open a .torrent
     # file (which will make Windows set PWD to the torrent file location)
     os.chdir(os.path.dirname(sys.argv[0]))

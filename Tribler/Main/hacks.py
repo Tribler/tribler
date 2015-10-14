@@ -51,8 +51,7 @@ def patch_crypto_be_discovery():
     """
 
     # Just do the monkeypatching if running on a windows installer version.
-    if sys.platform == 'win32' and sys.argv[0].endswith("tribler.exe"):
-
+    if sys.platform == 'win32' and sys.argv[0].lower().endswith("tribler.exe"):
         from cryptography.hazmat import backends
 
         try:
