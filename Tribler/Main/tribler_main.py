@@ -996,9 +996,7 @@ class TriblerApp(wx.App):
 #
 #
 @attach_profiler
-def run(params=None, autoload_discovery=True, use_torrent_search=True, use_channel_search=True):
-    if params is None:
-        params = [""]
+def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_channel_search=True):
 
     from .hacks import patch_crypto_be_discovery
     patch_crypto_be_discovery()
