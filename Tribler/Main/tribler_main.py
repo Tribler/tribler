@@ -1027,15 +1027,14 @@ class TriblerApp(wx.App):
 #
 #
 @attach_profiler
-def run(params=None, autoload_discovery=True, use_torrent_search=True, use_channel_search=True):
-    if params is None:
-        params = [""]
+def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_channel_search=True):
 
     from .hacks import patch_crypto_be_discovery
     patch_crypto_be_discovery()
 
     if len(sys.argv) > 1:
-        params = sys.argv[1:]
+        from .hacks import get_unicode_sys_argv
+        params = get_unicode_sys_argv()[1:]
     try:
         # Create single instance semaphore
         single_instance_checker = SingleInstanceChecker("tribler")
@@ -1069,6 +1068,7 @@ def run(params=None, autoload_discovery=True, use_torrent_search=True, use_chann
             app = wx.GetApp()
             if not app:
                 app = TriblerApp(redirect=False)
+
             abc = ABCApp(params, installdir, autoload_discovery=autoload_discovery,
                          use_torrent_search=use_torrent_search, use_channel_search=use_channel_search)
             app.set_abcapp(abc)
