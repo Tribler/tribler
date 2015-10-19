@@ -301,6 +301,10 @@ class ABCApp(object):
         # Start Tribler Session
         defaultConfig = SessionStartupConfig()
         state_dir = defaultConfig.get_state_dir()
+
+        # Switch to the state dir so relative paths can be used (IE, in LevelDB store paths)
+        os.chdir(state_dir)
+
         cfgfilename = Session.get_default_config_filename(state_dir)
 
         self._logger.debug(u"Session config %s", cfgfilename)
