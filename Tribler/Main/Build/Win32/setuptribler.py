@@ -33,11 +33,12 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../
 #
 #
 
-mainfile = os.path.join('Tribler', 'Main', 'tribler.py')
+mainfile = os.path.join('Tribler', 'Main', 'tribler_exe.py')
 progicofile = os.path.join('Tribler', 'Main', 'vwxGUI', 'images', 'tribler.ico')
 
 target = {
     "script": mainfile,
+    "dest_base": "tribler",
     "icon_resources": [(1, progicofile)],
 }
 

@@ -68,6 +68,7 @@ from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Utility.GuiDBHandler import GUIDBProducer, startWorker
 from Tribler.Main.Utility.compat import (convertDefaultDownloadConfig, convertDownloadCheckpoints, convertMainConfig,
                                          convertSessionConfig)
+from Tribler.Core.Utilities.install_dir import determine_install_dir
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
@@ -457,32 +458,6 @@ class ABCApp(object):
         session.add_observer(define_communities, NTFY_DISPERSY, [NTFY_STARTED])
 
         return session
-
-    @staticmethod
-    def determine_install_dir():
-        # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir
-        # only seen on windows
-
-        # apply trick to obtain the executable location
-        # see http://www.py2exe.org/index.cgi/WhereAmI
-        # Niels, 2012-01-31: py2exe should only apply to windows
-        if sys.platform == 'win32':
-            def we_are_frozen():
-                """Returns whether we are frozen via py2exe.
-                This will affect how we find out where we are located."""
-                return hasattr(sys, "frozen")
-
-            def module_path():
-                """ This will get us the program's directory,
-                even if we are frozen using py2exe"""
-                if we_are_frozen():
-                    return os.path.dirname(unicode(sys.executable, sys.getfilesystemencoding()))
-
-                filedir = os.path.dirname(unicode(__file__, sys.getfilesystemencoding()))
-                return os.path.abspath(os.path.join(filedir, '..', '..'))
-
-            return module_path()
-        return os.getcwdu()
 
     @forceWxThread
     def sesscb_ntfy_myprefupdates(self, subject, changeType, objectID, *args):
@@ -1016,7 +991,7 @@ def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_chann
         # Create single instance semaphore
         single_instance_checker = SingleInstanceChecker("tribler")
 
-        installdir = ABCApp.determine_install_dir()
+        installdir = determine_install_dir()
 
         if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
             statedir = SessionStartupConfig().get_state_dir()
