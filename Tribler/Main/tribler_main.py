@@ -296,6 +296,10 @@ class ABCApp(object):
                    use_torrent_search=True, use_channel_search=True):
         """ Stage 1 start: pre-start the session to handle upgrade.
         """
+
+        # Make sure the installation dir is on the PATH
+        os.environ['PATH'] += os.pathsep + os.path.abspath(installdir)
+
         self.gui_image_manager = GuiImageManager.getInstance(installdir)
 
         # Start Tribler Session
