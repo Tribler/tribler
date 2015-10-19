@@ -1224,8 +1224,8 @@ class TunnelCommunity(Community):
                         content = self.crypto.decrypt_str(
                             content, hop.session_keys[ORIGINATOR], hop.session_keys[ORIGINATOR_SALT])
                     except InvalidTag as e:
-                        raise CryptoException("Got exception %r when trying to remove encryption layer %d "
-                                              "for message: %r received for circuit_id: %d, is_data: %i, "
+                        raise CryptoException("Got exception %r when trying to remove encryption layer %s "
+                                              "for message: %r received for circuit_id: %s, is_data: %i, "
                                               "circuit_hops: %d" % (e, layer, content, circuit_id, is_data, circuit.hops
                                                                     ))
 
