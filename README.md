@@ -81,7 +81,7 @@ First clone the repository:
 git clone --recursive  git@github.com:Tribler/tribler.git
 ```
 
-or, if you don't have added your ssh key to your github account:
+or, if you haven't added your ssh key to your github account:
 
 ```bash
 git clone --recursive  https://github.com/Tribler/tribler.git
