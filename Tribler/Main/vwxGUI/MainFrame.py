@@ -659,10 +659,6 @@ class MainFrame(wx.Frame):
 
         def start_tribler():
             try:
-                if sys.platform == 'win32':
-                    # switch back to tribler's installation dir, otherwise logging.conf won't be found
-                    install_dir = os.path.dirname(executable)
-                    os.chdir(install_dir)
                 subprocess.Popen(executable)
             except:
                 print_exc()
