@@ -2,11 +2,6 @@ import logging.config
 import sys
 import os
 
-if sys.platform == 'win32':
-    # CHDIR to the install dir in case Tribler gets called to open a .torrent
-    # file (which will make Windows set PWD to the torrent file location)
-    os.chdir(os.path.dirname(sys.argv[0]))
-
 try:
     filepath = os.path.abspath(u"logger.conf")
     logging.config.fileConfig(filepath)
@@ -24,7 +19,7 @@ except Exception as e:
         with open(filepath, 'r') as conf:
             print >> sys.stderr, conf.read()
 
-        print >> sys.stderr,  "8<--------------" * 5
+        print >> sys.stderr, "8<--------------" * 5
 
 
 logging.basicConfig(format="%(asctime)-15s [%(levelname)s] %(message)s")
