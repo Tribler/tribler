@@ -384,6 +384,10 @@ class TestGuiAsServer(TestAsServer):
                   use_torrent_search=True, use_channel_search=True):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
         from Tribler.Main import tribler_main
+
+        # Always start testing from the same dir (repo root)
+        os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
         tribler_main.ALLOW_MULTIPLE = True
 
         self.hadSession = False
