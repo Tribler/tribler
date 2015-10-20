@@ -45,7 +45,7 @@ defaults.sessdefaults['dispersy']['dispersy_port'] = -1
 
 DEBUG = False
 
-OUTPUT_DIR = os.environ.get('OUTPUT_DIR', 'output')
+OUTPUT_DIR = os.path.abspath(os.environ.get('OUTPUT_DIR', 'output'))
 
 
 
