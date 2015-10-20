@@ -308,6 +308,8 @@ class ABCApp(object):
         state_dir = defaultConfig.get_state_dir()
 
         # Switch to the state dir so relative paths can be used (IE, in LevelDB store paths)
+        if not os.path.exists(state_dir):
+            os.makedirs(state_dir)
         os.chdir(state_dir)
 
         cfgfilename = Session.get_default_config_filename(state_dir)
