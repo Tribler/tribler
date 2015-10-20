@@ -987,8 +987,11 @@ def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_chann
     patch_crypto_be_discovery()
 
     if len(sys.argv) > 1:
-        from .hacks import get_unicode_sys_argv
-        params = get_unicode_sys_argv()[1:]
+        if sys.platform.startswith("win"):
+            from .hacks import get_unicode_sys_argv
+            params = get_unicode_sys_argv()[1:]
+        else:
+            params = sys.argv[1:]
     try:
         # Create single instance semaphore
         single_instance_checker = SingleInstanceChecker("tribler")
