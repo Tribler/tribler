@@ -100,6 +100,8 @@ class AbstractServer(BaseTestCase):
 
 
     def setUpCleanup(self):
+        # Change to an existing dir before cleaning up.
+        os.chdir(TESTS_DIR)
         shutil.rmtree(unicode(self.session_base_dir), ignore_errors=True)
 
     def tearDown(self, annotate=True):
