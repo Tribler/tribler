@@ -14,6 +14,9 @@
 #
 # The only target of this module is to find tribler.py and execute it's __main__ method.
 #
+# It will also move the windows log file away so errors from different runs don't
+# get mixed up.
+#
 # Shouldn't be executed directly nor used for anything else.
 
 # change Log:
@@ -38,8 +41,36 @@
 
 # Code:
 
-import sys
+import ctypes
 import os
+import sys
+
+
+# From: https://measureofchaos.wordpress.com/2011/03/04/python-on-windows-unicode-environment-variables/
+def getEnvironmentVariable(name):
+    """Get the unicode version of the value of an environment variable
+    """
+    n = ctypes.windll.kernel32.GetEnvironmentVariableW(name, None, 0)
+    if n == 0:
+        return None
+    buf = ctypes.create_unicode_buffer(u'\0' * n)
+    ctypes.windll.kernel32.GetEnvironmentVariableW(name, buf, n)
+    return buf.value
+
+LOG_PATH = os.path.join(getEnvironmentVariable(u"APPDATA"), u"Tribler.exe.log")
+OLD_LOG_PATH = os.path.join(getEnvironmentVariable(u"APPDATA"), u"Tribler.exe.old.log")
+
+if os.path.exists(OLD_LOG_PATH):
+    try:
+        os.remove(OLD_LOG_PATH)
+    except OSError:
+        pass
+
+if os.path.exists(LOG_PATH):
+    try:
+        os.rename(LOG_PATH, OLD_LOG_PATH)
+    except OSError:
+        print >> sys.stderr, "Unable to rename the log file!"
 
 INSTALL_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 
