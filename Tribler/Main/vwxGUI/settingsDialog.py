@@ -654,7 +654,7 @@ class SettingsDialog(wx.Dialog):
         self._use_webui = wx.CheckBox(exp_panel, label="Enable webUI")
         exp_s1_sizer.Add(self._use_webui, 0, wx.EXPAND)
         exp_s1_sizer.AddStretchSpacer()
-        
+
         add_label(exp_panel, exp_s1_sizer, label="Current port")
         self._webui_port = EditText(exp_panel, validator=NumberValidator(min=1, max=65535))
         exp_s1_sizer.Add(self._webui_port, 0, wx.EXPAND)
@@ -662,7 +662,7 @@ class SettingsDialog(wx.Dialog):
         exp_s1_faq_text = wx.StaticText(
             exp_panel, label="The Tribler webUI implements the same API as uTorrent.\nThus all uTorrent remotes are compatible with it.\n\nFurthermore, we additionally allow you to control Tribler\nusing your Browser. Go to http://localhost:PORT/gui to\nview your downloads in the browser.")
         exp_vsizer.Add(exp_s1_faq_text, 0, wx.EXPAND | wx.TOP, 10)
-        
+
         # Emercoin
         exp_s2_sizer = create_subsection(exp_panel, exp_vsizer, "Emercoin", 2, 3)
         self._use_emc = wx.CheckBox(exp_panel, label="Enable Emercoin integration")
@@ -676,7 +676,7 @@ class SettingsDialog(wx.Dialog):
         add_label(exp_panel, exp_s2_sizer, "Port")
         self._emc_port = EditText(exp_panel, validator=NumberValidator(min=1, max=65535))
         exp_s2_sizer.Add(self._emc_port, 0, wx.EXPAND)
-        
+
         add_label(exp_panel, exp_s2_sizer, "Username")
         self._emc_username = wx.TextCtrl(exp_panel, style=wx.TE_PROCESS_ENTER)
         self._emc_username.SetMaxLength(255)
@@ -712,7 +712,8 @@ class SettingsDialog(wx.Dialog):
         self._become_exitnode = wx.CheckBox(exp_panel, label="Allow being an exit node")
         exp_s1_sizer.Add(self._become_exitnode, 0, wx.EXPAND)
         exp_s1_faq_text = wx.StaticText(
-            exp_panel, label="By allowing Tribler to be an exit node, it's possible to become a proxy for someone elses traffic. \nThis may cause problems in some countries.")
+            exp_panel, label="By allowing Tribler to be an exit node, your computer will act as a proxy for other Tribler users' bittorrent traffic, be it seeding or downloading. \n"
+            "Check your local laws and make sure you are aware of the implications of enabling this checkbox.")
         exp_s1_sizer.Add(exp_s1_faq_text, 0, wx.EXPAND | wx.TOP, 10)
 
         # Add slider
