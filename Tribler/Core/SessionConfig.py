@@ -18,6 +18,7 @@ import sys
 from distutils.spawn import find_executable
 
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.Core.Utilities.install_dir import determine_install_dir
 from Tribler.Core.Utilities.network_utils import autodetect_socket_style, get_random_port
 from Tribler.Core.defaults import sessdefaults
 from Tribler.Core.osutils import get_appstate_dir, is_android
@@ -149,7 +150,11 @@ class SessionConfigInterface(object):
     def get_install_dir(self):
         """ Returns the directory the Tribler Core software is installed in.
         @return An absolute path name. """
-        return self.sessconfig.get(u'general', u'install_dir')
+        install_dir = self.sessconfig.get(u'general', u'install_dir')
+        if install_dir == '.':
+            install_dir = determine_install_dir()
+            self.set_install_dir(install_dir)
+        return install_dir
 
     def set_permid_keypair_filename(self, keypairfilename):
         """ Set the filename containing the Elliptic Curve keypair to use for

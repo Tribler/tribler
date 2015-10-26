@@ -40,6 +40,6 @@ class Instance2InstanceClient(object):
     def __init__(self, port, cmd, param):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(('127.0.0.1', port))
-        msg = cmd + ' ' + param + '\r\n'
+        msg = cmd + ' ' + param.encode('utf-8') + '\r\n'
         s.send(msg)
         s.close()

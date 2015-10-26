@@ -650,7 +650,7 @@ class MainFrame(wx.Frame):
             import win32api
             executable = win32api.FindExecutable(u'tribler.exe')[1]
         elif sys.platform == "linux2":
-            executable = "tribler.sh"
+            executable = os.path.join(self.utility.session.get_install_dir(), 'Tribler', 'Main', "tribler.py")
         elif sys.platform == "darwin":
             executable = "?"
 
@@ -660,10 +660,6 @@ class MainFrame(wx.Frame):
 
         def start_tribler():
             try:
-                if sys.platform == 'win32':
-                    # switch back to tribler's installation dir, otherwise logging.conf won't be found
-                    install_dir = os.path.dirname(executable)
-                    os.chdir(install_dir)
                 subprocess.Popen(executable)
             except:
                 print_exc()

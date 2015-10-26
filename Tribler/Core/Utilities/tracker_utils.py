@@ -112,6 +112,7 @@ def parse_tracker_url(tracker_url):
     else:
         raise RuntimeError(u'No port number for UDP tracker URL.')
 
+    # TODO(emilon): A URL parser shoudn't have a blocking host resolution on it.
     try:
         hostname = socket.gethostbyname(hostname)
     except:
