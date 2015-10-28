@@ -159,7 +159,8 @@ class VLCWrapper(object):
         media = self.vlc.Instance(params)
         if media is None:
             self._logger.error(u"failed to create VLC instance: %s", repr(self.vlc.libvlc_errmsg()))
-        self.player = self.vlc.libvlc_media_player_new(media)
+        else:
+            self.player = self.vlc.libvlc_media_player_new(media)
 
         return media
 
