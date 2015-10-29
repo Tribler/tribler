@@ -2443,7 +2443,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
             return
 
         for index, control in enumerate(self.links):
-            if control.fileindex == fileindex:
+            if control and control.fileindex == fileindex:
                 control.SetForegroundColour(self.fg_colour)
                 if index + 1 < len(self.links):
                     control_next = self.links[index + 1]
