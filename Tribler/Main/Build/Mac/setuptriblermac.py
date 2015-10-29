@@ -141,6 +141,8 @@ includeModules = ["encodings.hex_codec", "encodings.utf_8", "encodings.latin_1",
                   "cffi.vengine_cpy",
                   "cffi.vengine_gen",
                   "cffi.verifier",
+
+                  "Tribler.Core.DecentralizedTracking.pymdht.core.routing_table",
                   ]
 
 # gui panels to include
