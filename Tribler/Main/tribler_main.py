@@ -125,6 +125,7 @@ class ABCApp(object):
 
         # DISPERSY will be set when available
         self.dispersy = None
+        self.tunnel_community = None
 
         self.torrentfeed = None
         self.webUI = None
