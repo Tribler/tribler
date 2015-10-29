@@ -121,15 +121,8 @@ class ABCApp(object):
         self.done = False
         self.frame = None
 
-        self.said_start_playback = False
-        self.decodeprogress = 0
-
-        self.old_reputation = 0
-
         # DISPERSY will be set when available
         self.dispersy = None
-        # BARTER_COMMUNITY will be set when both Dispersy and the EffortCommunity are available
-        self.barter_community = None
         self.tunnel_community = None
 
         self.webUI = None
