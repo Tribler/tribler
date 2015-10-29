@@ -2180,7 +2180,7 @@ class ActivitiesList(List):
         self.list.SetData(data_list)
         self.ResizeListItems()
         self.DisableItem(2)
-        if not self.guiutility.frame.videoparentpanel:
+        if not self.guiutility.frame.videoparentpanel and sys.platform != 'darwin':
             self.DisableItem(5)
         self.DisableCollapse()
         self.selectTab('home')
