@@ -65,6 +65,14 @@ def determine_install_dir():
             return os.path.abspath(os.path.join(filedir, '..', '..', '..'))
 
         return module_path()
+    elif sys.platform == 'darwin':
+        # On a packaged app, this file will be at:
+        # Tribler.app/Contents/Resources/lib/Python2.7/site-packages.zip/Tribler/Core/Utilities/install_dir.py
+        cur_file = os.path.dirname(__file__)
+        if "site-packages.zip" in cur_file:
+            return os.path.abspath(os.path.join(cur_file, '..', '..', '..', '..', '..', '..'))
+        # Otherwise do the same than on Unix/Linux
+
     return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 
