@@ -70,7 +70,7 @@ if os.path.exists(LOG_PATH):
     try:
         os.rename(LOG_PATH, OLD_LOG_PATH)
     except OSError:
-        print >> sys.stderr, "Unable to rename the log file!"
+        pass
 
 INSTALL_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 
