@@ -118,11 +118,56 @@ def return_feasible_playback_modes():
     try:
         # Make sure libvlc.dll will be found on windows
         if sys.platform.startswith('win'):
-            env_entry =  os.path.join(os.path.dirname(sys.argv[0]), "vlc")
+            env_entry = os.path.join(os.path.dirname(sys.argv[0]), "vlc")
             if not env_entry in os.environ['PATH']:
                 os.environ['PATH'] += ";" + env_entry
 
-        import Tribler.vlc as vlc
+            # Load libvlccore.dll manually so windows doesn't find a different one when loading libvlc.dll.
+            import ctypes
+            from ctypes import wintypes
+            from contextlib import contextmanager
+
+            def errcheck_dword(result, func, args):
+                if result == 0:
+                    last_error = ctypes.get_last_error()
+                    if last_error != 0:
+                        raise ctypes.WinError(last_error)
+                return args
+
+            def errcheck_bool(result, func, args):
+                if not result:
+                    last_error = ctypes.get_last_error()
+                    if last_error != 0:
+                        raise ctypes.WinError(last_error)
+                    else:
+                        raise OSError
+                return args
+
+            kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+            kernel32.GetDllDirectoryW.errcheck = errcheck_dword
+            kernel32.GetDllDirectoryW.argtypes = (wintypes.DWORD,  # _In_  nBufferLength
+                                                      wintypes.LPWSTR) # _Out_ lpBuffer
+
+            kernel32.SetDllDirectoryW.errcheck = errcheck_bool
+            kernel32.SetDllDirectoryW.argtypes = (wintypes.LPCWSTR,) # _In_opt_ lpPathName
+
+            @contextmanager
+            def use_dll_dir(dll_dir):
+                size = newsize = 0
+                while newsize >= size:
+                    size = newsize
+                    prev = (ctypes.c_wchar * size)()
+                    newsize = kernel32.GetDllDirectoryW(size, prev)
+                    kernel32.SetDllDirectoryW(os.path.abspath(dll_dir))
+                try:
+                    yield
+                finally:
+                    kernel32.SetDllDirectoryW(prev)
+
+            with use_dll_dir(env_entry):
+                import Tribler.vlc as vlc
+        else:
+            import Tribler.vlc as vlc
 
         # Niels: check version of vlc
         version = vlc.libvlc_get_version()
