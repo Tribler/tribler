@@ -108,7 +108,7 @@ def find_lib():
         except OSError:  # may fail
             dll = ctypes.CDLL('libvlc.so.5')
     elif sys.platform.startswith('win'):
-        p = find_library('libvlc.dll')
+        p = None
         if p is None:
             try:  # some registry settings
                 # leaner than win32api, win32con
