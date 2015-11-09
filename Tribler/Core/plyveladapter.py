@@ -2,7 +2,7 @@ import plyvel
 
 class LevelDB(object):
 
-    def __init__(self, state_dir, store_dir, create_if_missing=True):
+    def __init__(self, store_dir, create_if_missing=True):
         self._db = plyvel.DB(store_dir, create_if_missing=create_if_missing)
 
     def Get(self, key, verify_checksums=False, fill_cache=True):
@@ -18,7 +18,7 @@ class LevelDB(object):
         return self._db.delete(key, sync=sync)
 
     def RangeIter(self, key_from=None, key_to=None, include_value=True, verify_checksums=False, fill_cache=True):
-        return self._db.iterator(start=key_from, stop=key_to, include_value=include_value, 
+        return self._db.iterator(start=key_from, stop=key_to, include_value=include_value,
             verify_checksums=verify_checksums, fill_cache=fill_cache)
 
     def Write(self, write_batch, sync=False):

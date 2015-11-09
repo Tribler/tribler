@@ -49,7 +49,12 @@ class SocksUDPConnection(DatagramProtocol):
             self.remote_udp_address = source
 
         if self.remote_udp_address == source:
-            request = conversion.decode_udp_packet(data)
+            try:
+                request = conversion.decode_udp_packet(data)
+            except conversion.IPV6AddrError:
+                self._logger.warning("Received an IPV6 udp datagram, dropping it (Not implemented yet)")
+                return
+
             if request.frag == 0:
                 circuit = self.socksconnection.select(request.destination)
 
@@ -340,4 +345,4 @@ class Socks5Server(object):
 
         if not any([session.on_incoming_from_tunnel(community, circuit, origin, data, force)
                     for session in self.sessions if session.hops == session_hops]):
-            self._logger.error("No session accepted this data from %s:%d", *origin)
+            self._logger.warning("No session accepted this data from %s:%d", *origin)

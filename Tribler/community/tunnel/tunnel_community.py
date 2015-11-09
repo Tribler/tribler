@@ -1,44 +1,42 @@
 # Written by Egbert Bouman
 # Based on ProxyCommunity by Chris Tanaskoski and Rutger Plak (crypto)
 
-import time
-import random
 import logging
-
+import random
+import socket
+import time
 from collections import defaultdict
+from cryptography.exceptions import InvalidTag
 
 from twisted.internet import reactor
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet.task import LoopingCall
 
-from Tribler.Core.Utilities.encoding import encode, decode
-
-from Tribler.community.tunnel import (CIRCUIT_STATE_READY, CIRCUIT_STATE_EXTENDING, ORIGINATOR,
-                                      PING_INTERVAL, EXIT_NODE, CIRCUIT_TYPE_DATA, CIRCUIT_TYPE_RP,
-                                      CIRCUIT_TYPE_RENDEZVOUS, EXIT_NODE_SALT, ORIGINATOR_SALT, CIRCUIT_ID_PORT)
-from Tribler.community.tunnel.conversion import TunnelConversion
-from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, CreatedPayload, ExtendPayload,
-                                              ExtendedPayload, DestroyPayload, PongPayload, PingPayload,
-                                              StatsRequestPayload, StatsResponsePayload,
-                                              TunnelIntroductionResponsePayload, TunnelIntroductionRequestPayload)
-from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
+from Tribler import dispersy
+from Tribler.Core.Utilities.encoding import decode, encode
+from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
+from Tribler.community.tunnel import (CIRCUIT_ID_PORT, CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA,
+                                      CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP, EXIT_NODE, EXIT_NODE_SALT, ORIGINATOR,
+                                      ORIGINATOR_SALT, PING_INTERVAL)
 from Tribler.community.tunnel.Socks5.server import Socks5Server
-from Tribler.community.tunnel.crypto.tunnelcrypto import TunnelCrypto, CryptoException
-
-from Tribler.dispersy.authentication import NoAuthentication, MemberAuthentication
+from Tribler.community.tunnel.conversion import TunnelConversion
+from Tribler.community.tunnel.crypto.tunnelcrypto import CryptoException, TunnelCrypto
+from Tribler.community.tunnel.payload import (CellPayload, CreatePayload, CreatedPayload, DestroyPayload, ExtendPayload,
+                                              ExtendedPayload, PingPayload, PongPayload, StatsRequestPayload,
+                                              StatsResponsePayload, TunnelIntroductionRequestPayload,
+                                              TunnelIntroductionResponsePayload)
+from Tribler.community.tunnel.routing import Circuit, Hop, RelayRoute
+from Tribler.dispersy.authentication import MemberAuthentication, NoAuthentication
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.endpoint import TUNNEL_PREFIX_LENGHT
-from Tribler.dispersy.message import Message, DropMessage
+from Tribler.dispersy.message import DropMessage, Message
+from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.util import call_on_reactor_thread
-from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
-from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
-import socket
-from Tribler import dispersy
 
 
 class CircuitRequestCache(NumberCache):
@@ -1102,7 +1100,7 @@ class TunnelCommunity(Community):
                 self.send_cell([message.candidate], u"pong", (message.payload.circuit_id, message.payload.identifier))
                 self.tunnel_logger.info("Got ping from %s", message.candidate)
             else:
-                self.tunnel_logger.error("Got ping from %s (not responding)", message.candidate)
+                self.tunnel_logger.warning("Got ping from %s (not responding)", message.candidate)
 
     def on_pong(self, messages):
         for message in messages:
@@ -1173,13 +1171,13 @@ class TunnelCommunity(Community):
         self.send_packet([candidate], u"stats-request", request.packet)
 
     def tunnel_data_to_end(self, ultimate_destination, data, circuit):
-        self.tunnel_logger.debug("Tunnel data to end for circuit %s with ultimate destination %s" %
-                                 (circuit.circuit_id, ultimate_destination))
+        self.tunnel_logger.debug("Tunnel data to end for circuit %s with ultimate destination %s",
+                                 circuit.circuit_id, ultimate_destination)
         packet = TunnelConversion.encode_data(circuit.circuit_id, ultimate_destination, ('0.0.0.0', 0), data)
         self.increase_bytes_sent(circuit, self.send_data([Candidate(circuit.first_hop, False)], u'data', packet))
 
     def tunnel_data_to_origin(self, circuit_id, sock_addr, source_address, data):
-        self.tunnel_logger.debug("Tunnel data to origin %s for circuit %s" % (sock_addr, circuit_id))
+        self.tunnel_logger.debug("Tunnel data to origin %s for circuit %s", sock_addr, circuit_id)
         packet = TunnelConversion.encode_data(circuit_id, ('0.0.0.0', 0), source_address, data)
         self.send_data([Candidate(sock_addr, False)], u'data', packet)
 
@@ -1216,22 +1214,35 @@ class TunnelCommunity(Community):
 
     def crypto_in(self, circuit_id, content, is_data=False):
         circuit = self.circuits.get(circuit_id, None)
-        if circuit and len(circuit.hops) > 0:
-            # Remove all the encryption layers
-            for hop in self.circuits[circuit_id].hops:
-                content = self.crypto.decrypt_str(
-                    content, hop.session_keys[ORIGINATOR], hop.session_keys[ORIGINATOR_SALT])
-            if circuit and is_data and circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
-                direction = int(circuit.ctype != CIRCUIT_TYPE_RP)
-                direction_salt = direction + 2
-                content = self.crypto.decrypt_str(
-                    content, circuit.hs_session_keys[direction], circuit.hs_session_keys[direction_salt])
-            return content
+        if circuit:
+            if len(circuit.hops) > 0:
+                # Remove all the encryption layers
+                layer = 0
+                for hop in self.circuits[circuit_id].hops:
+                    layer += 1
+                    try:
+                        content = self.crypto.decrypt_str(
+                            content, hop.session_keys[ORIGINATOR], hop.session_keys[ORIGINATOR_SALT])
+                    except InvalidTag as e:
+                        raise CryptoException("Got exception %r when trying to remove encryption layer %s "
+                                              "for message: %r received for circuit_id: %s, is_data: %i, "
+                                              "circuit_hops: %d" % (e, layer, content, circuit_id, is_data, circuit.hops
+                                                                    ))
+
+                if circuit and is_data and circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
+                    direction = int(circuit.ctype != CIRCUIT_TYPE_RP)
+                    direction_salt = direction + 2
+                    content = self.crypto.decrypt_str(
+                        content, circuit.hs_session_keys[direction], circuit.hs_session_keys[direction_salt])
+                return content
+            else:
+                raise CryptoException("Error decrypting message for circuit %d, circuit is set to 0 hops.")
         elif circuit_id in self.relay_session_keys:
             return self.crypto.decrypt_str(content,
                                            self.relay_session_keys[circuit_id][EXIT_NODE],
                                            self.relay_session_keys[circuit_id][EXIT_NODE_SALT])
-        raise CryptoException("Don't know how to decrypt incoming message for circuit_id %d" % circuit_id)
+
+        raise CryptoException("Received message for unknown circuit ID: %d" % circuit_id)
 
     def crypto_relay(self, circuit_id, content):
         direction = self.directions[circuit_id]

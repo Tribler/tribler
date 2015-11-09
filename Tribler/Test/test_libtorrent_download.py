@@ -11,58 +11,60 @@ from Tribler.Core.simpledefs import DOWNLOAD
 
 TORRENT_R = r'http://torrent.fedoraproject.org/torrents/Fedora-Live-Workstation-x86_64-21.torrent'
 TORRENT_INFOHASH = binascii.unhexlify('89f0835dc2def218ec4bac73da6be6b8c20534ea')
+TORRENT_FILE = os.path.join(TESTS_DATA_DIR, "ubuntu-15.04-desktop-amd64.iso.torrent")
+TORRENT_FILE_INFOHASH = binascii.unhexlify("fc8a15a2faf2734dbb1dc5f7afdc5c9beaeb1f59")
+TORRENT_VIDEO_FILE = os.path.join(TESTS_DATA_DIR, "Pioneer.One.S01E01.REDUX.720p.x264-VODO.torrent")
+TORRENT_VIDEO_FILE_INFOHASH = binascii.unhexlify("0d6bbc31db060e7082f85a87194d4273aea9924c")
+TORRENT_VIDEO_FILE_SELECTED_FILE = os.path.join('Sample', 'Pioneer.One.S01E01.REDUX.720p.x264.Sample-VODO.mkv')
+
 
 class TestLibtorrentDownload(TestGuiAsServer):
 
     def test_downloadfromfile(self):
-        infohash = binascii.unhexlify('66ED7F30E3B30FA647ABAA19A36E7503AA071535')
 
         def make_screenshot():
             self.screenshot('After starting a libtorrent download from file')
             self.quit()
 
         def item_shown_in_list():
-            self.CallConditional(30, lambda: self.frame.librarylist.list.GetItem(infohash).original_data.ds and self.frame.librarylist.list.GetItem(
-                infohash).original_data.ds.get_current_speed(DOWNLOAD) > 0, make_screenshot, 'no download progress')
+            self.CallConditional(30, lambda: self.frame.librarylist.list.GetItem(TORRENT_FILE_INFOHASH).original_data.ds and self.frame.librarylist.list.GetItem(
+                TORRENT_FILE_INFOHASH).original_data.ds.get_current_speed(DOWNLOAD) > 0, make_screenshot, 'no download progress')
 
         def download_object_ready():
             self.CallConditional(10, lambda: self.frame.librarylist.list.HasItem(
-                infohash), item_shown_in_list, 'no download in librarylist')
+                TORRENT_FILE_INFOHASH), item_shown_in_list, 'no download in librarylist')
 
         def do_downloadfromfile():
             self.guiUtility.showLibrary()
-            self.frame.startDownload(
-                            os.path.join(TESTS_DATA_DIR, "Pioneer.One.S01E06.720p.x264-VODO.torrent"), 
-                            self.getDestDir())
+            self.frame.startDownload(TORRENT_FILE, self.getDestDir())
 
-            self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready,
+            self.CallConditional(30, lambda: self.session.get_download(TORRENT_FILE_INFOHASH), download_object_ready,
                                  'do_downloadfromfile() failed')
 
         self.startTest(do_downloadfromfile)
-        
+
     def test_downloadfromfileuri(self):
-        infohash = binascii.unhexlify('66ED7F30E3B30FA647ABAA19A36E7503AA071535')
 
         def make_screenshot():
             self.screenshot('After starting a libtorrent download from file URI')
             self.quit()
 
         def item_shown_in_list():
-            self.CallConditional(30, lambda: self.frame.librarylist.list.GetItem(infohash).original_data.ds and self.frame.librarylist.list.GetItem(
-                infohash).original_data.ds.get_current_speed(DOWNLOAD) > 0, make_screenshot, 'no download progress')
+            self.CallConditional(30, lambda: self.frame.librarylist.list.GetItem(TORRENT_FILE_INFOHASH).original_data.ds and self.frame.librarylist.list.GetItem(
+                TORRENT_FILE_INFOHASH).original_data.ds.get_current_speed(DOWNLOAD) > 0, make_screenshot, 'no download progress')
 
         def download_object_ready():
             self.CallConditional(10, lambda: self.frame.librarylist.list.HasItem(
-                infohash), item_shown_in_list, 'no download in librarylist')
+                TORRENT_FILE_INFOHASH), item_shown_in_list, 'no download in librarylist')
 
         def do_downloadfromfile():
             self.guiUtility.showLibrary()
-            
+
             from urllib import pathname2url
-            file_uri = "file:" + pathname2url(os.path.join(TESTS_DATA_DIR, "Pioneer.One.S01E06.720p.x264-VODO.torrent"))
+            file_uri = "file:" + pathname2url(TORRENT_FILE)
             self.frame.startDownloadFromArg(file_uri, self.getDestDir())
 
-            self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready,
+            self.CallConditional(30, lambda: self.session.get_download(TORRENT_FILE_INFOHASH), download_object_ready,
                                  'do_downloadfromfile() failed')
 
         self.startTest(do_downloadfromfile)
@@ -202,10 +204,10 @@ class TestLibtorrentDownload(TestGuiAsServer):
         def do_vod():
             from Tribler.Core.Video.VideoPlayer import VideoPlayer
 
-            ds = self.frame.startDownload(os.path.join(TESTS_DATA_DIR, "Pioneer.One.S01E06.720p.x264-VODO.torrent"),
+            ds = self.frame.startDownload(TORRENT_VIDEO_FILE,
                                           self.getDestDir(),
                                           selectedFiles=[
-                                              os.path.join('Sample', 'Pioneer.One.S01E06.720p.x264.Sample-VODO.mkv')],
+                                              TORRENT_VIDEO_FILE_SELECTED_FILE],
                                           vodmode=True)
             # set the max prebuffsize to be smaller so that the unit test runs faster
             ds.max_prebuffsize = 16 * 1024

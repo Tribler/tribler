@@ -45,7 +45,7 @@ defaults.sessdefaults['dispersy']['dispersy_port'] = -1
 
 DEBUG = False
 
-OUTPUT_DIR = os.environ.get('OUTPUT_DIR', 'output')
+OUTPUT_DIR = os.path.abspath(os.environ.get('OUTPUT_DIR', 'output'))
 
 
 
@@ -100,6 +100,8 @@ class AbstractServer(BaseTestCase):
 
 
     def setUpCleanup(self):
+        # Change to an existing dir before cleaning up.
+        os.chdir(TESTS_DIR)
         shutil.rmtree(unicode(self.session_base_dir), ignore_errors=True)
 
     def tearDown(self, annotate=True):
@@ -135,7 +137,7 @@ class AbstractServer(BaseTestCase):
 
     def annotate(self, annotation, start=True, destdir=OUTPUT_DIR):
         if not os.path.exists(destdir):
-            os.makedirs(destdir)
+            os.makedirs(os.path.abspath(destdir))
 
         if start:
             self.annotate_dict[annotation] = time.time()
@@ -384,6 +386,10 @@ class TestGuiAsServer(TestAsServer):
                   use_torrent_search=True, use_channel_search=True):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
         from Tribler.Main import tribler_main
+
+        # Always start testing from the same dir (repo root)
+        os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
         tribler_main.ALLOW_MULTIPLE = True
 
         self.hadSession = False

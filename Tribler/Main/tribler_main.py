@@ -68,6 +68,7 @@ from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Utility.GuiDBHandler import GUIDBProducer, startWorker
 from Tribler.Main.Utility.compat import (convertDefaultDownloadConfig, convertDownloadCheckpoints, convertMainConfig,
                                          convertSessionConfig)
+from Tribler.Core.Utilities.install_dir import determine_install_dir
 from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
@@ -147,6 +148,10 @@ class ABCApp(object):
             s = self.startAPI(session, self.splash.tick)
 
             self.utility = Utility(self.installdir, s.get_state_dir())
+
+            if self.utility.read_config(u'saveas'):
+                DefaultDownloadStartupConfig.getInstance().set_dest_dir(self.utility.read_config(u'saveas'))
+
             self.utility.set_app(self)
             self.utility.set_session(s)
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
@@ -292,11 +297,21 @@ class ABCApp(object):
                    use_torrent_search=True, use_channel_search=True):
         """ Stage 1 start: pre-start the session to handle upgrade.
         """
+
+        # Make sure the installation dir is on the PATH
+        os.environ['PATH'] += os.pathsep + os.path.abspath(installdir)
+
         self.gui_image_manager = GuiImageManager.getInstance(installdir)
 
         # Start Tribler Session
         defaultConfig = SessionStartupConfig()
         state_dir = defaultConfig.get_state_dir()
+
+        # Switch to the state dir so relative paths can be used (IE, in LevelDB store paths)
+        if not os.path.exists(state_dir):
+            os.makedirs(state_dir)
+        os.chdir(state_dir)
+
         cfgfilename = Session.get_default_config_filename(state_dir)
 
         self._logger.debug(u"Session config %s", cfgfilename)
@@ -352,7 +367,7 @@ class ABCApp(object):
         if not use_torrent_search:
             self.sconfig.set_enable_torrent_search(False)
         if not use_channel_search:
-            self.sconfig.set_enable_torrent_search(False)
+            self.sconfig.set_enable_channel_search(False)
 
         session = Session(self.sconfig, autoload_discovery=autoload_discovery)
 
@@ -445,32 +460,6 @@ class ABCApp(object):
         session.add_observer(define_communities, NTFY_DISPERSY, [NTFY_STARTED])
 
         return session
-
-    @staticmethod
-    def determine_install_dir():
-        # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir
-        # only seen on windows
-
-        # apply trick to obtain the executable location
-        # see http://www.py2exe.org/index.cgi/WhereAmI
-        # Niels, 2012-01-31: py2exe should only apply to windows
-        if sys.platform == 'win32':
-            def we_are_frozen():
-                """Returns whether we are frozen via py2exe.
-                This will affect how we find out where we are located."""
-                return hasattr(sys, "frozen")
-
-            def module_path():
-                """ This will get us the program's directory,
-                even if we are frozen using py2exe"""
-                if we_are_frozen():
-                    return os.path.dirname(unicode(sys.executable, sys.getfilesystemencoding()))
-
-                filedir = os.path.dirname(unicode(__file__, sys.getfilesystemencoding()))
-                return os.path.abspath(os.path.join(filedir, '..', '..'))
-
-            return module_path()
-        return os.getcwdu()
 
     @forceWxThread
     def sesscb_ntfy_myprefupdates(self, subject, changeType, objectID, *args):
@@ -582,6 +571,7 @@ class ABCApp(object):
             # Check to see if a download has finished
             newActiveDownloads = []
             doCheckpoint = False
+            seeding_download_list = []
             for ds in dslist:
                 state = ds.get_status()
                 download = ds.get_download()
@@ -592,6 +582,9 @@ class ABCApp(object):
                     newActiveDownloads.append(safename)
 
                 elif state == DLSTATUS_SEEDING:
+                    seeding_download_list.append({u'infohash': tdef.get_infohash(),
+                                                  u'download': download,
+                                                  })
 
                     if safename in self.prevActiveDownloads:
                         infohash = tdef.get_infohash()
@@ -600,7 +593,7 @@ class ABCApp(object):
 
                         doCheckpoint = True
 
-                    if download.get_hops() == 0 and download.get_safe_seeding():
+                    elif download.get_hops() == 0 and download.get_safe_seeding():
                         self._logger.info("Re-add torrent with default nr of hops to prevent naked seeding")
                         self.utility.session.remove_download(download)
 
@@ -612,6 +605,13 @@ class ABCApp(object):
             self.prevActiveDownloads = newActiveDownloads
             if doCheckpoint:
                 self.utility.session.checkpoint()
+
+            # 3 is "no seeding" (see SettingsDialog)
+            if self.utility.read_config(u't4t_option') == 3:
+                for data in seeding_download_list:
+                    data[u'download'].stop()
+                    from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
+                    UserDownloadChoice.get_singleton().set_download_state(data[u'infohash'], "stop")
 
             # Adjust speeds and call TunnelCommunity.monitor_downloads once every 4 seconds
             adjustspeeds = False
@@ -933,7 +933,7 @@ class ABCApp(object):
         ic.close()
 
         if cmd.startswith('START '):
-            param = cmd[len('START '):].strip()
+            param = cmd[len('START '):].strip().decode("utf-8")
             torrentfilename = None
             if param.startswith('http:'):
                 # Retrieve from web
@@ -981,17 +981,22 @@ class TriblerApp(wx.App):
 #
 #
 @attach_profiler
-def run(params=None, autoload_discovery=True, use_torrent_search=True, use_channel_search=True):
-    if params is None:
-        params = [""]
+def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_channel_search=True):
+
+    from .hacks import patch_crypto_be_discovery
+    patch_crypto_be_discovery()
 
     if len(sys.argv) > 1:
-        params = sys.argv[1:]
+        if sys.platform.startswith("win"):
+            from .hacks import get_unicode_sys_argv
+            params = get_unicode_sys_argv()[1:]
+        else:
+            params = sys.argv[1:]
     try:
         # Create single instance semaphore
         single_instance_checker = SingleInstanceChecker("tribler")
 
-        installdir = ABCApp.determine_install_dir()
+        installdir = determine_install_dir()
 
         if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
             statedir = SessionStartupConfig().get_state_dir()
@@ -1020,6 +1025,7 @@ def run(params=None, autoload_discovery=True, use_torrent_search=True, use_chann
             app = wx.GetApp()
             if not app:
                 app = TriblerApp(redirect=False)
+
             abc = ABCApp(params, installdir, autoload_discovery=autoload_discovery,
                          use_torrent_search=use_torrent_search, use_channel_search=use_channel_search)
             app.set_abcapp(abc)

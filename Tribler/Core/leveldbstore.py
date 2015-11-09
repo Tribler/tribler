@@ -66,18 +66,14 @@ class LevelDbStore(MutableMapping, TaskManager):
     _reactor = reactor
     _leveldb = LevelDB
 
-    def __init__(self, state_dir, store_dir):
+    def __init__(self, store_dir):
         super(LevelDbStore, self).__init__()
 
         self._store_dir = store_dir
         self._pending_torrents = {}
-        if sys.platform.startswith('win'):
-            # resolve unicode path problem on Windows
-            relative_path = os.path.relpath(store_dir, state_dir)
-            os.chdir(state_dir)
-            self._db = self._leveldb(relative_path)
-        else:
-            self._db = self._leveldb(store_dir)
+        # This is done to work around LevelDB's inability to deal with non-ascii
+        # paths on windows.
+        self._db = self._leveldb(os.path.relpath(store_dir, os.getcwdu()))
 
         self._writeback_lc = self.register_task("flush cache ", LoopingCall(self.flush))
         self._writeback_lc.clock = self._reactor

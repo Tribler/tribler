@@ -137,7 +137,7 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.infohash = infohash_str.decode('hex')
         self.metadata_dir = u"%s" % infohash_str
 
-        self.thumb_file = os.path.join(u"Tribler", u"Test", u"data", self.metadata_dir, u"421px-Pots_10k_100k.jpeg")
+        self.thumb_file = os.path.join(unicode(TESTS_DATA_DIR), self.metadata_dir, u"421px-Pots_10k_100k.jpeg")
         with open(self.thumb_file, 'rb') as f:
             self.thumb_data = f.read()
         self.thumb_hash = sha1(self.thumb_data).digest()
