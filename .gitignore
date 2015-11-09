@@ -4,6 +4,7 @@
 *~
 .DS_Store
 .ropeproject
+.idea/
 /*.log
 /.Tribler
 /.coverage
