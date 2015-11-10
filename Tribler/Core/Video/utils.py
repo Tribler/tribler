@@ -166,6 +166,8 @@ def return_feasible_playback_modes():
 
             with use_dll_dir(env_entry):
                 import Tribler.vlc as vlc
+        else:
+            import Tribler.vlc as vlc
 
         # Niels: check version of vlc
         version = vlc.libvlc_get_version()
