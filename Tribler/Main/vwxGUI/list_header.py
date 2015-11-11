@@ -311,18 +311,8 @@ class TitleHeader(ListHeader):
         self.title = StaticText(self)
         _set_font(self.title, self.font_increment, self.fontweight)
 
-        titlePanel = self.GetTitlePanel(self)
+        titlePanel = self.title
         subtitlePanel = self.GetSubTitlePanel(self)
-        righttitlePanel = self.GetRightTitlePanel(self)
-        belowPanel = self.GetBelowPanel(self)
-
-        if titlePanel:
-            subSizer = wx.BoxSizer(wx.HORIZONTAL)
-            subSizer.Add(self.title)
-            subSizer.Add(titlePanel, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 3)
-            titlePanel = subSizer
-        else:
-            titlePanel = self.title
 
         if subtitlePanel:
             subSizer = wx.BoxSizer(wx.VERTICAL)
@@ -334,14 +324,9 @@ class TitleHeader(ListHeader):
 
         subSizer = wx.BoxSizer(wx.HORIZONTAL)
         subSizer.Add(subtitlePanel)
-        if righttitlePanel:
-            subSizer.Add(righttitlePanel, 1, wx.LEFT, 3)
         righttitlePanel = subSizer
 
         vSizer.Add(righttitlePanel, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, self.radius + spacers[0])
-        if belowPanel:
-            vSizer.Add(belowPanel, 1, wx.EXPAND | wx.TOP, 3)
-
         vSizer.AddSpacer((-1, 3))
 
         if len(columns) > 0:
