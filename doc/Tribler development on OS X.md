@@ -17,10 +17,10 @@ ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/
 sudo easy_install pip
 ```
 
-## Installing the required packages
+## Installing the Required Packages
 In this section, the installation of the packages required by Tribler will be discussed in a step-by-step manner.
 
-### Xcode tools
+### Xcode Tools
 The installation of Xcode is required in order to compile some C/C++ libraries. Xcode is an IDE developed by Apple and can be downloaded for free from the Mac App Store. After installation, the Command Line Tools should be installed by executing:
 
 ```
@@ -69,7 +69,7 @@ Apsw can be installed by brew but this does not seem to work to compile the last
 sudo python setup.py fetch --all build --enable-all-extensions install test
 ```
 
-### libtorrent
+### Libtorrent
 An essential dependency of Tribler is libtorrent. libtorrent is dependent on Boost, a set of C++ libraries. To function correctly, Boost should be built from source (this will take a while):
 
 ```
@@ -97,7 +97,7 @@ python
 >>> import libtorrent
 ```
 
-### Other packages
+### Other Packages
 There are a bunch of other packages that can easily be installed using pip:
 
 ```
