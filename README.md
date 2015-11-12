@@ -17,12 +17,12 @@ Just click [here](https://github.com/Tribler/tribler/releases/latest) and downlo
 
 ## Obtaining support
 
-If you found a bug or have a feature request, please make sure you read [contributing](doc/CONTRIBUTING.md) and then [open an issue](https://github.com/Tribler/tribler/issues/new). We will have a look at it ASAP.
+If you found a bug or have a feature request, please make sure you read [contributing](CONTRIBUTING.md) and then [open an issue](https://github.com/Tribler/tribler/issues/new). We will have a look at it ASAP.
 
 ## Contributing
 
 Contributions are very welcome!
-If you are interested in contributing code or otherwise, please have a look at [contributing](doc/CONTRIBUTING.md).
+If you are interested in contributing code or otherwise, please have a look at [contributing](CONTRIBUTING.md).
 Have a look at the [issue tracker](https://github.com/Tribler/tribler/issues) if you are looking for inspiraton :).
 
 ## Getting your development environment up and running
