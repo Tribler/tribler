@@ -27,7 +27,9 @@ When creating a new Pull request, please observe the following:
     would be accepted. If you are not a member of the project, just drop a
     comment saying that you are working on that.
   * Create one PR per feature/bugfix.
-  * Provide tests for any new features/fixes you implement.
+  * Provide tests for any new features/fixes you implement and make sure they
+    cover all methods and at least the important branches in the new/updated
+    code.
   * If implementing a reasonably big or experimental feature, make it toggleable
     if possible (For instance for a new community, new GUI stuff, etc.).
   * Keep a clean and nice git history:
