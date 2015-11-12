@@ -4,25 +4,28 @@
 import binascii
 import errno
 import logging
+import os
 import sys
 import time as timemod
+from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
-import os
 from twisted.internet import reactor
 
-from Tribler.Core.Modules.search_manager import SearchManager
+from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Modules.search_manager import SearchManager
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE
 from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
-from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
+
 
 try:
     prctlimported = True
@@ -44,7 +47,7 @@ PROFILE = False
 #
 
 
-class TriblerLaunchMany(object):
+class TriblerLaunchMany(TaskManager):
 
     def __init__(self):
         """ Called only once (unless we have multiple Sessions) by MainThread """
@@ -435,24 +438,16 @@ class TriblerLaunchMany(object):
     #
     def load_checkpoint(self, initialdlstatus=None, initialdlstatus_dict={}):
         """ Called by any thread """
-        if not self.initComplete:
-            network_load_checkpoint_callback_lambda = lambda: self.load_checkpoint(initialdlstatus,
-                                                                                   initialdlstatus_dict)
-            self.threadpool.add_task(network_load_checkpoint_callback_lambda, 1.0)
 
+        def do_load_checkpoint(initialdlstatus, initialdlstatus_dict):
+            with self.sesslock:
+                for i, filename in enumerate(iglob(os.path.join(self.session.get_downloads_pstate_dir(), '*.state'))):
+                    self.resume_download(filename, initialdlstatus, initialdlstatus_dict, setupDelay=i * 0.1)
+
+        if self.initComplete:
+            do_load_checkpoint(initialdlstatus, initialdlstatus_dict)
         else:
-            self.sesslock.acquire()
-            filelist = []
-            try:
-                dir = self.session.get_downloads_pstate_dir()
-                filelist = os.listdir(dir)
-                filelist = [os.path.join(dir, filename) for filename in filelist if filename.endswith('.state')]
-
-            finally:
-                self.sesslock.release()
-
-            for i, filename in enumerate(filelist):
-                self.resume_download(filename, initialdlstatus, initialdlstatus_dict, setupDelay=i * 0.1)
+            self.register_task("load_checkpoint", reactor.callLater(1, do_load_checkpoint))
 
     def load_download_pstate_noexc(self, infohash):
         """ Called by any thread, assume sesslock already held """
@@ -607,6 +602,8 @@ class TriblerLaunchMany(object):
         to checkpointing, etc.
         """
         self._logger.info("tlm: early_shutdown")
+
+        self.cancel_all_pending_tasks()
 
         # Note: sesslock not held
         self.shutdownstarttime = timemod.time()
