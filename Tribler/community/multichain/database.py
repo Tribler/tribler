@@ -200,9 +200,6 @@ class MultiChainDB(Database):
     def close(self, commit=True):
         return super(MultiChainDB, self).close(commit)
 
-    def cleanup(self):
-        self.executescript(cleanup)
-
     def check_database(self, database_version):
         """
         Ensure the proper schema is used by the database.
@@ -219,16 +216,6 @@ class MultiChainDB(Database):
             self.commit()
 
         return LATEST_DB_VERSION
-
-    @staticmethod
-    def _convert_to_database_block(db_result):
-        data = ()
-        for x in range(0, len(db_result)):
-            if x <= 6:
-                data += (str(db_result[x]),)
-            else:
-                data += (db_result[x],)
-        return DatabaseBlock(data)
 
 
 class DatabaseBlock:
@@ -261,11 +248,6 @@ class DatabaseBlock:
         self.public_key_responder = str(data[15])
         """ Set up the block hash """
         self.id = sha1(encode_block(self)).digest()
-
-
-    @classmethod
-    def from_tuple(cls, data):
-        return cls(data)
 
     @classmethod
     def from_signature_response_message(cls, message):
@@ -302,14 +284,3 @@ class DatabaseBlock:
                 self.sequence_number_responder, self.previous_hash_responder,
                 self.public_key_requester, self.signature_requester,
                 self.public_key_responder, self.signature_responder)
-
-    def __str__(self):
-        return "UP: {0!s}\n Down: {1!s}\n" \
-               "Requester:\n TU: {2!s}\n TD:{3!s}\n SEQ#: {4!s}\nPREVHASH: {5!s}\nPKREQ:{6!s}\SIG:{7!s}\n" \
-               "Responder:\n TU: {8!s}\n TD:{9!s}\n SEQ#: {10!s}\nPREVHASH: {11!s}\nPKREQ:{12!s}\nSIG:{13!s}\n".format(
-                   self.up, self.down, self.total_up_requester, self.total_down_requester,
-                   self.sequence_number_requester, self.previous_hash_requester,
-                   self.public_key_requester, self.signature_requester,
-                   self.total_up_responder, self.total_down_responder,
-                   self.sequence_number_responder, self.previous_hash_responder,
-                   self.public_key_responder, self.signature_responder)

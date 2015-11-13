@@ -14,7 +14,7 @@ from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.destination import CandidateDestination
-from Tribler.dispersy.message import Message
+from Tribler.dispersy.message import Message, DropPacket
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.crypto import ECCrypto
 
@@ -91,6 +91,23 @@ class TestConversion(MultiChainTestCase):
         self.assertEqual(-1, result.sequence_number_responder)
         self.assertEqual(EMPTY_HASH, result.previous_hash_responder)
 
+    def test_decoding_signature_wrong_size(self):
+        """
+        Test decoding a signature message with wrong size
+        """
+        # Arrange
+        converter = MultiChainConversion(self.community)
+        meta = self.community.get_meta_message(SIGNATURE)
+        block = TestBlock()
+        message = meta.impl(distribution=(self.community.claim_global_time(),),
+                            payload=tuple(block.generate_signature_payload()))
+        # Act
+        encoded_message = converter._encode_signature(message)[0]
+        # Act & Assert
+        with self.assertRaises(DropPacket):
+            # Remove a bit of message.
+            converter._decode_signature(TestPlaceholder(meta), 0, encoded_message[:-10])[1]
+
     def test_encoding_decoding_block_request(self):
         """
         Test if a requester can send a block request message.
@@ -109,6 +126,25 @@ class TestConversion(MultiChainTestCase):
         result = converter._decode_block_request(TestPlaceholder(meta), 0, encoded_message)[1]
         # Assert
         self.assertEqual(requested_sequence_number, result.requested_sequence_number)
+
+    def test_decoding_block_request_wrong_size(self):
+        """
+        Test if a DropPacket is raised when the block request size is wrong.
+        """
+        # Arrange
+        converter = MultiChainConversion(self.community)
+        meta = self.community.get_meta_message(BLOCK_REQUEST)
+
+        requested_sequence_number = 500
+
+        message = meta.impl(distribution=(self.community.claim_global_time(),),
+                            payload=(requested_sequence_number,))
+        encoded_message = converter._encode_block_request(message)[0]
+
+        # Act & Assert
+        with self.assertRaises(DropPacket):
+            # Remove a bit of message.
+            result = converter._decode_block_request(TestPlaceholder(meta), 0, encoded_message[:-10])[1]
 
     def test_encoding_decoding_block_request_empty(self):
         """
@@ -149,6 +185,24 @@ class TestConversion(MultiChainTestCase):
         self.assertTrue(self.community.crypto.is_valid_public_bin(block.public_key_responder))
 
         self.assertEqual_block(block, result)
+
+    def test_decoding_block_response_wrong_size(self):
+        """
+        Test if a DropPacket is raised when the block response size is wrong.
+        """
+        # Arrange
+        converter = MultiChainConversion(self.community)
+
+        meta = self.community.get_meta_message(BLOCK_RESPONSE)
+        block = TestBlock()
+
+        message = meta.impl(distribution=(self.community.claim_global_time(),),
+                            payload=tuple(block.generate_block_payload()))
+        # Act
+        encoded_message = converter._encode_block_response(message)[0]
+        with self.assertRaises(DropPacket):
+            # Remove a bit of message.
+            converter._decode_block_response(TestPlaceholder(meta), 0, encoded_message[:-10])[1]
 
     def test_split_function(self):
         """
