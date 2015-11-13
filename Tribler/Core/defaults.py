@@ -141,8 +141,9 @@ sessdefaults['video']['preferredmode'] = PLAYBACKMODE_INTERNAL
 #  Version 11: remove createmerkletorrent, torrentsigkeypairfilename, makehash_md5, makehash_crc32, makehash_sha1
 #  Version 12: remove thumb
 #  Version 13: remove super_seeder
+#  Version 15: add seeding ratio
 
-DLDEFAULTS_VERSION = 14
+DLDEFAULTS_VERSION = 15
 dldefaults = OrderedDict()
 
 # General download settings
@@ -156,6 +157,7 @@ dldefaults['downloadconfig']['hops'] = 0
 dldefaults['downloadconfig']['selected_files'] = []
 dldefaults['downloadconfig']['correctedfilename'] = None
 dldefaults['downloadconfig']['safe_seeding'] = True
+dldefaults['downloadconfig']['seeding_ratio'] = True
 
 tdefdictdefaults = {}
 tdefdictdefaults['comment'] = None
