@@ -965,7 +965,7 @@ class TorrentDetails(AbstractDetails):
             status = 'Torrent file is being downloaded from the DHT'
         elif statusflag == DLSTATUS_SEEDING:
             uls = ds.get_current_speed('up')
-            status = 'Seeding @ %s' % speed_format(uls)
+            status = 'Seeding @ %s, ratio: %.3f' % (speed_format(uls), ds.seeding_ratio)
         elif finished:
             status = 'Completed'
         elif statusflag in [DLSTATUS_ALLOCATING_DISKSPACE, DLSTATUS_WAITING4HASHCHECK]:

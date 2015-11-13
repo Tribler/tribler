@@ -122,6 +122,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.curspeeds = {DOWNLOAD: 0.0, UPLOAD: 0.0}  # bytes/s
         self.all_time_upload = 0.0
         self.all_time_download = 0.0
+        self.all_time_ratio = 0.0
         self.finished_time = 0.0
         self.done = False
         self.pause_after_next_hashcheck = False
@@ -536,6 +537,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             DLSTATUS_STOPPED, DLSTATUS_STOPPED] else 0.0
         self.all_time_upload = status.all_time_upload
         self.all_time_download = status.all_time_download
+        if status.all_time_download:
+            self.all_time_ratio = status.all_time_upload / float(status.all_time_download)
         self.finished_time = status.finished_time
 
     def set_corrected_infoname(self):
@@ -675,6 +678,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         seeding_stats = {}
         seeding_stats['total_up'] = self.all_time_upload
         seeding_stats['total_down'] = self.all_time_download
+        seeding_stats['ratio'] = self.all_time_ratio
         seeding_stats['time_seeding'] = self.finished_time
 
         logmsgs = []
