@@ -2,6 +2,7 @@
 # see LICENSE.txt for license information
 """ Contains a snapshot of the state of the Download at a specific point in time. """
 import logging
+import sys
 
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
                                      DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_WAITING4HASHCHECK, UPLOAD)
@@ -183,15 +184,24 @@ class DownloadState(object):
         """
         return self.seeding_stats
 
+    @property
+    def seeding_downloaded(self):
+        return self.seeding_stats['total_down'] if self.seeding_stats else 0
+
+    @property
+    def seeding_uploaded(self):
+        return self.seeding_stats['total_up'] if self.seeding_stats else 0
+
+    @property
+    def seeding_ratio(self):
+        return self.seeding_stats['ratio'] if self.seeding_stats else 0.0
+
     def get_eta(self):
         """
         Returns the estimated time to finish of download.
         @return The time in ?, as ?.
         """
-        if self.stats is None:
-            return 0.0
-        else:
-            return self.stats['time']
+        return self.stats['time'] if self.stats else 0.0
 
     def get_num_con_initiated(self):
         """
@@ -200,12 +210,7 @@ class DownloadState(object):
         (e.g. tracker timeout).
         @return An integer.
         """
-        if self.stats is None:
-            return 0
-
-        # Determine if we need statsobj to be requested, same as for spew
-        statsobj = self.stats['stats']
-        return statsobj.numConInitiated
+        return self.stats['stats'].numConInitiated if self.stats else 0
 
     def get_num_peers(self):
         """

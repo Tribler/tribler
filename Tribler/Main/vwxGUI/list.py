@@ -1779,41 +1779,31 @@ class LibraryList(SizeList):
                     torrent_ds = item.original_data.download_state
 
                     # Set torrent seeding time and ratio
-                    if torrent_ds and torrent_ds.get_seeding_statistics():
+                    if torrent_ds:
                         seeding_stats = torrent_ds.get_seeding_statistics()
-                        dl = seeding_stats['total_down']
-                        ul = seeding_stats['total_up']
+                        if seeding_stats:
+                            ratio = torrent_ds.seeding_ratio
 
-                        # set dl at min progress*length
-                        size_progress = torrent_ds.get_length() * torrent_ds.get_progress()
-                        dl = max(dl, size_progress)
+                            tooltip = "Total transferred: %s down, %s up." % (
+                                size_format(torrent_ds.seeding_downloaded),
+                                size_format(torrent_ds.seeding_uploaded))
 
-                        if dl == 0:
-                            if ul != 0:
-                                ratio = sys.maxsize
+                            item.RefreshColumn(7, ratio)
+                            item.RefreshColumn(8, seeding_stats['time_seeding'])
+
+                            if show_seeding_colours:
+                                # seeding_ratio is goal
+                                step = ratio / seeding_ratio
+                                step = int(min(1, step) * 5) / 5.0  # rounding to 5 different colours
+
+                                rgbTuple = (
+                                    c * 255.0 for c in hsv_to_rgb(orange[0] + step * colourstep[0],
+                                                                  orange[1] + step * colourstep[1],
+                                                                  orange[2] + step * colourstep[2]))
+                                bgcolour = wx.Colour(*rgbTuple)
+                                item.SetDeselectedColour(bgcolour)
                             else:
-                                ratio = 0
-                        else:
-                            ratio = 1.0 * ul / dl
-
-                        tooltip = "Total transferred: %s down, %s up." % (size_format(dl), size_format(ul))
-
-                        item.RefreshColumn(7, ratio)
-                        item.RefreshColumn(8, seeding_stats['time_seeding'])
-
-                        if show_seeding_colours:
-                            # t4t_ratio is goal
-                            step = ratio / t4t_ratio
-                            step = int(min(1, step) * 5) / 5.0  # rounding to 5 different colours
-
-                            rgbTuple = (
-                                c * 255.0 for c in hsv_to_rgb(orange[0] + step * colourstep[0],
-                                                              orange[1] + step * colourstep[1],
-                                                              orange[2] + step * colourstep[2]))
-                            bgcolour = wx.Colour(*rgbTuple)
-                            item.SetDeselectedColour(bgcolour)
-                        else:
-                            item.SetDeselectedColour(LIST_DESELECTED)
+                                item.SetDeselectedColour(LIST_DESELECTED)
 
                 item.RefreshColumn(3, ds.get_eta() if ds else None)
 
