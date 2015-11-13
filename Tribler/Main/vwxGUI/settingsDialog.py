@@ -265,28 +265,27 @@ class SettingsDialog(wx.Dialog):
             except:
                 self._logger.exception("Could not set target")
 
-        # tit-4-tat
-        t4t_option = self.utility.read_config('t4t_option')
+        seeding_option = self.utility.read_config('seeding_option')
         for i in range(4):
-            if getattr(self, '_t4t%d' % i).GetValue():
-                self.utility.write_config('t4t_option', i)
+            if getattr(self, '_seeding%d' % i).GetValue():
+                self.utility.write_config('seeding_option', i)
 
-                if i != t4t_option:
+                if i != seeding_option:
                     restart = True
 
                 break
-        t4t_ratio = int(float(self._t4t0choice.GetStringSelection()) * 100)
-        self.utility.write_config("t4t_ratio", t4t_ratio)
+        seeding_ratio = int(float(self._seeding0choice.GetStringSelection()) * 100)
+        self.utility.write_config("seeding_ratio", seeding_ratio)
 
-        hours_min = self._t4t2text.GetValue()
+        hours_min = self._seeding2text.GetValue()
         hours_min = hours_min.split(':')
         if len(hours_min) > 0:
             if len(hours_min) > 1:
-                self.utility.write_config("t4t_hours", hours_min[0] or 0)
-                self.utility.write_config("t4t_mins", hours_min[1] or 0)
+                self.utility.write_config("seeding_hours", hours_min[0] or 0)
+                self.utility.write_config("seeding_mins", hours_min[1] or 0)
             else:
-                self.utility.write_config("t4t_hours", hours_min[0] or 0)
-                self.utility.write_config("t4t_mins", 0)
+                self.utility.write_config("seeding_hours", hours_min[0] or 0)
+                self.utility.write_config("seeding_mins", 0)
 
         # Proxy settings
         old_ptype, old_server, old_auth = self.utility.session.get_libtorrent_proxy_settings()
@@ -611,36 +610,36 @@ class SettingsDialog(wx.Dialog):
 
         # BitTorrent-peers
         sd_s1_sizer = create_subsection(seeding_panel, sd_vsizer, "BitTorrent-peers", 2)
-        self._t4t0 = wx.RadioButton(seeding_panel, label="Seed until UL/DL ratio >", style=wx.RB_GROUP)
-        sd_s1_sizer.Add(self._t4t0, 0, wx.ALIGN_CENTER_VERTICAL)
-        self._t4t0choice = wx.Choice(seeding_panel)
-        self._t4t0choice.AppendItems(["0.5", "0.75", "1.0", "1.5", "2.0", "3.0", "5.0"])
-        sd_s1_sizer.Add(self._t4t0choice, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        self._seeding0 = wx.RadioButton(seeding_panel, label="Seed until UL/DL ratio >", style=wx.RB_GROUP)
+        sd_s1_sizer.Add(self._seeding0, 0, wx.ALIGN_CENTER_VERTICAL)
+        self._seeding0choice = wx.Choice(seeding_panel)
+        self._seeding0choice.AppendItems(["0.5", "0.75", "1.0", "1.5", "2.0", "3.0", "5.0"])
+        sd_s1_sizer.Add(self._seeding0choice, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
 
-        self._t4t1 = wx.RadioButton(seeding_panel, label="Unlimited seeding")
-        sd_s1_sizer.Add(self._t4t1, 0, wx.ALIGN_CENTER_VERTICAL)
+        self._seeding1 = wx.RadioButton(seeding_panel, label="Unlimited seeding")
+        sd_s1_sizer.Add(self._seeding1, 0, wx.ALIGN_CENTER_VERTICAL)
         sd_s1_sizer.AddStretchSpacer()
 
-        self._t4t2 = wx.RadioButton(seeding_panel, label="Seeding for (hours:minutes)")
-        sd_s1_sizer.Add(self._t4t2, 0, wx.ALIGN_CENTER_VERTICAL)
-        self._t4t2text = wx.lib.masked.textctrl.TextCtrl(seeding_panel)
-        self._t4t2text.SetCtrlParameters(mask="##:##", defaultValue="00:00", useFixedWidthFont=False)
-        sd_s1_sizer.Add(self._t4t2text)
+        self._seeding2 = wx.RadioButton(seeding_panel, label="Seeding for (hours:minutes)")
+        sd_s1_sizer.Add(self._seeding2, 0, wx.ALIGN_CENTER_VERTICAL)
+        self._seeding2text = wx.lib.masked.textctrl.TextCtrl(seeding_panel)
+        self._seeding2text.SetCtrlParameters(mask="##:##", defaultValue="00:00", useFixedWidthFont=False)
+        sd_s1_sizer.Add(self._seeding2text)
 
-        self._t4t3 = wx.RadioButton(seeding_panel, label="No seeding")
-        sd_s1_sizer.Add(self._t4t3, 0, wx.ALIGN_CENTER_VERTICAL)
+        self._seeding3 = wx.RadioButton(seeding_panel, label="No seeding")
+        sd_s1_sizer.Add(self._seeding3, 0, wx.ALIGN_CENTER_VERTICAL)
 
         # other things
-        t4t_option = self.utility.read_config('t4t_option')
-        getattr(self, '_t4t%d' % t4t_option).SetValue(True)
-        t4t_ratio = self.utility.read_config('t4t_ratio') / 100.0
-        index = self._t4t0choice.FindString(str(t4t_ratio))
+        seeding_option = self.utility.read_config('seeding_option')
+        getattr(self, '_seeding%d' % seeding_option).SetValue(True)
+        seeding_ratio = self.utility.read_config('seeding_ratio') / 100.0
+        index = self._seeding0choice.FindString(str(seeding_ratio))
         if index != wx.NOT_FOUND:
-            self._t4t0choice.Select(index)
+            self._seeding0choice.Select(index)
 
-        t4t_hours = self.utility.read_config('t4t_hours')
-        t4t_minutes = self.utility.read_config('t4t_mins')
-        self._t4t2text.SetValue("%02d:%02d" % (t4t_hours, t4t_minutes))
+        seeding_hours = self.utility.read_config('seeding_hours')
+        seeding_minutes = self.utility.read_config('seeding_mins')
+        self._seeding2text.SetValue("%02d:%02d" % (seeding_hours, seeding_minutes))
 
         return seeding_panel, item_id
 

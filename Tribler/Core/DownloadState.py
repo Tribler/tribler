@@ -3,8 +3,8 @@
 """ Contains a snapshot of the state of the Download at a specific point in time. """
 import logging
 
-from Tribler.Core.simpledefs import (UPLOAD, DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING,
-                                     DLSTATUS_WAITING4HASHCHECK, DLSTATUS_STOPPED)
+from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
+                                     DLSTATUS_STOPPED_ON_ERROR, DLSTATUS_WAITING4HASHCHECK, UPLOAD)
 
 
 class DownloadState(object):
@@ -34,7 +34,7 @@ class DownloadState(object):
         self.filepieceranges = filepieceranges  # NEED CONC CONTROL IF selected_files RUNTIME SETABLE
         self.logmsgs = logmsgs
         self.vod_status_msg = None
-        self.seedingstats = seeding_stats
+        self.seeding_stats = seeding_stats
 
         self.haveslice = None
         self.stats = None
@@ -171,8 +171,8 @@ class DownloadState(object):
         else:
             return self.stats['stats'].downTotal
 
-    def set_seeding_statistics(self, seedingstats):
-        self.seedingstats = seedingstats
+    def set_seeding_statistics(self, seeding_stats):
+        self.seeding_stats = seeding_stats
 
     def get_seeding_statistics(self):
         """
@@ -181,7 +181,7 @@ class DownloadState(object):
         Contains if not null, version, total_up, total_down, time_seeding
         All values are stored by the seedingmanager, thus will not only contain current download session values
         """
-        return self.seedingstats
+        return self.seeding_stats
 
     def get_eta(self):
         """
