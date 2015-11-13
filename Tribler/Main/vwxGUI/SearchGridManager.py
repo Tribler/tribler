@@ -551,9 +551,6 @@ class LibraryManager(object):
         self.dslist = []
         self.magnetlist = {}
 
-        # current progress of download states
-        self.cache_progress = {}
-
         # For asking for a refresh when remote results came in
         self.gridmgr = None
 
