@@ -607,7 +607,7 @@ class ABCApp(object):
                 self.utility.session.checkpoint()
 
             # 3 is "no seeding" (see SettingsDialog)
-            if self.utility.read_config(u't4t_option') == 3:
+            if self.utility.read_config(u'seeding_option') == 3:
                 for data in seeding_download_list:
                     data[u'download'].stop()
                     from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice

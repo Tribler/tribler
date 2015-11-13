@@ -46,10 +46,10 @@ class Utility(object):
                             'window_width': 1024,
                             'window_height': 670,
                             'sash_position': -185,
-                            't4t_option': 0,  # Seeding items added by Boxun
-                            't4t_ratio': 100,  # T4T seeding ratio added by Niels
-                            't4t_hours': 0,
-                            't4t_mins': 30,
+                            'seeding_option': 0,  # Seeding items added by Boxun
+                            'seeding_ratio': 100,  # T4T seeding ratio added by Niels
+                            'seeding_hours': 0,
+                            'seeding_mins': 30,
                             'family_filter': 1,
                             'window_x': "",
                             'window_y': "",
