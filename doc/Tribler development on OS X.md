@@ -28,7 +28,9 @@ xcode-select --install
 ```
 
 ### WxPython
-WxPython is the Graphical User Interface manager and an installer can be downloaded from [their website](http://www.wxpython.org/download.php). Note that at this point, Wx 2.8 should still be used but support for 2.8 will be dropped soon and the Wx 2.8 library should be replaced by Wx 3.0.
+WxPython is the Graphical User Interface manager and an installer can be downloaded from [their website](http://www.wxpython.org/download.php). Note that at this point, Wx 2.8 should still be used but support for 2.8 will be dropped soon and the Wx 2.8 library should be replaced by Wx 3.0. You probably need the Cocoa version of Wx.
+
+Note: there is a bug on OS X 10.11 (El Capitan) where the installer gives an error that there is no software available to install. A workaround for this is to install the required files manually. This can be done by opening the `.pkg` file and unzipping the `wxPython3.0-osx-cocoa-py2.7.pax` file. This will create a `usr` directory which should be copied to `/usr`. To link wx, you should run the `postflight.sh` as root.
 
 ### M2Crypto
 To install M2Crypto, Openssl has to be installed first. The shipped version of openssl by Apple gives errors when compiling M2Crypto so a self-compiled version should be used. Start by downloading openssl 0.98 from [here](https://www.openssl.org/source/), extract it and install it:
@@ -90,7 +92,7 @@ mkdir -p /Users/martijn/Library/Python/2.7/lib/python/site-packages
   echo 'import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")' >> /Library/Python/2.7/site-packages/homebrew.pth
 ```
 
-You can test whether libtorrent is correctly installed by executing:
+This command basically adds another location for the Python site-packages (the location where libtorrent-rasterbar is installed). This command should be executed since the location where brew installs the Python packages is not in sys.path. You can test whether libtorrent is correctly installed by executing:
 
 ```
 python
@@ -98,10 +100,19 @@ python
 ```
 
 ### Other Packages
-There are a bunch of other packages that can easily be installed using pip:
+There are a bunch of other packages that can easily be installed using pip and brew:
 
 ```
-pip install cherrypy pillow cffi cryptography decorator feedparser gmpy2 idna leveldb netifaces numpy pyasn1 pycparser requests twisted
+brew install Pillow
+pip install cherrypy pillow cffi cryptography decorator feedparser gmpy2 idna leveldb netifaces numpy pyasn1 pycparser requests twisted service_identity
+```
+
+If you encounter any error during the installation of Pillow, make sure that libjpeg and zlib are installed. They can be installed using:
+
+```
+brew tap homebrew/dupes
+brew install libjpeg zlib
+brew link --force zlib
 ```
 
 Tribler should now be able to startup without warnings by executing this command in the Tribler root directory:
@@ -110,4 +121,4 @@ Tribler should now be able to startup without warnings by executing this command
 ./tribler.sh
 ```
 
-If there are any missing packages, they can often be installed by one pip or brew command. If there are any problems with the guide above, please feel free to fix any errors or [create an issue](https://github.com/Tribler/tribler/issues/new).
+If there are any missing packages, they can often be installed by one pip or brew command. If there are any problems with the guide above, please feel free to fix any errors or [create an issue](https://github.com/Tribler/tribler/issues/new) so we can look into it.
