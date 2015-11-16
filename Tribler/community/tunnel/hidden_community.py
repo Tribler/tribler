@@ -205,13 +205,11 @@ class HiddenTunnelCommunity(TunnelCommunity):
         return socket.inet_ntoa(struct.pack("!I", circuit_id))
 
     @call_on_reactor_thread
-    # TODO dslist = download seed list or so?
     def monitor_downloads(self, dslist):
         # Monitor downloads with anonymous flag set, and build rendezvous/introduction points when needed.
         new_states = {}
         hops = {}
 
-        # TODO what does ds stand for?
         for ds in dslist:
             download = ds.get_download()
             if download.get_hops() > 0:
