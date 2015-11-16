@@ -218,11 +218,13 @@ class HiddenTunnelCommunity(TunnelCommunity):
         return socket.inet_ntoa(struct.pack("!I", circuit_id))
 
     @call_on_reactor_thread
+    #TODO dslist = download seed list or so?
     def monitor_downloads(self, dslist):
         # Monitor downloads with anonymous flag set, and build rendezvous/introduction points when needed.
         new_states = {}
         hops = {}
 
+        # TODO what does ds stand for?
         for ds in dslist:
             download = ds.get_download()
             if download.get_hops() > 0:
@@ -453,7 +455,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
                     pex_peer_sock, pex_peer_key = pex_peer
                     self.infohash_pex[cache.info_hash].add((pex_peer_sock, pex_peer_key))
 
-                # Initate end-to-end circuits for all known peers in the pex list
+                # Initiate end-to-end circuits for all known peers in the pex list
                 for peer in self.infohash_pex[cache.info_hash]:
                     peer_sock, peer_key = peer
                     if cache.info_hash not in self.infohash_ip_circuits:
@@ -739,4 +741,4 @@ class HiddenTunnelCommunity(TunnelCommunity):
             self.tunnel_logger.error("Need a Tribler session to announce to the DHT")
 
     def get_lookup_info_hash(self, info_hash):
-        return hashlib.sha1('tribler anonymous download' + info_hash.encode('hex')).digest()
+        return hashlib.sha1("tribler anonymous download" + info_hash.encode('hex')).digest()

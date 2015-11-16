@@ -371,7 +371,7 @@ def main(argv):
 
     settings = TunnelSettings()
 
-    # For disbling anonymous downloading, limiting download to hidden services only
+    # For disabling anonymous downloading, limiting download to hidden services only
     settings.min_circuits = 0
     settings.max_circuits = 0
 
