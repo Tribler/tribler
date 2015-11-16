@@ -33,19 +33,25 @@
 #
 
 # Code:
+
+"""
+This file contains code to determine the installation directory of Tribler.
+"""
 import os.path
 import sys
 
 
-# This function is used from tribler.py too, but can't be there as tribler.py
-# gets frozen into an exe on windows.
 def determine_install_dir():
-    # Niels, 2011-03-03: Working dir sometimes set to a browsers working dir
-    # only seen on windows
+    """
+    This function is used from tribler.py too, but can't be there as tribler.py
+    gets frozen into an exe on windows.
+    Niels, 2011-03-03: Working dir sometimes set to a browsers working dir
+    only seen on windows
 
-    # apply trick to obtain the executable location
-    # see http://www.py2exe.org/index.cgi/WhereAmI
-    # Niels, 2012-01-31: py2exe should only apply to windows
+    Apply trick to obtain the executable location
+    see http://www.py2exe.org/index.cgi/WhereAmI
+    Niels, 2012-01-31: py2exe should only apply to windows
+    """
 
     # TODO(emilon): tribler_main.py is not frozen, so I think the special
     # treatment for windows could be removed (Needs to be tested)

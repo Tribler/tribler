@@ -41,24 +41,28 @@
 
 # Code:
 
+"""
+Contains code to run Tribler from a .exe (used on Windows).
+"""
+
 import ctypes
 import os
 import sys
 
 
 # From: https://measureofchaos.wordpress.com/2011/03/04/python-on-windows-unicode-environment-variables/
-def getEnvironmentVariable(name):
+def get_environment_variable(name):
     """Get the unicode version of the value of an environment variable
     """
-    n = ctypes.windll.kernel32.GetEnvironmentVariableW(name, None, 0)
-    if n == 0:
+    env_variable = ctypes.windll.kernel32.GetEnvironmentVariableW(name, None, 0)
+    if env_variable == 0:
         return None
-    buf = ctypes.create_unicode_buffer(u'\0' * n)
-    ctypes.windll.kernel32.GetEnvironmentVariableW(name, buf, n)
+    buf = ctypes.create_unicode_buffer(u'\0' * env_variable)
+    ctypes.windll.kernel32.GetEnvironmentVariableW(name, buf, env_variable)
     return buf.value
 
-LOG_PATH = os.path.join(getEnvironmentVariable(u"APPDATA"), u"Tribler.exe.log")
-OLD_LOG_PATH = os.path.join(getEnvironmentVariable(u"APPDATA"), u"Tribler.exe.old.log")
+LOG_PATH = os.path.join(get_environment_variable(u"APPDATA"), u"Tribler.exe.log")
+OLD_LOG_PATH = os.path.join(get_environment_variable(u"APPDATA"), u"Tribler.exe.old.log")
 
 if os.path.exists(OLD_LOG_PATH):
     try:

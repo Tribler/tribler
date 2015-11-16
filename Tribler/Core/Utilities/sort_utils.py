@@ -1,3 +1,7 @@
+"""
+This file contains various utilities used for sorting objects.
+"""
+
 from math import sqrt
 
 
