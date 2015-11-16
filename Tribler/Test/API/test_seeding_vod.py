@@ -4,7 +4,7 @@
 import sys
 import threading
 from Tribler.Test.API.test_seeding import TestSeeding
-from Tribler.Core.simpledefs import dlstatus_strings, DLMODE_VOD
+from Tribler.Core.simpledefs import DLSTATUS_STRINGS, DLMODE_VOD
 
 
 class TestVODSeeding(TestSeeding):
@@ -28,7 +28,7 @@ class TestVODSeeding(TestSeeding):
     def downloader_state_callback(self, ds):
         d = ds.get_download()
         self._logger.debug("download: %s %s %s %s", repr(d.get_def().get_name()),
-                           dlstatus_strings[ds.get_status()], ds.get_progress(),
+                           DLSTATUS_STRINGS[ds.get_status()], ds.get_progress(),
                            ds.get_vod_prebuffering_progress())
 
         if ds.get_progress() > 0:

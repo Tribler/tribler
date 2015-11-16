@@ -15,7 +15,7 @@ from btconn import BTConnection
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 
-from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING
+from Tribler.Core.simpledefs import DLSTATUS_STRINGS, DLSTATUS_SEEDING
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from unittest.case import skip
 
@@ -296,7 +296,7 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
 
         d = ds.get_download()
         self._logger.debug("seeder: %s %s %s", repr(d.get_def().get_name()),
-                           dlstatus_strings[ds.get_status()], ds.get_progress())
+                           DLSTATUS_STRINGS[ds.get_status()], ds.get_progress())
         return 1.0, False
 
     def test_good_request(self):

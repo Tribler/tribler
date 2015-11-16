@@ -62,7 +62,7 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
                                      NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED, NTFY_MARKINGS,
                                      NTFY_MODERATIONS, NTFY_MODIFICATIONS, NTFY_MODIFIED, NTFY_MYPREFERENCES,
                                      NTFY_PLAYLISTS, NTFY_REACHABLE, NTFY_STARTED, NTFY_STATE, NTFY_TORRENTS,
-                                     NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings)
+                                     NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, DLSTATUS_STRINGS)
 from Tribler.Core.version import commit_id, version_id
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
@@ -569,7 +569,7 @@ class ABCApp(object):
                     self._logger.debug(
                         "%s %s %.1f%% dl %.1f ul %.1f n %d",
                         safename,
-                        dlstatus_strings[ds.get_status()],
+                        DLSTATUS_STRINGS[ds.get_status()],
                         100.0 * ds.get_progress(),
                         ds.get_current_speed(DOWNLOAD),
                         ds.get_current_speed(UPLOAD),

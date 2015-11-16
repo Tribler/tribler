@@ -9,7 +9,7 @@ import atexit
 
 import wx
 
-from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING, NTFY_ACT_NEW_VERSION
+from Tribler.Core.simpledefs import DLSTATUS_STRINGS, DLSTATUS_SEEDING, NTFY_ACT_NEW_VERSION
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.TorrentDef import TorrentDef
 
@@ -175,7 +175,7 @@ def _upgradeVersion(self, my_version, latest_version, info):
                 Called every n seconds with an update on the
                 .torrent download that we need to upgrade
                 """
-                self._logger.debug("-- State: %s %s", dlstatus_strings[state.get_status()], state.get_progress())
+                self._logger.debug("-- State: %s %s", DLSTATUS_STRINGS[state.get_status()], state.get_progress())
                 # todo: does DLSTATUS_STOPPED mean it has completely downloaded?
                 if state.get_status() == DLSTATUS_SEEDING:
                     self.shutdown_and_upgrade_notes = notes

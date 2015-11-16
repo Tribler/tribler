@@ -1,3 +1,7 @@
+"""
+Contains the implementation of DelaymessageReqChannelMessage.
+"""
+
 from Tribler.dispersy.message import DelayMessage
 from Tribler.community.channel.community import ChannelCommunity
 
@@ -8,7 +12,7 @@ class DelayMessageReqChannelMessage(DelayMessage):
     Raised during ChannelCommunity.check_ if the channel message has not been received yet.
     """
 
-    def __init__(self, delayed, channel_community, includeSnapshot=False):
+    def __init__(self, delayed, channel_community, include_snapshot=False):
         super(DelayMessageReqChannelMessage, self).__init__(delayed)
         if __debug__:
             from Tribler.dispersy.message import Message
@@ -16,7 +20,7 @@ class DelayMessageReqChannelMessage(DelayMessage):
             assert isinstance(channel_community, ChannelCommunity), type(channel_community)
 
         self._channel_community = channel_community
-        self._includeSnapshot = includeSnapshot
+        self.include_snapshot = include_snapshot
 
     @property
     def match_info(self):
@@ -25,4 +29,4 @@ class DelayMessageReqChannelMessage(DelayMessage):
 
     def send_request(self, community, candidate):
         # the request is sent from within the channel_community
-        self._channel_community.disp_create_missing_channel(candidate, self._includeSnapshot)
+        self._channel_community.disp_create_missing_channel(candidate, self.include_snapshot)

@@ -11,7 +11,7 @@ from M2Crypto import Rand
 from threading import Event
 
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Core.simpledefs import dlstatus_strings, UPLOAD, DOWNLOAD, DLMODE_VOD
+from Tribler.Core.simpledefs import DLSTATUS_STRINGS, UPLOAD, DOWNLOAD, DLMODE_VOD
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
@@ -65,7 +65,7 @@ class TestVideoOnDemand(TestAsServer):
         d = ds.get_download()
         self._logger.debug('%s %s %5.2f%% %s up %8.2fKB/s down %8.2fKB/s',
                            d.get_def().get_name(),
-                           dlstatus_strings[ds.get_status()],
+                           DLSTATUS_STRINGS[ds.get_status()],
                            ds.get_progress() * 100,
                            ds.get_error(),
                            ds.get_current_speed(UPLOAD),

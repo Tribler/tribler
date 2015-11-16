@@ -1,6 +1,10 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 
+"""
+This file contains some constants used by the video playback in Tribler.
+"""
+
 PLAYBACKMODE_INTERNAL = 0
 PLAYBACKMODE_EXTERNAL_DEFAULT = 1
 PLAYBACKMODE_EXTERNAL_MIME = 2

@@ -1,3 +1,7 @@
+"""
+Contains the implementation of the PreviewChannelCommunity.
+"""
+
 from Tribler.community.channel.community import ChannelCommunity
 from time import time
 

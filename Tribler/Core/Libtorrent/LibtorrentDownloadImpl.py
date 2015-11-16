@@ -18,7 +18,7 @@ from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.simpledefs import (DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_METADATA,
                                      DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE,
                                      DLSTATUS_CIRCUITS, DLSTATUS_STOPPED, DLMODE_VOD, DLSTATUS_STOPPED_ON_ERROR,
-                                     UPLOAD, DOWNLOAD, DLMODE_NORMAL, PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings)
+                                     UPLOAD, DOWNLOAD, DLMODE_NORMAL, PERSISTENTSTATE_CURRENTVERSION, DLSTATUS_STRINGS)
 
 
 if sys.platform == "win32":
@@ -976,7 +976,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         pstate.set('state', 'dlstate', dlstate)
 
         self._logger.debug("LibtorrentDownloadImpl: network_get_persistent_state: status %s progress %s",
-                           dlstatus_strings[ds.get_status()], ds.get_progress())
+                           DLSTATUS_STRINGS[ds.get_status()], ds.get_progress())
 
         pstate.set('state', 'engineresumedata', None)
         return pstate

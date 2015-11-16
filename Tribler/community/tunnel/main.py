@@ -24,7 +24,7 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
 import logging.config
-from Tribler.Core.simpledefs import dlstatus_strings
+from Tribler.Core.simpledefs import DLSTATUS_STRINGS
 from Tribler.dispersy.candidate import Candidate
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger('TunnelMain')
@@ -313,7 +313,7 @@ class LineHandler(LineReceiver):
                                 (tdef.get_infohash().encode('hex')[:10],
                                  ds.get_current_speed('down'),
                                  ds.get_progress(),
-                                 dlstatus_strings[ds.get_status()],
+                                 DLSTATUS_STRINGS[ds.get_status()],
                                  sum(ds.get_num_seeds_peers()),
                                  sum(1 for _ in anon_tunnel.community.dispersy_yield_verified_candidates())))
                     return 1.0, False
