@@ -179,10 +179,9 @@ class TestMultiChainCommunity(DispersyTestFunc):
         """
         node, other = self.create_nodes(2)
         other.send_identity(node)
-        target = other.my_candidate
-        target.associate(other.my_pub_member)
+        target_other = self._create_target(node, other)
         # Act
-        result = node.call(node.community.publish_signature_request_message, target, 5, 5)
+        result = node.call(node.community.publish_signature_request_message, target_other, 5, 5)
         # Assert
         message = other.receive_message(names=[u"dispersy-signature-request"]).next()
         self.assertTrue(message)
@@ -194,12 +193,11 @@ class TestMultiChainCommunity(DispersyTestFunc):
         """
         node, other = self.create_nodes(2)
         other.send_identity(node)
-        target = other.my_candidate
-        target.associate(other.my_pub_member)
+        target_other = self._create_target(node, other)
         """ Set the chain exclusion. """
         node.community.chain_exclusion_flag = True
         # Act
-        result = node.call(node.community.publish_signature_request_message, target, 5, 5)
+        result = node.call(node.community.publish_signature_request_message, target_other, 5, 5)
         # Assert
         messages = other.receive_message(names=[u"dispersy-signature-request"])
         self.assertFalse(next(messages, False))
@@ -212,12 +210,10 @@ class TestMultiChainCommunity(DispersyTestFunc):
         # Arrange
         node, other = self.create_nodes(2)
         other.send_identity(node)
+        target_other = self._create_target(node, other)
         """ Set the chain exclusion. """
         other.community.chain_exclusion_flag = True
-
-        target = other.my_candidate
-        target.associate(other.my_pub_member)
-        node.call(node.community.publish_signature_request_message, target, 5, 5)
+        node.call(node.community.publish_signature_request_message, target_other, 5, 5)
         # Ignore source, as it is a Candidate. We need to use DebugNodes in test.
         _, signature_request = other.receive_message(names=[u"dispersy-signature-request"]).next()
         # Act
@@ -235,10 +231,9 @@ class TestMultiChainCommunity(DispersyTestFunc):
         # Arrange
         node, other = self.create_nodes(2)
         other.send_identity(node)
+        target_other = self._create_target(node, other)
 
-        target = other.my_candidate
-        target.associate(other.my_pub_member)
-        node.call(node.community.publish_signature_request_message, target, 5, 5)
+        node.call(node.community.publish_signature_request_message, target_other, 5, 5)
         # Ignore source, as it is a Candidate. We need to use DebugNodes in test.
         _, signature_request = other.receive_message(names=[u"dispersy-signature-request"]).next()
         # Act
@@ -260,11 +255,9 @@ class TestMultiChainCommunity(DispersyTestFunc):
         # Arrange
         node, other = self.create_nodes(2)
         other.send_identity(node)
-
-        target = other.my_candidate
-        target.associate(other.my_pub_member)
+        target_other = self._create_target(node, other)
         # Act
-        node.call(node.community.publish_signature_request_message, target, 5, 5)
+        node.call(node.community.publish_signature_request_message, target_other, 5, 5)
         """" Wait for the timeout. """
         time.sleep(MultiChainCommunity.signature_request_timeout + 2)
         # Assert
@@ -282,16 +275,17 @@ class TestMultiChainCommunity(DispersyTestFunc):
         other.send_identity(crawler)
         node.send_identity(crawler)
 
-        target = other.my_candidate
-        target.associate(other.my_pub_member)
-        node.call(node.community.publish_signature_request_message, target, 5, 5)
+        target_other_from_node = self._create_target(node, other)
+        target_other_from_crawler = self._create_target(crawler, other)
+
+        node.call(node.community.publish_signature_request_message, target_other_from_node, 5, 5)
         """ Create a block"""
         _, signature_request = other.receive_message(names=[u"dispersy-signature-request"]).next()
         other.give_message(signature_request, node)
         _, signature_response = node.receive_message(names=[u"dispersy-signature-response"]).next()
         node.give_message(signature_response, node)
         # Act
-        crawler.call(crawler.community.publish_request_block_message, target)
+        crawler.call(crawler.community.publish_request_block_message, target_other_from_crawler)
         _, block_request = other.receive_message(names=[BLOCK_REQUEST]).next()
         other.give_message(block_request, crawler)
         _, block_response = crawler.receive_message(names=[BLOCK_RESPONSE]).next()
@@ -307,9 +301,8 @@ class TestMultiChainCommunity(DispersyTestFunc):
         other.send_identity(node)
         up_previous, down_previous = 5, 5
 
-        target = other.my_candidate
-        target.associate(other.my_pub_member)
-        node.call(node.community.publish_signature_request_message, target, up_previous, down_previous)
+        target_other = self._create_target(node, other)
+        node.call(node.community.publish_signature_request_message, target_other, up_previous, down_previous)
         """ Create a block"""
         _, signature_request = other.receive_message(names=[u"dispersy-signature-request"]).next()
         other.give_message(signature_request, node)
@@ -342,16 +335,16 @@ class TestMultiChainCommunity(DispersyTestFunc):
         other.send_identity(crawler)
         node.send_identity(crawler)
 
-        target = other.my_candidate
-        target.associate(other.my_pub_member)
-        node.call(node.community.publish_signature_request_message, target, 5, 5)
+        target_other_from_node = self._create_target(node, other)
+        target_other_from_crawler = self._create_target(crawler, other)
+        node.call(node.community.publish_signature_request_message, target_other_from_node, 5, 5)
         """ Create a block"""
         _, signature_request = other.receive_message(names=[u"dispersy-signature-request"]).next()
         other.give_message(signature_request, node)
         _, signature_response = node.receive_message(names=[u"dispersy-signature-response"]).next()
         node.give_message(signature_response, node)
         # Act
-        crawler.call(crawler.community.publish_request_block_message, target, 0)
+        crawler.call(crawler.community.publish_request_block_message, target_other_from_crawler, 0)
         _, block_request = other.receive_message(names=[BLOCK_REQUEST]).next()
         other.give_message(block_request, crawler)
         _, block_response = crawler.receive_message(names=[BLOCK_RESPONSE]).next()
@@ -368,9 +361,9 @@ class TestMultiChainCommunity(DispersyTestFunc):
         # Arrange
         node, crawler = self.create_nodes(2)
         node.send_identity(crawler)
-        target = node.my_candidate
+        target_node = self._create_target(crawler, node)
         # Act
-        crawler.call(crawler.community.publish_request_block_message, target)
+        crawler.call(crawler.community.publish_request_block_message, target_node)
         _, block_request = node.receive_message(names=[BLOCK_REQUEST]).next()
         node.give_message(block_request, crawler)
 
@@ -388,26 +381,25 @@ class TestMultiChainCommunity(DispersyTestFunc):
         other.send_identity(crawler)
         node.send_identity(crawler)
 
-        target_other = other.my_candidate
-        target_other.associate(other.my_pub_member)
-        node.call(node.community.publish_signature_request_message, target_other, 5, 5)
+        target_other_from_node = self._create_target(node, other)
+        target_other_from_crawler = self._create_target(crawler, other)
+        target_node_from_crawler = self._create_target(crawler, node)
+        node.call(node.community.publish_signature_request_message, target_other_from_node, 5, 5)
         """ Create a block"""
         _, signature_request = other.receive_message(names=[u"dispersy-signature-request"]).next()
         other.give_message(signature_request, node)
         _, signature_response = node.receive_message(names=[u"dispersy-signature-response"]).next()
         node.give_message(signature_response, node)
         """ Request the block"""
-        crawler.call(crawler.community.publish_request_block_message, target_other)
+        crawler.call(crawler.community.publish_request_block_message, target_other_from_crawler)
         _, block_request = other.receive_message(names=[BLOCK_REQUEST]).next()
         other.give_message(block_request, crawler)
         _, block_response = crawler.receive_message(names=[BLOCK_RESPONSE]).next()
         crawler.give_message(block_response, other)
 
-        target_node = node.my_candidate
-        target_node.associate(node.my_pub_member)
         # Act
         """ Request the same block."""
-        crawler.call(crawler.community.publish_request_block_message, target_node)
+        crawler.call(crawler.community.publish_request_block_message, target_node_from_crawler)
         _, block_request = node.receive_message(names=[BLOCK_REQUEST]).next()
         node.give_message(block_request, crawler)
         _, block_response = crawler.receive_message(names=[BLOCK_RESPONSE]).next()
@@ -433,3 +425,9 @@ class TestMultiChainCommunity(DispersyTestFunc):
 
     def _create_node(self, dispersy, community_class, c_master_member):
         return DebugNode(self, dispersy, community_class, c_master_member, curve=u"curve25519")
+
+    @blocking_call_on_reactor_thread
+    def _create_target(self, source, destination):
+        target = destination.my_candidate
+        target.associate(source._dispersy.get_member(public_key=destination.my_pub_member.public_key))
+        return target
