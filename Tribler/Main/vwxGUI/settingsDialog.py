@@ -651,7 +651,7 @@ class SettingsDialog(wx.Dialog):
 
         # Web UI
         exp_s1_sizer = create_subsection(exp_panel, exp_vsizer, "Web UI", 2, 3)
-        self._use_webui = wx.CheckBox(exp_panel, label="Enable webUI")
+        self._use_webui = wx.CheckBox(exp_panel, label="Enable WebUI")
         exp_s1_sizer.Add(self._use_webui, 0, wx.EXPAND)
         exp_s1_sizer.AddStretchSpacer()
 
@@ -660,7 +660,7 @@ class SettingsDialog(wx.Dialog):
         exp_s1_sizer.Add(self._webui_port, 0, wx.EXPAND)
 
         exp_s1_faq_text = wx.StaticText(
-            exp_panel, label="The Tribler webUI implements the same API as uTorrent.\nThus all uTorrent remotes are compatible with it.\n\nFurthermore, we additionally allow you to control Tribler\nusing your Browser. Go to http://localhost:PORT/gui to\nview your downloads in the browser.")
+            exp_panel, label="The Tribler WebUI implements the same API as uTorrent.\nThus all uTorrent remotes are compatible with it.\n\nFurthermore, we additionally allow you to control Tribler\nusing your Browser. Go to http://localhost:PORT/gui to\nview your downloads in the browser.")
         exp_vsizer.Add(exp_s1_faq_text, 0, wx.EXPAND | wx.TOP, 10)
 
         # Emercoin

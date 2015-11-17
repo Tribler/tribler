@@ -35,7 +35,6 @@
 # Code:
 from collections import MutableMapping
 from itertools import chain
-import sys
 import os
 
 try:
@@ -45,7 +44,7 @@ try:
         return WriteBatch()
 
 except ImportError:
-    from plyveladapter import LevelDB, WriteBatch
+    from Tribler.Core.plyveladapter import LevelDB, WriteBatch
 
     def get_write_batch(db):
         return WriteBatch(db)
@@ -120,8 +119,8 @@ class LevelDbStore(MutableMapping, TaskManager):
     def iteritems(self):
         return chain(self._pending_torrents, self._db.RangeIter())
 
-    def put(self, k, v):
-        self.__setitem__(k, v)
+    def put(self, key, value):
+        self.__setitem__(key, value)
 
     def rangescan(self, start=None, end=None):
         if start is None and end is None:
@@ -134,8 +133,8 @@ class LevelDbStore(MutableMapping, TaskManager):
     def flush(self):
         if self._pending_torrents:
             write_batch = get_write_batch(self._db)
-            for k, v in self._pending_torrents.iteritems():
-                write_batch.Put(k, v)
+            for key, value in self._pending_torrents.iteritems():
+                write_batch.Put(key, value)
             self._pending_torrents.clear()
             return self._db.Write(write_batch)
 

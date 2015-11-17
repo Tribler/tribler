@@ -12,6 +12,7 @@
 /.noseids
 /.project
 /.pydevproject
+.idea/*
 /TAGS
 /bootstraptribler.txt
 /core

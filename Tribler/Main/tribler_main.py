@@ -274,7 +274,7 @@ class ABCApp(object):
             self.webUI = None
             if self.utility.read_config('use_webui'):
                 try:
-                    from Tribler.Main.webUI.webUI import WebUI
+                    from Tribler.Main.WebUI.webUI import WebUI
                     self.webUI = WebUI.getInstance(self.guiUtility.library_manager,
                                                    self.guiUtility.torrentsearch_manager,
                                                    self.utility.read_config('webui_port'))
