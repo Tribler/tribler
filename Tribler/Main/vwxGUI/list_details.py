@@ -1480,8 +1480,6 @@ class ChannelDetails(AbstractDetails):
         self.detailsTab.SetBackgroundColour(wx.WHITE)
 
         fgSizer = wx.FlexGridSizer(0, 2, 3, 10)
-        fgSizer.AddGrowableCol(1)
-        fgSizer.AddGrowableRow(6)
 
         titles = ['Name', 'Description', 'Torrents', 'Latest update', 'Favorite votes']
         for title in titles:
@@ -1490,6 +1488,9 @@ class ChannelDetails(AbstractDetails):
             control2_name = title.lower().replace(' ', '')
             setattr(self, control1_name, control1)
             setattr(self, control2_name, control2)
+
+        fgSizer.AddGrowableCol(1)
+        fgSizer.AddGrowableRow(4)
 
         self.detailsSizer.Add(fgSizer, 1, wx.EXPAND)
         self.detailsTab.Layout()
@@ -1571,8 +1572,6 @@ class PlaylistDetails(AbstractDetails):
         self.detailsTab.SetBackgroundColour(wx.WHITE)
 
         fgSizer = wx.FlexGridSizer(0, 2, 3, 10)
-        fgSizer.AddGrowableCol(1)
-        fgSizer.AddGrowableRow(6)
 
         titles = ['Name', 'Description', 'Torrents']
         for title in titles:
@@ -1601,6 +1600,10 @@ class PlaylistDetails(AbstractDetails):
         tSizer.Add(self.thumbnails, 0, wx.ALIGN_RIGHT | wx.ALIGN_TOP | wx.EXPAND)
         self.detailsSizer.Add(tSizer, 1, wx.EXPAND)
         self.thumbnails.Show(False)
+
+        fgSizer.AddGrowableCol(1)
+        fgSizer.AddGrowableRow(2)
+
         self.detailsTab.Layout()
 
         self.Thaw()

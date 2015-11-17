@@ -47,7 +47,7 @@ try:
     # in the windows and mac distribution, there may be no version available.
     # so select a version only when there is any available.
     if wxversion.getInstalled():
-        wxversion.select("2.8-unicode")
+        wxversion.select("3.0-osx_cocoa")
 except wxversion.VersionError:
     logger.exception("Unable to use wxversion installed wxversions: %s", repr(wxversion.getInstalled()))
 

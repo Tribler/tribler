@@ -77,7 +77,7 @@ Now installing the list of dependencies should no longer throw an error.
 
 #### Windows and OSX
 
-Tribler runs on Windows and OSX, but development is only supported on Linux.
+Tribler runs on Windows and OSX, but development is only supported on Linux and OSX. A guide on setting up the development environment for OSX can be found [here](https://github.com/Tribler/tribler/wiki/Setting-up-a-development-environment-on-Mac-OS-X).
 
 ### Running Tribler from this repository
 #### Unix
@@ -102,7 +102,7 @@ cd tribler
 ```
 #### Windows
 
-Tribler runs on Windows and OSX, but development is only supported on Linux.
+Tribler runs on Windows and OSX, but development is only supported on Linux and OSX.
 
 ## Packaging Tribler
 
