@@ -673,7 +673,7 @@ class TunnelCommunity(Community):
         return self.send_packet(candidates, message_type, packet)
 
     def send_data(self, candidates, message_type, packet):
-        circuit_id, _, _, _ = TunnelConversion.decode_data(packet)
+        circuit_id = TunnelConversion.get_circuit_id(packet, message_type)
 
         plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
         try:
