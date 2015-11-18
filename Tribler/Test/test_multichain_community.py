@@ -222,6 +222,7 @@ class TestMultiChainCommunity(DispersyTestFunc):
     """
     Class that tests the MultiChainCommunity on an integration level.
     """
+    """ This test class only runs if there is another testcase in this file."""
 
     def test_publish_signature_request_message(self):
         """
