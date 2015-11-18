@@ -38,7 +38,10 @@ class MultiChainScheduler:
     This is a very simple version that should be expanded in the future.
     """
     """ The amount of bytes that the Scheduler will be altruistic about and allows to be outstanding. """
-    threshold = 5000
+    # 5MB
+    threshold = 5000000
+    """" Divide by this to convert from bytes to MegaBytes. """
+    mega_divider = 100000
 
     def __init__(self, community):
         """
@@ -58,26 +61,11 @@ class MultiChainScheduler:
         :param amount_send: amount of bytes send to the peer.
         :return: None
         """
-        self._community.logger.debug("Updating amount send for: %s" % peer[0])
+        self._community.logger.debug("Updating amount send for: %s amount:%s" % (peer[0], str(amount_send)))
         total_amount_send = self._outstanding_amount_send.get(peer, 0) + amount_send
         self._outstanding_amount_send[peer] = total_amount_send
         if total_amount_send >= self.threshold:
-            candidate = self._community.get_candidate(peer)
-            if candidate and candidate.get_member():
-                total_amount_received = self._outstanding_amount_received.get(peer, 0)
-                """ Convert to MB """
-                total_amount_sent_mb = total_amount_send / 1000
-                total_amount_received_mb = total_amount_received / 1000
-                """ Try to sent the request """
-                request_sent = self._community. \
-                    publish_signature_request_message(candidate, total_amount_sent_mb, total_amount_received_mb)
-                if request_sent:
-                    """ Reset the outstanding amounts and send a signature request for the outstanding amount"""
-                    self._outstanding_amount_send[peer] = 0
-                    self._outstanding_amount_received[peer] = 0
-            else:
-                self._community.logger.debug(
-                    "No valid candidate found for: %s:%s to request block from." % (peer[0], peer[1]))
+            self.schedule_block(peer)
 
     def update_amount_received(self, peer, amount_received):
         """
@@ -89,6 +77,29 @@ class MultiChainScheduler:
         self._community.logger.debug("Updating amount received for: %s" % peer[0])
         self._outstanding_amount_received[peer] = self._outstanding_amount_received.get(peer, 0) + amount_received
         # TODO this amount received has to be checked in the future when signature_requests come in.
+
+    def schedule_block(self, peer):
+        """
+        Schedule a block for the current outstanding amounts
+        """
+        candidate = self._community.get_candidate(peer)
+        if candidate and candidate.get_member():
+            total_amount_send = self._outstanding_amount_send.get(peer, 0)
+            total_amount_received = self._outstanding_amount_received.get(peer, 0)
+            """ Convert to MB """
+            total_amount_sent_mb = total_amount_send / self.mega_divider
+            total_amount_received_mb = total_amount_received / self.mega_divider
+            """ Try to sent the request """
+            request_sent = self._community. \
+                publish_signature_request_message(candidate, total_amount_sent_mb, total_amount_received_mb)
+            if request_sent:
+                """ Reset the outstanding amounts to the remainder
+                and send a signature request for the outstanding amount"""
+                self._outstanding_amount_send[peer] = total_amount_send % self.mega_divider
+                self._outstanding_amount_received[peer] = total_amount_received % self.mega_divider
+        else:
+            self._community.logger.warn(
+                "No valid candidate found for: %s:%s to request block from." % (peer[0], peer[1]))
 
 
 class MultiChainCommunity(Community):
