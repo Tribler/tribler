@@ -1237,7 +1237,6 @@ class TunnelCommunity(Community):
                                            self.relay_session_keys[circuit_id][EXIT_NODE],
                                            self.relay_session_keys[circuit_id][EXIT_NODE_SALT])
 
-        # TODO How is this related to crypto?
         raise CryptoException("Received message for unknown circuit ID: %d" % circuit_id)
 
     def crypto_relay(self, circuit_id, content):
