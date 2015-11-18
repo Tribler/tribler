@@ -675,13 +675,13 @@ class TunnelCommunity(Community):
     def send_data(self, candidates, message_type, packet):
         circuit_id = TunnelConversion.get_circuit_id(packet, message_type)
 
-        plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
+        plaintext, unencrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
         try:
-            decrypted = self.crypto_out(circuit_id, encrypted, is_data=True)
+            encrypted = self.crypto_out(circuit_id, unencrypted, is_data=True)
         except CryptoException, e:
             self.tunnel_logger.error(str(e))
             return 0
-        packet = plaintext + decrypted
+        packet = plaintext + encrypted
         return self.send_packet(candidates, u'data', packet)
 
     def send_packet(self, candidates, message_type, packet):
