@@ -51,6 +51,8 @@ class TestMultiChainScheduler(BaseTestCase):
             self.signature_requested = False
             self.candidate = candidate
             self.publish_success = True
+            self.up = None
+            self.down = None
             return
 
         def get_candidate(self, peer):
@@ -58,6 +60,8 @@ class TestMultiChainScheduler(BaseTestCase):
 
         def publish_signature_request_message(self, candidate,  up, down):
             self.signature_requested = True
+            self.up = up
+            self.down = down
             return self.publish_success
 
     def setUp(self, annotate=True):
@@ -103,13 +107,26 @@ class TestMultiChainScheduler(BaseTestCase):
         The scheduler schedules a signature request if the amount is above the threshold.
         """
         # Arrange
-        amount = self.data_threshold + 10
+        amount = self.data_threshold + 1000000
         # Act
         self.scheduler.update_amount_send(self.peer1, amount)
         # Assert
-        """ No amount should be left open """
+        """ No amount should be left open. """
         self.assertEqual(0, self.scheduler._outstanding_amount_send[self.peer1])
         self.assertTrue(self.community.signature_requested)
+
+    def test_update_amount_send_remainder(self):
+        """
+        The scheduler should remember a remainder after converting to MB.
+        """
+        # Arrange
+        remainder = 250
+        amount = self.data_threshold + remainder
+        # Act
+        self.scheduler.update_amount_send(self.peer1, amount)
+        # Assert
+        """ The remainder should be left open. """
+        self.assertEqual(remainder, self.scheduler._outstanding_amount_send[self.peer1])
 
     def test_update_amount_send_failed(self):
         """
@@ -164,14 +181,47 @@ class TestMultiChainScheduler(BaseTestCase):
         self.assertEqual(amount, self.scheduler._outstanding_amount_received[self.peer1])
         self.assertFalse(self.community.signature_requested)
 
+    def test_schedule_block(self):
+        """
+        The scheduler can schedule a block.
+        """
+        # Arrange
+        sent = 5
+        received = 5
+        self.scheduler.update_amount_send(self.peer1, sent * MultiChainScheduler.mega_divider)
+        self.scheduler.update_amount_received(self.peer1, received * MultiChainScheduler.mega_divider)
+        # Act
+        self.scheduler.schedule_block(self.peer1)
+        # Assert
+        self.assertTrue(self.community.signature_requested)
+        self.assertEqual(sent, self.community.up)
+        self.assertEqual(received, self.community.down)
+        self.assertEqual(0, self.scheduler._outstanding_amount_received[self.peer1])
+        self.assertEqual(0, self.scheduler._outstanding_amount_send[self.peer1])
+
+    def test_schedule_block_negative(self):
+        """
+        The scheduler can deal with if a block cannot be sent.
+        """
+        # Arrange
+        sent = 5
+        received = 5
+        self.scheduler.update_amount_send(self.peer1, sent * MultiChainScheduler.mega_divider)
+        self.scheduler.update_amount_received(self.peer1, received * MultiChainScheduler.mega_divider)
+        self.community.publish_success = False
+        # Act
+        self.scheduler.schedule_block(self.peer1)
+        # Assert
+        self.assertEqual(sent * MultiChainScheduler.mega_divider,
+                         self.scheduler._outstanding_amount_received[self.peer1])
+        self.assertEqual(received * MultiChainScheduler.mega_divider,
+                         self.scheduler._outstanding_amount_send[self.peer1])
+
 
 class TestMultiChainCommunity(DispersyTestFunc):
     """
     Class that tests the MultiChainCommunity on an integration level.
     """
-
-    def __init__(self, *args, **kwargs):
-        super(TestMultiChainCommunity, self).__init__(*args, **kwargs)
 
     def test_publish_signature_request_message(self):
         """
