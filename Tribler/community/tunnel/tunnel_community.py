@@ -920,7 +920,7 @@ class TunnelCommunity(Community):
             self.tunnel_logger.info(
                 'TunnelCommunity: we joined circuit %d with neighbour %s', circuit_id, candidate.sock_addr)
 
-            shared_secret, Y, AUTH = self.crypto.generate_diffie_shared_secret(message.payload.key)
+            shared_secret, y, auth = self.crypto.generate_diffie_shared_secret(message.payload.key)
             self.relay_session_keys[circuit_id] = self.crypto.generate_session_keys(shared_secret)
 
             candidates = {}
@@ -948,7 +948,7 @@ class TunnelCommunity(Community):
 
             candidate_list_enc = self.crypto.encrypt_str(
                 encode(candidates.keys()), *self.get_session_keys(self.relay_session_keys[circuit_id], EXIT_NODE))
-            self.send_cell([candidate], u"created", (circuit_id, Y, AUTH, candidate_list_enc))
+            self.send_cell([candidate], u"created", (circuit_id, y, auth, candidate_list_enc))
 
     def on_created(self, messages):
         for message in messages:

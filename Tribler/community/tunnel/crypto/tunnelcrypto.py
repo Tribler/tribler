@@ -108,6 +108,7 @@ class NoTunnelCrypto(TunnelCrypto):
     def generate_diffie_shared_secret(self, dh_received):
         return '', '', ''
 
+    # TODO delete?
     def verify_and_generate_shared_secret(self, dh_secret, dh_received, auth, B):
         return ''
 
