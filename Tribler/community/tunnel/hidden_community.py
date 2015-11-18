@@ -205,19 +205,19 @@ class HiddenTunnelCommunity(TunnelCommunity):
         return socket.inet_ntoa(struct.pack("!I", circuit_id))
 
     @call_on_reactor_thread
-    def monitor_downloads(self, dslist):
+    def monitor_downloads(self, download_state_list):
         # Monitor downloads with anonymous flag set, and build rendezvous/introduction points when needed.
         new_states = {}
         hops = {}
 
-        for ds in dslist:
-            download = ds.get_download()
+        for download_state in download_state_list:
+            download = download_state.get_download()
             if download.get_hops() > 0:
                 # Convert the real infohash to the infohash used for looking up introduction points
                 real_info_hash = download.get_def().get_infohash()
                 info_hash = self.get_lookup_info_hash(real_info_hash)
                 hops[info_hash] = download.get_hops()
-                new_states[info_hash] = ds.get_status()
+                new_states[info_hash] = download_state.get_status()
 
         self.hops = hops
 
