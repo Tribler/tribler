@@ -252,7 +252,8 @@ class MultiChainCommunity(Community):
             # TODO: Like basic total_up == previous_total_up + block.up or more sophisticated chain checks.
             payload = message.payload
 
-            total_up_responder, total_down_responder = self._get_next_total(payload.up, payload.down)
+            """ The up and down values are reversed for the responder. """
+            total_up_responder, total_down_responder = self._get_next_total(payload.down, payload.up)
             sequence_number_responder = self._get_next_sequence_number()
             previous_hash_responder = self._get_latest_hash()
 

@@ -298,6 +298,30 @@ class TestMultiChainCommunity(DispersyTestFunc):
         self.assertTrue(self.assertBlocksInDatabase(node, 1))
         self.assertTrue(self.assertBlocksAreEqual(node, other))
 
+    def test_block_values(self):
+        """
+        If a block is created between two nodes both
+        should have the correct total_up and total_down of the signature request.
+        """
+        # Arrange
+        node, other = self.create_nodes(2)
+        other.send_identity(node)
+        target_other = self._create_target(node, other)
+
+        node.call(node.community.publish_signature_request_message, target_other, 10, 5)
+        # Ignore source, as it is a Candidate. We need to use DebugNodes in test.
+        _, signature_request = other.receive_message(names=[u"dispersy-signature-request"]).next()
+        # Act
+        other.give_message(signature_request, node)
+        """ Return the response. """
+        # Ignore source, as it is a Candidate. We need to use DebugNodes in test.
+        _, signature_response = node.receive_message(names=[u"dispersy-signature-response"]).next()
+        node.give_message(signature_response, node)
+        # Assert
+        self.assertEqual((10, 5), node.call(node.community._get_next_total, 0, 0))
+        """ The up and down values are reversed for the responder. """
+        self.assertEqual((5, 10), other.call(other.community._get_next_total, 0, 0))
+
     def test_signature_request_timeout(self):
         """"
         Test the community to timeout on a signature request message.
