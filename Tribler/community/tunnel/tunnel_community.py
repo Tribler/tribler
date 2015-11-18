@@ -885,12 +885,12 @@ class TunnelCommunity(Community):
                 plaintext, encrypted = TunnelConversion.split_encrypted_packet(message.packet, message.name)
                 if message.payload.message_type not in [u'create', u'created']:
                     try:
-                        encrypted = self.crypto_in(circuit_id, encrypted)
+                        decrypted = self.crypto_in(circuit_id, encrypted)
                     except CryptoException, e:
                         self.tunnel_logger.warning(str(e))
                         continue
 
-                packet = plaintext + encrypted
+                packet = plaintext + decrypted
 
                 self.dispersy.on_incoming_packets(
                     [(message.candidate, TunnelConversion.convert_from_cell(packet))], False,
@@ -1059,12 +1059,12 @@ class TunnelCommunity(Community):
             plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
 
             try:
-                encrypted = self.crypto_in(circuit_id, encrypted, is_data=True)
+                decrypted = self.crypto_in(circuit_id, encrypted, is_data=True)
             except CryptoException, e:
                 self.tunnel_logger.warning(str(e))
                 return
 
-            packet = plaintext + encrypted
+            packet = plaintext + decrypted
             circuit_id, destination, origin, data = TunnelConversion.decode_data(packet)
 
             if circuit_id in self.circuits and origin and sock_addr == self.circuits[circuit_id].first_hop:
