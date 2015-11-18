@@ -802,7 +802,6 @@ class TunnelCommunity(Community):
                 host, port, pub_key = circuit.required_endpoint
                 extend_hop_public_bin = pub_key
                 extend_hop_addr = (host, port)
-
             else:
                 # The next candidate is chosen from the returned list of possible candidates
                 candidate_list_enc = message.payload.candidate_list
@@ -1238,7 +1237,6 @@ class TunnelCommunity(Community):
                                            self.relay_session_keys[circuit_id][EXIT_NODE],
                                            self.relay_session_keys[circuit_id][EXIT_NODE_SALT])
 
-        # TODO How is this related to crypto?
         raise CryptoException("Received message for unknown circuit ID: %d" % circuit_id)
 
     def crypto_relay(self, circuit_id, content):
