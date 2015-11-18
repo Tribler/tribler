@@ -5,26 +5,21 @@ import os
 import struct
 import socket
 import hashlib
-
 from collections import defaultdict
-
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED,\
-    NTFY_TUNNEL, NTFY_IP_REMOVED, NTFY_RP_REMOVED, NTFY_IP_RECREATE,\
-    NTFY_DHT_LOOKUP, NTFY_KEY_REQUEST, NTFY_KEY_RESPOND, NTFY_KEY_RESPONSE,\
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STOPPED, \
+    NTFY_TUNNEL, NTFY_IP_REMOVED, NTFY_RP_REMOVED, NTFY_IP_RECREATE, \
+    NTFY_DHT_LOOKUP, NTFY_KEY_REQUEST, NTFY_KEY_RESPOND, NTFY_KEY_RESPONSE, \
     NTFY_CREATE_E2E, NTFY_ONCREATED_E2E, NTFY_IP_CREATED, DLSTATUS_DOWNLOADING
 from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 from Tribler.Core.Utilities.encoding import encode, decode
-
 from Tribler.community.tunnel import CIRCUIT_TYPE_IP, CIRCUIT_TYPE_RP, CIRCUIT_TYPE_RENDEZVOUS, \
     EXIT_NODE, EXIT_NODE_SALT, CIRCUIT_ID_PORT
-
 from Tribler.community.tunnel.payload import (EstablishIntroPayload, IntroEstablishedPayload,
                                               EstablishRendezvousPayload, RendezvousEstablishedPayload,
                                               KeyResponsePayload, KeyRequestPayload, CreateE2EPayload,
                                               CreatedE2EPayload, LinkE2EPayload, LinkedE2EPayload,
                                               DHTRequestPayload, DHTResponsePayload)
 from Tribler.community.tunnel.routing import RelayRoute, RendezvousPoint, Hop
-
 from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.destination import CandidateDestination
@@ -39,7 +34,6 @@ import logging
 
 
 class IPRequestCache(RandomNumberCache):
-
     def __init__(self, community, circuit):
         super(IPRequestCache, self).__init__(community.request_cache, u"establish-intro")
         self.tunnel_logger = logging.getLogger('TunnelLogger')
@@ -52,7 +46,6 @@ class IPRequestCache(RandomNumberCache):
 
 
 class RPRequestCache(RandomNumberCache):
-
     def __init__(self, community, rp):
         super(RPRequestCache, self).__init__(community.request_cache, u"establish-rendezvous")
         self.tunnel_logger = logging.getLogger('TunnelLogger')
@@ -66,7 +59,6 @@ class RPRequestCache(RandomNumberCache):
 
 
 class KeyRequestCache(RandomNumberCache):
-
     def __init__(self, community, circuit, sock_addr, info_hash):
         super(KeyRequestCache, self).__init__(community.request_cache, u"key-request")
         self.tunnel_logger = logging.getLogger('TunnelLogger')
@@ -88,7 +80,6 @@ class KeyRequestCache(RandomNumberCache):
 
 
 class DHTRequestCache(RandomNumberCache):
-
     def __init__(self, community, circuit, info_hash):
         super(DHTRequestCache, self).__init__(community.request_cache, u"dht-request")
         self.circuit = circuit
@@ -99,7 +90,6 @@ class DHTRequestCache(RandomNumberCache):
 
 
 class KeyRelayCache(RandomNumberCache):
-
     def __init__(self, community, identifier, sock_addr):
         super(KeyRelayCache, self).__init__(community.request_cache, u"key-request")
         self.identifier = identifier
@@ -110,7 +100,6 @@ class KeyRelayCache(RandomNumberCache):
 
 
 class E2ERequestCache(RandomNumberCache):
-
     def __init__(self, community, info_hash, circuit, hop, sock_addr):
         super(E2ERequestCache, self).__init__(community.request_cache, u"e2e-request")
         self.circuit = circuit
@@ -123,7 +112,6 @@ class E2ERequestCache(RandomNumberCache):
 
 
 class LinkRequestCache(RandomNumberCache):
-
     def __init__(self, community, circuit, info_hash):
         super(LinkRequestCache, self).__init__(community.request_cache, u"link-request")
         self.circuit = circuit
@@ -134,7 +122,6 @@ class LinkRequestCache(RandomNumberCache):
 
 
 class HiddenTunnelCommunity(TunnelCommunity):
-
     def __init__(self, *args, **kwargs):
         super(HiddenTunnelCommunity, self).__init__(*args, **kwargs)
 
@@ -159,42 +146,42 @@ class HiddenTunnelCommunity(TunnelCommunity):
 
     def initiate_meta_messages(self):
         return super(HiddenTunnelCommunity, self).initiate_meta_messages() + \
-            [Message(self, u"dht-request", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                     CandidateDestination(), DHTRequestPayload(), self._generic_timeline_check,
-                     self.on_dht_request),
-             Message(self, u"dht-response", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                     CandidateDestination(), DHTResponsePayload(), self.check_dht_response,
-                     self.on_dht_response),
-             Message(self, u"key-request", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                     CandidateDestination(), KeyRequestPayload(), self.check_key_request,
-                     self.on_key_request),
-             Message(self, u"key-response", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                     CandidateDestination(), KeyResponsePayload(), self.check_key_response,
-                     self.on_key_response),
-             Message(self, u"create-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                     CandidateDestination(), CreateE2EPayload(), self.check_key_request,
-                     self.on_create_e2e),
-             Message(self, u"created-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                     CandidateDestination(), CreatedE2EPayload(), self.check_created_e2e,
-                     self.on_created_e2e),
-             Message(self, u"link-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                     CandidateDestination(), LinkE2EPayload(), self.check_link_e2e,
-                     self.on_link_e2e),
-             Message(self, u"linked-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                     CandidateDestination(), LinkedE2EPayload(), self.check_linked_e2e,
-                     self.on_linked_e2e),
-             Message(self, u"establish-intro", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                     CandidateDestination(), EstablishIntroPayload(), self.check_establish_intro,
-                     self.on_establish_intro),
-             Message(self, u"intro-established", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                     CandidateDestination(), IntroEstablishedPayload(), self.check_intro_established,
-                     self.on_intro_established),
-             Message(self, u"establish-rendezvous", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                     CandidateDestination(), EstablishRendezvousPayload(), self.check_establish_rendezvous,
-                     self.on_establish_rendezvous),
-             Message(self, u"rendezvous-established", NoAuthentication(), PublicResolution(), DirectDistribution(),
-                     CandidateDestination(), RendezvousEstablishedPayload(), self.check_rendezvous_established,
-                     self.on_rendezvous_established)]
+               [Message(self, u"dht-request", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), DHTRequestPayload(), self._generic_timeline_check,
+                        self.on_dht_request),
+                Message(self, u"dht-response", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), DHTResponsePayload(), self.check_dht_response,
+                        self.on_dht_response),
+                Message(self, u"key-request", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), KeyRequestPayload(), self.check_key_request,
+                        self.on_key_request),
+                Message(self, u"key-response", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), KeyResponsePayload(), self.check_key_response,
+                        self.on_key_response),
+                Message(self, u"create-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), CreateE2EPayload(), self.check_key_request,
+                        self.on_create_e2e),
+                Message(self, u"created-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), CreatedE2EPayload(), self.check_created_e2e,
+                        self.on_created_e2e),
+                Message(self, u"link-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), LinkE2EPayload(), self.check_link_e2e,
+                        self.on_link_e2e),
+                Message(self, u"linked-e2e", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), LinkedE2EPayload(), self.check_linked_e2e,
+                        self.on_linked_e2e),
+                Message(self, u"establish-intro", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), EstablishIntroPayload(), self.check_establish_intro,
+                        self.on_establish_intro),
+                Message(self, u"intro-established", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), IntroEstablishedPayload(), self.check_intro_established,
+                        self.on_intro_established),
+                Message(self, u"establish-rendezvous", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), EstablishRendezvousPayload(), self.check_establish_rendezvous,
+                        self.on_establish_rendezvous),
+                Message(self, u"rendezvous-established", NoAuthentication(), PublicResolution(), DirectDistribution(),
+                        CandidateDestination(), RendezvousEstablishedPayload(), self.check_rendezvous_established,
+                        self.on_rendezvous_established)]
 
     def remove_circuit(self, circuit_id, additional_info='', destroy=False):
         super(HiddenTunnelCommunity, self).remove_circuit(circuit_id, additional_info, destroy)
@@ -218,7 +205,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
         return socket.inet_ntoa(struct.pack("!I", circuit_id))
 
     @call_on_reactor_thread
-    #TODO dslist = download seed list or so?
+    # TODO dslist = download seed list or so?
     def monitor_downloads(self, dslist):
         # Monitor downloads with anonymous flag set, and build rendezvous/introduction points when needed.
         new_states = {}
@@ -254,7 +241,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
             time_elapsed = (time.time() - self.last_dht_lookup.get(info_hash, 0))
             force_dht_lookup = time_elapsed >= self.settings.dht_lookup_interval
             if (state_changed or force_dht_lookup) and \
-               (new_state == DLSTATUS_SEEDING or new_state == DLSTATUS_DOWNLOADING):
+                    (new_state == DLSTATUS_SEEDING or new_state == DLSTATUS_DOWNLOADING):
                 self.tunnel_logger.info('Do dht lookup to find hidden services peers for %s' % info_hash.encode('hex'))
                 self.do_dht_lookup(info_hash)
 
@@ -486,7 +473,7 @@ class HiddenTunnelCommunity(TunnelCommunity):
                 self.create_rendezvous_point(self.hops[message.payload.info_hash],
                                              lambda rendezvous_point, message=message:
                                              self.create_created_e2e(rendezvous_point,
-                                             message), message.payload.info_hash)
+                                                                     message), message.payload.info_hash)
 
     def create_created_e2e(self, rendezvous_point, message):
         info_hash = message.payload.info_hash
@@ -538,11 +525,12 @@ class HiddenTunnelCommunity(TunnelCommunity):
             self.create_circuit(self.hops[cache.info_hash] + 1,
                                 CIRCUIT_TYPE_RENDEZVOUS,
                                 callback=lambda circuit, cookie=rp_info[1], session_keys=session_keys,
-                                info_hash=cache.info_hash, sock_addr=cache.sock_addr: self.create_link_e2e(circuit,
-                                                                                                           cookie,
-                                                                                                           session_keys,
-                                                                                                           info_hash,
-                                                                                                           sock_addr),
+                                                info_hash=cache.info_hash,
+                                                sock_addr=cache.sock_addr: self.create_link_e2e(circuit,
+                                                                                                cookie,
+                                                                                                session_keys,
+                                                                                                info_hash,
+                                                                                                sock_addr),
                                 required_endpoint=rp_info[0],
                                 info_hash=cache.info_hash)
 
