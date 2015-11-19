@@ -265,27 +265,28 @@ class SettingsDialog(wx.Dialog):
             except:
                 self._logger.exception("Could not set target")
 
-        seeding_option = self.utility.read_config('seeding_option')
-        for i in range(4):
+        seeding_mode = self.utility.read_config('seeding_mode', 'downloadconfig')
+        for i, mode in enumerate(('ratio', 'forever', 'time', 'never')):
             if getattr(self, '_seeding%d' % i).GetValue():
-                self.utility.write_config('seeding_option', i)
+                self.utility.write_config('seeding_mode', mode, 'downloadconfig')
 
-                if i != seeding_option:
+                if mode != seeding_mode:
                     restart = True
 
                 break
-        seeding_ratio = int(float(self._seeding0choice.GetStringSelection()) * 100)
-        self.utility.write_config("seeding_ratio", seeding_ratio)
+        seeding_ratio = float(self._seeding0choice.GetStringSelection())
+        self.utility.write_config("seeding_ratio", seeding_ratio, 'downloadconfig')
 
         hours_min = self._seeding2text.GetValue()
         hours_min = hours_min.split(':')
         if len(hours_min) > 0:
             if len(hours_min) > 1:
-                self.utility.write_config("seeding_hours", hours_min[0] or 0)
-                self.utility.write_config("seeding_mins", hours_min[1] or 0)
+                seeding_time = (int(hours_min[0]) * 60 + int(hours_min[1]))
             else:
-                self.utility.write_config("seeding_hours", hours_min[0] or 0)
-                self.utility.write_config("seeding_mins", 0)
+                seeding_time = int(hours_min[0])
+        else:
+            seeding_time = 0
+        self.utility.write_config("seeding_time", seeding_time, 'downloadconfig')
 
         # Proxy settings
         old_ptype, old_server, old_auth = self.utility.session.get_libtorrent_proxy_settings()
@@ -608,7 +609,7 @@ class SettingsDialog(wx.Dialog):
 
         item_id = self._tree_ctrl.AppendItem(tree_root, "Seeding", data=wx.TreeItemData(seeding_panel))
 
-        # BitTorrent-peers
+        # Create the widgets
         sd_s1_sizer = create_subsection(seeding_panel, sd_vsizer, "BitTorrent-peers", 2)
         self._seeding0 = wx.RadioButton(seeding_panel, label="Seed until UL/DL ratio >", style=wx.RB_GROUP)
         sd_s1_sizer.Add(self._seeding0, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -629,18 +630,24 @@ class SettingsDialog(wx.Dialog):
         self._seeding3 = wx.RadioButton(seeding_panel, label="No seeding")
         sd_s1_sizer.Add(self._seeding3, 0, wx.ALIGN_CENTER_VERTICAL)
 
-        # other things
-        seeding_option = self.utility.read_config('seeding_option')
-        getattr(self, '_seeding%d' % seeding_option).SetValue(True)
-        seeding_ratio = self.utility.read_config('seeding_ratio') / 100.0
+        # Set the on-file config values
+        seeding_ratio = self.utility.read_config('seeding_ratio', 'downloadconfig')
         index = self._seeding0choice.FindString(str(seeding_ratio))
         if index != wx.NOT_FOUND:
             self._seeding0choice.Select(index)
 
-        seeding_hours = self.utility.read_config('seeding_hours')
-        seeding_minutes = self.utility.read_config('seeding_mins')
+        seeding_time = self.utility.read_config('seeding_time', 'downloadconfig') or 0
+        seeding_minutes = seeding_time % 60
+        seeding_hours = (seeding_time - seeding_minutes) / 60
         self._seeding2text.SetValue("%02d:%02d" % (seeding_hours, seeding_minutes))
 
+        seeding_mode = self.utility.read_config('seeding_mode', 'downloadconfig')
+        radios = {'ratio': self._seeding0,
+                  'forever': self._seeding1,
+                  'time': self._seeding2,
+                  'never': self._seeding3,}
+
+        radios[seeding_mode].SetValue(True)
         return seeding_panel, item_id
 
     def __create_s5(self, tree_root, sizer):
