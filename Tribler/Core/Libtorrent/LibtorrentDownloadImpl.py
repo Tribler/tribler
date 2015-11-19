@@ -520,6 +520,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 self.endbuffsize = 0
 
     def update_lt_stats(self):
+        """ Update libtorrent stats and check if the download should be stopped."""
         status = self.handle.status()
         self.dlstate = self.dlstates[status.state] if not status.paused else DLSTATUS_STOPPED
         self.dlstate = DLSTATUS_STOPPED_ON_ERROR if self.dlstate == DLSTATUS_STOPPED and status.error else self.dlstate
@@ -540,6 +541,16 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         if status.all_time_download:
             self.all_time_ratio = status.all_time_upload / float(status.all_time_download)
         self.finished_time = status.finished_time
+
+        self._stop_if_finished()
+
+    def _stop_if_finished(self):
+        if self.dlstate == DLSTATUS_SEEDING:
+            mode = self.dlconfig.get('downloadconfig', 'seeding_mode')
+            if ((mode == 'never') or
+                (mode == 'ratio' and self.all_time_ratio >= self.dlconfig.get('downloadconfig', 'seeding_ratio')) or
+                (mode == 'time' and (self.finished_time / 60) >= self.dlconfig.get('downloadconfig', 'seeding_time'))):
+                self.stop()
 
     def set_corrected_infoname(self):
         # H4xor this so the 'name' field is safe

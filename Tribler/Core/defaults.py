@@ -18,9 +18,11 @@
 #    disk that does not have your new fields.
 #
 
+import sys
 from collections import OrderedDict
 
 from Tribler.Core.Video.defs import PLAYBACKMODE_INTERNAL
+
 
 DEFAULTPORT = 7760
 
@@ -157,7 +159,10 @@ dldefaults['downloadconfig']['hops'] = 0
 dldefaults['downloadconfig']['selected_files'] = []
 dldefaults['downloadconfig']['correctedfilename'] = None
 dldefaults['downloadconfig']['safe_seeding'] = True
-dldefaults['downloadconfig']['seeding_ratio'] = True
+# Valid values: 'forever', 'never', 'ratio', 'time'
+dldefaults['downloadconfig']['seeding_mode'] = 'ratio'
+dldefaults['downloadconfig']['seeding_ratio'] = 2.0
+dldefaults['downloadconfig']['seeding_time'] = 60
 
 tdefdictdefaults = {}
 tdefdictdefaults['comment'] = None
