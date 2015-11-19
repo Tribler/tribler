@@ -4,10 +4,11 @@ import os
 import sys
 from random import gauss
 
-from Tribler.Core.version import version_id
+from Tribler.Core.defaults import tribler_defaults
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.Core.simpledefs import STATEDIR_GUICONFIG
+from Tribler.Core.version import version_id
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-
 
 #
 # Generic "glue" class that contains commonly used helper functions
@@ -69,8 +70,8 @@ class Utility(object):
                             'version_info': {}}
 
         self.defaults = {'Tribler': tribler_defaults}
-        self.configfilepath = os.path.join(self.getConfigPath(), "tribler.conf")
         self.config = CallbackConfigParser()
+        self.configfilepath = os.path.join(self.getConfigPath(), STATEDIR_GUICONFIG)
 
         # Load the config file.
         if os.path.exists(self.configfilepath):
