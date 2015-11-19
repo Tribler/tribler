@@ -1066,10 +1066,11 @@ class TunnelCommunity(Community):
 
             packet = plaintext + decrypted
             circuit_id, destination, origin, data = TunnelConversion.decode_data(packet)
+            circuit = self.circuits[circuit_id]
 
-            if circuit_id in self.circuits and origin and sock_addr == self.circuits[circuit_id].first_hop:
+            if circuit_id in self.circuits and origin and sock_addr == circuit.first_hop:
                 self.circuits[circuit_id].beat_heart()
-                self.increase_bytes_received(self.circuits[circuit_id], len(packet))
+                self.increase_bytes_received(circuit, len(packet))
 
                 if TunnelConversion.could_be_dispersy(data):
                     self.tunnel_logger.debug("Giving incoming data packet to dispersy")
@@ -1077,8 +1078,8 @@ class TunnelCommunity(Community):
                         [(Candidate(origin, False), data[TUNNEL_PREFIX_LENGHT:])],
                         False, source=u"circuit_%d" % circuit_id)
                 else:
-                    anon_seed = self.circuits[circuit_id].ctype == CIRCUIT_TYPE_RP
-                    self.socks_server.on_incoming_from_tunnel(self, self.circuits[circuit_id], origin, data, anon_seed)
+                    anon_seed = circuit.ctype == CIRCUIT_TYPE_RP
+                    self.socks_server.on_incoming_from_tunnel(self, circuit, origin, data, anon_seed)
 
             # It is not our circuit so we got it from a relay, we need to EXIT it!
             else:
