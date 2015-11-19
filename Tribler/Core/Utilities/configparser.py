@@ -7,7 +7,6 @@ from ConfigParser import DEFAULTSECT, RawConfigParser
 from threading import RLock
 
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class CallbackConfigParser(RawConfigParser):

@@ -16,12 +16,10 @@
 import os
 from types import StringType
 
-from Tribler.Core.simpledefs import DLMODE_VOD, UPLOAD
+from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.defaults import dldefaults
 from Tribler.Core.osutils import get_home_dir
-from Tribler.Core.Utilities.configparser import CallbackConfigParser
-
-STATEDIR_DLCONFIG = u"tribler.conf"
+from Tribler.Core.simpledefs import DLMODE_VOD, STATEDIR_DLCONFIG, UPLOAD
 
 
 class DownloadConfigInterface(object):
@@ -53,6 +51,7 @@ class DownloadConfigInterface(object):
         if not dlconfig:
             return
 
+        # TODO(emilon): I guess this can be removed?
         # modify/fix incorrectly saved dlconfigs
         if dlconfig.has_option('downloadconfig', 'saveas') and isinstance(dlconfig.get('downloadconfig', 'saveas'), tuple):
             dlconfig.set('downloadconfig', 'saveas', dlconfig.get('saveas')[-1])
