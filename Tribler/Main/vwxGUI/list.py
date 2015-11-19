@@ -1743,9 +1743,9 @@ class LibraryList(SizeList):
 
         newFilter = self.newfilter
         show_seeding_colours = False
-        if self.statefilter == 'active' and self.utility.read_config('seeding_option') == 0:
+        if self.statefilter == 'active' and self.utility.read_config('seeding_option', 'downloadconfig') == 'ratio':
             show_seeding_colours = True
-            seeding_ratio = self.utility.read_config('seeding_ratio') / 100.0
+            seeding_ratio = float(self.utility.read_config('seeding_ratio'))
 
             orange = LIST_ORANGE
             orange = rgb_to_hsv(orange.Red() / 255.0, orange.Green() / 255.0, orange.Blue() / 255.0)
@@ -1944,9 +1944,10 @@ class LibraryList(SizeList):
 
         if self.statefilter:
             message += " with state %s" % self.statefilter
-            if self.statefilter == 'active'and self.utility.read_config('seeding_option') == 0:
-                seeding_ratio = self.utility.read_config('seeding_ratio') / 100.0
-                message += ".\nColours represent the upload/download ratio. Starting at orange, the colour will change into green when approaching a upload/download ratio of %.1f" % seeding_ratio
+            if self.statefilter == 'active'and self.utility.read_config('seeding_option') == 'ratio':
+                seeding_ratio = float(self.utility.read_config('seeding_ratio'))
+                message += ".\nColours represent the upload/download ratio. Starting at orange, the colour will change"\
+                           " into green when approaching a upload/download ratio of %.1f" % seeding_ratio
         return header, message
 
 
