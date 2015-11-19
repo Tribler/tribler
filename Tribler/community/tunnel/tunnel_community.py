@@ -1069,7 +1069,7 @@ class TunnelCommunity(Community):
             circuit = self.circuits[circuit_id]
 
             if circuit_id in self.circuits and origin and sock_addr == circuit.first_hop:
-                self.circuits[circuit_id].beat_heart()
+                circuit.beat_heart()
                 self.increase_bytes_received(circuit, len(packet))
 
                 if TunnelConversion.could_be_dispersy(data):
