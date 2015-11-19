@@ -236,7 +236,7 @@ class AllChannelCommunity(Community):
                     channel_id = self._get_channel_id(cid)
                     if not channel_id:
                         community = self._get_channel_community(cid)
-                        yield DelayMessageReqChannelMessage(message, community, includeSnapshot=True)
+                        yield DelayMessageReqChannelMessage(message, community, include_snapshot=True)
                         break
                 else:
                     yield message
@@ -337,7 +337,7 @@ class AllChannelCommunity(Community):
                     channel_id = self._get_channel_id(cid)
                     if not channel_id:
                         community = self._get_channel_community(cid)
-                        yield DelayMessageReqChannelMessage(message, community, includeSnapshot=True)
+                        yield DelayMessageReqChannelMessage(message, community, include_snapshot=True)
                         break
                 else:
                     yield message
@@ -419,7 +419,7 @@ class AllChannelCommunity(Community):
                     self._logger.debug("Did not receive channel, requesting channel message '%s' from %s",
                                        community.cid.encode("HEX"), message.candidate.sock_addr)
                     # request torrents if positive vote
-                    yield DelayMessageReqChannelMessage(message, community, includeSnapshot=message.payload.vote > 0)
+                    yield DelayMessageReqChannelMessage(message, community, include_snapshot=message.payload.vote > 0)
 
                 else:
                     message.channel_id = channel_ids[message.payload.cid]

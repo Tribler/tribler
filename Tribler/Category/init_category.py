@@ -1,7 +1,9 @@
 # Written by Yuan Yuan
 # see LICENSE.txt for license information
 
-# give the initial category information
+"""
+Give the initial category information.
+"""
 
 import ConfigParser
 
@@ -37,7 +39,10 @@ def __get_default():
     return category
 
 
-def getCategoryInfo(filename):
+def get_category_info(filename):
+    """
+    Returns a list of categories that are available in the categories configuration file.
+    """
     config = ConfigParser.ConfigParser()
     config.readfp(open(filename))
 

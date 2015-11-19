@@ -7,7 +7,7 @@ import os
 from Tribler.Test.test_as_server import TestGuiAsServer, TESTS_DATA_DIR
 
 from Tribler.Core.Utilities.twisted_thread import reactor
-from Tribler.Core.simpledefs import dlstatus_strings
+from Tribler.Core.simpledefs import DLSTATUS_STRINGS
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import blockingCallFromThread
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
@@ -146,7 +146,7 @@ class TestTunnelBase(TestGuiAsServer):
     def seeder_state_callback(self, ds):
         d = ds.get_download()
         self._logger.debug("seeder: %s %s %s", repr(d.get_def().get_name()),
-                           dlstatus_strings[ds.get_status()], ds.get_progress())
+                           DLSTATUS_STRINGS[ds.get_status()], ds.get_progress())
         return 5.0, False
 
     def setUp(self):

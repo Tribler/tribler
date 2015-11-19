@@ -10,7 +10,7 @@ import time
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING, DLSTATUS_STRINGS
 from Tribler.Test.btconn import BTConnection
 from Tribler.Test.test_as_server import TESTS_API_DIR, TestAsServer
 
@@ -78,7 +78,7 @@ class TestSeeding(TestAsServer):
         d = ds.get_download()
         self._logger.debug("seeder status: %s %s %s",
                            repr(d.get_def().get_name()),
-                           dlstatus_strings[ds.get_status()],
+                           DLSTATUS_STRINGS[ds.get_status()],
                            ds.get_progress())
 
         if ds.get_status() == DLSTATUS_SEEDING:
@@ -132,7 +132,7 @@ class TestSeeding(TestAsServer):
         d = ds.get_download()
         self._logger.debug("download status: %s %s %s",
                            repr(d.get_def().get_name()),
-                           dlstatus_strings[ds.get_status()],
+                           DLSTATUS_STRINGS[ds.get_status()],
                            ds.get_progress())
 
         if ds.get_status() == DLSTATUS_SEEDING:

@@ -261,7 +261,7 @@ setup(
 
             # add images
             + includedir(LIBRARYNAME + "/Main/vwxGUI/images")
-            + includedir(LIBRARYNAME + "/Main/webUI/static")
+            + includedir(LIBRARYNAME + "/Main/WebUI/static")
 
             # add GUI elements
             + filterincludes(includedir(LIBRARYNAME + "/Main/vwxGUI"), lambda x: x.endswith(".xrc"))

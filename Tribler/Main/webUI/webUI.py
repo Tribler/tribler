@@ -63,7 +63,7 @@ class WebUI(object):
         if not self.started:
             self.started = True
 
-            current_dir = os.path.join(self.guiUtility.utility.getPath(), 'Tribler', 'Main', 'webUI')
+            current_dir = os.path.join(self.guiUtility.utility.getPath(), 'Tribler', 'Main', 'WebUI')
             config = {'/': {'tools.staticdir.root': current_dir,
                             'tools.staticdir.on': True,
                             'tools.staticdir.dir': "static",
@@ -100,7 +100,7 @@ class WebUI(object):
     @jsonify
     def index(self, **args):
         for key, value in args.iteritems():
-            self._logger.debug("webUI: request %s %s", key, value)
+            self._logger.debug("WebUI: request %s %s", key, value)
 
         if len(args) == 0:
             raise cherrypy.HTTPRedirect("/gui/index.html")
@@ -117,14 +117,14 @@ class WebUI(object):
                 return_dict = self.doList(args)
 
         return_dict['build'] = 1
-        self._logger.debug("webUI: result %s", return_dict)
+        self._logger.debug("WebUI: result %s", return_dict)
         return return_dict
 
     @cherrypy.expose(alias='token.html')
     def token(self, **args):
         new_token = ''.join(random.choice('0123456789ABCDEF') for i in range(60))
         self.currentTokens.add(new_token)
-        self._logger.debug("webUI: new_token %s", new_token)
+        self._logger.debug("WebUI: new_token %s", new_token)
         return "<html><body><div id='token' style='display:none;'>%s</div></body></html>" % new_token
 
     def doList(self, args):

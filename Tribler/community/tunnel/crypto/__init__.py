@@ -1,3 +1,4 @@
-'''
-The crypto package contains TTTODO: What does this do?
-'''
+"""
+The crypto package contains cryptographic functions and utilities
+used by the Tunnel community.
+"""

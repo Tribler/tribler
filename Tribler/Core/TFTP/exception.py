@@ -1,3 +1,7 @@
+"""
+This file contains exceptions used by the TFTP protocol.
+"""
+
 class InvalidPacketException(Exception):
 
     """ Indicates an invalid packet.

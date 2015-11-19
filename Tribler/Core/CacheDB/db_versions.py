@@ -1,3 +1,7 @@
+"""
+This class contains various constants regarding the database versions.
+"""
+
 # Database versions:
 # 17 is used by Tribler 5.9.x - 6.0
 # 18 is used by Tribler 6.1.x - 6.2.0

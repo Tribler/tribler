@@ -6,7 +6,7 @@ import re
 import logging
 
 from Tribler import LIBRARYNAME
-from Tribler.Category.init_category import getCategoryInfo
+from Tribler.Category.init_category import get_category_info
 from Tribler.Category.FamilyFilter import XXXFilter
 
 CATEGORY_CONFIG_FILE = "category.conf"
@@ -27,7 +27,7 @@ class Category(object):
         filename = os.path.join(self._session.get_install_dir(), LIBRARYNAME, u'Category', CATEGORY_CONFIG_FILE)
         Category.__single = self
         try:
-            self.category_info = getCategoryInfo(filename)
+            self.category_info = get_category_info(filename)
             self.category_info.sort(cmp_rank)
         except:
             self.category_info = []
