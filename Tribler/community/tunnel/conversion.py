@@ -11,7 +11,6 @@ ADDRESS_TYPE_DOMAIN_NAME = 0x02
 
 
 class TunnelConversion(BinaryConversion):
-
     def __init__(self, community):
         super(TunnelConversion, self).__init__(community, "\x02")
 
@@ -104,7 +103,7 @@ class TunnelConversion(BinaryConversion):
 
     def _encode_introduction_response(self, message):
         payload = message.payload
-        data = [pack("!?", payload.exitnode,)]
+        data = [pack("!?", payload.exitnode, )]
         data += list(super(TunnelConversion, self)._encode_introduction_response(message))
         return tuple(data)
 
@@ -117,7 +116,7 @@ class TunnelConversion(BinaryConversion):
 
     def _encode_introduction_request(self, message):
         payload = message.payload
-        data = [pack("!?", payload.exitnode,)]
+        data = [pack("!?", payload.exitnode, )]
         data += super(TunnelConversion, self)._encode_introduction_request(message)
         return data
 
@@ -131,7 +130,7 @@ class TunnelConversion(BinaryConversion):
     def _encode_cell(self, message):
         payload = message.payload
         packet = pack("!IB", payload.circuit_id, self._encode_message_map[
-                      payload.message_type].byte) + payload.encrypted_message
+            payload.message_type].byte) + payload.encrypted_message
         return packet,
 
     def _decode_cell(self, placeholder, offset, data):
@@ -169,7 +168,7 @@ class TunnelConversion(BinaryConversion):
     def _encode_created(self, message):
         payload = message.payload
         packet = pack("!IH32s", payload.circuit_id, len(payload.key), payload.auth) + \
-            payload.key + payload.candidate_list
+                 payload.key + payload.candidate_list
         return packet,
 
     def _decode_created(self, placeholder, offset, data):
@@ -215,7 +214,7 @@ class TunnelConversion(BinaryConversion):
     def _encode_extended(self, message):
         payload = message.payload
         return pack("!IH32s", payload.circuit_id, len(payload.key), payload.auth) + \
-            payload.key + payload.candidate_list,
+               payload.key + payload.candidate_list,
 
     def _decode_extended(self, placeholder, offset, data):
         circuit_id, len_key, auth = unpack_from('!IH32s', data, offset)
@@ -342,7 +341,7 @@ class TunnelConversion(BinaryConversion):
 
     def _encode_keys_response(self, message):
         return pack('!HH', message.payload.identifier, len(message.payload.public_key)) \
-            + message.payload.public_key + message.payload.pex_peers,
+               + message.payload.public_key + message.payload.pex_peers,
 
     def _decode_keys_response(self, placeholder, offset, data):
         identifier, len_public_key = unpack_from('!HH', data, offset)
@@ -468,7 +467,7 @@ class TunnelConversion(BinaryConversion):
             if is_ip:
                 return pack("!B4sH", ADDRESS_TYPE_IPV4, ip, port)
             else:
-                return pack("!BH", ADDRESS_TYPE_DOMAIN_NAME, len(host)) + host + pack("!H", port)
+                return pack("!BH%dsH" % len(host), ADDRESS_TYPE_DOMAIN_NAME, len(host), host, port)
 
         return pack("!I", circuit_id) + encode_address(*dest_address) + encode_address(*org_address) + data
 
@@ -531,7 +530,7 @@ class TunnelConversion(BinaryConversion):
     def could_be_udp_tracker(data):
         # For the UDP tracker protocol the action field is either at position 0 or 8, and should be 0..3
         if len(data) >= 8 and (0 <= unpack_from('!I', data, 0)[0] <= 3) or \
-           len(data) >= 12 and (0 <= unpack_from('!I', data, 8)[0] <= 3):
+                                len(data) >= 12 and (0 <= unpack_from('!I', data, 8)[0] <= 3):
             return True
         return False
 
