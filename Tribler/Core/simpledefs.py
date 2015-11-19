@@ -45,6 +45,8 @@ STATEDIR_TORRENT_STORE_DIR = u'collected_torrents'
 STATEDIR_METADATA_STORE_DIR = u'collected_metadata'
 
 STATEDIR_SESSCONFIG = 'libtribler.conf'
+STATEDIR_DLCONFIG = 'tribler.conf'
+STATEDIR_GUICONFIG = 'tribler.conf'
 
 # For observer/callback mechanism, see Session.add_observer()
 

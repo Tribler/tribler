@@ -1,14 +1,11 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 
-import os
-import logging
 import copy
+import logging
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-
-STATEDIR_DLCONFIG = "tribler.conf"
 
 
 class DefaultDownloadStartupConfig(DownloadStartupConfig):
