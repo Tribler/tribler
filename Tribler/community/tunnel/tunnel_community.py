@@ -664,7 +664,7 @@ class TunnelCommunity(Community):
         plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, u'cell')
         if message_type not in [u'create', u'created']:
             try:
-                encrypted = self.crypto_out(message.payload.circuit_id, encrypted)
+                encrypted = self.crypto_out(self.circuits[message.payload.circuit_id], encrypted)
             except CryptoException, e:
                 self.tunnel_logger.error(str(e))
                 return 0
@@ -677,7 +677,7 @@ class TunnelCommunity(Community):
 
         plaintext, unencrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
         try:
-            encrypted = self.crypto_out(circuit_id, unencrypted, is_data=True)
+            encrypted = self.crypto_out(self.circuits[circuit_id], unencrypted, is_data=True)
         except CryptoException, e:
             self.tunnel_logger.error(str(e))
             return 0
@@ -712,7 +712,7 @@ class TunnelCommunity(Community):
             try:
                 if next_relay.rendezvous_relay:
                     decrypted = self.crypto_in(self.circuits[circuit_id], encrypted)
-                    encrypted = self.crypto_out(next_relay.circuit_id, decrypted)
+                    encrypted = self.crypto_out(self.circuits[next_relay.circuit_id], decrypted)
                 else:
                     encrypted = self.crypto_relay(circuit_id, encrypted)
             except CryptoException, e:
@@ -1198,8 +1198,8 @@ class TunnelCommunity(Community):
         else:
             self.tunnel_logger.error("Dropping data packets with unknown circuit_id")
 
-    def crypto_out(self, circuit_id, content, is_data=False):
-        circuit = self.circuits.get(circuit_id, None)
+    def crypto_out(self, circuit, content, is_data=False):
+        circuit_id = circuit.circuit_id
         if circuit:
             if circuit and is_data and circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
                 direction = int(circuit.ctype == CIRCUIT_TYPE_RP)
