@@ -189,12 +189,18 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
                 session_ok = tunnels_ready == 1
 
-                if not self.ltmgr or not dht_ok or not session_ok:
+                if not self.ltmgr or not dht_ok or tunnels_ready < 1:
                     self._logger.info(u"LTMGR/DHT/session not ready, rescheduling create_engine_wrapper")
+
+                    if tunnels_ready < 1:
+                        self.dlstate = DLSTATUS_CIRCUITS
+                        tunnel_community.build_tunnels(self.get_hops())
+                    else:
+                        self.dlstate = DLSTATUS_METADATA
+
                     create_engine_wrapper_lambda = lambda: self.create_engine_wrapper(
                         lm_network_engine_wrapper_created_callback, pstate, initialdlstatus=initialdlstatus)
                     self.session.lm.threadpool.add_task(create_engine_wrapper_lambda, 5)
-                    self.dlstate = DLSTATUS_CIRCUITS if not session_ok else DLSTATUS_METADATA
                 else:
                     network_create_engine_wrapper_lambda = lambda: self.network_create_engine_wrapper(
                         lm_network_engine_wrapper_created_callback, pstate, initialdlstatus)
