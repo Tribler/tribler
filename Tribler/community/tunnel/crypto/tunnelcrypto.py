@@ -80,13 +80,6 @@ class TunnelCrypto(ECCrypto):
                         ).decryptor()
         return cipher.update(content[24:]) + cipher.finalize()
 
-    def ec_encrypt_str(self, key, content):
-        raise RuntimeError('no more')
-
-    def ec_decrypt_str(self, key, content):
-        raise RuntimeError('no more')
-
-
 class NoTunnelCrypto(TunnelCrypto):
 
     def initialize(self, community):
