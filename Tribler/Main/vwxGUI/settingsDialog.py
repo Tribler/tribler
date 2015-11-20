@@ -762,7 +762,7 @@ class SettingsDialog(wx.Dialog):
         slider_sizer.Add(labels_and_slider, 1, wx.RIGHT, 10)
         slider_sizer.Add(self.slider_bitmap)
 
-        proxytext = wx.StaticText(exp_panel, -1, 'Please select how anonymous you want to download:')
+        proxytext = wx.StaticText(exp_panel, -1, 'Please select how many encrypted hops you want to use for your downloads:')
 
         exp_s2_sizer = create_subsection(exp_panel, exp_vsizer, "Proxy downloading", 1, 3)
         exp_s2_sizer.Add(proxytext, 0, wx.EXPAND | wx.BOTTOM, 10)
