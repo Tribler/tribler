@@ -10,4 +10,4 @@ no-docstring-rgx=_.*
 method-rgx=[a-z_][A-Za-z0-9_]{2,30}$
 
 [TYPECHECK]
-ignored-classes=SQLObject,twisted.internet.reactor,ephem
+ignored-classes=SQLObject,twisted.internet.reactor,ephem,libtorrent
