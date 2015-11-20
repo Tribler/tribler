@@ -664,7 +664,7 @@ class TunnelCommunity(Community):
         plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, u'cell')
         if message_type not in [u'create', u'created']:
             try:
-                encrypted = self.crypto_out(self.circuits[message.payload.circuit_id], encrypted)
+                encrypted = self.crypto_out(message.payload.circuit_id, encrypted)
             except CryptoException, e:
                 self.tunnel_logger.error(str(e))
                 return 0
@@ -677,7 +677,7 @@ class TunnelCommunity(Community):
 
         plaintext, unencrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
         try:
-            encrypted = self.crypto_out(self.circuits[circuit_id], unencrypted, is_data=True)
+            encrypted = self.crypto_out(circuit_id, unencrypted, is_data=True)
         except CryptoException, e:
             self.tunnel_logger.error(str(e))
             return 0
@@ -711,8 +711,8 @@ class TunnelCommunity(Community):
             plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
             try:
                 if next_relay.rendezvous_relay:
-                    decrypted = self.crypto_in(self.circuits[circuit_id], encrypted)
-                    encrypted = self.crypto_out(self.circuits[next_relay.circuit_id], decrypted)
+                    decrypted = self.crypto_in(circuit_id, encrypted)
+                    encrypted = self.crypto_out(next_relay.circuit_id, decrypted)
                 else:
                     encrypted = self.crypto_relay(circuit_id, encrypted)
             except CryptoException, e:
@@ -884,14 +884,9 @@ class TunnelCommunity(Community):
 
                 plaintext, encrypted = TunnelConversion.split_encrypted_packet(message.packet, message.name)
 
-                # We don't know this circuit, so continue.
-                if circuit_id not in self.circuits:
-                    continue
-
-                circuit = self.circuits[circuit_id]
                 if message.payload.message_type not in [u'create', u'created']:
                     try:
-                        decrypted = self.crypto_in(circuit, encrypted)
+                        decrypted = self.crypto_in(circuit_id, encrypted)
                     except CryptoException, e:
                         self.tunnel_logger.warning(str(e))
                         continue
@@ -902,8 +897,10 @@ class TunnelCommunity(Community):
                     [(message.candidate, TunnelConversion.convert_from_cell(packet))], False,
                     source=u"circuit_%d" % circuit_id)
 
-                circuit.beat_heart()
-                self.increase_bytes_received(circuit, len(message.packet))
+                if circuit_id not in self.circuits:
+                    circuit = self.circuits[circuit_id]
+                    circuit.beat_heart()
+                    self.increase_bytes_received(circuit, len(message.packet))
 
     def on_create(self, messages):
         for message in messages:
@@ -1062,9 +1059,8 @@ class TunnelCommunity(Community):
 
         if not self.relay_packet(circuit_id, message_type, packet):
             plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
-            circuit = self.circuits[circuit_id]
             try:
-                decrypted = self.crypto_in(circuit, encrypted, is_data=True)
+                decrypted = self.crypto_in(circuit_id, encrypted, is_data=True)
             except CryptoException, e:
                 self.tunnel_logger.warning(str(e))
                 return
@@ -1073,6 +1069,7 @@ class TunnelCommunity(Community):
             circuit_id, destination, origin, data = TunnelConversion.decode_data(packet)
 
             if circuit_id in self.circuits and origin and sock_addr == circuit.first_hop:
+                circuit = self.circuits[circuit_id]
                 circuit.beat_heart()
                 self.increase_bytes_received(circuit, len(packet))
 
@@ -1198,8 +1195,8 @@ class TunnelCommunity(Community):
         else:
             self.tunnel_logger.error("Dropping data packets with unknown circuit_id")
 
-    def crypto_out(self, circuit, content, is_data=False):
-        circuit_id = circuit.circuit_id
+    def crypto_out(self, circuit_id, content, is_data=False):
+        circuit = self.circuits.get(circuit_id, None)
         if circuit:
             if circuit and is_data and circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
                 direction = int(circuit.ctype == CIRCUIT_TYPE_RP)
@@ -1212,8 +1209,8 @@ class TunnelCommunity(Community):
                                            *self.get_session_keys(self.relay_session_keys[circuit_id], ORIGINATOR))
         raise CryptoException("Don't know how to encrypt outgoing message for circuit_id %d" % circuit_id)
 
-    def crypto_in(self, circuit, content, is_data=False):
-        circuit_id = circuit.circuit_id
+    def crypto_in(self, circuit_id, content, is_data=False):
+        circuit = self.circuits.get(circuit_id, None)
         if circuit:
             if len(circuit.hops) > 0:
                 # Remove all the encryption layers
