@@ -154,6 +154,13 @@ class LibtorrentMgr(TaskManager):
             ltsession.listen_on(self.trsession.get_anon_listen_port(), self.trsession.get_anon_listen_port() + 20)
             ltsession.start_dht(None)
 
+            # Elric: Copy the speed limits from the plain session until we come
+            # up with a way to have global bandwidth limit settings.
+            ltsession.set_upload_rate_limit(self.get_session().upload_rate_limit())
+            ltsession.set_download_rate_limit(self.get_session().download_rate_limit())
+            import sys
+            print >> sys.stderr, "CR", ltsession.download_rate_limit()
+
         ltsession.add_dht_router('router.bittorrent.com', 6881)
         ltsession.add_dht_router('router.utorrent.com', 6881)
         ltsession.add_dht_router('router.bitcomet.com', 6881)
