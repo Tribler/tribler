@@ -186,31 +186,37 @@ class LibtorrentMgr(TaskManager):
             # only apply the proxy settings to normal libtorrent session (with hops = 0)
             self.ltsessions[0].set_proxy(proxy_settings)
 
-    def set_utp(self, enable, hops=0):
-        ltsession = self.get_session(hops)
-        settings = ltsession.settings()
-        settings.enable_outgoing_utp = enable
-        settings.enable_incoming_utp = enable
-        ltsession.set_settings(settings)
+    def set_utp(self, enable, hops=None):
+        def do_set_utp(ltsession):
+            settings = ltsession.settings()
+            settings.enable_outgoing_utp = enable
+            settings.enable_incoming_utp = enable
+            ltsession.set_settings(settings)
 
-    def set_max_connections(self, conns, hops=0):
-        self.get_session(hops).set_max_connections(conns)
+        if hops is None:
+            for ltsession in self.ltsessions.itervalues():
+                do_set_utp(ltsession)
+        else:
+            do_set_utp(self.get_session(hops))
 
-    def set_upload_rate_limit(self, rate, hops=0):
+    def set_max_connections(self, conns, hops=None):
+        self._map_call_on_ltsessions(hops, 'set_max_connections', conns)
+
+    def set_upload_rate_limit(self, rate, hops=None):
         # Rate conversion due to the fact that we had a different system with Swift
         # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
-        libtorrent_rate = -1 if rate == 0 else (1 if rate == -1 else rate * 1024)
-        self.get_session(hops).set_upload_rate_limit(int(libtorrent_rate))
+        libtorrent_rate = int(-1 if rate == 0 else (1 if rate == -1 else rate * 1024))
+        self._map_call_on_ltsessions(hops, 'set_upload_rate_limit', libtorrent_rate)
 
-    def get_upload_rate_limit(self, hops=0):
+    def get_upload_rate_limit(self, hops=None):
         # Rate conversion due to the fact that we had a different system with Swift
         # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
         libtorrent_rate = self.get_session(hops).upload_rate_limit()
         return 0 if libtorrent_rate == -1 else (-1 if libtorrent_rate == 1 else libtorrent_rate / 1024)
 
-    def set_download_rate_limit(self, rate, hops=0):
-        libtorrent_rate = -1 if rate == 0 else (1 if rate == -1 else rate * 1024)
-        self.get_session(hops).set_download_rate_limit(int(libtorrent_rate))
+    def set_download_rate_limit(self, rate, hops=None):
+        libtorrent_rate = int(-1 if rate == 0 else (1 if rate == -1 else rate * 1024))
+        self._map_call_on_ltsessions(hops, 'set_download_rate_limit', libtorrent_rate)
 
     def get_download_rate_limit(self, hops=0):
         libtorrent_rate = self.get_session(hops).download_rate_limit()
@@ -467,6 +473,12 @@ class LibtorrentMgr(TaskManager):
             self._dht_check_remaining_retries = 1
             self.register_task(u'check_dht', reactor.callLater(10, self._task_check_dht))
 
+    def _map_call_on_ltsessions(self, hops, funcname, *args, **kwargs):
+        if hops is None:
+            for session in self.ltsessions.itervalues():
+                getattr(session, funcname)(*args, **kwargs)
+        else:
+            getattr(self.get_session(hops), funcname)(*args, **kwargs)
 
 def encode_atp(atp):
     for k, v in atp.iteritems():
