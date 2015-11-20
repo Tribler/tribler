@@ -43,17 +43,14 @@ class TunnelCrypto(ECCrypto):
         return shared_secret
 
     def generate_session_keys(self, shared_secret):
-        # TODO hkdf???
         hkdf = HKDFExpand(algorithm=hashes.SHA256(), backend=default_backend(), length=40, info="key_generation")
         key = hkdf.derive(shared_secret)
 
-        # TODO what is this
         kf = key[:16]
         kb = key[16:32]
         sf = key[32:36]
         sb = key[36:40]
 
-        # TODO why 1,1 ?
         return [kf, kb, sf, sb, 1, 1]
 
     def _bulid_iv(self, salt, salt_explicit):
@@ -84,7 +81,6 @@ class TunnelCrypto(ECCrypto):
                         ).decryptor()
         return cipher.update(content[24:]) + cipher.finalize()
 
-    # TODO remove below?
     def ec_encrypt_str(self, key, content):
         raise RuntimeError('no more')
 
