@@ -43,11 +43,9 @@ class TunnelCrypto(ECCrypto):
         return shared_secret
 
     def generate_session_keys(self, shared_secret):
-        # TODO hkdf???
         hkdf = HKDFExpand(algorithm=hashes.SHA256(), backend=default_backend(), length=40, info="key_generation")
         key = hkdf.derive(shared_secret)
 
-        # TODO what is this
         kf = key[:16]
         kb = key[16:32]
         sf = key[32:36]
@@ -84,7 +82,6 @@ class TunnelCrypto(ECCrypto):
                         ).decryptor()
         return cipher.update(content[24:]) + cipher.finalize()
 
-    # TODO remove below?
     def ec_encrypt_str(self, key, content):
         raise RuntimeError('no more')
 
@@ -104,10 +101,11 @@ class NoTunnelCrypto(TunnelCrypto):
     def generate_diffie_secret(self):
         return '', ''
 
-    # TODO delete? returns tuple of 3 empty things, doesn't even call generate_diffie_shared_secret(x,y,z)
+    # No crypto function
     def generate_diffie_shared_secret(self, dh_received):
         return '', '', ''
 
+    # No crypto function
     def verify_and_generate_shared_secret(self, dh_secret, dh_received, auth, B):
         return ''
 
