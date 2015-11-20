@@ -597,6 +597,9 @@ class SettingsDialog(wx.Dialog):
             bp_s1_hsizer2.Add(bp_s1_p2_btn)
         bp_s1_sizer.Add(bp_s1_hsizer2, 0, wx.EXPAND)
 
+        bp_s1_bandwitdh_note = wx.StaticText(bandwidth_panel, label="\nPlease note that these settings apply to plain and tunneled downloads separately.")
+        bp_s1_sizer.Add(bp_s1_bandwitdh_note)
+
         # upload/download rate
         convert = lambda v: 'unlimited' if v == 0 else ('0' if v == -1 else str(v))
         self._download_ctrl.SetValue(convert(self.utility.read_config('maxdownloadrate')))
