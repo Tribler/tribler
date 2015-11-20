@@ -597,6 +597,9 @@ class SettingsDialog(wx.Dialog):
             bp_s1_hsizer2.Add(bp_s1_p2_btn)
         bp_s1_sizer.Add(bp_s1_hsizer2, 0, wx.EXPAND)
 
+        bp_s1_bandwitdh_note = wx.StaticText(bandwidth_panel, label="\nPlease note that these settings apply to plain and tunneled downloads separately.")
+        bp_s1_sizer.Add(bp_s1_bandwitdh_note)
+
         # upload/download rate
         convert = lambda v: 'unlimited' if v == 0 else ('0' if v == -1 else str(v))
         self._download_ctrl.SetValue(convert(self.utility.read_config('maxdownloadrate')))
@@ -759,7 +762,7 @@ class SettingsDialog(wx.Dialog):
         slider_sizer.Add(labels_and_slider, 1, wx.RIGHT, 10)
         slider_sizer.Add(self.slider_bitmap)
 
-        proxytext = wx.StaticText(exp_panel, -1, 'Please select how anonymous you want to download:')
+        proxytext = wx.StaticText(exp_panel, -1, 'Please select how many encrypted hops you want to use for your downloads:')
 
         exp_s2_sizer = create_subsection(exp_panel, exp_vsizer, "Proxy downloading", 1, 3)
         exp_s2_sizer.Add(proxytext, 0, wx.EXPAND | wx.BOTTOM, 10)
