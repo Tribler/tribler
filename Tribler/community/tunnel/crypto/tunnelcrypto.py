@@ -101,14 +101,15 @@ class NoTunnelCrypto(TunnelCrypto):
     def is_key_compatible(self, key):
         return True
 
+    # No crypto function
     def generate_diffie_secret(self):
         return '', ''
 
-    # TODO delete? returns tuple of 3 empty things, doesn't even call generate_diffie_shared_secret(x,y,z)
+    # No crypto function
     def generate_diffie_shared_secret(self, dh_received):
         return '', '', ''
 
-    # TODO delete?
+    # No crypto function
     def verify_and_generate_shared_secret(self, dh_secret, dh_received, auth, B):
         return ''
 
