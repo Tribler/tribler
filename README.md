@@ -27,7 +27,7 @@ Have a look at the [issue tracker](https://github.com/Tribler/tribler/issues) if
 
 ## Getting your development environment up and running
 
-We support development on Linux, OS X and Windows. We have written documentation that guides you through installing the required packages when setting up a Tribler development environment. Click [here](docs/Tribler development on Linux.md) for the guide on setting up a development environment on Linux distributions. Click [here](docs/Tribler development on Windows.md) for the guide on setting everything up on Windows. The guide for setting up the development environment on OS X can be found [here](docs/Tribler development on OS X.md).
+We support development on Linux, OS X and Windows. We have written documentation that guides you through installing the required packages when setting up a Tribler development environment. Click [here](doc/Tribler development on Linux.md) for the guide on setting up a development environment on Linux distributions. Click [here](doc/Tribler development on Windows.md) for the guide on setting everything up on Windows. The guide for setting up the development environment on OS X can be found [here](doc/Tribler development on OS X.md).
 
 ### Running Tribler from this repository
 #### Unix
