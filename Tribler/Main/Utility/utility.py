@@ -36,7 +36,7 @@ class Utility(object):
 
     def setupConfig(self):
         self.configfilepath = os.path.join(self.getConfigPath(), STATEDIR_GUICONFIG)
-        self.config = CallbackConfigParser(tribler_defaults)
+        self.config = CallbackConfigParser()
 
         # Load the config file.
         if os.path.exists(self.configfilepath):
