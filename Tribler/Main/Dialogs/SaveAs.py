@@ -66,11 +66,12 @@ class SaveAs(wx.Dialog):
             choices.append(defaultdir)
 
         if defaultname:
-            choices.insert(0, os.path.join(lastUsed, defaultname))
-            self.dirTextCtrl = wx.ComboBox(self, -1, os.path.join(
-                lastUsed, defaultname), choices=choices, style=wx.CB_DROPDOWN)
+            default_path = os.path.join(lastUsed, defaultname)
+            choices.insert(0, default_path)
         else:
-            self.dirTextCtrl = wx.ComboBox(self, -1, lastUsed, choices=choices, style=wx.CB_DROPDOWN)
+            default_path = lastUsed
+
+        self.dirTextCtrl = wx.ComboBox(self, -1, default_path, choices=choices, style=wx.CB_DROPDOWN)
         self.dirTextCtrl.Select(0)
 
         hSizer.Add(self.dirTextCtrl, 1, wx.EXPAND | wx.RIGHT | wx.BOTTOM, 3)
