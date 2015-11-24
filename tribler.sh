@@ -10,6 +10,9 @@ else
     TRIBLER_SCRIPT=Tribler/Main/tribler_profiler.py
 fi
 
+PYTHONPATH=.:"$PYTHONPATH"
+export PYTHONPATH
+
 if [ "$UNAME" = "Linux" ]; then
     # Find the Tribler dir
     TRIBLER_DIR="$(dirname "$(readlink -f "$0")")"
@@ -22,10 +25,6 @@ if [ "$UNAME" = "Linux" ]; then
         echo "Couldn't cd to $TRIBLER_DIR. Check permissions."
         exit 1
     }
-
-    PYTHONPATH=.:"$PYTHONPATH"
-
-    export PYTHONPATH
 
     python2.7 $TRIBLER_SCRIPT
 
