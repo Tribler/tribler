@@ -22,7 +22,7 @@ To install the packages, the required files have to be downloaded from their res
 
 For libsodium13, download libsodium13\_1.0.1-1\_<ProcessorType\>.deb from [http://packages.ubuntu.com/vivid/libsodium13](http://packages.ubuntu.com/vivid/libsodium13)
 
-For python-cryptography, download python-cryptography\_0.5.2-1\_<ProcessorType\>.deb from [http://packages.ubuntu.com/utopic/python-cryptography](http://packages.ubuntu.com/utopic/python-cryptography)
+For python-cryptography, download python-cryptography\_0.8-1ubuntu2\_<ProcessorType\>.deb from [http://packages.ubuntu.com/vivid/python-cryptography](http://packages.ubuntu.com/vivid/python-cryptography)
 
 ###### **Installing the files**
 **Through terminal**
@@ -34,14 +34,14 @@ After downloading files go to the download folder and install the files through 
 ```bash
 cd ./Downloads
 dpkg -i libsodium13_1.0.1-1_amd64.deb
-dpkg -i python-cryptography_0.5.2-1_amd64.deb
+dpkg -i python-cryptography_0.8-1ubuntu2_amd64.deb
 ```
 **For i386:**
 
 ```bash
 cd ./Downloads
 dpkg -i libsodium13_1.0.1-1_i386.deb
-dpkg -i python-cryptography_0.5.2-1_i386.deb
+dpkg -i python-cryptography_0.8-1ubuntu2_i386.deb
 ```
 
 **Through file navigator:**
