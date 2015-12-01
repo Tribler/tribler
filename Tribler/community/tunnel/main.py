@@ -124,6 +124,7 @@ class Tunnel(object):
         config.set_enable_torrent_search(False)
         config.set_enable_channel_search(False)
         self.session = Session(config)
+
         upgrader = self.session.prestart()
         while not upgrader.is_done:
             time.sleep(0.1)

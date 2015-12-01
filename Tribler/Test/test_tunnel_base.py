@@ -81,7 +81,9 @@ class TestTunnelBase(TestGuiAsServer):
             config.set_state_dir(self.getStateDir(index))
 
             session = Session(config, ignore_singleton=True, autoload_discovery=False)
+
             upgrader = session.prestart()
+
             while not upgrader.is_done:
                 time.sleep(0.1)
             session.start()
@@ -121,6 +123,7 @@ class TestTunnelBase(TestGuiAsServer):
         self.config2.set_state_dir(self.getStateDir(2))
         if session is None:
             self.session2 = Session(self.config2, ignore_singleton=True, autoload_discovery=False)
+
             upgrader = self.session2.prestart()
             while not upgrader.is_done:
                 time.sleep(0.1)

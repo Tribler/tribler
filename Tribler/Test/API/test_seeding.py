@@ -110,7 +110,9 @@ class TestSeeding(TestAsServer):
     def subtest_download(self):
         """ Now download the file via another Session """
         self.session2 = Session(self.config2, ignore_singleton=True)
+
         upgrader = self.session2.prestart()
+
         while not upgrader.is_done:
             time.sleep(0.1)
         self.session2.start()

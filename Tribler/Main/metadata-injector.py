@@ -92,6 +92,7 @@ class MetadataInjector(TaskManager):
 
         self._logger.info(u"Starting session...")
         self.session = Session(sscfg)
+
         self.session.prestart()
 
         # add dispersy start callbacks
