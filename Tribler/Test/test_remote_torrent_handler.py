@@ -96,7 +96,9 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.config2.set_state_dir(self.session2_state_dir)
 
         self.session2 = Session(self.config2, ignore_singleton=True)
+
         upgrader = self.session2.prestart()
+
         while not upgrader.is_done:
             sleep(0.1)
         assert not upgrader.failed, upgrader.current_status
@@ -155,6 +157,7 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.config2.set_state_dir(self.session2_state_dir)
 
         self.session2 = Session(self.config2, ignore_singleton=True)
+
         upgrader = self.session2.prestart()
         while not upgrader.is_done:
             sleep(0.1)

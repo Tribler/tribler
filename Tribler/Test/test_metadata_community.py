@@ -89,6 +89,7 @@ class TestMetadataCommunity(TestGuiAsServer):
         self.config2 = self.config.copy()
 
         self.session2 = Session(self.config2, ignore_singleton=True)
+
         upgrader = self.session2.prestart()
         while not upgrader.is_done:
             time.sleep(0.1)

@@ -170,6 +170,7 @@ class TestAsServer(AbstractServer):
         self.quitting = False
 
         self.session = Session(self.config)
+
         upgrader = self.session.prestart()
         while not upgrader.is_done:
             time.sleep(0.1)
