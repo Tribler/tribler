@@ -1013,17 +1013,8 @@ def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_chann
 
             logger.info("Client shutting down. Detected another instance.")
         else:
-
-            if sys.platform == 'linux2' and os.environ.get("TRIBLER_INITTHREADS", "true").lower() == "true":
-                try:
-                    import ctypes
-                    x11 = ctypes.cdll.LoadLibrary('libX11.so.6')
-                    x11.XInitThreads()
-                    os.environ["TRIBLER_INITTHREADS"] = "False"
-                except OSError as e:
-                    logger.debug("Failed to call XInitThreads '%s'", str(e))
-                except:
-                    logger.exception('Failed to call xInitThreads')
+            from Tribler.Main.Utility.utility import initialize_x11_threads
+            initialize_x11_threads()
 
             # Launch first abc single instance
             app = wx.GetApp()
