@@ -24,16 +24,16 @@ signature_format = ' '.join(['!I I', append_format, append_format])
 signature_size = calcsize(signature_format)
 append_size = calcsize(append_format)
 
-block_request_format = 'i'
-block_request_size = calcsize(block_request_format)
+crawl_request_format = 'i'
+crawl_request_size = calcsize(crawl_request_format)
 
 # [signature, pk]
 authentication_format = str(PK_LENGTH) + 's ' + str(SIG_LENGTH) + 's '
 # [Up, Down, TotalUpRequester, TotalDownRequester, sequence_number_requester, previous_hash_requester,
 #   TotalUpResponder, TotalDownResponder, sequence_number_responder, previous_hash_responder,
 #   signature_requester, pk_requester, signature_responder, pk_responder]
-block_response_format = signature_format + authentication_format + authentication_format
-block_response_size = calcsize(block_response_format)
+crawl_response_format = signature_format + authentication_format + authentication_format
+crawl_response_size = calcsize(crawl_response_format)
 
 
 class MultiChainConversion(BinaryConversion):
@@ -43,15 +43,17 @@ class MultiChainConversion(BinaryConversion):
 
     def __init__(self, community):
         super(MultiChainConversion, self).__init__(community, "\x01")
-        from Tribler.community.multichain.community import SIGNATURE, BLOCK_REQUEST, BLOCK_RESPONSE
+        from Tribler.community.multichain.community import SIGNATURE, CRAWL_REQUEST, CRAWL_RESPONSE, CRAWL_RESUME
 
         # Define Request Signature.
         self.define_meta_message(chr(1), community.get_meta_message(SIGNATURE),
                                  self._encode_signature, self._decode_signature)
-        self.define_meta_message(chr(2), community.get_meta_message(BLOCK_REQUEST),
-                                 self._encode_block_request, self._decode_block_request)
-        self.define_meta_message(chr(3), community.get_meta_message(BLOCK_RESPONSE),
-                                 self._encode_block_response, self._decode_block_response)
+        self.define_meta_message(chr(2), community.get_meta_message(CRAWL_REQUEST),
+                                 self._encode_crawl_request, self._decode_crawl_request)
+        self.define_meta_message(chr(3), community.get_meta_message(CRAWL_RESPONSE),
+                                 self._encode_crawl_response, self._decode_crawl_response)
+        self.define_meta_message(chr(4), community.get_meta_message(CRAWL_RESUME),
+                                 self._encode_crawl_resume, self._decode_crawl_resume)
 
     def _encode_signature(self, message):
         """
@@ -83,56 +85,73 @@ class MultiChainConversion(BinaryConversion):
         return \
             offset, placeholder.meta.payload.implement(*values)
 
-    def _encode_block_request(self, message):
+    def _encode_crawl_request(self, message):
         """
-        Encode a block request message.
-        :param message: Message.impl of BlockRequestPayload.impl
+        Encode a crawl request message.
+        :param message: Message.impl of CrawlRequestPayload.impl
         return encoding ready to be sent of the network of the message
         """
-        return pack(block_request_format, message.payload.requested_sequence_number),
+        return pack(crawl_request_format, message.payload.requested_sequence_number),
 
-    def _decode_block_request(self, placeholder, offset, data):
+    def _decode_crawl_request(self, placeholder, offset, data):
         """
-        Decode an incoming block request message.
+        Decode an incoming crawl request message.
         :param placeholder:
-        :param offset: Start of the BlockRequest message in the data.
+        :param offset: Start of the CrawlRequest message in the data.
         :param data: ByteStream containing the message.
-        :return: (offset, BlockRequest.impl)
+        :return: (offset, CrawlRequest.impl)
         """
-        if len(data) < offset + block_request_size:
+        if len(data) < offset + crawl_request_size:
             raise DropPacket("Unable to decode the payload")
 
-        values = unpack_from(block_request_format, data, offset)
-        offset += block_request_size
+        values = unpack_from(crawl_request_format, data, offset)
+        offset += crawl_request_size
 
         return offset, placeholder.meta.payload.implement(*values)
 
-    def _encode_block_response(self, message):
+    def _encode_crawl_response(self, message):
         """
-        Encode a block response message.
-        :param message: Message.impl of BlockResponsePayload.impl
+        Encode a crawl response message.
+        :param message: Message.impl of CrawlResponsePayload.impl
         :return encoding ready to be sent to the network of the message
         """
         payload = message.payload
         return encode_block(payload),
 
-    def _decode_block_response(self, placeholder, offset, data):
+    def _decode_crawl_response(self, placeholder, offset, data):
         """
-        Decode an incoming block response message.
+        Decode an incoming crawl response message.
         :param placeholder:
-        :param offset: Start of the BlockResponse message in the data.
+        :param offset: Start of the CrawlResponse message in the data.
         :param data: ByteStream containing the message.
-        :return: (offset, BlockResponse.impl)
+        :return: (offset, CrawlResponse.impl)
         """
-        if len(data) < offset + block_response_size:
+        if len(data) < offset + crawl_response_size:
             raise DropPacket("Unable to decode the payload")
 
-        values = unpack_from(block_response_format, data, offset)
-        offset += block_response_size
+        values = unpack_from(crawl_response_format, data, offset)
+        offset += crawl_response_size
 
         return \
             offset, placeholder.meta.payload.implement(*values)
 
+    def _encode_crawl_resume(self, message):
+        """
+        Encode a crawl resume message.
+        :param message: Message.impl of CrawlResumePayload.impl
+        return encoding of the message ready to be sent over the network
+        """
+        return '',
+
+    def _decode_crawl_resume(self, placeholder, offset, data):
+        """
+        Decode an incoming crawl resume message.
+        :param placeholder:
+        :param offset: Start of the CrawlResume message in the data.
+        :param data: ByteStream containing the message.
+        :return: (offset, CrawlResume.impl)
+        """
+        return offset, placeholder.meta.payload.implement()
 
 def split_function(payload):
     """
@@ -153,7 +172,7 @@ def encode_block(payload):
     """ Test code sometimes run a different curve with a different key length resulting in hard to catch bugs."""
     assert len(payload.public_key_requester) == PK_LENGTH
     assert len(payload.public_key_responder) == PK_LENGTH
-    return pack(block_response_format, *(payload.up, payload.down,
+    return pack(crawl_response_format, *(payload.up, payload.down,
                                          payload.total_up_requester, payload.total_down_requester,
                                          payload.sequence_number_requester, payload.previous_hash_requester,
                                          payload.total_up_responder, payload.total_down_responder,

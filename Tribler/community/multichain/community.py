@@ -15,20 +15,23 @@ from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.community import Community
-from Tribler.dispersy.message import Message
+from Tribler.dispersy.message import Message, BatchConfiguration
 from Tribler.dispersy.conversion import DefaultConversion
 
-from Tribler.community.multichain.payload import SignaturePayload, BlockRequestPayload, BlockResponsePayload
+from Tribler.community.multichain.payload import SignaturePayload, CrawlRequestPayload, CrawlResponsePayload, CrawlResumePayload
 from Tribler.community.multichain.database import MultiChainDB, DatabaseBlock
 from Tribler.community.multichain.conversion import MultiChainConversion, split_function
 
 SIGNATURE = u"signature"
-BLOCK_REQUEST = u"block_request"
-BLOCK_RESPONSE = u"block_response"
+CRAWL_REQUEST = u"crawl_request"
+CRAWL_RESPONSE = u"crawl_response"
+CRAWL_RESUME = u"crawl_resume"
 
-""" ID of the first block of the chain. """
+# ID of the first block of the chain.
 GENESIS_ID = '0' * 20
 
+# Divide by this to convert from bytes to MegaBytes.
+MEGA_DIVIDER = 1000000
 
 class MultiChainScheduler:
     """
@@ -38,12 +41,14 @@ class MultiChainScheduler:
     This is a very simple version that should be expanded in the future.
     """
 
-    """ The amount of bytes that the Scheduler will be altruistic about and allows to be outstanding. """
-    # 5MB
-    threshold = 1000000
-    """" Divide by this to convert from bytes to MegaBytes. """
-    mega_divider = 1000000
-
+    # The amount of bytes that the Scheduler will be altruistic about and allows to be outstanding.
+    threshold = 10 * MEGA_DIVIDER
+    
+    # Counter decay settings
+    decay_interval = 120.0
+    decay_factor = 0.95
+    decay_threshold = 0.1 * MEGA_DIVIDER
+     
     def __init__(self, community):
         """
         Create the MultiChainScheduler
@@ -54,6 +59,7 @@ class MultiChainScheduler:
         self._outstanding_amount_received = {}
         """ The MultiChainCommunity that will be used to send requests. """
         self._community = community
+        self._community.register_task("decay counters", LoopingCall(self.decay_counters)).start(self.decay_interval, now=False)
 
     def update_amount_send(self, peer, amount_send):
         """
@@ -102,6 +108,18 @@ class MultiChainScheduler:
             self._community.logger.warn(
                 "No valid candidate found for: %s:%s to request block from." % (peer[0], peer[1]))
 
+    def decay_counters(self):
+        def decay_dict(decay):
+            delete_key = []
+            for key in decay:
+                decay[key] *= self.decay_factor
+                if (decay[key] < self.decay_threshold):
+                    self._community.logger.warn("Scheduler counter for peer %s has decayed below the threshold, deleting" % (key,))
+                    delete_key.append(key)
+            for key in delete_key:
+                del decay[key]
+        decay_dict(self._outstanding_amount_send)
+        decay_dict(self._outstanding_amount_received)
 
 class MultiChainCommunity(Community):
     """
@@ -169,22 +187,32 @@ class MultiChainCommunity(Community):
                     SignaturePayload(),
                     self._generic_timeline_check,
                     self.received_signature_response),
-            Message(self, BLOCK_REQUEST,
+            Message(self, CRAWL_REQUEST,
                     MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
-                    BlockRequestPayload(),
+                    CrawlRequestPayload(),
                     self._generic_timeline_check,
-                    self.received_request_block),
-            Message(self, BLOCK_RESPONSE,
+                    self.received_crawl_request),
+            Message(self, CRAWL_RESPONSE,
                     MemberAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
-                    BlockResponsePayload(),
+                    CrawlResponsePayload(),
                     self._generic_timeline_check,
-                    self.received_block_response), ]
+                    self.received_crawl_response,
+                    #batch=BatchConfiguration(max_window=1.0)
+                    ),
+            Message(self, CRAWL_RESUME,
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    CrawlResumePayload(),
+                    self._generic_timeline_check,
+                    self.received_craw_resumption)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), MultiChainConversion(self)]
@@ -315,86 +343,69 @@ class MultiChainCommunity(Community):
         :param message:
         """
         block = DatabaseBlock.from_signature_response_message(message)
-        self.logger.info("Persisting sr: %s" % base64.encodestring(block.id))
+        self.logger.info("Persisting sr: %s" % base64.encodestring(block.id).strip())
         self.persistence.add_block(block)
 
-    def publish_request_block_message(self, candidate, sequence_number=-1):
-        """
-        Request a specific block from a chain of another candidate.
-        :param candidate: The candidate that the block is requested from
-        :param sequence_number: The requested sequence_number or default the latest sequence number
-        """
-        self.logger.info("Crawler: Requesting Block:%s" % sequence_number)
-        meta = self.get_meta_message(BLOCK_REQUEST)
-
+    def send_crawl_request(self, candidate, sequence_number = None):
+        if sequence_number is None:
+            sequence_number = self.persistence.get_latest_sequence_number(candidate.get_member().mid);
+        self.logger.info("Crawler: Requesting crawl from node %s, from sequence number %d" % (base64.encodestring(candidate.get_member().mid).strip(), sequence_number))
+        meta = self.get_meta_message(CRAWL_REQUEST)
         message = meta.impl(authentication=(self.my_member,),
                             distribution=(self.claim_global_time(),),
                             destination=(candidate,),
                             payload=(sequence_number,))
         self.dispersy.store_update_forward([message], False, False, True)
-
-    def received_request_block(self, messages):
+    
+    def received_crawl_request(self, messages):
         for message in messages:
-            requested_sequence_number = message.payload.requested_sequence_number
-            self.logger.info("Crawler: Received request for block: %s" % requested_sequence_number)
-            self.publish_block(message.candidate, requested_sequence_number)
-
-    def publish_block(self, candidate, sequence_number):
-        if sequence_number == -1:
-            # latest sequence number to be published.
-            sequence_number = self.persistence.get_latest_sequence_number(self._mid)
-        requested_block = self.persistence.get_by_sequence_number_and_mid(sequence_number, self._mid)
-        if requested_block:
-            self.logger.info("Crawler: Sending block: %s" % sequence_number)
-            meta = self.get_meta_message(BLOCK_RESPONSE)
-
-            message = meta.impl(authentication=(self.my_member,),
-                                distribution=(self.claim_global_time(),),
-                                destination=(candidate,),
-                                payload=requested_block.to_payload())
-
-            self.dispersy.store_update_forward([message], False, False, True)
+            self.logger.info("Crawler: Received crawl request from node %s, from sequence number %d" % 
+                             (base64.encodestring(message.candidate.get_member().mid).strip(), message.payload.requested_sequence_number))
+            self.crawl_requested(message.candidate, message.payload.requested_sequence_number)
+    
+    def crawl_requested(self, candidate, sequence_number):
+        blocks = self.persistence.get_blocks_since(self._mid, sequence_number)
+        if len(blocks) > 0:
+            self.logger.info("Crawler: Sending %d blocks" % len(blocks))
+            messages = [self.get_meta_message(CRAWL_RESPONSE)
+                    .impl(authentication=(self.my_member,),
+                          distribution=(self.claim_global_time(),),
+                          destination=(candidate,),
+                          payload=block.to_payload()) for block in blocks]
+            self.dispersy.store_update_forward(messages, False, False, True)
+            if len(blocks) > 1:
+                # we sent more than 1 block. Send a resumption token so the other side knows it should continue crawling
+                #last_block = blocks[-1]
+                #resumption_number = last_block.sequence_number_requster if last_block.mid_requester == self._mid else last_block.sequence_number_responder
+                message = self.get_meta_message(CRAWL_RESUME).impl(authentication=(self.my_member,),
+                          distribution=(self.claim_global_time(),),
+                          destination=(candidate,),
+                #          payload=(resumption_number))
+                          payload=())
+                self.dispersy.store_update_forward([message], False, False, True)
         else:
-            self.logger.info("Crawler: Received invalid request for block: %s" % sequence_number)
-
-    def received_block_response(self, messages):
-        """
-        We've received a valid block response and must process this message.
-        """
-        self.logger.info("Crawler: Valid %s block response(s) received." % len(messages))
+            # This is slightly worrying since the last block should always be returned.
+            # Or rather, the other side is requesting blocks starting from a point in the future.
+            self.logger.info("Crawler: No blocks")
+        
+    def received_crawl_response(self, messages):
+        self.logger.info("Crawler: Valid %d block response(s) received." % len(messages))
         for message in messages:
             requester = self.dispersy.get_member(public_key=message.payload.public_key_requester)
             responder = self.dispersy.get_member(public_key=message.payload.public_key_responder)
             block = DatabaseBlock.from_block_response_message(message, requester, responder)
             # Create the hash of the message
             if not self.persistence.contains(block.id):
-                self.logger.info("Crawler: Persisting sr: %s" % base64.encodestring(block.id))
+                self.logger.info("Crawler: Persisting id: %s" % base64.encodestring(block.id).strip())
                 self.persistence.add_block(block)
-                # Crawl further down the chain.
-                self.crawl_down(block.previous_hash_requester, block.sequence_number_requester - 1,
-                                block.public_key_requester)
-                self.crawl_down(block.previous_hash_responder, block.sequence_number_responder - 1,
-                                block.public_key_responder)
             else:
                 self.logger.info("Crawler: Received already known block")
 
-    def crawl_down(self, next_hash, sequence_number, public_key):
-        # Check if it is not the genesis block.
-        if sequence_number >= 0:
-            # Check if the block is not already known.
-            if not self.persistence.contains(next_hash):
-                member = self.dispersy.get_member(public_key=public_key)
-                candidate = self.get_candidate_mid(member.mid) if member else None
-                # Check if the candidate is known.
-                if candidate:
-                    self.logger.info("Crawler: down: crawling down.")
-                    self.publish_request_block_message(candidate, sequence_number)
-                else:
-                    self.logger.info("Crawler: down: candidate unknown.")
-            else:
-                self.logger.info("Crawler: down: reached known block.")
-        else:
-            self.logger.info("Crawler: down: reached genesis block.")
+    def received_craw_resumption(self, messages):
+        self.logger.info("Crawler: Valid %s crawl resumptions received." % len(messages))
+        for message in messages:
+            self.send_crawl_request(message.candidate)
+        
 
     def get_key(self):
         return self._ec
@@ -441,7 +452,7 @@ class MultiChainCommunityCrawler(MultiChainCommunity):
     def on_introduction_response(self, messages):
         super(MultiChainCommunityCrawler, self).on_introduction_response(messages)
         for message in messages:
-            self.publish_request_block_message(message.candidate)
+            self.send_crawl_request(message.candidate)
 
     def start_walking(self):
         self.register_task("take step", LoopingCall(self.take_step)).start(self.CrawlerDelay, now=True)

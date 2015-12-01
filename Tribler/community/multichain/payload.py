@@ -73,15 +73,15 @@ class SignaturePayload(Payload):
             return self._previous_hash_responder
 
 
-class BlockRequestPayload(Payload):
+class CrawlRequestPayload(Payload):
     """
-    Request a block with a specific sequence number or the latest if -1.
+    Request a crawl of blocks starting with a specific sequence number or the first if -1.
     """
 
     class Implementation(Payload.Implementation):
 
         def __init__(self, meta, requested_sequence_number=-1):
-            super(BlockRequestPayload.Implementation, self).__init__(meta)
+            super(CrawlRequestPayload.Implementation, self).__init__(meta)
             self._requested_sequence_number = requested_sequence_number
 
         @property
@@ -89,7 +89,7 @@ class BlockRequestPayload(Payload):
             return self._requested_sequence_number
 
 
-class BlockResponsePayload(Payload):
+class CrawlResponsePayload(Payload):
     """
     Payload for message that will respond to a Signature Request containing
     the Signature of {timestamp,signature_requester}.
@@ -102,7 +102,7 @@ class BlockResponsePayload(Payload):
                      sequence_number_responder, previous_hash_responder,
                      public_key_requester, signature_requester,
                      public_key_responder, signature_responder):
-            super(BlockResponsePayload.Implementation, self).__init__(meta)
+            super(CrawlResponsePayload.Implementation, self).__init__(meta)
             """ Set the interaction part of the message """
             self._up = up
             self._down = down
@@ -177,3 +177,8 @@ class BlockResponsePayload(Payload):
         @property
         def public_key_responder(self):
             return self._public_key_responder
+        
+class CrawlResumePayload(Payload):
+    class Implementation(Payload.Implementation):
+        def __init__(self, meta):
+            super(CrawlResumePayload.Implementation, self).__init__(meta)
