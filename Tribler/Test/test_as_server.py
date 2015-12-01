@@ -334,6 +334,9 @@ class TestGuiAsServer(TestAsServer):
         self.assertFalse(Session.has_instance(), 'A session instance is already present when setting up the test')
         AbstractServer.setUp(self, annotate=False)
 
+        from Tribler.Main.Utility.utility import initialize_x11_threads
+        initialize_x11_threads()
+
         self.app = wx.GetApp()
         if not self.app:
             from Tribler.Main.tribler_main import TriblerApp
