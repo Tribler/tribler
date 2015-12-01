@@ -6,7 +6,6 @@ import logging
 import os
 import socket
 from binascii import hexlify
-
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.CacheDB.Notifier import Notifier
@@ -18,18 +17,17 @@ from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT,
                                      NTFY_PEERS, NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
                                      STATEDIR_METADATA_STORE_DIR, STATEDIR_PEERICON_DIR, STATEDIR_TORRENT_STORE_DIR)
 
-
 GOTM2CRYPTO = False
 try:
     import M2Crypto
     import Tribler.Core.permid as permidmod
+
     GOTM2CRYPTO = True
 except ImportError:
     pass
 
 
 class Session(SessionConfigInterface):
-
     """
 
     A Session is a running instance of the Tribler Core and the Core's central
@@ -152,19 +150,39 @@ class Session(SessionConfigInterface):
 
         self.autoload_discovery = autoload_discovery
 
-    def prestart(self):
-        """ Pre-starts the session. We check the currently version and upgrades if needed
-        before we start everything else.
+    def initialize_database(self):
         """
-        # initialize the database
+        Initializes the SQLite database.
+        """
         self.sqlite_db = SQLiteCacheDB(self)
         self.sqlite_db.initialize()
         self.sqlite_db.initial_begin()
 
-        # check and upgrade
-        upgrader = TriblerUpgrader(self, self.sqlite_db)
-        upgrader.check_and_upgrade()
-        return upgrader
+    def has_to_upgrade_database(self):
+        """
+        Checks whether the database should be upgraded based on the current database version.
+        :return:a tuple with (failed, has_to_upgrade). If failed is true, the database should be stashed
+        if has_to_upgrade is true, the database has to be upgraded from an old verison.
+        """
+        upgrader = TriblerUpgrader.get_singleton(self)
+        return upgrader.check_should_upgrade()
+
+    def upgrade_database(self):
+        """
+        Upgrades the database from an old, but supported version to the latest version.
+        If this function is called, stash_database should not be called.
+
+        """
+        upgrader = TriblerUpgrader.get_singleton(self)
+        upgrader.upgrade_database_to_current_version()
+
+    def stash_database(self):
+        """
+        Stashes the database because the version is too old or newer than the current version.
+        If this function is called, upgrade_database should not be called.
+        """
+        upgrader = TriblerUpgrader.get_singleton(self)
+        upgrader.stash_database()
 
     #
     # Class methods
