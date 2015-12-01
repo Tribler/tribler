@@ -186,8 +186,8 @@ class TestMultiChainScheduler(BaseTestCase):
         The scheduler can schedule a block.
         """
         # Arrange
-        sent = 5
-        received = 5
+        sent = 4
+        received = 4
         self.scheduler.update_amount_send(self.peer1, sent * MultiChainScheduler.mega_divider)
         self.scheduler.update_amount_received(self.peer1, received * MultiChainScheduler.mega_divider)
         # Act
@@ -204,8 +204,8 @@ class TestMultiChainScheduler(BaseTestCase):
         The scheduler can deal with if a block cannot be sent.
         """
         # Arrange
-        sent = 5
-        received = 5
+        sent = 4
+        received = 4
         self.scheduler.update_amount_send(self.peer1, sent * MultiChainScheduler.mega_divider)
         self.scheduler.update_amount_received(self.peer1, received * MultiChainScheduler.mega_divider)
         self.community.publish_success = False
@@ -317,11 +317,12 @@ class TestMultiChainCommunity(DispersyTestFunc):
         """ Return the response. """
         # Ignore source, as it is a Candidate. We need to use DebugNodes in test.
         _, signature_response = node.receive_message(names=[u"dispersy-signature-response"]).next()
-        node.give_message(signature_response, node)
+        node.give_message(signature_response, other)
         # Assert
         self.assertEqual((10, 5), node.call(node.community._get_next_total, 0, 0))
         """ The up and down values are reversed for the responder. """
         self.assertEqual((5, 10), other.call(other.community._get_next_total, 0, 0))
+
 
     def test_signature_request_timeout(self):
         """"

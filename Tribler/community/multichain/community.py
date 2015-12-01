@@ -37,11 +37,12 @@ class MultiChainScheduler:
     This outstanding amount is not persisted and is lost when Tribler is restarted.
     This is a very simple version that should be expanded in the future.
     """
+
     """ The amount of bytes that the Scheduler will be altruistic about and allows to be outstanding. """
     # 5MB
     threshold = 5000000
     """" Divide by this to convert from bytes to MegaBytes. """
-    mega_divider = 100000
+    mega_divider = 1000000
 
     def __init__(self, community):
         """
