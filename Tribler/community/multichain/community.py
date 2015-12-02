@@ -40,7 +40,7 @@ class MultiChainScheduler:
 
     """ The amount of bytes that the Scheduler will be altruistic about and allows to be outstanding. """
     # 5MB
-    threshold = 5000000
+    threshold = 1000000
     """" Divide by this to convert from bytes to MegaBytes. """
     mega_divider = 1000000
 
