@@ -265,28 +265,28 @@ class SettingsDialog(wx.Dialog):
             except:
                 self._logger.exception("Could not set target")
 
-        # tit-4-tat
-        t4t_option = self.utility.read_config('t4t_option')
-        for i in range(4):
-            if getattr(self, '_t4t%d' % i).GetValue():
-                self.utility.write_config('t4t_option', i)
+        seeding_mode = self.utility.read_config('seeding_mode', 'downloadconfig')
+        for i, mode in enumerate(('ratio', 'forever', 'time', 'never')):
+            if getattr(self, '_seeding%d' % i).GetValue():
+                self.utility.write_config('seeding_mode', mode, 'downloadconfig')
 
-                if i != t4t_option:
+                if mode != seeding_mode:
                     restart = True
 
                 break
-        t4t_ratio = int(float(self._t4t0choice.GetStringSelection()) * 100)
-        self.utility.write_config("t4t_ratio", t4t_ratio)
+        seeding_ratio = float(self._seeding0choice.GetStringSelection())
+        self.utility.write_config("seeding_ratio", seeding_ratio, 'downloadconfig')
 
-        hours_min = self._t4t2text.GetValue()
+        hours_min = self._seeding2text.GetValue()
         hours_min = hours_min.split(':')
         if len(hours_min) > 0:
             if len(hours_min) > 1:
-                self.utility.write_config("t4t_hours", hours_min[0] or 0)
-                self.utility.write_config("t4t_mins", hours_min[1] or 0)
+                seeding_time = (int(hours_min[0]) * 60 + int(hours_min[1]))
             else:
-                self.utility.write_config("t4t_hours", hours_min[0] or 0)
-                self.utility.write_config("t4t_mins", 0)
+                seeding_time = int(hours_min[0])
+        else:
+            seeding_time = 0
+        self.utility.write_config("seeding_time", seeding_time, 'downloadconfig')
 
         # Proxy settings
         old_ptype, old_server, old_auth = self.utility.session.get_libtorrent_proxy_settings()
@@ -597,6 +597,9 @@ class SettingsDialog(wx.Dialog):
             bp_s1_hsizer2.Add(bp_s1_p2_btn)
         bp_s1_sizer.Add(bp_s1_hsizer2, 0, wx.EXPAND)
 
+        bp_s1_bandwitdh_note = wx.StaticText(bandwidth_panel, label="\nPlease note that these settings apply to plain and tunneled downloads separately.")
+        bp_s1_sizer.Add(bp_s1_bandwitdh_note)
+
         # upload/download rate
         convert = lambda v: 'unlimited' if v == 0 else ('0' if v == -1 else str(v))
         self._download_ctrl.SetValue(convert(self.utility.read_config('maxdownloadrate')))
@@ -609,39 +612,45 @@ class SettingsDialog(wx.Dialog):
 
         item_id = self._tree_ctrl.AppendItem(tree_root, "Seeding", data=wx.TreeItemData(seeding_panel))
 
-        # BitTorrent-peers
+        # Create the widgets
         sd_s1_sizer = create_subsection(seeding_panel, sd_vsizer, "BitTorrent-peers", 2)
-        self._t4t0 = wx.RadioButton(seeding_panel, label="Seed until UL/DL ratio >", style=wx.RB_GROUP)
-        sd_s1_sizer.Add(self._t4t0, 0, wx.ALIGN_CENTER_VERTICAL)
-        self._t4t0choice = wx.Choice(seeding_panel)
-        self._t4t0choice.AppendItems(["0.5", "0.75", "1.0", "1.5", "2.0", "3.0", "5.0"])
-        sd_s1_sizer.Add(self._t4t0choice, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        self._seeding0 = wx.RadioButton(seeding_panel, label="Seed until UL/DL ratio >", style=wx.RB_GROUP)
+        sd_s1_sizer.Add(self._seeding0, 0, wx.ALIGN_CENTER_VERTICAL)
+        self._seeding0choice = wx.Choice(seeding_panel)
+        self._seeding0choice.AppendItems(["0.5", "0.75", "1.0", "1.5", "2.0", "3.0", "5.0"])
+        sd_s1_sizer.Add(self._seeding0choice, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
 
-        self._t4t1 = wx.RadioButton(seeding_panel, label="Unlimited seeding")
-        sd_s1_sizer.Add(self._t4t1, 0, wx.ALIGN_CENTER_VERTICAL)
+        self._seeding1 = wx.RadioButton(seeding_panel, label="Unlimited seeding")
+        sd_s1_sizer.Add(self._seeding1, 0, wx.ALIGN_CENTER_VERTICAL)
         sd_s1_sizer.AddStretchSpacer()
 
-        self._t4t2 = wx.RadioButton(seeding_panel, label="Seeding for (hours:minutes)")
-        sd_s1_sizer.Add(self._t4t2, 0, wx.ALIGN_CENTER_VERTICAL)
-        self._t4t2text = wx.lib.masked.textctrl.TextCtrl(seeding_panel)
-        self._t4t2text.SetCtrlParameters(mask="##:##", defaultValue="00:00", useFixedWidthFont=False)
-        sd_s1_sizer.Add(self._t4t2text)
+        self._seeding2 = wx.RadioButton(seeding_panel, label="Seeding for (hours:minutes)")
+        sd_s1_sizer.Add(self._seeding2, 0, wx.ALIGN_CENTER_VERTICAL)
+        self._seeding2text = wx.lib.masked.textctrl.TextCtrl(seeding_panel)
+        self._seeding2text.SetCtrlParameters(mask="##:##", defaultValue="00:00", useFixedWidthFont=False)
+        sd_s1_sizer.Add(self._seeding2text)
 
-        self._t4t3 = wx.RadioButton(seeding_panel, label="No seeding")
-        sd_s1_sizer.Add(self._t4t3, 0, wx.ALIGN_CENTER_VERTICAL)
+        self._seeding3 = wx.RadioButton(seeding_panel, label="No seeding")
+        sd_s1_sizer.Add(self._seeding3, 0, wx.ALIGN_CENTER_VERTICAL)
 
-        # other things
-        t4t_option = self.utility.read_config('t4t_option')
-        getattr(self, '_t4t%d' % t4t_option).SetValue(True)
-        t4t_ratio = self.utility.read_config('t4t_ratio') / 100.0
-        index = self._t4t0choice.FindString(str(t4t_ratio))
+        # Set the on-file config values
+        seeding_ratio = self.utility.read_config('seeding_ratio', 'downloadconfig')
+        index = self._seeding0choice.FindString(str(seeding_ratio))
         if index != wx.NOT_FOUND:
-            self._t4t0choice.Select(index)
+            self._seeding0choice.Select(index)
 
-        t4t_hours = self.utility.read_config('t4t_hours')
-        t4t_minutes = self.utility.read_config('t4t_mins')
-        self._t4t2text.SetValue("%02d:%02d" % (t4t_hours, t4t_minutes))
+        seeding_time = self.utility.read_config('seeding_time', 'downloadconfig') or 0
+        seeding_minutes = seeding_time % 60
+        seeding_hours = (seeding_time - seeding_minutes) / 60
+        self._seeding2text.SetValue("%02d:%02d" % (seeding_hours, seeding_minutes))
 
+        seeding_mode = self.utility.read_config('seeding_mode', 'downloadconfig')
+        radios = {'ratio': self._seeding0,
+                  'forever': self._seeding1,
+                  'time': self._seeding2,
+                  'never': self._seeding3,}
+
+        radios[seeding_mode].SetValue(True)
         return seeding_panel, item_id
 
     def __create_s5(self, tree_root, sizer):
@@ -753,7 +762,7 @@ class SettingsDialog(wx.Dialog):
         slider_sizer.Add(labels_and_slider, 1, wx.RIGHT, 10)
         slider_sizer.Add(self.slider_bitmap)
 
-        proxytext = wx.StaticText(exp_panel, -1, 'Please select how anonymous you want to download:')
+        proxytext = wx.StaticText(exp_panel, -1, 'Please select how many encrypted hops you want to use for your downloads:')
 
         exp_s2_sizer = create_subsection(exp_panel, exp_vsizer, "Proxy downloading", 1, 3)
         exp_s2_sizer.Add(proxytext, 0, wx.EXPAND | wx.BOTTOM, 10)

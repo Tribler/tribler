@@ -2,12 +2,16 @@
 # see LICENSE.txt for license information
 import os
 import sys
+import logging
 from random import gauss
 
-from Tribler.Core.version import version_id
+from Tribler.Core.defaults import tribler_defaults
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.Core.simpledefs import STATEDIR_GUICONFIG
+from Tribler.Core.version import version_id
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 
+logger = logging.getLogger(__name__)
 
 #
 # Generic "glue" class that contains commonly used helper functions
@@ -31,45 +35,7 @@ class Utility(object):
         self.session = session
 
     def setupConfig(self):
-        tribler_defaults = {'confirmonclose': 1,
-                            # RateLimitPanel
-                            'maxuploadrate': 0,
-                            'maxdownloadrate': 0,
-                            # Misc
-                            'torrentassociationwarned': 0,
-                            # anonymous
-                            'default_number_hops': 1,
-                            'default_anonimity_enabled': True,
-                            'default_safeseeding_enabled': True,
-
-                            # GUI
-                            'window_width': 1024,
-                            'window_height': 670,
-                            'sash_position': -185,
-                            't4t_option': 0,  # Seeding items added by Boxun
-                            't4t_ratio': 100,  # T4T seeding ratio added by Niels
-                            't4t_hours': 0,
-                            't4t_mins': 30,
-                            'family_filter': 1,
-                            'window_x': "",
-                            'window_y': "",
-                            # WebUI
-                            'use_webui': 0,
-                            'webui_port': 8080,
-                            # Emercoin
-                            'use_emc':0,
-                            'emc_ip':'127.0.0.1',
-                            'emc_port':'8332',
-                            'emc_username':'tribler',
-                            'emc_password':'tribler',
-                            'showsaveas': 1,
-                            'i2ilistenport': 57891,
-                            'mintray': 2 if sys.platform == 'win32' else 0,
-                            'free_space_threshold': 100 * 1024 * 1024,
-                            'version_info': {}}
-
-        self.defaults = {'Tribler': tribler_defaults}
-        self.configfilepath = os.path.join(self.getConfigPath(), "tribler.conf")
+        self.configfilepath = os.path.join(self.getConfigPath(), STATEDIR_GUICONFIG)
         self.config = CallbackConfigParser()
 
         # Load the config file.
@@ -82,8 +48,8 @@ class Utility(object):
         # Tribler.conf also contains the default download config. So we need to merge it now.
         if not self.config.has_section('downloadconfig'):
             self.config.add_section('downloadconfig')
-        for k, v in DefaultDownloadStartupConfig.getInstance().dlconfig._sections['downloadconfig'].iteritems():
-            self.config.set('downloadconfig', k, v)
+            for k, v in DefaultDownloadStartupConfig.getInstance().dlconfig._sections['downloadconfig'].iteritems():
+                self.config.set('downloadconfig', k, v)
 
         # Make sure we use the same ConfigParser instance for both Utility and DefaultDownloadStartupConfig.
         DefaultDownloadStartupConfig.getInstance().dlconfig = self.config
@@ -105,7 +71,7 @@ class Utility(object):
 
     def read_config(self, option, section='Tribler', literal_eval=True):
         if not self.config.has_option(section, option):
-            return self.defaults.get(section, {}).get(option, None)
+            return tribler_defaults.get(section, {}).get(option, None)
 
         return self.config.get(section, option, literal_eval=literal_eval)
 
@@ -252,3 +218,16 @@ def size_format(s, truncate=None, stopearly=None, applylabel=True, rawsize=False
         text += u' ' + label
 
     return text
+
+
+def initialize_x11_threads():
+    if sys.platform == 'linux2' and os.environ.get("TRIBLER_INITTHREADS", "true").lower() == "true":
+        try:
+            import ctypes
+            x11 = ctypes.cdll.LoadLibrary('libX11.so.6')
+            x11.XInitThreads()
+            os.environ["TRIBLER_INITTHREADS"] = "False"
+        except OSError as e:
+            logger.debug("Failed to call XInitThreads '%s'", str(e))
+        except:
+            logger.exception('Failed to call xInitThreads')

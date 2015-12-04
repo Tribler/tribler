@@ -1,25 +1,26 @@
 # Written by Egbert Bouman
 import binascii
 import logging
-import os
-import threading
-import time
 import tempfile
+import threading
+import os
+import time
 from binascii import hexlify
 from copy import deepcopy
 from shutil import rmtree
 
 import libtorrent as lt
 
-from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
+from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
+from Tribler.Core.Utilities.twisted_thread import reactor
+from Tribler.Core.Utilities.utilities import parse_magnetlink
+from Tribler.Core.exceptions import DuplicateDownloadException
+from Tribler.Core.simpledefs import (NTFY_INSERT, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED,
+                                     NTFY_REACHABLE, NTFY_TORRENTS)
+from Tribler.Core.version import version_id
+from Tribler.dispersy.taskmanager import LoopingCall, TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
-from Tribler.Core.simpledefs import NTFY_REACHABLE, NTFY_INSERT
-from Tribler.Core.Utilities.utilities import parse_magnetlink
-from Tribler.Core.Utilities.twisted_thread import reactor
-from Tribler.Core.exceptions import DuplicateDownloadException
-from Tribler.Core.simpledefs import NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED, NTFY_TORRENTS
-from Tribler.Core.version import version_id
 
 DHTSTATE_FILENAME = "ltdht.state"
 METAINFO_CACHE_PERIOD = 5 * 60
@@ -146,12 +147,17 @@ class LibtorrentMgr(TaskManager):
             try:
                 dht_state = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME)).read()
                 ltsession.start_dht(lt.bdecode(dht_state))
-            except:
-                self._logger.info("could not restore dht state, starting from scratch")
+            except Exception, exc:
+                self._logger.info("could not restore dht state, got exception: %r. starting from scratch" % exc)
                 ltsession.start_dht(None)
         else:
             ltsession.listen_on(self.trsession.get_anon_listen_port(), self.trsession.get_anon_listen_port() + 20)
             ltsession.start_dht(None)
+
+            # Elric: Copy the speed limits from the plain session until we come
+            # up with a way to have global bandwidth limit settings.
+            ltsession.set_upload_rate_limit(self.get_session().upload_rate_limit())
+            ltsession.set_download_rate_limit(self.get_session().download_rate_limit())
 
         ltsession.add_dht_router('router.bittorrent.com', 6881)
         ltsession.add_dht_router('router.utorrent.com', 6881)
@@ -185,31 +191,37 @@ class LibtorrentMgr(TaskManager):
             # only apply the proxy settings to normal libtorrent session (with hops = 0)
             self.ltsessions[0].set_proxy(proxy_settings)
 
-    def set_utp(self, enable, hops=0):
-        ltsession = self.get_session(hops)
-        settings = ltsession.settings()
-        settings.enable_outgoing_utp = enable
-        settings.enable_incoming_utp = enable
-        ltsession.set_settings(settings)
+    def set_utp(self, enable, hops=None):
+        def do_set_utp(ltsession):
+            settings = ltsession.settings()
+            settings.enable_outgoing_utp = enable
+            settings.enable_incoming_utp = enable
+            ltsession.set_settings(settings)
 
-    def set_max_connections(self, conns, hops=0):
-        self.get_session(hops).set_max_connections(conns)
+        if hops is None:
+            for ltsession in self.ltsessions.itervalues():
+                do_set_utp(ltsession)
+        else:
+            do_set_utp(self.get_session(hops))
 
-    def set_upload_rate_limit(self, rate, hops=0):
+    def set_max_connections(self, conns, hops=None):
+        self._map_call_on_ltsessions(hops, 'set_max_connections', conns)
+
+    def set_upload_rate_limit(self, rate, hops=None):
         # Rate conversion due to the fact that we had a different system with Swift
         # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
-        libtorrent_rate = -1 if rate == 0 else (1 if rate == -1 else rate * 1024)
-        self.get_session(hops).set_upload_rate_limit(int(libtorrent_rate))
+        libtorrent_rate = int(-1 if rate == 0 else (1 if rate == -1 else rate * 1024))
+        self._map_call_on_ltsessions(hops, 'set_upload_rate_limit', libtorrent_rate)
 
-    def get_upload_rate_limit(self, hops=0):
+    def get_upload_rate_limit(self, hops=None):
         # Rate conversion due to the fact that we had a different system with Swift
         # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
         libtorrent_rate = self.get_session(hops).upload_rate_limit()
         return 0 if libtorrent_rate == -1 else (-1 if libtorrent_rate == 1 else libtorrent_rate / 1024)
 
-    def set_download_rate_limit(self, rate, hops=0):
-        libtorrent_rate = -1 if rate == 0 else (1 if rate == -1 else rate * 1024)
-        self.get_session(hops).set_download_rate_limit(int(libtorrent_rate))
+    def set_download_rate_limit(self, rate, hops=None):
+        libtorrent_rate = int(-1 if rate == 0 else (1 if rate == -1 else rate * 1024))
+        self._map_call_on_ltsessions(hops, 'set_download_rate_limit', libtorrent_rate)
 
     def get_download_rate_limit(self, hops=0):
         libtorrent_rate = self.get_session(hops).download_rate_limit()
@@ -466,6 +478,12 @@ class LibtorrentMgr(TaskManager):
             self._dht_check_remaining_retries = 1
             self.register_task(u'check_dht', reactor.callLater(10, self._task_check_dht))
 
+    def _map_call_on_ltsessions(self, hops, funcname, *args, **kwargs):
+        if hops is None:
+            for session in self.ltsessions.itervalues():
+                getattr(session, funcname)(*args, **kwargs)
+        else:
+            getattr(self.get_session(hops), funcname)(*args, **kwargs)
 
 def encode_atp(atp):
     for k, v in atp.iteritems():

@@ -524,12 +524,9 @@ class MainFrame(wx.Frame):
                         # If the dialog has collected a torrent, use the new tdef
                         tdef = dlg.GetCollected() or tdef
 
-                        # for multifile we enabled correctedFilenames, use split to remove the filename from the path
                         if tdef and tdef.is_multifile_torrent():
-                            destdir, _ = os.path.split(dlg.GetPath())
                             selectedFiles = dlg.GetSelectedFiles()
-                        else:
-                            destdir = dlg.GetPath()
+                        destdir = dlg.GetPath()
 
                         # Anonimity over exit nodes or hidden services
                         safe_seeding = dlg.UseSafeSeeding()

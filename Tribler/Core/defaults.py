@@ -18,9 +18,11 @@
 #    disk that does not have your new fields.
 #
 
+import sys
 from collections import OrderedDict
 
 from Tribler.Core.Video.defs import PLAYBACKMODE_INTERNAL
+
 
 DEFAULTPORT = 7760
 
@@ -32,8 +34,9 @@ DEFAULTPORT = 7760
 #  Version 3: cleanup unused params
 #  Version 4: remove swift
 #  Version 7: exitnode optin switch added
+#  Version 10: BarterCommunity settings added (disabled by default)
 
-SESSDEFAULTS_VERSION = 9
+SESSDEFAULTS_VERSION = 10
 sessdefaults = OrderedDict()
 
 # General Tribler settings
@@ -71,6 +74,10 @@ sessdefaults['search_community']['enabled'] = True
 sessdefaults['tunnel_community'] = OrderedDict()
 sessdefaults['tunnel_community']['socks5_listen_ports'] = [-1] * 5
 sessdefaults['tunnel_community']['exitnode_enabled'] = False
+
+# Barter community section
+sessdefaults['barter_community'] = OrderedDict()
+sessdefaults['barter_community']['enabled'] = False
 
 # Metadata section
 sessdefaults['metadata'] = OrderedDict()
@@ -141,8 +148,9 @@ sessdefaults['video']['preferredmode'] = PLAYBACKMODE_INTERNAL
 #  Version 11: remove createmerkletorrent, torrentsigkeypairfilename, makehash_md5, makehash_crc32, makehash_sha1
 #  Version 12: remove thumb
 #  Version 13: remove super_seeder
+#  Version 15: add seeding ratio
 
-DLDEFAULTS_VERSION = 14
+DLDEFAULTS_VERSION = 15
 dldefaults = OrderedDict()
 
 # General download settings
@@ -156,6 +164,10 @@ dldefaults['downloadconfig']['hops'] = 0
 dldefaults['downloadconfig']['selected_files'] = []
 dldefaults['downloadconfig']['correctedfilename'] = None
 dldefaults['downloadconfig']['safe_seeding'] = True
+# Valid values: 'forever', 'never', 'ratio', 'time'
+dldefaults['downloadconfig']['seeding_mode'] = 'ratio'
+dldefaults['downloadconfig']['seeding_ratio'] = 2.0
+dldefaults['downloadconfig']['seeding_time'] = 60
 
 tdefdictdefaults = {}
 tdefdictdefaults['comment'] = None
@@ -174,3 +186,40 @@ tdefmetadefaults['piece length'] = 0
 TDEF_DEFAULTS = {}
 TDEF_DEFAULTS.update(tdefdictdefaults)
 TDEF_DEFAULTS.update(tdefmetadefaults)
+
+
+# Tribler defaults
+tribler_defaults = OrderedDict()
+tribler_defaults['Tribler'] = OrderedDict()
+
+tribler_defaults['Tribler']['confirmonclose'] = 1
+# RateLimitPanel
+tribler_defaults['Tribler']['maxuploadrate'] = 0
+tribler_defaults['Tribler']['maxdownloadrate'] = 0
+# Misc
+tribler_defaults['Tribler']['torrentassociationwarned'] = 0
+# Anon tunnel
+tribler_defaults['Tribler']['default_number_hops'] = 1
+tribler_defaults['Tribler']['default_anonimity_enabled'] = True
+tribler_defaults['Tribler']['default_safeseeding_enabled'] = True
+# GUI
+tribler_defaults['Tribler']['window_width'] = 1024
+tribler_defaults['Tribler']['window_height'] = 670
+tribler_defaults['Tribler']['sash_position'] = -185
+tribler_defaults['Tribler']['family_filter'] = 1
+tribler_defaults['Tribler']['window_x'] = ""
+tribler_defaults['Tribler']['window_y'] = ""
+# WebUI
+tribler_defaults['Tribler']['use_webui'] = 0
+tribler_defaults['Tribler']['webui_port'] = 8080
+# Emercoin
+tribler_defaults['Tribler']['use_emc'] = 0
+tribler_defaults['Tribler']['emc_ip'] = '127.0.0.1'
+tribler_defaults['Tribler']['emc_port'] = '8332'
+tribler_defaults['Tribler']['emc_username'] = 'tribler'
+tribler_defaults['Tribler']['emc_password'] = 'tribler'
+tribler_defaults['Tribler']['showsaveas'] = 1
+tribler_defaults['Tribler']['i2ilistenport'] = 57891
+tribler_defaults['Tribler']['mintray'] = 2 if sys.platform == 'win32' else 0
+tribler_defaults['Tribler']['free_space_threshold'] = 100 * 1024 * 1024
+tribler_defaults['Tribler']['version_info'] = {}

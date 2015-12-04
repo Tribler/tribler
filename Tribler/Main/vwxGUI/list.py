@@ -1743,9 +1743,9 @@ class LibraryList(SizeList):
 
         newFilter = self.newfilter
         show_seeding_colours = False
-        if self.statefilter == 'active' and self.utility.read_config('t4t_option') == 0:
+        if self.statefilter == 'active' and self.utility.read_config('seeding_option', 'downloadconfig') == 'ratio':
             show_seeding_colours = True
-            t4t_ratio = self.utility.read_config('t4t_ratio') / 100.0
+            seeding_ratio = float(self.utility.read_config('seeding_ratio'))
 
             orange = LIST_ORANGE
             orange = rgb_to_hsv(orange.Red() / 255.0, orange.Green() / 255.0, orange.Blue() / 255.0)
@@ -1779,41 +1779,31 @@ class LibraryList(SizeList):
                     torrent_ds = item.original_data.download_state
 
                     # Set torrent seeding time and ratio
-                    if torrent_ds and torrent_ds.get_seeding_statistics():
+                    if torrent_ds:
                         seeding_stats = torrent_ds.get_seeding_statistics()
-                        dl = seeding_stats['total_down']
-                        ul = seeding_stats['total_up']
+                        if seeding_stats:
+                            ratio = torrent_ds.seeding_ratio
 
-                        # set dl at min progress*length
-                        size_progress = torrent_ds.get_length() * torrent_ds.get_progress()
-                        dl = max(dl, size_progress)
+                            tooltip = "Total transferred: %s down, %s up." % (
+                                size_format(torrent_ds.seeding_downloaded),
+                                size_format(torrent_ds.seeding_uploaded))
 
-                        if dl == 0:
-                            if ul != 0:
-                                ratio = sys.maxsize
+                            item.RefreshColumn(7, ratio)
+                            item.RefreshColumn(8, seeding_stats['time_seeding'])
+
+                            if show_seeding_colours:
+                                # seeding_ratio is goal
+                                step = ratio / seeding_ratio
+                                step = int(min(1, step) * 5) / 5.0  # rounding to 5 different colours
+
+                                rgbTuple = (
+                                    c * 255.0 for c in hsv_to_rgb(orange[0] + step * colourstep[0],
+                                                                  orange[1] + step * colourstep[1],
+                                                                  orange[2] + step * colourstep[2]))
+                                bgcolour = wx.Colour(*rgbTuple)
+                                item.SetDeselectedColour(bgcolour)
                             else:
-                                ratio = 0
-                        else:
-                            ratio = 1.0 * ul / dl
-
-                        tooltip = "Total transferred: %s down, %s up." % (size_format(dl), size_format(ul))
-
-                        item.RefreshColumn(7, ratio)
-                        item.RefreshColumn(8, seeding_stats['time_seeding'])
-
-                        if show_seeding_colours:
-                            # t4t_ratio is goal
-                            step = ratio / t4t_ratio
-                            step = int(min(1, step) * 5) / 5.0  # rounding to 5 different colours
-
-                            rgbTuple = (
-                                c * 255.0 for c in hsv_to_rgb(orange[0] + step * colourstep[0],
-                                                              orange[1] + step * colourstep[1],
-                                                              orange[2] + step * colourstep[2]))
-                            bgcolour = wx.Colour(*rgbTuple)
-                            item.SetDeselectedColour(bgcolour)
-                        else:
-                            item.SetDeselectedColour(LIST_DESELECTED)
+                                item.SetDeselectedColour(LIST_DESELECTED)
 
                 item.RefreshColumn(3, ds.get_eta() if ds else None)
 
@@ -1954,9 +1944,10 @@ class LibraryList(SizeList):
 
         if self.statefilter:
             message += " with state %s" % self.statefilter
-            if self.statefilter == 'active'and self.utility.read_config('t4t_option') == 0:
-                t4t_ratio = self.utility.read_config('t4t_ratio') / 100.0
-                message += ".\nColours represent the upload/download ratio. Starting at orange, the colour will change into green when approaching a upload/download ratio of %.1f" % t4t_ratio
+            if self.statefilter == 'active'and self.utility.read_config('seeding_option') == 'ratio':
+                seeding_ratio = float(self.utility.read_config('seeding_ratio'))
+                message += ".\nColours represent the upload/download ratio. Starting at orange, the colour will change"\
+                           " into green when approaching a upload/download ratio of %.1f" % seeding_ratio
         return header, message
 
 

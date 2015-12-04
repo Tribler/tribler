@@ -334,6 +334,9 @@ class TestGuiAsServer(TestAsServer):
         self.assertFalse(Session.has_instance(), 'A session instance is already present when setting up the test')
         AbstractServer.setUp(self, annotate=False)
 
+        from Tribler.Main.Utility.utility import initialize_x11_threads
+        initialize_x11_threads()
+
         self.app = wx.GetApp()
         if not self.app:
             from Tribler.Main.tribler_main import TriblerApp
@@ -542,7 +545,7 @@ class TestGuiAsServer(TestAsServer):
 
         myWxImage = wx.ImageFromBitmap(bmp)
         im = Image.new('RGB', (myWxImage.GetWidth(), myWxImage.GetHeight()))
-        im.fromstring(myWxImage.GetData())
+        im.frombytes(myWxImage.GetData())
 
         if not os.path.exists(destdir):
             os.makedirs(destdir)

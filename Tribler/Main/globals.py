@@ -1,14 +1,11 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 
-import os
-import logging
 import copy
+import logging
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-
-STATEDIR_DLCONFIG = "tribler.conf"
 
 
 class DefaultDownloadStartupConfig(DownloadStartupConfig):
@@ -24,22 +21,22 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
+    @staticmethod
     def getInstance(*args, **kw):
         if DefaultDownloadStartupConfig.__single is None:
             DefaultDownloadStartupConfig(*args, **kw)
         return DefaultDownloadStartupConfig.__single
-    getInstance = staticmethod(getInstance)
 
+    @staticmethod
     def delInstance(*args, **kw):
         DefaultDownloadStartupConfig.__single = None
-    delInstance = staticmethod(delInstance)
 
+    @staticmethod
     def load(filename):
         dlconfig = CallbackConfigParser()
         if not dlconfig.read_file(filename):
-            raise IOError, "Failed to open download config file"
+            raise IOError("Failed to open download config file")
         return DefaultDownloadStartupConfig(dlconfig)
-    load = staticmethod(load)
 
     def copy(self):
         config = CallbackConfigParser()

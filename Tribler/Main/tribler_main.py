@@ -22,6 +22,8 @@
 # This must be done in the first python file that is started.
 #
 import urllib
+
+
 original_open_https = urllib.URLopener.open_https
 import M2Crypto  # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
@@ -62,7 +64,7 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
                                      NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED, NTFY_MARKINGS,
                                      NTFY_MODERATIONS, NTFY_MODIFICATIONS, NTFY_MODIFIED, NTFY_MYPREFERENCES,
                                      NTFY_PLAYLISTS, NTFY_REACHABLE, NTFY_STARTED, NTFY_STATE, NTFY_TORRENTS,
-                                     NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings)
+                                     NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings, STATEDIR_GUICONFIG)
 from Tribler.Core.version import commit_id, version_id
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Utility.GuiDBHandler import GUIDBProducer, startWorker
@@ -321,12 +323,15 @@ class ABCApp(object):
             try:
                 self.sconfig = convertSessionConfig(os.path.join(state_dir, 'sessconfig.pickle'), cfgfilename)
                 convertMainConfig(state_dir, os.path.join(state_dir, 'abc.conf'),
-                                  os.path.join(state_dir, 'tribler.conf'))
+                                  os.path.join(state_dir, STATEDIR_GUICONFIG))
             except:
                 self.sconfig = SessionStartupConfig()
                 self.sconfig.set_state_dir(state_dir)
 
         self.sconfig.set_install_dir(self.installdir)
+
+        # TODO(emilon): Do we still want to force limit this? With the new
+        # torrent store it should be pretty fast even with more that that.
 
         # Arno, 2010-03-31: Hard upgrade to 50000 torrents collected
         self.sconfig.set_torrent_collecting_max_torrents(50000)
@@ -424,7 +429,6 @@ class ABCApp(object):
             from Tribler.community.channel.preview import PreviewChannelCommunity
             from Tribler.community.tunnel.tunnel_community import TunnelSettings
             from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
-            from Tribler.community.bartercast4.community import BarterCommunity
 
             # make sure this is only called once
             session.remove_observer(define_communities)
@@ -438,7 +442,9 @@ class ABCApp(object):
 
             default_kwargs = {'tribler_session': session}
             # must be called on the Dispersy thread
-            dispersy.define_auto_load(BarterCommunity, session.dispersy_member, load=True)
+            if session.get_barter_community_enabled():
+                from Tribler.community.bartercast4.community import BarterCommunity
+                dispersy.define_auto_load(BarterCommunity, session.dispersy_member, load=True)
 
             # load metadata community
             dispersy.define_auto_load(ChannelCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
@@ -606,8 +612,7 @@ class ABCApp(object):
             if doCheckpoint:
                 self.utility.session.checkpoint()
 
-            # 3 is "no seeding" (see SettingsDialog)
-            if self.utility.read_config(u't4t_option') == 3:
+            if self.utility.read_config(u'seeding_mode') == 'never':
                 for data in seeding_download_list:
                     data[u'download'].stop()
                     from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
@@ -1009,17 +1014,8 @@ def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_chann
 
             logger.info("Client shutting down. Detected another instance.")
         else:
-
-            if sys.platform == 'linux2' and os.environ.get("TRIBLER_INITTHREADS", "true").lower() == "true":
-                try:
-                    import ctypes
-                    x11 = ctypes.cdll.LoadLibrary('libX11.so.6')
-                    x11.XInitThreads()
-                    os.environ["TRIBLER_INITTHREADS"] = "False"
-                except OSError as e:
-                    logger.debug("Failed to call XInitThreads '%s'", str(e))
-                except:
-                    logger.exception('Failed to call xInitThreads')
+            from Tribler.Main.Utility.utility import initialize_x11_threads
+            initialize_x11_threads()
 
             # Launch first abc single instance
             app = wx.GetApp()
