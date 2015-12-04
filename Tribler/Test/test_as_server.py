@@ -545,7 +545,7 @@ class TestGuiAsServer(TestAsServer):
 
         myWxImage = wx.ImageFromBitmap(bmp)
         im = Image.new('RGB', (myWxImage.GetWidth(), myWxImage.GetHeight()))
-        im.fromstring(myWxImage.GetData())
+        im.frombytes(myWxImage.GetData())
 
         if not os.path.exists(destdir):
             os.makedirs(destdir)
