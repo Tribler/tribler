@@ -1,6 +1,7 @@
 import time
 from threading import Event
 from traceback import print_exc
+from nose.tools import timed
 
 # This needs to be imported before anything from tribler so the reactor gets initalized on the right thread
 from Tribler.Test.test_tunnel_base import TestTunnelBase
@@ -12,6 +13,7 @@ from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
 class TestHiddenCommunity(TestTunnelBase):
 
+    @timed(120)
     def test_hidden_services(self):
         def take_second_screenshot():
             self.screenshot('Network graph after libtorrent download over hidden services')
@@ -84,8 +86,7 @@ class TestHiddenCommunity(TestTunnelBase):
             self.CallConditional(40, dht.is_set, lambda: self.callLater(5, lambda: start_download(tf)),
                                  'Introduction point did not get announced')
 
-        self.startTest(setup_seeder, bypass_dht=True)
-
+    @timed(140)
     def test_hidden_services_with_exit_nodes(self):
         def take_second_screenshot():
             self.screenshot('Network graph after libtorrent download with hidden services over exitnodes')
