@@ -72,6 +72,10 @@ sessdefaults['tunnel_community'] = OrderedDict()
 sessdefaults['tunnel_community']['socks5_listen_ports'] = [-1] * 5
 sessdefaults['tunnel_community']['exitnode_enabled'] = False
 
+# Multichain community section
+sessdefaults['multichain'] = OrderedDict()
+sessdefaults['multichain']['enabled'] = False
+
 # Metadata section
 sessdefaults['metadata'] = OrderedDict()
 sessdefaults['metadata']['enabled'] = True

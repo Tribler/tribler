@@ -163,13 +163,12 @@ class TestAsServer(AbstractServer):
     Parent class for testing the server-side of Tribler
     """
 
-    def setUp(self):
+    def setUp(self, autoload_discovery=True):
         super(TestAsServer, self).setUp(annotate=False)
         self.setUpPreSession()
 
         self.quitting = False
-
-        self.session = Session(self.config)
+        self.session = Session(self.config, autoload_discovery=autoload_discovery)
         upgrader = self.session.prestart()
         while not upgrader.is_done:
             time.sleep(0.1)
