@@ -20,9 +20,9 @@ class TunnelCrypto(ECCrypto):
 
     def generate_diffie_secret(self):
         tmp_key = self.generate_key(u"curve25519")
-        X = tmp_key.key.pk
+        private_key = tmp_key.key.pk
 
-        return tmp_key, X
+        return tmp_key, private_key
 
     def generate_diffie_shared_secret(self, dh_received, key=None):
         if key == None:
@@ -50,6 +50,7 @@ class TunnelCrypto(ECCrypto):
         kb = key[16:32]
         sf = key[32:36]
         sb = key[36:40]
+
         return [kf, kb, sf, sb, 1, 1]
 
     def _bulid_iv(self, salt, salt_explicit):
@@ -96,12 +97,15 @@ class NoTunnelCrypto(TunnelCrypto):
     def is_key_compatible(self, key):
         return True
 
+    # No crypto function
     def generate_diffie_secret(self):
         return '', ''
 
+    # No crypto function
     def generate_diffie_shared_secret(self, dh_received):
         return '', '', ''
 
+    # No crypto function
     def verify_and_generate_shared_secret(self, dh_secret, dh_received, auth, B):
         return ''
 
