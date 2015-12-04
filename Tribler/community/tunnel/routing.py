@@ -3,6 +3,7 @@ import time
 from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING, \
     CIRCUIT_TYPE_DATA
 from Tribler.dispersy.crypto import LibNaCLPK
+from Tribler.dispersy.candidate import Candidate
 import logging
 
 __author__ = 'chris'
@@ -95,7 +96,14 @@ class Circuit(object):
         @return bool: whether the tunnel request has succeeded, this is in no
          way an acknowledgement of delivery!
         """
-        return self.proxy.tunnel_data_to_end(destination, payload, self)
+
+        self._logger.error("Tunnel data (len %d) to end for circuit %s with ultimate destination %s", len(payload),
+                           self.circuit_id, destination)
+
+        num_bytes = self.proxy.send_data([Candidate(self.first_hop, False)], self.circuit_id, destination, ('0.0.0.0', 0), payload)
+        self.proxy.increase_bytes_sent(self.circuit_id, num_bytes)
+
+        return num_bytes > 0
 
     def destroy(self, reason='unknown'):
         """
@@ -182,13 +190,11 @@ class RelayRoute(object):
 
         self.sock_addr = sock_addr
         self.circuit_id = circuit_id
-        self.online = False
         self.creation_time = time.time()
         self.last_incoming = time.time()
         self.bytes_up = self.bytes_down = 0
         self.rendezvous_relay = rendezvous_relay
         self.mid = 0
-
 
 class RendezvousPoint(object):
 
