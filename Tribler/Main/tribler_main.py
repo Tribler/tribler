@@ -429,7 +429,6 @@ class ABCApp(object):
             from Tribler.community.channel.preview import PreviewChannelCommunity
             from Tribler.community.tunnel.tunnel_community import TunnelSettings
             from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
-            from Tribler.community.bartercast4.community import BarterCommunity
 
             # make sure this is only called once
             session.remove_observer(define_communities)
@@ -443,7 +442,9 @@ class ABCApp(object):
 
             default_kwargs = {'tribler_session': session}
             # must be called on the Dispersy thread
-            dispersy.define_auto_load(BarterCommunity, session.dispersy_member, load=True)
+            if session.get_barter_community_enabled():
+                from Tribler.community.bartercast4.community import BarterCommunity
+                dispersy.define_auto_load(BarterCommunity, session.dispersy_member, load=True)
 
             # load metadata community
             dispersy.define_auto_load(ChannelCommunity, session.dispersy_member, load=True, kargs=default_kwargs)

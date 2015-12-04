@@ -34,8 +34,9 @@ DEFAULTPORT = 7760
 #  Version 3: cleanup unused params
 #  Version 4: remove swift
 #  Version 7: exitnode optin switch added
+#  Version 10: BarterCommunity settings added (disabled by default)
 
-SESSDEFAULTS_VERSION = 9
+SESSDEFAULTS_VERSION = 10
 sessdefaults = OrderedDict()
 
 # General Tribler settings
@@ -73,6 +74,10 @@ sessdefaults['search_community']['enabled'] = True
 sessdefaults['tunnel_community'] = OrderedDict()
 sessdefaults['tunnel_community']['socks5_listen_ports'] = [-1] * 5
 sessdefaults['tunnel_community']['exitnode_enabled'] = False
+
+# Barter community section
+sessdefaults['barter_community'] = OrderedDict()
+sessdefaults['barter_community']['enabled'] = False
 
 # Metadata section
 sessdefaults['metadata'] = OrderedDict()
