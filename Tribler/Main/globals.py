@@ -21,22 +21,22 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
+    @staticmethod
     def getInstance(*args, **kw):
         if DefaultDownloadStartupConfig.__single is None:
             DefaultDownloadStartupConfig(*args, **kw)
         return DefaultDownloadStartupConfig.__single
-    getInstance = staticmethod(getInstance)
 
+    @staticmethod
     def delInstance(*args, **kw):
         DefaultDownloadStartupConfig.__single = None
-    delInstance = staticmethod(delInstance)
 
+    @staticmethod
     def load(filename):
         dlconfig = CallbackConfigParser()
         if not dlconfig.read_file(filename):
-            raise IOError, "Failed to open download config file"
+            raise IOError("Failed to open download config file")
         return DefaultDownloadStartupConfig(dlconfig)
-    load = staticmethod(load)
 
     def copy(self):
         config = CallbackConfigParser()
