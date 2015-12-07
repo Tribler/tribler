@@ -4,7 +4,10 @@
 
 # set wxpython version before importing wx or anything from Tribler
 import wxversion
-wxversion.select("2.8-unicode")
+if wxversion.checkInstalled("3.0-unicode"):
+    wxversion.select("3.0-unicode")
+else:
+    wxversion.select("2.8-unicode")
 
 # Make sure the in thread reactor is installed.
 from Tribler.Core.Utilities.twisted_thread import reactor
