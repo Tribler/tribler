@@ -11,9 +11,9 @@ python -c "import struct;print( 8 * struct.calcsize('P'))"
 
 This outputs whether your current installation is 32 or 64 bit.
 
-Python can be downloaded from the official [Python website](https://www.python.org/downloads/release/python-2710/). You should download the Windows x86-64 MSI Installer which is an executable. During the installation, remember to install pip/setuptools and to add Python to the PATH variable to access Python from the command line. You can verify whether Python is installed correctly by typing `python` in the command line.
+Python can be downloaded from the official [Python website](https://www.python.org/downloads/release/python-2710/). You should download the Windows x86-64 MSI Installer which is an executable. **During the setup, remember to install pip/setuptools and to add Python to the PATH variable to access Python from the command line. The option to add Python to the PATH variable is unchecked by default!** You can verify whether Python is installed correctly by typing `python` in the command line. Also check whether pip is working by typing `pip` in the command line. If they are not working, check whether the PATH variables are correctly set.
 
-If you did not change the default installation location, Python should be located at `C:\Python27\`. The third-party libraries are located in `C:\Python27\Lib\site-packages`.
+If you did not change the default installation location, Python should be located at `C:\Python27\`. The third-party libraries are located in `C:\Python27\Lib\site-packages`. If you forgot to add Python to your PATH during the setup, you should need to add the  `C:\Python27\` and `C:\Python27\Scripts` directories to your PATH variable.
 
 In order to compile some of the dependencies of Tribler, you will need the Visual C++ tools. Recently, Microsoft started to distribute these tools as stand-alone packages, removing the need to download the whole Visual Studio suite. The Visual C++ tools can be downloaded [here](http://blogs.msdn.com/b/vcblog/archive/2015/11/02/announcing-visual-c-build-tools-2015-standalone-c-tools-for-build-environments.aspx). These tools are still in pre-release.
 
@@ -23,7 +23,7 @@ The tools are also shipped with Visual Studio 2015 which can be downloaded from 
 The first package to be installed is M2Crypto which can be installed using pip (the M2Crypto binary is precompiled):
 
 ```
-pip install —-egg M2CryptoWin64
+pip install --egg M2CryptoWin64
 python -c "import M2Crypto" # test whether M2Crypto can be successfully imported
 ```
 
