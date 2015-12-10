@@ -53,7 +53,7 @@ from Tribler.Main.Utility.GuiDBHandler import GUIDBProducer, startWorker
 from Tribler.Main.Utility.compat import (convertDefaultDownloadConfig, convertDownloadCheckpoints, convertMainConfig,
                                          convertSessionConfig)
 from Tribler.Core.Utilities.install_dir import determine_install_dir
-from Tribler.Main.Utility.utility import Utility
+from Tribler.Main.Utility.utility import Utility, get_download_upload_speed
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
@@ -525,6 +525,11 @@ class ABCApp(object):
     def sesscb_states_callback(self, dslist):
         if not self.ready:
             return 5.0, []
+
+        # update tray icon
+        total_download, total_upload = get_download_upload_speed(dslist)
+        if self.frame and self.frame.tbicon:
+            self.frame.tbicon.updateTooltip(total_download, total_upload)
 
         wantpeers = []
         self.ratestatecallbackcount += 1
