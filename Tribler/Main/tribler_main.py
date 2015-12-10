@@ -179,9 +179,6 @@ class ABCApp(object):
             # Counter to suppress some event from occurring
             self.ratestatecallbackcount = 0
 
-            # So we know if we asked for peer details last cycle
-            self.lastwantpeers = []
-
             maxup = self.utility.read_config('maxuploadrate')
             maxdown = self.utility.read_config('maxdownloadrate')
             # set speed limits using LibtorrentMgr
@@ -611,7 +608,6 @@ class ABCApp(object):
         except:
             print_exc()
 
-        self.lastwantpeers = wantpeers
         return 1.0, wantpeers
 
     def loadSessionCheckpoint(self):
