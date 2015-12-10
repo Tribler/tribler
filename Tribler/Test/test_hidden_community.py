@@ -189,14 +189,4 @@ class TestHiddenCommunity(TestTunnelBase):
             self.CallConditional(40, dht.is_set, lambda: self.callLater(5, lambda: start_download(tf)),
                                  'Introduction point did not get announced')
 
-        p = multiprocessing.Process(target=self.startTest(setup_seeder, bypass_dht=True))
-        p.start()
-
-        # Wait for 10 seconds or until process finishes
-        p.join(140)
-
-        # If the process is still alive, kill it and mark as failed.
-        if p.is_alive():
-            p.terminate()
-            p.join()
-            self.assertTrue(False, "Test did not finish in 120 seconds")
+        self.startTest(setup_seeder, bypass_dht=True)
