@@ -10,6 +10,7 @@ import time
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
 from Tribler.Test.btconn import BTConnection
 from Tribler.Test.test_as_server import TESTS_API_DIR, TestAsServer
@@ -110,7 +111,15 @@ class TestSeeding(TestAsServer):
     def subtest_download(self):
         """ Now download the file via another Session """
         self.session2 = Session(self.config2, ignore_singleton=True)
-        upgrader = self.session2.prestart()
+        self.session2.initialize_database()
+
+        upgrader = TriblerUpgrader.get_singleton(self)
+        failed, has_to_upgrade = self.session2.has_to_upgrade_database()
+        if has_to_upgrade:
+            self.session2.upgrade_database()
+        elif failed:
+            self.session2.stash_database()
+
         while not upgrader.is_done:
             time.sleep(0.1)
         self.session2.start()
