@@ -2,9 +2,7 @@ import time
 from threading import Event
 from traceback import print_exc
 
-# This needs to be imported before anything from tribler so the reactor gets initalized on the right thread
-import multiprocessing
-
+# This needs to be imported before anything from tribler so the reactor gets initialized on the right thread
 from Tribler.Test.test_tunnel_base import TestTunnelBase
 
 from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id

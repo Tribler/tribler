@@ -1,4 +1,5 @@
 # Written by Niels Zeilemaker
+# Updated by Laurens Versluis
 # see LICENSE.txt for license information
 import time
 import os
@@ -99,7 +100,14 @@ class TestTunnelBase(TestGuiAsServer):
 
             session = Session(config, ignore_singleton=True, autoload_discovery=False)
             session.initialize_database()
+
             upgrader = TriblerUpgrader.get_singleton(self)
+            failed, has_to_upgrade = session.has_to_upgrade_database()
+            if has_to_upgrade:
+                session.upgrade_database()
+            elif failed:
+                session.stash_database()
+                
             while not upgrader.is_done:
                 time.sleep(0.1)
             session.start()
