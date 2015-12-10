@@ -81,7 +81,7 @@ class MetadataInjector(TaskManager):
 
         self._logger.info(u"Starting session...")
         self.session = Session(sscfg)
-        self.session.prestart()
+        self.session.initialize_database()
 
         # add dispersy start callbacks
         self.session.add_observer(self.dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])

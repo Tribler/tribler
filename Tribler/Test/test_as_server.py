@@ -4,6 +4,9 @@
 
 # set wxpython version before importing wx or anything from Tribler
 import wxversion
+
+from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
+
 wxversion.select("2.8-unicode")
 
 # Make sure the in thread reactor is installed.
@@ -170,7 +173,13 @@ class TestAsServer(AbstractServer):
         self.quitting = False
 
         self.session = Session(self.config)
-        upgrader = self.session.prestart()
+        self.session.initialize_database()
+        upgrader = TriblerUpgrader.get_singleton(self)
+        failed, has_to_upgrade = self.session.has_to_upgrade_database()
+        if has_to_upgrade:
+            self.session.upgrade_database()
+        elif failed:
+            self.session.stash_database()
         while not upgrader.is_done:
             time.sleep(0.1)
         assert not upgrader.failed, upgrader.current_status
@@ -333,7 +342,6 @@ class TestGuiAsServer(TestAsServer):
     def setUp(self):
         self.assertFalse(Session.has_instance(), 'A session instance is already present when setting up the test')
         AbstractServer.setUp(self, annotate=False)
-
         from Tribler.Main.Utility.utility import initialize_x11_threads
         initialize_x11_threads()
 
@@ -352,6 +360,8 @@ class TestGuiAsServer(TestAsServer):
 
         self.asserts = []
         self.annotate(self._testMethodName, start=True)
+
+        print "\nHERE"
 
         self.wx_watchdog = Event()
         self.twisted_watchdog = Event()
@@ -389,6 +399,8 @@ class TestGuiAsServer(TestAsServer):
                   use_torrent_search=True, use_channel_search=True):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
         from Tribler.Main import tribler_main
+
+        print "\nHERE2"
 
         # Always start testing from the same dir (repo root)
         os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))

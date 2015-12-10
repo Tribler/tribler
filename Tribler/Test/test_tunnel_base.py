@@ -4,6 +4,7 @@ import time
 import os
 
 # This needs to be imported before anything from tribler so the reactor gets initalized on the right thread
+from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Test.test_as_server import TestGuiAsServer, TESTS_DATA_DIR
 
 from Tribler.Core.Utilities.twisted_thread import reactor
@@ -19,18 +20,34 @@ class TestTunnelBase(TestGuiAsServer):
 
     def startTest(self, callback, min_timeout=5, nr_relays=12, nr_exitnodes=4, crypto_enabled=True, bypass_dht=False):
 
+        print "\nHERE10"
         self.getStateDir()   # getStateDir copies the bootstrap file into the statedir
 
+        def print_proxy_setup_succsesful(self, exit_node, i):
+            if not nr_exitnodes:
+                print "Proxy %d setup successfully" % i
+            else:
+                print "Exit node %d setup successfully" % i
+
+
         def setup_proxies():
+            print "\nHERE12"
             tunnel_communities = []
             baseindex = 3
             for i in range(baseindex, baseindex + nr_relays):  # Normal relays
-                tunnel_communities.append(create_proxy(i, False, crypto_enabled))
+                self.CallConditional(60, create_proxy(i, False, crypto_enabled), print_proxy_setup_succsesful(False, i),
+                                 'Could not create normal proxy within 60 seconds')
+                # tunnel_communities.append(create_proxy(i, False, crypto_enabled))
+
+            print "\nHERE13"
 
             baseindex += nr_relays + 1
             for i in range(baseindex, baseindex + nr_exitnodes):  # Exit nodes
-                tunnel_communities.append(create_proxy(i, True, crypto_enabled))
+                self.CallConditional(90, create_proxy(i, True, crypto_enabled), print_proxy_setup_succsesful(True, i),
+                                 'Could not create an exit node within 90 seconds')
+                # tunnel_communities.append(create_proxy(i, True, crypto_enabled))
 
+            print "\nHERE14"
             if bypass_dht:
                 # Replace pymdht with a fake one
                 class FakeDHT(object):
@@ -81,7 +98,8 @@ class TestTunnelBase(TestGuiAsServer):
             config.set_state_dir(self.getStateDir(index))
 
             session = Session(config, ignore_singleton=True, autoload_discovery=False)
-            upgrader = session.prestart()
+            session.initialize_database()
+            upgrader = TriblerUpgrader.get_singleton(self)
             while not upgrader.is_done:
                 time.sleep(0.1)
             session.start()
@@ -107,6 +125,7 @@ class TestTunnelBase(TestGuiAsServer):
 
             return blockingCallFromThread(reactor, load_community, session)
 
+        print "\nHERE11"
         TestGuiAsServer.startTest(self, setup_proxies, autoload_discovery=False)
 
     def setupSeeder(self, hops=0, session=None):

@@ -14,6 +14,8 @@ from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
 class TestHiddenCommunity(TestTunnelBase):
 
+    print "\nHERE3"
+
     def test_hidden_services(self):
         def take_second_screenshot():
             self.screenshot('Network graph after libtorrent download over hidden services')
@@ -56,6 +58,7 @@ class TestHiddenCommunity(TestTunnelBase):
 
         def setup_seeder(tunnel_communities):
             # Setup the first session to be the seeder
+            print "\nHERE7"
             def download_states_callback(dslist):
                 try:
                     tunnel_communities[0].monitor_downloads(dslist)
@@ -69,11 +72,15 @@ class TestHiddenCommunity(TestTunnelBase):
                 2, ("127.0.0.1", seeder_session.get_tunnel_community_socks5_listen_ports()))
             seeder_session.set_download_states_callback(download_states_callback, False)
 
+            print "\nHERE8"
+
             # Start seeding
             tf = self.setupSeeder(hops=1, session=seeder_session)
 
             # Wait for the introduction point to announce itself to the DHT
             dht = Event()
+
+            print "\nHERE9"
 
             def dht_announce(info_hash, community):
                 def cb_dht(info_hash, peers, source):
@@ -86,17 +93,9 @@ class TestHiddenCommunity(TestTunnelBase):
             self.CallConditional(40, dht.is_set, lambda: self.callLater(5, lambda: start_download(tf)),
                                  'Introduction point did not get announced')
 
-        p = multiprocessing.Process(target=self.startTest(setup_seeder, bypass_dht=True))
-        p.start()
-
-        # Wait for 10 seconds or until process finishes
-        p.join(120)
-
-        # If the process is still alive, kill it and mark as failed.
-        if p.is_alive():
-            p.terminate()
-            p.join()
-            self.assertTrue(False, "Test did not finish in 120 seconds")
+        print "\nHERE4"
+        self.startTest(setup_seeder, bypass_dht=True)
+        print "\nHERE5"
 
     def test_hidden_services_with_exit_nodes(self):
         def take_second_screenshot():
