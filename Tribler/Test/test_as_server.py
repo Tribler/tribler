@@ -174,12 +174,14 @@ class TestAsServer(AbstractServer):
 
         self.session = Session(self.config)
         self.session.initialize_database()
+
         upgrader = TriblerUpgrader.get_singleton(self)
         failed, has_to_upgrade = self.session.has_to_upgrade_database()
         if has_to_upgrade:
             self.session.upgrade_database()
         elif failed:
             self.session.stash_database()
+
         while not upgrader.is_done:
             time.sleep(0.1)
         assert not upgrader.failed, upgrader.current_status

@@ -18,6 +18,7 @@ import logging.config
 from traceback import print_exc
 import binascii
 
+from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.Core.Utilities.twisted_thread import reactor, stop_reactor, reactor_thread
@@ -82,6 +83,13 @@ class MetadataInjector(TaskManager):
         self._logger.info(u"Starting session...")
         self.session = Session(sscfg)
         self.session.initialize_database()
+
+        upgrader = TriblerUpgrader.get_singleton(self)
+        failed, has_to_upgrade = self.session.has_to_upgrade_database()
+        if has_to_upgrade:
+            self.session.upgrade_database()
+        elif failed:
+            self.session.stash_database()
 
         # add dispersy start callbacks
         self.session.add_observer(self.dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])

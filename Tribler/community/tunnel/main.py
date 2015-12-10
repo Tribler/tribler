@@ -126,6 +126,7 @@ class Tunnel(object):
         config.set_enable_channel_search(False)
         self.session = Session(config)
         self.session.initialize_database()
+
         upgrader = TriblerUpgrader.get_singleton(self)
         failed, has_to_upgrade = self.session.has_to_upgrade_database()
         if has_to_upgrade:

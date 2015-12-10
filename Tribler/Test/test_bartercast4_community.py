@@ -5,6 +5,7 @@ from time import sleep
 
 from twisted.internet.task import LoopingCall
 
+from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.community.bartercast4.community import BarterCommunity, BarterCommunityCrawler
@@ -82,8 +83,15 @@ class TestBarterCommunity(TestAsServer):
         self.config2.set_state_dir(PEER_STATEDIR)
 
         self.session2 = Session(self.config2, ignore_singleton=True)
+        self.session2.initialize_database()
 
-        upgrader = self.session2.prestart()
+        upgrader = TriblerUpgrader.get_singleton(self)
+        failed, has_to_upgrade = self.session2.has_to_upgrade_database()
+        if has_to_upgrade:
+            self.session2.upgrade_database()
+        elif failed:
+            self.session2.stash_database()
+
         while not upgrader.is_done:
             sleep(0.1)
         assert not upgrader.failed, upgrader.current_status

@@ -7,6 +7,7 @@ from shutil import rmtree
 from time import sleep
 from threading import Event
 
+from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import call_on_reactor_thread
@@ -96,7 +97,15 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.config2.set_state_dir(self.session2_state_dir)
 
         self.session2 = Session(self.config2, ignore_singleton=True)
-        upgrader = self.session2.prestart()
+        self.session2.initialize_database()
+
+        upgrader = TriblerUpgrader.get_singleton(self)
+        failed, has_to_upgrade = self.session2.has_to_upgrade_database()
+        if has_to_upgrade:
+            self.session2.upgrade_database()
+        elif failed:
+            self.session.stash_database()
+
         while not upgrader.is_done:
             sleep(0.1)
         assert not upgrader.failed, upgrader.current_status
