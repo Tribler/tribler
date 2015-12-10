@@ -107,7 +107,7 @@ class TestTunnelBase(TestGuiAsServer):
                 session.upgrade_database()
             elif failed:
                 session.stash_database()
-                
+
             while not upgrader.is_done:
                 time.sleep(0.1)
             session.start()
