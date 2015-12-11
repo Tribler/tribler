@@ -83,12 +83,7 @@ class MetadataInjector(TaskManager):
         self._logger.info(u"Starting session...")
         self.session = Session(sscfg)
         self.session.initialize_database()
-
-        failed, has_to_upgrade = self.session.has_to_upgrade_database()
-        if has_to_upgrade:
-            self.session.upgrade_database()
-        elif failed:
-            self.session.stash_database()
+        self.session.run_upgrade_check()
 
         # add dispersy start callbacks
         self.session.add_observer(self.dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])

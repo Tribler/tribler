@@ -158,6 +158,17 @@ class Session(SessionConfigInterface):
         self.sqlite_db.initialize()
         self.sqlite_db.initial_begin()
 
+    def run_upgrade_check(self):
+        """
+        Checks if the database needs to be updated or stashed.
+        If one of the two is required, it'll perform the required action.
+        """
+        failed, has_to_upgrade = self.has_to_upgrade_database()
+        if has_to_upgrade:
+            self.upgrade_database()
+        elif failed:
+            self.stash_database()
+
     def has_to_upgrade_database(self):
         """
         Checks whether the database should be upgraded based on the current database version.

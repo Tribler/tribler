@@ -386,13 +386,7 @@ class ABCApp(object):
 
         # check and upgrade
         session.initialize_database()
-        failed, has_to_upgrade = session.has_to_upgrade_database()
-        if has_to_upgrade:
-            session.upgrade_database()
-            self.show_upgrade_dialog(session)
-        elif failed:
-            session.stash_database()
-            self.show_upgrade_dialog(session)
+        session.run_upgrade_check()
 
         return session
 
