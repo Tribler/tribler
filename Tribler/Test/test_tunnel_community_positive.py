@@ -35,6 +35,7 @@ class TestTunnelCommunityPositive(TestTunnelBase):
 
         def replace_socks(tunnel_communities):
             for tunnel_community in tunnel_communities:
+                print "bla"
                 socks_server = tunnel_community.socks_server
                 socks_server.on_incoming_from_tunnel = lambda community, circuit, origin, data, \
                     socks_server = socks_server: on_incoming_from_tunnel(socks_server, community, circuit, origin, data)
@@ -44,6 +45,7 @@ class TestTunnelCommunityPositive(TestTunnelBase):
             self.CallConditional(20, lambda: len(tunnel_communities[-1].active_data_circuits()) >= 4,
                                  lambda: start_test(tunnel_communities))
 
+        print "here1 "
         self.startTest(replace_socks)
 
     def test_anon_download(self):

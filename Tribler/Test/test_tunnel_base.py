@@ -31,14 +31,14 @@ class TestTunnelBase(TestGuiAsServer):
         def setup_proxies():
             tunnel_communities = []
             baseindex = 3
+            print "here3 "
             for i in range(baseindex, baseindex + nr_relays):  # Normal relays
-
-                self.CallConditional(60, lambda: tunnel_communities.append(create_proxy(i, False, crypto_enabled)), lambda: print_proxy_setup_succsesful(False, i),
+                self.CallConditional(7, lambda: tunnel_communities.append(create_proxy(i, False, crypto_enabled)), lambda: print_proxy_setup_succsesful(False, i),
                                  'Could not create normal proxy within 60 seconds')
 
             baseindex += nr_relays + 1
             for i in range(baseindex, baseindex + nr_exitnodes):  # Exit nodes
-                self.CallConditional(90, lambda: tunnel_communities.append(create_proxy(i, True, crypto_enabled)), lambda: print_proxy_setup_succsesful(True, i),
+                self.CallConditional(8, lambda: tunnel_communities.append(create_proxy(i, True, crypto_enabled)), lambda: print_proxy_setup_succsesful(True, i),
                                  'Could not create an exit node within 90 seconds')
 
             if bypass_dht:
@@ -93,10 +93,11 @@ class TestTunnelBase(TestGuiAsServer):
             session = Session(config, ignore_singleton=True, autoload_discovery=False)
             session.initialize_database()
 
-            upgrader = TriblerUpgrader(session, session.sqlite_db)
+            upgrader = session.upgrader
             session.run_upgrade_check()
 
             while not upgrader.is_done:
+                print "zz"
                 time.sleep(0.1)
             session.start()
             self.sessions.append(session)
@@ -137,7 +138,7 @@ class TestTunnelBase(TestGuiAsServer):
             self.session2 = Session(self.config2, ignore_singleton=True, autoload_discovery=False)
             self.session2.initialize_database()
 
-            upgrader = TriblerUpgrader(self.session2, self.session2.sqlite_db)
+            upgrader = self.session2.upgrader
             failed, has_to_upgrade = self.session2.has_to_upgrade_database()
             if has_to_upgrade:
                 self.session2.upgrade_database()

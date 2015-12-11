@@ -85,7 +85,7 @@ class TestBarterCommunity(TestAsServer):
         self.session2 = Session(self.config2, ignore_singleton=True)
         self.session2.initialize_database()
 
-        upgrader = TriblerUpgrader(self.session2, self.session2.sqlite_db)
+        upgrader = self.session2.upgrader
         failed, has_to_upgrade = self.session2.has_to_upgrade_database()
         if has_to_upgrade:
             self.session2.upgrade_database()

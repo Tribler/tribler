@@ -157,6 +157,7 @@ class Session(SessionConfigInterface):
         self.sqlite_db = SQLiteCacheDB(self)
         self.sqlite_db.initialize()
         self.sqlite_db.initial_begin()
+        self.upgrader = TriblerUpgrader(self, self.sqlite_db)
 
     def run_upgrade_check(self):
         """
@@ -168,6 +169,7 @@ class Session(SessionConfigInterface):
             self.upgrade_database()
         elif failed:
             self.stash_database()
+        print "setting done to true\n"
 
     def has_to_upgrade_database(self):
         """
@@ -175,8 +177,7 @@ class Session(SessionConfigInterface):
         :return:a tuple with (failed, has_to_upgrade). If failed is true, the database should be stashed
         if has_to_upgrade is true, the database has to be upgraded from an old verison.
         """
-        upgrader = TriblerUpgrader(self, self.sqlite_db)
-        return upgrader.check_should_upgrade()
+        return self.upgrader.check_should_upgrade()
 
     def upgrade_database(self):
         """
@@ -184,16 +185,14 @@ class Session(SessionConfigInterface):
         If this function is called, stash_database should not be called.
 
         """
-        upgrader = TriblerUpgrader(self, self.sqlite_db)
-        upgrader.upgrade_database_to_current_version()
+        self.upgrader.upgrade_database_to_current_version()
 
     def stash_database(self):
         """
         Stashes the database because the version is too old or newer than the current version.
         If this function is called, upgrade_database should not be called.
         """
-        upgrader = TriblerUpgrader(self, self.sqlite_db)
-        upgrader.stash_database()
+        self.upgrader.stash_database()
 
     #
     # Class methods
