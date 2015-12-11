@@ -393,7 +393,7 @@ class ABCApp(object):
     def show_upgrade_dialog(self, session):
         assert wx.Thread_IsMain()
         
-        upgrader = TriblerUpgrader(session, session.sqlite_db)
+        upgrader = self.utility.session.upgrader
         upgrade_dialog = TriblerUpgradeDialog(self.gui_image_manager, upgrader)
         failed = upgrade_dialog.ShowModal()
         upgrade_dialog.Destroy()
