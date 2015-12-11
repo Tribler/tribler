@@ -288,7 +288,6 @@ class TestAsServer(AbstractServer):
                         tribler_session=None, dump_statistics=False):
         t = time.time()
 
-        print "eee"
         def DoCheck():
             if not self.quitting:
                 # only use the last two parts as the ID because the full name is too long
@@ -364,8 +363,6 @@ class TestGuiAsServer(TestAsServer):
         self.asserts = []
         self.annotate(self._testMethodName, start=True)
 
-        print "\nHERE"
-
         self.wx_watchdog = Event()
         self.twisted_watchdog = Event()
 
@@ -402,8 +399,6 @@ class TestGuiAsServer(TestAsServer):
                   use_torrent_search=True, use_channel_search=True):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
         from Tribler.Main import tribler_main
-
-        print "\nHERE2"
 
         # Always start testing from the same dir (repo root)
         os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))

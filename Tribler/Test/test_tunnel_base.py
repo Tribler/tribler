@@ -20,8 +20,6 @@ from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 class TestTunnelBase(TestGuiAsServer):
 
     def startTest(self, callback, min_timeout=5, nr_relays=12, nr_exitnodes=4, crypto_enabled=True, bypass_dht=False):
-
-        print "\nHERE10"
         self.getStateDir()   # getStateDir copies the bootstrap file into the statedir
 
         def print_proxy_setup_succsesful(self, exit_node, i):
@@ -31,24 +29,18 @@ class TestTunnelBase(TestGuiAsServer):
                 print "Exit node %d setup successfully" % i
 
         def setup_proxies():
-            print "\nHERE12"
             tunnel_communities = []
             baseindex = 3
             for i in range(baseindex, baseindex + nr_relays):  # Normal relays
 
-                self.CallConditional(5, lambda: tunnel_communities.append(create_proxy(i, False, crypto_enabled)), lambda: print_proxy_setup_succsesful(False, i),
+                self.CallConditional(60, lambda: tunnel_communities.append(create_proxy(i, False, crypto_enabled)), lambda: print_proxy_setup_succsesful(False, i),
                                  'Could not create normal proxy within 60 seconds')
-                # tunnel_communities.append(create_proxy(i, False, crypto_enabled))
-
-            print "\nHERE13"
 
             baseindex += nr_relays + 1
             for i in range(baseindex, baseindex + nr_exitnodes):  # Exit nodes
-                self.CallConditional(5, lambda: tunnel_communities.append(create_proxy(i, True, crypto_enabled)), lambda: print_proxy_setup_succsesful(True, i),
+                self.CallConditional(90, lambda: tunnel_communities.append(create_proxy(i, True, crypto_enabled)), lambda: print_proxy_setup_succsesful(True, i),
                                  'Could not create an exit node within 90 seconds')
-                # tunnel_communities.append(create_proxy(i, True, crypto_enabled))
 
-            print "\nHERE14"
             if bypass_dht:
                 # Replace pymdht with a fake one
                 class FakeDHT(object):
@@ -92,8 +84,6 @@ class TestTunnelBase(TestGuiAsServer):
         def create_proxy(index, become_exit_node, crypto_enabled):
             from Tribler.Core.Session import Session
 
-            print "koeblix"
-
             self.setUpPreSession()
             config = self.config.copy()
             config.set_libtorrent(True)
@@ -135,7 +125,6 @@ class TestTunnelBase(TestGuiAsServer):
 
             return blockingCallFromThread(reactor, load_community, session)
 
-        print "\nHERE11"
         TestGuiAsServer.startTest(self, setup_proxies, autoload_discovery=False)
 
     def setupSeeder(self, hops=0, session=None):

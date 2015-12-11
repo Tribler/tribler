@@ -60,6 +60,7 @@ class TriblerUpgrader(object):
         elif self.db.version == LATEST_DB_VERSION:
             self._logger.info(u"tribler is in the latest version, no need to upgrade")
             failed = False
+            self.is_done = True
         else:
             should_upgrade = True
 
@@ -92,6 +93,8 @@ class TriblerUpgrader(object):
             del torrent_store
         except Exception as e:
             self._logger.exception(u"failed to upgrade: %s", e)
+        finally:
+            self.is_done = True
 
     @call_on_reactor_thread
     def stash_database(self):
@@ -104,3 +107,4 @@ class TriblerUpgrader(object):
         shutil.move(old_dir, new_dir)
         os.makedirs(old_dir)
         self.db.initialize()
+        self.is_done = True
