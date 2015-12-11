@@ -4,10 +4,9 @@ import os
 from binascii import hexlify
 from hashlib import sha1
 from shutil import rmtree
-from time import sleep
 from threading import Event
+from time import sleep
 
-from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.util import call_on_reactor_thread

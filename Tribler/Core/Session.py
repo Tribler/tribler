@@ -169,7 +169,6 @@ class Session(SessionConfigInterface):
             self.upgrade_database()
         elif failed:
             self.stash_database()
-        print "setting done to true\n"
 
     def has_to_upgrade_database(self):
         """

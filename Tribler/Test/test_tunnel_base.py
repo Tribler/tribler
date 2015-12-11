@@ -1,11 +1,9 @@
 # Written by Niels Zeilemaker
 # Updated by Laurens Versluis
 # see LICENSE.txt for license information
-import time
 import os
-
+import time
 # This needs to be imported before anything from tribler so the reactor gets initalized on the right thread
-from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Test.test_as_server import TestGuiAsServer, TESTS_DATA_DIR
 
 from Tribler.Core.Utilities.twisted_thread import reactor
@@ -102,6 +100,7 @@ class TestTunnelBase(TestGuiAsServer):
             self.sessions.append(session)
 
             while not session.lm.initComplete:
+                print "zz"
                 time.sleep(1)
 
             dispersy = session.get_dispersy_instance()

@@ -10,7 +10,6 @@ import time
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, dlstatus_strings
 from Tribler.Test.btconn import BTConnection
 from Tribler.Test.test_as_server import TESTS_API_DIR, TestAsServer
