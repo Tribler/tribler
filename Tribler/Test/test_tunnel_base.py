@@ -36,17 +36,17 @@ class TestTunnelBase(TestGuiAsServer):
             tunnel_communities = []
             baseindex = 3
             for i in range(baseindex, baseindex + nr_relays):  # Normal relays
-                self.CallConditional(60, create_proxy(i, False, crypto_enabled), print_proxy_setup_succsesful(False, i),
-                                 'Could not create normal proxy within 60 seconds')
-                # tunnel_communities.append(create_proxy(i, False, crypto_enabled))
+                # self.CallConditional(60, tunnel_communities.append(create_proxy(i, False, crypto_enabled)), print_proxy_setup_succsesful(False, i),
+                #                  'Could not create normal proxy within 60 seconds')
+                tunnel_communities.append(create_proxy(i, False, crypto_enabled))
 
             print "\nHERE13"
 
             baseindex += nr_relays + 1
             for i in range(baseindex, baseindex + nr_exitnodes):  # Exit nodes
-                self.CallConditional(90, create_proxy(i, True, crypto_enabled), print_proxy_setup_succsesful(True, i),
-                                 'Could not create an exit node within 90 seconds')
-                # tunnel_communities.append(create_proxy(i, True, crypto_enabled))
+                # self.CallConditional(90, tunnel_communities.append(create_proxy(i, True, crypto_enabled)), print_proxy_setup_succsesful(True, i),
+                #                  'Could not create an exit node within 90 seconds')
+                tunnel_communities.append(create_proxy(i, True, crypto_enabled))
 
             print "\nHERE14"
             if bypass_dht:
