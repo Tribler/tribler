@@ -93,7 +93,7 @@ class TestTunnelBase(TestGuiAsServer):
             session = Session(config, ignore_singleton=True, autoload_discovery=False)
             session.initialize_database()
 
-            upgrader = TriblerUpgrader.get_singleton(self)
+            upgrader = TriblerUpgrader(session, session.sqlite_db)
             session.run_upgrade_check()
 
             while not upgrader.is_done:
@@ -137,7 +137,7 @@ class TestTunnelBase(TestGuiAsServer):
             self.session2 = Session(self.config2, ignore_singleton=True, autoload_discovery=False)
             self.session2.initialize_database()
 
-            upgrader = TriblerUpgrader.get_singleton(self)
+            upgrader = TriblerUpgrader(self.session2, self.session2.sqlite_db)
             failed, has_to_upgrade = self.session2.has_to_upgrade_database()
             if has_to_upgrade:
                 self.session2.upgrade_database()

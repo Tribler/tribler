@@ -19,24 +19,10 @@ from Tribler.dispersy.util import call_on_reactor_thread
 
 class TriblerUpgrader(object):
 
-    _singleton = None
-    _singleton_lock = thread.allocate_lock()
-
-    @classmethod
-    def get_singleton(cls, *args, **kargs):
-        if cls._singleton is None:
-            cls._singleton_lock.acquire()
-            try:
-                if cls._singleton is None:
-                    cls._singleton = cls(*args, **kargs)
-            finally:
-                cls._singleton_lock.release()
-        return cls._singleton
-
-    def __init__(self, session):
+    def __init__(self, session, db):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.session = session
-        self.db = session.sqlite_db
+        self.db = db
 
         self.current_status = u"Checking Tribler version..."
         self.is_done = False

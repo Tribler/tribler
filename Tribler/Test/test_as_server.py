@@ -175,7 +175,7 @@ class TestAsServer(AbstractServer):
         self.session = Session(self.config)
         self.session.initialize_database()
 
-        upgrader = TriblerUpgrader.get_singleton(self)
+        upgrader = TriblerUpgrader(self.session, self.session.sqlite_db)
         self.session.run_upgrade_check()
 
         while not upgrader.is_done:

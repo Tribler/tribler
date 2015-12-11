@@ -99,7 +99,7 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.session2 = Session(self.config2, ignore_singleton=True)
         self.session2.initialize_database()
 
-        upgrader = TriblerUpgrader.get_singleton(self)
+        upgrader = TriblerUpgrader(self.session2, self.session2.sqlite_db)
         failed, has_to_upgrade = self.session2.has_to_upgrade_database()
         if has_to_upgrade:
             self.session2.upgrade_database()
@@ -166,7 +166,7 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.session2 = Session(self.config2, ignore_singleton=True)
         self.session2.initialize_database()
 
-        upgrader = TriblerUpgrader.get_singleton(self)
+        upgrader = TriblerUpgrader(self.session2, self.session2.sqlite_db)
         failed, has_to_upgrade = self.session2.has_to_upgrade_database()
         if has_to_upgrade:
             self.session2.upgrade_database()

@@ -127,7 +127,7 @@ class Tunnel(object):
         self.session = Session(config)
         self.session.initialize_database()
 
-        upgrader = TriblerUpgrader.get_singleton(self)
+        upgrader = TriblerUpgrader(self.session, self.session.sqlite_db)
         self.session.run_upgrade_check()
 
         while not upgrader.is_done:
