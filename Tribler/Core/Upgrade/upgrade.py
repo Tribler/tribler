@@ -32,25 +32,25 @@ class TriblerUpgrader(object):
         self.current_status = status_text
 
     def check_should_upgrade(self):
-        failed = False
+        self.failed = False
         should_upgrade = False
         if self.db.version > LATEST_DB_VERSION:
             msg = u"The on-disk tribler database is newer than your tribler version. Your database will be backed up."
             self.current_status = msg
             self._logger.info(msg)
-            failed = True
+            self.failed = True
         elif self.db.version < LOWEST_SUPPORTED_DB_VERSION:
             msg = u"Database is too old %s < %s" % (self.db.version, LOWEST_SUPPORTED_DB_VERSION)
             self.current_status = msg
-            failed = True
+            self.failed = True
         elif self.db.version == LATEST_DB_VERSION:
             self._logger.info(u"tribler is in the latest version, no need to upgrade")
-            failed = False
+            self.failed = False
             self.is_done = True
         else:
             should_upgrade = True
 
-        return (failed, should_upgrade)
+        return (self.failed, should_upgrade)
 
 
     @call_on_reactor_thread
