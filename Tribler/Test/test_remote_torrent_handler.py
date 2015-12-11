@@ -99,14 +99,11 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.session2.initialize_database()
 
         upgrader = self.session2.upgrader
-        failed, has_to_upgrade = self.session2.has_to_upgrade_database()
-        if has_to_upgrade:
-            self.session2.upgrade_database()
-        elif failed:
-            self.session.stash_database()
+        self.session2.run_upgrade_check()
 
         while not upgrader.is_done:
             sleep(0.1)
+
         assert not upgrader.failed, upgrader.current_status
         self.session2.start()
         sleep(1)
@@ -166,14 +163,11 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.session2.initialize_database()
 
         upgrader = self.session2.upgrader
-        failed, has_to_upgrade = self.session2.has_to_upgrade_database()
-        if has_to_upgrade:
-            self.session2.upgrade_database()
-        elif failed:
-            self.session2.stash_database()
+        self.session2.run_upgrade_check()
 
         while not upgrader.is_done:
             sleep(0.1)
+
         assert not upgrader.failed, upgrader.current_status
         self.session2.start()
         sleep(1)
