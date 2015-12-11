@@ -288,6 +288,7 @@ class TestAsServer(AbstractServer):
                         tribler_session=None, dump_statistics=False):
         t = time.time()
 
+        print "eee"
         def DoCheck():
             if not self.quitting:
                 # only use the last two parts as the ID because the full name is too long
