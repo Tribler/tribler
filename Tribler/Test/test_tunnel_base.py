@@ -31,14 +31,13 @@ class TestTunnelBase(TestGuiAsServer):
         def setup_proxies():
             tunnel_communities = []
             baseindex = 3
-            print "here3 "
             for i in range(baseindex, baseindex + nr_relays):  # Normal relays
-                self.CallConditional(7, lambda: tunnel_communities.append(create_proxy(i, False, crypto_enabled)), lambda: print_proxy_setup_succsesful(False, i),
+                self.CallConditional(60, lambda: tunnel_communities.append(create_proxy(i, False, crypto_enabled)), lambda: print_proxy_setup_succsesful(False, i),
                                  'Could not create normal proxy within 60 seconds')
 
             baseindex += nr_relays + 1
             for i in range(baseindex, baseindex + nr_exitnodes):  # Exit nodes
-                self.CallConditional(8, lambda: tunnel_communities.append(create_proxy(i, True, crypto_enabled)), lambda: print_proxy_setup_succsesful(True, i),
+                self.CallConditional(90, lambda: tunnel_communities.append(create_proxy(i, True, crypto_enabled)), lambda: print_proxy_setup_succsesful(True, i),
                                  'Could not create an exit node within 90 seconds')
 
             if bypass_dht:
@@ -97,8 +96,8 @@ class TestTunnelBase(TestGuiAsServer):
             session.run_upgrade_check()
 
             while not upgrader.is_done:
-                print "zz"
                 time.sleep(0.1)
+
             session.start()
             self.sessions.append(session)
 
