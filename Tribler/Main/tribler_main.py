@@ -361,7 +361,8 @@ class ABCApp(object):
 
     def PostInit2(self):
         self.frame.Raise()
-        self.startWithRightView()
+        if self.params != None:
+            self.guiUtility.ShowPage('my_files')
         self.set_reputation()
 
         s = self.utility.session
@@ -846,10 +847,6 @@ class ABCApp(object):
             # print_stack()
 
         self.guiUtility.showErrorWindow(e)
-
-    def startWithRightView(self):
-        if self.params != None:
-            self.guiUtility.ShowPage('my_files')
 
     def i2ithread_readlinecallback(self, ic, cmd):
         """ Called by Instance2Instance thread """
