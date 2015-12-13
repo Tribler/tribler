@@ -12,27 +12,6 @@
 # see LICENSE.txt for license information
 #
 
-# Arno: M2Crypto overrides the method for https:// in the
-# standard Python libraries. This causes msnlib to fail and makes Tribler
-# freakout when "http://www.tribler.org/version" is redirected to
-# "https://www.tribler.org/version/" (which happened during our website
-# changeover) Until M2Crypto 0.16 is patched I'll restore the method to the
-# original, as follows.
-#
-# This must be done in the first python file that is started.
-#
-import urllib
-
-original_open_https = urllib.URLopener.open_https
-import M2Crypto  # Not a useless import! See above.
-urllib.URLopener.open_https = original_open_https
-
-try:
-    prctlimported = True
-    import prctl
-except ImportError as e:
-    prctlimported = False
-
 # Make sure the in thread reactor is installed.
 from Tribler.Core.Utilities.twisted_thread import reactor
 

@@ -27,21 +27,11 @@ from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
 
 
-try:
-    prctlimported = True
-    import prctl
-except ImportError:
-    prctlimported = False
-
-
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035  # WSAEWOULDBLOCK
 else:
     SOCKET_BLOCK_ERRORCODE = errno.EWOULDBLOCK
 
-SPECIAL_VALUE = 481
-
-PROFILE = False
 
 # Internal classes
 #
