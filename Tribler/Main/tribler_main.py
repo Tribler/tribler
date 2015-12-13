@@ -847,9 +847,6 @@ class ABCApp(object):
 
         self.guiUtility.showErrorWindow(e)
 
-    def getConfigPath(self):
-        return self.utility.getConfigPath()
-
     def startWithRightView(self):
         if self.params != None:
             self.guiUtility.ShowPage('my_files')
