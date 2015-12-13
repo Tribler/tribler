@@ -1,6 +1,8 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker, Lucian Musat
 # Modified by Niels Zeilemaker
 # see LICENSE.txt for license information
+from traceback import print_exc
+import traceback
 
 import wx
 import os
@@ -17,6 +19,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.Utilities.search_utils import split_into_keywords
 from Tribler.Core.osutils import get_free_space
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING
+from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
@@ -750,6 +753,19 @@ class GUIUtility(object):
             return selected_file
         elif len(videofiles) == 1:
             return videofiles[0]
+
+    @forceWxThread
+    def showErrorWindow(self, err):
+        print_exc()
+        _, value, stack = sys.exc_info()
+        backtrace = traceback.format_exception(type, value, stack)
+
+        win = FeedbackWindow("Unfortunately, Tribler ran into an internal error")
+        win.CreateOutputWindow('')
+        for line in backtrace:
+            win.write(line)
+
+        win.ShowModal()
 
     def guiservthread_free_space_check(self):
         '''

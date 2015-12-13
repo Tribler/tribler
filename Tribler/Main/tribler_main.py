@@ -42,7 +42,6 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
                                      NTFY_PLAYLISTS, NTFY_REACHABLE, NTFY_STARTED, NTFY_STATE, NTFY_TORRENTS,
                                      NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings, STATEDIR_GUICONFIG)
 from Tribler.Core.version import commit_id, version_id
-from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Utility.GuiDBHandler import GUIDBProducer, startWorker
 from Tribler.Main.Utility.compat import (convertDefaultDownloadConfig, convertDownloadCheckpoints, convertMainConfig,
                                          convertSessionConfig)
@@ -254,18 +253,13 @@ class ABCApp(object):
 
             wx.CallAfter(self.PostInit2)
 
-            # 08/02/10 Boudewijn: Working from home though console
-            # doesn't allow me to press close.  The statement below
-            # gracefully closes Tribler after 120 seconds.
-            # wx.CallLater(120*1000, wx.GetApp().Exit)
-
             self.ready = True
 
         except Exception as e:
             if self.splash:
                 self.splash.Destroy()
 
-            self.onError(e)
+            self.guiUtility.showErrorWindow(e)
 
     def InitStage1(self, installdir, autoload_discovery=True,
                    use_torrent_search=True, use_channel_search=True):
@@ -774,19 +768,6 @@ class ABCApp(object):
             self.frame.playlist.OnModerationCreated(objectID)
 
     @forceWxThread
-    def onError(self, e):
-        print_exc()
-        _, value, stack = sys.exc_info()
-        backtrace = traceback.format_exception(type, value, stack)
-
-        win = FeedbackWindow("Unfortunately, Tribler ran into an internal error")
-        win.CreateOutputWindow('')
-        for line in backtrace:
-            win.write(line)
-
-        win.ShowModal()
-
-    @forceWxThread
     def OnExit(self):
         bm = self.gui_image_manager.getImage(u'closescreen.png')
         self.closewindow = GaugeSplash(bm, "Closing...", 6)
@@ -807,7 +788,6 @@ class ABCApp(object):
             self.frame = None
 
         # Don't checkpoint, interferes with current way of saving Preferences,
-        # see Tribler/Main/Dialogs/abcoption.py
         if self.utility:
             # Niels: lets add a max waiting time for this session shutdown.
             session_shutdown_start = time()
@@ -865,7 +845,7 @@ class ABCApp(object):
             print_exc()
             # print_stack()
 
-        self.onError(e)
+        self.guiUtility.showErrorWindow(e)
 
     def getConfigPath(self):
         return self.utility.getConfigPath()
