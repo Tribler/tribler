@@ -887,13 +887,9 @@ class ABCApp(object):
             wx.CallAfter(start_asked_download)
 
 
-#
-#
 # Main Program Start Here
-#
-#
 @attach_profiler
-def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_channel_search=True):
+def run(params=None, autoload_discovery=True, use_torrent_search=True, use_channel_search=True):
 
     from .hacks import patch_crypto_be_discovery
     patch_crypto_be_discovery()
@@ -914,7 +910,7 @@ def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_chann
             statedir = SessionStartupConfig().get_state_dir()
 
             # Send  torrent info to abc single instance
-            if params[0] != "":
+            if params != None:
                 torrentfilename = params[0]
                 i2i_port = Utility(installdir, statedir).read_config('i2ilistenport')
                 Instance2InstanceClient(i2i_port, 'START', torrentfilename)
