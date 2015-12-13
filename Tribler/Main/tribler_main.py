@@ -938,12 +938,5 @@ def run(params=None, autoload_discovery=True, use_torrent_search=True, use_chann
     except:
         print_exc()
 
-    # This is the right place to close the database, unfortunately Linux has
-    # a problem, see ABCFrame.OnCloseWindow
-    #
-    # if sys.platform != 'linux2':
-    #    tribler_done(configpath)
-    # os._exit(0)
-
 if __name__ == '__main__':
     run()
