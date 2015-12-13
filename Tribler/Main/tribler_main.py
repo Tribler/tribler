@@ -851,7 +851,7 @@ class ABCApp(object):
         return self.utility.getConfigPath()
 
     def startWithRightView(self):
-        if self.params[0] != "":
+        if self.params != None:
             self.guiUtility.ShowPage('my_files')
 
     def i2ithread_readlinecallback(self, ic, cmd):
