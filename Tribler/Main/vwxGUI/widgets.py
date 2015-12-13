@@ -870,16 +870,17 @@ class SwarmHealth(wx.Panel):
         dc.DrawRectangle(xpos, 0, width, height)
 
         dc.SetPen(wx.TRANSPARENT_PEN)
+        
+        bwcolour = (self.red, self.green, self.blue)
 
-        dc.SetBrush(wx.Brush((self.red, self.green, self.blue), wx.SOLID))
+        dc.SetBrush(wx.Brush(bwcolour, wx.SOLID))
 
         if self.barwidth > 0:
             dc.DrawRectangle(xpos + 1, 1, self.barwidth * (width - 2), height - 2)
         
-        self.green = 3
         
         if self.green > 0 or self.red > 0:
-            dc.SetPen(wx.WHITE_PEN)
+            dc.SetPen(wx.TRANSPARENT_PEN)
             for i in range(1, 10):
                 x = xpos + (width / 10) * i
                 dc.DrawLine(x, 0, x, height)
