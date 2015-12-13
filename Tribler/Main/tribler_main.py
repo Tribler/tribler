@@ -91,11 +91,6 @@ logger = logging.getLogger(__name__)
 from time import time, sleep
 
 SESSION_CHECKPOINT_INTERVAL = 900.0  # 15 minutes
-CHANNELMODE_REFRESH_INTERVAL = 5.0
-FREE_SPACE_CHECK_INTERVAL = 300.0
-
-DEBUG = False
-DEBUG_DOWNLOADS = False
 ALLOW_MULTIPLE = os.environ.get("TRIBLER_ALLOW_MULTIPLE", "False").lower() == "true"
 
 #
@@ -675,7 +670,7 @@ class ABCApp(object):
             wx.CallAfter(wx.MessageBox, "Tribler has detected low disk space. Related downloads have been stopped.",
                          "Error")
 
-        self.utility.session.lm.threadpool.call_in_thread(FREE_SPACE_CHECK_INTERVAL, self.guiservthread_free_space_check)
+        self.utility.session.lm.threadpool.call_in_thread(300.0, self.guiservthread_free_space_check)
 
     def guiservthread_checkpoint_timer(self):
         """ Periodically checkpoint Session """
