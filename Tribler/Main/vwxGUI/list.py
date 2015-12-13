@@ -1102,7 +1102,7 @@ class GenericSearchList(SizeList):
 
         control = SwarmHealth(parent)
         width = item.columns[-2]['width'] if isinstance(item.columns[-2]['width'], int) else -1
-        control.SetMinSize((width, 7))
+        control.SetMinSize((width, 12))
         control.SetBackgroundColour(DEFAULT_BACKGROUND)
         control.SetRatio(seeders, leechers)
         return control, 3
