@@ -81,7 +81,6 @@ class TestTunnelBase(TestGuiAsServer):
 
             callback(tunnel_communities)
 
-        @call_on_reactor_thread
         def create_proxy(index, become_exit_node, crypto_enabled):
             from Tribler.Core.Session import Session
             print "ansjo"
@@ -104,15 +103,15 @@ class TestTunnelBase(TestGuiAsServer):
             session = Session(config, ignore_singleton=True, autoload_discovery=False)
             session.initialize_database()
 
-            print "step3"
-            upgrader = session.upgrader
-            session.run_upgrade_check()
+            # print "step3"
+            # upgrader = session.upgrader
+            # session.run_upgrade_check()
 
             print "step4"
 
-            while not upgrader.is_done:
-                print "zzz"
-                time.sleep(0.1)
+            # while not upgrader.is_done:
+            #     print "zzz"
+            #     time.sleep(0.1)
 
             session.start()
             self.sessions.append(session)
