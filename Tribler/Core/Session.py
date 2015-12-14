@@ -445,10 +445,16 @@ class Session(SessionConfigInterface):
     def start(self):
         """ Create the LaunchManyCore instance and start it"""
 
+        print "bla1"
+
         # Create engine with network thread
         self.lm.register(self, self.sesslock, autoload_discovery=self.autoload_discovery)
 
+        print "bla2"
+
         self.sessconfig.set_callback(self.lm.sessconfig_changed_callback)
+
+        print "bla3"
 
     def shutdown(self, checkpoint=True, gracetime=2.0, hacksessconfcheckpoint=True):
         """ Checkpoints the session and closes it, stopping the download engine.

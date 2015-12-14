@@ -4,12 +4,14 @@
 import os
 import time
 # This needs to be imported before anything from tribler so the reactor gets initalized on the right thread
+from twisted.python.threadable import isInIOThread
+
 from Tribler.Test.test_as_server import TestGuiAsServer, TESTS_DATA_DIR
 
 from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.dispersy.candidate import Candidate
-from Tribler.dispersy.util import blockingCallFromThread
+from Tribler.dispersy.util import blockingCallFromThread, call_on_reactor_thread
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.crypto import NoCrypto
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
@@ -29,6 +31,7 @@ class TestTunnelBase(TestGuiAsServer):
         def setup_proxies():
             tunnel_communities = []
             baseindex = 3
+            print "yello"
             for i in range(baseindex, baseindex + nr_relays):  # Normal relays
                 self.CallConditional(60, lambda: tunnel_communities.append(create_proxy(i, False, crypto_enabled)), lambda: print_proxy_setup_succsesful(False, i),
                                  'Could not create normal proxy within 60 seconds')
@@ -78,29 +81,45 @@ class TestTunnelBase(TestGuiAsServer):
 
             callback(tunnel_communities)
 
+        @call_on_reactor_thread
         def create_proxy(index, become_exit_node, crypto_enabled):
             from Tribler.Core.Session import Session
+            print "ansjo"
 
+            if isInIOThread():
+                print "ok"
+            else:
+                print "rebel"
+
+
+            print "step1"
             self.setUpPreSession()
             config = self.config.copy()
             config.set_libtorrent(True)
             config.set_dispersy(True)
             config.set_state_dir(self.getStateDir(index))
 
+            print "step2"
+
             session = Session(config, ignore_singleton=True, autoload_discovery=False)
             session.initialize_database()
 
+            print "step3"
             upgrader = session.upgrader
             session.run_upgrade_check()
 
+            print "step4"
+
             while not upgrader.is_done:
+                print "zzz"
                 time.sleep(0.1)
 
             session.start()
             self.sessions.append(session)
 
+            print "step5"
+
             while not session.lm.initComplete:
-                print "zz"
                 time.sleep(1)
 
             dispersy = session.get_dispersy_instance()
