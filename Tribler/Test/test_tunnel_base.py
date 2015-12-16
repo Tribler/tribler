@@ -28,6 +28,7 @@ class TestTunnelBase(TestGuiAsServer):
             else:
                 print "Exit node %d setup successfully" % i
 
+        @call_on_reactor_thread
         def setup_proxies():
             tunnel_communities = []
             baseindex = 3
@@ -76,7 +77,7 @@ class TestTunnelBase(TestGuiAsServer):
             for community in tunnel_communities:
                 for candidate in candidates:
                     self._logger.debug("Add appended candidate as discovered candidate to this community")
-                    # We are letting dispersy deal with addins the community's candidate to itself.
+                    # We are letting dispersy deal with adding the community's candidate to itself.
                     community.add_discovered_candidate(candidate)
 
             callback(tunnel_communities)

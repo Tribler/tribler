@@ -275,6 +275,8 @@ class TestAsServer(AbstractServer):
         callback()
 
     def callLater(self, seconds, callback):
+        if self.quitting:
+            print "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
         if not self.quitting:
             if seconds:
                 time.sleep(seconds)
