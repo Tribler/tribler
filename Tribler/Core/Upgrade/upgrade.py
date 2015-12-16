@@ -1,12 +1,14 @@
 import logging
 import os
 import shutil
+
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION, LOWEST_SUPPORTED_DB_VERSION
 from Tribler.Core.Upgrade.db_upgrader import DBUpgrader
 from Tribler.Core.Upgrade.torrent_upgrade65 import TorrentMigrator65
-from Tribler.dispersy.util import call_on_reactor_thread
+from Tribler.Core.simpledefs import NTFY_UPGRADER, NTFY_FINISHED, NTFY_STARTED
+from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread
 
 
 # Database versions:
@@ -24,15 +26,50 @@ class TriblerUpgrader(object):
         self.session = session
         self.db = db
 
-        self.current_status = u"Checking Tribler version..."
         self.is_done = False
         self.failed = True
+
+        self.current_status = u"Checking Tribler version..."
+        if self.session.get_current_startup_config_copy().get_upgrader_enabled():
+            failed, has_to_upgrade = self.check_should_upgrade()
+            if has_to_upgrade and not failed:
+                self.notify_starting()
+                self.upgrade_database_to_current_version()
+            if self.failed:
+                self.notify_starting()
+                self.stash_database()
+        else:
+            # Fake the upgrade is done, because the upgrader is disabled
+            # for testing purposes.
+            self.failed = False
+            # TODO refactor all is_done calls with the event call back in other files
+            # I leave this field for now because other classes may be dependent on it.
+            self.is_done = True
+            self.notify_done()
 
     def update_status(self, status_text):
         self.current_status = status_text
 
-    @call_on_reactor_thread
+    def notify_starting(self):
+        """
+        Broadcast a notification (event) that the upgrader is starting doing work
+        after a check has established work on the db is required.
+        Will only fire once.
+        """
+        if not self.notified:
+            self.notified = True
+            self.session.notifier.notify(NTFY_UPGRADER, NTFY_STARTED, None)
+
+
+    def notify_done(self):
+        """
+        Broadcast a notification (event) that the upgrader is done.
+        """
+        self.session.notifier.notify(NTFY_UPGRADER, NTFY_FINISHED, None)
+
+    @blocking_call_on_reactor_thread
     def check_should_upgrade(self):
+
         self.failed = True
         should_upgrade = False
         if self.db.version > LATEST_DB_VERSION:
@@ -47,6 +84,8 @@ class TriblerUpgrader(object):
         elif self.db.version == LATEST_DB_VERSION:
             self._logger.info(u"tribler is in the latest version, no need to upgrade")
             self.failed = False
+            self.is_done = True
+            self.notify_done()
         else:
             should_upgrade = True
 
@@ -79,16 +118,13 @@ class TriblerUpgrader(object):
             del torrent_store
 
             self.failed = False
+            self.is_done = True
+            self.notify_done()
         except Exception as e:
             self._logger.exception(u"failed to upgrade: %s", e)
-        finally:
-            self.is_done = True
 
     @call_on_reactor_thread
     def stash_database(self):
-        self._stash_database_away()
-
-    def _stash_database_away(self):
         self.db.close()
         old_dir = os.path.dirname(self.db.sqlite_db_path)
         new_dir = u'%s_backup_%d' % (old_dir, LATEST_DB_VERSION)
@@ -96,3 +132,4 @@ class TriblerUpgrader(object):
         os.makedirs(old_dir)
         self.db.initialize()
         self.is_done = True
+        self.notify_done()

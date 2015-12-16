@@ -17,7 +17,6 @@ from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnab
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_METADATA, NTFY_MYPREFERENCES,
                                      NTFY_PEERS, NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
                                      STATEDIR_METADATA_STORE_DIR, STATEDIR_PEERICON_DIR, STATEDIR_TORRENT_STORE_DIR)
-from Tribler.dispersy.util import deprecated
 
 GOTM2CRYPTO = False
 try:
@@ -152,36 +151,16 @@ class Session(SessionConfigInterface):
 
         self.autoload_discovery = autoload_discovery
 
-    @deprecated("Use initialize_database and run_upgrade_check instead")
     def prestart(self):
         """
         Pre-starts the session. We check the current version and upgrade if needed
 -        before we start everything else.
         """
-        self.initialize_database()
-        self.run_upgrade_check()
-        return self.upgrader
-
-    def initialize_database(self):
-        """
-        Initializes the SQLite database.
-        """
         self.sqlite_db = SQLiteCacheDB(self)
         self.sqlite_db.initialize()
         self.sqlite_db.initial_begin()
         self.upgrader = TriblerUpgrader(self, self.sqlite_db)
-
-    def run_upgrade_check(self):
-        """
-        Checks if the database needs to be updated or stashed.
-        If one of the two is required, it'll perform the required action.
-        """
-        failed, has_to_upgrade = self.upgrader.check_should_upgrade()
-        if has_to_upgrade and not failed:
-            self.upgrader.upgrade_database_to_current_version()
-            failed = self.upgrader.failed
-        if failed:
-            self.upgrader.stash_database()
+        return self.upgrader
 
     #
     # Class methods
