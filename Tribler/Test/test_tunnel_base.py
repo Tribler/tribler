@@ -1,15 +1,17 @@
 # Written by Niels Zeilemaker
+# Updated by Laurens Versluis
 # see LICENSE.txt for license information
-import time
 import os
-
+import time
 # This needs to be imported before anything from tribler so the reactor gets initalized on the right thread
+from twisted.python.threadable import isInIOThread
+
 from Tribler.Test.test_as_server import TestGuiAsServer, TESTS_DATA_DIR
 
 from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.dispersy.candidate import Candidate
-from Tribler.dispersy.util import blockingCallFromThread
+from Tribler.dispersy.util import blockingCallFromThread, call_on_reactor_thread
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.crypto import NoCrypto
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
@@ -18,18 +20,26 @@ from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 class TestTunnelBase(TestGuiAsServer):
 
     def startTest(self, callback, min_timeout=5, nr_relays=12, nr_exitnodes=4, crypto_enabled=True, bypass_dht=False):
-
         self.getStateDir()   # getStateDir copies the bootstrap file into the statedir
+
+        def print_proxy_setup_succsesful(self, exit_node, i):
+            if not nr_exitnodes:
+                print "Proxy %d setup successfully" % i
+            else:
+                print "Exit node %d setup successfully" % i
 
         def setup_proxies():
             tunnel_communities = []
             baseindex = 3
+            print "yello"
             for i in range(baseindex, baseindex + nr_relays):  # Normal relays
-                tunnel_communities.append(create_proxy(i, False, crypto_enabled))
+                self.CallConditional(60, lambda: tunnel_communities.append(create_proxy(i, False, crypto_enabled)), lambda: print_proxy_setup_succsesful(False, i),
+                                 'Could not create normal proxy within 60 seconds')
 
             baseindex += nr_relays + 1
             for i in range(baseindex, baseindex + nr_exitnodes):  # Exit nodes
-                tunnel_communities.append(create_proxy(i, True, crypto_enabled))
+                self.CallConditional(90, lambda: tunnel_communities.append(create_proxy(i, True, crypto_enabled)), lambda: print_proxy_setup_succsesful(True, i),
+                                 'Could not create an exit node within 90 seconds')
 
             if bypass_dht:
                 # Replace pymdht with a fake one
@@ -66,26 +76,47 @@ class TestTunnelBase(TestGuiAsServer):
             for community in tunnel_communities:
                 for candidate in candidates:
                     self._logger.debug("Add appended candidate as discovered candidate to this community")
-                    # We are letting dispersy deal with addins the community's candidate to itself.
+                    # We are letting dispersy deal with adding the community's candidate to itself.
                     community.add_discovered_candidate(candidate)
 
             callback(tunnel_communities)
 
         def create_proxy(index, become_exit_node, crypto_enabled):
             from Tribler.Core.Session import Session
+            print "ansjo"
 
+            if isInIOThread():
+                print "ok"
+            else:
+                print "rebel"
+
+
+            print "step1"
             self.setUpPreSession()
             config = self.config.copy()
             config.set_libtorrent(True)
             config.set_dispersy(True)
             config.set_state_dir(self.getStateDir(index))
 
+            print "step2"
+
             session = Session(config, ignore_singleton=True, autoload_discovery=False)
-            upgrader = session.prestart()
-            while not upgrader.is_done:
-                time.sleep(0.1)
+            session.initialize_database()
+
+            # print "step3"
+            # upgrader = session.upgrader
+            # session.run_upgrade_check()
+
+            print "step4"
+
+            # while not upgrader.is_done:
+            #     print "zzz"
+            #     time.sleep(0.1)
+
             session.start()
             self.sessions.append(session)
+
+            print "step5"
 
             while not session.lm.initComplete:
                 time.sleep(1)
@@ -121,7 +152,15 @@ class TestTunnelBase(TestGuiAsServer):
         self.config2.set_state_dir(self.getStateDir(2))
         if session is None:
             self.session2 = Session(self.config2, ignore_singleton=True, autoload_discovery=False)
-            upgrader = self.session2.prestart()
+            self.session2.initialize_database()
+
+            upgrader = self.session2.upgrader
+            failed, has_to_upgrade = self.session2.has_to_upgrade_database()
+            if has_to_upgrade:
+                self.session2.upgrade_database()
+            elif failed:
+                self.session2.stash_database()
+
             while not upgrader.is_done:
                 time.sleep(0.1)
             self.session2.start()

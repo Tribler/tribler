@@ -23,7 +23,6 @@
 #
 import urllib
 
-
 original_open_https = urllib.URLopener.open_https
 import M2Crypto  # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
@@ -36,6 +35,7 @@ except ImportError as e:
 
 # Make sure the in thread reactor is installed.
 from Tribler.Core.Utilities.twisted_thread import reactor
+from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 
 # importmagic: manage
 
@@ -385,18 +385,24 @@ class ABCApp(object):
         session = Session(self.sconfig, autoload_discovery=autoload_discovery)
 
         # check and upgrade
-        upgrader = session.prestart()
-        if not upgrader.is_done:
-            upgrade_dialog = TriblerUpgradeDialog(self.gui_image_manager, upgrader)
-            failed = upgrade_dialog.ShowModal()
-            upgrade_dialog.Destroy()
-            if failed:
-                wx.MessageDialog(None, "Failed to upgrade the on disk data.\n\n"
-                                 "Tribler has backed up the old data and will now start from scratch.\n\n"
-                                 "Get in contact with the Tribler team if you want to help debugging this issue.\n\n"
-                                 "Error was: %s" % upgrader.current_status,
-                                 "Data format upgrade failed", wx.OK | wx.CENTRE | wx.ICON_EXCLAMATION).ShowModal()
+        session.initialize_database()
+        session.run_upgrade_check()
+
         return session
+
+    def show_upgrade_dialog(self, session):
+        assert wx.Thread_IsMain()
+        
+        upgrader = self.utility.session.upgrader
+        upgrade_dialog = TriblerUpgradeDialog(self.gui_image_manager, upgrader)
+        failed = upgrade_dialog.ShowModal()
+        upgrade_dialog.Destroy()
+        if failed:
+            wx.MessageDialog(None, "Failed to upgrade the on disk data.\n\n"
+                             "Tribler has backed up the old data and will now start from scratch.\n\n"
+                             "Get in contact with the Tribler team if you want to help debugging this issue.\n\n"
+                             "Error was: %s" % upgrader.current_status,
+                             "Data format upgrade failed", wx.OK | wx.CENTRE | wx.ICON_EXCLAMATION).ShowModal()
 
     def _frame_and_ready(self):
         return self.ready and self.frame and self.frame.ready

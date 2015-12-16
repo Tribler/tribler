@@ -4,6 +4,9 @@
 
 # set wxpython version before importing wx or anything from Tribler
 import wxversion
+
+from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
+
 wxversion.select("2.8-unicode")
 
 # Make sure the in thread reactor is installed.
@@ -170,7 +173,11 @@ class TestAsServer(AbstractServer):
         self.quitting = False
 
         self.session = Session(self.config)
-        upgrader = self.session.prestart()
+        self.session.initialize_database()
+
+        upgrader = self.session.upgrader
+        self.session.run_upgrade_check()
+
         while not upgrader.is_done:
             time.sleep(0.1)
         assert not upgrader.failed, upgrader.current_status
@@ -268,6 +275,8 @@ class TestAsServer(AbstractServer):
         callback()
 
     def callLater(self, seconds, callback):
+        if self.quitting:
+            print "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
         if not self.quitting:
             if seconds:
                 time.sleep(seconds)
@@ -278,6 +287,9 @@ class TestAsServer(AbstractServer):
         t = time.time()
 
         def DoCheck():
+            print "HI!"
+            if self.quitting:
+                print "QQQQQQQQQQQQQQQQQQQQQUIIIIIIIT"
             if not self.quitting:
                 # only use the last two parts as the ID because the full name is too long
                 test_id = self.id()
@@ -288,15 +300,19 @@ class TestAsServer(AbstractServer):
                         if condition():
                             self._logger.debug("%s - condition satisfied after %d seconds, calling callback '%s'",
                                                test_id, time.time() - t, callback.__name__)
+                            print ">>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
                             callback()
                         else:
+                            print "CALL YOU LATER!!"
                             self.callLater(0.5, DoCheck)
 
                     except:
+                        print "EXCEPTION!!"
                         print_exc()
                         self.assert_(False, '%s - Condition or callback raised an exception, quitting (%s)' %
                                      (test_id, assert_message or "no-assert-msg"), do_assert=False)
                 else:
+                    print "ELSE????"
                     self._logger.debug("%s - %s, condition was not satisfied in %d seconds (%s)",
                                        test_id,
                                        ('calling callback' if assert_callback else 'quitting'),
@@ -333,7 +349,6 @@ class TestGuiAsServer(TestAsServer):
     def setUp(self):
         self.assertFalse(Session.has_instance(), 'A session instance is already present when setting up the test')
         AbstractServer.setUp(self, annotate=False)
-
         from Tribler.Main.Utility.utility import initialize_x11_threads
         initialize_x11_threads()
 
@@ -377,6 +392,7 @@ class TestGuiAsServer(TestAsServer):
             if tribler_session and dump_statistics:
                 self._print_statistics(tribler_session.get_statistics())
 
+            print "BOEM: %s" % reason
             self.screenshot("ASSERT: %s" % reason)
             self.quit()
 
@@ -423,14 +439,22 @@ class TestGuiAsServer(TestAsServer):
             self.lm = self.session.lm
             self.CallConditional(30, lambda: GUIUtility.hasInstance(), wait_for_init)
 
+        def wait_for_upgrade():
+            self._logger.debug("Waiting for upgrader to be done")
+            upgrader = self.session.upgrader
+            self.CallConditional(30, lambda: upgrader.is_done, wait_for_guiutility)
+
         def wait_for_instance():
+            print "bloek"
             self._logger.debug("found instance, starting to wait for lm to be initcomplete")
             self.session = Session.get_instance()
             self.hadSession = True
-            self.CallConditional(30, lambda: self.session.lm and self.session.lm.initComplete, wait_for_guiutility)
+            self.CallConditional(30, lambda: self.session.lm and self.session.lm.initComplete, wait_for_upgrade)
 
         self._logger.debug("waiting for session instance")
+        print "ZBUE"
         self.CallConditional(30, Session.has_instance, lambda: TestAsServer.startTest(self, wait_for_instance))
+        print "KRRR"
 
         # modify argv to let tribler think its running from a different directory
         sys.argv = [os.path.abspath('./.exe')]

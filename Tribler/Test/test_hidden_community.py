@@ -2,7 +2,7 @@ import time
 from threading import Event
 from traceback import print_exc
 
-# This needs to be imported before anything from tribler so the reactor gets initalized on the right thread
+# This needs to be imported before anything from tribler so the reactor gets initialized on the right thread
 from Tribler.Test.test_tunnel_base import TestTunnelBase
 
 from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
@@ -11,7 +11,6 @@ from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
 
 class TestHiddenCommunity(TestTunnelBase):
-
     def test_hidden_services(self):
         def take_second_screenshot():
             self.screenshot('Network graph after libtorrent download over hidden services')

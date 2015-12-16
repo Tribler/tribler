@@ -6,6 +6,7 @@ import json
 import time
 from unittest.case import skip
 
+from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Test.test_as_server import TestGuiAsServer, TESTS_DATA_DIR
 
 from Tribler.Core.TorrentDef import TorrentDef
@@ -89,7 +90,15 @@ class TestMetadataCommunity(TestGuiAsServer):
         self.config2 = self.config.copy()
 
         self.session2 = Session(self.config2, ignore_singleton=True)
-        upgrader = self.session2.prestart()
+        self.session2.initialize_database()
+
+        upgrader = self.session2.upgrader
+        failed, has_to_upgrade = self.session2.has_to_upgrade_database()
+        if has_to_upgrade:
+            self.session2.upgrade_database()
+        elif failed:
+            self.session2.stash_database()
+
         while not upgrader.is_done:
             time.sleep(0.1)
         assert not upgrader.failed, upgrader.current_status

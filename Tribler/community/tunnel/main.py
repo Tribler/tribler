@@ -14,6 +14,7 @@ from twisted.internet.stdio import StandardIO
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.threads import blockingCallFromThread
 
+from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Session import Session
@@ -124,7 +125,11 @@ class Tunnel(object):
         config.set_enable_torrent_search(False)
         config.set_enable_channel_search(False)
         self.session = Session(config)
-        upgrader = self.session.prestart()
+        self.session.initialize_database()
+
+        upgrader = self.session.upgrader
+        self.session.run_upgrade_check()
+
         while not upgrader.is_done:
             time.sleep(0.1)
         self.session.start()

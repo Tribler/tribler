@@ -4,8 +4,8 @@ import os
 from binascii import hexlify
 from hashlib import sha1
 from shutil import rmtree
-from time import sleep
 from threading import Event
+from time import sleep
 
 from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
 from Tribler.dispersy.candidate import Candidate
@@ -96,9 +96,14 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.config2.set_state_dir(self.session2_state_dir)
 
         self.session2 = Session(self.config2, ignore_singleton=True)
-        upgrader = self.session2.prestart()
+        self.session2.initialize_database()
+
+        upgrader = self.session2.upgrader
+        self.session2.run_upgrade_check()
+
         while not upgrader.is_done:
             sleep(0.1)
+
         assert not upgrader.failed, upgrader.current_status
         self.session2.start()
         sleep(1)
@@ -155,9 +160,14 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.config2.set_state_dir(self.session2_state_dir)
 
         self.session2 = Session(self.config2, ignore_singleton=True)
-        upgrader = self.session2.prestart()
+        self.session2.initialize_database()
+
+        upgrader = self.session2.upgrader
+        self.session2.run_upgrade_check()
+
         while not upgrader.is_done:
             sleep(0.1)
+
         assert not upgrader.failed, upgrader.current_status
         self.session2.start()
         sleep(1)
