@@ -28,7 +28,6 @@ class TestTunnelBase(TestGuiAsServer):
             else:
                 print "Exit node %d setup successfully" % i
 
-        @call_on_reactor_thread
         def setup_proxies():
             tunnel_communities = []
             baseindex = 3
