@@ -1,14 +1,15 @@
 # Written by Jelle Roozenburg
 # see LICENSE.txt for license information
 
-import threading
 import logging
+import threading
 
 from Tribler.Core.Utilities.twisted_utils import callInThreadPool
 from Tribler.Core.simpledefs import (NTFY_TORRENTS, NTFY_PLAYLISTS, NTFY_COMMENTS,
                                      NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_MYPREFERENCES,
                                      NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_CHANNELCAST, NTFY_VOTECAST, NTFY_DISPERSY,
                                      NTFY_TRACKERINFO, NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_TUNNEL,
+                                     NTFY_UPGRADER,
                                      SIGNAL_ALLCHANNEL_COMMUNITY, SIGNAL_SEARCH_COMMUNITY, SIGNAL_TORRENT,
                                      SIGNAL_CHANNEL)
 
@@ -17,7 +18,7 @@ class Notifier(object):
 
     SUBJECTS = [NTFY_TORRENTS, NTFY_PLAYLISTS, NTFY_COMMENTS, NTFY_MODIFICATIONS,
                 NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_MYPREFERENCES, NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_CHANNELCAST,
-                NTFY_VOTECAST, NTFY_DISPERSY, NTFY_TRACKERINFO, NTFY_TUNNEL,
+                NTFY_VOTECAST, NTFY_DISPERSY, NTFY_TRACKERINFO, NTFY_TUNNEL, NTFY_UPGRADER,
                 SIGNAL_ALLCHANNEL_COMMUNITY, SIGNAL_SEARCH_COMMUNITY, SIGNAL_TORRENT, SIGNAL_CHANNEL]
 
     def __init__(self, use_pool):

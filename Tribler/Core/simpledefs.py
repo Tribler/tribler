@@ -78,6 +78,7 @@ NTFY_CREATE_E2E = 'createendtoend'
 NTFY_ONCREATED_E2E = 'oncreatedendtoend'
 NTFY_IP_CREATED = 'intropointcreated'
 NTFY_RP_CREATED = 'rendezvouspointcreated'
+NTFY_UPGRADER = 'upgraderdone'
 
 # non data handler subjects
 NTFY_ACTIVITIES = 'activities'  # an activity was set (peer met/dns resolved)

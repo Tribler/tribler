@@ -35,8 +35,9 @@ DEFAULTPORT = 7760
 #  Version 4: remove swift
 #  Version 7: exitnode optin switch added
 #  Version 10: BarterCommunity settings added (disabled by default)
+# Version 11: Added a default whether we should upgrade or not.
 
-SESSDEFAULTS_VERSION = 10
+SESSDEFAULTS_VERSION = 11
 sessdefaults = OrderedDict()
 
 # General Tribler settings
@@ -131,6 +132,10 @@ sessdefaults['video']['enabled'] = True
 sessdefaults['video']['path'] = None
 sessdefaults['video']['port'] = -1
 sessdefaults['video']['preferredmode'] = PLAYBACKMODE_INTERNAL
+
+#Upgrader config
+sessdefaults['upgrader'] = OrderedDict()
+sessdefaults['upgrader']['enabled'] = True
 
 
 #

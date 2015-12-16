@@ -170,7 +170,6 @@ class TestAsServer(AbstractServer):
         self.quitting = False
 
         self.session = Session(self.config)
-
         upgrader = self.session.prestart()
         while not upgrader.is_done:
             time.sleep(0.1)
@@ -201,6 +200,7 @@ class TestAsServer(AbstractServer):
         self.config.set_dht_torrent_collecting(False)
         self.config.set_videoplayer(False)
         self.config.set_enable_metadata(False)
+        self.config.set_upgrader_enabled(False)
 
     def tearDown(self):
         self.annotate(self._testMethodName, start=False)
