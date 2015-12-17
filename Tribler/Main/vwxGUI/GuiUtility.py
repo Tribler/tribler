@@ -44,6 +44,7 @@ class GUIUtility(object):
         self.params = params
         self.frame = None
         self.startup_splash = None
+        self.close_splash = None
         self.app = app
 
         # videoplayer
