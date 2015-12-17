@@ -64,7 +64,8 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
                                      NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED, NTFY_MARKINGS,
                                      NTFY_MODERATIONS, NTFY_MODIFICATIONS, NTFY_MODIFIED, NTFY_MYPREFERENCES,
                                      NTFY_PLAYLISTS, NTFY_REACHABLE, NTFY_STARTED, NTFY_STATE, NTFY_TORRENTS,
-                                     NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings, STATEDIR_GUICONFIG)
+                                     NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings, STATEDIR_GUICONFIG,
+                                     NTFY_STARTUP_TICK, NTFY_CLOSE_TICK)
 from Tribler.Core.version import commit_id, version_id
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
@@ -79,7 +80,6 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.MainFrame import FileDropTarget, MainFrame
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame
 from Tribler.Main.vwxGUI.TriblerUpgradeDialog import TriblerUpgradeDialog
-from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 from Tribler.Utilities.Instance2Instance import Instance2InstanceClient, Instance2InstanceServer
 from Tribler.Utilities.SingleInstanceChecker import SingleInstanceChecker
 from Tribler.dispersy.util import attach_profiler, call_on_reactor_thread
@@ -144,29 +144,29 @@ class ABCApp(object):
         session = self.InitStage1(installdir, autoload_discovery=autoload_discovery,
                                   use_torrent_search=use_torrent_search, use_channel_search=use_channel_search)
 
-        self.splash = None
         try:
-            bm = self.gui_image_manager.getImage(u'splash.png')
-            self.splash = GaugeSplash(bm, "Loading...", 13)
-            self.splash.Show()
-
             self._logger.info('Client Starting Up.')
             self._logger.info("Tribler is using %s as working directory", self.installdir)
 
             # Stage 2: show the splash window and start the session
 
-            self.splash.tick('Starting API')
-            s = self.startAPI(session, self.splash.tick)
-
-            self.utility = Utility(self.installdir, s.get_state_dir())
+            self.utility = Utility(self.installdir, session.get_state_dir())
 
             if self.utility.read_config(u'saveas'):
                 DefaultDownloadStartupConfig.getInstance().set_dest_dir(self.utility.read_config(u'saveas'))
 
             self.utility.set_app(self)
-            self.utility.set_session(s)
+            self.utility.set_session(session)
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
             GUIDBProducer.getInstance()
+
+            self.guiUtility.show_startup_splash()
+
+            session.add_observer(self.startup_tick, NTFY_STARTUP_TICK, [NTFY_INSERT])
+            session.add_observer(self.close_tick, NTFY_CLOSE_TICK, [NTFY_INSERT])
+
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Starting API')
+            s = self.startAPI(session)
 
             self._logger.info('Tribler Version: %s Build: %s', version_id, commit_id)
 
@@ -177,15 +177,15 @@ class ABCApp(object):
                 version_info['version_id'] = version_id
                 self.utility.write_config('version_info', version_info)
 
-            self.splash.tick('Starting session and upgrading database (it may take a while)')
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Starting session and upgrading database (it may take a while)')
             s.start()
             self.dispersy = s.lm.dispersy
 
-            self.splash.tick('Loading userdownloadchoice')
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
             UserDownloadChoice.get_singleton().set_utility(self.utility)
 
-            self.splash.tick('Initializing Family Filter')
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Initializing Family Filter')
             cat = Category.getInstance(session)
 
             state = self.utility.read_config('family_filter')
@@ -198,7 +198,7 @@ class ABCApp(object):
                 cat.set_family_filter(True)
 
             # Create global speed limits
-            self.splash.tick('Setting up speed limits')
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Setting up speed limits')
 
             # Counter to suppress some event from occurring
             self.ratestatecallbackcount = 0
@@ -222,13 +222,12 @@ class ABCApp(object):
                 # Start server for instance2instance communication
                 Instance2InstanceServer(self.utility.read_config('i2ilistenport'), self.i2ithread_readlinecallback)
 
-            self.splash.tick('GUIUtility register')
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'GUIUtility register')
             self.guiUtility.register()
 
             self.frame = MainFrame(self,
                                    None,
-                                   PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(),
-                                   self.splash.tick)
+                                   PLAYBACKMODE_INTERNAL in return_feasible_playback_modes())
             self.frame.SetIcon(wx.Icon(os.path.join(self.installdir, 'Tribler',
                                                     'Main', 'vwxGUI', 'images',
                                                     'tribler.ico'),
@@ -264,7 +263,7 @@ class ABCApp(object):
                 # wx < 2.7 don't like wx.Image.GetHandlers()
                 print_exc()
 
-            self.splash.Destroy()
+            self.guiUtility.destroy_startup_splash()
             self.frame.Show(True)
             session.lm.threadpool.call_in_thread(0, self.guiservthread_free_space_check)
 
@@ -298,10 +297,14 @@ class ABCApp(object):
             self.ready = True
 
         except Exception as e:
-            if self.splash:
-                self.splash.Destroy()
-
+            self.guiUtility.destroy_startup_splash()
             self.onError(e)
+
+    def startup_tick(self, subject, changetype, objectID, *args):
+        self.guiUtility.startup_splash.tick(args[0])
+
+    def close_tick(self, subject, changetype, objectID, *args):
+        self.guiUtility.close_splash.tick(args[0])
 
     def InitStage1(self, installdir, autoload_discovery=True,
                    use_torrent_search=True, use_channel_search=True):
@@ -443,7 +446,7 @@ class ABCApp(object):
 
         startWorker(wx_thread, db_thread, delay=5.0)
 
-    def startAPI(self, session, progress):
+    def startAPI(self, session):
         @call_on_reactor_thread
         def define_communities(*args):
             assert isInIOThread()
@@ -869,16 +872,14 @@ class ABCApp(object):
 
     @forceWxThread
     def OnExit(self):
-        bm = self.gui_image_manager.getImage(u'closescreen.png')
-        self.closewindow = GaugeSplash(bm, "Closing...", 6)
-        self.closewindow.Show()
+        self.guiUtility.show_close_splash()
 
         self._logger.info("main: ONEXIT")
         self.ready = False
         self.done = True
 
         # write all persistent data to disk
-        self.closewindow.tick('Write all persistent data to disk')
+        self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Write all persistent data to disk')
         if self.torrentfeed:
             self.torrentfeed.shutdown()
             self.torrentfeed.delInstance()
@@ -898,13 +899,13 @@ class ABCApp(object):
 
             try:
                 self._logger.info("ONEXIT cleaning database")
-                self.closewindow.tick('Cleaning database')
+                self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Cleaning database')
                 torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
                 torrent_db._db.clean_db(randint(0, 24) == 0, exiting=True)
             except:
                 print_exc()
 
-            self.closewindow.tick('Shutdown session')
+            self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Shutdown session')
             self.utility.session.shutdown(hacksessconfcheckpoint=False)
 
             # Arno, 2012-07-12: Shutdown should be quick
@@ -922,20 +923,19 @@ class ABCApp(object):
                 sleep(3)
             self._logger.info("ONEXIT Session is shutdown")
 
-        self.closewindow.tick('Deleting instances')
+        self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Deleting instances')
         self._logger.debug("ONEXIT deleting instances")
 
         Session.del_instance()
-        GUIUtility.delInstance()
         GUIDBProducer.delInstance()
         DefaultDownloadStartupConfig.delInstance()
         GuiImageManager.delInstance()
 
-        self.closewindow.tick('Exiting now')
+        self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Exiting now')
 
-        self.closewindow.Destroy()
+        self.guiUtility.destroy_close_splash()
 
-        return 0
+        GUIUtility.delInstance()
 
     def db_exception_handler(self, e):
         self._logger.debug("Database Exception handler called %s value %s #", e, e.args)
