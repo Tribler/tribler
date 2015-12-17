@@ -225,9 +225,10 @@ def initialize_x11_threads():
         try:
             import ctypes
             x11 = ctypes.cdll.LoadLibrary('libX11.so.6')
-            x11.XInitThreads()
+            if not x11.XInitThreads():
+                logger.error("Failed to initialize XInitThreads")
             os.environ["TRIBLER_INITTHREADS"] = "False"
         except OSError as e:
-            logger.debug("Failed to call XInitThreads '%s'", str(e))
+            logger.error("Failed to call XInitThreads '%s'", str(e))
         except:
             logger.exception('Failed to call xInitThreads')
