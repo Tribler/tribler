@@ -19,6 +19,8 @@ ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/
 sudo easy_install pip
 ```
 
+This should be done after accepting the Xcode license so open Xcode at least once before installing Brew.
+
 ## Installing the Required Packages
 In this section, the installation of the packages required by Tribler will be discussed in a step-by-step manner.
 
@@ -52,7 +54,7 @@ make
 sudo make install
 ```
 
-Now we can install M2Crypto. First download the [source](http://chandlerproject.org/Projects/MeTooCrypto) and install it:
+Now we can install M2Crypto. First download the [source](http://chandlerproject.org/Projects/MeTooCrypto) (take the latest stable release) and install it:
 
 ```
 python setup.py build build_ext --openssl=/usr/local
@@ -73,10 +75,10 @@ sudo python setup.py fetch --all build --enable-all-extensions install test
 ```
 
 ### Libtorrent
-An essential dependency of Tribler is libtorrent. libtorrent is dependent on Boost, a set of C++ libraries. To function correctly, Boost should be built from source (this will take a while):
+An essential dependency of Tribler is libtorrent. libtorrent is dependent on Boost, a set of C++ libraries. Boost can be installed with the following command:
 
 ```
-brew install --build-from-source boost
+brew install boost
 brew install boost-python
 ```
 
@@ -86,11 +88,10 @@ Now we can install libtorrent:
 brew install libtorrent-rasterbar --with-python
 ```
 
-After the installation, brew gives some instructions to finish the installation, something like:
+After the installation, we should add a pointer to the `site-packages` of Python so it can find the new libtorrent library using the following command:
 
 ```
-mkdir -p /Users/martijn/Library/Python/2.7/lib/python/site-packages
-  echo 'import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")' >> /Library/Python/2.7/site-packages/homebrew.pth
+sudo echo 'import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")' >> /Library/Python/2.7/site-packages/homebrew.pth
 ```
 
 This command basically adds another location for the Python site-packages (the location where libtorrent-rasterbar is installed). This command should be executed since the location where brew installs the Python packages is not in sys.path. You can test whether libtorrent is correctly installed by executing:
@@ -104,8 +105,8 @@ python
 There are a bunch of other packages that can easily be installed using pip and brew:
 
 ```
-brew install Pillow
-pip install cherrypy pillow cffi cryptography decorator feedparser gmpy2 idna leveldb netifaces numpy pyasn1 pycparser requests twisted service_identity
+brew install homebrew/python/pillow gmp mpfr libmpc libsodium
+pip install --user cherrypy pillow cffi cryptography decorator feedparser gmpy2 idna leveldb netifaces numpy pyasn1 pycparser requests twisted service_identity
 ```
 
 If you encounter any error during the installation of Pillow, make sure that libjpeg and zlib are installed. They can be installed using:
@@ -123,3 +124,16 @@ Tribler should now be able to startup without warnings by executing this command
 ```
 
 If there are any missing packages, they can often be installed by one pip or brew command. If there are any problems with the guide above, please feel free to fix any errors or [create an issue](https://github.com/Tribler/tribler/issues/new) so we can look into it.
+
+### System Integrity Protection on El Capitan
+The new security system in place in El Capitan can prevent `libsodium.dylib` from being dynamically linked into Tribler when running Python. If this library cannot be loaded, it gives an error that libsodium could not be found. This is because the `DYLD_LIBRARY_PATH` cannot be set when Python starts. More information about this can be read [here](https://forums.developer.apple.com/thread/13161).
+
+There are two solutions for this problem. First, `libsodium.dylib` can symlinked into the Tribler root directory. This can be done by executing the following command **in the Tribler root directory**:
+
+```
+ln -s /usr/local/lib/libsodium.dylib
+```
+
+Now the `ctypes` Python library will be able to find the `libsodium.dylib` file.
+
+The second solution is to disable SIP. This is not recommended since it makes the system more vulnerable for attacks. Information about disabling SIP can be found [here](http://www.imore.com/el-capitan-system-integrity-protection-helps-keep-malware-away).
