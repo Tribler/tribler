@@ -979,9 +979,6 @@ def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_chann
 
             logger.info("Client shutting down. Detected another instance.")
         else:
-            from Tribler.Main.Utility.utility import initialize_x11_threads
-            initialize_x11_threads()
-
             # Launch first abc single instance
             app = wx.GetApp()
             if not app:
