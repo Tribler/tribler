@@ -65,7 +65,7 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
                                      NTFY_MODERATIONS, NTFY_MODIFICATIONS, NTFY_MODIFIED, NTFY_MYPREFERENCES,
                                      NTFY_PLAYLISTS, NTFY_REACHABLE, NTFY_STARTED, NTFY_STATE, NTFY_TORRENTS,
                                      NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings, STATEDIR_GUICONFIG,
-                                     NTFY_STARTUP_TICK)
+                                     NTFY_STARTUP_TICK, NTFY_CLOSE_TICK)
 from Tribler.Core.version import commit_id, version_id
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
@@ -164,6 +164,7 @@ class ABCApp(object):
             self.guiUtility.show_startup_splash()
 
             session.add_observer(self.startup_tick, NTFY_STARTUP_TICK, [NTFY_INSERT])
+            session.add_observer(self.close_tick, NTFY_CLOSE_TICK, [NTFY_INSERT])
 
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Starting API')
             s = self.startAPI(session)
@@ -302,6 +303,9 @@ class ABCApp(object):
 
     def startup_tick(self, subject, changetype, objectID, *args):
         self.guiUtility.startup_splash.tick(args[0])
+
+    def close_tick(self, subject, changetype, objectID, *args):
+        self.guiUtility.close_splash.tick(args[0])
 
     def InitStage1(self, installdir, autoload_discovery=True,
                    use_torrent_search=True, use_channel_search=True):
@@ -869,16 +873,14 @@ class ABCApp(object):
 
     @forceWxThread
     def OnExit(self):
-        bm = self.gui_image_manager.getImage(u'closescreen.png')
-        self.closewindow = GaugeSplash(bm, "Closing...", 6)
-        self.closewindow.Show()
+        self.guiUtility.show_close_splash()
 
         self._logger.info("main: ONEXIT")
         self.ready = False
         self.done = True
 
         # write all persistent data to disk
-        self.closewindow.tick('Write all persistent data to disk')
+        self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Write all persistent data to disk')
         if self.torrentfeed:
             self.torrentfeed.shutdown()
             self.torrentfeed.delInstance()
@@ -898,13 +900,13 @@ class ABCApp(object):
 
             try:
                 self._logger.info("ONEXIT cleaning database")
-                self.closewindow.tick('Cleaning database')
+                self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Cleaning database')
                 torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
                 torrent_db._db.clean_db(randint(0, 24) == 0, exiting=True)
             except:
                 print_exc()
 
-            self.closewindow.tick('Shutdown session')
+            self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Shutdown session')
             self.utility.session.shutdown(hacksessconfcheckpoint=False)
 
             # Arno, 2012-07-12: Shutdown should be quick
@@ -922,20 +924,19 @@ class ABCApp(object):
                 sleep(3)
             self._logger.info("ONEXIT Session is shutdown")
 
-        self.closewindow.tick('Deleting instances')
+        self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Deleting instances')
         self._logger.debug("ONEXIT deleting instances")
 
         Session.del_instance()
-        GUIUtility.delInstance()
         GUIDBProducer.delInstance()
         DefaultDownloadStartupConfig.delInstance()
         GuiImageManager.delInstance()
 
-        self.closewindow.tick('Exiting now')
+        self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Exiting now')
 
-        self.closewindow.Destroy()
+        self.guiUtility.destroy_close_splash()
 
-        return 0
+        GUIUtility.delInstance()
 
     def db_exception_handler(self, e):
         self._logger.debug("Database Exception handler called %s value %s #", e, e.args)

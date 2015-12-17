@@ -273,6 +273,16 @@ class GUIUtility(object):
         if self.startup_splash:
             self.startup_splash.Destroy()
 
+    def show_close_splash(self):
+        gui_image_manager = GuiImageManager.getInstance()
+        bm = gui_image_manager.getImage(u'closescreen.png')
+        self.close_splash = GaugeSplash(bm, "Closing...", 6)
+        self.close_splash.Show()
+
+    def destroy_close_splash(self):
+        if self.close_splash:
+            self.close_splash.Destroy()
+
     def GetSelectedPage(self):
         if self.guiPage == 'home':
             return self.frame.home
