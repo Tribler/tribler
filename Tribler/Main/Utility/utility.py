@@ -232,5 +232,5 @@ def initialize_x11_threads():
             os.environ["TRIBLER_INITTHREADS"] = "False"
         except OSError as e:
             logger.error("Failed to call XInitThreads '%s'", str(e))
-        except:
-            logger.exception('Failed to call xInitThreads')
+        except Exception as e:
+            logger.exception("Failed to call xInitThreads: '%s'", repr(e))
