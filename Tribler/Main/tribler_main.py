@@ -80,7 +80,6 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.MainFrame import FileDropTarget, MainFrame
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame
 from Tribler.Main.vwxGUI.TriblerUpgradeDialog import TriblerUpgradeDialog
-from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 from Tribler.Utilities.Instance2Instance import Instance2InstanceClient, Instance2InstanceServer
 from Tribler.Utilities.SingleInstanceChecker import SingleInstanceChecker
 from Tribler.dispersy.util import attach_profiler, call_on_reactor_thread
