@@ -29,7 +29,8 @@ from Tribler.Category.Category import Category
 from Tribler.Core.version import version_id
 from Tribler.Core.simpledefs import (NTFY_ACT_NEW_VERSION, NTFY_ACT_NONE, NTFY_ACT_ACTIVE, NTFY_ACT_UPNP,
                                      NTFY_ACT_REACHABLE, NTFY_ACT_MEET, NTFY_ACT_GET_EXT_IP_FROM_PEERS,
-                                     NTFY_ACT_GOT_METADATA, NTFY_ACT_RECOMMEND, NTFY_ACT_DISK_FULL)
+                                     NTFY_ACT_GOT_METADATA, NTFY_ACT_RECOMMEND, NTFY_ACT_DISK_FULL, NTFY_STARTUP_TICK,
+                                     NTFY_INSERT)
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
@@ -115,7 +116,7 @@ class FileDropTarget(wx.FileDropTarget):
 
 class MainFrame(wx.Frame):
 
-    def __init__(self, abc, parent, internalvideo, progress):
+    def __init__(self, abc, parent, internalvideo):
         self.abc = abc
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -161,7 +162,7 @@ class MainFrame(wx.Frame):
             self.videoparentpanel = None
 
         # Create all components
-        progress('Creating panels')
+        self.utility.session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Creating panels')
 
         self.actlist = ActivitiesList(self)
         self.top_bg = TopSearchPanel(self)
@@ -240,7 +241,7 @@ class MainFrame(wx.Frame):
         self.managechannel = ManageChannel(self)
         self.managechannel.Show(False)
 
-        progress('Positioning')
+        self.utility.session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Positioning')
 
         # position all elements
         vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -298,7 +299,7 @@ class MainFrame(wx.Frame):
         self.window = self.GetChildren()[0]
         self.window.utility = self.utility
 
-        progress('Binding events')
+        self.utility.session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Binding events')
         # Menu Events
         #
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
@@ -341,7 +342,7 @@ class MainFrame(wx.Frame):
         self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
 
         # Init video player
-        progress('GUI complete')
+        self.utility.session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'GUI Complete')
 
         self.Thaw()
         self.ready = True

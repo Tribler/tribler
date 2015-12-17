@@ -22,6 +22,7 @@ from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from threading import Lock
+from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 
 
 class GUIUtility(object):
@@ -42,6 +43,8 @@ class GUIUtility(object):
         self.utility.guiUtility = self
         self.params = params
         self.frame = None
+        self.startup_splash = None
+        self.close_splash = None
         self.app = app
 
         # videoplayer
@@ -260,6 +263,26 @@ class GUIUtility(object):
             self.frame.selectedchannellist.Focus()
         elif page == 'my_files':
             self.frame.librarylist.Focus()
+
+    def show_startup_splash(self):
+        gui_image_manager = GuiImageManager.getInstance()
+        bm = gui_image_manager.getImage(u'splash.png')
+        self.startup_splash = GaugeSplash(bm, "Loading...", 13)
+        self.startup_splash.Show()
+
+    def destroy_startup_splash(self):
+        if self.startup_splash:
+            self.startup_splash.Destroy()
+
+    def show_close_splash(self):
+        gui_image_manager = GuiImageManager.getInstance()
+        bm = gui_image_manager.getImage(u'closescreen.png')
+        self.close_splash = GaugeSplash(bm, "Closing...", 6)
+        self.close_splash.Show()
+
+    def destroy_close_splash(self):
+        if self.close_splash:
+            self.close_splash.Destroy()
 
     def GetSelectedPage(self):
         if self.guiPage == 'home':
