@@ -76,6 +76,7 @@ class GaugeSplash(wx.Frame):
     def tick(self, text):
         """Advance the progress bar by one tick and update the label.
         """
+        print "HERE %s" % text
         self.count += 1
         self.label.SetLabel(text)
         self.gauge.SetValue(self.count)

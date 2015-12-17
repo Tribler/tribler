@@ -79,6 +79,8 @@ NTFY_ONCREATED_E2E = 'oncreatedendtoend'
 NTFY_IP_CREATED = 'intropointcreated'
 NTFY_RP_CREATED = 'rendezvouspointcreated'
 
+NTFY_STARTUP_TICK = 'startuptick'
+
 # non data handler subjects
 NTFY_ACTIVITIES = 'activities'  # an activity was set (peer met/dns resolved)
 NTFY_REACHABLE = 'reachable'  # the Session is reachable from the Internet

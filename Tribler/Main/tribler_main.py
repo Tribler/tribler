@@ -64,7 +64,8 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
                                      NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED, NTFY_MARKINGS,
                                      NTFY_MODERATIONS, NTFY_MODIFICATIONS, NTFY_MODIFIED, NTFY_MYPREFERENCES,
                                      NTFY_PLAYLISTS, NTFY_REACHABLE, NTFY_STARTED, NTFY_STATE, NTFY_TORRENTS,
-                                     NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings, STATEDIR_GUICONFIG)
+                                     NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings, STATEDIR_GUICONFIG,
+                                     NTFY_STARTUP_TICK)
 from Tribler.Core.version import commit_id, version_id
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
@@ -144,29 +145,28 @@ class ABCApp(object):
         session = self.InitStage1(installdir, autoload_discovery=autoload_discovery,
                                   use_torrent_search=use_torrent_search, use_channel_search=use_channel_search)
 
-        self.splash = None
         try:
-            bm = self.gui_image_manager.getImage(u'splash.png')
-            self.splash = GaugeSplash(bm, "Loading...", 13)
-            self.splash.Show()
-
             self._logger.info('Client Starting Up.')
             self._logger.info("Tribler is using %s as working directory", self.installdir)
 
             # Stage 2: show the splash window and start the session
 
-            self.splash.tick('Starting API')
-            s = self.startAPI(session, self.splash.tick)
-
-            self.utility = Utility(self.installdir, s.get_state_dir())
+            self.utility = Utility(self.installdir, session.get_state_dir())
 
             if self.utility.read_config(u'saveas'):
                 DefaultDownloadStartupConfig.getInstance().set_dest_dir(self.utility.read_config(u'saveas'))
 
             self.utility.set_app(self)
-            self.utility.set_session(s)
+            self.utility.set_session(session)
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
             GUIDBProducer.getInstance()
+
+            self.guiUtility.show_startup_splash()
+
+            session.add_observer(self.startup_tick, NTFY_STARTUP_TICK, [NTFY_INSERT])
+
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Starting API')
+            s = self.startAPI(session)
 
             self._logger.info('Tribler Version: %s Build: %s', version_id, commit_id)
 
@@ -177,15 +177,15 @@ class ABCApp(object):
                 version_info['version_id'] = version_id
                 self.utility.write_config('version_info', version_info)
 
-            self.splash.tick('Starting session and upgrading database (it may take a while)')
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Starting session and upgrading database (it may take a while)')
             s.start()
             self.dispersy = s.lm.dispersy
 
-            self.splash.tick('Loading userdownloadchoice')
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
             UserDownloadChoice.get_singleton().set_utility(self.utility)
 
-            self.splash.tick('Initializing Family Filter')
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Initializing Family Filter')
             cat = Category.getInstance(session)
 
             state = self.utility.read_config('family_filter')
@@ -198,7 +198,7 @@ class ABCApp(object):
                 cat.set_family_filter(True)
 
             # Create global speed limits
-            self.splash.tick('Setting up speed limits')
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Setting up speed limits')
 
             # Counter to suppress some event from occurring
             self.ratestatecallbackcount = 0
@@ -222,13 +222,12 @@ class ABCApp(object):
                 # Start server for instance2instance communication
                 Instance2InstanceServer(self.utility.read_config('i2ilistenport'), self.i2ithread_readlinecallback)
 
-            self.splash.tick('GUIUtility register')
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'GUIUtility register')
             self.guiUtility.register()
 
             self.frame = MainFrame(self,
                                    None,
-                                   PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(),
-                                   self.splash.tick)
+                                   PLAYBACKMODE_INTERNAL in return_feasible_playback_modes())
             self.frame.SetIcon(wx.Icon(os.path.join(self.installdir, 'Tribler',
                                                     'Main', 'vwxGUI', 'images',
                                                     'tribler.ico'),
@@ -264,7 +263,7 @@ class ABCApp(object):
                 # wx < 2.7 don't like wx.Image.GetHandlers()
                 print_exc()
 
-            self.splash.Destroy()
+            self.guiUtility.destroy_startup_splash()
             self.frame.Show(True)
             session.lm.threadpool.call_in_thread(0, self.guiservthread_free_space_check)
 
@@ -298,10 +297,11 @@ class ABCApp(object):
             self.ready = True
 
         except Exception as e:
-            if self.splash:
-                self.splash.Destroy()
-
+            self.guiUtility.destroy_startup_splash()
             self.onError(e)
+
+    def startup_tick(self, subject, changetype, objectID, *args):
+        self.guiUtility.startup_splash.tick(args[0])
 
     def InitStage1(self, installdir, autoload_discovery=True,
                    use_torrent_search=True, use_channel_search=True):
@@ -443,7 +443,7 @@ class ABCApp(object):
 
         startWorker(wx_thread, db_thread, delay=5.0)
 
-    def startAPI(self, session, progress):
+    def startAPI(self, session):
         @call_on_reactor_thread
         def define_communities(*args):
             assert isInIOThread()
