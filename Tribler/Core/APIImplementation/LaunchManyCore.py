@@ -497,7 +497,7 @@ class TriblerLaunchMany(TaskManager):
 
         self._logger.debug("tlm: load_checkpoint: pstate is %s %s",
                            pstate.get('dlstate', 'status'), pstate.get('dlstate', 'progress'))
-        if pstate.get('state', 'engineresumedata') is None:
+        if pstate is None or pstate.get('state', 'engineresumedata') is None:
             self._logger.debug("tlm: load_checkpoint: resumedata None")
         else:
             self._logger.debug("tlm: load_checkpoint: resumedata len %d", len(pstate.get('state', 'engineresumedata')))
