@@ -856,6 +856,7 @@ class SwarmHealth(wx.Panel):
         width -= 1
         width -= width % 10
         width += 1
+        
 
         if self.align == wx.ALIGN_CENTER:
             xpos = (self.GetClientSize()[0] - width) / 2
@@ -869,21 +870,35 @@ class SwarmHealth(wx.Panel):
         dc.DrawRectangle(xpos, 0, width, height)
 
         dc.SetPen(wx.TRANSPARENT_PEN)
+        
+        bwcolour = (self.red, self.green, self.blue)
 
-        dc.SetBrush(wx.Brush((self.red, self.green, self.blue), wx.SOLID))
+        dc.SetBrush(wx.Brush(bwcolour, wx.SOLID))
 
         if self.barwidth > 0:
             dc.DrawRectangle(xpos + 1, 1, self.barwidth * (width - 2), height - 2)
-
+        
+        
         if self.green > 0 or self.red > 0:
-            dc.SetPen(wx.WHITE_PEN)
+            dc.SetPen(wx.TRANSPARENT_PEN)
             for i in range(1, 10):
                 x = xpos + (width / 10) * i
-                dc.DrawLine(x, 1, x, height - 1)
+                dc.DrawLine(x, 0, x, height)
 
         dc.SetPen(wx.BLACK_PEN)
         dc.SetBrush(wx.TRANSPARENT_BRUSH)
         dc.DrawRectangle(xpos, 0, width, height)
+        
+        dc.SetTextForeground(wx.Colour(0,0,0))
+        gc = wx.GraphicsContext.Create(dc)
+        font = wx.Font(7, wx.DEFAULT, wx.NORMAL, wx.BOLD)
+        gc.SetFont(font, wx.BLACK)
+        
+        ratio = str(round(self.barwidth * 100)).rstrip('0').rstrip('.')
+        pos = 2 * len(ratio) + 3
+        ratioStr = ratio + '%'
+        
+        gc.DrawText(ratioStr, width / 2 - pos, 1)
 
     def OnEraseBackground(self, event):
         pass
