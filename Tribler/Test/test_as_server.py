@@ -339,7 +339,7 @@ class TestGuiAsServer(TestAsServer):
 
         self.app = wx.GetApp()
         if not self.app:
-            from Tribler.Main.tribler_main import TriblerApp
+            from Tribler.Main.vwxGUI.TriblerApp import TriblerApp
             self.app = TriblerApp(redirect=False)
 
         self.guiUtility = None
