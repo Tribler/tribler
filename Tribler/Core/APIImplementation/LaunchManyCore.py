@@ -39,9 +39,6 @@ if sys.platform == 'win32':
 else:
     SOCKET_BLOCK_ERRORCODE = errno.EWOULDBLOCK
 
-SPECIAL_VALUE = 481
-
-PROFILE = False
 
 # Internal classes
 #
