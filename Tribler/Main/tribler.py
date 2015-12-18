@@ -41,6 +41,9 @@ logger = logging.getLogger(__name__)
 # No need to do reactor.run(), it gets started when imported
 from Tribler.Core.Utilities.twisted_thread import reactor, stop_reactor
 
+from Tribler.Main.Utility.utility import initialize_x11_threads
+initialize_x11_threads()
+
 # set wxpython version
 import wxversion
 try:

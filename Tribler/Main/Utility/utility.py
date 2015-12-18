@@ -222,12 +222,15 @@ def size_format(s, truncate=None, stopearly=None, applylabel=True, rawsize=False
 
 def initialize_x11_threads():
     if sys.platform == 'linux2' and os.environ.get("TRIBLER_INITTHREADS", "true").lower() == "true":
+        for module in ['wx', 'wxversion', 'Tribler.vlc', 'vlc']:
+            assert module not in sys.modules, "Called initialize_x11_threads after importing X related module: %s" % module
         try:
             import ctypes
             x11 = ctypes.cdll.LoadLibrary('libX11.so.6')
-            x11.XInitThreads()
+            if not x11.XInitThreads():
+                logger.error("Failed to initialize XInitThreads")
             os.environ["TRIBLER_INITTHREADS"] = "False"
         except OSError as e:
-            logger.debug("Failed to call XInitThreads '%s'", str(e))
-        except:
-            logger.exception('Failed to call xInitThreads')
+            logger.error("Failed to call XInitThreads '%s'", str(e))
+        except Exception as e:
+            logger.exception("Failed to call xInitThreads: '%s'", repr(e))
