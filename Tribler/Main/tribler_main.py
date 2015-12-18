@@ -429,8 +429,8 @@ class ABCApp(object):
             from Tribler.community.channel.preview import PreviewChannelCommunity
             from Tribler.community.tunnel.tunnel_community import TunnelSettings
             from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
-            from Tribler.community.bartercast4.community import BarterCommunity
             from Tribler.community.multichain.community import MultiChainScheduler
+            from Tribler.community.multichain.community import MultiChainCommunity
 
             # make sure this is only called once
             session.remove_observer(define_communities)
