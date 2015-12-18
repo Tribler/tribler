@@ -90,11 +90,8 @@ logger = logging.getLogger(__name__)
 from time import time, sleep
 
 SESSION_CHECKPOINT_INTERVAL = 900.0  # 15 minutes
-CHANNELMODE_REFRESH_INTERVAL = 5.0
 FREE_SPACE_CHECK_INTERVAL = 300.0
 
-DEBUG = False
-DEBUG_DOWNLOADS = False
 ALLOW_MULTIPLE = os.environ.get("TRIBLER_ALLOW_MULTIPLE", "False").lower() == "true"
 
 #
@@ -150,10 +147,10 @@ class ABCApp(object):
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
             GUIDBProducer.getInstance()
 
-            def on_startup_tick(self, subject, changetype, objectID, *args):
+            def on_startup_tick(subject, changetype, objectID, *args):
                 self.guiUtility.startup_splash.tick(args[0])
 
-            def on_close_tick(self, subject, changetype, objectID, *args):
+            def on_close_tick(subject, changetype, objectID, *args):
                 self.guiUtility.close_splash.tick(args[0])
 
             self.guiUtility.show_startup_splash()

@@ -90,11 +90,6 @@ def format_time(val):
         return 'Unknown'
 
 
-def format_size(val):
-    size = (val / 1048576.0)
-    return "%.0f MB" % size
-
-
 def showError(textCtrl):
     def setColours(ctrl, fore, back):
         ctrl.SetForegroundColour(fore)
