@@ -23,9 +23,7 @@
 #
 import urllib
 
-
 original_open_https = urllib.URLopener.open_https
-import M2Crypto  # Not a useless import! See above.
 urllib.URLopener.open_https = original_open_https
 
 try:
@@ -75,8 +73,9 @@ from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
-from Tribler.Main.vwxGUI.MainFrame import FileDropTarget, MainFrame
+from Tribler.Main.vwxGUI.MainFrame import MainFrame
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame
+from Tribler.Main.vwxGUI.TriblerApp import TriblerApp
 from Tribler.Main.vwxGUI.TriblerUpgradeDialog import TriblerUpgradeDialog
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 from Tribler.Utilities.Instance2Instance import Instance2InstanceClient, Instance2InstanceServer
@@ -962,22 +961,6 @@ class ABCApp(object):
                 self.guiUtility.ShowPage('my_files')
 
             wx.CallAfter(start_asked_download)
-
-
-class TriblerApp(wx.App):
-
-    def __init__(self, *args, **kwargs):
-        wx.App.__init__(self, *args, **kwargs)
-        self._logger = logging.getLogger(self.__class__.__name__)
-        self._abcapp = None
-
-    def set_abcapp(self, abcapp):
-        self._abcapp = abcapp
-
-    def MacOpenFile(self, filename):
-        self._logger.info(repr(filename))
-        target = FileDropTarget(self._abcapp.frame)
-        target.OnDropFiles(None, None, [filename])
 
 
 #
