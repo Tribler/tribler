@@ -397,7 +397,8 @@ class ABCApp(object):
 
     def PostInit2(self):
         self.frame.Raise()
-        self.startWithRightView()
+        if self.params is not None:
+            self.guiUtility.ShowPage('my_files')
         self.set_reputation()
 
         s = self.utility.session
@@ -677,7 +678,8 @@ class ABCApp(object):
             wx.CallAfter(wx.MessageBox, "Tribler has detected low disk space. Related downloads have been stopped.",
                          "Error")
 
-        self.utility.session.lm.threadpool.call_in_thread(FREE_SPACE_CHECK_INTERVAL, self.guiservthread_free_space_check)
+        self.utility.session.lm.threadpool.call_in_thread(FREE_SPACE_CHECK_INTERVAL,
+                                                          self.guiservthread_free_space_check)
 
     def guiservthread_checkpoint_timer(self):
         """ Periodically checkpoint Session """
@@ -687,7 +689,8 @@ class ABCApp(object):
             self._logger.info("main: Checkpointing Session")
             self.utility.session.checkpoint()
 
-            self.utility.session.lm.threadpool.call_in_thread(SESSION_CHECKPOINT_INTERVAL, self.guiservthread_checkpoint_timer)
+            self.utility.session.lm.threadpool.call_in_thread(SESSION_CHECKPOINT_INTERVAL,
+                                                              self.guiservthread_checkpoint_timer)
         except:
             print_exc()
 
@@ -924,12 +927,6 @@ class ABCApp(object):
 
         self.onError(e)
 
-    def getConfigPath(self):
-        return self.utility.getConfigPath()
-
-    def startWithRightView(self):
-        if self.params[0] != "":
-            self.guiUtility.ShowPage('my_files')
 
     def i2ithread_readlinecallback(self, ic, cmd):
         """ Called by Instance2Instance thread """
@@ -970,7 +967,7 @@ class ABCApp(object):
 #
 #
 @attach_profiler
-def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_channel_search=True):
+def run(params=None, autoload_discovery=True, use_torrent_search=True, use_channel_search=True):
 
     from .hacks import patch_crypto_be_discovery
     patch_crypto_be_discovery()
@@ -991,7 +988,7 @@ def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_chann
             statedir = SessionStartupConfig().get_state_dir()
 
             # Send  torrent info to abc single instance
-            if params[0] != "":
+            if params is not None:
                 torrentfilename = params[0]
                 i2i_port = Utility(installdir, statedir).read_config('i2ilistenport')
                 Instance2InstanceClient(i2i_port, 'START', torrentfilename)
@@ -1025,12 +1022,6 @@ def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_chann
     except:
         print_exc()
 
-    # This is the right place to close the database, unfortunately Linux has
-    # a problem, see ABCFrame.OnCloseWindow
-    #
-    # if sys.platform != 'linux2':
-    #    tribler_done(configpath)
-    # os._exit(0)
 
 if __name__ == '__main__':
     run()
