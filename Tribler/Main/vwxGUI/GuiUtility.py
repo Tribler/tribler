@@ -1,12 +1,15 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker, Lucian Musat
 # Modified by Niels Zeilemaker
 # see LICENSE.txt for license information
+from traceback import print_exc
+import traceback
 
 import wx
 import os
 import sys
 import json
 import logging
+from collections import defaultdict
 from time import time
 
 from Tribler import LIBRARYNAME
@@ -14,9 +17,13 @@ from Tribler import LIBRARYNAME
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.Utilities.search_utils import split_into_keywords
+from Tribler.Core.osutils import get_free_space
+from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING
+from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 
 from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
@@ -746,3 +753,48 @@ class GUIUtility(object):
             return selected_file
         elif len(videofiles) == 1:
             return videofiles[0]
+
+    @forceWxThread
+    def showErrorWindow(self, err):
+        print_exc()
+        _, value, stack = sys.exc_info()
+        backtrace = traceback.format_exception(type, value, stack)
+
+        win = FeedbackWindow("Unfortunately, Tribler ran into an internal error")
+        win.CreateOutputWindow('')
+        for line in backtrace:
+            win.write(line)
+
+        win.ShowModal()
+
+    def guiservthread_free_space_check(self):
+        '''
+        This method is called in an interval to update the free space indicator in the Wx GUI.
+        '''
+        if not (self and self.frame and self.frame.SRstatusbar):
+            return
+
+        free_space = get_free_space(DefaultDownloadStartupConfig.getInstance().get_dest_dir())
+        self.frame.SRstatusbar.RefreshFreeSpace(free_space)
+
+        storage_locations = defaultdict(list)
+        for download in self.utility.session.get_downloads():
+            if download.get_status() == DLSTATUS_DOWNLOADING:
+                storage_locations[download.get_dest_dir()].append(download)
+
+        show_message = False
+        low_on_space = [
+            path for path in storage_locations.keys(
+            ) if 0 < get_free_space(
+                path) < self.utility.read_config(
+                'free_space_threshold')]
+        for path in low_on_space:
+            for download in storage_locations[path]:
+                download.stop()
+                show_message = True
+
+        if show_message:
+            wx.CallAfter(wx.MessageBox, "Tribler has detected low disk space. Related downloads have been stopped.",
+                         "Error")
+
+        self.utility.session.lm.threadpool.call_in_thread(300.0, self.guiservthread_free_space_check)

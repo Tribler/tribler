@@ -12,28 +12,6 @@
 # see LICENSE.txt for license information
 #
 
-# Arno: M2Crypto overrides the method for https:// in the
-# standard Python libraries. This causes msnlib to fail and makes Tribler
-# freakout when "http://www.tribler.org/version" is redirected to
-# "https://www.tribler.org/version/" (which happened during our website
-# changeover) Until M2Crypto 0.16 is patched I'll restore the method to the
-# original, as follows.
-#
-# This must be done in the first python file that is started.
-#
-import urllib
-
-
-original_open_https = urllib.URLopener.open_https
-import M2Crypto  # Not a useless import! See above.
-urllib.URLopener.open_https = original_open_https
-
-try:
-    prctlimported = True
-    import prctl
-except ImportError as e:
-    prctlimported = False
-
 # Make sure the in thread reactor is installed.
 from Tribler.Core.Utilities.twisted_thread import reactor
 
@@ -45,7 +23,6 @@ import sys
 import tempfile
 import traceback
 import urllib2
-from collections import defaultdict
 from random import randint
 from traceback import print_exc
 
@@ -57,7 +34,6 @@ from Tribler.Core.DownloadConfig import get_default_dest_dir, get_default_dscfg_
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Video.VideoPlayer import PLAYBACKMODE_INTERNAL, return_feasible_playback_modes
-from Tribler.Core.osutils import get_free_space
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
                                      DLSTATUS_STOPPED_ON_ERROR, DOWNLOAD, NTFY_ACTIVITIES, NTFY_CHANNELCAST,
                                      NTFY_COMMENTS, NTFY_CREATE, NTFY_DELETE, NTFY_DISPERSY, NTFY_FINISHED, NTFY_INSERT,
@@ -66,7 +42,6 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
                                      NTFY_PLAYLISTS, NTFY_REACHABLE, NTFY_STARTED, NTFY_STATE, NTFY_TORRENTS,
                                      NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings, STATEDIR_GUICONFIG)
 from Tribler.Core.version import commit_id, version_id
-from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Utility.GuiDBHandler import GUIDBProducer, startWorker
 from Tribler.Main.Utility.compat import (convertDefaultDownloadConfig, convertDownloadCheckpoints, convertMainConfig,
                                          convertSessionConfig)
@@ -75,7 +50,8 @@ from Tribler.Main.Utility.utility import Utility
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
-from Tribler.Main.vwxGUI.MainFrame import FileDropTarget, MainFrame
+from Tribler.Main.vwxGUI.MainFrame import MainFrame
+from Tribler.Main.vwxGUI.TriblerApp import TriblerApp
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame
 from Tribler.Main.vwxGUI.TriblerUpgradeDialog import TriblerUpgradeDialog
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
@@ -91,11 +67,6 @@ logger = logging.getLogger(__name__)
 from time import time, sleep
 
 SESSION_CHECKPOINT_INTERVAL = 900.0  # 15 minutes
-CHANNELMODE_REFRESH_INTERVAL = 5.0
-FREE_SPACE_CHECK_INTERVAL = 300.0
-
-DEBUG = False
-DEBUG_DOWNLOADS = False
 ALLOW_MULTIPLE = os.environ.get("TRIBLER_ALLOW_MULTIPLE", "False").lower() == "true"
 
 #
@@ -260,7 +231,7 @@ class ABCApp(object):
 
             self.splash.Destroy()
             self.frame.Show(True)
-            session.lm.threadpool.call_in_thread(0, self.guiservthread_free_space_check)
+            session.lm.threadpool.call_in_thread(0, self.guiUtility.guiservthread_free_space_check)
 
             self.webUI = None
             if self.utility.read_config('use_webui'):
@@ -282,18 +253,13 @@ class ABCApp(object):
 
             wx.CallAfter(self.PostInit2)
 
-            # 08/02/10 Boudewijn: Working from home though console
-            # doesn't allow me to press close.  The statement below
-            # gracefully closes Tribler after 120 seconds.
-            # wx.CallLater(120*1000, wx.GetApp().Exit)
-
             self.ready = True
 
         except Exception as e:
             if self.splash:
                 self.splash.Destroy()
 
-            self.onError(e)
+            self.guiUtility.showErrorWindow(e)
 
     def InitStage1(self, installdir, autoload_discovery=True,
                    use_torrent_search=True, use_channel_search=True):
@@ -395,7 +361,8 @@ class ABCApp(object):
 
     def PostInit2(self):
         self.frame.Raise()
-        self.startWithRightView()
+        if self.params != None:
+            self.guiUtility.ShowPage('my_files')
         self.set_reputation()
 
         s = self.utility.session
@@ -648,35 +615,6 @@ class ABCApp(object):
 
         self.utility.session.load_checkpoint(initialdlstatus_dict=initialdlstatus_dict)
 
-    def guiservthread_free_space_check(self):
-        if not (self and self.frame and self.frame.SRstatusbar):
-            return
-
-        free_space = get_free_space(DefaultDownloadStartupConfig.getInstance().get_dest_dir())
-        self.frame.SRstatusbar.RefreshFreeSpace(free_space)
-
-        storage_locations = defaultdict(list)
-        for download in self.utility.session.get_downloads():
-            if download.get_status() == DLSTATUS_DOWNLOADING:
-                storage_locations[download.get_dest_dir()].append(download)
-
-        show_message = False
-        low_on_space = [
-            path for path in storage_locations.keys(
-            ) if 0 < get_free_space(
-                path) < self.utility.read_config(
-                'free_space_threshold')]
-        for path in low_on_space:
-            for download in storage_locations[path]:
-                download.stop()
-                show_message = True
-
-        if show_message:
-            wx.CallAfter(wx.MessageBox, "Tribler has detected low disk space. Related downloads have been stopped.",
-                         "Error")
-
-        self.utility.session.lm.threadpool.call_in_thread(FREE_SPACE_CHECK_INTERVAL, self.guiservthread_free_space_check)
-
     def guiservthread_checkpoint_timer(self):
         """ Periodically checkpoint Session """
         if self.done:
@@ -831,19 +769,6 @@ class ABCApp(object):
             self.frame.playlist.OnModerationCreated(objectID)
 
     @forceWxThread
-    def onError(self, e):
-        print_exc()
-        _, value, stack = sys.exc_info()
-        backtrace = traceback.format_exception(type, value, stack)
-
-        win = FeedbackWindow("Unfortunately, Tribler ran into an internal error")
-        win.CreateOutputWindow('')
-        for line in backtrace:
-            win.write(line)
-
-        win.ShowModal()
-
-    @forceWxThread
     def OnExit(self):
         bm = self.gui_image_manager.getImage(u'closescreen.png')
         self.closewindow = GaugeSplash(bm, "Closing...", 6)
@@ -864,7 +789,6 @@ class ABCApp(object):
             self.frame = None
 
         # Don't checkpoint, interferes with current way of saving Preferences,
-        # see Tribler/Main/Dialogs/abcoption.py
         if self.utility:
             # Niels: lets add a max waiting time for this session shutdown.
             session_shutdown_start = time()
@@ -922,14 +846,7 @@ class ABCApp(object):
             print_exc()
             # print_stack()
 
-        self.onError(e)
-
-    def getConfigPath(self):
-        return self.utility.getConfigPath()
-
-    def startWithRightView(self):
-        if self.params[0] != "":
-            self.guiUtility.ShowPage('my_files')
+        self.guiUtility.showErrorWindow(e)
 
     def i2ithread_readlinecallback(self, ic, cmd):
         """ Called by Instance2Instance thread """
@@ -964,29 +881,9 @@ class ABCApp(object):
             wx.CallAfter(start_asked_download)
 
 
-class TriblerApp(wx.App):
-
-    def __init__(self, *args, **kwargs):
-        wx.App.__init__(self, *args, **kwargs)
-        self._logger = logging.getLogger(self.__class__.__name__)
-        self._abcapp = None
-
-    def set_abcapp(self, abcapp):
-        self._abcapp = abcapp
-
-    def MacOpenFile(self, filename):
-        self._logger.info(repr(filename))
-        target = FileDropTarget(self._abcapp.frame)
-        target.OnDropFiles(None, None, [filename])
-
-
-#
-#
 # Main Program Start Here
-#
-#
 @attach_profiler
-def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_channel_search=True):
+def run(params=None, autoload_discovery=True, use_torrent_search=True, use_channel_search=True):
 
     from .hacks import patch_crypto_be_discovery
     patch_crypto_be_discovery()
@@ -1007,7 +904,7 @@ def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_chann
             statedir = SessionStartupConfig().get_state_dir()
 
             # Send  torrent info to abc single instance
-            if params[0] != "":
+            if params != None:
                 torrentfilename = params[0]
                 i2i_port = Utility(installdir, statedir).read_config('i2ilistenport')
                 Instance2InstanceClient(i2i_port, 'START', torrentfilename)
@@ -1040,13 +937,6 @@ def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_chann
 
     except:
         print_exc()
-
-    # This is the right place to close the database, unfortunately Linux has
-    # a problem, see ABCFrame.OnCloseWindow
-    #
-    # if sys.platform != 'linux2':
-    #    tribler_done(configpath)
-    # os._exit(0)
 
 if __name__ == '__main__':
     run()
