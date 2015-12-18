@@ -5,9 +5,10 @@ import shutil
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION, LOWEST_SUPPORTED_DB_VERSION
-from Tribler.Core.Upgrade.db_upgrader import DBUpgrader, VersionNoLongerSupportedError
+from Tribler.Core.Upgrade.db_upgrader import DBUpgrader
 from Tribler.Core.Upgrade.torrent_upgrade65 import TorrentMigrator65
-from Tribler.dispersy.util import call_on_reactor_thread
+from Tribler.Core.simpledefs import NTFY_UPGRADER, NTFY_FINISHED, NTFY_STARTED
+from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread
 
 
 # Database versions:
@@ -25,18 +26,52 @@ class TriblerUpgrader(object):
         self.session = session
         self.db = db
 
-        self.current_status = u"Checking Tribler version..."
         self.is_done = False
         self.failed = True
+
+        self.current_status = u"Checking Tribler version..."
+        if self.session.get_current_startup_config_copy().get_upgrader_enabled():
+            failed, has_to_upgrade = self.check_should_upgrade()
+            if has_to_upgrade and not failed:
+                self.notify_starting()
+                self.upgrade_database_to_current_version()
+            if self.failed:
+                self.notify_starting()
+                self.stash_database()
+        else:
+            # Fake the upgrade is done, because the upgrader is disabled
+            # for testing purposes.
+            self.failed = False
+            # TODO refactor all is_done calls with the event call back in other files
+            # I leave this field for now because other classes may be dependent on it.
+            self.is_done = True
+            self.notify_done()
 
     def update_status(self, status_text):
         self.current_status = status_text
 
-    @call_on_reactor_thread
-    @inlineCallbacks
-    def check_and_upgrade(self):
-        """ Checks the database version and upgrade if it is not the latest version.
+    def notify_starting(self):
         """
+        Broadcast a notification (event) that the upgrader is starting doing work
+        after a check has established work on the db is required.
+        Will only fire once.
+        """
+        if not self.notified:
+            self.notified = True
+            self.session.notifier.notify(NTFY_UPGRADER, NTFY_STARTED, None)
+
+
+    def notify_done(self):
+        """
+        Broadcast a notification (event) that the upgrader is done.
+        """
+        self.session.notifier.notify(NTFY_UPGRADER, NTFY_FINISHED, None)
+
+    @blocking_call_on_reactor_thread
+    def check_should_upgrade(self):
+
+        self.failed = True
+        should_upgrade = False
         if self.db.version > LATEST_DB_VERSION:
             msg = u"The on-disk tribler database is newer than your tribler version. Your database will be backed up."
             self.current_status = msg
@@ -49,41 +84,52 @@ class TriblerUpgrader(object):
         elif self.db.version == LATEST_DB_VERSION:
             self._logger.info(u"tribler is in the latest version, no need to upgrade")
             self.failed = False
+            self.is_done = True
+            self.notify_done()
         else:
-            # upgrade
-            try:
-                from Tribler.Core.leveldbstore import LevelDbStore
-                torrent_store = LevelDbStore(self.session.get_torrent_store_dir())
-                torrent_migrator = TorrentMigrator65(
-                    self.session, self.db, torrent_store=torrent_store, status_update_func=self.update_status)
-                yield torrent_migrator.start_migrate()
+            should_upgrade = True
 
-                db_migrator = DBUpgrader(
-                    self.session, self.db, torrent_store=torrent_store, status_update_func=self.update_status)
-                yield db_migrator.start_migrate()
+        return (self.failed, should_upgrade)
 
-                # Import all the torrent files not in the database, we do this in
-                # case we have some unhandled torrent files left due to
-                # bugs/crashes, etc.
-                self.update_status("Recovering unregistered torrents...")
-                yield db_migrator.reimport_torrents()
 
-                yield torrent_store.close()
-                del torrent_store
+    @call_on_reactor_thread
+    @inlineCallbacks
+    def upgrade_database_to_current_version(self, failed):
+        """ Checks the database version and upgrade if it is not the latest version.
+        """
+        try:
+            from Tribler.Core.leveldbstore import LevelDbStore
+            torrent_store = LevelDbStore(self.session.get_torrent_store_dir())
+            torrent_migrator = TorrentMigrator65(
+                self.session, self.db, torrent_store=torrent_store, status_update_func=self.update_status)
+            yield torrent_migrator.start_migrate()
 
-                self.failed = False
-            except Exception as e:
-                self._logger.exception(u"failed to upgrade: %s", e)
+            db_migrator = DBUpgrader(
+                self.session, self.db, torrent_store=torrent_store, status_update_func=self.update_status)
+            yield db_migrator.start_migrate()
 
-        if self.failed:
-            self._stash_database_away()
+            # Import all the torrent files not in the database, we do this in
+            # case we have some unhandled torrent files left due to
+            # bugs/crashes, etc.
+            self.update_status("Recovering unregistered torrents...")
+            yield db_migrator.reimport_torrents()
 
-        self.is_done = True
+            yield torrent_store.close()
+            del torrent_store
 
-    def _stash_database_away(self):
+            self.failed = False
+            self.is_done = True
+            self.notify_done()
+        except Exception as e:
+            self._logger.exception(u"failed to upgrade: %s", e)
+
+    @call_on_reactor_thread
+    def stash_database(self):
         self.db.close()
         old_dir = os.path.dirname(self.db.sqlite_db_path)
         new_dir = u'%s_backup_%d' % (old_dir, LATEST_DB_VERSION)
         shutil.move(old_dir, new_dir)
         os.makedirs(old_dir)
         self.db.initialize()
+        self.is_done = True
+        self.notify_done()
