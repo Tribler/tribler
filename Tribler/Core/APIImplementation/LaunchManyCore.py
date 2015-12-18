@@ -28,11 +28,9 @@ from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_react
 
 
 try:
-    prctlimported = True
     import prctl
 except ImportError:
-    prctlimported = False
-
+    pass
 
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035  # WSAEWOULDBLOCK
