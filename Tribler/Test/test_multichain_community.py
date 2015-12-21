@@ -5,8 +5,7 @@ import time
 import uuid
 import logging
 
-from Tribler.community.multichain.community import MultiChainScheduler, MultiChainCommunity, \
-    BLOCK_REQUEST, BLOCK_RESPONSE
+from Tribler.community.multichain.community import MultiChainScheduler, MultiChainCommunity, CRAWL_REQUEST, CRAWL_RESPONSE
 
 from Tribler.Test.test_as_server import BaseTestCase
 
@@ -361,10 +360,10 @@ class TestMultiChainCommunity(DispersyTestFunc):
         _, signature_response = node.receive_message(names=[u"dispersy-signature-response"]).next()
         node.give_message(signature_response, node)
         # Act
-        crawler.call(crawler.community.publish_request_block_message, target_other_from_crawler)
-        _, block_request = other.receive_message(names=[BLOCK_REQUEST]).next()
+        crawler.call(crawler.community.send_crawl_request, target_other_from_crawler)
+        _, block_request = other.receive_message(names=[CRAWL_REQUEST]).next()
         other.give_message(block_request, crawler)
-        _, block_response = crawler.receive_message(names=[BLOCK_RESPONSE]).next()
+        _, block_response = crawler.receive_message(names=[CRAWL_RESPONSE]).next()
         crawler.give_message(block_response, other)
         # Assert
         self.assertTrue(self.assertBlocksInDatabase(node, 1))
@@ -420,10 +419,10 @@ class TestMultiChainCommunity(DispersyTestFunc):
         _, signature_response = node.receive_message(names=[u"dispersy-signature-response"]).next()
         node.give_message(signature_response, node)
         # Act
-        crawler.call(crawler.community.publish_request_block_message, target_other_from_crawler, 0)
-        _, block_request = other.receive_message(names=[BLOCK_REQUEST]).next()
+        crawler.call(crawler.community.send_crawl_request, target_other_from_crawler, 0)
+        _, block_request = other.receive_message(names=[CRAWL_REQUEST]).next()
         other.give_message(block_request, crawler)
-        _, block_response = crawler.receive_message(names=[BLOCK_RESPONSE]).next()
+        _, block_response = crawler.receive_message(names=[CRAWL_RESPONSE]).next()
         crawler.give_message(block_response, other)
         # Assert
         self.assertTrue(self.assertBlocksInDatabase(node, 1))
@@ -439,13 +438,13 @@ class TestMultiChainCommunity(DispersyTestFunc):
         node.send_identity(crawler)
         target_node = self._create_target(crawler, node)
         # Act
-        crawler.call(crawler.community.publish_request_block_message, target_node)
-        _, block_request = node.receive_message(names=[BLOCK_REQUEST]).next()
+        crawler.call(crawler.community.send_crawl_request, target_node)
+        _, block_request = node.receive_message(names=[CRAWL_REQUEST]).next()
         node.give_message(block_request, crawler)
 
         with self.assertRaises(ValueError):
             "No signature responses should have been sent"
-            _, block_responses = crawler.receive_message(names=[BLOCK_RESPONSE])
+            _, block_responses = crawler.receive_message(names=[CRAWL_RESPONSE])
 
     def test_request_block_known(self):
         """
@@ -467,18 +466,18 @@ class TestMultiChainCommunity(DispersyTestFunc):
         _, signature_response = node.receive_message(names=[u"dispersy-signature-response"]).next()
         node.give_message(signature_response, node)
         """ Request the block"""
-        crawler.call(crawler.community.publish_request_block_message, target_other_from_crawler)
-        _, block_request = other.receive_message(names=[BLOCK_REQUEST]).next()
+        crawler.call(crawler.community.send_crawl_request, target_other_from_crawler)
+        _, block_request = other.receive_message(names=[CRAWL_REQUEST]).next()
         other.give_message(block_request, crawler)
-        _, block_response = crawler.receive_message(names=[BLOCK_RESPONSE]).next()
+        _, block_response = crawler.receive_message(names=[CRAWL_RESPONSE]).next()
         crawler.give_message(block_response, other)
 
         # Act
         """ Request the same block."""
-        crawler.call(crawler.community.publish_request_block_message, target_node_from_crawler)
-        _, block_request = node.receive_message(names=[BLOCK_REQUEST]).next()
+        crawler.call(crawler.community.send_crawl_request, target_node_from_crawler)
+        _, block_request = node.receive_message(names=[CRAWL_REQUEST]).next()
         node.give_message(block_request, crawler)
-        _, block_response = crawler.receive_message(names=[BLOCK_RESPONSE]).next()
+        _, block_response = crawler.receive_message(names=[CRAWL_RESPONSE]).next()
         crawler.give_message(block_response, node)
         # Assert
         self.assertTrue(self.assertBlocksInDatabase(node, 1))

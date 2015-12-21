@@ -326,18 +326,19 @@ class MultiChainCommunity(Community):
         :param message:
         """
         block = DatabaseBlock.from_signature_response_message(message)
-        self.logger.info("Persisting sr: %s" % base64.encodestring(block.id))
+        self.logger.info("Persisting sr: %s" % base64.encodestring(block.id).strip())
         self.persistence.add_block(block)
 
-    def send_crawl_request(self, candidate):
+    def send_crawl_request(self, candidate, sequence_number = None):
+        if sequence_number is None:
             sequence_number = self.persistence.get_latest_sequence_number(candidate.get_member().mid);
-            self.logger.info("Crawler: Requesting crawl from node %s, from sequence number %d" % (base64.encodestring(candidate.get_member().mid).strip(), sequence_number))
-            meta = self.get_meta_message(CRAWL_REQUEST)
-            message = meta.impl(authentication=(self.my_member,),
-                                distribution=(self.claim_global_time(),),
-                                destination=(candidate,),
-                                payload=(sequence_number,))
-            self.dispersy.store_update_forward([message], False, False, True)
+        self.logger.info("Crawler: Requesting crawl from node %s, from sequence number %d" % (base64.encodestring(candidate.get_member().mid).strip(), sequence_number))
+        meta = self.get_meta_message(CRAWL_REQUEST)
+        message = meta.impl(authentication=(self.my_member,),
+                            distribution=(self.claim_global_time(),),
+                            destination=(candidate,),
+                            payload=(sequence_number,))
+        self.dispersy.store_update_forward([message], False, False, True)
     
     def received_crawl_request(self, messages):
         for message in messages:
@@ -378,7 +379,7 @@ class MultiChainCommunity(Community):
             block = DatabaseBlock.from_block_response_message(message, requester, responder)
             # Create the hash of the message
             if not self.persistence.contains(block.id):
-                self.logger.info("Crawler: Persisting id: %s" % base64.encodestring(block.id))
+                self.logger.info("Crawler: Persisting id: %s" % base64.encodestring(block.id).strip())
                 self.persistence.add_block(block)
             else:
                 self.logger.info("Crawler: Received already known block")

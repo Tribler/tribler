@@ -137,19 +137,19 @@ class MultiChainConversion(BinaryConversion):
 
     def _encode_crawl_resume(self, message):
         """
-        Encode a crawl request message.
-        :param message: Message.impl of CrawlRequestPayload.impl
-        return encoding ready to be sent of the network of the message
+        Encode a crawl resume message.
+        :param message: Message.impl of CrawlResumePayload.impl
+        return encoding of the message ready to be sent over the network
         """
         return '',
 
     def _decode_crawl_resume(self, placeholder, offset, data):
         """
-        Decode an incoming crawl request message.
+        Decode an incoming crawl resume message.
         :param placeholder:
-        :param offset: Start of the CrawlRequest message in the data.
+        :param offset: Start of the CrawlResume message in the data.
         :param data: ByteStream containing the message.
-        :return: (offset, CrawlRequest.impl)
+        :return: (offset, CrawlResume.impl)
         """
         return offset, placeholder.meta.payload.implement()
 
