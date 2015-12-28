@@ -88,9 +88,9 @@ class SaveAs(wx.Dialog):
         self.ok = wx.Button(self, wx.ID_OK)
         self.ok.Bind(wx.EVT_BUTTON, self.OnOk)
 
-        self.anonimity_dialog = None
-        self.anonimity_dialog = AnonymityDialog(self)
-        vSizer.Add(self.anonimity_dialog, 0, wx.EXPAND, 3)
+        self.anonymity_dialog = None
+        self.anonymity_dialog = AnonymityDialog(self)
+        vSizer.Add(self.anonymity_dialog, 0, wx.EXPAND, 3)
 
         self.Bind(EVT_COLLECTED, self.OnCollected)
 
@@ -230,10 +230,10 @@ class SaveAs(wx.Dialog):
         return None
 
     def UseTunnels(self):
-        return self.anonimity_dialog and self.anonimity_dialog.UseTunnels()
+        return self.anonymity_dialog and self.anonymity_dialog.UseTunnels()
 
     def UseSafeSeeding(self):
-        return self.anonimity_dialog and self.anonimity_dialog.UseSafeSeeding()
+        return self.anonymity_dialog and self.anonymity_dialog.UseSafeSeeding()
 
     def OnOk(self, event=None):
         if self.listCtrl:
