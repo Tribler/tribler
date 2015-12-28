@@ -18,18 +18,17 @@ from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT,
                                      NTFY_PEERS, NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
                                      STATEDIR_METADATA_STORE_DIR, STATEDIR_PEERICON_DIR, STATEDIR_TORRENT_STORE_DIR)
 
-
 GOTM2CRYPTO = False
 try:
     import M2Crypto
     import Tribler.Core.permid as permidmod
+
     GOTM2CRYPTO = True
 except ImportError:
     pass
 
 
 class Session(SessionConfigInterface):
-
     """
 
     A Session is a running instance of the Tribler Core and the Core's central
@@ -153,18 +152,15 @@ class Session(SessionConfigInterface):
         self.autoload_discovery = autoload_discovery
 
     def prestart(self):
-        """ Pre-starts the session. We check the currently version and upgrades if needed
-        before we start everything else.
         """
-        # initialize the database
+        Pre-starts the session. We check the current version and upgrade if needed
+-        before we start everything else.
+        """
         self.sqlite_db = SQLiteCacheDB(self)
         self.sqlite_db.initialize()
         self.sqlite_db.initial_begin()
-
-        # check and upgrade
-        upgrader = TriblerUpgrader(self, self.sqlite_db)
-        upgrader.check_and_upgrade()
-        return upgrader
+        self.upgrader = TriblerUpgrader(self, self.sqlite_db)
+        return self.upgrader
 
     #
     # Class methods

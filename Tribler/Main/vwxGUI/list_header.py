@@ -129,7 +129,7 @@ class ListHeader(wx.Panel):
                     label.SetToolTipString('Click to sort table by %s.' % columns[i]['name'])
                     label.SetBackgroundColour(self.GetBackgroundColour())
                     label.column = i
-                    label.Bind(wx.EVT_LEFT_UP, self.OnClick)
+                    label.Bind(wx.EVT_LEFT_DOWN, self.OnClick)
 
                     if i == 0:
                         sizer.Add(label, 0, wx.ALIGN_CENTER_VERTICAL | wx.TOP | wx.BOTTOM, 3)
@@ -567,11 +567,11 @@ class TorrentFilter(BaseFilter):
 
         self.sortby_icon = wx.StaticBitmap(panel, -1, self.icon_right)
         self.sortby = LinkStaticText(panel, 'Sort by', None, font_colour=wx.BLACK)
-        self.sortby.Bind(wx.EVT_LEFT_UP, self.OnPopupSort)
+        self.sortby.Bind(wx.EVT_LEFT_DOWN, self.OnPopupSort)
 
         self.filetype_icon = wx.StaticBitmap(panel, -1, self.icon_right)
         self.filetype = LinkStaticText(panel, 'File type', None, font_colour=wx.BLACK)
-        self.filetype.Bind(wx.EVT_LEFT_UP, self.OnPopupFileType)
+        self.filetype.Bind(wx.EVT_LEFT_DOWN, self.OnPopupFileType)
 
         self.filesize_str = StaticText(panel, -1, 'File size:')
         self.filesize = MinMaxSlider(panel, -1)
@@ -828,11 +828,11 @@ class ChannelFilter(BaseFilter):
 
         self.sortby_icon = wx.StaticBitmap(panel, -1, self.icon_right)
         self.sortby = LinkStaticText(panel, 'Sort by', None, font_colour=wx.BLACK)
-        self.sortby.Bind(wx.EVT_LEFT_UP, self.OnPopupSort)
+        self.sortby.Bind(wx.EVT_LEFT_DOWN, self.OnPopupSort)
 
         self.channeltype_icon = wx.StaticBitmap(panel, -1, self.icon_right)
         self.channeltype = LinkStaticText(panel, 'Channel type', None, font_colour=wx.BLACK)
-        self.channeltype.Bind(wx.EVT_LEFT_UP, self.OnPopupChannelType)
+        self.channeltype.Bind(wx.EVT_LEFT_DOWN, self.OnPopupChannelType)
 
         self.search = wx.SearchCtrl(panel)
         self.search.SetDescriptiveText('Filter channels')
@@ -987,7 +987,7 @@ class DownloadFilter(BaseFilter):
 
         self.sortby_icon = wx.StaticBitmap(panel, -1, self.icon_right)
         self.sortby = LinkStaticText(panel, 'Sort by', None, font_colour=wx.BLACK)
-        self.sortby.Bind(wx.EVT_LEFT_UP, self.OnPopupSort)
+        self.sortby.Bind(wx.EVT_LEFT_DOWN, self.OnPopupSort)
 
         self.filesize_str = StaticText(panel, -1, 'File size:')
         self.filesize = MinMaxSlider(panel, -1)
@@ -995,7 +995,7 @@ class DownloadFilter(BaseFilter):
 
         self.state_icon = wx.StaticBitmap(panel, -1, self.icon_right)
         self.state = LinkStaticText(panel, 'Download state', None, font_colour=wx.BLACK)
-        self.state.Bind(wx.EVT_LEFT_UP, self.OnPopupState)
+        self.state.Bind(wx.EVT_LEFT_DOWN, self.OnPopupState)
 
         self.search = wx.SearchCtrl(panel)
         self.search.SetDescriptiveText('Filter downloads')

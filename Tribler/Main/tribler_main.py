@@ -17,6 +17,7 @@ except ImportError as e:
 
 # Make sure the in thread reactor is installed.
 from Tribler.Core.Utilities.twisted_thread import reactor
+from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 
 # importmagic: manage
 
@@ -46,7 +47,7 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
                                      NTFY_MODERATIONS, NTFY_MODIFICATIONS, NTFY_MODIFIED, NTFY_MYPREFERENCES,
                                      NTFY_PLAYLISTS, NTFY_REACHABLE, NTFY_STARTED, NTFY_STATE, NTFY_TORRENTS,
                                      NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings, STATEDIR_GUICONFIG,
-                                     NTFY_STARTUP_TICK, NTFY_CLOSE_TICK)
+                                     NTFY_STARTUP_TICK, NTFY_CLOSE_TICK, NTFY_UPGRADER)
 from Tribler.Core.version import commit_id, version_id
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Utility.GuiDBHandler import GUIDBProducer, startWorker
@@ -178,9 +179,6 @@ class ABCApp(object):
 
             # Counter to suppress some event from occurring
             self.ratestatecallbackcount = 0
-
-            # So we know if we asked for peer details last cycle
-            self.lastwantpeers = []
 
             maxup = self.utility.read_config('maxuploadrate')
             maxdown = self.utility.read_config('maxdownloadrate')
@@ -357,20 +355,24 @@ class ABCApp(object):
             self.sconfig.set_enable_channel_search(False)
 
         session = Session(self.sconfig, autoload_discovery=autoload_discovery)
+        session.add_observer(self.show_upgrade_dialog, NTFY_UPGRADER, [NTFY_FINISHED])
+        self.upgrader = session.prestart()
 
-        # check and upgrade
-        upgrader = session.prestart()
-        if not upgrader.is_done:
-            upgrade_dialog = TriblerUpgradeDialog(self.gui_image_manager, upgrader)
-            failed = upgrade_dialog.ShowModal()
-            upgrade_dialog.Destroy()
-            if failed:
-                wx.MessageDialog(None, "Failed to upgrade the on disk data.\n\n"
-                                 "Tribler has backed up the old data and will now start from scratch.\n\n"
-                                 "Get in contact with the Tribler team if you want to help debugging this issue.\n\n"
-                                 "Error was: %s" % upgrader.current_status,
-                                 "Data format upgrade failed", wx.OK | wx.CENTRE | wx.ICON_EXCLAMATION).ShowModal()
         return session
+
+    @forceWxThread
+    def show_upgrade_dialog(self, subject, changetype, objectID, *args):
+        assert wx.Thread_IsMain()
+
+        upgrade_dialog = TriblerUpgradeDialog(self.gui_image_manager, self.upgrader)
+        failed = upgrade_dialog.ShowModal()
+        upgrade_dialog.Destroy()
+        if failed:
+            wx.MessageDialog(None, "Failed to upgrade the on disk data.\n\n"
+                             "Tribler has backed up the old data and will now start from scratch.\n\n"
+                             "Get in contact with the Tribler team if you want to help debugging this issue.\n\n"
+                             "Error was: %s" % self.upgrader.current_status,
+                             "Data format upgrade failed", wx.OK | wx.CENTRE | wx.ICON_EXCLAMATION).ShowModal()
 
     def _frame_and_ready(self):
         return self.ready and self.frame and self.frame.ready
@@ -611,7 +613,6 @@ class ABCApp(object):
         except:
             print_exc()
 
-        self.lastwantpeers = wantpeers
         return 1.0, wantpeers
 
     def loadSessionCheckpoint(self):
@@ -978,9 +979,6 @@ def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_chann
 
             logger.info("Client shutting down. Detected another instance.")
         else:
-            from Tribler.Main.Utility.utility import initialize_x11_threads
-            initialize_x11_threads()
-
             # Launch first abc single instance
             app = wx.GetApp()
             if not app:

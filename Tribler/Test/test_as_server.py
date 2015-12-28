@@ -2,6 +2,10 @@
 # Improved and Modified by Niels Zeilemaker
 # see LICENSE.txt for license information
 
+# Initialize x11 threads before doing anything X11 related.
+from Tribler.Main.Utility.utility import initialize_x11_threads
+initialize_x11_threads()
+
 # set wxpython version before importing wx or anything from Tribler
 import wxversion
 wxversion.select("2.8-unicode")
@@ -200,6 +204,7 @@ class TestAsServer(AbstractServer):
         self.config.set_dht_torrent_collecting(False)
         self.config.set_videoplayer(False)
         self.config.set_enable_metadata(False)
+        self.config.set_upgrader_enabled(False)
 
     def tearDown(self):
         self.annotate(self._testMethodName, start=False)
@@ -333,9 +338,6 @@ class TestGuiAsServer(TestAsServer):
     def setUp(self):
         self.assertFalse(Session.has_instance(), 'A session instance is already present when setting up the test')
         AbstractServer.setUp(self, annotate=False)
-
-        from Tribler.Main.Utility.utility import initialize_x11_threads
-        initialize_x11_threads()
 
         self.app = wx.GetApp()
         if not self.app:

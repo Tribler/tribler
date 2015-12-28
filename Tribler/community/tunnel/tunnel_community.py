@@ -1248,7 +1248,7 @@ class TunnelCommunity(Community):
                     except InvalidTag as e:
                         raise CryptoException("Got exception %r when trying to remove encryption layer %s "
                                               "for message: %r received for circuit_id: %s, is_data: %i, "
-                                              "circuit_hops: %s" % (e, layer, content, circuit_id, is_data, circuit.hops
+                                              "circuit_hops: %r" % (e, layer, content, circuit_id, is_data, circuit.hops
                                                                     ))
 
                 if is_data and circuit.ctype in [CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP]:
