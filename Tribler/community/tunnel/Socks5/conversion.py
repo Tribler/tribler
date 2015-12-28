@@ -146,7 +146,7 @@ def __decode_address(address_type, offset, data):
     elif address_type == ADDRESS_TYPE_IPV6:
         raise IPV6AddrError()
     else:
-        raise ValueError("Unsupported address type")
+        raise ValueError("Unsupported address type %r" % address_type )
 
     return offset, destination_address
 
