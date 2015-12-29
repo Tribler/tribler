@@ -5,7 +5,7 @@ import time
 import uuid
 import logging
 
-from Tribler.community.multichain.community import MultiChainScheduler, MultiChainCommunity, CRAWL_REQUEST, CRAWL_RESPONSE
+from Tribler.community.multichain.community import MultiChainScheduler, MultiChainCommunity, CRAWL_REQUEST, CRAWL_RESPONSE, CRAWL_RESUME
 
 from Tribler.Test.test_as_server import BaseTestCase
 
@@ -239,7 +239,7 @@ class TestMultiChainCommunity(DispersyTestFunc):
 
     def test_publish_signature_request_message_exclusion(self):
         """
-        Test the community to not publish a signature request message if the chain exclusion is hold.
+        Test the community to not publish a signature request message if the chain exclusion is held.
         """
         node, other = self.create_nodes(2)
         other.send_identity(node)
@@ -255,7 +255,7 @@ class TestMultiChainCommunity(DispersyTestFunc):
 
     def test_receive_signature_request_exclusion(self):
         """
-        Test the community to not receive a signature request message if the chain exclusion is hold.
+        Test the community to not receive a signature request message if the chain exclusion is held.
         """
         # Arrange
         node, other = self.create_nodes(2)
@@ -483,6 +483,52 @@ class TestMultiChainCommunity(DispersyTestFunc):
         self.assertTrue(self.assertBlocksInDatabase(node, 1))
         self.assertTrue(self.assertBlocksInDatabase(crawler, 1))
         self.assertTrue(self.assertBlocksAreEqual(node, crawler))
+
+    def test_crawl_batch(self):
+        """
+        Test the crawler for fetching multiple blocks in one crawl.
+        """
+        # Arrange
+        node, other, crawler = self.create_nodes(3)
+        other.send_identity(node)
+        other.send_identity(crawler)
+        node.send_identity(crawler)
+
+        target_other_from_node = self._create_target(node, other)
+        target_other_from_crawler = self._create_target(crawler, other)
+        target_node_from_crawler = self._create_target(crawler, node)
+
+        """ Create blocks"""
+        node.call(node.community.publish_signature_request_message, target_other_from_node, 5, 5)
+        _, signature_request = other.receive_message(names=[u"dispersy-signature-request"]).next()
+        other.give_message(signature_request, node)
+        _, signature_response = node.receive_message(names=[u"dispersy-signature-response"]).next()
+        node.give_message(signature_response, node)
+        node.call(node.community.publish_signature_request_message, target_other_from_node, 5, 5)
+        _, signature_request = other.receive_message(names=[u"dispersy-signature-request"]).next()
+        other.give_message(signature_request, node)
+        _, signature_response = node.receive_message(names=[u"dispersy-signature-response"]).next()
+        node.give_message(signature_response, node)
+
+        # Act
+        """ Request the same block."""
+        crawler.call(crawler.community.send_crawl_request, target_node_from_crawler)
+        _, block_request = node.receive_message(names=[CRAWL_REQUEST]).next()
+        node.give_message(block_request, crawler)
+        for _, block_response in crawler.receive_message(names=[CRAWL_RESPONSE,CRAWL_RESUME]):
+            crawler.give_message(block_response, node)
+            print "Got another block, %s" % block_response
+
+        _, block_request = node.receive_message(names=[CRAWL_REQUEST]).next()
+        node.give_message(block_request, crawler)
+        _, block_response = crawler.receive_message(names=[CRAWL_RESPONSE]).next()
+        crawler.give_message(block_response, node)
+
+        # Assert
+        self.assertTrue(self.assertBlocksInDatabase(node, 2))
+        self.assertTrue(self.assertBlocksInDatabase(crawler, 2))
+        self.assertTrue(self.assertBlocksAreEqual(node, crawler))
+
 
     @blocking_call_on_reactor_thread
     def assertBlocksInDatabase(self, node, amount):
