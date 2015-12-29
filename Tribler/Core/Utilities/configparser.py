@@ -13,6 +13,7 @@ class CallbackConfigParser(RawConfigParser):
 
     def __init__(self, *args, **kwargs):
         RawConfigParser.__init__(self, *args, **kwargs)
+        self.filename = None
         self.callback = None
         self.lock = RLock()
 
@@ -21,6 +22,7 @@ class CallbackConfigParser(RawConfigParser):
             self.callback = callback
 
     def read_file(self, filename, encoding='utf-8'):
+        self.filename = filename
         with codecs.open(filename, 'rb', encoding) as fp:
             self.readfp(fp)
 
@@ -52,7 +54,10 @@ class CallbackConfigParser(RawConfigParser):
                     copied_config.set(section, option, value)
             return copied_config
 
-    def write_file(self, filename, encoding='utf-8'):
+    def write_file(self, filename=None, encoding='utf-8'):
+        if not filename:
+            filename = self.filename
+
         with codecs.open(filename, 'wb', encoding) as fp:
             self.write(fp)
 
