@@ -34,8 +34,7 @@ class DefaultDownloadStartupConfig(DownloadStartupConfig):
     @staticmethod
     def load(filename):
         dlconfig = CallbackConfigParser()
-        if not dlconfig.read_file(filename):
-            raise IOError("Failed to open download config file")
+        dlconfig.read_file(filename)
         return DefaultDownloadStartupConfig(dlconfig)
 
     def copy(self):
