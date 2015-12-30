@@ -1,10 +1,9 @@
-import os
 from time import sleep
 
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_MYPREFERENCES
 from Tribler.Core.TorrentDef import TorrentDef
-
-from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
+from Tribler.Core.simpledefs import NTFY_MYPREFERENCES, NTFY_TORRENTS
+from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.test_libtorrent_download import TORRENT_VIDEO_FILE
 
 
 class TestTorrentChecking(TestAsServer):
@@ -23,8 +22,9 @@ class TestTorrentChecking(TestAsServer):
         self.config.set_libtorrent(True)
 
     def test_torrent_checking(self):
-        tdef = TorrentDef.load(os.path.join(TESTS_DATA_DIR, "Pioneer.One.S01E06.720p.x264-VODO.torrent"))
-        tdef.set_tracker("http://95.211.198.141:2710/announce")
+        tdef = TorrentDef.load(TORRENT_VIDEO_FILE)
+        # TODO(emilon): This tracker is no more, we need to set up a new one
+        # tdef.set_tracker("http://95.211.198.141:2710/announce")
         tdef.metainfo_valid = True
 
         self.tdb.addExternalTorrent(tdef)
