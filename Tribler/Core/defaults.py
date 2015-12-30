@@ -205,7 +205,7 @@ tribler_defaults['Tribler']['maxdownloadrate'] = 0
 tribler_defaults['Tribler']['torrentassociationwarned'] = 0
 # Anon tunnel
 tribler_defaults['Tribler']['default_number_hops'] = 1
-tribler_defaults['Tribler']['default_anonimity_enabled'] = True
+tribler_defaults['Tribler']['default_anonymity_enabled'] = True
 tribler_defaults['Tribler']['default_safeseeding_enabled'] = True
 # GUI
 tribler_defaults['Tribler']['window_width'] = 1024

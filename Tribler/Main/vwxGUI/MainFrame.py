@@ -529,7 +529,7 @@ class MainFrame(wx.Frame):
                             selectedFiles = dlg.GetSelectedFiles()
                         destdir = dlg.GetPath()
 
-                        # Anonimity over exit nodes or hidden services
+                        # Anonymity over exit nodes or hidden services
                         safe_seeding = dlg.UseSafeSeeding()
                         if dlg.UseTunnels():
                             hops = self.utility.read_config('default_number_hops')
@@ -543,7 +543,7 @@ class MainFrame(wx.Frame):
             # use default setup
             else:
                 if useDefault:
-                    if self.utility.read_config('default_anonimity_enabled'):
+                    if self.utility.read_config('default_anonymity_enabled'):
                         # only load default anonymous level if we use default settings
                         hops = self.utility.read_config('default_number_hops')
                     else:
