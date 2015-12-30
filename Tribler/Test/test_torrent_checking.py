@@ -36,4 +36,4 @@ class TestTorrentChecking(TestAsServer):
 
         num_seeders = torrent['num_seeders']
         num_leechers = torrent['num_leechers']
-        assert num_leechers >= 0 or num_seeders >= 0, (num_leechers, num_seeders)
+        assert num_leechers >= 0 or num_seeders >= 0, "No peers found: leechers: %d seeders: %d" % (num_leechers, num_seeders)
