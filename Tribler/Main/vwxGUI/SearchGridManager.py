@@ -629,7 +629,13 @@ class LibraryManager(object):
         return torrent
 
     def addDownloadStates(self, torrentlist):
+        """
+        Adds download states to each torrent.  This will skip torrents that
+        are not defined, but are part of the torrent list.
+        """
         for torrent in torrentlist:
+            if torrent is None:
+                continue
             for ds in self.dslist:
                 torrent.addDs(ds)
             if torrent.infohash in self.magnetlist:
