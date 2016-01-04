@@ -127,6 +127,27 @@ class MultiChainDB(Database):
         # Create a DB Block or return None
         return self._create_database_block(db_result)
 
+    def get_blocks_since(self, mid, sequence_number):
+        """
+        Returns database blocks with sequence number higher than or equal to sequence_number, at most 100 results
+        :param mid: The public key corresponding to the member id
+        :param sequence_number: The linear block number
+        :return A list of DB Blocks that match the criteria
+        """
+        db_query = u"SELECT up, down, " \
+                   u"total_up_requester, total_down_requester, sequence_number_requester,  previous_hash_requester, " \
+                   u"total_up_responder, total_down_responder, sequence_number_responder,  previous_hash_responder," \
+                   u"mid_requester, signature_requester, mid_responder, signature_responder " \
+                   u"FROM (" \
+                   u"SELECT *, sequence_number_requester AS sequence_number, mid_requester AS mid FROM `multi_chain` " \
+                   u"UNION " \
+                   u"SELECT *, sequence_number_responder AS sequence_number, mid_responder AS mid FROM `multi_chain`) " \
+                   u"WHERE sequence_number >= ? AND mid = ? " \
+                   u"ORDER BY sequence_number ASC "\
+                   u"LIMIT 100"
+        db_result = self.execute(db_query, (sequence_number, buffer(mid))).fetchall()
+        return [self._create_database_block(db_item) for db_item in db_result]
+
     def _create_database_block(self, db_result):
         """
         Create a Database block or return None.
