@@ -204,7 +204,7 @@ class CreateTorrentDialog(wx.Dialog):
             dlg.Destroy()
 
             params = {}
-            params['comment'] = self.commentList.GetValue()
+            params['comment'] = self.commentList.GetValue().encode('utf-8')
             params['created by'] = '%s version: %s' % ('Tribler', version_id)
 
             trackers = self.trackerList.GetValue()
