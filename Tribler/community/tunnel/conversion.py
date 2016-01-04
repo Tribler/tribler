@@ -468,7 +468,7 @@ class TunnelConversion(BinaryConversion):
             if is_ip:
                 return pack("!B4sH", ADDRESS_TYPE_IPV4, ip, port)
             else:
-                return pack("!BH", ADDRESS_TYPE_DOMAIN_NAME, len(host)) + host + pack("!H", port)
+                return pack("!BH%dsH" % len(host), ADDRESS_TYPE_DOMAIN_NAME, len(host), host, port)
 
         return pack("!I", circuit_id) + encode_address(*dest_address) + encode_address(*org_address) + data
 
