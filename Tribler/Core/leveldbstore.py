@@ -1,4 +1,4 @@
-# torrentstore.py ---
+# leveldbstore.py ---
 #
 # Filename: torrentstore.py
 # Description:
@@ -86,7 +86,7 @@ class LevelDbStore(MutableMapping, TaskManager):
 
         try:
             return self._db.Get(key)
-        except:
+        except IOError:
             #self.flush()
 
             # also crashes
@@ -94,7 +94,6 @@ class LevelDbStore(MutableMapping, TaskManager):
 
     def __setitem__(self, key, value):
         self._pending_torrents[key] = value
-        # self._db.Put(key, value)
 
     def __delitem__(self, key):
         if key in self._pending_torrents:
