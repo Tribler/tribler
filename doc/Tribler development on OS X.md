@@ -34,7 +34,7 @@ xcode-select --install
 ### WxPython
 WxPython is the Graphical User Interface manager and an installer can be downloaded from [their website](http://www.wxpython.org/download.php). Note that at this point, Wx 2.8 should still be used but support for 2.8 will be dropped soon and the Wx 2.8 library should be replaced by Wx 3.0. You probably need the Cocoa version of Wx.
 
-Note: there is a bug on OS X 10.11 (El Capitan) where the installer gives an error that there is no software available to install. A workaround for this is to install the required files manually. This can be done by opening the `.pkg` file and unzipping the `wxPython3.0-osx-cocoa-py2.7.pax` file. This will create a `usr` directory which should be copied to `/usr`. To link wx, you should run the `postflight.sh` as root.
+Note: there is a bug on OS X 10.11 (El Capitan) where the installer gives an error that there is no software available to install. A workaround for this is to install the required files manually. This can be done by opening the `.pkg` file. First, you should run the `preflight.sh` script as root to clean up any old installation of wx. Next, unzip the `wxPython3.0-osx-cocoa-py2.7.pax.gz` file. This will create a `usr` directory which should be copied to `/usr` on the system. Note that you need root permissions to write to this directory (you can open a finder window with the needed permissions by running `sudo open /usr` in terminal). To link wx so Python can find it, you should run the `postflight.sh` as root.
 
 ### M2Crypto
 To install M2Crypto, Openssl has to be installed first. The shipped version of openssl by Apple gives errors when compiling M2Crypto so a self-compiled version should be used. Start by downloading openssl 0.98 from [here](https://www.openssl.org/source/), extract it and install it:
@@ -46,7 +46,7 @@ sudo make install
 openssl version # this should be 0.98
 ```
 
-Also Swig is required for the compilation of the M2Crypto library. The easiest way to install it, it to download Swig from source [here](http://www.swig.org/download.html) and compile it using:
+Also Swig 3.0.4 is required for the compilation of the M2Crypto library. The easiest way to install it, it to download Swig 3.0.4 from source [here](http://www.swig.org/download.html) and compile it using:
 
 ```
 ./configure
@@ -54,24 +54,27 @@ make
 sudo make install
 ```
 
-Now we can install M2Crypto. First download the [source](http://chandlerproject.org/Projects/MeTooCrypto) (take the latest stable release) and install it:
+Note: if you get an error about a missing PCRE library, install it with brew using `brew install pcre`.
+
+Now we can install M2Crypto. First download the [source](http://chandlerproject.org/Projects/MeTooCrypto) (version 0.22.3 is confirmed to work on El Capitan and Yosemite) and install it:
 
 ```
 python setup.py build build_ext --openssl=/usr/local
 sudo python setup.py install build_ext --openssl=/usr/local
 ```
 
-Test it out by executing:
+Reopen your terminal window and test it out by executing:
 
 ```
 python -c "import M2Crypto"
 ```
 
 ### Apsw
-Apsw can be installed by brew but this does not seem to work to compile the last version (the Clang compiler uses the `sqlite.h` include shipped with Xcode which is outdated). Instead, the source should be downloaded from their [Github repository](https://github.com/rogerbinns/apsw) and compiled using:
+Apsw can be installed by brew but this does not seem to work to compile the last version (the Clang compiler uses the `sqlite.h` include shipped with Xcode which is outdated). Instead, the source should be downloaded from their [Github repository](https://github.com/rogerbinns/apsw) (make sure to download a release version) and compiled using:
 
 ```
 sudo python setup.py fetch --all build --enable-all-extensions install test
+python -c "import apsw" # verify whether apsw is successfully installed
 ```
 
 ### Libtorrent
