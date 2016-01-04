@@ -40,24 +40,27 @@ class DownloadConfigInterface(object):
 
         self.dlconfig = dlconfig or CallbackConfigParser()
 
-        # Poor man's versioning of DownloadConfig, add missing default values.
+        # Dumb^WPoor man's versioning of DownloadConfig, add missing default values.
+        write = False
         for section, sect_dict in dldefaults.iteritems():
             if not self.dlconfig.has_section(section):
                 self.dlconfig.add_section(section)
             for k, v in sect_dict.iteritems():
                 if not self.dlconfig.has_option(section, k):
+                    write = True
                     self.dlconfig.set(section, k, v)
 
-        if not dlconfig:
-            return
+        if write and self.dlconfig.filename:
+            self.dlconfig.write_file()
 
-        # TODO(emilon): I guess this can be removed?
-        # modify/fix incorrectly saved dlconfigs
-        if dlconfig.has_option('downloadconfig', 'saveas') and isinstance(dlconfig.get('downloadconfig', 'saveas'), tuple):
-            dlconfig.set('downloadconfig', 'saveas', dlconfig.get('saveas')[-1])
+        if dlconfig:
+            # TODO(emilon): I guess this can be removed?
+            # modify/fix incorrectly saved dlconfigs
+            if dlconfig.has_option('downloadconfig', 'saveas') and isinstance(dlconfig.get('downloadconfig', 'saveas'), tuple):
+                dlconfig.set('downloadconfig', 'saveas', dlconfig.get('saveas')[-1])
 
-        if not self.get_dest_dir():
-            self.set_dest_dir(get_default_dest_dir())
+            if not self.get_dest_dir():
+                self.set_dest_dir(get_default_dest_dir())
 
     def copy(self):
         return DownloadConfigInterface(self.dlconfig.copy())

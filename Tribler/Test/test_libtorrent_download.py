@@ -13,9 +13,9 @@ TORRENT_R = r'http://torrent.fedoraproject.org/torrents/Fedora-Live-Workstation-
 TORRENT_INFOHASH = binascii.unhexlify('89f0835dc2def218ec4bac73da6be6b8c20534ea')
 TORRENT_FILE = os.path.join(TESTS_DATA_DIR, "ubuntu-15.04-desktop-amd64.iso.torrent")
 TORRENT_FILE_INFOHASH = binascii.unhexlify("fc8a15a2faf2734dbb1dc5f7afdc5c9beaeb1f59")
-TORRENT_VIDEO_FILE = os.path.join(TESTS_DATA_DIR, "Pioneer.One.S01E01.REDUX.720p.x264-VODO.torrent")
+TORRENT_VIDEO_FILE = os.path.join(TESTS_DATA_DIR, "Night.Of.The.Living.Dead_1080p_archive.torrent")
 TORRENT_VIDEO_FILE_INFOHASH = binascii.unhexlify("0d6bbc31db060e7082f85a87194d4273aea9924c")
-TORRENT_VIDEO_FILE_SELECTED_FILE = os.path.join('Sample', 'Pioneer.One.S01E01.REDUX.720p.x264.Sample-VODO.mkv')
+TORRENT_VIDEO_FILE_SELECTED_FILE = os.path.join('NightOfTheLivingDead_1080p.ogv',)
 
 
 class TestLibtorrentDownload(TestGuiAsServer):

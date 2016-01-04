@@ -2596,20 +2596,20 @@ class AnonymityDialog(wx.Panel):
 
         vSizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.anonimity_chkbox = wx.CheckBox(self, -1, "Download anonymously using proxies")
-        self.anonimity_chkbox.SetValue(self.utility.read_config('default_anonimity_enabled'))
-        self.anonimity_chkbox.Bind(wx.EVT_CHECKBOX, self.OnAnonimityValueChanged)
+        self.anonymity_chkbox = wx.CheckBox(self, -1, "Download anonymously using proxies")
+        self.anonymity_chkbox.SetValue(self.utility.read_config('default_anonymity_enabled'))
+        self.anonymity_chkbox.Bind(wx.EVT_CHECKBOX, self.OnAnonymityValueChanged)
 
         self.darknet_chkbox = wx.CheckBox(self, -1, "Encrypted anonymous seeding using proxies")
-        self.anonimity_chkbox.SetValue(self.utility.read_config('default_safeseeding_enabled'))
+        self.anonymity_chkbox.SetValue(self.utility.read_config('default_safeseeding_enabled'))
         self.darknet_chkbox.Bind(wx.EVT_CHECKBOX, self.OnDarknetValueChanged)
 
         vSizer.Add(wx.StaticLine(self, -1), 0, wx.EXPAND | wx.BOTTOM, 10)
-        vSizer.Add(self.anonimity_chkbox, 0, wx.EXPAND | wx.BOTTOM, 10)
+        vSizer.Add(self.anonymity_chkbox, 0, wx.EXPAND | wx.BOTTOM, 10)
         vSizer.Add(self.darknet_chkbox, 0, wx.EXPAND | wx.BOTTOM, 10)
 
         self.SetSizer(vSizer)
-        self.OnAnonimityValueChanged(None)
+        self.OnAnonymityValueChanged(None)
 
     def OnDarknetValueChanged(self, event):
         if self.UseTunnels():
@@ -2618,13 +2618,13 @@ class AnonymityDialog(wx.Panel):
         else:
             self.darknet_chkbox.Enable()
 
-    def OnAnonimityValueChanged(self, event):
+    def OnAnonymityValueChanged(self, event):
         self.Layout()
         self.GetParent().Layout()
         self.OnDarknetValueChanged(None)
 
     def UseTunnels(self):
-        return self.anonimity_chkbox.GetValue()
+        return self.anonymity_chkbox.GetValue()
 
     def UseSafeSeeding(self):
         return self.darknet_chkbox.GetValue()

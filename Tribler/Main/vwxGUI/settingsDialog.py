@@ -206,12 +206,12 @@ class SettingsDialog(wx.Dialog):
             self.utility.write_config('default_number_hops', default_number_hops)
             self.saveDefaultDownloadConfig(scfg)
 
-        default_anonimity_chkbox = self._default_anonimity_dialog.UseTunnels()
-        if default_anonimity_chkbox != self.utility.read_config('default_anonimity_enabled'):
-            self.utility.write_config('default_anonimity_enabled', default_anonimity_chkbox)
+        default_anonymity_chkbox = self._default_anonymity_dialog.UseTunnels()
+        if default_anonymity_chkbox != self.utility.read_config('default_anonymity_enabled'):
+            self.utility.write_config('default_anonymity_enabled', default_anonymity_chkbox)
             self.saveDefaultDownloadConfig(scfg)
 
-        default_safeseeding_chkbox = self._default_anonimity_dialog.UseSafeSeeding()
+        default_safeseeding_chkbox = self._default_anonymity_dialog.UseSafeSeeding()
         if default_safeseeding_chkbox != self.utility.read_config('default_safeseeding_enabled'):
             self.utility.write_config('default_safeseeding_enabled', default_safeseeding_chkbox)
             self.saveDefaultDownloadConfig(scfg)
@@ -403,7 +403,7 @@ class SettingsDialog(wx.Dialog):
     def OnChooseLocationChecked(self, event):
         to_show = not self._disk_location_choice.GetValue()
         self._default_anonymous_label.Show(to_show)
-        self._default_anonimity_dialog.Show(to_show)
+        self._default_anonymity_dialog.Show(to_show)
         self.Layout()
 
     def __create_s1(self, tree_root, sizer):
@@ -444,9 +444,9 @@ class SettingsDialog(wx.Dialog):
 
         gp_s2_sizer.Add(self._disk_location_choice)
         self._default_anonymous_label = wx.StaticText(general_panel, label="Default Anonymous Level:")
-        self._default_anonimity_dialog = AnonymityDialog(general_panel)
+        self._default_anonymity_dialog = AnonymityDialog(general_panel)
         gp_s2_sizer.Add(self._default_anonymous_label, 0, wx.EXPAND)
-        gp_s2_sizer.Add(self._default_anonimity_dialog, 0, wx.EXPAND)
+        gp_s2_sizer.Add(self._default_anonymity_dialog, 0, wx.EXPAND)
 
         # Minimize
         if sys.platform == "darwin":
@@ -713,11 +713,11 @@ class SettingsDialog(wx.Dialog):
         return exp_panel, item_id
 
     def __create_s6(self, tree_root, sizer):
-        exp_panel, exp_vsizer = create_section(self, sizer, "Anonimity")
+        exp_panel, exp_vsizer = create_section(self, sizer, "Anonymity")
 
-        item_id = self._tree_ctrl.AppendItem(tree_root, "Anonimity", data=wx.TreeItemData(exp_panel))
+        item_id = self._tree_ctrl.AppendItem(tree_root, "Anonymity", data=wx.TreeItemData(exp_panel))
 
-        exp_s1_sizer = create_subsection(exp_panel, exp_vsizer, "Anonimity in Tribler", 1, 3)
+        exp_s1_sizer = create_subsection(exp_panel, exp_vsizer, "Anonymity in Tribler", 1, 3)
         self._become_exitnode = wx.CheckBox(exp_panel, label="Allow being an exit node")
         exp_s1_sizer.Add(self._become_exitnode, 0, wx.EXPAND)
         exp_s1_faq_text = wx.StaticText(

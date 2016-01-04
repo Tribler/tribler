@@ -92,6 +92,8 @@ class WatchDog(Thread):
         self.tripped_canaries = []
         self.times = {}
 
+        self._synchronized_lock = Lock()
+
     @synchronized
     def _reset_state(self):
         self.should_stop = False
@@ -129,26 +131,27 @@ class WatchDog(Thread):
         events_to_unregister = []
         while not self.should_stop:
             sleep(0.2)
-            if self.check_for_deadlocks:
-                self.look_for_deadlocks()
-            for name, event in self._registered_events.iteritems():
-                if event.is_set():
-                    event.clear()
-                    self.event_timestamps[name] = time()
+            with self._synchronized_lock:
+                if self.check_for_deadlocks:
+                    self.look_for_deadlocks()
+                for name, event in self._registered_events.iteritems():
+                    if event.is_set():
+                        event.clear()
+                        self.event_timestamps[name] = time()
+                        if self.debug:
+                            self.printe("watchog %s is OK" % name)
+                    elif (self.event_timestamps[name] + self.event_timeouts[name]) < time():
+                        self.printe("watchog %s *******TRIPPED!******, hasn't been set for %.4f secs." % (
+                            name, time() - self.event_timestamps[name]))
+                        self.printe("disabling it and printing traces for all threads.:")
+                        events_to_unregister.append(name)
+                        self.print_all_stacks()
+                while events_to_unregister:
+                    name = events_to_unregister.pop()
                     if self.debug:
-                        self.printe("watchog %s is OK" % name)
-                elif (self.event_timestamps[name] + self.event_timeouts[name]) < time():
-                    self.printe("watchog %s *******TRIPPED!******, hasn't been set for %.4f secs." % (
-                        name, time() - self.event_timestamps[name]))
-                    self.printe("disabling it and printing traces for all threads.:")
-                    events_to_unregister.append(name)
-                    self.print_all_stacks()
-            while events_to_unregister:
-                name = events_to_unregister.pop()
-                if self.debug:
-                    self.printe(">>>>>>>>> UNREGISTERING" % name)
-                self.tripped_canaries.append(name)
-                self.unregister_event(name)
+                        self.printe(">>>>>>>>> UNREGISTERING" % name)
+                    self.tripped_canaries.append(name)
+                    self.unregister_event(name)
         if self.debug:
             self.printe(">>>>>>>>> I SHOULD STOP")
 
