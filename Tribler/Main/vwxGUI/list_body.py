@@ -89,7 +89,7 @@ class ListItem(wx.Panel):
 
                         control = StaticText(
                             self,
-                            style=self.columns[i].get('style', 0) | wx.ST_NO_AUTORESIZE | wx.ST_DOTS_END,
+                            style=self.columns[i].get('style', 0) | wx.ST_NO_AUTORESIZE,
                             size=size)
 
                         fontWeight = self.columns[i].get('fontWeight', wx.FONTWEIGHT_NORMAL)
@@ -107,7 +107,7 @@ class ListItem(wx.Panel):
                         if addColumnname:
                             control = StaticText(
                                 self, -1, self.columns[i]['name'] + ": ",
-                                style=self.columns[i].get('style', 0) | wx.ST_NO_AUTORESIZE | wx.ST_DOTS_END)
+                                style=self.columns[i].get('style', 0) | wx.ST_NO_AUTORESIZE)
                             self._add_control(control, -1, 0, 0)
                             remaining_width -= control.GetSize()[0]
                     control = method_control or control

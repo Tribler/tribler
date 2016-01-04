@@ -40,7 +40,7 @@ else
         fi
 
         PYTHONVER=2.7
-        PYTHON="arch -i386 /usr/bin/python$PYTHONVER"
+        PYTHON="/usr/bin/python$PYTHONVER"
 
         $PYTHON $TRIBLER_SCRIPT
     fi
