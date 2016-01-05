@@ -2,6 +2,8 @@
 
 _Towards making Bittorrent anonymous and impossible to shut down._
 
+Dev hangout: FreeNode #tribler
+
 We use our own dedicated Tor-like network for anonymous torrent downloading. We implemented and enhanced the _Tor protocol specifications_ plus merged them with Bittorrent streaming. More info: https://github.com/Tribler/tribler/wiki
 Tribler includes our own Tor-like onion routing network with hidden services based seeding and end-to-end encryption, detailed specs: https://github.com/Tribler/tribler/wiki/Anonymous-Downloading-and-Streaming-specifications
 
