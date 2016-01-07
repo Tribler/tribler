@@ -291,9 +291,7 @@ class GUIUtility(object):
         self.startup_splash.Show()
 
     def destroy_startup_splash(self, subject, changetype, objectID, *args):
-        print '%s %s' % (subject, changetype)
         if self.startup_splash:
-            print 'UHHHHHHHHH'
             self.startup_splash.Destroy()
 
     def show_close_splash(self):

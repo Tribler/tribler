@@ -85,7 +85,6 @@ class GaugeSplash(wx.Frame):
         wx.Yield()
 
     def __del__(self):
-        print "DELETED GAUGE"
         self._logger.debug("MAX ticks == %s", self.count)
 
         self.gauge.SetValue(self.gauge.GetRange())
