@@ -69,12 +69,13 @@ class GaugeSplash(wx.Frame):
         self.Show(True)
 
         try:
-            wx.Yield()
+           wx.Yield()
         except:
             pass
 
     def tick(self, text):
-        """Advance the progress bar by one tick and update the label.
+        """
+        Advance the progress bar by one tick and update the label.
         """
         self.count += 1
         self.label.SetLabel(text)
@@ -84,6 +85,7 @@ class GaugeSplash(wx.Frame):
         wx.Yield()
 
     def __del__(self):
+        print "DELETED GAUGE"
         self._logger.debug("MAX ticks == %s", self.count)
 
         self.gauge.SetValue(self.gauge.GetRange())

@@ -80,6 +80,9 @@ NTFY_IP_CREATED = 'intropointcreated'
 NTFY_RP_CREATED = 'rendezvouspointcreated'
 NTFY_UPGRADER = 'upgraderdone'
 
+NTFY_STARTUP_TICK = 'startuptick'
+NTFY_CLOSE_TICK = 'closetick'
+
 # non data handler subjects
 NTFY_ACTIVITIES = 'activities'  # an activity was set (peer met/dns resolved)
 NTFY_REACHABLE = 'reachable'  # the Session is reachable from the Internet
@@ -133,12 +136,17 @@ INFOHASH_LENGTH = 20
 
 # SIGNALS (for internal use)
 SIGNAL_ALLCHANNEL_COMMUNITY = 'signal_allchannel_community'
+SIGNAL_CHANNEL_COMMUNITY = 'signal_channel_community'
 SIGNAL_SEARCH_COMMUNITY = 'signal_search_community'
+
 SIGNAL_ON_SEARCH_RESULTS = 'signal_on_search_results'
+SIGNAL_ON_TORRENT_UPDATED = 'singal_on_torrent_updated'
 
 
 # SIGNALS (for common use, like APIs)
 SIGNAL_TORRENT = 'signal_torrent'
 SIGNAL_CHANNEL = 'signal_channel'
+SIGNAL_RSS_FEED = 'signal_rss_feed'
 
 SIGNAL_ON_CREATED = 'signal_on_created'
+SIGNAL_ON_UPDATED = 'signal_on_updated'

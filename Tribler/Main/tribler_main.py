@@ -25,6 +25,7 @@ import urllib
 
 original_open_https = urllib.URLopener.open_https
 import M2Crypto  # Not a useless import! See above.
+
 urllib.URLopener.open_https = original_open_https
 
 try:
@@ -35,8 +36,6 @@ except ImportError as e:
 
 # Make sure the in thread reactor is installed.
 from Tribler.Core.Utilities.twisted_thread import reactor
-from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
-
 # importmagic: manage
 
 import logging
@@ -48,10 +47,8 @@ import urllib2
 from collections import defaultdict
 from random import randint
 from traceback import print_exc
-
 import wx
 from twisted.python.threadable import isInIOThread
-
 from Tribler.Category.Category import Category
 from Tribler.Core.DownloadConfig import get_default_dest_dir, get_default_dscfg_filename
 from Tribler.Core.Session import Session
@@ -65,7 +62,7 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
                                      NTFY_MODERATIONS, NTFY_MODIFICATIONS, NTFY_MODIFIED, NTFY_MYPREFERENCES,
                                      NTFY_PLAYLISTS, NTFY_REACHABLE, NTFY_STARTED, NTFY_STATE, NTFY_TORRENTS,
                                      NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings, STATEDIR_GUICONFIG,
-                                     NTFY_UPGRADER)
+                                     NTFY_UPGRADER, NTFY_STARTUP_TICK)
 from Tribler.Core.version import commit_id, version_id
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
@@ -85,7 +82,6 @@ from Tribler.Utilities.Instance2Instance import Instance2InstanceClient, Instanc
 from Tribler.Utilities.SingleInstanceChecker import SingleInstanceChecker
 from Tribler.dispersy.util import attach_profiler, call_on_reactor_thread
 
-
 logger = logging.getLogger(__name__)
 
 # Boudewijn: keep this import BELOW the imports from Tribler.xxx.* as
@@ -100,6 +96,7 @@ DEBUG = False
 DEBUG_DOWNLOADS = False
 ALLOW_MULTIPLE = os.environ.get("TRIBLER_ALLOW_MULTIPLE", "False").lower() == "true"
 
+
 #
 #
 # Class : ABCApp
@@ -110,7 +107,6 @@ ALLOW_MULTIPLE = os.environ.get("TRIBLER_ALLOW_MULTIPLE", "False").lower() == "t
 
 
 class ABCApp(object):
-
     def __init__(self, params, installdir, autoload_discovery=True,
                  use_torrent_search=True, use_channel_search=True):
         assert not isInIOThread(), "isInIOThread() seems to not be working correctly"
@@ -168,6 +164,12 @@ class ABCApp(object):
             self.utility.set_session(s)
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
             GUIDBProducer.getInstance()
+
+            # Broadcast that the initialisation is starting for the splash gauge and those who are interested
+            self.utility.session.notifier.notify(NTFY_STARTUP_TICK, NTFY_CREATE, None, None)
+
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Starting API')
+            s = self.startAPI(session)
 
             self._logger.info('Tribler Version: %s Build: %s', version_id, commit_id)
 
@@ -265,7 +267,7 @@ class ABCApp(object):
                 # wx < 2.7 don't like wx.Image.GetHandlers()
                 print_exc()
 
-            self.splash.Destroy()
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_DELETE, None, None)
             self.frame.Show(True)
             session.lm.threadpool.call_in_thread(0, self.guiservthread_free_space_check)
 
@@ -299,9 +301,7 @@ class ABCApp(object):
             self.ready = True
 
         except Exception as e:
-            if self.splash:
-                self.splash.Destroy()
-
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_DELETE, None, None)
             self.onError(e)
 
     def InitStage1(self, installdir, autoload_discovery=True,
@@ -398,9 +398,9 @@ class ABCApp(object):
         upgrade_dialog.Destroy()
         if failed:
             wx.MessageDialog(None, "Failed to upgrade the on disk data.\n\n"
-                             "Tribler has backed up the old data and will now start from scratch.\n\n"
-                             "Get in contact with the Tribler team if you want to help debugging this issue.\n\n"
-                             "Error was: %s" % self.upgrader.current_status,
+                                   "Tribler has backed up the old data and will now start from scratch.\n\n"
+                                   "Get in contact with the Tribler team if you want to help debugging this issue.\n\n"
+                                   "Error was: %s" % self.upgrader.current_status,
                              "Data format upgrade failed", wx.OK | wx.CENTRE | wx.ICON_EXCLAMATION).ShowModal()
 
     def _frame_and_ready(self):
@@ -478,7 +478,7 @@ class ABCApp(object):
             dispersy.define_auto_load(PreviewChannelCommunity, session.dispersy_member, kargs=default_kwargs)
 
             keypair = dispersy.crypto.generate_key(u"curve25519")
-            dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair),)
+            dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair), )
             settings = TunnelSettings(session.get_install_dir(), tribler_session=session)
             tunnel_kwargs = {'tribler_session': session, 'settings': settings}
 
@@ -512,8 +512,8 @@ class ABCApp(object):
                 self.guiUtility.frame.librarylist.RemoveItem(objectID)
 
                 if self.guiUtility.frame.librarylist.IsShownOnScreen() and \
-                   self.guiUtility.frame.librarydetailspanel.torrent and \
-                   self.guiUtility.frame.librarydetailspanel.torrent.infohash == objectID:
+                        self.guiUtility.frame.librarydetailspanel.torrent and \
+                                self.guiUtility.frame.librarydetailspanel.torrent.infohash == objectID:
                     self.guiUtility.frame.librarylist.ResetBottomWindow()
                     self.guiUtility.frame.top_bg.ClearButtonHandlers()
 
@@ -705,7 +705,8 @@ class ABCApp(object):
             wx.CallAfter(wx.MessageBox, "Tribler has detected low disk space. Related downloads have been stopped.",
                          "Error")
 
-        self.utility.session.lm.threadpool.call_in_thread(FREE_SPACE_CHECK_INTERVAL, self.guiservthread_free_space_check)
+        self.utility.session.lm.threadpool.call_in_thread(FREE_SPACE_CHECK_INTERVAL,
+                                                          self.guiservthread_free_space_check)
 
     def guiservthread_checkpoint_timer(self):
         """ Periodically checkpoint Session """
@@ -715,7 +716,8 @@ class ABCApp(object):
             self._logger.info("main: Checkpointing Session")
             self.utility.session.checkpoint()
 
-            self.utility.session.lm.threadpool.call_in_thread(SESSION_CHECKPOINT_INTERVAL, self.guiservthread_checkpoint_timer)
+            self.utility.session.lm.threadpool.call_in_thread(SESSION_CHECKPOINT_INTERVAL,
+                                                              self.guiservthread_checkpoint_timer)
         except:
             print_exc()
 
@@ -802,7 +804,7 @@ class ABCApp(object):
     def sesscb_ntfy_torrentfinished(self, subject, changeType, objectID, *args):
         self.guiUtility.Notify(
             "Download Completed", "Torrent '%s' has finished downloading. Now seeding." %
-            args[0], icon='seed')
+                                  args[0], icon='seed')
 
         if self._frame_and_ready():
             infohash = objectID
@@ -877,7 +879,7 @@ class ABCApp(object):
         win.ShowModal()
 
     @forceWxThread
-    def OnExit(self):
+    def OnExit(self, NTFY_CLOSE_TICK=None):
         bm = self.gui_image_manager.getImage(u'closescreen.png')
         self.closewindow = GaugeSplash(bm, "Closing...", 6)
         self.closewindow.Show()
@@ -942,7 +944,7 @@ class ABCApp(object):
 
         self.closewindow.tick('Exiting now')
 
-        self.closewindow.Destroy()
+        self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_DELETE, None, None)
 
         return 0
 
@@ -1001,7 +1003,6 @@ class ABCApp(object):
 
 
 class TriblerApp(wx.App):
-
     def __init__(self, *args, **kwargs):
         wx.App.__init__(self, *args, **kwargs)
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -1023,7 +1024,6 @@ class TriblerApp(wx.App):
 #
 @attach_profiler
 def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_channel_search=True):
-
     from .hacks import patch_crypto_be_discovery
     patch_crypto_be_discovery()
 
@@ -1074,12 +1074,13 @@ def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_chann
     except:
         print_exc()
 
-    # This is the right place to close the database, unfortunately Linux has
-    # a problem, see ABCFrame.OnCloseWindow
-    #
-    # if sys.platform != 'linux2':
-    #    tribler_done(configpath)
-    # os._exit(0)
+        # This is the right place to close the database, unfortunately Linux has
+        # a problem, see ABCFrame.OnCloseWindow
+        #
+        # if sys.platform != 'linux2':
+        #    tribler_done(configpath)
+        # os._exit(0)
+
 
 if __name__ == '__main__':
     run()
