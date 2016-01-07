@@ -2,23 +2,26 @@
 # Modified by Niels Zeilemaker, Laurens Versluis
 # see LICENSE.txt for license information
 
-import json
-import logging
+import wx
 import os
 import sys
-import wx
+import json
+import logging
 from threading import Lock
 from time import time
 
 from Tribler import LIBRARYNAME
+
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.Utilities.search_utils import split_into_keywords
+
 from Tribler.Core.simpledefs import NTFY_STARTUP_TICK, NTFY_CREATE, NTFY_DELETE, NTFY_CLOSE_TICK, NTFY_INSERT
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
 from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
+from threading import Lock
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 

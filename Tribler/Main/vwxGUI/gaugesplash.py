@@ -69,7 +69,7 @@ class GaugeSplash(wx.Frame):
         self.Show(True)
 
         try:
-           wx.Yield()
+            wx.Yield()
         except:
             pass
 
