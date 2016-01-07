@@ -83,11 +83,9 @@ class GUIUtility(object):
         self.utility.session.add_observer(self.destroy_startup_splash, NTFY_STARTUP_TICK, [NTFY_DELETE])
         self.utility.session.add_observer(self.destroy_close_splash, NTFY_CLOSE_TICK, [NTFY_DELETE])
 
-    @forceWxThread
     def on_startup_tick(self, subject, changetype, objectID, *args):
         self.startup_splash.tick(args[0])
 
-    @forceWxThread
     def on_close_tick(self, subject, changetype, objectID, *args):
         self.close_splash.tick(args[0])
 
@@ -287,6 +285,7 @@ class GUIUtility(object):
             self.frame.librarylist.Focus()
 
     def show_startup_splash(self, subject, changetype, objectID, *args):
+        print "showing startup splash: %s %s" % (subject, changetype)
         gui_image_manager = GuiImageManager.getInstance()
         bm = gui_image_manager.getImage(u'splash.png')
         self.startup_splash = GaugeSplash(bm, "Loading...", self.START_GAUGE_SPLASH_TICKS)

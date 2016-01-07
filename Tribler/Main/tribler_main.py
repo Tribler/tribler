@@ -267,6 +267,7 @@ class ABCApp(object):
                 # wx < 2.7 don't like wx.Image.GetHandlers()
                 print_exc()
 
+            print "GOING TO DELETE SPLASH SCREEN"
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_DELETE, None, None)
             self.frame.Show(True)
             session.lm.threadpool.call_in_thread(0, self.guiservthread_free_space_check)
