@@ -9,9 +9,9 @@ from Tribler.Core.simpledefs import (NTFY_TORRENTS, NTFY_PLAYLISTS, NTFY_COMMENT
                                      NTFY_MODIFICATIONS, NTFY_MODERATIONS, NTFY_MARKINGS, NTFY_MYPREFERENCES,
                                      NTFY_ACTIVITIES, NTFY_REACHABLE, NTFY_CHANNELCAST, NTFY_VOTECAST, NTFY_DISPERSY,
                                      NTFY_TRACKERINFO, NTFY_UPDATE, NTFY_INSERT, NTFY_DELETE, NTFY_TUNNEL,
-                                     NTFY_UPGRADER,
+                                     NTFY_UPGRADER, NTFY_STARTUP_TICK, NTFY_CLOSE_TICK,
                                      SIGNAL_ALLCHANNEL_COMMUNITY, SIGNAL_SEARCH_COMMUNITY, SIGNAL_TORRENT,
-                                     SIGNAL_CHANNEL, NTFY_STARTUP_TICK, NTFY_CLOSE_TICK)
+                                     SIGNAL_CHANNEL)
 
 
 class Notifier(object):
