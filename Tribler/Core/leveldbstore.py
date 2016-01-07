@@ -87,7 +87,10 @@ class LevelDbStore(MutableMapping, TaskManager):
         try:
             return self._db.Get(key)
         except IOError:
-            #self.flush()
+            self.flush()
+
+            from time import sleep
+            sleep(10)
 
             # also crashes
             return self._db.Get(key)
