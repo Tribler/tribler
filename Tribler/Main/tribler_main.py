@@ -24,7 +24,6 @@
 import urllib
 
 original_open_https = urllib.URLopener.open_https
-import M2Crypto  # Not a useless import! See above.
 
 urllib.URLopener.open_https = original_open_https
 
