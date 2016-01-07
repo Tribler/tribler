@@ -61,7 +61,7 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
                                      NTFY_MODERATIONS, NTFY_MODIFICATIONS, NTFY_MODIFIED, NTFY_MYPREFERENCES,
                                      NTFY_PLAYLISTS, NTFY_REACHABLE, NTFY_STARTED, NTFY_STATE, NTFY_TORRENTS,
                                      NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings, STATEDIR_GUICONFIG,
-                                     NTFY_UPGRADER, NTFY_STARTUP_TICK)
+                                     NTFY_UPGRADER, NTFY_STARTUP_TICK, NTFY_CLOSE_TICK)
 from Tribler.Core.version import commit_id, version_id
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Utility.Feeds.rssparser import RssParser
@@ -878,7 +878,7 @@ class ABCApp(object):
         win.ShowModal()
 
     @forceWxThread
-    def OnExit(self, NTFY_CLOSE_TICK=None):
+    def OnExit(self):
         bm = self.gui_image_manager.getImage(u'closescreen.png')
         self.closewindow = GaugeSplash(bm, "Closing...", 6)
         self.closewindow.Show()
