@@ -1,4 +1,4 @@
-# torrentstore.py ---
+# leveldbstore.py ---
 #
 # Filename: torrentstore.py
 # Description:
@@ -35,7 +35,6 @@
 # Code:
 from collections import MutableMapping
 from itertools import chain
-import sys
 import os
 
 try:
@@ -83,11 +82,21 @@ class LevelDbStore(MutableMapping, TaskManager):
         try:
             return self._pending_torrents[key]
         except KeyError:
+            pass
+
+        try:
+            return self._db.Get(key)
+        except IOError:
+            self.flush()
+
+            from time import sleep
+            sleep(10)
+
+            # also crashes
             return self._db.Get(key)
 
     def __setitem__(self, key, value):
         self._pending_torrents[key] = value
-        # self._db.Put(key, value)
 
     def __delitem__(self, key):
         if key in self._pending_torrents:
@@ -143,7 +152,3 @@ class LevelDbStore(MutableMapping, TaskManager):
         self.cancel_all_pending_tasks()
         self.flush()
         self._db = None
-
-
-#
-# torrentstore.py ends here
