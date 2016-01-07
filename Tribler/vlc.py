@@ -108,6 +108,14 @@ def find_lib():
         except OSError:  # may fail
             dll = ctypes.CDLL('libvlc.so.5')
     elif sys.platform.startswith('win'):
+        def load_libvlc_windows_dll(old_path):
+            try:
+                return ctypes.CDLL('libvlc.dll')
+            except WindowsError:
+                return None
+            finally:
+                # restore cwd after dll has been loaded
+                os.chdir(old_path)
         p = None
         if p is None:
             try:  # some registry settings
@@ -138,11 +146,9 @@ def find_lib():
                 p = os.getcwd()
                 os.chdir(plugin_path)
                  # if chdir failed, this will raise an exception
-                dll = ctypes.CDLL('libvlc.dll')
-                 # restore cwd after dll has been loaded
-                os.chdir(p)
+                dll = load_libvlc_windows_dll(p)
             else:  # may fail
-                dll = ctypes.CDLL('libvlc.dll')
+                dll = load_libvlc_windows_dll(p)
         else:
             plugin_path = os.path.dirname(p)
             dll = ctypes.CDLL(p)
