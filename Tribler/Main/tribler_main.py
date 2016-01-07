@@ -514,8 +514,8 @@ class ABCApp(object):
                 self.guiUtility.frame.librarylist.RemoveItem(objectID)
 
                 if self.guiUtility.frame.librarylist.IsShownOnScreen() and \
-                    self.guiUtility.frame.librarydetailspanel.torrent and \
-                    self.guiUtility.frame.librarydetailspanel.torrent.infohash == objectID:
+                   self.guiUtility.frame.librarydetailspanel.torrent and \
+                   self.guiUtility.frame.librarydetailspanel.torrent.infohash == objectID:
                     self.guiUtility.frame.librarylist.ResetBottomWindow()
                     self.guiUtility.frame.top_bg.ClearButtonHandlers()
 

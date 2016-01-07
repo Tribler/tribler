@@ -7,7 +7,6 @@ import os
 import sys
 import json
 import logging
-from threading import Lock
 from time import time
 
 from Tribler import LIBRARYNAME
@@ -19,6 +18,7 @@ from Tribler.Core.Utilities.search_utils import split_into_keywords
 from Tribler.Core.simpledefs import NTFY_STARTUP_TICK, NTFY_CREATE, NTFY_DELETE, NTFY_CLOSE_TICK, NTFY_INSERT
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
+
 from Tribler.Main.vwxGUI import forceWxThread
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from threading import Lock
