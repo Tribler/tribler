@@ -285,7 +285,6 @@ class GUIUtility(object):
             self.frame.librarylist.Focus()
 
     def show_startup_splash(self, subject, changetype, objectID, *args):
-        print "showing startup splash: %s %s" % (subject, changetype)
         gui_image_manager = GuiImageManager.getInstance()
         bm = gui_image_manager.getImage(u'splash.png')
         self.startup_splash = GaugeSplash(bm, "Loading...", self.START_GAUGE_SPLASH_TICKS)
