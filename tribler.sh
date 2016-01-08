@@ -28,3 +28,5 @@ then
 fi
 
 python Tribler/Main/tribler.py
+
+TEST
