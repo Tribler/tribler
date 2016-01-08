@@ -155,7 +155,7 @@ class ABCApp(object):
             # Stage 2: show the splash window and start the session
 
             self.splash.tick('Starting API')
-            s = self.startAPI(session, self.splash.tick)
+            s = self.startAPI(session)
 
             self.utility = Utility(self.installdir, s.get_state_dir())
 
