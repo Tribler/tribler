@@ -70,7 +70,7 @@ class GUIUtility(object):
 
         self.listicon = ListHeaderIcon.getInstance()
 
-        # Add an listener to listen if tribler is starting the initialisation and closing procedures.
+        # Add listeners to listen if tribler is starting the initialisation and closing procedures.
         self.utility.session.add_observer(self.show_startup_splash, NTFY_STARTUP_TICK, [NTFY_CREATE])
         self.utility.session.add_observer(self.show_close_splash, NTFY_CLOSE_TICK, [NTFY_CREATE])
 
@@ -78,7 +78,7 @@ class GUIUtility(object):
         self.utility.session.add_observer(self.on_startup_tick, NTFY_STARTUP_TICK, [NTFY_INSERT])
         self.utility.session.add_observer(self.on_close_tick, NTFY_CLOSE_TICK, [NTFY_INSERT])
 
-        # Add an listener to listen when to destroy the gauge splash
+        # Add listeners to listen when to destroy the gauge splash
         self.utility.session.add_observer(self.destroy_startup_splash, NTFY_STARTUP_TICK, [NTFY_DELETE])
         self.utility.session.add_observer(self.destroy_close_splash, NTFY_CLOSE_TICK, [NTFY_DELETE])
 

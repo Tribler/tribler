@@ -143,27 +143,19 @@ class ABCApp(object):
         session = self.InitStage1(installdir, autoload_discovery=autoload_discovery,
                                   use_torrent_search=use_torrent_search, use_channel_search=use_channel_search)
 
-        self.splash = None
         try:
-            bm = self.gui_image_manager.getImage(u'splash.png')
-            self.splash = GaugeSplash(bm, "Loading...", 13)
-            self.splash.Show()
-
             self._logger.info('Client Starting Up.')
             self._logger.info("Tribler is using %s as working directory", self.installdir)
 
             # Stage 2: show the splash window and start the session
 
-            self.splash.tick('Starting API')
-            s = self.startAPI(session)
-
-            self.utility = Utility(self.installdir, s.get_state_dir())
+            self.utility = Utility(self.installdir, session.get_state_dir())
 
             if self.utility.read_config(u'saveas'):
                 DefaultDownloadStartupConfig.getInstance().set_dest_dir(self.utility.read_config(u'saveas'))
 
             self.utility.set_app(self)
-            self.utility.set_session(s)
+            self.utility.set_session(session)
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
             GUIDBProducer.getInstance()
 
@@ -182,15 +174,15 @@ class ABCApp(object):
                 version_info['version_id'] = version_id
                 self.utility.write_config('version_info', version_info)
 
-            self.splash.tick('Starting session and upgrading database (it may take a while)')
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Starting session and upgrading database (it may take a while)')
             s.start()
             self.dispersy = s.lm.dispersy
 
-            self.splash.tick('Loading userdownloadchoice')
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Loading userdownloadchoice')
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
             UserDownloadChoice.get_singleton().set_utility(self.utility)
 
-            self.splash.tick('Initializing Family Filter')
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Initializing Family Filter')
             cat = Category.getInstance(session)
 
             state = self.utility.read_config('family_filter')
@@ -203,7 +195,7 @@ class ABCApp(object):
                 cat.set_family_filter(True)
 
             # Create global speed limits
-            self.splash.tick('Setting up speed limits')
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Setting up speed limits')
 
             # Counter to suppress some event from occurring
             self.ratestatecallbackcount = 0
@@ -227,13 +219,12 @@ class ABCApp(object):
                 # Start server for instance2instance communication
                 Instance2InstanceServer(self.utility.read_config('i2ilistenport'), self.i2ithread_readlinecallback)
 
-            self.splash.tick('GUIUtility register')
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'GUIUtility register')
             self.guiUtility.register()
 
             self.frame = MainFrame(self,
                                    None,
-                                   PLAYBACKMODE_INTERNAL in return_feasible_playback_modes(),
-                                   self.splash.tick)
+                                   PLAYBACKMODE_INTERNAL in return_feasible_playback_modes())
             self.frame.SetIcon(wx.Icon(os.path.join(self.installdir, 'Tribler',
                                                     'Main', 'vwxGUI', 'images',
                                                     'tribler.ico'),
@@ -272,8 +263,6 @@ class ABCApp(object):
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_DELETE, None, None)
             self.frame.Show(True)
             session.lm.threadpool.call_in_thread(0, self.guiservthread_free_space_check)
-
-            self.torrentfeed = RssParser.getInstance()
 
             self.webUI = None
             if self.utility.read_config('use_webui'):

@@ -46,48 +46,48 @@ class TestTunnelCommunityPositive(TestTunnelBase):
 
         self.startTest(replace_socks)
 
-    def test_anon_download(self):
-        def take_second_screenshot():
-            self.screenshot('Network graph after an anonymous libtorrent download ')
-            self.quit()
-
-        def take_screenshot(download_time):
-            self.screenshot("After an anonymous libtorrent download (took %.2f s)" % download_time)
-            self.guiUtility.ShowPage('networkgraph')
-            self.callLater(1, take_second_screenshot)
-
-        def on_fail(expected, reason, do_assert):
-            dispersy = self.session.lm.dispersy
-            tunnel_community = next(c for c in dispersy.get_communities() if isinstance(c, HiddenTunnelCommunity))
-
-            self.guiUtility.ShowPage('networkgraph')
-
-            def do_asserts():
-                self.assert_(len(tunnel_community.active_data_circuits()) >= 4,
-                             "At least 4 data circuits should have been created (got %d)" %
-                             len(tunnel_community.active_data_circuits()),
-                             False)
-                self.assert_(expected, reason, do_assert)
-
-            self.callLater(1, do_asserts)
-
-        def do_progress(download, start_time):
-            self.CallConditional(40,
-                                 lambda: download.get_progress() == 1.0,
-                                 lambda: take_screenshot(time.time() - start_time),
-                                 'Anonymous download should be finished in 40 seconds (%.1f%% downloaded)' % (
-                                     download.get_progress() * 100),
-                                 on_fail
-                                 )
-
-        def do_create_local_torrent(_):
-            tf = self.setupSeeder()
-            start_time = time.time()
-            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=2)
-
-            self.guiUtility.ShowPage('my_files')
-            self.callLater(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
-
-            do_progress(download, start_time)
-
-        self.startTest(do_create_local_torrent)
+    # def test_anon_download(self):
+    #     def take_second_screenshot():
+    #         self.screenshot('Network graph after an anonymous libtorrent download ')
+    #         self.quit()
+    #
+    #     def take_screenshot(download_time):
+    #         self.screenshot("After an anonymous libtorrent download (took %.2f s)" % download_time)
+    #         self.guiUtility.ShowPage('networkgraph')
+    #         self.callLater(1, take_second_screenshot)
+    #
+    #     def on_fail(expected, reason, do_assert):
+    #         dispersy = self.session.lm.dispersy
+    #         tunnel_community = next(c for c in dispersy.get_communities() if isinstance(c, HiddenTunnelCommunity))
+    #
+    #         self.guiUtility.ShowPage('networkgraph')
+    #
+    #         def do_asserts():
+    #             self.assert_(len(tunnel_community.active_data_circuits()) >= 4,
+    #                          "At least 4 data circuits should have been created (got %d)" %
+    #                          len(tunnel_community.active_data_circuits()),
+    #                          False)
+    #             self.assert_(expected, reason, do_assert)
+    #
+    #         self.callLater(1, do_asserts)
+    #
+    #     def do_progress(download, start_time):
+    #         self.CallConditional(40,
+    #                              lambda: download.get_progress() == 1.0,
+    #                              lambda: take_screenshot(time.time() - start_time),
+    #                              'Anonymous download should be finished in 40 seconds (%.1f%% downloaded)' % (
+    #                                  download.get_progress() * 100),
+    #                              on_fail
+    #                              )
+    #
+    #     def do_create_local_torrent(_):
+    #         tf = self.setupSeeder()
+    #         start_time = time.time()
+    #         download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=2)
+    #
+    #         self.guiUtility.ShowPage('my_files')
+    #         self.callLater(5, lambda: download.add_peer(("127.0.0.1", self.session2.get_listen_port())))
+    #
+    #         do_progress(download, start_time)
+    #
+    #     self.startTest(do_create_local_torrent)
