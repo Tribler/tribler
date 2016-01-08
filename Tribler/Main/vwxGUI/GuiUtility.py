@@ -85,10 +85,12 @@ class GUIUtility(object):
         self.utility.session.add_observer(self.destroy_close_splash, NTFY_CLOSE_TICK, [NTFY_DELETE])
 
     def on_startup_tick(self, subject, changetype, objectID, *args):
-        self.startup_splash.tick(args[0])
+        if self.startup_splash:
+            self.startup_splash.tick(args[0])
 
     def on_close_tick(self, subject, changetype, objectID, *args):
-        self.close_splash.tick(args[0])
+        if self.close_splash:
+            self.close_splash.tick(args[0])
 
     def getInstance(*args, **kw):
         if GUIUtility.__single is None:
@@ -295,7 +297,7 @@ class GUIUtility(object):
         if self.startup_splash:
             self.startup_splash.Destroy()
 
-    def show_close_splash(self):
+    def show_close_splash(self, subject, changetype, objectID, *args):
         gui_image_manager = GuiImageManager.getInstance()
         bm = gui_image_manager.getImage(u'closescreen.png')
         self.close_splash = GaugeSplash(bm, "Closing...", self.CLOSE_GAUGE_SPLASH_TICKS)
