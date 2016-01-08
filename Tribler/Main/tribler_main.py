@@ -450,7 +450,7 @@ class ABCApp(object):
 
         startWorker(wx_thread, db_thread, delay=5.0)
 
-    def startAPI(self, session, progress):
+    def startAPI(self, session):
         @call_on_reactor_thread
         def define_communities(*args):
             assert isInIOThread()
