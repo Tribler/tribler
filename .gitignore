@@ -36,6 +36,9 @@ test_file.torrent
 /Tribler/Test/data/pymdht.log
 /Tribler/Test/data/sqlite/dispersy.db
 /Tribler/Test/data/sqlite/tribler.sdb
+/Tribler/Test/data/bak_new_tribler.sdb
+/Tribler/Test/data/bak_old_tribler.sdb
+/Tribler/Test/data/peercache.txt
 
 
 # pycharm
