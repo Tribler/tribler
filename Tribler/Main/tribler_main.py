@@ -869,16 +869,14 @@ class ABCApp(object):
 
     @forceWxThread
     def OnExit(self):
-        bm = self.gui_image_manager.getImage(u'closescreen.png')
-        self.closewindow = GaugeSplash(bm, "Closing...", 6)
-        self.closewindow.Show()
+        self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_CREATE, None, None)
 
         self._logger.info("main: ONEXIT")
         self.ready = False
         self.done = True
 
         # write all persistent data to disk
-        self.closewindow.tick('Write all persistent data to disk')
+        self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Write all persistent data to disk')
         if self.torrentfeed:
             self.torrentfeed.shutdown()
             self.torrentfeed.delInstance()
@@ -898,13 +896,13 @@ class ABCApp(object):
 
             try:
                 self._logger.info("ONEXIT cleaning database")
-                self.closewindow.tick('Cleaning database')
+                self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Cleaning database')
                 torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
                 torrent_db._db.clean_db(randint(0, 24) == 0, exiting=True)
             except:
                 print_exc()
 
-            self.closewindow.tick('Shutdown session')
+            self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Shutdown session')
             self.utility.session.shutdown(hacksessconfcheckpoint=False)
 
             # Arno, 2012-07-12: Shutdown should be quick
@@ -922,7 +920,7 @@ class ABCApp(object):
                 sleep(3)
             self._logger.info("ONEXIT Session is shutdown")
 
-        self.closewindow.tick('Deleting instances')
+        self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Deleting instances')
         self._logger.debug("ONEXIT deleting instances")
 
         Session.del_instance()
@@ -931,7 +929,7 @@ class ABCApp(object):
         DefaultDownloadStartupConfig.delInstance()
         GuiImageManager.delInstance()
 
-        self.closewindow.tick('Exiting now')
+        self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Exiting now')
 
         self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_DELETE, None, None)
 
