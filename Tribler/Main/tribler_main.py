@@ -1072,6 +1072,5 @@ def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_chann
     #    tribler_done(configpath)
     # os._exit(0)
 
-
 if __name__ == '__main__':
     run()
