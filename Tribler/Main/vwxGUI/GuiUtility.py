@@ -25,12 +25,12 @@ from threading import Lock
 from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
 from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 
-START_GAUGE_SPLASH_TICKS = 10
-CLOSE_GAUGE_SPLASH_TICKS = 6
 
 class GUIUtility(object):
     __single = None
     __single_lock = Lock()
+    START_GAUGE_SPLASH_TICKS = 10
+    CLOSE_GAUGE_SPLASH_TICKS = 6
 
     def __init__(self, utility=None, params=None, app=None):
         if GUIUtility.__single:
