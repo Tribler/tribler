@@ -29,6 +29,7 @@ flycheck_*
 memorydump.out
 test_file
 test_file.torrent
+Test/data
 
 # pycharm
 **.idea/
