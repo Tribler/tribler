@@ -264,6 +264,8 @@ class ABCApp(object):
             self.frame.Show(True)
             session.lm.threadpool.call_in_thread(0, self.guiservthread_free_space_check)
 
+            self.torrentfeed = RssParser.getInstance()
+
             self.webUI = None
             if self.utility.read_config('use_webui'):
                 try:
