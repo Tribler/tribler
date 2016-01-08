@@ -29,13 +29,13 @@ flycheck_*
 memorydump.out
 test_file
 test_file.torrent
-/Test/data/ec.pem
-/Test/data/ecpub.pem
-/Test/data/libtribler.conf
-/Test/data/pymdht.bootstrap
-/Test/data/pymdht.log
-/Test/data/sqlite/dispersy.db
-/Test/data/sqlite/tribler.sdb
+/Tribler/Test/data/ec.pem
+/Tribler/Test/data/ecpub.pem
+/Tribler/Test/data/libtribler.conf
+/Tribler/Test/data/pymdht.bootstrap
+/Tribler/Test/data/pymdht.log
+/Tribler/Test/data/sqlite/dispersy.db
+/Tribler/Test/data/sqlite/tribler.sdb
 
 
 # pycharm
