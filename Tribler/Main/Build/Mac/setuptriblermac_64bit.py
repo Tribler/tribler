@@ -15,9 +15,9 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../
 logger = logging.getLogger(__name__)
 
 # modules to include into bundle
-includeModules = ["encodings.hex_codec", "encodings.utf_8", "encodings.latin_1", "xml.sax", "email.iterators",
+includeModules = ["xml.sax", "email.iterators",
                   "netifaces", "apsw", "libtorrent", "twisted", "M2Crypto", "pyasn1", "PIL", "feedparser",
-                  "urllib3", "requests", "leveldb", "cryptography", "libnacl", "pycparser", "six", "hashlib", "enum34",
+                  "urllib3", "requests", "leveldb", "cryptography", "libnacl", "pycparser", "six", "hashlib",
                   "csv", "cherrypy", "decorator",
 
                   "cryptography",
@@ -60,11 +60,23 @@ includeModules = ["encodings.hex_codec", "encodings.utf_8", "encodings.latin_1",
                   "cryptography.hazmat.primitives.kdf.hkdf",
                   "cryptography.hazmat.primitives.kdf.pbkdf2",
 
-                  "cryptography.hazmat.primitives.twofactor.htop",
+                  "cryptography.hazmat.primitives.twofactor.hotp",
                   "cryptography.hazmat.primitives.twofactor.totp",
 
                   "cryptography.hazmat.backends.commoncrypto",
+                
                   "cryptography.hazmat.backends.openssl",
+                  "cryptography.hazmat.backends.openssl.backend",
+                  "cryptography.hazmat.backends.openssl.ciphers",
+                  "cryptography.hazmat.backends.openssl.cmac",
+                  "cryptography.hazmat.backends.openssl.dsa",
+                  "cryptography.hazmat.backends.openssl.ec",
+                  "cryptography.hazmat.backends.openssl.hashes",
+                  "cryptography.hazmat.backends.openssl.hmac",
+                  "cryptography.hazmat.backends.openssl.rsa",
+                  "cryptography.hazmat.backends.openssl.utils",
+                  "cryptography.hazmat.backends.openssl.x509",
+                  
                   "cryptography.hazmat.bindings.commoncrypto",
                   "cryptography.hazmat.bindings.commoncrypto.binding",
                   "cryptography.hazmat.bindings.commoncrypto.cf",
@@ -79,37 +91,7 @@ includeModules = ["encodings.hex_codec", "encodings.utf_8", "encodings.latin_1",
                   "cryptography.hazmat.bindings.commoncrypto.sectransform",
                   "cryptography.hazmat.bindings.openssl",
                   "cryptography.hazmat.bindings.openssl.binding",
-                  "cryptography.hazmat.bindings.openssl.aes",
-                  "cryptography.hazmat.bindings.openssl.asn1",
-                  "cryptography.hazmat.bindings.openssl.bignum",
-                  "cryptography.hazmat.bindings.openssl.bio",
-                  "cryptography.hazmat.bindings.openssl.cmac",
-                  "cryptography.hazmat.bindings.openssl.cms",
-                  "cryptography.hazmat.bindings.openssl.conf",
-                  "cryptography.hazmat.bindings.openssl.crypto",
-                  "cryptography.hazmat.bindings.openssl.dh",
-                  "cryptography.hazmat.bindings.openssl.dsa",
-                  "cryptography.hazmat.bindings.openssl.ecdh",
-                  "cryptography.hazmat.bindings.openssl.ecdsa",
-                  "cryptography.hazmat.bindings.openssl.ec",
-                  "cryptography.hazmat.bindings.openssl.engine",
-                  "cryptography.hazmat.bindings.openssl.err",
-                  "cryptography.hazmat.bindings.openssl.evp",
-                  "cryptography.hazmat.bindings.openssl.hmac",
-                  "cryptography.hazmat.bindings.openssl.nid",
-                  "cryptography.hazmat.bindings.openssl.objects",
-                  "cryptography.hazmat.bindings.openssl.opensslv",
-                  "cryptography.hazmat.bindings.openssl.osrandom_engine",
-                  "cryptography.hazmat.bindings.openssl.pem",
-                  "cryptography.hazmat.bindings.openssl.pkcs12",
-                  "cryptography.hazmat.bindings.openssl.pkcs7",
-                  "cryptography.hazmat.bindings.openssl.rand",
-                  "cryptography.hazmat.bindings.openssl.rsa",
-                  "cryptography.hazmat.bindings.openssl.ssl",
-                  "cryptography.hazmat.bindings.openssl.x509name",
-                  "cryptography.hazmat.bindings.openssl.x509",
-                  "cryptography.hazmat.bindings.openssl.x509v3",
-                  "cryptography.hazmat.bindings.openssl.x509_vfy",
+                  "cryptography.hazmat.bindings.openssl._conditional",
 
                   "pycparser",
                   "pycparser._ast_gen",
@@ -168,17 +150,17 @@ if sys.platform != "darwin":
 """
 import wxversion
 
-wxversion.select('2.8-unicode')
+wxversion.select('3.0-unicode')
 """
 import wx
 
 v = wx.__version__
 
-if v < "2.6":
-    logger.warn("WARNING: You need wxPython 2.6 or higher but are using %s.", v)
+if v < "2.8":
+    logger.warn("WARNING: You need wxPython 2.8 or higher but are using %s.", v)
 
-if v < "2.8.4.2":
-    logger.warn("WARNING: wxPython before 2.8.4.2 could crash when loading non-present fonts. You are using %s.", v)
+if v < "3.0":
+    logger.warn("WARNING: wxPython before 3.0 is not supported anymore. You are using %s.", v)
 
 # ----- import and verify M2Crypto
 
@@ -186,15 +168,6 @@ import M2Crypto
 import M2Crypto.m2
 if "ec_init" not in M2Crypto.m2.__dict__:
     logger.warn("WARNING: Could not import specialistic M2Crypto (imported %s)", M2Crypto.__file__)
-
-# ----- import Growl
-try:
-    import Growl
-
-    includeModules += ["Growl"]
-except:
-    logger.warn("WARNING: Not including Growl support.")
-
 
 # =================
 # build Tribler.app
@@ -233,8 +206,6 @@ def filterincludes(l, f):
 
     return [(x, y) for (x, y) in l if f(y[0])]
 
-PYTHON_CRYPTOGRAPHY_PATH = "/Users/tribler/Workspace/install/python-libs/lib/python2.7/site-packages/cryptography-0.7.2-py2.7-macosx-10.6-intel.egg"
-
 # ----- build the app bundle
 mainfile = os.path.join(LIBRARYNAME, 'Main', 'tribler.py')
 setup(
@@ -257,7 +228,7 @@ setup(
              LIBRARYNAME + "/readme.txt",
              LIBRARYNAME + "/Main/Build/Mac/TriblerDoc.icns",
              ]
-            + ["/Users/tribler/Workspace_new/install/lib/libsodium.dylib"]
+            + ["/Users/tribler/Documents/workspace/install/libsodium.dylib"]
 
             # add images
             + includedir(LIBRARYNAME + "/Main/vwxGUI/images")

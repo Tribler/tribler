@@ -3,7 +3,7 @@
 # Written by Riccardo Petrocco, Arno Bakker
 # see LICENSE.txt for license information
 #
-# Script to build Tribler on Mac
+# Script to build Tribler 64-bit on Mac
 #
 # Based on original Makefile by JD Mol.
 
@@ -15,24 +15,20 @@ fi
 export LIBRARYNAME=Tribler
 
 PYTHON_VERSION=2.7
-PYTHON="arch -i386 /Library/Frameworks/Python.framework/Versions/$PYTHON_VERSION/bin/python$PYTHON_VERSION"
+PYTHON="/System/Library/Frameworks/Python.framework/Versions/$PYTHON_VERSION/bin/python$PYTHON_VERSION"
 
 # ----- Set python paths TODO dynamic checkout
 
-# Niels 2012-01-03 removed py2app, installed 0.6.5 in python 2.7 site-packages. py2app 0.6.5 fixes actual -O running of Tribler
-# Arno 2013-02-12: Added libtorrent
 PYTHONPATH="$PWD:$PYTHONPATH"
 PYTHONPATH="$HOME/Workspace_new/install/lib/python2.7/site-packages:$PYTHONPATH"
+PYTHONPATH="/Users/tribler/Library/Python/2.7/lib/python/site-packages/:$PYTHONPATH" # user-defined libraries
 export PYTHONPATH
-
-# Force 32-bit:
-export VERSIONER_PYTHON_PREFER_32_BIT=yes
 
 # ----- Clean up
 /bin/rm -rf dist build
 
 # ----- Build
-${PYTHON} -OO - < ${LIBRARYNAME}/Main/Build/Mac/setuptriblermac.py py2app
+${PYTHON} -OO - < ${LIBRARYNAME}/Main/Build/Mac/setuptriblermac_64bit.py py2app
 
 mkdir -p dist/installdir
 mv dist/$APPNAME.app dist/installdir
@@ -56,11 +52,6 @@ cp logger.conf dist/installdir/Tribler.app/Contents/Resources/
 # Copy family filter
 cp Tribler/Category/category.conf dist/installdir/Tribler.app/Contents/Resources/Tribler/Category/
 cp Tribler/Category/filter_terms.filter dist/installdir/Tribler.app/Contents/Resources/Tribler/Category/
-
-# Forced 32-bit mode
-mv dist/installdir/Tribler.app dist/installdir/Tribler-origin.app
-ditto --rsrc --arch i386 dist/installdir/Tribler-origin.app dist/installdir/Tribler.app
-rm -rf dist/installdir/Tribler-origin.app
 
 mkdir -p dist/temp
 
@@ -110,7 +101,7 @@ osascript -e "tell application \"Finder\"" \
 -e "end tell" || true
 
 # turn on custom volume icon
-/Developer/Tools/SetFile -a C dist/temp/mnt || true
+SetFile -a C dist/temp/mnt || true
 
 # close
 hdiutil detach dist/temp/mnt || true
