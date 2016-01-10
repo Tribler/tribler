@@ -112,10 +112,7 @@ hdiutil convert dist/temp/rw.dmg -format UDZO -imagekey zlib-level=9 -o dist/$AP
 rm -f dist/temp/rw.dmg
 
 # add EULA
-hdiutil unflatten dist/$APPNAME.dmg
-DeRez -useDF $LIBRARYNAME/Main/Build/Mac/SLAResources.rsrc > dist/temp/sla.r
-Rez -a dist/temp/sla.r -o dist/$APPNAME.dmg
-hdiutil flatten dist/$APPNAME.dmg
+eulagise --license $LIBRARYNAME/LICENSE.txt --target dist/$APPNAME.dmg
 
 if [ ! -z "$DMGNAME" ]; then
     mv dist/$APPNAME.dmg dist/$DMGNAME.dmg
