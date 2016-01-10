@@ -84,10 +84,12 @@ class GUIUtility(object):
         self.utility.session.add_observer(self.destroy_startup_splash, NTFY_STARTUP_TICK, [NTFY_DELETE])
         self.utility.session.add_observer(self.destroy_close_splash, NTFY_CLOSE_TICK, [NTFY_DELETE])
 
+    @forceWxThread
     def on_startup_tick(self, subject, changetype, objectID, *args):
         if self.startup_splash:
             self.startup_splash.tick(args[0])
 
+    @forceWxThread
     def on_close_tick(self, subject, changetype, objectID, *args):
         if self.close_splash:
             self.close_splash.tick(args[0])
@@ -287,22 +289,26 @@ class GUIUtility(object):
         elif page == 'my_files':
             self.frame.librarylist.Focus()
 
+    @forceWxThread
     def show_startup_splash(self, subject, changetype, objectID, *args):
         gui_image_manager = GuiImageManager.getInstance()
         bm = gui_image_manager.getImage(u'splash.png')
         self.startup_splash = GaugeSplash(bm, "Loading...", self.START_GAUGE_SPLASH_TICKS)
         self.startup_splash.Show()
 
+    @forceWxThread
     def destroy_startup_splash(self, subject, changetype, objectID, *args):
         if self.startup_splash:
             self.startup_splash.Destroy()
 
+    @forceWxThread
     def show_close_splash(self, subject, changetype, objectID, *args):
         gui_image_manager = GuiImageManager.getInstance()
         bm = gui_image_manager.getImage(u'closescreen.png')
         self.close_splash = GaugeSplash(bm, "Closing...", self.CLOSE_GAUGE_SPLASH_TICKS)
         self.close_splash.Show()
 
+    @forceWxThread
     def destroy_close_splash(self, subject, changetype, objectID, *args):
         if self.close_splash:
             self.close_splash.Destroy()
