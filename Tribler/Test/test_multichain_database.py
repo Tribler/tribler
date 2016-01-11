@@ -1,4 +1,5 @@
 import unittest
+import datetime
 import os
 from math import pow
 
@@ -182,6 +183,33 @@ class TestDatabase(MultiChainTestCase):
         self.addMembersToDispersy(dispersy, block2)
         # Act & Assert
         self.assertEquals(db.get_previous_id(block1.mid_requester), block1.id)
+    
+    def test_get_insert_time(self):
+        # Arrange
+        # Upon adding the block to the database, the timestamp will get added.
+        dispersy = self.MockDispersy()
+        db = MultiChainDB(dispersy, self.getStateDir())
+        block1 = TestBlock()
+        self.addMembersToDispersy(dispersy, block1)
+        db.add_block(block1)
+        
+        # Act
+        # Retrieving the block from the database will result in a block with a 
+        # timestamp
+        result = db.get_by_block_id(block1.id)
+        
+        insert_time = datetime.datetime.strptime(result.insert_time, 
+                                                 "%Y-%m-%d %H:%M:%S")
+        
+        # We store UTC timestamp
+        time_difference = datetime.datetime.utcnow() - insert_time
+        
+        
+        # Assert
+        self.assertEquals(time_difference.days, 0)
+        self.assertLess(time_difference.seconds, 10, 
+                        "Difference in stored and retrieved time is too large.")
+        
 
     def test_get_previous_id_mid_responder(self):
         # Arrange
@@ -225,6 +253,8 @@ class TestDatabase(MultiChainTestCase):
         dispersy = self.MockDispersy()
         db = MultiChainDB(dispersy, self.getStateDir())
         block1 = self.getNewAddedBlock(db, dispersy)
+        self.addMembersToDispersy(dispersy, block1)
+        
         # Act & Assert
         self.assertEqual_database_block(block1, db.get_by_sequence_number_and_mid(
             block1.sequence_number_responder, block1.mid_responder))
