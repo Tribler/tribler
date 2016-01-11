@@ -1,5 +1,5 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker, Lucian Musat
-# Modified by Niels Zeilemaker
+# Modified by Niels Zeilemaker, Laurens Versluis
 # see LICENSE.txt for license information
 
 import wx
@@ -15,18 +15,22 @@ from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.Utilities.search_utils import split_into_keywords
 
+from Tribler.Core.simpledefs import NTFY_STARTUP_TICK, NTFY_CREATE, NTFY_DELETE, NTFY_CLOSE_TICK, NTFY_INSERT
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
 
 from Tribler.Main.vwxGUI import forceWxThread
-from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from threading import Lock
+from Tribler.Main.vwxGUI.SearchGridManager import TorrentManager, ChannelManager, LibraryManager
+from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 
 
 class GUIUtility(object):
     __single = None
     __single_lock = Lock()
+    START_GAUGE_SPLASH_TICKS = 10
+    CLOSE_GAUGE_SPLASH_TICKS = 6
 
     def __init__(self, utility=None, params=None, app=None):
         if GUIUtility.__single:
@@ -43,6 +47,8 @@ class GUIUtility(object):
         self.params = params
         self.frame = None
         self.app = app
+        self.close_splash = None
+        self.startup_splash = None
 
         # videoplayer
         self.videoplayer = None
@@ -65,6 +71,30 @@ class GUIUtility(object):
         from Tribler.Main.vwxGUI.list_header import ListHeaderIcon
 
         self.listicon = ListHeaderIcon.getInstance()
+
+        # Add listeners to listen if tribler is starting the initialisation and closing procedures.
+        self.utility.session.add_observer(self.show_startup_splash, NTFY_STARTUP_TICK, [NTFY_CREATE])
+        self.utility.session.add_observer(self.show_close_splash, NTFY_CLOSE_TICK, [NTFY_CREATE])
+
+        # Add listeners to update ticks
+        self.utility.session.add_observer(self.on_startup_tick, NTFY_STARTUP_TICK, [NTFY_INSERT])
+        self.utility.session.add_observer(self.on_close_tick, NTFY_CLOSE_TICK, [NTFY_INSERT])
+
+        # Add listeners to listen when to destroy the gauge splash
+        self.utility.session.add_observer(self.destroy_startup_splash, NTFY_STARTUP_TICK, [NTFY_DELETE])
+        self.utility.session.add_observer(self.destroy_close_splash, NTFY_CLOSE_TICK, [NTFY_DELETE])
+
+    @forceWxThread
+    def on_startup_tick(self, subject, changetype, objectID, *args):
+        assert wx.Thread_IsMain()
+        if self.startup_splash:
+            self.startup_splash.tick(args[0])
+
+    @forceWxThread
+    def on_close_tick(self, subject, changetype, objectID, *args):
+        assert wx.Thread_IsMain()
+        if self.close_splash:
+            self.close_splash.tick(args[0])
 
     def getInstance(*args, **kw):
         if GUIUtility.__single is None:
@@ -109,6 +139,7 @@ class GUIUtility(object):
 
     @forceWxThread
     def ShowPage(self, page, *args):
+        assert wx.Thread_IsMain()
         if page == 'settings':
             from Tribler.Main.vwxGUI.settingsDialog import SettingsDialog
             dialog = SettingsDialog()
@@ -261,6 +292,34 @@ class GUIUtility(object):
         elif page == 'my_files':
             self.frame.librarylist.Focus()
 
+    @forceWxThread
+    def show_startup_splash(self, subject, changetype, objectID, *args):
+        assert wx.Thread_IsMain()
+        gui_image_manager = GuiImageManager.getInstance()
+        bm = gui_image_manager.getImage(u'splash.png')
+        self.startup_splash = GaugeSplash(bm, "Loading...", self.START_GAUGE_SPLASH_TICKS)
+        self.startup_splash.Show()
+
+    @forceWxThread
+    def destroy_startup_splash(self, subject, changetype, objectID, *args):
+        assert wx.Thread_IsMain()
+        if self.startup_splash:
+            self.startup_splash.Destroy()
+
+    @forceWxThread
+    def show_close_splash(self, subject, changetype, objectID, *args):
+        assert wx.Thread_IsMain()
+        gui_image_manager = GuiImageManager.getInstance()
+        bm = gui_image_manager.getImage(u'closescreen.png')
+        self.close_splash = GaugeSplash(bm, "Closing...", self.CLOSE_GAUGE_SPLASH_TICKS)
+        self.close_splash.Show()
+
+    @forceWxThread
+    def destroy_close_splash(self, subject, changetype, objectID, *args):
+        assert wx.Thread_IsMain()
+        if self.close_splash:
+            self.close_splash.Destroy()
+
     def GetSelectedPage(self):
         if self.guiPage == 'home':
             return self.frame.home
@@ -357,6 +416,7 @@ class GUIUtility(object):
 
     @forceWxThread
     def GoBack(self, scrollTo=None, topage=None):
+        assert wx.Thread_IsMain()
         if topage:
             self.oldpage.pop()
         else:
@@ -449,11 +509,12 @@ class GUIUtility(object):
 
     @forceWxThread
     def NewResult(self):
+        assert wx.Thread_IsMain()
         self.frame.searchlist.NewResult()
 
     @forceWxThread
     def showChannelCategory(self, category, show=True):
-
+        assert wx.Thread_IsMain()
         manager = self.frame.channellist.GetManager()
         manager.SetCategory(category, True)
 
@@ -462,6 +523,7 @@ class GUIUtility(object):
 
     @forceWxThread
     def showLibrary(self, show=True):
+        assert wx.Thread_IsMain()
         manager = self.frame.librarylist.GetManager()
         manager.do_or_schedule_refresh(True)
 
@@ -477,6 +539,7 @@ class GUIUtility(object):
 
     @forceWxThread
     def showChannel(self, channel):
+        assert wx.Thread_IsMain()
         if channel:
             manager = self.frame.selectedchannellist.GetManager()
             manager.refresh_if_required(channel)
@@ -492,6 +555,7 @@ class GUIUtility(object):
 
     @forceWxThread
     def showChannelResults(self, data_channel):
+        assert wx.Thread_IsMain()
         self.frame.actlist.selectTab('channels')
 
         def subscribe_latestupdate_sort(a, b):
@@ -511,11 +575,13 @@ class GUIUtility(object):
 
     @forceWxThread
     def showManageChannel(self, channel):
+        assert wx.Thread_IsMain()
         self.frame.managechannel.SetChannel(channel)
         self.ShowPage('managechannel')
 
     @forceWxThread
     def showPlaylist(self, data):
+        assert wx.Thread_IsMain()
         self.frame.playlist.Set(data)
         self.ShowPage('playlist')
 
@@ -543,6 +609,7 @@ class GUIUtility(object):
 
     @forceWxThread
     def Notify(self, title, msg='', icon=wx.ART_INFORMATION):
+        assert wx.Thread_IsMain()
         if not self or not self.frame or not self.frame.actlist:
             return
         if sys.platform == 'win32' and not self.frame.IsShownOnScreen():
@@ -592,6 +659,7 @@ class GUIUtility(object):
 
     @forceWxThread
     def MarkAsFavorite(self, event, channel):
+        assert wx.Thread_IsMain()
         if channel:
             if event:
                 button = event.GetEventObject()
@@ -624,6 +692,7 @@ class GUIUtility(object):
 
     @forceWxThread
     def RemoveFavorite(self, event, channel):
+        assert wx.Thread_IsMain()
         if channel:
             if event:
                 button = event.GetEventObject()
@@ -659,6 +728,7 @@ class GUIUtility(object):
 
     @forceWxThread
     def MarkAsSpam(self, event, channel):
+        assert wx.Thread_IsMain()
         if channel:
             if event:
                 button = event.GetEventObject()
@@ -689,6 +759,7 @@ class GUIUtility(object):
 
     @forceWxThread
     def RemoveSpam(self, event, channel):
+        assert wx.Thread_IsMain()
         if channel:
             if event:
                 button = event.GetEventObject()

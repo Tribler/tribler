@@ -29,6 +29,17 @@ flycheck_*
 memorydump.out
 test_file
 test_file.torrent
+/Tribler/Test/data/ec.pem
+/Tribler/Test/data/ecpub.pem
+/Tribler/Test/data/libtribler.conf
+/Tribler/Test/data/pymdht.bootstrap
+/Tribler/Test/data/pymdht.log
+/Tribler/Test/data/sqlite/dispersy.db
+/Tribler/Test/data/sqlite/tribler.sdb
+/Tribler/Test/data/bak_new_tribler.sdb
+/Tribler/Test/data/bak_old_tribler.sdb
+/Tribler/Test/data/peercache.txt
+
 
 # pycharm
 **.idea/
