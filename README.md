@@ -1,4 +1,4 @@
-# Tribler           [![Build Status](http://jenkins.tribler.org/job/Test_tribler_devel/badge/icon)](http://jenkins.tribler.org/job/Test_tribler_devel/) [![Issue Stats](http://issuestats.com/github/tribler/tribler/badge/pr?style=flat)](http://issuestats.com/github/tribler/tribler) [![Issue Stats](http://issuestats.com/github/tribler/tribler/badge/issue?style=flat)](http://issuestats.com/github/tribler/tribler)
+# Tribler           [![Build Status](http://jenkins.tribler.org/job/Test_tribler_devel/badge/icon)](http://jenkins.tribler.org/job/Test_tribler_devel/) [![Issue Stats](http://issuestats.com/github/tribler/tribler/badge/pr?style=flat)](http://issuestats.com/github/tribler/tribler) [![Issue Stats](http://issuestats.com/github/tribler/tribler/badge/issue?style=flat)](http://issuestats.com/github/tribler/tribler) [![Project stats](https://www.openhub.net/p/tribler/widgets/project_thin_badge.gif)](https://www.openhub.net/p/tribler)
 
 _Towards making Bittorrent anonymous and impossible to shut down._
 
