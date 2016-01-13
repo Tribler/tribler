@@ -65,7 +65,7 @@ class SocksUDPConnection(DatagramProtocol):
                     self._logger.debug(
                         "Circuit is not ready, dropping %d bytes to %s", len(request.payload), request.destination)
                 else:
-                    self._logger.debug("Sending data over circuit destined for %s:%d", *request.destination)
+                    self._logger.debug("Sending data over circuit destined for %r:%r", *request.destination)
                     circuit.tunnel_data(request.destination, request.payload)
             else:
                 self._logger.debug("No support for fragmented data, dropping")
