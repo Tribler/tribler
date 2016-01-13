@@ -75,19 +75,18 @@ python -c "import ctypes; ctypes.cdll.LoadLibrary('libsodium')"
 ```
 
 ## LevelDB
-The next dependency to be installed is levelDB. LevelDB is a fast key-value storage written by Google. LevelDB itself is written in C++ but there are several Python wrappers available. In this guide, you will compile plyvel from source. Start by downloading the source code from [GitHub](https://github.com/numion/plyvel) (either clone the repository or download the source code as zip). This repo is a fork of the original plyvel wrapper with added support for Windows compilation. Open the Developer Command Prompt shipped with Visual Studio (not the regular command prompt) and navigate to the location where you extracted plyvel. To build, execute the following commands:
+The next dependency to be installed is levelDB. LevelDB is a fast key-value storage written by Google. LevelDB itself is written in C++ but there are several Python wrappers available. In this guide, you will compile leveldb from source. First, download the source code from [GitHub](https://github.com/happynear/py-leveldb-windows) (either clone the repository or download the source code as zip). The readme on this repo contains some basic instructions on how to compile leveldb.
+
+Next, open the `levedb_ext.sln` file in Visual Studio. This guide is based on the `x64 release` configuration. If you want to build a 32-bit leveldb project, change the configuration to `win32 release`.
+
+You should edit the file paths of the include directories and the linker directories. These can be edited by right clicking on the project and selecting `properties`. You will need to update `additional include directories` (under C/C++ -> general) to point to your Python include directory (often located in `C:\Python27\include`). This is needed for the compilation of the Python bindings. Also, make sure that the following `preprocessor definitions` (found under C/C++ -> preprocessor) are defined: `WIN32` and `LEVELDB_PLATFORM_WINDOWS`.
+
+Next, `additional library directories` should be adjusted, found under Linker -> General. You should add the directory where your Python libraries are residing, often in `C:\Python27\libs`.
+
+Compile by pressing the `build leveldb_ext` in the build menu. If any errors are showing up during compilation, please refer to the Visual Studio log file and check what's going wrong. Often, this should be a missing include/linker directory. If compilation is successful, a `leveldb_ext.pyd` file should have been created in the project directory. Copy this file to your site-packages location and rename it to `leveldb.pyd` so Python is able to find it. You can test whether your binary is working by using the following command which should execute without any errors:
 
 ```
-python bootstrap.py
-bin\buildout.exe
-bin\python.exe setup.py bdist_egg
-python setup.py install
-```
-
-This should install the plyvel package. You can now test whether plyvel is working:
-
-```
-python -c "import plyvel"
+python -c "import leveldb"
 ```
 
 ## VLC
