@@ -53,7 +53,7 @@ packages = ["encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels]
      "Tribler.Main.tribler_main", "win32com.shell", "win32api",
      "netifaces", "csv", "cherrypy", "feedparser",
      "twisted", "apsw", "libtorrent", "M2Crypto", "cryptography", "libnacl", "six", "cffi", "pycparser",
-     "zope.interface", "pyasn1", "gmpy", "Image", "requests", "leveldb", "decorator"]
+     "zope.interface", "pyasn1", "Image", "requests", "leveldb", "decorator"]
 
 setup(
     # (Disabling bundle_files for now -- apparently causes some issues with Win98)
