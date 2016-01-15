@@ -25,7 +25,7 @@ If you found a bug or have a feature request, please make sure you read [contrib
 
 Contributions are very welcome!
 If you are interested in contributing code or otherwise, please have a look at [contributing](CONTRIBUTING.md).
-Have a look at the [issue tracker](https://github.com/Tribler/tribler/issues) if you are looking for inspiraton :).
+Have a look at the [issue tracker](https://github.com/Tribler/tribler/issues) if you are looking for inspiration :).
 
 ## Getting your development environment up and running
 
