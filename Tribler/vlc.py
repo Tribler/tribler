@@ -49,12 +49,7 @@ import functools
 from inspect import getargspec
 
 __version__ = "N/A"
-build_date  = "Thu Nov  5 23:41:43 2015"
-
-# The libvlc doc states that filenames are expected to be in UTF8, do
-# not rely on sys.getfilesystemencoding() which will be confused,
-# esp. on windows.
-DEFAULT_ENCODING = 'utf-8'
+build_date  = "Fri Jun 19 13:45:56 2015"
 
 if sys.version_info[0] > 2:
     str = str
@@ -66,7 +61,7 @@ if sys.version_info[0] > 2:
         """Translate string or bytes to bytes.
         """
         if isinstance(s, str):
-            return bytes(s, DEFAULT_ENCODING)
+            return bytes(s, sys.getfilesystemencoding())
         else:
             return s
 
@@ -74,7 +69,7 @@ if sys.version_info[0] > 2:
         """Translate bytes to string.
         """
         if isinstance(b, bytes):
-            return b.decode(DEFAULT_ENCODING)
+            return b.decode(sys.getfilesystemencoding())
         else:
             return b
 else:
@@ -87,7 +82,7 @@ else:
         """Translate string or bytes to bytes.
         """
         if isinstance(s, unicode):
-            return s.encode(DEFAULT_ENCODING)
+            return s.encode(sys.getfilesystemencoding())
         else:
             return s
 
@@ -95,7 +90,7 @@ else:
         """Translate bytes to unicode string.
         """
         if isinstance(b, str):
-            return unicode(b, DEFAULT_ENCODING)
+            return unicode(b, sys.getfilesystemencoding())
         else:
             return b
 
@@ -113,7 +108,15 @@ def find_lib():
         except OSError:  # may fail
             dll = ctypes.CDLL('libvlc.so.5')
     elif sys.platform.startswith('win'):
-        p = find_library('libvlc.dll')
+        def load_libvlc_windows_dll(old_path):
+            try:
+                return ctypes.CDLL('libvlc.dll')
+            except WindowsError:
+                return None
+            finally:
+                # restore cwd after dll has been loaded
+                os.chdir(old_path)
+        p = None
         if p is None:
             try:  # some registry settings
                 # leaner than win32api, win32con
@@ -143,11 +146,9 @@ def find_lib():
                 p = os.getcwd()
                 os.chdir(plugin_path)
                  # if chdir failed, this will raise an exception
-                dll = ctypes.CDLL('libvlc.dll')
-                 # restore cwd after dll has been loaded
-                os.chdir(p)
+                dll = load_libvlc_windows_dll(p)
             else:  # may fail
-                dll = ctypes.CDLL('libvlc.dll')
+                dll = load_libvlc_windows_dll(p)
         else:
             plugin_path = os.path.dirname(p)
             dll = ctypes.CDLL(p)
@@ -428,12 +429,6 @@ class EventType(_Enum):
         276: 'MediaPlayerESAdded',
         277: 'MediaPlayerESDeleted',
         278: 'MediaPlayerESSelected',
-        279: 'MediaPlayerCorked',
-        280: 'MediaPlayerUncorked',
-        281: 'MediaPlayerMuted',
-        282: 'MediaPlayerUnmuted',
-        283: 'MediaPlayerAudioVolume',
-        284: 'MediaPlayerAudioDevice',
         0x200: 'MediaListItemAdded',
         513: 'MediaListWillAddItem',
         514: 'MediaListItemDeleted',
@@ -478,11 +473,8 @@ EventType.MediaListWillAddItem          = EventType(513)
 EventType.MediaListWillDeleteItem       = EventType(515)
 EventType.MediaMetaChanged              = EventType(0)
 EventType.MediaParsedChanged            = EventType(3)
-EventType.MediaPlayerAudioDevice        = EventType(284)
-EventType.MediaPlayerAudioVolume        = EventType(283)
 EventType.MediaPlayerBackward           = EventType(264)
 EventType.MediaPlayerBuffering          = EventType(259)
-EventType.MediaPlayerCorked             = EventType(279)
 EventType.MediaPlayerESAdded            = EventType(276)
 EventType.MediaPlayerESDeleted          = EventType(277)
 EventType.MediaPlayerESSelected         = EventType(278)
@@ -491,7 +483,6 @@ EventType.MediaPlayerEndReached         = EventType(265)
 EventType.MediaPlayerForward            = EventType(263)
 EventType.MediaPlayerLengthChanged      = EventType(273)
 EventType.MediaPlayerMediaChanged       = EventType(0x100)
-EventType.MediaPlayerMuted              = EventType(281)
 EventType.MediaPlayerNothingSpecial     = EventType(257)
 EventType.MediaPlayerOpening            = EventType(258)
 EventType.MediaPlayerPausableChanged    = EventType(270)
@@ -504,8 +495,6 @@ EventType.MediaPlayerSnapshotTaken      = EventType(272)
 EventType.MediaPlayerStopped            = EventType(262)
 EventType.MediaPlayerTimeChanged        = EventType(267)
 EventType.MediaPlayerTitleChanged       = EventType(271)
-EventType.MediaPlayerUncorked           = EventType(280)
-EventType.MediaPlayerUnmuted            = EventType(282)
 EventType.MediaPlayerVout               = EventType(274)
 EventType.MediaStateChanged             = EventType(5)
 EventType.MediaSubItemAdded             = EventType(1)
@@ -840,7 +829,7 @@ resources, then store them in *datap. The instance resources can be freed
 in the @ref libvlc_media_close_cb callback.
 \param opaque private pointer as passed to L{libvlc_media_new_callbacks}()
 \param datap storage space for a private data pointer [OUT]
-\param sizep byte length of the bitstream or UINT64_MAX if unknown [OUT]
+\param sizep byte length of the bitstream or 0 if unknown [OUT]
 \note For convenience, *datap is initially NULL and *sizep is initially 0.
 \return 0 on success, non-zero on error. In case of failure, the other
 callbacks will not be invoked and any value stored in *datap and *sizep is
@@ -1025,7 +1014,7 @@ resources, then store them in *datap. The instance resources can be freed
 in the @ref libvlc_media_close_cb callback.
 \param opaque private pointer as passed to L{libvlc_media_new_callbacks}()
 \param datap storage space for a private data pointer [OUT]
-\param sizep byte length of the bitstream or UINT64_MAX if unknown [OUT]
+\param sizep byte length of the bitstream or 0 if unknown [OUT]
 \note For convenience, *datap is initially NULL and *sizep is initially 0.
 \return 0 on success, non-zero on error. In case of failure, the other
 callbacks will not be invoked and any value stored in *datap and *sizep is
@@ -1358,15 +1347,12 @@ class EventUnion(ctypes.Union):
         ('new_status',   ctypes.c_int     ),
         ('media',        ctypes.c_void_p  ),
         ('new_state',    ctypes.c_uint    ),
-        # FIXME: Media instance
-        ('new_cache', ctypes.c_float   ),
+        # Media instance
         ('new_position', ctypes.c_float   ),
         ('new_time',     ctypes.c_longlong),
         ('new_title',    ctypes.c_int     ),
         ('new_seekable', ctypes.c_longlong),
         ('new_pausable', ctypes.c_longlong),
-        ('new_scrambled', ctypes.c_longlong),
-        ('new_count', ctypes.c_longlong),
         # FIXME: Skipped MediaList and MediaListView...
         ('filename',     ctypes.c_char_p  ),
         ('new_length',   ctypes.c_longlong),
@@ -2647,13 +2633,6 @@ class MediaListPlayer(_Ctype):
         return libvlc_media_list_player_set_media_player(self, p_mi)
 
     
-    def get_media_player(self):
-        '''Get media player of the media_list_player instance.
-        @return: media player instance @note the caller is responsible for releasing the returned instance.
-        '''
-        return libvlc_media_list_player_get_media_player(self)
-
-    
     def set_media_list(self, p_mlist):
         '''Set the media list associated with the player.
         @param p_mlist: list of media.
@@ -3039,36 +3018,29 @@ class MediaPlayer(_Ctype):
 
     
     def set_agl(self, drawable):
-        '''\deprecated Use L{set_nsobject} instead.
+        '''Set the agl handler where the media player should render its video output.
+        @param drawable: the agl handler.
         '''
         return libvlc_media_player_set_agl(self, drawable)
 
     
     def get_agl(self):
-        '''\deprecated Use L{get_nsobject} instead.
+        '''Get the agl handler previously set with L{set_agl}().
+        @return: the agl handler or 0 if none where set.
         '''
         return libvlc_media_player_get_agl(self)
 
     
     def set_xwindow(self, drawable):
         '''Set an X Window System drawable where the media player should render its
-        video output. The call takes effect when the playback starts. If it is
-        already started, it might need to be stopped before changes apply.
-        If LibVLC was built without X11 output support, then this function has no
-        effects.
-        By default, LibVLC will capture input events on the video rendering area.
-        Use L{video_set_mouse_input}() and L{video_set_key_input}() to
-        disable that and deliver events to the parent window / to the application
-        instead. By design, the X11 protocol delivers input events to only one
-        recipient.
-        @warning
-        The application must call the XInitThreads() function from Xlib before
-        L{new}(), and before any call to XOpenDisplay() directly or via any
-        other library. Failure to call XInitThreads() will seriously impede LibVLC
-        performance. Calling XOpenDisplay() before XInitThreads() will eventually
-        crash the process. That is a limitation of Xlib.
-        @param drawable: X11 window ID @note The specified identifier must correspond to an existing Input/Output class X11 window. Pixmaps are B{not} currently supported. The default X11 server is assumed, i.e. that specified in the DISPLAY environment variable. @warning LibVLC can deal with invalid X11 handle errors, however some display drivers (EGL, GLX, VA and/or VDPAU) can unfortunately not. Thus the window handle must remain valid until playback is stopped, otherwise the process may abort or crash.
-        @bug No more than one window handle per media player instance can be specified. If the media has multiple simultaneously active video tracks, extra tracks will be rendered into external windows beyond the control of the application.
+        video output. If LibVLC was built without X11 output support, then this has
+        no effects.
+        The specified identifier must correspond to an existing Input/Output class
+        X11 window. Pixmaps are B{not} supported. The caller shall ensure that
+        the X11 server is the same as the one the VLC instance has been configured
+        with. This function must be called before video playback is started;
+        otherwise it will only take effect after playback stop and restart.
+        @param drawable: the ID of the X window.
         '''
         return libvlc_media_player_set_xwindow(self, drawable)
 
@@ -3090,15 +3062,6 @@ class MediaPlayer(_Ctype):
         @return: a window handle or None if there are none.
         '''
         return libvlc_media_player_get_hwnd(self)
-
-    
-    def set_android_context(self, p_jvm, p_awindow_handler):
-        '''Set the android context.
-        @param p_jvm: the Java VM of the android process.
-        @param awindow_handler: org.videolan.libvlc.IAWindowNativeHandler jobject implemented by the org.videolan.libvlc.MediaPlayer class from the libvlc-android project.
-        @version: LibVLC 3.0.0 and later.
-        '''
-        return libvlc_media_player_set_android_context(self, p_jvm, p_awindow_handler)
 
     
     def audio_set_callbacks(self, play, pause, resume, flush, drain, opaque):
@@ -3872,27 +3835,6 @@ def libvlc_new(argc, argv):
     '''Create and initialize a libvlc instance.
     This functions accept a list of "command line" arguments similar to the
     main(). These arguments affect the LibVLC instance default configuration.
-    @note
-    LibVLC may create threads. Therefore, any thread-unsafe process
-    initialization must be performed before calling L{libvlc_new}(). In particular
-    and where applicable:
-    - setlocale() and textdomain(),
-    - setenv(), unsetenv() and putenv(),
-    - with the X11 display system, XInitThreads()
-      (see also L{libvlc_media_player_set_xwindow}()) and
-    - on Microsoft Windows, SetErrorMode().
-    - sigprocmask() shall never be invoked; pthread_sigmask() can be used.
-    On POSIX systems, the SIGCHLD signal must B{not} be ignored, i.e. the
-    signal handler must set to SIG_DFL or a function pointer, not SIG_IGN.
-    Also while LibVLC is active, the wait() function shall not be called, and
-    any call to waitpid() shall use a strictly positive value for the first
-    parameter (i.e. the PID). Failure to follow those rules may lead to a
-    deadlock or a busy loop.
-    Also on POSIX systems, it is recommended that the SIGPIPE signal be blocked,
-    even if it is not, in principles, necessary.
-    On Microsoft Windows Vista/2008, the process error mode
-    SEM_FAILCRITICALERRORS flag B{must} with the SetErrorMode() function
-    before using LibVLC. On later versions, it is optional and unnecessary.
     @param argc: the number of arguments (should be 0).
     @param argv: list of arguments (should be None).
     @return: the libvlc instance or None in case of error.
@@ -4916,16 +4858,6 @@ def libvlc_media_list_player_set_media_player(p_mlp, p_mi):
                     None, MediaListPlayer, MediaPlayer)
     return f(p_mlp, p_mi)
 
-def libvlc_media_list_player_get_media_player(p_mlp):
-    '''Get media player of the media_list_player instance.
-    @param p_mlp: media list player instance.
-    @return: media player instance @note the caller is responsible for releasing the returned instance.
-    '''
-    f = _Cfunctions.get('libvlc_media_list_player_get_media_player', None) or \
-        _Cfunction('libvlc_media_list_player_get_media_player', ((1,),), class_result(MediaPlayer),
-                    ctypes.c_void_p, MediaListPlayer)
-    return f(p_mlp)
-
 def libvlc_media_list_player_set_media_list(p_mlp, p_mlist):
     '''Set the media list associated with the player.
     @param p_mlp: media list player instance.
@@ -5247,7 +5179,9 @@ def libvlc_media_player_get_nsobject(p_mi):
     return f(p_mi)
 
 def libvlc_media_player_set_agl(p_mi, drawable):
-    '''\deprecated Use L{libvlc_media_player_set_nsobject} instead.
+    '''Set the agl handler where the media player should render its video output.
+    @param p_mi: the Media Player.
+    @param drawable: the agl handler.
     '''
     f = _Cfunctions.get('libvlc_media_player_set_agl', None) or \
         _Cfunction('libvlc_media_player_set_agl', ((1,), (1,),), None,
@@ -5255,7 +5189,9 @@ def libvlc_media_player_set_agl(p_mi, drawable):
     return f(p_mi, drawable)
 
 def libvlc_media_player_get_agl(p_mi):
-    '''\deprecated Use L{libvlc_media_player_get_nsobject} instead.
+    '''Get the agl handler previously set with L{libvlc_media_player_set_agl}().
+    @param p_mi: the Media Player.
+    @return: the agl handler or 0 if none where set.
     '''
     f = _Cfunctions.get('libvlc_media_player_get_agl', None) or \
         _Cfunction('libvlc_media_player_get_agl', ((1,),), None,
@@ -5264,24 +5200,15 @@ def libvlc_media_player_get_agl(p_mi):
 
 def libvlc_media_player_set_xwindow(p_mi, drawable):
     '''Set an X Window System drawable where the media player should render its
-    video output. The call takes effect when the playback starts. If it is
-    already started, it might need to be stopped before changes apply.
-    If LibVLC was built without X11 output support, then this function has no
-    effects.
-    By default, LibVLC will capture input events on the video rendering area.
-    Use L{libvlc_video_set_mouse_input}() and L{libvlc_video_set_key_input}() to
-    disable that and deliver events to the parent window / to the application
-    instead. By design, the X11 protocol delivers input events to only one
-    recipient.
-    @warning
-    The application must call the XInitThreads() function from Xlib before
-    L{libvlc_new}(), and before any call to XOpenDisplay() directly or via any
-    other library. Failure to call XInitThreads() will seriously impede LibVLC
-    performance. Calling XOpenDisplay() before XInitThreads() will eventually
-    crash the process. That is a limitation of Xlib.
-    @param p_mi: media player.
-    @param drawable: X11 window ID @note The specified identifier must correspond to an existing Input/Output class X11 window. Pixmaps are B{not} currently supported. The default X11 server is assumed, i.e. that specified in the DISPLAY environment variable. @warning LibVLC can deal with invalid X11 handle errors, however some display drivers (EGL, GLX, VA and/or VDPAU) can unfortunately not. Thus the window handle must remain valid until playback is stopped, otherwise the process may abort or crash.
-    @bug No more than one window handle per media player instance can be specified. If the media has multiple simultaneously active video tracks, extra tracks will be rendered into external windows beyond the control of the application.
+    video output. If LibVLC was built without X11 output support, then this has
+    no effects.
+    The specified identifier must correspond to an existing Input/Output class
+    X11 window. Pixmaps are B{not} supported. The caller shall ensure that
+    the X11 server is the same as the one the VLC instance has been configured
+    with. This function must be called before video playback is started;
+    otherwise it will only take effect after playback stop and restart.
+    @param p_mi: the Media Player.
+    @param drawable: the ID of the X window.
     '''
     f = _Cfunctions.get('libvlc_media_player_set_xwindow', None) or \
         _Cfunction('libvlc_media_player_set_xwindow', ((1,), (1,),), None,
@@ -5324,18 +5251,6 @@ def libvlc_media_player_get_hwnd(p_mi):
         _Cfunction('libvlc_media_player_get_hwnd', ((1,),), None,
                     ctypes.c_void_p, MediaPlayer)
     return f(p_mi)
-
-def libvlc_media_player_set_android_context(p_mi, p_jvm, p_awindow_handler):
-    '''Set the android context.
-    @param p_mi: the media player.
-    @param p_jvm: the Java VM of the android process.
-    @param awindow_handler: org.videolan.libvlc.IAWindowNativeHandler jobject implemented by the org.videolan.libvlc.MediaPlayer class from the libvlc-android project.
-    @version: LibVLC 3.0.0 and later.
-    '''
-    f = _Cfunctions.get('libvlc_media_player_set_android_context', None) or \
-        _Cfunction('libvlc_media_player_set_android_context', ((1,), (1,), (1,),), None,
-                    None, MediaPlayer, ctypes.c_void_p, ctypes.c_void_p)
-    return f(p_mi, p_jvm, p_awindow_handler)
 
 def libvlc_audio_set_callbacks(mp, play, pause, resume, flush, drain, opaque):
     '''Set callbacks and private data for decoded audio.
@@ -5924,7 +5839,7 @@ def libvlc_title_descriptions_release(p_titles, i_count):
 def libvlc_media_player_get_full_chapter_descriptions(p_mi, i_chapters_of_title, pp_chapters):
     '''Get the full description of available chapters.
     @param p_mi: the media player.
-    @param index: of the title to query for chapters (uses current title if set to -1).
+    @param index: of the title to query for chapters.
     @param address: to store an allocated array of chapter descriptions descriptions (must be freed with L{libvlc_chapter_descriptions_release}() by the caller) [OUT].
     @return: the number of chapters (-1 on error).
     @version: LibVLC 3.0.0 and later.
