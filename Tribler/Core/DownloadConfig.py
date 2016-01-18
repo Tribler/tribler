@@ -59,9 +59,6 @@ class DownloadConfigInterface(object):
             if dlconfig.has_option('downloadconfig', 'saveas') and isinstance(dlconfig.get('downloadconfig', 'saveas'), tuple):
                 dlconfig.set('downloadconfig', 'saveas', dlconfig.get('saveas')[-1])
 
-            if not self.get_dest_dir():
-                self.set_dest_dir(get_default_dest_dir())
-
     def copy(self):
         return DownloadConfigInterface(self.dlconfig.copy())
 
@@ -75,7 +72,15 @@ class DownloadConfigInterface(object):
     def get_dest_dir(self):
         """ Gets the directory where to save this Download.
         """
-        return self.dlconfig.get('downloadconfig', 'saveas')
+
+        dest_dir = self.dlconfig.get('downloadconfig', 'saveas')
+
+        if not dest_dir:
+            dest_dir = get_default_dest_dir()
+            self.set_dest_dir(dest_dir)
+
+        return dest_dir
+
 
     def get_corrected_filename(self):
         """ Gets the directory name where to save this torrent
