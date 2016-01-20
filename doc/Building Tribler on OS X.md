@@ -1,6 +1,6 @@
 This page contains information about building Tribler on OS X. The final result you should have is a `.dmg` file which, when opened, allows `Tribler.app` to be copied to the Applications directory. This guide has been tested on OS X 10.11 (El Capitan). It is recommended to run this builder on a system that is already able to run Tribler without problems (it means that all the required packages required by Tribler are installed already). Information about setting up a developer environment on OS X can be found [here](https://github.com/Tribler/tribler/blob/devel/doc/Tribler%20development%20on%20OS%20X.md).
 
-==Required packages==
+## Required packages
 To build and distribute Tribler, there are some required scripts and packages:
 * The git command tools are required to fetch the latest release information. They are installed when you start Xcode for the first time but you can also install it using `brew` or another package library.
 * Py2app. The built-in version of py2app does not function correctly when System Integrity Protection (SIP) is turned on. You can either turn SIP off (instructions on how to do this can be found [here](http://www.imore.com/el-capitan-system-integrity-protection-helps-keep-malware-away)) or you can install a more recent version of py2app using PIP in your user-defined `site-packages`. Note that you should place the `site-packages` directory with py2app in it higher in the `PYTHONPATH` environment variable than the `site-packages` directory managed by the system. Otherwise, the builder will chooose the py2app package installed by the system.
@@ -13,7 +13,7 @@ chmod +x /usr/local/bin/eulagise
 eulagise # to test it - it should show that you should add some flags
 ```
 
-==Building Tribler on OS X==
+## Building Tribler on OS X
 Start by checking out the directory you want to clone (using `git clone --recursive`). Open a terminal and `cd` to this new cloned directory (referenced to as `tribler_source` in this guide).
 
 First we need to copy the ffmpeg library to `tribler_source`. You can download this file from [here](http://evermeet.cx/ffmpeg/). Next, create a directory named `vlc` in `tribler_source` and copy the `ffmpeg` file to that directory. Make sure to name the file `ffmpeg`, otherwise the builder cannot find it.
