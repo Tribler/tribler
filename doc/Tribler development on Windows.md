@@ -25,7 +25,7 @@ After installing these two pakets, there should be no more import errors.
 The first package to be installed is M2Crypto which can be installed using pip (the M2Crypto binary is precompiled):
 
 ```
-pip install --egg M2CryptoWin64
+pip install --egg M2CryptoWin64 # use M2CryptoWin32 for the 32-bit version of M2Crypto
 python -c "import M2Crypto" # test whether M2Crypto can be successfully imported
 ```
 
@@ -57,7 +57,7 @@ After installation, you should set an environment variable to let libtorrent kno
 
 Next, you should build Boost.build. You can do this by opening the Visual Studio command prompt and navigating to your Boost libraries. Navigate to `tools\build` and execute `bootstrap.bat`. This will create the `b2.exe` file. In order to invoke `b2` from anywhere in your command line, you should add the Boost directory to your user PATH environment variable. After modifying your PATH, you should reopen your command prompt.
 
-Now, download the libtorrent source code from [GitHub](https://github.com/arvidn/libtorrent/releases) and extract it. Version 1.0.7 of Libtorrent seems to contain a bug when downloading torrents from the DHT so it is recommended to use the source code of version 1.0.6. Open the Developer Command Prompt shipped with Visual Studio (not the regular command prompt) and navigate to the location where you extracted the libtorrent source. In the directory where the libtorrent source code is located, navigate to `bindings\python` and build libtorrent by executing the following command (this takes a while so make sure to grab a coffee while waiting):
+Now, download the libtorrent source code from [GitHub](https://github.com/arvidn/libtorrent/releases) and extract it. It is advised to compile version 1.0.8. Note that you if you have a 32-bit system, you can download the `.msi` installer so you do not have to compile libtorrent yourself. Open the Developer Command Prompt shipped with Visual Studio (not the regular command prompt) and navigate to the location where you extracted the libtorrent source. In the directory where the libtorrent source code is located, navigate to `bindings\python` and build libtorrent by executing the following command (this takes a while so make sure to grab a coffee while waiting):
 
 ```
 b2 boost=source libtorrent-link=static address-model=64
