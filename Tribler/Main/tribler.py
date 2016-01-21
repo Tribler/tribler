@@ -12,7 +12,7 @@ LOGGER_CONF = os.path.join(TRIBLER_ROOT, "logger.conf")
 # Add TRIBLER_ROOT to the PYTHONPATH so imports work fine wherever Tribler is
 # running from.
 if TRIBLER_ROOT not in sys.path:
-    sys.path.append(TRIBLER_ROOT)
+    sys.path.insert(0, TRIBLER_ROOT)
 
 try:
     logging.config.fileConfig(LOGGER_CONF)

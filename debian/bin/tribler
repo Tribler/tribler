@@ -1,10 +1,7 @@
 #!/bin/sh
 # Startup script for Ubuntu Linux
 
-_TRIBLERPATH="/usr/share/tribler"
-
-export PYTHONPATH="$PYTHONPATH":$_TRIBLERPATH
-
 echo "Starting Tribler..."
-cd $_TRIBLERPATH
-exec /usr/bin/python2.7 -O Tribler/Main/tribler.py "$@" > `mktemp /tmp/$USER-tribler-XXXXXXXX.log` 2>&1
+
+cd "/usr/share/tribler"
+exec /usr/bin/python2.7 -m Tribler.Main.tribler "$@" > `mktemp /tmp/$USER-tribler-XXXXXXXX.log` 2>&1

@@ -20,8 +20,15 @@ GIT_URL = https://github.com/Tribler/tribler.git
 override_dh_auto_configure:
 	dh_auto_configure
 
+# TODO: The "find [..] -delete" line is a hack to work around the fact that some
+# .py files get copied both in dist-packages and /usr/share/tribler, which should
+# really be fixed.
+
 override_dh_install:
 	dh_install --exclude=.git
+
+	find $(CURDIR)/debian/tribler/usr/share/tribler -name "*.py" -delete
+
 	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Core/DecentralizedTracking/pymdht/LICENSE.txt
 	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/LICENSE.txt
 	rm -f $(CURDIR)/debian/tribler/usr/share/tribler/Tribler/Main/vwxGUI/images/license

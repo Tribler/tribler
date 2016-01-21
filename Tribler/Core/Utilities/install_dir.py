@@ -73,7 +73,8 @@ def determine_install_dir():
             return os.path.abspath(os.path.join(cur_file, '..', '..', '..', '..', '..', '..'))
         # Otherwise do the same than on Unix/Linux
 
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+    this_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+    return '/usr/share/tribler' if this_dir.startswith('/usr/lib') else this_dir
 
 
 #
