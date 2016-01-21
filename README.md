@@ -66,15 +66,7 @@ debuild -i -us -uc -b
 
 ### OSX
 
-```bash
-cd tribler
-mkdir vlc
-# Copy the ffmpeg binary from its build directory
-cp $HOME/Workspace/install/ffmpeg-2.2.4 vlc/ffmpeg
-Tribler/Main/Build/update_version_from_git.py
-./mac/makedistmac.sh
-```
-TODO: Add detailed build dependencies.
+For instructions about building and packaging Tribler on OS X, we have written a guide that can be found [here](doc/Building Tribler on OS X.md).
 
 ### Windows
 
