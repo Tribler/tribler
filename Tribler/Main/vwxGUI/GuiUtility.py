@@ -129,8 +129,9 @@ class GUIUtility(object):
         # TODO(emilon): Hack to work around video player tab not been properly
         # drawn when clicking on the stream button of a search result which
         # hasn't had it's torrent fetched.
+        wx.SafeYield()
         self.showLibrary()
-        wx.Yield()
+        wx.SafeYield()
         #EO Hack
 
         if self.frame.videoparentpanel:
