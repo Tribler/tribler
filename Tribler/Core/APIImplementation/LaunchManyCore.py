@@ -320,13 +320,13 @@ class TriblerLaunchMany(TaskManager):
 
     def remove_id(self, infohash):
         @forceDBThread
-        def do_db(infohash):
+        def do_db():
             torrent_id = self.torrent_db.getTorrentID(infohash)
             if torrent_id:
                 self.mypref_db.deletePreference(torrent_id)
 
         if self.session.get_megacache():
-            do_db(infohash)
+            do_db()
 
     def get_downloads(self):
         """ Called by any thread """
