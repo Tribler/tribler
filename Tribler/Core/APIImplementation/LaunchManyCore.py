@@ -569,27 +569,25 @@ class TriblerLaunchMany(TaskManager):
             self.network_shutdown()
 
     def remove_pstate(self, infohash):
-        network_remove_pstate_callback_lambda = lambda: self.network_remove_pstate_callback(infohash)
-        self.threadpool.add_task(network_remove_pstate_callback_lambda, 0.0)
+        def do_remove():
+            if not self.download_exists(infohash):
+                dlpstatedir = self.session.get_downloads_pstate_dir()
 
-    def network_remove_pstate_callback(self, infohash):
-        if not self.download_exists(infohash):
-            dlpstatedir = self.session.get_downloads_pstate_dir()
-
-            # Remove checkpoint
-            hexinfohash = binascii.hexlify(infohash)
-            try:
-                basename = hexinfohash + '.state'
-                filename = os.path.join(dlpstatedir, basename)
-                self._logger.debug("remove pstate: removing dlcheckpoint entry %s", filename)
-                if os.access(filename, os.F_OK):
-                    os.remove(filename)
-            except:
-                # Show must go on
-                self._logger.exception("Could not remove state")
-        else:
-            self._logger.warning("remove pstate: download is back, restarted? Canceling removal! %s",
-                                  repr(infohash))
+                # Remove checkpoint
+                hexinfohash = binascii.hexlify(infohash)
+                try:
+                    basename = hexinfohash + '.state'
+                    filename = os.path.join(dlpstatedir, basename)
+                    self._logger.debug("remove pstate: removing dlcheckpoint entry %s", filename)
+                    if os.access(filename, os.F_OK):
+                        os.remove(filename)
+                except:
+                    # Show must go on
+                    self._logger.exception("Could not remove state")
+            else:
+                self._logger.warning("remove pstate: download is back, restarted? Canceling removal! %s",
+                                      repr(infohash))
+        self.threadpool.add_task(do_remove)
 
     def early_shutdown(self):
         """ Called as soon as Session shutdown is initiated. Used to start
