@@ -1019,7 +1019,7 @@ class AbstractListBody():
 
             # Try to yield
             try:
-                wx.Yield()
+                wx.SafeYield()
             except:
                 pass
 
