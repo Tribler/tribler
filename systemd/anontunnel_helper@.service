@@ -1,0 +1,21 @@
+
+[Unit]
+Description="Anontunnel helper instance number %I"
+After=network.target
+
+[Service]
+ProtectSystem=yes
+PrivateTmp=true
+Type=simple
+User=tunnel_helper
+Group=tunnel_helper
+Restart=always
+Environment=HOME=/var/lib/tunnel_helper/%I
+Environment=EXIT_ENABLED=false
+Environment=PYTHONPATH=.
+WorkingDirectory=/opt/tribler
+ExecStartPre=/bin/mkdir -p ${HOME}
+ExecStart=/usr/bin/python2 /opt/tribler/Tribler/community/tunnel/main.py -x ${EXIT_ENABLED}
+
+[Install]
+WantedBy=multi-user.target
