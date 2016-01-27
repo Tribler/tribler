@@ -208,7 +208,7 @@ class TunnelSettings(object):
 
         self.max_time = 10 * 60
         self.max_time_inactive = 20
-        self.max_traffic = 55 * 1024 * 1024
+        self.max_traffic = 250 * 1024 * 1024
 
         self.max_packets_without_reply = 50
         self.dht_lookup_interval = 30
