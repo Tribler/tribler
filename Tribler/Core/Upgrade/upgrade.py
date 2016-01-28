@@ -29,6 +29,8 @@ class TriblerUpgrader(object):
         self.is_done = False
         self.failed = True
 
+
+    def run(self):
         self.current_status = u"Checking Tribler version..."
         if self.session.get_current_startup_config_copy().get_upgrader_enabled():
             failed, has_to_upgrade = self.check_should_upgrade()
