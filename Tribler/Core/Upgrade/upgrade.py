@@ -26,9 +26,11 @@ class TriblerUpgrader(object):
         self.session = session
         self.db = db
 
+        self.notified = False
         self.is_done = False
         self.failed = True
 
+        self.current_status = u"Initializing"
 
     def run(self):
         self.current_status = u"Checking Tribler version..."
