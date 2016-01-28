@@ -357,6 +357,10 @@ class ABCApp(object):
         session.add_observer(self.show_upgrade_dialog, NTFY_UPGRADER, [NTFY_STARTED])
         self.upgrader = session.prestart()
 
+        while not self.upgrader.is_done:
+            wx.SafeYield()
+            sleep(0.1)
+
         return session
 
     @forceWxThread
