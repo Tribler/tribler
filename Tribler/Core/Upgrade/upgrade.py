@@ -97,7 +97,7 @@ class TriblerUpgrader(object):
 
     @call_on_reactor_thread
     @inlineCallbacks
-    def upgrade_database_to_current_version(self, failed):
+    def upgrade_database_to_current_version(self):
         """ Checks the database version and upgrade if it is not the latest version.
         """
         try:
