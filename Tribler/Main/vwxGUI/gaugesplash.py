@@ -81,7 +81,7 @@ class GaugeSplash(wx.Frame):
         self.gauge.SetValue(self.count)
         self.gauge.Update()
         self.Refresh()
-        wx.SafeYield()
+        wx.Yield()
 
     def __del__(self):
         self._logger.debug("MAX ticks == %s", self.count)
