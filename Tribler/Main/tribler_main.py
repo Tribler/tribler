@@ -125,6 +125,7 @@ class ABCApp(object):
         self.ready = False
         self.done = False
         self.frame = None
+        self.upgrader = None
 
         self.said_start_playback = False
         self.decodeprogress = 0
@@ -384,8 +385,12 @@ class ABCApp(object):
             self.sconfig.set_enable_channel_search(False)
 
         session = Session(self.sconfig, autoload_discovery=autoload_discovery)
-        session.add_observer(self.show_upgrade_dialog, NTFY_UPGRADER, [NTFY_FINISHED])
+        session.add_observer(self.show_upgrade_dialog, NTFY_UPGRADER, [NTFY_STARTED])
         self.upgrader = session.prestart()
+
+        while not self.upgrader.is_done:
+            wx.SafeYield()
+            sleep(0.1)
 
         return session
 
