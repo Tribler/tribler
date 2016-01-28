@@ -102,6 +102,7 @@ class ABCApp(object):
         self.ready = False
         self.done = False
         self.frame = None
+        self.upgrader = None
 
         # DISPERSY will be set when available
         self.dispersy = None
