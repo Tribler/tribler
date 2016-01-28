@@ -80,11 +80,9 @@ class TriblerUpgrader(object):
             msg = u"The on-disk tribler database is newer than your tribler version. Your database will be backed up."
             self.current_status = msg
             self._logger.info(msg)
-            self.failed = True
         elif self.db.version < LOWEST_SUPPORTED_DB_VERSION:
             msg = u"Database is too old %s < %s" % (self.db.version, LOWEST_SUPPORTED_DB_VERSION)
             self.current_status = msg
-            self.failed = True
         elif self.db.version == LATEST_DB_VERSION:
             self._logger.info(u"tribler is in the latest version, no need to upgrade")
             self.failed = False
@@ -92,6 +90,7 @@ class TriblerUpgrader(object):
             self.notify_done()
         else:
             should_upgrade = True
+            self.failed = False
 
         return (self.failed, should_upgrade)
 
