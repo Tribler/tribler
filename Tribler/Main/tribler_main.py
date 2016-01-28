@@ -125,6 +125,7 @@ class ABCApp(object):
         self.ready = False
         self.done = False
         self.frame = None
+        self.upgrader = None
 
         self.said_start_playback = False
         self.decodeprogress = 0
