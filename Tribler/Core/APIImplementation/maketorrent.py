@@ -257,7 +257,7 @@ def pathlist2savefilename(pathlist, encoding):
 
 def num2num(num):
     """ Converts long to int if small enough to fit """
-    if isinstance(num, LongType) and num < sys.maxsize:
+    if isinstance(num, LongType) and num < sys.maxint:
         return int(num)
     else:
         return num

@@ -42,7 +42,6 @@ class TestGuiDialogs(TestGuiAsServer):
                 dialog.saveAll(FakeEvent(saved_event), skip_restart_dialog=True)
             except:
                 print_exc()
-            dialog.EndModal(wx.ID_CANCEL)
 
             self.assert_(saved_event.is_set(), 'did not save dialog')
             self.callLater(1, self.quit)

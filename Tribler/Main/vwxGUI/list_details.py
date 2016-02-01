@@ -600,10 +600,10 @@ class TorrentDetails(AbstractDetails):
 
             for filename, size in files:
                 try:
-                    pos = self.filesList.InsertStringItem(sys.maxsize, filename)
+                    pos = self.filesList.InsertStringItem(sys.maxint, filename)
                 except:
                     try:
-                        pos = self.filesList.InsertStringItem(sys.maxsize, filename.decode('utf-8', 'ignore'))
+                        pos = self.filesList.InsertStringItem(sys.maxint, filename.decode('utf-8', 'ignore'))
                     except:
                         self._logger.error("Could not format filename %s", self.torrent.name)
                 self.filesList.SetItemData(pos, pos)
@@ -1214,10 +1214,10 @@ class LibraryDetails(TorrentDetails):
 
             for filename, size in files:
                 try:
-                    pos = self.filesList.InsertStringItem(sys.maxsize, filename)
+                    pos = self.filesList.InsertStringItem(sys.maxint, filename)
                 except:
                     try:
-                        pos = self.filesList.InsertStringItem(sys.maxsize, filename.decode('utf-8', 'ignore'))
+                        pos = self.filesList.InsertStringItem(sys.maxint, filename.decode('utf-8', 'ignore'))
                     except:
                         self._logger.error("Could not format filename %s", self.torrent.name)
                 self.filesList.SetItemData(pos, pos)

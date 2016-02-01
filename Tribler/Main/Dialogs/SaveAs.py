@@ -150,10 +150,10 @@ class SaveAs(wx.Dialog):
 
         for filename, size in files:
             try:
-                pos = self.listCtrl.InsertStringItem(sys.maxsize, filename)
+                pos = self.listCtrl.InsertStringItem(sys.maxint, filename)
             except:
                 try:
-                    pos = self.listCtrl.InsertStringItem(sys.maxsize, filename.decode('utf-8', 'ignore'))
+                    pos = self.listCtrl.InsertStringItem(sys.maxint, filename.decode('utf-8', 'ignore'))
                 except:
                     self._logger.error("Could not format filename %s", self.torrent.name)
             self.listCtrl.SetItemData(pos, pos)

@@ -77,8 +77,8 @@ class GUIUtility(object):
         self.listicon = ListHeaderIcon.getInstance()
 
         # Add listeners to listen if tribler is starting the initialisation and closing procedures.
-        self.utility.session.add_observer(self.show_startup_splash, NTFY_STARTUP_TICK, [NTFY_CREATE])
-        self.utility.session.add_observer(self.show_close_splash, NTFY_CLOSE_TICK, [NTFY_CREATE])
+        self.utility.session.add_observer(self.on_show_startup_splash, NTFY_STARTUP_TICK, [NTFY_CREATE])
+        self.utility.session.add_observer(self.on_show_close_splash, NTFY_CLOSE_TICK, [NTFY_CREATE])
 
         # Add listeners to update ticks
         self.utility.session.add_observer(self.on_startup_tick, NTFY_STARTUP_TICK, [NTFY_INSERT])
@@ -284,7 +284,7 @@ class GUIUtility(object):
             self.frame.librarylist.Focus()
 
     @forceWxThread
-    def show_startup_splash(self, subject, changetype, objectID, *args):
+    def on_show_startup_splash(self, subject, changetype, objectID, *args):
         gui_image_manager = GuiImageManager.getInstance()
         bm = gui_image_manager.getImage(u'splash.png')
         self.startup_splash = GaugeSplash(bm, "Loading...", self.START_GAUGE_SPLASH_TICKS)
@@ -306,7 +306,7 @@ class GUIUtility(object):
             self.startup_splash.Destroy()
 
     @forceWxThread
-    def show_close_splash(self, subject, changetype, objectID, *args):
+    def on_show_close_splash(self, subject, changetype, objectID, *args):
         gui_image_manager = GuiImageManager.getInstance()
         bm = gui_image_manager.getImage(u'closescreen.png')
         self.close_splash = GaugeSplash(bm, "Closing...", self.CLOSE_GAUGE_SPLASH_TICKS)

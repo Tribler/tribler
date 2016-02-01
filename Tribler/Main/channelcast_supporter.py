@@ -13,6 +13,7 @@ import logging
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
+from Tribler.dispersy.util import call_on_reactor_thread
 
 logger = logging.getLogger(__name__)
 
