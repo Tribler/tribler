@@ -1,5 +1,5 @@
 # Written by Jelle Roozenburg, Maarten ten Brinke, Arno Bakker, Lucian Musat
-# Modified by Niels Zeilemaker
+# Modified by Niels Zeilemaker, Laurens Versluis
 # see LICENSE.txt for license information
 
 import wx
@@ -15,6 +15,7 @@ from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.Utilities.search_utils import split_into_keywords
 
+from Tribler.Core.simpledefs import NTFY_STARTUP_TICK, NTFY_CREATE, NTFY_DELETE, NTFY_CLOSE_TICK, NTFY_INSERT
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import RemoteChannel
 
@@ -28,6 +29,8 @@ from Tribler.Main.vwxGUI.gaugesplash import GaugeSplash
 class GUIUtility(object):
     __single = None
     __single_lock = Lock()
+    START_GAUGE_SPLASH_TICKS = 10
+    CLOSE_GAUGE_SPLASH_TICKS = 6
 
     def __init__(self, utility=None, params=None, app=None):
         if GUIUtility.__single:
@@ -46,6 +49,10 @@ class GUIUtility(object):
         self.startup_splash = None
         self.close_splash = None
         self.app = app
+        self.close_splash = None
+        self.startup_splash = None
+        self.startup_completed = False
+        self.close_completed = False
 
         # videoplayer
         self.videoplayer = None
@@ -68,6 +75,18 @@ class GUIUtility(object):
         from Tribler.Main.vwxGUI.list_header import ListHeaderIcon
 
         self.listicon = ListHeaderIcon.getInstance()
+
+        # Add listeners to listen if tribler is starting the initialisation and closing procedures.
+        self.utility.session.add_observer(self.show_startup_splash, NTFY_STARTUP_TICK, [NTFY_CREATE])
+        self.utility.session.add_observer(self.show_close_splash, NTFY_CLOSE_TICK, [NTFY_CREATE])
+
+        # Add listeners to update ticks
+        self.utility.session.add_observer(self.on_startup_tick, NTFY_STARTUP_TICK, [NTFY_INSERT])
+        self.utility.session.add_observer(self.on_close_tick, NTFY_CLOSE_TICK, [NTFY_INSERT])
+
+        # Add listeners to listen when to destroy the gauge splash
+        self.utility.session.add_observer(self.destroy_startup_splash, NTFY_STARTUP_TICK, [NTFY_DELETE])
+        self.utility.session.add_observer(self.destroy_close_splash, NTFY_CLOSE_TICK, [NTFY_DELETE])
 
     def getInstance(*args, **kw):
         if GUIUtility.__single is None:
@@ -264,23 +283,43 @@ class GUIUtility(object):
         elif page == 'my_files':
             self.frame.librarylist.Focus()
 
-    def show_startup_splash(self):
+    @forceWxThread
+    def show_startup_splash(self, subject, changetype, objectID, *args):
         gui_image_manager = GuiImageManager.getInstance()
         bm = gui_image_manager.getImage(u'splash.png')
-        self.startup_splash = GaugeSplash(bm, "Loading...", 13)
-        self.startup_splash.Show()
+        self.startup_splash = GaugeSplash(bm, "Loading...", self.START_GAUGE_SPLASH_TICKS)
 
-    def destroy_startup_splash(self):
+        # Check if the destroy message has already arrived. Loading the splash takes a while,
+        # so the setup may have already been completed.
+        if self.startup_completed:
+            self.destroy_startup_splash(None, None, None, None)
+
+    @forceWxThread
+    def on_startup_tick(self, subject, changetype, objectID, *args):
+        if self.startup_splash:
+            self.startup_splash.tick(args[0])
+
+    @forceWxThread
+    def destroy_startup_splash(self, subject, changetype, objectID, *args):
+        self.startup_completed = True
         if self.startup_splash:
             self.startup_splash.Destroy()
 
-    def show_close_splash(self):
+    @forceWxThread
+    def show_close_splash(self, subject, changetype, objectID, *args):
         gui_image_manager = GuiImageManager.getInstance()
         bm = gui_image_manager.getImage(u'closescreen.png')
-        self.close_splash = GaugeSplash(bm, "Closing...", 6)
-        self.close_splash.Show()
+        self.close_splash = GaugeSplash(bm, "Closing...", self.CLOSE_GAUGE_SPLASH_TICKS)
+        if self.close_completed:
+            self.destroy_close_splash(None, None, None, None)
 
-    def destroy_close_splash(self):
+    @forceWxThread
+    def on_close_tick(self, subject, changetype, objectID, *args):
+        if self.close_splash:
+            self.close_splash.tick(args[0])
+
+    @forceWxThread
+    def destroy_close_splash(self, subject, changetype, objectID, *args):
         if self.close_splash:
             self.close_splash.Destroy()
 
