@@ -342,7 +342,7 @@ class MainFrame(wx.Frame):
         self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
 
         # Init video player
-        self.utility.session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'GUI Complete')
+        self.utility.session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'GUI complete')
 
         self.Thaw()
         self.ready = True
@@ -992,8 +992,12 @@ class MainFrame(wx.Frame):
             if item != self:
                 if isinstance(item, wx.Dialog):
                     self._logger.info("mainframe: destroying %s", item)
-                    item.Destroy()
-                item.Close()
+                    if item.IsModal():
+                        item.EndModal(wx.ID_CANCEL)
+                    else:
+                        item.Destroy()
+                else:
+                    item.Close()
         self._logger.info("mainframe: destroying %s", self)
         self.Destroy()
 
