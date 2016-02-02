@@ -17,7 +17,6 @@ except ImportError as e:
 
 # Make sure the in thread reactor is installed.
 from Tribler.Core.Utilities.twisted_thread import reactor
-from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 
 # importmagic: manage
 
@@ -131,18 +130,11 @@ class ABCApp(object):
             self.guiUtility = GUIUtility.getInstance(self.utility, self.params, self)
             GUIDBProducer.getInstance()
 
-            def on_startup_tick(subject, changetype, objectID, *args):
-                self.guiUtility.startup_splash.tick(args[0])
-
-            def on_close_tick(subject, changetype, objectID, *args):
-                self.guiUtility.close_splash.tick(args[0])
-
-            self.guiUtility.show_startup_splash()
-
-            session.add_observer(on_startup_tick, NTFY_STARTUP_TICK, [NTFY_INSERT])
-            session.add_observer(on_close_tick, NTFY_CLOSE_TICK, [NTFY_INSERT])
+            # Broadcast that the initialisation is starting for the splash gauge and those who are interested
+            self.utility.session.notifier.notify(NTFY_STARTUP_TICK, NTFY_CREATE, None, None)
 
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Starting API')
+            wx.Yield()
             s = self.startAPI(session)
 
             self._logger.info('Tribler Version: %s Build: %s', version_id, commit_id)
@@ -155,14 +147,17 @@ class ABCApp(object):
                 self.utility.write_config('version_info', version_info)
 
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Starting session and upgrading database (it may take a while)')
+            wx.Yield()
             s.start()
             self.dispersy = s.lm.dispersy
 
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Loading userdownloadchoice')
+            wx.Yield()
             from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
             UserDownloadChoice.get_singleton().set_utility(self.utility)
 
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Initializing Family Filter')
+            wx.Yield()
             cat = Category.getInstance(session)
 
             state = self.utility.read_config('family_filter')
@@ -176,6 +171,7 @@ class ABCApp(object):
 
             # Create global speed limits
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Setting up speed limits')
+            wx.Yield()
 
             # Counter to suppress some event from occurring
             self.ratestatecallbackcount = 0
@@ -200,6 +196,7 @@ class ABCApp(object):
                 Instance2InstanceServer(self.utility.read_config('i2ilistenport'), self.i2ithread_readlinecallback)
 
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'GUIUtility register')
+            wx.Yield()
             self.guiUtility.register()
 
             self.frame = MainFrame(self,
@@ -240,7 +237,8 @@ class ABCApp(object):
                 # wx < 2.7 don't like wx.Image.GetHandlers()
                 print_exc()
 
-            self.guiUtility.destroy_startup_splash()
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_DELETE, None, None)
+            wx.Yield()
             self.frame.Show(True)
             session.lm.threadpool.call_in_thread(0, self.guiservthread_free_space_check)
 
@@ -272,7 +270,7 @@ class ABCApp(object):
             self.ready = True
 
         except Exception as e:
-            self.guiUtility.destroy_startup_splash()
+            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_DELETE, None, None)
             self.onError(e)
 
     def InitStage1(self, installdir, autoload_discovery=True,
@@ -832,7 +830,7 @@ class ABCApp(object):
 
     @forceWxThread
     def OnExit(self):
-        self.guiUtility.show_close_splash()
+        self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_CREATE, None, None)
 
         self._logger.info("main: ONEXIT")
         self.ready = False
@@ -840,6 +838,7 @@ class ABCApp(object):
 
         # write all persistent data to disk
         self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Write all persistent data to disk')
+        wx.Yield()
 
         if self.webUI:
             self.webUI.stop()
@@ -858,12 +857,14 @@ class ABCApp(object):
             try:
                 self._logger.info("ONEXIT cleaning database")
                 self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Cleaning database')
+                wx.Yield()
                 torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
                 torrent_db._db.clean_db(randint(0, 24) == 0, exiting=True)
             except:
                 print_exc()
 
             self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Shutdown session')
+            wx.Yield()
             self.utility.session.shutdown(hacksessconfcheckpoint=False)
 
             # Arno, 2012-07-12: Shutdown should be quick
@@ -882,6 +883,7 @@ class ABCApp(object):
             self._logger.info("ONEXIT Session is shutdown")
 
         self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Deleting instances')
+        wx.Yield()
         self._logger.debug("ONEXIT deleting instances")
 
         Session.del_instance()
@@ -891,7 +893,7 @@ class ABCApp(object):
 
         self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Exiting now')
 
-        self.guiUtility.destroy_close_splash()
+        self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_DELETE, None, None)
 
         GUIUtility.delInstance()
 

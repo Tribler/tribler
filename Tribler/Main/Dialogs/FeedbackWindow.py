@@ -45,7 +45,7 @@ class FeedbackWindow(wx.PyOnDemandOutputWindow):
             self.sysInfo.InsertColumn(1, 'value')
 
             def add(col, val):
-                pos = self.sysInfo.InsertStringItem(sys.maxsize, col)
+                pos = self.sysInfo.InsertStringItem(sys.maxint, col)
                 self.sysInfo.SetStringItem(pos, 1, val)
 
             # data

@@ -552,7 +552,7 @@ class PopularTorrentPanel(NewTorrentPanel):
         self.list.DeleteAllItems()
         for item in topTen:
             if item[2] > 0:
-                self.list.InsertStringItem(sys.maxsize, item[1])
+                self.list.InsertStringItem(sys.maxint, item[1])
         self.list.Thaw()
 
 
@@ -724,7 +724,7 @@ class NetworkGraphPanel(wx.Panel):
         # Add new circuits & update existing circuits
         for circuit_id, circuit in self.circuits.iteritems():
             if circuit_id not in self.circuit_to_listindex:
-                pos = self.circuit_list.InsertStringItem(sys.maxsize, str(circuit_id))
+                pos = self.circuit_list.InsertStringItem(sys.maxint, str(circuit_id))
                 self.circuit_to_listindex[circuit_id] = pos
             else:
                 pos = self.circuit_to_listindex[circuit_id]
