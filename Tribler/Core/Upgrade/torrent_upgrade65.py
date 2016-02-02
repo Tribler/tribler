@@ -87,6 +87,8 @@ class TorrentMigrator65(TorrentMigrator64):
                 file_path = os.path.join(root, name)
                 try:
                     tdef = TorrentDef.load(file_path)
+                    # TODO(emilon): This should be moved out of the try block so
+                    # an error there doesn't wipe the whole torrent collection.
                     with open(file_path, 'rb') as torrent_file:
                         self.torrent_store[hexlify(tdef.infohash)] = torrent_file.read()
                     # self.torrent_store[hexlify(tdef.infohash)] = tdef.encode()

@@ -1,4 +1,5 @@
 Tribler usr/share/tribler
+Tribler/schema_sdb_v28.sql usr/share/tribler/Tribler
 Tribler/Main/Build/Ubuntu/tribler.desktop usr/share/applications
 Tribler/Main/Build/Ubuntu/tribler.xpm usr/share/pixmaps
 Tribler/Main/Build/Ubuntu/tribler_big.xpm usr/share/pixmaps

@@ -102,6 +102,7 @@ class ABCApp(object):
         self.ready = False
         self.done = False
         self.frame = None
+        self.upgrader = None
 
         # DISPERSY will be set when available
         self.dispersy = None
@@ -356,6 +357,10 @@ class ABCApp(object):
         session.add_observer(self.show_upgrade_dialog, NTFY_UPGRADER, [NTFY_STARTED])
         self.upgrader = session.prestart()
 
+        while not self.upgrader.is_done:
+            wx.SafeYield()
+            sleep(0.1)
+
         return session
 
     @forceWxThread
@@ -592,7 +597,13 @@ class ABCApp(object):
                         # copy the old download_config and change the hop count
                         dscfg = download.copy()
                         dscfg.set_hops(self.utility.read_config('default_number_hops'))
-                        reactor.callInThread(self.utility.session.start_download, tdef, dscfg)
+
+                        # TODO(emilon): That's a hack to work around the fact
+                        # that removing a torrent is racy.
+                        self.utility.session.lm.threadpool.call(0.5,
+                                                                reactor.callInThread,
+                                                                self.utility.session.start_download,
+                                                                tdef, dscfg)
 
             self.prevActiveDownloads = newActiveDownloads
             if doCheckpoint:

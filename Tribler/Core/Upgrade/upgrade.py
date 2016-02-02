@@ -26,9 +26,13 @@ class TriblerUpgrader(object):
         self.session = session
         self.db = db
 
+        self.notified = False
         self.is_done = False
         self.failed = True
 
+        self.current_status = u"Initializing"
+
+    def run(self):
         self.current_status = u"Checking Tribler version..."
         if self.session.get_current_startup_config_copy().get_upgrader_enabled():
             failed, has_to_upgrade = self.check_should_upgrade()
@@ -76,11 +80,9 @@ class TriblerUpgrader(object):
             msg = u"The on-disk tribler database is newer than your tribler version. Your database will be backed up."
             self.current_status = msg
             self._logger.info(msg)
-            self.failed = True
         elif self.db.version < LOWEST_SUPPORTED_DB_VERSION:
             msg = u"Database is too old %s < %s" % (self.db.version, LOWEST_SUPPORTED_DB_VERSION)
             self.current_status = msg
-            self.failed = True
         elif self.db.version == LATEST_DB_VERSION:
             self._logger.info(u"tribler is in the latest version, no need to upgrade")
             self.failed = False
@@ -88,13 +90,14 @@ class TriblerUpgrader(object):
             self.notify_done()
         else:
             should_upgrade = True
+            self.failed = False
 
         return (self.failed, should_upgrade)
 
 
     @call_on_reactor_thread
     @inlineCallbacks
-    def upgrade_database_to_current_version(self, failed):
+    def upgrade_database_to_current_version(self):
         """ Checks the database version and upgrade if it is not the latest version.
         """
         try:

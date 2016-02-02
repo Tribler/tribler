@@ -126,6 +126,14 @@ class GUIUtility(object):
             raise RuntimeError('GuiUtility is already registered')
 
     def ShowPlayer(self):
+        # TODO(emilon): Hack to work around video player tab not been properly
+        # drawn when clicking on the stream button of a search result which
+        # hasn't had it's torrent fetched.
+        wx.SafeYield()
+        self.showLibrary()
+        wx.SafeYield()
+        #EO Hack
+
         if self.frame.videoparentpanel:
             self.ShowPage('videoplayer')
 

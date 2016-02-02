@@ -160,6 +160,7 @@ class Session(SessionConfigInterface):
         self.sqlite_db.initialize()
         self.sqlite_db.initial_begin()
         self.upgrader = TriblerUpgrader(self, self.sqlite_db)
+        self.upgrader.run()
         return self.upgrader
 
     #
