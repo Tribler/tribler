@@ -162,8 +162,8 @@ class ABCApp(object):
 
             self.utility = Utility(self.installdir, s.get_state_dir())
 
-            if self.utility.read_config(u'saveas'):
-                DefaultDownloadStartupConfig.getInstance().set_dest_dir(self.utility.read_config(u'saveas'))
+            if self.utility.read_config(u'saveas', u'downloadconfig'):
+                DefaultDownloadStartupConfig.getInstance().set_dest_dir(self.utility.read_config(u'saveas', u'downloadconfig'))
 
             self.utility.set_app(self)
             self.utility.set_session(s)
