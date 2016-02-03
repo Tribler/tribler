@@ -873,6 +873,7 @@ class NetworkGraphPanel(wx.Panel):
         eo = event.GetEventObject()
         dc = wx.BufferedPaintDC(eo)
         dc.SetFont(self.font_large)
+        dc.SetBackground(wx.WHITE_BRUSH)
         dc.Clear()
         gc = wx.GraphicsContext.Create(dc)
 
