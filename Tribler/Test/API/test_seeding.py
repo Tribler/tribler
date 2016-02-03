@@ -1,6 +1,7 @@
 # Written by Arno Bakker, heavy modified by Niels Zeilemaker
 # see LICENSE.txt for license information
 
+import logging
 import os
 import socket
 import sys
@@ -23,6 +24,10 @@ class TestSeeding(TestAsServer):
     """
     Testing seeding via new tribler API:
     """
+
+    def __init__(self, *argv, **kwargs):
+        super(TestSeeding, self).__init__(*argv, **kwargs)
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     def setUp(self):
         """ override TestAsServer """
@@ -103,7 +108,7 @@ class TestSeeding(TestAsServer):
             self.assert_(len(resp) > 0)
             self.assert_(resp[0] == EXTEND)
         except socket.timeout:
-            print >> sys.stderr, "test: Timeout, peer didn't reply"
+            self._logger.error("Timeout, peer didn't reply")
             self.assert_(False)
         s.close()
 

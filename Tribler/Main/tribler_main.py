@@ -227,7 +227,6 @@ class ABCApp(object):
                 bmphand = None
                 hands = wx.Image.GetHandlers()
                 for hand in hands:
-                    # print "Handler",hand.GetExtension(),hand.GetType(),hand.GetMimeType()
                     if hand.GetMimeType() == 'image/x-bmp':
                         bmphand = hand
                         break
