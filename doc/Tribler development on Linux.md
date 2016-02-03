@@ -51,3 +51,8 @@ Using the file navigator to go to the download folder and by clicking on the .de
 Now installing the list of dependencies should no longer throw an error.
 
 If there are any problems with the guide above, please feel free to fix any errors or [create an issue](https://github.com/Tribler/tribler/issues/new) so we can look into it.
+
+#### Arch Linux
+```bash
+sudo pacman -S libsodium libtorrent-rasterbar python2-apsw python2-cherrypy python2-cryptography python2-decorator python2-feedparser python2-gmpy2 python2-m2crypto python2-netifaces python2-pillow python2-plyvel python2-requests python2-twisted wxpython2.8
+```
