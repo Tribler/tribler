@@ -1,42 +1,36 @@
 # Written by Niels Zeilemaker
-import sys
-import logging
-from math import log
-import re
 import copy
+import logging
+import re
+import sys
+from colorsys import hsv_to_rgb, rgb_to_hsv
+from math import log
+from time import time
 
 import wx
 from wx.lib.wordwrap import wordwrap
-from time import time
-from colorsys import hsv_to_rgb, rgb_to_hsv
 
 from Tribler.Category.Category import Category
-
-from Tribler.Core.simpledefs import (DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR,
-                                     DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING)
 from Tribler.Core.exceptions import NotYetImplementedException
-
+from Tribler.Core.simpledefs import (DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR,
+                                     DLSTATUS_WAITING4HASHCHECK)
+from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, cancelWorker, startWorker
+from Tribler.Main.Utility.GuiDBTuples import Channel, ChannelTorrent, CollectedTorrent, Torrent
+from Tribler.Main.Utility.utility import eta_value, size_format, speed_format
+from Tribler.Main.vwxGUI import (DEFAULT_BACKGROUND, GRADIENT_DGREY, GRADIENT_LGREY, LIST_DESELECTED, LIST_GREEN,
+                                 LIST_GREY, LIST_ORANGE, SEPARATOR_GREY, TRIBLER_RED, format_time, warnWxThread)
+from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-
-from Tribler.Main.vwxGUI import (warnWxThread, DEFAULT_BACKGROUND, LIST_GREY, LIST_GREEN, LIST_ORANGE, LIST_DESELECTED,
-                                 SEPARATOR_GREY, GRADIENT_LGREY, GRADIENT_DGREY, TRIBLER_RED, format_time)
-from Tribler.Main.vwxGUI.list_header import ListHeader, DownloadFilter, TorrentFilter, ChannelFilter
-from Tribler.Main.vwxGUI.list_body import ListBody, FixedListBody
+from Tribler.Main.vwxGUI.list_body import FixedListBody, ListBody
+from Tribler.Main.vwxGUI.list_details import (ChannelDetails, ChannelInfoPanel, ChannelsExpandedPanel, LibraryDetails,
+                                              LibraryInfoPanel, SearchInfoPanel, TorrentDetails, VideoplayerExpandedPanel)
 from Tribler.Main.vwxGUI.list_footer import ListFooter
-from Tribler.Main.vwxGUI.list_item import (ChannelListItem, TorrentListItem, ChannelListItemAssociatedTorrents,
-                                           ColumnsManager, LibraryListItem, DragItem, ActivityListItem)
-from Tribler.Main.vwxGUI.list_details import (TorrentDetails, ChannelDetails, SearchInfoPanel, LibraryDetails,
-                                              LibraryInfoPanel, ChannelInfoPanel, ChannelsExpandedPanel,
-                                              VideoplayerExpandedPanel)
-from Tribler.Main.vwxGUI.widgets import (HorizontalGauge, TorrentStatus, FancyPanel, TransparentStaticBitmap, _set_font,
-                                         SwarmHealth, LinkStaticText, TransparentText, TagText, BetterText)
-
-from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
-from Tribler.Main.Utility.GuiDBTuples import Torrent, CollectedTorrent, ChannelTorrent, Channel
-
-from Tribler.Main.Utility.utility import eta_value, size_format, speed_format
+from Tribler.Main.vwxGUI.list_header import ChannelFilter, DownloadFilter, ListHeader, TorrentFilter
+from Tribler.Main.vwxGUI.list_item import (ActivityListItem, ChannelListItem, ChannelListItemAssociatedTorrents,
+                                           ColumnsManager, DragItem, LibraryListItem, TorrentListItem)
+from Tribler.Main.vwxGUI.widgets import (BetterText, FancyPanel, HorizontalGauge, LinkStaticText, SwarmHealth, TagText,
+                                         TorrentStatus, TransparentStaticBitmap, TransparentText, _set_font)
 
 
 DEBUG_RELEVANCE = False

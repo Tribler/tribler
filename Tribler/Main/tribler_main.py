@@ -591,12 +591,14 @@ class ABCApp(object):
                         doCheckpoint = True
 
                     elif download.get_hops() == 0 and download.get_safe_seeding():
-                        self._logger.info("Re-add torrent with default nr of hops to prevent naked seeding")
+                        hops = self.utility.read_config('default_number_hops')
+                        self._logger.info("Moving completed torrent to tunneled session %d for hidden sedding %r",
+                                          hops, download)
                         self.utility.session.remove_download(download)
 
                         # copy the old download_config and change the hop count
                         dscfg = download.copy()
-                        dscfg.set_hops(self.utility.read_config('default_number_hops'))
+                        dscfg.set_hops(hops)
 
                         # TODO(emilon): That's a hack to work around the fact
                         # that removing a torrent is racy.

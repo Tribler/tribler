@@ -140,6 +140,14 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.cew_scheduled = False
         self.askmoreinfo = False
 
+        self.correctedinfoname = u""
+
+    def __str__(self):
+        return "LibtorrentDownloadImpl <name: '%s' hops: %d hide: %d>" % (self.correctedinfoname, self.get_hops(), self.hide)
+
+    def __repr__(self):
+        return self.__str__()
+
     def get_def(self):
         return self.tdef
 

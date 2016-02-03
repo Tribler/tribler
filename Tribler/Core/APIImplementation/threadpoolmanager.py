@@ -27,15 +27,20 @@ class ThreadPoolManager(TaskManager):
         return task_name
 
     def add_task(self, wrapper, delay=0, task_name=None):
+        """Add task to be called in twisted thread"""
         assert wrapper
 
-        reactor.callFromThread(lambda: self.register_task(self._check_task_name(task_name), self._reactor.callLater(delay, wrapper)))
+        reactor.callFromThread(
+            lambda: self.register_task(self._check_task_name(task_name),
+                                  self._reactor.callLater(delay, wrapper)))
 
     def add_task_in_thread(self, wrapper, delay=0, task_name=None):
+        """Add task to be called in thread pool"""
         assert wrapper
 
         def delayed_call(delay, task_name):
-            self.register_task(self._check_task_name(task_name), self._reactor.callLater(delay, reactor.callInThread, wrapper))
+            self.register_task(self._check_task_name(task_name),
+                               self._reactor.callLater(delay, reactor.callInThread, wrapper))
 
         reactor.callFromThread(delayed_call, delay, task_name)
 

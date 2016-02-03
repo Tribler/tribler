@@ -250,8 +250,7 @@ class TriblerLaunchMany(TaskManager):
     def add(self, tdef, dscfg, pstate=None, initialdlstatus=None, setupDelay=0, hidden=False):
         """ Called by any thread """
         d = None
-        self.sesslock.acquire()
-        try:
+        with self.sesslock:
             if not isinstance(tdef, TorrentDefNoMetainfo) and not tdef.is_finalized():
                 raise ValueError("TorrentDef not finalized")
 
@@ -274,9 +273,6 @@ class TriblerLaunchMany(TaskManager):
             self.downloads[infohash] = d
             d.setup(dscfg, pstate, initialdlstatus, self.network_engine_wrapper_created_callback,
                     wrapperDelay=setupDelay)
-
-        finally:
-            self.sesslock.release()
 
         if d and not hidden and self.session.get_megacache():
             @forceDBThread
