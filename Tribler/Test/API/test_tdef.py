@@ -4,13 +4,14 @@
 # TODO:
 #
 
+import logging
 import os
-from libtorrent import bdecode
 
-from Tribler.Test.test_as_server import BaseTestCase, TESTS_DATA_DIR, TESTS_API_DIR
+from libtorrent import bdecode
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import isValidTorrentFile
+from Tribler.Test.test_as_server import BaseTestCase, TESTS_API_DIR, TESTS_DATA_DIR
 
 
 DEBUG = False
@@ -25,6 +26,9 @@ class TestTorrentDef(BaseTestCase):
     """
     Testing TorrentDef version 0
     """
+    def __init__(self, *argv, **kwargs):
+        super(TestTorrentDef, self).__init__(*argv, **kwargs)
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     def test_add_content_file(self):
         self.subtest_add_content_file()
@@ -88,9 +92,9 @@ class TestTorrentDef(BaseTestCase):
             p = os.path.join(dn, f)
             s = os.path.getsize(p)
             exps += s
-            print "test: expected size", f, s
+            self._logger.debug("Expected size %s %d", f, s)
 
-        print "test: expected total size of files in torrent", exps
+        self._logger.debug("Expected total size of files in torrent %d", exps)
 
         metainfo = t.get_metainfo()
         self.general_check(metainfo)
@@ -99,10 +103,10 @@ class TestTorrentDef(BaseTestCase):
         reals = 0
         for file in metainfo['info']['files']:
             s = file['length']
-            print "test: real size", file['path'], s
+            self._logger.debug("real size %s %d", file['path'], s)
             reals += s
 
-        print "test: real size of files in torrent", reals
+        self._logger.debug("Real size of files in torrent %d", reals)
 
         self.assert_(exps == reals)
 
