@@ -621,7 +621,11 @@ class LibraryManager(object):
                     self.wantpeers.append(h)
 
     def addDownloadState(self, torrent):
-        # Add downloadstate data to a torrent instance
+        """
+        Add downloadstate data to a torrent instance.
+        """
+        if torrent is None:
+            return None
         for ds in self.dslist:
             torrent.addDs(ds)
         if torrent.infohash in self.magnetlist:
@@ -629,7 +633,13 @@ class LibraryManager(object):
         return torrent
 
     def addDownloadStates(self, torrentlist):
+        """
+        Adds download states to each torrent.  This will skip torrents that
+        are not defined, but are part of the torrent list.
+        """
         for torrent in torrentlist:
+            if torrent is None:
+                continue
             for ds in self.dslist:
                 torrent.addDs(ds)
             if torrent.infohash in self.magnetlist:
