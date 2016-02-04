@@ -52,7 +52,8 @@ def threaded_reactor():
 
         def _reactor_runner():
             reactor.suggestThreadPoolSize(1)
-            reactor.run(installSignalHandlers=False)
+            if not reactor.running:
+                reactor.run(installSignalHandlers=False)
 
         _twisted_thread = Thread(target=_reactor_runner, name="Twisted")
         _twisted_thread.setDaemon(True)
