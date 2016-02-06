@@ -35,6 +35,7 @@
 # Code:
 
 
+import logging
 import threading
 from os import sys
 from threading import Lock, RLock, Thread
@@ -93,6 +94,7 @@ class WatchDog(Thread):
         self.times = {}
 
         self._synchronized_lock = Lock()
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     @synchronized
     def _reset_state(self):
@@ -124,7 +126,7 @@ class WatchDog(Thread):
         self._registered_events.pop(name, None)
 
     def printe(self, line):
-            print >> sys.stderr, line
+            self._logger.error(line)
 
     def run(self):
         self._reset_state()
