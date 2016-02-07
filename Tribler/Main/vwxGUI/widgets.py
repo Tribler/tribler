@@ -1331,15 +1331,15 @@ class FancyPanel(wx.Panel):
 class MinMaxSlider(wx.Panel):
 
     def __init__(self, *args, **kwargs):
-        self.slider_size = kwargs.pop('slider_size', (100, 25))
-        wx.Panel.__init__(self, *args, **kwargs)
+        slider_size = (272, 25)
+        wx.Panel.__init__(self, size=slider_size, *args)
+        self.slider_size = slider_size
         self.SetBackgroundColour(self.GetParent().GetBackgroundColour())
         self.SetForegroundColour(self.GetParent().GetForegroundColour())
         self.base = 1.7
         self.LoadIcons()
         self.SetMinMax(0, 0)
         self.text_spacers = [self.GetTextExtent('T' * 11)[0]] * 2
-        self.SetSize((sum(self.text_spacers) + self.slider_size[0], -1))
         self.Reset()
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
@@ -1359,7 +1359,7 @@ class MinMaxSlider(wx.Panel):
     def SetCurrentValues(self, min_val, max_val):
         if self.max - self.min == 0 or min_val == 0:
             w, h = self.arrow_up.GetSize()
-            self.arrow_up_rect = [self.range[0], self.GetClientRect()[3] / 2 + 1, w, h]
+            self.arrow_up_rect = [self.range[0], self.slider_size[1] / 2 + 1, w, h]
         else:
             length = self.range[1] - self.range[0]
             min_val = (min_val - self.min) / float(self.max - self.min)
@@ -1368,7 +1368,7 @@ class MinMaxSlider(wx.Panel):
 
         if self.max - self.min == 0 or max_val == 0:
             w, h = self.arrow_down.GetSize()
-            self.arrow_down_rect = [self.range[1], self.GetClientRect()[3] / 2 - h - 1, w, h]
+            self.arrow_down_rect = [self.range[1], self.slider_size[1] / 2 - h - 1, w, h]
         else:
             length = self.range[1] - self.range[0]
             max_val = (max_val - self.min) / float(self.max - self.min)
@@ -1424,9 +1424,9 @@ class MinMaxSlider(wx.Panel):
     def Reset(self):
         w, h = self.arrow_down.GetSize()
         self.range = [self.text_spacers[0], self.GetSize()[0] - w - self.text_spacers[1]]
-        self.arrow_down_rect = [self.range[1], self.GetClientRect()[3] / 2 - h - 1, w, h]
+        self.arrow_down_rect = [self.range[1], self.slider_size[1] / 2 - h - 1, w, h]
         self.arrow_down_drag = False
-        self.arrow_up_rect = [self.range[0], self.GetClientRect()[3] / 2 + 1, w, h]
+        self.arrow_up_rect = [self.range[0], self.slider_size[1] / 2 + 1, w, h]
         self.arrow_up_drag = False
 
         self.SetMinMax(0, 0)
