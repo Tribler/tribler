@@ -706,7 +706,7 @@ class SettingsDialog(wx.Dialog):
 
         self._use_emc.SetValue(self.utility.read_config('use_emc'))
         self._emc_ip.SetValue(self.utility.read_config('emc_ip'))
-        self._emc_port.SetValue(self.utility.read_config('emc_port'))
+        self._emc_port.SetValue(str(self.utility.read_config('emc_port')))
         self._emc_username.SetValue(self.utility.read_config('emc_username'))
         self._emc_password.SetValue(self.utility.read_config('emc_password'))
 
