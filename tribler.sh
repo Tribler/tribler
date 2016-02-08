@@ -27,7 +27,8 @@ if [ "$UNAME" = "Linux" ]; then
     }
 
     python2.7 $TRIBLER_SCRIPT
-
+elif [ ! -z `uname -s | grep CYGWIN_NT` ]; then
+    python $TRIBLER_SCRIPT
 else
     if [ "$UNAME" = "Darwin" ]; then
 
