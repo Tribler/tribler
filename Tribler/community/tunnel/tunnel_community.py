@@ -1275,9 +1275,17 @@ class TunnelCommunity(Community):
             return self.crypto.encrypt_str(content,
                                            *self.get_session_keys(self.relay_session_keys[circuit_id], ORIGINATOR))
         elif direction == EXIT_NODE:
-            return self.crypto.decrypt_str(content,
-                                           self.relay_session_keys[circuit_id][EXIT_NODE],
-                                           self.relay_session_keys[circuit_id][EXIT_NODE_SALT])
+            try:
+                return self.crypto.decrypt_str(content,
+                                               self.relay_session_keys[circuit_id][EXIT_NODE],
+                                               self.relay_session_keys[circuit_id][EXIT_NODE_SALT])
+            except InvalidTag:
+                self._logger.warning("Could not decrypt message:\n"
+                                     "  direction %s\n"
+                                     "  circuit_id: %r\n"
+                                     "  content: : %r\n"
+                                     "  Possibly corrupt data?",
+                                     direction, circuit_id, content)
 
         raise CryptoException("Direction must be either ORIGINATOR or EXIT_NODE")
 
