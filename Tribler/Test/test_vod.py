@@ -113,7 +113,7 @@ class TestVideoOnDemand(TestAsServer):
     def test_99(self):
         self.event = Event()
         self.contentlen = 99
-        self.piecelen = 10
+        self.piecelen = 16
         self.create_torrent()
 
         self._logger.debug("Letting network thread create Download, sleeping")
@@ -122,7 +122,7 @@ class TestVideoOnDemand(TestAsServer):
     def test_100(self):
         self.event = Event()
         self.contentlen = 100
-        self.piecelen = 10
+        self.piecelen = 16
         self.create_torrent()
 
         self._logger.debug("Letting network thread create Download, sleeping")
@@ -131,7 +131,7 @@ class TestVideoOnDemand(TestAsServer):
     def test_101(self):
         self.event = Event()
         self.contentlen = 101
-        self.piecelen = 10
+        self.piecelen = 16
         self.create_torrent()
 
         self._logger.debug("Letting network thread create Download, sleeping")
