@@ -1223,21 +1223,17 @@ class ManageChannel(AbstractDetails):
 
         text = "Tribler allows you to involve your community. "
         text += "You as a channel-owner have the option to define the openness of your community. "
-        text += "By choosing a more open setting, other users are allowed to do more.\n\n"
-
-        text += "Currently three configurations exist:\n"
-        text += "\tOpen, only you can define playlists and delete torrents. Other users can do everything else, ie add torrents, categorize torrents, comment etc.\n"
-        text += "\tSemi-Open, only you can add new .torrents. Other users can download and comment on them.\n"
-        text += "\tClosed, only you can add new .torrents. Other users can only download them."
+        text += "By choosing a more open setting, other users are allowed to do more.\n"
         vSizer.Add(wx.StaticText(self.settingspage, -1, text), 0, wx.EXPAND | wx.ALL, 10)
 
-        gridSizer = wx.FlexGridSizer(0, 2, 3, 3)
-        gridSizer.AddGrowableCol(1)
-        gridSizer.AddGrowableRow(1)
+        text = "Currently three configurations exist:\n"
+        text += "- Open, only you can define playlists and delete torrents. Other users can do everything else, ie add torrents, categorize torrents, comment etc.\n"
+        text += "- Semi-Open, only you can add new .torrents. Other users can download and comment on them.\n"
+        text += "- Closed, only you can add new .torrents. Other users can only download them."
+        vSizer.Add(wx.StaticText(self.settingspage, -1, text), 0, wx.EXPAND | wx.ALL, 10)
 
         self.statebox = wx.RadioBox(self.settingspage, choices=('Open', 'Semi-Open', 'Closed'), style=wx.RA_VERTICAL)
-        self._add_row(self.settingspage, gridSizer, "Configuration", self.statebox)
-        vSizer.Add(gridSizer, 0, wx.EXPAND | wx.RIGHT, 10)
+        vSizer.Add(self.statebox, 0, wx.ALL, 10)
 
         saveButton = wx.Button(self.settingspage, -1, 'Save Changes')
         saveButton.Bind(wx.EVT_BUTTON, self.SaveSettings)
