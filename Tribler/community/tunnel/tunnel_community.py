@@ -912,7 +912,7 @@ class TunnelCommunity(Community):
             circuit_id = message.payload.circuit_id
 
             if self.settings.max_relays_or_exits <= len(self.relay_from_to) + len(self.exit_sockets):
-                self.tunnel_logger.error('TunnelCommunity: ignoring create for circuit %d from %s (too many relays %d)',
+                self.tunnel_logger.warning('TunnelCommunity: ignoring create for circuit %d from %s (too many relays %d)',
                                          circuit_id,
                                          candidate.sock_addr,
                                          len(self.relay_from_to) + len(self.exit_sockets))
