@@ -2391,7 +2391,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
     def OnChange(self):
         self.Freeze()
 
-        max_height = self.guiutility.frame.actlist.GetSize().y - self.GetParent().GetPosition()[1] * 1.25 - 4
+        max_height = self.guiutility.frame.actlist.GetSize().y - self.GetParent().GetPosition()[1] * 1.25 - 16
         virtual_height = sum([link.text.GetSize()[1]
                              for link in self.links]) if self.links else (30 if self.message else 0)
         best_height = min(max_height, virtual_height)
