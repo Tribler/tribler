@@ -9,12 +9,12 @@ from Tribler.Test.test_as_server import TestGuiAsServer, TESTS_DATA_DIR
 from Tribler.Core.simpledefs import DOWNLOAD
 
 
-TORRENT_R = r'http://torrent.fedoraproject.org/torrents/Fedora-Live-Workstation-x86_64-21.torrent'
-TORRENT_INFOHASH = binascii.unhexlify('89f0835dc2def218ec4bac73da6be6b8c20534ea')
+TORRENT_R = r'http://torrent.ubuntu.com/releases/wily/release/server/ubuntu-15.10-server-ppc64el.iso.torrent'
+TORRENT_INFOHASH = binascii.unhexlify('9874df3783f8de52f944032b9affe4a5c88bc9fe')
 TORRENT_FILE = os.path.join(TESTS_DATA_DIR, "ubuntu-15.04-desktop-amd64.iso.torrent")
 TORRENT_FILE_INFOHASH = binascii.unhexlify("fc8a15a2faf2734dbb1dc5f7afdc5c9beaeb1f59")
 TORRENT_VIDEO_FILE = os.path.join(TESTS_DATA_DIR, "Night.Of.The.Living.Dead_1080p_archive.torrent")
-TORRENT_VIDEO_FILE_INFOHASH = binascii.unhexlify("0d6bbc31db060e7082f85a87194d4273aea9924c")
+TORRENT_VIDEO_FILE_INFOHASH = binascii.unhexlify("90ed3962785c52a774e89706fb4f811a468e6c05")
 TORRENT_VIDEO_FILE_SELECTED_FILE = os.path.join('NightOfTheLivingDead_1080p.ogv',)
 
 
@@ -120,7 +120,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
         self.startTest(do_downloadfrommagnet)
 
     def test_stopresumedelete(self):
-        infohash = TORRENT_INFOHASH
+        infohash = TORRENT_VIDEO_FILE_INFOHASH
 
         def do_final():
             self.screenshot('After deleting a libtorrent download')
@@ -160,7 +160,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
 
         def do_start():
             self.guiUtility.showLibrary()
-            self.frame.startDownloadFromArg(TORRENT_R, self.getDestDir())
+            self.frame.startDownloadFromArg('file:' + TORRENT_VIDEO_FILE, self.getDestDir())
             self.CallConditional(60, lambda: self.session.get_download(infohash), download_object_ready,
                                  'do_start() failed')
 

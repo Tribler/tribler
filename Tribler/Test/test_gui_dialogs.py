@@ -10,6 +10,7 @@ from traceback import print_exc
 
 # Import WX after selecting the version
 from Tribler.Test.test_as_server import TestGuiAsServer, TESTS_DATA_DIR, wx
+from Tribler.Test.test_libtorrent_download import TORRENT_VIDEO_FILE
 
 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
 from Tribler.Main.Dialogs.AddTorrent import AddTorrent
@@ -96,7 +97,7 @@ class TestGuiDialogs(TestGuiAsServer):
             self.assert_(isinstance(dialog, AddTorrent), 'could not find AddTorrent')
 
             self.callLater(1, lambda: do_assert(dialog))
-            dialog.magnet.SetValue(r'http://torrent.fedoraproject.org/torrents/Fedora-20-i386-DVD.torrent')
+            dialog.magnet.SetValue('file:' + TORRENT_VIDEO_FILE)
             dialog.OnAdd(None)
 
         def do_add_dialog():
