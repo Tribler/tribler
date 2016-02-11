@@ -22,9 +22,7 @@ To revert back to your original version of Tribler, [download the installer agai
     * The version of Tribler that you are using, if you are running from a branch, branch name and commit ID.
     * The OS and version you are running.
     * Step by step instructions to reproduce the issue in case it's a bug.
-    * Attach Tribler's log file found in `%APPDATA%` on Windows or on
-      `~/.Tribler/` on Linux/OSX (have a look at its contents before posting it
-      in case you want to edit out something)
+* Attach Tribler's log file. On Windows, these are found in `%APPDATA%`. On Linux distributions, the log file is located in `~/.Tribler/`. On OS X, the crash logs can be found in `~/Library/Logs/DiagnosticReports` and logger output can be found in the `syslog`. The location of this log is `/var/log/system.log`. You can use the following command to extract Tribler-related lines from the syslog: `syslog -C |grep -i tribler > ~/tribler.log`. Please have a look at the content of the log files before posting it in case you want to edit out something.
     * Does it still happen if you move `%APPDATA\.Tribler` away temporarily? (Do _not_ delete it!)
     * Do you have any other software installed that might interfere with Tribler?
 
