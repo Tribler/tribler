@@ -5,6 +5,7 @@ from binascii import hexlify
 import os
 
 from Tribler.Test.common import UBUNTU_1504_INFOHASH
+from Tribler.Test.test_libtorrent_download import TORRENT_R
 from Tribler.Test.test_as_server import TestGuiAsServer, TESTS_DATA_DIR
 
 from Tribler.Core.TorrentDef import TorrentDef
@@ -31,7 +32,7 @@ class TestMyChannel(TestGuiAsServer):
                 60, lambda: len(managefiles.GetItems()) > 0, do_files_check, 'Channel did not have torrents')
 
         def do_rss():
-            self.managechannel.rss_url.SetValue(r'http://torrent.fedoraproject.org/rss20.xml')
+            self.managechannel.rss_url.SetValue(os.path.join(TESTS_DATA_DIR, 'test_rss.xml'))
             self.managechannel.OnAddRss()
 
             # switch to manage tab
@@ -93,8 +94,7 @@ class TestMyChannel(TestGuiAsServer):
             managefiles = self.managechannel.fileslist
             manager = managefiles.GetManager()
             manager.startDownload(torrentfilename, fixtorrent=True)
-            manager.startDownloadFromUrl(
-                r'http://torrent.fedoraproject.org/torrents/Fedora-20-i386-DVD.torrent', fixtorrent=True)
+            manager.startDownloadFromUrl(TORRENT_R, fixtorrent=True)
             manager.startDownloadFromMagnet(
                 r'magnet:?xt=urn:btih:%s&dn=ubuntu-14.04.2-desktop-amd64.iso' % hexlify(UBUNTU_1504_INFOHASH), fixtorrent=True)
 
