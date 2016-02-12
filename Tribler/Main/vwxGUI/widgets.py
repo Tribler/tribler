@@ -1070,15 +1070,20 @@ class ActionButton(wx.Panel):
     def OnPaint(self, event):
         # Draw the background
         dc = wx.BufferedPaintDC(self)
-        dc.SetBackground(wx.Brush(self.GetBackgroundColour()))
         dc.Clear()
+        dc.SetBackground(wx.Brush(self.GetParent().GetBackgroundColour()))
         if hasattr(self.GetParent(), 'bitmap'):
             if not self.GetParent().bitmap:
                 wx.CallLater(100, self.Refresh)
             else:
+                # Here the background bitmap of the button is set by cutting out a part of the bitmap of the parent
+                # that's below this button and setting this as the background.
+                # This is to ensure the rounded corners do not have a different color than the parent background.
                 rect = self.GetRect().Intersect(wx.Rect(0, 0, *self.GetParent().bitmap.GetSize()))
-                sub = self.GetParent().bitmap.GetSubBitmap(rect)
-                dc.DrawBitmap(sub, 0, 0)
+                # When resizing violently, sometimes the rectangle computed differs from the widget's size.
+                if rect.GetSize() == self.GetSize():
+                    sub = self.GetParent().bitmap.GetSubBitmap(rect)
+                    dc.DrawBitmap(sub, 0, 0)
         # Draw the button using a gc (dc doesn't do transparency very well)
         bitmap = self.GetBitmap()
         gc = wx.GraphicsContext.Create(dc)
