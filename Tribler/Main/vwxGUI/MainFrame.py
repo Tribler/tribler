@@ -347,6 +347,8 @@ class MainFrame(wx.Frame):
         self.Thaw()
         self.ready = True
 
+        self.SetMinSize((800, 600))
+
         def post():
             self.startCMDLineTorrent()
 
