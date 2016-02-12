@@ -1275,9 +1275,32 @@ class TunnelCommunity(Community):
             return self.crypto.encrypt_str(content,
                                            *self.get_session_keys(self.relay_session_keys[circuit_id], ORIGINATOR))
         elif direction == EXIT_NODE:
-            return self.crypto.decrypt_str(content,
-                                           self.relay_session_keys[circuit_id][EXIT_NODE],
-                                           self.relay_session_keys[circuit_id][EXIT_NODE_SALT])
+            try:
+                return self.crypto.decrypt_str(content,
+                                               self.relay_session_keys[circuit_id][EXIT_NODE],
+                                               self.relay_session_keys[circuit_id][EXIT_NODE_SALT])
+            except InvalidTag:
+                # Reasons that can cause this:
+                # - The introductionpoint circuit is extended with a candidate
+                # that is already part of the circuit, causing a crypto error.
+                # Should not happen anyway, thorough analysis of the debug log
+                # may reveal why and how this candidate is discovered.
+                #
+                # - The pubkey of the introduction point changed (e.g. due to a
+                # restart), while other peers in the network are still exchanging
+                # the old key information.
+                #- A hostile peer may have forged the key of a candidate while
+                # pexing information about candidates, thus polluting the network
+                # with wrong information. I doubt this is the case but it's
+                # possible. :)
+                # (from https://github.com/Tribler/tribler/issues/1932#issuecomment-182035383)
+
+                self._logger.warning("Could not decrypt message:\n"
+                                     "  direction %s\n"
+                                     "  circuit_id: %r\n"
+                                     "  content: : %r\n"
+                                     "  Possibly corrupt data?",
+                                     direction, circuit_id, content)
 
         raise CryptoException("Direction must be either ORIGINATOR or EXIT_NODE")
 
