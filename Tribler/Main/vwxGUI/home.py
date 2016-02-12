@@ -1033,7 +1033,7 @@ class ArtworkPanel(wx.Panel):
         self.refreshNow()
 
     def refreshNow(self):
-        startWorker(self.SetData, self.GetTorrents)
+        startWorker(self.SetData, self.GetTorrents, uId=u"ArtworkPanel_refresh")
 
     def GetTorrents(self):
         torrents = self.guiutility.torrentsearch_manager.getThumbnailTorrents(is_collected=True,
@@ -1053,6 +1053,7 @@ class ArtworkPanel(wx.Panel):
     def SetData(self, delayedResult):
         if not self or not self.list:
             return
+
         data = []
         torrents = delayedResult.get()
 

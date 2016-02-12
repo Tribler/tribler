@@ -53,6 +53,8 @@ class GUIDBProducer(object):
 
         self._auto_counter = 0
 
+        self.quitting = False
+
     @classmethod
     def getInstance(cls, *args, **kw):
         with cls.__singleton_lock:
@@ -73,8 +75,12 @@ class GUIDBProducer(object):
         """The sender will send the return value of
         workerFn(*args, **kwargs) to the main thread.
         """
+        if self.quitting:
+            self._logger.warning("Rejecting task(%s), quitting flag is set.", name)
+            return
+
         if self.utility.abcquitting:
-            self._logger.debug("GUIDBHandler: abcquitting ignoring Task(%s)", name)
+            self._logger.warning("abcquitting ignoring Task(%s)", name)
             return
 
         assert uId is None or isinstance(uId, unicode), type(uId)
@@ -84,8 +90,8 @@ class GUIDBProducer(object):
             try:
                 self.uIdsLock.acquire()
                 if uId in self.uIds:
-                    self._logger.debug(
-                        "GUIDBHandler: Task(%s) already scheduled in queue, ignoring uId = %s", name, uId)
+                    self._logger.info(
+                        "Task(%s) already scheduled in queue, ignoring uId = %s", name, uId)
                     return
                 else:
                     self.uIds.add(uId)
@@ -181,6 +187,9 @@ class GUIDBProducer(object):
                     self.nrCallbacks[uId] = self.nrCallbacks.get(uId, 0) - 1
 
             self.utility.session.lm.threadpool.cancel_pending_task(uId)
+
+    def set_quitting(self):
+        self.quitting = True
 
 # Wrapping Senders for new delayedResult impl
 
@@ -299,6 +308,9 @@ def startWorker(
 
     if not workerFn:
         raise Exception("no worker function specified")
+
+    if GUIDBProducer.getInstance().quitting:
+        return
 
     if jobID is None:
         jobID = unicode(randint(1, 10000000))

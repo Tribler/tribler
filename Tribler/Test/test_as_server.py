@@ -455,9 +455,12 @@ class TestGuiAsServer(TestAsServer):
                 callback()
 
     def quit(self):
+        # Yield (if we are not yielding already) to empty the event queue before
+        # we close the GUi and a pydeadobject assertion is thrown.
+        wx.SafeYield(onlyIfNeeded=True)
+
         if self.frame:
             self.frame.OnCloseWindow()
-
         else:
             def close_dialogs():
                 for item in wx.GetTopLevelWindows():

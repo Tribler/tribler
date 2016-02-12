@@ -787,14 +787,16 @@ class MainFrame(wx.Frame):
     #
 
     def OnCloseWindow(self, event=None, force=False):
-        found = False
+        # Yield (if we are not yielding already) to empty the event queue before
+        # we close the GUi and a pydeadobject assertion is thrown.
+        wx.SafeYield(onlyIfNeeded=True)
+
         if event is not None:
             nr = event.GetEventType()
             lookup = {wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[
                 0]: "EVT_QUERY_END_SESSION", wx.EVT_END_SESSION.evtType[0]: "EVT_END_SESSION"}
             if nr in lookup:
                 nr = lookup[nr]
-                found = True
 
             self._logger.info("mainframe: Closing due to event %s %s", nr, repr(event))
         else:
@@ -995,11 +997,11 @@ class MainFrame(wx.Frame):
                     if item.IsModal():
                         item.EndModal(wx.ID_CANCEL)
                     else:
-                        item.Destroy()
+                        item.Hide()
                 else:
-                    item.Close()
+                    item.Hide()
         self._logger.info("mainframe: destroying %s", self)
-        self.Destroy()
+        self.Hide()
 
         if app:
             def doexit():
