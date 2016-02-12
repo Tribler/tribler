@@ -1053,7 +1053,6 @@ class ArtworkPanel(wx.Panel):
     def SetData(self, delayedResult):
         if not self or not self.list:
             return
-
         data = []
         torrents = delayedResult.get()
 

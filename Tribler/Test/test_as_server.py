@@ -40,6 +40,7 @@ from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Utilities.instrumentation import WatchDog
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.Main.Utility.GuiDBHandler import GUIDBProducer
 
 
 TESTS_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
@@ -461,6 +462,7 @@ class TestGuiAsServer(TestAsServer):
 
         if self.frame:
             self.frame.OnCloseWindow()
+
         else:
             def close_dialogs():
                 for item in wx.GetTopLevelWindows():

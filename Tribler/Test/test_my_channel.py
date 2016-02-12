@@ -135,7 +135,7 @@ class TestMyChannel(TestGuiAsServer):
 
         def check_home():
             self.guiUtility.ShowPage('home')
-            self.CallConditional(20, lambda: len(self.guiUtility.frame.home.aw_panel.list.GetItems()) == 1,
+            self.CallConditional(20, lambda: len(self.guiUtility.frame.home.aw_panel.list.GetItems()) >= 1,
                                  take_screenshot_quit, "No thumbnail torrent in Home panel")
 
         def added_rss():

@@ -190,7 +190,6 @@ class GUIDBProducer(object):
 
     def set_quitting(self):
         self.quitting = True
-
 # Wrapping Senders for new delayedResult impl
 
 
@@ -311,7 +310,6 @@ def startWorker(
 
     if GUIDBProducer.getInstance().quitting:
         return
-
     if jobID is None:
         jobID = unicode(randint(1, 10000000))
         if __debug__:
