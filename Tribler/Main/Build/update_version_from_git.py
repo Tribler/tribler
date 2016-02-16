@@ -43,7 +43,7 @@ if __name__ == '__main__':
         runCommand('dch -v {} New upstream release.'.format(version_id).split())
     elif platform == 'win32':
         logger.info('Replacing NSI string.')
-        f = open(path.join('Tribler', 'Main', 'Build', 'Win32', 'tribler.nsi'), 'r+')
+        f = open(path.join('Tribler', 'Main', 'Build', 'Win', 'tribler.nsi'), 'r+')
         content = f.read().replace('__GIT__', version_id)
         f.seek(0)
         f.write(content)

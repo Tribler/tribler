@@ -51,9 +51,9 @@ includePanels = [
 packages = ["encodings"] + ["Tribler.Main.vwxGUI.%s" % x for x in includePanels] +\
     ["Tribler.Core.DecentralizedTracking.pymdht.core",
      "Tribler.Main.tribler_main", "win32com.shell", "win32api",
-     "netifaces", "csv", "cherrypy", "feedparser",
-     "twisted", "apsw", "libtorrent", "M2Crypto", "cryptography", "libnacl", "six", "cffi", "pycparser",
-     "zope.interface", "pyasn1", "Image", "requests", "leveldb", "decorator"]
+     "netifaces", "cherrypy", "feedparser", "pycparser", "pyasn1",
+     "twisted", "apsw", "libtorrent", "M2Crypto", "cryptography", "libnacl", "cffi",
+     "zope.interface", "PIL.Image", "requests", "leveldb", "decorator"]
 
 setup(
     # (Disabling bundle_files for now -- apparently causes some issues with Win98)
@@ -63,7 +63,10 @@ setup(
                         "optimize": 2,
                         "skip_archive": True,
                         "dist_dir": os.path.join("dist", "installdir"),
-                        "dll_excludes": ["mswsock.dll"]}},
-    data_files=[(".", [r"C:\build\libsodium.dll"])],
+                        "dll_excludes": ["mswsock.dll", 
+										"MSVCR90.DLL"]
+						}
+			},
+	data_files=[(".", [r"C:\build\libsodium.dll"])],
     windows=[target],
 )
