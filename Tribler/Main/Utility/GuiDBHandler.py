@@ -53,8 +53,6 @@ class GUIDBProducer(object):
 
         self._auto_counter = 0
 
-        self.quitting = False
-
     @classmethod
     def getInstance(cls, *args, **kw):
         with cls.__singleton_lock:
@@ -75,12 +73,8 @@ class GUIDBProducer(object):
         """The sender will send the return value of
         workerFn(*args, **kwargs) to the main thread.
         """
-        if self.quitting:
-            self._logger.warning("Rejecting task(%s), quitting flag is set.", name)
-            return
-
         if self.utility.abcquitting:
-            self._logger.warning("abcquitting ignoring Task(%s)", name)
+            self._logger.warning("abcquitting, ignoring Task(%s)", name)
             return
 
         assert uId is None or isinstance(uId, unicode), type(uId)
@@ -102,14 +96,14 @@ class GUIDBProducer(object):
         else:
             callbackId = name
 
-        self._logger.debug("GUIDBHandler: adding Task(%s)", callbackId)
+        self._logger.debug("Adding Task(%s)", callbackId)
 
         if __debug__:
             self.uIdsLock.acquire()
             self.nrCallbacks[callbackId] = self.nrCallbacks.get(callbackId, 0) + 1
             if self.nrCallbacks[callbackId] > 10:
                 self._logger.debug(
-                    "GUIDBHandler: Scheduled Task(%s) %d times", callbackId, self.nrCallbacks[callbackId])
+                    "Scheduled Task(%s) %d times", callbackId, self.nrCallbacks[callbackId])
 
             self.uIdsLock.release()
 
@@ -136,7 +130,7 @@ class GUIDBProducer(object):
 
             t3 = time()
             self._logger.debug(
-                "GUIDBHandler: Task(%s) took to be called %.1f (expected %.1f), actual task took %.1f %s", name, t2 - t1, delay, t3 - t2, workerType)
+                "Task(%s) took to be called %.1f (expected %.1f), actual task took %.1f %s", name, t2 - t1, delay, t3 - t2, workerType)
 
             if uId:
                 try:
@@ -155,7 +149,7 @@ class GUIDBProducer(object):
                 sender.sendResult(result)
             except:
                 print_exc()
-                self._logger.error("GUIDBHandler: Could not send result of Task(%s)", name)
+                self._logger.error("Could not send result of Task(%s)", name)
 
         wrapper.__name__ = str(name)
 
@@ -172,13 +166,13 @@ class GUIDBProducer(object):
         elif workerType == "dbThread" and not isInIOThread():
             reactor.callFromThread(wrapper)
         else:
-            self._logger.debug("GUIDBHandler: Task(%s) scheduled to be called on non GUI thread from non GUI thread, "
+            self._logger.debug("Task(%s) scheduled to be called on non GUI thread from non GUI thread, "
                                "executing synchronously.", name)
             wrapper()
 
     def Remove(self, uId):
         if uId in self.uIds:
-            self._logger.debug("GUIDBHandler: removing Task(%s)", uId)
+            self._logger.debug("Removing Task(%s)", uId)
 
             with self.uIdsLock:
                 self.uIds.discard(uId)
@@ -187,9 +181,6 @@ class GUIDBProducer(object):
                     self.nrCallbacks[uId] = self.nrCallbacks.get(uId, 0) - 1
 
             self.utility.session.lm.threadpool.cancel_pending_task(uId)
-
-    def set_quitting(self):
-        self.quitting = True
 # Wrapping Senders for new delayedResult impl
 
 
@@ -308,8 +299,6 @@ def startWorker(
     if not workerFn:
         raise Exception("no worker function specified")
 
-    if GUIDBProducer.getInstance().quitting:
-        return
     if jobID is None:
         jobID = unicode(randint(1, 10000000))
         if __debug__:

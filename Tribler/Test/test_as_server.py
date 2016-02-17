@@ -459,7 +459,6 @@ class TestGuiAsServer(TestAsServer):
         # Yield (if we are not yielding already) to empty the event queue before
         # we close the GUi and a pydeadobject assertion is thrown.
         wx.SafeYield(onlyIfNeeded=True)
-
         if self.frame:
             self.frame.OnCloseWindow()
 
