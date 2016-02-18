@@ -78,23 +78,49 @@ class MultiChainDB(Database):
             u"VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             data)
 
-    def get_previous_id(self, mid):
+    def update_block_with_responder(self, block):
         """
         Get the id of the latest block in the chain for a specific public key.
         :param mid: The mid for which the latest hash has to be found.
         :return: block_id
         """
-        mid = buffer(mid)
-        db_query = u"SELECT block_hash, MAX(sequence_number) FROM " \
-                   u"(SELECT block_hash, sequence_number_requester AS sequence_number FROM multi_chain " \
-                   u"WHERE mid_requester == ? UNION SELECT block_hash, sequence_number_responder " \
-                   u"FROM multi_chain WHERE mid_responder = ?)"
+        data = (
+                block.total_up_responder, block.total_down_responder,
+                block.sequence_number_responder, buffer(block.previous_hash_responder),
+                buffer(block.signature_responder), buffer(block.hash_responder), buffer(block.hash_requester))
 
-        db_result = self.execute(db_query, (mid, mid)).fetchone()[0]
+        self.execute(
+            u"UPDATE multi_chain "
+            u"SET total_up_responder = ?, total_down_responder = ?, "
+            u"sequence_number_responder = ?, previous_hash_responder = ?, "
+            u"signature_responder = ?, hash_responder = ? "
+            u"WHERE hash_requester = ?",
+            data)
+
+    def get_latest_hash(self, public_key):
+        """
+        Get the relevant hash of the latest block in the chain for a specific public key.
+        Relevant means the hash_requester if the last block was a request,
+        hash_responder if the last block was a response.
+        :param public_key: The public_key for which the latest hash has to be found.
+        :return: the relevant hash
+        """
+        public_key = buffer(public_key)
+        db_query = u"SELECT block_hash, MAX(sequence_number) FROM (" \
+                   u"SELECT hash_requester AS block_hash, sequence_number_requester AS sequence_number " \
+                   u"FROM multi_chain WHERE public_key_requester = ? "\
+                   u"UNION "\
+                   u"SELECT hash_responder AS block_hash, sequence_number_responder AS sequence_number " \
+                   u"FROM multi_chain WHERE public_key_responder = ?)"
+
+        db_result = self.execute(db_query, (public_key, public_key)).fetchone()[0]
 
         return str(db_result) if db_result else None
 
-    def get_by_block_id(self, block_id):
+    def get_latest_block(self, public_key):
+        return self.get_by_hash(self.get_latest_hash(public_key))
+
+    def get_by_hash_requester(self, hash_requester):
         """
         Returns a block saved in the persistence
         :param block_id: The id of the block that needs to be retrieved.
@@ -294,8 +320,8 @@ class DatabaseBlock:
                     payload.sequence_number_requester, payload.previous_hash_requester,
                     payload.total_up_responder, payload.total_down_responder,
                     payload.sequence_number_responder, payload.previous_hash_responder,
-                    requester.mid, payload.signature_requester, responder.mid, payload.signature_responder,
-                    None, requester.public_key, responder.public_key))
+                    payload.signature_responder, sha256(encode_block(payload, requester, responder)).digest(),
+                    None))
 
     def to_payload(self):
         """

@@ -10,6 +10,8 @@ import logging
 import base64
 from twisted.internet.task import LoopingCall
 
+from Tribler.Core.Session import Session
+
 from Tribler.dispersy.authentication import DoubleMemberAuthentication, MemberAuthentication
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.distribution import DirectDistribution
@@ -17,6 +19,9 @@ from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.message import Message, BatchConfiguration
 from Tribler.dispersy.conversion import DefaultConversion
+
+from Tribler.community.tunnel.routing import Circuit, RelayRoute
+from Tribler.community.tunnel.tunnel_community import TunnelExitSocket
 
 from Tribler.community.multichain.payload import SignaturePayload, CrawlRequestPayload, CrawlResponsePayload, CrawlResumePayload
 from Tribler.community.multichain.database import MultiChainDB, DatabaseBlock
@@ -31,95 +36,8 @@ CRAWL_RESUME = u"crawl_resume"
 GENESIS_ID = '0' * 20
 
 # Divide by this to convert from bytes to MegaBytes.
-MEGA_DIVIDER = 1000000
+MEGA_DIVIDER = 1024 * 1024
 
-class MultiChainScheduler:
-    """
-    Schedules when blocks are requested by the MultiChainCommunity.
-    The Scheduler keeps track of the outstanding amount per candidate.
-    This outstanding amount is not persisted and is lost when Tribler is restarted.
-    This is a very simple version that should be expanded in the future.
-    """
-
-    # The amount of bytes that the Scheduler will be altruistic about and allows to be outstanding.
-    threshold = 10 * MEGA_DIVIDER
-    
-    # Counter decay settings
-    decay_interval = 120.0
-    decay_factor = 0.95
-    decay_threshold = 0.1 * MEGA_DIVIDER
-     
-    def __init__(self, community):
-        """
-        Create the MultiChainScheduler
-        :param community: The MultiChainCommunity that will be used to send requests.
-        """
-        """ Key: candidate's mid Value: amount of data not yet created into a block """
-        self._outstanding_amount_send = {}
-        self._outstanding_amount_received = {}
-        """ The MultiChainCommunity that will be used to send requests. """
-        self._community = community
-        self._community.register_task("decay counters", LoopingCall(self.decay_counters)).start(self.decay_interval, now=False)
-
-    def update_amount_send(self, peer, amount_send):
-        """
-        Update the amount of data send. If the amount is above the threshold, then a block will be created.
-        :param peer: (address, port) translated into a Candidate.
-        :param amount_send: amount of bytes send to the peer.
-        :return: None
-        """
-        self._community.logger.debug("Updating amount send for: %s amount:%s" % (peer[0], str(amount_send)))
-        total_amount_send = self._outstanding_amount_send.get(peer, 0) + amount_send
-        self._outstanding_amount_send[peer] = total_amount_send
-        if total_amount_send >= self.threshold:
-            self.schedule_block(peer)
-
-    def update_amount_received(self, peer, amount_received):
-        """
-        Update the amount of data send. If the amount is above the threshold, then a block will be created.
-        :param peer: (address, port) translated into a Candidate.
-        :param amount_received: amount of bytes received from a peer
-        :return: None
-        """
-        self._community.logger.debug("Updating amount received for: %s" % peer[0])
-        self._outstanding_amount_received[peer] = self._outstanding_amount_received.get(peer, 0) + amount_received
-        # TODO this amount received has to be checked in the future when signature_requests come in.
-
-    def schedule_block(self, peer):
-        """
-        Schedule a block for the current outstanding amounts
-        """
-        candidate = self._community.get_candidate(peer)
-        if candidate and candidate.get_member():
-            total_amount_send = self._outstanding_amount_send.get(peer, 0)
-            total_amount_received = self._outstanding_amount_received.get(peer, 0)
-            """ Convert to MB """
-            total_amount_sent_mb = total_amount_send / self.mega_divider
-            total_amount_received_mb = total_amount_received / self.mega_divider
-            """ Try to sent the request """
-            request_sent = self._community. \
-                publish_signature_request_message(candidate, total_amount_sent_mb, total_amount_received_mb)
-            if request_sent:
-                """ Reset the outstanding amounts to the remainder
-                and send a signature request for the outstanding amount"""
-                self._outstanding_amount_send[peer] = total_amount_send % self.mega_divider
-                self._outstanding_amount_received[peer] = total_amount_received % self.mega_divider
-        else:
-            self._community.logger.warn(
-                "No valid candidate found for: %s:%s to request block from." % (peer[0], peer[1]))
-
-    def decay_counters(self):
-        def decay_dict(decay):
-            delete_key = []
-            for key in decay:
-                decay[key] *= self.decay_factor
-                if (decay[key] < self.decay_threshold):
-                    self._community.logger.warn("Scheduler counter for peer %s has decayed below the threshold, deleting" % (key,))
-                    delete_key.append(key)
-            for key in delete_key:
-                del decay[key]
-        decay_dict(self._outstanding_amount_send)
-        decay_dict(self._outstanding_amount_received)
 
 class MultiChainCommunity(Community):
     """
@@ -132,6 +50,9 @@ class MultiChainCommunity(Community):
     def __init__(self, *args, **kwargs):
         super(MultiChainCommunity, self).__init__(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
+
+        from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
+        Session.get_instance().add_observer(self.on_tunnel_remove, NTFY_TUNNEL, [NTFY_REMOVE])
 
         self._ec = self.my_member.private_key
         self._mid = self.my_member.mid
@@ -217,6 +138,25 @@ class MultiChainCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), MultiChainConversion(self)]
 
+    def schedule_block(self, peer, bytes_up, bytes_down):
+            """
+            Schedule a block for the current outstanding amounts
+            :param peer: The peer with whom you have interacted, identified by the (ip, port) tuple
+            :param bytes_up: The bytes you have uploaded to the peer in this interaction
+            :param bytes_down: The bytes you have downloaded from the peer in this interaction
+            """
+            candidate = self.get_candidate(peer)
+            if candidate and candidate.get_member():
+
+                """ Convert to MB """
+                total_amount_sent_mb = bytes_up / MEGA_DIVIDER
+                total_amount_received_mb = bytes_down / MEGA_DIVIDER
+                """ Try to send the request """
+                self.publish_signature_request_message(candidate, total_amount_sent_mb, total_amount_received_mb)
+            else:
+                self.logger.warn(
+                    "No valid candidate found for: %s:%s to request block from." % (peer[0], peer[1]))
+
     def publish_signature_request_message(self, candidate, up, down):
         """
         Creates and sends out a signed signature_request message if the chain is free for operations.
@@ -226,24 +166,11 @@ class MultiChainCommunity(Community):
         :param (int) down: The amount of bytes that have been received from the candidate that need to signed.
         return (bool) if request is sent.
         """
-
-        """
-        Acquire exclusive flag to perform operations on the chain.
-        The chain_exclusion_flag is lifted after the timeout or a valid signature response is received.
-        """
-        self.logger.debug("Chain Exclusion: signature request: %s" % self.chain_exclusion_flag)
-        if not self.chain_exclusion_flag:
-            self.chain_exclusion_flag = True
-            self.logger.debug("Chain Exclusion: acquired, sending signature request.")
-            self.logger.info("Sending signature request.")
-
-            message = self.create_signature_request_message(candidate, up, down)
-            self.create_signature_request(candidate, message, self.allow_signature_response,
-                                          timeout=self.signature_request_timeout)
-            return True
-        else:
-            self.logger.debug("Chain Exclusion: not acquired, dropping signature request.")
-            return False
+        message = self.create_signature_request_message(candidate, up, down)
+        self.create_signature_request(candidate, message, self.allow_signature_response,
+                                      timeout=self.signature_request_timeout)
+        self.persist_signature_request(message)
+        return True
 
     def create_signature_request_message(self, candidate, up, down):
         """
@@ -271,15 +198,11 @@ class MultiChainCommunity(Community):
             a. append to this message our data (Afterwards we sign the message.).
             b. None (if we want to drop this message)
         """
-        self.logger.info("Received signature request.")
-        self.logger.debug("Chain Exclusion: process request: %s" % self.chain_exclusion_flag)
-        # Check if the exclusion flag can be acquired without blocking to perform operations on the chain.
-        if not self.chain_exclusion_flag:
-            self.chain_exclusion_flag = True
-            self.logger.debug("Chain Exclusion: acquired to process request.")
-            # TODO: This code always signs a request. Checks and rejects should be inserted here!
-            # TODO: Like basic total_up == previous_total_up + block.up or more sophisticated chain checks.
-            payload = message.payload
+        self.logger.info("Received signature request for: [Up = " + str(message.payload.up) + "MB | Down = " +
+                         str(message.payload.down) + " MB]")
+        # TODO: This code always signs a request. Checks and rejects should be inserted here!
+        # TODO: Like basic total_up == previous_total_up + block.up or more sophisticated chain checks.
+        payload = message.payload
 
             """ The up and down values are reversed for the responder. """
             total_up_responder, total_down_responder = self._get_next_total(payload.down, payload.up)
@@ -321,9 +244,14 @@ class MultiChainCommunity(Community):
         else:
             # TODO: Check expecting response
             self.logger.info("Signature response received. Modified: %s" % modified)
-            return request.payload.sequence_number_requester == response.payload.sequence_number_requester and \
-                   request.payload.previous_hash_requester == response.payload.previous_hash_requester and \
-                   modified
+
+            if request.payload.sequence_number_requester == response.payload.sequence_number_requester and \
+               request.payload.previous_hash_requester == response.payload.previous_hash_requester and modified:
+                block = DatabaseBlock.from_signature_response_message(response)
+                self.persistence.update_block_with_responder(block)
+                return True
+            else:
+                return False
 
     def received_signature_response(self, messages):
         """
@@ -356,13 +284,13 @@ class MultiChainCommunity(Community):
                             destination=(candidate,),
                             payload=(sequence_number,))
         self.dispersy.store_update_forward([message], False, False, True)
-    
+
     def received_crawl_request(self, messages):
         for message in messages:
-            self.logger.info("Crawler: Received crawl request from node %s, from sequence number %d" % 
+            self.logger.info("Crawler: Received crawl request from node %s, from sequence number %d" %
                              (base64.encodestring(message.candidate.get_member().mid).strip(), message.payload.requested_sequence_number))
             self.crawl_requested(message.candidate, message.payload.requested_sequence_number)
-    
+
     def crawl_requested(self, candidate, sequence_number):
         blocks = self.persistence.get_blocks_since(self._mid, sequence_number)
         if len(blocks) > 0:
@@ -387,7 +315,7 @@ class MultiChainCommunity(Community):
             # This is slightly worrying since the last block should always be returned.
             # Or rather, the other side is requesting blocks starting from a point in the future.
             self.logger.info("Crawler: No blocks")
-        
+
     def received_crawl_response(self, messages):
         self.logger.info("Crawler: Valid %d block response(s) received." % len(messages))
         for message in messages:
@@ -405,7 +333,6 @@ class MultiChainCommunity(Community):
         self.logger.info("Crawler: Valid %s crawl resumptions received." % len(messages))
         for message in messages:
             self.send_crawl_request(message.candidate)
-        
 
     def get_key(self):
         return self._ec
@@ -436,6 +363,42 @@ class MultiChainCommunity(Community):
         # Close the persistence layer
         self.persistence.close()
 
+    def on_tunnel_remove(self, subject, changeType, tunnel, stats):
+        """
+        Handler for the remove event of a tunnel. This function will attempt to create a block for the amounts that
+        were transferred using the tunnel.
+        :param subject:
+        :param changeType:
+        :param tunnel: The tunnel that was removed (closed)
+        :param stats: The statistics regarding this tunnel
+        :return:
+        """
+        if isinstance(tunnel, Circuit):
+            bytes_up = stats['bytes_up']
+            bytes_down = stats['bytes_down']
+            peer = (tunnel.first_hop[0], tunnel.first_hop[1])
+        elif isinstance(tunnel, RelayRoute):
+            bytes_up = stats['bytes_relay_up']
+            bytes_down = stats['bytes_relay_down']
+            peer = (tunnel.sock_addr[0], tunnel.sock_addr[1])
+        elif isinstance(tunnel, TunnelExitSocket):
+            bytes_up = stats['bytes_exit']
+            bytes_down = stats['bytes_enter']
+            peer = (tunnel.sock_addr[0], tunnel.sock_addr[1])
+        else:
+            self.logger.error("Got a tunnel remove event for an object that is not a Circuit, "
+                              "RelayRoute or TunnelExitSocket")
+            raise TypeError("Got a tunnel remove event for an object that is not a Circuit,"
+                            " RelayRoute or TunnelExitSocket")
+
+        if isinstance(bytes_up, int) and isinstance(bytes_down, int):
+            if bytes_up > MEGA_DIVIDER or bytes_down > MEGA_DIVIDER:
+                # Tie breaker to prevent both parties from requesting
+                if self._public_key > candidate.get_member().public_key:
+                    self.schedule_block(candidate, bytes_up, bytes_down)
+                #else:
+                    #TODO Note that you still expect a signature request for these bytes:
+                    #pending[peer] = (up, down)
 
 class MultiChainCommunityCrawler(MultiChainCommunity):
     """

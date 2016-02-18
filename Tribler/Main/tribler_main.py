@@ -422,7 +422,6 @@ class ABCApp(object):
             from Tribler.community.tunnel.tunnel_community import TunnelSettings
             from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
             from Tribler.community.multichain.community import MultiChainCommunity
-            from Tribler.community.multichain.community import MultiChainScheduler
 
             # make sure this is only called once
             session.remove_observer(define_communities)
@@ -454,7 +453,6 @@ class ABCApp(object):
             if self.sconfig.get_enable_multichain():
                 """ Start the multichain community and hook in the multichain scheduler. """
                 multichain = dispersy.define_auto_load(MultiChainCommunity, dispersy_member, load=True,)[0]
-                self.tunnel_community.multichain_scheduler = MultiChainScheduler(multichain)
 
             session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_tunnel_community_socks5_listen_ports()))
 
