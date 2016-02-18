@@ -8,6 +8,7 @@ import os
 import re
 import feedparser
 
+from twisted.internet import reactor
 from twisted.web.client import getPage
 
 from Tribler.dispersy.taskmanager import TaskManager
@@ -17,7 +18,6 @@ from Tribler.Core.simpledefs import (SIGNAL_CHANNEL_COMMUNITY, SIGNAL_ON_TORRENT
                                      SIGNAL_ON_UPDATED)
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Modules.channel.cache import SimpleCache
-from Tribler.Core.Utilities.twisted_thread import reactor
 
 DEFAULT_CHECK_INTERVAL = 1800  # half an hour
 

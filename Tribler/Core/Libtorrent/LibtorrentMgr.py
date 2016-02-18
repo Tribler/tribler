@@ -1,6 +1,5 @@
 # Written by Egbert Bouman
 import binascii
-import os
 import logging
 import tempfile
 import threading
@@ -10,9 +9,9 @@ from binascii import hexlify
 from copy import deepcopy
 from shutil import rmtree
 
+from twisted.internet import reactor
 import libtorrent as lt
 
-from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import (NTFY_INSERT, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED,
