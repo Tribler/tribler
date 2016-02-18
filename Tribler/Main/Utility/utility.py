@@ -100,7 +100,7 @@ def speed_format(s):
         elif s < 1072668082177:
             text = '%d GB/s' % (s // 1073741824)
         else:
-            text = '%2.1f TB/s' % (s // 1099511627776)
+            text = '%2.1f TB/s' % (s / 1099511627776.0)
     return text
 
 
