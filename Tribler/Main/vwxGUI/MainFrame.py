@@ -789,7 +789,7 @@ class MainFrame(wx.Frame):
     def OnCloseWindow(self, event=None, force=False):
         # Yield (if we are not yielding already) to empty the event queue before
         # we close the GUi and a pydeadobject assertion is thrown.
-        wx.SafeYield(onlyIfNeeded=True)
+        # wx.SafeYield(onlyIfNeeded=True)
         if event is not None:
             nr = event.GetEventType()
             lookup = {wx.EVT_CLOSE.evtType[0]: "EVT_CLOSE", wx.EVT_QUERY_END_SESSION.evtType[
