@@ -1012,7 +1012,7 @@ def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_chann
 
             # Yield (if we are not yielding already) to empty the event queue before
             # we close the GUi and a pydeadobject assertion is thrown.
-            wx.SafeYield(onlyIfNeeded=True)
+            # wx.SafeYield(onlyIfNeeded=True)
             # since ABCApp is not a wx.App anymore, we need to call OnExit explicitly.
             abc.OnExit()
 
