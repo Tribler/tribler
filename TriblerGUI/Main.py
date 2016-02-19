@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtWidgets import QMainWindow, QListView, QListWidget, QLineEdit, QListWidgetItem, QApplication
 
 from TriblerGUI.channel_list_item import ChannelListItem
+from TriblerGUI.event_request_manager import EventRequestManager
 
 
 class TriblerWindow(QMainWindow):
@@ -28,7 +29,14 @@ class TriblerWindow(QMainWindow):
             self.channels_list.addItem(item)
             self.channels_list.setItemWidget(item, widget_item)
 
+        self.event_request_manager = EventRequestManager()
+
+        self.event_request_manager.received_free_space.connect(self.received_free_space)
+
         self.show()
+
+    def received_free_space(self, free_space):
+        self.statusBar.set_free_space(free_space)
 
 app = QApplication(sys.argv)
 window = TriblerWindow()
