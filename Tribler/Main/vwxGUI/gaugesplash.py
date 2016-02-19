@@ -88,3 +88,7 @@ class GaugeSplash(wx.Frame):
 
         self.gauge.SetValue(self.gauge.GetRange())
         wx.SafeYield()
+
+    def nevercalled(self):
+        print "arrr"
+        1/0
