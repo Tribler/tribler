@@ -26,13 +26,11 @@ from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
 
-
 try:
     prctlimported = True
     import prctl
 except ImportError:
     prctlimported = False
-
 
 if sys.platform == 'win32':
     SOCKET_BLOCK_ERRORCODE = 10035  # WSAEWOULDBLOCK
@@ -115,9 +113,8 @@ class TriblerLaunchMany(TaskManager):
 
             # TODO(emilon): move this to a megacache component or smth
             if self.session.get_megacache():
-                from Tribler.Core.CacheDB.SqliteCacheDBHandler import (PeerDBHandler, TorrentDBHandler,
-                                                                       MyPreferenceDBHandler, VoteCastDBHandler,
-                                                                       ChannelCastDBHandler)
+                from Tribler.Core.CacheDB.SqliteCacheDBHandler import (
+                    PeerDBHandler, TorrentDBHandler, MyPreferenceDBHandler, VoteCastDBHandler, ChannelCastDBHandler)
                 from Tribler.Category.Category import Category
 
                 self._logger.debug('tlm: Reading Session state from %s', self.session.get_state_dir())
@@ -186,19 +183,25 @@ class TriblerLaunchMany(TaskManager):
 
             diff = timemod.time() - now
             if success:
-                self._logger.info("lmc: Dispersy started successfully in %.2f seconds [port: %d]",
-                                  diff, self.dispersy.wan_address[1])
+                self._logger.info("lmc: Dispersy started successfully in %.2f seconds [port: %d]", diff,
+                                  self.dispersy.wan_address[1])
             else:
                 self._logger.info("lmc: Dispersy failed to start in %.2f seconds", diff)
 
             self.upnp_ports.append((self.dispersy.wan_address[1], 'UDP'))
 
             from Tribler.dispersy.crypto import M2CryptoSK
-            self.session.dispersy_member = blockingCallFromThread(reactor, self.dispersy.get_member,
-                                                                  private_key=self.dispersy.crypto.key_to_bin(M2CryptoSK(filename=self.session.get_permid_keypair_filename())))
+            self.session.dispersy_member = blockingCallFromThread(
+                reactor,
+                self.dispersy.get_member,
+                private_key=self.dispersy.crypto.key_to_bin(M2CryptoSK(filename=
+                                                                       self.session.get_permid_keypair_filename())))
 
-            blockingCallFromThread(reactor, self.dispersy.define_auto_load, HardKilledCommunity,
-                                   self.session.dispersy_member, load=True)
+            blockingCallFromThread(reactor,
+                                   self.dispersy.define_auto_load,
+                                   HardKilledCommunity,
+                                   self.session.dispersy_member,
+                                   load=True)
 
             if self.session.get_megacache():
                 self.dispersy.database.attach_commit_callback(self.session.sqlite_db.commit_now)
@@ -212,20 +215,25 @@ class TriblerLaunchMany(TaskManager):
                 # Search Community
                 if self.session.get_enable_torrent_search():
                     from Tribler.community.search.community import SearchCommunity
-                    self.dispersy.define_auto_load(SearchCommunity, self.session.dispersy_member, load=True,
+                    self.dispersy.define_auto_load(SearchCommunity,
+                                                   self.session.dispersy_member,
+                                                   load=True,
                                                    kargs={'tribler_session': self.session})
 
                 # AllChannel Community
                 if self.session.get_enable_channel_search():
                     from Tribler.community.allchannel.community import AllChannelCommunity
-                    self.dispersy.define_auto_load(AllChannelCommunity, self.session.dispersy_member, load=True,
+                    self.dispersy.define_auto_load(AllChannelCommunity,
+                                                   self.session.dispersy_member,
+                                                   load=True,
                                                    kargs={'tribler_session': self.session})
+
             load_communities()
 
         from Tribler.Core.DecentralizedTracking import mainlineDHT
         try:
-            self.mainline_dht = mainlineDHT.init(('127.0.0.1', self.session.get_mainline_dht_listen_port()),
-                                                 self.session.get_state_dir())
+            self.mainline_dht = mainlineDHT.init(
+                ('127.0.0.1', self.session.get_mainline_dht_listen_port()), self.session.get_state_dir())
             self.upnp_ports.append((self.session.get_mainline_dht_listen_port(), 'UDP'))
         except:
             print_exc()
@@ -238,7 +246,7 @@ class TriblerLaunchMany(TaskManager):
             #for port, protocol in self.upnp_ports:
             #    self.ltmgr.add_upnp_mapping(port, protocol)
 
-        # add task for tracker checking
+            # add task for tracker checking
         if self.session.get_torrent_checking():
             try:
                 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
@@ -272,18 +280,22 @@ class TriblerLaunchMany(TaskManager):
             if pstate is None:  # not already resuming
                 pstate = self.load_download_pstate_noexc(infohash)
                 if pstate is not None:
-                    self._logger.debug("tlm: add: pstate is %s %s",
-                                       pstate.get('dlstate', 'status'), pstate.get('dlstate', 'progress'))
+                    self._logger.debug("tlm: add: pstate is %s %s", pstate.get('dlstate', 'status'),
+                                       pstate.get('dlstate', 'progress'))
 
             # Store in list of Downloads, always.
             self.downloads[infohash] = d
-            d.setup(dscfg, pstate, initialdlstatus, self.network_engine_wrapper_created_callback,
+            d.setup(dscfg,
+                    pstate,
+                    initialdlstatus,
+                    self.network_engine_wrapper_created_callback,
                     wrapperDelay=setupDelay)
 
         finally:
             self.sesslock.release()
 
         if d and not hidden and self.session.get_megacache():
+
             @forceDBThread
             def write_my_pref():
                 torrent_id = self.torrent_db.getTorrentID(infohash)
@@ -324,6 +336,7 @@ class TriblerLaunchMany(TaskManager):
             self.remove_id(infohash)
 
     def remove_id(self, infohash):
+
         @forceDBThread
         def do_db(infohash):
             torrent_id = self.torrent_db.getTorrentID(infohash)
@@ -380,6 +393,7 @@ class TriblerLaunchMany(TaskManager):
                 dl.checkpoint()
 
                 if isinstance(old_def, TorrentDefNoMetainfo):
+
                     @forceDBThread
                     def update_trackers_db(infohash, new_trackers):
                         torrent_id = self.torrent_db.getTorrentID(infohash)
@@ -500,12 +514,13 @@ class TriblerLaunchMany(TaskManager):
                         if os.path.isdir(dest_dir) or dest_dir == '':
                             dscfg.set_dest_dir(dest_dir)
 
-        self._logger.debug("tlm: load_checkpoint: pstate is %s %s",
-                           pstate.get('dlstate', 'status'), pstate.get('dlstate', 'progress'))
+        self._logger.debug("tlm: load_checkpoint: pstate is %s %s", pstate.get('dlstate', 'status'),
+                           pstate.get('dlstate', 'progress'))
         if pstate is None or pstate.get('state', 'engineresumedata') is None:
             self._logger.debug("tlm: load_checkpoint: resumedata None")
         else:
-            self._logger.debug("tlm: load_checkpoint: resumedata len %d", len(pstate.get('state', 'engineresumedata')))
+            self._logger.debug("tlm: load_checkpoint: resumedata len %d",
+                               len(pstate.get('state', 'engineresumedata')))
 
         if tdef and dscfg:
             if dscfg.get_dest_dir() != '':  # removed torrent ignoring
@@ -534,8 +549,7 @@ class TriblerLaunchMany(TaskManager):
         dllist = self.downloads.values()
         self._logger.debug("tlm: checkpointing %s stopping %s", len(dllist), stop)
 
-        network_checkpoint_callback_lambda = lambda: self.network_checkpoint_callback(dllist, stop, checkpoint,
-                                                                                      gracetime)
+        network_checkpoint_callback_lambda = lambda: self.network_checkpoint_callback(dllist, stop, checkpoint, gracetime)
         self.threadpool.add_task(network_checkpoint_callback_lambda, 0.0)
 
     def network_checkpoint_callback(self, dllist, stop, checkpoint, gracetime):
@@ -593,8 +607,7 @@ class TriblerLaunchMany(TaskManager):
                 # Show must go on
                 self._logger.exception("Could not remove state")
         else:
-            self._logger.warning("remove pstate: download is back, restarted? Canceling removal! %s",
-                                  repr(infohash))
+            self._logger.warning("remove pstate: download is back, restarted? Canceling removal! %s", repr(infohash))
 
     def early_shutdown(self):
         """ Called as soon as Session shutdown is initiated. Used to start
@@ -679,7 +692,8 @@ class TriblerLaunchMany(TaskManager):
             ts = enumerate_threads()
             self._logger.info("tlm: Number of threads still running %d", len(ts))
             for t in ts:
-                self._logger.info("tlm: Thread still running=%s, daemon=%s, instance=%s", t.getName(), t.isDaemon(), t)
+                self._logger.info("tlm: Thread still running=%s, daemon=%s, instance=%s", t.getName(), t.isDaemon(),
+                                  t)
         except:
             print_exc()
 
