@@ -1,0 +1,24 @@
+[style]
+based_on_style = pep8
+column_limit = 118
+# align_closing_bracket_with_visual_indent
+blank_line_before_nested_class_or_def = True
+# continuation_indent_width
+# dedent_closing_brackets
+# i18n_comment
+# i18n_function_call
+indent_dictionary_value = True
+# indent_width
+join_multiple_lines = True
+# space_between_ending_comma_and_closing_bracket
+# spaces_before_comment
+# split_before_bitwise_operator
+# split_before_logical_operator
+# split_before_named_assigns
+# split_penalty_after_opening_bracket
+# split_penalty_after_unary_operator
+# split_penalty_bitwise_operator
+split_penalty_excess_character = 5000
+# split_penalty_for_added_line_split
+# split_penalty_import_names
+# split_penalty_logical_operator
