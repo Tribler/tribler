@@ -70,17 +70,7 @@ For instructions about building and packaging Tribler on OS X, we have written a
 
 ### Windows
 
-```cmd
-setlocal enabledelayedexpansion
-call "c:\Program Files\Microsoft SDKs\Windows\v7.0\Bin\SetEnv.Cmd" /Release /x86
-SET PATH=%PATH%;c:\windows\system32;c:\Program Files\Microsoft Visual Studio 9.0\VC\bin
-cd tribler
-python Tribler/Main/Build/update_version_from_git.py
-xcopy c:\build\vlc vlc /E /I
-win\makedist.bat
-```
-
-TODO: Add detailed build dependencies.
+To package Tribler for Window, have a look at the [guide for building Tribler on Windows](doc/Building Tribler on Windows.md). Both x86 and x64 are supported.
 
 ### Other Unixes
 
