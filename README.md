@@ -70,7 +70,7 @@ For instructions about building and packaging Tribler on OS X, we have written a
 
 ### Windows
 
-To package Tribler for Window, have a look at the [guide for building Tribler on Windows](doc/Building Tribler on Windows.md). Both x86 and x64 are supported.
+To package Tribler for Windows, have a look at the [guide for building Tribler on Windows](doc/Building Tribler on Windows.md). Both x86 and x64 are supported.
 
 ### Other Unixes
 
