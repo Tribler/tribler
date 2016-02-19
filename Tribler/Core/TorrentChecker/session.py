@@ -43,10 +43,9 @@ def create_tracker_session(tracker_url, on_result_callback):
     tracker_type, tracker_address, announce_page = parse_tracker_url(tracker_url)
 
     if tracker_type == u'UDP':
-        session = UdpTrackerSession(tracker_url, tracker_address, announce_page, on_result_callback)
+        return UdpTrackerSession(tracker_url, tracker_address, announce_page, on_result_callback)
     else:
-        session = HttpTrackerSession(tracker_url, tracker_address, announce_page, on_result_callback)
-    return session
+        return HttpTrackerSession(tracker_url, tracker_address, announce_page, on_result_callback)
 
 
 class TrackerSession(object):
