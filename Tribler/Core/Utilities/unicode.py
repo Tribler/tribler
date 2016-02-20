@@ -30,22 +30,14 @@ def bin2unicode(bin, possible_encoding='utf_8'):
 
 def str2unicode(s):
     try:
-        s = unicode(s)
-    except:
-        flag = 0
-        for encoding in [sys.getfilesystemencoding(), 'utf_8', 'iso-8859-1', 'unicode-escape']:
+        return unicode(s)
+    except UnicodeDecodeError:
+        for encoding in [sys.getfilesystemencoding(), 'utf_8', 'iso-8859-1']:
             try:
-                s = unicode(s, encoding)
-                flag = 1
-                break
-            except:
+                return unicode(s, encoding)
+            except UnicodeDecodeError:
                 pass
-        if flag == 0:
-            try:
-                s = unicode(s, sys.getdefaultencoding(), errors='replace')
-            except:
-                pass
-    return s
+    return None
 
 
 def dunno2unicode(dunno):
