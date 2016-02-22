@@ -60,7 +60,7 @@ def check_random_port(port, socket_type="all"):
         if _test_port(_family, socket.SOCK_DGRAM, port):
             is_port_working = _test_port(_family, socket.SOCK_STREAM, port)
     else:
-        is_port_working = _test_port(_family, socket_type, port)
+        is_port_working = _test_port(_family, _sock_type, port)
 
     return is_port_working
 
