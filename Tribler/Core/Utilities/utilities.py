@@ -101,9 +101,6 @@ def validTorrentFile(metainfo):
             raise ValueError('info length is not int, but ' + repr(type(l)))
     else:
         # multi-file torrent
-        if 'length' in info:
-            raise ValueError('info may not contain both files and length key')
-
         files = info['files']
         if not isinstance(files, ListType):
             raise ValueError('info files not list, but ' + repr(type(files)))
