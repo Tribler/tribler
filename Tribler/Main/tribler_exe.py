@@ -76,6 +76,7 @@ INSTALL_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 
 if INSTALL_DIR not in sys.path:
     sys.path.append(INSTALL_DIR)
+    print "asdasdass"
 
 from Tribler.Main.tribler import __main__
 
