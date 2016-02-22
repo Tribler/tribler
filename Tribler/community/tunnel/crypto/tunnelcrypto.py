@@ -20,9 +20,9 @@ class TunnelCrypto(ECCrypto):
 
     def generate_diffie_secret(self):
         tmp_key = self.generate_key(u"curve25519")
-        X = tmp_key.key.pk
+        private_key = tmp_key.key.pk
 
-        return tmp_key, X
+        return tmp_key, private_key
 
     def generate_diffie_shared_secret(self, dh_received, key=None):
         if key == None:

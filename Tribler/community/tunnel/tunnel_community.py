@@ -951,10 +951,10 @@ class TunnelCommunity(Community):
                 packet = message.packet
 
                 if message.payload.message_type not in [u'create', u'created']:
-                    plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message.name)
+                    plaintext, decrypted = TunnelConversion.split_encrypted_packet(packet, message.name)
                     try:
-                        encrypted = self.crypto_in(circuit_id, encrypted)
-                        packet = plaintext + encrypted
+                        decrypted = self.crypto_in(circuit_id, decrypted)
+                        packet = plaintext + decrypted
 
                     except CryptoException, e:
                         self.tunnel_logger.warning(str(e))
@@ -1103,13 +1103,13 @@ class TunnelCommunity(Community):
             plaintext, encrypted = TunnelConversion.split_encrypted_packet(packet, message_type)
 
             try:
-                encrypted = self.crypto_in(circuit_id, encrypted, is_data=True)
+                decrypted = self.crypto_in(circuit_id, encrypted, is_data=True)
 
             except CryptoException, e:
                 self.tunnel_logger.warning(str(e))
                 return
 
-            packet = plaintext + encrypted
+            packet = plaintext + decrypted
             circuit_id, destination, origin, data = TunnelConversion.decode_data(packet)
 
             circuit = self.circuits.get(circuit_id, None)
@@ -1239,7 +1239,7 @@ class TunnelCommunity(Community):
             if len(circuit.hops) > 0:
                 # Remove all the encryption layers
                 layer = 0
-                for hop in self.circuits[circuit_id].hops:
+                for hop in circuit.hops:
                     layer += 1
                     try:
                         content = self.crypto.decrypt_str(content,
