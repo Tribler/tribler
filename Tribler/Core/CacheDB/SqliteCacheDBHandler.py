@@ -170,11 +170,9 @@ class PeerDBHandler(BasicDBHandler):
             _permid = value.pop('permid')
 
         peer_id = self.getPeerID(permid)
-        peer_existed = False
         if 'name' in value:
             value['name'] = dunno2unicode(value['name'])
         if peer_id is not None:
-            peer_existed = True
             where = u'peer_id == %d' % peer_id
             self._db.update('Peer', where, **value)
         else:
@@ -893,7 +891,6 @@ class TorrentDBHandler(BasicDBHandler):
         if num_seeders_index == -1:
             doSort = False
 
-        t1 = time()
         values = ", ".join(keys)
         mainsql = "SELECT " + values + ", C.channel_id, Matchinfo(FullTextIndex) FROM"
         if local:
@@ -914,8 +911,6 @@ class TorrentDBHandler(BasicDBHandler):
 
         results = self._db.fetchall(mainsql, (query,))
 
-        t2 = time()
-
         channels = set()
         channel_dict = {}
         for result in results:
@@ -930,7 +925,6 @@ class TorrentDBHandler(BasicDBHandler):
                 if channel[1] != '-1':
                     channel_dict[channel[0]] = channel
 
-        t3 = time()
         myChannelId = self.channelcast_db._channel_id or 0
 
         result_dict = {}
@@ -969,7 +963,6 @@ class TorrentDBHandler(BasicDBHandler):
             elif infohash not in result_dict:
                 result_dict[infohash] = result
 
-        t4 = time()
 
         # step 2, fix all dict fields
         dont_sort_list = []
@@ -1008,7 +1001,6 @@ class TorrentDBHandler(BasicDBHandler):
                 dont_sort_list.append(result)
                 results.pop(i)
 
-        t5 = time()
 
         if doSort:
             def compare(a, b):
