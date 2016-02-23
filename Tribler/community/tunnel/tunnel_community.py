@@ -477,7 +477,7 @@ class TunnelCommunity(Community):
         assert required_endpoint is None or len(required_endpoint) == 3, required_endpoint
         first_hop = None
 
-        self.tunnel_logger.warning("Creating a new circuit of length %d", goal_hops)
+        self.tunnel_logger.info("Creating a new circuit of length %d", goal_hops)
 
         if not required_endpoint:
             for c in self.dispersy_yield_verified_candidates():
