@@ -997,11 +997,11 @@ class MainFrame(wx.Frame):
                     if item.IsModal():
                         item.EndModal(wx.ID_CANCEL)
                     else:
-                        item.Destroy()
+                        item.Hide()
                 else:
-                    item.Close()
+                    item.Hide()
         self._logger.info("mainframe: destroying %s", self)
-        self.Destroy()
+        self.Hide()
 
         if app:
             def doexit():
