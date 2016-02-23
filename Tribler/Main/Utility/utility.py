@@ -7,7 +7,7 @@ from random import gauss
 
 from Tribler.Core.defaults import tribler_defaults
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.simpledefs import STATEDIR_GUICONFIG
+from Tribler.Core.simpledefs import STATEDIR_GUICONFIG, UPLOAD, DOWNLOAD
 from Tribler.Core.version import version_id
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 
@@ -218,6 +218,14 @@ def size_format(s, truncate=None, stopearly=None, applylabel=True, rawsize=False
         text += u' ' + label
 
     return text
+
+
+def get_download_upload_speed(dslist):
+    total_down, total_up = 0.0, 0.0
+    for ds in dslist:
+        total_down += ds.get_current_speed(DOWNLOAD)
+        total_up += ds.get_current_speed(UPLOAD)
+    return total_down, total_up
 
 
 def initialize_x11_threads():

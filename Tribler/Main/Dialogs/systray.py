@@ -2,6 +2,7 @@
 # see LICENSE.txt for license information
 import wx
 from traceback import print_exc
+from Tribler.Main.Utility.utility import speed_format
 
 try:
     import win32gui  # , win32con
@@ -31,6 +32,12 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
         self.Bind(wx.EVT_MENU, parent.onTaskBarActivate, id=wx.NewId())
 
         self.updateIcon(False)
+
+    def updateTooltip(self, download_speed=0, upload_speed=0):
+        if not WIN32:
+            return
+        self.tooltip = "Down: %s, Up: %s" % (speed_format(download_speed), speed_format(upload_speed))
+        self.SetIcon(self.icon, self.tooltip)
 
     def updateIcon(self, iconifying=False):
         remove = True

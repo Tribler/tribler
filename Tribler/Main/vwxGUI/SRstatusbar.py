@@ -8,7 +8,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.widgets import HorizontalGauge, ActionButton
 
-from Tribler.Main.Utility.utility import size_format, round_range, speed_format
+from Tribler.Main.Utility.utility import size_format, round_range, speed_format, get_download_upload_speed
 
 from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
 
@@ -83,7 +83,7 @@ class SRstatusbar(wx.StatusBar):
         self.SetStatusWidths([field[0] for field in self.fields])
         self.SetStatusStyles([field[1] for field in self.fields])
 
-        self.SetTransferSpeeds(0, 0)
+        self.SetTransferSpeeds(speed_format(0), speed_format(0))
         self.Bind(wx.EVT_SIZE, self.OnSize)
         self.library_manager.add_download_state_callback(self.RefreshTransferSpeed)
 
@@ -123,16 +123,13 @@ class SRstatusbar(wx.StatusBar):
             return
 
         self.UpdateTunnelContrib()
-        total_down, total_up = 0.0, 0.0
-        for ds in dslist:
-            total_down += ds.get_current_speed(DOWNLOAD)
-            total_up += ds.get_current_speed(UPLOAD)
-        self.SetTransferSpeeds(total_down, total_up)
+        total_down, total_up = get_download_upload_speed(dslist)
+        self.SetTransferSpeeds(speed_format(total_down), speed_format(total_up))
 
     @warnWxThread
     def SetTransferSpeeds(self, down, up):
-        self.speed_down.SetLabel(speed_format(down))
-        self.speed_up.SetLabel(speed_format(up))
+        self.speed_down.SetLabel(down)
+        self.speed_up.SetLabel(up)
         self.Reposition()
 
     def SetGlobalMaxSpeed(self, direction, value):
