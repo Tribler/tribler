@@ -29,7 +29,7 @@ from Tribler.Main.vwxGUI.list_body import ListBody
 from Tribler.Main.vwxGUI.list_item import ThumbnailListItemNoTorrent
 from Tribler.Main.vwxGUI.list_footer import ListFooter
 from Tribler.Main.vwxGUI.widgets import (SelectableListCtrl, TextCtrlAutoComplete, BetterText as StaticText,
-                                         LinkStaticText)
+                                         LinkStaticText, ActionButton)
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.Video.VideoUtility import considered_xxx
@@ -55,7 +55,6 @@ class Home(wx.Panel):
         text.SetForegroundColour((255, 51, 0))
         text.SetFont(font)
 
-        textSizer = wx.FlexGridSizer(2, 2, 3, 7)
         if sys.platform == 'darwin':  # mac
             self.searchBox = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         else:
@@ -72,21 +71,15 @@ class Home(wx.Panel):
             self.searchBox.SetMinSize((450, -1))
         self.searchBox.SetFocus()
 
-        textSizer.Add(text, 0, wx.EXPAND | wx.RIGHT, 7)
         scalingSizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        search_img = GuiImageManager.getInstance().getImage(u"search.png")
+        search_button = ActionButton(self, -1, search_img)
+        search_button.Bind(wx.EVT_LEFT_UP, self.OnClick)
+
         scalingSizer.Add(self.searchBox)
-
-        if sys.platform == 'darwin':  # mac
-            searchButton = wx.Button(self, -1, '\n')
-            searchButton.SetLabel('Search')
-        else:
-            searchButton = wx.Button(self, -1, 'Search')
-        searchButton.Bind(wx.EVT_BUTTON, self.OnClick)
-
-        scalingSizer.Add(searchButton, 0, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 3)
-
-        textSizer.Add(scalingSizer, 0, wx.ALIGN_CENTER_VERTICAL)
-        textSizer.AddSpacer((1, 1))
+        scalingSizer.AddSpacer(3, -1)
+        scalingSizer.Add(search_button, 0, wx.ALIGN_CENTER_VERTICAL, 3)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.Add(StaticText(self, -1, "Take me to "))
@@ -94,10 +87,13 @@ class Home(wx.Panel):
 
         channelLink.Bind(wx.EVT_LEFT_UP, self.OnChannels)
         hSizer.Add(channelLink)
-        hSizer.Add(StaticText(self, -1, " to see what others are sharing"))
-        textSizer.Add(hSizer)
+        hSizer.Add(StaticText(self, -1, " to see what others are sharing."))
 
-        vSizer.Add(textSizer, 0, wx.ALIGN_CENTER)
+        vSizer.Add(text, 0, wx.ALIGN_CENTER)
+        vSizer.AddSpacer(10)
+        vSizer.Add(scalingSizer, 0, wx.ALIGN_CENTER)
+        vSizer.AddSpacer(10)
+        vSizer.Add(hSizer, 0, wx.ALIGN_CENTER)
         vSizer.AddStretchSpacer()
 
         self.aw_panel = ArtworkPanel(self)
