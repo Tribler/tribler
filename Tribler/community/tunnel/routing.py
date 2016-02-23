@@ -97,7 +97,7 @@ class Circuit(object):
          way an acknowledgement of delivery!
         """
 
-        self._logger.error("Tunnel data (len %d) to end for circuit %s with ultimate destination %s", len(payload),
+        self._logger.info("Tunnel data (len %d) to end for circuit %s with ultimate destination %s", len(payload),
                            self.circuit_id, destination)
 
         num_bytes = self.proxy.send_data([Candidate(self.first_hop, False)], self.circuit_id, destination, ('0.0.0.0', 0), payload)
