@@ -1,4 +1,5 @@
 # Written by Niels Zeilemaker
+import sys
 import wx
 
 from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
@@ -109,10 +110,13 @@ class SRstatusbar(wx.StatusBar):
             space_label = space_str.replace(' ', '')
             space_tooltip = 'You currently have %s of disk space available on your default download location.' % space_str
             self.free_space.SetLabel(space_label)
-            self.free_space.SetToolTipString(space_tooltip)
             self.free_space.Show(True)
-            self.free_space_sbmp.SetToolTipString(space_tooltip)
             self.free_space_sbmp.Show(True)
+            # TODO martijn: we disabled some tooltips that are periodically updated on OS X.
+            # There seems to be a bug (in wx3) where the tooltip would always show when being updated.
+            if sys.platform != 'darwin':
+                self.free_space_sbmp.SetToolTipString(space_tooltip)
+                self.free_space.SetToolTipString(space_tooltip)
         else:
             self.free_space.Show(False)
             self.free_space_sbmp.Show(False)
@@ -198,7 +202,8 @@ class SRstatusbar(wx.StatusBar):
     @warnWxThread
     def SetConnections(self, connectionPercentage, totalConnections, channelConnections):
         self.connection.SetPercentage(connectionPercentage)
-        self.connection.SetToolTipString('Connected to %d peers' % totalConnections)
+        if sys.platform != 'darwin':
+            self.connection.SetToolTipString('Connected to %d peers' % totalConnections)
         self.channelconnections = channelConnections
 
     def GetConnections(self):
@@ -233,7 +238,8 @@ class SRstatusbar(wx.StatusBar):
 
         self.activity.SetBitmap(self.activityImages[0])
         self.activity.Refresh()
-        self.activity.SetToolTipString(msg)
+        if sys.platform != 'darwin':
+            self.activity.SetToolTipString(msg)
         self.activity_timer = wx.CallLater(300, revert)
 
     def OnSize(self, event):
