@@ -300,6 +300,10 @@ class Stats(wx.Panel):
 
     @inlineCallbacks
     def _printDBStats(self):
+        """
+        Queries the sqlite_master for all tables and then, for every
+        table it prints the amount of rows per table using the logger.
+        """
         sqlite_db = self.guiutility.utility.session.sqlite_db
         tables = yield deferToThread(sqlite_db.fetchall, "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
         deferlist = []
