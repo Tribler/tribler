@@ -11,29 +11,8 @@ import logging
 # Written by BitTornado authors and Arno Bakker
 # see LICENSE.txt for license information
 
-from Tribler import LIBRARYNAME
-from Tribler.Core.version import version_id
 
 logger = logging.getLogger(__name__)
-
-if LIBRARYNAME == "Tribler":
-    product_name = 'Tribler'
-    version_short = 'Tribler-' + version_id
-    report_email = 'tribler@tribler.org'
-    # Arno: looking at Azureus BTPeerIDByteDecoder this letter is free
-    # 'T' is BitTornado, 'A' is ABC, 'TR' is Transmission
-    TRIBLER_PEERID_LETTER = 'R'
-else:
-    version_id = '3.2.0'  # aka M32
-    product_name = 'NextShare'
-    version_short = 'NextShare-' + version_id
-    report_email = 'support@p2p-next.org'
-    # Arno: looking at Azureus BTPeerIDByteDecoder this letter is free
-    # 'T' is BitTornado, 'A' is ABC, 'TR' is Transmission
-    TRIBLER_PEERID_LETTER = 'N'
-
-
-version = version_short + ' (' + product_name + ')'
 
 
 def warnIfDispersyThread(func):
