@@ -7,6 +7,9 @@ from traceback import print_exc
 import json
 
 import wx
+from twisted.internet.threads import deferToThread
+
+from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread
@@ -1309,14 +1312,19 @@ class ChannelManager(object):
         community = self._disp_get_community_from_channel_id(channel_id)
         community.create_playlist(name, description, infohashes)
 
+    def get_known_playlist_torrents(self, playlist_id):
+        sql = "SELECT distinct infohash, PL.dispersy_id FROM PlaylistTorrents PL, ChannelTorrents CT, Torrent T WHERE PL.channeltorrent_id = CT.id AND CT.torrent_id = T.torrent_id AND playlist_id = ?"
+        records = self.channelcast_db._db.fetchall(sql, (playlist_id,))
+        return records
+
     @call_on_reactor_thread
+    @inlineCallbacks
     def savePlaylistTorrents(self, channel_id, playlist_id, infohashes):
         # detect changesmodification
         to_be_created = set(infohashes)
         to_be_removed = set()
 
-        sql = "SELECT distinct infohash, PL.dispersy_id FROM PlaylistTorrents PL, ChannelTorrents CT, Torrent T WHERE PL.channeltorrent_id = CT.id AND CT.torrent_id = T.torrent_id AND playlist_id = ?"
-        records = self.channelcast_db._db.fetchall(sql, (playlist_id,))
+        records = yield deferToThread(self.get_known_playlist_torrents)
         for infohash, dispersy_id in records:
             infohash = str2bin(infohash)
             if infohash in to_be_created:
