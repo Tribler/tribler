@@ -9,6 +9,7 @@ from twisted.internet.threads import deferToThread
 
 from twisted.internet.defer import inlineCallbacks, Deferred, DeferredList
 
+from Tribler.Core.Utilities.misc_utils import printDBStats
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.community.tunnel.routing import Hop
 
@@ -219,7 +220,7 @@ class Stats(wx.Panel):
             self._showInspectionTool()
 
         elif event.ControlDown() and (event.GetKeyCode() == 68 or event.GetKeyCode() == 100):  # ctrl + d
-            self._printDBStats()
+            printDBStats(self._logger, Session.get_instance())
         else:
             event.Skip()
 
@@ -228,7 +229,7 @@ class Stats(wx.Panel):
             self._showInspectionTool()
 
         elif all([event.LeftUp(), event.ControlDown(), event.AltDown(), event.ShiftDown()]):
-            self._printDBStats()
+            printDBStats(self._logger, Session.get_instance())
 
         else:
             event.Skip()
@@ -297,28 +298,6 @@ class Stats(wx.Panel):
         except Exception:
             import traceback
             traceback.print_exc()
-
-    @inlineCallbacks
-    def _printDBStats(self):
-        """
-        Queries the sqlite_master for all tables and then, for every
-        table it prints the amount of rows per table using the logger.
-        """
-        sqlite_db = self.guiutility.utility.session.sqlite_db
-        tables = yield deferToThread(sqlite_db.fetchall, "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
-        deferlist = []
-
-        def print_table_counts(self, results):
-            for i in range (0, len(tables)):
-                self._logger.info("%s %s", table, results[i])
-
-        for table, in tables:
-            deferlist.append(deferToThread(sqlite_db.fetchone, "SELECT COUNT(*) FROM %s" % table))
-            # self._logger.info("%s %s", table, sqlite_db.fetchone("SELECT COUNT(*) FROM %s" % table))
-
-        deferred_list = yield DeferredList(deferlist)
-        results = yield defer.gatherResults(deferred_list)
-        print_table_counts(self, results)
 
     def Show(self, show=True):
         if show:
