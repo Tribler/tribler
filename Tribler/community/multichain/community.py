@@ -11,6 +11,7 @@ import base64
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.Session import Session
+from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 
 from Tribler.dispersy.authentication import DoubleMemberAuthentication, MemberAuthentication
 from Tribler.dispersy.resolution import PublicResolution
@@ -43,9 +44,6 @@ class MultiChainCommunity(Community):
     """
     Community for reputation based on MultiChain tamper proof interaction history.
     """
-
-    """ Amount of time the MultiChain waits on a signature requests before it times out"""
-    signature_request_timeout = 5.0
 
     def __init__(self, *args, **kwargs):
         super(MultiChainCommunity, self).__init__(*args, **kwargs)
@@ -138,24 +136,26 @@ class MultiChainCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), MultiChainConversion(self)]
 
-    def schedule_block(self, peer, bytes_up, bytes_down):
+    def schedule_block(self, candidate, bytes_up, bytes_down):
             """
             Schedule a block for the current outstanding amounts
             :param peer: The peer with whom you have interacted, identified by the (ip, port) tuple
             :param bytes_up: The bytes you have uploaded to the peer in this interaction
             :param bytes_down: The bytes you have downloaded from the peer in this interaction
             """
-            candidate = self.get_candidate(peer)
+            self.logger.info("MULTICHAIN: Schedule Block called. Candidate: " + str(candidate) + " UP: " +
+                              str(bytes_up) + " DOWN: " + str(bytes_down))
+            self.add_discovered_candidate(candidate)
             if candidate and candidate.get_member():
-
                 """ Convert to MB """
                 total_amount_sent_mb = bytes_up / MEGA_DIVIDER
                 total_amount_received_mb = bytes_down / MEGA_DIVIDER
+
                 """ Try to send the request """
                 self.publish_signature_request_message(candidate, total_amount_sent_mb, total_amount_received_mb)
             else:
                 self.logger.warn(
-                    "No valid candidate found for: %s:%s to request block from." % (peer[0], peer[1]))
+                    "No valid candidate found for: %s:%s to request block from." % (candidate[0], candidate[1]))
 
     def publish_signature_request_message(self, candidate, up, down):
         """
@@ -167,8 +167,7 @@ class MultiChainCommunity(Community):
         return (bool) if request is sent.
         """
         message = self.create_signature_request_message(candidate, up, down)
-        self.create_signature_request(candidate, message, self.allow_signature_response,
-                                      timeout=self.signature_request_timeout)
+        self.create_signature_request(candidate, message, self.allow_signature_response)
         self.persist_signature_request(message)
         return True
 
@@ -247,8 +246,6 @@ class MultiChainCommunity(Community):
 
             if request.payload.sequence_number_requester == response.payload.sequence_number_requester and \
                request.payload.previous_hash_requester == response.payload.previous_hash_requester and modified:
-                block = DatabaseBlock.from_signature_response_message(response)
-                self.persistence.update_block_with_responder(block)
                 return True
             else:
                 return False
@@ -259,22 +256,39 @@ class MultiChainCommunity(Community):
         """
         self.logger.info("Valid %s signature response(s) received." % len(messages))
         for message in messages:
-            self.persist_signature_response(message)
-            # Release exclusion flag because the operation is done.
-            self.logger.debug("Chain exclusion: released received signature response.")
-            self.chain_exclusion_flag = False
+            self.update_signature_response(message)
 
     def persist_signature_response(self, message):
         """
-        Persist the signature response message.
+        Persist the signature response message, when this node has not yet persisted the corresponding request block.
         A hash will be created from the message and this will be used as an unique identifier.
         :param message:
         """
         block = DatabaseBlock.from_signature_response_message(message)
-        self.logger.info("Persisting sr: %s" % base64.encodestring(block.id).strip())
+        self.logger.info("Persisting sr: %s" % base64.encodestring(block.hash_requester).strip())
         self.persistence.add_block(block)
 
-    def send_crawl_request(self, candidate, sequence_number = None):
+    def update_signature_response(self, message):
+        """
+        Update the signature response message, when this node has already persisted the corresponding request block.
+        A hash will be created from the message and this will be used as an unique identifier.
+        :param message:
+        """
+        block = DatabaseBlock.from_signature_response_message(message)
+        self.logger.info("Persisting sr: %s" % base64.encodestring(block.hash_requester).strip())
+        self.persistence.update_block_with_responder(block)
+
+    def persist_signature_request(self, message):
+        """
+        Persist the signature request message as a block.
+        The block will be updated when a response is received.
+        :param message:
+        """
+        block = DatabaseBlock.from_signature_request_message(message)
+        self.logger.info("Persisting sr: %s" % base64.encodestring(block.hash_requester).strip())
+        self.persistence.add_block(block)
+
+    def send_crawl_request(self, candidate, sequence_number=None):
         if sequence_number is None:
             sequence_number = self.persistence.get_latest_sequence_number(candidate.get_member().mid);
         self.logger.info("Crawler: Requesting crawl from node %s, from sequence number %d" % (base64.encodestring(candidate.get_member().mid).strip(), sequence_number))
@@ -354,7 +368,7 @@ class MultiChainCommunity(Community):
         return self.persistence.get_latest_sequence_number(self._mid) + 1
 
     def _get_latest_hash(self):
-        previous_hash = self.persistence.get_previous_id(self._mid)
+        previous_hash = self.persistence.get_previous_hash(self._mid)
         return previous_hash if previous_hash else GENESIS_ID
 
     def unload_community(self):
@@ -363,7 +377,8 @@ class MultiChainCommunity(Community):
         # Close the persistence layer
         self.persistence.close()
 
-    def on_tunnel_remove(self, subject, changeType, tunnel, stats):
+    @forceDBThread
+    def on_tunnel_remove(self, subject, changeType, tunnel, stats, candidate):
         """
         Handler for the remove event of a tunnel. This function will attempt to create a block for the amounts that
         were transferred using the tunnel.
@@ -373,6 +388,11 @@ class MultiChainCommunity(Community):
         :param stats: The statistics regarding this tunnel
         :return:
         """
+
+        self.logger.error("MULTICHAIN: on_tunnel_remove_called" + str(type(tunnel)) + str(stats))
+
+        bytes_up = None
+        bytes_down = None
         if isinstance(tunnel, Circuit):
             bytes_up = stats['bytes_up']
             bytes_down = stats['bytes_down']

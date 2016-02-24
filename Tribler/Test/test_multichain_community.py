@@ -5,7 +5,11 @@ import time
 import uuid
 import logging
 
+from Tribler.Core.Session import Session
+
 from Tribler.community.multichain.community import  MultiChainCommunity, CRAWL_REQUEST, CRAWL_RESPONSE, CRAWL_RESUME
+
+from Tribler.community.tunnel.routing import Circuit
 
 from Tribler.Test.test_as_server import BaseTestCase
 
@@ -130,7 +134,7 @@ class TestMultiChainCommunity(DispersyTestFunc):
         # Act
         node.call(node.community.publish_signature_request_message, target_other, 5, 5)
         """" Wait for the timeout. """
-        time.sleep(MultiChainCommunity.signature_request_timeout + 2)
+        time.sleep(10 + 2)  # 10 seconds is the default timeout for a signature request in dispersy
         # Assert
         self.assertFalse(other.community.chain_exclusion_flag)
         self.assertTrue(self.assertBlocksInDatabase(node, 1))
@@ -332,9 +336,18 @@ class TestMultiChainCommunity(DispersyTestFunc):
 
     @blocking_call_on_reactor_thread
     def assertBlocksAreEqual(self, node, other):
-        ids_node = node.community.persistence.get_ids()
-        ids_other = other.community.persistence.get_ids()
-        return ids_node == ids_other
+        ids_node = node.community.persistence.get_all_hash_requester()
+        ids_other = other.community.persistence.get_all_hash_requester()
+        if len(ids_node) != len(ids_other):
+            return False
+        blocks_node = map(node.community.persistence.get_by_hash_requester, ids_node)
+        blocks_other = map(other.community.persistence.get_by_hash_requester, ids_other)
+
+        for block_node, block_other in zip(blocks_node, blocks_other):
+            if block_node.hash_requester != block_other.hash_requester or \
+               block_node.hash_responder != block_other.hash_responder:
+                return False
+        return True
 
     def create_nodes(self, *args, **kwargs):
         return super(TestMultiChainCommunity, self).create_nodes(*args, community_class=MultiChainCommunity,

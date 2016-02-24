@@ -448,11 +448,14 @@ class ABCApp(object):
             settings = TunnelSettings(session.get_install_dir(), tribler_session=session)
             tunnel_kwargs = {'tribler_session': session, 'settings': settings}
 
-            self.tunnel_community = dispersy.define_auto_load(HiddenTunnelCommunity, dispersy_member, load=True,
-                                                              kargs=tunnel_kwargs)[0]
             if self.sconfig.get_enable_multichain():
                 """ Start the multichain community and hook in the multichain scheduler. """
                 multichain = dispersy.define_auto_load(MultiChainCommunity, dispersy_member, load=True,)[0]
+
+            # The multichain community MUST be auto_loaded before the tunnel community,
+            #  because it must be unloaded after the tunnel, so that the tunnel closures can be signed
+            self.tunnel_community = dispersy.define_auto_load(HiddenTunnelCommunity, dispersy_member, load=True,
+                                                              kargs=tunnel_kwargs)[0]
 
             session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_tunnel_community_socks5_listen_ports()))
 

@@ -5,7 +5,7 @@ from os import path
 from hashlib import sha1
 
 from Tribler.dispersy.database import Database
-from Tribler.community.multichain.conversion import encode_block
+from Tribler.community.multichain.conversion import encode_block, encode_block_requester_half
 
 DATABASE_DIRECTORY = path.join(u"sqlite")
 """ Path to the database location + dispersy._workingdirectory"""
@@ -15,7 +15,8 @@ LATEST_DB_VERSION = 1
 """ Schema for the MultiChain DB."""
 schema = u"""
 CREATE TABLE IF NOT EXISTS multi_chain(
- block_hash			        TEXT PRIMARY KEY,
+ hash_requester		        TEXT PRIMARY KEY,
+ hash_responder		        TEXT NOT NULL,
  up                         INTEGER NOT NULL,
  down                       INTEGER NOT NULL,
  total_up_requester         UNSIGNED BIG INT NOT NULL,
@@ -62,7 +63,7 @@ class MultiChainDB(Database):
         Persist a block under a block_id
         :param block: The data that will be saved.
         """
-        data = (buffer(block.id), block.up, block.down,
+        data = (buffer(block.hash_requester), buffer(block.hash_responder), block.up, block.down,
                 block.total_up_requester, block.total_down_requester,
                 block.sequence_number_requester, buffer(block.previous_hash_requester),
                 block.total_up_responder, block.total_down_responder,
@@ -71,18 +72,20 @@ class MultiChainDB(Database):
                 buffer(block.mid_responder), buffer(block.signature_responder))
 
         self.execute(
-            u"INSERT INTO multi_chain (block_hash, up, down, "
+            u"INSERT INTO multi_chain (hash_requester, hash_responder, up, down, "
             u"total_up_requester, total_down_requester, sequence_number_requester, previous_hash_requester,"
             u"total_up_responder, total_down_responder, sequence_number_responder, previous_hash_responder,"
             u"mid_requester, signature_requester, mid_responder, signature_responder) "
-            u"VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            u"VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             data)
 
     def update_block_with_responder(self, block):
         """
-        Get the id of the latest block in the chain for a specific public key.
+        Get the relevant hash of the latest block in the chain for a specific public key.
+        Relevant means the hash_requester is the last block was a request,
+        hash_responder is the last block was a response.
         :param mid: The mid for which the latest hash has to be found.
-        :return: block_id
+        :return: the relevant hash
         """
         data = (
                 block.total_up_responder, block.total_down_responder,
@@ -123,15 +126,30 @@ class MultiChainDB(Database):
     def get_by_hash_requester(self, hash_requester):
         """
         Returns a block saved in the persistence
-        :param block_id: The id of the block that needs to be retrieved.
+        :param hash_requester: The hash_requester of the block that needs to be retrieved.
         :return: The block that was requested or None
         """
         db_query = u"SELECT up, down, " \
                    u"total_up_requester, total_down_requester, sequence_number_requester,  previous_hash_requester, " \
                    u"total_up_responder, total_down_responder, sequence_number_responder,  previous_hash_responder," \
                    u"mid_requester, signature_requester, mid_responder, signature_responder, insert_time " \
-                   u"FROM `multi_chain` WHERE block_hash = ? LIMIT 1"
-        db_result = self.execute(db_query, (buffer(block_id),)).fetchone()
+                   u"FROM `multi_chain` WHERE hash_requester = ? LIMIT 1"
+        db_result = self.execute(db_query, (buffer(hash_requester),)).fetchone()
+        # Create a DB Block or return None
+        return self._create_database_block(db_result)
+
+    def get_by_hash(self, hash):
+        """
+        Returns a block saved in the persistence, based on a hash that can be either hash_requester or hash_responder
+        :param hash: The hash of the block that needs to be retrieved.
+        :return: The block that was requested or None
+        """
+        db_query = u"SELECT up, down, " \
+                   u"total_up_requester, total_down_requester, sequence_number_requester,  previous_hash_requester, " \
+                   u"total_up_responder, total_down_responder, sequence_number_responder,  previous_hash_responder," \
+                   u"mid_requester, signature_requester, mid_responder, signature_responder, insert_time " \
+                   u"FROM `multi_chain` WHERE hash_requester = ? OR hash_responder = ? LIMIT 1"
+        db_result = self.execute(db_query, (buffer(hash), buffer(hash))).fetchone()
         # Create a DB Block or return None
         return self._create_database_block(db_result)
 
@@ -188,23 +206,23 @@ class MultiChainDB(Database):
         else:
             return None
 
-    def get_ids(self):
+    def get_all_hash_requester(self):
         """
-        Get all the IDs saved in the persistence layer.
-        :return: list of ids.
+        Get all the hash_requester saved in the persistence layer.
+        :return: list of hash_requester.
         """
-        db_result = self.execute(u"SELECT block_hash FROM multi_chain").fetchall()
+        db_result = self.execute(u"SELECT hash_requester FROM multi_chain").fetchall()
         # Unpack the db_result tuples and decode the results.
         return [str(x[0]) for x in db_result]
 
-    def contains(self, block_id):
+    def contains(self, hash_requester):
         """
         Check if a block is existent in the persistence layer.
-        :param block_id: The id t hat needs to be checked.
+        :param hash_requester: The hash_requester that is queried
         :return: True if the block exists, else false.
         """
-        db_query = u"SELECT block_hash FROM multi_chain WHERE block_hash == ? LIMIT 1"
-        db_result = self.execute(db_query, (buffer(block_id),)).fetchone()
+        db_query = u"SELECT hash_requester FROM multi_chain WHERE hash_requester == ? LIMIT 1"
+        db_result = self.execute(db_query, (buffer(hash_requester),)).fetchone()
         return db_result is not None
 
     def get_latest_sequence_number(self, mid):
@@ -296,8 +314,9 @@ class DatabaseBlock:
         """ Set the public keys """
         self.public_key_requester = str(data[15])
         self.public_key_responder = str(data[16])
-        """ Set up the block hash """
-        self.id = sha1(encode_block(self)).digest()
+        """ Set up the block hashes """
+        self.hash_requester = self.get_hash_requester_pov(data)
+        self.hash_responder = sha1(encode_block(self)).digest()
 
     @classmethod
     def from_signature_response_message(cls, message):
@@ -310,7 +329,7 @@ class DatabaseBlock:
                     payload.total_up_responder, payload.total_down_responder,
                     payload.sequence_number_responder, payload.previous_hash_responder,
                     requester[1].mid, requester[0], responder[1].mid, responder[0],
-                    None, requester[1].public_key, responder[1].public_key))
+                    None, requester[1].public_key, responder[1].public_key),)
 
     @classmethod
     def from_block_response_message(cls, message, requester, responder):
@@ -334,3 +353,11 @@ class DatabaseBlock:
                 self.sequence_number_responder, self.previous_hash_responder,
                 self.public_key_requester, self.signature_requester,
                 self.public_key_responder, self.signature_responder)
+
+    def get_hash_requester_pov(self, data):
+        """
+        Calculate the hash of the block from the point of view of the requester
+        :return: the sha1 hash of the block from the point of view of the requester
+        """
+
+        return sha1(encode_block_requester_half(self)).digest()

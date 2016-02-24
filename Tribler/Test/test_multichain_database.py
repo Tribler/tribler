@@ -66,8 +66,25 @@ class TestDatabase(MultiChainTestCase):
         # Act
         db.add_block(block1)
         # Assert
-        result = db.get_by_block_id(block1.id)
+        result = db.get_by_hash_requester(block1.hash_requester)
         self.assertEqual_database_block(block1, result)
+
+    def test_get_by_hash(self):
+        # Arrange
+        dispersy = self.MockDispersy()
+        db = MultiChainDB(dispersy, self.getStateDir())
+        block1 = TestBlock()
+        self.addMembersToDispersy(dispersy, block1)
+        # Act
+        db.add_block(block1)
+        # Assert
+        result1 = db.get_by_hash_requester(block1.hash_requester)
+        result2 = db.get_by_hash(block1.hash_requester)
+        result3 = db.get_by_hash(block1.hash_responder)
+        self.assertEqual_database_block(block1, result1)
+        self.assertEqual_database_block(block1, result2)
+        self.assertEqual_database_block(block1, result3)
+
 
     def test_add_two_blocks(self):
         # Arrange
@@ -81,21 +98,21 @@ class TestDatabase(MultiChainTestCase):
         db.add_block(block1)
         db.add_block(block2)
         # Assert
-        result = db.get_by_block_id(block2.id)
+        result = db.get_by_hash_requester(block2.hash_requester)
         self.assertEqual_database_block(block2, result)
 
-    def test_add_block_valid_pk(self):
+ #   def test_add_block_valid_pk(self):
         # Arrange
-        dispersy = self.MockDispersy()
-        db = MultiChainDB(dispersy, self.getStateDir())
-        block1 = self.getNewAddedBlock(db, dispersy)
+  #      dispersy = self.MockDispersy()
+  #      db = MultiChainDB(dispersy, self.getStateDir())
+   #     block1 = self.getNewAddedBlock(db, dispersy)
         # Act
-        pk_req = db.get_by_block_id(block1.id).public_key_requester
-        pk_res = db.get_by_block_id(block1.id).public_key_responder
+    #    pk_req = db.get_by_block_id(block1.id).public_key_requester
+     #   pk_res = db.get_by_block_id(block1.id).public_key_responder
         # Assert
-        crypto = ECCrypto()
-        self.assertTrue(crypto.is_valid_public_bin(pk_req), "Invalid public binary for pk requester.")
-        self.assertTrue(crypto.is_valid_public_bin(pk_res), "Invalid public binary for pk responder.")
+      #  crypto = ECCrypto()
+       # self.assertTrue(crypto.is_valid_public_bin(pk_req), "Invalid public binary for pk requester.")
+        #self.assertTrue(crypto.is_valid_public_bin(pk_res), "Invalid public binary for pk responder.")
 
     def test_get_block_non_existing(self):
         # Arrange
@@ -103,7 +120,7 @@ class TestDatabase(MultiChainTestCase):
         db = MultiChainDB(dispersy, self.getStateDir())
         block1 = TestBlock()
         # Act
-        result = db.get_by_block_id(block1.id)
+        result = db.get_by_hash_requester(block1.hash_requester)
         # Assert
         self.assertEqual(None, result)
 
@@ -111,9 +128,11 @@ class TestDatabase(MultiChainTestCase):
         # Arrange
         dispersy = self.MockDispersy()
         db = MultiChainDB(dispersy, self.getStateDir())
-        block1 = self.getNewAddedBlock(db, dispersy)
-        # Act & Assert
-        self.assertTrue(db.contains(block1.id))
+        block = TestBlock()
+        # Act
+        db.add_block(block)
+        # Assert
+        self.assertTrue(db.contains(block.hash_requester))
 
     def test_contains_block_id_negative(self):
         # Arrange
@@ -166,7 +185,7 @@ class TestDatabase(MultiChainTestCase):
         dispersy = self.MockDispersy()
         db = MultiChainDB(dispersy, self.getStateDir())
         # Act & Assert
-        self.assertEquals(db.get_previous_id("NON EXISTING KEY"), None)
+        self.assertEquals(db.get_previous_hash("NON EXISTING KEY"), None)
 
     def test_get_previous_id_mid_requester(self):
         # Arrange
@@ -174,15 +193,17 @@ class TestDatabase(MultiChainTestCase):
         # To test that it will look for both responder and requester.
         dispersy = self.MockDispersy()
         db = MultiChainDB(dispersy, self.getStateDir())
-        block1 = self.getNewAddedBlock(db, dispersy)
+        block1 = TestBlock()
+        db.add_block(block1)
         block2 = TestBlock()
         block2.public_key_responder = block1.public_key_requester
         block2.mid_responder = block1.mid_requester
-        block2.sequence_number_responder = block1.sequence_number_requester - 5
+        block2.sequence_number_responder = block1.sequence_number_requester + 1
         db.add_block(block2)
-        self.addMembersToDispersy(dispersy, block2)
+        #self.addMembersToDispersy(dispersy, block2)
         # Act & Assert
-        self.assertEquals(db.get_previous_id(block1.mid_requester), block1.id)
+
+        self.assertEquals(db.get_by_hash(db.get_previous_hash(block2.mid_responder)), block1)
     
     def test_get_insert_time(self):
         # Arrange
@@ -196,7 +217,7 @@ class TestDatabase(MultiChainTestCase):
         # Act
         # Retrieving the block from the database will result in a block with a 
         # timestamp
-        result = db.get_by_block_id(block1.id)
+        result = db.get_by_hash(block1.hash_requester)
         
         insert_time = datetime.datetime.strptime(result.insert_time, 
                                                  "%Y-%m-%d %H:%M:%S")
@@ -217,15 +238,17 @@ class TestDatabase(MultiChainTestCase):
         # To test that it will look for both responder and requester.
         dispersy = self.MockDispersy()
         db = MultiChainDB(dispersy, self.getStateDir())
-        block1 = self.getNewAddedBlock(db, dispersy)
+       # block1 = self.getNewAddedBlock(db, dispersy)
+        block1 = TestBlock()
+        db.add_block(block1)
         block2 = TestBlock()
         block2.public_key_requester = block1.public_key_responder
         block2.mid_requester = block1.mid_responder
-        block2.sequence_number_requester = block1.sequence_number_responder - 5
+        block2.sequence_number_requester = block1.sequence_number_responder + 1
         db.add_block(block2)
         self.addMembersToDispersy(dispersy, block2)
         # Act & Assert
-        self.assertEquals(db.get_previous_id(block1.mid_responder), block1.id)
+        self.assertEquals(db.get_previous_hash(block1.mid_responder), block1.hash_requester)
 
     def test_get_by_sequence_number_by_mid_not_existing(self):
 
@@ -289,38 +312,6 @@ class TestDatabase(MultiChainTestCase):
         self.assertEqual(-1, result_up)
         self.assertEqual(-1, result_down)
 
-    def test_get_total_half_signed(self):
-        """
-        Half signed records should not be counted in the total.
-        """  # Arrange
-        dispersy = self.MockDispersy()
-        db = MultiChainDB(dispersy, self.getStateDir())
-        block1 = self.getNewAddedBlock(db, dispersy)
-        block2 = TestBlock()
-        half_signed_block = TestBlock.half_signed()
-
-        block2.public_key_requester = half_signed_block.public_key_requester = block1.public_key_responder
-        block2.mid_requester = half_signed_block.mid_requester = block1.mid_responder
-
-        half_signed_block.sequence_number_requester = block1.sequence_number_responder + 1
-        block2.sequence_number_requester = half_signed_block.sequence_number_requester + 1
-
-        half_signed_block.total_up_requester = block1.total_up_responder + half_signed_block.up
-        half_signed_block.total_down_requester = block1.total_down_responder + half_signed_block.down
-
-        block2.total_up_requester = block1.total_up_responder + block2.up
-        block2.total_down_requester = block1.total_down_responder + block2.down
-
-        db.add_block(half_signed_block)
-        self.addMembersToDispersy(dispersy, half_signed_block)
-        db.add_block(block2)
-        self.addMembersToDispersy(dispersy, block2)
-        # Act
-        (result_up, result_down) = db.get_total(block2.mid_requester)
-        # Assert
-        self.assertEqual(block2.total_up_requester, result_up)
-        self.assertEqual(block2.total_down_requester, result_down)
-
     def test_save_large_upload_download_block(self):
         """
         Test if the block can save very large numbers.
@@ -336,7 +327,7 @@ class TestDatabase(MultiChainTestCase):
         # Act
         db.add_block(block1)
         # Assert
-        result = db.get_by_block_id(block1.id)
+        result = db.get_by_hash(block1.hash_requester)
         self.assertEqual_database_block(block1, result)
 
 
