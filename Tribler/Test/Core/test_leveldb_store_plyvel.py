@@ -37,7 +37,7 @@ from twisted.internet.task import Clock
 
 from Tribler.Core.leveldbstore import LevelDbStore
 from Tribler.Core.plyveladapter import LevelDB
-from Tribler.Test.test_leveldb_store import TestLevelDbStore, K, V
+from Tribler.Test.Core.test_leveldb_store import TestLevelDbStore, K, V
 
 
 class ClockedTorrentStore(LevelDbStore):
