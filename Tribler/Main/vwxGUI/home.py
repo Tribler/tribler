@@ -4,6 +4,11 @@ import sys
 import os
 import datetime
 
+from twisted.internet import defer
+from twisted.internet.threads import deferToThread
+
+from twisted.internet.defer import inlineCallbacks, Deferred, DeferredList
+
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.community.tunnel.routing import Hop
 
@@ -293,11 +298,23 @@ class Stats(wx.Panel):
             import traceback
             traceback.print_exc()
 
+    @inlineCallbacks
     def _printDBStats(self):
         sqlite_db = self.guiutility.utility.session.sqlite_db
-        tables = sqlite_db.fetchall("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+        tables = yield deferToThread(sqlite_db.fetchall, "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+        deferlist = []
+
+        def print_table_counts(self, results):
+            for i in range (0, len(tables)):
+                self._logger.info("%s %s", table, results[i])
+
         for table, in tables:
-            self._logger.info("%s %s", table, sqlite_db.fetchone("SELECT COUNT(*) FROM %s" % table))
+            deferlist.append(deferToThread(sqlite_db.fetchone, "SELECT COUNT(*) FROM %s" % table))
+            # self._logger.info("%s %s", table, sqlite_db.fetchone("SELECT COUNT(*) FROM %s" % table))
+
+        deferred_list = yield DeferredList(deferlist)
+        results = yield defer.gatherResults(deferred_list)
+        print_table_counts(self, results)
 
     def Show(self, show=True):
         if show:
