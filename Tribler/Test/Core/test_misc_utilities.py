@@ -1,14 +1,11 @@
-import logging
-
-from twisted.python import log
-from twisted.internet import defer
-
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Utilities.misc_utils import printDBStats, compute_ratio
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.test_as_server import AbstractServer
+
+from twisted.internet import defer
 
 
 class TriblerCoreUtilitiesTestMiscUtilities(AbstractServer):
