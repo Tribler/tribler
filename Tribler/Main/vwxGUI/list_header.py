@@ -577,13 +577,18 @@ class TorrentFilter(BaseFilter):
         self.filesize = MinMaxSlider(panel, -1)
         self.filesize.SetFormatter(size_format)
 
-        self.search = wx.SearchCtrl(panel)
-        self.search.SetDescriptiveText('Filter results')
-        self.search.Bind(wx.EVT_TEXT, self.OnKey)
+        self.search = None
+
         if sys.platform == 'darwin':
+            self.search = wx.TextCtrl(panel)
+            self.search.SetHint('Filter results')
             self.search.SetMinSize((175, 20))
         else:
+            self.search = wx.SearchCtrl(panel)
+            self.search.SetDescriptiveText('Filter results')
             self.search.SetMinSize((175, -1))
+
+        self.search.Bind(wx.EVT_TEXT, self.OnKey)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.AddSpacer((self.spacers[0], -1))
@@ -788,7 +793,10 @@ class SelectedChannelFilter(TorrentFilter):
     def AddComponents(self, spacers):
         self.SetBackgroundColour(wx.WHITE)
         TorrentFilter.AddComponents(self, spacers)
-        self.search.SetDescriptiveText('Filter channel content')
+        if sys.platform == 'darwin':
+            self.search.SetHint('Filter content')
+        else:
+            self.search.SetDescriptiveText('Filter content')
         button = wx.ToggleButton(self.filter_panel, -1, 'Show grid')
         button.Bind(wx.EVT_TOGGLEBUTTON, lambda evt: self.parent_list.SetGrid(evt.GetEventObject().GetValue()))
         self.filter_sizer.Insert(len(self.filter_sizer.GetChildren()) - 2, button, 0, wx.CENTER | wx.RIGHT, 3)
@@ -798,7 +806,10 @@ class SelectedPlaylistFilter(TorrentFilter):
 
     def AddComponents(self, spacers):
         TorrentFilter.AddComponents(self, spacers)
-        self.search.SetDescriptiveText('Filter playlist content')
+        if sys.platform == 'darwin':
+            self.search.SetHint('Filter playlist content')
+        else:
+            self.search.SetDescriptiveText('Filter playlist content')
 
 
 class ChannelFilter(BaseFilter):
@@ -834,13 +845,18 @@ class ChannelFilter(BaseFilter):
         self.channeltype = LinkStaticText(panel, 'Channel type', None, font_colour=wx.BLACK)
         self.channeltype.Bind(wx.EVT_LEFT_DOWN, self.OnPopupChannelType)
 
-        self.search = wx.SearchCtrl(panel)
-        self.search.SetDescriptiveText('Filter channels')
-        self.search.Bind(wx.EVT_TEXT, self.OnKey)
+        self.search = None
+
         if sys.platform == 'darwin':
-            self.search.SetMinSize((175, 20))
+            self.search = wx.TextCtrl(panel)
+            self.search.SetHint('Filter channels')
+            self.search.SetMinSize((175, 22))
         else:
+            self.search = wx.SearchCtrl(panel)
+            self.search.SetDescriptiveText('Filter channels')
             self.search.SetMinSize((175, -1))
+
+        self.search.Bind(wx.EVT_TEXT, self.OnKey)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.AddSpacer((self.spacers[0], -1))
@@ -997,13 +1013,16 @@ class DownloadFilter(BaseFilter):
         self.state = LinkStaticText(panel, 'Download state', None, font_colour=wx.BLACK)
         self.state.Bind(wx.EVT_LEFT_DOWN, self.OnPopupState)
 
-        self.search = wx.SearchCtrl(panel)
-        self.search.SetDescriptiveText('Filter downloads')
-        self.search.Bind(wx.EVT_TEXT, self.OnKey)
         if sys.platform == 'darwin':
-            self.search.SetMinSize((175, 20))
+            self.search = wx.TextCtrl(panel)
+            self.search.SetHint('Filter downloads')
+            self.search.SetMinSize((175, 22))
         else:
+            self.search = wx.SearchCtrl(panel)
+            self.search.SetDescriptiveText('Filter downloads')
             self.search.SetMinSize((175, -1))
+
+        self.search.Bind(wx.EVT_TEXT, self.OnKey)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
         hSizer.AddSpacer((self.spacers[0], -1))

@@ -45,12 +45,13 @@ class TopSearchPanel(FancyPanel):
 
         gui_image_manager = GuiImageManager.getInstance()
 
+        # TODO martijn: on OS X, the wx.SearchCtrl element is bugged (doesn't show a placeholder unless focussed).
+        # for now, we replaced the occurrences of wx.SearchCtrl with wx.TextCtrl elements.
         if sys.platform == 'darwin':
-            self.searchField = wx.SearchCtrl(self, -1, "", style=wx.TE_PROCESS_ENTER | wx.NO_BORDER)
-            self.searchField.Bind(wx.EVT_SEARCHCTRL_SEARCH_BTN, self.OnSearchKeyDown)
+            self.searchField = wx.TextCtrl(self, -1, style=wx.TE_PROCESS_ENTER)
             self.searchField.Bind(wx.EVT_TEXT_ENTER, self.OnSearchKeyDown)
-            self.searchField.SetDescriptiveText('Search Files or Channels')
-            self.searchField.SetMinSize((400, 20))
+            self.searchField.SetHint('Search Files or Channels')
+            self.searchField.SetMinSize((400, 22))
         else:
             self.searchFieldPanel = FancyPanel(self, radius=5, border=wx.ALL)
             self.searchFieldPanel.SetBorderColour(SEPARATOR_GREY, highlight=TRIBLER_RED)

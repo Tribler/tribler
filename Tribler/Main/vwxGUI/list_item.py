@@ -361,10 +361,12 @@ class TorrentListItem(DoubleLineListItemWithButtons):
                 break
 
         if do_add:
-            self.plbutton = self.AddButton(
-                "Stream",
-                lambda evt: self.guiutility.library_manager.playTorrent(
-                    self.original_data.infohash))
+            # TODO martijn: disable the stream button in the list for now (since video playback is broken on OS X)
+            if sys.platform != 'darwin':
+                self.plbutton = self.AddButton(
+                    "Stream",
+                    lambda evt: self.guiutility.library_manager.playTorrent(
+                        self.original_data.infohash))
             self.dlbutton = self.AddButton(
                 "Download",
                 lambda evt: self.guiutility.frame.top_bg.OnDownload(evt,
