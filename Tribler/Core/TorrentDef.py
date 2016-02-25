@@ -51,10 +51,7 @@ class TorrentDef(object):
         self.input = {}  # fields added by user, waiting to be turned into torrent file
         # Define the built-in default here
         self.input.update(TDEF_DEFAULTS)
-        try:
-            self.input['encoding'] = sys.getfilesystemencoding()
-        except:
-            self.input['encoding'] = sys.getdefaultencoding()
+        self.input['encoding'] = sys.getfilesystemencoding()
 
         self.input['files'] = []
 
