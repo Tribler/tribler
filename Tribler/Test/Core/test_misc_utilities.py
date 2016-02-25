@@ -31,10 +31,11 @@ class TriblerCoreUtilitiesTestMiscUtilities(AbstractServer):
         self.db_path = u":memory:"
         self.session.sqlite_db.initialize(self.db_path)
 
-        self._logger = logging.getLogger(self.__class__.__name__)
+        def on_error(failure):
+            raise RuntimeError(failure.getTraceback())
 
         d = defer.maybeDeferred(printDBStats, self._logger, self.session)
-        d.addErrback(log.err)
+        d.addErrback(on_error())
 
         return d
 
