@@ -35,7 +35,6 @@
 # Code:
 from collections import MutableMapping
 from itertools import chain
-import sys
 import os
 
 try:
