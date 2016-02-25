@@ -6,7 +6,7 @@ import os
 import logging
 from hashlib import sha1
 from types import StringType, ListType, IntType, LongType
-from urllib2 import URLError
+from requests.exceptions import InvalidSchema
 from libtorrent import bencode, bdecode
 import requests
 
@@ -137,7 +137,7 @@ class TorrentDef(object):
             if response.ok:
                 return TorrentDef.load_from_memory(response.content)
 
-        except URLError:
+        except InvalidSchema:
             pass
 
     @staticmethod
