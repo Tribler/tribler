@@ -1,5 +1,8 @@
 import logging
 import time
+from twisted.internet.defer import inlineCallbacks
+
+from twisted.internet.threads import deferToThread
 
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
@@ -28,11 +31,11 @@ class TrackerManager(object):
         # this index points to the tracker we are going to check next.
         self._tracker_check_idx = 0
 
-    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def initialize(self):
         # load all tracker information into the memory
         sql_stmt = u"SELECT tracker_id, tracker, last_check, failures, is_alive FROM TrackerInfo"
-        result_list = self._session.sqlite_db.execute(sql_stmt)
+        result_list = yield deferToThread(self._session.sqlite_db.execute, sql_stmt)
         for tracker_id, tracker_url, last_check, failures, is_alive in result_list:
             self._tracker_dict[tracker_url] = {u'id': tracker_id,
                                                u'last_check': last_check,
@@ -46,6 +49,7 @@ class TrackerManager(object):
         self._tracker_id_to_url_dict = None
 
     @call_on_reactor_thread
+    @inlineCallbacks
     def add_tracker(self, tracker_url):
         """
         Adds a new tracker into the tracker info dict and the database.
@@ -71,7 +75,8 @@ class TrackerManager(object):
                     """
         value_tuple = (sanitized_tracker_url, tracker_info[u'last_check'], tracker_info[u'failures'],
                        tracker_info[u'is_alive'], sanitized_tracker_url)
-        tracker_id, = self._session.sqlite_db.execute(sql_stmt, value_tuple).next()
+        result = yield deferToThread(self._session.sqlite_db.execute, sql_stmt, value_tuple)
+        tracker_id = result.next()
 
         # update dict
         tracker_info[u'id'] = tracker_id
@@ -110,7 +115,10 @@ class TrackerManager(object):
         sql_stmt = u"UPDATE TrackerInfo SET last_check = ?, failures = ?, is_alive = ? WHERE tracker_id = ?"
         value_tuple = (tracker_info[u'last_check'], tracker_info[u'failures'], tracker_info[u'is_alive'],
                        tracker_info[u'id'])
-        self._session.sqlite_db.execute(sql_stmt, value_tuple)
+        deferred_call = deferToThread(self._session.sqlite_db.execute, sql_stmt, value_tuple)
+        # Log if something went wrong
+        deferred_call.errback()
+        # self._session.sqlite_db.execute(sql_stmt, value_tuple)
 
     @call_on_reactor_thread
     def should_check_tracker(self, tracker_url):
