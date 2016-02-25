@@ -8,6 +8,7 @@ import logging
 from Tribler import LIBRARYNAME
 from Tribler.Category.init_category import getCategoryInfo
 from Tribler.Category.FamilyFilter import XXXFilter
+from Tribler.Core.Utilities.install_dir import determine_install_dir
 
 CATEGORY_CONFIG_FILE = "category.conf"
 
@@ -18,13 +19,14 @@ class Category(object):
     __single = None
     __size_change = 1024 * 1024
 
-    def __init__(self, session, ffEnabled=False):
+    def __init__(self, install_dir=determine_install_dir(), ffEnabled=False):
         self._logger = logging.getLogger(self.__class__.__name__)
-        self._session = session
+
+        self.install_dir = install_dir
 
         if Category.__single:
             raise RuntimeError("Category is singleton")
-        filename = os.path.join(self._session.get_install_dir(), LIBRARYNAME, u'Category', CATEGORY_CONFIG_FILE)
+        filename = os.path.join(self.install_dir, LIBRARYNAME, u'Category', CATEGORY_CONFIG_FILE)
         Category.__single = self
         try:
             self.category_info = getCategoryInfo(filename)
@@ -33,7 +35,7 @@ class Category(object):
             self.category_info = []
             self._logger.critical('', exc_info=True)
 
-        self.xxx_filter = XXXFilter(self._session.get_install_dir())
+        self.xxx_filter = XXXFilter(self.install_dir)
 
         self._logger.debug("category: Categories defined by user: %s", self.getCategoryNames())
 

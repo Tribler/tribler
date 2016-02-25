@@ -159,7 +159,7 @@ class ABCApp(object):
 
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Initializing Family Filter')
             wx.Yield()
-            cat = Category.getInstance(session)
+            cat = Category.getInstance()
 
             state = self.utility.read_config('family_filter')
             if state in (1, 0):
