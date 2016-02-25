@@ -458,7 +458,7 @@ class GUIUtility(object):
 
         if input:
             input = input.strip()
-            if input == '':
+            if not input:
                 return
         else:
             return
