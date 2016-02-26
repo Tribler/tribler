@@ -94,27 +94,27 @@ class LibtorrentMgr(TaskManager):
         self.trsession = None
 
     def create_session(self, hops=0):
-        settings = lt.session_settings()
+        settings = {}
 
         if hops == 0:
-            settings.user_agent = 'Tribler/' + version_id
+            settings['user_agent'] = 'Tribler/' + version_id
             # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
             fingerprint = ['TL'] + map(int, version_id.split('-')[0].split('.')) + [0]
             # Workaround for libtorrent 0.16.3 segfault (see https://code.google.com/p/libtorrent/issues/detail?id=369)
             ltsession = lt.session(lt.fingerprint(*fingerprint), flags=1)
             enable_utp = self.trsession.get_libtorrent_utp()
-            settings.enable_outgoing_utp = enable_utp
-            settings.enable_incoming_utp = enable_utp
+            settings['enable_outgoing_utp'] = enable_utp
+            settings['enable_incoming_utp'] = enable_utp
 
             pe_settings = lt.pe_settings()
             pe_settings.prefer_rc4 = True
             ltsession.set_pe_settings(pe_settings)
         else:
-            settings.enable_outgoing_utp = True
-            settings.enable_incoming_utp = True
-            settings.enable_outgoing_tcp = False
-            settings.enable_incoming_tcp = False
-            settings.anonymous_mode = True
+            settings['enable_outgoing_utp'] = True
+            settings['enable_incoming_utp'] = True
+            settings['enable_outgoing_tcp'] = False
+            settings['enable_incoming_tcp'] = False
+            settings['anonymous_mode'] = True
             # No PEX for anonymous sessions
             ltsession = lt.session(flags=0)
             ltsession.add_extension(lt.create_ut_metadata_plugin)
