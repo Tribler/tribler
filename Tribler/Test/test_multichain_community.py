@@ -8,6 +8,7 @@ import logging
 from Tribler.Core.Session import Session
 
 from Tribler.community.multichain.community import  MultiChainCommunity, CRAWL_REQUEST, CRAWL_RESPONSE, CRAWL_RESUME
+from Tribler.community.multichain.conversion import EMPTY_HASH
 
 from Tribler.community.tunnel.routing import Circuit
 
@@ -16,6 +17,7 @@ from Tribler.Test.test_as_server import BaseTestCase
 from Tribler.dispersy.tests.dispersytestclass import DispersyTestFunc
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.dispersy.tests.debugcommunity.node import DebugNode
+
 
 class TestMultiChainCommunity(DispersyTestFunc):
     """
@@ -37,43 +39,6 @@ class TestMultiChainCommunity(DispersyTestFunc):
         self.assertTrue(message)
         self.assertTrue(result)
 
-    def test_publish_signature_request_message_exclusion(self):
-        """
-        Test the community to not publish a signature request message if the chain exclusion is held.
-        """
-        node, other = self.create_nodes(2)
-        other.send_identity(node)
-        target_other = self._create_target(node, other)
-        """ Set the chain exclusion. """
-        node.community.chain_exclusion_flag = True
-        # Act
-        result = node.call(node.community.publish_signature_request_message, target_other, 5, 5)
-        # Assert
-        messages = other.receive_message(names=[u"dispersy-signature-request"])
-        self.assertFalse(next(messages, False))
-        self.assertFalse(result)
-
-    def test_receive_signature_request_exclusion(self):
-        """
-        Test the community to not receive a signature request message if the chain exclusion is held.
-        """
-        # Arrange
-        node, other = self.create_nodes(2)
-        other.send_identity(node)
-        target_other = self._create_target(node, other)
-        """ Set the chain exclusion. """
-        other.community.chain_exclusion_flag = True
-        node.call(node.community.publish_signature_request_message, target_other, 5, 5)
-        # Ignore source, as it is a Candidate. We need to use DebugNodes in test.
-        _, signature_request = other.receive_message(names=[u"dispersy-signature-request"]).next()
-        # Act
-        other.give_message(signature_request, node)
-        # Assert
-        with self.assertRaises(ValueError):
-            "No signature responses should have been sent"
-            _, signature_responses = node.receive_message(names=[u"dispersy-signature-response"])
-        self.assertTrue(self.assertBlocksInDatabase(other, 0))
-
     def test_receive_signature_response(self):
         """
         Test the community to receive a signature request message.
@@ -82,8 +47,10 @@ class TestMultiChainCommunity(DispersyTestFunc):
         node, other = self.create_nodes(2)
         other.send_identity(node)
         target_other = self._create_target(node, other)
-
-        node.call(node.community.publish_signature_request_message, target_other, 5, 5)
+        node.call(node.community.publish_signature_request_message, target_other, 10, 5)
+        # Assert: Block should now be in the database of the node as halfsigned
+        block = node.call(node.community.persistence.get_latest_block, node.community._public_key)
+        self.assertEquals(block.hash_responder, EMPTY_HASH)
         # Ignore source, as it is a Candidate. We need to use DebugNodes in test.
         _, signature_request = other.receive_message(names=[u"dispersy-signature-request"]).next()
         # Act
@@ -93,10 +60,16 @@ class TestMultiChainCommunity(DispersyTestFunc):
         _, signature_response = node.receive_message(names=[u"dispersy-signature-response"]).next()
         node.give_message(signature_response, node)
         # Assert
-        self.assertFalse(other.community.chain_exclusion_flag)
         self.assertTrue(self.assertBlocksInDatabase(other, 1))
         self.assertTrue(self.assertBlocksInDatabase(node, 1))
         self.assertTrue(self.assertBlocksAreEqual(node, other))
+
+        block = node.call(node.community.persistence.get_latest_block, node.community._public_key)
+        self.assertNotEquals(block.hash_responder, EMPTY_HASH)
+
+        block = other.call(other.community.persistence.get_latest_block, other.community._public_key)
+        self.assertNotEquals(block.hash_responder, EMPTY_HASH)
+
 
     def test_block_values(self):
         """
@@ -122,6 +95,17 @@ class TestMultiChainCommunity(DispersyTestFunc):
         """ The up and down values are reversed for the responder. """
         self.assertEqual((5, 10), other.call(other.community._get_next_total, 0, 0))
 
+    def test_block_values_after_request(self):
+        """
+        After a request is sent, a node should update its totals.
+        """
+        # Arrange
+        node, other = self.create_nodes(2)
+        other.send_identity(node)
+        target_other = self._create_target(node, other)
+        node.call(node.community.publish_signature_request_message, target_other, 10, 5)
+        # Assert
+        self.assertEqual((10, 5), node.call(node.community._get_next_total, 0, 0))
 
     def test_signature_request_timeout(self):
         """"
@@ -136,7 +120,6 @@ class TestMultiChainCommunity(DispersyTestFunc):
         """" Wait for the timeout. """
         time.sleep(10 + 2)  # 10 seconds is the default timeout for a signature request in dispersy
         # Assert
-        self.assertFalse(other.community.chain_exclusion_flag)
         self.assertTrue(self.assertBlocksInDatabase(node, 1))
         self.assertTrue(self.assertBlocksInDatabase(other, 0))
 
@@ -332,7 +315,7 @@ class TestMultiChainCommunity(DispersyTestFunc):
 
     @blocking_call_on_reactor_thread
     def assertBlocksInDatabase(self, node, amount):
-        return len(node.community.persistence.get_ids()) == amount
+        return len(node.community.persistence.get_all_hash_requester()) == amount
 
     @blocking_call_on_reactor_thread
     def assertBlocksAreEqual(self, node, other):

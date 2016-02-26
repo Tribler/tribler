@@ -4,14 +4,15 @@ File containing utilities used in testing the double entry community.
 
 import random
 
-from hashlib import sha1
+from hashlib import sha256
 
 from Tribler.dispersy.crypto import ECCrypto
 
 from Tribler.Test.test_as_server import AbstractServer
 
-from Tribler.community.multichain.payload import EMPTY_HASH
+from Tribler.community.multichain.conversion import EMPTY_HASH
 from Tribler.community.multichain.database import DatabaseBlock
+
 
 class TestBlock(DatabaseBlock):
     """
@@ -35,16 +36,17 @@ class TestBlock(DatabaseBlock):
         total_down_responder = random.randint(301, 320)
 
         # A random hash is generated for the previous hash. It is only used to test if a hash can be persisted.
-        previous_hash_requester = sha1(str(random.randint(0, 100000))).digest()
+        previous_hash_requester = sha256(str(random.randint(0, 100000))).digest()
         public_key_requester = crypto.key_to_bin(key_requester.pub())
         signature_requester = crypto.create_signature(key_requester, encode_signing_format(
            [up, down,
             total_up_requester, total_down_requester,
             sequence_number_requester, previous_hash_requester]))
-        mid_requester = sha1(public_key_requester).digest()
-
+        # A random hash is generated for the  hash.
+        # TODO: Use the actual hash
+        hash_requester = sha256(str(random.randint(0, 100000))).digest()
         # A random hash is generated for the previous hash. It is only used to test if a hash can be persisted.
-        previous_hash_responder = sha1(str(random.randint(100001, 200000))).digest()
+        previous_hash_responder = sha256(str(random.randint(100001, 200000))).digest()
         public_key_responder = crypto.key_to_bin(key_responder.pub())
         signature_responder = crypto.create_signature(key_responder, encode_signing_format(
             [up, down,
@@ -52,21 +54,22 @@ class TestBlock(DatabaseBlock):
              sequence_number_requester, previous_hash_requester,
              total_up_responder, total_down_responder,
              sequence_number_responder, previous_hash_responder]))
-        mid_responder = sha1(public_key_responder).digest()
+        # A random hash is generated for the  hash.
+        # TODO: Use the actual hash
+        hash_responder = sha256(str(random.randint(0, 100000))).digest()
 
         DatabaseBlock.__init__(self,
-                               (up, down,
+                               (public_key_requester, public_key_responder, up, down,
+
                                 total_up_requester, total_down_requester,
                                 sequence_number_requester, previous_hash_requester,
-                                total_up_responder, total_down_responder,
-                                sequence_number_responder,previous_hash_responder,
-                                mid_requester, signature_requester,
-                                mid_responder,signature_responder,
-                                None, public_key_requester, public_key_responder))
+                                signature_requester, hash_requester,
 
-    @property
-    def id(self):
-        return self.generate_hash()
+                                total_up_responder, total_down_responder,
+                                sequence_number_responder, previous_hash_responder,
+                                signature_responder, hash_responder,
+
+                                None))
 
     def generate_requester(self):
         return [self.up, self.down,
@@ -86,24 +89,6 @@ class TestBlock(DatabaseBlock):
                                                                          self.public_key_responder,
                                                                          self.signature_responder]
 
-    def generate_hash(self):
-        # This block uses a different way of generating the hash.
-        data = encode_signing_format(self.generate_block_payload())
-        return sha1(data).digest()
-
-    @classmethod
-    def half_signed(cls):
-        """
-        Create a half_signed TestBlock
-        """
-        block = cls()
-        block.previous_hash_responder = EMPTY_HASH
-        block.sequence_number_responder = -1
-        block.signature_responder = ''
-        block.total_down_responder = -1
-        block.total_up_responder = -1
-        return block
-
 
 class MultiChainTestCase(AbstractServer):
     def __init__(self, *args, **kwargs):
@@ -119,11 +104,6 @@ class MultiChainTestCase(AbstractServer):
         self.assertEqual_signature_payload(expected_block, actual_block)
         self._assertEqual_requester_signature(expected_block, actual_block)
         self._assertEqual_responder_signature(expected_block, actual_block)
-
-    def assertEqual_database_block(self, expected_block, actual_block):
-        self.assertEqual_block(expected_block, actual_block)
-        self.assertEqual(expected_block.mid_responder, actual_block.mid_responder)
-        self.assertEqual(expected_block.mid_requester, actual_block.mid_requester)
 
     def assertEqual_signature_payload(self, expected_payload, actual_payload):
         """

@@ -1,9 +1,5 @@
 from Tribler.dispersy.payload import Payload
-
-""" ID to indicate the block was not (yet) filled in by the responder.
-This can occur during signature request or in the database if the request has failed."""
-EMPTY_HASH = '0'*19+'1'
-
+from Tribler.community.multichain.conversion import EMPTY_HASH
 
 class SignaturePayload(Payload):
     """
@@ -31,6 +27,7 @@ class SignaturePayload(Payload):
             self._sequence_number_responder = sequence_number_responder
             self._previous_hash_responder = previous_hash_responder if previous_hash_responder \
                 else EMPTY_HASH
+            # TODO can we do without the EMPTY_HASH here?
 
         @property
         def up(self):

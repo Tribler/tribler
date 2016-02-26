@@ -9,10 +9,12 @@ from Tribler.dispersy.message import DropPacket
 """
 Hash length used in the MultiChain Community
 """
-# Calculated with sha1("").digest_size
-HASH_LENGTH = 20
+HASH_LENGTH = 32
 SIG_LENGTH = 64
 PK_LENGTH = 74
+
+EMPTY_HASH = '1'*HASH_LENGTH    # Used in a request when the response data is not yet available
+GENESIS_ID = '0'*HASH_LENGTH    # ID of the first block of the chain.
 """
 Formatting of the signature packet
 """
@@ -128,7 +130,7 @@ class MultiChainConversion(BinaryConversion):
         :return encoding ready to be sent to the network of the message
         """
         payload = message.payload
-        return encode_block(payload),
+        return encode_block_crawl(payload),
 
     @staticmethod
     def _decode_crawl_response(placeholder, offset, data):
@@ -179,29 +181,46 @@ def split_function(payload):
     return payload[:-append_size], payload
 
 
-def encode_block(payload):
+def encode_block(payload, requester, responder):
     """
     This function encodes a block.
-    :param payload: Payload containing the data as properties
+    :param payload: Payload containing the data as properties, not including the requester and responder data.
+    for example a signature request/response payload.
     :param requester: The requester of the block as a dispersy member
     :param responder: The responder of the block as a dispersy member
     :return: encoding
     """
     """ Test code sometimes run a different curve with a different key length resulting in hard to catch bugs."""
-    assert len(payload.public_key_requester) == PK_LENGTH
-    assert len(payload.public_key_responder) == PK_LENGTH
+    assert len(requester[1].public_key) == PK_LENGTH
+    assert len(responder[1].public_key) == PK_LENGTH
+    return pack(crawl_response_format, *(payload.up, payload.down,
+                                         payload.total_up_requester, payload.total_down_requester,
+                                         payload.sequence_number_requester, payload.previous_hash_requester,
+                                         payload.total_up_responder, payload.total_down_responder,
+                                         payload.sequence_number_responder, payload.previous_hash_responder,
+                                         requester[1].public_key, requester[0],
+                                         responder[1].public_key, responder[0]))
+
+
+def encode_block_requester_half(payload, public_key_requester, public_key_responder, signature_requester):
+    return pack(requester_half_format, *(public_key_requester, public_key_responder,
+                                         payload.up, payload.down,
+                                         payload.total_up_requester, payload.total_down_requester,
+                                         payload.sequence_number_requester, payload.previous_hash_requester,
+                                         signature_requester))
+
+
+def encode_block_crawl(payload):
+    """
+    This function encodes a block for the crawler.
+    :param payload: Payload containing the data as properties, including the requester and responder,
+    for example a crawl response payload.
+    :return: encoding
+    """
     return pack(crawl_response_format, *(payload.up, payload.down,
                                          payload.total_up_requester, payload.total_down_requester,
                                          payload.sequence_number_requester, payload.previous_hash_requester,
                                          payload.total_up_responder, payload.total_down_responder,
                                          payload.sequence_number_responder, payload.previous_hash_responder,
                                          payload.public_key_requester, payload.signature_requester,
-                                         payload.public_key_responder, payload.signature_responder,))
-
-
-def encode_block_requester_half(payload):
-    return pack(requester_half_format, *(payload.public_key_requester, payload.public_key_responder,
-                                         payload.up, payload.down,
-                                         payload.total_up_requester, payload.total_down_requester,
-                                         payload.sequence_number_requester, payload.previous_hash_requester,
-                                         payload.signature_requester))
+                                         payload.public_key_responder, payload.signature_responder))

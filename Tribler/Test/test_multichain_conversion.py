@@ -7,7 +7,9 @@ from Tribler.community.multichain.conversion import MultiChainConversion, split_
     append_format
 
 from Tribler.community.multichain.community import SIGNATURE, CRAWL_REQUEST, CRAWL_RESPONSE, CRAWL_RESUME
-from Tribler.community.multichain.payload import SignaturePayload, CrawlRequestPayload, CrawlResponsePayload, CrawlResumePayload, EMPTY_HASH
+from Tribler.community.multichain.payload import SignaturePayload, CrawlRequestPayload, CrawlResponsePayload,\
+    CrawlResumePayload
+from Tribler.community.multichain.conversion import EMPTY_HASH
 
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.authentication import NoAuthentication
