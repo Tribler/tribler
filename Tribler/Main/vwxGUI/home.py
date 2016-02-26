@@ -4,18 +4,12 @@ import sys
 import os
 import datetime
 
-from twisted.internet import defer
-from twisted.internet.threads import deferToThread
-
-from twisted.internet.defer import inlineCallbacks, Deferred, DeferredList
-
 from Tribler.Core.Utilities.misc_utils import printDBStats
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.community.tunnel.routing import Hop
 
 import random
 import logging
-import binascii
 from time import strftime, time
 from traceback import print_exc
 

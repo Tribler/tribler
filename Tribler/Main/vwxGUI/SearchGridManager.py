@@ -1325,6 +1325,9 @@ class ChannelManager(object):
         to_be_removed = set()
 
         records = yield deferToThread(self.get_known_playlist_torrents)
+        # sql = "SELECT distinct infohash, PL.dispersy_id FROM PlaylistTorrents PL, ChannelTorrents CT, Torrent T WHERE PL.channeltorrent_id = CT.id AND CT.torrent_id = T.torrent_id AND playlist_id = ?"
+        # records = self.channelcast_db._db.fetchall(sql, (playlist_id,))
+
         for infohash, dispersy_id in records:
             infohash = str2bin(infohash)
             if infohash in to_be_created:
