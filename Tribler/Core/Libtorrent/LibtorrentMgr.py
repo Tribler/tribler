@@ -155,8 +155,10 @@ class LibtorrentMgr(TaskManager):
 
             # Elric: Copy the speed limits from the plain session until we come
             # up with a way to have global bandwidth limit settings.
-            ltsession.set_upload_rate_limit(self.get_session().upload_rate_limit())
-            ltsession.set_download_rate_limit(self.get_session().download_rate_limit())
+            upload_rate_limit = self.get_session().get_settings()['upload_rate_limit']
+            ltsession.set_settings({'upload_rate_limit': upload_rate_limit})
+            download_rate_limit = self.get_session().get_settings()['download_rate_limit']
+            ltsession.set_settings({'download_rate_limit': download_rate_limit})
 
         ltsession.add_dht_router('router.bittorrent.com', 6881)
         ltsession.add_dht_router('router.utorrent.com', 6881)
@@ -192,9 +194,9 @@ class LibtorrentMgr(TaskManager):
 
     def set_utp(self, enable, hops=None):
         def do_set_utp(ltsession):
-            settings = ltsession.settings()
-            settings.enable_outgoing_utp = enable
-            settings.enable_incoming_utp = enable
+            settings = ltsession.get_settings()
+            settings['enable_outgoing_utp'] = enable
+            settings['enable_incoming_utp'] = enable
             ltsession.set_settings(settings)
 
         if hops is None:
@@ -210,7 +212,7 @@ class LibtorrentMgr(TaskManager):
         # Rate conversion due to the fact that we had a different system with Swift
         # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
         libtorrent_rate = int(-1 if rate == 0 else (1 if rate == -1 else rate * 1024))
-        self._map_call_on_ltsessions(hops, 'set_upload_rate_limit', libtorrent_rate)
+        self._map_call_on_ltsessions(hops, 'set_settings', {'upload_rate_limit': libtorrent_rate})
 
     def get_upload_rate_limit(self, hops=None):
         # Rate conversion due to the fact that we had a different system with Swift
@@ -220,7 +222,7 @@ class LibtorrentMgr(TaskManager):
 
     def set_download_rate_limit(self, rate, hops=None):
         libtorrent_rate = int(-1 if rate == 0 else (1 if rate == -1 else rate * 1024))
-        self._map_call_on_ltsessions(hops, 'set_download_rate_limit', libtorrent_rate)
+        self._map_call_on_ltsessions(hops, 'set_settings', {'download_rate_limit': libtorrent_rate})
 
     def get_download_rate_limit(self, hops=0):
         libtorrent_rate = self.get_session(hops).download_rate_limit()
