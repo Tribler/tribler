@@ -11,6 +11,7 @@ from shutil import rmtree
 
 from twisted.internet import reactor
 import libtorrent as lt
+from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.exceptions import DuplicateDownloadException
@@ -340,9 +341,9 @@ class LibtorrentMgr(TaskManager):
                 try:
                     handle = self.get_session().add_torrent(encode_atp(atp))
                 except TypeError as e:
-                    self._logger.warning("Failed to add torrent with infohash %s, using libtorrent version %s, "
+                    self._logger.warning("Failed to add torrent with infohash %s, "
                                          "attempting to use it as it is and hoping for the best",
-                                         hexlify(infohash_bin), lt.version)
+                                         hexlify(infohash_bin))
                     self._logger.warning("Error was: %s", e)
                     atp['info_hash'] = infohash_bin
                     handle = self.get_session().add_torrent(encode_atp(atp))
@@ -380,8 +381,8 @@ class LibtorrentMgr(TaskManager):
                 assert handle
                 if handle:
                     if callbacks and not timeout:
-                        metainfo = {"info": lt.bdecode(handle.get_torrent_info().metadata())}
-                        trackers = [tracker.url for tracker in handle.get_torrent_info().trackers()]
+                        metainfo = {"info": lt.bdecode(get_info_from_handle(handle).metadata())}
+                        trackers = [tracker.url for tracker in get_info_from_handle(handle).trackers()]
                         peers = []
                         leechers = 0
                         seeders = 0

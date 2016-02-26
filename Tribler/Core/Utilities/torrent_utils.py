@@ -74,3 +74,12 @@ def create_torrent_file(file_path_list, params, callback=None):
                   'base_dir': base_dir,
                   'torrent_file_path': torrent_file_name}
         callback(result)
+
+
+def get_info_from_handle(handle):
+    # In libtorrent 0.16.18, the torrent_handle.torrent_file method is not available.
+    # this method checks whether the torrent_file method is available on a given handle.
+    # If not, fall back on the deprecated get_torrent_info
+    if hasattr(handle, 'torrent_file'):
+        return handle.torrent_file()
+    return handle.get_torrent_info()
