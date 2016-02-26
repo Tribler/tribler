@@ -39,6 +39,7 @@ class TrackerManager(object):
         result_list = yield deferToThread(self._session.sqlite_db.execute, sql_stmt)
         # result_list = self._session.sqlite_db.execute(sql_stmt)
         for tracker_id, tracker_url, last_check, failures, is_alive in result_list:
+            print str(tracker_url) + " DOEF"
             self._tracker_dict[tracker_url] = {u'id': tracker_id,
                                                u'last_check': last_check,
                                                u'failures': failures,
@@ -72,7 +73,7 @@ class TrackerManager(object):
                         u'is_alive': True}
 
         # insert into database
-        sql_stmt = u"""INSERT INTO TrackerInfo(tracker, last_check, failures, is_alive) VALUES(?,?,?,?);
+        sql_stmt = u"""INSERT or REPLACE INTO TrackerInfo(tracker, last_check, failures, is_alive) VALUES(?,?,?,?);
                        SELECT tracker_id FROM TrackerInfo WHERE tracker = ?;
                     """
         value_tuple = (sanitized_tracker_url, tracker_info[u'last_check'], tracker_info[u'failures'],
@@ -80,7 +81,7 @@ class TrackerManager(object):
 
         # tracker_id = self._session.sqlite_db.execute(sql_stmt, value_tuple).next()[0]
         result = yield deferToThread(self._session.sqlite_db.execute, sql_stmt, value_tuple)
-        tracker_id = result.next()[0]
+        tracker_id, = result.next()
 
         # update dict
         tracker_info[u'id'] = tracker_id
@@ -119,10 +120,10 @@ class TrackerManager(object):
         sql_stmt = u"UPDATE TrackerInfo SET last_check = ?, failures = ?, is_alive = ? WHERE tracker_id = ?"
         value_tuple = (tracker_info[u'last_check'], tracker_info[u'failures'], tracker_info[u'is_alive'],
                        tracker_info[u'id'])
-        # deferred_call = deferToThread(self._session.sqlite_db.execute, sql_stmt, value_tuple)
+        deferred_call = deferToThread(self._session.sqlite_db.execute, sql_stmt, value_tuple)
         # Log if something went wrong
-        # deferred_call.errback(self._logger.error)
-        self._session.sqlite_db.execute(sql_stmt, value_tuple)
+        deferred_call.errback(self._logger.error)
+        # self._session.sqlite_db.execute(sql_stmt, value_tuple)
 
     @call_on_reactor_thread
     def should_check_tracker(self, tracker_url):
