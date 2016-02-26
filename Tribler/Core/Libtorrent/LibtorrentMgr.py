@@ -443,10 +443,8 @@ class LibtorrentMgr(TaskManager):
     def _task_process_alerts(self):
         for ltsession in self.ltsessions.itervalues():
             if ltsession:
-                alert = ltsession.pop_alert()
-                while alert:
+                for alert in ltsession.pop_alerts():
                     self.process_alert(alert)
-                    alert = ltsession.pop_alert()
 
         self.register_task(u'process_alerts', reactor.callLater(1, self._task_process_alerts))
 
