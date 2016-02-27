@@ -291,7 +291,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         return self.get_hops() > 0
 
     def set_vod_mode(self, enable=True):
-        self._logger.debug("LibtorrentDownloadImpl: set_vod_mode for %s (enable = %s)", self.handle.name(), enable)
+        self._logger.debug("LibtorrentDownloadImpl: set_vod_mode for %s (enable = %s)", self.tdef.get_name(), enable)
 
         if enable:
             self.vod_seekpos = 0
@@ -585,7 +585,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             commonprefix = os.path.commonprefix(self.orig_files) if is_multifile else u''
             swarmname = commonprefix.partition(os.path.sep)[0]
             unwanteddir = os.path.join(swarmname, u'.unwanted')
-            unwanteddir_abs = os.path.join(self.handle.save_path().decode('utf-8'), unwanteddir)
+            unwanteddir_abs = os.path.join(self.get_save_path().decode('utf-8'), unwanteddir)
 
             filepriorities = []
             for index, orig_path in enumerate(self.orig_files):
@@ -632,6 +632,12 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
     @checkHandleAndSynchronize()
     def get_save_path(self):
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
+            # torrent_handle.save_path() is deprecated in newer versions of Libtorrent. We should use
+            # self.handle.status().save_path to query the save path of a torrent. However, this attribute
+            # is only included in libtorrent 1.0.9+
+            status = self.handle.status()
+            if hasattr(status, 'save_path'):
+                return status.save_path
             return self.handle.save_path()
 
     @checkHandleAndSynchronize()
@@ -707,7 +713,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         logmsgs = []
 
         self._logger.debug("Torrent %s PROGRESS %s DLSTATE %s SEEDTIME %s",
-                           self.handle.name(), self.progress, self.dlstate, self.finished_time)
+                           self.tdef.get_name(), self.progress, self.dlstate, self.finished_time)
 
         return (self.dlstate, stats, seeding_stats, logmsgs)
 
