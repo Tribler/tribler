@@ -888,7 +888,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 else:
                     self.set_vod_mode(False)
                     self.handle.pause()
-                    pstate.set('state', 'engineresumedata', self.handle.write_resume_data()
+                    pstate.set('state', 'engineresumedata', self.handle.save_resume_data()
                                if isinstance(self.tdef, TorrentDef) else None)
                 self.pstate_for_restart = pstate
             else:
@@ -972,7 +972,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 if self.pstate_for_restart is not None:
                     resdata = self.pstate_for_restart.get('state', 'engineresumedata')
             elif isinstance(self.tdef, TorrentDef):
-                resdata = self.handle.write_resume_data()
+                resdata = self.handle.save_resume_data()
             pstate.set('state', 'engineresumedata', resdata)
             return (self.tdef.get_infohash(), pstate)
 
