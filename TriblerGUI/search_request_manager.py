@@ -1,26 +1,24 @@
 import json
-from PyQt5.QtCore import QByteArray, QUrl, pyqtSignal
+from PyQt5.QtCore import QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 
-class EventRequestManager(QNetworkAccessManager):
+class SearchRequestManager(QNetworkAccessManager):
 
-    received_free_space = pyqtSignal(int)
+    received_search_results = pyqtSignal(str)
 
     def on_error(self, error):
         print "GOT ERROR"
 
     def on_finished(self):
-        print self.reply.error()
+        print "SEARCH FINISHED"
 
     def on_read_data(self):
         data = self.reply.readAll()
-        json_dict = json.loads(str(data))
-        self.received_free_space.emit(int(json_dict["free_space"]))
+        self.received_search_results.emit(str(data))
 
-    def __init__(self):
-        QNetworkAccessManager.__init__(self)
-        url = QUrl("http://localhost:8085/events")
+    def search_channels(self, query):
+        url = QUrl("http://localhost:8085/channel/search?q=" + query)
         req = QNetworkRequest(url)
         self.reply = self.get(req)
 
