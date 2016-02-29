@@ -33,14 +33,13 @@
 #
 
 # Code:
-from Tribler.Core.Utilities.twisted_thread import deferred, reactor
+from nose.tools import raises
 
 from shutil import rmtree
 from tempfile import mkdtemp
 
 from twisted.internet.task import Clock
 
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.leveldbstore import LevelDbStore, WRITEBACK_PERIOD
 from Tribler.Test.test_as_server import BaseTestCase
 
@@ -105,6 +104,26 @@ class TestLevelDbStore(BaseTestCase):
         # test that even after writing the cached data, the lenght is still the same
         self.store.flush()
         self.assertEqual(1, len(self.store), 2)
+
+    def test_contains(self):
+        self.assertFalse(K in self.store)
+        self.store[K] = V
+        self.assertTrue(K in self.store)
+
+    @raises(StopIteration)
+    def test_iter_empty(self):
+        iteritems = self.store.iteritems()
+        self.assertTrue(iteritems.next())
+
+    def test_iter_one_element(self):
+        self.store[K] = V
+        iteritems = self.store.iteritems()
+        self.assertEqual(iteritems.next(), K)
+
+    def test_iter(self):
+        self.store[K] = V
+        for key in iter(self.store):
+            self.assertTrue(key)
 
 #
 # test_leveldb_store.py ends here
