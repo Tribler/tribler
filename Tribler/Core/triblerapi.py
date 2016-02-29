@@ -1,6 +1,7 @@
 import json
 from twisted.web import server
 from twisted.web import resource
+from Tribler.Core.CacheDB.db_objects import Channel
 from Tribler.Core.simpledefs import NTFY_FREE_SPACE, NTFY_INSERT, NTFY_CHANNELCAST
 
 
@@ -48,13 +49,15 @@ class ChannelSearchRequestHandler(resource.Resource):
     def render_GET(self, request):
         # TODO martijn: better error checking (parameters available? If not -> return 500?)
         # TODO martijn: this only performs a local search
+        # TODO martijn: we should keep the family filter in mind
         # TODO martijn: maybe use an object model here?
         results_local_channels = self.channel_db_handler.searchChannels(request.args['q'])
 
         results_json = []
         for channel_result in results_local_channels:
-            print channel_result
-            results_json.append({"name": channel_result[2]})
+            channel = Channel(*channel_result)
+            results_json.append({"id" : channel.id, "name": channel.name, "votes": channel.nr_favorites,
+                                 "torrents": channel.nr_torrents, "spam": channel.nr_spam})
 
         response = {"channels": results_json}
         return json.dumps(response)
