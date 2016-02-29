@@ -32,10 +32,49 @@ class ChannelRequestHandler(resource.Resource):
 
     def __init__(self, session):
         resource.Resource.__init__(self)
+        self.session = session
 
-        self.channel_search_request_handler = ChannelSearchRequestHandler(session)
-        self.putChild("search", self.channel_search_request_handler)
+    def getChild(self, path, request):
+        if path == "search":
+            return ChannelSearchRequestHandler(self.session)
 
+        # we're querying a specific channel (i.e. /channels/3/torrents)
+        return ChannelDetailRequestHandler(self.session, path)
+
+class ChannelDetailRequestHandler(resource.Resource):
+
+    def __init__(self, session, channel_id):
+        resource.Resource.__init__(self)
+        self.session = session
+
+        self.channel_torrents_request_handler = ChannelTorrentsRequestHandler(self.session, channel_id)
+        self.putChild("torrents", self.channel_torrents_request_handler)
+
+class ChannelTorrentsRequestHandler(resource.Resource):
+
+    isLeaf = True
+
+    def __init__(self, session, channel_id):
+        resource.Resource.__init__(self)
+        self.channel_id = channel_id
+        self.session = session
+        self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
+
+    def render_GET(self, request):
+        channel_db = self.channel_db_handler.getChannel(self.channel_id)
+        channel = Channel(*channel_db)
+
+        results_local_torrents_channel = self.channel_db_handler.getTorrentsFromChannelId(
+            self.channel_id, channel.isDispersy(), ['Torrent.name', 'Torrent.category', 'infohash', 'length'])
+
+        results_json = []
+        for torrent_result in results_local_torrents_channel:
+            if not torrent_result[0]:
+                continue
+            results_json.append({"name": torrent_result[0], "category": torrent_result[1],
+                                 "infohash": torrent_result[2].encode('hex'), "length": torrent_result[3]})
+
+        return json.dumps({"torrents": results_json})
 
 class ChannelSearchRequestHandler(resource.Resource):
 
@@ -59,9 +98,7 @@ class ChannelSearchRequestHandler(resource.Resource):
             results_json.append({"id" : channel.id, "name": channel.name, "votes": channel.nr_favorites,
                                  "torrents": channel.nr_torrents, "spam": channel.nr_spam})
 
-        response = {"channels": results_json}
-        return json.dumps(response)
-
+        return json.dumps({"channels": results_json})
 
 
 class EventRequestHandler(resource.Resource):
