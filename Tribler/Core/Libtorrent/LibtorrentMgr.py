@@ -1,6 +1,7 @@
 # Written by Egbert Bouman
 import binascii
 import logging
+from urllib import url2pathname
 import tempfile
 import threading
 import os
@@ -508,6 +509,9 @@ class LibtorrentMgr(TaskManager):
             return self.start_download_from_url(argument)
         if argument.startswith("magnet:"):
             return self.start_download_from_magnet(argument)
+        if argument.startswith("file:"):
+            argument = url2pathname(argument[5:])
+            return self.start_download(torrentfilename=argument)
 
         return None
 
