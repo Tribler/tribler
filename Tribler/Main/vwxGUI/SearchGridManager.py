@@ -5,6 +5,7 @@ import threading
 from time import time
 from traceback import print_exc
 import json
+import sys
 
 import wx
 
@@ -653,14 +654,15 @@ class LibraryManager(object):
             self.last_vod_torrent = [infohash, selectedinfilename]
             self.guiUtility.ShowPlayer()
             self.stopPlayback()
-            self.guiUtility.frame.actlist.expandedPanel_videoplayer.Reset()
+            if sys.platform != 'darwin':
+                self.guiUtility.frame.actlist.expandedPanel_videoplayer.Reset()
 
             # Call _playDownload when download is ready
             wait_state = [DLSTATUS_METADATA, DLSTATUS_WAITING4HASHCHECK]
             status = download.get_status()
             if status in wait_state:
                 fetch_msg = "Fetching torrent..."
-                if status == DLSTATUS_METADATA:
+                if status == DLSTATUS_METADATA and sys.platform != 'darwin':
                     self.guiUtility.frame.actlist.expandedPanel_videoplayer.SetMessage(fetch_msg, True)
 
                 def wait_until_collected(ds):
@@ -669,7 +671,7 @@ class LibraryManager(object):
                         return (0, False)
                     # Wait until we know for sure that the download has metadata
                     elif ds.get_status() in wait_state:
-                        if ds.get_status() == DLSTATUS_METADATA:
+                        if ds.get_status() == DLSTATUS_METADATA and sys.platform != 'darwin':
                             self.guiUtility.frame.actlist.expandedPanel_videoplayer.SetMessage(fetch_msg, True)
                         return (1.0, False)
                     # Play the download
