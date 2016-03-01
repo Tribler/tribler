@@ -503,6 +503,20 @@ class LibtorrentMgr(TaskManager):
         else:
             getattr(self.get_session(hops), funcname)(*args, **kwargs)
 
+    def start_download_from_arg(self, argument):
+        if argument.startswith("http"):
+            return self.start_download_from_url(argument)
+
+        return None
+
+    def start_download_from_url(self, url):
+        try:
+            tdef = TorrentDef.load_from_url(url)
+            if tdef:
+                return self.start_download(tdef=tdef)
+        except:
+            return None
+
     def start_download(self, torrentfilename=None, destdir=None, infohash=None, tdef=None):
         self._logger.debug(u"starting download: filename: %s, dest dir: %s, torrent def: %s",
                            torrentfilename, destdir, tdef)
