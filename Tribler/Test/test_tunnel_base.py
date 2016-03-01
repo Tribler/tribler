@@ -138,7 +138,7 @@ class TestTunnelBase(TestGuiAsServer):
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(TESTS_DATA_DIR)  # basedir of the file we are seeding
         dscfg.set_hops(hops)
-        d = session.start_download(tdef, dscfg)
+        d = session.start_download_from_tdef(tdef, dscfg)
         d.set_state_callback(self.seeder_state_callback)
 
         return torrentfn

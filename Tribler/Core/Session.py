@@ -187,7 +187,7 @@ class Session(SessionConfigInterface):
     #
     # Public methods
     #
-    def start_download(self, tdef, dcfg=None, initialdlstatus=None, hidden=False):
+    def start_download_from_tdef(self, tdef, dcfg=None, initialdlstatus=None, hidden=False):
         """
         Creates a Download object and adds it to the session. The passed
         ContentDef and DownloadStartupConfig are copied into the new Download

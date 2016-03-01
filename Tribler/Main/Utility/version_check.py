@@ -126,7 +126,7 @@ def _upgradeVersion(self, my_version, latest_version, info):
 
         # start download
         try:
-            download = self.utility.session.start_download(tdef)
+            download = self.utility.session.start_download_from_tdef(tdef)
 
         except DuplicateDownloadException:
             self._logger.error("-- Duplicate download")

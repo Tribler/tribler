@@ -282,7 +282,7 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
 
         self.dscfg = DownloadStartupConfig()
         self.dscfg.set_dest_dir(TESTS_API_DIR)
-        self.download = self.session.start_download(self.tdef, self.dscfg)
+        self.download = self.session.start_download_from_tdef(self.tdef, self.dscfg)
         self.download.set_state_callback(self.seeder_state_callback)
 
         assert self.seeder_setup_complete.wait(30)

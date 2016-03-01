@@ -608,7 +608,7 @@ class ABCApp(object):
                         # that removing a torrent is racy.
                         self.utility.session.lm.threadpool.call(0.5,
                                                                 reactor.callInThread,
-                                                                self.utility.session.start_download,
+                                                                self.utility.session.start_download_from_tdef,
                                                                 tdef, dscfg)
 
             self.prevActiveDownloads = newActiveDownloads

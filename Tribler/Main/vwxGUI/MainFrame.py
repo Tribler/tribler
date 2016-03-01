@@ -578,7 +578,7 @@ class MainFrame(wx.Frame):
 
                 if vodmode:
                     self._logger.info('MainFrame: startDownload: Starting in VOD mode')
-                    result = self.utility.session.start_download(tdef, dscfg)
+                    result = self.utility.session.start_download_from_tdef(tdef, dscfg)
                     self.guiUtility.library_manager.playTorrent(
                         tdef.get_infohash(), videofiles[0] if len(videofiles) == 1 else None)
 
@@ -587,7 +587,7 @@ class MainFrame(wx.Frame):
                         dscfg.set_selected_files(selectedFiles)
 
                     self._logger.debug('MainFrame: startDownload: Starting in DL mode')
-                    result = self.utility.session.start_download(tdef, dscfg, hidden=hidden)
+                    result = self.utility.session.start_download_from_tdef(tdef, dscfg, hidden=hidden)
 
                 if result and not hidden:
                     self.show_saved(tdef)
