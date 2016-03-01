@@ -64,3 +64,10 @@ class TorrentDefNotFinalizedException(TriblerException):
 
     def __init__(self, msg=None):
         TriblerException.__init__(self, msg)
+
+class TorrentFileException(TriblerException):
+
+    """ The torrent file that is used is corrupt or cannot be read. """
+
+    def __init__(self, msg=None):
+        TriblerException.__init__(self, msg)
