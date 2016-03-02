@@ -504,13 +504,13 @@ class LibtorrentMgr(TaskManager):
         else:
             getattr(self.get_session(hops), funcname)(*args, **kwargs)
 
-    def start_download_from_arg(self, argument):
-        if argument.startswith("http"):
-            return self.start_download_from_url(argument)
-        if argument.startswith("magnet:"):
-            return self.start_download_from_magnet(argument)
-        if argument.startswith("file:"):
-            argument = url2pathname(argument[5:])
+    def start_download_from_uri(self, uri):
+        if uri.startswith("http"):
+            return self.start_download_from_url(uri)
+        if uri.startswith("magnet:"):
+            return self.start_download_from_magnet(uri)
+        if uri.startswith("file:"):
+            argument = url2pathname(uri[5:])
             return self.start_download(torrentfilename=argument)
 
         return None
