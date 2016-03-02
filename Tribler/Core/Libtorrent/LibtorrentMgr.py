@@ -97,6 +97,11 @@ class LibtorrentMgr(TaskManager):
     def create_session(self, hops=0):
         settings = {}
 
+        # Due to a bug in Libtorrent 0.16.18, the outgoing_port and num_outgoing_ports value should be set in
+        # the settings dictionary
+        settings['outgoing_port'] = 0
+        settings['num_outgoing_ports'] = 1
+
         if hops == 0:
             settings['user_agent'] = 'Tribler/' + version_id
             # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
@@ -156,10 +161,11 @@ class LibtorrentMgr(TaskManager):
 
             # Elric: Copy the speed limits from the plain session until we come
             # up with a way to have global bandwidth limit settings.
-            upload_rate_limit = self.get_session().get_settings()['upload_rate_limit']
-            ltsession.set_settings({'upload_rate_limit': upload_rate_limit})
-            download_rate_limit = self.get_session().get_settings()['download_rate_limit']
-            ltsession.set_settings({'download_rate_limit': download_rate_limit})
+            self_get_session_settings = self.get_session().get_settings()
+            ltsession_settings = ltsession.get_settings()
+            ltsession_settings['upload_rate_limit'] = self_get_session_settings['upload_rate_limit']
+            ltsession_settings['download_rate_limit'] = self_get_session_settings['download_rate_limit']
+            ltsession.set_settings(ltsession_settings)
 
         ltsession.add_dht_router('router.bittorrent.com', 6881)
         ltsession.add_dht_router('router.utorrent.com', 6881)
@@ -213,7 +219,10 @@ class LibtorrentMgr(TaskManager):
         # Rate conversion due to the fact that we had a different system with Swift
         # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
         libtorrent_rate = int(-1 if rate == 0 else (1 if rate == -1 else rate * 1024))
-        self._map_call_on_ltsessions(hops, 'set_settings', {'upload_rate_limit': libtorrent_rate})
+
+        # Pass outgoing_port and num_outgoing_ports to dict due to bug in libtorrent 0.16.18
+        settings_dict = {'upload_rate_limit': libtorrent_rate, 'outgoing_port': 0, 'num_outgoing_ports': 1}
+        self._map_call_on_ltsessions(hops, 'set_settings', settings_dict)
 
     def get_upload_rate_limit(self, hops=None):
         # Rate conversion due to the fact that we had a different system with Swift
@@ -223,7 +232,10 @@ class LibtorrentMgr(TaskManager):
 
     def set_download_rate_limit(self, rate, hops=None):
         libtorrent_rate = int(-1 if rate == 0 else (1 if rate == -1 else rate * 1024))
-        self._map_call_on_ltsessions(hops, 'set_settings', {'download_rate_limit': libtorrent_rate})
+
+        # Pass outgoing_port and num_outgoing_ports to dict due to bug in libtorrent 0.16.18
+        settings_dict = {'download_rate_limit': libtorrent_rate, 'outgoing_port': 0, 'num_outgoing_ports': 1}
+        self._map_call_on_ltsessions(hops, 'set_settings', settings_dict)
 
     def get_download_rate_limit(self, hops=0):
         libtorrent_rate = self.get_session(hops).download_rate_limit()
