@@ -22,7 +22,7 @@ from Tribler.dispersy.taskmanager import LoopingCall, TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
 
-DHTSTATE_FILENAME = "ltdht.state"
+LTSTATE_FILENAME = "lt.state"
 METAINFO_CACHE_PERIOD = 5 * 60
 DHT_CHECK_RETRIES = 1
 
@@ -79,10 +79,10 @@ class LibtorrentMgr(TaskManager):
 
         self.get_session().stop_upnp()
 
-        # Save DHT state
-        dhtstate_file = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME), 'w')
-        dhtstate_file.write(lt.bencode(self.get_session().dht_state()))
-        dhtstate_file.close()
+        # Save libtorrent state
+        ltstate_file = open(os.path.join(self.trsession.get_state_dir(), LTSTATE_FILENAME), 'w')
+        ltstate_file.write(lt.bencode(self.get_session().save_state()))
+        ltstate_file.close()
 
         for ltsession in self.ltsessions.itervalues():
             del ltsession
@@ -145,14 +145,14 @@ class LibtorrentMgr(TaskManager):
             if listen_port != ltsession.listen_port():
                 self.trsession.set_listen_port_runtime(ltsession.listen_port())
             try:
-                dht_state = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME)).read()
-                ltsession.start_dht(lt.bdecode(dht_state))
+                lt_state = open(os.path.join(self.trsession.get_state_dir(), LTSTATE_FILENAME)).read()
+                ltsession.load_state(lt.bdecode(lt_state))
             except Exception, exc:
-                self._logger.info("could not restore dht state, got exception: %r. starting from scratch" % exc)
-                ltsession.start_dht(None)
+                self._logger.info("could not load libtorrent state, got exception: %r. starting from scratch" % exc)
+            ltsession.start_dht()
         else:
             ltsession.listen_on(self.trsession.get_anon_listen_port(), self.trsession.get_anon_listen_port() + 20)
-            ltsession.start_dht(None)
+            ltsession.start_dht()
 
             # Elric: Copy the speed limits from the plain session until we come
             # up with a way to have global bandwidth limit settings.
@@ -472,7 +472,7 @@ class LibtorrentMgr(TaskManager):
                         self._schedule_next_check(5, retries_left - 1)
                     else:
                         self._logger.info(u"No enough DHT nodes %s, will restart DHT", lt_session.status().dht_nodes)
-                        lt_session.start_dht(None)
+                        lt_session.start_dht()
                         self._schedule_next_check(10, 1)
                 else:
                     self._logger.info("dht is working enough nodes are found (%d)", self.get_session().status().dht_nodes)
