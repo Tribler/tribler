@@ -12,7 +12,7 @@ from shutil import rmtree
 from twisted.internet import reactor
 import libtorrent as lt
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
-from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 
 from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
 from Tribler.Core.Video.utils import videoextdefaults
@@ -506,6 +506,8 @@ class LibtorrentMgr(TaskManager):
     def start_download_from_arg(self, argument):
         if argument.startswith("http"):
             return self.start_download_from_url(argument)
+        if argument.startswith("magnet:"):
+            return self.start_download_from_magnet(argument)
 
         return None
 
@@ -516,6 +518,15 @@ class LibtorrentMgr(TaskManager):
                 return self.start_download(tdef=tdef)
         except:
             return None
+
+    def start_download_from_magnet(self, url):
+        name, infohash, _ = parse_magnetlink(url)
+        if name is None:
+            name = ""
+        if infohash is None:
+            raise RuntimeError("Missing infohash")
+        tdef = TorrentDefNoMetainfo(infohash, name, url=url)
+        return self.start_download(tdef=tdef)
 
     def start_download(self, torrentfilename=None, destdir=None, infohash=None, tdef=None):
         self._logger.debug(u"starting download: filename: %s, dest dir: %s, torrent def: %s",
