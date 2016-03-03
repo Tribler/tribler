@@ -1,6 +1,7 @@
 # Written by Egbert Bouman
 import binascii
 import logging
+from urllib import url2pathname
 import tempfile
 import threading
 import os
@@ -12,12 +13,15 @@ from shutil import rmtree
 from twisted.internet import reactor
 import libtorrent as lt
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
+from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 
-from Tribler.Core.Utilities.utilities import parse_magnetlink
-from Tribler.Core.exceptions import DuplicateDownloadException
+from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
+from Tribler.Core.Video.utils import videoextdefaults
+from Tribler.Core.exceptions import DuplicateDownloadException, TorrentFileException
 from Tribler.Core.simpledefs import (NTFY_INSERT, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED,
                                      NTFY_REACHABLE, NTFY_TORRENTS)
 from Tribler.Core.version import version_id
+from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.dispersy.taskmanager import LoopingCall, TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
@@ -497,6 +501,90 @@ class LibtorrentMgr(TaskManager):
                 getattr(session, funcname)(*args, **kwargs)
         else:
             getattr(self.get_session(hops), funcname)(*args, **kwargs)
+
+    def start_download_from_uri(self, uri):
+        if uri.startswith("http"):
+            return self.start_download_from_url(uri)
+        if uri.startswith("magnet:"):
+            return self.start_download_from_magnet(uri)
+        if uri.startswith("file:"):
+            argument = url2pathname(uri[5:])
+            return self.start_download(torrentfilename=argument)
+
+        return None
+
+    def start_download_from_url(self, url):
+        try:
+            tdef = TorrentDef.load_from_url(url)
+            if tdef:
+                return self.start_download(tdef=tdef)
+        except:
+            return None
+
+    def start_download_from_magnet(self, url):
+        name, infohash, _ = parse_magnetlink(url)
+        if name is None:
+            name = ""
+        if infohash is None:
+            raise RuntimeError("Missing infohash")
+        tdef = TorrentDefNoMetainfo(infohash, name, url=url)
+        return self.start_download(tdef=tdef)
+
+    def start_download(self, torrentfilename=None, destdir=None, infohash=None, tdef=None):
+        self._logger.debug(u"starting download: filename: %s, dest dir: %s, torrent def: %s",
+                           torrentfilename, destdir, tdef)
+
+        if infohash is not None:
+            assert isinstance(infohash, str), "infohash type: %s" % type(infohash)
+            assert len(infohash) == 20, "infohash length is not 20: %s, %s" % (len(infohash), infohash)
+
+        # the priority of the parameters is: (1) tdef, (2) infohash, (3) torrent_file.
+        # so if we have tdef, infohash and torrent_file will be ignored, and so on.
+        if tdef is None:
+            if infohash is not None:
+                # try to get the torrent from torrent_store if the infohash is provided
+                torrent_data = self.trsession.get_collected_torrent(infohash)
+                if torrent_data is not None:
+                    # use this torrent data for downloading
+                    tdef = TorrentDef.load_from_memory(torrent_data)
+
+            if tdef is None:
+                assert torrentfilename is not None, "torrent file must be provided if tdef and infohash are not given"
+                # try to get the torrent from the given torrent file
+                torrent_data = fix_torrent(torrentfilename)
+                if torrent_data is None:
+                    raise TorrentFileException()
+
+                tdef = TorrentDef.load_from_memory(torrent_data)
+
+        assert tdef is not None, "tdef MUST not be None after loading torrent"
+
+        d = self.trsession.get_download(tdef.get_infohash())
+        if d:
+            new_trackers = list(set(tdef.get_trackers_as_single_tuple()) - set(
+                d.get_def().get_trackers_as_single_tuple()))
+            if not new_trackers:
+                raise DuplicateDownloadException()
+
+            else:
+                self.trsession.update_trackers(tdef.get_infohash(), new_trackers)
+            return
+
+        defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+        dscfg = defaultDLConfig.copy()
+
+        # TODO martijn: for now, we are always using the default settings, which means that we bypass
+        # the screen to select torrent files/adjust the anonymity level.
+        dscfg.set_hops(0) # TODO martijn: hard-coded for now
+        dscfg.set_safe_seeding(False) # TODO martijn: hard-coded for now
+
+        if destdir is not None:
+            dscfg.set_dest_dir(destdir)
+
+        self._logger.info('start_download: Starting in VOD mode')
+        result = self.trsession.start_download_from_tdef(tdef, dscfg)
+
+        return result
 
 def encode_atp(atp):
     for k, v in atp.iteritems():

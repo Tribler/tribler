@@ -187,7 +187,21 @@ class Session(SessionConfigInterface):
     #
     # Public methods
     #
-    def start_download(self, tdef, dcfg=None, initialdlstatus=None, hidden=False):
+    def start_download_from_uri(self, uri):
+        """
+        Start a download from an argument. This argument can be of the following type:
+        -http: Start a download from a torrent file at the given url.
+        -magnet: Start a download from a torrent file by using a magnet link.
+        -file: Start a download from a torrent file at given location.
+        :param argument: The argument that specifies the location of the torrent to be downloaded
+        :return: A LibtorrentDownloadImpl object that represents the new download. Can return none
+        if an error occurred during the start of the download.
+        """
+        if self.get_libtorrent():
+            return self.lm.ltmgr.start_download_from_uri(uri)
+        raise OperationNotEnabledByConfigurationException()
+
+    def start_download_from_tdef(self, tdef, dcfg=None, initialdlstatus=None, hidden=False):
         """
         Creates a Download object and adds it to the session. The passed
         ContentDef and DownloadStartupConfig are copied into the new Download

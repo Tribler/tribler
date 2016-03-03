@@ -73,7 +73,7 @@ class TestSeeding(TestAsServer):
 
         self.dscfg = DownloadStartupConfig()
         self.dscfg.set_dest_dir(TESTS_API_DIR)  # basedir of the file we are seeding
-        d = self.session.start_download(self.tdef, self.dscfg)
+        d = self.session.start_download_from_tdef(self.tdef, self.dscfg)
         d.set_state_callback(self.seeder_state_callback)
 
         self._logger.debug("starting to wait for download to reach seeding state")
@@ -125,7 +125,7 @@ class TestSeeding(TestAsServer):
 
         tdef2 = TorrentDef.load(self.torrentfn)
 
-        d = self.session2.start_download(tdef2, self.dscfg2)
+        d = self.session2.start_download_from_tdef(tdef2, self.dscfg2)
         d.set_state_callback(self.downloader_state_callback)
 
         time.sleep(5)

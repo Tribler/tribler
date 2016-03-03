@@ -68,7 +68,7 @@ class TestVideoHTTPServer(TestAsServer):
         dscfg = DownloadStartupConfig()
         dscfg.set_dest_dir(os.path.dirname(self.sourcefn))
 
-        download = self.session.start_download(self.tdef, dscfg)
+        download = self.session.start_download_from_tdef(self.tdef, dscfg)
         while not download.handle:
             time.sleep(1)
 

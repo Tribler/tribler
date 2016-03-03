@@ -287,7 +287,7 @@ class LineHandler(LineReceiver):
             dscfg.set_hops(1)
             dscfg.set_dest_dir(cur_path)
 
-            anon_tunnel.session.lm.threadpool.call(0, anon_tunnel.session.start_download, tdef, dscfg)
+            anon_tunnel.session.lm.threadpool.call(0, anon_tunnel.session.start_download_from_tdef, tdef, dscfg)
         elif line.startswith('i'):
             # Introduce dispersy port from other main peer to this peer
             line_split = line.split(' ')
@@ -317,7 +317,7 @@ class LineHandler(LineReceiver):
                                  sum(ds.get_num_seeds_peers()),
                                  sum(1 for _ in anon_tunnel.community.dispersy_yield_verified_candidates())))
                     return 1.0, False
-                download = anon_tunnel.session.start_download(tdef, dscfg)
+                download = anon_tunnel.session.start_download_from_tdef(tdef, dscfg)
                 download.set_state_callback(cb, delay=1)
 
             anon_tunnel.session.lm.threadpool.call(0, start_download)
