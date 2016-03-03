@@ -1522,6 +1522,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
     def hasTorrent(self, channel_id, infohash):
         return True if self.get_channel_torrent_id(channel_id, infohash) else False
 
+    # TODO(Laurens) Make async
     def hasTorrents(self, channel_id, infohashes):
         returnAr = []
         torrent_id_results = self.torrent_db.getTorrentIDS(infohashes)

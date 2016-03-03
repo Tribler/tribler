@@ -511,6 +511,8 @@ class AllChannelCommunity(Community):
         return self._channelcast_db.getChannelIdFromDispersyCID(buffer(cid))
 
 
+    @inlineCallbacks
+    # TODO find callees and make sure they can handle the deferred
     def _selectTorrentsToCollect(self, cid, infohashes):
         channel_id = self._get_channel_id(cid)
 
@@ -529,7 +531,7 @@ class AllChannelCommunity(Community):
         # only request updates if nrT < 100 or we have not received an update in the last half hour
         if nrTorrrents < 100 or latestUpdate < (time() - 1800):
             infohashes = list(infohashes)
-            haveTorrents = self._channelcast_db.hasTorrents(channel_id, infohashes)
+            haveTorrents = yield maybeDeferred(self._channelcast_db.hasTorrents, channel_id, infohashes)
             for i in range(len(infohashes)):
                 if not haveTorrents[i]:
                     collect.append(infohashes[i])
@@ -537,7 +539,7 @@ class AllChannelCommunity(Community):
         self._recentlyRequested.extend(collect)
         self._recentlyRequested = self._recentlyRequested[:100]
 
-        return collect
+        returnValue(collect)
 
     def _get_packets_from_infohashes(self, cid, infohashes):
         assert all(isinstance(infohash, str) for infohash in infohashes)
@@ -634,7 +636,6 @@ class ChannelCastDBStub():
             return self.channel_id
 
     @inlineCallbacks
-    #TODO find usages and make sure they can handle the deferreds
     def hasTorrents(self, channel_id, infohashes):
         returnAr = []
         for infohash in infohashes:
