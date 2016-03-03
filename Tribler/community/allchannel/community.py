@@ -613,7 +613,7 @@ class ChannelCastDBStub():
 
     @inlineCallbacks
     def getRandomTorrents(self, channel_id, limit=15):
-        cached_torrents = yield self._cachedTorrents(None, None)
+        cached_torrents = yield self._addMessageToCachedTorrents(None, None)
         torrents = cached_torrents.keys()
         if len(torrents) > limit:
             returnValue(sample(torrents, limit))
@@ -626,7 +626,7 @@ class ChannelCastDBStub():
             # self.recentTorrents[:50]
             self.latest_result = time()
 
-        deferred = self._cachedTorrents(message.payload.infohash,  message)
+        deferred = self._addMessageToCachedTorrents(message.payload.infohash, message)
         deferred.addCallback(on_inserted, self)
 
     def setChannelId(self, channel_id, mychannel):
@@ -641,7 +641,7 @@ class ChannelCastDBStub():
     def hasTorrents(self, channel_id, infohashes):
         returnAr = []
         for infohash in infohashes:
-            cached_torrents = yield self._cachedTorrents(None, None)
+            cached_torrents = yield self._addMessageToCachedTorrents(None, None)
             if infohash in cached_torrents:
                 returnAr.append(True)
             else:
@@ -651,15 +651,15 @@ class ChannelCastDBStub():
     @inlineCallbacks
     #TODO find usages and make sure they can handle the deferreds
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
-        cached_torrents = yield self._cachedTorrents(None, None)
+        cached_torrents = yield self._addMessageToCachedTorrents(None, None)
         if infohash in cached_torrents:
-            returnValue(self._cachedTorrents(None, None)[infohash])
+            returnValue(self._addMessageToCachedTorrents(None, None)[infohash])
 
     def on_dynamic_settings(self, channel_id):
         pass
 
     @inlineCallbacks
-    def _cachedTorrents(self, infohash, message):
+    def _addMessageToCachedTorrents(self, infohash, message):
         """
         Adds a infohash, message to the cachedTorrents dictionary.
         If not dictionary exists yet, it will create one.
@@ -667,7 +667,7 @@ class ChannelCastDBStub():
         dictionary will be returned and nothing will be inserted.
         :param infohash: The infohash of the message you want to store
         :param message: The message that belongs to the infohash
-        :return: the current cachedTorrents dictionary after inserting, if any.
+        :return: Returns the (updated) cachedTorrents dictionary after inserting, if any.
         """
         if self.cachedTorrents is None:
             self.cachedTorrents = {}
@@ -688,7 +688,7 @@ class ChannelCastDBStub():
         messages = self.convert_to_messages(results)
 
         for _, message in messages:
-            yield self._cachedTorrents(message.payload.infohash, message)
+            yield self._addMessageToCachedTorrents(message.payload.infohash, message)
             self.recentTorrents.append((message.distribution.global_time, message.payload))
 
         self.recentTorrents.sort(reverse=True)
