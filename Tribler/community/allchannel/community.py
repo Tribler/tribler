@@ -274,7 +274,6 @@ class AllChannelCommunity(Community):
         # no timeline check because PublicResolution policy is used
         return messages
 
-    #TODO find usages and make sure they can handle the deferreds
     @inlineCallbacks
     def on_channelcast_request(self, messages):
         for message in messages:
