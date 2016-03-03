@@ -1792,6 +1792,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         sql = "select count(DISTINCT id) from Channels LIMIT 1"
         return self._db.fetchone(sql)
 
+    # TODO(laurens) make asynchronous
     def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10,
                                    NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10,
                                    NUM_OTHERS_DOWNLOADED=5):

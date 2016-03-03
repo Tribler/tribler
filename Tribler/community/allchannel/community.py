@@ -1,6 +1,6 @@
 from random import sample
 from time import time
-from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet.defer import inlineCallbacks, returnValue, maybeDeferred
 
 from twisted.internet.task import LoopingCall
 from twisted.python.threadable import isInIOThread
@@ -163,6 +163,7 @@ class AllChannelCommunity(Community):
     def dispersy_sync_response_limit(self):
         return 25 * 1024
 
+    @inlineCallbacks
     def create_channelcast(self):
         assert isInIOThread()
         now = time()
@@ -200,11 +201,12 @@ class AllChannelCommunity(Community):
             # Modify type of message depending on if all peers have marked my channels as their favorite
             if didFavorite:
                 if not favoriteTorrents:
-                    favoriteTorrents = self._channelcast_db.getRecentAndRandomTorrents(0, 0, 25, 25, 5)
+                    favoriteTorrents = yield maybeDeferred(self._channelcast_db.getRecentAndRandomTorrents, 0, 0, 25, 25, 5)
                 torrents = favoriteTorrents
             else:
                 if not normalTorrents:
-                    normalTorrents = self._channelcast_db.getRecentAndRandomTorrents()
+                    deferred = yield maybeDeferred(self._channelcast_db.getRecentAndRandomTorrents)
+                    deferred.addCallback()
                 torrents = normalTorrents
 
             # torrents is a dictionary of channel_id (key) and infohashes (value)
@@ -592,7 +594,6 @@ class ChannelCastDBStub():
             return len(self.cachedTorrents), self.latest_result
 
     @inlineCallbacks
-    #TODO find usages and make sure they can handle the deferred returned
     def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10, NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10, NUM_OTHERS_DOWNLOADED=5):
         torrent_dict = {}
 
