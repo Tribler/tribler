@@ -14,6 +14,7 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInt
 from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.Libtorrent import checkHandleAndSynchronize, waitForHandleAndSynchronize
 from Tribler.Core.TorrentDef import TorrentDefNoMetainfo, TorrentDef
+from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.osutils import fix_filebasename
 from Tribler.Core.simpledefs import (DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCHECKING, DLSTATUS_METADATA,
                                      DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE,
@@ -40,8 +41,9 @@ class VODFile(object):
         self.pieces = [pieces[x:x + 20]for x in xrange(0, len(pieces), 20)]
         self.piecesize = self._download.tdef.get_piece_length()
 
-        self.startpiece = self._download.handle.get_torrent_info().map_file(self._download.get_vod_fileindex(), 0, 0)
-        self.endpiece = self._download.handle.get_torrent_info().map_file(
+        self.startpiece = get_info_from_handle(self._download.handle).map_file(
+            self._download.get_vod_fileindex(), 0, 0)
+        self.endpiece = get_info_from_handle(self._download.handle).map_file(
             self._download.get_vod_fileindex(), self._download.get_vod_filesize(), 0)
 
     def read(self, *args):
@@ -289,7 +291,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         return self.get_hops() > 0
 
     def set_vod_mode(self, enable=True):
-        self._logger.debug("LibtorrentDownloadImpl: set_vod_mode for %s (enable = %s)", self.handle.name(), enable)
+        self._logger.debug("LibtorrentDownloadImpl: set_vod_mode for %s (enable = %s)", self.tdef.get_name(), enable)
 
         if enable:
             self.vod_seekpos = 0
@@ -323,7 +325,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
     def get_vod_filesize(self):
         fileindex = self.get_vod_fileindex()
         if fileindex >= 0:
-            file_entry = self.handle.get_torrent_info().file_at(fileindex)
+            file_entry = get_info_from_handle(self.handle).file_at(fileindex)
             return file_entry.size
         return 0
 
@@ -353,15 +355,15 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         for fileindex, bytes_begin, bytes_end in byteranges:
             if fileindex >= 0:
                 # Ensure the we remain within the file's boundaries
-                file_entry = self.handle.get_torrent_info().file_at(fileindex)
+                file_entry = get_info_from_handle(self.handle).file_at(fileindex)
                 bytes_begin = min(
                     file_entry.size, bytes_begin) if bytes_begin >= 0 else file_entry.size + (bytes_begin + 1)
                 bytes_end = min(file_entry.size, bytes_end) if bytes_end >= 0 else file_entry.size + (bytes_end + 1)
 
-                startpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_begin, 0).piece
-                endpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_end, 0).piece + 1
+                startpiece = get_info_from_handle(self.handle).map_file(fileindex, bytes_begin, 0).piece
+                endpiece = get_info_from_handle(self.handle).map_file(fileindex, bytes_end, 0).piece + 1
                 startpiece = max(startpiece, 0)
-                endpiece = min(endpiece, self.handle.get_torrent_info().num_pieces())
+                endpiece = min(endpiece, get_info_from_handle(self.handle).num_pieces())
 
                 pieces += range(startpiece, endpiece)
             else:
@@ -394,15 +396,15 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         for fileindex, bytes_begin, bytes_end in byteranges:
             if fileindex >= 0:
                 # Ensure the we remain within the file's boundaries
-                file_entry = self.handle.get_torrent_info().file_at(fileindex)
+                file_entry = get_info_from_handle(self.handle).file_at(fileindex)
                 bytes_begin = min(
                     file_entry.size, bytes_begin) if bytes_begin >= 0 else file_entry.size + (bytes_begin + 1)
                 bytes_end = min(file_entry.size, bytes_end) if bytes_end >= 0 else file_entry.size + (bytes_end + 1)
 
-                startpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_begin, 0).piece
-                endpiece = self.handle.get_torrent_info().map_file(fileindex, bytes_end, 0).piece + 1
+                startpiece = get_info_from_handle(self.handle).map_file(fileindex, bytes_begin, 0).piece
+                endpiece = get_info_from_handle(self.handle).map_file(fileindex, bytes_end, 0).piece + 1
                 startpiece = max(startpiece, 0)
-                endpiece = min(endpiece, self.handle.get_torrent_info().num_pieces())
+                endpiece = min(endpiece, get_info_from_handle(self.handle).num_pieces())
 
                 pieces += range(startpiece, endpiece)
             else:
@@ -448,7 +450,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.tracker_status[alert.url] = [peers, status]
 
     def on_metadata_received_alert(self, alert):
-        self.metadata = {'info': lt.bdecode(self.handle.get_torrent_info().metadata())}
+        self.metadata = {'info': lt.bdecode(get_info_from_handle(self.handle).metadata())}
 
         trackers = [tracker['url'] for tracker in self.handle.trackers()]
         if trackers:
@@ -480,20 +482,22 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         # When the send buffer watermark is too low, double the buffer size to a
         # maximum of 50MiB. This is the same mechanism as Deluge uses.
         if alert.message().endswith("send buffer watermark too low (upload rate will suffer)"):
-            settings = self.ltmgr.get_session().settings()
-            if settings.send_buffer_watermark <= 26214400:
+            settings = self.ltmgr.get_session().get_settings()
+            if settings['send_buffer_watermark'] <= 26214400:
                 self._logger.info(
-                    "LibtorrentDownloadImpl: setting send_buffer_watermark to %s", 2 * settings.send_buffer_watermark)
-                settings.send_buffer_watermark = 2 * settings.send_buffer_watermark
+                    "LibtorrentDownloadImpl: setting send_buffer_watermark to %s",
+                    2 * settings['send_buffer_watermark'])
+                settings['send_buffer_watermark'] *= 2
                 self.ltmgr.get_session().set_settings(settings)
         # When the write cache is too small, double the buffer size to a maximum
         # of 64MiB. Again, this is the same mechanism as Deluge uses.
         elif alert.message().endswith("max outstanding disk writes reached"):
-            settings = self.ltmgr.get_session().settings()
-            if settings.max_queued_disk_bytes <= 33554432:
+            settings = self.ltmgr.get_session().get_settings()
+            if settings['max_queued_disk_bytes'] <= 33554432:
                 self._logger.info(
-                    "LibtorrentDownloadImpl: setting max_queued_disk_bytes to %s", 2 * settings.max_queued_disk_bytes)
-                settings.max_queued_disk_bytes = 2 * settings.max_queued_disk_bytes
+                    "LibtorrentDownloadImpl: setting max_queued_disk_bytes to %s",
+                    2 * settings['max_queued_disk_bytes'])
+                settings['max_queued_disk_bytes'] *= 2
                 self.ltmgr.get_session().set_settings(settings)
 
     def on_torrent_checked_alert(self, alert):
@@ -581,7 +585,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             commonprefix = os.path.commonprefix(self.orig_files) if is_multifile else u''
             swarmname = commonprefix.partition(os.path.sep)[0]
             unwanteddir = os.path.join(swarmname, u'.unwanted')
-            unwanteddir_abs = os.path.join(self.handle.save_path().decode('utf-8'), unwanteddir)
+            unwanteddir_abs = os.path.join(self.get_save_path().decode('utf-8'), unwanteddir)
 
             filepriorities = []
             for index, orig_path in enumerate(self.orig_files):
@@ -594,7 +598,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                     filepriorities.append(0)
                     new_path = os.path.join(unwanteddir, '%s%d' % (hexlify(self.tdef.get_infohash()), index))
 
-                cur_path = self.handle.get_torrent_info().files()[index].path.decode('utf-8')
+                cur_path = get_info_from_handle(self.handle).files()[index].path.decode('utf-8')
                 if cur_path != new_path:
                     if not os.path.exists(unwanteddir_abs) and unwanteddir in new_path:
                         try:
@@ -628,6 +632,12 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
     @checkHandleAndSynchronize()
     def get_save_path(self):
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
+            # torrent_handle.save_path() is deprecated in newer versions of Libtorrent. We should use
+            # self.handle.status().save_path to query the save path of a torrent. However, this attribute
+            # is only included in libtorrent 1.0.9+
+            status = self.handle.status()
+            if hasattr(status, 'save_path'):
+                return status.save_path
             return self.handle.save_path()
 
     @checkHandleAndSynchronize()
@@ -703,7 +713,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         logmsgs = []
 
         self._logger.debug("Torrent %s PROGRESS %s DLSTATE %s SEEDTIME %s",
-                           self.handle.name(), self.progress, self.dlstate, self.finished_time)
+                           self.tdef.get_name(), self.progress, self.dlstate, self.finished_time)
 
         return (self.dlstate, stats, seeding_stats, logmsgs)
 
@@ -878,7 +888,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 else:
                     self.set_vod_mode(False)
                     self.handle.pause()
-                    pstate.set('state', 'engineresumedata', self.handle.write_resume_data()
+                    pstate.set('state', 'engineresumedata', self.handle.save_resume_data()
                                if isinstance(self.tdef, TorrentDef) else None)
                 self.pstate_for_restart = pstate
             else:
@@ -939,7 +949,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         """
 
         dest_files = []
-        for index, file_entry in enumerate(self.handle.get_torrent_info().files()):
+        for index, file_entry in enumerate(get_info_from_handle(self.handle).files()):
             if self.handle.file_priority(index) > 0:
                 filename = file_entry.path
                 ext = os.path.splitext(filename)[1].lstrip('.')
@@ -962,7 +972,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 if self.pstate_for_restart is not None:
                     resdata = self.pstate_for_restart.get('state', 'engineresumedata')
             elif isinstance(self.tdef, TorrentDef):
-                resdata = self.handle.write_resume_data()
+                resdata = self.handle.save_resume_data()
             pstate.set('state', 'engineresumedata', resdata)
             return (self.tdef.get_infohash(), pstate)
 

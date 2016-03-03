@@ -11,6 +11,7 @@ from shutil import rmtree
 
 from twisted.internet import reactor
 import libtorrent as lt
+from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 
 from Tribler.Core.Utilities.utilities import parse_magnetlink
 from Tribler.Core.exceptions import DuplicateDownloadException
@@ -21,7 +22,7 @@ from Tribler.dispersy.taskmanager import LoopingCall, TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
 
-DHTSTATE_FILENAME = "ltdht.state"
+LTSTATE_FILENAME = "lt.state"
 METAINFO_CACHE_PERIOD = 5 * 60
 DHT_CHECK_RETRIES = 1
 
@@ -78,10 +79,10 @@ class LibtorrentMgr(TaskManager):
 
         self.get_session().stop_upnp()
 
-        # Save DHT state
-        dhtstate_file = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME), 'w')
-        dhtstate_file.write(lt.bencode(self.get_session().dht_state()))
-        dhtstate_file.close()
+        # Save libtorrent state
+        ltstate_file = open(os.path.join(self.trsession.get_state_dir(), LTSTATE_FILENAME), 'w')
+        ltstate_file.write(lt.bencode(self.get_session().save_state()))
+        ltstate_file.close()
 
         for ltsession in self.ltsessions.itervalues():
             del ltsession
@@ -94,27 +95,32 @@ class LibtorrentMgr(TaskManager):
         self.trsession = None
 
     def create_session(self, hops=0):
-        settings = lt.session_settings()
+        settings = {}
+
+        # Due to a bug in Libtorrent 0.16.18, the outgoing_port and num_outgoing_ports value should be set in
+        # the settings dictionary
+        settings['outgoing_port'] = 0
+        settings['num_outgoing_ports'] = 1
 
         if hops == 0:
-            settings.user_agent = 'Tribler/' + version_id
+            settings['user_agent'] = 'Tribler/' + version_id
             # Elric: Strip out the -rcX, -beta, -whatever tail on the version string.
             fingerprint = ['TL'] + map(int, version_id.split('-')[0].split('.')) + [0]
             # Workaround for libtorrent 0.16.3 segfault (see https://code.google.com/p/libtorrent/issues/detail?id=369)
             ltsession = lt.session(lt.fingerprint(*fingerprint), flags=1)
             enable_utp = self.trsession.get_libtorrent_utp()
-            settings.enable_outgoing_utp = enable_utp
-            settings.enable_incoming_utp = enable_utp
+            settings['enable_outgoing_utp'] = enable_utp
+            settings['enable_incoming_utp'] = enable_utp
 
             pe_settings = lt.pe_settings()
             pe_settings.prefer_rc4 = True
             ltsession.set_pe_settings(pe_settings)
         else:
-            settings.enable_outgoing_utp = True
-            settings.enable_incoming_utp = True
-            settings.enable_outgoing_tcp = False
-            settings.enable_incoming_tcp = False
-            settings.anonymous_mode = True
+            settings['enable_outgoing_utp'] = True
+            settings['enable_incoming_utp'] = True
+            settings['enable_outgoing_tcp'] = False
+            settings['enable_incoming_tcp'] = False
+            settings['anonymous_mode'] = True
             # No PEX for anonymous sessions
             ltsession = lt.session(flags=0)
             ltsession.add_extension(lt.create_ut_metadata_plugin)
@@ -144,19 +150,22 @@ class LibtorrentMgr(TaskManager):
             if listen_port != ltsession.listen_port():
                 self.trsession.set_listen_port_runtime(ltsession.listen_port())
             try:
-                dht_state = open(os.path.join(self.trsession.get_state_dir(), DHTSTATE_FILENAME)).read()
-                ltsession.start_dht(lt.bdecode(dht_state))
+                lt_state = open(os.path.join(self.trsession.get_state_dir(), LTSTATE_FILENAME)).read()
+                ltsession.load_state(lt.bdecode(lt_state))
             except Exception, exc:
-                self._logger.info("could not restore dht state, got exception: %r. starting from scratch" % exc)
-                ltsession.start_dht(None)
+                self._logger.info("could not load libtorrent state, got exception: %r. starting from scratch" % exc)
+            ltsession.start_dht()
         else:
             ltsession.listen_on(self.trsession.get_anon_listen_port(), self.trsession.get_anon_listen_port() + 20)
-            ltsession.start_dht(None)
+            ltsession.start_dht()
 
             # Elric: Copy the speed limits from the plain session until we come
             # up with a way to have global bandwidth limit settings.
-            ltsession.set_upload_rate_limit(self.get_session().upload_rate_limit())
-            ltsession.set_download_rate_limit(self.get_session().download_rate_limit())
+            self_get_session_settings = self.get_session().get_settings()
+            ltsession_settings = ltsession.get_settings()
+            ltsession_settings['upload_rate_limit'] = self_get_session_settings['upload_rate_limit']
+            ltsession_settings['download_rate_limit'] = self_get_session_settings['download_rate_limit']
+            ltsession.set_settings(ltsession_settings)
 
         ltsession.add_dht_router('router.bittorrent.com', 6881)
         ltsession.add_dht_router('router.utorrent.com', 6881)
@@ -192,9 +201,9 @@ class LibtorrentMgr(TaskManager):
 
     def set_utp(self, enable, hops=None):
         def do_set_utp(ltsession):
-            settings = ltsession.settings()
-            settings.enable_outgoing_utp = enable
-            settings.enable_incoming_utp = enable
+            settings = ltsession.get_settings()
+            settings['enable_outgoing_utp'] = enable
+            settings['enable_incoming_utp'] = enable
             ltsession.set_settings(settings)
 
         if hops is None:
@@ -210,7 +219,10 @@ class LibtorrentMgr(TaskManager):
         # Rate conversion due to the fact that we had a different system with Swift
         # and the old python BitTorrent core: unlimited == 0, stop == -1, else rate in kbytes
         libtorrent_rate = int(-1 if rate == 0 else (1 if rate == -1 else rate * 1024))
-        self._map_call_on_ltsessions(hops, 'set_upload_rate_limit', libtorrent_rate)
+
+        # Pass outgoing_port and num_outgoing_ports to dict due to bug in libtorrent 0.16.18
+        settings_dict = {'upload_rate_limit': libtorrent_rate, 'outgoing_port': 0, 'num_outgoing_ports': 1}
+        self._map_call_on_ltsessions(hops, 'set_settings', settings_dict)
 
     def get_upload_rate_limit(self, hops=None):
         # Rate conversion due to the fact that we had a different system with Swift
@@ -220,7 +232,10 @@ class LibtorrentMgr(TaskManager):
 
     def set_download_rate_limit(self, rate, hops=None):
         libtorrent_rate = int(-1 if rate == 0 else (1 if rate == -1 else rate * 1024))
-        self._map_call_on_ltsessions(hops, 'set_download_rate_limit', libtorrent_rate)
+
+        # Pass outgoing_port and num_outgoing_ports to dict due to bug in libtorrent 0.16.18
+        settings_dict = {'download_rate_limit': libtorrent_rate, 'outgoing_port': 0, 'num_outgoing_ports': 1}
+        self._map_call_on_ltsessions(hops, 'set_settings', settings_dict)
 
     def get_download_rate_limit(self, hops=0):
         libtorrent_rate = self.get_session(hops).download_rate_limit()
@@ -271,22 +286,20 @@ class LibtorrentMgr(TaskManager):
             self._logger.debug("cannot remove invalid torrent")
 
     def add_upnp_mapping(self, port, protocol='TCP'):
-        protocol_name = protocol.lower()
-        assert protocol_name in (u'udp', u'tcp'), "protocl is neither UDP nor TCP: %s" % repr(protocol)
+        # TODO martijn: this check should be removed once we do not support libtorrent versions that do not have the
+        # add_port_mapping method exposed in the Python bindings
+        if hasattr(self.get_session(), 'add_port_mapping'):
+            protocol_name = protocol.lower()
+            assert protocol_name in (u'udp', u'tcp'), "protocol is neither UDP nor TCP: %s" % repr(protocol)
 
-        protocol_type = 2 if protocol_name == 'tcp' else 1
-        upnp_handle = self.get_session().add_port_mapping(protocol_type, port, port)
-        self.upnp_mapping_dict[(port, protocol_name)] = upnp_handle
+            from libtorrent import protocol_type
+            protocol_type_obj = protocol_type.udp if protocol_name == 'udp' else protocol_type.tcp
+            upnp_handle = self.get_session().add_port_mapping(protocol_type_obj, port, port)
+            self.upnp_mapping_dict[(port, protocol_name)] = upnp_handle
 
-        self._logger.info(u"uPnP port added : %s %s", port, protocol_name)
-
-    def remove_upnp_mapping(self, port, protocol='TCP'):
-        protocol_name = protocol.lower()
-        assert protocol_name in (u'udp', u'tcp'), "protocl is neither UDP nor TCP: %s" % repr(protocol)
-
-        upnp_handle = self.upnp_mapping_dict[(port, protocol_name)]
-        self.get_session().delete_port_mapping(upnp_handle)
-        del self.upnp_mapping_dict[(port, protocol_name)]
+            self._logger.info(u"uPnP port added : %s %s", port, protocol_name)
+        else:
+            self._logger.warning("port mapping method not exposed in libtorrent")
 
         self._logger.info(u"uPnP port removed: %s %s", port, protocol_name)
 
@@ -338,9 +351,9 @@ class LibtorrentMgr(TaskManager):
                 try:
                     handle = self.get_session().add_torrent(encode_atp(atp))
                 except TypeError as e:
-                    self._logger.warning("Failed to add torrent with infohash %s, using libtorrent version %s, "
+                    self._logger.warning("Failed to add torrent with infohash %s, "
                                          "attempting to use it as it is and hoping for the best",
-                                         hexlify(infohash_bin), lt.version)
+                                         hexlify(infohash_bin))
                     self._logger.warning("Error was: %s", e)
                     atp['info_hash'] = infohash_bin
                     handle = self.get_session().add_torrent(encode_atp(atp))
@@ -378,8 +391,8 @@ class LibtorrentMgr(TaskManager):
                 assert handle
                 if handle:
                     if callbacks and not timeout:
-                        metainfo = {"info": lt.bdecode(handle.get_torrent_info().metadata())}
-                        trackers = [tracker.url for tracker in handle.get_torrent_info().trackers()]
+                        metainfo = {"info": lt.bdecode(get_info_from_handle(handle).metadata())}
+                        trackers = [tracker.url for tracker in get_info_from_handle(handle).trackers()]
                         peers = []
                         leechers = 0
                         seeders = 0
@@ -440,10 +453,8 @@ class LibtorrentMgr(TaskManager):
     def _task_process_alerts(self):
         for ltsession in self.ltsessions.itervalues():
             if ltsession:
-                alert = ltsession.pop_alert()
-                while alert:
+                for alert in ltsession.pop_alerts():
                     self.process_alert(alert)
-                    alert = ltsession.pop_alert()
 
         self.register_task(u'process_alerts', reactor.callLater(1, self._task_process_alerts))
 
@@ -471,7 +482,7 @@ class LibtorrentMgr(TaskManager):
                         self._schedule_next_check(5, retries_left - 1)
                     else:
                         self._logger.info(u"No enough DHT nodes %s, will restart DHT", lt_session.status().dht_nodes)
-                        lt_session.start_dht(None)
+                        lt_session.start_dht()
                         self._schedule_next_check(10, 1)
                 else:
                     self._logger.info("dht is working enough nodes are found (%d)", self.get_session().status().dht_nodes)

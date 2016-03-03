@@ -229,9 +229,8 @@ class TriblerLaunchMany(TaskManager):
             from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
             self.ltmgr = LibtorrentMgr(self.session)
             self.ltmgr.initialize()
-            # FIXME(lipu): upnp APIs are not exported in libtorrent python-binding.
-            #for port, protocol in self.upnp_ports:
-            #    self.ltmgr.add_upnp_mapping(port, protocol)
+            for port, protocol in self.upnp_ports:
+                self.ltmgr.add_upnp_mapping(port, protocol)
 
         # add task for tracker checking
         if self.session.get_torrent_checking():
