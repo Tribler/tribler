@@ -4,6 +4,7 @@ from binascii import hexlify
 from struct import pack
 from time import time
 from traceback import print_stack
+from twisted.internet.defer import maybeDeferred
 
 from twisted.python.threadable import isInIOThread
 
@@ -1091,11 +1092,14 @@ class ChannelCommunity(Community):
                     packets = []
                     packets.append(channelmessage.packet)
 
-                    torrents = self._channelcast_db.getRandomTorrents(self._channel_id)
-                    for infohash in torrents:
-                        tormessage = self._get_message_from_torrent_infohash(infohash)
-                        if tormessage:
-                            packets.append(tormessage.packet)
+                    def on_random_torrents_received(torrents):
+                        for infohash in torrents:
+                            tormessage = self._get_message_from_torrent_infohash(infohash)
+                            if tormessage:
+                                packets.append(tormessage.packet)
+
+                    deferred = maybeDeferred(self._channelcast_db.getRandomTorrents, self._channel_id)
+                    deferred.addCallback(on_random_torrents_received)
 
                 self._dispersy._send_packets([message.candidate], packets,
                                              self, "-caused by missing-channel-response-snapshot-")

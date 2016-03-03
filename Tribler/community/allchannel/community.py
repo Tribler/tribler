@@ -508,6 +508,7 @@ class AllChannelCommunity(Community):
 
         return self._channelcast_db.getChannelIdFromDispersyCID(buffer(cid))
 
+
     def _selectTorrentsToCollect(self, cid, infohashes):
         channel_id = self._get_channel_id(cid)
 
@@ -590,6 +591,8 @@ class ChannelCastDBStub():
         if self.cachedTorrents:
             return len(self.cachedTorrents), self.latest_result
 
+    @inlineCallbacks
+    #TODO find usages and make sure they can handle the deferred returned
     def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10, NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10, NUM_OTHERS_DOWNLOADED=5):
         torrent_dict = {}
 
@@ -597,13 +600,13 @@ class ChannelCastDBStub():
             torrent_dict.setdefault(self.channel_id, set()).add(payload.infohash)
 
         if len(self.recentTorrents) >= NUM_OWN_RECENT_TORRENTS:
-            for infohash in self.getRandomTorrents(self.channel_id, max(NUM_OWN_RANDOM_TORRENTS, NUM_OTHERS_RANDOM_TORRENTS)):
+            random_torrents = yield self.getRandomTorrents(self.channel_id, max(NUM_OWN_RANDOM_TORRENTS, NUM_OTHERS_RANDOM_TORRENTS))
+            for infohash in random_torrents:
                 torrent_dict.setdefault(self.channel_id, set()).add(infohash)
 
-        return torrent_dict
+        returnValue(torrent_dict)
 
     @inlineCallbacks
-    #TODO find usages and make sure they can handle the deferreds
     def getRandomTorrents(self, channel_id, limit=15):
         cached_torrents = yield self._cachedTorrents(None, None)
         torrents = cached_torrents.keys()
@@ -634,7 +637,7 @@ class ChannelCastDBStub():
     def hasTorrents(self, channel_id, infohashes):
         returnAr = []
         for infohash in infohashes:
-            cached_torrents = yield.self._cachedTorrents(None, None)
+            cached_torrents = yield self._cachedTorrents(None, None)
             if infohash in cached_torrents:
                 returnAr.append(True)
             else:
