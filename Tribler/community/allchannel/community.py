@@ -248,7 +248,6 @@ class AllChannelCommunity(Community):
             raise IgnoreCommits()
 
     @inlineCallbacks
-    # TODO find callees and make sure they can handle the deferred
     def on_channelcast(self, messages):
         for message in messages:
             toCollect = {}
@@ -351,9 +350,10 @@ class AllChannelCommunity(Community):
             # ensure that no commits occur
             raise IgnoreCommits()
 
+    @inlineCallbacks
     def on_channelsearch_response(self, messages):
         # request missing torrents
-        self.on_channelcast(messages)
+        yield self.on_channelcast(messages)
 
         for message in messages:
             # show results in gui
