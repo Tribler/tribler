@@ -1,6 +1,6 @@
 from random import sample
 from time import time
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, returnValue
 
 from twisted.internet.task import LoopingCall
 from twisted.python.threadable import isInIOThread
@@ -602,20 +602,24 @@ class ChannelCastDBStub():
 
         return torrent_dict
 
+    @inlineCallbacks
+    #TODO find usages and make sure they can handle the deferreds
     def getRandomTorrents(self, channel_id, limit=15):
-        torrents = self._cachedTorrents(None, None).keys()
+        cached_torrents = yield self._cachedTorrents(None, None)
+        torrents = cached_torrents.keys()
         if len(torrents) > limit:
-            return sample(torrents, limit)
-        return torrents
+            returnValue(sample(torrents, limit))
+        returnValue(torrents)
 
     def newTorrent(self, message):
-        self._cachedTorrents(message.payload.infohash,  message)
+        def on_inserted(self):
+            self.recentTorrents.append((message.distribution.global_time, message.payload))
+            self.recentTorrents.sort(reverse=True)
+            # self.recentTorrents[:50]
+            self.latest_result = time()
 
-        self.recentTorrents.append((message.distribution.global_time, message.payload))
-        self.recentTorrents.sort(reverse=True)
-        # self.recentTorrents[:50]
-
-        self.latest_result = time()
+        deferred = self._cachedTorrents(message.payload.infohash,  message)
+        deferred.addCallback(on_inserted, self)
 
     def setChannelId(self, channel_id, mychannel):
         self.channel_id = channel_id
@@ -625,40 +629,47 @@ class ChannelCastDBStub():
         if self.mychannel:
             return self.channel_id
 
+    @inlineCallbacks
+    #TODO find usages and make sure they can handle the deferreds
     def hasTorrents(self, channel_id, infohashes):
         returnAr = []
         for infohash in infohashes:
-            if infohash in self._cachedTorrents(None, None):
+            cached_torrents = yield.self._cachedTorrents(None, None)
+            if infohash in cached_torrents:
                 returnAr.append(True)
             else:
                 returnAr.append(False)
-        return returnAr
+        returnValue(returnAr)
 
+    @inlineCallbacks
+    #TODO find usages and make sure they can handle the deferreds
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
-        if infohash in self._cachedTorrents(None, None):
-            return self._cachedTorrents(None, None)[infohash]
+        cached_torrents = yield self._cachedTorrents(None, None)
+        if infohash in cached_torrents:
+            returnValue(self._cachedTorrents(None, None)[infohash])
 
     def on_dynamic_settings(self, channel_id):
         pass
 
+    @inlineCallbacks
     def _cachedTorrents(self, infohash, message):
         """
         Adds a infohash, message to the cachedTorrents dictionary.
         If not dictionary exists yet, it will create one.
-        If infohash or message is None then the current cachedTorrents
-        dictionary will be returned.
+        If infohash or message is None then only the current cachedTorrents
+        dictionary will be returned and nothing will be inserted.
         :param infohash: The infohash of the message you want to store
         :param message: The message that belongs to the infohash
         :return: the current cachedTorrents dictionary after inserting, if any.
         """
         if self.cachedTorrents is None:
             self.cachedTorrents = {}
-            self._cacheTorrents()
+            yield self._cacheTorrents()
 
         if infohash is not None and message is not None:
             self.cachedTorrents[infohash] = message
 
-        return self.cachedTorrents
+        returnValue(self.cachedTorrents)
 
     @inlineCallbacks
     def _cacheTorrents(self):
@@ -670,7 +681,7 @@ class ChannelCastDBStub():
         messages = self.convert_to_messages(results)
 
         for _, message in messages:
-            self._cachedTorrents(message.payload.infohash, message)
+            yield self._cachedTorrents(message.payload.infohash, message)
             self.recentTorrents.append((message.distribution.global_time, message.payload))
 
         self.recentTorrents.sort(reverse=True)
