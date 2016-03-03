@@ -1,5 +1,6 @@
 from random import sample
 from time import time
+from twisted.internet.defer import inlineCallbacks
 
 from twisted.internet.task import LoopingCall
 from twisted.python.threadable import isInIOThread
@@ -648,9 +649,13 @@ class ChannelCastDBStub():
 
         return self.cachedTorrents
 
+    @inlineCallbacks
     def _cacheTorrents(self):
+        bla = time()
         sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE meta_message.name = 'torrent'"
-        results = list(self._dispersy.database.execute(sql))
+        query_result = yield self._dispersy.database.execute(sql)
+        results = list(query_result)
+        # print len(results)
         messages = self.convert_to_messages(results)
 
         for _, message in messages:
@@ -658,7 +663,8 @@ class ChannelCastDBStub():
             self.recentTorrents.append((message.distribution.global_time, message.payload))
 
         self.recentTorrents.sort(reverse=True)
-        self.recentTorrents[:50]
+        # self.recentTorrents[:50]
+        print str(time() - bla)
 
 
 class VoteCastDBStub():
