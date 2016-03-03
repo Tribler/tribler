@@ -286,22 +286,20 @@ class LibtorrentMgr(TaskManager):
             self._logger.debug("cannot remove invalid torrent")
 
     def add_upnp_mapping(self, port, protocol='TCP'):
-        protocol_name = protocol.lower()
-        assert protocol_name in (u'udp', u'tcp'), "protocl is neither UDP nor TCP: %s" % repr(protocol)
+        # TODO martijn: this check should be removed once we do not support libtorrent versions that do not have the
+        # add_port_mapping method exposed in the Python bindings
+        if hasattr(self.get_session(), 'add_port_mapping'):
+            protocol_name = protocol.lower()
+            assert protocol_name in (u'udp', u'tcp'), "protocol is neither UDP nor TCP: %s" % repr(protocol)
 
-        protocol_type = 2 if protocol_name == 'tcp' else 1
-        upnp_handle = self.get_session().add_port_mapping(protocol_type, port, port)
-        self.upnp_mapping_dict[(port, protocol_name)] = upnp_handle
+            from libtorrent import protocol_type
+            protocol_type_obj = protocol_type.udp if protocol_name == 'udp' else protocol_type.tcp
+            upnp_handle = self.get_session().add_port_mapping(protocol_type_obj, port, port)
+            self.upnp_mapping_dict[(port, protocol_name)] = upnp_handle
 
-        self._logger.info(u"uPnP port added : %s %s", port, protocol_name)
-
-    def remove_upnp_mapping(self, port, protocol='TCP'):
-        protocol_name = protocol.lower()
-        assert protocol_name in (u'udp', u'tcp'), "protocl is neither UDP nor TCP: %s" % repr(protocol)
-
-        upnp_handle = self.upnp_mapping_dict[(port, protocol_name)]
-        self.get_session().delete_port_mapping(upnp_handle)
-        del self.upnp_mapping_dict[(port, protocol_name)]
+            self._logger.info(u"uPnP port added : %s %s", port, protocol_name)
+        else:
+            self._logger.warning("port mapping method not exposed in libtorrent")
 
         self._logger.info(u"uPnP port removed: %s %s", port, protocol_name)
 
