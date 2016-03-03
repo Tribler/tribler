@@ -603,17 +603,17 @@ class ChannelCastDBStub():
         return torrent_dict
 
     def getRandomTorrents(self, channel_id, limit=15):
-        torrents = self._cachedTorrents.keys()
+        torrents = self._cachedTorrents(None, None).keys()
         if len(torrents) > limit:
             return sample(torrents, limit)
         return torrents
 
     def newTorrent(self, message):
-        self._cachedTorrents[message.payload.infohash] = message
+        self._cachedTorrents(message.payload.infohash,  message)
 
         self.recentTorrents.append((message.distribution.global_time, message.payload))
         self.recentTorrents.sort(reverse=True)
-        self.recentTorrents[:50]
+        # self.recentTorrents[:50]
 
         self.latest_result = time()
 
@@ -628,24 +628,35 @@ class ChannelCastDBStub():
     def hasTorrents(self, channel_id, infohashes):
         returnAr = []
         for infohash in infohashes:
-            if infohash in self._cachedTorrents:
+            if infohash in self._cachedTorrents(None, None):
                 returnAr.append(True)
             else:
                 returnAr.append(False)
         return returnAr
 
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
-        if infohash in self._cachedTorrents:
-            return self._cachedTorrents[infohash].packet_id
+        if infohash in self._cachedTorrents(None, None):
+            return self._cachedTorrents(None, None)[infohash]
 
     def on_dynamic_settings(self, channel_id):
         pass
 
-    @property
-    def _cachedTorrents(self):
+    def _cachedTorrents(self, infohash, message):
+        """
+        Adds a infohash, message to the cachedTorrents dictionary.
+        If not dictionary exists yet, it will create one.
+        If infohash or message is None then the current cachedTorrents
+        dictionary will be returned.
+        :param infohash: The infohash of the message you want to store
+        :param message: The message that belongs to the infohash
+        :return: the current cachedTorrents dictionary after inserting, if any.
+        """
         if self.cachedTorrents is None:
             self.cachedTorrents = {}
             self._cacheTorrents()
+
+        if infohash is not None and message is not None:
+            self.cachedTorrents[infohash] = message
 
         return self.cachedTorrents
 
@@ -659,7 +670,7 @@ class ChannelCastDBStub():
         messages = self.convert_to_messages(results)
 
         for _, message in messages:
-            self._cachedTorrents[message.payload.infohash] = message
+            self._cachedTorrents(message.payload.infohash, message)
             self.recentTorrents.append((message.distribution.global_time, message.payload))
 
         self.recentTorrents.sort(reverse=True)
