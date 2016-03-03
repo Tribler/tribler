@@ -301,8 +301,6 @@ class LibtorrentMgr(TaskManager):
         else:
             self._logger.warning("port mapping method not exposed in libtorrent")
 
-        self._logger.info(u"uPnP port removed: %s %s", port, protocol_name)
-
     def process_alert(self, alert):
         alert_type = str(type(alert)).split("'")[1].split(".")[-1]
         handle = getattr(alert, 'handle', None)
