@@ -247,11 +247,14 @@ class AllChannelCommunity(Community):
             # ensure that no commits occur
             raise IgnoreCommits()
 
+    @inlineCallbacks
+    # TODO find callees and make sure they can handle the deferred
     def on_channelcast(self, messages):
         for message in messages:
             toCollect = {}
             for cid, infohashes in message.payload.torrents.iteritems():
-                for infohash in self._selectTorrentsToCollect(cid, infohashes):
+                torrents_to_collect = yield self._selectTorrentsToCollect(cid, infohashes)
+                for infohash in torrents_to_collect:
                     toCollect.setdefault(cid, set()).add(infohash)
 
             nr_requests = sum([len(infohashes) for infohashes in toCollect.values()])
@@ -512,7 +515,6 @@ class AllChannelCommunity(Community):
 
 
     @inlineCallbacks
-    # TODO find callees and make sure they can handle the deferred
     def _selectTorrentsToCollect(self, cid, infohashes):
         channel_id = self._get_channel_id(cid)
 
