@@ -274,11 +274,14 @@ class AllChannelCommunity(Community):
         # no timeline check because PublicResolution policy is used
         return messages
 
+    #TODO find usages and make sure they can handle the deferreds
+    @inlineCallbacks
     def on_channelcast_request(self, messages):
         for message in messages:
             requested_packets = []
             for cid, infohashes in message.payload.torrents.iteritems():
-                requested_packets.extend(self._get_packets_from_infohashes(cid, infohashes))
+                packets = yield self._get_packets_from_infohashes(cid, infohashes)
+                requested_packets.extend(packets)
 
             if requested_packets:
                 self._dispersy._send_packets([message.candidate], requested_packets,
@@ -543,6 +546,7 @@ class AllChannelCommunity(Community):
 
         returnValue(collect)
 
+    @inlineCallbacks
     def _get_packets_from_infohashes(self, cid, infohashes):
         assert all(isinstance(infohash, str) for infohash in infohashes)
         assert all(len(infohash) == 20 for infohash in infohashes)
@@ -551,7 +555,7 @@ class AllChannelCommunity(Community):
 
         packets = []
         for infohash in infohashes:
-            dispersy_id = self._channelcast_db.getTorrentFromChannelId(
+            dispersy_id = yield self._channelcast_db.getTorrentFromChannelId(
                 channel_id, infohash, ['ChannelTorrents.dispersy_id'])
 
             if dispersy_id and dispersy_id > 0:
@@ -561,7 +565,7 @@ class AllChannelCommunity(Community):
                 except RuntimeError:
                     pass
 
-        return packets
+        returnValue(packets)
 
     def _get_packet_from_dispersy_id(self, dispersy_id, messagename):
         try:
@@ -649,7 +653,6 @@ class ChannelCastDBStub():
         returnValue(returnAr)
 
     @inlineCallbacks
-    #TODO find usages and make sure they can handle the deferreds
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
         cached_torrents = yield self._addMessageToCachedTorrents(None, None)
         if infohash in cached_torrents:

@@ -1160,6 +1160,7 @@ class ChannelCommunity(Community):
         if dispersy_id and dispersy_id > 0:
             return self._dispersy.load_message_by_packetid(self, dispersy_id)
 
+
     def _get_message_from_torrent_infohash(self, torrent_infohash):
         assert isinstance(torrent_infohash, str), 'infohash is a %s' % type(torrent_infohash)
         assert len(torrent_infohash) == 20, 'infohash has length %d' % len(torrent_infohash)
