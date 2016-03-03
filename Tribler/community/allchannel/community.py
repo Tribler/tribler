@@ -205,8 +205,7 @@ class AllChannelCommunity(Community):
                 torrents = favoriteTorrents
             else:
                 if not normalTorrents:
-                    deferred = yield maybeDeferred(self._channelcast_db.getRecentAndRandomTorrents)
-                    deferred.addCallback()
+                    normalTorrents = yield maybeDeferred(self._channelcast_db.getRecentAndRandomTorrents)
                 torrents = normalTorrents
 
             # torrents is a dictionary of channel_id (key) and infohashes (value)
