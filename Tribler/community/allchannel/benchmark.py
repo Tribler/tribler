@@ -1,5 +1,10 @@
 import logging
 import signal
+
+import time
+import yappi
+from pycallgraph import PyCallGraph, Config
+from pycallgraph.output import GraphvizOutput
 from twisted.internet.defer import inlineCallbacks
 
 from twisted.internet import reactor
@@ -25,6 +30,9 @@ class TestDispersy(Dispersy):
                 key = i
                 break
         logger.info("Received signal '%s', shutting down.", key)
+        self.quit_now()
+
+    def quit_now(self):
         self.stop()
         reactor.stop()
 
@@ -46,9 +54,30 @@ class TestDispersy(Dispersy):
 
     @inlineCallbacks
     def query_community(self):
-        for i in xrange(5):
-            print "", i
-            var = yield self.stub._cacheTorrents()
+
+        calls = 1000
+
+        graphviz = GraphvizOutput()
+        name = "profiling/graphiz_stub_cacheTorrents_%s_%s.svg" % (calls, time.strftime("%d-%m-%Y-%H-%M-%S"))
+        graphviz.output_file = name
+        graphviz.output_type = 'svg'
+        # config = Config(max_depth=3, memory=True)
+
+        yappi.set_clock_type('cpu')
+        yappi.start(builtins=True)
+
+        with PyCallGraph(output=graphviz):
+            for i in xrange(calls):
+                yield self.stub._cacheTorrents()
+
+        yappi.stop()
+
+        stats = yappi.get_func_stats()
+        stats.sort("tsub").print_all(columns={0:("name",100), 1:("ncall", 12), 2:("tsub", 10), 3:("ttot", 10), 4:("tavg",10)})
+        name = "profiling/stub_cacheTorrents_%s_%s.pstat" % (calls, time.strftime("%d-%m-%Y-%H-%M-%S"))
+        stats.sort("tsub").save(name, type="pstat")
+
+        self.quit_now()
 
     def init(self):
         self.start(autoload_discovery=True)
@@ -88,6 +117,9 @@ class TestDispersy(Dispersy):
 if __name__ == "__main__":
     testDispersy = TestDispersy(15783)
     testDispersy.dispersy_start()
+    graphviz = GraphvizOutput()
+
+
     exit(reactor.exitCode)
 
     # basic = BasicRun()
