@@ -15,4 +15,4 @@ class TriblerStatusBar(QStatusBar):
         self.addWidget(self.free_diskspace)
 
     def set_free_space(self, free_space):
-        self.free_diskspace.setText("Free space: " + format_size(free_space))
+        self.free_diskspace.setText("Free space: " + format_size(float(free_space)))
