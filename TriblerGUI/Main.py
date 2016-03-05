@@ -10,6 +10,7 @@ from TriblerGUI.channel_list_item import ChannelListItem
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
 from TriblerGUI.event_request_manager import EventRequestManager
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.utilities import create_rounded_image
 
 
 class TriblerWindow(QMainWindow):
@@ -44,8 +45,8 @@ class TriblerWindow(QMainWindow):
 
         # Set profile image
         placeholder_pix = QPixmap("images/profile_placeholder.jpg")
-        placeholder_pix = placeholder_pix.scaled(self.my_profile_button.width(), self.my_profile_button.height(),
-                                                 Qt.KeepAspectRatio)
+        placeholder_pix = placeholder_pix.scaledToHeight(self.my_profile_button.width(), Qt.SmoothTransformation)
+        placeholder_pix = create_rounded_image(placeholder_pix)
         self.my_profile_button.setIcon(QIcon(placeholder_pix))
         self.my_profile_button.setIconSize(QSize(self.my_profile_button.width(), self.my_profile_button.height()))
 
