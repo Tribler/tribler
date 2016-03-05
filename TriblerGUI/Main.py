@@ -25,12 +25,15 @@ class TriblerWindow(QMainWindow):
 
         self.channels_list = self.findChild(QListWidget, "channels_list")
         self.channel_torrents_list = self.findChild(QListWidget, "channel_torrents_list")
+        self.top_menu_button = self.findChild(QToolButton, "top_menu_button")
         self.top_search_bar = self.findChild(QLineEdit, "top_search_bar")
         self.top_search_button = self.findChild(QToolButton, "top_search_button")
         self.my_profile_button = self.findChild(QToolButton, "my_profile_button")
+        self.left_menu = self.findChild(QWidget, "left_menu")
 
         self.top_search_bar.returnPressed.connect(self.on_top_search_button_click)
         self.top_search_button.clicked.connect(self.on_top_search_button_click)
+        self.top_menu_button.clicked.connect(self.on_top_menu_button_click)
 
         self.stackedWidget.setCurrentIndex(0)
 
@@ -49,6 +52,8 @@ class TriblerWindow(QMainWindow):
         placeholder_pix = create_rounded_image(placeholder_pix)
         self.my_profile_button.setIcon(QIcon(placeholder_pix))
         self.my_profile_button.setIconSize(QSize(self.my_profile_button.width(), self.my_profile_button.height()))
+
+        self.left_menu.hide()
 
         self.show()
 
@@ -81,6 +86,12 @@ class TriblerWindow(QMainWindow):
 
     def on_top_search_button_click(self):
         self.tribler_request_manager.search_channels(self.top_search_bar.text())
+
+    def on_top_menu_button_click(self):
+        if self.left_menu.isHidden():
+            self.left_menu.show()
+        else:
+            self.left_menu.hide()
 
     def on_channel_item_click(self, channel_list_item):
         channel_info = channel_list_item.data(Qt.UserRole)
