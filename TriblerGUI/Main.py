@@ -6,6 +6,7 @@ from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import QMainWindow, QListView, QListWidget, QLineEdit, QListWidgetItem, QApplication, QToolButton, \
     QWidget, QLabel
 
+from TriblerGUI import leftmenubutton
 from TriblerGUI.channel_list_item import ChannelListItem
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
 from TriblerGUI.event_request_manager import EventRequestManager
@@ -34,10 +35,16 @@ class TriblerWindow(QMainWindow):
         self.top_search_bar.returnPressed.connect(self.on_top_search_button_click)
         self.top_search_button.clicked.connect(self.on_top_search_button_click)
         self.top_menu_button.clicked.connect(self.on_top_menu_button_click)
+        self.channels_list.itemClicked.connect(self.on_channel_item_click)
+
+        self.left_menu_home_button = self.findChild(QWidget, "left_menu_home_button")
+        self.left_menu_home_button.clicked_menu_button.connect(self.clicked_menu_button)
+        self.left_menu_my_channel_button = self.findChild(QWidget, "left_menu_my_channel_button")
+        self.left_menu_my_channel_button.clicked_menu_button.connect(self.clicked_menu_button)
 
         self.stackedWidget.setCurrentIndex(0)
 
-        self.channels_list.itemClicked.connect(self.on_channel_item_click)
+        print self.findChildren(leftmenubutton.LeftMenuButton)
 
         self.tribler_request_manager = TriblerRequestManager()
         self.tribler_request_manager.received_search_results.connect(self.received_search_results)
@@ -92,6 +99,12 @@ class TriblerWindow(QMainWindow):
             self.left_menu.show()
         else:
             self.left_menu.hide()
+
+    def clicked_menu_button(self, menu_button_name):
+        if menu_button_name == "left_menu_home_button":
+            pass
+        elif menu_button_name == "left_menu_my_channel_button":
+            pass
 
     def on_channel_item_click(self, channel_list_item):
         channel_info = channel_list_item.data(Qt.UserRole)

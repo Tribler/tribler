@@ -313,13 +313,13 @@ border-radius: 15px;</string>
         </property>
         <property name="minimumSize">
          <size>
-          <width>230</width>
+          <width>200</width>
           <height>0</height>
          </size>
         </property>
         <property name="maximumSize">
          <size>
-          <width>230</width>
+          <width>200</width>
           <height>16777215</height>
          </size>
         </property>
@@ -329,45 +329,191 @@ border-radius: 15px;</string>
         <property name="styleSheet">
          <string notr="true">background-color: #999;</string>
         </property>
+        <property name="locale">
+         <locale language="Dutch" country="Netherlands"/>
+        </property>
         <layout class="QVBoxLayout" name="verticalLayout_2">
-         <property name="spacing">
-          <number>4</number>
-         </property>
-         <property name="leftMargin">
-          <number>16</number>
-         </property>
-         <property name="topMargin">
-          <number>16</number>
-         </property>
-         <property name="rightMargin">
-          <number>16</number>
-         </property>
-         <property name="bottomMargin">
-          <number>16</number>
-         </property>
          <item>
-          <widget class="QPushButton" name="my_channel_button">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>30</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>16777215</width>
-             <height>30</height>
-            </size>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">color: white;
+          <widget class="LeftMenuButton" name="left_menu_home_button" native="true">
+           <layout class="QHBoxLayout" name="horizontalLayout_4">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="left_menu_home_label">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>26</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>26</height>
+               </size>
+              </property>
+              <property name="cursor">
+               <cursorShape>PointingHandCursor</cursorShape>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QWidget {
+color: white;
 border: none;
-background-color: #e67300;
-font-size: 14px;</string>
-           </property>
-           <property name="text">
-            <string>My channel</string>
-           </property>
+font-size: 15px;
+padding-left: 4px;
+}
+
+QWidget:hover {
+background-color: #666;
+}</string>
+              </property>
+              <property name="text">
+               <string>Home</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="LeftMenuButton" name="left_menu_my_channel_button" native="true">
+           <layout class="QHBoxLayout" name="horizontalLayout_5">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="left_menu_my_channel_label">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>26</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>26</height>
+               </size>
+              </property>
+              <property name="cursor">
+               <cursorShape>PointingHandCursor</cursorShape>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QWidget {
+color: white;
+border: none;
+font-size: 15px;
+padding-left: 4px;
+}
+
+QWidget:hover {
+background-color: #666;
+}</string>
+              </property>
+              <property name="text">
+               <string>My Channel</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="LeftMenuButton" name="left_menu_subscribed_button" native="true">
+           <layout class="QHBoxLayout" name="horizontalLayout_6">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="left_menu_subscribed_label">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>26</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>26</height>
+               </size>
+              </property>
+              <property name="cursor">
+               <cursorShape>PointingHandCursor</cursorShape>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QWidget {
+color: white;
+border: none;
+font-size: 15px;
+padding-left: 4px;
+}
+
+QWidget:hover {
+background-color: #666;
+}</string>
+              </property>
+              <property name="text">
+               <string>Subscribed</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </widget>
          </item>
          <item>
@@ -506,7 +652,7 @@ font-size: 20px;
 font-weight: bold;</string>
                </property>
                <property name="text">
-                <string>My fancy channel</string>
+                <string>Some fancy channel</string>
                </property>
               </widget>
              </item>
@@ -629,6 +775,12 @@ border: none;
    <class>TriblerStatusBar</class>
    <extends>QStatusBar</extends>
    <header>triblerstatusbar.h</header>
+  </customwidget>
+  <customwidget>
+   <class>LeftMenuButton</class>
+   <extends>QWidget</extends>
+   <header>leftmenubutton.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>
