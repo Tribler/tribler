@@ -145,7 +145,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.correctedinfoname = u""
 
     def __str__(self):
-        return "LibtorrentDownloadImpl <name: '%s' hops: %d hide: %d>" % (self.correctedinfoname, self.get_hops(), self.hide)
+        return "LibtorrentDownloadImpl <name: '%s' hops: %d>" % (self.correctedinfoname, self.get_hops())
 
     def __repr__(self):
         return self.__str__()
