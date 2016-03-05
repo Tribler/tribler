@@ -90,6 +90,7 @@ class TriblerWindow(QMainWindow):
             self.channel_torrents_list.setItemWidget(item, widget_item)
 
     def on_top_search_button_click(self):
+        self.stackedWidget.setCurrentIndex(2)
         self.tribler_request_manager.search_channels(self.top_search_bar.text())
 
     def on_top_menu_button_click(self):
@@ -100,14 +101,14 @@ class TriblerWindow(QMainWindow):
 
     def clicked_menu_button(self, menu_button_name):
         if menu_button_name == "left_menu_home_button":
-            pass
+            self.stackedWidget.setCurrentIndex(0)
         elif menu_button_name == "left_menu_my_channel_button":
-            pass
+            self.stackedWidget.setCurrentIndex(1)
 
     def on_channel_item_click(self, channel_list_item):
         channel_info = channel_list_item.data(Qt.UserRole)
         self.tribler_request_manager.get_torrents_in_channel(str(channel_info['id']))
-        self.stackedWidget.setCurrentIndex(1)
+        self.stackedWidget.setCurrentIndex(3)
 
         # initialize the page about a channel
         channel_detail_pane = self.findChild(QWidget, "channel_details")
