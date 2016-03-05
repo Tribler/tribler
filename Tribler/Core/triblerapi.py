@@ -1,8 +1,10 @@
 import json
+from binascii import hexlify
+
 from twisted.web import server
 from twisted.web import resource
 from Tribler.Core.CacheDB.db_objects import Channel
-from Tribler.Core.simpledefs import NTFY_FREE_SPACE, NTFY_INSERT, NTFY_CHANNELCAST
+from Tribler.Core.simpledefs import NTFY_FREE_SPACE, NTFY_INSERT, NTFY_CHANNELCAST, DOWNLOAD, UPLOAD
 
 
 class TriblerAPI(resource.Resource):
@@ -23,6 +25,9 @@ class TriblerAPI(resource.Resource):
 
         self.channel_request_handler = ChannelRequestHandler(self.session)
         self.putChild("channel", self.channel_request_handler)
+
+        self.downloads_request_handler = DownloadsRequestHandler(self.session)
+        self.putChild("downloads", self.downloads_request_handler)
 
         # Add all observers for the api
         self.session.add_observer(self.event_request_handler.on_free_space, NTFY_FREE_SPACE, [NTFY_INSERT])
@@ -100,6 +105,25 @@ class ChannelSearchRequestHandler(resource.Resource):
 
         return json.dumps({"channels": results_json})
 
+
+class DownloadsRequestHandler(resource.Resource):
+
+    isLeaf = True
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def render_GET(self, request):
+        downloads_json = []
+        downloads = self.session.get_downloads()
+        for download in downloads:
+            download_json = {"name": download.correctedinfoname, "progress": download.get_progress(),
+                             "infohash": hexlify(download.tdef.get_infohash()),
+                             "speed_down": download.get_current_speed(DOWNLOAD),
+                             "speed_up": download.get_current_speed(UPLOAD), "status": download.get_status()}
+            downloads_json.append(download_json)
+        return json.dumps({"downloads": downloads_json})
 
 class EventRequestHandler(resource.Resource):
 
