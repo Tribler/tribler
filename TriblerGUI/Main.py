@@ -44,8 +44,6 @@ class TriblerWindow(QMainWindow):
 
         self.stackedWidget.setCurrentIndex(0)
 
-        print self.findChildren(leftmenubutton.LeftMenuButton)
-
         self.tribler_request_manager = TriblerRequestManager()
         self.tribler_request_manager.received_search_results.connect(self.received_search_results)
         self.tribler_request_manager.received_torrents_in_channel.connect(self.received_torrents_in_channel)
