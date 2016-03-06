@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 from PyQt5 import uic
 from PyQt5.QtCore import Qt, QSize
@@ -12,6 +13,9 @@ from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
 from TriblerGUI.event_request_manager import EventRequestManager
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import create_rounded_image
+
+# TODO martijn: temporary solution to convince VLC to find the plugin path
+os.environ['VLC_PLUGIN_PATH'] = '/Applications/VLC.app/Contents/MacOS/plugins'
 
 
 class TriblerWindow(QMainWindow):
@@ -30,6 +34,7 @@ class TriblerWindow(QMainWindow):
         self.top_search_bar = self.findChild(QLineEdit, "top_search_bar")
         self.top_search_button = self.findChild(QToolButton, "top_search_button")
         self.my_profile_button = self.findChild(QToolButton, "my_profile_button")
+        self.video_player_page = self.findChild(QWidget, "video_player_page")
         self.left_menu = self.findChild(QWidget, "left_menu")
 
         self.top_search_bar.returnPressed.connect(self.on_top_search_button_click)
@@ -41,10 +46,12 @@ class TriblerWindow(QMainWindow):
         self.left_menu_home_button.clicked_menu_button.connect(self.clicked_menu_button)
         self.left_menu_my_channel_button = self.findChild(QWidget, "left_menu_my_channel_button")
         self.left_menu_my_channel_button.clicked_menu_button.connect(self.clicked_menu_button)
+        self.left_menu_videoplayer_button = self.findChild(QWidget, "left_menu_videoplayer_button")
+        self.left_menu_videoplayer_button.clicked_menu_button.connect(self.clicked_menu_button)
         self.left_menu_settings_button = self.findChild(QWidget, "left_menu_settings_button")
         self.left_menu_settings_button.clicked_menu_button.connect(self.clicked_menu_button)
 
-        self.stackedWidget.setCurrentIndex(0)
+        self.stackedWidget.setCurrentIndex(5)
 
         self.tribler_request_manager = TriblerRequestManager()
         self.tribler_request_manager.received_search_results.connect(self.received_search_results)
@@ -61,6 +68,9 @@ class TriblerWindow(QMainWindow):
         self.my_profile_button.setIconSize(QSize(self.my_profile_button.width(), self.my_profile_button.height()))
 
         self.left_menu.hide()
+
+        # Initialize video player
+        self.video_player_page.initialize_player()
 
         self.show()
 
@@ -106,6 +116,8 @@ class TriblerWindow(QMainWindow):
             self.stackedWidget.setCurrentIndex(0)
         elif menu_button_name == "left_menu_my_channel_button":
             self.stackedWidget.setCurrentIndex(1)
+        elif menu_button_name == "left_menu_videoplayer_button":
+            self.stackedWidget.setCurrentIndex(5)
         elif menu_button_name == "left_menu_settings_button":
             self.stackedWidget.setCurrentIndex(4)
 
@@ -121,7 +133,6 @@ class TriblerWindow(QMainWindow):
 
         channel_name_label.setText(channel_info['name'])
         channel_num_subs_label.setText(str(channel_info['votes']))
-
 
 app = QApplication(sys.argv)
 window = TriblerWindow()
