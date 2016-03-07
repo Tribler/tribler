@@ -61,10 +61,10 @@ class TestRemoteChannelSearch(BaseRemoteTest):
             self.quit()
 
         def do_doubleclick():
-            self.assert_(self.frame.searchlist.GetNrChannels() > 0, 'no channels matching tv',
+            self.assert_(self.frame.searchlist.GetNrChannels() > 0, 'no channels matching de',
                          tribler_session=self.guiUtility.utility.session, dump_statistics=True)
 
-            self.screenshot('After doing tv search, got %d results' % self.frame.searchlist.GetNrResults())
+            self.screenshot('After doing de search, got %d results' % self.frame.searchlist.GetNrResults())
             items = self.frame.searchlist.GetItems()
             for _, item in items.iteritems():
                 if isinstance(item, ChannelListItem):
@@ -78,7 +78,7 @@ class TestRemoteChannelSearch(BaseRemoteTest):
 
         def do_search():
             self.guiUtility.toggleFamilyFilter(newState=False, setCheck=True)
-            self.guiUtility.dosearch(u'tv')
+            self.guiUtility.dosearch(u'de')
             self.callLater(15, do_doubleclick)
 
         self.startTest(do_search, search_community=False, use_torrent_search=False, use_channel_search=True)
