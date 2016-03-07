@@ -46,6 +46,7 @@ import os
 import sys
 
 
+# TODO(emilon): remove this when Tribler gets migrated to python 3.
 # From: https://measureofchaos.wordpress.com/2011/03/04/python-on-windows-unicode-environment-variables/
 def getEnvironmentVariable(name):
     """Get the unicode version of the value of an environment variable
@@ -56,6 +57,12 @@ def getEnvironmentVariable(name):
     buf = ctypes.create_unicode_buffer(u'\0' * n)
     ctypes.windll.kernel32.GetEnvironmentVariableW(name, buf, n)
     return buf.value
+
+def setEnvironmentVariable(name, value):
+    """Unicode compatible environment variable setter
+    """
+    if ctypes.windll.kernel32.SetEnvironmentVariableW(name, None) == 0:
+        raise RuntimeError("Failed to set env. variable '%s' to '%s" % (repr(name), repr(value)))
 
 LOG_PATH = os.path.join(getEnvironmentVariable(u"APPDATA"), u"Tribler.exe.log")
 OLD_LOG_PATH = os.path.join(getEnvironmentVariable(u"APPDATA"), u"Tribler.exe.old.log")
@@ -76,6 +83,8 @@ INSTALL_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 
 if INSTALL_DIR not in sys.path:
     sys.path.append(INSTALL_DIR)
+
+setEnvironmentVariable("PATH", os.path.abspath(INSTALL_DIR) + os.pathsep + getEnvironmentVariable(u"PATH"))
 
 from Tribler.Main.tribler import __main__
 
