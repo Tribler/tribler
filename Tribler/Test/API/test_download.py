@@ -1,7 +1,7 @@
 from binascii import hexlify
 import logging
 import threading
-from Tribler.Core.simpledefs import dlstatus_strings
+from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_DOWNLOADING
 from Tribler.Test.common import UBUNTU_1504_INFOHASH
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.test_libtorrent_download import TORRENT_FILE, TORRENT_R
@@ -59,7 +59,7 @@ class TestDownload(TestAsServer):
                            dlstatus_strings[ds.get_status()],
                            ds.get_progress())
 
-        if ds.get_progress() > 0:
+        if ds.get_status() == DLSTATUS_DOWNLOADING:
             self.downloading_event.set()
 
         return 1.0, False
