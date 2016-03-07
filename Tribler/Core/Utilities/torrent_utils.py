@@ -47,7 +47,7 @@ def create_torrent_file(file_path_list, params, callback=None):
     # DHT nodes
     if params.get('nodes'):
         for node in params['nodes']:
-            torrent.add_node(node)
+            torrent.add_node(*node)
     # HTTP seeding
     if params.get('httpseeds'):
         torrent.add_http_seed(params['httpseeds'])
