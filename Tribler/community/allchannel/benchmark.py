@@ -52,31 +52,66 @@ class TestDispersy(Dispersy):
 
         self.stub = ChannelCastDBStub(self)
 
+    def insert_random_crap_in_db(self):
+        for _ in xrange(1000000):
+            self._database.execute(
+                    u"INSERT INTO sync (community, member, global_time, meta_message, packet, sequence) "
+                    u"VALUES (?, ?, ?, ?, ?, ?)",
+                   (-1,
+                    -1,
+                    time.time(),
+                    -1,
+                    buffer("bla"),
+                    None
+                    ))
+
     @inlineCallbacks
     def query_community(self):
 
-        calls = 1000
+        total_delay = 2 #seconds
+        calls = 100 # amount of calls
+        step_delay = float(total_delay) / float(calls)
+        write_statistics = False
+        # self.insert_random_crap_in_db()
 
-        graphviz = GraphvizOutput()
-        name = "profiling/graphiz_stub_cacheTorrents_%s_%s.svg" % (calls, time.strftime("%d-%m-%Y-%H-%M-%S"))
-        graphviz.output_file = name
-        graphviz.output_type = 'svg'
-        # config = Config(max_depth=3, memory=True)
+        calls_made = open("profiling/calls_made_blocking.txt", 'w')
+        calls_done = open("profiling/calls_done_blocking.txt", "w")
+
+        if write_statistics:
+            graphviz = GraphvizOutput()
+            name = "profiling/graphiz_stub_cacheTorrents_%s_%s.svg" % (calls, time.strftime("%d-%m-%Y-%H-%M-%S"))
+            graphviz.output_file = name
+            graphviz.output_type = 'svg'
+            # config = Config(max_depth=3, memory=True)
+
+        def print_done(i):
+            calls_done.write("%s %s %s\n" % (i, float(step_delay*i), int(round(time.time() * 1000))))
 
         yappi.set_clock_type('cpu')
         yappi.start(builtins=True)
 
-        with PyCallGraph(output=graphviz):
+        if write_statistics:
+            with PyCallGraph(output=graphviz):
+                for i in xrange(calls):
+                    yield self.stub._cacheTorrents()
+        else:
             for i in xrange(calls):
+                calls_made.write("%s %s %s\n" % (i, float(i*step_delay), int(round(time.time() * 1000))))
+                reactor.callLater(float(i*step_delay), print_done, i)
                 yield self.stub._cacheTorrents()
 
         yappi.stop()
 
         stats = yappi.get_func_stats()
         stats.sort("tsub").print_all(columns={0:("name",100), 1:("ncall", 12), 2:("tsub", 10), 3:("ttot", 10), 4:("tavg",10)})
-        name = "profiling/stub_cacheTorrents_%s_%s.pstat" % (calls, time.strftime("%d-%m-%Y-%H-%M-%S"))
-        stats.sort("tsub").save(name, type="pstat")
 
+        if write_statistics:
+            name = "profiling/stub_cacheTorrents_%s_%s.pstat" % (calls, time.strftime("%d-%m-%Y-%H-%M-%S"))
+            stats.sort("tsub").save(name, type="pstat")
+
+        time.sleep(5)
+        calls_made.flush()
+        calls_done.flush()
         self.quit_now()
 
     def init(self):
