@@ -16,10 +16,10 @@ class TriblerCoreTestNetworkUtils(TriblerCoreTest):
         self.assertTrue(random_port)
 
     def test_get_random_port_tcp(self):
-        reactor.listenTCP(9283, Factory())
+        listenport = reactor.listenTCP(9283, Factory())
         random_port = get_random_port(socket_type='tcp', min_port=9283, max_port=9283)
         self.assertEqual(random_port, 9284)
-        reactor.stop()
+        listenport.stopListening()
 
     def test_get_random_port_udp(self):
         random_port = get_random_port(socket_type='udp')
