@@ -23,8 +23,8 @@ class TestSessionConfig(TriblerCoreTest):
         self.assertIsInstance(sci.get_mainline_dht_listen_port(), int)
         self.assertIsInstance(sci.get_default_state_dir(), unicode)
 
-        sci.set_state_dir(self.temp_dir)
-        self.assertEqual(sci.get_state_dir(), self.temp_dir)
+        sci.set_state_dir(self.session_base_dir)
+        self.assertEqual(sci.get_state_dir(), self.session_base_dir)
 
         self.assertIsInstance(sci.get_install_dir(), str)
         self.assertIsInstance(sci.get_permid_keypair_filename(), str)
@@ -55,8 +55,8 @@ class TestSessionConfig(TriblerCoreTest):
         sci.set_torrent_store(False)
         self.assertFalse(sci.get_torrent_store())
 
-        sci.set_torrent_store_dir(self.temp_dir)
-        self.assertEqual(sci.get_torrent_store_dir(), self.temp_dir)
+        sci.set_torrent_store_dir(self.session_base_dir)
+        self.assertEqual(sci.get_torrent_store_dir(), self.session_base_dir)
 
         sci.set_torrent_collecting(False)
         self.assertFalse(sci.get_torrent_collecting())
@@ -67,8 +67,8 @@ class TestSessionConfig(TriblerCoreTest):
         sci.set_torrent_collecting_max_torrents(1337)
         self.assertEqual(sci.get_torrent_collecting_max_torrents(), 1337)
 
-        sci.set_torrent_collecting_dir(self.temp_dir)
-        self.assertEqual(sci.get_torrent_collecting_dir(), self.temp_dir)
+        sci.set_torrent_collecting_dir(self.session_base_dir)
+        self.assertEqual(sci.get_torrent_collecting_dir(), self.session_base_dir)
 
         sci.set_torrent_checking(False)
         self.assertFalse(sci.get_torrent_checking())
@@ -83,11 +83,11 @@ class TestSessionConfig(TriblerCoreTest):
         sci.set_mugshot("myimage", mime="image/png")
         self.assertEqual(sci.get_mugshot(), ("image/png", "myimage"))
 
-        sci.set_peer_icon_path(self.temp_dir)
-        self.assertEqual(sci.get_peer_icon_path(), self.temp_dir)
+        sci.set_peer_icon_path(self.session_base_dir)
+        self.assertEqual(sci.get_peer_icon_path(), self.session_base_dir)
 
-        sci.set_video_analyser_path(self.temp_dir)
-        self.assertEqual(sci.get_video_analyser_path(), self.temp_dir)
+        sci.set_video_analyser_path(self.session_base_dir)
+        self.assertEqual(sci.get_video_analyser_path(), self.session_base_dir)
 
         sci.set_mainline_dht(False)
         self.assertFalse(sci.get_mainline_dht())
@@ -108,8 +108,8 @@ class TestSessionConfig(TriblerCoreTest):
         sci.set_videoplayer(False)
         self.assertFalse(sci.get_videoplayer())
 
-        sci.set_videoplayer_path(self.temp_dir)
-        self.assertEqual(sci.get_videoplayer_path(), self.temp_dir)
+        sci.set_videoplayer_path(self.session_base_dir)
+        self.assertEqual(sci.get_videoplayer_path(), self.session_base_dir)
 
         sci.set_videoplayer_port(1337)
         self.assertIsInstance(sci.get_videoplayer_port(), int)
@@ -127,17 +127,17 @@ class TestSessionConfig(TriblerCoreTest):
         sci.set_enable_metadata(False)
         self.assertFalse(sci.get_enable_metadata())
 
-        sci.set_metadata_store_dir(self.temp_dir)
-        self.assertEqual(sci.get_metadata_store_dir(), self.temp_dir)
+        sci.set_metadata_store_dir(self.session_base_dir)
+        self.assertEqual(sci.get_metadata_store_dir(), self.session_base_dir)
 
         sci.set_upgrader_enabled(False)
         self.assertFalse(sci.get_upgrader_enabled())
 
-        self.assertIsInstance(sci.get_default_config_filename(self.temp_dir), str)
+        self.assertIsInstance(sci.get_default_config_filename(self.session_base_dir), str)
 
     def test_startup_session_save_load(self):
         sci = SessionStartupConfig(CallbackConfigParser())
-        file_path = os.path.join(self.temp_dir, "startupconfig.conf")
+        file_path = os.path.join(self.session_base_dir, "startupconfig.conf")
         sci.save(file_path)
 
         sci.load(file_path)

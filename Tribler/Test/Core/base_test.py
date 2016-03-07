@@ -1,14 +1,5 @@
-from tempfile import mkdtemp
-
-import shutil
-
-from Tribler.Test.test_as_server import BaseTestCase
+from Tribler.Test.test_as_server import AbstractServer
 
 
-class TriblerCoreTest(BaseTestCase):
-
-    def setUp(self):
-        self.temp_dir = mkdtemp(suffix="_tribler_test_session")
-
-    def tearDown(self):
-        shutil.rmtree(unicode(self.temp_dir), ignore_errors=True)
+class TriblerCoreTest(AbstractServer):
+    pass

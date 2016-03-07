@@ -21,8 +21,8 @@ class TestConfigParser(TriblerCoreTest):
         dlcfg = DownloadConfigInterface(dlconf)
 
         self.assertIsInstance(dlcfg.get_dest_dir(), unicode)
-        dlcfg.set_dest_dir(self.temp_dir)
-        self.assertEqual(dlcfg.get_dest_dir(), self.temp_dir)
+        dlcfg.set_dest_dir(self.session_base_dir)
+        self.assertEqual(dlcfg.get_dest_dir(), self.session_base_dir)
 
         dlcfg.set_corrected_filename("foobar")
         self.assertEqual(dlcfg.get_corrected_filename(), "foobar")
@@ -64,7 +64,7 @@ class TestConfigParser(TriblerCoreTest):
 
     def test_startup_download_save_load(self):
         dlcfg = DownloadStartupConfig()
-        file_path = os.path.join(self.temp_dir, "downloadconfig.conf")
+        file_path = os.path.join(self.session_base_dir, "downloadconfig.conf")
         dlcfg.save(file_path)
         dlcfg.load(file_path)
 
