@@ -34,18 +34,21 @@ class TestDownload(TestAsServer):
 
     def test_download_torrent_from_url(self):
         d = self.session.start_download_from_uri(TORRENT_R)
+        self._logger.debug("Download started: %s", d)
         d.set_state_callback(self.downloader_state_callback)
         assert self.downloading_event.wait(60)
 
     def test_download_torrent_from_magnet(self):
         magnet_link = 'magnet:?xt=urn:btih:%s' % hexlify(UBUNTU_1504_INFOHASH)
         d = self.session.start_download_from_uri(magnet_link)
+        self._logger.debug("Download started: %s", d)
         d.set_state_callback(self.downloader_state_callback)
         assert self.downloading_event.wait(60)
 
     def test_download_torrent_from_file(self):
         from urllib import pathname2url
         d = self.session.start_download_from_uri('file:' + pathname2url(TORRENT_FILE))
+        self._logger.debug("Download started: %s", d)
         d.set_state_callback(self.downloader_state_callback)
         assert self.downloading_event.wait(60)
 
