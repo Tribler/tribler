@@ -1,0 +1,153 @@
+import os
+
+from nose.tools import raises
+
+from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
+from Tribler.Core.Utilities.configparser import CallbackConfigParser
+from Tribler.Test.Core.base_test import TriblerCoreTest
+
+
+class TestSessionConfig(TriblerCoreTest):
+
+    FILE_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
+    CONFIG_FILES_DIR = os.path.abspath(os.path.join(FILE_DIR, u"data/config_files/"))
+
+    def test_session_config_init(self):
+        sessconf = CallbackConfigParser()
+        sessconf.add_section('mainline_dht')
+        sessconf.set('mainline_dht', 'mainline_dht_port', 1234)
+        sci = SessionConfigInterface(sessconf)
+        self.assertTrue(sci)
+
+        self.assertIsInstance(sci.get_listen_port(), int)
+        self.assertIsInstance(sci.get_mainline_dht_listen_port(), int)
+        self.assertIsInstance(sci.get_default_state_dir(), unicode)
+
+        sci.set_state_dir(self.temp_dir)
+        self.assertEqual(sci.get_state_dir(), self.temp_dir)
+
+        self.assertIsInstance(sci.get_install_dir(), str)
+        self.assertIsInstance(sci.get_permid_keypair_filename(), str)
+
+        sci.set_listen_port(1337)
+        self.assertEqual(sci.sessconfig.get('general', 'minport'), 1337)
+        self.assertEqual(sci.sessconfig.get('general', 'maxport'), 1337)
+
+        self.assertIsInstance(sci.get_tunnel_community_socks5_listen_ports(), list)
+        self.assertFalse(sci.get_tunnel_community_exitnode_enabled())
+        self.assertFalse(sci.get_barter_community_enabled())
+
+        sci.set_megacache(False)
+        self.assertFalse(sci.get_megacache())
+
+        sci.set_libtorrent(False)
+        self.assertFalse(sci.get_libtorrent())
+
+        sci.set_libtorrent_proxy_settings(3, ("127.0.0.1", 1337), ("foo", "bar"))
+        self.assertEqual(sci.get_libtorrent_proxy_settings(), (3, ("127.0.0.1", 1337), ("foo", "bar")))
+
+        sci.set_anon_proxy_settings(5, ("127.0.0.1", 1337), ("foo", "bar"))
+        self.assertEqual(sci.get_anon_proxy_settings(), (5, ("127.0.0.1", 1337), ("foo", "bar")))
+
+        sci.set_libtorrent_utp(False)
+        self.assertFalse(sci.get_libtorrent_utp())
+
+        sci.set_torrent_store(False)
+        self.assertFalse(sci.get_torrent_store())
+
+        sci.set_torrent_store_dir(self.temp_dir)
+        self.assertEqual(sci.get_torrent_store_dir(), self.temp_dir)
+
+        sci.set_torrent_collecting(False)
+        self.assertFalse(sci.get_torrent_collecting())
+
+        sci.set_dht_torrent_collecting(False)
+        self.assertFalse(sci.get_dht_torrent_collecting())
+
+        sci.set_torrent_collecting_max_torrents(1337)
+        self.assertEqual(sci.get_torrent_collecting_max_torrents(), 1337)
+
+        sci.set_torrent_collecting_dir(self.temp_dir)
+        self.assertEqual(sci.get_torrent_collecting_dir(), self.temp_dir)
+
+        sci.set_torrent_checking(False)
+        self.assertFalse(sci.get_torrent_checking())
+
+        sci.set_stop_collecting_threshold(1337)
+        self.assertEqual(sci.get_stop_collecting_threshold(), 1337)
+
+        sci.set_nickname("foobar")
+        self.assertEqual(sci.get_nickname(), "foobar")
+
+        self.assertEqual(sci.get_mugshot(), (None, None))
+        sci.set_mugshot("myimage", mime="image/png")
+        self.assertEqual(sci.get_mugshot(), ("image/png", "myimage"))
+
+        sci.set_peer_icon_path(self.temp_dir)
+        self.assertEqual(sci.get_peer_icon_path(), self.temp_dir)
+
+        sci.set_video_analyser_path(self.temp_dir)
+        self.assertEqual(sci.get_video_analyser_path(), self.temp_dir)
+
+        sci.set_mainline_dht(False)
+        self.assertFalse(sci.get_mainline_dht())
+
+        sci.set_mainline_dht_listen_port(1337)
+        self.assertEqual(sci.sessconfig.get('mainline_dht', 'mainline_dht_port'), 1337)
+
+        sci.set_multicast_local_peer_discovery(False)
+        self.assertFalse(sci.get_multicast_local_peer_discovery())
+
+        sci.set_dispersy(False)
+        self.assertFalse(sci.get_dispersy())
+
+        sci.set_dispersy_port(1337)
+        self.assertIsInstance(sci.get_dispersy_port(), int)
+        self.assertEqual(sci.sessconfig.get('dispersy', 'dispersy_port'), 1337)
+
+        sci.set_videoplayer(False)
+        self.assertFalse(sci.get_videoplayer())
+
+        sci.set_videoplayer_path(self.temp_dir)
+        self.assertEqual(sci.get_videoplayer_path(), self.temp_dir)
+
+        sci.set_videoplayer_port(1337)
+        self.assertIsInstance(sci.get_videoplayer_port(), int)
+        self.assertEqual(sci.sessconfig.get('video', 'port'), 1337)
+
+        sci.set_preferred_playback_mode(5)
+        self.assertEqual(sci.get_preferred_playback_mode(), 5)
+
+        sci.set_enable_torrent_search(False)
+        self.assertFalse(sci.get_enable_torrent_search())
+
+        sci.set_enable_channel_search(False)
+        self.assertFalse(sci.get_enable_channel_search())
+
+        sci.set_enable_metadata(False)
+        self.assertFalse(sci.get_enable_metadata())
+
+        sci.set_metadata_store_dir(self.temp_dir)
+        self.assertEqual(sci.get_metadata_store_dir(), self.temp_dir)
+
+        sci.set_upgrader_enabled(False)
+        self.assertFalse(sci.get_upgrader_enabled())
+
+        self.assertIsInstance(sci.get_default_config_filename(self.temp_dir), str)
+
+    def test_startup_session_save_load(self):
+        sci = SessionStartupConfig(CallbackConfigParser())
+        file_path = os.path.join(self.temp_dir, "startupconfig.conf")
+        sci.save(file_path)
+
+        sci.load(file_path)
+
+    @raises(IOError)
+    def test_startup_session_load_corrupt(self):
+        sci = SessionStartupConfig()
+        sci.load(os.path.join(self.CONFIG_FILES_DIR, "corrupt_session_config.conf"))
+
+    def test_startup_session_load_no_filename(self):
+        sci = SessionStartupConfig()
+        sci.load()
+        self.assertTrue(sci)
