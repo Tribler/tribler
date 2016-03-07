@@ -1132,7 +1132,7 @@ class TunnelCommunity(Community):
                 if destination != ('0.0.0.0', 0):
                     self.exit_data(circuit_id, sock_addr, destination, data)
                 else:
-                    self.tunnel_logger.error("cannot exit data, destination is 0.0.0.0:0")
+                    self.tunnel_logger.warning("cannot exit data, destination is 0.0.0.0:0")
 
     def on_ping(self, messages):
         for message in messages:
