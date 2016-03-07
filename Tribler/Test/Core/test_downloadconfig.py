@@ -1,7 +1,5 @@
 import os
-from tempfile import mkdtemp
 
-import shutil
 from nose.tools import raises
 
 from Tribler.Core.DownloadConfig import DownloadConfigInterface, DownloadStartupConfig, get_default_dest_dir, \
@@ -22,10 +20,9 @@ class TestConfigParser(TriblerCoreTest):
         dlconf.set('downloadconfig', 'hops', 5)
         dlcfg = DownloadConfigInterface(dlconf)
 
-        temp_dir = mkdtemp(suffix="_tribler_test_session")
         self.assertIsInstance(dlcfg.get_dest_dir(), unicode)
-        dlcfg.set_dest_dir(temp_dir)
-        self.assertEqual(dlcfg.get_dest_dir(), temp_dir)
+        dlcfg.set_dest_dir(self.temp_dir)
+        self.assertEqual(dlcfg.get_dest_dir(), self.temp_dir)
 
         dlcfg.set_corrected_filename("foobar")
         self.assertEqual(dlcfg.get_corrected_filename(), "foobar")
@@ -66,13 +63,10 @@ class TestConfigParser(TriblerCoreTest):
         self.assertEqual(dlcfg_copy.get_hops(), 0)
 
     def test_startup_download_save_load(self):
-        temp_dir = mkdtemp(suffix="_tribler_test_session")
         dlcfg = DownloadStartupConfig()
-        file_path = os.path.join(temp_dir, "downloadconfig.conf")
+        file_path = os.path.join(self.temp_dir, "downloadconfig.conf")
         dlcfg.save(file_path)
         dlcfg.load(file_path)
-
-        shutil.rmtree(unicode(temp_dir), ignore_errors=True)
 
     @raises(IOError)
     def test_startup_download_load_corrupt(self):

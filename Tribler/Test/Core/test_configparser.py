@@ -1,8 +1,5 @@
 import os
-from ConfigParser import DEFAULTSECT
-from tempfile import mkdtemp
 
-import shutil
 from nose.tools import raises
 
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
@@ -49,7 +46,6 @@ class TestConfigParser(TriblerCoreTest):
 
     @raises(OperationNotPossibleAtRuntimeException)
     def test_configparser_false_callback(self):
-
         def parser_callback(section, option, old_value, new_value):
             return False
 
@@ -59,12 +55,10 @@ class TestConfigParser(TriblerCoreTest):
         ccp.set('search_community', 'enabled', False)
 
     def test_configparser_write_file(self):
-
-        temp_dir = mkdtemp(suffix="_tribler_test_session")
         ccp = CallbackConfigParser()
         ccp.read_file(os.path.join(self.CONFIG_FILES_DIR, 'config1.conf'))
 
-        new_path = os.path.join(temp_dir, 'config_new.conf')
+        new_path = os.path.join(self.temp_dir, 'config_new.conf')
         ccp.write_file(new_path)
 
         self.assertTrue(os.path.isfile(new_path))
@@ -75,18 +69,12 @@ class TestConfigParser(TriblerCoreTest):
         self.assertIsInstance(ccp.get('tunnel_community', 'socks5_listen_ports'), list)
         self.assertFalse(ccp.get('foo', 'bar'))
 
-        shutil.rmtree(unicode(temp_dir), ignore_errors=True)
-
     def test_configparser_write_file_defaults(self):
-
-        temp_dir = mkdtemp(suffix="_tribler_test_session")
         ccp = CallbackConfigParser(defaults={'foo': 'bar'})
 
-        new_path = os.path.join(temp_dir, 'config_new.conf')
+        new_path = os.path.join(self.temp_dir, 'config_new.conf')
         ccp.write_file(new_path)
 
         self.assertTrue(os.path.isfile(new_path))
         ccp.read_file(new_path)
         self.assertEqual(ccp.get('DEFAULT', 'foo'), 'bar')
-
-        shutil.rmtree(unicode(temp_dir), ignore_errors=True)
