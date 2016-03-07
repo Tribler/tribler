@@ -56,6 +56,15 @@ class SessionConfigInterface(object):
         if not sessconfig:
             return
 
+        # TODO(emilon): This is to work around the case where windows has
+        # non-ASCI chars on %PATH% contents. Should be removed if we migrate to
+        # python 3.
+        if sys.platform == 'win32':
+            from Tribler.Main.hacks import get_environment_variable
+            path_env = get_environment_variable(u"PATH")
+        else:
+            path_env = os.environ["PATH"]
+
         # Set video_analyser_path
         if sys.platform == 'win32':
             ffmpegname = u"ffmpeg.exe"
@@ -66,7 +75,8 @@ class SessionConfigInterface(object):
         else:
             ffmpegname = u"ffmpeg"
 
-        ffmpegpath = find_executable(ffmpegname)
+        ffmpegpath = find_executable(ffmpegname, path_env)
+
         if ffmpegpath is None:
             if sys.platform == 'darwin':
                 self.sessconfig.set(u'general', u'videoanalyserpath', u"vlc/ffmpeg")
