@@ -23,6 +23,12 @@ class TriblerCoreTestTorrentUtils(TriblerCoreTest):
     def test_create_torrent_one_file_2(self):
         create_torrent_file([os.path.join(self.TORRENT_DATA_DIR, self.FILE2_NAME)], {})
 
+    def test_create_torrent_with_nodes(self):
+        params = self.get_params()
+        params["nodes"] = [("127.0.0.1", 1234)]
+        create_torrent_file([os.path.join(self.TORRENT_DATA_DIR, self.FILE1_NAME)],
+                            params, self.created_torrent_one_file)
+
     def created_torrent_one_file(self, result):
         self.assertIsInstance(result, dict)
         self.assertEqual(result["base_path"], self.TORRENT_DATA_DIR)
