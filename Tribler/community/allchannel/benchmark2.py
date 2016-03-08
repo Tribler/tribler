@@ -16,10 +16,9 @@ class Benchmark:
         dburl = os.path.join(os.getcwd(), "benchmark")
         self.connection = apsw.Connection(dburl)
         cursor = self.connection.cursor()
+        # Ensure to delete the old test table if it exists
         cursor.execute("DROP TABLE IF EXISTS test")
-        cursor.execute("CREATE TABLE IF NOT EXISTS test(x,y,z)")
-        self.io_done = False
-        self.write_done = False
+        cursor.execute("CREATE TABLE test(x,y,z)")
 
     def start_experiment(self):
         self.insert_stuff()
@@ -41,7 +40,7 @@ class Benchmark:
 
     @inlineCallbacks
     def query_time(self):
-        blocking = True  # Asynchronous, but blocking?
+        blocking = False  # Asynchronous, but blocking?
         max_delay = 1  # max delay in seconds
         calls = 100  # amount of calls
         step_delay = float(float(max_delay) / float(calls))
@@ -83,7 +82,6 @@ class Benchmark:
 
         DeferredList(deferred_list_write).addCallback(on_write_done)
         DeferredList(deferred_list).addCallback(self.tear_down)
-
 
         # yappi.stop()
         #
