@@ -129,7 +129,7 @@ class TestTunnelBase(TestGuiAsServer):
 
         tdef = TorrentDef()
         tdef.add_content(os.path.join(TESTS_DATA_DIR, "video.avi"))
-        tdef.set_tracker("http://fake.net/announce")
+        tdef.set_tracker("http://localhost/announce")
         tdef.set_private()  # disable dht
         tdef.finalize()
         torrentfn = os.path.join(session.get_state_dir(), "gen.torrent")

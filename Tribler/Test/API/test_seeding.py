@@ -63,7 +63,7 @@ class TestSeeding(TestAsServer):
         self.tdef = TorrentDef()
         self.sourcefn = os.path.join(TESTS_API_DIR, filename)
         self.tdef.add_content(self.sourcefn)
-        self.tdef.set_tracker("http://fake.net/announce")
+        self.tdef.set_tracker("http://localhost/announce")
         self.tdef.finalize()
 
         self.torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")

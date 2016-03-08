@@ -196,7 +196,7 @@ class TestMyChannel(TestGuiAsServer):
     def createTorrent(self):
         tdef = TorrentDef()
         tdef.add_content(os.path.join(TESTS_DATA_DIR, "video.avi"))
-        tdef.set_tracker("http://fake.net/announce")
+        tdef.set_tracker("http://localhost/announce")
         tdef.finalize()
         torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
         tdef.save(torrentfn)
