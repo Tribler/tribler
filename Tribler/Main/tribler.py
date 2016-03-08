@@ -14,6 +14,11 @@ LOGGER_CONF = os.path.join(TRIBLER_ROOT, "logger.conf")
 if TRIBLER_ROOT not in sys.path:
     sys.path.insert(0, TRIBLER_ROOT)
 
+# tribler_exe.py: does this for windows in an uglier way.
+if sys.platform != 'win32':
+    # Make sure the installation dir is on the PATH
+    os.environ['PATH'] = os.path.abspath(TRIBLER_ROOT) + os.pathsep + os.environ['PATH']
+
 try:
     logging.config.fileConfig(LOGGER_CONF)
 except Exception as e:
