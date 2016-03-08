@@ -10,10 +10,12 @@
 
 import logging
 from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.endpoints import TCP4ServerEndpoint
 from twisted.internet.protocol import Factory
 from twisted.protocols.basic import LineReceiver
 import socket
+
 
 class I2I(LineReceiver):
 
@@ -23,17 +25,28 @@ class I2I(LineReceiver):
     def close(self):
         self.transport.loseConnection()
 
+
 class I2IFactory(Factory):
     protocol = I2I
 
     def __init__(self, callback):
         self.callback = callback
 
+
 class Instance2InstanceServer():
 
-    def __init__(self, i2iport, callback):
-        endpoint = TCP4ServerEndpoint(reactor, i2iport, interface="127.0.0.1")
-        endpoint.listen(I2IFactory(callback))
+    def __init__(self, i2iport):
+        self.listenport = None
+        self.endpoint = TCP4ServerEndpoint(reactor, i2iport, interface="127.0.0.1")
+
+    @inlineCallbacks
+    def start(self, callback):
+        self.listenport = yield self.endpoint.listen(I2IFactory(callback))
+        returnValue(self.listenport)
+
+    def stop(self):
+        return self.listenport.stopListening()
+
 
 class Instance2InstanceClient(object):
 
