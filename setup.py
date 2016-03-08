@@ -45,7 +45,6 @@ setup(
         'Tribler.Main.Dialogs',
         'Tribler.Main.Emercoin',
         'Tribler.Main.Utility',
-        'Tribler.Main.Utility.Feeds',
         'Tribler.Main.vwxGUI',
         'Tribler.Main.webUI',
         'Tribler.Utilities',
