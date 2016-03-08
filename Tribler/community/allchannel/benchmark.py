@@ -74,8 +74,8 @@ class TestDispersy(Dispersy):
         write_statistics = False
         # self.insert_random_crap_in_db()
 
-        calls_made = open("profiling/calls_made_blocking.txt", 'w')
-        calls_done = open("profiling/calls_done_blocking.txt", "w")
+        calls_made = open("profiling/calls_made_async.txt", 'w')
+        calls_done = open("profiling/calls_done_async.txt", "w")
 
         if write_statistics:
             graphviz = GraphvizOutput()
@@ -112,7 +112,6 @@ class TestDispersy(Dispersy):
         time.sleep(5)
         calls_made.flush()
         calls_done.flush()
-        self.quit_now()
 
     def init(self):
         self.start(autoload_discovery=True)
@@ -121,6 +120,7 @@ class TestDispersy(Dispersy):
 
         self.setup_communities()
         deferred = self.query_community()
+        deferred.addCallback(self.quit_now)
 
     def __init__(self, port):
         self.port = port

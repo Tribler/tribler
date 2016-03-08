@@ -1,5 +1,7 @@
 from random import sample
 from time import time
+from twisted.internet.threads import deferToThread
+
 from twisted.internet.defer import inlineCallbacks, returnValue, maybeDeferred
 
 from twisted.internet.task import LoopingCall
@@ -672,7 +674,7 @@ class ChannelCastDBStub():
         """
         if self.cachedTorrents is None:
             self.cachedTorrents = {}
-            yield self._cacheTorrents()
+            yield deferToThread(self._cacheTorrents)
 
         if infohash is not None and message is not None:
             self.cachedTorrents[infohash] = message
@@ -682,7 +684,7 @@ class ChannelCastDBStub():
     @inlineCallbacks
     def _cacheTorrents(self):
         sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE meta_message.name = 'torrent'"
-        query_result = yield self._dispersy.database.execute(sql)
+        query_result = yield deferToThread(self._dispersy.database.execute, sql)
         results = list(query_result)
 
         messages = self.convert_to_messages(results)
