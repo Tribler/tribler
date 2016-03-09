@@ -37,17 +37,10 @@ from collections import MutableMapping
 from itertools import chain
 import os
 
-try:
-    from leveldb import LevelDB, WriteBatch
+from leveldb import LevelDB, WriteBatch
 
-    def get_write_batch(_):
-        return WriteBatch()
-
-except ImportError:
-    from plyveladapter import LevelDB, WriteBatch
-
-    def get_write_batch(db):
-        return WriteBatch(db)
+def get_write_batch(_):
+    return WriteBatch()
 
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
