@@ -273,7 +273,7 @@ class LineHandler(LineReceiver):
                     fp.write(os.urandom(50 * 1024 * 1024))
                 tdef = TorrentDef()
                 tdef.add_content(os.path.join(cur_path, filename))
-                tdef.set_tracker("udp://fake.net/announce")
+                tdef.set_tracker("udp://localhost/announce")
                 tdef.set_private()
                 tdef.finalize()
                 tdef.save(os.path.join(cur_path, filename + '.torrent'))

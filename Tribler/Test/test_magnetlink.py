@@ -175,7 +175,7 @@ class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
         # the metadata that we want to transfer
         self.tdef = TorrentDef()
         self.tdef.add_content(os.path.join(TESTS_API_DIR, "video.avi"))
-        self.tdef.set_tracker("http://fake.net/announce")
+        self.tdef.set_tracker("http://localhost/announce")
         # we use a small piece length to obtain multiple pieces
         self.tdef.set_piece_length(1)
         self.tdef.finalize()
@@ -258,7 +258,7 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
         # the metadata that we want to transfer
         self.tdef = TorrentDef()
         self.tdef.add_content(os.path.join(TESTS_API_DIR, "file.wmv"))
-        self.tdef.set_tracker("http://fake.net/announce")
+        self.tdef.set_tracker("http://localhost/announce")
         # we use a small piece length to obtain multiple pieces
         self.tdef.set_piece_length(1)
         self.tdef.finalize()

@@ -1,10 +1,10 @@
 import os
 from nose.tools import raises
 from Tribler.Category.Category import Category, cmp_rank
-from Tribler.Test.test_as_server import BaseTestCase
+from Tribler.Test.test_as_server import BaseTestCase, AbstractServer
 
 
-class TriblerCategoryTest(BaseTestCase):
+class TriblerCategoryTest(AbstractServer):
 
     FILE_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
     CATEGORY_TEST_DATA_DIR = os.path.abspath(os.path.join(FILE_DIR, u"data/"))

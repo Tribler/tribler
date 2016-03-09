@@ -103,6 +103,7 @@ class ABCApp(object):
         self.done = False
         self.frame = None
         self.upgrader = None
+        self.i2i_server = None
 
         # DISPERSY will be set when available
         self.dispersy = None
@@ -194,7 +195,8 @@ class ABCApp(object):
             if not ALLOW_MULTIPLE:
                 # Put it here so an error is shown in the startup-error popup
                 # Start server for instance2instance communication
-                Instance2InstanceServer(self.utility.read_config('i2ilistenport'), self.i2ithread_readlinecallback)
+                self.i2i_server = Instance2InstanceServer(self.utility.read_config('i2ilistenport'))
+                self.i2i_server.start(self.i2ithread_readlinecallback)
 
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'GUIUtility register')
             wx.Yield()
@@ -848,6 +850,9 @@ class ABCApp(object):
     @forceWxThread
     def OnExit(self):
         self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_CREATE, None, None)
+
+        if self.i2i_server:
+            self.i2i_server.stop()
 
         self._logger.info("main: ONEXIT")
         self.ready = False

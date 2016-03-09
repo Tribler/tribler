@@ -1,10 +1,9 @@
 import os
-import Tribler
 from Tribler.Category.FamilyFilter import XXXFilter
-from Tribler.Test.test_as_server import BaseTestCase
+from Tribler.Test.test_as_server import AbstractServer
 
 
-class TriblerCategoryTestFamilyFilter(BaseTestCase):
+class TriblerCategoryTestFamilyFilter(AbstractServer):
 
     FILE_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
     CATEGORY_TEST_DATA_DIR = os.path.abspath(os.path.join(FILE_DIR, u"data/"))

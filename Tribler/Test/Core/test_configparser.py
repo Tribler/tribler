@@ -58,7 +58,7 @@ class TestConfigParser(TriblerCoreTest):
         ccp = CallbackConfigParser()
         ccp.read_file(os.path.join(self.CONFIG_FILES_DIR, 'config1.conf'))
 
-        new_path = os.path.join(self.temp_dir, 'config_new.conf')
+        new_path = os.path.join(self.session_base_dir, 'config_new.conf')
         ccp.write_file(new_path)
 
         self.assertTrue(os.path.isfile(new_path))
@@ -72,7 +72,7 @@ class TestConfigParser(TriblerCoreTest):
     def test_configparser_write_file_defaults(self):
         ccp = CallbackConfigParser(defaults={'foo': 'bar'})
 
-        new_path = os.path.join(self.temp_dir, 'config_new.conf')
+        new_path = os.path.join(self.session_base_dir, 'config_new.conf')
         ccp.write_file(new_path)
 
         self.assertTrue(os.path.isfile(new_path))

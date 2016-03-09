@@ -1,7 +1,7 @@
 import socket
 
+from Tribler.Core.Utilities.twisted_thread import reactor, deferred
 from nose.tools import raises
-from twisted.internet import reactor
 from twisted.internet.protocol import Factory
 
 from Tribler.Core.Utilities.network_utils import get_random_port, autodetect_socket_style, InterruptSocket
@@ -15,11 +15,12 @@ class TriblerCoreTestNetworkUtils(TriblerCoreTest):
         self.assertIsInstance(random_port, int)
         self.assertTrue(random_port)
 
+    @deferred(timeout=5)
     def test_get_random_port_tcp(self):
         listenport = reactor.listenTCP(9283, Factory())
         random_port = get_random_port(socket_type='tcp', min_port=9283, max_port=9283)
         self.assertEqual(random_port, 9284)
-        listenport.stopListening()
+        return listenport.stopListening()
 
     def test_get_random_port_udp(self):
         random_port = get_random_port(socket_type='udp')

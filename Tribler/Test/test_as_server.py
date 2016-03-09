@@ -3,6 +3,7 @@
 # see LICENSE.txt for license information
 
 # Initialize x11 threads before doing anything X11 related.
+from twisted.internet.base import BasePort
 from Tribler.Main.Utility.utility import initialize_x11_threads
 initialize_x11_threads()
 
@@ -123,6 +124,11 @@ class AbstractServer(BaseTestCase):
                 self._logger.error(">     %s" % dc)
         self.assertFalse(delayed_calls, "The reactor was dirty when tearing down the test")
         self.assertFalse(Session.has_instance(), 'A session instance is still present when tearing down the test')
+
+        # Check whether we have closed all the sockets
+        open_readers = reactor.getReaders()
+        for reader in open_readers:
+            self.assertNotIsInstance(reader, BasePort, "The test left a listening port behind: %s" % reader)
 
         process_unhandled_exceptions()
         self.watchdog.join()
@@ -391,14 +397,14 @@ class TestGuiAsServer(TestAsServer):
                 assert boolean, reason
 
     def startTest(self, callback, min_callback_delay=5, autoload_discovery=True,
-                  use_torrent_search=True, use_channel_search=True):
+                  use_torrent_search=True, use_channel_search=True, allow_multiple=True):
         from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
         from Tribler.Main import tribler_main
 
         # Always start testing from the same dir (repo root)
         os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-        tribler_main.ALLOW_MULTIPLE = True
+        tribler_main.ALLOW_MULTIPLE = allow_multiple
 
         self.hadSession = False
         starttime = time.time()
