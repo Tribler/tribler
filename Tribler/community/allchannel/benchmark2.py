@@ -40,10 +40,11 @@ class Benchmark:
 
     @inlineCallbacks
     def query_time(self):
-        blocking = False  # Asynchronous, but blocking?
-        max_delay = 1  # max delay in seconds
+        blocking = True  # Asynchronous, but blocking?
+        max_delay = 2  # max delay in seconds
         calls = 100  # amount of calls
         step_delay = float(float(max_delay) / float(calls))
+        call_delay = 0.1 # delay in seconds
         write_statistics = False
 
         # make sure the threadpool is initialized by doing a bogus call
@@ -57,7 +58,7 @@ class Benchmark:
             calls_done = open("profiling/simple_calls_done_async.txt", "w")
 
         def print_done(i, deferred):
-            calls_done.write("%s %s %s\n" % (i, float(step_delay * i), int(round(time.time() * 1000))))
+            calls_done.write("%s %s %s\n" % (i, call_delay*i, int(round(time.time() * 1000))))
             deferred.callback(None)
 
         yappi.set_clock_type('cpu')
@@ -70,12 +71,12 @@ class Benchmark:
         deferred_list_write = []
         deferred_list = []
 
-        for i in xrange(calls):
+        for i in xrange(1, calls+1):
             d1 = Deferred()
             d2 = Deferred()
-            calls_made.write("%s %s %s\n" % (i, float(i * step_delay), int(round(time.time() * 1000))))
-            reactor.callLater(float(i * step_delay), print_done, i, d1)
-            reactor.callLater(float(i * step_delay), self.nice_query, i, blocking, d2)
+            calls_made.write("%s %s %s\n" % (i, call_delay*i, int(round(time.time() * 1000))))
+            reactor.callLater(i*call_delay, print_done, i, d1)
+            reactor.callLater(i*call_delay, self.nice_query, i, blocking, d2)
             deferred_list_write.append(d1)
             deferred_list.append(d1)
             deferred_list.append(d2)
@@ -100,9 +101,9 @@ class Benchmark:
         cursor = self.connection.cursor()
         sql = u"SELECT COUNT(*) FROM test WHERE x > ? AND z like ?"
         if blocking:
-            result = yield cursor.execute(sql, (i, "%3%"))
+            result = yield cursor.execute(sql, (2, "%3%"))
         else:
-            result = yield deferToThread(cursor.execute, sql, (i, "%3%"))
+            result = yield deferToThread(cursor.execute, sql, (2, "%3%"))
         deferred.callback(None)
 
 
