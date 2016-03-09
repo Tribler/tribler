@@ -54,5 +54,5 @@ If there are any problems with the guide above, please feel free to fix any erro
 
 #### Arch Linux
 ```bash
-sudo pacman -S libsodium libtorrent-rasterbar python2-apsw python2-cherrypy python2-cryptography python2-decorator python2-feedparser python2-gmpy2 python2-m2crypto python2-netifaces python2-pillow python2-plyvel python2-requests python2-twisted wxpython2.8
+sudo pacman -S libsodium libtorrent-rasterbar python2-apsw python2-cherrypy python2-cryptography python2-decorator python2-feedparser python2-gmpy2 python2-m2crypto python2-netifaces python2-pillow python2-requests python2-twisted wxpython2.8
 ```
