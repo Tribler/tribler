@@ -46,7 +46,7 @@ def str2bin(str_data):
 
 class SQLiteCacheDB(TaskManager):
 
-    def __init__(self, db_path, db_script_path, busytimeout=DEFAULT_BUSY_TIMEOUT):
+    def __init__(self, db_path, db_script_path=None, busytimeout=DEFAULT_BUSY_TIMEOUT):
         super(SQLiteCacheDB, self).__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -144,7 +144,7 @@ class SQLiteCacheDB(TaskManager):
         cursor.execute(u"PRAGMA journal_mode = WAL;")
 
         # create tables if this is a new database
-        if is_new_db:
+        if is_new_db and self.db_script_path is not None:
             self._logger.info(u"Initializing new database...")
             # check if the SQL script exists
             if not os.path.exists(self.db_script_path):
@@ -164,15 +164,18 @@ class SQLiteCacheDB(TaskManager):
 
             cursor.execute(sql_script)
 
-        # read database version
-        self._logger.info(u"Reading database version...")
-        try:
-            version_str, = cursor.execute(u"SELECT value FROM MyInfo WHERE entry == 'version'").next()
-            self._version = int(version_str)
-            self._logger.info(u"Current database version is %s", self._version)
-        except (StopIteration, SQLError) as e:
-            msg = u"Failed to load database version: %s" % e
-            raise CorruptedDatabaseError(msg)
+        if self.db_script_path is not None:
+            # read database version
+            self._logger.info(u"Reading database version...")
+            try:
+                version_str, = cursor.execute(u"SELECT value FROM MyInfo WHERE entry == 'version'").next()
+                self._version = int(version_str)
+                self._logger.info(u"Current database version is %s", self._version)
+            except (StopIteration, SQLError) as e:
+                msg = u"Failed to load database version: %s" % e
+                raise CorruptedDatabaseError(msg)
+        else:
+            self._version = 1
 
     def get_cursor(self):
         thread_name = currentThread().getName()
