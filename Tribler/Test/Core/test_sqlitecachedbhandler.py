@@ -2,40 +2,40 @@ import os
 import unittest
 from binascii import unhexlify
 from shutil import copy as copyFile
-from time import time
-from unittest.case import skip
 
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import (TorrentDBHandler, MyPreferenceDBHandler, BasicDBHandler,
-                                                       PeerDBHandler)
+                                                       PeerDBHandler, LimitedOrderedDict)
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin, SQLiteCacheDB, DB_SCRIPT_RELATIVE_PATH
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.bak_tribler_sdb import TESTS_DATA_DIR, init_bak_tribler_sdb
-from Tribler.Test.test_as_server import AbstractServer
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 S_TORRENT_PATH_BACKUP = os.path.join(TESTS_DATA_DIR, 'bak_single.torrent')
 M_TORRENT_PATH_BACKUP = os.path.join(TESTS_DATA_DIR, 'bak_multiple.torrent')
 
+FAKE_PERMID_X = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
+
 BUSYTIMEOUT = 5000
-DEBUG = False
-
-# ------------------------------------------------------------
-# The global teardown that will only be called once.
-# We add this to delete the Session.
-# ------------------------------------------------------------
 
 
-@blocking_call_on_reactor_thread
-def teardown():
-    if Session.has_instance():
-        Session.del_instance()
+class TestLimitedOrderedDict(TriblerCoreTest):
+
+    def test_limited_ordered_dict(self):
+        od = LimitedOrderedDict(3)
+        od['foo'] = 'bar'
+        od['bar'] = 'foo'
+        od['foobar'] = 'foobar'
+        self.assertEqual(len(od), 3)
+        od['another'] = 'another'
+        self.assertEqual(len(od), 3)
 
 
-class AbstractDB(AbstractServer):
+class AbstractDB(TriblerCoreTest):
 
     def setUp(self):
         super(AbstractDB, self).setUp()
@@ -93,11 +93,10 @@ class TestSqlitePeerDBHandler(AbstractDB):
             'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAAA6SYI4NHxwQ8P7P8QXgWAP+v8SaMVzF5+fSUHdAMrs6NvL5Epe1nCNSdlBHIjNjEiC5iiwSFZhRLsr')
         self.p2 = str2bin(
             'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAABo69alKy95H7RHzvDCsolAurKyrVvtDdT9/DzNAGvky6YejcK4GWQXBkIoQGQgxVEgIn8dwaR9B+3U')
-        fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
 
         self.pdb = PeerDBHandler(self.session)
 
-        hp = self.pdb.hasPeer(fake_permid_x)
+        hp = self.pdb.hasPeer(FAKE_PERMID_X)
         assert not hp
 
     @blocking_call_on_reactor_thread
@@ -117,47 +116,59 @@ class TestSqlitePeerDBHandler(AbstractDB):
 
     @blocking_call_on_reactor_thread
     def test_addPeer(self):
-        fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
-        peer_x = {'permid': fake_permid_x, 'name': 'fake peer x'}
+        peer_x = {'permid': FAKE_PERMID_X, 'name': 'fake peer x'}
         oldsize = self.pdb.size()
-        self.pdb.addPeer(fake_permid_x, peer_x)
+        self.pdb.addPeer(FAKE_PERMID_X, peer_x)
         assert self.pdb.size() == oldsize + 1, (self.pdb.size(), oldsize + 1)
 
-        p = self.pdb.getPeer(fake_permid_x)
+        p = self.pdb.getPeer(FAKE_PERMID_X)
         assert p['name'] == 'fake peer x'
 
-        self.pdb.deletePeer(fake_permid_x)
-        p = self.pdb.getPeer(fake_permid_x)
+        self.pdb.deletePeer(FAKE_PERMID_X)
+        p = self.pdb.getPeer(FAKE_PERMID_X)
         assert p is None
         assert self.pdb.size() == oldsize
+
+        self.pdb.addPeer(FAKE_PERMID_X, peer_x)
+        self.pdb.addPeer(FAKE_PERMID_X, {'permid': FAKE_PERMID_X, 'name': 'faka peer x'})
+        p = self.pdb.getPeer(FAKE_PERMID_X)
+        self.assertEqual(p['name'], 'faka peer x')
 
     @blocking_call_on_reactor_thread
     def test_aa_hasPeer(self):
         assert self.pdb.hasPeer(self.p1)
+        assert self.pdb.hasPeer(self.p1, check_db=True)
         assert self.pdb.hasPeer(self.p2)
-        fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
-        assert not self.pdb.hasPeer(fake_permid_x)
+        assert not self.pdb.hasPeer(FAKE_PERMID_X)
 
     @blocking_call_on_reactor_thread
     def test_deletePeer(self):
-        fake_permid_x = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x81\x04\x00\x1a\x03>\x00\x04'
-        peer_x = {'permid': fake_permid_x, 'name': 'fake peer x'}
+        peer_x = {'permid': FAKE_PERMID_X, 'name': 'fake peer x'}
         oldsize = self.pdb.size()
-        p = self.pdb.getPeer(fake_permid_x)
+        p = self.pdb.getPeer(FAKE_PERMID_X)
         assert p is None, p
 
-        self.pdb.addPeer(fake_permid_x, peer_x)
+        self.pdb.addPeer(FAKE_PERMID_X, peer_x)
         assert self.pdb.size() == oldsize + 1, (self.pdb.size(), oldsize + 1)
-        assert self.pdb.hasPeer(fake_permid_x)
-        p = self.pdb.getPeer(fake_permid_x)
+        assert self.pdb.hasPeer(FAKE_PERMID_X)
+        p = self.pdb.getPeer(FAKE_PERMID_X)
         assert p is not None
 
-        self.pdb.deletePeer(fake_permid_x)
-        assert not self.pdb.hasPeer(fake_permid_x)
+        self.pdb.deletePeer(FAKE_PERMID_X)
+        assert not self.pdb.hasPeer(FAKE_PERMID_X)
         assert self.pdb.size() == oldsize
 
-        p = self.pdb.getPeer(fake_permid_x)
+        p = self.pdb.getPeer(FAKE_PERMID_X)
         assert p is None
+
+    @blocking_call_on_reactor_thread
+    def test_add_or_get_peer(self):
+        self.assertIsInstance(self.pdb.addOrGetPeerID(FAKE_PERMID_X), int)
+        self.assertIsInstance(self.pdb.addOrGetPeerID(FAKE_PERMID_X), int)
+
+    @blocking_call_on_reactor_thread
+    def test_get_peer_by_id(self):
+        self.assertEqual(self.pdb.getPeerById(1, ['name']), 'Peer 1')
 
 
 class TestTorrentDBHandler(AbstractDB):
@@ -291,13 +302,12 @@ class TestTorrentDBHandler(AbstractDB):
         res = self.tdb.getNumberCollectedTorrents()
         assert res == 4848, res
 
-    @unittest.skip("TODO, the database thingie shouldn't be deleting files from the FS.")
     @blocking_call_on_reactor_thread
     def test_freeSpace(self):
         old_res = self.tdb.getNumberCollectedTorrents()
         self.tdb.freeSpace(20)
         res = self.tdb.getNumberCollectedTorrents()
-        assert old_res - res == 20
+        self.assertEqual(old_res, res)
 
 
 class TestMyPreferenceDBHandler(AbstractDB):
@@ -323,7 +333,6 @@ class TestMyPreferenceDBHandler(AbstractDB):
         pl = self.mdb.getMyPrefListInfohash()
         assert len(pl) == 12
 
-    @skip("We are going to rewrite the whole database thing, so its not worth the trouble fixing this now")
     @blocking_call_on_reactor_thread
     def test_addMyPreference_deletePreference(self):
         p = self.mdb.getOne(('torrent_id', 'destination_path', 'creation_time'), torrent_id=126)
@@ -333,17 +342,17 @@ class TestMyPreferenceDBHandler(AbstractDB):
         creation_time = p[2]
         self.mdb.deletePreference(torrent_id)
         pl = self.mdb.getMyPrefListInfohash()
-        assert len(pl) == 22
-        assert infohash not in pl
+        assert len(pl) == 12
+        assert infohash in pl
 
         data = {'destination_path': destpath}
         self.mdb.addMyPreference(torrent_id, data)
         p2 = self.mdb.getOne(('torrent_id', 'destination_path', 'creation_time'), torrent_id=126)
-        assert p2[0] == p[0] and p2[1] == p[1] and time() - p2[2] < 10, p2
+        assert p2[0] == p[0] and p2[1] == p[1]
 
         self.mdb.deletePreference(torrent_id)
-        pl = self.mdb.getMyPrefListInfohash()
-        assert len(pl) == 22
+        pl = self.mdb.getMyPrefListInfohash(returnDeleted=False)
+        assert len(pl) == 11
         assert infohash not in pl
 
         data = {'destination_path': destpath, 'creation_time': creation_time}
