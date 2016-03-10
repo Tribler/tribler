@@ -1,41 +1,22 @@
-import os
-
-from Tribler.Test.test_as_server import AbstractServer
-from Tribler.Core.Session import Session
-from Tribler.Core.SessionConfig import SessionStartupConfig
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_SCRIPT_RELATIVE_PATH
+from Tribler.Test.Core.base_test import TriblerCoreTest
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
-class TestSqliteCacheDB(AbstractServer):
+class TestSqliteCacheDB(TriblerCoreTest):
 
     def setUp(self):
         super(TestSqliteCacheDB, self).setUp()
-        self.config = SessionStartupConfig()
-        self.config.set_state_dir(self.getStateDir())
-        self.config.set_torrent_checking(False)
-        self.config.set_multicast_local_peer_discovery(False)
-        self.config.set_megacache(False)
-        self.config.set_dispersy(False)
-        self.config.set_mainline_dht(False)
-        self.config.set_torrent_collecting(False)
-        self.config.set_libtorrent(False)
-        self.config.set_dht_torrent_collecting(False)
-        self.config.set_videoplayer(False)
-        self.session = Session(self.config, ignore_singleton=True)
 
         db_path = u":memory:"
-        db_script_path = os.path.join(self.session.get_install_dir(), DB_SCRIPT_RELATIVE_PATH)
 
-        self.sqlite_test = SQLiteCacheDB(db_path, db_script_path)
+        self.sqlite_test = SQLiteCacheDB(db_path)
         self.sqlite_test.initialize()
 
     def tearDown(self):
         super(TestSqliteCacheDB, self).tearDown()
         self.sqlite_test.close()
         self.sqlite_test = None
-        self.session.del_instance()
-        self.session = None
 
     @blocking_call_on_reactor_thread
     def test_create_db(self):
