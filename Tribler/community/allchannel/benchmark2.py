@@ -27,7 +27,8 @@ class Benchmark:
 
     @inlineCallbacks
     def run(self):
-        delay = [0.1, 0.2, 0.4, 0.8, 1.0]
+        delay = [0.01, 0.02, 0.04, 0.08, 0.1]
+        # delay = [0.2]
         for d in delay:
             yield self.query_time(d, True) # One run with blocking code
             yield self.query_time(d, False) # and one without.
@@ -62,7 +63,8 @@ class Benchmark:
         "blocking" if blocking else "async", str(calls), str(call_delay)), "w")
 
         def print_done(i, deferred):
-            calls_done.write("%s %s %s\n" % (i, call_delay * i, int(round(time.time() * 1000))))
+            calls_done.write("%s %s %s\n" % (i, call_delay * i * 1000, int(round(time.time() * 1000))))
+            calls_done.flush()
             deferred.callback(None)
 
         # yappi.set_clock_type('cpu')
@@ -78,9 +80,10 @@ class Benchmark:
         for i in xrange(1, calls + 1):
             d1 = Deferred()
             d2 = Deferred()
-            calls_made.write("%s %s %s\n" % (i, call_delay * i, int(round(time.time() * 1000))))
-            reactor.callLater(i * call_delay, print_done, i, d1)
+            calls_made.write("%s %s %s\n" % (i, call_delay * i * 1000, int(round(time.time() * 1000))))
+            calls_made.flush()
             reactor.callLater(i * call_delay, self.nice_query, i, blocking, d2)
+            reactor.callLater(i * call_delay, print_done, i, d1)
             deferred_list_write.append(d1)
             deferred_list.append(d1)
             deferred_list.append(d2)
