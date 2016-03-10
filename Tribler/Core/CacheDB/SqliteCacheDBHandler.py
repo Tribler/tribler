@@ -29,17 +29,7 @@ from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 
 
-SHOW_ERROR = False
-
 VOTECAST_FLUSH_DB_INTERVAL = 15
-
-MAX_KEYWORDS_STORED = 5
-MAX_KEYWORD_LENGTH = 50
-
-# Rahim:
-MAX_POPULARITY_REC_PER_TORRENT = 5  # maximum number of records in popularity table for each torrent
-MAX_POPULARITY_REC_PER_TORRENT_PEER = 3  # maximum number of records per each combination of torrent and peer
-
 
 DEFAULT_ID_CACHE_SIZE = 1024 * 5
 
@@ -831,10 +821,12 @@ class TorrentDBHandler(BasicDBHandler):
     def getTorrentsStats(self):
         return self._db.getOne('CollectedTorrent', ['count(torrent_id)', 'sum(length)', 'sum(num_files)'])
 
+    # TODO martijn: what is the purpose of this method? It seems to behave very strange and does not actually delete
+    # torrents in the database?
     def freeSpace(self, torrents2del):
         if self.channelcast_db and self.channelcast_db._channel_id:
             sql = U"""
-                SELECT torrent_file_name, torrent_id, relevance,
+                SELECT name, torrent_id, relevance,
                 MIN(relevance, 2500) + MIN(500, num_leechers) + 4*MIN(500, num_seeders) - (MAX(0, MIN(500, (%d - creation_date)/86400)) ) AS weight
                 FROM CollectedTorrent
                 WHERE torrent_id NOT IN (SELECT torrent_id FROM MyPreference)
@@ -844,7 +836,7 @@ class TorrentDBHandler(BasicDBHandler):
             """ % (int(time()), self.channelcast_db._channel_id, torrents2del)
         else:
             sql = u"""
-                SELECT torrent_file_name, torrent_id, relevance,
+                SELECT name, torrent_id, relevance,
                     min(relevance,2500) +  min(500,num_leechers) + 4*min(500,num_seeders) - (max(0,min(500,(%d-creation_date)/86400)) ) AS weight
                 FROM CollectedTorrent
                 WHERE torrent_id NOT IN (SELECT torrent_id FROM MyPreference)
@@ -857,10 +849,10 @@ class TorrentDBHandler(BasicDBHandler):
             return False
 
         # delete torrents from db
-        sql_del_torrent = u"UPDATE Torrent SET torrent_file_name = NULL WHERE torrent_id = ?"
+        sql_del_torrent = u"UPDATE Torrent SET name = NULL WHERE torrent_id = ?"
         # sql_del_tracker = "delete from TorrentTracker where torrent_id=?"
         # sql_del_pref = "delete from Preference where torrent_id=?"
-        tids = [(torrent_id,) for torrent_file_name, torrent_id, relevance, weight in res_list]
+        tids = [(torrent_id,) for name, torrent_id, relevance, weight in res_list]
 
         self._db.executemany(sql_del_torrent, tids)
         # self._db.executemany(sql_del_tracker, tids)
