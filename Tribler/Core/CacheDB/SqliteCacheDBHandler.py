@@ -29,17 +29,7 @@ from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.Core.Utilities.tracker_utils import get_uniformed_tracker_url
 
 
-SHOW_ERROR = False
-
 VOTECAST_FLUSH_DB_INTERVAL = 15
-
-MAX_KEYWORDS_STORED = 5
-MAX_KEYWORD_LENGTH = 50
-
-# Rahim:
-MAX_POPULARITY_REC_PER_TORRENT = 5  # maximum number of records in popularity table for each torrent
-MAX_POPULARITY_REC_PER_TORRENT_PEER = 3  # maximum number of records per each combination of torrent and peer
-
 
 DEFAULT_ID_CACHE_SIZE = 1024 * 5
 
