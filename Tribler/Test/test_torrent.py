@@ -41,10 +41,8 @@ class TestTorrent(AbstractServer):
                  'ti': libtorrent.torrent_info(result['torrent_file_path'])}
             handle = lt_session.add_torrent(p)
 
-            # check progress
-            time.sleep(1)
-            assert handle.status().progress == 1.0, \
-                "The created torrent seems to be incorrect: progress = %s" % handle.status().progress
+            # if handle.is_valid() returns false, the created torrent file is invalid
+            self.assertTrue(handle.is_valid())
 
             # cleanup libtorrent session
             lt_session.remove_torrent(handle)
