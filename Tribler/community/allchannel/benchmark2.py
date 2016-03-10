@@ -25,10 +25,15 @@ class Benchmark:
         reactor.callWhenRunning(self.run)
         reactor.run()
 
+    @inlineCallbacks
     def run(self):
-        self.query_time()
+        delay = [0.1, 0.2, 0.4, 0.8, 1.0]
+        for d in delay:
+            yield self.query_time(d, True) # One run with blocking code
+            yield self.query_time(d, False) # and one without.
+        self.tear_down()
 
-    def tear_down(self, ignored):
+    def tear_down(self):
         reactor.stop()
 
     def insert_stuff(self):
@@ -39,30 +44,29 @@ class Benchmark:
         cursor.execute("COMMIT;")
 
     @inlineCallbacks
-    def query_time(self):
-        blocking = True  # Asynchronous, but blocking?
-        max_delay = 2  # max delay in seconds
+    def query_time(self, call_delay, blocking):
+        print "Starting %s with delay %s" % ("blocking" if blocking else "async", str(call_delay))
+        # blocking = True  # Asynchronous, but blocking?
+        # max_delay = 1  # max delay in seconds
         calls = 100  # amount of calls
-        step_delay = float(float(max_delay) / float(calls))
-        call_delay = 0.1 # delay in seconds
-        write_statistics = False
+        # step_delay = float(float(max_delay) / float(calls))
+        # call_delay = 0.1  # delay in seconds
+        # write_statistics = False
 
         # make sure the threadpool is initialized by doing a bogus call
         yield self.nice_query(0, blocking, Deferred())
 
-        if blocking:
-            calls_made = open("profiling/simple_calls_made_blocking.txt", 'w')
-            calls_done = open("profiling/simple_calls_done_blocking.txt", "w")
-        else:
-            calls_made = open("profiling/simple_calls_made_async.txt", 'w')
-            calls_done = open("profiling/simple_calls_done_async.txt", "w")
+        calls_made = open("profiling/latencybenchmark_made_%s_%s_%s" % (
+        "blocking" if blocking else "async", str(calls), str(call_delay)), 'w')
+        calls_done = open("profiling/latencybenchmark_done_%s_%s_%s" % (
+        "blocking" if blocking else "async", str(calls), str(call_delay)), "w")
 
         def print_done(i, deferred):
-            calls_done.write("%s %s %s\n" % (i, call_delay*i, int(round(time.time() * 1000))))
+            calls_done.write("%s %s %s\n" % (i, call_delay * i, int(round(time.time() * 1000))))
             deferred.callback(None)
 
-        yappi.set_clock_type('cpu')
-        yappi.start(builtins=True)
+        # yappi.set_clock_type('cpu')
+        # yappi.start(builtins=True)
 
         def on_write_done(x):
             calls_made.flush()
@@ -71,18 +75,18 @@ class Benchmark:
         deferred_list_write = []
         deferred_list = []
 
-        for i in xrange(1, calls+1):
+        for i in xrange(1, calls + 1):
             d1 = Deferred()
             d2 = Deferred()
-            calls_made.write("%s %s %s\n" % (i, call_delay*i, int(round(time.time() * 1000))))
-            reactor.callLater(i*call_delay, print_done, i, d1)
-            reactor.callLater(i*call_delay, self.nice_query, i, blocking, d2)
+            calls_made.write("%s %s %s\n" % (i, call_delay * i, int(round(time.time() * 1000))))
+            reactor.callLater(i * call_delay, print_done, i, d1)
+            reactor.callLater(i * call_delay, self.nice_query, i, blocking, d2)
             deferred_list_write.append(d1)
             deferred_list.append(d1)
             deferred_list.append(d2)
 
         DeferredList(deferred_list_write).addCallback(on_write_done)
-        DeferredList(deferred_list).addCallback(self.tear_down)
+        yield DeferredList(deferred_list)
 
         # yappi.stop()
         #
