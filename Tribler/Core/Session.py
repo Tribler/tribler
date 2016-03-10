@@ -10,7 +10,7 @@ from binascii import hexlify
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.CacheDB.Notifier import Notifier
-from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB
+from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_FILE_RELATIVE_PATH, DB_SCRIPT_RELATIVE_PATH
 from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException
@@ -156,7 +156,10 @@ class Session(SessionConfigInterface):
         Pre-starts the session. We check the current version and upgrade if needed
 -        before we start everything else.
         """
-        self.sqlite_db = SQLiteCacheDB(self)
+        db_path = os.path.join(self.get_state_dir(), DB_FILE_RELATIVE_PATH)
+        db_script_path = os.path.join(self.get_install_dir(), DB_SCRIPT_RELATIVE_PATH)
+
+        self.sqlite_db = SQLiteCacheDB(db_path, db_script_path)
         self.sqlite_db.initialize()
         self.sqlite_db.initial_begin()
         self.upgrader = TriblerUpgrader(self, self.sqlite_db)

@@ -5,12 +5,10 @@ from shutil import copy as copyFile
 from time import time
 from unittest.case import skip
 
-from twisted.internet import reactor
-
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import (TorrentDBHandler, MyPreferenceDBHandler, BasicDBHandler,
                                                        PeerDBHandler)
-from Tribler.Core.CacheDB.sqlitecachedb import str2bin, SQLiteCacheDB
+from Tribler.Core.CacheDB.sqlitecachedb import str2bin, SQLiteCacheDB, DB_SCRIPT_RELATIVE_PATH
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
@@ -57,9 +55,11 @@ class AbstractDB(AbstractServer):
         self.config.set_torrent_store(False)
         self.session = Session(self.config, ignore_singleton=True)
 
-        dbpath = init_bak_tribler_sdb('bak_new_tribler.sdb', destination_path=self.getStateDir(), overwrite=True)
-        self.sqlitedb = SQLiteCacheDB(self.session, busytimeout=BUSYTIMEOUT)
-        self.sqlitedb.initialize(dbpath)
+        db_path = init_bak_tribler_sdb('bak_new_tribler.sdb', destination_path=self.getStateDir(), overwrite=True)
+        db_script_path = os.path.join(self.session.get_install_dir(), DB_SCRIPT_RELATIVE_PATH)
+
+        self.sqlitedb = SQLiteCacheDB(db_path, db_script_path, busytimeout=BUSYTIMEOUT)
+        self.sqlitedb.initialize()
         self.session.sqlite_db = self.sqlitedb
 
     @blocking_call_on_reactor_thread

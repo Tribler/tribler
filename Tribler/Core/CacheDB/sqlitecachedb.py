@@ -46,18 +46,17 @@ def str2bin(str_data):
 
 class SQLiteCacheDB(TaskManager):
 
-    def __init__(self, session, busytimeout=DEFAULT_BUSY_TIMEOUT):
+    def __init__(self, db_path, db_script_path, busytimeout=DEFAULT_BUSY_TIMEOUT):
         super(SQLiteCacheDB, self).__init__()
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.session = session
-
-        self.sqlite_db_path = ''
         self._cursor_lock = RLock()
         self._cursor_table = {}
 
         self._connection = None
+        self.sqlite_db_path = db_path
+        self.db_script_path = db_script_path
         self._busytimeout = busytimeout  # busytimeout is in milliseconds
 
         self._version = None
@@ -71,16 +70,13 @@ class SQLiteCacheDB(TaskManager):
         return self._version
 
     @blocking_call_on_reactor_thread
-    def initialize(self, db_path=None):
+    def initialize(self):
         """ Initializes the database. If the database doesn't exist, we create a new one. Otherwise, we check the
             version and upgrade to the latest version.
         """
-        self.sqlite_db_path = db_path if db_path else os.path.join(self.session.get_state_dir(), DB_FILE_RELATIVE_PATH)
-
-        sql_script_path = os.path.join(self.session.get_install_dir(), DB_SCRIPT_RELATIVE_PATH)
 
         # open a connection to the database
-        self._open_connection(self.sqlite_db_path, sql_script_path)
+        self._open_connection()
 
     @blocking_call_on_reactor_thread
     def close(self):
@@ -92,30 +88,30 @@ class SQLiteCacheDB(TaskManager):
             self._connection.close()
             self._connection = None
 
-    def _open_connection(self, db_path, sql_script_path):
+    def _open_connection(self):
         """ Opens a connection to the database. If the database doesn't exist, we create a new one and run the
             initialization SQL scripts. If the database doesn't exist, we simply connect to it.
             And finally, we read the database version.
         """
         # check if it is in memory
-        is_in_memory = db_path == u":memory:"
+        is_in_memory = self.sqlite_db_path == u":memory:"
         is_new_db = is_in_memory
 
         # check if database file exists
         if not is_in_memory:
-            if not os.path.exists(db_path):
+            if not os.path.exists(self.sqlite_db_path):
                 # create a new one
                 is_new_db = True
-            elif not os.path.isfile(db_path):
-                msg = u"Not a file: %s" % db_path
+            elif not os.path.isfile(self.sqlite_db_path):
+                msg = u"Not a file: %s" % self.sqlite_db_path
                 raise OSError(msg)
 
         # create connection
         try:
-            self._connection = apsw.Connection(db_path)
+            self._connection = apsw.Connection(self.sqlite_db_path)
             self._connection.setbusytimeout(self._busytimeout)
         except CantOpenError as e:
-            msg = u"Failed to open connection to %s: %s" % (db_path, e)
+            msg = u"Failed to open connection to %s: %s" % (self.sqlite_db_path, e)
             raise CantOpenError(msg)
 
         cursor = self.get_cursor()
@@ -151,19 +147,19 @@ class SQLiteCacheDB(TaskManager):
         if is_new_db:
             self._logger.info(u"Initializing new database...")
             # check if the SQL script exists
-            if not os.path.exists(sql_script_path):
-                msg = u"SQL script doesn't exist: %s" % sql_script_path
+            if not os.path.exists(self.db_script_path):
+                msg = u"SQL script doesn't exist: %s" % self.db_script_path
                 raise OSError(msg)
-            if not os.path.isfile(sql_script_path):
-                msg = u"SQL script is not a file: %s" % sql_script_path
+            if not os.path.isfile(self.db_script_path):
+                msg = u"SQL script is not a file: %s" % self.db_script_path
                 raise OSError(msg)
 
             try:
-                f = open(sql_script_path, "r")
+                f = open(self.db_script_path, "r")
                 sql_script = f.read()
                 f.close()
             except IOError as e:
-                msg = u"Failed to load SQL script %s: %s" % (sql_script_path, e)
+                msg = u"Failed to load SQL script %s: %s" % (self.db_script_path, e)
                 raise IOError(msg)
 
             cursor.execute(sql_script)
