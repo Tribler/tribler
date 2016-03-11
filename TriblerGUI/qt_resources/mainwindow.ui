@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>686</width>
-    <height>607</height>
+    <height>438</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -646,7 +646,7 @@ background-color: #666;
            <property name="sizeHint" stdset="0">
             <size>
              <width>20</width>
-             <height>366</height>
+             <height>0</height>
             </size>
            </property>
           </spacer>
@@ -1307,7 +1307,7 @@ border-bottom: 3px solid #e67300;</string>
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QSlider" name="video_player_position_slider">
+                 <widget class="VideoPlayerPositionSlider" name="video_player_position_slider">
                   <property name="minimumSize">
                    <size>
                     <width>0</width>
@@ -1326,7 +1326,6 @@ border-bottom: 3px solid #e67300;</string>
                   <property name="styleSheet">
                    <string notr="true">QSlider::groove:horizontal {
      background: white;
-     height: 4px;
  }
 
 QSlider::add-page:horizontal {
@@ -1616,6 +1615,11 @@ font-size: 12px;</string>
    <extends>QWidget</extends>
    <header>videoplayervolumecontainer.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>VideoPlayerPositionSlider</class>
+   <extends>QSlider</extends>
+   <header>videoplayerpositionslider.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

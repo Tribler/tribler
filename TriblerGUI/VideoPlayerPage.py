@@ -13,7 +13,8 @@ class VideoPlayerPage(QWidget):
         self.instance = vlc.Instance()
         self.mediaplayer = self.instance.media_player_new()
         self.video_player_widget = self.findChild(QWidget, "video_player_widget")
-        self.video_player_position_slider = self.findChild(QSlider, "video_player_position_slider")
+        self.video_player_position_slider = self.findChild(QWidget, "video_player_position_slider")
+        self.video_player_position_slider.should_change_video_position.connect(self.on_should_change_video_time)
         self.video_player_volume_slider = self.findChild(QSlider, "video_player_volume_slider")
         self.video_player_volume_slider.valueChanged.connect(self.on_volume_change)
         self.video_player_volume_slider.setValue(self.mediaplayer.audio_get_volume())
@@ -41,13 +42,24 @@ class VideoPlayerPage(QWidget):
 
         self.manager = self.mediaplayer.event_manager()
         self.manager.event_attach(vlc.EventType.MediaPlayerPositionChanged, self.vlc_position_changed)
+        self.manager.event_attach(vlc.EventType.MediaPlayerBuffering, self.on_vlc_player_buffering)
+        self.manager.event_attach(vlc.EventType.MediaPlayerPlaying, self.on_vlc_player_playing)
 
         # TODO martijn: temporarily set media hardcoded
-        # filename = unicode("http://qthttp.apple.com.edgesuite.net/1010qwoeiuryfg/sl.m3u8")
-        filename = unicode("http://127.0.0.1:7917/8a8898c4f65a2812006e24f34c314ecab74f6b44/3")
+        #filename = u"http://qthttp.apple.com.edgesuite.net/1010qwoeiuryfg/sl.m3u8"
+        filename = u"http://127.0.0.1:31961/8a8898c4f65a2812006e24f34c314ecab74f6b44/3"
         self.media = self.instance.media_new(filename)
         self.mediaplayer.set_media(self.media)
         self.media.parse()
+
+    def on_vlc_player_buffering(self, event):
+        print event
+
+    def on_vlc_player_playing(self, event):
+        print event
+
+    def on_should_change_video_time(self, position):
+        self.mediaplayer.set_position(position)
 
     def vlc_position_changed(self, data):
         self.video_player_position_slider.setValue(self.mediaplayer.get_position() * 1000)
