@@ -1,9 +1,10 @@
 import json
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 
 from twisted.web import server
 from twisted.web import resource
 from Tribler.Core.CacheDB.db_objects import Channel
+from Tribler.Core.DownloadState import DownloadState
 from Tribler.Core.simpledefs import NTFY_FREE_SPACE, NTFY_INSERT, NTFY_CHANNELCAST, DOWNLOAD, UPLOAD
 
 
@@ -28,6 +29,9 @@ class TriblerAPI(resource.Resource):
 
         self.downloads_request_handler = DownloadsRequestHandler(self.session)
         self.putChild("downloads", self.downloads_request_handler)
+
+        self.download_request_handler = DownloadRequestHandler(self.session)
+        self.putChild("download", self.download_request_handler)
 
         # Add all observers for the api
         self.session.add_observer(self.event_request_handler.on_free_space, NTFY_FREE_SPACE, [NTFY_INSERT])
@@ -124,6 +128,50 @@ class DownloadsRequestHandler(resource.Resource):
                              "speed_up": download.get_current_speed(UPLOAD), "status": download.get_status()}
             downloads_json.append(download_json)
         return json.dumps({"downloads": downloads_json})
+
+
+class DownloadRequestHandler(resource.Resource):
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def getChild(self, path, request):
+        return DownloadDetailRequestHandler(self.session, path)
+
+
+class DownloadDetailRequestHandler(resource.Resource):
+
+    isLeaf = True
+
+    def __init__(self, session, download_infohash):
+        resource.Resource.__init__(self)
+        self.session = session
+        self.download_infohash = download_infohash
+
+    def render_GET(self, request):
+        if not self.session.has_download(unhexlify(self.download_infohash)):
+            request.setResponseCode(404)
+            request.finish()
+            return server.NOT_DONE_YET
+
+        download = self.session.get_download(unhexlify(self.download_infohash))
+        (status, stats, seeding_stats, logmsgs) = download.network_get_stats(True)
+        ds = DownloadState(download, status, download.error, download.get_progress(), stats=stats,
+                            seeding_stats=seeding_stats, filepieceranges=download.filepieceranges, logmsgs=logmsgs)
+
+        all_files = download.get_def().get_files_as_unicode()
+        selected_files = download.get_selected_files()
+        files_array = []
+        for file in all_files:
+            included = (file in selected_files)
+            files_array.append({"index": download.get_def().get_index_of_file_in_files(file), "name": file,
+                                "included": included })
+
+        response_json = {"name": download.get_def().get_name(), "eta": ds.get_eta(),
+                         "files": files_array }
+        return json.dumps({"download": response_json})
+
 
 class EventRequestHandler(resource.Resource):
 
