@@ -3,26 +3,24 @@ import libtorrent
 
 
 def create_torrent_file(file_path_list, params, callback=None):
-    base_dir = None
-
-    num_files = len([file for file in file_path_list if os.path.isfile(file)])
-    if num_files > 1:
-        # outpaths should start with a common prefix, this prefix is the swarmname of the torrent
-        # if srcpaths contain c:\a\1, c:\a\2 -> basepath should be c:\ and basedir a and outpaths should be a\1 and a\2
-        # if srcpaths contain c:\a\1, c:\a\2, c:\a\b\1, c:\a\b\2 -> basepath
-        # should be c:\ and outpaths should be a\1, a\2, a\b\1 and a\b\2
-        base_path = os.path.abspath(os.path.commonprefix(file_path_list))
-        base_path, base_dir = os.path.split(base_path)
-
-    else:
-        file_path_list = [file for file in file_path_list if os.path.isfile(file)]
-
-        src_path = file_path_list[0]
-        base_path, _ = os.path.split(src_path)
-
     fs = libtorrent.file_storage()
-    for f in file_path_list:
-        libtorrent.add_files(fs, f)
+
+    # filter all non-files
+    file_path_list = [file for file in file_path_list if os.path.isfile(file)]
+
+    # get the directory where these files are in. If there are multiple files, take the common directory they are in
+    if len(file_path_list) == 1:
+        base_path = os.path.split(file_path_list[0])[0]
+    else:
+        base_path = os.path.dirname(os.path.abspath(os.path.commonprefix(file_path_list)))
+
+    # the base_dir directory is the parent directory of the base_path and is passed to the set_piece_hash method
+    base_dir = os.path.split(base_path)[0]
+
+    for full_file_path in file_path_list:
+        filename = os.path.basename(full_file_path)
+        filename = os.path.join(base_path[len(base_dir) + 1:], filename)
+        fs.add_file(filename, os.path.getsize(full_file_path))
 
     if params.get('piece length'):
         piece_size = params['piece length']
@@ -52,12 +50,12 @@ def create_torrent_file(file_path_list, params, callback=None):
     if params.get('httpseeds'):
         torrent.add_http_seed(params['httpseeds'])
 
-    if num_files == 1:
+    if len(file_path_list) == 1:
         if params.get('urllist', False):
             torrent.add_url_seed(params['urllist'])
 
     # read the files and calculate the hashes
-    libtorrent.set_piece_hashes(torrent, base_path)
+    libtorrent.set_piece_hashes(torrent, base_dir)
 
     t1 = torrent.generate()
     torrent = libtorrent.bencode(t1)

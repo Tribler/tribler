@@ -11,7 +11,7 @@ class TriblerCoreTestTorrentUtils(TriblerCoreTest):
     FILE2_NAME = "file2.txt"
 
     def get_params(self):
-        return { "piece length" : 65536, "comment" : "Proudly created by Tribler", "created by" : "someone",
+        return { "comment" : "Proudly created by Tribler", "created by" : "someone",
                  "announce" : "http://tracker.com/announce", "announce-list" : ["http://tracker.com/announce"],
                  "httpseeds" : "http://seed.com", "urllist" : "http://urlseed.com/seed.php",
                  "nodes" : [] }
@@ -41,5 +41,5 @@ class TriblerCoreTestTorrentUtils(TriblerCoreTest):
         create_torrent_file([os.path.join(self.TORRENT_DATA_DIR, self.FILE1_NAME),
                              os.path.join(self.TORRENT_DATA_DIR, self.FILE2_NAME)],
                             self.get_params())
-        self.assertTrue(os.path.isfile(os.path.abspath(os.path.join(self.TORRENT_DATA_DIR, u"file2.txt.torrent"))))
-        os.remove(os.path.abspath(os.path.join(self.TORRENT_DATA_DIR, u"file2.txt.torrent")))
+        self.assertTrue(os.path.isfile(os.path.abspath(os.path.join(self.TORRENT_DATA_DIR, u"torrent_creation_files.torrent"))))
+        os.remove(os.path.abspath(os.path.join(self.TORRENT_DATA_DIR, u"torrent_creation_files.torrent")))
