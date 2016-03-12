@@ -1,15 +1,19 @@
 import os
+from time import sleep
 import unittest
 from binascii import unhexlify
 from shutil import copy as copyFile
 
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import (TorrentDBHandler, MyPreferenceDBHandler, BasicDBHandler,
-                                                       PeerDBHandler, LimitedOrderedDict)
+                                                       PeerDBHandler, LimitedOrderedDict, VoteCastDBHandler,
+                                                       ChannelCastDBHandler)
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin, SQLiteCacheDB, DB_SCRIPT_RELATIVE_PATH
+from Tribler.Core.RemoteTorrentHandler import RemoteTorrentHandler
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.bak_tribler_sdb import TESTS_DATA_DIR, init_bak_tribler_sdb
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -37,10 +41,7 @@ class TestLimitedOrderedDict(TriblerCoreTest):
 
 class AbstractDB(TriblerCoreTest):
 
-    def setUp(self):
-        super(AbstractDB, self).setUp()
-
-        # dummy session
+    def setUpPreSession(self):
         self.config = SessionStartupConfig()
         self.config.set_state_dir(self.getStateDir())
         self.config.set_torrent_checking(False)
@@ -53,6 +54,11 @@ class AbstractDB(TriblerCoreTest):
         self.config.set_dht_torrent_collecting(False)
         self.config.set_videoplayer(False)
         self.config.set_torrent_store(False)
+
+    def setUp(self):
+        super(AbstractDB, self).setUp()
+
+        self.setUpPreSession()
         self.session = Session(self.config, ignore_singleton=True)
 
         db_path = init_bak_tribler_sdb('bak_new_tribler.sdb', destination_path=self.getStateDir(), overwrite=True)
@@ -124,6 +130,8 @@ class TestSqlitePeerDBHandler(AbstractDB):
         p = self.pdb.getPeer(FAKE_PERMID_X)
         assert p['name'] == 'fake peer x'
 
+        self.assertEqual(self.pdb.getPeer(FAKE_PERMID_X, 'name'), 'fake peer x')
+
         self.pdb.deletePeer(FAKE_PERMID_X)
         p = self.pdb.getPeer(FAKE_PERMID_X)
         assert p is None
@@ -161,6 +169,8 @@ class TestSqlitePeerDBHandler(AbstractDB):
         p = self.pdb.getPeer(FAKE_PERMID_X)
         assert p is None
 
+        self.assertFalse(self.pdb.deletePeer(FAKE_PERMID_X))
+
     @blocking_call_on_reactor_thread
     def test_add_or_get_peer(self):
         self.assertIsInstance(self.pdb.addOrGetPeerID(FAKE_PERMID_X), int)
@@ -169,6 +179,27 @@ class TestSqlitePeerDBHandler(AbstractDB):
     @blocking_call_on_reactor_thread
     def test_get_peer_by_id(self):
         self.assertEqual(self.pdb.getPeerById(1, ['name']), 'Peer 1')
+        p = self.pdb.getPeerById(1)
+        self.assertEqual(p['name'], 'Peer 1')
+        self.assertFalse(self.pdb.getPeerById(1234567))
+
+
+class TestTorrentFullSessionDBHandler(AbstractDB):
+
+    def setUpPreSession(self):
+        super(TestTorrentFullSessionDBHandler, self).setUpPreSession()
+        self.config.set_megacache(True)
+
+    def setUp(self):
+        super(TestTorrentFullSessionDBHandler, self).setUp()
+        self.tdb = TorrentDBHandler(self.session)
+
+    @blocking_call_on_reactor_thread
+    def test_initialize(self):
+        self.tdb.initialize()
+        self.assertIsNone(self.tdb.mypref_db)
+        self.assertIsNone(self.tdb.votecast_db)
+        self.assertIsNone(self.tdb.channelcast_db)
 
 
 class TestTorrentDBHandler(AbstractDB):
@@ -199,9 +230,15 @@ class TestTorrentDBHandler(AbstractDB):
     def test_hasTorrent(self):
         infohash_str = 'AA8cTG7ZuPsyblbRE7CyxsrKUCg='
         infohash = str2bin(infohash_str)
-        assert self.tdb.hasTorrent(infohash)
-        fake_infoahsh = 'fake_infohash_100000'
-        assert self.tdb.hasTorrent(fake_infoahsh) == False
+        self.assertTrue(self.tdb.hasTorrent(infohash))
+        self.assertTrue(self.tdb.hasTorrent(infohash)) # cache will trigger
+        fake_infohash = 'fake_infohash_100000'
+        self.assertFalse(self.tdb.hasTorrent(fake_infohash))
+
+    @blocking_call_on_reactor_thread
+    def test_get_infohash(self):
+        self.assertTrue(self.tdb.getInfohash(1))
+        self.assertFalse(self.tdb.getInfohash(1234567))
 
     @blocking_call_on_reactor_thread
     def test_add_update_Torrent(self):
@@ -298,6 +335,59 @@ class TestTorrentDBHandler(AbstractDB):
         assert last_tracker_check == 1234567, last_tracker_check
 
     @blocking_call_on_reactor_thread
+    def test_add_external_torrent_no_def_existing(self):
+        infohash = str2bin('AA8cTG7ZuPsyblbRE7CyxsrKUCg=')
+        self.tdb.addExternalTorrentNoDef(infohash, "test torrent", [], [], 1234)
+        self.assertTrue(self.tdb.hasTorrent(infohash))
+
+    @blocking_call_on_reactor_thread
+    def test_add_external_torrent_no_def_no_files(self):
+        infohash = unhexlify('48865489ac16e2f34ea0cd3043cfd970cc24ec09')
+        self.tdb.addExternalTorrentNoDef(infohash, "test torrent", [], [], 1234)
+        self.assertFalse(self.tdb.hasTorrent(infohash))
+
+    @blocking_call_on_reactor_thread
+    def test_add_external_torrent_no_def_one_file(self):
+        infohash = unhexlify('49865489ac16e2f34ea0cd3043cfd970cc24ec09')
+        self.tdb.addExternalTorrentNoDef(infohash, "test torrent", [("file1", 42)],
+                                         ['http://localhost/announce'], 1234)
+        self.assertTrue(self.tdb.getTorrentID(infohash))
+
+    @blocking_call_on_reactor_thread
+    def test_add_external_torrent_no_def_more_files(self):
+        infohash = unhexlify('50865489ac16e2f34ea0cd3043cfd970cc24ec09')
+        self.tdb.addExternalTorrentNoDef(infohash, "test torrent", [("file1", 42), ("file2", 43)],
+                                         [], 1234, extra_info={"seeder": 2, "leecher": 3})
+        self.assertTrue(self.tdb.getTorrentID(infohash))
+
+    @blocking_call_on_reactor_thread
+    def test_add_external_torrent_no_def_invalid(self):
+        infohash = unhexlify('50865489ac16e2f34ea0cd3043cfd970cc24ec09')
+        self.tdb.addExternalTorrentNoDef(infohash, "test torrent", [("file1", {}), ("file2", 43)],
+                                         [], 1234)
+        self.assertFalse(self.tdb.getTorrentID(infohash))
+
+    @blocking_call_on_reactor_thread
+    def test_add_get_torrent_id(self):
+        infohash = str2bin('AA8cTG7ZuPsyblbRE7CyxsrKUCg=')
+        self.assertEqual(self.tdb.addOrGetTorrentID(infohash), 1)
+
+        new_infohash = unhexlify('50865489ac16e2f34ea0cd3043cfd970cc24ec09')
+        self.assertEqual(self.tdb.addOrGetTorrentID(new_infohash), 4849)
+
+    @blocking_call_on_reactor_thread
+    def test_add_get_torrent_ids_return(self):
+        infohash = str2bin('AA8cTG7ZuPsyblbRE7CyxsrKUCg=')
+        new_infohash = unhexlify('50865489ac16e2f34ea0cd3043cfd970cc24ec09')
+        tids, inserted = self.tdb.addOrGetTorrentIDSReturn([infohash, new_infohash])
+        self.assertEqual(tids, [1, 4849])
+        self.assertEqual(len(inserted), 1)
+
+    @blocking_call_on_reactor_thread
+    def test_index_torrent_existing(self):
+        self.tdb._indexTorrent(1, "test", [])
+
+    @blocking_call_on_reactor_thread
     def test_getCollectedTorrentHashes(self):
         res = self.tdb.getNumberCollectedTorrents()
         assert res == 4848, res
@@ -308,6 +398,32 @@ class TestTorrentDBHandler(AbstractDB):
         self.tdb.freeSpace(20)
         res = self.tdb.getNumberCollectedTorrents()
         self.assertEqual(old_res, res)
+
+    @blocking_call_on_reactor_thread
+    def test_get_search_suggestions(self):
+        self.assertEqual(self.tdb.getSearchSuggestion(["content", "cont"]), ["Content 1"])
+
+    @blocking_call_on_reactor_thread
+    def test_get_autocomplete_terms(self):
+        self.assertEqual(len(self.tdb.getAutoCompleteTerms("content", 100)), 0)
+
+    @blocking_call_on_reactor_thread
+    def test_get_recently_randomly_collected_torrents(self):
+        self.assertEqual(len(self.tdb.getRecentlyCollectedTorrents(limit=10)), 10)
+        self.assertEqual(len(self.tdb.getRandomlyCollectedTorrents(100000000, limit=10)), 3)
+
+    @blocking_call_on_reactor_thread
+    def test_select_torrents_to_collect(self):
+        infohash = str2bin('AA8cTG7ZuPsyblbRE7CyxsrKUCg=')
+        self.assertEqual(len(self.tdb.select_torrents_to_collect(infohash)), 0)
+
+    @blocking_call_on_reactor_thread
+    def test_get_torrents_stats(self):
+        self.assertEqual(self.tdb.getTorrentsStats(), (4848, 6519195438919, 187200))
+
+    @blocking_call_on_reactor_thread
+    def test_get_library_torrents(self):
+        self.assertEqual(len(self.tdb.getLibraryTorrents(['infohash'])), 12)
 
 
 class TestMyPreferenceDBHandler(AbstractDB):
@@ -374,3 +490,7 @@ class TestMyPreferenceDBHandler(AbstractDB):
         for k in res:
             data = res[k]
             assert isinstance(data, basestring), "data is not destination_path: %s" % type(data)
+
+    @blocking_call_on_reactor_thread
+    def test_get_my_pref_list_infohash_limit(self):
+        self.assertEqual(len(self.mdb.getMyPrefListInfohash(limit=10)), 10)
