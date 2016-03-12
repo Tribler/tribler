@@ -1,4 +1,5 @@
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
+from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Test.Core.test_sqlitecachedbhandler import AbstractDB
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -61,13 +62,42 @@ class TestMyPreferenceDBHandler(AbstractDB):
         assert len(preflist) == 12, u"preflist length = %s" % len(preflist)
 
     @blocking_call_on_reactor_thread
-    def test_getMyPrefStats(self):
+    def test_get_my_pref_stats(self):
         res = self.mdb.getMyPrefStats()
-        assert len(res) == 12
+        self.assertEqual(len(res), 12)
         for k in res:
             data = res[k]
-            assert isinstance(data, basestring), "data is not destination_path: %s" % type(data)
+            self.assertIsInstance(data, basestring, "data is not destination_path: %s" % type(data))
+
+        res = self.mdb.getMyPrefStats(torrent_id=126)
+        self.assertEqual(len(res), 1)
+
+    @blocking_call_on_reactor_thread
+    def test_my_pref_stats_infohash(self):
+        infohash = str2bin('AB8cTG7ZuPsyblbRE7CyxsrKUCg=')
+        self.assertIsNone(self.mdb.getMyPrefStatsInfohash(infohash))
+        infohash = str2bin('ByJho7yj9mWY1ORWgCZykLbU1Xc=')
+        self.assertTrue(self.mdb.getMyPrefStatsInfohash(infohash))
 
     @blocking_call_on_reactor_thread
     def test_get_my_pref_list_infohash_limit(self):
         self.assertEqual(len(self.mdb.getMyPrefListInfohash(limit=10)), 10)
+
+    @blocking_call_on_reactor_thread
+    def test_add_my_preference(self):
+        self.assertTrue(self.mdb.addMyPreference(127, {'destination_path': 'C:/mytorrent'}))
+        self.assertTrue(self.mdb.addMyPreference(12345678, {'destination_path': 'C:/mytorrent'}))
+        self.assertFalse(self.mdb.addMyPreference(12345678, {'destination_path': 'C:/mytorrent'}))
+
+    def test_delete_my_preference(self):
+        self.mdb.deletePreference(126)
+        res = self.mdb.getMyPrefStats(126)
+        self.assertFalse(res[126])
+        self.mdb.deletePreference(12348934)
+
+    def test_update_dest_dir(self):
+        self.mdb.updateDestDir(126, 'C:/mydest')
+        res = self.mdb.getMyPrefStats(126)
+        self.assertEqual(res[126], 'C:/mydest')
+        self.mdb.updateDestDir(126, {})
+        self.assertEqual(res[126], 'C:/mydest')
