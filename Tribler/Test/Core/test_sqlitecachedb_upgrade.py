@@ -1,11 +1,11 @@
 import os
+import shutil
 
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_SCRIPT_RELATIVE_PATH
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Upgrade.db_upgrader import DBUpgrader, VersionNoLongerSupportedError
-from Tribler.Test.bak_tribler_sdb import init_bak_tribler_sdb
-from Tribler.Test.test_as_server import AbstractServer
+from Tribler.Test.test_as_server import AbstractServer, TESTS_DATA_DIR
 
 
 class TestSqliteCacheDB(AbstractServer):
@@ -36,7 +36,9 @@ class TestSqliteCacheDB(AbstractServer):
 
     def test_upgrade_from_obsolete_version(self):
         """We no longer support DB versions older than 17 (Tribler 6.0)"""
-        db_path = init_bak_tribler_sdb(u"bak_old_tribler.sdb", destination_path=self.getStateDir(), overwrite=True)
+        shutil.copyfile(os.path.join(TESTS_DATA_DIR, 'tribler_v12.sdb'),
+                        os.path.join(self.session_base_dir, 'tribler.sdb'))
+        db_path = os.path.join(self.session_base_dir, 'tribler.sdb')
         db_script_path = os.path.join(self.session.get_install_dir(), DB_SCRIPT_RELATIVE_PATH)
 
         self.sqlitedb = SQLiteCacheDB(db_path, db_script_path)
@@ -44,10 +46,10 @@ class TestSqliteCacheDB(AbstractServer):
 
         class MockTorrentStore(object):
 
-            def flush():
+            def flush(self):
                 pass
 
-            def close():
+            def close(self):
                 pass
 
         db_migrator = DBUpgrader(self.session, self.sqlitedb, torrent_store=MockTorrentStore())
