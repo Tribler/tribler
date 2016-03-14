@@ -704,20 +704,20 @@ class ChannelCastDBStub(object):
                 yield message.community.cid, message
 
     def newTorrent(self, message):
-        self._cachedTorrents[message.payload.infohash] = message
+        self._cachedTorrents(message.payload.infohash, message)
 
     def hasTorrents(self, channel_id, infohashes):
         returnAr = []
         for infohash in infohashes:
-            if infohash in self._cachedTorrents:
+            if infohash in self._cachedTorrents(None, None):
                 returnAr.append(True)
             else:
                 returnAr.append(False)
         return returnAr
 
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
-        if infohash in self._cachedTorrents:
-            return self._cachedTorrents[infohash].packet_id
+        if infohash in self._cachedTorrents(None, None):
+            return self._cachedTorrents(None, None)[infohash].packet_id
 
     def on_dynamic_settings(self, channel_id):
         pass
@@ -730,7 +730,7 @@ class ChannelCastDBStub(object):
             yield self._cacheTorrents()
 
         if infohash is not None and message is not None:
-            self._cachedTorrents[infohash] = message
+            self.cachedTorrents[infohash] = message
 
         returnValue(self.cachedTorrents)
 
