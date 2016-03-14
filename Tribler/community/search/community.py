@@ -3,6 +3,9 @@ from random import shuffle
 from time import time
 from binascii import hexlify
 from traceback import print_exc
+from twisted.internet.threads import deferToThread
+
+from twisted.internet.defer import inlineCallbacks, returnValue
 
 from twisted.internet.task import LoopingCall
 
@@ -719,17 +722,23 @@ class ChannelCastDBStub(object):
     def on_dynamic_settings(self, channel_id):
         pass
 
-    @property
-    def _cachedTorrents(self):
+    @inlineCallbacks
+    # TODO(Laurens): Find dependencies and make sure they can handle the Deferred getting returned
+    def _cachedTorrents(self, infohash, message):
         if self.cachedTorrents is None:
             self.cachedTorrents = {}
-            self._cacheTorrents()
+            yield self._cacheTorrents()
 
-        return self.cachedTorrents
+        if infohash is not None and message is not None:
+            self._cachedTorrents[infohash] = message
 
+        returnValue(self.cachedTorrents)
+
+    @inlineCallbacks
     def _cacheTorrents(self):
         sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE meta_message.name = 'torrent'"
-        results = list(self._dispersy.database.execute(sql))
+        sql_result = yield deferToThread(self._dispersy.database.execute, sql)
+        results = list(sql_result)
         messages = self.convert_to_messages(results)
 
         for _, message in messages:
