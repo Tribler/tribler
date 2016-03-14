@@ -23,6 +23,8 @@ class TriblerWindow(QMainWindow):
     def __init__(self):
         super(TriblerWindow, self).__init__()
 
+        self.settings = None
+
         uic.loadUi('qt_resources/mainwindow.ui', self)
 
         # Remove the focus rect on OS X
@@ -56,6 +58,10 @@ class TriblerWindow(QMainWindow):
         self.tribler_request_manager = TriblerRequestManager()
         self.tribler_request_manager.received_search_results.connect(self.received_search_results)
         self.tribler_request_manager.received_torrents_in_channel.connect(self.received_torrents_in_channel)
+        self.tribler_request_manager.received_settings.connect(self.received_settings)
+
+        # fetch the settings
+        self.tribler_request_manager.get_settings()
 
         self.event_request_manager = EventRequestManager()
         self.event_request_manager.received_free_space.connect(self.received_free_space)
@@ -100,6 +106,12 @@ class TriblerWindow(QMainWindow):
             widget_item = ChannelTorrentListItem(self.channel_torrents_list, result)
             self.channel_torrents_list.addItem(item)
             self.channel_torrents_list.setItemWidget(item, widget_item)
+
+    def received_settings(self, json_results):
+        results = json.loads(json_results)
+        print results
+        self.video_player_page.video_player_port = results['video']['port']
+        self.settings = json.loads(json_results)
 
     def on_top_search_button_click(self):
         self.stackedWidget.setCurrentIndex(2)
