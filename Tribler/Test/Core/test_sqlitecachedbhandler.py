@@ -1,12 +1,14 @@
 import os
 
+import tarfile
+
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import (BasicDBHandler,
                                                        PeerDBHandler, LimitedOrderedDict)
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin, SQLiteCacheDB, DB_SCRIPT_RELATIVE_PATH
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.Test.bak_tribler_sdb import init_bak_tribler_sdb
+from Tribler.Test.test_as_server import TESTS_DATA_DIR
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
@@ -47,7 +49,10 @@ class AbstractDB(TriblerCoreTest):
         self.setUpPreSession()
         self.session = Session(self.config, ignore_singleton=True)
 
-        db_path = init_bak_tribler_sdb('bak_new_tribler.sdb', destination_path=self.getStateDir(), overwrite=True)
+        tar = tarfile.open(os.path.join(TESTS_DATA_DIR, 'bak_new_tribler.sdb.tar.gz'), 'r|gz')
+        tar.extractall(self.session_base_dir)
+
+        db_path = os.path.join(self.session_base_dir, 'bak_new_tribler.sdb')
         db_script_path = os.path.join(self.session.get_install_dir(), DB_SCRIPT_RELATIVE_PATH)
 
         self.sqlitedb = SQLiteCacheDB(db_path, db_script_path, busytimeout=BUSYTIMEOUT)
