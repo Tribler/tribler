@@ -249,7 +249,7 @@ class TestTorrentDBHandler(AbstractDB):
 
     @blocking_call_on_reactor_thread
     def test_get_torrents_stats(self):
-        self.assertEqual(self.tdb.getTorrentsStats(), (4847, 6518951556888, 187198))
+        self.assertEqual(self.tdb.getTorrentsStats(), (4847, 6519179841442, 187195))
 
     @blocking_call_on_reactor_thread
     def test_get_library_torrents(self):
