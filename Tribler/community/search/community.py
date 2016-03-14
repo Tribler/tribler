@@ -711,7 +711,6 @@ class ChannelCastDBStub(object):
         self._cachedTorrents(message.payload.infohash, message)
 
     @inlineCallbacks
-    # TODO(Laurens): Find dependencies and make sure they can handle the Deferred getting returned
     def hasTorrents(self, channel_id, infohashes):
         returnAr = []
         cached_torrents = yield self._cachedTorrents(None, None)
@@ -724,7 +723,6 @@ class ChannelCastDBStub(object):
 
 
     @inlineCallbacks
-    # TODO(Laurens): Find dependencies and make sure they can handle the Deferred getting returned
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
         cached_torrents = yield self._cachedTorrents(None, None)
         if infohash in cached_torrents:
