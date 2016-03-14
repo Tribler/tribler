@@ -704,26 +704,34 @@ class ChannelCastDBStub(object):
                 yield message.community.cid, message
 
     def newTorrent(self, message):
+        # TODO(Laurens): Since this method has no return and doesn't use the result of the call,
+        # I think we do not want to yield this statement as it just can be inserted asynchronously
         self._cachedTorrents(message.payload.infohash, message)
 
+    @inlineCallbacks
+    # TODO(Laurens): Find dependencies and make sure they can handle the Deferred getting returned
     def hasTorrents(self, channel_id, infohashes):
         returnAr = []
+        cached_torrents = yield self._cachedTorrents(None, None)
         for infohash in infohashes:
-            if infohash in self._cachedTorrents(None, None):
+            if infohash in cached_torrents:
                 returnAr.append(True)
             else:
                 returnAr.append(False)
-        return returnAr
+        returnValue(returnAr)
 
+
+    @inlineCallbacks
+    # TODO(Laurens): Find dependencies and make sure they can handle the Deferred getting returned
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
-        if infohash in self._cachedTorrents(None, None):
-            return self._cachedTorrents(None, None)[infohash].packet_id
+        cached_torrents = yield self._cachedTorrents(None, None)
+        if infohash in cached_torrents:
+            returnValue(self._cachedTorrents(None, None)[infohash].packet_id)
 
     def on_dynamic_settings(self, channel_id):
         pass
 
     @inlineCallbacks
-    # TODO(Laurens): Find dependencies and make sure they can handle the Deferred getting returned
     def _cachedTorrents(self, infohash, message):
         if self.cachedTorrents is None:
             self.cachedTorrents = {}
@@ -742,4 +750,4 @@ class ChannelCastDBStub(object):
         messages = self.convert_to_messages(results)
 
         for _, message in messages:
-            self._cachedTorrents[message.payload.infohash] = message
+            self._cachedTorrents(message.payload.infohash, message)
