@@ -19,8 +19,8 @@ class BaseRemoteTest(TestGuiAsServer):
         else:
             def wait_for_chansearch():
                 self._logger.debug("Frame ready, starting to wait for channelsearch to be ready")
-                self.CallConditional(300, lambda: self.frame.SRstatusbar.GetChannelConnections() > 10, callback,
-                                     'did not connect to more than 10 peers within 300s',
+                self.CallConditional(300, lambda: self.frame.SRstatusbar.GetChannelConnections() > 16, callback,
+                                     'did not connect to more than 16 peers within 300s',
                                      assert_callback=lambda *argv, **kwarg: callback())
             super(BaseRemoteTest, self).startTest(wait_for_chansearch,
                                                   use_torrent_search=use_torrent_search,
@@ -79,7 +79,7 @@ class TestRemoteChannelSearch(BaseRemoteTest):
         def do_search():
             self.guiUtility.toggleFamilyFilter(newState=False, setCheck=True)
             self.guiUtility.dosearch(u'de')
-            self.callLater(15, do_doubleclick)
+            self.callLater(20, do_doubleclick)
 
         self.startTest(do_search, search_community=False, use_torrent_search=False, use_channel_search=True)
 
