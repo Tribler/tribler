@@ -19,8 +19,7 @@ class TestSqlitePeerDBHandler(AbstractDB):
 
         self.pdb = PeerDBHandler(self.session)
 
-        hp = self.pdb.hasPeer(FAKE_PERMID_X)
-        assert not hp
+        self.assertFalse(self.pdb.hasPeer(FAKE_PERMID_X))
 
     @blocking_call_on_reactor_thread
     def tearDown(self):
@@ -32,27 +31,27 @@ class TestSqlitePeerDBHandler(AbstractDB):
     def test_getList(self):
         peer1 = self.pdb.getPeer(self.p1)
         peer2 = self.pdb.getPeer(self.p2)
-        assert isinstance(peer1, dict)
-        assert isinstance(peer2, dict)
-        assert peer1[u'peer_id'] == 1, peer1
-        assert peer2[u'peer_id'] == 2, peer2
+        self.assertIsInstance(peer1, dict)
+        self.assertIsInstance(peer2, dict)
+        self.assertEqual(peer1[u'peer_id'], 1)
+        self.assertEqual(peer2[u'peer_id'], 2)
 
     @blocking_call_on_reactor_thread
     def test_addPeer(self):
         peer_x = {'permid': FAKE_PERMID_X, 'name': 'fake peer x'}
         oldsize = self.pdb.size()
         self.pdb.addPeer(FAKE_PERMID_X, peer_x)
-        assert self.pdb.size() == oldsize + 1, (self.pdb.size(), oldsize + 1)
+        self.assertEqual(self.pdb.size(), oldsize + 1)
 
         p = self.pdb.getPeer(FAKE_PERMID_X)
-        assert p['name'] == 'fake peer x'
+        self.assertEqual(p['name'], 'fake peer x')
 
         self.assertEqual(self.pdb.getPeer(FAKE_PERMID_X, 'name'), 'fake peer x')
 
         self.pdb.deletePeer(FAKE_PERMID_X)
         p = self.pdb.getPeer(FAKE_PERMID_X)
-        assert p is None
-        assert self.pdb.size() == oldsize
+        self.assertIsNone(p)
+        self.assertEqual(self.pdb.size(), oldsize)
 
         self.pdb.addPeer(FAKE_PERMID_X, peer_x)
         self.pdb.addPeer(FAKE_PERMID_X, {'permid': FAKE_PERMID_X, 'name': 'faka peer x'})
@@ -61,30 +60,30 @@ class TestSqlitePeerDBHandler(AbstractDB):
 
     @blocking_call_on_reactor_thread
     def test_aa_hasPeer(self):
-        assert self.pdb.hasPeer(self.p1)
-        assert self.pdb.hasPeer(self.p1, check_db=True)
-        assert self.pdb.hasPeer(self.p2)
-        assert not self.pdb.hasPeer(FAKE_PERMID_X)
+        self.assertTrue(self.pdb.hasPeer(self.p1))
+        self.assertTrue(self.pdb.hasPeer(self.p1, check_db=True))
+        self.assertTrue(self.pdb.hasPeer(self.p2))
+        self.assertFalse(self.pdb.hasPeer(FAKE_PERMID_X))
 
     @blocking_call_on_reactor_thread
     def test_deletePeer(self):
         peer_x = {'permid': FAKE_PERMID_X, 'name': 'fake peer x'}
         oldsize = self.pdb.size()
         p = self.pdb.getPeer(FAKE_PERMID_X)
-        assert p is None, p
+        self.assertIsNone(p)
 
         self.pdb.addPeer(FAKE_PERMID_X, peer_x)
-        assert self.pdb.size() == oldsize + 1, (self.pdb.size(), oldsize + 1)
-        assert self.pdb.hasPeer(FAKE_PERMID_X)
+        self.assertEqual(self.pdb.size(), oldsize + 1)
+        self.assertTrue(self.pdb.hasPeer(FAKE_PERMID_X))
         p = self.pdb.getPeer(FAKE_PERMID_X)
-        assert p is not None
+        self.assertIsNotNone(p)
 
         self.pdb.deletePeer(FAKE_PERMID_X)
-        assert not self.pdb.hasPeer(FAKE_PERMID_X)
-        assert self.pdb.size() == oldsize
+        self.assertFalse(self.pdb.hasPeer(FAKE_PERMID_X))
+        self.assertEqual(self.pdb.size(), oldsize)
 
         p = self.pdb.getPeer(FAKE_PERMID_X)
-        assert p is None
+        self.assertIsNone(p)
 
         self.assertFalse(self.pdb.deletePeer(FAKE_PERMID_X))
 

@@ -25,7 +25,7 @@ class TestMyPreferenceDBHandler(AbstractDB):
     @blocking_call_on_reactor_thread
     def test_getPrefList(self):
         pl = self.mdb.getMyPrefListInfohash()
-        assert len(pl) == 12
+        self.assertEqual(len(pl), 12)
 
     @blocking_call_on_reactor_thread
     def test_addMyPreference_deletePreference(self):
@@ -36,30 +36,31 @@ class TestMyPreferenceDBHandler(AbstractDB):
         creation_time = p[2]
         self.mdb.deletePreference(torrent_id)
         pl = self.mdb.getMyPrefListInfohash()
-        assert len(pl) == 12
-        assert infohash in pl
+        self.assertEqual(len(pl), 12)
+        self.assertIn(infohash, pl)
 
         data = {'destination_path': destpath}
         self.mdb.addMyPreference(torrent_id, data)
         p2 = self.mdb.getOne(('torrent_id', 'destination_path', 'creation_time'), torrent_id=126)
-        assert p2[0] == p[0] and p2[1] == p[1]
+        self.assertTrue(p2[0] == p[0])
+        self.assertTrue(p2[1] == p[1])
 
         self.mdb.deletePreference(torrent_id)
         pl = self.mdb.getMyPrefListInfohash(returnDeleted=False)
-        assert len(pl) == 11
-        assert infohash not in pl
+        self.assertEqual(len(pl), 11)
+        self.assertNotIn(infohash, pl)
 
         data = {'destination_path': destpath, 'creation_time': creation_time}
         self.mdb.addMyPreference(torrent_id, data)
         p3 = self.mdb.getOne(('torrent_id', 'destination_path', 'creation_time'), torrent_id=126)
-        assert p3 == p, p3
+        self.assertEqual(p3, p)
 
     @blocking_call_on_reactor_thread
     def test_getMyPrefListInfohash(self):
         preflist = self.mdb.getMyPrefListInfohash()
         for p in preflist:
-            assert not p or len(p) == 20, len(p)
-        assert len(preflist) == 12, u"preflist length = %s" % len(preflist)
+            self.assertTrue(not p or len(p) == 20)
+        self.assertEqual(len(preflist), 12)
 
     @blocking_call_on_reactor_thread
     def test_get_my_pref_stats(self):

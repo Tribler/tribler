@@ -93,9 +93,9 @@ class TestTorrentDBHandler(AbstractDB):
         copyfile(M_TORRENT_PATH_BACKUP, multiple_torrent_file_path)
 
         single_tdef = TorrentDef.load(single_torrent_file_path)
-        assert s_infohash == single_tdef.get_infohash()
+        self.assertEqual(s_infohash, single_tdef.get_infohash())
         multiple_tdef = TorrentDef.load(multiple_torrent_file_path)
-        assert m_infohash == multiple_tdef.get_infohash()
+        self.assertEqual(m_infohash, multiple_tdef.get_infohash())
 
         self.tdb.addExternalTorrent(single_tdef)
         self.tdb.addExternalTorrent(multiple_tdef)
@@ -103,46 +103,46 @@ class TestTorrentDBHandler(AbstractDB):
         single_torrent_id = self.tdb.getTorrentID(s_infohash)
         multiple_torrent_id = self.tdb.getTorrentID(m_infohash)
 
-        assert self.tdb.getInfohash(single_torrent_id) == s_infohash
+        self.assertEqual(self.tdb.getInfohash(single_torrent_id), s_infohash)
 
         single_name = 'Tribler_4.1.7_src.zip'
         multiple_name = 'Tribler_4.1.7_src'
 
-        assert self.tdb.size() == old_size + 2, old_size - self.tdb.size()
+        self.assertEqual(self.tdb.size(), old_size + 2)
         new_tracker_table_size = self.tdb._db.size('TrackerInfo')
-        assert old_tracker_size < new_tracker_table_size, new_tracker_table_size - old_tracker_size
+        self.assertLess(old_tracker_size, new_tracker_table_size)
 
         sname = self.tdb.getOne('name', torrent_id=single_torrent_id)
-        assert sname == single_name, (sname, single_name)
+        self.assertEqual(sname, single_name)
         mname = self.tdb.getOne('name', torrent_id=multiple_torrent_id)
-        assert mname == multiple_name, (mname, multiple_name)
+        self.assertEqual(mname, multiple_name)
 
         s_size = self.tdb.getOne('length', torrent_id=single_torrent_id)
-        assert s_size == 1583233, s_size
+        self.assertEqual(s_size, 1583233)
         m_size = self.tdb.getOne('length', torrent_id=multiple_torrent_id)
-        assert m_size == 5358560, m_size
+        self.assertEqual(m_size, 5358560)
 
         cat = self.tdb.getOne('category', torrent_id=multiple_torrent_id)
-        assert cat == u'xxx', cat
+        self.assertEqual(cat, u'xxx')
 
         s_status = self.tdb.getOne('status', torrent_id=single_torrent_id)
-        assert s_status == u'unknown', s_status
+        self.assertEqual(s_status, u'unknown')
 
         m_comment = self.tdb.getOne('comment', torrent_id=multiple_torrent_id)
         comments = 'www.tribler.org'
-        assert m_comment.find(comments) > -1
+        self.assertGreater(m_comment.find(comments), -1)
         comments = 'something not inside'
-        assert m_comment.find(comments) == -1
+        self.assertEqual(m_comment.find(comments), -1)
 
         m_trackers = self.tdb.getTrackerListByInfohash(m_infohash)
-        assert len(m_trackers) == 8
-        assert 'http://tpb.tracker.thepiratebay.org/announce' in m_trackers, m_trackers
+        self.assertEqual(len(m_trackers), 8)
+        self.assertIn('http://tpb.tracker.thepiratebay.org/announce', m_trackers)
 
         s_torrent = self.tdb.getTorrent(s_infohash)
         m_torrent = self.tdb.getTorrent(m_infohash)
-        assert s_torrent['name'] == 'Tribler_4.1.7_src.zip', s_torrent['name']
-        assert m_torrent['name'] == 'Tribler_4.1.7_src', m_torrent['name']
-        assert m_torrent['last_tracker_check'] == 0
+        self.assertEqual(s_torrent['name'], 'Tribler_4.1.7_src.zip')
+        self.assertEqual(m_torrent['name'], 'Tribler_4.1.7_src')
+        self.assertEqual(m_torrent['last_tracker_check'], 0)
 
     @blocking_call_on_reactor_thread
     def updateTorrent(self):
@@ -154,15 +154,15 @@ class TestTorrentDBHandler(AbstractDB):
                                other_key1='abcd', other_key2=123)
         multiple_torrent_id = self.tdb.getTorrentID(m_infohash)
         category = self.tdb.getOne('category', torrent_id=multiple_torrent_id)
-        assert category == u'Videoclips', category
+        self.assertEqual(category, u'Videoclips')
         status = self.tdb.getOne('status', torrent_id=multiple_torrent_id)
-        assert status == u'good', status
+        self.assertEqual(status, u'good')
         seeder = self.tdb.getOne('num_seeders', torrent_id=multiple_torrent_id)
-        assert seeder == 123
+        self.assertEqual(seeder, 123)
         leecher = self.tdb.getOne('num_leechers', torrent_id=multiple_torrent_id)
-        assert leecher == 321
+        self.assertEqual(leecher, 321)
         last_tracker_check = self.tdb.getOne('last_tracker_check', torrent_id=multiple_torrent_id)
-        assert last_tracker_check == 1234567, last_tracker_check
+        self.assertEqual(last_tracker_check, 1234567)
 
     @blocking_call_on_reactor_thread
     def test_add_external_torrent_no_def_existing(self):
@@ -220,7 +220,7 @@ class TestTorrentDBHandler(AbstractDB):
     @blocking_call_on_reactor_thread
     def test_getCollectedTorrentHashes(self):
         res = self.tdb.getNumberCollectedTorrents()
-        assert res == 4847, res
+        self.assertEqual(res, 4847)
 
     @blocking_call_on_reactor_thread
     def test_freeSpace(self):
