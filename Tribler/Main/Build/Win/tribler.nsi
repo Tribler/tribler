@@ -2,7 +2,7 @@
 ; Laurens, 2016-03-14: The __GIT__ string will be replaced by update_version_from_git.py
 !define VERSION "__GIT__"
 ; Laurens, 2016-03-14: The _x86 will be replaced by _x64 if needed in update_version_from_git.py
-!define BITVERSION "_x86"
+!define BITVERSION "x86"
 
 !include "MUI.nsh"
 !include "UAC.nsh"
@@ -16,11 +16,15 @@ RequestExecutionLevel user
 
 ;General
 Name "${PRODUCT} ${VERSION}"
-OutFile "${PRODUCT}_${VERSION}_{$BITVERSION}.exe"
+OutFile "${PRODUCT}_${VERSION}_${BITVERSION}.exe"
 
 ;Folder selection page. 
 ; Laurens, 2016-03-14: Note that $PROGRAMFILES will be replaced by $PROGRAMFILES64 if needed from update_version_from_git.py.
 InstallDir "$PROGRAMFILES\${PRODUCT}"
+
+; Laurens, 2016-03-15: No silent mode for the installer and uninstaller because this will disbale the init functions being called.
+SilentInstall normal
+SilentUnInstall normal
 
 ;Remember install folder
 InstallDirRegKey HKCU "Software\${PRODUCT}" ""
@@ -37,6 +41,20 @@ SetCompressor "lzma"
 CompletedText "Installation completed. Thank you for choosing ${PRODUCT}"
 
 BrandingText "${PRODUCT}"
+
+; ----------------------------
+; Tribler running check - shared function
+!macro RUNMACRO un
+  Function ${un}checkrunning
+    MessageBox MB_OK "This is the function ${un}checkrunning."
+    DetailPrint "Very ${un}funny text."
+    DetailPrint "More ${un}funny text."
+  FunctionEnd
+!macroend
+ 
+; Insert function as an installer and uninstaller function.
+!insertmacro RUNMACRO ""
+!insertmacro RUNMACRO "un."
 
 ;--------------------------------
 ;Modern UI Configuration
@@ -94,6 +112,8 @@ LangString DESC_SecDefaultMagnet ${LANG_ENGLISH} "Associate magnet links with ${
 
 Section "!Main EXE" SecMain
  SectionIn RO
+
+	Call checkrunning
 
  ; Boudewijn, need to remove stuff from previously installed version
  RMDir /r "$INSTDIR"
@@ -274,22 +294,22 @@ SectionEnd
 ;Uninstaller Section
 
 Section "Uninstall"
+    Call un.checkrunning
 
- RMDir /r "$INSTDIR"
+    RMDir /r "$INSTDIR"
 
- Delete "$DESKTOP\${PRODUCT}.lnk"
+    Delete "$DESKTOP\${PRODUCT}.lnk"
 
- SetShellVarContext all
- RMDir "$SMPROGRAMS\${PRODUCT}"
- RMDir /r "$SMPROGRAMS\${PRODUCT}"
+    SetShellVarContext all
+    RMDir "$SMPROGRAMS\${PRODUCT}"
+    RMDir /r "$SMPROGRAMS\${PRODUCT}"
 
- DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\${PRODUCT}"
- DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}"
+    DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\${PRODUCT}"
+    DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}"
 
- ; Remove an application from the firewall exception list
- SimpleFC::RemoveApplication "$INSTDIR\${PRODUCT}.exe"
- ; Pop $0 ; return error(1)/success(0)
-
+    ; Remove an application from the firewall exception list
+    SimpleFC::RemoveApplication "$INSTDIR\${PRODUCT}.exe"
+    ; Pop $0 ; return error(1)/success(0)
 SectionEnd
 
 ;--------------------------------
@@ -336,35 +356,37 @@ Function .onInit
   MessageBox MB_OK "The installer is already running."
   Abort
 
-  FindWindow $0 "" "${PRODUCT}"
-  StrCmp $0 0 notRunning
-  MessageBox MB_OK|MB_ICONEXCLAMATION "${PRODUCT} is running. Please close it first." /SD IDOK
-  Abort
-  notRunning:
+  ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString"
+  StrCmp $R0 "" done
+  IfFileExists $R0 +1 done
 
+  MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "${PRODUCT} is already installed. $\n$\nClick `OK` to remove the previous version or `Cancel` to cancel this upgrade." /SD IDCANCEL IDOK uninst
+  Abort
+
+  uninst:
+    ClearErrors
+    ExecWait '$R0 _?=$INSTDIR' ;Do not copy the uninstaller to a temp file
     ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString"
     StrCmp $R0 "" done
-    IfFileExists $R0 +1 done
-
-    MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "${PRODUCT} is already installed. $\n$\nClick `OK` to remove the previous version or `Cancel` to cancel this upgrade." /SD IDOK IDOK uninst
     Abort
-
-    uninst:
-      ClearErrors
-      ExecWait '$R0 _?=$INSTDIR' ;Do not copy the uninstaller to a temp file
-      ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString"
-      StrCmp $R0 "" done
-      Abort
   done:
 
 FunctionEnd
 
-
 Function un.onInit
-  !insertmacro Init "uninstaller"
+	SetShellVarContext all
+
+  	MessageBox MB_YESNO "This will uninstall. Continue?" IDYES checkRunning
+  	checkRunning:
+    		FindProcDLL::FindProc "tribler.exe"
+    		IntCmp $R0 1 0 notRunning
+    		MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "${PRODUCT} is running, please close it so the installation can proceed." /SD IDCANCEL IDRETRY checkRunning
+    		Abort
+
+  	notRunning:
+    		!insertmacro Init "uninstaller"
 FunctionEnd
 
-
 Function PageFinishRun
-  !insertmacro UAC_AsUser_ExecShell "" "$INSTDIR\tribler.exe" "" "" ""
+	!insertmacro UAC_AsUser_ExecShell "" "$INSTDIR\tribler.exe" "" "" ""
 FunctionEnd
