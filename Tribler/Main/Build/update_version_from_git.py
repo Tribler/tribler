@@ -3,7 +3,7 @@
 from subprocess import Popen, PIPE
 from time import ctime
 from os import path, linesep
-from sys import platform
+import sys
 import logging
 
 logger = logging.getLogger(__name__)
@@ -39,12 +39,21 @@ if __name__ == '__main__':
     f.write(version_id)
     f.close()
 
-    if platform == 'linux2':
+    if sys.platform == 'linux2':
         runCommand('dch -v {} New upstream release.'.format(version_id).split())
-    elif platform == 'win32':
+    elif sys.platform == 'win32':
         logger.info('Replacing NSI string.')
         f = open(path.join('Tribler', 'Main', 'Build', 'Win', 'tribler.nsi'), 'r+')
-        content = f.read().replace('__GIT__', version_id)
+        content = f.read()
+
+        # Replace the __GIT__ string with the version id.
+        content = content.replace('__GIT__', version_id)
+
+        # Check if we are building 64 bit, replace the install dir and bit version accordingly.
+        if len(sys.argv) > 0 and sys.argv[1] == "64":
+            content = content.replace('_x86', '_x64')
+            content = content.replace('$PROGRAMFILES', '$PROGRAMFILES64')
+
         f.seek(0)
         f.write(content)
         f.close()
