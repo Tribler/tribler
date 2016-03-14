@@ -274,7 +274,8 @@ class AllChannelCommunity(Community):
         for message in messages:
             requested_packets = []
             for cid, infohashes in message.payload.torrents.iteritems():
-                requested_packets.extend(self._get_packets_from_infohashes(cid, infohashes))
+                packets = yield self._get_packets_from_infohashes(cid, infohashes)
+                requested_packets.extend(packets)
 
             if requested_packets:
                 self._dispersy._send_packets([message.candidate], requested_packets,
@@ -539,7 +540,6 @@ class AllChannelCommunity(Community):
         returnValue(collect)
 
     @inlineCallbacks
-    # TODO(Laurens): Find dependencies and make sure they can handle the Deferred getting returned
     def _get_packets_from_infohashes(self, cid, infohashes):
         assert all(isinstance(infohash, str) for infohash in infohashes)
         assert all(len(infohash) == 20 for infohash in infohashes)
