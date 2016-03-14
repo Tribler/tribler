@@ -1,14 +1,14 @@
 !define PRODUCT "Tribler"
-; The __GIT__ string will be replaced by update_version_from_git.py
+; Laurens, 2016-03-14: The __GIT__ string will be replaced by update_version_from_git.py
 !define VERSION "__GIT__"
-; The _x86 will be replaced by _x64 if needed in update_version_from_git.py
+; Laurens, 2016-03-14: The _x86 will be replaced by _x64 if needed in update_version_from_git.py
 !define BITVERSION "_x86"
 
 !include "MUI.nsh"
 !include "UAC.nsh"
 !include "FileFunc.nsh"
 
-; Laurens, 2016-03-14: In order to use the UAC plugin we are required to set RequestExecutionLevel to user.
+; In order to use the UAC plugin we are required to set RequestExecutionLevel to user.
 RequestExecutionLevel user
 
 ;--------------------------------
@@ -334,22 +334,27 @@ Function .onInit
   StrCmp $R0 0 +3
 
   MessageBox MB_OK "The installer is already running."
-
   Abort
 
-  ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString"
-  StrCmp $R0 "" done
-  IfFileExists $R0 +1 done
-
-  MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "${PRODUCT} is already installed. $\n$\nClick `OK` to remove the previous version or `Cancel` to cancel this upgrade." /SD IDOK IDOK uninst
+  FindWindow $0 "" "${PRODUCT}"
+  StrCmp $0 0 notRunning
+  MessageBox MB_OK|MB_ICONEXCLAMATION "${PRODUCT} is running. Please close it first." /SD IDOK
   Abort
+  notRunning:
 
-  uninst:
-    ClearErrors
-    ExecWait '$R0 _?=$INSTDIR' ;Do not copy the uninstaller to a temp file
     ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString"
     StrCmp $R0 "" done
+    IfFileExists $R0 +1 done
+
+    MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "${PRODUCT} is already installed. $\n$\nClick `OK` to remove the previous version or `Cancel` to cancel this upgrade." /SD IDOK IDOK uninst
     Abort
+
+    uninst:
+      ClearErrors
+      ExecWait '$R0 _?=$INSTDIR' ;Do not copy the uninstaller to a temp file
+      ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString"
+      StrCmp $R0 "" done
+      Abort
   done:
 
 FunctionEnd
