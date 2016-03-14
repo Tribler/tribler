@@ -10,8 +10,11 @@ from TriblerGUI import vlc
 class VideoPlayerPage(QWidget):
 
     INFOHASH = u"8a8898c4f65a2812006e24f34c314ecab74f6b44" # for testing purposes
-    ACTIVE_INDEX = 3
-    VIDEO_PLAYER_PORT = 19536
+    ACTIVE_INDEX = -1
+
+    def __init__(self):
+        super(VideoPlayerPage, self).__init__()
+        self.video_player_port = None
 
     def initialize_player(self):
         self.instance = vlc.Instance()
@@ -56,8 +59,6 @@ class VideoPlayerPage(QWidget):
         self.manager.event_attach(vlc.EventType.MediaPlayerPositionChanged, self.vlc_position_changed)
         self.manager.event_attach(vlc.EventType.MediaPlayerBuffering, self.on_vlc_player_buffering)
         self.manager.event_attach(vlc.EventType.MediaPlayerPlaying, self.on_vlc_player_playing)
-
-        self.should_change_playing_file(3)
 
     def on_vlc_player_buffering(self, event):
         print event
@@ -106,7 +107,7 @@ class VideoPlayerPage(QWidget):
 
         # TODO martijn: temporarily set media hardcoded
         #filename = u"http://qthttp.apple.com.edgesuite.net/1010qwoeiuryfg/sl.m3u8"
-        filename = u"http://127.0.0.1:" + unicode(self.VIDEO_PLAYER_PORT) + "/" + self.INFOHASH + "/" + unicode(self.ACTIVE_INDEX)
+        filename = u"http://127.0.0.1:" + unicode(self.video_player_port) + "/" + self.INFOHASH + "/" + unicode(self.ACTIVE_INDEX)
         self.media = self.instance.media_new(filename)
         self.mediaplayer.set_media(self.media)
         self.media.parse()
