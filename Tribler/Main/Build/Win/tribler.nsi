@@ -1,11 +1,14 @@
 !define PRODUCT "Tribler"
+; The __GIT__ string will be replaced by update_version_from_git.py
 !define VERSION "__GIT__"
+; The _x86 will be replaced by _x64 if needed in update_version_from_git.py
+!define BITVERSION "_x86"
 
 !include "MUI.nsh"
 !include "UAC.nsh"
 !include "FileFunc.nsh"
 
-; In order to use the UAC plugin we are required to set RequestExecutionLevel to user.
+; Laurens, 2016-03-14: In order to use the UAC plugin we are required to set RequestExecutionLevel to user.
 RequestExecutionLevel user
 
 ;--------------------------------
@@ -13,9 +16,10 @@ RequestExecutionLevel user
 
 ;General
 Name "${PRODUCT} ${VERSION}"
-OutFile "${PRODUCT}_${VERSION}.exe"
+OutFile "${PRODUCT}_${VERSION}_{$BITVERSION}.exe"
 
-;Folder selection page
+;Folder selection page. 
+; Laurens, 2016-03-14: Note that $PROGRAMFILES will be replaced by $PROGRAMFILES64 if needed from update_version_from_git.py.
 InstallDir "$PROGRAMFILES\${PRODUCT}"
 
 ;Remember install folder
