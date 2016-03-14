@@ -33,6 +33,9 @@ class TriblerAPI(resource.Resource):
         self.download_request_handler = DownloadRequestHandler(self.session)
         self.putChild("download", self.download_request_handler)
 
+        self.settings_request_handler = SettingsRequestHandler(self.session)
+        self.putChild("settings", self.settings_request_handler)
+
         # Add all observers for the api
         self.session.add_observer(self.event_request_handler.on_free_space, NTFY_FREE_SPACE, [NTFY_INSERT])
 
@@ -171,6 +174,24 @@ class DownloadDetailRequestHandler(resource.Resource):
         response_json = {"name": download.get_def().get_name(), "eta": ds.get_eta(),
                          "files": files_array }
         return json.dumps({"download": response_json})
+
+
+class SettingsRequestHandler(resource.Resource):
+
+    isLeaf = True
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def render_GET(self, request):
+        settings = self.session.sessconfig._sections
+
+        # replace ports in configuration with actual assigned ports
+        # TODO martijn there are more ports that have to be changed (dispersy i.e.)
+        settings['video']['port'] = self.session.lm.videoplayer.videoserver.port
+
+        return json.dumps(settings)
 
 
 class EventRequestHandler(resource.Resource):
