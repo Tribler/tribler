@@ -1,5 +1,6 @@
 from random import sample
 from time import time
+from twisted.internet.defer import returnValue, inlineCallbacks, maybeDeferred
 
 from twisted.internet.task import LoopingCall
 from twisted.python.threadable import isInIOThread
@@ -535,6 +536,8 @@ class AllChannelCommunity(Community):
 
         return collect
 
+    @inlineCallbacks
+    # TODO(Laurens): Find dependencies and make sure they can handle the Deferred getting returned
     def _get_packets_from_infohashes(self, cid, infohashes):
         assert all(isinstance(infohash, str) for infohash in infohashes)
         assert all(len(infohash) == 20 for infohash in infohashes)
@@ -543,8 +546,8 @@ class AllChannelCommunity(Community):
 
         packets = []
         for infohash in infohashes:
-            dispersy_id = self._channelcast_db.getTorrentFromChannelId(
-                channel_id, infohash, ['ChannelTorrents.dispersy_id'])
+            dispersy_id = yield maybeDeferred(self._channelcast_db.getTorrentFromChannelId(
+                channel_id, infohash, ['ChannelTorrents.dispersy_id']))
 
             if dispersy_id and dispersy_id > 0:
                 try:
@@ -553,7 +556,7 @@ class AllChannelCommunity(Community):
                 except RuntimeError:
                     pass
 
-        return packets
+        returnValue(packets)
 
     def _get_packet_from_dispersy_id(self, dispersy_id, messagename):
         try:

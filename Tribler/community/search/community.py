@@ -5,7 +5,7 @@ from binascii import hexlify
 from traceback import print_exc
 from twisted.internet.threads import deferToThread
 
-from twisted.internet.defer import inlineCallbacks, returnValue
+from twisted.internet.defer import inlineCallbacks, returnValue, maybeDeferred
 
 from twisted.internet.task import LoopingCall
 
@@ -643,6 +643,8 @@ class SearchCommunity(Community):
             return PreviewChannelCommunity.init_community(self._dispersy, self._dispersy.get_member(mid=cid),
                                                           self._my_member, tribler_session=self.tribler_session)
 
+    @inlineCallbacks
+    # TODO(Laurens): Find dependencies and make sure they can handle the Deferred getting returned
     def _get_packets_from_infohashes(self, cid, infohashes):
         packets = []
 
@@ -665,7 +667,7 @@ class SearchCommunity(Community):
 
             # 1. try to find the torrentmessage for this cid, infohash combination
             if channel_id:
-                dispersy_id = self._channelcast_db.getTorrentFromChannelId(channel_id, infohash, ['ChannelTorrents.dispersy_id'])
+                dispersy_id = yield maybeDeferred(self._channelcast_db.getTorrentFromChannelId(channel_id, infohash, ['ChannelTorrents.dispersy_id']))
             else:
                 torrent = self._torrent_db.getTorrent(infohash, ['dispersy_id'], include_mypref=False)
                 if torrent:
@@ -677,7 +679,7 @@ class SearchCommunity(Community):
                         if message:
                             packets.append(message.packet)
             add_packet(dispersy_id)
-        return packets
+        returnValue(packets)
 
     def _get_packet_from_dispersy_id(self, dispersy_id, messagename):
         # 1. get the packet
