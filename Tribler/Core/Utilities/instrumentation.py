@@ -149,7 +149,7 @@ class WatchDog(Thread):
                 while events_to_unregister:
                     name = events_to_unregister.pop()
                     if self.debug:
-                        self.printe(">>>>>>>>> UNREGISTERING" % name)
+                        self.printe(">>>>>>>>> UNREGISTERING %r" % name)
                     self.tripped_canaries.append(name)
                     self.unregister_event(name)
         if self.debug:
