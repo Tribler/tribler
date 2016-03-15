@@ -183,9 +183,6 @@ class PeerDBHandler(BasicDBHandler):
             else:
                 return True
 
-    def updatePeer(self, permid, **argv):
-        self._db.update(self.table_name, u'permid = ' + repr(bin2str(permid)), **argv)
-
     def deletePeer(self, permid=None, peer_id=None):
         # don't delete friend of superpeers, except that force is True
         if peer_id is None:
@@ -193,11 +190,10 @@ class PeerDBHandler(BasicDBHandler):
         if peer_id is None:
             return
 
-        if peer_id is not None:
-            self._db.delete(u"Peer", peer_id=peer_id)
-            deleted = not self.hasPeer(permid, check_db=True)
-            if deleted and permid in self.permid_id:
-                self.permid_id.pop(permid)
+        self._db.delete(u"Peer", peer_id=peer_id)
+        deleted = not self.hasPeer(permid, check_db=True)
+        if deleted and permid in self.permid_id:
+            self.permid_id.pop(permid)
 
 
 class TorrentDBHandler(BasicDBHandler):
@@ -304,11 +300,10 @@ class TorrentDBHandler(BasicDBHandler):
     def addExternalTorrent(self, torrentdef, extra_info={}):
         assert isinstance(torrentdef, TorrentDef), "TORRENTDEF has invalid type: %s" % type(torrentdef)
         assert torrentdef.is_finalized(), "TORRENTDEF is not finalized"
-        if torrentdef.is_finalized():
-            infohash = torrentdef.get_infohash()
-            if not self.hasTorrent(infohash):
-                self._addTorrentToDB(torrentdef, extra_info)
-                self.notifier.notify(NTFY_TORRENTS, NTFY_INSERT, infohash)
+        infohash = torrentdef.get_infohash()
+        if not self.hasTorrent(infohash):
+            self._addTorrentToDB(torrentdef, extra_info)
+            self.notifier.notify(NTFY_TORRENTS, NTFY_INSERT, infohash)
 
     def addExternalTorrentNoDef(self, infohash, name, files, trackers, timestamp, extra_info={}):
         if not self.hasTorrent(infohash):
@@ -319,9 +314,9 @@ class TorrentDBHandler(BasicDBHandler):
 
             if len(files) > 1:
                 files_as_dict = []
-                for filename, file_lenght in files:
+                for filename, file_length in files:
                     filename = filename.encode('utf_8')
-                    files_as_dict.append({'path': [filename], 'length': file_lenght})
+                    files_as_dict.append({'path': [filename], 'length': file_length})
                 metainfo['info']['files'] = files_as_dict
 
             elif len(files) == 1:
@@ -345,9 +340,8 @@ class TorrentDBHandler(BasicDBHandler):
                     self._rtorrent_handler.notify_possible_torrent_infohash(infohash)
 
                 insert_files = [(torrent_id, unicode(path), length) for path, length in files]
-                if len(insert_files) > 0:
-                    sql_insert_files = "INSERT OR IGNORE INTO TorrentFiles (torrent_id, path, length) VALUES (?,?,?)"
-                    self._db.executemany(sql_insert_files, insert_files)
+                sql_insert_files = "INSERT OR IGNORE INTO TorrentFiles (torrent_id, path, length) VALUES (?,?,?)"
+                self._db.executemany(sql_insert_files, insert_files)
             except:
                 self._logger.error("Could not create a TorrentDef instance %r %r %r %r %r %r", infohash, timestamp, name, files, trackers, extra_info)
                 print_exc()
@@ -1140,8 +1134,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
         if infohash:
             self.notifier.notify(NTFY_MYPREFERENCES, NTFY_INSERT, infohash)
 
-        # Arno, 2010-02-04: Update self.recent_ caches :-(
-        # self.loadData()
         return True
 
     def deletePreference(self, torrent_id):
@@ -1152,9 +1144,6 @@ class MyPreferenceDBHandler(BasicDBHandler):
         infohash = self._torrent_db.getInfohash(torrent_id)
         if infohash:
             self.notifier.notify(NTFY_MYPREFERENCES, NTFY_DELETE, infohash)
-
-        # Arno, 2010-02-04: Update self.recent_ caches :-(
-        # self.loadData()
 
     def updateDestDir(self, torrent_id, destdir):
         if not isinstance(destdir, basestring):
