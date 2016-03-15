@@ -1082,6 +1082,7 @@ class ChannelCommunity(Community):
     def _disp_check_missing_channel(self, messages):
         return messages
 
+    @inlineCallbacks
     def _disp_on_missing_channel(self, messages):
         channelmessage = self._get_latest_channel_message()
         packets = None
@@ -1094,7 +1095,7 @@ class ChannelCommunity(Community):
 
                     torrents = self._channelcast_db.getRandomTorrents(self._channel_id)
                     for infohash in torrents:
-                        tormessage = self._get_message_from_torrent_infohash(infohash)
+                        tormessage = yield self._get_message_from_torrent_infohash(infohash)
                         if tormessage:
                             packets.append(tormessage.packet)
 
@@ -1158,7 +1159,6 @@ class ChannelCommunity(Community):
             return self._dispersy.load_message_by_packetid(self, dispersy_id)
 
     @inlineCallbacks
-    # TODO(Laurens): Find dependencies and make sure they can handle the Deferred getting returned
     def _get_message_from_torrent_infohash(self, torrent_infohash):
         assert isinstance(torrent_infohash, str), 'infohash is a %s' % type(torrent_infohash)
         assert len(torrent_infohash) == 20, 'infohash has length %d' % len(torrent_infohash)
