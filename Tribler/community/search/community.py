@@ -5,7 +5,7 @@ from binascii import hexlify
 from traceback import print_exc
 from twisted.internet.threads import deferToThread
 
-from twisted.internet.defer import inlineCallbacks, returnValue, maybeDeferred
+from twisted.internet.defer import inlineCallbacks, returnValue, maybeDeferred, DeferredList
 
 from twisted.internet.task import LoopingCall
 
@@ -435,15 +435,25 @@ class SearchCommunity(Community):
     def on_torrent_request(self, messages):
         for message in messages:
             requested_packets = []
-            for cid, torrents in message.payload.torrents.iteritems():
-                requested_packets.extend(self._get_packets_from_infohashes(cid, torrents))
+            deferList = []
 
-            if requested_packets:
-                self._dispersy._send_packets([message.candidate], requested_packets,
+            def on_packets(packets):
+                requested_packets.extend(packets)
+
+            def on_all_packets_received(ignored):
+                if requested_packets:
+                    self._dispersy._send_packets([message.candidate], requested_packets,
                                              self, u"-caused by on-torrent-request-")
 
-            if DEBUG:
-                self._logger.debug(u"got request for %s torrents from %s", len(requested_packets), message.candidate)
+                if DEBUG:
+                    self._logger.debug(u"got request for %s torrents from %s", len(requested_packets), message.candidate)
+
+            for cid, torrents in message.payload.torrents.iteritems():
+                deferred = self._get_packets_from_infohashes(cid, torrents)
+                deferred.addCallback(on_packets)
+                deferList.append(deferred)
+
+            DeferredList(deferList).addCallback(on_all_packets_received)
 
     class PingRequestCache(RandomNumberCache):
 
@@ -644,7 +654,6 @@ class SearchCommunity(Community):
                                                           self._my_member, tribler_session=self.tribler_session)
 
     @inlineCallbacks
-    # TODO(Laurens): Find dependencies and make sure they can handle the Deferred getting returned
     def _get_packets_from_infohashes(self, cid, infohashes):
         packets = []
 
