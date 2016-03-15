@@ -245,11 +245,13 @@ class AllChannelCommunity(Community):
             # ensure that no commits occur
             raise IgnoreCommits()
 
+    @inlineCallbacks
     def on_channelcast(self, messages):
         for message in messages:
             toCollect = {}
             for cid, infohashes in message.payload.torrents.iteritems():
-                for infohash in self._selectTorrentsToCollect(cid, infohashes):
+                torrents_to_collect = yield self._selectTorrentsToCollect(cid, infohashes)
+                for infohash in torrents_to_collect:
                     toCollect.setdefault(cid, set()).add(infohash)
 
             nr_requests = sum([len(infohashes) for infohashes in toCollect.values()])
@@ -510,7 +512,6 @@ class AllChannelCommunity(Community):
         return self._channelcast_db.getChannelIdFromDispersyCID(buffer(cid))
 
     @inlineCallbacks
-    # TODO(Laurens): Find dependencies and make sure they can handle the Deferred getting returned
     def _selectTorrentsToCollect(self, cid, infohashes):
         channel_id = self._get_channel_id(cid)
 
