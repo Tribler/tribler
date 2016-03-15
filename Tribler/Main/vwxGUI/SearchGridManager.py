@@ -1381,7 +1381,6 @@ class ChannelManager(object):
 
     @call_on_reactor_thread
     @inlineCallbacks
-    # TODO(Laurens): Find dependencies and make sure they can handle the Deferred getting returned
     def createTorrentFromDef(self, channel_id, tdef, extraInfo={}, forward=True):
         # Make sure that this new tdef is also in collected torrents
         self.remote_th.save_torrent(tdef)

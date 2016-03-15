@@ -9,6 +9,7 @@ from random import sample
 from traceback import print_exc
 import re
 from binascii import hexlify
+from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.widgets import _set_font, NotebookPanel, SimpleNotebook, EditText, BetterText
@@ -1003,8 +1004,11 @@ class ManageChannelFilesManager(BaseManager):
         self.channelsearch_manager.createTorrent(self.channel, torrent)
         return True
 
+
     def AddTDef(self, tdef):
         if tdef:
+            # TODO(Laurens): createTorrentFromDef is now async and returns a deferred.
+            # Do we want to yield here or just let it be created asynchronously (I guess yes) in the background?
             self.channelsearch_manager.createTorrentFromDef(self.channel.id, tdef)
             if not self.channel.isMyChannel():
                 notification = "New torrent added to %s's channel" % self.channel.name
