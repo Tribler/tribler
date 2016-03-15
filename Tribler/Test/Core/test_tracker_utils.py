@@ -66,6 +66,3 @@ class TriblerCoreTestTrackerUtils(TriblerCoreTest):
     def test_parse_tracker_url_wrong_type_4(self):
         parse_tracker_url("http://tracker.openbittorrent.com:abc/announce")
 
-    @raises(RuntimeError)
-    def test_parse_tracker_url_no_resolve(self):
-        parse_tracker_url("http://notexistingexample123.com:80/announce")
