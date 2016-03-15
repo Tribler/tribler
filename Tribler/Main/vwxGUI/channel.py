@@ -168,12 +168,13 @@ class ChannelManager(BaseManager):
         self._logger.debug("SelChannelManager complete refresh done")
 
     @forceDBThread
+    @inlineCallbacks
     def refresh_partial(self, ids):
         if self.list.channel:
             id_data = {}
             for id in ids:
                 if isinstance(id, str) and len(id) == 20:
-                    id_data[id] = self.channelsearch_manager.getTorrentFromChannel(self.list.channel, id)
+                    id_data[id] = yield self.channelsearch_manager.getTorrentFromChannel(self.list.channel, id)
                 else:
                     id_data[id] = self.channelsearch_manager.getPlaylist(self.list.channel, id)
 
