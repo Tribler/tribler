@@ -1033,7 +1033,6 @@ class ChannelManager(object):
         return self.channelcast_db.getTorrentMarkings(channeltorrent_id)
 
     @inlineCallbacks
-    # TODO(Laurens): Find dependencies and make sure they can handle the Deferred getting returned
     def getTorrentFromChannel(self, channel, infohash, collectedOnly=True):
         data = yield maybeDeferred(self.channelcast_db.getTorrentFromChannelId(channel.id, infohash, CHANNEL_REQ_COLUMNS))
         returnValue(self._createTorrent(data, channel, collectedOnly=collectedOnly))
@@ -1422,10 +1421,15 @@ class ChannelManager(object):
 
     @call_on_reactor_thread
     def removeTorrent(self, channel, infohash):
-        torrent = self.getTorrentFromChannel(channel, infohash, collectedOnly=False)
-        if torrent:
-            community = self._disp_get_community_from_channel_id(channel.id)
-            community.remove_torrents([torrent.dispersy_id])
+
+        def on_torrent_received(torrent):
+            if torrent:
+                community = self._disp_get_community_from_channel_id(channel.id)
+                community.remove_torrents([torrent.dispersy_id])
+
+        deferred = self.getTorrentFromChannel(channel, infohash, collectedOnly=False)
+        deferred.addCallback(on_torrent_received)
+
 
     @call_on_reactor_thread
     def removeAllTorrents(self, channel):
