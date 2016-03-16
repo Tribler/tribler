@@ -42,6 +42,7 @@ from time import sleep, time
 
 from decorator import decorator
 
+MAX_SAME_STACK_TIME = 60
 
 
 @decorator
@@ -84,6 +85,8 @@ class WatchDog(Thread):
         self.debug = False
         self._registered_events = {}
         self.check_for_deadlocks = False
+
+        self.max_same_stack_time = MAX_SAME_STACK_TIME
 
         self.should_stop = False
         self.deadlock_found = False
@@ -189,7 +192,7 @@ class WatchDog(Thread):
             if thread_id not in self.stacks or self.stacks[thread_id] != stack:
                 self.stacks[thread_id] = stack
                 self.times[thread_id] = time()
-            elif time() - self.times[thread_id] >= 60:
+            elif time() - self.times[thread_id] >= self.max_same_stack_time:
                 self.printe("\n*** POSSIBLE DEADLOCK IN THREAD %d DETECTED: - ***\n" % thread_id)
                 self.deadlock_found = True
                 self.stacks.pop(thread_id)
