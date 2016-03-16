@@ -43,6 +43,7 @@ from time import sleep, time
 from decorator import decorator
 
 
+
 @decorator
 def synchronized(wrapped, instance, *args, **kwargs):
     if instance is None:
@@ -92,8 +93,6 @@ class WatchDog(Thread):
         self.tripped_canaries = []
         self.times = {}
 
-        self._synchronized_lock = Lock()
-
     @synchronized
     def _reset_state(self):
         self.should_stop = False
@@ -102,6 +101,10 @@ class WatchDog(Thread):
         self.event_timestamps = {}
         self.tripped_canaries = []
         self.times = {}
+
+    def start(self, *argv, **kwargs):
+        self._reset_state()
+        return super(WatchDog, self).start(*argv, **kwargs)
 
     def join(self, *argv, **kwargs):
         if self.debug:
@@ -127,7 +130,6 @@ class WatchDog(Thread):
             print >> sys.stderr, line
 
     def run(self):
-        self._reset_state()
         events_to_unregister = []
         while not self.should_stop:
             sleep(0.2)
