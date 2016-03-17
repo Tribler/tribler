@@ -53,12 +53,13 @@ class TriblerWindow(QMainWindow):
         self.left_menu_settings_button = self.findChild(QWidget, "left_menu_settings_button")
         self.left_menu_settings_button.clicked_menu_button.connect(self.clicked_menu_button)
 
-        self.stackedWidget.setCurrentIndex(5)
+        self.stackedWidget.setCurrentIndex(2)
 
         self.tribler_request_manager = TriblerRequestManager()
         self.tribler_request_manager.received_search_results.connect(self.received_search_results)
         self.tribler_request_manager.received_torrents_in_channel.connect(self.received_torrents_in_channel)
         self.tribler_request_manager.received_settings.connect(self.received_settings)
+        self.tribler_request_manager.received_channels.connect(self.received_channels)
 
         # fetch the settings
         self.tribler_request_manager.get_settings()
@@ -82,6 +83,18 @@ class TriblerWindow(QMainWindow):
 
     def received_free_space(self, free_space):
         self.statusBar.set_free_space(free_space)
+
+    def received_channels(self, json_results):
+        self.channels_list.clear()
+        results = json.loads(json_results)
+
+        for result in results['channels']:
+            item = QListWidgetItem(self.channels_list)
+            item.setSizeHint(QSize(-1, 60))
+            item.setData(Qt.UserRole, result)
+            widget_item = ChannelListItem(self.channels_list, result)
+            self.channels_list.addItem(item)
+            self.channels_list.setItemWidget(item, widget_item)
 
     def received_search_results(self, json_results):
         self.channels_list.clear()
@@ -109,9 +122,11 @@ class TriblerWindow(QMainWindow):
 
     def received_settings(self, json_results):
         results = json.loads(json_results)
-        print results
         self.video_player_page.video_player_port = results['video']['port']
         self.settings = json.loads(json_results)
+
+        # fetch popular channels and display them
+        self.tribler_request_manager.get_channels()
 
     def on_top_search_button_click(self):
         self.stackedWidget.setCurrentIndex(2)
