@@ -4,9 +4,10 @@
 ; Laurens, 2016-03-14: The _x86 will be replaced by _x64 if needed in update_version_from_git.py
 !define BITVERSION "x86"
 
-!include "MUI.nsh"
+!include "MUI2.nsh"
 !include "UAC.nsh"
 !include "FileFunc.nsh"
+!include "nsProcess.nsh"
 
 ; In order to use the UAC plugin we are required to set RequestExecutionLevel to user.
 RequestExecutionLevel user
@@ -46,9 +47,14 @@ BrandingText "${PRODUCT}"
 ; Tribler running check - shared function
 !macro RUNMACRO un
   Function ${un}checkrunning
-    MessageBox MB_OK "This is the function ${un}checkrunning."
-    DetailPrint "Very ${un}funny text."
-    DetailPrint "More ${un}funny text."
+	DetailPrint "Checking if Tribler is not running..."
+	checkRunning:
+		${nsProcess::FindProcess} "tribler.exe" $r0
+    		StrCmp $r0 0 0 notRunning
+    		MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "${PRODUCT} is running, please close it so the (un)installation can proceed." /SD IDCANCEL IDRETRY checkRunning
+    		Abort
+
+  	notRunning:
   FunctionEnd
 !macroend
  
@@ -112,7 +118,7 @@ LangString DESC_SecDefaultMagnet ${LANG_ENGLISH} "Associate magnet links with ${
 
 Section "!Main EXE" SecMain
  SectionIn RO
-
+	; Check if tribler is not running when trying to install because files will be in use when cleaning the isntall dir.
 	Call checkrunning
 
  ; Boudewijn, need to remove stuff from previously installed version
@@ -294,6 +300,7 @@ SectionEnd
 ;Uninstaller Section
 
 Section "Uninstall"
+    ; Check if tribler is not running when trying to uninstall because files will be in use then.
     Call un.checkrunning
 
     RMDir /r "$INSTDIR"
@@ -375,16 +382,7 @@ FunctionEnd
 
 Function un.onInit
 	SetShellVarContext all
-
-  	MessageBox MB_YESNO "This will uninstall. Continue?" IDYES checkRunning
-  	checkRunning:
-    		FindProcDLL::FindProc "tribler.exe"
-    		IntCmp $R0 1 0 notRunning
-    		MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "${PRODUCT} is running, please close it so the installation can proceed." /SD IDCANCEL IDRETRY checkRunning
-    		Abort
-
-  	notRunning:
-    		!insertmacro Init "uninstaller"
+    	!insertmacro Init "uninstaller"
 FunctionEnd
 
 Function PageFinishRun
