@@ -40,7 +40,7 @@ from tempfile import mkdtemp
 
 from twisted.internet.task import Clock
 
-from Tribler.Core.leveldbstore import LevelDbStore, WRITEBACK_PERIOD
+from Tribler.Core.leveldbstore import LevelDbStore, WRITEBACK_PERIOD, USE_LEVELDB
 from Tribler.Test.test_as_server import BaseTestCase
 
 
@@ -90,6 +90,10 @@ class TestLevelDbStore(BaseTestCase):
         self.assertEqual(None, self.store.get(K))
         with self.assertRaises(KeyError) as raises:
             self.store[K]
+
+    def test_PutGet(self):
+        self.store._db.Put(K, V)
+        self.assertEqual(V, self.store._db.Get(K))
 
     def test_cacheIsFlushed(self):
         self.store[K] = V
