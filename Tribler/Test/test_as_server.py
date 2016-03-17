@@ -131,7 +131,11 @@ class AbstractServer(BaseTestCase):
             self.assertNotIsInstance(reader, BasePort, "The test left a listening port behind: %s" % reader)
 
         process_unhandled_exceptions()
-        self.watchdog.join()
+        self.watchdog.join(2)
+        if self.watchdog.is_alive():
+            self._logger.critical("The WatchDog didn't stop!")
+            self.watchdog.print_all_stacks()
+            raise RuntimeError("Couldn't stop the WatchDog")
 
     def tearDownCleanup(self):
         self.setUpCleanup()

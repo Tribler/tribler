@@ -42,6 +42,8 @@ from time import sleep, time
 
 from decorator import decorator
 
+MAX_SAME_STACK_TIME = 60
+
 
 @decorator
 def synchronized(wrapped, instance, *args, **kwargs):
@@ -84,6 +86,8 @@ class WatchDog(Thread):
         self._registered_events = {}
         self.check_for_deadlocks = False
 
+        self.max_same_stack_time = MAX_SAME_STACK_TIME
+
         self.should_stop = False
         self.deadlock_found = False
         self.stacks = {}
@@ -91,8 +95,6 @@ class WatchDog(Thread):
         self.event_timeouts = {}
         self.tripped_canaries = []
         self.times = {}
-
-        self._synchronized_lock = Lock()
 
     @synchronized
     def _reset_state(self):
@@ -102,6 +104,10 @@ class WatchDog(Thread):
         self.event_timestamps = {}
         self.tripped_canaries = []
         self.times = {}
+
+    def start(self, *argv, **kwargs):
+        self._reset_state()
+        return super(WatchDog, self).start(*argv, **kwargs)
 
     def join(self, *argv, **kwargs):
         if self.debug:
@@ -127,7 +133,6 @@ class WatchDog(Thread):
             print >> sys.stderr, line
 
     def run(self):
-        self._reset_state()
         events_to_unregister = []
         while not self.should_stop:
             sleep(0.2)
@@ -149,7 +154,7 @@ class WatchDog(Thread):
                 while events_to_unregister:
                     name = events_to_unregister.pop()
                     if self.debug:
-                        self.printe(">>>>>>>>> UNREGISTERING" % name)
+                        self.printe(">>>>>>>>> UNREGISTERING %r" % name)
                     self.tripped_canaries.append(name)
                     self.unregister_event(name)
         if self.debug:
@@ -187,7 +192,7 @@ class WatchDog(Thread):
             if thread_id not in self.stacks or self.stacks[thread_id] != stack:
                 self.stacks[thread_id] = stack
                 self.times[thread_id] = time()
-            elif time() - self.times[thread_id] >= 60:
+            elif time() - self.times[thread_id] >= self.max_same_stack_time:
                 self.printe("\n*** POSSIBLE DEADLOCK IN THREAD %d DETECTED: - ***\n" % thread_id)
                 self.deadlock_found = True
                 self.stacks.pop(thread_id)
