@@ -39,7 +39,7 @@ SetCompressor "lzma"
 ;
 ;SetCompress "off"
 
-CompletedText "Installation completed. Thank you for choosing ${PRODUCT}"
+CompletedText "Installation completed. Thank you for choosing ${PRODUCT}."
 
 BrandingText "${PRODUCT}"
 
@@ -76,13 +76,6 @@ BrandingText "${PRODUCT}"
 !define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_ACCEPT "I accept"
 !define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_DECLINE "I decline"
 
-; Arno, 2010-02-09: On Vista+Win7 the default value for RequestExecutionLevel
-; is auto, so this installer will be run as Administrator. Hence also the
-; Tribler.exe that is launched by FINISHPAGE_RUN will be launched as that user.
-; This is not what we want. We do want an admin-level install, in particular
-; for configuring the Windows firewall automatically. Alternative is the
-; UAC plugin (http://nsis.sourceforge.net/UAC_plug-in) but that's still beta.
-; Bouman, 2012-04-13: Now using the UAC plugin.
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_FUNCTION PageFinishRun
 
@@ -118,8 +111,8 @@ LangString DESC_SecDefaultMagnet ${LANG_ENGLISH} "Associate magnet links with ${
 
 Section "!Main EXE" SecMain
  SectionIn RO
-	; Check if tribler is not running when trying to install because files will be in use when cleaning the isntall dir.
-	Call checkrunning
+ ; Check if tribler is not running when trying to install because files will be in use when cleaning the isntall dir.
+ Call checkrunning
 
  ; Boudewijn, need to remove stuff from previously installed version
  RMDir /r "$INSTDIR"
