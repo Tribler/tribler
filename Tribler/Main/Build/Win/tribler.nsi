@@ -1,9 +1,13 @@
 !define PRODUCT "Tribler"
+; Laurens, 2016-03-14: The __GIT__ string will be replaced by update_version_from_git.py
 !define VERSION "__GIT__"
+; Laurens, 2016-03-14: The _x86 will be replaced by _x64 if needed in update_version_from_git.py
+!define BITVERSION "x86"
 
-!include "MUI.nsh"
+!include "MUI2.nsh"
 !include "UAC.nsh"
 !include "FileFunc.nsh"
+!include "nsProcess.nsh"
 
 ; In order to use the UAC plugin we are required to set RequestExecutionLevel to user.
 RequestExecutionLevel user
@@ -13,10 +17,15 @@ RequestExecutionLevel user
 
 ;General
 Name "${PRODUCT} ${VERSION}"
-OutFile "${PRODUCT}_${VERSION}.exe"
+OutFile "${PRODUCT}_${VERSION}_${BITVERSION}.exe"
 
-;Folder selection page
+;Folder selection page. 
+; Laurens, 2016-03-14: Note that $PROGRAMFILES will be replaced by $PROGRAMFILES64 if needed from update_version_from_git.py.
 InstallDir "$PROGRAMFILES\${PRODUCT}"
+
+; Laurens, 2016-03-15: No silent mode for the installer and uninstaller because this will disbale the init functions being called.
+SilentInstall normal
+SilentUnInstall normal
 
 ;Remember install folder
 InstallDirRegKey HKCU "Software\${PRODUCT}" ""
@@ -30,9 +39,28 @@ SetCompressor "lzma"
 ;
 ;SetCompress "off"
 
-CompletedText "Installation completed. Thank you for choosing ${PRODUCT}"
+CompletedText "Installation completed. Thank you for choosing ${PRODUCT}."
 
 BrandingText "${PRODUCT}"
+
+; ----------------------------
+; Tribler running check - shared function
+!macro RUNMACRO un
+  Function ${un}checkrunning
+	DetailPrint "Checking if Tribler is not running..."
+	checkRunning:
+		${nsProcess::FindProcess} "tribler.exe" $r0
+    		StrCmp $r0 0 0 notRunning
+    		MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "${PRODUCT} is running, please close it so the (un)installation can proceed." /SD IDCANCEL IDRETRY checkRunning
+    		Abort
+
+  	notRunning:
+  FunctionEnd
+!macroend
+ 
+; Insert function as an installer and uninstaller function.
+!insertmacro RUNMACRO ""
+!insertmacro RUNMACRO "un."
 
 ;--------------------------------
 ;Modern UI Configuration
@@ -48,13 +76,6 @@ BrandingText "${PRODUCT}"
 !define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_ACCEPT "I accept"
 !define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_DECLINE "I decline"
 
-; Arno, 2010-02-09: On Vista+Win7 the default value for RequestExecutionLevel
-; is auto, so this installer will be run as Administrator. Hence also the
-; Tribler.exe that is launched by FINISHPAGE_RUN will be launched as that user.
-; This is not what we want. We do want an admin-level install, in particular
-; for configuring the Windows firewall automatically. Alternative is the
-; UAC plugin (http://nsis.sourceforge.net/UAC_plug-in) but that's still beta.
-; Bouman, 2012-04-13: Now using the UAC plugin.
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_FUNCTION PageFinishRun
 
@@ -90,6 +111,8 @@ LangString DESC_SecDefaultMagnet ${LANG_ENGLISH} "Associate magnet links with ${
 
 Section "!Main EXE" SecMain
  SectionIn RO
+ ; Check if tribler is not running when trying to install because files will be in use when cleaning the isntall dir.
+ Call checkrunning
 
  ; Boudewijn, need to remove stuff from previously installed version
  RMDir /r "$INSTDIR"
@@ -270,22 +293,23 @@ SectionEnd
 ;Uninstaller Section
 
 Section "Uninstall"
+    ; Check if tribler is not running when trying to uninstall because files will be in use then.
+    Call un.checkrunning
 
- RMDir /r "$INSTDIR"
+    RMDir /r "$INSTDIR"
 
- Delete "$DESKTOP\${PRODUCT}.lnk"
+    Delete "$DESKTOP\${PRODUCT}.lnk"
 
- SetShellVarContext all
- RMDir "$SMPROGRAMS\${PRODUCT}"
- RMDir /r "$SMPROGRAMS\${PRODUCT}"
+    SetShellVarContext all
+    RMDir "$SMPROGRAMS\${PRODUCT}"
+    RMDir /r "$SMPROGRAMS\${PRODUCT}"
 
- DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\${PRODUCT}"
- DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}"
+    DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\${PRODUCT}"
+    DeleteRegKey HKEY_LOCAL_MACHINE "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}"
 
- ; Remove an application from the firewall exception list
- SimpleFC::RemoveApplication "$INSTDIR\${PRODUCT}.exe"
- ; Pop $0 ; return error(1)/success(0)
-
+    ; Remove an application from the firewall exception list
+    SimpleFC::RemoveApplication "$INSTDIR\${PRODUCT}.exe"
+    ; Pop $0 ; return error(1)/success(0)
 SectionEnd
 
 ;--------------------------------
@@ -330,14 +354,13 @@ Function .onInit
   StrCmp $R0 0 +3
 
   MessageBox MB_OK "The installer is already running."
-
   Abort
 
   ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString"
   StrCmp $R0 "" done
   IfFileExists $R0 +1 done
 
-  MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "${PRODUCT} is already installed. $\n$\nClick `OK` to remove the previous version or `Cancel` to cancel this upgrade." /SD IDOK IDOK uninst
+  MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "${PRODUCT} is already installed. $\n$\nClick `OK` to remove the previous version or `Cancel` to cancel this upgrade." /SD IDCANCEL IDOK uninst
   Abort
 
   uninst:
@@ -350,12 +373,11 @@ Function .onInit
 
 FunctionEnd
 
-
 Function un.onInit
-  !insertmacro Init "uninstaller"
+	SetShellVarContext all
+    	!insertmacro Init "uninstaller"
 FunctionEnd
 
-
 Function PageFinishRun
-  !insertmacro UAC_AsUser_ExecShell "" "$INSTDIR\tribler.exe" "" "" ""
+	!insertmacro UAC_AsUser_ExecShell "" "$INSTDIR\tribler.exe" "" "" ""
 FunctionEnd
