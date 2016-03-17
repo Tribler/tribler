@@ -1132,7 +1132,7 @@ class TunnelCommunity(Community):
                 if destination != ('0.0.0.0', 0):
                     self.exit_data(circuit_id, sock_addr, destination, data)
                 else:
-                    self.tunnel_logger.error("cannot exit data, destination is 0.0.0.0:0")
+                    self.tunnel_logger.warning("cannot exit data, destination is 0.0.0.0:0")
 
     def on_ping(self, messages):
         for message in messages:
@@ -1263,9 +1263,15 @@ class TunnelCommunity(Community):
                 raise CryptoException("Error decrypting message for circuit %d, circuit is set to 0 hops.")
 
         elif circuit_id in self.relay_session_keys:
-            return self.crypto.decrypt_str(content,
-                                           self.relay_session_keys[circuit_id][EXIT_NODE],
-                                           self.relay_session_keys[circuit_id][EXIT_NODE_SALT])
+            try:
+                return self.crypto.decrypt_str(content,
+                                               self.relay_session_keys[circuit_id][EXIT_NODE],
+                                               self.relay_session_keys[circuit_id][EXIT_NODE_SALT])
+            except InvalidTag as e:
+                raise CryptoException("Got exception %r when trying to decrypt relay message: "
+                                      "%r received for circuit_id: %s, is_data: %i, "
+                                      "circuit_hops: %r" % (e, content, circuit_id, is_data, circuit.hops
+                                      ))
 
         raise CryptoException("Received message for unknown circuit ID: %d" % circuit_id)
 

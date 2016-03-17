@@ -41,15 +41,25 @@
 
 # Code:
 
-import ctypes
 import os
 import sys
+import ctypes
 
+# WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING!
+#
+# There's a copy of the following two functions in hacks.py due to this file
+# depending on them to be able to update the PYTHONPATH so it can import anything
+# else and this file being deleted when py2exe freezes it. So please, if you
+# modify them, update their twin brothers too!
+#
+# WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING! WARNING!
 
+# TODO(emilon): remove this when Tribler gets migrated to python 3.
 # From: https://measureofchaos.wordpress.com/2011/03/04/python-on-windows-unicode-environment-variables/
-def getEnvironmentVariable(name):
+def get_environment_variable(name):
     """Get the unicode version of the value of an environment variable
     """
+    name = unicode(name)
     n = ctypes.windll.kernel32.GetEnvironmentVariableW(name, None, 0)
     if n == 0:
         return None
@@ -57,8 +67,15 @@ def getEnvironmentVariable(name):
     ctypes.windll.kernel32.GetEnvironmentVariableW(name, buf, n)
     return buf.value
 
-LOG_PATH = os.path.join(getEnvironmentVariable(u"APPDATA"), u"Tribler.exe.log")
-OLD_LOG_PATH = os.path.join(getEnvironmentVariable(u"APPDATA"), u"Tribler.exe.old.log")
+def set_environment_variable(name, value):
+    """Unicode compatible environment variable setter
+    """
+    if ctypes.windll.kernel32.SetEnvironmentVariableW(name, value) == 0:
+        raise RuntimeError("Failed to set env. variable '%s' to '%s" %
+                           (repr(name), repr(value)))
+
+LOG_PATH = os.path.join(get_environment_variable(u"APPDATA"), u"Tribler.exe.log")
+OLD_LOG_PATH = os.path.join(get_environment_variable(u"APPDATA"), u"Tribler.exe.old.log")
 
 if os.path.exists(OLD_LOG_PATH):
     try:
@@ -76,6 +93,8 @@ INSTALL_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 
 if INSTALL_DIR not in sys.path:
     sys.path.append(INSTALL_DIR)
+
+set_environment_variable("PATH", os.path.abspath(INSTALL_DIR) + os.pathsep + get_environment_variable(u"PATH"))
 
 from Tribler.Main.tribler import __main__
 
