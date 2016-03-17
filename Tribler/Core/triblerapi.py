@@ -27,6 +27,9 @@ class TriblerAPI(resource.Resource):
         self.channel_request_handler = ChannelRequestHandler(self.session)
         self.putChild("channel", self.channel_request_handler)
 
+        self.channels_request_handler = ChannelsRequestHandler(self.session)
+        self.putChild("channels", self.channels_request_handler)
+
         self.downloads_request_handler = DownloadsRequestHandler(self.session)
         self.putChild("downloads", self.downloads_request_handler)
 
@@ -108,7 +111,28 @@ class ChannelSearchRequestHandler(resource.Resource):
         for channel_result in results_local_channels:
             channel = Channel(*channel_result)
             results_json.append({"id" : channel.id, "name": channel.name, "votes": channel.nr_favorites,
-                                 "torrents": channel.nr_torrents, "spam": channel.nr_spam})
+                                 "torrents": channel.nr_torrents, "spam": channel.nr_spam,
+                                 "modified": channel.modified})
+
+        return json.dumps({"channels": results_json})
+
+
+class ChannelsRequestHandler(resource.Resource):
+
+    isLeaf = True
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+        self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
+
+    def render_GET(self, request):
+        results_json = []
+        for channel_result in self.channel_db_handler.getMostPopularChannels():
+            channel = Channel(*channel_result)
+            results_json.append({"id" : channel.id, "name": channel.name, "votes": channel.nr_favorites,
+                                 "torrents": channel.nr_torrents, "spam": channel.nr_spam,
+                                 "modified": channel.modified})
 
         return json.dumps({"channels": results_json})
 
