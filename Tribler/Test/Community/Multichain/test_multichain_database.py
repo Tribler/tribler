@@ -13,9 +13,6 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread
 class TestDatabase(MultiChainTestCase):
     """
     Tests the Database for MultiChain community.
-    Also tests integration with Dispersy.
-    This integration slows down the tests,
-    but can probably be removed and a Mock Dispersy could be used.
     """
 
     def __init__(self, *args, **kwargs):
@@ -28,7 +25,7 @@ class TestDatabase(MultiChainTestCase):
         path = os.path.join(self.getStateDir(), DATABASE_DIRECTORY)
         if not os.path.exists(path):
             os.makedirs(path)
-        self.db = MultiChainDB(None, self.getStateDir())
+        self.db = MultiChainDB(self.getStateDir())
         self.block1 = TestBlock()
         self.block2 = TestBlock()
 
@@ -37,20 +34,8 @@ class TestDatabase(MultiChainTestCase):
         # Act
         self.db.add_block(self.block1)
         # Assert
-        result = self.db.get_by_hash_requester(self.block1.hash_requester)
-        self.assertEqual_block(self.block1, result)
-
-    @blocking_call_on_reactor_thread
-    def test_get_blocks(self):
-        """
-        Test whether the right blocks are returned when fetching blocks
-        """
-        self.db.add_block(self.block1)
-        self.assertEqual(len(self.db.get_blocks(self.block1.public_key_requester)), 1)
-        self.block1.hash_requester = "a" * 40
-        self.db.add_block(self.block1)
-        self.assertEqual(len(self.db.get_blocks(self.block1.public_key_requester)), 2)
-        self.assertEqual(len(self.db.get_blocks(self.block1.public_key_requester, limit=1)), 1)
+        result = self.db.get_latest(block1.public_key)
+        self.assertEqual_block(block1, result)
 
     @blocking_call_on_reactor_thread
     def test_get_num_interactors(self):
@@ -74,30 +59,18 @@ class TestDatabase(MultiChainTestCase):
         self.assertEqual((2, 2), self.db.get_num_unique_interactors(my_key))
 
     @blocking_call_on_reactor_thread
-    def test_get_by_hash(self):
-        # Act
-        self.db.add_block(self.block1)
-        # Assert
-        result1 = self.db.get_by_hash_requester(self.block1.hash_requester)
-        result2 = self.db.get_by_hash(self.block1.hash_requester)
-        result3 = self.db.get_by_hash(self.block1.hash_responder)
-        self.assertEqual_block(self.block1, result1)
-        self.assertEqual_block(self.block1, result2)
-        self.assertEqual_block(self.block1, result3)
-
-    @blocking_call_on_reactor_thread
     def test_add_two_blocks(self):
         # Act
         self.db.add_block(self.block1)
         self.db.add_block(self.block2)
         # Assert
-        result = self.db.get_by_hash_requester(self.block2.hash_requester)
-        self.assertEqual_block(self.block2, result)
+        result = self.db.get_latest(block2.public_key)
+        self.assertEqual_block(block2, result)
 
     @blocking_call_on_reactor_thread
     def test_get_block_non_existing(self):
         # Act
-        result = self.db.get_by_hash_requester(self.block1.hash_requester)
+        result = self.db.get_latest(block1.public_key)
         # Assert
         self.assertEqual(None, result)
 
@@ -106,123 +79,49 @@ class TestDatabase(MultiChainTestCase):
         # Act
         self.db.add_block(self.block1)
         # Assert
-        self.assertTrue(self.db.contains(self.block1.hash_requester))
+        assert db.contains(self.block1)
 
     @blocking_call_on_reactor_thread
     def test_contains_block_id_negative(self):
         # Act & Assert
-        self.assertFalse(self.db.contains("NON EXISTING ID"))
+        assert not db.contains(self.block1)
 
-    @blocking_call_on_reactor_thread
-    def test_get_latest_sequence_number_not_existing(self):
-        # Act & Assert
-        self.assertEquals(self.db.get_latest_sequence_number("NON EXISTING KEY"), -1)
-
-    @blocking_call_on_reactor_thread
-    def test_get_latest_sequence_number_public_key_requester(self):
+    def test_get_linked_forward(self):
         # Arrange
-        # Make sure that there is a responder block with a lower sequence number.
-        # To test that it will look for both responder and requester.
+        self.block2 = TestBlock.create(db, self.block2.public_key, link=self.block1)
         self.db.add_block(self.block1)
-        self.block2.public_key_responder = self.block1.public_key_requester
-        self.block2.sequence_number_responder = self.block1.sequence_number_requester - 5
-        self.db.add_block(self.block2)
-        # Act & Assert
-        self.assertEquals(self.db.get_latest_sequence_number(self.block1.public_key_requester),
-                          self.block1.sequence_number_requester)
-
-    @blocking_call_on_reactor_thread
-    def test_get_latest_sequence_number_public_key_responder(self):
-        # Arrange
-        # Make sure that there is a requester block with a lower sequence number.
-        # To test that it will look for both responder and requester.
-        self.db.add_block(self.block1)
-        self.block2.public_key_requester = self.block1.public_key_responder
-        self.block2.sequence_number_requester = self.block1.sequence_number_responder - 5
-        self.db.add_block(self.block2)
-        # Act & Assert
-        self.assertEquals(self.db.get_latest_sequence_number(self.block1.public_key_responder),
-                          self.block1.sequence_number_responder)
-
-    @blocking_call_on_reactor_thread
-    def test_get_previous_id_not_existing(self):
-        # Act & Assert
-        self.assertEquals(self.db.get_latest_hash("NON EXISTING KEY"), None)
-
-    @blocking_call_on_reactor_thread
-    def test_get_previous_hash_of_requester(self):
-        # Arrange
-        # Make sure that there is a responder block with a lower sequence number.
-        # To test that it will look for both responder and requester.
-        self.db.add_block(self.block1)
-        self.block2.public_key_responder = self.block1.public_key_requester
-        self.block2.sequence_number_responder = self.block1.sequence_number_requester + 1
-        self.db.add_block(self.block2)
-        # Act & Assert
-        self.assertEquals(self.db.get_latest_hash(self.block2.public_key_responder), self.block2.hash_responder)
-
-    @blocking_call_on_reactor_thread
-    def test_get_previous_hash_of_responder(self):
-        # Arrange
-        # Make sure that there is a requester block with a lower sequence number.
-        # To test that it will look for both responder and requester.
-        self.db.add_block(self.block1)
-        self.block2.public_key_requester = self.block1.public_key_responder
-        self.block2.sequence_number_requester = self.block1.sequence_number_responder + 1
-        self.db.add_block(self.block2)
-        # Act & Assert
-        self.assertEquals(self.db.get_latest_hash(self.block2.public_key_requester), self.block2.hash_requester)
-
-    @blocking_call_on_reactor_thread
-    def test_get_by_sequence_number_by_mid_not_existing(self):
-        # Act & Assert
-        self.assertEquals(self.db.get_by_public_key_and_sequence_number("NON EXISTING KEY", 0), None)
-
-    @blocking_call_on_reactor_thread
-    def test_get_by_public_key_and_sequence_number_requester(self):
-        # Arrange
-        # Make sure that there is a responder block with a lower sequence number.
-        # To test that it will look for both responder and requester.
-        self.db.add_block(self.block1)
-        # Act & Assert
-        self.assertEqual_block(self.block1, self.db.get_by_public_key_and_sequence_number(
-            self.block1.public_key_requester, self.block1.sequence_number_requester))
-
-    @blocking_call_on_reactor_thread
-    def test_get_by_public_key_and_sequence_number_responder(self):
-        # Arrange
-        # Make sure that there is a responder block with a lower sequence number.
-        # To test that it will look for both responder and requester.
-        self.db.add_block(self.block1)
-
-        # Act & Assert
-        self.assertEqual_block(self.block1, self.db.get_by_public_key_and_sequence_number(
-            self.block1.public_key_responder, self.block1.sequence_number_responder))
-
-    @blocking_call_on_reactor_thread
-    def test_get_total(self):
-        # Arrange
-        self.db.add_block(self.block1)
-        self.block2.public_key_requester = self.block1.public_key_responder
-        self.block2.sequence_number_requester = self.block1.sequence_number_responder + 1
-        self.block2.total_up_requester = self.block1.total_up_responder + self.block2.up
-        self.block2.total_down_requester = self.block1.total_down_responder + self.block2.down
         self.db.add_block(self.block2)
         # Act
-        (result_up, result_down) = self.db.get_total(self.block2.public_key_requester)
+        result = self.db.get_linked(self.block1)
         # Assert
-        self.assertEqual(self.block2.total_up_requester, result_up)
-        self.assertEqual(self.block2.total_down_requester, result_down)
+        self.assertEqual_block(self.block2, result)
 
-    @blocking_call_on_reactor_thread
-    def test_get_total_not_existing(self):
+    def test_get_linked_backwards(self):
         # Arrange
+        self.block2 = TestBlock.create(db, self.block2.public_key, link=self.block1)
         self.db.add_block(self.block1)
+        self.db.add_block(self.block2)
         # Act
-        (result_up, result_down) = self.db.get_total(self.block2.public_key_requester)
+        result = self.db.get_linked(block2)
         # Assert
-        self.assertEqual(0, result_up)
-        self.assertEqual(0, result_down)
+        self.assertEqual_block(self.block1, result)
+
+    def test_get_blocks_since(self):
+        # Arrange
+        self.block2.public_key = self.block1.public_key
+        self.block2.sequence_number = self.block1.sequence_number + 1
+        block3 = TestBlock()
+        block3.public_key = self.block2.public_key
+        block3.sequence_number = self.block2.sequence_number + 10
+        self.db.add_block(self.block1)
+        self.db.add_block(self.block2)
+        self.db.add_block(block3)
+        # Act
+        result = self.db.get_blocks_since(self.block2.public_key, self.block2.sequence_number)
+        # Assert
+        self.assertEqual(len(result), 2)
+        self.assertEqual_block(self.block2, result[0])
+        self.assertEqual_block(block3, result[1])
 
     @blocking_call_on_reactor_thread
     def test_save_large_upload_download_block(self):
@@ -230,14 +129,12 @@ class TestDatabase(MultiChainTestCase):
         Test if the block can save very large numbers.
         """
         # Arrange
-        self.block1.total_up_requester = long(pow(2, 62))
-        self.block1.total_down_requester = long(pow(2, 62))
-        self.block1.total_up_responder = long(pow(2, 61))
-        self.block1.total_down_responder = pow(2, 60)
+        self.block1.total_up = long(pow(2, 62))
+        self.block1.total_down = long(pow(2, 62))
         # Act
         self.db.add_block(self.block1)
         # Assert
-        result = self.db.get_by_hash(self.block1.hash_requester)
+        result = self.db.get_latest(self.block1.public_key)
         self.assertEqual_block(self.block1, result)
 
     @blocking_call_on_reactor_thread
@@ -247,9 +144,8 @@ class TestDatabase(MultiChainTestCase):
         self.db.add_block(self.block1)
 
         # Act
-        # Retrieving the block from the database will result in a block with a
-        # timestamp
-        result = self.db.get_by_hash(self.block1.hash_requester)
+        # Retrieving the block from the database will result in a block with a timestamp
+        result = self.db.get_latest(self.block1.public_key)
 
         insert_time = datetime.datetime.strptime(result.insert_time,
                                                  "%Y-%m-%d %H:%M:%S")

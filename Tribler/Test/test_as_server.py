@@ -187,7 +187,7 @@ class AbstractServer(BaseTestCase):
         self.watchdog.join(2)
         if self.watchdog.is_alive():
             self._logger.critical("The WatchDog didn't stop!")
-            self.watchdog.print_all_stacks()
+            WatchDog.print_all_stacks()
             raise RuntimeError("Couldn't stop the WatchDog")
 
         if self.file_server:

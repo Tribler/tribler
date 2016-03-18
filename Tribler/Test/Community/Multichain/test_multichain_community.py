@@ -224,8 +224,8 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         _, signature_response = node.receive_message(names=[HALF_BLOCK]).next()
         node.give_message(signature_response, node)
         # Assert
-        self.assertBlocksInDatabase(other, 1)
-        self.assertBlocksInDatabase(node, 1)
+        self.assertBlocksInDatabase(other, 2)
+        self.assertBlocksInDatabase(node, 2)
         self.assertBlocksAreEqual(node, other)
 
         block = node.call(node.community.persistence.get_latest, node.community._public_key)
@@ -297,8 +297,8 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         _, block_response = crawler.receive_message(names=[FULL_BLOCK]).next()
         crawler.give_message(block_response, other)
         # Assert
-        self.assertBlocksInDatabase(node, 1)
-        self.assertBlocksInDatabase(crawler, 1)
+        self.assertBlocksInDatabase(node, 2)
+        self.assertBlocksInDatabase(crawler, 2)
         self.assertBlocksAreEqual(node, crawler)
 
     def test_request_block_halfsigned(self):
@@ -351,8 +351,8 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         _, block_response = crawler.receive_message(names=[FULL_BLOCK]).next()
         crawler.give_message(block_response, other)
         # Assert
-        self.assertBlocksInDatabase(node, 1)
-        self.assertBlocksInDatabase(crawler, 1)
+        self.assertBlocksInDatabase(node, 2)
+        self.assertBlocksInDatabase(crawler, 2)
         self.assertBlocksAreEqual(node, crawler)
 
     def test_crawler_no_block(self):
@@ -406,8 +406,8 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         _, block_response = crawler.receive_message(names=[FULL_BLOCK]).next()
         crawler.give_message(block_response, node)
         # Assert
-        self.assertBlocksInDatabase(node, 1)
-        self.assertBlocksInDatabase(crawler, 1)
+        self.assertBlocksInDatabase(node, 2)
+        self.assertBlocksInDatabase(crawler, 2)
         self.assertBlocksAreEqual(node, crawler)
 
     def test_crawl_batch(self):
@@ -451,8 +451,8 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         crawler.give_message(block_response, node)
 
         # Assert
-        self.assertBlocksInDatabase(node, 2)
-        self.assertBlocksInDatabase(crawler, 2)
+        self.assertBlocksInDatabase(node, 4)
+        self.assertBlocksInDatabase(crawler, 4)
         self.assertBlocksAreEqual(node, crawler)
 
     def test_crawler_on_introduction_received(self):
@@ -515,7 +515,7 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
 
     @blocking_call_on_reactor_thread
     def assertBlocksInDatabase(self, node, amount):
-        assert len(node.community.persistence.get_all_hash_requester()) == amount
+        assert node.community.persistence.execute(u"SELECT COUNT(*) FROM multi_chain").fetchone()[0] == amount
 
     @blocking_call_on_reactor_thread
     def assertBlocksAreEqual(self, node, other):

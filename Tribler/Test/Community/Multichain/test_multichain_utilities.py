@@ -18,9 +18,11 @@ class TestBlock(MultiChainBlock):
         crypto = ECCrypto()
         key = crypto.generate_key(u"curve25519")
 
-        MultiChainBlock.__init__(
-            (random.randint(201, 220), random.randint(221, 240), random.randint(241, 260), random.randint(261, 280),
-             key.pub(), random.randint(50, 100), EMPTY_PK, 0, sha256(str(random.randint(0, 100000))).digest(), 0, 0))
+        MultiChainBlock.__init__(self, (
+            random.randint(201, 220), random.randint(221, 240), random.randint(241, 260), random.randint(261, 280),
+            key.pub().key_to_bin(), random.randint(50, 100), EMPTY_PK, 0,
+            sha256(str(random.randint(0, 100000))).digest(), 0, 0))
+        self.key = key
         self.sign(key)
 
 
@@ -29,8 +31,11 @@ class MultiChainTestCase(AbstractServer):
         """
         Function to assertEqual two blocks
         """
+        crypto = ECCrypto()
         self.assertTrue(expected_block is not None)
         self.assertTrue(actual_block is not None)
+        self.assertTrue(crypto.is_valid_public_bin(expected_block.public_key))
+        self.assertTrue(crypto.is_valid_public_bin(actual_block.public_key))
         self.assertEqual(expected_block.up, actual_block.up)
         self.assertEqual(expected_block.down, actual_block.down)
         self.assertEqual(expected_block.total_up, actual_block.total_up)

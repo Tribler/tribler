@@ -40,11 +40,12 @@ class HalfBlockPayload(Payload):
 
 class FullBlockPayload(Payload):
     """
-    Payload for message that ships two matching half blocks
+    Payload for message that ships two _linked_ half blocks
     """
 
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, blocks, blockl):
+        def __init__(self, meta, block_this, block_that):
             super(FullBlockPayload.Implementation, self).__init__(meta)
-            self.block_seeder = blocks
-            self.block_leecher = blockl
+            self.block_this = block_this
+            self.block_that = block_that
+            # TODO: check that the blocks are indeed linked

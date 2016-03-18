@@ -12,7 +12,6 @@ from decorator import decorator
 
 MAX_SAME_STACK_TIME = 60
 
-
 @decorator
 def synchronized(wrapped, instance, *args, **kwargs):
     if instance is None:

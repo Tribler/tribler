@@ -1,15 +1,14 @@
 import logging
 from hashlib import sha1
-from struct import unpack
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock, MultiChainTestCase
-from Tribler.community.multichain.conversion import (MultiChainConversion, split_function, signature_format,
-                                                     append_format)
-from Tribler.community.multichain.community import SIGNATURE, CRAWL_REQUEST, CRAWL_RESPONSE, CRAWL_RESUME
-from Tribler.community.multichain.payload import (SignaturePayload, CrawlRequestPayload, CrawlResponsePayload,
+
+from Tribler.community.multichain.conversion import MultiChainConversion
+from Tribler.community.multichain.community import SIGNED, HALF_BLOCK, FULL_BLOCK, CRAWL, RESUME
+from Tribler.community.multichain.payload import (HalfBlockPayload, FullBlockPayload, CrawlRequestPayload,
                                                   CrawlResumePayload)
-from Tribler.community.multichain.conversion import EMPTY_HASH
+
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.authentication import NoAuthentication
 from Tribler.dispersy.resolution import PublicResolution
@@ -33,79 +32,100 @@ class TestConversion(MultiChainTestCase):
         self.converter = MultiChainConversion(self.community)
         self.block = TestBlock()
 
-    def test_encoding_decoding_signature(self):
+    def test_encoding_decoding_half_block(self):
         """
-        Test if a responder can send a signature message.
-        This only contains requester and responder data.
+        Test encoding of a signed message
         """
         # Arrange
-        meta = self.community.get_meta_message(SIGNATURE)
+        meta = self.community.get_meta_message(SIGNED)
         message = meta.impl(distribution=(self.community.claim_global_time(),),
-                            payload=tuple(self.block.generate_signature_payload()))
+                            payload=(self.block,))
         # Act
-        encoded_message = self.converter._encode_signature(message)[0]
-        result = self.converter._decode_signature(TestPlaceholder(meta), 0, encoded_message)[1]
-        # Assert
-        self.assertEqual_signature_payload(self.block, result)
+        encoded_message = self.converter._encode_half_block(message)[0]
+        result = self.converter._decode_half_block(TestPlaceholder(meta), 0, encoded_message)[1]
 
-    def test_encoding_decoding_signature_big_number(self):
+        # Assert
+        self.assertEqual_block(block, result.block)
+
+    def test_encoding_decoding_half_block_big_number(self):
         """
         Test if a responder can send a signature message with big total_up and down.
         """
         # Arrange
-        meta = self.community.get_meta_message(SIGNATURE)
-        self.block.total_up_requester = pow(2, 63)
-        self.block.total_down_requester = pow(2, 62)
-        self.block.total_up_responder = pow(2, 61)
-        self.block.total_down_responder = pow(2, 60)
-        message = meta.impl(distribution=(self.community.claim_global_time(),),
-                            payload=tuple(self.block.generate_signature_payload()))
-        # Act
-        encoded_message = self.converter._encode_signature(message)[0]
-        result = self.converter._decode_signature(TestPlaceholder(meta), 0, encoded_message)[1]
-        # Assert
-        self.assertEqual_signature_payload(self.block, result)
+        meta = self.community.get_meta_message(SIGNED)
+        block = TestBlock()
+        block.total_up_requester = pow(2, 63)
+        block.total_down_requester = pow(2, 62)
+        block.total_up_responder = pow(2, 61)
+        block.total_down_responder = pow(2, 60)
 
-    def test_encoding_decoding_signature_requester(self):
-        """
-        Test if a requester can send a signature message.
-        This only contains requester data.
-        """
-        # Arrange
-        meta = self.community.get_meta_message(SIGNATURE)
         message = meta.impl(distribution=(self.community.claim_global_time(),),
-                            payload=tuple(self.block.generate_requester()))
+                            payload=(self.block,))
         # Act
-        encoded_message = self.converter._encode_signature(message)[0]
-        result = self.converter._decode_signature(TestPlaceholder(meta), 0, encoded_message)[1]
-        # Assert
-        self.assertEqual_signature_request(self.block, result)
-        self.assertEqual(0, result.total_up_responder)
-        self.assertEqual(0, result.total_down_responder)
-        self.assertEqual(-1, result.sequence_number_responder)
-        self.assertEqual(EMPTY_HASH, result.previous_hash_responder)
+        encoded_message = self.converter._encode_half_block(message)[0]
+        result = self.converter._decode_half_block(TestPlaceholder(meta), 0, encoded_message)[1]
 
-    def test_decoding_signature_wrong_size(self):
+        # Assert
+        self.assertEqual_block(self.block, result.block)
+
+    def test_decoding_half_block_wrong_size(self):
         """
         Test decoding a signature message with wrong size
         """
         # Arrange
-        meta = self.community.get_meta_message(SIGNATURE)
+        meta = self.community.get_meta_message(SIGNED)
         message = meta.impl(distribution=(self.community.claim_global_time(),),
-                            payload=tuple(self.block.generate_signature_payload()))
+                            payload=(self.block,))
         # Act
-        encoded_message = self.converter._encode_signature(message)[0]
+        encoded_message = self.converter._encode_half_block(message)[0]
         # Act & Assert
         with self.assertRaises(DropPacket):
             # Remove a bit of message.
-            self.converter._decode_signature(TestPlaceholder(meta), 0, encoded_message[:-10])[1]
+            self.converter._decode_half_block(TestPlaceholder(meta), 0, encoded_message[:-10])[1]
+
+    def test_encoding_decoding_full_block(self):
+        """
+        Test encoding of a signed message
+        """
+        # Arrange
+        meta = self.community.get_meta_message(FULL_BLOCK)
+        block_l = TestBlock()
+        block_r = TestBlock()
+
+        message = meta.impl(distribution=(self.community.claim_global_time(),),
+                            payload=(block_l, block_r))
+        # Act
+        encoded_message = self.converter._encode_full_block(message)[0]
+        result = self.converter._decode_full_block(TestPlaceholder(meta), 0, encoded_message)[1]
+
+        # Assert
+        self.assertEqual_block(block_l, result.block_this)
+        self.assertEqual_block(block_r, result.block_that)
+
+    def test_decoding_full_block_wrong_size(self):
+        """
+        Test encoding of a signed message
+        """
+        # Arrange
+        meta = self.community.get_meta_message(FULL_BLOCK)
+        block_l = TestBlock()
+        block_r = TestBlock()
+
+        message = meta.impl(distribution=(self.community.claim_global_time(),),
+                            payload=(block_l, block_r))
+        # Act
+        encoded_message = self.converter._encode_full_block(message)[0]
+        # Act & Assert
+        with self.assertRaises(DropPacket):
+            # Remove a bit of message.
+            self.converter._decode_full_block(TestPlaceholder(meta), 0, encoded_message[:-10])[1]
 
     def test_encoding_decoding_crawl_request(self):
         """
         Test if a requester can send a crawl request message.
         """
         # Arrange
-        meta = self.community.get_meta_message(CRAWL_REQUEST)
+        meta = self.community.get_meta_message(CRAWL)
         requested_sequence_number = 500
 
         message = meta.impl(distribution=(self.community.claim_global_time(),),
@@ -122,7 +142,7 @@ class TestConversion(MultiChainTestCase):
         Test if a DropPacket is raised when the crawl request size is wrong.
         """
         # Arrange
-        meta = self.community.get_meta_message(CRAWL_REQUEST)
+        meta = self.community.get_meta_message(CRAWL)
         requested_sequence_number = 500
         message = meta.impl(distribution=(self.community.claim_global_time(),),
                             payload=(requested_sequence_number,))
@@ -138,7 +158,7 @@ class TestConversion(MultiChainTestCase):
         Test if a requester can send a crawl request message without specifying the sequence number.
         """
         # Arrange
-        meta = self.community.get_meta_message(CRAWL_REQUEST)
+        meta = self.community.get_meta_message(CRAWL)
         message = meta.impl(distribution=(self.community.claim_global_time(),),
                             payload=())
         # Act
@@ -147,62 +167,6 @@ class TestConversion(MultiChainTestCase):
         result = self.converter._decode_crawl_request(TestPlaceholder(meta), 0, encoded_message)[1]
         # Assert
         self.assertEqual(-1, result.requested_sequence_number)
-
-    def test_encoding_decoding_crawl_response(self):
-        """
-        Test if a responder can send a crawl_response message.
-        This only contains requester and responder data.
-        """
-        # Arrange
-        meta = self.community.get_meta_message(CRAWL_RESPONSE)
-        message = meta.impl(distribution=(self.community.claim_global_time(),),
-                            payload=tuple(self.block.generate_block_payload()))
-        # Act
-        encoded_message = self.converter._encode_crawl_response(message)[0]
-        result = self.converter._decode_crawl_response(TestPlaceholder(meta), 0, encoded_message)[1]
-        # Assert
-        self.assertEqual(len(self.block.public_key_requester), len(result.public_key_requester))
-        self.assertTrue(self.community.crypto.is_valid_public_bin(self.block.public_key_requester))
-        self.assertTrue(self.community.crypto.is_valid_public_bin(self.block.public_key_responder))
-
-        self.assertEqual_block(self.block, result)
-
-    def test_decoding_crawl_response_wrong_size(self):
-        """
-        Test if a DropPacket is raised when the crawl response size is wrong.
-        """
-        # Arrange
-        meta = self.community.get_meta_message(CRAWL_RESPONSE)
-        message = meta.impl(distribution=(self.community.claim_global_time(),),
-                            payload=tuple(self.block.generate_block_payload()))
-        # Act
-        encoded_message = self.converter._encode_crawl_response(message)[0]
-        with self.assertRaises(DropPacket):
-            # Remove a bit of message.
-            self.converter._decode_crawl_response(TestPlaceholder(meta), 0, encoded_message[:-10])[1]
-
-    def test_split_function(self):
-        """
-        Test the MultiChain split function.
-        """
-        # Arrange
-        meta = self.community.get_meta_message(SIGNATURE)
-        message = meta.impl(distribution=(self.community.claim_global_time(),),
-                            payload=tuple(self.block.generate_signature_payload()))
-        # Act
-        encoded_message = self.converter._encode_signature(message)[0]
-        result = split_function(encoded_message)
-        # Assert
-        values = unpack(signature_format[:-len(append_format)], result[0])
-        self.assertEqual(6, len(values))
-        self.assertEqual(self.block.up, values[0])
-        self.assertEqual(self.block.down, values[1])
-        self.assertEqual(self.block.total_up_requester, values[2])
-        self.assertEqual(self.block.total_down_requester, values[3])
-        self.assertEqual(self.block.sequence_number_requester, values[4])
-        self.assertEqual(self.block.previous_hash_requester, values[5])
-
-        self.assertEqual(encoded_message, result[1])
 
 
 class TestPlaceholder:
@@ -231,15 +195,31 @@ class TestCommunity(Community):
 
     def initiate_meta_messages(self):
         return super(TestCommunity, self).initiate_meta_messages() + [
-            Message(self, SIGNATURE,
+            Message(self, SIGNED,
                     NoAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
-                    SignaturePayload(),
+                    HalfBlockPayload(),
                     lambda: None,
                     lambda: None),
-            Message(self, CRAWL_REQUEST,
+            Message(self, HALF_BLOCK,
+                    NoAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    HalfBlockPayload(),
+                    lambda: None,
+                    lambda: None),
+            Message(self, FULL_BLOCK,
+                    NoAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    FullBlockPayload(),
+                    lambda: None,
+                    lambda: None),
+            Message(self, CRAWL,
                     NoAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
@@ -247,15 +227,7 @@ class TestCommunity(Community):
                     CrawlRequestPayload(),
                     lambda: None,
                     lambda: None),
-            Message(self, CRAWL_RESPONSE,
-                    NoAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    CrawlResponsePayload(),
-                    lambda: None,
-                    lambda: None),
-            Message(self, CRAWL_RESUME,
+            Message(self, RESUME,
                     NoAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),

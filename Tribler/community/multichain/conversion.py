@@ -63,7 +63,7 @@ class MultiChainConversion(BinaryConversion):
         :param message: Message.impl of FullBlockPayload.impl
         :return encoding ready to be sent to the network of the message
         """
-        return message.payload.block_seeder.pack() + message.payload.block_leecher.pack(),
+        return message.payload.block_this.pack() + message.payload.block_that.pack(),
 
     @staticmethod
     def _decode_full_block(placeholder, offset, data):

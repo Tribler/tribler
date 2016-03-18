@@ -16,7 +16,7 @@ block_pack_format = "! I I Q Q {0}s i {0}s i {1}s {2}s".format(PK_LENGTH, HASH_L
 block_pack_size = calcsize(block_pack_format)
 
 
-class MultiChainBlock:
+class MultiChainBlock(object):
     """
     Container for MultiChain block information
     """
@@ -40,8 +40,8 @@ class MultiChainBlock:
         else:
             (self.up, self.down, self.total_up, self.total_down, self.public_key, self.sequence_number,
              self.link_public_key, self.link_sequence_number, self.previous_hash, self.signature,
-             self.insert_time) = (data[0], data[1], data[2], data[3], str(data[4]), data[5], str(data[6]), data[7],
-                                  str(data[8]), str(data[9]), data[10])
+             self.insert_time) = (data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8],
+                                  data[9], data[10])
 
     @property
     def hash(self):
@@ -63,8 +63,7 @@ class MultiChainBlock:
         :param key: the key to sign this block with
         """
         crypto = ECCrypto()
-        self.signature = EMPTY_SIG
-        self.signature = crypto.create_signature(key, self.pack())
+        self.signature = crypto.create_signature(key, self.pack(signature=False))
 
     @classmethod
     def create(cls, database, public_key, link=None):
@@ -97,17 +96,18 @@ class MultiChainBlock:
         ret.signature = EMPTY_SIG
         return ret
 
-    def pack(self, data=None, offset=0):
+    def pack(self, data=None, offset=0, signature=True):
         """
         Encode this block for transport
         :param data: optionally specify the buffer this block should be packed into
         :param offset: optionally specifies the offset at which the packing should begin
+        :param signature: False to pack EMPTY_SIG in the signature location, true to pack the signature field
         :return: the buffer the data was packed into
         """
         buff = data if data else bytearray(block_pack_size)
         pack_into(block_pack_format, buff, offset, self.up, self.down, self.total_up, self.total_down, self.public_key,
                   self.sequence_number, self.link_public_key, self.link_sequence_number, self.previous_hash,
-                  self.signature)
+                  self.signature if signature else EMPTY_SIG)
         return str(buff)
 
     @classmethod
