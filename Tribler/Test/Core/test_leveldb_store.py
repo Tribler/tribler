@@ -40,7 +40,7 @@ from tempfile import mkdtemp
 
 from twisted.internet.task import Clock
 
-from Tribler.Core.leveldbstore import LevelDbStore, WRITEBACK_PERIOD, USE_LEVELDB
+from Tribler.Core.leveldbstore import LevelDbStore, WRITEBACK_PERIOD, get_write_batch_plyvel, get_write_batch_leveldb
 from Tribler.Test.test_as_server import BaseTestCase
 
 
@@ -48,14 +48,28 @@ K = "foo"
 V = "bar"
 
 
-class ClockedLevelDbStore(LevelDbStore):
+class ClockedAbstractLevelDBStore(LevelDbStore):
     _reactor = Clock()
 
 
-class TestLevelDbStore(BaseTestCase):
+class ClockedLevelDBStore(ClockedAbstractLevelDBStore):
+    from leveldb import LevelDB
+    _leveldb = LevelDB
+    _writebatch = get_write_batch_leveldb
+
+
+class ClockedPlyvelStore(ClockedAbstractLevelDBStore):
+    from Tribler.Core.plyveladapter import LevelDB
+    _leveldb = LevelDB
+    _writebatch = get_write_batch_plyvel
+
+
+class AbstractTestLevelDBStore(BaseTestCase):
+
+    __test__ = False
 
     def __init__(self, *argv, **kwargs):
-        super(TestLevelDbStore, self).__init__(*argv, **kwargs)
+        super(AbstractTestLevelDBStore, self).__init__(*argv, **kwargs)
 
         self.store_dir = None
         self.store = None
@@ -73,7 +87,7 @@ class TestLevelDbStore(BaseTestCase):
 
     def openStore(self, store_dir):
         self.store_dir = store_dir
-        self.store = ClockedLevelDbStore(self.store_dir)
+        self.store = None
 
     def test_storeIsPersistent(self):
         self.store.put(K, V)
@@ -128,6 +142,22 @@ class TestLevelDbStore(BaseTestCase):
         self.store[K] = V
         for key in iter(self.store):
             self.assertTrue(key)
+
+
+class TestLevelDBStore(AbstractTestLevelDBStore):
+    __test__ = True
+
+    def openStore(self, store_dir):
+        self.store_dir = store_dir
+        self.store = ClockedLevelDBStore(self.store_dir)
+
+
+class TestPlyvelStore(AbstractTestLevelDBStore):
+    __test__ = True
+
+    def openStore(self, store_dir):
+        self.store_dir = store_dir
+        self.store = ClockedPlyvelStore(self.store_dir)
 
 #
 # test_leveldb_store.py ends here
