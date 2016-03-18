@@ -319,7 +319,7 @@ class TriblerLaunchMany(TaskManager):
 
         self.initComplete = True
 
-    def add(self, tdef, dscfg, pstate=None, initialdlstatus=None, setupDelay=0, hidden=False, share_mode=False):
+    def add(self, tdef, dscfg, pstate=None, initialdlstatus=None, setupDelay=0, hidden=False, share_mode=False,checkpoint_disabled=False):
         """ Called by any thread """
         d = None
         with self.sesslock:
@@ -343,7 +343,8 @@ class TriblerLaunchMany(TaskManager):
 
             # Store in list of Downloads, always.
             self.downloads[infohash] = d
-            setup_deferred = d.setup(dscfg, pstate, initialdlstatus, wrapperDelay=setupDelay, share_mode=share_mode)
+            setup_deferred = d.setup(dscfg, pstate, initialdlstatus, wrapperDelay=setupDelay,
+                                     share_mode=share_mode, checkpoint_disabled=checkpoint_disabled)
             setup_deferred.addCallback(self.on_download_wrapper_created)
 
         if d and not hidden and self.session.get_megacache():
@@ -594,7 +595,9 @@ class TriblerLaunchMany(TaskManager):
         # Download, and additions are no problem (just won't be included
         # in list of states returned via callback.
         #
-        dllist = [dl for dl in self.downloads.values() if not dl.checkpoint_disabled]
+        dllist = self.downloads.values()
+        self._logger.debug("tlm: checkpointing %s stopping %s", len(dllist), stop)
+
         network_checkpoint_callback_lambda = lambda: self.network_checkpoint_callback(dllist, stop, checkpoint,
                                                                                       gracetime)
         self.threadpool.add_task(network_checkpoint_callback_lambda, 0.0)

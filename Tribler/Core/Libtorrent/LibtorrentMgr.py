@@ -324,24 +324,6 @@ class LibtorrentMgr(TaskManager):
             else:
                 self._logger.debug("LibtorrentMgr: alert for invalid torrent")
 
-    def reachability_check(self):
-        if self.ltsession and self.ltsession.status().has_incoming_connections:
-            self.trsession.lm.threadpool.add_task(self.trsession.lm.dialback_reachable_callback, 3)
-        else:
-            self.trsession.lm.threadpool.add_task(self.reachability_check, 10)
-
-    def monitor_dht(self, chances_remaining=1):
-        # Sometimes the dht fails to start. To workaround this issue we monitor the #dht_nodes, and restart if needed.
-        if self.ltsession:
-            if self.get_dht_nodes() <= 25:
-                if self.get_dht_nodes() >= 5 and chances_remaining:
-                    self._logger.info("LibtorrentMgr: giving the dht a chance (%d, %d)", self.ltsession.status().dht_nodes, chances_remaining)
-                    self.trsession.lm.threadpool.add_task(lambda: self.monitor_dht(chances_remaining - 1), 5)
-                else:
-                    self._logger.debug("could not find torrent %s", infohash)
-            else:
-                self._logger.debug("alert for invalid torrent")
-
     def get_peers(self, infohash, callback, timeout=30):
         def on_metainfo_retrieved(metainfo, infohash=infohash, callback=callback):
             callback(infohash, metainfo.get('initial peers', []))
