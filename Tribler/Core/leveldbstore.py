@@ -86,7 +86,6 @@ class LevelDbStore(MutableMapping, TaskManager):
         self._writeback_lc = self.register_task("flush cache ", LoopingCall(self.flush))
         self._writeback_lc.clock = self._reactor
         self._writeback_lc.start(WRITEBACK_PERIOD)
-        print self._db
 
     def __getitem__(self, key):
         try:

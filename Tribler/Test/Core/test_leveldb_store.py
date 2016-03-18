@@ -58,12 +58,6 @@ class ClockedLevelDBStore(ClockedAbstractLevelDBStore):
     _writebatch = get_write_batch_leveldb
 
 
-class ClockedPlyvelStore(ClockedAbstractLevelDBStore):
-    from Tribler.Core.plyveladapter import LevelDB
-    _leveldb = LevelDB
-    _writebatch = get_write_batch_plyvel
-
-
 class AbstractTestLevelDBStore(BaseTestCase):
 
     __test__ = False
@@ -150,14 +144,6 @@ class TestLevelDBStore(AbstractTestLevelDBStore):
     def openStore(self, store_dir):
         self.store_dir = store_dir
         self.store = ClockedLevelDBStore(self.store_dir)
-
-
-class TestPlyvelStore(AbstractTestLevelDBStore):
-    __test__ = True
-
-    def openStore(self, store_dir):
-        self.store_dir = store_dir
-        self.store = ClockedPlyvelStore(self.store_dir)
 
 #
 # test_leveldb_store.py ends here
