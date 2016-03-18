@@ -40,7 +40,7 @@ from tempfile import mkdtemp
 
 from twisted.internet.task import Clock
 
-from Tribler.Core.leveldbstore import LevelDbStore, WRITEBACK_PERIOD
+from Tribler.Core.leveldbstore import LevelDbStore, WRITEBACK_PERIOD, get_write_batch_plyvel, get_write_batch_leveldb
 from Tribler.Test.test_as_server import BaseTestCase
 
 
@@ -48,14 +48,23 @@ K = "foo"
 V = "bar"
 
 
-class ClockedLevelDbStore(LevelDbStore):
+class ClockedAbstractLevelDBStore(LevelDbStore):
     _reactor = Clock()
 
 
-class TestLevelDbStore(BaseTestCase):
+class ClockedLevelDBStore(ClockedAbstractLevelDBStore):
+    from leveldb import LevelDB
+    _leveldb = LevelDB
+    _writebatch = get_write_batch_leveldb
+
+
+class AbstractTestLevelDBStore(BaseTestCase):
+
+    __test__ = False
+    _storetype = None
 
     def __init__(self, *argv, **kwargs):
-        super(TestLevelDbStore, self).__init__(*argv, **kwargs)
+        super(AbstractTestLevelDBStore, self).__init__(*argv, **kwargs)
 
         self.store_dir = None
         self.store = None
@@ -73,7 +82,7 @@ class TestLevelDbStore(BaseTestCase):
 
     def openStore(self, store_dir):
         self.store_dir = store_dir
-        self.store = ClockedLevelDbStore(self.store_dir)
+        self.store = self._storetype(self.store_dir)
 
     def test_storeIsPersistent(self):
         self.store.put(K, V)
@@ -90,6 +99,10 @@ class TestLevelDbStore(BaseTestCase):
         self.assertEqual(None, self.store.get(K))
         with self.assertRaises(KeyError) as raises:
             self.store[K]
+
+    def test_PutGet(self):
+        self.store._db.Put(K, V)
+        self.assertEqual(V, self.store._db.Get(K))
 
     def test_cacheIsFlushed(self):
         self.store[K] = V
@@ -124,6 +137,11 @@ class TestLevelDbStore(BaseTestCase):
         self.store[K] = V
         for key in iter(self.store):
             self.assertTrue(key)
+
+
+class TestLevelDBStore(AbstractTestLevelDBStore):
+    __test__ = True
+    _storetype = ClockedLevelDBStore
 
 #
 # test_leveldb_store.py ends here
