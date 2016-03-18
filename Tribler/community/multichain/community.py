@@ -24,8 +24,8 @@ from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.community.tunnel.routing import Circuit, RelayRoute
 from Tribler.community.tunnel.tunnel_community import TunnelExitSocket
 
-from Tribler.community.multichain.payload import SignaturePayload, CrawlRequestPayload, CrawlResponsePayload,\
-    CrawlResumePayload
+from Tribler.community.multichain.payload import (SignaturePayload, CrawlRequestPayload, CrawlResponsePayload,
+                                                  CrawlResumePayload)
 from Tribler.community.multichain.database import MultiChainDB, DatabaseBlock
 from Tribler.community.multichain.conversion import MultiChainConversion, split_function, GENESIS_ID
 
@@ -229,8 +229,6 @@ class MultiChainCommunity(Community):
         """
         if not response:
             self.logger.info("Timeout received for signature request.")
-            # Unpack the message from the cache object and store a half-signed record.
-        #    self.persist_signature_response(request.request.payload.message)
             return False
         else:
             # TODO: Check whether we are expecting a response

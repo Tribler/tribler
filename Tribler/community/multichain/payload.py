@@ -1,6 +1,7 @@
 from Tribler.dispersy.payload import Payload
 from Tribler.community.multichain.conversion import EMPTY_HASH
 
+
 class SignaturePayload(Payload):
     """
     Payload for message that will respond to a Signature Request containing
@@ -174,7 +175,8 @@ class CrawlResponsePayload(Payload):
         @property
         def public_key_responder(self):
             return self._public_key_responder
-        
+
+
 class CrawlResumePayload(Payload):
     class Implementation(Payload.Implementation):
         def __init__(self, meta):

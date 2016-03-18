@@ -3,12 +3,12 @@ from hashlib import sha1
 from struct import unpack
 
 from Tribler.Test.test_multichain_utilities import TestBlock, MultiChainTestCase
-from Tribler.community.multichain.conversion import MultiChainConversion, split_function, signature_format, \
-    append_format
+from Tribler.community.multichain.conversion import (MultiChainConversion, split_function, signature_format,
+                                                     append_format)
 
 from Tribler.community.multichain.community import SIGNATURE, CRAWL_REQUEST, CRAWL_RESPONSE, CRAWL_RESUME
-from Tribler.community.multichain.payload import SignaturePayload, CrawlRequestPayload, CrawlResponsePayload,\
-    CrawlResumePayload
+from Tribler.community.multichain.payload import (SignaturePayload, CrawlRequestPayload, CrawlResponsePayload,
+                                                  CrawlResumePayload)
 from Tribler.community.multichain.conversion import EMPTY_HASH
 
 from Tribler.dispersy.community import Community
@@ -266,38 +266,32 @@ class TestCommunity(Community):
                     DirectDistribution(),
                     CandidateDestination(),
                     SignaturePayload(),
-                    self._community_do_nothing,
-                    self._community_do_nothing),
+                    lambda: None,
+                    lambda: None),
             Message(self, CRAWL_REQUEST,
                     NoAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
                     CrawlRequestPayload(),
-                    self._community_do_nothing,
-                    self._community_do_nothing),
+                    lambda: None,
+                    lambda: None),
             Message(self, CRAWL_RESPONSE,
                     NoAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
                     CrawlResponsePayload(),
-                    self._community_do_nothing,
-                    self._community_do_nothing),
+                    lambda: None,
+                    lambda: None),
             Message(self, CRAWL_RESUME,
                     NoAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
                     CrawlResumePayload(),
-                    self._community_do_nothing,
-                    self._community_do_nothing)]
-
-    def _community_do_nothing(self):
-        """
-        Function that does nothing to implement for a community
-        """
-        return
+                    lambda: None,
+                    lambda: None)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), MultiChainConversion(self)]

@@ -1,12 +1,11 @@
 """ This file contains everything related to persistence for MultiChain.
 """
 from os import path
-# Hasher used to generate hashes in the MultiChain Community
 from hashlib import sha256
 
 from Tribler.dispersy.database import Database
-from Tribler.community.multichain.conversion import encode_block, encode_block_requester_half, encode_block_crawl,\
-    EMPTY_HASH
+from Tribler.community.multichain.conversion import (encode_block, encode_block_requester_half, encode_block_crawl,
+                                                     EMPTY_HASH)
 
 DATABASE_DIRECTORY = path.join(u"sqlite")
 """ Path to the database location + dispersy._workingdirectory"""
@@ -74,11 +73,6 @@ class MultiChainDB(Database):
                 block.total_up_responder, block.total_down_responder,
                 block.sequence_number_responder, buffer(block.previous_hash_responder),
                 buffer(block.signature_responder), buffer(block.hash_responder))
-        print(block.up, block.down,
-                block.total_up_requester, block.total_down_requester,
-                block.sequence_number_requester, block.hash_requester,
-                block.total_up_responder, block.total_down_responder,
-                block.sequence_number_responder, repr(block.hash_responder))
 
         self.execute(
             u"INSERT INTO multi_chain (public_key_requester, public_key_responder, up, down, "
@@ -215,9 +209,6 @@ class MultiChainDB(Database):
         :return: DatabaseBlock if db_result else None
         """
         if db_result:
-#            requester = self._dispersy.get_member(mid=str(db_result[10]))
-        #    responder = self._dispersy.get_member(mid=str(db_result[12]))
-#            return DatabaseBlock(db_result + (requester.public_key, responder.public_key))
             return DatabaseBlock(db_result)
         else:
             return None
@@ -305,19 +296,19 @@ class DatabaseBlock:
 
     def __init__(self, data):
         """ Create a block from data """
-        """ Common part """
+        # Common part
         self.public_key_requester = str(data[0])
         self.public_key_responder = str(data[1])
         self.up = data[2]
         self.down = data[3]
-        """ Requester part """
+        # Requester part
         self.total_up_requester = data[4]
         self.total_down_requester = data[5]
         self.sequence_number_requester = data[6]
         self.previous_hash_requester = str(data[7])
         self.signature_requester = str(data[8])
         self.hash_requester = str(data[9])
-        """ Responder part """
+        # Responder part
         self.total_up_responder = data[10]
         self.total_down_responder = data[11]
         self.sequence_number_responder = data[12]
@@ -341,6 +332,7 @@ class DatabaseBlock:
                     payload.sequence_number_responder, payload.previous_hash_responder,
                     responder[0], sha256(encode_block(payload, requester, responder)).digest(),
                     None))
+
     @classmethod
     def from_signature_request_message(cls, message):
         payload = message.payload

@@ -10,7 +10,6 @@ from Tribler.dispersy.crypto import ECCrypto
 
 from Tribler.Test.test_as_server import AbstractServer
 
-from Tribler.community.multichain.conversion import EMPTY_HASH
 from Tribler.community.multichain.database import DatabaseBlock
 
 
