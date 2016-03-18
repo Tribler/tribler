@@ -10,7 +10,4 @@ class ClockedPlyvelStore(ClockedAbstractLevelDBStore):
 
 class TestPlyvelStore(AbstractTestLevelDBStore):
     __test__ = True
-
-    def openStore(self, store_dir):
-        self.store_dir = store_dir
-        self.store = ClockedPlyvelStore(self.store_dir)
+    _storetype = ClockedPlyvelStore

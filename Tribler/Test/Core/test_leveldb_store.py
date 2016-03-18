@@ -61,6 +61,7 @@ class ClockedLevelDBStore(ClockedAbstractLevelDBStore):
 class AbstractTestLevelDBStore(BaseTestCase):
 
     __test__ = False
+    _storetype = None
 
     def __init__(self, *argv, **kwargs):
         super(AbstractTestLevelDBStore, self).__init__(*argv, **kwargs)
@@ -81,7 +82,7 @@ class AbstractTestLevelDBStore(BaseTestCase):
 
     def openStore(self, store_dir):
         self.store_dir = store_dir
-        self.store = None
+        self.store = self._storetype(self.store_dir)
 
     def test_storeIsPersistent(self):
         self.store.put(K, V)
@@ -140,10 +141,7 @@ class AbstractTestLevelDBStore(BaseTestCase):
 
 class TestLevelDBStore(AbstractTestLevelDBStore):
     __test__ = True
-
-    def openStore(self, store_dir):
-        self.store_dir = store_dir
-        self.store = ClockedLevelDBStore(self.store_dir)
+    _storetype = ClockedLevelDBStore
 
 #
 # test_leveldb_store.py ends here
