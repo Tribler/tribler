@@ -9,10 +9,11 @@ To build a Tribler installer, you'll need some additional scripts and packages. 
 * The git command tools (version 2.7.0) are required to fetch the latest release information. These can be downloaded from [here](https://git-scm.com/download/win). 
 * Py2Exe (0.6.9), a tool to create an executeable from python files. Grab the latest version [here](http://sourceforge.net/projects/py2exe/files/py2exe/).
 * The builder needs to find all packages that are required by Tribler so make sure you can run Tribler on your machine and that there are no missing dependencies.
-* Nullsoft Scriptable Install System (NSIS) (version 3.0b3) is a script-driven Installer authoring tool for Microsoft Windows with minimal overhead. It can be downloaded [here](http://nsis.sourceforge.net/Download).
+* Nullsoft Scriptable Install System (NSIS) (version 2.5.0) is a script-driven Installer authoring tool for Microsoft Windows with minimal overhead. It can be downloaded [here](http://nsis.sourceforge.net/Download). We selected version 2.5 as the uninstall functions were not called properly in 3.03b.
 * Three plugins are required.The UAC plugin is the first. This can be downloaded from [here](http://nsis.sourceforge.net/UAC_plug-in) (version 0.2.4c). How to install a plugin can be found [here](http://nsis.sourceforge.net/How_can_I_install_a_plugin).
 * The second plugin that is needed is AccessControl plug-in (version 1.0.8.1). It can be downloaded [here](http://nsis.sourceforge.net/AccessControl_plug-in).
 * The third plugin required is NSIS Simple Firewall Plugin (version 1.2.0). You can download it [here](http://nsis.sourceforge.net/NSIS_Simple_Firewall_Plugin).
+* The fourth plugin needed is NSProcess (Version 1.6.7), which can be downloaded [here](http://nsis.sourceforge.net/NsProcess_plugin).
 * A version of Microsoft Visual Studio should be installed (we use 2012), but make sure you do not have the build-tools only. The full (community) edition can be downloaded [here](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx).
 
 # Building & Packaging Tribler
@@ -29,13 +30,14 @@ Inside the `build` folder, put the following items:
 Then, set a `PASSWORD` [environment variable](https://www.microsoft.com/resources/documentation/windows/xp/all/proddocs/en-us/sysdm_advancd_environmnt_addchange_variable.mspx?mfr=true) with its value set to the password matching the one set in your `.pfx` file.
 
 Finally, open a command prompt and enter the following commands (Change 11.0 depending on your version of Microsoft Visual Studio):
+Note that for building 32 bit you need to pass anything but 64, i.e. 32 or 86 to the `update_version_from_git.py` script.
 ```
 setlocal enabledelayedexpansion
 call "C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\vcvarsall.bat"
 SET PATH=%PATH%;C:\Windows\system32;C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin
 dir
 cd tribler
-python Tribler/Main/Build/update_version_from_git.py
+python Tribler/Main/Build/update_version_from_git.py 64
 xcopy C:\build\vlc vlc /E /I
 win\makedist_win.bat
 ```
