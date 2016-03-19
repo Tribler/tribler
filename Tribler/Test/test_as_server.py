@@ -34,7 +34,7 @@ from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
 import wx
-from .util import process_unhandled_exceptions
+from .util import process_unhandled_exceptions, UnhandledTwistedExceptionCatcher, process_unhandled_twisted_exceptions
 
 from Tribler.Core import defaults
 from Tribler.Core.Session import Session
@@ -106,7 +106,6 @@ class AbstractServer(BaseTestCase):
             self.annotate(self._testMethodName, start=True)
         self.watchdog.start()
 
-
     def setUpCleanup(self):
         # Change to an existing dir before cleaning up.
         os.chdir(TESTS_DIR)
@@ -131,6 +130,8 @@ class AbstractServer(BaseTestCase):
             self.assertNotIsInstance(reader, BasePort, "The test left a listening port behind: %s" % reader)
 
         process_unhandled_exceptions()
+        process_unhandled_twisted_exceptions()
+
         self.watchdog.join(2)
         if self.watchdog.is_alive():
             self._logger.critical("The WatchDog didn't stop!")
