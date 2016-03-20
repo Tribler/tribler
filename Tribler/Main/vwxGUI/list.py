@@ -1601,7 +1601,7 @@ class LibraryList(SizeList):
                    {'name': 'ETA', 'width': '13em', 'fmt': self._format_eta, 'sortAsc': True, 'autoRefresh': False},
                    {'name': 'Down speed', 'width': '20em', 'fmt': speed_format, 'autoRefresh': False},
                    {'name': 'Up speed', 'width': '20em', 'fmt': speed_format, 'autoRefresh': False},
-                   {'name': 'Connections', 'width': '15em', 'autoRefresh': False},
+                   {'name': 'Connections', 'width': '17em', 'autoRefresh': False},
                    {'name': 'Ratio', 'width': '15em', 'fmt': self._format_ratio, 'autoRefresh': False},
                    {'name': 'Time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
                    {'name': 'Anonymous', 'width': '25em', 'autoRefresh': False}]
