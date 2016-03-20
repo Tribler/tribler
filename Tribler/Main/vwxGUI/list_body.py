@@ -15,7 +15,7 @@ from Tribler.Main.vwxGUI import (warnWxThread, LIST_SELECTED, LIST_EXPANDED, LIS
                                  LIST_RATE_LIMIT, LIST_ITEM_MAX_SIZE)
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.vwxGUI.widgets import BetterText as StaticText, _set_font, ActionButton
+from Tribler.Main.vwxGUI.widgets import BetterText as StaticText, _set_font, ActionButton, BetterText
 
 
 class ListItem(wx.Panel):
@@ -447,7 +447,9 @@ class ListItem(wx.Panel):
         elif event.ButtonDClick(wx.MOUSE_BTN_LEFT):
             self.OnDClick(event)
 
-        event.Skip()  # Allow windows to paint button hover
+        # make sure ListItem labels are not consuming the click event
+        if not event.LeftUp() or not isinstance(event.GetEventObject(), BetterText):
+            event.Skip()  # Allow windows to paint button hover
 
     @warnWxThread
     def OnClick(self, event=None, force=False):
