@@ -1018,10 +1018,10 @@ class AbstractListBody():
             self.CreateItems(nr_items_to_create=3 * LIST_ITEM_BATCH_SIZE)
 
             # Try to yield
-            try:
-                wx.SafeYield()
-            except:
-                pass
+            #try:
+            #    wx.SafeYield()
+            #except:
+            #    pass
 
         elif self.filter:
             header, message = self.filterMessage(empty=True)
