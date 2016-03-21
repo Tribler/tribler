@@ -12,7 +12,7 @@ class ChannelTorrentListItem(QWidget):
 
         self.channel_torrent_name.setText(torrent["name"])
 
-        placeholder_pix = QPixmap("images/play.png")
-        placeholder_pix = placeholder_pix.scaled(self.torrent_action_button.width(), self.torrent_action_button.height())
-        self.torrent_action_button.setIcon(QIcon(placeholder_pix))
-        self.torrent_action_button.setIconSize(QSize(self.torrent_action_button.width(), self.torrent_action_button.height()))
+        placeholder_pix = QPixmap("images/download.png")
+        placeholder_pix = placeholder_pix.scaled(self.torrent_download_button.width(), self.torrent_download_button.height(), Qt.KeepAspectRatio)
+        self.torrent_download_button.setIcon(QIcon(placeholder_pix))
+        self.torrent_download_button.setIconSize(QSize(self.torrent_download_button.width(), self.torrent_download_button.height()))
