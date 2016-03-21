@@ -18,12 +18,22 @@ from TriblerGUI.utilities import create_rounded_image
 os.environ['VLC_PLUGIN_PATH'] = '/Applications/VLC.app/Contents/MacOS/plugins'
 
 
+# Define stacked widget page indices
+PAGE_HOME = 0
+PAGE_MY_CHANNEL = 1
+PAGE_CHANNELS_OVERVIEW = 2
+PAGE_CHANNEL_DETAILS = 3
+PAGE_SETTINGS = 4
+PAGE_VIDEO_PLAYER = 5
+
+
 class TriblerWindow(QMainWindow):
 
     def __init__(self):
         super(TriblerWindow, self).__init__()
 
         self.settings = None
+        self.navigation_stack = []
 
         uic.loadUi('qt_resources/mainwindow.ui', self)
 
@@ -53,7 +63,10 @@ class TriblerWindow(QMainWindow):
         self.left_menu_settings_button = self.findChild(QWidget, "left_menu_settings_button")
         self.left_menu_settings_button.clicked_menu_button.connect(self.clicked_menu_button)
 
-        self.stackedWidget.setCurrentIndex(2)
+        channel_back_button = self.findChild(QToolButton, "channel_back_button")
+        channel_back_button.clicked.connect(self.on_page_back_clicked)
+
+        self.stackedWidget.setCurrentIndex(PAGE_CHANNELS_OVERVIEW)
 
         self.tribler_request_manager = TriblerRequestManager()
         self.tribler_request_manager.received_search_results.connect(self.received_search_results)
@@ -129,7 +142,7 @@ class TriblerWindow(QMainWindow):
         self.tribler_request_manager.get_channels()
 
     def on_top_search_button_click(self):
-        self.stackedWidget.setCurrentIndex(2)
+        self.stackedWidget.setCurrentIndex(PAGE_CHANNELS_OVERVIEW)
         self.tribler_request_manager.search_channels(self.top_search_bar.text())
 
     def on_top_menu_button_click(self):
@@ -140,18 +153,20 @@ class TriblerWindow(QMainWindow):
 
     def clicked_menu_button(self, menu_button_name):
         if menu_button_name == "left_menu_home_button":
-            self.stackedWidget.setCurrentIndex(0)
+            self.stackedWidget.setCurrentIndex(PAGE_HOME)
         elif menu_button_name == "left_menu_my_channel_button":
-            self.stackedWidget.setCurrentIndex(1)
+            self.stackedWidget.setCurrentIndex(PAGE_MY_CHANNEL)
         elif menu_button_name == "left_menu_videoplayer_button":
-            self.stackedWidget.setCurrentIndex(5)
+            self.stackedWidget.setCurrentIndex(PAGE_VIDEO_PLAYER)
         elif menu_button_name == "left_menu_settings_button":
-            self.stackedWidget.setCurrentIndex(4)
+            self.stackedWidget.setCurrentIndex(PAGE_SETTINGS)
+        self.navigation_stack = []
 
     def on_channel_item_click(self, channel_list_item):
         channel_info = channel_list_item.data(Qt.UserRole)
         self.tribler_request_manager.get_torrents_in_channel(str(channel_info['id']))
-        self.stackedWidget.setCurrentIndex(3)
+        self.navigation_stack.append(self.stackedWidget.currentIndex())
+        self.stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
 
         # initialize the page about a channel
         channel_detail_pane = self.findChild(QWidget, "channel_details")
@@ -160,6 +175,10 @@ class TriblerWindow(QMainWindow):
 
         channel_name_label.setText(channel_info['name'])
         channel_num_subs_label.setText(str(channel_info['votes']))
+
+    def on_page_back_clicked(self):
+        prev_page = self.navigation_stack.pop()
+        self.stackedWidget.setCurrentIndex(prev_page)
 
 app = QApplication(sys.argv)
 window = TriblerWindow()
