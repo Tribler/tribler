@@ -16,6 +16,7 @@ from twisted.internet import reactor
 from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Modules.freespace_checker import FreeSpaceChecker
 from Tribler.Core.Modules.search_manager import SearchManager
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
@@ -69,6 +70,7 @@ class TriblerLaunchMany(TaskManager):
         self.metadata_store = None
         self.rtorrent_handler = None
         self.tftp_handler = None
+        self.free_space_checker = None
 
         self.cat = None
         self.peer_db = None
@@ -243,6 +245,9 @@ class TriblerLaunchMany(TaskManager):
 
         if self.rtorrent_handler:
             self.rtorrent_handler.initialize()
+
+        self.free_space_checker = FreeSpaceChecker(self.session)
+        self.free_space_checker.start()
 
         self.initComplete = True
 
@@ -659,6 +664,10 @@ class TriblerLaunchMany(TaskManager):
         if self.torrent_store is not None:
             self.torrent_store.close()
             self.torrent_store = None
+
+        if self.free_space_checker is not None:
+            self.free_space_checker.stop()
+            self.free_space_checker = None
 
     def network_shutdown(self):
         try:
