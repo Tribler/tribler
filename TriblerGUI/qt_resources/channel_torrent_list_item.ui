@@ -134,7 +134,7 @@ font-size: 16px;</string>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_2">
        <item>
-        <widget class="QLabel" name="torrent_size_label">
+        <widget class="QLabel" name="torrent_size">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
            <horstretch>0</horstretch>
@@ -148,7 +148,7 @@ background-color: transparent;
 font-size: 14px;</string>
          </property>
          <property name="text">
-          <string>Size: 4.93GB</string>
+          <string>Size: -</string>
          </property>
         </widget>
        </item>
@@ -169,7 +169,7 @@ font-size: 14px;</string>
         </spacer>
        </item>
        <item>
-        <widget class="QLabel" name="label">
+        <widget class="QLabel" name="torrent_type">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
            <horstretch>0</horstretch>
@@ -183,7 +183,7 @@ background-color: transparent;
 font-size: 14px;</string>
          </property>
          <property name="text">
-          <string>File type: Video Files</string>
+          <string>File type: -</string>
          </property>
         </widget>
        </item>
