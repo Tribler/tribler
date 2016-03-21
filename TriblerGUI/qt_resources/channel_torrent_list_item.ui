@@ -244,7 +244,7 @@ font-size: 12px;</string>
     </widget>
    </item>
    <item>
-    <spacer name="horizontalSpacer_4">
+    <spacer name="torrent_list_item_right_spacer">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
@@ -253,7 +253,7 @@ font-size: 12px;</string>
      </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>10</width>
+       <width>24</width>
        <height>20</height>
       </size>
      </property>
