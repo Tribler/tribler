@@ -12,6 +12,7 @@ from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
 from twisted.internet import reactor
+from twisted.web import server
 
 from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
@@ -23,6 +24,7 @@ from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE
+from Tribler.Core.triblerapi import TriblerAPI
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
@@ -248,6 +250,12 @@ class TriblerLaunchMany(TaskManager):
 
         self.free_space_checker = FreeSpaceChecker(self.session)
         self.free_space_checker.start()
+
+        # start API
+        # TODO Martijn make the API and port toggable with the configuration file
+        self._logger.info("Starting Tribler HTTP API on port 8085")
+        site = server.Site(TriblerAPI(self.session))
+        reactor.listenTCP(8085, site)
 
         self.initComplete = True
 
