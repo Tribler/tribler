@@ -111,6 +111,9 @@
            <height>18</height>
           </size>
          </property>
+         <property name="cursor">
+          <cursorShape>PointingHandCursor</cursorShape>
+         </property>
          <property name="styleSheet">
           <string notr="true">border: none; 
 border-image: url(images/menu.png) 0 0 0 0 stretch stretch;</string>
@@ -657,7 +660,7 @@ background-color: #666;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>2</number>
+         <number>3</number>
         </property>
         <widget class="QWidget" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -877,6 +880,48 @@ border: none;
              </property>
              <item>
               <spacer name="horizontalSpacer_5">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>10</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QToolButton" name="channel_back_button">
+               <property name="minimumSize">
+                <size>
+                 <width>16</width>
+                 <height>18</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16</width>
+                 <height>18</height>
+                </size>
+               </property>
+               <property name="cursor">
+                <cursorShape>PointingHandCursor</cursorShape>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">border: none; 
+border-image: url(images/page_back.png) 0 0 0 0 stretch stretch;</string>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_17">
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
                </property>

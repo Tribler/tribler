@@ -29,7 +29,7 @@
    </size>
   </property>
   <property name="cursor">
-   <cursorShape>ArrowCursor</cursorShape>
+   <cursorShape>PointingHandCursor</cursorShape>
   </property>
   <property name="windowTitle">
    <string>Form</string>
@@ -72,7 +72,7 @@ background-color: #666;
     </spacer>
    </item>
    <item>
-    <widget class="QToolButton" name="torrent_action_button">
+    <widget class="QToolButton" name="torrent_download_button">
      <property name="minimumSize">
       <size>
        <width>24</width>
@@ -98,7 +98,7 @@ border: none;</string>
     </widget>
    </item>
    <item>
-    <spacer name="horizontalSpacer">
+    <spacer name="horizontalSpacer_3">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
@@ -131,7 +131,133 @@ font-size: 16px;</string>
        </property>
       </widget>
      </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <item>
+        <widget class="QLabel" name="torrent_size_label">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color: #eee;
+border: none;
+background-color: transparent;
+font-size: 14px;</string>
+         </property>
+         <property name="text">
+          <string>Size: 4.93GB</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_5">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="label">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color: #eee;
+border: none;
+background-color: transparent;
+font-size: 14px;</string>
+         </property>
+         <property name="text">
+          <string>File type: Video Files</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
     </layout>
+   </item>
+   <item>
+    <spacer name="horizontalSpacer">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>10</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QToolButton" name="torrent_stream_button">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>56</width>
+       <height>24</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>16777215</height>
+      </size>
+     </property>
+     <property name="cursor">
+      <cursorShape>PointingHandCursor</cursorShape>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">background: none;
+border: none;
+background-color: #bbb;
+border-radius: 12px;
+color: #333;
+font-size: 12px;</string>
+     </property>
+     <property name="text">
+      <string>stream</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="horizontalSpacer_4">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>10</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
    </item>
   </layout>
  </widget>
