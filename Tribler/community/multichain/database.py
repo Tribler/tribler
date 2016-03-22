@@ -7,6 +7,7 @@ from os import path
 from Tribler.dispersy.database import Database
 from Tribler.community.multichain.block import GENESIS_ID, EMPTY_PK, EMPTY_SIG, MultiChainBlock
 
+
 DATABASE_DIRECTORY = path.join(u"sqlite")
 # Path to the database location + dispersy._workingdirectory
 DATABASE_PATH = path.join(DATABASE_DIRECTORY, u"multichain.db")
@@ -59,20 +60,6 @@ class MultiChainDB(Database):
         super(MultiChainDB, self).__init__(path.join(working_directory, DATABASE_PATH))
         self.open()
 
-    def get_latest(self, public_key):
-        """
-        Get the latest block for a given public key
-        :param public_key: The public_key for which the latest block has to be found.
-        :return: the latest block or None if it is not known
-        """
-        public_key = buffer(public_key)
-        db_query = u"SELECT up, down, total_up, total_down, public_key, sequence_number, link_public_key," \
-                   u"link_sequence_number, previous_hash, signature, insert_time " \
-                   u"FROM multi_chain WHERE public_key = ? AND sequence_number = (SELECT MAX(sequence_number) FROM " \
-                   u"multi_chain WHERE public_key = ?)"
-        db_result = self.execute(db_query, (buffer(public_key), buffer(public_key))).fetchone()
-        return MultiChainBlock(db_result) if db_result else None
-
     def add_block(self, block):
         """
         Persist a block
@@ -91,22 +78,62 @@ class MultiChainDB(Database):
         :param block: the block to check
         :return: True if the block exists, else false.
         """
-        db_query = u"SELECT * FROM multi_chain WHERE public_key = ? AND sequence_number = ?"
-        db_result = self.execute(db_query, (buffer(block.public_key), block.sequence_number)).fetchone()
-        return db_result is not None
+        return self.get(block.public_key, block.sequence_number) is not None
 
-    def get_blocks_since(self, public_key, sequence_number):
+    def get(self, public_key, sequence_number):
+        """
+        Get a specific block for a given public key
+        :param public_key: The public_key for which the block has to be found.
+        :param sequence_number: The specific block to get
+        :return: the block or None if it is not known
+        """
+        db_query = u"SELECT up, down, total_up, total_down, public_key, sequence_number, link_public_key," \
+                   u"link_sequence_number, previous_hash, signature, insert_time " \
+                   u"FROM multi_chain WHERE public_key = ? AND sequence_number = ?"
+        db_result = self.execute(db_query, (buffer(public_key), sequence_number)).fetchone()
+        return MultiChainBlock(db_result) if db_result else None
+
+    def get_latest(self, public_key):
+        """
+        Get the latest block for a given public key
+        :param public_key: The public_key for which the latest block has to be found.
+        :return: the latest block or None if it is not known
+        """
+        db_query = u"SELECT up, down, total_up, total_down, public_key, sequence_number, link_public_key," \
+                   u"link_sequence_number, previous_hash, signature, insert_time " \
+                   u"FROM multi_chain WHERE public_key = ? AND sequence_number = (SELECT MAX(sequence_number) FROM " \
+                   u"multi_chain WHERE public_key = ?)"
+        db_result = self.execute(db_query, (buffer(public_key), buffer(public_key))).fetchone()
+        return MultiChainBlock(db_result) if db_result else None
+
+    def get_blocks_since(self, public_key, sequence_number, limit=100):
         """
         Returns database blocks with sequence number higher than or equal to sequence_number, at most 100 results
         :param public_key: The public key corresponding to the member id
         :param sequence_number: The linear block number
+        :param limit: Optional limit on the number of blocks to fetch. Defaults to 100
         :return A list of DB Blocks that match the criteria
         """
         db_query = u"SELECT up, down, total_up, total_down, public_key, sequence_number, link_public_key," \
                    u"link_sequence_number, previous_hash, signature, insert_time " \
                    u"FROM multi_chain WHERE sequence_number >= ? AND public_key = ? " \
-                   u"ORDER BY sequence_number ASC LIMIT 100"
-        db_result = self.execute(db_query, (sequence_number, buffer(public_key))).fetchall()
+                   u"ORDER BY sequence_number ASC LIMIT ?"
+        db_result = self.execute(db_query, (sequence_number, buffer(public_key), limit)).fetchall()
+        return [MultiChainBlock(db_item) for db_item in db_result]
+
+    def get_blocks_until(self, public_key, sequence_number, limit=100):
+        """
+        Returns database blocks with sequence number lower than or equal to sequence_number, at most 100 results
+        :param public_key: The public key corresponding to the member id
+        :param sequence_number: The linear block number
+        :param limit: Optional limit on the number of blocks to fetch. Defaults to 100
+        :return A list of DB Blocks that match the criteria
+        """
+        db_query = u"SELECT up, down, total_up, total_down, public_key, sequence_number, link_public_key," \
+                   u"link_sequence_number, previous_hash, signature, insert_time " \
+                   u"FROM multi_chain WHERE sequence_number <= ? AND public_key = ? " \
+                   u"ORDER BY sequence_number ASC LIMIT ?"
+        db_result = self.execute(db_query, (sequence_number, buffer(public_key), limit)).fetchall()
         return [MultiChainBlock(db_item) for db_item in db_result]
 
     def get_num_unique_interactors(self, public_key):
@@ -127,7 +154,6 @@ class MultiChainDB(Database):
         :param block: The block for which to get the linked block
         :return: the latest block or None if it is not known
         """
-        # TODO: make sure linked also works the other way around...
         db_query = u"SELECT up, down, total_up, total_down, public_key, sequence_number, link_public_key," \
                    u"link_sequence_number, previous_hash, signature, insert_time " \
                    u"FROM multi_chain WHERE public_key = ? AND sequence_number = ? OR " \

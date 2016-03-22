@@ -32,9 +32,6 @@ FULL_BLOCK = u"full_block"
 CRAWL = u"crawl"
 RESUME = u"resume"
 
-# Divide by this to convert from bytes to MegaBytes.
-MEGA_DIVIDER = 1024 * 1024
-
 
 class MultiChainCommunity(Community):
     """
@@ -136,10 +133,8 @@ class MultiChainCommunity(Community):
             """
             self.logger.info("Sign block called. Candidate: {0} [Up = {1} | Down = {2}]".
                              format(str(candidate), bytes_up, bytes_down))
-
-            # self.add_discovered_candidate(candidate)
             if candidate and candidate.get_member():
-                # TODO: proper form requires a local lock here to ensure atomic db operation
+                # TODO: proper form requires a local lock here (up to db add) to ensure atomic db operation
                 block = MultiChainBlock.create(self.persistence, self._public_key)
                 block.up = bytes_up
                 block.down = bytes_down
@@ -170,22 +165,19 @@ class MultiChainCommunity(Community):
         for message in messages:
             blk = message.payload.block
             self.logger.info("Received signed block: [Up = {0} | Down = {1}]".format(blk.up, blk.down))
+            validation = self.process_block(blk)
+            if validation[0] == "invalid":
+                continue
 
-            # TODO: This code always signs a request. Checks and rejects should be inserted here!
-            # validation = blk.validate(self.persistence)
-            # if validation[0] == "invalid":
-            #     return
-
-            self.persistence.add_block(blk)
             match = MultiChainBlock.create(self.persistence, self._public_key, blk)
             match.sign(self._private_key)
             self.persistence.add_block(match)
-            message = self.get_meta_message(HALF_BLOCK).impl(
-                authentication=(self.my_member,),
-                distribution=(self.claim_global_time(),),
-                destination=(message.candidate,),
-                payload=(match,))
-            self.dispersy.store_update_forward([message], False, False, True)
+            self.dispersy.store_update_forward([
+                self.get_meta_message(HALF_BLOCK).impl(
+                    authentication=(self.my_member,),
+                    distribution=(self.claim_global_time(),),
+                    destination=(message.candidate,),
+                    payload=(match,))], False, False, True)
 
     def received_half_block(self, messages):
         """
@@ -203,27 +195,28 @@ class MultiChainCommunity(Community):
         """
         self.logger.info("%s full block(s) received." % len(messages))
         for message in messages:
-            self.process_block(message.payload.block_seeder)
-            self.process_block(message.payload.block_leecher)
+            self.process_block(message.payload.block_this)
+            self.process_block(message.payload.block_that)
 
     def send_crawl_request(self, candidate, sequence_number=None):
+        sq = sequence_number
         if sequence_number is None:
             blk = self.persistence.get_latest(candidate.get_member().public_key)
-            sequence_number = blk.sequence_number if blk else 0
+            sq = blk.sequence_number if blk else 0
         self.logger.info("Crawler: Requesting crawl from node %s, from sequence number %d" %
-                         (base64.encodestring(candidate.get_member().mid).strip(), sequence_number))
+                         (base64.encodestring(candidate.get_member().mid).strip(), sq))
         message = self.get_meta_message(CRAWL).impl(
             authentication=(self.my_member,),
             distribution=(self.claim_global_time(),),
             destination=(candidate,),
-            payload=(sequence_number,))
+            payload=(sq,))
         self.dispersy.store_update_forward([message], False, False, True)
 
     def received_crawl_request(self, messages):
         for message in messages:
-            self.logger.info("Crawler: Received crawl request from node %s, from sequence number %d",
-                             base64.encodestring(message.candidate.get_member().mid).strip(),
-                              message.payload.requested_sequence_number)
+            self.logger.info("Crawler: Received crawl request from node %s, from sequence number %d" %
+                             (base64.encodestring(message.candidate.get_member().public_key).strip(),
+                              message.payload.requested_sequence_number))
             self.crawl_requested(message.candidate, message.payload.requested_sequence_number)
 
     def crawl_requested(self, candidate, sequence_number):
@@ -305,13 +298,20 @@ class MultiChainCommunity(Community):
         return statistics
 
     def process_block(self, blk):
-        # validation = blk.validate(self.persistence)
-        # if validation[0] == "invalid":
-        #     return
-        if self.persistence.contains(blk):
-            self.logger.info("Received already known block")
-            return
-        self.persistence.add_block(blk)
+        """
+        Validates blocks and adds them to the database if needed
+        :param blk: the block to validate and add
+        :return: the validation result tuple (see MultiChainBlock.validate for details)
+        """
+        validation = blk.validate(self.persistence)
+        self.logger.info("Block validation result {0}, {1}".format(validation[0], validation[1]))
+        if validation[0] == "invalid":
+            pass
+        elif not self.persistence.contains(blk):
+            self.persistence.add_block(blk)
+        else:
+            self.logger.info("Processing already known block")
+        return validation
 
     @inlineCallbacks
     def unload_community(self):

@@ -124,6 +124,27 @@ class TestDatabase(MultiChainTestCase):
         self.assertEqual_block(block3, result[1])
 
     @blocking_call_on_reactor_thread
+    def test_get_blocks_until(self):
+        # Arrange
+        db = MultiChainDB(self.getStateDir())
+        block1 = TestBlock()
+        block2 = TestBlock()
+        block2.public_key = block1.public_key
+        block2.sequence_number = block1.sequence_number + 1
+        block3 = TestBlock()
+        block3.public_key = block2.public_key
+        block3.sequence_number = block2.sequence_number + 10
+        db.add_block(block1)
+        db.add_block(block2)
+        db.add_block(block3)
+        # Act
+        result = db.get_blocks_until(block2.public_key, block2.sequence_number)
+        # Assert
+        self.assertEqual(len(result), 2)
+        self.assertEqual_block(block1, result[0])
+        self.assertEqual_block(block2, result[1])
+
+    @blocking_call_on_reactor_thread
     def test_save_large_upload_download_block(self):
         """
         Test if the block can save very large numbers.

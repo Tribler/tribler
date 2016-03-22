@@ -1,5 +1,5 @@
 """
-File containing utilities used in testing the double entry community.
+File containing utilities used in testing the MultiChain community.
 """
 import random
 from hashlib import sha256
@@ -10,20 +10,28 @@ from Tribler.community.multichain.block import MultiChainBlock, EMPTY_PK
 
 class TestBlock(MultiChainBlock):
     """
-    Test Block that simulates a block message used in MultiChain.
+    Test Block that simulates a block used in MultiChain.
     Also used in other test files for MultiChain.
     """
 
-    def __init__(self):
+    def __init__(self, previous=None):
         crypto = ECCrypto()
-        key = crypto.generate_key(u"curve25519")
+        up = random.randint(201, 220)
+        down = random.randint(221, 240)
 
-        MultiChainBlock.__init__(self, (
-            random.randint(201, 220), random.randint(221, 240), random.randint(241, 260), random.randint(261, 280),
-            key.pub().key_to_bin(), random.randint(50, 100), EMPTY_PK, 0,
-            sha256(str(random.randint(0, 100000))).digest(), 0, 0))
-        self.key = key
-        self.sign(key)
+        if previous:
+            self.key = previous.key
+            MultiChainBlock.__init__(self, (
+                up, down, previous.total_up + up, previous.total_down + down,
+                previous.public_key, previous.sequence_number + 1, EMPTY_PK, 0,
+                previous.hash, 0, 0))
+        else:
+            self.key = crypto.generate_key(u"curve25519")
+            MultiChainBlock.__init__(self, (
+                up, down, random.randint(241, 260), random.randint(261, 280),
+                self.key.pub().key_to_bin(), random.randint(50, 100), EMPTY_PK, 0,
+                sha256(str(random.randint(0, 100000))).digest(), 0, 0))
+        self.sign(self.key)
 
 
 class MultiChainTestCase(AbstractServer):
@@ -46,3 +54,4 @@ class MultiChainTestCase(AbstractServer):
         self.assertEqual(expected_block.link_sequence_number, actual_block.link_sequence_number)
         self.assertEqual(expected_block.previous_hash, actual_block.previous_hash)
         self.assertEqual(expected_block.signature, actual_block.signature)
+        return True
