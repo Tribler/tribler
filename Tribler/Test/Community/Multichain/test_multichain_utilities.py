@@ -18,18 +18,19 @@ class TestBlock(MultiChainBlock):
         crypto = ECCrypto()
         up = random.randint(201, 220)
         down = random.randint(221, 240)
+        other = crypto.generate_key(u"curve25519").pub().key_to_bin()
 
         if previous:
             self.key = previous.key
             MultiChainBlock.__init__(self, (
                 up, down, previous.total_up + up, previous.total_down + down,
-                previous.public_key, previous.sequence_number + 1, EMPTY_PK, 0,
+                previous.public_key, previous.sequence_number + 1, other, 0,
                 previous.hash, 0, 0))
         else:
             self.key = crypto.generate_key(u"curve25519")
             MultiChainBlock.__init__(self, (
                 up, down, random.randint(241, 260), random.randint(261, 280),
-                self.key.pub().key_to_bin(), random.randint(50, 100), EMPTY_PK, 0,
+                self.key.pub().key_to_bin(), random.randint(50, 100), other, 0,
                 sha256(str(random.randint(0, 100000))).digest(), 0, 0))
         self.sign(self.key)
 

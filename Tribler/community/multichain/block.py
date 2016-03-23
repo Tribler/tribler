@@ -87,7 +87,7 @@ class MultiChainBlock(object):
 
         # Step 2: determine the maximum validation level
         if not prev_blk and not next_blk:
-            if self.sequence_number != GENESIS_SEQ:
+            if self.sequence_number != GENESIS_SEQ and self.previous_hash != GENESIS_ID:
                 # No blocks found, there is no info to base on
                 err("No blocks are known for this member before or after the queried sequence number")
                 result[0] = "no-info"
@@ -96,7 +96,7 @@ class MultiChainBlock(object):
                 result[0] = "partial-next"
         elif not prev_blk and next_blk:
             # The previous block does not exist in the database, at best our result can now be partial w.r.t. prev
-            if self.sequence_number != GENESIS_SEQ:
+            if self.sequence_number != GENESIS_SEQ and self.previous_hash != GENESIS_ID:
                 # We are not checking the first block after genesis, so we are really missing the previous block
                 result[0] = "partial-prev"
                 if next_blk.sequence_number != self.sequence_number + 1:
@@ -133,13 +133,13 @@ class MultiChainBlock(object):
             err("Link sequence number not empty and is prior to genesis")
         if not crypto.is_valid_public_bin(self.public_key):
             err("Public key is not valid")
-        if self.link_public_key != EMPTY_PK and not crypto.is_valid_public_bin(self.link_public_key):
+        elif not crypto.is_valid_signature(
+                crypto.key_from_public_bin(self.public_key), self.pack(signature=False), self.signature):
+            err("Invalid signature")
+        if not crypto.is_valid_public_bin(self.link_public_key):
             err("Linked public key is not valid")
         if self.public_key == self.link_public_key:
             err("Self signed block")
-        if not crypto.is_valid_signature(
-                crypto.key_from_public_bin(self.public_key), self.pack(signature=False), self.signature):
-            err("Invalid signature")
         if self.sequence_number == GENESIS_SEQ or self.previous_hash == GENESIS_ID:
             if self.sequence_number == GENESIS_SEQ and self.previous_hash != GENESIS_ID:
                 err("Sequence number implies previous hash should be Genesis ID")
@@ -151,7 +151,6 @@ class MultiChainBlock(object):
                 err("Genesis block invalid total_down and/or down")
 
         # Step 3: does the database already know about this block? If so, is it equal?
-        # TODO: should we test/assert that the database delivered the correct block (good primary key & sequence number)
         if blk:
             if blk.up != self.up:
                 err("Up does not match known block")
@@ -176,15 +175,6 @@ class MultiChainBlock(object):
                 err("Up/down mismatch on linked block")
             if self.down != link.up:
                 err("Down/up mismatch on linked block")
-            # These next ones seem important to check but should be impossible if the database works correctly
-            if self.link_public_key != link.public_key:
-                err("Public key mismatch on linked block")
-            if self.public_key != link.link_public_key:
-                err("Link public key mismatch on linked block")
-            if self.link_sequence_number == 0 and link.link_sequence_number == 0:
-                err("Linked block does not countersign the block")
-            if self.sequence_number != link.link_sequence_number and self.link_sequence_number != link.sequence_number:
-                err("Invalid sequence number on linked block")
 
         # Step 5: does the database have adjacent blocks?
         if prev_blk:

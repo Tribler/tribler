@@ -3,7 +3,7 @@ import random
 from hashlib import sha256
 
 from Tribler.dispersy.crypto import ECCrypto
-from Tribler.community.multichain.block import MultiChainBlock, GENESIS_ID, EMPTY_SIG, GENESIS_SEQ
+from Tribler.community.multichain.block import MultiChainBlock, GENESIS_ID, EMPTY_SIG, GENESIS_SEQ, EMPTY_PK
 from Tribler.Test.test_multichain_utilities import MultiChainTestCase, TestBlock
 
 
@@ -110,7 +110,7 @@ class TestBlocks(MultiChainTestCase):
         # Act
         result = block2.validate(db)
         # Assert
-        self.assertEqual(result, ('valid', []))
+        self.assertEqual(result[0], 'valid')
 
     def test_validate_non_existing(self):
         # Arrange
@@ -121,7 +121,7 @@ class TestBlocks(MultiChainTestCase):
         # Act
         result = block2.validate(db)
         # Assert
-        self.assertEqual(result, ('valid', []))
+        self.assertEqual(result[0], 'valid')
 
     def test_validate_no_info(self):
         # Arrange
@@ -143,7 +143,7 @@ class TestBlocks(MultiChainTestCase):
         # Act
         result = block2.validate(db)
         # Assert
-        self.assertEqual(result, ('partial-prev', []))
+        self.assertEqual(result[0], 'partial-prev')
 
     def test_validate_partial_next(self):
         # Arrange
@@ -154,9 +154,37 @@ class TestBlocks(MultiChainTestCase):
         # Act
         result = block3.validate(db)
         # Assert
-        self.assertEqual(result, ('partial-next', []))
+        self.assertEqual(result[0], 'partial-next')
 
-    def test_validate_partial(self):
+    def test_validate_partial_prev_with_gap(self):
+        # Arrange
+        db = self.MockDatabase()
+        (block1, block2, block3, _) = self.setup_validate()
+        block2.previous_hash = block2.hash
+        block2.sequence_number += 1
+        block2.sign(block2.key)
+        block3.sequence_number += 1
+        block3.previous_hash = block2.hash
+        db.add_block(block1)
+        db.add_block(block3)
+        # Act
+        result = block2.validate(db)
+        # Assert
+        self.assertEqual(result[0], 'partial-prev')
+
+    def test_validate_partial_next_with_gap(self):
+        # Arrange
+        db = self.MockDatabase()
+        (block1, block2, block3, _) = self.setup_validate()
+        block3.sequence_number += 1
+        db.add_block(block1)
+        db.add_block(block3)
+        # Act
+        result = block2.validate(db)
+        # Assert
+        self.assertEqual(result[0], 'partial-next')
+
+    def test_validate_partial_left_gap(self):
         # Arrange
         db = self.MockDatabase()
         (block1, _, block3, _) = self.setup_validate()
@@ -165,80 +193,150 @@ class TestBlocks(MultiChainTestCase):
         # Act
         result = block3.validate(db)
         # Assert
-        self.assertEqual(result, ('partial', []))
+        self.assertEqual(result[0], 'partial')
 
-    def test_invalid_existing_up(self):
+    def test_validate_partial_right_gap(self):
         # Arrange
         db = self.MockDatabase()
-        (block1, block2, block3, _) = self.setup_validate()
-        db.add_block(block1)
-        db.add_block(block2)
+        (block1, _, block3, _) = self.setup_validate()
+        block1.previous_hash = block3.previous_hash
+        block1.sequence_number += 1
+        block1.sign(block1.key)
+        block3.sequence_number += 1
         db.add_block(block3)
         # Act
-        block2.up += 10
-        db.sign_and_propagate()
-        result = block2.validate(db)
+        result = block1.validate(db)
         # Assert
-        self.assertEqual(result, ('invalid', ['Total up is lower than expected compared to the preceding block']))
+        self.assertEqual(result[0], 'partial')
 
-    def test_invalid_existing_down(self):
+    def test_validate_partial_with_both_gaps(self):
         # Arrange
         db = self.MockDatabase()
         (block1, block2, block3, _) = self.setup_validate()
-        db.add_block(block1)
-        db.add_block(block2)
-        db.add_block(block3)
-        # Act
-        block2.down += 10
-        db.sign_and_propagate()
-        result = block2.validate(db)
-        # Assert
-        self.assertEqual(result, ('invalid', ['Total down is lower than expected compared to the preceding block']))
-
-    def test_invalid_existing_total_up(self):
-        # Arrange
-        db = self.MockDatabase()
-        (block1, block2, block3, _) = self.setup_validate()
-        db.add_block(block1)
-        db.add_block(block2)
-        db.add_block(block3)
-        # Act
-        block2.total_up += 10
-        db.sign_and_propagate()
-        result = block2.validate(db)
-        # Assert
-        self.assertEqual(result, ('invalid', ['Total up is higher than expected compared to the next block']))
-
-    def test_invalid_existing_total_down(self):
-        # Arrange
-        db = self.MockDatabase()
-        (block1, block2, block3, _) = self.setup_validate()
-        db.add_block(block1)
-        db.add_block(block2)
-        db.add_block(block3)
-        # Act
-        block2.total_down += 10
-        db.sign_and_propagate()
-        result = block2.validate(db)
-        # Assert
-        self.assertEqual(result, ('invalid', ['Total down is higher than expected compared to the next block']))
-
-    def test_invalid_existing_hash(self):
-        # Arrange
-        db = self.MockDatabase()
-        (block1, block2, block3, _) = self.setup_validate()
-        db.add_block(block1)
-        db.add_block(block2)
-        db.add_block(block3)
-        # Act
-        block2.previous_hash = sha256(str(random.randint(0, 100000))).digest()
+        block2.previous_hash = block2.hash
+        block2.sequence_number += 1
         block2.sign(block2.key)
-        block3.previous_hash = block2.hash
+        block3.sequence_number += 2
+        db.add_block(block1)
+        db.add_block(block3)
+        # Act
         result = block2.validate(db)
         # Assert
-        self.assertEqual(result, ('invalid', ['Previous hash is not equal to the hash id of the previous block']))
+        self.assertEqual(result[0], 'partial')
 
-    def test_invalid_seq_not_genesis(self):
+    def test_validate_existing_up(self):
+        # Arrange
+        db = self.MockDatabase()
+        (block1, block2, block3, _) = self.setup_validate()
+        db.add_block(block1)
+        db.add_block(block2)
+        db.add_block(block3)
+        # Act
+        block2 = MultiChainBlock(block2.pack_db_insert())
+        block2.up += 10
+        block2.sign(db.get(block2.public_key, block2.sequence_number).key)
+        result = block2.validate(db)
+        # Assert
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn('Total up is lower than expected compared to the preceding block', result[1])
+
+    def test_validate_existing_down(self):
+        # Arrange
+        db = self.MockDatabase()
+        (block1, block2, block3, _) = self.setup_validate()
+        db.add_block(block1)
+        db.add_block(block2)
+        db.add_block(block3)
+        # Act
+        block2 = MultiChainBlock(block2.pack_db_insert())
+        block2.down += 10
+        block2.sign(db.get(block2.public_key, block2.sequence_number).key)
+        result = block2.validate(db)
+        # Assert
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn('Total down is lower than expected compared to the preceding block', result[1])
+
+    def test_validate_existing_total_up(self):
+        # Arrange
+        db = self.MockDatabase()
+        (block1, block2, block3, _) = self.setup_validate()
+        db.add_block(block1)
+        db.add_block(block2)
+        db.add_block(block3)
+        # Act
+        block2 = MultiChainBlock(block2.pack_db_insert())
+        block2.total_up += 10
+        block2.sign(db.get(block2.public_key, block2.sequence_number).key)
+        result = block2.validate(db)
+        # Assert
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn('Total up is higher than expected compared to the next block', result[1])
+
+    def test_validate_existing_total_down(self):
+        # Arrange
+        db = self.MockDatabase()
+        (block1, block2, block3, _) = self.setup_validate()
+        db.add_block(block1)
+        db.add_block(block2)
+        db.add_block(block3)
+        # Act
+        block2 = MultiChainBlock(block2.pack_db_insert())
+        block2.total_down += 10
+        block2.sign(db.get(block2.public_key, block2.sequence_number).key)
+        result = block2.validate(db)
+        # Assert
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn('Total down is higher than expected compared to the next block', result[1])
+
+    def test_validate_existing_link_public_key(self):
+        # Arrange
+        db = self.MockDatabase()
+        (block1, block2, block3, _) = self.setup_validate()
+        db.add_block(block1)
+        db.add_block(block2)
+        db.add_block(block3)
+        # Act
+        block2 = MultiChainBlock(block2.pack_db_insert())
+        block2.link_public_key = EMPTY_PK
+        block2.sign(db.get(block2.public_key, block2.sequence_number).key)
+        result = block2.validate(db)
+        # Assert
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn('Linked public key is not valid', result[1])
+
+    def test_validate_existing_link_sequence_number(self):
+        # Arrange
+        db = self.MockDatabase()
+        (block1, block2, block3, _) = self.setup_validate()
+        db.add_block(block1)
+        db.add_block(block2)
+        db.add_block(block3)
+        # Act
+        block2 = MultiChainBlock(block2.pack_db_insert())
+        block2.link_sequence_number = -1
+        block2.sign(db.get(block2.public_key, block2.sequence_number).key)
+        result = block2.validate(db)
+        # Assert
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn('Link sequence number does not match known block', result[1])
+
+    def test_validate_existing_hash(self):
+        # Arrange
+        db = self.MockDatabase()
+        (block1, block2, block3, _) = self.setup_validate()
+        db.add_block(block1)
+        db.add_block(block2)
+        db.add_block(block3)
+        # Act
+        block2 = MultiChainBlock(block2.pack_db_insert())
+        block2.previous_hash = sha256(str(random.randint(0, 100000))).digest()
+        block2.sign(db.get(block2.public_key, block2.sequence_number).key)
+        result = block2.validate(db)
+        # Assert
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn('Previous hash is not equal to the hash id of the previous block', result[1])
+
+    def test_validate_seq_not_genesis(self):
         # Arrange
         db = self.MockDatabase()
         (block1, _, _, _) = self.setup_validate()
@@ -247,9 +345,10 @@ class TestBlocks(MultiChainTestCase):
         block1.sign(block1.key)
         result = block1.validate(db)
         # Assert
-        self.assertEqual(result, ('invalid', ['Sequence number implies previous hash should be Genesis ID']))
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn('Sequence number implies previous hash should be Genesis ID', result[1])
 
-    def test_invalid_seq_genesis(self):
+    def test_validate_seq_genesis(self):
         # Arrange
         db = self.MockDatabase()
         (block1, block2, block3, _) = self.setup_validate()
@@ -261,13 +360,10 @@ class TestBlocks(MultiChainTestCase):
         block3.previous_hash = block2.hash
         result = block2.validate(db)
         # Assert
-        self.assertEqual(result, ('invalid', [
-            'Sequence number implies previous hash should not be Genesis ID',
-            'Genesis block invalid total_up and/or up',
-            'Genesis block invalid total_down and/or down',
-            'Previous hash is not equal to the hash id of the previous block']))
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn('Sequence number implies previous hash should not be Genesis ID', result[1])
 
-    def test_invalid_genesis(self):
+    def test_validate_genesis(self):
         # Arrange
         db = self.MockDatabase()
         (block1, _, _, _) = self.setup_validate()
@@ -277,12 +373,11 @@ class TestBlocks(MultiChainTestCase):
         block1.sign(block1.key)
         result = block1.validate(db)
         # Assert
-        self.assertEqual(result, ('invalid', [
-            'Sequence number implies previous hash should be Genesis ID',
-            'Genesis block invalid total_up and/or up',
-            'Genesis block invalid total_down and/or down']))
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn('Genesis block invalid total_up and/or up', result[1])
+        self.assertIn('Genesis block invalid total_down and/or down', result[1])
 
-    def test_invalid_up(self):
+    def test_validate_up(self):
         # Arrange
         db = self.MockDatabase()
         (block1, block2, block3, _) = self.setup_validate()
@@ -294,9 +389,10 @@ class TestBlocks(MultiChainTestCase):
         block3.previous_hash = block2.hash
         result = block2.validate(db)
         # Assert
-        self.assertEqual(result, ('invalid', ['Total up is lower than expected compared to the preceding block']))
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn('Total up is lower than expected compared to the preceding block', result[1])
 
-    def test_invalid_down(self):
+    def test_validate_down(self):
         # Arrange
         db = self.MockDatabase()
         (block1, block2, block3, _) = self.setup_validate()
@@ -308,9 +404,10 @@ class TestBlocks(MultiChainTestCase):
         block3.previous_hash = block2.hash
         result = block2.validate(db)
         # Assert
-        self.assertEqual(result, ('invalid', ['Total down is lower than expected compared to the preceding block']))
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn('Total down is lower than expected compared to the preceding block', result[1])
 
-    def test_invalid_total_up(self):
+    def test_validate_total_up(self):
         # Arrange
         db = self.MockDatabase()
         (block1, block2, block3, _) = self.setup_validate()
@@ -322,9 +419,10 @@ class TestBlocks(MultiChainTestCase):
         block3.previous_hash = block2.hash
         result = block2.validate(db)
         # Assert
-        self.assertEqual(result, ('invalid', ['Total up is higher than expected compared to the next block']))
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn('Total up is higher than expected compared to the next block', result[1])
 
-    def test_invalid_total_down(self):
+    def test_validate_total_down(self):
         # Arrange
         db = self.MockDatabase()
         (block1, block2, block3, _) = self.setup_validate()
@@ -336,9 +434,10 @@ class TestBlocks(MultiChainTestCase):
         block3.previous_hash = block2.hash
         result = block2.validate(db)
         # Assert
-        self.assertEqual(result, ('invalid', ['Total down is higher than expected compared to the next block']))
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn('Total down is higher than expected compared to the next block', result[1])
 
-    def test_invalid_hash(self):
+    def test_validate_hash(self):
         # Arrange
         db = self.MockDatabase()
         (block1, block2, block3, _) = self.setup_validate()
@@ -350,14 +449,122 @@ class TestBlocks(MultiChainTestCase):
         block3.previous_hash = block2.hash
         result = block2.validate(db)
         # Assert
-        self.assertEqual(result, ('invalid', ['Previous hash is not equal to the hash id of the previous block']))
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn('Previous hash is not equal to the hash id of the previous block', result[1])
+
+    def test_validate_not_sane_negatives(self):
+        db = self.MockDatabase()
+        block1 = MultiChainBlock()
+        # Act
+        block1.up = -10
+        block1.down = -20
+        block1.total_down = -10
+        block1.total_up = -20
+        result = block1.validate(db)
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn("Up field is negative", result[1])
+        self.assertIn("Down field is negative", result[1])
+        self.assertIn("Total up field is negative", result[1])
+        self.assertIn("Total down field is negative", result[1])
+
+    def test_validate_not_sane_sequence_number(self):
+        db = self.MockDatabase()
+        (block1, _, _, _) = self.setup_validate()
+        # Act
+        block1.sequence_number = 0
+        block1.sign(block1.key)
+        result = block1.validate(db)
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn("Sequence number is prior to genesis", result[1])
+
+    def test_validate_not_sane_link_sequence_number(self):
+        db = self.MockDatabase()
+        (block1, _, _, _) = self.setup_validate()
+        # Act
+        block1.link_sequence_number = -1
+        block1.sign(block1.key)
+        result = block1.validate(db)
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn("Link sequence number not empty and is prior to genesis", result[1])
+
+    def test_validate_not_sane_public_key(self):
+        db = self.MockDatabase()
+        (block1, _, _, _) = self.setup_validate()
+        # Act
+        block1.public_key = EMPTY_PK
+        block1.sign(block1.key)
+        result = block1.validate(db)
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn("Public key is not valid", result[1])
+
+    def test_validate_not_sane_link_public_key(self):
+        db = self.MockDatabase()
+        (block1, _, _, _) = self.setup_validate()
+        # Act
+        block1.link_public_key = EMPTY_PK
+        block1.sign(block1.key)
+        result = block1.validate(db)
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn("Linked public key is not valid", result[1])
+
+    def test_validate_not_sane_self_signed(self):
+        db = self.MockDatabase()
+        (block1, _, _, _) = self.setup_validate()
+        # Act
+        block1.link_public_key = block1.public_key
+        block1.sign(block1.key)
+        result = block1.validate(db)
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn("Self signed block", result[1])
+
+    def test_validate_not_sane_invalid_signature(self):
+        db = self.MockDatabase()
+        (block1, _, _, _) = self.setup_validate()
+        # Act
+        block1.signature = EMPTY_SIG
+        result = block1.validate(db)
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn("Invalid signature", result[1])
+
+    def test_validate_linked_valid(self):
+        db = self.MockDatabase()
+        (block1, block2, _, _) = self.setup_validate()
+        db.add_block(block2)
+        # Act
+        db.add_block(MultiChainBlock.create(db, block1.link_public_key, block1))
+        result = block1.validate(db)
+        self.assertEqual(result[0], 'valid')
+
+    def test_validate_linked_up(self):
+        db = self.MockDatabase()
+        (block1, block2, _, _) = self.setup_validate()
+        db.add_block(block2)
+        # Act
+        db.add_block(MultiChainBlock.create(db, block1.link_public_key, block1))
+        block1.up += 5
+        result = block1.validate(db)
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn("Up/down mismatch on linked block", result[1])
+
+    def test_validate_linked_down(self):
+        db = self.MockDatabase()
+        (block1, block2, _, _) = self.setup_validate()
+        db.add_block(block2)
+        # Act
+        db.add_block(MultiChainBlock.create(db, block1.link_public_key, block1))
+        block1.down -= 5
+        result = block1.validate(db)
+        self.assertEqual(result[0], 'invalid')
+        self.assertIn("Down/up mismatch on linked block", result[1])
 
     def setup_validate(self):
+        # Assert
         block1 = TestBlock()
         block1.sequence_number = GENESIS_SEQ
-        block1.previous_hash_requester = GENESIS_ID
+        block1.previous_hash = GENESIS_ID
         block1.total_up = block1.up
         block1.total_down = block1.down
+        block1.sign(block1.key)
         block2 = TestBlock(previous=block1)
         block3 = TestBlock(previous=block2)
         block4 = TestBlock()
@@ -368,12 +575,12 @@ class TestBlocks(MultiChainTestCase):
             super(TestBlocks.MockDatabase, self).__init__(*args, **kwargs)
             self.data = dict()
 
-        def sign_and_propagate(self):
-            for pk in self.data.keys():
-                for i in range(0, len(self.data[pk])):
-                    if i > 0:
-                        self.data[pk][i].previous_hash = self.data[pk][i-1].hash
-                    self.data[pk][i].sign(self.data[pk][i].key)
+        # def sign_and_propagate(self):
+        #     for pk in self.data.keys():
+        #         for i in range(0, len(self.data[pk])):
+        #             if i > 0:
+        #                 self.data[pk][i].previous_hash = self.data[pk][i-1].hash
+        #             self.data[pk][i].sign(self.data[pk][i].key)
 
         def add_block(self, block):
             if self.data.get(block.public_key) is None:

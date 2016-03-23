@@ -236,6 +236,37 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         linked = other.call(other.community.persistence.get_linked, block)
         self.assertNotEquals(linked, None)
 
+    def test_receive_signature_request_invalid(self):
+        """
+        Test the community to receive a signature request message.
+        """
+        # Arrange
+        node, other = self.create_nodes(2)
+        other.send_identity(node)
+        target_other = self._create_target(node, other)
+        node.call(node.community.sign_block, target_other, 10, 5)
+        # Ignore source, as it is a Candidate. We need to use DebugNodes in test.
+        _, signature_request = other.receive_message(names=[SIGNED]).next()
+        # Act
+        # construct faked block
+        block = signature_request.payload.block
+        block.up += 10
+        block.total_up = block.up
+        signature_request = node.community.get_meta_message(SIGNED).impl(
+                    authentication=(node.community.my_member,),
+                    distribution=(node.community.claim_global_time(),),
+                    destination=(target_other,),
+                    payload=(block,))
+        other.give_message(signature_request, node)
+
+        self.assertTrue(self.assertBlocksInDatabase(other, 0))
+        self.assertTrue(self.assertBlocksInDatabase(node, 1))
+
+        # Assert
+        with self.assertRaises(ValueError):
+            "No signature responses should have been sent"
+            _, block_responses = node.receive_message(names=[HALF_BLOCK])
+
     def test_block_values(self):
         """
         If a block is created between two nodes both
@@ -278,7 +309,7 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         self.assertEqual(10, block.total_up)
         self.assertEqual(5, block.total_down)
 
-    def test_request_block_latest(self):
+    def test_crawl_block_latest(self):
         """
         Test the crawler to request the latest block.
         """
@@ -308,9 +339,9 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         self.assertBlocksInDatabase(crawler, 2)
         self.assertBlocksAreEqual(node, crawler)
 
-    def test_request_block_halfsigned(self):
+    def test_crawl_half_block(self):
         """
-        Test the crawler to request a halfsigned block.
+        Test the crawler to request the latest block.
         """
         # Arrange
         node, other, crawler = self.create_nodes(3)
@@ -321,8 +352,11 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         target_other_from_node = self._create_target(node, other)
         target_node_from_crawler = self._create_target(crawler, node)
 
-        # Create a half-signed block
         node.call(node.community.sign_block, target_other_from_node, 5, 5)
+        """ Create a block"""
+        _, signature_request = other.receive_message(names=[SIGNED]).next()
+        other.give_message(signature_request, node)
+
         # Act
         crawler.call(crawler.community.send_crawl_request, target_node_from_crawler)
         _, block_request = node.receive_message(names=[CRAWL]).next()
@@ -330,10 +364,11 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         _, block_response = crawler.receive_message(names=[HALF_BLOCK]).next()
         crawler.give_message(block_response, node)
         # Assert
-        self.assertBlocksInDatabase(node, 1)
-        self.assertBlocksInDatabase(crawler, 1)
+        self.assertTrue(self.assertBlocksInDatabase(node, 1))
+        self.assertTrue(self.assertBlocksInDatabase(crawler, 1))
+        self.assertTrue(self.assertBlocksAreEqual(node, crawler))
 
-    def test_request_block_specified_sequence_number(self):
+    def test_crawl_block_specified_sequence_number(self):
         """
         Test the crawler to fetch a block with a specified sequence number.
         """
@@ -362,7 +397,7 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         self.assertBlocksInDatabase(crawler, 2)
         self.assertBlocksAreEqual(node, crawler)
 
-    def test_crawler_no_block(self):
+    def test_crawl_no_block(self):
         """
         Test publish_block without a block.
         """
@@ -379,7 +414,7 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
             "No signature responses should have been sent"
             _, block_responses = crawler.receive_message(names=[FULL_BLOCK])
 
-    def test_request_block_known(self):
+    def test_crawl_block_known(self):
         """
         Test the crawler to request a known block.
         """

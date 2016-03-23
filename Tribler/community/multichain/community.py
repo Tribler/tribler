@@ -307,10 +307,10 @@ class MultiChainCommunity(Community):
         self.logger.info("Block validation result {0}, {1}".format(validation[0], validation[1]))
         if validation[0] == "invalid":
             pass
-        elif not self.persistence.contains(blk):
-            self.persistence.add_block(blk)
-        else:
+        elif self.persistence.contains(blk):
             self.logger.info("Processing already known block")
+        else:
+            self.persistence.add_block(blk)
         return validation
 
     @inlineCallbacks
@@ -337,13 +337,12 @@ class MultiChainCommunity(Community):
             "on_tunnel_remove() was called with an object that is not a Circuit, RelayRoute or TunnelExitSocket"
 
         if isinstance(tunnel.bytes_up, int) and isinstance(tunnel.bytes_down, int):
-            if tunnel.bytes_up > MEGA_DIVIDER or tunnel.bytes_down > MEGA_DIVIDER:
-                # Tie breaker to prevent both parties from requesting
-                if self._public_key > candidate.get_member().public_key:
-                    self.schedule_block(candidate, tunnel.bytes_up, tunnel.bytes_down)
-                # else:
-                    # TODO Note that you still expect a signature request for these bytes:
-                    # pending[peer] = (up, down)
+            # Tie breaker to prevent both parties from requesting
+            if self._public_key > candidate.get_member().public_key:
+                self.schedule_block(candidate, tunnel.bytes_up, tunnel.bytes_down)
+            # else:
+                # TODO Note that you still expect a signature request for these bytes:
+                # pending[peer] = (up, down)
 
 
 class MultiChainCommunityCrawler(MultiChainCommunity):
