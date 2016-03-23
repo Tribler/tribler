@@ -701,7 +701,7 @@ class AbstractListBody():
 
     @warnWxThread
     def OnExpand(self, item, raise_event=False):
-        self.Freeze()
+        #self.Freeze()
 
         if not self.singleExpanded and wx.GetKeyState(wx.WXK_SHIFT):
             pos_from = self.GetItemPos(self.GetItemKey(self.cur_expanded))
@@ -724,7 +724,7 @@ class AbstractListBody():
             self.OnChange()
 
         self.cur_expanded = item
-        self.Thaw()
+        #self.Thaw()
         return panel
 
     @warnWxThread
