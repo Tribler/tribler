@@ -14,7 +14,9 @@ Environment=HOME=/var/lib/tunnel_helper/%I
 Environment=EXIT_ENABLED=false
 Environment=PYTHONPATH=.
 WorkingDirectory=/opt/tribler
+PermissionsStartOnly=true
 ExecStartPre=/bin/mkdir -p ${HOME}
+ExecStartPre=/bin/chown -R tunnel_helper:tunnel_helper ${HOME}
 ExecStart=/usr/bin/python2 /opt/tribler/Tribler/community/tunnel/main.py -x ${EXIT_ENABLED}
 
 [Install]
