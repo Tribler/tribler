@@ -536,6 +536,36 @@ class BaseFilter(wx.Panel):
     def FilterCorrect(self, regex_correct):
         pass
 
+    def OnShowColumn(self, event, index):
+        self.columns[index]['show'] = not self.columns[index].get('show', True)
+        guiUtility = GUIUtility.getInstance()
+
+        hide_columns = guiUtility.ReadGuiSetting("hide_columns", default={})
+        hide_columns[type(self).__name__] = hide_columns.get(type(self).__name__, {})
+        hide_columns[type(self).__name__].update({self.columns[index]['name']: self.columns[index]['show']})
+        guiUtility.WriteGuiSetting("hide_columns", hide_columns)
+
+        if getattr(self.parent_list, 'ResetBottomWindow', False):
+            self.parent_list.ResetBottomWindow()
+        wx.CallAfter(self.parent_list.list.Rebuild)
+
+    def OnPopupShow(self, event):
+        menu = wx.Menu()
+        for index, column in enumerate(self.columns):
+            handler = lambda e, i=index: self.OnShowColumn(e, i)
+            itemid = wx.NewId()
+            menu.AppendCheckItem(itemid, column['name'])
+            if column.get('show', True):
+                menu.Check(itemid, True)
+            if column['name'] == 'Name':
+                menu.Enable(itemid, False)
+            wx.EVT_MENU(self, itemid, handler)
+        pos = wx.Point(self.showlabel.GetPosition().x,
+                       self.filter_panel.GetPosition().y + self.filter_panel.GetSize().y)
+        self.PopupMenu(menu, pos)
+        menu.Destroy()
+        self.Layout()
+
 
 class TorrentFilter(BaseFilter):
 
@@ -573,6 +603,10 @@ class TorrentFilter(BaseFilter):
         self.filetype = LinkStaticText(panel, 'File type', None, font_colour=wx.BLACK)
         self.filetype.Bind(wx.EVT_LEFT_DOWN, self.OnPopupFileType)
 
+        self.show_icon = wx.StaticBitmap(panel, -1, self.icon_right)
+        self.showlabel = LinkStaticText(panel, 'Show', None, font_colour=wx.BLACK)
+        self.showlabel.Bind(wx.EVT_LEFT_DOWN, self.OnPopupShow)
+
         self.filesize_str = StaticText(panel, -1, 'File size:')
         self.filesize = MinMaxSlider(panel, -1)
         self.filesize.SetFormatter(size_format)
@@ -594,10 +628,13 @@ class TorrentFilter(BaseFilter):
         hSizer.AddSpacer((self.spacers[0], -1))
         hSizer.Add(self.sortby_icon, 0, wx.CENTER | wx.RIGHT, 3)
         hSizer.Add(self.sortby, 0, wx.CENTER)
-        hSizer.AddSpacer((45, -1))
+        hSizer.AddSpacer((30, -1))
         hSizer.Add(self.filetype_icon, 0, wx.CENTER | wx.RIGHT, 3)
         hSizer.Add(self.filetype, 0, wx.CENTER)
-        hSizer.AddSpacer((45, -1))
+        hSizer.AddSpacer((30, -1))
+        hSizer.Add(self.show_icon, 0, wx.CENTER | wx.RIGHT, 3)
+        hSizer.Add(self.showlabel, 0, wx.CENTER)
+        hSizer.AddSpacer((30, -1))
         hSizer.Add(self.filesize_str, 0, wx.CENTER | wx.RIGHT, 10)
         hSizer.Add(self.filesize, 0, wx.CENTER)
         hSizer.AddStretchSpacer()
@@ -845,6 +882,10 @@ class ChannelFilter(BaseFilter):
         self.channeltype = LinkStaticText(panel, 'Channel type', None, font_colour=wx.BLACK)
         self.channeltype.Bind(wx.EVT_LEFT_DOWN, self.OnPopupChannelType)
 
+        self.show_icon = wx.StaticBitmap(panel, -1, self.icon_right)
+        self.showlabel = LinkStaticText(panel, 'Show', None, font_colour=wx.BLACK)
+        self.showlabel.Bind(wx.EVT_LEFT_DOWN, self.OnPopupShow)
+
         self.search = None
 
         if sys.platform == 'darwin':
@@ -862,9 +903,12 @@ class ChannelFilter(BaseFilter):
         hSizer.AddSpacer((self.spacers[0], -1))
         hSizer.Add(self.sortby_icon, 0, wx.CENTER | wx.RIGHT, 3)
         hSizer.Add(self.sortby, 0, wx.CENTER)
-        hSizer.AddSpacer((45, -1))
+        hSizer.AddSpacer((30, -1))
         hSizer.Add(self.channeltype_icon, 0, wx.CENTER | wx.RIGHT, 3)
         hSizer.Add(self.channeltype, 0, wx.CENTER)
+        hSizer.AddSpacer((30, -1))
+        hSizer.Add(self.show_icon, 0, wx.CENTER | wx.RIGHT, 3)
+        hSizer.Add(self.showlabel, 0, wx.CENTER)
         hSizer.AddStretchSpacer()
         hSizer.Add(self.search, 0, wx.CENTER)
         hSizer.AddSpacer((self.spacers[1], -1))
@@ -1005,12 +1049,16 @@ class DownloadFilter(BaseFilter):
         self.sortby = LinkStaticText(panel, 'Sort by', None, font_colour=wx.BLACK)
         self.sortby.Bind(wx.EVT_LEFT_DOWN, self.OnPopupSort)
 
+        self.show_icon = wx.StaticBitmap(panel, -1, self.icon_right)
+        self.showlabel = LinkStaticText(panel, 'Show', None, font_colour=wx.BLACK)
+        self.showlabel.Bind(wx.EVT_LEFT_DOWN, self.OnPopupShow)
+
         self.filesize_str = StaticText(panel, -1, 'File size:')
         self.filesize = MinMaxSlider(panel, -1)
         self.filesize.SetFormatter(size_format)
 
         self.state_icon = wx.StaticBitmap(panel, -1, self.icon_right)
-        self.state = LinkStaticText(panel, 'Download state', None, font_colour=wx.BLACK)
+        self.state = LinkStaticText(panel, 'State', None, font_colour=wx.BLACK)
         self.state.Bind(wx.EVT_LEFT_DOWN, self.OnPopupState)
 
         if sys.platform == 'darwin':
@@ -1028,10 +1076,13 @@ class DownloadFilter(BaseFilter):
         hSizer.AddSpacer((self.spacers[0], -1))
         hSizer.Add(self.sortby_icon, 0, wx.CENTER | wx.RIGHT, 3)
         hSizer.Add(self.sortby, 0, wx.CENTER)
-        hSizer.AddSpacer((45, -1))
+        hSizer.AddSpacer((30, -1))
         hSizer.Add(self.state_icon, 0, wx.CENTER | wx.RIGHT, 3)
         hSizer.Add(self.state, 0, wx.CENTER)
-        hSizer.AddSpacer((45, -1))
+        hSizer.AddSpacer((30, -1))
+        hSizer.Add(self.show_icon, 0, wx.CENTER | wx.RIGHT, 3)
+        hSizer.Add(self.showlabel, 0, wx.CENTER)
+        hSizer.AddSpacer((30, -1))
         hSizer.Add(self.filesize_str, 0, wx.CENTER | wx.RIGHT, 10)
         hSizer.Add(self.filesize, 0, wx.CENTER)
         hSizer.AddStretchSpacer()

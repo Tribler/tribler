@@ -252,7 +252,7 @@ class DoubleLineListItem(ListItem):
     @warnWxThread
     def GetContextMenu(self):
         menu = wx.Menu()
-        self.GetSubMenu([{'title': 'Show labels..',
+        self.GetSubMenu([{'title': 'Show columns',
                           'handler': [{'title': c['name'], 'type': 'check', 'enable': c['name'] != 'Name', 'check': c.get('show', True),
                                        'handler': lambda e, i=i: self.OnShowColumn(e, i)} for i, c in enumerate(self.columns)]}], menu)
         return menu
