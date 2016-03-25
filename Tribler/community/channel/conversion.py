@@ -381,7 +381,7 @@ class ChannelConversion(BinaryConversion):
         try:
             packet_id, packet, message_name = self._get_message(prev_modification_global_time, prev_modification_mid)
             prev_modification_packet = Packet(self._community.get_meta_message(message_name), packet, packet_id)
-        except:
+        except DropPacket:
             prev_modification_packet = None
 
         return offset, placeholder.meta.payload.implement(modification_type, modification_value, timestamp, modification_on, prev_modification_packet, prev_modification_mid, prev_modification_global_time)

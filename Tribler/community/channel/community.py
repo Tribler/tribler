@@ -87,7 +87,7 @@ class ChannelCommunity(Community):
                 message = self._get_latest_channel_message()
                 if message:
                     self._channel_id = self.cid
-            except:
+            except RuntimeError:
                 pass
 
             from Tribler.community.allchannel.community import AllChannelCommunity
