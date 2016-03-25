@@ -16,12 +16,15 @@ import copy
 import logging
 
 import os
+from ConfigParser import ParsingError, MissingSectionHeaderError
 from types import StringType
 
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.defaults import dldefaults
 from Tribler.Core.osutils import get_home_dir
 from Tribler.Core.simpledefs import DLMODE_VOD, STATEDIR_DLCONFIG, UPLOAD
+
+logger = logging.getLogger(__name__)
 
 
 class DownloadConfigInterface(object):
@@ -193,8 +196,9 @@ class DownloadStartupConfig(DownloadConfigInterface):
         dlconfig = CallbackConfigParser()
         try:
             dlconfig.read_file(filename)
-        except:
-            raise IOError, "Failed to open download config file"
+        except (ParsingError, IOError, MissingSectionHeaderError):
+            logger.error("Failed to open download config file: %s", filename)
+            raise
 
         return DownloadStartupConfig(dlconfig)
 
