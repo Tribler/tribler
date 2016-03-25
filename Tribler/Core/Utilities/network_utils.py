@@ -102,7 +102,7 @@ def autodetect_socket_style():
             dual_socket_style = int(f.read())
             f.close()
             return int(not dual_socket_style)
-        except:
+        except (IOError, ValueError):
             return 0
 
 

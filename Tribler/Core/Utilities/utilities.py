@@ -167,7 +167,7 @@ def isValidTorrentFile(metainfo):
     try:
         validTorrentFile(metainfo)
         return True
-    except:
+    except ValueError:
         print_exc()
         return False
 

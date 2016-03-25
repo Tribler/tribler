@@ -41,7 +41,7 @@ class CallbackConfigParser(RawConfigParser):
             if literal_eval:
                 try:
                     value = ast.literal_eval(value)
-                except:
+                except ValueError:
                     pass
             return value
 

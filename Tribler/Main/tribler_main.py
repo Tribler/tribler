@@ -8,7 +8,7 @@
 #
 # see LICENSE.txt for license information
 #
-
+from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 
 try:
     import prctl
@@ -301,7 +301,7 @@ class ABCApp(object):
                 self.sconfig = convertSessionConfig(os.path.join(state_dir, 'sessconfig.pickle'), cfgfilename)
                 convertMainConfig(state_dir, os.path.join(state_dir, 'abc.conf'),
                                   os.path.join(state_dir, STATEDIR_GUICONFIG))
-            except:
+            except IOError:
                 self.sconfig = SessionStartupConfig()
                 self.sconfig.set_state_dir(state_dir)
 
@@ -317,11 +317,11 @@ class ABCApp(object):
         self._logger.debug("main: Download config %s", dlcfgfilename)
         try:
             defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
-        except:
+        except IOError:
             try:
                 defaultDLConfig = convertDefaultDownloadConfig(
                     os.path.join(state_dir, 'dlconfig.pickle'), dlcfgfilename)
-            except:
+            except IOError:
                 defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
 
         if not defaultDLConfig.get_dest_dir():
@@ -561,12 +561,10 @@ class ABCApp(object):
 
             # Pass DownloadStates to libaryView
             no_collected_list = [ds for ds in dslist]
-            try:
-                # Arno, 2012-07-17: Retrieving peerlist for the DownloadStates takes CPU
-                # so only do it when needed for display.
-                wantpeers.extend(self.guiUtility.library_manager.download_state_callback(no_collected_list))
-            except:
-                print_exc()
+
+            # Arno, 2012-07-17: Retrieving peerlist for the DownloadStates takes CPU
+            # so only do it when needed for display.
+            wantpeers.extend(self.guiUtility.library_manager.download_state_callback(no_collected_list))
 
             # Check to see if a download has finished
             newActiveDownloads = []
@@ -879,7 +877,7 @@ class ABCApp(object):
                 wx.Yield()
                 torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
                 torrent_db._db.clean_db(randint(0, 24) == 0, exiting=True)
-            except:
+            except (OperationNotEnabledByConfigurationException, ValueError):
                 print_exc()
 
             self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Shutdown session')
