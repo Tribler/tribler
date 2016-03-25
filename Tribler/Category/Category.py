@@ -4,7 +4,7 @@
 import os
 import re
 import logging
-from ConfigParser import MissingSectionHeaderError
+from ConfigParser import MissingSectionHeaderError, ParsingError
 
 from Tribler import LIBRARYNAME
 from Tribler.Category.init_category import getCategoryInfo
@@ -32,7 +32,7 @@ class Category(object):
         try:
             self.category_info = getCategoryInfo(filename)
             self.category_info.sort(cmp_rank)
-        except MissingSectionHeaderError, ParsingError:
+        except (MissingSectionHeaderError, ParsingError):
             self.category_info = []
             self._logger.critical('', exc_info=True)
 
