@@ -15,6 +15,7 @@ from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.destination import CandidateDestination, CommunityDestination
 from Tribler.dispersy.distribution import FullSyncDistribution, DirectDistribution
+from Tribler.dispersy.exception import MetaNotFoundException
 from Tribler.dispersy.message import BatchConfiguration, Message, DropMessage, DelayMessageByProof
 from Tribler.dispersy.resolution import LinearResolution, PublicResolution, DynamicResolution
 from Tribler.dispersy.util import call_on_reactor_thread
@@ -87,7 +88,7 @@ class ChannelCommunity(Community):
                 message = self._get_latest_channel_message()
                 if message:
                     self._channel_id = self.cid
-            except:
+            except (MetaNotFoundException, RuntimeError):
                 pass
 
             from Tribler.community.allchannel.community import AllChannelCommunity
