@@ -4,6 +4,7 @@
 import os
 import re
 import logging
+from ConfigParser import MissingSectionHeaderError, ParsingError
 
 from Tribler import LIBRARYNAME
 from Tribler.Category.init_category import getCategoryInfo
@@ -31,7 +32,7 @@ class Category(object):
         try:
             self.category_info = getCategoryInfo(filename)
             self.category_info.sort(cmp_rank)
-        except:
+        except (MissingSectionHeaderError, ParsingError, IOError):
             self.category_info = []
             self._logger.critical('', exc_info=True)
 
@@ -89,14 +90,8 @@ class Category(object):
         return self.calculateCategoryNonDict(files_list, display_name, tracker, comment)
 
     def calculateCategoryNonDict(self, files_list, display_name, tracker, comment):
-        # Check xxx
-        try:
-
-            if self.xxx_filter.isXXXTorrent(files_list, display_name, tracker, comment):
-                return 'xxx'
-        except:
-            self._logger.critical(
-                'Category: Exception in explicit terms filter in torrent: %s', display_name, exc_info=True)
+        if self.xxx_filter.isXXXTorrent(files_list, display_name, tracker, comment):
+            return 'xxx'
 
         torrent_category = None
         # filename_list ready
@@ -125,7 +120,7 @@ class Category(object):
             try:
                 fileKeywords.index(ikeywords)
                 factor *= 1 - category['keywords'][ikeywords]
-            except:
+            except ValueError:
                 pass
         if (1 - factor) > 0.5:
             if 'strength' in category:
@@ -161,7 +156,7 @@ class Category(object):
                     fileKeywords.index(ikeywords)
                     # print ikeywords
                     factor *= 1 - category['keywords'][ikeywords]
-                except:
+                except ValueError:
                     pass
             if factor < 0.5:
                 matchSize += length
