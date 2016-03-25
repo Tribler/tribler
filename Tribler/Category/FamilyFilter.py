@@ -33,7 +33,7 @@ class XXXFilter(object):
                 else:
                     terms.add(line)
             f.close()
-        except:
+        except IOError:
             self._logger.exception(u"Failed to init terms.")
 
         self._logger.debug('Read %d XXX terms from file %s', len(terms) + len(searchterms), filename)
