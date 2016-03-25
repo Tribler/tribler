@@ -27,7 +27,7 @@ from Tribler.Core.simpledefs import (DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCH
 if sys.platform == "win32":
     try:
         import ctypes
-    except:
+    except ImportError:
         pass
 
 
@@ -635,7 +635,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                             if sys.platform == "win32":
                                 ctypes.windll.kernel32.SetFileAttributesW(
                                     unwanteddir_abs, 2)  # 2 = FILE_ATTRIBUTE_HIDDEN
-                        except:
+                        except OSError:
                             self._logger.error("LibtorrentDownloadImpl: could not create %s" % unwanteddir_abs)
                             # Note: If the destination directory can't be accessed, libtorrent will not be able to store the files.
                             # This will result in a DLSTATUS_STOPPED_ON_ERROR.
