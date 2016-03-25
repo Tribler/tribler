@@ -141,7 +141,7 @@ class TunnelExitSocket(DatagramProtocol):
                         self.tunnel_logger.info("Resolved ip address %s for hostname %s",
                                                  ip_address,
                                                  destination[0])
-                    except:
+                    except socket.gaierror:
                         self.tunnel_logger.error("Can't resolve ip address for hostname %s", destination[0])
 
                 try:
