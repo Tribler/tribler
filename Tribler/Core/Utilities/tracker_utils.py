@@ -60,7 +60,7 @@ def get_uniformed_tracker_url(tracker_url):
 
     try:
         port = int(port)
-    except:
+    except ValueError:
         return
 
     page = page_part
@@ -104,7 +104,7 @@ def parse_tracker_url(tracker_url):
         hostname, port = hostname_part.split(u':', 1)
         try:
             port = int(port)
-        except:
+        except ValueError:
             raise RuntimeError(u'Invalid port number.')
     elif tracker_type == u'HTTP':
         hostname = hostname_part
