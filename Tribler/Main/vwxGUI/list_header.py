@@ -14,7 +14,8 @@ from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.list_item import (ColumnsManager, TorrentListItem, ChannelListItem, LibraryListItem,
                                            ChannelListItemNoButton, PlaylistItemNoButton, PlaylistItem)
 from Tribler.Main.vwxGUI.list_body import FixedListBody
-from Tribler.Main.vwxGUI.widgets import MinMaxSlider, LinkStaticText, LinkText, BetterText as StaticText, _set_font
+from Tribler.Main.vwxGUI.widgets import MinMaxSlider, LinkStaticText, LinkText, BetterText as StaticText, _set_font, \
+    ActionButton
 
 from Tribler.Main.Utility.utility import size_format
 
@@ -613,6 +614,21 @@ class TorrentFilter(BaseFilter):
 
         self.search = None
 
+        grid_icon = GuiImageManager.getInstance().getImage(u"grid.png")
+        grid_icon_active = GuiImageManager.getInstance().getImage('grid_active.png')
+
+        self.grid_button = ActionButton(panel, bitmap=grid_icon)
+        self.grid_button.SetToolTipString("Show grid")
+
+        def toggle_grid(event):
+            if self.parent_list.display_grid:
+                self.grid_button.SetBitmapLabel(grid_icon, recreate=True)
+            else:
+                self.grid_button.SetBitmapLabel(grid_icon_active, recreate=True)
+            self.parent_list.ToggleGrid()
+
+        self.grid_button.Bind(wx.EVT_LEFT_UP, toggle_grid)
+
         if sys.platform == 'darwin':
             self.search = wx.TextCtrl(panel)
             self.search.SetHint('Filter results')
@@ -638,6 +654,8 @@ class TorrentFilter(BaseFilter):
         hSizer.Add(self.filesize_str, 0, wx.CENTER | wx.RIGHT, 10)
         hSizer.Add(self.filesize, 0, wx.CENTER)
         hSizer.AddStretchSpacer()
+        hSizer.Add(self.grid_button, 0, wx.CENTER, 3)
+        hSizer.AddSpacer((4, -1))
         hSizer.Add(self.search, 0, wx.CENTER)
         hSizer.AddSpacer((self.spacers[1], -1))
         self.filter_sizer = hSizer
@@ -834,9 +852,6 @@ class SelectedChannelFilter(TorrentFilter):
             self.search.SetHint('Filter content')
         else:
             self.search.SetDescriptiveText('Filter content')
-        button = wx.ToggleButton(self.filter_panel, -1, 'Show grid')
-        button.Bind(wx.EVT_TOGGLEBUTTON, lambda evt: self.parent_list.SetGrid(evt.GetEventObject().GetValue()))
-        self.filter_sizer.Insert(len(self.filter_sizer.GetChildren()) - 2, button, 0, wx.CENTER | wx.RIGHT, 3)
 
 
 class SelectedPlaylistFilter(TorrentFilter):

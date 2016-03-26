@@ -352,14 +352,14 @@ class SelectedChannelList(GenericSearchList):
             return True
         return False
 
-    def SetGrid(self, enable):
-        self.display_grid = enable
+    def ToggleGrid(self):
+        self.display_grid = not self.display_grid
 
         new_raw_data = []
         for data in (self.list.raw_data or []):
-            if enable and (len(data) < 4 or data[3] == TorrentListItem):
+            if self.display_grid and (len(data) < 4 or data[3] == TorrentListItem):
                 new_raw_data.append(list(data[:3]) + [ThumbnailListItem])
-            elif not enable and data[3] == ThumbnailListItem:
+            elif not self.display_grid and data[3] == ThumbnailListItem:
                 new_raw_data.append(list(data[:3]) + [TorrentListItem])
         self.list.SetData(new_raw_data)
         self.list.SetGrid(self.display_grid)
