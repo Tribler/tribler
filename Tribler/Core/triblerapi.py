@@ -119,6 +119,19 @@ class ChannelSearchRequestHandler(resource.Resource):
 
 class ChannelsRequestHandler(resource.Resource):
 
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def getChild(self, path, request):
+        if path == "subscribed":
+            return ChannelsSubscribedRequestHandler(self.session)
+        elif path == "all":
+            return ChannelsAllRequestHandler(self.session)
+
+
+class ChannelsAllRequestHandler(resource.Resource):
+
     isLeaf = True
 
     def __init__(self, session):
@@ -135,6 +148,27 @@ class ChannelsRequestHandler(resource.Resource):
                                  "modified": channel.modified})
 
         return json.dumps({"channels": results_json})
+
+
+class ChannelsSubscribedRequestHandler(resource.Resource):
+
+    isLeaf = True
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+        self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
+
+    def render_GET(self, request):
+        subscribed_channels_db = self.channel_db_handler.getMySubscribedChannels(includeDispsersy=True)
+        results_json = []
+        for subscribed_channel_db in subscribed_channels_db:
+            channel = Channel(*subscribed_channel_db)
+            results_json.append({"id" : channel.id, "name": channel.name, "votes": channel.nr_favorites,
+                                 "torrents": channel.nr_torrents, "spam": channel.nr_spam,
+                                 "modified": channel.modified})
+
+        return json.dumps({"subscribed": results_json})
 
 
 class DownloadsRequestHandler(resource.Resource):
