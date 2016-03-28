@@ -49,6 +49,7 @@ class TriblerWindow(QMainWindow):
         self.top_search_button = self.findChild(QToolButton, "top_search_button")
         self.my_profile_button = self.findChild(QToolButton, "my_profile_button")
         self.video_player_page = self.findChild(QWidget, "video_player_page")
+        self.my_channel_page = self.findChild(QWidget, "my_channel_page")
         self.left_menu = self.findChild(QWidget, "left_menu")
 
         self.top_search_bar.returnPressed.connect(self.on_top_search_button_click)
@@ -97,6 +98,8 @@ class TriblerWindow(QMainWindow):
 
         # Initialize video player
         self.video_player_page.initialize_player()
+
+        self.my_channel_page.initialize_my_channel_page()
 
         self.show()
 
