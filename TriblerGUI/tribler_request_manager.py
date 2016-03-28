@@ -7,6 +7,7 @@ class TriblerRequestManager(QNetworkAccessManager):
 
     received_search_results = pyqtSignal(str)
     received_channels = pyqtSignal(str)
+    received_subscribed_channels = pyqtSignal(str)
     received_torrents_in_channel = pyqtSignal(str)
     received_download_details = pyqtSignal(str)
     received_settings = pyqtSignal(str)
@@ -44,6 +45,10 @@ class TriblerRequestManager(QNetworkAccessManager):
         data = self.reply.readAll()
         self.received_channels.emit(str(data))
 
+    def on_read_data_subscribed_channels(self):
+        data = self.reply.readAll()
+        self.received_subscribed_channels.emit(str(data))
+
     def search_channels(self, query):
         self.perform_get("http://localhost:8085/channel/search?q=" + query, self.on_read_data_search_channels)
 
@@ -58,4 +63,7 @@ class TriblerRequestManager(QNetworkAccessManager):
         self.perform_get("http://localhost:8085/settings", self.on_read_data_settings)
 
     def get_channels(self):
-        self.perform_get("http://localhost:8085/channels", self.on_read_data_channels)
+        self.perform_get("http://localhost:8085/channels/all", self.on_read_data_channels)
+
+    def get_subscribed_channels(self):
+        self.perform_get("http://localhost:8085/channels/subscribed", self.on_read_data_subscribed_channels)
