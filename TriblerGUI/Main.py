@@ -101,23 +101,26 @@ class TriblerWindow(QMainWindow):
         self.channels_list.clear()
         results = json.loads(json_results)
 
+        delay = 0
         for result in results['channels']:
             item = QListWidgetItem(self.channels_list)
             item.setSizeHint(QSize(-1, 60))
             item.setData(Qt.UserRole, result)
-            widget_item = ChannelListItem(self.channels_list, result)
+            widget_item = ChannelListItem(self.channels_list, delay, result)
             self.channels_list.addItem(item)
             self.channels_list.setItemWidget(item, widget_item)
+            delay += 50
 
     def received_search_results(self, json_results):
         self.channels_list.clear()
         results = json.loads(json_results)
 
+        delay = 0
         for result in results['channels']:
             item = QListWidgetItem(self.channels_list)
             item.setSizeHint(QSize(-1, 60))
             item.setData(Qt.UserRole, result)
-            widget_item = ChannelListItem(self.channels_list, result)
+            widget_item = ChannelListItem(self.channels_list, delay, result)
             self.channels_list.addItem(item)
             self.channels_list.setItemWidget(item, widget_item)
 

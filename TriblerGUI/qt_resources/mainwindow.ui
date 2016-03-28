@@ -660,7 +660,7 @@ background-color: #666;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>4</number>
+         <number>2</number>
         </property>
         <widget class="QWidget" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -825,9 +825,6 @@ font-weight: bold;</string>
             <property name="styleSheet">
              <string notr="true">QListWidget::item:hover {
 background-color: #999;
-}
-QListWidget::item {
-border-bottom: 1px solid #555;
 }
 QListWidget {
 border: none;

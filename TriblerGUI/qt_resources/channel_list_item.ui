@@ -82,23 +82,12 @@ background-color: #666;
      <item>
       <widget class="QLabel" name="channel_name">
        <property name="styleSheet">
-        <string notr="true">color: #eee;
+        <string notr="true">QLabel {
+color: #eee;
 border: none;
 background-color: transparent;
-font-size: 16px;</string>
-       </property>
-       <property name="text">
-        <string>TextLabel</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="channel_info">
-       <property name="styleSheet">
-        <string notr="true">color: #eee;
-border: none;
-background-color: transparent;
-font-size: 16px;</string>
+font-size: 16px;
+}</string>
        </property>
        <property name="text">
         <string>TextLabel</string>
