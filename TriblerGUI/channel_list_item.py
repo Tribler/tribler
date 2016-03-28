@@ -11,9 +11,5 @@ class ChannelListItem(QWidget):
         uic.loadUi('qt_resources/channel_list_item.ui', self)
 
         self.channel_name.setText(channel["name"])
-        self.channel_info.setText("Torrents: " + str(channel["torrents"]) + ", votes: " + str(channel["votes"]))
-
-        placeholder_pix = QPixmap("images/default-placeholder.png")
-        placeholder_pix = placeholder_pix.scaled(self.channel_thumbnail.width(), self.channel_thumbnail.height(),
-                                                 Qt.KeepAspectRatio)
-        self.channel_thumbnail.setPixmap(placeholder_pix)
+        self.channel_info.setText("Torrents: " + str(channel["torrents"]))
+        self.channel_num_subs_label.setText(str(channel["votes"]))
