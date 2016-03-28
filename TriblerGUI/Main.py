@@ -25,6 +25,7 @@ PAGE_CHANNELS_OVERVIEW = 2
 PAGE_CHANNEL_DETAILS = 3
 PAGE_SETTINGS = 4
 PAGE_VIDEO_PLAYER = 5
+PAGE_SUBSCRIBED_CHANNELS = 6
 
 
 class TriblerWindow(QMainWindow):
@@ -41,6 +42,7 @@ class TriblerWindow(QMainWindow):
         [widget.setAttribute(Qt.WA_MacShowFocusRect, 0) for widget in self.findChildren(QLineEdit) + self.findChildren(QListView)]
 
         self.channels_list = self.findChild(QListWidget, "channels_list")
+        self.subscribed_channels_list = self.findChild(QListWidget, "subscribed_channels_list")
         self.channel_torrents_list = self.findChild(QListWidget, "channel_torrents_list")
         self.top_menu_button = self.findChild(QToolButton, "top_menu_button")
         self.top_search_bar = self.findChild(QLineEdit, "top_search_bar")
@@ -53,11 +55,14 @@ class TriblerWindow(QMainWindow):
         self.top_search_button.clicked.connect(self.on_top_search_button_click)
         self.top_menu_button.clicked.connect(self.on_top_menu_button_click)
         self.channels_list.itemClicked.connect(self.on_channel_item_click)
+        self.subscribed_channels_list.itemClicked.connect(self.on_channel_item_click)
 
         self.left_menu_home_button = self.findChild(QWidget, "left_menu_home_button")
         self.left_menu_home_button.clicked_menu_button.connect(self.clicked_menu_button)
         self.left_menu_my_channel_button = self.findChild(QWidget, "left_menu_my_channel_button")
         self.left_menu_my_channel_button.clicked_menu_button.connect(self.clicked_menu_button)
+        self.left_menu_subscribed_button = self.findChild(QWidget, "left_menu_subscribed_button")
+        self.left_menu_subscribed_button.clicked_menu_button.connect(self.clicked_menu_button)
         self.left_menu_videoplayer_button = self.findChild(QWidget, "left_menu_videoplayer_button")
         self.left_menu_videoplayer_button.clicked_menu_button.connect(self.clicked_menu_button)
         self.left_menu_settings_button = self.findChild(QWidget, "left_menu_settings_button")
@@ -73,6 +78,7 @@ class TriblerWindow(QMainWindow):
         self.tribler_request_manager.received_torrents_in_channel.connect(self.received_torrents_in_channel)
         self.tribler_request_manager.received_settings.connect(self.received_settings)
         self.tribler_request_manager.received_channels.connect(self.received_channels)
+        self.tribler_request_manager.received_subscribed_channels.connect(self.received_subscribed_channels)
 
         # fetch the settings
         self.tribler_request_manager.get_settings()
@@ -109,6 +115,20 @@ class TriblerWindow(QMainWindow):
             widget_item = ChannelListItem(self.channels_list, delay, result)
             self.channels_list.addItem(item)
             self.channels_list.setItemWidget(item, widget_item)
+            delay += 50
+
+    def received_subscribed_channels(self, json_results):
+        self.subscribed_channels_list.clear()
+        results = json.loads(json_results)
+
+        delay = 0
+        for result in results['subscribed']:
+            item = QListWidgetItem(self.subscribed_channels_list)
+            item.setSizeHint(QSize(-1, 60))
+            item.setData(Qt.UserRole, result)
+            widget_item = ChannelListItem(self.subscribed_channels_list, delay, result)
+            self.subscribed_channels_list.addItem(item)
+            self.subscribed_channels_list.setItemWidget(item, widget_item)
             delay += 50
 
     def received_search_results(self, json_results):
@@ -163,6 +183,9 @@ class TriblerWindow(QMainWindow):
             self.stackedWidget.setCurrentIndex(PAGE_VIDEO_PLAYER)
         elif menu_button_name == "left_menu_settings_button":
             self.stackedWidget.setCurrentIndex(PAGE_SETTINGS)
+        elif menu_button_name == "left_menu_subscribed_button":
+            self.tribler_request_manager.get_subscribed_channels()
+            self.stackedWidget.setCurrentIndex(PAGE_SUBSCRIBED_CHANNELS)
         self.navigation_stack = []
 
     def on_channel_item_click(self, channel_list_item):
