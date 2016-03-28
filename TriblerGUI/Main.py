@@ -60,6 +60,7 @@ class TriblerWindow(QMainWindow):
 
         self.left_menu_home_button = self.findChild(QWidget, "left_menu_home_button")
         self.left_menu_home_button.clicked_menu_button.connect(self.clicked_menu_button)
+        self.left_menu_home_button.selectMenuButton()
         self.left_menu_my_channel_button = self.findChild(QWidget, "left_menu_my_channel_button")
         self.left_menu_my_channel_button.clicked_menu_button.connect(self.clicked_menu_button)
         self.left_menu_subscribed_button = self.findChild(QWidget, "left_menu_subscribed_button")
@@ -68,6 +69,10 @@ class TriblerWindow(QMainWindow):
         self.left_menu_videoplayer_button.clicked_menu_button.connect(self.clicked_menu_button)
         self.left_menu_settings_button = self.findChild(QWidget, "left_menu_settings_button")
         self.left_menu_settings_button.clicked_menu_button.connect(self.clicked_menu_button)
+
+        self.menu_buttons = [self.left_menu_home_button, self.left_menu_my_channel_button,
+                             self.left_menu_subscribed_button, self.left_menu_videoplayer_button,
+                             self.left_menu_settings_button]
 
         channel_back_button = self.findChild(QToolButton, "channel_back_button")
         channel_back_button.clicked.connect(self.on_page_back_clicked)
@@ -178,15 +183,24 @@ class TriblerWindow(QMainWindow):
             self.left_menu.hide()
 
     def clicked_menu_button(self, menu_button_name):
+        # Deselect menu buttons
+        for button in self.menu_buttons:
+            button.unselectMenuButton()
+
         if menu_button_name == "left_menu_home_button":
+            self.left_menu_home_button.selectMenuButton()
             self.stackedWidget.setCurrentIndex(PAGE_HOME)
         elif menu_button_name == "left_menu_my_channel_button":
+            self.left_menu_my_channel_button.selectMenuButton()
             self.stackedWidget.setCurrentIndex(PAGE_MY_CHANNEL)
         elif menu_button_name == "left_menu_videoplayer_button":
+            self.left_menu_videoplayer_button.selectMenuButton()
             self.stackedWidget.setCurrentIndex(PAGE_VIDEO_PLAYER)
         elif menu_button_name == "left_menu_settings_button":
+            self.left_menu_settings_button.selectMenuButton()
             self.stackedWidget.setCurrentIndex(PAGE_SETTINGS)
         elif menu_button_name == "left_menu_subscribed_button":
+            self.left_menu_subscribed_button.selectMenuButton()
             self.tribler_request_manager.get_subscribed_channels()
             self.stackedWidget.setCurrentIndex(PAGE_SUBSCRIBED_CHANNELS)
         self.navigation_stack = []

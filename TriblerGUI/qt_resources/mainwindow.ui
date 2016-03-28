@@ -383,10 +383,6 @@ color: white;
 border: none;
 font-size: 15px;
 padding-left: 4px;
-}
-
-QWidget:hover {
-background-color: #666;
 }</string>
               </property>
               <property name="text">
@@ -444,10 +440,6 @@ color: white;
 border: none;
 font-size: 15px;
 padding-left: 4px;
-}
-
-QWidget:hover {
-background-color: #666;
 }</string>
               </property>
               <property name="text">
@@ -505,10 +497,6 @@ color: white;
 border: none;
 font-size: 15px;
 padding-left: 4px;
-}
-
-QWidget:hover {
-background-color: #666;
 }</string>
               </property>
               <property name="text">
@@ -566,10 +554,6 @@ color: white;
 border: none;
 font-size: 15px;
 padding-left: 4px;
-}
-
-QWidget:hover {
-background-color: #666;
 }</string>
               </property>
               <property name="text">
@@ -627,10 +611,6 @@ color: white;
 border: none;
 font-size: 15px;
 padding-left: 4px;
-}
-
-QWidget:hover {
-background-color: #666;
 }</string>
               </property>
               <property name="text">
