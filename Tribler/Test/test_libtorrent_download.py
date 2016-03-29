@@ -1,16 +1,16 @@
 # see LICENSE.txt for license information
 import binascii
 import os
+import shutil
 import unittest
 from time import time
+from Tribler.Core.Utilities.network_utils import get_random_port
 
 from Tribler.Test.common import UBUNTU_1504_INFOHASH
 from Tribler.Test.test_as_server import TestGuiAsServer, TESTS_DATA_DIR
 from Tribler.Core.simpledefs import DOWNLOAD
 
 
-TORRENT_R = r'http://torrent.ubuntu.com/releases/wily/release/server/ubuntu-15.10-server-ppc64el.iso.torrent'
-TORRENT_INFOHASH = binascii.unhexlify('9874df3783f8de52f944032b9affe4a5c88bc9fe')
 TORRENT_FILE = os.path.join(TESTS_DATA_DIR, "ubuntu-15.04-desktop-amd64.iso.torrent")
 TORRENT_FILE_INFOHASH = binascii.unhexlify("fc8a15a2faf2734dbb1dc5f7afdc5c9beaeb1f59")
 TORRENT_VIDEO_FILE = os.path.join(TESTS_DATA_DIR, "Night.Of.The.Living.Dead_1080p_archive.torrent")
@@ -70,26 +70,33 @@ class TestLibtorrentDownload(TestGuiAsServer):
         self.startTest(do_downloadfromfile)
 
     def test_downloadfromurl(self):
-        infohash = TORRENT_INFOHASH
 
         def make_screenshot():
             self.screenshot('After starting a libtorrent download from url')
             self.quit()
 
         def item_shown_in_list():
-            self.CallConditional(30, lambda: self.frame.librarylist.list.GetItem(infohash).original_data.ds and self.frame.librarylist.list.GetItem(
-                infohash).original_data.ds.get_current_speed(DOWNLOAD) > 0, make_screenshot, 'no download progress')
+            self.CallConditional(10, lambda: self.frame.librarylist.list.GetItem(TORRENT_FILE_INFOHASH).original_data.ds and self.frame.librarylist.list.GetItem(TORRENT_FILE_INFOHASH).original_data.ds.get_current_speed(DOWNLOAD) > 0,
+                                 make_screenshot, 'no download progress')
 
         def download_object_ready():
             self.CallConditional(10, lambda: self.frame.librarylist.list.HasItem(
-                infohash), item_shown_in_list, 'no download in librarylist')
+                TORRENT_FILE_INFOHASH), item_shown_in_list, 'no download in librarylist')
 
         def do_downloadfromurl():
             self.guiUtility.showLibrary()
-            self.frame.startDownloadFromArg(TORRENT_R, self.getDestDir())
+            self.frame.startDownloadFromArg(r'http://localhost:%s/ubuntu.torrent' % self.file_server_port,
+                                            self.getDestDir())
 
-            self.CallConditional(30, lambda: self.session.get_download(infohash), download_object_ready,
+            self.CallConditional(10, lambda: self.session.get_download(TORRENT_FILE_INFOHASH), download_object_ready,
                                  'do_downloadfromurl() failed')
+
+        # Create directory with files and setup file server to serve torrent file
+        files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
+        os.mkdir(files_path)
+        shutil.copyfile(TORRENT_FILE, os.path.join(files_path, 'ubuntu.torrent'))
+        self.file_server_port = get_random_port()
+        self.setUpFileServer(self.file_server_port, files_path)
 
         self.startTest(do_downloadfromurl)
 
