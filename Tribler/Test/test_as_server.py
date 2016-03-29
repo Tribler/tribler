@@ -4,6 +4,8 @@
 
 # Initialize x11 threads before doing anything X11 related.
 from twisted.internet.base import BasePort
+from twisted.web.server import Site
+from twisted.web.static import File
 from Tribler.Main.Utility.utility import initialize_x11_threads
 initialize_x11_threads()
 
@@ -102,6 +104,8 @@ class AbstractServer(BaseTestCase):
         os.makedirs(self.session_base_dir)
         self.annotate_dict = {}
 
+        self.file_server = None
+
         if annotate:
             self.annotate(self._testMethodName, start=True)
         self.watchdog.start()
@@ -110,6 +114,13 @@ class AbstractServer(BaseTestCase):
         # Change to an existing dir before cleaning up.
         os.chdir(TESTS_DIR)
         shutil.rmtree(unicode(self.session_base_dir), ignore_errors=True)
+
+    def setUpFileServer(self, port, path):
+        # Create a local file server, can be used to serve local files. This is preferred over an external network
+        # request in order to get files.
+        resource = File(path)
+        factory = Site(resource)
+        self.file_server = reactor.listenTCP(port, factory)
 
     def tearDown(self, annotate=True):
         self.tearDownCleanup()
