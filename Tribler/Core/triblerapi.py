@@ -5,7 +5,7 @@ from twisted.web import server
 from twisted.web import resource
 from Tribler.Core.CacheDB.db_objects import Channel
 from Tribler.Core.DownloadState import DownloadState
-from Tribler.Core.simpledefs import NTFY_FREE_SPACE, NTFY_INSERT, NTFY_CHANNELCAST, DOWNLOAD, UPLOAD
+from Tribler.Core.simpledefs import NTFY_FREE_SPACE, NTFY_INSERT, NTFY_CHANNELCAST, DOWNLOAD, UPLOAD, NTFY_TORRENTS
 
 
 class TriblerAPI(resource.Resource):
@@ -38,6 +38,9 @@ class TriblerAPI(resource.Resource):
 
         self.settings_request_handler = SettingsRequestHandler(self.session)
         self.putChild("settings", self.settings_request_handler)
+
+        self.debug_request_handler = DebugRequestHandler(self.session)
+        self.putChild("debug", self.debug_request_handler)
 
         # Add all observers for the api
         self.session.add_observer(self.event_request_handler.on_free_space, NTFY_FREE_SPACE, [NTFY_INSERT])
@@ -250,6 +253,38 @@ class SettingsRequestHandler(resource.Resource):
         settings['video']['port'] = self.session.lm.videoplayer.videoserver.port
 
         return json.dumps(settings)
+
+
+class DebugRequestHandler(resource.Resource):
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+
+    def getChild(self, path, request):
+        if path == "networkinfo":
+            return DebugNetworkInfoRequestHandler(self.session)
+        #elif path == "all":
+        #    return ChannelsAllRequestHandler(self.session)
+
+
+class DebugNetworkInfoRequestHandler(resource.Resource):
+
+    isLeaf = True
+
+    def __init__(self, session):
+        resource.Resource.__init__(self)
+        self.session = session
+        self.torrentdb = self.session.open_dbhandler(NTFY_TORRENTS)
+        self.channelcastdb = self.session.open_dbhandler(NTFY_CHANNELCAST)
+
+    def render_GET(self, request):
+        stats = self.torrentdb.getTorrentsStats()
+        nr_channels = self.channelcastdb.getNrChannels()
+        response_json = {"torrents_collected": stats[0], "total_size": stats[1], "number_files": stats[2],
+                         "channels_found": nr_channels}
+
+        return json.dumps({"network_info": response_json})
 
 
 class EventRequestHandler(resource.Resource):
