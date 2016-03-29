@@ -365,7 +365,8 @@ Function .onInit
 
   uninst:
     ClearErrors
-    ExecWait '$R0 _?=$INSTDIR' ;Do not copy the uninstaller to a temp file
+    ReadRegStr $UNINSTDIR HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString"
+    ExecWait '$R0 _?=$UNINSTDIR' ;Do not copy the uninstaller to a temp file
     ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString"
     StrCmp $R0 "" done
     Abort
