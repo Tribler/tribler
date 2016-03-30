@@ -58,9 +58,8 @@ class TestTunnelCommunity(AbstractTestTunnelCommunity):
 
     def test_check_destroy(self):
         # Only the first and last node in the circuit may check a destroy message
-        for _ in self.tunnel_community.check_destroy([]):
-            raise RuntimeError()
-
+        with self.assertRaises(StopIteration):
+            next(self.tunnel_community.check_destroy([]))
         sock_addr = ("127.0.0.1", 1234)
 
         meta = self.tunnel_community.get_meta_message(u"destroy")
