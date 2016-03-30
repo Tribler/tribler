@@ -5,6 +5,7 @@ from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.leveldbstore import LevelDbStore
 from Tribler.Test.Core.test_sqlitecachedbhandler import AbstractDB
 from Tribler.Test.test_as_server import TESTS_DATA_DIR
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -33,6 +34,11 @@ class TestTorrentFullSessionDBHandler(AbstractDB):
 
 
 class TestTorrentDBHandler(AbstractDB):
+
+    def setUpPreSession(self):
+        super(TestTorrentDBHandler, self).setUpPreSession()
+        self.config.set_megacache(True)
+        self.config.set_torrent_store(True)
 
     def setUp(self):
         super(TestTorrentDBHandler, self).setUp()
@@ -224,10 +230,13 @@ class TestTorrentDBHandler(AbstractDB):
 
     @blocking_call_on_reactor_thread
     def test_freeSpace(self):
+        # Manually set the torrent store because register is not called.
+        self.session.lm.torrent_store = LevelDbStore(self.session.get_torrent_store_dir())
         old_res = self.tdb.getNumberCollectedTorrents()
         self.tdb.freeSpace(20)
         res = self.tdb.getNumberCollectedTorrents()
-        self.assertEqual(old_res, res)
+        self.session.lm.torrent_store.close()
+        self.assertEqual(res, old_res-20)
 
     @blocking_call_on_reactor_thread
     def test_get_search_suggestions(self):
