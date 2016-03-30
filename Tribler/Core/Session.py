@@ -601,6 +601,16 @@ class Session(SessionConfigInterface):
             raise OperationNotEnabledByConfigurationException("torrent_store is not enabled")
         self.lm.torrent_store.put(hexlify(infohash), data)
 
+    def delete_collected_torrent(self, infohash):
+        """
+        Deletes the given torrent from the torrent_store database.
+        :param infohash: The given infohash binary.
+        """
+        if not self.get_torrent_store():
+            raise OperationNotEnabledByConfigurationException("torrent_store is not enabled")
+
+        del self.lm.torrent_store[hexlify(infohash)]
+
     def search_remote_torrents(self, keywords):
         """
         Searches for remote torrents through SearchCommunity with the given keywords.
