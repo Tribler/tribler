@@ -1312,6 +1312,10 @@ class AbstractListBody():
                     self.Scroll(-1, tot_scroll)
             self.Select(select, True)
 
+    def SelectAll(self):
+        for item in self.GetItems():
+            self.Select(self.GetItemKey(item), raise_event=False)
+
     @warnWxThread
     def DeselectAll(self):
         for _, item in self.GetExpandedItems():
@@ -1393,12 +1397,14 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         adownId = wx.NewId()
         deleteId = wx.NewId()
         backId = wx.NewId()
+        ctrlaId = wx.NewId()
         self.Bind(wx.EVT_MENU, lambda event: self.ScrollToEnd(False), id=homeId)
         self.Bind(wx.EVT_MENU, lambda event: self.ScrollToEnd(True), id=endId)
         self.Bind(wx.EVT_MENU, lambda event: self.ScrollToNextPage(False), id=pupId)
         self.Bind(wx.EVT_MENU, lambda event: self.ScrollToNextPage(True), id=pdownId)
         self.Bind(wx.EVT_MENU, lambda event: self.SelectNextItem(False), id=aupId)
         self.Bind(wx.EVT_MENU, lambda event: self.SelectNextItem(True), id=adownId)
+        self.Bind(wx.EVT_MENU, lambda event: self.SelectAll(), id=ctrlaId)
         self.Bind(
             wx.EVT_MENU,
             lambda event: self.parent_list.OnDeleteKey(
@@ -1422,6 +1428,7 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_DOWN, adownId))
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_DELETE, deleteId))
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_BACK, backId))
+        accelerators.append((wx.ACCEL_RAW_CTRL, ord('a'), ctrlaId))
         self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
 
         self.SetForegroundColour(parent.GetForegroundColour())
