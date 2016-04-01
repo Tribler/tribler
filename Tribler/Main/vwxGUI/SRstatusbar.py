@@ -56,6 +56,7 @@ class SRstatusbar(wx.StatusBar):
         self.activityImages = [self._gui_image_manager.getImage(image) for image in self.activityImages]
 
         self.connection = HorizontalGauge(self, self.searchConnectionImages[0], self.searchConnectionImages[1])
+        self.connection.SetBackgroundColour(self.GetBackgroundColour())
         self.activity = wx.StaticBitmap(self, -1, self.activityImages[1])
         self.activity_timer = None
         self.channelconnections = 0
@@ -78,8 +79,11 @@ class SRstatusbar(wx.StatusBar):
                   (75,   wx.SB_FLAT, [self.free_space_sbmp, self.free_space]),
                   (19,   wx.SB_FLAT, [self.connection]),
                   (19,   wx.SB_FLAT, [self.activity]),
-                  (19,   wx.SB_FLAT, [self.firewallStatus]),
-                  (19,   wx.SB_FLAT, [])]
+                  (19,   wx.SB_FLAT, [self.firewallStatus])]
+
+        if sys.platform != "win32":
+            self.fields.append((19, wx.SB_FLAT, []))
+
         self.SetFieldsCount(len(self.fields))
         self.SetStatusWidths([field[0] for field in self.fields])
         self.SetStatusStyles([field[1] for field in self.fields])
