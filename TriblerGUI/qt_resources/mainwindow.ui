@@ -640,7 +640,7 @@ padding-left: 4px;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>3</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1310,7 +1310,7 @@ font-size: 14px;
                </widget>
               </item>
               <item>
-               <widget class="QStackedWidget" name="stackedWidget_2">
+               <widget class="QStackedWidget" name="my_channel_details_stacked_widget">
                 <property name="styleSheet">
                  <string notr="true">QStackedWidget {
 border-top: 1px solid #555;
