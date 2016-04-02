@@ -35,9 +35,10 @@ DEFAULTPORT = 7760
 #  Version 4: remove swift
 #  Version 7: exitnode optin switch added
 #  Version 10: BarterCommunity settings added (disabled by default)
-# Version 11: Added a default whether we should upgrade or not.
+#  Version 11: Added a default whether we should upgrade or not.
+#  Version 12: Added watch folder options.
 
-SESSDEFAULTS_VERSION = 11
+SESSDEFAULTS_VERSION = 12
 sessdefaults = OrderedDict()
 
 # General Tribler settings
@@ -137,6 +138,10 @@ sessdefaults['video']['preferredmode'] = PLAYBACKMODE_INTERNAL
 sessdefaults['upgrader'] = OrderedDict()
 sessdefaults['upgrader']['enabled'] = True
 
+# Watch folder config
+sessdefaults['watch_folder'] = OrderedDict()
+sessdefaults['watch_folder']['enabled'] = False
+sessdefaults['watch_folder']['watch_folder_dir'] = None
 
 #
 # BT per download opts

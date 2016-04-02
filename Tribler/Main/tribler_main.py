@@ -38,7 +38,7 @@ from Tribler.Core.DownloadConfig import get_default_dest_dir, get_default_dscfg_
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Video.VideoPlayer import PLAYBACKMODE_INTERNAL, return_feasible_playback_modes
-from Tribler.Core.osutils import get_free_space
+from Tribler.Core.osutils import get_free_space, get_home_dir
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
                                      DLSTATUS_STOPPED_ON_ERROR, DOWNLOAD, NTFY_ACTIVITIES, NTFY_CHANNELCAST,
                                      NTFY_COMMENTS, NTFY_CREATE, NTFY_DELETE, NTFY_DISPERSY, NTFY_FINISHED, NTFY_INSERT,
@@ -306,6 +306,9 @@ class ABCApp(object):
                 self.sconfig.set_state_dir(state_dir)
 
         self.sconfig.set_install_dir(self.installdir)
+
+        if not self.sconfig.get_watch_folder_path():
+            self.sconfig.set_watch_folder_path(os.path.join(get_home_dir(), u'Downloads', u'TriblerWatchFolder'))
 
         # TODO(emilon): Do we still want to force limit this? With the new
         # torrent store it should be pretty fast even with more that that.

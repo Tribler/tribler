@@ -17,6 +17,7 @@ from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Modules.search_manager import SearchManager
+from Tribler.Core.Modules.watch_folder import WatchFolder
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
@@ -69,6 +70,7 @@ class TriblerLaunchMany(TaskManager):
         self.metadata_store = None
         self.rtorrent_handler = None
         self.tftp_handler = None
+        self.watch_folder = None
 
         self.cat = None
         self.peer_db = None
@@ -243,6 +245,10 @@ class TriblerLaunchMany(TaskManager):
 
         if self.rtorrent_handler:
             self.rtorrent_handler.initialize()
+
+        if self.session.get_watch_folder_enabled():
+            self.watch_folder = WatchFolder(self.session)
+            self.watch_folder.start()
 
         self.initComplete = True
 
@@ -660,6 +666,10 @@ class TriblerLaunchMany(TaskManager):
             self.torrent_store.close()
             self.torrent_store = None
 
+        if self.watch_folder is not None:
+            self.watch_folder.stop()
+            self.watch_folder = None
+
     def network_shutdown(self):
         try:
             self._logger.info("tlm: network_shutdown")
@@ -713,6 +723,7 @@ class TriblerLaunchMany(TaskManager):
                                                    'anon_proxyserver', 'anon_proxytype', 'anon_proxyauth',
                                                    'anon_listen_port']) or \
              (section == 'torrent_collecting' and name in ['stop_collecting_threshold']) or \
+             (section == 'watch_folder') or \
              (section == 'tunnel_community' and name in ['socks5_listen_port']):
             return True
         else:

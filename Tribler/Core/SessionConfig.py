@@ -686,6 +686,35 @@ class SessionConfigInterface(object):
         return self.sessconfig.get(u'upgrader', u'enabled')
 
     #
+    # Watch folder
+    #
+    def set_watch_folder_enabled(self, watch_folder_enabled):
+        """
+        Sets if the watch folder is enabled.
+        :param watch_folder_enabled: True or False.
+        """
+        return self.sessconfig.set(u'watch_folder', u'enabled', watch_folder_enabled)
+
+    def get_watch_folder_enabled(self):
+        """
+        Returns if the watch folder is enabled.
+        :return: A boolean indicating if the watch folder is enabled.
+        """
+        return self.sessconfig.get(u'watch_folder', u'enabled')
+
+    def set_watch_folder_path(self, value):
+        """ Set the location of the watch folder
+        @param value An absolute path.
+        """
+        self.sessconfig.set(u'watch_folder', u'watch_folder_dir', value)
+
+    def get_watch_folder_path(self):
+        """ Get the path to the watch folder directory.
+        @return An absolute path.
+        """
+        return self.sessconfig.get(u'watch_folder', u'watch_folder_dir')
+
+    #
     # Static methods
     #
     @staticmethod

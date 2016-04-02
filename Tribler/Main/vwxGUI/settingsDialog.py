@@ -265,6 +265,15 @@ class SettingsDialog(wx.Dialog):
             except:
                 self._logger.exception("Could not set target")
 
+        for target in [scfg, self.utility.session]:
+            if target.get_watch_folder_enabled() != self._use_watch_folder.GetValue():
+                target.set_watch_folder_enabled(self._use_watch_folder.GetValue())
+                restart = True
+
+            if target.get_watch_folder_path() != self._wf_location_ctrl.GetValue():
+                target.set_watch_folder_path(self._wf_location_ctrl.GetValue())
+                restart = True
+
         seeding_mode = self.utility.read_config('seeding_mode', 'downloadconfig')
         for i, mode in enumerate(('ratio', 'forever', 'time', 'never')):
             if getattr(self, '_seeding%d' % i).GetValue():
@@ -332,14 +341,19 @@ class SettingsDialog(wx.Dialog):
             pass
         dlg.Destroy()
 
-    def BrowseClicked(self, event=None):
+    def BrowseDownloadLocationClicked(self, event=None):
         dlg = wx.DirDialog(None, "Choose download directory", style=wx.DEFAULT_DIALOG_STYLE)
         dlg.SetPath(self.defaultDLConfig.get_dest_dir())
         if dlg.ShowModal() == wx.ID_OK:
             self._disk_location_ctrl.SetForegroundColour(wx.BLACK)
             self._disk_location_ctrl.SetValue(dlg.GetPath())
-        else:
-            pass
+
+    def BrowseWatchFolderClicked(self, event=None):
+        dlg = wx.DirDialog(None, "Choose watch folder", style=wx.DEFAULT_DIALOG_STYLE)
+        dlg.SetPath(self.utility.session.get_watch_folder_path())
+        if dlg.ShowModal() == wx.ID_OK:
+            self._wf_location_ctrl.SetForegroundColour(wx.BLACK)
+            self._wf_location_ctrl.SetValue(dlg.GetPath())
 
     def ProxyTypeChanged(self, event=None):
         selection = self._lt_proxytype.GetStringSelection()
@@ -435,8 +449,8 @@ class SettingsDialog(wx.Dialog):
         gp_s2_hsizer = wx.BoxSizer(wx.HORIZONTAL)
         self._disk_location_ctrl = EditText(general_panel, validator=DirectoryValidator())
         gp_s2_hsizer.Add(self._disk_location_ctrl, 1, wx.ALIGN_CENTER_VERTICAL)
-        self._browse = wx.Button(general_panel, label="Browse")
-        gp_s2_hsizer.Add(self._browse)
+        self._browse_download_location = wx.Button(general_panel, label="Browse")
+        gp_s2_hsizer.Add(self._browse_download_location)
         gp_s2_sizer.Add(gp_s2_hsizer, 0, wx.EXPAND)
         self._disk_location_choice = wx.CheckBox(general_panel, label="Let me choose a location for every download")
         self._disk_location_choice.Bind(wx.EVT_CHECKBOX, self.OnChooseLocationChecked)
@@ -447,6 +461,24 @@ class SettingsDialog(wx.Dialog):
         self._default_anonymity_dialog = AnonymityDialog(general_panel)
         gp_s2_sizer.Add(self._default_anonymous_label, 0, wx.EXPAND)
         gp_s2_sizer.Add(self._default_anonymity_dialog, 0, wx.EXPAND)
+
+        # Settings related to the watch folder - the watch folder is a place where .torrent files can be put.
+        # They are automatically picked up by Tribler and added to the download queue if not there yet.
+        gp_s3_sizer = create_subsection(general_panel, gp_vsizer, "Watch Folder", 1)
+        self._use_watch_folder = wx.CheckBox(general_panel, label="Enable watch folder")
+        self._use_watch_folder.SetValue(self.utility.session.get_watch_folder_enabled())
+        gp_s3_sizer.Add(self._use_watch_folder, 0, wx.EXPAND)
+
+        gp_s3_wf_path_label = wx.StaticText(general_panel, label="Watch folder path:")
+        gp_s2_sizer.Add(gp_s3_wf_path_label)
+        gp_s3_wf_path_hsizer = wx.BoxSizer(wx.HORIZONTAL)
+        self._wf_location_ctrl = EditText(general_panel, validator=DirectoryValidator())
+        self._wf_location_ctrl.SetValue(self.utility.session.get_watch_folder_path())
+        gp_s3_wf_path_hsizer.Add(self._wf_location_ctrl, 1, wx.ALIGN_CENTER_VERTICAL)
+        self._browse_wf_location = wx.Button(general_panel, label="Browse")
+        self._browse_wf_location.Bind(wx.EVT_BUTTON, self.BrowseWatchFolderClicked)
+        gp_s3_wf_path_hsizer.Add(self._browse_wf_location)
+        gp_s3_sizer.Add(gp_s3_wf_path_hsizer, 0, wx.EXPAND)
 
         # Minimize
         if sys.platform == "darwin":
@@ -459,7 +491,7 @@ class SettingsDialog(wx.Dialog):
             gp_s3_sizer.Add(self._minimize_to_tray)
 
         self._edit.Bind(wx.EVT_BUTTON, self.EditClicked)
-        self._browse.Bind(wx.EVT_BUTTON, self.BrowseClicked)
+        self._browse_download_location.Bind(wx.EVT_BUTTON, self.BrowseDownloadLocationClicked)
 
         # nickname
         self._my_name_field.SetValue(self.utility.session.get_nickname())
