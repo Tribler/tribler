@@ -308,7 +308,10 @@ class ABCApp(object):
         self.sconfig.set_install_dir(self.installdir)
 
         if not self.sconfig.get_watch_folder_path():
-            self.sconfig.set_watch_folder_path(os.path.join(get_home_dir(), u'Downloads', u'TriblerWatchFolder'))
+            default_watch_folder_dir = os.path.join(get_home_dir(), u'Downloads', u'TriblerWatchFolder')
+            self.sconfig.set_watch_folder_path(default_watch_folder_dir)
+            if not os.path.exists(default_watch_folder_dir):
+                os.makedirs(default_watch_folder_dir)
 
         # TODO(emilon): Do we still want to force limit this? With the new
         # torrent store it should be pretty fast even with more that that.
