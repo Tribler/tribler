@@ -227,9 +227,6 @@ class TestAsServer(AbstractServer):
             self._shutdown_session(self.session)
             Session.del_instance()
 
-        time.sleep(10)
-        gc.collect()
-
         ts = enumerate_threads()
         self._logger.debug("test_as_server: Number of threads still running %d", len(ts))
         for t in ts:
