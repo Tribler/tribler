@@ -16,7 +16,6 @@ class ChannelListItem(QWidget):
         self.opacity_effect = QGraphicsOpacityEffect(self)
         self.opacity_effect.setOpacity(0)
         self.setGraphicsEffect(self.opacity_effect)
-        self.setAutoFillBackground(True)
 
         self.timer = QTimer()
         self.timer.setInterval(fade_delay)
