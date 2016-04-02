@@ -60,7 +60,6 @@ class TriblerWindow(QMainWindow):
 
         self.left_menu_home_button = self.findChild(QWidget, "left_menu_home_button")
         self.left_menu_home_button.clicked_menu_button.connect(self.clicked_menu_button)
-        self.left_menu_home_button.selectMenuButton()
         self.left_menu_my_channel_button = self.findChild(QWidget, "left_menu_my_channel_button")
         self.left_menu_my_channel_button.clicked_menu_button.connect(self.clicked_menu_button)
         self.left_menu_subscribed_button = self.findChild(QWidget, "left_menu_subscribed_button")

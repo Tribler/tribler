@@ -640,7 +640,7 @@ padding-left: 4px;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>1</number>
+         <number>3</number>
         </property>
         <widget class="QWidget" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -743,7 +743,7 @@ padding-left: 4px;
              <item>
               <widget class="QLabel" name="my_channel_name_label">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
@@ -770,6 +770,39 @@ font-weight: bold;</string>
                 <string>My Channel</string>
                </property>
               </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="my_channel_sharing_torrents">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">color: white;
+font-size: 14px;</string>
+               </property>
+               <property name="text">
+                <string>3 torrents</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_26">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>10</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
              </item>
             </layout>
            </widget>
@@ -1102,7 +1135,7 @@ font-size: 14px;
                   </spacer>
                  </item>
                  <item>
-                  <widget class="QToolButton" name="toolButton_2">
+                  <widget class="UnderlineTabButton" name="my_channel_overview_button">
                    <property name="sizePolicy">
                     <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                      <horstretch>0</horstretch>
@@ -1134,6 +1167,126 @@ font-size: 14px;
                    </property>
                    <property name="text">
                     <string>Overview</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="UnderlineTabButton" name="my_channel_settings_button">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>36</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>36</height>
+                    </size>
+                   </property>
+                   <property name="cursor">
+                    <cursorShape>PointingHandCursor</cursorShape>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">color: white;
+border: none;
+background: none;
+border-bottom: 3px solid #666;
+font-size: 14px;
+</string>
+                   </property>
+                   <property name="text">
+                    <string>Settings</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="UnderlineTabButton" name="my_channel_torrents_button">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>36</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>36</height>
+                    </size>
+                   </property>
+                   <property name="cursor">
+                    <cursorShape>PointingHandCursor</cursorShape>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">color: white;
+border: none;
+background: none;
+border-bottom: 3px solid #666;
+font-size: 14px;
+</string>
+                   </property>
+                   <property name="text">
+                    <string>Torrents</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="UnderlineTabButton" name="my_channel_playlists_button">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>36</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>36</height>
+                    </size>
+                   </property>
+                   <property name="cursor">
+                    <cursorShape>PointingHandCursor</cursorShape>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">color: white;
+border: none;
+background: none;
+border-bottom: 3px solid #666;
+font-size: 14px;
+</string>
+                   </property>
+                   <property name="text">
+                    <string>Playlists</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="UnderlineTabButton" name="my_channel_rss_feeds_button">
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>36</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>16777215</width>
+                     <height>36</height>
+                    </size>
+                   </property>
+                   <property name="cursor">
+                    <cursorShape>PointingHandCursor</cursorShape>
+                   </property>
+                   <property name="styleSheet">
+                    <string notr="true">color: white;
+border: none;
+background: none;
+border-bottom: 3px solid #666;
+font-size: 14px;
+</string>
+                   </property>
+                   <property name="text">
+                    <string>RSS feeds</string>
                    </property>
                   </widget>
                  </item>
@@ -1195,6 +1348,9 @@ border-top: 1px solid #555;
             <property name="styleSheet">
              <string notr="true">QListWidget::item:hover {
 background-color: #999;
+}
+QListWidget::item {
+border-bottom: 1px solid #555;
 }
 QListWidget {
 border: none;
@@ -2425,6 +2581,9 @@ font-size: 14px;
              <string notr="true">QListWidget::item:hover {
 background-color: #999;
 }
+QListWidget::item {
+border-bottom: 1px solid #555;
+}
 QListWidget {
 border: none;
 }</string>
@@ -2486,6 +2645,11 @@ border: none;
    <extends>QWidget</extends>
    <header>mychannelpage.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>UnderlineTabButton</class>
+   <extends>QToolButton</extends>
+   <header>underlinetabbutton.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
