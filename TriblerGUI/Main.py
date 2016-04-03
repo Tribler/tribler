@@ -5,7 +5,7 @@ from PyQt5 import uic
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import QMainWindow, QListView, QListWidget, QLineEdit, QListWidgetItem, QApplication, QToolButton, \
-    QWidget, QLabel, QTreeWidget, QTreeWidgetItem, QProgressBar
+    QWidget, QLabel, QTreeWidget, QTreeWidgetItem, QProgressBar, QStackedWidget
 
 from TriblerGUI.channel_list_item import ChannelListItem
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
@@ -26,6 +26,10 @@ PAGE_SETTINGS = 4
 PAGE_VIDEO_PLAYER = 5
 PAGE_SUBSCRIBED_CHANNELS = 6
 PAGE_DOWNLOADS = 7
+
+PAGE_CHANNEL_CONTENT = 0
+PAGE_CHANNEL_COMMENTS = 1
+PAGE_CHANNEL_ACTIVITY = 2
 
 
 class TriblerWindow(QMainWindow):
@@ -87,6 +91,11 @@ class TriblerWindow(QMainWindow):
         self.tribler_request_manager.received_channels.connect(self.received_channels)
         self.tribler_request_manager.received_subscribed_channels.connect(self.received_subscribed_channels)
 
+        self.channel_tab = self.findChild(QWidget, "channel_tab")
+        self.channel_tab.initialize()
+        self.channel_tab.clicked_tab_button.connect(self.on_channel_tab_button_clicked)
+        self.channel_stacked_widget = self.findChild(QStackedWidget, "channel_stacked_widget")
+
         # fetch the settings
         self.tribler_request_manager.get_settings()
 
@@ -130,7 +139,6 @@ class TriblerWindow(QMainWindow):
              }
             """)
             slider.setValue(58)
-            #slider.setTextVisible(False)
             self.downloads_list.setItemWidget(item, 2, slider)
 
             item.setText(3, "Downloading")
@@ -215,6 +223,14 @@ class TriblerWindow(QMainWindow):
             self.left_menu.show()
         else:
             self.left_menu.hide()
+
+    def on_channel_tab_button_clicked(self, button_name):
+        if button_name == "channel_content_button":
+            self.channel_stacked_widget.setCurrentIndex(PAGE_CHANNEL_CONTENT)
+        elif button_name == "channel_comments_button":
+            self.channel_stacked_widget.setCurrentIndex(PAGE_CHANNEL_COMMENTS)
+        elif button_name == "channel_activity_button":
+            self.channel_stacked_widget.setCurrentIndex(PAGE_CHANNEL_ACTIVITY)
 
     def clicked_menu_button(self, menu_button_name):
         # Deselect menu buttons
