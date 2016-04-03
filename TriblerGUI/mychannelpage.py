@@ -47,18 +47,9 @@ class MyChannelPage(QWidget):
         self.my_channel_torrents_export_button.clicked.connect(self.on_torrents_export_clicked)
 
         # Tab bar buttons
-        self.my_channel_overview_button = self.findChild(QWidget, "my_channel_overview_button")
-        self.my_channel_settings_button = self.findChild(QWidget, "my_channel_settings_button")
-        self.my_channel_torrents_button = self.findChild(QWidget, "my_channel_torrents_button")
-        self.my_channel_playlists_button = self.findChild(QWidget, "my_channel_playlists_button")
-        self.my_channel_rss_feeds_button = self.findChild(QWidget, "my_channel_rss_feeds_button")
-
-        self.tab_buttons = [self.my_channel_overview_button, self.my_channel_settings_button,
-                            self.my_channel_torrents_button, self.my_channel_playlists_button,
-                            self.my_channel_rss_feeds_button]
-
-        for button in self.tab_buttons:
-            button.clicked_tab_button.connect(self.clicked_tab_button)
+        self.channel_settings_tab = self.findChild(QWidget, "channel_settings_tab")
+        self.channel_settings_tab.initialize()
+        self.channel_settings_tab.clicked_tab_button.connect(self.clicked_tab_button)
 
         # add some dummy items to torrents list
         for i in range(0, 80):
@@ -100,23 +91,15 @@ class MyChannelPage(QWidget):
         self.dialog = None
 
     def clicked_tab_button(self, tab_button_name):
-        for button in self.tab_buttons:
-            button.unselect_tab_button()
-
         if tab_button_name == "my_channel_overview_button":
-            self.my_channel_overview_button.select_tab_button()
             self.my_channel_details_stacked_widget.setCurrentIndex(PAGE_MY_CHANNEL_OVERVIEW)
         elif tab_button_name == "my_channel_settings_button":
-            self.my_channel_settings_button.select_tab_button()
             self.my_channel_details_stacked_widget.setCurrentIndex(PAGE_MY_CHANNEL_SETTINGS)
         elif tab_button_name == "my_channel_torrents_button":
-            self.my_channel_torrents_button.select_tab_button()
             self.my_channel_details_stacked_widget.setCurrentIndex(PAGE_MY_CHANNEL_TORRENTS)
         elif tab_button_name == "my_channel_playlists_button":
-            self.my_channel_playlists_button.select_tab_button()
             self.my_channel_details_stacked_widget.setCurrentIndex(PAGE_MY_CHANNEL_PLAYLISTS)
         elif tab_button_name == "my_channel_rss_feeds_button":
-            self.my_channel_rss_feeds_button.select_tab_button()
             self.my_channel_details_stacked_widget.setCurrentIndex(PAGE_MY_CHANNEL_RSS_FEEDS)
 
     def on_create_channel_intro_button_clicked(self):

@@ -697,7 +697,7 @@ padding-left: 4px;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>7</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1140,7 +1140,7 @@ font-size: 14px;
                <number>0</number>
               </property>
               <item>
-               <widget class="QWidget" name="channel_settings_tab" native="true">
+               <widget class="TabButtonPanel" name="channel_settings_tab" native="true">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                   <horstretch>0</horstretch>
@@ -1439,6 +1439,8 @@ border-top: 1px solid #555;
                      <string notr="true">QTreeWidget {
 border: none;
 font-size: 14px;
+alternate-background-color: #6e6e6e;
+background-color: #666666;
 }
 QTreeWidget::item {
 color: white;
@@ -1454,6 +1456,9 @@ margin: 4px;
 margin-left: 8px;
 margin-right: 6px;
 }</string>
+                    </property>
+                    <property name="alternatingRowColors">
+                     <bool>true</bool>
                     </property>
                     <property name="selectionMode">
                      <enum>QAbstractItemView::MultiSelection</enum>
@@ -2967,7 +2972,7 @@ background-color: #444;
             </column>
             <column>
              <property name="text">
-              <string>Done</string>
+              <string>Progress</string>
              </property>
             </column>
             <column>
@@ -3062,6 +3067,12 @@ background-color: #444;
    <class>UnderlineTabButton</class>
    <extends>QToolButton</extends>
    <header>underlinetabbutton.h</header>
+  </customwidget>
+  <customwidget>
+   <class>TabButtonPanel</class>
+   <extends>QWidget</extends>
+   <header>tabbuttonpanel.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>

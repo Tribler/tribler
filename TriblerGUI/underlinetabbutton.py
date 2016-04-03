@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QWidget, QToolButton
 
 class UnderlineTabButton(QToolButton):
 
-    clicked_tab_button = pyqtSignal(str)
+    clicked_tab_button = pyqtSignal(object)
     common_stylesheet = """
     QToolButton {
         color: white;
@@ -27,7 +27,7 @@ class UnderlineTabButton(QToolButton):
         self.unselect_tab_button()
 
     def mouseReleaseEvent(self, event):
-        self.clicked_tab_button.emit(self.objectName())
+        self.clicked_tab_button.emit(self)
 
     def select_tab_button(self):
         self.setStyleSheet(self.common_stylesheet + '\n' + self.selected_stylesheet)
