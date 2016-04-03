@@ -508,6 +508,63 @@ padding-left: 4px;
           </widget>
          </item>
          <item>
+          <widget class="LeftMenuButton" name="left_menu_downloads_button" native="true">
+           <layout class="QHBoxLayout" name="horizontalLayout_18">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="left_menu_downloads_label">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>26</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>26</height>
+               </size>
+              </property>
+              <property name="cursor">
+               <cursorShape>PointingHandCursor</cursorShape>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QWidget {
+color: white;
+border: none;
+font-size: 15px;
+padding-left: 4px;
+}</string>
+              </property>
+              <property name="text">
+               <string>Downloads</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
           <widget class="LeftMenuButton" name="left_menu_videoplayer_button" native="true">
            <layout class="QHBoxLayout" name="horizontalLayout_11">
             <property name="spacing">
@@ -640,7 +697,7 @@ padding-left: 4px;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>1</number>
+         <number>7</number>
         </property>
         <widget class="QWidget" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -2857,6 +2914,92 @@ QListWidget {
 border: none;
 }</string>
             </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="downloads">
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QTreeWidget" name="downloads_list">
+            <property name="styleSheet">
+             <string notr="true">QTreeWidget {
+border: none;
+font-size: 13px;
+alternate-background-color: #6e6e6e;
+background-color: #666666;
+}
+QTreeWidget::item {
+color: white;
+}
+QTreeWidget::item::selected {
+background-color: #444;
+}
+</string>
+            </property>
+            <property name="alternatingRowColors">
+             <bool>true</bool>
+            </property>
+            <property name="indentation">
+             <number>0</number>
+            </property>
+            <column>
+             <property name="text">
+              <string>Name</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Size</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Done</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Status</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Seeds</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Peers</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>↓ Speed</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>↑ Speed</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>ETA</string>
+             </property>
+            </column>
            </widget>
           </item>
          </layout>
