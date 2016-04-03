@@ -5,9 +5,8 @@ from PyQt5 import uic
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import QMainWindow, QListView, QListWidget, QLineEdit, QListWidgetItem, QApplication, QToolButton, \
-    QWidget, QLabel, QTreeWidget
+    QWidget, QLabel, QTreeWidget, QTreeWidgetItem, QProgressBar
 
-from TriblerGUI import leftmenubutton
 from TriblerGUI.channel_list_item import ChannelListItem
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
 from TriblerGUI.event_request_manager import EventRequestManager
@@ -26,6 +25,7 @@ PAGE_CHANNEL_DETAILS = 3
 PAGE_SETTINGS = 4
 PAGE_VIDEO_PLAYER = 5
 PAGE_SUBSCRIBED_CHANNELS = 6
+PAGE_DOWNLOADS = 7
 
 
 class TriblerWindow(QMainWindow):
@@ -64,6 +64,8 @@ class TriblerWindow(QMainWindow):
         self.left_menu_my_channel_button.clicked_menu_button.connect(self.clicked_menu_button)
         self.left_menu_subscribed_button = self.findChild(QWidget, "left_menu_subscribed_button")
         self.left_menu_subscribed_button.clicked_menu_button.connect(self.clicked_menu_button)
+        self.left_menu_downloads_button = self.findChild(QWidget, "left_menu_downloads_button")
+        self.left_menu_downloads_button.clicked_menu_button.connect(self.clicked_menu_button)
         self.left_menu_videoplayer_button = self.findChild(QWidget, "left_menu_videoplayer_button")
         self.left_menu_videoplayer_button.clicked_menu_button.connect(self.clicked_menu_button)
         self.left_menu_settings_button = self.findChild(QWidget, "left_menu_settings_button")
@@ -71,7 +73,7 @@ class TriblerWindow(QMainWindow):
 
         self.menu_buttons = [self.left_menu_home_button, self.left_menu_my_channel_button,
                              self.left_menu_subscribed_button, self.left_menu_videoplayer_button,
-                             self.left_menu_settings_button]
+                             self.left_menu_settings_button, self.left_menu_downloads_button]
 
         channel_back_button = self.findChild(QToolButton, "channel_back_button")
         channel_back_button.clicked.connect(self.on_page_back_clicked)
@@ -100,10 +102,43 @@ class TriblerWindow(QMainWindow):
 
         self.left_menu.hide()
 
-        # Initialize video player
         self.video_player_page.initialize_player()
-
         self.my_channel_page.initialize_my_channel_page()
+
+        # TODO Martijn: for now, fill the downloads with some dummy data
+        self.downloads_list = self.findChild(QTreeWidget, "downloads_list")
+
+        for i in range(0, 10):
+            item = QTreeWidgetItem(self.downloads_list)
+            item.setSizeHint(0, QSize(-1, 24))
+            item.setSizeHint(2, QSize(-1, 1))
+            item.setText(0, "My.test.torrent.HD.iso")
+            item.setText(1, "301.1 MB")
+
+            slider = QProgressBar()
+            slider.setStyleSheet("""
+            QProgressBar {
+                margin: 4px;
+                background-color: white;
+                color: #ddd;
+                font-size: 12px;
+                text-align: center;
+             }
+
+             QProgressBar::chunk {
+                background-color: #e67300;
+             }
+            """)
+            slider.setValue(58)
+            #slider.setTextVisible(False)
+            self.downloads_list.setItemWidget(item, 2, slider)
+
+            item.setText(3, "Downloading")
+            item.setText(4, "4")
+            item.setText(5, "5")
+            item.setText(6, "801.3 KB")
+            item.setText(7, "0.4 KB")
+            item.setText(8, "34:12:03")
 
         self.show()
 
@@ -195,6 +230,9 @@ class TriblerWindow(QMainWindow):
         elif menu_button_name == "left_menu_videoplayer_button":
             self.left_menu_videoplayer_button.selectMenuButton()
             self.stackedWidget.setCurrentIndex(PAGE_VIDEO_PLAYER)
+        elif menu_button_name == "left_menu_downloads_button":
+            self.left_menu_downloads_button.selectMenuButton()
+            self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
         elif menu_button_name == "left_menu_settings_button":
             self.left_menu_settings_button.selectMenuButton()
             self.stackedWidget.setCurrentIndex(PAGE_SETTINGS)
