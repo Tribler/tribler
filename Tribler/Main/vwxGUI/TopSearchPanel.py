@@ -354,7 +354,7 @@ class TopSearchPanel(FancyPanel):
         button.Enable(bool(handler))
         if handler:
             button.Bind(wx.EVT_LEFT_UP, handler)
-            if tooltip:
+            if tooltip and sys.platform != 'darwin':
                 button.SetToolTipString(tooltip)
             else:
                 button.SetToolTip(None)

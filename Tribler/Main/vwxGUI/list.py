@@ -2048,7 +2048,8 @@ class ChannelList(List):
             control.SetBackgroundColour(DEFAULT_BACKGROUND)
             # control.SetMinSize((50,10))
             control.SetPercentage(ratio)
-            control.SetToolTipString('%s users marked this channel as one of their favorites.' % pop)
+            if sys.platform != 'darwin':
+                control.SetToolTipString('%s users marked this channel as one of their favorites.' % pop)
             return control
 
     def OnExpand(self, item):
