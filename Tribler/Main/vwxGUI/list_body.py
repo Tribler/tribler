@@ -1299,7 +1299,7 @@ class AbstractListBody():
                     select = self.data[index - offset][0]
                 break
 
-        if select:
+        if select and select in self.items:
             cur_scroll = self.CalcUnscrolledPosition(0, 0)[1] / self.GetScrollPixelsPerUnit()[1]
             if next:
                 tot_scroll = (self.items[select].GetPosition()[1] + self.items[
