@@ -6,6 +6,7 @@ from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import QMainWindow, QListView, QListWidget, QLineEdit, QListWidgetItem, QApplication, QToolButton, \
     QWidget, QLabel, QTreeWidget, QTreeWidgetItem, QProgressBar, QStackedWidget
+from TriblerGUI.channel_activity_list_item import ChannelActivityListItem
 from TriblerGUI.channel_comment_list_item import ChannelCommentListItem
 
 from TriblerGUI.channel_list_item import ChannelListItem
@@ -98,8 +99,9 @@ class TriblerWindow(QMainWindow):
         self.channel_stacked_widget = self.findChild(QStackedWidget, "channel_stacked_widget")
 
         self.channel_comments_list = self.findChild(QTreeWidget, "channel_comments_list")
+        self.channel_activities_list = self.findChild(QListWidget, "channel_activities_list")
 
-        # TODO Martijn: for now, fill the comments with some dummy data
+        # TODO Martijn: for now, fill the comments and activity with some dummy data
         for i in range(0, 10):
             parent_item = QTreeWidgetItem(self.channel_comments_list)
             widget_item = ChannelCommentListItem(self.channel_comments_list, 0)
@@ -108,6 +110,12 @@ class TriblerWindow(QMainWindow):
             child_item = QTreeWidgetItem(self.channel_comments_list)
             widget_item = ChannelCommentListItem(self.channel_comments_list, 1)
             self.channel_comments_list.setItemWidget(child_item, 0, widget_item)
+
+        for i in range(0, 10):
+            item = QListWidgetItem(self.channel_activities_list)
+            widget_item = ChannelActivityListItem(self.channel_activities_list)
+            item.setSizeHint(widget_item.sizeHint())
+            self.channel_activities_list.setItemWidget(item, widget_item)
 
         # fetch the settings
         self.tribler_request_manager.get_settings()
