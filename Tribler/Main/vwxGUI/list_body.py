@@ -393,7 +393,7 @@ class ListItem(wx.Panel):
                     control.icon.SetBitmap(self.GetIcon(control.icon.type, self.GetBackgroundColour(), state))
                     control.icon.Refresh()
 
-            # self.Refresh()
+            self.Refresh()
             self.Thaw()
             return True
 
@@ -446,6 +446,14 @@ class ListItem(wx.Panel):
 
         elif event.ButtonDClick(wx.MOUSE_BTN_LEFT):
             self.OnDClick(event)
+
+        # Do not skip the event if we have a BetterText as source of the event (and more specific, if the event
+        # is mouse entering/leaving). This is a workaround for a bug on OS X where rows would be deselected if the
+        # mouse was leaving the label in the row.
+        if isinstance(event.GetEventObject(), BetterText) \
+                and (event.GetEventType() == wx.EVT_ENTER_WINDOW.typeId
+                     or event.GetEventType() == wx.EVT_LEAVE_WINDOW.typeId):
+            return
 
         # make sure ListItem labels are not consuming the click event
         if not event.LeftUp() or not isinstance(event.GetEventObject(), BetterText):
