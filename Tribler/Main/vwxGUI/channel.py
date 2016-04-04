@@ -1843,7 +1843,7 @@ class ManageChannelPlaylistList(ManageChannelFilesList):
         dlg.availableList = wx.ListBox(dlg, choices=available_names, style=wx.LB_MULTIPLE)
         dlg.availableList.SetMinSize((1, -1))
 
-        sizer = wx.FlexGridSizer(2, 3, 3, 3)
+        sizer = wx.FlexGridSizer(3, 3, 3, 3)
         sizer.AddGrowableRow(1)
         sizer.AddGrowableCol(0, 1)
         sizer.AddGrowableCol(2, 1)
