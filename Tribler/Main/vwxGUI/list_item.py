@@ -602,7 +602,6 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             # remote channel link to force reload
             for torrent in added:
                 del torrent.channel
-                torrent.channel
 
             if len(added) == 1:
                 def gui_call():
@@ -623,7 +622,6 @@ class TorrentListItem(DoubleLineListItemWithButtons):
     def OnExplore(self, event):
         torrents = self.guiutility.frame.top_bg.GetSelectedTorrents()
         for torrent in torrents:
-            path = None
             if torrent.ds:
                 download = torrent.ds.get_download()
                 if isinstance(download.get_def(), TorrentDef):

@@ -158,8 +158,6 @@ class TorrentDetails(AbstractDetails):
         self.isEditable = {}
         self.tracker_checks = {}
 
-        self.guiutility.library_manager.add_download_state_callback(self.OnRefresh)
-
         self.createAllTabs()
 
         self.Show()
@@ -180,6 +178,7 @@ class TorrentDetails(AbstractDetails):
             self.messagePanel.Layout()
             self.torrent = torrent
             self.showTorrent(self.torrent)
+            self.guiutility.library_manager.add_download_state_callback(self.OnRefresh)
 
             if self.guiutility.utility.session.has_collected_torrent(self.torrent.infohash):
                 self.guiutility.torrentsearch_manager.loadTorrent(self.torrent, callback=self.showTorrent)
@@ -923,6 +922,10 @@ class TorrentDetails(AbstractDetails):
             self.health.SetLabel("Unknown")
 
     def OnRefresh(self, dslist, magnetlist):
+        """
+        The download statelist and the magnet list are provided by
+        the _do_gui_callback function in the SearchGridManager.
+        """
         found = False
 
         if self and self.torrent:  # avoid pydeadobject error
@@ -961,7 +964,11 @@ class TorrentDetails(AbstractDetails):
         is_vod = ds.get_download().get_mode() == DLMODE_VOD if ds else False
         status = None
 
-        if self.torrent.magnetstatus or statusflag == DLSTATUS_METADATA:
+        if statusflag == DLSTATUS_DOWNLOADING:
+            dls = ds.get_current_speed('down')
+            status = 'Streaming' if is_vod else 'Downloading'
+            status += ' @ %s' % speed_format(dls)
+        elif statusflag == DLSTATUS_METADATA:
             status = 'Torrent file is being downloaded from the DHT'
         elif statusflag == DLSTATUS_SEEDING:
             uls = ds.get_current_speed('up')
@@ -972,10 +979,6 @@ class TorrentDetails(AbstractDetails):
             status = 'Waiting'
         elif statusflag == DLSTATUS_HASHCHECKING:
             status = 'Checking'
-        elif statusflag == DLSTATUS_DOWNLOADING:
-            dls = ds.get_current_speed('down')
-            status = 'Streaming' if is_vod else 'Downloading'
-            status += ' @ %s' % speed_format(dls)
         elif statusflag == DLSTATUS_STOPPED:
             status = 'Stopped'
 
@@ -1060,8 +1063,7 @@ class LibraryDetails(TorrentDetails):
 
     def getHashes(self):
         hashes = []
-        if self.torrent:
-            if self.torrent.infohash:
+        if self.torrent and self.torrent.infohash:
                 hashes.append(self.torrent.infohash)
         return hashes
 

@@ -579,6 +579,7 @@ class LibraryManager(object):
         return self.wantpeers
 
     def magnet_started(self, infohash):
+        # [time, amount of peers, ????]
         self.magnetlist[infohash] = [long(time()), 0, 0]
 
     def magnet_got_peers(self, infohash, total_peers):
@@ -612,6 +613,12 @@ class LibraryManager(object):
             self.gui_callback.remove(callback)
 
     def set_want_peers(self, hashes, enable=True):
+        """
+        Sets whether or now we want hashes, appending or removing them
+        from the wantpeers list.
+        :param hashes: A list of hashes we want to add or remove from the wantpeers list
+        :param enable: A boolean indicating if they should be removed or added
+        """
         if not enable:
             for h in hashes:
                 if h in self.wantpeers:
@@ -631,10 +638,7 @@ class LibraryManager(object):
 
     def addDownloadStates(self, torrentlist):
         for torrent in torrentlist:
-            for ds in self.dslist:
-                torrent.addDs(ds)
-            if torrent.infohash in self.magnetlist:
-                torrent.magnetstatus = self.magnetlist[torrent.infohash]
+            self.addDownloadState(torrent)
         return torrentlist
 
     def startLastVODTorrent(self):
