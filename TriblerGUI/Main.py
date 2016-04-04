@@ -127,6 +127,10 @@ class TriblerWindow(QMainWindow):
         self.video_player_page.initialize_player()
         self.my_channel_page.initialize_my_channel_page()
 
+        self.downloads_tab = self.findChild(QWidget, "downloads_tab")
+        self.downloads_tab.initialize()
+        self.downloads_tab.clicked_tab_button.connect(self.on_downloads_tab_button_clicked)
+
         # TODO Martijn: for now, fill the downloads with some dummy data
         self.downloads_list = self.findChild(QTreeWidget, "downloads_list")
 
@@ -244,6 +248,9 @@ class TriblerWindow(QMainWindow):
             self.channel_stacked_widget.setCurrentIndex(PAGE_CHANNEL_COMMENTS)
         elif button_name == "channel_activity_button":
             self.channel_stacked_widget.setCurrentIndex(PAGE_CHANNEL_ACTIVITY)
+
+    def on_downloads_tab_button_clicked(self, button_name):
+        print button_name
 
     def clicked_menu_button(self, menu_button_name):
         # Deselect menu buttons
