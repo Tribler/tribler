@@ -31,7 +31,7 @@ class TestTorrentDef(BaseTestCase):
     def test_add_content_file_and_copy(self):
         """ Add a single file to a TorrentDef """
         t = TorrentDef()
-        fn = os.path.join(TESTS_API_DIR, self.VIDEO_FILE_NAME)
+        fn = os.path.join(TESTS_DATA_DIR, self.VIDEO_FILE_NAME)
         t.add_content(fn)
         t.set_tracker(TRACKER)
         t.finalize()
@@ -63,7 +63,7 @@ class TestTorrentDef(BaseTestCase):
     def test_add_content_dir(self):
         """ Add a single dir to a TorrentDef """
         t = TorrentDef()
-        dn = os.path.join(TESTS_API_DIR, "contentdir")
+        dn = os.path.join(TESTS_DATA_DIR, "contentdir")
         t.add_content(dn, "dirintorrent")
         t.set_tracker(TRACKER)
         t.finalize()
@@ -97,10 +97,10 @@ class TestTorrentDef(BaseTestCase):
         """ Add a single dir and single file to a TorrentDef """
         t = TorrentDef()
 
-        dn = os.path.join(TESTS_API_DIR, "contentdir")
+        dn = os.path.join(TESTS_DATA_DIR, "contentdir")
         t.add_content(dn, "dirintorrent")
 
-        fn = os.path.join(TESTS_API_DIR, self.VIDEO_FILE_NAME)
+        fn = os.path.join(TESTS_DATA_DIR, self.VIDEO_FILE_NAME)
         t.add_content(fn, os.path.join("dirintorrent", self.VIDEO_FILE_NAME))
 
         t.set_tracker(TRACKER)
@@ -126,7 +126,7 @@ class TestTorrentDef(BaseTestCase):
     def test_add_content_announce_list(self):
         """ Add a single file with announce-list to a TorrentDef """
         t = TorrentDef()
-        fn = os.path.join(TESTS_API_DIR, self.VIDEO_FILE_NAME)
+        fn = os.path.join(TESTS_DATA_DIR, self.VIDEO_FILE_NAME)
 
         t.add_content(fn)
         t.set_tracker(TRACKER)
@@ -143,7 +143,7 @@ class TestTorrentDef(BaseTestCase):
     def test_add_content_httpseeds(self):
         """ Add a single file with BitTornado httpseeds to a TorrentDef """
         t = TorrentDef()
-        fn = os.path.join(TESTS_API_DIR, self.VIDEO_FILE_NAME)
+        fn = os.path.join(TESTS_DATA_DIR, self.VIDEO_FILE_NAME)
         t.add_content(fn)
         t.set_tracker(TRACKER)
         expseeds = ['http://www.cs.vu.nl/index.html', 'http://www.st.ewi.tudelft.nl/index.html']
@@ -158,7 +158,7 @@ class TestTorrentDef(BaseTestCase):
     def test_add_content_piece_length(self):
         """ Add a single file with piece length to a TorrentDef """
         t = TorrentDef()
-        fn = os.path.join(TESTS_API_DIR, self.VIDEO_FILE_NAME)
+        fn = os.path.join(TESTS_DATA_DIR, self.VIDEO_FILE_NAME)
         t.add_content(fn)
         t.set_piece_length(2 ** 16)
         t.set_tracker(TRACKER)
@@ -171,7 +171,7 @@ class TestTorrentDef(BaseTestCase):
     def test_add_content_file_save(self):
         """ Add a single file to a TorrentDef and save the latter"""
         t = TorrentDef()
-        fn = os.path.join(TESTS_API_DIR, self.VIDEO_FILE_NAME)
+        fn = os.path.join(TESTS_DATA_DIR, self.VIDEO_FILE_NAME)
         t.add_content(fn)
         t.set_tracker(TRACKER)
         t.finalize()
