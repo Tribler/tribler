@@ -697,7 +697,7 @@ padding-left: 4px;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>3</number>
+         <number>2</number>
         </property>
         <widget class="QWidget" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1690,6 +1690,9 @@ border: none;
             <property name="selectionMode">
              <enum>QAbstractItemView::NoSelection</enum>
             </property>
+            <property name="verticalScrollMode">
+             <enum>QAbstractItemView::ScrollPerPixel</enum>
+            </property>
            </widget>
           </item>
          </layout>
@@ -2097,6 +2100,9 @@ border: none;
                 <property name="selectionMode">
                  <enum>QAbstractItemView::NoSelection</enum>
                 </property>
+                <property name="verticalScrollMode">
+                 <enum>QAbstractItemView::ScrollPerPixel</enum>
+                </property>
                </widget>
               </item>
              </layout>
@@ -2118,15 +2124,21 @@ border: none;
               <item>
                <widget class="QTreeWidget" name="channel_comments_list">
                 <property name="styleSheet">
-                 <string notr="true">QTreeWidget::item:hover {
-background-color: #999;
-}
-QTreeWidget::item {
-border-bottom: 1px solid #555;
-}
-QTreeWidget {
+                 <string notr="true">QTreeWidget {
 border: none;
 }</string>
+                </property>
+                <property name="sizeAdjustPolicy">
+                 <enum>QAbstractScrollArea::AdjustToContents</enum>
+                </property>
+                <property name="selectionMode">
+                 <enum>QAbstractItemView::NoSelection</enum>
+                </property>
+                <property name="verticalScrollMode">
+                 <enum>QAbstractItemView::ScrollPerPixel</enum>
+                </property>
+                <property name="indentation">
+                 <number>10</number>
                 </property>
                 <attribute name="headerVisible">
                  <bool>false</bool>
