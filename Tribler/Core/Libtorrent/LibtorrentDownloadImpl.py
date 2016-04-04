@@ -236,6 +236,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             torrentinfo = lt.torrent_info(metainfo)
 
             self.orig_files = [file_entry.path.decode('utf-8') for file_entry in torrentinfo.files()]
+
             is_multifile = len(self.orig_files) > 1
             commonprefix = os.path.commonprefix(self.orig_files) if is_multifile else ''
             swarmname = commonprefix.partition(os.path.sep)[0]
@@ -598,7 +599,14 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                     filepriorities.append(0)
                     new_path = os.path.join(unwanteddir, '%s%d' % (hexlify(self.tdef.get_infohash()), index))
 
-                cur_path = get_info_from_handle(self.handle).files()[index].path.decode('utf-8')
+                torrent_storage = get_info_from_handle(self.handle).files()
+
+                # TODO(ardhi) : as from 1.0, files returning file_storage (lazy-iterable)
+                if hasattr(lt, 'file_storage') and isinstance(torrent_storage, lt.file_storage):
+                    cur_path = torrent_storage.at(index).path.decode('utf-8')
+                else:
+                    cur_path = get_info_from_handle(self.handle).files()[index].path.decode('utf-8')
+
                 if cur_path != new_path:
                     if not os.path.exists(unwanteddir_abs) and unwanteddir in new_path:
                         try:
@@ -949,6 +957,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         """
 
         dest_files = []
+
         for index, file_entry in enumerate(get_info_from_handle(self.handle).files()):
             if self.handle.file_priority(index) > 0:
                 filename = file_entry.path
