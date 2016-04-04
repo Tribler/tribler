@@ -6,6 +6,7 @@ from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import QMainWindow, QListView, QListWidget, QLineEdit, QListWidgetItem, QApplication, QToolButton, \
     QWidget, QLabel, QTreeWidget, QTreeWidgetItem, QProgressBar, QStackedWidget
+from TriblerGUI.channel_comment_list_item import ChannelCommentListItem
 
 from TriblerGUI.channel_list_item import ChannelListItem
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
@@ -95,6 +96,18 @@ class TriblerWindow(QMainWindow):
         self.channel_tab.initialize()
         self.channel_tab.clicked_tab_button.connect(self.on_channel_tab_button_clicked)
         self.channel_stacked_widget = self.findChild(QStackedWidget, "channel_stacked_widget")
+
+        self.channel_comments_list = self.findChild(QTreeWidget, "channel_comments_list")
+
+        # TODO Martijn: for now, fill the comments with some dummy data
+        for i in range(0, 10):
+            parent_item = QTreeWidgetItem(self.channel_comments_list)
+            widget_item = ChannelCommentListItem(self.channel_comments_list, 0)
+            self.channel_comments_list.setItemWidget(parent_item, 0, widget_item)
+
+            child_item = QTreeWidgetItem(self.channel_comments_list)
+            widget_item = ChannelCommentListItem(self.channel_comments_list, 1)
+            self.channel_comments_list.setItemWidget(child_item, 0, widget_item)
 
         # fetch the settings
         self.tribler_request_manager.get_settings()
