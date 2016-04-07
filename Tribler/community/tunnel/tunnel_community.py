@@ -816,12 +816,12 @@ class TunnelCommunity(Community):
 
             elif circuit_id in self.exit_sockets:
                 if cand_sock_addr != self.exit_sockets[circuit_id].sock_addr:
-                    yield DropMessage(message, "%s not allowed send destroy", cand_sock_addr)
+                    yield DropMessage(message, "%s, %s not allowed send destroy" % cand_sock_addr)
                     continue
 
             elif circuit_id in self.circuits:
                 if cand_sock_addr != self.circuits[circuit_id].first_hop:
-                    yield DropMessage(message, "%s not allowed send destroy", cand_sock_addr)
+                    yield DropMessage(message, "%s, %s not allowed send destroy" % cand_sock_addr)
                     continue
 
             else:
