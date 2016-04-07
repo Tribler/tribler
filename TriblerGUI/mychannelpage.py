@@ -80,7 +80,7 @@ class MyChannelPage(QWidget):
         self.dialog.show()
 
     def on_torrents_remove_all_clicked(self):
-        self.dialog = ConfirmationDialog(self, "Remove all torrents",
+        self.dialog = ConfirmationDialog(self.window(), "Remove all torrents",
                     "Are you sure that you want to remove all torrents from your channel? You cannot undo this action.")
         self.dialog.button_clicked.connect(self.on_torrents_remove_all_action)
         self.dialog.show()
