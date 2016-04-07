@@ -2,7 +2,7 @@ import json
 import os
 import sys
 from PyQt5 import uic
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtCore import Qt, QSize, pyqtSignal
 from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import QMainWindow, QListView, QListWidget, QLineEdit, QListWidgetItem, QApplication, QToolButton, \
     QWidget, QLabel, QTreeWidget, QTreeWidgetItem, QProgressBar, QStackedWidget
@@ -35,6 +35,8 @@ PAGE_CHANNEL_ACTIVITY = 2
 
 
 class TriblerWindow(QMainWindow):
+
+    resize_event = pyqtSignal()
 
     def __init__(self):
         super(TriblerWindow, self).__init__()
@@ -303,6 +305,9 @@ class TriblerWindow(QMainWindow):
     def on_page_back_clicked(self):
         prev_page = self.navigation_stack.pop()
         self.stackedWidget.setCurrentIndex(prev_page)
+
+    def resizeEvent(self, event):
+        self.resize_event.emit()
 
 app = QApplication(sys.argv)
 window = TriblerWindow()
