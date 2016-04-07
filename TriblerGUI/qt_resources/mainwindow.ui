@@ -697,7 +697,7 @@ padding-left: 4px;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>3</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1377,28 +1377,89 @@ border-top: 1px solid #555;
                  <number>1</number>
                 </property>
                 <property name="currentIndex">
-                 <number>2</number>
+                 <number>4</number>
                 </property>
                 <widget class="QWidget" name="my_channel_details_overview_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
                   <property name="leftMargin">
-                   <number>0</number>
+                   <number>10</number>
                   </property>
                   <property name="topMargin">
-                   <number>0</number>
+                   <number>10</number>
                   </property>
                   <property name="rightMargin">
-                   <number>0</number>
+                   <number>10</number>
                   </property>
                   <property name="bottomMargin">
-                   <number>0</number>
+                   <number>10</number>
                   </property>
                   <item>
                    <widget class="QLabel" name="label_7">
+                    <property name="styleSheet">
+                     <string notr="true">color: white;
+font-size: 14px;</string>
+                    </property>
                     <property name="text">
-                     <string>Test test</string>
+                     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Welcome to the management interface of your channel!&lt;/p&gt;&lt;p&gt;Here, you can change settings of you channel, manage your shared torrents, manage your playlists and add rss feeds which are periodically polled.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                    </property>
+                    <property name="wordWrap">
+                     <bool>true</bool>
                     </property>
                    </widget>
+                  </item>
+                  <item>
+                   <spacer name="verticalSpacer_4">
+                    <property name="orientation">
+                     <enum>Qt::Vertical</enum>
+                    </property>
+                    <property name="sizeType">
+                     <enum>QSizePolicy::Fixed</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>20</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
+                   <layout class="QFormLayout" name="formLayout_3">
+                    <property name="labelAlignment">
+                     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                    </property>
+                    <property name="formAlignment">
+                     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+                    </property>
+                    <property name="leftMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="topMargin">
+                     <number>0</number>
+                    </property>
+                    <item row="0" column="0">
+                     <widget class="QLabel" name="label_8">
+                      <property name="styleSheet">
+                       <string notr="true">color: white;
+font-size: 14px;</string>
+                      </property>
+                      <property name="text">
+                       <string>Identifier:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QLabel" name="label_9">
+                      <property name="styleSheet">
+                       <string notr="true">color: white;
+font-size: 14px;</string>
+                      </property>
+                      <property name="text">
+                       <string>537285923fds89d</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
                   </item>
                   <item>
                    <spacer name="verticalSpacer_2">
@@ -1415,7 +1476,156 @@ border-top: 1px solid #555;
                   </item>
                  </layout>
                 </widget>
-                <widget class="QWidget" name="my_channel_details_settings_page"/>
+                <widget class="QWidget" name="my_channel_details_settings_page">
+                 <layout class="QVBoxLayout" name="verticalLayout">
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <layout class="QFormLayout" name="my_channel_settings_form">
+                    <property name="fieldGrowthPolicy">
+                     <enum>QFormLayout::ExpandingFieldsGrow</enum>
+                    </property>
+                    <property name="formAlignment">
+                     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+                    </property>
+                    <property name="leftMargin">
+                     <number>12</number>
+                    </property>
+                    <property name="topMargin">
+                     <number>12</number>
+                    </property>
+                    <property name="rightMargin">
+                     <number>12</number>
+                    </property>
+                    <property name="bottomMargin">
+                     <number>12</number>
+                    </property>
+                    <item row="0" column="0">
+                     <widget class="QLabel" name="my_channel_settings_name_label">
+                      <property name="styleSheet">
+                       <string notr="true">color: #eee;</string>
+                      </property>
+                      <property name="text">
+                       <string>Channel name</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QLineEdit" name="lineEdit_3">
+                      <property name="styleSheet">
+                       <string notr="true">border: 1px solid #555;
+background-color: #ccc;
+border-radius: 4px;</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="0">
+                     <widget class="QLabel" name="my_channel_settings_description_label">
+                      <property name="styleSheet">
+                       <string notr="true">color: #eee;</string>
+                      </property>
+                      <property name="text">
+                       <string>Channel description</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="1">
+                     <widget class="QTextEdit" name="textEdit">
+                      <property name="styleSheet">
+                       <string notr="true">border: 1px solid #555;
+background-color: #ccc;
+border-radius: 4px;</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="1">
+                     <widget class="QWidget" name="widget_3" native="true">
+                      <layout class="QHBoxLayout" name="horizontalLayout_22">
+                       <property name="spacing">
+                        <number>0</number>
+                       </property>
+                       <property name="leftMargin">
+                        <number>0</number>
+                       </property>
+                       <property name="topMargin">
+                        <number>0</number>
+                       </property>
+                       <property name="rightMargin">
+                        <number>0</number>
+                       </property>
+                       <property name="bottomMargin">
+                        <number>0</number>
+                       </property>
+                       <item>
+                        <spacer name="horizontalSpacer_31">
+                         <property name="orientation">
+                          <enum>Qt::Horizontal</enum>
+                         </property>
+                         <property name="sizeHint" stdset="0">
+                          <size>
+                           <width>440</width>
+                           <height>20</height>
+                          </size>
+                         </property>
+                        </spacer>
+                       </item>
+                       <item>
+                        <widget class="QToolButton" name="toolButton_2">
+                         <property name="minimumSize">
+                          <size>
+                           <width>54</width>
+                           <height>26</height>
+                          </size>
+                         </property>
+                         <property name="maximumSize">
+                          <size>
+                           <width>54</width>
+                           <height>26</height>
+                          </size>
+                         </property>
+                         <property name="styleSheet">
+                          <string notr="true">border: none;
+border-radius: 2px;
+background-color: #e67300;
+color: white;
+font-size: 14px;
+</string>
+                         </property>
+                         <property name="text">
+                          <string>Save</string>
+                         </property>
+                        </widget>
+                       </item>
+                      </layout>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                  <item>
+                   <spacer name="verticalSpacer_2">
+                    <property name="orientation">
+                     <enum>Qt::Vertical</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>20</width>
+                      <height>40</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
+                </widget>
                 <widget class="QWidget" name="my_channel_details_torrents_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
                   <property name="spacing">
@@ -1471,7 +1681,18 @@ margin-right: 6px;
                     </property>
                     <column>
                      <property name="text">
-                      <string notr="true">1</string>
+                      <string notr="true">Name</string>
+                     </property>
+                     <property name="textAlignment">
+                      <set>AlignLeading|AlignVCenter</set>
+                     </property>
+                    </column>
+                    <column>
+                     <property name="text">
+                      <string>Date added</string>
+                     </property>
+                     <property name="textAlignment">
+                      <set>AlignTrailing|AlignVCenter</set>
                      </property>
                     </column>
                    </widget>
@@ -1580,7 +1801,7 @@ font-size: 14px;
                       </widget>
                      </item>
                      <item>
-                      <widget class="QToolButton" name="toolButton_4">
+                      <widget class="QToolButton" name="my_channel_torrents_add_button">
                        <property name="sizePolicy">
                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                          <horstretch>0</horstretch>
@@ -1650,8 +1871,206 @@ font-size: 14px;
                   </item>
                  </layout>
                 </widget>
-                <widget class="QWidget" name="my_channel_details_playlists_page"/>
-                <widget class="QWidget" name="my_channels_details_rss_feeds_page"/>
+                <widget class="QWidget" name="my_channel_details_playlists_page">
+                 <layout class="QVBoxLayout" name="verticalLayout">
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <spacer name="verticalSpacer_2">
+                    <property name="orientation">
+                     <enum>Qt::Vertical</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>20</width>
+                      <height>40</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
+                </widget>
+                <widget class="QWidget" name="my_channel_details_rss_feeds_page">
+                 <layout class="QVBoxLayout" name="verticalLayout">
+                  <property name="spacing">
+                   <number>0</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <widget class="QTreeWidget" name="my_channel_rss_feeds_list">
+                    <property name="styleSheet">
+                     <string notr="true">QTreeWidget {
+border: none;
+font-size: 14px;
+alternate-background-color: #6e6e6e;
+background-color: #666666;
+}
+QTreeWidget::item {
+color: white;
+}
+QTreeWidget::item::selected {
+background-color: #444;
+}
+QHeaderView::section {
+background-color: transparent;
+color: white;
+border: none;
+margin: 4px;
+margin-left: 8px;
+margin-right: 6px;
+}</string>
+                    </property>
+                    <property name="alternatingRowColors">
+                     <bool>true</bool>
+                    </property>
+                    <property name="verticalScrollMode">
+                     <enum>QAbstractItemView::ScrollPerPixel</enum>
+                    </property>
+                    <property name="indentation">
+                     <number>4</number>
+                    </property>
+                    <column>
+                     <property name="text">
+                      <string>RSS feed URL</string>
+                     </property>
+                    </column>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QWidget" name="my_channel_rss_feeds_buttons_container" native="true">
+                    <layout class="QHBoxLayout" name="horizontalLayout_23">
+                     <property name="leftMargin">
+                      <number>8</number>
+                     </property>
+                     <property name="topMargin">
+                      <number>8</number>
+                     </property>
+                     <property name="rightMargin">
+                      <number>8</number>
+                     </property>
+                     <property name="bottomMargin">
+                      <number>8</number>
+                     </property>
+                     <item>
+                      <spacer name="horizontalSpacer_32">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>40</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                     <item>
+                      <widget class="QToolButton" name="toolButton_5">
+                       <property name="minimumSize">
+                        <size>
+                         <width>0</width>
+                         <height>24</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>16777215</width>
+                         <height>24</height>
+                        </size>
+                       </property>
+                       <property name="styleSheet">
+                        <string notr="true">border: none;
+border-radius: 2px;
+background-color: #e67300;
+color: white;
+font-size: 14px;
+</string>
+                       </property>
+                       <property name="text">
+                        <string>Remove selected</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QToolButton" name="toolButton_4">
+                       <property name="minimumSize">
+                        <size>
+                         <width>0</width>
+                         <height>24</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>16777215</width>
+                         <height>24</height>
+                        </size>
+                       </property>
+                       <property name="styleSheet">
+                        <string notr="true">border: none;
+border-radius: 2px;
+background-color: #e67300;
+color: white;
+font-size: 14px;
+</string>
+                       </property>
+                       <property name="text">
+                        <string>Add</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QToolButton" name="toolButton_3">
+                       <property name="minimumSize">
+                        <size>
+                         <width>0</width>
+                         <height>24</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>16777215</width>
+                         <height>24</height>
+                        </size>
+                       </property>
+                       <property name="styleSheet">
+                        <string notr="true">border: none;
+border-radius: 2px;
+background-color: #e67300;
+color: white;
+font-size: 14px;
+</string>
+                       </property>
+                       <property name="text">
+                        <string>Refresh all</string>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
                </widget>
               </item>
              </layout>
