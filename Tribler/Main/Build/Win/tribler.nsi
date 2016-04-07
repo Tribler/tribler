@@ -365,7 +365,10 @@ Function .onInit
 
   uninst:
     ClearErrors
-    ExecWait '$R0 _?=$INSTDIR' ;Do not copy the uninstaller to a temp file
+    ; Laurens (2016-03-29): Retrieve the uninstallString stored in the register. Do NOT use $INSTDIR as this points to the current $INSTDIR var of the INSTALLER, 
+    ; which is the default location at this point.
+    ReadRegStr $R0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString"
+    ExecWait '"$R0"' ;Do not copy the uninstaller to a temp file
     ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString"
     StrCmp $R0 "" done
     Abort
