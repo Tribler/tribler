@@ -1,0 +1,2 @@
+This is another test file.
+One file was not enough, because our TorrentDef is smart enough to see a directory with one file as a file.
