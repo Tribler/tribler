@@ -24,14 +24,13 @@ class MyChannelPage(QWidget):
         self.create_channel_intro_button.clicked.connect(self.on_create_channel_intro_button_clicked)
 
         self.my_channel_torrents_list = self.findChild(QTreeWidget, "my_channel_torrents_list")
-        header = QTreeWidgetItem(["Name", "Date added"])
-        header.setTextAlignment(1, Qt.AlignRight)
-        self.my_channel_torrents_list.setHeaderItem(header)
+        self.my_channel_rss_feeds_list = self.findChild(QTreeWidget, "my_channel_rss_feeds_list")
 
         self.create_channel_intro_button_container = self.findChild(QWidget, "create_channel_intro_button_container")
         self.create_channel_form.hide()
 
         self.my_channel_stacked_widget.setCurrentIndex(1)
+        self.my_channel_details_stacked_widget.setCurrentIndex(PAGE_MY_CHANNEL_OVERVIEW)
 
         self.channel_settings_page = self.findChild(QWidget, "channel_settings_page")
 
@@ -61,6 +60,14 @@ class MyChannelPage(QWidget):
             item.setTextAlignment(1, Qt.AlignRight | Qt.AlignVCenter)
 
             self.my_channel_torrents_list.addTopLevelItem(item)
+
+        # add some dummy items to rss feeds list
+        for i in range(0, 10):
+            item = QTreeWidgetItem(self.my_channel_rss_feeds_list)
+            item.setSizeHint(0, QSize(-1, 24))
+            item.setText(0, "http://fancyurl.com/rss_feed.xml")
+
+            self.my_channel_rss_feeds_list.addTopLevelItem(item)
 
     def on_torrents_remove_selected_clicked(self):
         num_selected = len(self.my_channel_torrents_list.selectedItems())
