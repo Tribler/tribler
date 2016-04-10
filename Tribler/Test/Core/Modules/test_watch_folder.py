@@ -36,3 +36,4 @@ class TestWatchFolder(TestAsServer):
         shutil.copyfile(os.path.join(TESTS_DATA_DIR, 'test_rss.xml'), os.path.join(self.watch_dir, "test2.torrent"))
         self.session.lm.watch_folder.check_watch_folder()
         self.assertEqual(len(self.session.get_downloads()), 1)
+        self.assertTrue(os.path.isfile(os.path.join(self.watch_dir, "test2.torrent.corrupt")))
