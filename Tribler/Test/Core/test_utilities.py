@@ -166,6 +166,10 @@ class TriblerCoreTestUtilities(TriblerCoreTest):
         validTorrentFile({"info": {"name": "my_torrent", "piece length": 12345, "pieces": "12345678901234567890",
                                    "files": [{"length": 42, "path": ["/foo/bar"]}]}, "url-list": []})
 
+    def test_valid_torrent_file_url_list_string(self):
+        validTorrentFile({"info": {"name": "my_torrent", "piece length": 12345, "pieces": "12345678901234567890",
+                                   "length": 42}, "url-list": "http://google.com"})
+
     def test_valid_torrent_file_url_list_wrong_type(self):
         validTorrentFile({"info": {"name": "my_torrent", "piece length": 12345, "pieces": "12345678901234567890",
                                    "length": 42}, "url-list": ()})
