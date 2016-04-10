@@ -225,10 +225,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         atp = {}
         atp["save_path"] = os.path.abspath(self.get_dest_dir())
         atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
-        atp["paused"] = True
-        atp["auto_managed"] = False
-        atp["duplicate_is_error"] = True
         atp["hops"] = self.get_hops()
+        atp["flags"] = (lt.add_torrent_params_flags_t.flag_paused |
+                        lt.add_torrent_params_flags_t.flag_duplicate_is_error)
 
         resume_data = pstate.get('state', 'engineresumedata') if pstate else None
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
