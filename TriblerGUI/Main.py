@@ -58,6 +58,7 @@ class TriblerWindow(QMainWindow):
         self.top_search_button = self.findChild(QToolButton, "top_search_button")
         self.my_profile_button = self.findChild(QToolButton, "my_profile_button")
         self.video_player_page = self.findChild(QWidget, "video_player_page")
+        self.settings_page = self.findChild(QWidget, "settings_page")
         self.my_channel_page = self.findChild(QWidget, "my_channel_page")
         self.left_menu = self.findChild(QWidget, "left_menu")
 
@@ -130,6 +131,7 @@ class TriblerWindow(QMainWindow):
         self.left_menu.hide()
 
         self.video_player_page.initialize_player()
+        self.settings_page.initialize_settings_page()
         self.my_channel_page.initialize_my_channel_page()
 
         self.downloads_tab = self.findChild(QWidget, "downloads_tab")
