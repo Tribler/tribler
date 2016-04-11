@@ -47,7 +47,8 @@ class TriblerWindow(QMainWindow):
         uic.loadUi('qt_resources/mainwindow.ui', self)
 
         # Remove the focus rect on OS X
-        [widget.setAttribute(Qt.WA_MacShowFocusRect, 0) for widget in self.findChildren(QLineEdit) + self.findChildren(QListView) + self.findChildren(QTreeWidget)]
+        [widget.setAttribute(Qt.WA_MacShowFocusRect, 0) for widget in self.findChildren(QLineEdit) +
+         self.findChildren(QListView) + self.findChildren(QTreeWidget)]
 
         self.channels_list = self.findChild(QListWidget, "channels_list")
         self.subscribed_channels_list = self.findChild(QListWidget, "subscribed_channels_list")
@@ -88,13 +89,6 @@ class TriblerWindow(QMainWindow):
 
         self.stackedWidget.setCurrentIndex(PAGE_CHANNELS_OVERVIEW)
 
-        self.tribler_request_manager = TriblerRequestManager()
-        self.tribler_request_manager.received_search_results.connect(self.received_search_results)
-        self.tribler_request_manager.received_torrents_in_channel.connect(self.received_torrents_in_channel)
-        self.tribler_request_manager.received_settings.connect(self.received_settings)
-        self.tribler_request_manager.received_channels.connect(self.received_channels)
-        self.tribler_request_manager.received_subscribed_channels.connect(self.received_subscribed_channels)
-
         self.channel_tab = self.findChild(QWidget, "channel_tab")
         self.channel_tab.initialize()
         self.channel_tab.clicked_tab_button.connect(self.on_channel_tab_button_clicked)
@@ -120,7 +114,8 @@ class TriblerWindow(QMainWindow):
             self.channel_activities_list.setItemWidget(item, widget_item)
 
         # fetch the settings
-        self.tribler_request_manager.get_settings()
+        self.settings_request_mgr = TriblerRequestManager()
+        self.settings_request_mgr.get_settings(self.received_settings)
 
         self.event_request_manager = EventRequestManager()
         self.event_request_manager.received_free_space.connect(self.received_free_space)
@@ -239,11 +234,13 @@ class TriblerWindow(QMainWindow):
         self.settings = json.loads(json_results)
 
         # fetch popular channels and display them
-        self.tribler_request_manager.get_channels()
+        self.get_channels_request_manager = TriblerRequestManager()
+        self.get_channels_request_manager.get_channels(self.received_channels)
 
     def on_top_search_button_click(self):
         self.stackedWidget.setCurrentIndex(PAGE_CHANNELS_OVERVIEW)
-        self.tribler_request_manager.search_channels(self.top_search_bar.text())
+        self.search_request_mgr = TriblerRequestManager()
+        self.search_request_mgr.search_channels(self.top_search_bar.text(), self.received_search_results)
 
     def on_top_menu_button_click(self):
         if self.left_menu.isHidden():
@@ -284,13 +281,15 @@ class TriblerWindow(QMainWindow):
             self.stackedWidget.setCurrentIndex(PAGE_SETTINGS)
         elif menu_button_name == "left_menu_subscribed_button":
             self.left_menu_subscribed_button.selectMenuButton()
-            self.tribler_request_manager.get_subscribed_channels()
+            self.subscribed_channels_request_manager = TriblerRequestManager()
+            self.subscribed_channels_request_manager.get_subscribed_channels(self.received_subscribed_channels)
             self.stackedWidget.setCurrentIndex(PAGE_SUBSCRIBED_CHANNELS)
         self.navigation_stack = []
 
     def on_channel_item_click(self, channel_list_item):
         channel_info = channel_list_item.data(Qt.UserRole)
-        self.tribler_request_manager.get_torrents_in_channel(str(channel_info['id']))
+        self.get_torents_in_channel_manager = TriblerRequestManager()
+        self.get_torents_in_channel_manager.get_torrents_in_channel(str(channel_info['id']), self.received_torrents_in_channel)
         self.navigation_stack.append(self.stackedWidget.currentIndex())
         self.stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
 

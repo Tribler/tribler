@@ -49,21 +49,27 @@ class TriblerRequestManager(QNetworkAccessManager):
         data = self.reply.readAll()
         self.received_subscribed_channels.emit(str(data))
 
-    def search_channels(self, query):
+    def search_channels(self, query, callback):
+        self.received_search_results.connect(callback)
         self.perform_get("http://localhost:8085/channel/search?q=" + query, self.on_read_data_search_channels)
 
-    def get_torrents_in_channel(self, channel_id):
+    def get_torrents_in_channel(self, channel_id, callback):
+        self.received_torrents_in_channel.connect(callback)
         self.perform_get("http://localhost:8085/channel/" + channel_id + "/torrents",
                          self.on_read_data_torrents_channel)
 
-    def get_download_details(self, infohash):
+    def get_download_details(self, infohash, callback):
+        self.received_download_details.connect(callback)
         self.perform_get("http://localhost:8085/download/" + infohash, self.on_read_data_download_details)
 
-    def get_settings(self):
+    def get_settings(self, callback):
+        self.received_settings.connect(callback)
         self.perform_get("http://localhost:8085/settings", self.on_read_data_settings)
 
-    def get_channels(self):
+    def get_channels(self, callback):
+        self.received_channels.connect(callback)
         self.perform_get("http://localhost:8085/channels/all", self.on_read_data_channels)
 
-    def get_subscribed_channels(self):
+    def get_subscribed_channels(self, callback):
+        self.received_subscribed_channels.connect(callback)
         self.perform_get("http://localhost:8085/channels/subscribed", self.on_read_data_subscribed_channels)
