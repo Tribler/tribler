@@ -142,8 +142,11 @@ def validTorrentFile(metainfo):
             del metainfo['url-list']
             logger.warn("Warning: Only single-file mode supported with HTTP seeding. HTTP seeding disabled")
         elif not isinstance(metainfo['url-list'], ListType):
-            del metainfo['url-list']
-            logger.warn("Warning: url-list is not of type list. HTTP seeding disabled")
+            if isinstance(metainfo['url-list'], StringType):
+                metainfo['url-list'] = [metainfo['url-list']]
+            else:
+                del metainfo['url-list']
+                logger.warn("Warning: url-list is not of type list/string. HTTP seeding disabled")
         else:
             for url in metainfo['url-list']:
                 if not isValidURL(url):
