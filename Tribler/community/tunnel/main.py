@@ -11,6 +11,7 @@ from collections import defaultdict, deque
 
 from twisted.internet.task import LoopingCall
 from twisted.internet.stdio import StandardIO
+from twisted.logger import globalLogPublisher
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.threads import blockingCallFromThread
 
@@ -26,6 +27,8 @@ from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 import logging.config
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.dispersy.candidate import Candidate
+from Tribler.dispersy.tool.clean_observers import clean_twisted_observers
+
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger('TunnelMain')
 
@@ -84,6 +87,8 @@ class Tunnel(object):
         for k in self.crawl_message.keys():
             if now - 3600 > self.crawl_message[k]['time']:
                 self.crawl_message.pop(k)
+
+        clean_twisted_observers(globalLogPublisher)
 
     def build_history(self):
         self.history_stats.append(self.get_stats())
