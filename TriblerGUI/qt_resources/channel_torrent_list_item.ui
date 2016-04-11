@@ -65,49 +65,7 @@ background-color: #666;
      </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>10</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item>
-    <widget class="QToolButton" name="torrent_download_button">
-     <property name="minimumSize">
-      <size>
-       <width>24</width>
-       <height>24</height>
-      </size>
-     </property>
-     <property name="maximumSize">
-      <size>
-       <width>24</width>
-       <height>24</height>
-      </size>
-     </property>
-     <property name="cursor">
-      <cursorShape>PointingHandCursor</cursorShape>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">background: none;
-border: none;</string>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <spacer name="horizontalSpacer_3">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="sizeType">
-      <enum>QSizePolicy::Fixed</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>10</width>
+       <width>14</width>
        <height>20</height>
       </size>
      </property>
@@ -208,7 +166,7 @@ font-size: 14px;</string>
     </spacer>
    </item>
    <item>
-    <widget class="QToolButton" name="torrent_stream_button">
+    <widget class="QToolButton" name="torrent_download_button">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
        <horstretch>0</horstretch>
@@ -217,7 +175,7 @@ font-size: 14px;</string>
      </property>
      <property name="minimumSize">
       <size>
-       <width>56</width>
+       <width>70</width>
        <height>24</height>
       </size>
      </property>
@@ -239,7 +197,7 @@ color: #333;
 font-size: 12px;</string>
      </property>
      <property name="text">
-      <string>stream</string>
+      <string>download</string>
      </property>
     </widget>
    </item>
@@ -253,7 +211,7 @@ font-size: 12px;</string>
      </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>24</width>
+       <width>18</width>
        <height>20</height>
       </size>
      </property>

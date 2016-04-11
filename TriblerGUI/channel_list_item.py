@@ -10,7 +10,8 @@ class ChannelListItem(QWidget):
 
         uic.loadUi('qt_resources/channel_list_item.ui', self)
 
-        self.channel_name.setText(channel["name"] + ' (' + str(channel['torrents']) + ')')
+        self.channel_name.setText(channel["name"])
+        self.channel_num_torrents_label.setText("Torrents: " + str(channel['torrents']))
         self.channel_num_subs_label.setText(str(channel["votes"]))
 
         self.opacity_effect = QGraphicsOpacityEffect(self)
