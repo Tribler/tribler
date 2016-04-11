@@ -167,12 +167,16 @@ class WatchDog(Thread):
             except:
                 return "<Error while REPRing value>"
 
-        thread_names={t.ident: t.name for t in threading.enumerate()}
+        def get_thread_name(thread_id):
+            for thread in threading.enumerate():
+                if thread.ident == thread_id:
+                    return thread.name
+            return "Unknown"
 
         self.printe("\n*** STACKTRACE - START ***\n")
 
         for thread_id, frame in sys._current_frames().items():
-            self.printe("\n### ThreadID: %s Thread name: %s" % (thread_id, thread_names[thread_id]))
+            self.printe("\n### ThreadID: %s Thread name: %s" % (thread_id, get_thread_name(thread_id)))
 
             self.printe("Locals by frame, innermost last:")
             while frame:
