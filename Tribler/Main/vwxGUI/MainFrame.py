@@ -319,6 +319,7 @@ class MainFrame(wx.Frame):
         nextId = wx.NewId()
         prevId = wx.NewId()
         dispId = wx.NewId()
+        wxId = wx.NewId()
         anonId = wx.NewId()
         DISPERSY_DEBUG_FRAME_ID = wx.NewId()
         self.Bind(wx.EVT_MENU, self.OnFind, id=findId)
@@ -326,11 +327,13 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnNext, id=nextId)
         self.Bind(wx.EVT_MENU, self.OnPrev, id=prevId)
         self.Bind(wx.EVT_MENU, lambda evt: self.guiUtility.ShowPage('stats'), id=dispId)
+        self.Bind(wx.EVT_MENU, lambda evt: self.OpenInspectionTool(), id=wxId)
         self.Bind(wx.EVT_MENU, lambda evt: self.guiUtility.ShowPage('networkgraph'), id=anonId)
         self.Bind(wx.EVT_MENU, self.OnOpenDebugFrame, id=DISPERSY_DEBUG_FRAME_ID)
 
         accelerators = [(wx.ACCEL_CTRL, ord('f'), findId)]
         accelerators.append((wx.ACCEL_CTRL, ord('d'), dispId))
+        accelerators.append((wx.ACCEL_CTRL, ord('i'), wxId))
         accelerators.append((wx.ACCEL_CTRL, ord('n'), anonId))
         accelerators.append((wx.ACCEL_CTRL, wx.WXK_TAB, nextId))
         accelerators.append((wx.ACCEL_CTRL | wx.ACCEL_SHIFT, wx.WXK_TAB, prevId))
@@ -354,6 +357,10 @@ class MainFrame(wx.Frame):
 
         # If the user passed a torrentfile on the cmdline, load it.
         wx.CallAfter(post)
+
+    def OpenInspectionTool(self):
+        import wx.lib.inspection
+        wx.lib.inspection.InspectionTool().Show()
 
     def OnOpenDebugFrame(self, event=None):
         from Tribler.Main.vwxGUI.DispersyDebugFrame import DispersyDebugFrame

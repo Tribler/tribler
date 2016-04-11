@@ -119,9 +119,14 @@ class AddTorrent(wx.Dialog):
 
             warning.Destroy()
 
+        should_close_main_dialog = True
+
         if not cancel:
             for filename in filenames:
-                self.frame.startDownload(filename)
+                if not self.frame.startDownload(filename): # Something went wrong when adding the download
+                    should_close_main_dialog = False
+
+        return should_close_main_dialog
 
     def OnBrowse(self, event):
         dlg = wx.FileDialog(None, "Please select the .torrent file(s).",
@@ -134,8 +139,8 @@ class AddTorrent(wx.Dialog):
             filenames = dlg.GetPaths()
             dlg.Destroy()
 
-            self.__processPaths(filenames)
-            self.EndModal(wx.ID_OK)
+            if self.__processPaths(filenames):
+                self.EndModal(wx.ID_OK)
         else:
             dlg.Destroy()
 
@@ -149,8 +154,8 @@ class AddTorrent(wx.Dialog):
             filenames = [os.path.join(dlg.GetPath(), file) for file in os.listdir(dlg.GetPath())]
             dlg.Destroy()
 
-            self.__processPaths(filenames)
-            self.EndModal(wx.ID_OK)
+            if self.__processPaths(filenames):
+                self.EndModal(wx.ID_OK)
 
         dlg.Destroy()
 

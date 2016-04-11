@@ -156,7 +156,7 @@ class GUIUtility(object):
             if len(self.oldpage) > 3:
                 self.oldpage.pop(0)
 
-            self.frame.Freeze()
+            #self.frame.Freeze()
 
             if page not in ['search_results', 'my_files', 'selectedchannel', 'playlist', 'channels']:
                 self.frame.splitter.Show(False)
@@ -274,7 +274,7 @@ class GUIUtility(object):
 
             self.guiPage = page
             self.frame.Layout()
-            self.frame.Thaw()
+            #self.frame.Thaw()
 
         # Set focus to page
         if page == 'search_results':
@@ -368,7 +368,7 @@ class GUIUtility(object):
         self.frame.splitter_top_window.Refresh()
 
     def SetBottomSplitterWindow(self, panel_type):
-        self.frame.splitter_bottom_window.Freeze()
+        #self.frame.splitter_bottom_window.Freeze()
 
         from Tribler.Main.vwxGUI.list_details import TorrentDetails, ChannelInfoPanel, LibraryDetails, ChannelDetails, PlaylistDetails, SearchInfoPanel, LibraryInfoPanel, SelectedchannelInfoPanel, PlaylistInfoPanel
 
@@ -390,7 +390,7 @@ class GUIUtility(object):
         if self.guiPage not in ['mychannel', 'home']:
             self.frame.splitter.Show(True)
         self.frame.splitter_bottom.Layout()
-        self.frame.splitter_bottom_window.Thaw()
+        #self.frame.splitter_bottom_window.Thaw()
         self.frame.splitter_bottom_window.Refresh()
         return result
 
@@ -481,7 +481,7 @@ class GUIUtility(object):
                 self.current_search_query = keywords
                 self._logger.debug("GUIUtil: searchFiles: %s %s", keywords, time())
 
-                self.frame.searchlist.Freeze()
+                #self.frame.searchlist.Freeze()
 
                 self.torrentsearch_manager.setSearchKeywords(keywords)
                 self.channelsearch_manager.setSearchKeywords(keywords)
@@ -495,7 +495,7 @@ class GUIUtility(object):
                 self.ShowPage('search_results', keywords)
 
                 # We now have to call thaw, otherwise loading message will not be shown.
-                self.frame.searchlist.Thaw()
+                #self.frame.searchlist.Thaw()
 
                 # Peform local search
                 self.torrentsearch_manager.set_gridmgr(self.frame.searchlist.GetManager())

@@ -15,7 +15,7 @@ from Tribler.Main.vwxGUI import (warnWxThread, LIST_SELECTED, LIST_EXPANDED, LIS
                                  LIST_RATE_LIMIT, LIST_ITEM_MAX_SIZE)
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.vwxGUI.widgets import BetterText as StaticText, _set_font, ActionButton
+from Tribler.Main.vwxGUI.widgets import BetterText as StaticText, _set_font, ActionButton, BetterText
 
 
 class ListItem(wx.Panel):
@@ -393,7 +393,7 @@ class ListItem(wx.Panel):
                     control.icon.SetBitmap(self.GetIcon(control.icon.type, self.GetBackgroundColour(), state))
                     control.icon.Refresh()
 
-            # self.Refresh()
+            self.Refresh()
             self.Thaw()
             return True
 
@@ -447,7 +447,17 @@ class ListItem(wx.Panel):
         elif event.ButtonDClick(wx.MOUSE_BTN_LEFT):
             self.OnDClick(event)
 
-        event.Skip()  # Allow windows to paint button hover
+        # Do not skip the event if we have a BetterText as source of the event (and more specific, if the event
+        # is mouse entering/leaving). This is a workaround for a bug on OS X where rows would be deselected if the
+        # mouse was leaving the label in the row.
+        if isinstance(event.GetEventObject(), BetterText) \
+                and (event.GetEventType() == wx.EVT_ENTER_WINDOW.typeId
+                     or event.GetEventType() == wx.EVT_LEAVE_WINDOW.typeId):
+            return
+
+        # make sure ListItem labels are not consuming the click event
+        if not event.LeftUp() or not isinstance(event.GetEventObject(), BetterText):
+            event.Skip()  # Allow windows to paint button hover
 
     @warnWxThread
     def OnClick(self, event=None, force=False):
@@ -699,7 +709,7 @@ class AbstractListBody():
 
     @warnWxThread
     def OnExpand(self, item, raise_event=False):
-        self.Freeze()
+        #self.Freeze()
 
         if not self.singleExpanded and wx.GetKeyState(wx.WXK_SHIFT):
             pos_from = self.GetItemPos(self.GetItemKey(self.cur_expanded))
@@ -722,7 +732,7 @@ class AbstractListBody():
             self.OnChange()
 
         self.cur_expanded = item
-        self.Thaw()
+        #self.Thaw()
         return panel
 
     @warnWxThread
@@ -1018,10 +1028,10 @@ class AbstractListBody():
             self.CreateItems(nr_items_to_create=3 * LIST_ITEM_BATCH_SIZE)
 
             # Try to yield
-            try:
-                wx.SafeYield()
-            except:
-                pass
+            #try:
+            #    wx.SafeYield()
+            #except:
+            #    pass
 
         elif self.filter:
             header, message = self.filterMessage(empty=True)
@@ -1297,7 +1307,7 @@ class AbstractListBody():
                     select = self.data[index - offset][0]
                 break
 
-        if select:
+        if select and select in self.items:
             cur_scroll = self.CalcUnscrolledPosition(0, 0)[1] / self.GetScrollPixelsPerUnit()[1]
             if next:
                 tot_scroll = (self.items[select].GetPosition()[1] + self.items[
@@ -1309,6 +1319,10 @@ class AbstractListBody():
                 if tot_scroll - cur_scroll < 0:
                     self.Scroll(-1, tot_scroll)
             self.Select(select, True)
+
+    def SelectAll(self):
+        for item in self.GetItems():
+            self.Select(self.GetItemKey(item), raise_event=False)
 
     @warnWxThread
     def DeselectAll(self):
@@ -1391,12 +1405,14 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         adownId = wx.NewId()
         deleteId = wx.NewId()
         backId = wx.NewId()
+        ctrlaId = wx.NewId()
         self.Bind(wx.EVT_MENU, lambda event: self.ScrollToEnd(False), id=homeId)
         self.Bind(wx.EVT_MENU, lambda event: self.ScrollToEnd(True), id=endId)
         self.Bind(wx.EVT_MENU, lambda event: self.ScrollToNextPage(False), id=pupId)
         self.Bind(wx.EVT_MENU, lambda event: self.ScrollToNextPage(True), id=pdownId)
         self.Bind(wx.EVT_MENU, lambda event: self.SelectNextItem(False), id=aupId)
         self.Bind(wx.EVT_MENU, lambda event: self.SelectNextItem(True), id=adownId)
+        self.Bind(wx.EVT_MENU, lambda event: self.SelectAll(), id=ctrlaId)
         self.Bind(
             wx.EVT_MENU,
             lambda event: self.parent_list.OnDeleteKey(
@@ -1420,6 +1436,7 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_DOWN, adownId))
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_DELETE, deleteId))
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_BACK, backId))
+        accelerators.append((wx.ACCEL_RAW_CTRL, ord('a'), ctrlaId))
         self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
 
         self.SetForegroundColour(parent.GetForegroundColour())

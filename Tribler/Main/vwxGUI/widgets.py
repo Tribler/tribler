@@ -235,7 +235,7 @@ class LinkStaticText(wx.BoxSizer):
 
         selectedfont = parent.GetFont()
         selectedfont.SetPointSize(normalfont.GetPointSize() + font_increment)
-        selectedfont.SetUnderlined(True)
+        #selectedfont.SetUnderlined(True)
 
         self.text = LinkText(parent, text, fonts=[normalfont, selectedfont], colours=[
                              font_colour, (255, 0, 0, 255)], parentsizer=self)

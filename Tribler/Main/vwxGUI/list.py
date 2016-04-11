@@ -13,7 +13,7 @@ from wx.lib.wordwrap import wordwrap
 from Tribler.Category.Category import Category
 from Tribler.Core.exceptions import NotYetImplementedException
 from Tribler.Core.simpledefs import (DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR,
-                                     DLSTATUS_WAITING4HASHCHECK)
+                                     DLSTATUS_WAITING4HASHCHECK, DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING)
 from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, cancelWorker, startWorker
 from Tribler.Main.Utility.GuiDBTuples import Channel, ChannelTorrent, CollectedTorrent, Torrent
 from Tribler.Main.Utility.utility import eta_value, size_format, speed_format
@@ -1578,6 +1578,13 @@ class LibraryList(SizeList):
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
 
+        gui_image_manager = GuiImageManager.getInstance()
+
+        self.statusInactive = gui_image_manager.getImage(u"status_inact.png")
+        self.statusDownloading = gui_image_manager.getImage(u"status_dl.png")
+        self.statusSeeding = gui_image_manager.getImage(u"status_sd.png")
+        self.statusStopped = gui_image_manager.getImage(u"status_stop.png")
+
         self.channelsearch_manager = self.guiutility.channelsearch_manager
 
         self.statefilter = None
@@ -1601,7 +1608,7 @@ class LibraryList(SizeList):
                    {'name': 'ETA', 'width': '13em', 'fmt': self._format_eta, 'sortAsc': True, 'autoRefresh': False},
                    {'name': 'Down speed', 'width': '20em', 'fmt': speed_format, 'autoRefresh': False},
                    {'name': 'Up speed', 'width': '20em', 'fmt': speed_format, 'autoRefresh': False},
-                   {'name': 'Connections', 'width': '15em', 'autoRefresh': False},
+                   {'name': 'Connections', 'width': '17em', 'autoRefresh': False},
                    {'name': 'Ratio', 'width': '15em', 'fmt': self._format_ratio, 'autoRefresh': False},
                    {'name': 'Time seeding', 'width': '25em', 'fmt': self._format_seedingtime, 'autoRefresh': False},
                    {'name': 'Anonymous', 'width': '25em', 'autoRefresh': False}]
@@ -1637,8 +1644,16 @@ class LibraryList(SizeList):
         return "%.2f" % value
 
     def _torrent_icon(self, item):
-        # Always return icon, toggle icon from RefreshItems
-        return self.hasTorrent, None, "Using Bittorrent for this download", None, False
+        ds = item.original_data.ds
+        if ds:
+            if ds.get_status() == DLSTATUS_SEEDING:
+                return self.statusSeeding, None, "Inactive", None, False
+            elif ds.get_status() == DLSTATUS_DOWNLOADING:
+                return self.statusDownloading, None, "Inactive", None, False
+            elif ds.get_status() == DLSTATUS_STOPPED:
+                return self.statusStopped, None, "Inactive", None, False
+
+        return self.statusInactive, None, "Inactive", None, False
 
     @warnWxThread
     def CreateHeader(self, parent):
@@ -2033,7 +2048,8 @@ class ChannelList(List):
             control.SetBackgroundColour(DEFAULT_BACKGROUND)
             # control.SetMinSize((50,10))
             control.SetPercentage(ratio)
-            control.SetToolTipString('%s users marked this channel as one of their favorites.' % pop)
+            if sys.platform != 'darwin':
+                control.SetToolTipString('%s users marked this channel as one of their favorites.' % pop)
             return control
 
     def OnExpand(self, item):

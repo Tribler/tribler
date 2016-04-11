@@ -74,7 +74,8 @@ class DoubleLineListItem(ListItem):
                     bmp = ActionButton(self, bitmap=icon[0], hover=False)
                     bmp.SetBitmapDisabled(icon[1] or icon[0])
                     bmp.SetBitmapHover(icon[1] or icon[0])
-                    bmp.SetToolTipString(icon[2])
+                    if sys.platform != 'darwin':
+                        bmp.SetToolTipString(icon[2])
                     bmp.Bind(wx.EVT_LEFT_UP, icon[3] if len(icon) > 3 else None)
                     bmp.Show(icon[4] if len(icon) > 4 else True)
                     if index < len(self.icons) - 1:
@@ -212,11 +213,12 @@ class DoubleLineListItem(ListItem):
         new_icons = self.GetIcons()
         for index, new_icon in enumerate(new_icons):
             if new_icon and (new_icon[0].ConvertToImage().GetData() != self.icons[index].GetBitmapLabel().ConvertToImage().GetData() or
-                             new_icon[2] != self.icons[index].GetToolTip().GetTip()):
+                                 (self.icons[index].GetToolTip() is not None and new_icon[2] != self.icons[index].GetToolTip().GetTip())):
                 self.icons[index].SetBitmapLabel(new_icon[0])
                 self.icons[index].SetBitmapDisabled(new_icon[1] or new_icon[0])
                 self.icons[index].SetBitmapHover(new_icon[1] or new_icon[0])
-                self.icons[index].SetToolTipString(new_icon[2])
+                if sys.platform != 'darwin':
+                    self.icons[index].SetToolTipString(new_icon[2])
                 self.icons[index].Bind(wx.EVT_LEFT_UP, new_icon[3] if len(new_icon) > 3 else None)
                 self.icons[index].Enable(True)
                 self.icons[index].Show(True)
@@ -252,7 +254,7 @@ class DoubleLineListItem(ListItem):
     @warnWxThread
     def GetContextMenu(self):
         menu = wx.Menu()
-        self.GetSubMenu([{'title': 'Show labels..',
+        self.GetSubMenu([{'title': 'Show columns',
                           'handler': [{'title': c['name'], 'type': 'check', 'enable': c['name'] != 'Name', 'check': c.get('show', True),
                                        'handler': lambda e, i=i: self.OnShowColumn(e, i)} for i, c in enumerate(self.columns)]}], menu)
         return menu
