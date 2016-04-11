@@ -18,8 +18,3 @@ class ChannelTorrentListItem(QWidget):
             self.torrent_size.setText("Size: %s" % format_size(float(torrent["length"])))
 
         self.torrent_type.setText("File type: %s" % torrent["category"])
-
-        placeholder_pix = QPixmap("images/download.png")
-        placeholder_pix = placeholder_pix.scaled(self.torrent_download_button.width(), self.torrent_download_button.height(), Qt.KeepAspectRatio)
-        self.torrent_download_button.setIcon(QIcon(placeholder_pix))
-        self.torrent_download_button.setIconSize(QSize(self.torrent_download_button.width(), self.torrent_download_button.height()))
