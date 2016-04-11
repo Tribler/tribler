@@ -83,6 +83,8 @@ NTFY_UPGRADER = 'upgraderdone'
 NTFY_STARTUP_TICK = 'startuptick'
 NTFY_CLOSE_TICK = 'closetick'
 
+NTFY_FREE_SPACE = 'freespace'
+
 # non data handler subjects
 NTFY_ACTIVITIES = 'activities'  # an activity was set (peer met/dns resolved)
 NTFY_REACHABLE = 'reachable'  # the Session is reachable from the Internet

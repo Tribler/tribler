@@ -12,16 +12,19 @@ from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
 from twisted.internet import reactor
+from twisted.web import server
 
 from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Modules.freespace_checker import FreeSpaceChecker
 from Tribler.Core.Modules.search_manager import SearchManager
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE
+from Tribler.Core.triblerapi import TriblerAPI
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
@@ -69,6 +72,7 @@ class TriblerLaunchMany(TaskManager):
         self.metadata_store = None
         self.rtorrent_handler = None
         self.tftp_handler = None
+        self.free_space_checker = None
 
         self.cat = None
         self.peer_db = None
@@ -243,6 +247,15 @@ class TriblerLaunchMany(TaskManager):
 
         if self.rtorrent_handler:
             self.rtorrent_handler.initialize()
+
+        self.free_space_checker = FreeSpaceChecker(self.session)
+        self.free_space_checker.start()
+
+        # start API
+        # TODO Martijn make the API and port toggable with the configuration file
+        self._logger.info("Starting Tribler HTTP API on port 8085")
+        site = server.Site(TriblerAPI(self.session))
+        reactor.listenTCP(8085, site)
 
         self.initComplete = True
 
@@ -659,6 +672,10 @@ class TriblerLaunchMany(TaskManager):
         if self.torrent_store is not None:
             self.torrent_store.close()
             self.torrent_store = None
+
+        if self.free_space_checker is not None:
+            self.free_space_checker.stop()
+            self.free_space_checker = None
 
     def network_shutdown(self):
         try:
