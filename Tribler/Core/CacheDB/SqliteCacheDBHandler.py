@@ -815,12 +815,10 @@ class TorrentDBHandler(BasicDBHandler):
     def getTorrentsStats(self):
         return self._db.getOne('CollectedTorrent', ['count(torrent_id)', 'sum(length)', 'sum(num_files)'])
 
-    # TODO martijn: what is the purpose of this method? It seems to behave very strange and does not actually delete
-    # torrents in the database?
     def freeSpace(self, torrents2del):
         if self.channelcast_db and self.channelcast_db._channel_id:
             sql = U"""
-                SELECT name, torrent_id, relevance,
+                SELECT name, torrent_id, infohash, relevance,
                 MIN(relevance, 2500) + MIN(500, num_leechers) + 4*MIN(500, num_seeders) - (MAX(0, MIN(500, (%d - creation_date)/86400)) ) AS weight
                 FROM CollectedTorrent
                 WHERE torrent_id NOT IN (SELECT torrent_id FROM MyPreference)
@@ -830,7 +828,7 @@ class TorrentDBHandler(BasicDBHandler):
             """ % (int(time()), self.channelcast_db._channel_id, torrents2del)
         else:
             sql = u"""
-                SELECT name, torrent_id, relevance,
+                SELECT name, torrent_id, infohash, relevance,
                     min(relevance,2500) +  min(500,num_leechers) + 4*min(500,num_seeders) - (max(0,min(500,(%d-creation_date)/86400)) ) AS weight
                 FROM CollectedTorrent
                 WHERE torrent_id NOT IN (SELECT torrent_id FROM MyPreference)
@@ -840,29 +838,26 @@ class TorrentDBHandler(BasicDBHandler):
 
         res_list = self._db.fetchall(sql)
         if len(res_list) == 0:
-            return False
+            return 0
 
         # delete torrents from db
-        sql_del_torrent = u"UPDATE Torrent SET name = NULL WHERE torrent_id = ?"
-        # sql_del_tracker = "delete from TorrentTracker where torrent_id=?"
+        sql_del_torrent = u"UPDATE Torrent SET name = NULL, is_collected = 0 WHERE torrent_id = ?"
         # sql_del_pref = "delete from Preference where torrent_id=?"
-        tids = [(torrent_id,) for name, torrent_id, relevance, weight in res_list]
+
+        tids = []
+        for _name, torrent_id, infohash, _relevance, _weight in res_list:
+            tids.append((torrent_id,))
+            self.session.delete_collected_torrent(infohash)
 
         self._db.executemany(sql_del_torrent, tids)
         # self._db.executemany(sql_del_tracker, tids)
+        deleted = self._db.connection.changes()
         # self._db.executemany(sql_del_pref, tids)
 
         # but keep the infohash in db to maintain consistence with preference db
         # torrent_id_infohashes = [(torrent_id,infohash_str,relevance) for torrent_file_name, torrent_id, infohash_str, relevance, weight in res_list]
         # sql_insert =  "insert into Torrent (torrent_id, infohash, relevance) values (?,?,?)"
         # self._db.executemany(sql_insert, torrent_id_infohashes)
-
-        deleted = 0  # deleted any file?
-        insert_files = []
-
-        if len(insert_files) > 0:
-            sql_insert_files = "INSERT OR IGNORE INTO TorrentFiles (torrent_id, path, length) VALUES (?,?,?)"
-            self._db.executemany(sql_insert_files, insert_files)
 
         self._logger.info("Erased %d torrents", deleted)
         return deleted

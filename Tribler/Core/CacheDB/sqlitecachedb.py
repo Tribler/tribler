@@ -69,6 +69,14 @@ class SQLiteCacheDB(TaskManager):
         """The version of this database."""
         return self._version
 
+    @property
+    def connection(self):
+        """
+        Returns the connection of the database, which may be None if not initialized or closed.
+        :return: The connection object of the database
+        """
+        return self._connection
+
     @blocking_call_on_reactor_thread
     def initialize(self):
         """ Initializes the database. If the database doesn't exist, we create a new one. Otherwise, we check the
@@ -80,6 +88,9 @@ class SQLiteCacheDB(TaskManager):
 
     @blocking_call_on_reactor_thread
     def close(self):
+        """
+        Cancels all pending tasks and closes all cursors. Then, it closes the connection.
+        """
         self.cancel_all_pending_tasks()
         with self._cursor_lock:
             for cursor in self._cursor_table.itervalues():
