@@ -38,7 +38,7 @@ from Tribler.Core.DownloadConfig import get_default_dest_dir, get_default_dscfg_
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Video.VideoPlayer import PLAYBACKMODE_INTERNAL, return_feasible_playback_modes
-from Tribler.Core.osutils import get_free_space
+from Tribler.Core.osutils import get_free_space, get_home_dir
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
                                      DLSTATUS_STOPPED_ON_ERROR, DOWNLOAD, NTFY_ACTIVITIES, NTFY_CHANNELCAST,
                                      NTFY_COMMENTS, NTFY_CREATE, NTFY_DELETE, NTFY_DISPERSY, NTFY_FINISHED, NTFY_INSERT,
@@ -46,7 +46,7 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
                                      NTFY_MODERATIONS, NTFY_MODIFICATIONS, NTFY_MODIFIED, NTFY_MYPREFERENCES,
                                      NTFY_PLAYLISTS, NTFY_REACHABLE, NTFY_STARTED, NTFY_STATE, NTFY_TORRENTS,
                                      NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings, STATEDIR_GUICONFIG,
-                                     NTFY_STARTUP_TICK, NTFY_CLOSE_TICK, NTFY_UPGRADER)
+                                     NTFY_STARTUP_TICK, NTFY_CLOSE_TICK, NTFY_UPGRADER, NTFY_WATCH_CORRUPT_FOLDER)
 from Tribler.Core.version import commit_id, version_id
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Utility.GuiDBHandler import GUIDBProducer, startWorker
@@ -307,6 +307,12 @@ class ABCApp(object):
 
         self.sconfig.set_install_dir(self.installdir)
 
+        if not self.sconfig.get_watch_folder_path():
+            default_watch_folder_dir = os.path.join(get_home_dir(), u'Downloads', u'TriblerWatchFolder')
+            self.sconfig.set_watch_folder_path(default_watch_folder_dir)
+            if not os.path.exists(default_watch_folder_dir):
+                os.makedirs(default_watch_folder_dir)
+
         # TODO(emilon): Do we still want to force limit this? With the new
         # torrent store it should be pretty fast even with more that that.
 
@@ -400,6 +406,7 @@ class ABCApp(object):
         s.add_observer(self.sesscb_ntfy_torrentfinished, NTFY_TORRENTS, [NTFY_FINISHED])
         s.add_observer(self.sesscb_ntfy_magnet,
                        NTFY_TORRENTS, [NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE])
+        s.add_observer(self.sesscb_ntfy_corrupt_torrent, NTFY_WATCH_CORRUPT_FOLDER, [NTFY_INSERT])
 
         # TODO(emilon): Use the LogObserver I already implemented
         # self.dispersy.callback.attach_exception_handler(self.frame.exceptionHandler)
@@ -784,6 +791,15 @@ class ABCApp(object):
             self.guiUtility.library_manager.magnet_got_peers(objectID, args[0])
         elif changetype == NTFY_MAGNET_CLOSE:
             self.guiUtility.library_manager.magnet_close(objectID)
+
+    @forceWxThread
+    def sesscb_ntfy_corrupt_torrent(self, subject, changetype, objectID, *args):
+        dlg = wx.MessageDialog(self.frame,
+                               "Unable to add corrupt torrent in watch folder to downloads: %s" % args[0],
+                               "Corrupt torrent",
+                               wx.OK | wx.ICON_ERROR)
+        dlg.ShowModal()
+        dlg.Destroy()
 
     @forceWxThread
     def sesscb_ntfy_playlistupdates(self, subject, changeType, objectID, *args):

@@ -87,6 +87,7 @@ NTFY_CLOSE_TICK = 'closetick'
 NTFY_ACTIVITIES = 'activities'  # an activity was set (peer met/dns resolved)
 NTFY_REACHABLE = 'reachable'  # the Session is reachable from the Internet
 NTFY_DISPERSY = 'dispersy'  # an notification regarding dispersy
+NTFY_WATCH_CORRUPT_FOLDER = 'corrupt_torrent'  # a corrupt torrent has been found in the watch folder
 
 # changeTypes
 NTFY_UPDATE = 'update'  # data is updated
