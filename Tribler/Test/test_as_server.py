@@ -137,6 +137,7 @@ class AbstractServer(BaseTestCase):
             self._logger.error("The reactor was dirty:")
             for dc in delayed_calls:
                 self._logger.error(">     %s" % dc)
+                dc.cancel()
         self.assertFalse(delayed_calls, "The reactor was dirty when tearing down the test")
         self.assertFalse(Session.has_instance(), 'A session instance is still present when tearing down the test')
 
