@@ -11,6 +11,7 @@ from collections import defaultdict, deque
 
 from twisted.internet.task import LoopingCall
 from twisted.internet.stdio import StandardIO
+from twisted.logger import globalLogPublisher
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.threads import blockingCallFromThread
 
@@ -26,6 +27,8 @@ from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 import logging.config
 from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.dispersy.candidate import Candidate
+from Tribler.dispersy.tool.clean_observers import clean_twisted_observers
+
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger('TunnelMain')
 
@@ -59,6 +62,7 @@ class Tunnel(object):
         Tunnel.__single = self
 
         self.settings = settings
+        self.should_run = True
         self.crawl_keypair_filename = crawl_keypair_filename
         self.dispersy_port = dispersy_port
         self.crawl_data = defaultdict(lambda: [])
@@ -84,6 +88,8 @@ class Tunnel(object):
         for k in self.crawl_message.keys():
             if now - 3600 > self.crawl_message[k]['time']:
                 self.crawl_message.pop(k)
+
+        clean_twisted_observers(globalLogPublisher)
 
     def build_history(self):
         self.history_stats.append(self.get_stats())
@@ -158,9 +164,6 @@ class Tunnel(object):
         return (4.0, [])
 
     def stop(self):
-        self.session.lm.threadpool.call(0, self._stop)
-
-    def _stop(self):
         if self.clean_messages_lc:
             self.clean_messages_lc.stop()
             self.clean_messages_lc = None
@@ -323,8 +326,7 @@ class LineHandler(LineReceiver):
             anon_tunnel.session.lm.threadpool.call(0, start_download)
 
         elif line == 'q':
-            anon_tunnel.stop()
-            return
+            anon_tunnel.should_run = False
 
         elif line == 'r':
             print "circuit\t\t\tdirection\tcircuit\t\t\tTraffic (MB)"
@@ -394,8 +396,10 @@ def main(argv):
         cherrypy.config.update({'server.socket_host': '0.0.0.0', 'server.socket_port': args.json})
         cherrypy.quickstart(tunnel)
     else:
-        while True:
+        while tunnel.should_run:
             time.sleep(1)
+
+    tunnel.stop()
 
 if __name__ == "__main__":
     main(sys.argv[1:])
