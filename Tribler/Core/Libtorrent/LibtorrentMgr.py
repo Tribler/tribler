@@ -154,8 +154,11 @@ class LibtorrentMgr(TaskManager):
             if listen_port != ltsession.listen_port():
                 self.trsession.set_listen_port_runtime(ltsession.listen_port())
             try:
-                lt_state = open(os.path.join(self.trsession.get_state_dir(), LTSTATE_FILENAME)).read()
-                ltsession.load_state(lt.bdecode(lt_state))
+                lt_state = lt.bdecode(open(os.path.join(self.trsession.get_state_dir(), LTSTATE_FILENAME)).read())
+                if lt_state is not None:
+                    ltsession.load_state(lt_state)
+                else:
+                    self._logger.warning("the lt.state appears to be corrupt, writing new data on shutdown")
             except Exception, exc:
                 self._logger.info("could not load libtorrent state, got exception: %r. starting from scratch" % exc)
             ltsession.start_dht()
