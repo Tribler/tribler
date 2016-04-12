@@ -206,8 +206,6 @@ tribler_defaults['Tribler']['confirmonclose'] = 1
 # RateLimitPanel
 tribler_defaults['Tribler']['maxuploadrate'] = 0
 tribler_defaults['Tribler']['maxdownloadrate'] = 0
-# Misc
-tribler_defaults['Tribler']['torrentassociationwarned'] = 0
 # Anon tunnel
 tribler_defaults['Tribler']['default_number_hops'] = 1
 tribler_defaults['Tribler']['default_anonymity_enabled'] = True
@@ -228,8 +226,10 @@ tribler_defaults['Tribler']['emc_ip'] = '127.0.0.1'
 tribler_defaults['Tribler']['emc_port'] = '8332'
 tribler_defaults['Tribler']['emc_username'] = 'tribler'
 tribler_defaults['Tribler']['emc_password'] = 'tribler'
+# Misc
 tribler_defaults['Tribler']['showsaveas'] = 1
 tribler_defaults['Tribler']['i2ilistenport'] = 57891
 tribler_defaults['Tribler']['mintray'] = 2 if sys.platform == 'win32' else 0
 tribler_defaults['Tribler']['free_space_threshold'] = 100 * 1024 * 1024
 tribler_defaults['Tribler']['version_info'] = {}
+tribler_defaults['Tribler']['last_reported_version'] = None
