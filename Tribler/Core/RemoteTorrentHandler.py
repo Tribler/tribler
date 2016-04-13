@@ -440,7 +440,7 @@ class MagnetRequester(Requester):
 
     @pass_when_stopped
     def _do_request(self):
-        while self._pending_request_queue:
+        while self._pending_request_queue and self.running:
             if len(self._running_requests) >= self.MAX_CONCURRENT:
                 self._logger.debug(u"max concurrency %s reached, request later", self.MAX_CONCURRENT)
                 return
