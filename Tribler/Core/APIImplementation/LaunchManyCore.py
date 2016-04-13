@@ -270,8 +270,8 @@ class TriblerLaunchMany(TaskManager):
 
             # Store in list of Downloads, always.
             self.downloads[infohash] = d
-            d.setup(dscfg, pstate, initialdlstatus, self.network_engine_wrapper_created_callback,
-                    wrapperDelay=setupDelay)
+            setup_deferred = d.setup(dscfg, pstate, initialdlstatus, wrapperDelay=setupDelay)
+            setup_deferred.addCallback(self.on_download_wrapper_created)
 
         if d and not hidden and self.session.get_megacache():
             @forceDBThread
@@ -292,7 +292,7 @@ class TriblerLaunchMany(TaskManager):
 
         return d
 
-    def network_engine_wrapper_created_callback(self, d, pstate):
+    def on_download_wrapper_created(self, (d, pstate)):
         """ Called by network thread """
         try:
             if pstate is None:
