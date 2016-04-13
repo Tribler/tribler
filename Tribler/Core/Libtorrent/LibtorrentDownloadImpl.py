@@ -5,8 +5,10 @@ import sys
 import time
 from binascii import hexlify
 from traceback import print_exc
+from twisted.internet.defer import Deferred
 
 import libtorrent as lt
+from twisted.internet import defer
 
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation import maketorrent
@@ -153,15 +155,19 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
     def get_def(self):
         return self.tdef
 
-    def setup(self, dcfg=None, pstate=None, initialdlstatus=None, lm_network_engine_wrapper_created_callback=None, wrapperDelay=0):
+    def setup(self, dcfg=None, pstate=None, initialdlstatus=None, wrapperDelay=0):
         """
         Create a Download object. Used internally by Session.
         @param dcfg DownloadStartupConfig or None (in which case
         a new DownloadConfig() is created and the result
         becomes the runtime config of this Download.
+        :returns a Deferred to which a callback can be added which returns the result of
+        network_create_engine_wrapper.
         """
         # Called by any thread, assume sessionlock is held
         try:
+            # The deferred to be returned
+            deferred = Deferred()
             with self.dllock:
                 # Copy dlconfig, from default if not specified
                 if dcfg is None:
@@ -180,112 +186,127 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
                 self._logger.debug(u"setup: initialdlstatus %s %s", hexlify(self.tdef.get_infohash()), initialdlstatus)
 
-                self.create_engine_wrapper(lm_network_engine_wrapper_created_callback, pstate,
-                                           initialdlstatus=initialdlstatus, wrapperDelay=wrapperDelay)
+                def schedule_create_engine():
+                    self.cew_scheduled = True
+                    create_engine_wrapper_deferred = self.network_create_engine_wrapper(self.pstate_for_restart, initialdlstatus)
+                    create_engine_wrapper_deferred.chainDeferred(deferred)
+
+
+                can_create_engine_deferred = self.can_create_engine_wrapper()
+                # Add a lambda callback that ignored the parameter of the callback which schedules
+                # a task using the taskamanger with wrapperDelay as delay.
+                can_create_engine_deferred.addCallback(lambda _: self.session.lm.threadpool.add_task(schedule_create_engine, wrapperDelay))
 
             self.pstate_for_restart = pstate
+            return deferred
 
         except Exception as e:
             with self.dllock:
                 self.error = e
                 print_exc()
 
-    def create_engine_wrapper(self, lm_network_engine_wrapper_created_callback, pstate, initialdlstatus=None, wrapperDelay=0):
-        with self.dllock:
-            if not self.cew_scheduled:
-                self.ltmgr = self.session.lm.ltmgr
-                dht_ok = not isinstance(self.tdef, TorrentDefNoMetainfo) or self.ltmgr.is_dht_ready()
-                tunnel_community = self.ltmgr.trsession.lm.tunnel_community
-                tunnels_ready = tunnel_community.tunnels_ready(self.get_hops()) if tunnel_community else 1
+    def can_create_engine_wrapper(self):
+        """
+        Periodically checks whether the engine wrapper can be created.
+        Notifies when it's ready by calling the callback of the deferred being returned.
+        :return: A deferred that will be called when you can create the engine wrapper.
+        """
+        can_create_deferred = Deferred()
+        def do_check():
+            with self.dllock:
+                if not self.cew_scheduled:
+                    self.ltmgr = self.session.lm.ltmgr
+                    dht_ok = not isinstance(self.tdef, TorrentDefNoMetainfo) or self.ltmgr.is_dht_ready()
+                    tunnel_community = self.ltmgr.trsession.lm.tunnel_community
+                    tunnels_ready = tunnel_community.tunnels_ready(self.get_hops()) if tunnel_community else 1
 
-                session_ok = tunnels_ready == 1
+                    if not self.ltmgr or not dht_ok or tunnels_ready < 1:
+                        self._logger.info(u"LTMGR/DHT/session not ready, rescheduling create_engine_wrapper")
 
-                if not self.ltmgr or not dht_ok or tunnels_ready < 1:
-                    self._logger.info(u"LTMGR/DHT/session not ready, rescheduling create_engine_wrapper")
+                        if tunnels_ready < 1:
+                            self.dlstate = DLSTATUS_CIRCUITS
+                            tunnel_community.build_tunnels(self.get_hops())
+                        else:
+                            self.dlstate = DLSTATUS_METADATA
 
-                    if tunnels_ready < 1:
-                        self.dlstate = DLSTATUS_CIRCUITS
-                        tunnel_community.build_tunnels(self.get_hops())
+                        # Schedule this function call to be called again in 5 seconds
+                        self.session.lm.threadpool.add_task(do_check, 5)
                     else:
-                        self.dlstate = DLSTATUS_METADATA
-
-                    create_engine_wrapper_lambda = lambda: self.create_engine_wrapper(
-                        lm_network_engine_wrapper_created_callback, pstate, initialdlstatus=initialdlstatus)
-                    self.session.lm.threadpool.add_task(create_engine_wrapper_lambda, 5)
+                        can_create_deferred.callback(True)
                 else:
-                    network_create_engine_wrapper_lambda = lambda: self.network_create_engine_wrapper(
-                        lm_network_engine_wrapper_created_callback, pstate, initialdlstatus)
-                    self.session.lm.threadpool.add_task(network_create_engine_wrapper_lambda, wrapperDelay)
-                    self.cew_scheduled = True
+                    # Schedule this function call to be called again in 5 seconds
+                    self.session.lm.threadpool.add_task(do_check, 5)
 
-    def network_create_engine_wrapper(self, lm_network_engine_wrapper_created_callback, pstate, initialdlstatus=None):
-        # Called by any thread, assume dllock already acquired
-        self._logger.debug("LibtorrentDownloadImpl: create_engine_wrapper()")
+        do_check()
+        return can_create_deferred
 
-        atp = {}
-        atp["save_path"] = os.path.abspath(self.get_dest_dir())
-        atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
-        atp["hops"] = self.get_hops()
-        atp["flags"] = (lt.add_torrent_params_flags_t.flag_paused |
-                        lt.add_torrent_params_flags_t.flag_duplicate_is_error)
-
-        resume_data = pstate.get('state', 'engineresumedata') if pstate else None
-        if not isinstance(self.tdef, TorrentDefNoMetainfo):
-            metainfo = self.tdef.get_metainfo()
-            torrentinfo = lt.torrent_info(metainfo)
-
-            self.orig_files = [file_entry.path.decode('utf-8') for file_entry in torrentinfo.files()]
-
-            is_multifile = len(self.orig_files) > 1
-            commonprefix = os.path.commonprefix(self.orig_files) if is_multifile else ''
-            swarmname = commonprefix.partition(os.path.sep)[0]
-
-            if is_multifile and swarmname != self.correctedinfoname:
-                for i, filename_old in enumerate(self.orig_files):
-                    filename_new = os.path.join(self.correctedinfoname, filename_old[len(swarmname) + 1:])
-                    # Path should be unicode if Libtorrent is using std::wstring (on Windows),
-                    # else we use str (on Linux).
-                    try:
-                        torrentinfo.rename_file(i, filename_new)
-                    except TypeError:
-                        torrentinfo.rename_file(i, filename_new.encode("utf-8"))
-                    self.orig_files[i] = filename_new
-
-            atp["ti"] = torrentinfo
-            has_resume_data = resume_data and isinstance(resume_data, dict)
-            if has_resume_data:
-                atp["resume_data"] = lt.bencode(resume_data)
-            self._logger.info("%s %s", self.tdef.get_name_as_unicode(), dict((k, v)
-                              for k, v in resume_data.iteritems() if k not in ['pieces', 'piece_priority', 'peers']) if has_resume_data else None)
-        else:
-            atp["url"] = self.tdef.get_url() or "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash())
-            atp["name"] = self.tdef.get_name_as_unicode()
-
-        self.handle = self.ltmgr.add_torrent(self, atp)
-
-        if self.handle:
-            self.set_selected_files()
-
-            # If we lost resume_data always resume download in order to force checking
-            if initialdlstatus != DLSTATUS_STOPPED or not resume_data:
-                self.handle.resume()
-
-                # If we only needed to perform checking, pause download after it is complete
-                self.pause_after_next_hashcheck = initialdlstatus == DLSTATUS_STOPPED
-
-            if self.get_mode() == DLMODE_VOD:
-                self.set_vod_mode(True)
-
-            self.handle.resolve_countries(True)
-
-        else:
-            self._logger.info("Could not add torrent to LibtorrentManager %s", self.tdef.get_name_as_unicode())
-
+    def network_create_engine_wrapper(self, pstate, initialdlstatus=None):
         with self.dllock:
+            self._logger.debug("LibtorrentDownloadImpl: network_create_engine_wrapper()")
+
+            atp = {}
+            atp["save_path"] = os.path.abspath(self.get_dest_dir())
+            atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
+            atp["paused"] = True
+            atp["auto_managed"] = False
+            atp["duplicate_is_error"] = True
+            atp["hops"] = self.get_hops()
+
+            resume_data = pstate.get('state', 'engineresumedata') if pstate else None
+            if not isinstance(self.tdef, TorrentDefNoMetainfo):
+                metainfo = self.tdef.get_metainfo()
+                torrentinfo = lt.torrent_info(metainfo)
+
+                self.orig_files = [file_entry.path.decode('utf-8') for file_entry in torrentinfo.files()]
+                is_multifile = len(self.orig_files) > 1
+                commonprefix = os.path.commonprefix(self.orig_files) if is_multifile else ''
+                swarmname = commonprefix.partition(os.path.sep)[0]
+
+                if is_multifile and swarmname != self.correctedinfoname:
+                    for i, filename_old in enumerate(self.orig_files):
+                        filename_new = os.path.join(self.correctedinfoname, filename_old[len(swarmname) + 1:])
+                        # Path should be unicode if Libtorrent is using std::wstring (on Windows),
+                        # else we use str (on Linux).
+                        try:
+                            torrentinfo.rename_file(i, filename_new)
+                        except TypeError:
+                            torrentinfo.rename_file(i, filename_new.encode("utf-8"))
+                        self.orig_files[i] = filename_new
+
+                atp["ti"] = torrentinfo
+                has_resume_data = resume_data and isinstance(resume_data, dict)
+                if has_resume_data:
+                    atp["resume_data"] = lt.bencode(resume_data)
+                self._logger.info("%s %s", self.tdef.get_name_as_unicode(), dict((k, v)
+                                  for k, v in resume_data.iteritems() if k not in ['pieces', 'piece_priority', 'peers']) if has_resume_data else None)
+            else:
+                atp["url"] = self.tdef.get_url() or "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash())
+                atp["name"] = self.tdef.get_name_as_unicode()
+
+            self.handle = self.ltmgr.add_torrent(self, atp)
+
+            if self.handle:
+                self.set_selected_files()
+
+                # If we lost resume_data always resume download in order to force checking
+                if initialdlstatus != DLSTATUS_STOPPED or not resume_data:
+                    self.handle.resume()
+
+                    # If we only needed to perform checking, pause download after it is complete
+                    self.pause_after_next_hashcheck = initialdlstatus == DLSTATUS_STOPPED
+
+                if self.get_mode() == DLMODE_VOD:
+                    self.set_vod_mode(True)
+
+                self.handle.resolve_countries(True)
+
+            else:
+                self._logger.info("Could not add torrent to LibtorrentManager %s", self.tdef.get_name_as_unicode())
+
             self.cew_scheduled = False
 
-        if lm_network_engine_wrapper_created_callback is not None:
-            lm_network_engine_wrapper_created_callback(self, pstate)
+            # Return a deferred with the callback already being called.
+            return defer.succeed((self, pstate))
 
     def get_anon_mode(self):
         return self.get_hops() > 0
@@ -942,8 +963,14 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         with self.dllock:
             if self.handle is None:
                 self.error = None
-                self.create_engine_wrapper(
-                    self.session.lm.network_engine_wrapper_created_callback, self.pstate_for_restart, initialdlstatus=initialdlstatus)
+
+                def schedule_create_engine(_):
+                    self.cew_scheduled = True
+                    create_engine_wrapper_deferred = self.network_create_engine_wrapper(self.pstate_for_restart, initialdlstatus)
+                    create_engine_wrapper_deferred.addCallback(self.session.lm.on_download_wrapper_created)
+
+                can_create_engine_deferred = self.can_create_engine_wrapper()
+                can_create_engine_deferred.addCallback(schedule_create_engine)
             else:
                 self.handle.resume()
                 self.set_vod_mode(self.get_mode() == DLMODE_VOD)
