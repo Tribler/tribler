@@ -8,17 +8,25 @@ from Tribler.Core.Utilities.network_utils import get_random_port
 
 from Tribler.Test.common import UBUNTU_1504_INFOHASH
 from Tribler.Test.test_as_server import TestGuiAsServer, TESTS_DATA_DIR
-from Tribler.Core.simpledefs import DOWNLOAD
-
+from Tribler.Core.simpledefs import DOWNLOAD, DLSTATUS_SEEDING
 
 TORRENT_FILE = os.path.join(TESTS_DATA_DIR, "ubuntu-15.04-desktop-amd64.iso.torrent")
 TORRENT_FILE_INFOHASH = binascii.unhexlify("fc8a15a2faf2734dbb1dc5f7afdc5c9beaeb1f59")
 TORRENT_VIDEO_FILE = os.path.join(TESTS_DATA_DIR, "Night.Of.The.Living.Dead_1080p_archive.torrent")
 TORRENT_VIDEO_FILE_INFOHASH = binascii.unhexlify("90ed3962785c52a774e89706fb4f811a468e6c05")
-TORRENT_VIDEO_FILE_SELECTED_FILE = os.path.join('NightOfTheLivingDead_1080p.ogv',)
 
 
 class TestLibtorrentDownload(TestGuiAsServer):
+
+    def setup_video_seed(self):
+        video_tdef, self.torrent_path = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        self.torrent_infohash = video_tdef.get_infohash()
+        self.setup_seeder(video_tdef, TESTS_DATA_DIR)
+
+    def item_has_downloaded(self):
+            if self.frame.librarylist.list.HasItem(self.torrent_infohash):
+                item = self.frame.librarylist.list.GetItem(self.torrent_infohash)
+                return item.original_data.ds and item.original_data.ds.get_status() == DLSTATUS_SEEDING
 
     def test_downloadfromfile(self):
 
@@ -27,18 +35,19 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.quit()
 
         def item_shown_in_list():
-            self.CallConditional(30, lambda: self.frame.librarylist.list.GetItem(TORRENT_FILE_INFOHASH).original_data.ds and self.frame.librarylist.list.GetItem(
-                TORRENT_FILE_INFOHASH).original_data.ds.get_current_speed(DOWNLOAD) > 0, make_screenshot, 'no download progress')
+            self.CallConditional(30, self.item_has_downloaded, make_screenshot, 'no download progress')
 
-        def download_object_ready():
-            self.CallConditional(10, lambda: self.frame.librarylist.list.HasItem(
-                TORRENT_FILE_INFOHASH), item_shown_in_list, 'no download in librarylist')
+        def add_peer():
+            download = self.session.get_download(self.torrent_infohash)
+            download.add_peer(("127.0.0.1", self.seeder_session.get_listen_port()))
 
         def do_downloadfromfile():
+            self.setup_video_seed()
             self.guiUtility.showLibrary()
-            self.frame.startDownload(TORRENT_FILE, self.getDestDir())
+            self.frame.startDownload(self.torrent_path, self.getDestDir())
+            self.callLater(3, add_peer)
 
-            self.CallConditional(30, lambda: self.session.get_download(TORRENT_FILE_INFOHASH), download_object_ready,
+            self.CallConditional(30, lambda: self.session.get_download(self.torrent_infohash), item_shown_in_list,
                                  'do_downloadfromfile() failed')
 
         self.startTest(do_downloadfromfile)
@@ -50,21 +59,26 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.quit()
 
         def item_shown_in_list():
-            self.CallConditional(30, lambda: self.frame.librarylist.list.GetItem(TORRENT_FILE_INFOHASH).original_data.ds and self.frame.librarylist.list.GetItem(
-                TORRENT_FILE_INFOHASH).original_data.ds.get_current_speed(DOWNLOAD) > 0, make_screenshot, 'no download progress')
+            self.CallConditional(30, self.item_has_downloaded, make_screenshot, 'no download progress')
 
         def download_object_ready():
             self.CallConditional(10, lambda: self.frame.librarylist.list.HasItem(
-                TORRENT_FILE_INFOHASH), item_shown_in_list, 'no download in librarylist')
+                self.torrent_infohash), item_shown_in_list, 'no download in librarylist')
+
+        def add_peer():
+            download = self.session.get_download(self.torrent_infohash)
+            download.add_peer(("127.0.0.1", self.seeder_session.get_listen_port()))
 
         def do_downloadfromfile():
+            self.setup_video_seed()
             self.guiUtility.showLibrary()
 
             from urllib import pathname2url
-            file_uri = "file:" + pathname2url(TORRENT_FILE)
+            file_uri = "file:" + pathname2url(self.torrent_path)
             self.frame.startDownloadFromArg(file_uri, self.getDestDir())
+            self.callLater(3, add_peer)
 
-            self.CallConditional(30, lambda: self.session.get_download(TORRENT_FILE_INFOHASH), download_object_ready,
+            self.CallConditional(30, lambda: self.session.get_download(self.torrent_infohash), download_object_ready,
                                  'do_downloadfromfile() failed')
 
         self.startTest(do_downloadfromfile)
@@ -208,17 +222,15 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.CallConditional(60, lambda: self.guiUtility.videoplayer
                                  .vod_playing, check_playlist, "streaming did not start")
 
-        def do_vod():
-            from Tribler.Core.Video.VideoPlayer import VideoPlayer
+        def add_peer():
+            download = self.session.get_download(self.torrent_infohash)
+            download.add_peer(("127.0.0.1", self.seeder_session.get_listen_port()))
 
-            ds = self.frame.startDownload(TORRENT_VIDEO_FILE,
-                                          self.getDestDir(),
-                                          selectedFiles=[
-                                              TORRENT_VIDEO_FILE_SELECTED_FILE],
-                                          vodmode=True)
-            # set the max prebuffsize to be smaller so that the unit test runs faster
-            ds.max_prebuffsize = 16 * 1024
+        def do_vod():
+            self.setup_video_seed()
+            self.frame.startDownload(self.torrent_path, self.getDestDir(), vodmode=True)
             self.guiUtility.ShowPlayer()
+            self.callLater(3, add_peer)
             self.CallConditional(30, self.guiUtility.videoplayer.get_vod_download, do_monitor, "VOD download not found")
 
         self.startTest(do_vod)
