@@ -53,7 +53,6 @@ class TestTorrentDBHandler(AbstractDB):
         self.tdb.category = Category.getInstance()
         self.tdb.mypref_db = MyPreferenceDBHandler(self.session)
 
-    @blocking_call_on_reactor_thread
     def tearDown(self):
         self.tdb.mypref_db.close()
         self.tdb.mypref_db = None

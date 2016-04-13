@@ -59,7 +59,6 @@ class AbstractDB(TriblerCoreTest):
         self.sqlitedb.initialize()
         self.session.sqlite_db = self.sqlitedb
 
-    @blocking_call_on_reactor_thread
     def tearDown(self):
         self.sqlitedb.close()
         self.sqlitedb = None

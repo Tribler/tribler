@@ -13,7 +13,6 @@ class TestMyPreferenceDBHandler(AbstractDB):
         self.mdb = MyPreferenceDBHandler(self.session)
         self.mdb._torrent_db = self.tdb
 
-    @blocking_call_on_reactor_thread
     def tearDown(self):
         self.mdb.close()
         self.mdb = None

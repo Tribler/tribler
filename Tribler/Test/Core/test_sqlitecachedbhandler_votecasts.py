@@ -12,7 +12,6 @@ class TestVotecastDBHandler(AbstractDB):
         self.vdb = VoteCastDBHandler(self.session)
         self.vdb.channelcast_db = self.cdb
 
-    @blocking_call_on_reactor_thread
     def tearDown(self):
         self.cdb.close()
         self.cdb = None
