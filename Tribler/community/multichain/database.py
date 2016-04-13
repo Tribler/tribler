@@ -2,17 +2,16 @@
 """
 from os import path
 from hashlib import sha256
-
 from Tribler.dispersy.database import Database
 from Tribler.community.multichain.conversion import (encode_block, encode_block_requester_half, encode_block_crawl,
                                                      EMPTY_HASH)
 
 DATABASE_DIRECTORY = path.join(u"sqlite")
-""" Path to the database location + dispersy._workingdirectory"""
+# Path to the database location + dispersy._workingdirectory
 DATABASE_PATH = path.join(DATABASE_DIRECTORY, u"multichain.db")
-""" Version to keep track if the db schema needs to be updated."""
+# Version to keep track if the db schema needs to be updated.
 LATEST_DB_VERSION = 1
-""" Schema for the MultiChain DB."""
+# Schema for the MultiChain DB.
 schema = u"""
 CREATE TABLE IF NOT EXISTS multi_chain(
  public_key_requester		TEXT NOT NULL,
@@ -89,9 +88,9 @@ class MultiChainDB(Database):
         :param block: The data that will be saved.
         """
         data = (
-                block.total_up_responder, block.total_down_responder,
-                block.sequence_number_responder, buffer(block.previous_hash_responder),
-                buffer(block.signature_responder), buffer(block.hash_responder), buffer(block.hash_requester))
+            block.total_up_responder, block.total_down_responder,
+            block.sequence_number_responder, buffer(block.previous_hash_responder),
+            buffer(block.signature_responder), buffer(block.hash_responder), buffer(block.hash_requester))
 
         self.execute(
             u"UPDATE multi_chain "
@@ -112,8 +111,8 @@ class MultiChainDB(Database):
         public_key = buffer(public_key)
         db_query = u"SELECT block_hash, MAX(sequence_number) FROM (" \
                    u"SELECT hash_requester AS block_hash, sequence_number_requester AS sequence_number " \
-                   u"FROM multi_chain WHERE public_key_requester = ? "\
-                   u"UNION "\
+                   u"FROM multi_chain WHERE public_key_requester = ? " \
+                   u"UNION " \
                    u"SELECT hash_responder AS block_hash, sequence_number_responder AS sequence_number " \
                    u"FROM multi_chain WHERE public_key_responder = ?)"
 
@@ -197,7 +196,7 @@ class MultiChainDB(Database):
                    u"SELECT *, sequence_number_responder AS sequence_number," \
                    u" public_key_responder AS public_key FROM `multi_chain`) " \
                    u"WHERE sequence_number >= ? AND public_key = ? " \
-                   u"ORDER BY sequence_number ASC "\
+                   u"ORDER BY sequence_number ASC " \
                    u"LIMIT 100"
         db_result = self.execute(db_query, (sequence_number, buffer(public_key))).fetchall()
         return [self._create_database_block(db_item) for db_item in db_result]

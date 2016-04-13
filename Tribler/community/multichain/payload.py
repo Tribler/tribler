@@ -14,15 +14,15 @@ class SignaturePayload(Payload):
                      total_up_responder=0, total_down_responder=0,
                      sequence_number_responder=-1, previous_hash_responder=''):
             super(SignaturePayload.Implementation, self).__init__(meta)
-            """ Set the interaction part of the message """
+            # Set the interaction part of the message
             self._up = up
             self._down = down
-            """ Set the requester part of the message """
+            # Set the requester part of the message
             self._total_up_requester = total_up_requester
             self._total_down_requester = total_down_requester
             self._sequence_number_requester = sequence_number_requester
             self._previous_hash_requester = previous_hash_requester
-            """ Set the responder part of the message. """
+            # Set the responder part of the message.
             self._total_up_responder = total_up_responder
             self._total_down_responder = total_down_responder
             self._sequence_number_responder = sequence_number_responder
@@ -77,7 +77,6 @@ class CrawlRequestPayload(Payload):
     """
 
     class Implementation(Payload.Implementation):
-
         def __init__(self, meta, requested_sequence_number=-1):
             super(CrawlRequestPayload.Implementation, self).__init__(meta)
             self._requested_sequence_number = requested_sequence_number
@@ -101,20 +100,20 @@ class CrawlResponsePayload(Payload):
                      public_key_requester, signature_requester,
                      public_key_responder, signature_responder):
             super(CrawlResponsePayload.Implementation, self).__init__(meta)
-            """ Set the interaction part of the message """
+            # Set the interaction part of the message
             self._up = up
             self._down = down
-            """ Set the requester part of the message """
+            # Set the requester part of the message
             self._total_up_requester = total_up_requester
             self._total_down_requester = total_down_requester
             self._sequence_number_requester = sequence_number_requester
             self._previous_hash_requester = previous_hash_requester
-            """ Set the responder part of the message. """
+            # Set the responder part of the message.
             self._total_up_responder = total_up_responder
             self._total_down_responder = total_down_responder
             self._sequence_number_responder = sequence_number_responder
             self._previous_hash_responder = previous_hash_responder
-            """ Set the authentication part of the message. """
+            # Set the authentication part of the message.
             self._signature_requester = signature_requester
             self._public_key_requester = public_key_requester
             self._signature_responder = signature_responder

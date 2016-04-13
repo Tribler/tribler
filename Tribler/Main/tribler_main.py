@@ -449,8 +449,8 @@ class ABCApp(object):
             tunnel_kwargs = {'tribler_session': session, 'settings': settings}
 
             if self.sconfig.get_enable_multichain():
-                """ Start the multichain community and hook in the multichain scheduler. """
-                multichain = dispersy.define_auto_load(MultiChainCommunity, dispersy_member, load=True,)[0]
+                # Start the multichain community and hook in the multichain scheduler.
+                multichain = dispersy.define_auto_load(MultiChainCommunity, dispersy_member, load=True)[0]
 
             # The multichain community MUST be auto_loaded before the tunnel community,
             #  because it must be unloaded after the tunnel, so that the tunnel closures can be signed

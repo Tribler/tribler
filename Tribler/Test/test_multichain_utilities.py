@@ -3,13 +3,9 @@ File containing utilities used in testing the double entry community.
 """
 
 import random
-
 from hashlib import sha256
-
 from Tribler.dispersy.crypto import ECCrypto
-
 from Tribler.Test.test_as_server import AbstractServer
-
 from Tribler.community.multichain.database import DatabaseBlock
 
 
@@ -38,9 +34,9 @@ class TestBlock(DatabaseBlock):
         previous_hash_requester = sha256(str(random.randint(0, 100000))).digest()
         public_key_requester = crypto.key_to_bin(key_requester.pub())
         signature_requester = crypto.create_signature(key_requester, encode_signing_format(
-           [up, down,
-            total_up_requester, total_down_requester,
-            sequence_number_requester, previous_hash_requester]))
+            [up, down,
+             total_up_requester, total_down_requester,
+             sequence_number_requester, previous_hash_requester]))
         # A random hash is generated for the  hash.
         # TODO: Use the actual hash
         hash_requester = sha256(str(random.randint(0, 100000))).digest()
@@ -90,12 +86,6 @@ class TestBlock(DatabaseBlock):
 
 
 class MultiChainTestCase(AbstractServer):
-    def __init__(self, *args, **kwargs):
-        super(MultiChainTestCase, self).__init__(*args, **kwargs)
-
-    def setUp(self):
-        super(MultiChainTestCase, self).setUp()
-
     def assertEqual_block(self, expected_block, actual_block):
         """
         Function to assertEqual two blocks
@@ -109,7 +99,7 @@ class MultiChainTestCase(AbstractServer):
         Checks a signature message payload
         """
         self.assertEqual_signature_request(expected_payload, actual_payload)
-        """ Check payload part of responder"""
+        # Check payload part of responder
         self.assertEqual(expected_payload.total_up_responder, actual_payload.total_up_responder)
         self.assertEqual(expected_payload.total_down_responder, actual_payload.total_down_responder)
         self.assertEqual(expected_payload.sequence_number_responder, actual_payload.sequence_number_responder)
@@ -119,10 +109,10 @@ class MultiChainTestCase(AbstractServer):
         """
         Checks a signature message payload
         """
-        """ Check interaction part of requester"""
+        # Check interaction part of requester
         self.assertEqual(expected_payload.up, actual_payload.up)
         self.assertEqual(expected_payload.down, actual_payload.down)
-        """ Check payload part of requester"""
+        # Check payload part of requester
         self.assertEqual(expected_payload.total_up_requester, actual_payload.total_up_requester)
         self.assertEqual(expected_payload.total_down_requester, actual_payload.total_down_requester)
         self.assertEqual(expected_payload.sequence_number_requester, actual_payload.sequence_number_requester)

@@ -2,22 +2,18 @@
 File contains all conversions for the MultiChain Community.
 """
 from struct import pack, unpack_from, calcsize
-
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
 
-"""
-Hash length used in the MultiChain Community
-"""
+# Hash length used in the MultiChain Community
 HASH_LENGTH = 32
 SIG_LENGTH = 64
 PK_LENGTH = 74
 
-EMPTY_HASH = '1'*HASH_LENGTH    # Used in a request when the response data is not yet available
-GENESIS_ID = '0'*HASH_LENGTH    # ID of the first block of the chain.
-"""
-Formatting of the signature packet
-"""
+EMPTY_HASH = '1' * HASH_LENGTH  # Used in a request when the response data is not yet available
+GENESIS_ID = '0' * HASH_LENGTH  # ID of the first block of the chain.
+
+# Formatting of the signature packet
 # TotalUp TotalDown Sequence_number, previous_hash
 append_format = 'Q Q i ' + str(HASH_LENGTH) + 's'
 # Up, Down
@@ -93,8 +89,7 @@ class MultiChainConversion(BinaryConversion):
         values = unpack_from(signature_format, data, offset)
         offset += signature_size
 
-        return \
-            offset, placeholder.meta.payload.implement(*values)
+        return offset, placeholder.meta.payload.implement(*values)
 
     @staticmethod
     def _encode_crawl_request(message):
@@ -147,8 +142,7 @@ class MultiChainConversion(BinaryConversion):
         values = unpack_from(crawl_response_format, data, offset)
         offset += crawl_response_size
 
-        return \
-            offset, placeholder.meta.payload.implement(*values)
+        return offset, placeholder.meta.payload.implement(*values)
 
     @staticmethod
     def _encode_crawl_resume(message):
@@ -190,7 +184,7 @@ def encode_block(payload, requester, responder):
     :param responder: The responder of the block as a dispersy member
     :return: encoding
     """
-    """ Test code sometimes run a different curve with a different key length resulting in hard to catch bugs."""
+    # Test code sometimes run a different curve with a different key length resulting in hard to catch bugs.
     assert len(requester[1].public_key) == PK_LENGTH
     assert len(responder[1].public_key) == PK_LENGTH
     return pack(crawl_response_format, *(payload.up, payload.down,
