@@ -55,4 +55,3 @@ class MultiChainTestCase(AbstractServer):
         self.assertEqual(expected_block.link_sequence_number, actual_block.link_sequence_number)
         self.assertEqual(expected_block.previous_hash, actual_block.previous_hash)
         self.assertEqual(expected_block.signature, actual_block.signature)
-        return True

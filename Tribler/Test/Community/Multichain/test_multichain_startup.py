@@ -8,7 +8,9 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestMultichainStartup(TestAsServer):
-    """Start a Tribler session and initialize the multichain community to ensure it does not crash."""
+    """
+    Start a Tribler session and initialize the multichain community to ensure it does not crash.
+    """
 
     def test_multichain_startup_no_crawler(self):
         self.load_communities(self.session, self.dispersy, False)

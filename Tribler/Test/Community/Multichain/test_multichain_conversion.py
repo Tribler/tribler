@@ -45,7 +45,7 @@ class TestConversion(MultiChainTestCase):
         result = self.converter._decode_half_block(TestPlaceholder(meta), 0, encoded_message)[1]
 
         # Assert
-        self.assertEqual_block(block, result.block)
+        self.assertEqual_block(self.block, result.block)
 
     def test_encoding_decoding_half_block_big_number(self):
         """

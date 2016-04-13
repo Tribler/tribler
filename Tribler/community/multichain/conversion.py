@@ -102,9 +102,6 @@ class MultiChainConversion(BinaryConversion):
         if len(data) < offset + crawl_request_size:
             raise DropPacket("Unable to decode the payload")
 
-        values = unpack_from(crawl_response_format, data, offset)
-        offset += crawl_response_size
-
         return offset + crawl_request_size, \
             placeholder.meta.payload.implement(*unpack_from(crawl_request_format, data, offset))
 

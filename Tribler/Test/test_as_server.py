@@ -50,6 +50,7 @@ defaults.dldefaults['downloadconfig']['safe_seeding'] = False
 OUTPUT_DIR = os.path.abspath(os.environ.get('OUTPUT_DIR', 'output'))
 
 
+
 class BaseTestCase(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
@@ -187,7 +188,7 @@ class AbstractServer(BaseTestCase):
         self.watchdog.join(2)
         if self.watchdog.is_alive():
             self._logger.critical("The WatchDog didn't stop!")
-            WatchDog.print_all_stacks()
+            self.watchdog.print_all_stacks()
             raise RuntimeError("Couldn't stop the WatchDog")
 
         if self.file_server:

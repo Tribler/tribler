@@ -13,7 +13,7 @@ GENESIS_SEQ = 1
 EMPTY_SIG = '0'*SIG_LENGTH
 EMPTY_PK = '0'*PK_LENGTH
 
-block_pack_format = "! I I Q Q {0}s i {0}s i {1}s {2}s".format(PK_LENGTH, HASH_LENGTH, SIG_LENGTH)
+block_pack_format = "! I I Q Q {0}s I {0}s I {1}s {2}s".format(PK_LENGTH, HASH_LENGTH, SIG_LENGTH)
 block_pack_size = calcsize(block_pack_format)
 
 
@@ -133,9 +133,14 @@ class MultiChainBlock(object):
             err("Link sequence number not empty and is prior to genesis")
         if not crypto.is_valid_public_bin(self.public_key):
             err("Public key is not valid")
-        elif not crypto.is_valid_signature(
-                crypto.key_from_public_bin(self.public_key), self.pack(signature=False), self.signature):
-            err("Invalid signature")
+        else:
+            try:
+                pck = self.pack(signature=False)
+            except:
+                pck = None
+            if pck is None or not crypto.is_valid_signature(
+                    crypto.key_from_public_bin(self.public_key), pck, self.signature):
+                err("Invalid signature")
         if not crypto.is_valid_public_bin(self.link_public_key):
             err("Linked public key is not valid")
         if self.public_key == self.link_public_key:
@@ -152,6 +157,8 @@ class MultiChainBlock(object):
 
         # Step 3: does the database already know about this block? If so, is it equal?
         if blk:
+            # TODO: if the block is valid upto this point (specifically the signature is valid), and an error is
+            # detected here, it is in fact fraud, since a PK/seq pair is double signed.
             if blk.up != self.up:
                 err("Up does not match known block")
             if blk.down != self.down:
@@ -192,6 +199,12 @@ class MultiChainBlock(object):
                 err("Total down is higher than expected compared to the next block")
             if next_blk.sequence_number == self.sequence_number + 1 and next_blk.previous_hash != self.hash:
                 err("Next hash is not equal to the hash id of the block")
+
+        # TODO: Detect fraud? But should it go here?
+        # Fraud detection might be easier if you inspect the database for all public key's in one go. (Or rather it
+        # might lead to a lot of double work if you do the fraud detection for each PK individually)
+        # Also if this method returns "invalid" for fraud cases, then those blocks cannot be kept in the database for
+        # future reference or as fraud proofs.
 
         return result[0], errors
 

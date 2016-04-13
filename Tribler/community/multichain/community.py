@@ -135,13 +135,13 @@ class MultiChainCommunity(Community):
                              format(str(candidate), bytes_up, bytes_down))
             if candidate and candidate.get_member():
                 # TODO: proper form requires a local lock here (up to db add) to ensure atomic db operation
-                block = MultiChainBlock.create(self.persistence, self._public_key)
+                block = MultiChainBlock.create(self.persistence, self.my_member.public_key)
                 block.up = bytes_up
                 block.down = bytes_down
                 block.total_up += bytes_up
                 block.total_down += bytes_down
                 block.link_public_key = candidate.get_member().public_key
-                block.sign(self._private_key)
+                block.sign(self.my_member.private_key)
                 self.persistence.add_block(block)
                 message = self.get_meta_message(SIGNED).impl(
                     authentication=(self.my_member,),
@@ -153,8 +153,7 @@ class MultiChainCommunity(Community):
                 except DelayPacketByMissingMember:
                     self.logger.warn("Missing member in MultiChain community to send signature request to")
             else:
-                self.logger.warn(
-                    "No valid candidate found for: %s:%s to request block from." % (candidate[0], candidate[1]))
+                self.logger.warn("No valid candidate found for: %s to request block from." % candidate)
 
     def received_signed_block(self, messages):
         """
@@ -169,8 +168,8 @@ class MultiChainCommunity(Community):
             if validation[0] == "invalid":
                 continue
 
-            match = MultiChainBlock.create(self.persistence, self._public_key, blk)
-            match.sign(self._private_key)
+            match = MultiChainBlock.create(self.persistence, self.my_member.public_key, blk)
+            match.sign(self.my_member.private_key)
             self.persistence.add_block(match)
             self.dispersy.store_update_forward([
                 self.get_meta_message(HALF_BLOCK).impl(
@@ -220,7 +219,7 @@ class MultiChainCommunity(Community):
             self.crawl_requested(message.candidate, message.payload.requested_sequence_number)
 
     def crawl_requested(self, candidate, sequence_number):
-        blocks = self.persistence.get_blocks_since(self._public_key, sequence_number)
+        blocks = self.persistence.get_blocks_since(self.my_member.public_key, sequence_number)
         if len(blocks) > 0:
             self.logger.debug("Crawler: Sending %d blocks", len(blocks))
             messages = []

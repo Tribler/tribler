@@ -313,7 +313,7 @@ class TestBlocks(MultiChainTestCase):
         db.add_block(block3)
         # Act
         block2 = MultiChainBlock(block2.pack_db_insert())
-        block2.link_sequence_number = -1
+        block2.link_sequence_number += 100
         block2.sign(db.get(block2.public_key, block2.sequence_number).key)
         result = block2.validate(db)
         # Assert
@@ -482,7 +482,6 @@ class TestBlocks(MultiChainTestCase):
         (block1, _, _, _) = self.setup_validate()
         # Act
         block1.link_sequence_number = -1
-        block1.sign(block1.key)
         result = block1.validate(db)
         self.assertEqual(result[0], 'invalid')
         self.assertIn("Link sequence number not empty and is prior to genesis", result[1])
@@ -574,13 +573,6 @@ class TestBlocks(MultiChainTestCase):
         def __init__(self, *args, **kwargs):
             super(TestBlocks.MockDatabase, self).__init__(*args, **kwargs)
             self.data = dict()
-
-        # def sign_and_propagate(self):
-        #     for pk in self.data.keys():
-        #         for i in range(0, len(self.data[pk])):
-        #             if i > 0:
-        #                 self.data[pk][i].previous_hash = self.data[pk][i-1].hash
-        #             self.data[pk][i].sign(self.data[pk][i].key)
 
         def add_block(self, block):
             if self.data.get(block.public_key) is None:
