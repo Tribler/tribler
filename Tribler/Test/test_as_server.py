@@ -4,6 +4,7 @@
 
 # Initialize x11 threads before doing anything X11 related.
 from twisted.internet.base import BasePort
+from twisted.internet.defer import Deferred
 from twisted.web.server import Site
 from twisted.web.static import File
 from Tribler.Main.Utility.utility import initialize_x11_threads
@@ -38,6 +39,7 @@ from traceback import print_exc
 import wx
 from .util import process_unhandled_exceptions, UnhandledTwistedExceptionCatcher, process_unhandled_twisted_exceptions
 
+from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core import defaults
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
@@ -122,11 +124,7 @@ class AbstractServer(BaseTestCase):
         factory = Site(resource)
         self.file_server = reactor.listenTCP(port, factory)
 
-    def tearDown(self, annotate=True):
-        self.tearDownCleanup()
-        if annotate:
-            self.annotate(self._testMethodName, start=False)
-
+    def checkReactor(self, _):
         delayed_calls = reactor.getDelayedCalls()
         if delayed_calls:
             self._logger.error("The reactor was dirty:")
@@ -140,6 +138,12 @@ class AbstractServer(BaseTestCase):
         for reader in open_readers:
             self.assertNotIsInstance(reader, BasePort, "The test left a listening port behind: %s" % reader)
 
+    @deferred(timeout=5)
+    def tearDown(self, annotate=True):
+        self.tearDownCleanup()
+        if annotate:
+            self.annotate(self._testMethodName, start=False)
+
         process_unhandled_exceptions()
         process_unhandled_twisted_exceptions()
 
@@ -148,6 +152,16 @@ class AbstractServer(BaseTestCase):
             self._logger.critical("The WatchDog didn't stop!")
             self.watchdog.print_all_stacks()
             raise RuntimeError("Couldn't stop the WatchDog")
+
+        if self.file_server:
+            deferred = self.file_server.stopListening()
+            deferred.addCallback(self.checkReactor)
+            return deferred
+        else:
+            deferred = Deferred()
+            deferred.addCallback(self.checkReactor)
+            deferred.callback(None)
+            return deferred
 
     def tearDownCleanup(self):
         self.setUpCleanup()
