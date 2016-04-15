@@ -5,6 +5,7 @@
 # Initialize x11 threads before doing anything X11 related.
 import threading
 
+from twisted.internet import interfaces
 from twisted.internet.base import BasePort
 from twisted.internet.defer import Deferred, maybeDeferred, succeed
 from twisted.web.server import Site
@@ -138,8 +139,18 @@ class AbstractServer(BaseTestCase):
             for dc in delayed_calls:
                 self._logger.error(">     %s" % dc)
                 dc.cancel()
+
+        # This is the same check as in the _cleanReactor method of Twisted's Trial
+        selectable_strings = []
+        for sel in reactor.removeAll():
+            if interfaces.IProcessTransport.providedBy(sel):
+                self._logger.error("Sending kill signal to %s", repr(sel))
+                sel.signalProcess('KILL')
+            selectable_strings.append(repr(sel))
+
         self.assertFalse(delayed_calls, "The reactor was dirty when tearing down the test")
         self.assertFalse(Session.has_instance(), 'A session instance is still present when tearing down the test')
+        self.assertFalse(selectable_strings, "The reactor had readers/writers left")
 
         # Check whether we have closed all the sockets
         open_readers = reactor.getReaders()
