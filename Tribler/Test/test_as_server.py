@@ -524,6 +524,7 @@ class TestGuiAsServer(TestAsServer):
             self._logger.debug("GUIUtility ready, starting to wait for frame to be ready")
             self.frame = self.guiUtility.frame
             self.frame.Maximize()
+            self.guiUtility.utility.write_config('default_safeseeding_enabled', False)
             self.CallConditional(30, lambda: self.frame.ready, call_callback)
 
         def wait_for_init():
