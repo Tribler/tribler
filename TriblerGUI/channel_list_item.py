@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QWidget, QGraphicsOpacityEffect
 
 
 class ChannelListItem(QWidget):
-    def __init__(self, parent, fade_delay, channel):
+    def __init__(self, parent, fade_delay, channel, should_fade=False):
         super(QWidget, self).__init__(parent)
 
         uic.loadUi('qt_resources/channel_list_item.ui', self)
@@ -14,14 +14,15 @@ class ChannelListItem(QWidget):
         self.channel_num_torrents_label.setText("Torrents: " + str(channel['torrents']))
         self.channel_num_subs_label.setText(str(channel["votes"]))
 
-        self.opacity_effect = QGraphicsOpacityEffect(self)
-        self.opacity_effect.setOpacity(0)
-        self.setGraphicsEffect(self.opacity_effect)
+        if should_fade:
+            self.opacity_effect = QGraphicsOpacityEffect(self)
+            self.opacity_effect.setOpacity(0)
+            self.setGraphicsEffect(self.opacity_effect)
 
-        self.timer = QTimer()
-        self.timer.setInterval(fade_delay)
-        self.timer.timeout.connect(self.fadeIn)
-        self.timer.start()
+            self.timer = QTimer()
+            self.timer.setInterval(fade_delay)
+            self.timer.timeout.connect(self.fadeIn)
+            self.timer.start()
 
     def fadeIn(self):
         self.anim = QPropertyAnimation(self.opacity_effect, 'opacity')
