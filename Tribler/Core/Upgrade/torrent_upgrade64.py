@@ -24,13 +24,12 @@ class TorrentMigrator64(object):
     structure from Tribler version 6.3 to 6.4.
     """
 
-    def __init__(self, session, db, status_update_func=None):
+    def __init__(self, torrent_collecting_dir, state_dir, status_update_func=None):
         self._logger = logging.getLogger(self.__class__.__name__)
-        self.session = session
-        self.db = db
         self.status_update_func = status_update_func if status_update_func else lambda _: None
 
-        self.torrent_collecting_dir = self.session.get_torrent_collecting_dir()
+        self.torrent_collecting_dir = torrent_collecting_dir
+        self.state_dir = state_dir
 
         self.swift_files_deleted = 0
         self.torrent_files_dropped = 0
@@ -44,10 +43,10 @@ class TorrentMigrator64(object):
         self.processed_file_count = 0
 
         # an empty file, if it doesn't exist then we need still need to migrate the torrent collecting directory
-        self.tmp_migration_tcd_file = os.path.join(self.session.get_state_dir(), u".tmp_migration_v64_tcd")
+        self.tmp_migration_tcd_file = os.path.join(self.state_dir, u".tmp_migration_v64_tcd")
 
         # we put every migrated torrent file in a temporary directory
-        self.tmp_migration_dir = os.path.abspath(os.path.join(self.session.get_state_dir(), u".tmp_migration_v64"))
+        self.tmp_migration_dir = os.path.abspath(os.path.join(self.state_dir, u".tmp_migration_v64"))
 
     def start_migrate(self):
         """
@@ -56,7 +55,7 @@ class TorrentMigrator64(object):
         # remove some previous left files
         useless_files = [u"upgradingdb.txt", u"upgradingdb2.txt", u"upgradingdb3.txt", u"upgradingdb4.txt"]
         for i in xrange(len(useless_files)):
-            useless_tmp_file = os.path.join(self.session.get_state_dir(), useless_files[i])
+            useless_tmp_file = os.path.join(self.state_dir, useless_files[i])
             if os.path.exists(useless_tmp_file):
                 os.unlink(useless_tmp_file)
 
@@ -198,7 +197,7 @@ class TorrentMigrator64(object):
         """
         Cleans up all SearchCommunity and MetadataCommunity stuff in dispersy database.
         """
-        db_path = os.path.join(self.session.get_state_dir(), u"sqlite", u"dispersy.db")
+        db_path = os.path.join(self.state_dir, u"sqlite", u"dispersy.db")
         if not os.path.isfile(db_path):
             return
 

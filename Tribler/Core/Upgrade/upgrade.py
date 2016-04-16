@@ -104,7 +104,8 @@ class TriblerUpgrader(object):
             from Tribler.Core.leveldbstore import LevelDbStore
             torrent_store = LevelDbStore(self.session.get_torrent_store_dir())
             torrent_migrator = TorrentMigrator65(
-                self.session, self.db, torrent_store=torrent_store, status_update_func=self.update_status)
+                self.session.get_torrent_collecting_dir(), self.session.get_state_dir(),
+                torrent_store=torrent_store, status_update_func=self.update_status)
             yield torrent_migrator.start_migrate()
 
             db_migrator = DBUpgrader(
