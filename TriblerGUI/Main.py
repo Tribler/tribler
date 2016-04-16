@@ -61,6 +61,7 @@ class TriblerWindow(QMainWindow):
         self.my_profile_button = self.findChild(QToolButton, "my_profile_button")
         self.video_player_page = self.findChild(QWidget, "video_player_page")
         self.search_results_page = self.findChild(QWidget, "search_results_page")
+        self.downloads_page = self.findChild(QWidget, "downloads_page")
         self.settings_page = self.findChild(QWidget, "settings_page")
         self.my_channel_page = self.findChild(QWidget, "my_channel_page")
         self.left_menu = self.findChild(QWidget, "left_menu")
@@ -137,44 +138,7 @@ class TriblerWindow(QMainWindow):
         self.search_results_page.initialize_search_results_page()
         self.settings_page.initialize_settings_page()
         self.my_channel_page.initialize_my_channel_page()
-
-        self.downloads_tab = self.findChild(QWidget, "downloads_tab")
-        self.downloads_tab.initialize()
-        self.downloads_tab.clicked_tab_button.connect(self.on_downloads_tab_button_clicked)
-
-        # TODO Martijn: for now, fill the downloads with some dummy data
-        self.downloads_list = self.findChild(QTreeWidget, "downloads_list")
-
-        for i in range(0, 10):
-            item = QTreeWidgetItem(self.downloads_list)
-            item.setSizeHint(0, QSize(-1, 24))
-            item.setSizeHint(2, QSize(-1, 1))
-            item.setText(0, "My.test.torrent.HD.iso")
-            item.setText(1, "301.1 MB")
-
-            slider = QProgressBar()
-            slider.setStyleSheet("""
-            QProgressBar {
-                margin: 4px;
-                background-color: white;
-                color: #ddd;
-                font-size: 12px;
-                text-align: center;
-             }
-
-             QProgressBar::chunk {
-                background-color: #e67300;
-             }
-            """)
-            slider.setValue(58)
-            self.downloads_list.setItemWidget(item, 2, slider)
-
-            item.setText(3, "Downloading")
-            item.setText(4, "4")
-            item.setText(5, "5")
-            item.setText(6, "801.3 KB")
-            item.setText(7, "0.4 KB")
-            item.setText(8, "34:12:03")
+        self.downloads_page.initialize_downloads_page()
 
         self.show()
 
@@ -255,9 +219,6 @@ class TriblerWindow(QMainWindow):
             self.channel_stacked_widget.setCurrentIndex(PAGE_CHANNEL_COMMENTS)
         elif button_name == "channel_activity_button":
             self.channel_stacked_widget.setCurrentIndex(PAGE_CHANNEL_ACTIVITY)
-
-    def on_downloads_tab_button_clicked(self, button_name):
-        print button_name
 
     def clicked_menu_button(self, menu_button_name):
         # Deselect menu buttons
