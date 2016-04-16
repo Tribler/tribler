@@ -22,7 +22,7 @@ os.environ['VLC_PLUGIN_PATH'] = '/Applications/VLC.app/Contents/MacOS/plugins'
 # Define stacked widget page indices
 PAGE_HOME = 0
 PAGE_MY_CHANNEL = 1
-PAGE_CHANNELS_OVERVIEW = 2
+PAGE_SEARCH_RESULTS = 2
 PAGE_CHANNEL_DETAILS = 3
 PAGE_SETTINGS = 4
 PAGE_VIDEO_PLAYER = 5
@@ -53,11 +53,6 @@ class TriblerWindow(QMainWindow):
         [widget.setAttribute(Qt.WA_MacShowFocusRect, 0) for widget in self.findChildren(QLineEdit) +
          self.findChildren(QListView) + self.findChildren(QTreeWidget)]
 
-        self.channels_list = self.findChild(QListWidget, "channels_list")
-        self.channels_list.verticalScrollBar().valueChanged.connect(self.on_channels_list_scroll)
-        self.channels_list_items_loaded = 0
-        self.channels = []
-
         self.subscribed_channels_list = self.findChild(QListWidget, "subscribed_channels_list")
         self.channel_torrents_list = self.findChild(QListWidget, "channel_torrents_list")
         self.top_menu_button = self.findChild(QToolButton, "top_menu_button")
@@ -65,6 +60,7 @@ class TriblerWindow(QMainWindow):
         self.top_search_button = self.findChild(QToolButton, "top_search_button")
         self.my_profile_button = self.findChild(QToolButton, "my_profile_button")
         self.video_player_page = self.findChild(QWidget, "video_player_page")
+        self.search_results_page = self.findChild(QWidget, "search_results_page")
         self.settings_page = self.findChild(QWidget, "settings_page")
         self.my_channel_page = self.findChild(QWidget, "my_channel_page")
         self.left_menu = self.findChild(QWidget, "left_menu")
@@ -72,7 +68,7 @@ class TriblerWindow(QMainWindow):
         self.top_search_bar.returnPressed.connect(self.on_top_search_button_click)
         self.top_search_button.clicked.connect(self.on_top_search_button_click)
         self.top_menu_button.clicked.connect(self.on_top_menu_button_click)
-        self.channels_list.itemClicked.connect(self.on_channel_item_click)
+        self.search_results_list.itemClicked.connect(self.on_channel_item_click)
         self.subscribed_channels_list.itemClicked.connect(self.on_channel_item_click)
 
         self.left_menu_home_button = self.findChild(QWidget, "left_menu_home_button")
@@ -95,7 +91,7 @@ class TriblerWindow(QMainWindow):
         channel_back_button = self.findChild(QToolButton, "channel_back_button")
         channel_back_button.clicked.connect(self.on_page_back_clicked)
 
-        self.stackedWidget.setCurrentIndex(PAGE_CHANNELS_OVERVIEW)
+        self.stackedWidget.setCurrentIndex(PAGE_HOME)
 
         self.channel_tab = self.findChild(QWidget, "channel_tab")
         self.channel_tab.initialize()
@@ -138,6 +134,7 @@ class TriblerWindow(QMainWindow):
         self.left_menu.hide()
 
         self.video_player_page.initialize_player()
+        self.search_results_page.initialize_search_results_page()
         self.settings_page.initialize_settings_page()
         self.my_channel_page.initialize_my_channel_page()
 
@@ -184,10 +181,6 @@ class TriblerWindow(QMainWindow):
     def received_free_space(self, free_space):
         self.statusBar.set_free_space(free_space)
 
-    def on_channels_list_scroll(self, event):
-        if self.channels_list.verticalScrollBar().value() == self.channels_list.verticalScrollBar().maximum():
-            self.channels_list_load_next_items()
-
     def channels_list_load_next_items(self, should_fade=False):
         if len(self.channels) == self.channels_list_items_loaded:
             return
@@ -226,19 +219,6 @@ class TriblerWindow(QMainWindow):
             self.subscribed_channels_list.setItemWidget(item, widget_item)
             delay += 50
 
-    def received_search_results(self, json_results):
-        self.channels_list.clear()
-        results = json.loads(json_results)
-
-        delay = 0
-        for result in results['channels']:
-            item = QListWidgetItem(self.channels_list)
-            item.setSizeHint(QSize(-1, 60))
-            item.setData(Qt.UserRole, result)
-            widget_item = ChannelListItem(self.channels_list, delay, result)
-            self.channels_list.addItem(item)
-            self.channels_list.setItemWidget(item, widget_item)
-
     def received_torrents_in_channel(self, json_results):
         self.channel_torrents_list.clear()
         results = json.loads(json_results)
@@ -256,14 +236,11 @@ class TriblerWindow(QMainWindow):
         self.video_player_page.video_player_port = results['video']['port']
         self.settings = json.loads(json_results)
 
-        # fetch popular channels and display them
-        self.get_channels_request_manager = TriblerRequestManager()
-        self.get_channels_request_manager.get_channels(self.received_channels)
-
     def on_top_search_button_click(self):
-        self.stackedWidget.setCurrentIndex(PAGE_CHANNELS_OVERVIEW)
+        self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
         self.search_request_mgr = TriblerRequestManager()
-        self.search_request_mgr.search_channels(self.top_search_bar.text(), self.received_search_results)
+        self.search_request_mgr.search_channels(self.top_search_bar.text(),
+                                                self.search_results_page.received_search_results)
 
     def on_top_menu_button_click(self):
         if self.left_menu.isHidden():
