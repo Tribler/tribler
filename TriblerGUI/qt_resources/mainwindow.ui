@@ -698,7 +698,7 @@ padding-left: 4px;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>2</number>
+         <number>7</number>
         </property>
         <widget class="QWidget" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -4827,7 +4827,7 @@ border: none;
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="downloads">
+        <widget class="DownloadsPage" name="downloads_page">
          <layout class="QVBoxLayout" name="verticalLayout">
           <property name="spacing">
            <number>0</number>
@@ -5289,6 +5289,12 @@ background-color: #444;
    <class>SearchResultsPage</class>
    <extends>QWidget</extends>
    <header>searchresultspage.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>DownloadsPage</class>
+   <extends>QWidget</extends>
+   <header>downloadspage.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
