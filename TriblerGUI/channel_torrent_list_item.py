@@ -13,8 +13,8 @@ class ChannelTorrentListItem(QWidget):
 
         self.channel_torrent_name.setText(torrent["name"])
         if torrent["length"] is None:
-            self.torrent_size.setText("Size: -")
+            self.channel_torrent_description.setText("Size: -")
         else:
-            self.torrent_size.setText("Size: %s" % format_size(float(torrent["length"])))
+            self.channel_torrent_description.setText("Size: %s" % format_size(float(torrent["length"])))
 
-        self.torrent_type.setText("File type: %s" % torrent["category"])
+        self.channel_torrent_category.setText(torrent["category"])

@@ -5,7 +5,7 @@ from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 class TriblerRequestManager(QNetworkAccessManager):
 
-    received_search_results = pyqtSignal(str)
+    received_search_results = pyqtSignal(object)
     received_channels = pyqtSignal(str)
     received_subscribed_channels = pyqtSignal(str)
     received_torrents_in_channel = pyqtSignal(str)
@@ -25,9 +25,10 @@ class TriblerRequestManager(QNetworkAccessManager):
     def on_finished(self):
         print "REQUEST FINISHED"
 
-    def on_read_data_search_channels(self):
+    def on_read_data_search_results(self):
         data = self.reply.readAll()
-        self.received_search_results.emit(str(data))
+        results = json.loads(str(data))
+        self.received_search_results.emit(results)
 
     def on_read_data_torrents_channel(self):
         data = self.reply.readAll()
@@ -51,7 +52,7 @@ class TriblerRequestManager(QNetworkAccessManager):
 
     def search_channels(self, query, callback):
         self.received_search_results.connect(callback)
-        self.perform_get("http://localhost:8085/channel/search?q=" + query, self.on_read_data_search_channels)
+        self.perform_get("http://localhost:8085/search?q=" + query, self.on_read_data_search_results)
 
     def get_torrents_in_channel(self, channel_id, callback):
         self.received_torrents_in_channel.connect(callback)

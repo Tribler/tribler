@@ -202,6 +202,7 @@ class TriblerWindow(QMainWindow):
 
     def on_top_search_button_click(self):
         self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
+        self.search_results_page.perform_search(self.top_search_bar.text())
         self.search_request_mgr = TriblerRequestManager()
         self.search_request_mgr.search_channels(self.top_search_bar.text(),
                                                 self.search_results_page.received_search_results)

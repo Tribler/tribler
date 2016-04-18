@@ -1,17 +1,17 @@
+# coding=utf-8
 from PyQt5 import uic
-from PyQt5.QtCore import Qt, QTimer, QTimeLine, QPropertyAnimation
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import QTimer, QPropertyAnimation
 from PyQt5.QtWidgets import QWidget, QGraphicsOpacityEffect
 
 
 class ChannelListItem(QWidget):
-    def __init__(self, parent, fade_delay, channel, should_fade=False):
+    def __init__(self, parent, channel, fade_delay=0, should_fade=False):
         super(QWidget, self).__init__(parent)
 
         uic.loadUi('qt_resources/channel_list_item.ui', self)
 
         self.channel_name.setText(channel["name"])
-        self.channel_num_torrents_label.setText("Torrents: " + str(channel['torrents']))
+        self.channel_description_label.setText("Active 6 days ago • %d items" % channel["torrents"])
         self.channel_num_subs_label.setText(str(channel["votes"]))
 
         if should_fade:

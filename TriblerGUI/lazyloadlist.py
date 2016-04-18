@@ -1,0 +1,35 @@
+from PyQt5.QtCore import QSize, Qt
+from PyQt5.QtWidgets import QListWidget, QListWidgetItem
+
+
+ITEM_LOAD_BATCH = 30
+
+
+class LazyLoadList(QListWidget):
+
+    def __init__(self, parent):
+        super(LazyLoadList, self).__init__(parent)
+        self.verticalScrollBar().valueChanged.connect(self.on_list_scroll)
+        self.data_items = []  # Tuple of (ListWidgetClass, json data)
+        self.items_loaded = 0
+
+    def load_next_items(self):
+        for i in range(self.items_loaded, min(self.items_loaded + ITEM_LOAD_BATCH, len(self.data_items) - 1)):
+            item = QListWidgetItem(self)
+            item.setSizeHint(QSize(-1, 60))
+            data_item = self.data_items[i]
+            item.setData(Qt.UserRole, data_item[1])
+            widget_item = data_item[0](self, data_item[1])
+            self.addItem(item)
+            self.setItemWidget(item, widget_item)
+        self.items_loaded += ITEM_LOAD_BATCH
+
+    def set_data_items(self, items):
+        self.clear()
+        self.items_loaded = 0
+        self.data_items = items
+        self.load_next_items()
+
+    def on_list_scroll(self, event):
+        if self.verticalScrollBar().value() == self.verticalScrollBar().maximum():
+            self.load_next_items()
