@@ -122,7 +122,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.dlstate = DLSTATUS_WAITING4HASHCHECK
         self.length = 0
         self.progress = 0.0
-        self.bufferprogress = 0.0
         self.curspeeds = {DOWNLOAD: 0.0, UPLOAD: 0.0}  # bytes/s
         self.all_time_upload = 0.0
         self.all_time_download = 0.0
