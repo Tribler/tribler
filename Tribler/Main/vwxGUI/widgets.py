@@ -1773,14 +1773,17 @@ class TagText(wx.Panel):
             dc.DrawBitmap(sub, 0, 0)
 
         # Draw the rounded rectangle which will contain the text.
-        gc = wx.GraphicsContext.Create(dc)
+        widget_radius = 5
         x, y, width, height = self.GetClientRect()
-        gc.SetBrush(wx.Brush(self.fill_colour))
-        gc.SetPen(wx.Pen(self.edge_colour, 1, wx.SOLID))
-        path = gc.CreatePath()
-        path.AddRoundedRectangle(x, y, width - 1, height - 1, 5)
-        path.CloseSubpath()
-        gc.DrawPath(path)
+        # Only add rounded corners when we have enough space for it
+        if width >= widget_radius * 2 and height >= widget_radius * 2:
+            graphics_context = wx.GraphicsContext.Create(dc)
+            graphics_context.SetBrush(wx.Brush(self.fill_colour))
+            graphics_context.SetPen(wx.Pen(self.edge_colour, 1, wx.SOLID))
+            path = graphics_context.CreatePath()
+            path.AddRoundedRectangle(x, y, width - 1, height - 1, widget_radius)
+            path.CloseSubpath()
+            graphics_context.DrawPath(path)
 
         # Draw the text
         font = self.GetFont()
