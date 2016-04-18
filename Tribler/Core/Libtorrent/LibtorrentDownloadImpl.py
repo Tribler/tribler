@@ -245,6 +245,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         return can_create_deferred
 
     def network_create_engine_wrapper(self, pstate, initialdlstatus=None):
+        self._logger.debug("LibtorrentDownloadImpl: just before with self.dllock")
         with self.dllock:
             self._logger.debug("LibtorrentDownloadImpl: network_create_engine_wrapper()")
 
