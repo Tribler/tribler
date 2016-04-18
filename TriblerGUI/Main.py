@@ -34,9 +34,6 @@ PAGE_CHANNEL_COMMENTS = 1
 PAGE_CHANNEL_ACTIVITY = 2
 
 
-LIST_BATCH_SIZE = 20
-
-
 class TriblerWindow(QMainWindow):
 
     resize_event = pyqtSignal()
@@ -53,8 +50,8 @@ class TriblerWindow(QMainWindow):
         [widget.setAttribute(Qt.WA_MacShowFocusRect, 0) for widget in self.findChildren(QLineEdit) +
          self.findChildren(QListView) + self.findChildren(QTreeWidget)]
 
-        self.subscribed_channels_list = self.findChild(QListWidget, "subscribed_channels_list")
-        self.channel_torrents_list = self.findChild(QListWidget, "channel_torrents_list")
+        self.subscribed_channels_list = self.findChild(QWidget, "subscribed_channels_list")
+        self.channel_torrents_list = self.findChild(QWidget, "channel_torrents_list")
         self.top_menu_button = self.findChild(QToolButton, "top_menu_button")
         self.top_search_bar = self.findChild(QLineEdit, "top_search_bar")
         self.top_search_button = self.findChild(QToolButton, "top_search_button")
@@ -91,8 +88,6 @@ class TriblerWindow(QMainWindow):
 
         channel_back_button = self.findChild(QToolButton, "channel_back_button")
         channel_back_button.clicked.connect(self.on_page_back_clicked)
-
-        self.stackedWidget.setCurrentIndex(PAGE_HOME)
 
         self.channel_tab = self.findChild(QWidget, "channel_tab")
         self.channel_tab.initialize()
@@ -140,67 +135,33 @@ class TriblerWindow(QMainWindow):
         self.my_channel_page.initialize_my_channel_page()
         self.downloads_page.initialize_downloads_page()
 
+        self.stackedWidget.setCurrentIndex(PAGE_HOME)
+
         self.show()
 
     def received_free_space(self, free_space):
         self.statusBar.set_free_space(free_space)
 
-    def channels_list_load_next_items(self, should_fade=False):
-        if len(self.channels) == self.channels_list_items_loaded:
-            return
-
-        delay = 0
-        for i in range(self.channels_list_items_loaded,
-                       min(self.channels_list_items_loaded + LIST_BATCH_SIZE, len(self.channels) - 1)):
-            channel_data = self.channels[i]
-            item = QListWidgetItem(self.channels_list)
-            item.setSizeHint(QSize(-1, 60))
-            item.setData(Qt.UserRole, channel_data)
-            widget_item = ChannelListItem(self.channels_list, delay, channel_data, should_fade)
-            self.channels_list.addItem(item)
-            self.channels_list.setItemWidget(item, widget_item)
-            delay += 50
-
-        self.channels_list_items_loaded += LIST_BATCH_SIZE
-
-    def received_channels(self, json_results):
-        self.channels_list.clear()
-        self.channels = json.loads(json_results)['channels']
-        self.channels_list_items_loaded = 0
-        self.channels_list_load_next_items(should_fade=True)
-
-    def received_subscribed_channels(self, json_results):
-        self.subscribed_channels_list.clear()
-        results = json.loads(json_results)
-
-        delay = 0
+    def received_subscribed_channels(self, results):
+        items = []
         for result in results['subscribed']:
-            item = QListWidgetItem(self.subscribed_channels_list)
-            item.setSizeHint(QSize(-1, 60))
-            item.setData(Qt.UserRole, result)
-            widget_item = ChannelListItem(self.subscribed_channels_list, delay, result)
-            self.subscribed_channels_list.addItem(item)
-            self.subscribed_channels_list.setItemWidget(item, widget_item)
-            delay += 50
+            items.append((ChannelListItem, result))
+        self.subscribed_channels_list.set_data_items(items)
 
-    def received_torrents_in_channel(self, json_results):
-        self.channel_torrents_list.clear()
-        results = json.loads(json_results)
-
+    def received_torrents_in_channel(self, results):
+        items = []
         for result in results['torrents']:
-            item = QListWidgetItem(self.channel_torrents_list)
-            item.setSizeHint(QSize(-1, 60))
-            item.setData(Qt.UserRole, result)
-            widget_item = ChannelTorrentListItem(self.channel_torrents_list, result)
-            self.channel_torrents_list.addItem(item)
-            self.channel_torrents_list.setItemWidget(item, widget_item)
+            items.append((ChannelTorrentListItem, result))
+        self.channel_torrents_list.set_data_items(items)
 
     def received_settings(self, json_results):
+        self.left_menu_home_button.selectMenuButton()
         results = json.loads(json_results)
         self.video_player_page.video_player_port = results['video']['port']
         self.settings = json.loads(json_results)
 
     def on_top_search_button_click(self):
+        self.clicked_menu_button("-")
         self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
         self.search_results_page.perform_search(self.top_search_bar.text())
         self.search_request_mgr = TriblerRequestManager()

@@ -13,6 +13,10 @@ class ChannelListItem(QWidget):
         self.channel_name.setText(channel["name"])
         self.channel_description_label.setText("Active 6 days ago • %d items" % channel["torrents"])
         self.channel_num_subs_label.setText(str(channel["votes"]))
+        if channel["sub"]:
+            self.channel_subscribe_button.setText("✓ subscribed")
+        else:
+            self.channel_subscribe_button.setText("subscribe")
 
         if should_fade:
             self.opacity_effect = QGraphicsOpacityEffect(self)

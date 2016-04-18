@@ -698,7 +698,7 @@ padding-left: 4px;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>2</number>
+         <number>6</number>
         </property>
         <widget class="QWidget" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -2775,7 +2775,7 @@ border-top: 1px solid #555;
                <number>0</number>
               </property>
               <item>
-               <widget class="QListWidget" name="channel_torrents_list">
+               <widget class="LazyLoadList" name="channel_torrents_list">
                 <property name="styleSheet">
                  <string notr="true">QListWidget::item:hover {
 background-color: #999;
@@ -4851,7 +4851,7 @@ font-size: 14px;
            </widget>
           </item>
           <item>
-           <widget class="QListWidget" name="subscribed_channels_list">
+           <widget class="LazyLoadList" name="subscribed_channels_list">
             <property name="styleSheet">
              <string notr="true">QListWidget::item:hover {
 background-color: #999;
@@ -4862,6 +4862,9 @@ border-bottom: 1px solid #555;
 QListWidget {
 border: none;
 }</string>
+            </property>
+            <property name="verticalScrollMode">
+             <enum>QAbstractItemView::ScrollPerPixel</enum>
             </property>
            </widget>
           </item>
