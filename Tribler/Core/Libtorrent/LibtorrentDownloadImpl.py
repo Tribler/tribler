@@ -186,6 +186,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 self._logger.debug(u"setup: initialdlstatus %s %s", hexlify(self.tdef.get_infohash()), initialdlstatus)
 
                 def schedule_create_engine():
+                    self._logger.debug("At start of schedule_create_engine")
                     self.cew_scheduled = True
                     create_engine_wrapper_deferred = self.network_create_engine_wrapper(self.pstate_for_restart, initialdlstatus)
                     create_engine_wrapper_deferred.chainDeferred(deferred)
@@ -210,10 +211,13 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         Notifies when it's ready by calling the callback of the deferred being returned.
         :return: A deferred that will be called when you can create the engine wrapper.
         """
+        self._logger.debug("Starting in can_create_engine_wrapper")
         can_create_deferred = Deferred()
         def do_check():
+            self._logger.debug("Starting in do_check")
             with self.dllock:
                 if not self.cew_scheduled:
+                    self._logger.debug("NOT self.cew_scheduled")
                     self.ltmgr = self.session.lm.ltmgr
                     dht_ok = not isinstance(self.tdef, TorrentDefNoMetainfo) or self.ltmgr.is_dht_ready()
                     tunnel_community = self.ltmgr.trsession.lm.tunnel_community
@@ -234,6 +238,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                         can_create_deferred.callback(True)
                 else:
                     # Schedule this function call to be called again in 5 seconds
+                    self._logger.debug("Scheduling can_create_engine_wrapper again")
                     self.session.lm.threadpool.add_task(do_check, 5)
 
         do_check()

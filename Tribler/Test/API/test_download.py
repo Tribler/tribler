@@ -1,5 +1,5 @@
 from binascii import hexlify
-import logging
+import logging.config
 import os
 import shutil
 import threading
@@ -8,6 +8,9 @@ from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_DOWNLOADING
 from Tribler.Test.common import UBUNTU_1504_INFOHASH
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.test_libtorrent_download import TORRENT_FILE
+
+logging.config.fileConfig("logger.conf")
+logger = logging.getLogger('TunnelMain')
 
 
 class TestDownload(TestAsServer):
@@ -18,7 +21,7 @@ class TestDownload(TestAsServer):
 
     def __init__(self, *argv, **kwargs):
         super(TestDownload, self).__init__(*argv, **kwargs)
-        self._logger = logging.getLogger(self.__class__.__name__)
+        #self._logger = logging.getLogger(self.__class__.__name__)
 
     def setUp(self):
         """ override TestAsServer """
