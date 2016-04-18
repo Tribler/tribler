@@ -1,11 +1,10 @@
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QStackedWidget, QListWidget, QListWidgetItem, QTreeWidget, \
+from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QStackedWidget, QTreeWidget, \
     QTreeWidgetItem, QToolButton, QFileDialog
 
+from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 
 # Define stacked widget page indices
-from TriblerGUI.confirmationdialog import ConfirmationDialog
-
 PAGE_MY_CHANNEL_OVERVIEW = 0
 PAGE_MY_CHANNEL_SETTINGS = 1
 PAGE_MY_CHANNEL_TORRENTS = 2
