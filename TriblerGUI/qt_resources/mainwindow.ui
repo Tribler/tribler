@@ -698,7 +698,7 @@ padding-left: 4px;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>7</number>
+         <number>2</number>
         </property>
         <widget class="QWidget" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -2132,7 +2132,7 @@ font-size: 14px;
               </spacer>
              </item>
              <item>
-              <widget class="QLabel" name="label_22">
+              <widget class="QLabel" name="search_results_header_label">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -2161,6 +2161,46 @@ font-weight: bold;</string>
                 <string>Search results for 'test'</string>
                </property>
               </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_36">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QLabel" name="num_search_results_label">
+               <property name="styleSheet">
+                <string notr="true">font-size: 14px;
+color: white;</string>
+               </property>
+               <property name="text">
+                <string>34843 results</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_37">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>10</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
              </item>
             </layout>
            </widget>
@@ -2324,7 +2364,7 @@ font-size: 14px;
            </widget>
           </item>
           <item>
-           <widget class="QListWidget" name="search_results_list">
+           <widget class="LazyLoadList" name="search_results_list">
             <property name="styleSheet">
              <string notr="true">QListWidget::item:hover {
 background-color: #999;
@@ -5296,6 +5336,11 @@ background-color: #444;
    <extends>QWidget</extends>
    <header>downloadspage.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>LazyLoadList</class>
+   <extends>QListWidget</extends>
+   <header>lazyloadlist.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

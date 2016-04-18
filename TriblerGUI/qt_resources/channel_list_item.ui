@@ -66,7 +66,7 @@
      </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>10</width>
+       <width>14</width>
        <height>20</height>
       </size>
      </property>
@@ -81,19 +81,82 @@
       <number>0</number>
      </property>
      <item>
-      <widget class="QLabel" name="channel_name">
-       <property name="styleSheet">
-        <string notr="true">QLabel {
+      <spacer name="verticalSpacer">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::Fixed</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>10</width>
+         <height>7</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <property name="spacing">
+        <number>4</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="channel_tag">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>54</width>
+           <height>18</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>54</width>
+           <height>18</height>
+          </size>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: #9ACD32;
+border-radius: 3px;
+color: black;
+font-size: 12px;</string>
+         </property>
+         <property name="text">
+          <string>channel</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="channel_name">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QLabel {
 color: #eee;
 border: none;
 background-color: transparent;
-font-size: 16px;
+font-size: 15px;
 }</string>
-       </property>
-       <property name="text">
-        <string>TextLabel</string>
-       </property>
-      </widget>
+         </property>
+         <property name="text">
+          <string>TextLabel</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -101,9 +164,9 @@ font-size: 16px;
         <number>-1</number>
        </property>
        <item>
-        <widget class="QLabel" name="channel_num_torrents_label">
+        <widget class="QLabel" name="channel_description_label">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
@@ -116,7 +179,7 @@ font-size: 16px;
          </property>
          <property name="maximumSize">
           <size>
-           <width>100</width>
+           <width>16777215</width>
            <height>16777215</height>
           </size>
          </property>
@@ -125,46 +188,31 @@ font-size: 16px;
 color: #eee;
 border: none;
 background-color: transparent;
-font-size: 14px;
+font-size: 15px;
 }</string>
          </property>
          <property name="text">
-          <string>Torrents: 343423</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="horizontalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Fixed</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item>
-        <widget class="QLabel" name="label">
-         <property name="styleSheet">
-          <string notr="true">QLabel {
-color: #eee;
-border: none;
-background-color: transparent;
-font-size: 14px;
-}</string>
-         </property>
-         <property name="text">
-          <string>Latest update: today 13:37</string>
+          <string>active 6 days ago • 143 items</string>
          </property>
         </widget>
        </item>
       </layout>
+     </item>
+     <item>
+      <spacer name="verticalSpacer_2">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+       <property name="sizeType">
+        <enum>QSizePolicy::Fixed</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>20</width>
+         <height>7</height>
+        </size>
+       </property>
+      </spacer>
      </item>
     </layout>
    </item>
