@@ -77,6 +77,10 @@ sessdefaults['tunnel_community'] = OrderedDict()
 sessdefaults['tunnel_community']['socks5_listen_ports'] = [-1] * 5
 sessdefaults['tunnel_community']['exitnode_enabled'] = False
 
+# Multichain community section
+sessdefaults['multichain'] = OrderedDict()
+sessdefaults['multichain']['enabled'] = False
+
 # Barter community section
 sessdefaults['barter_community'] = OrderedDict()
 sessdefaults['barter_community']['enabled'] = False

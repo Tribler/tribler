@@ -421,6 +421,7 @@ class ABCApp(object):
             from Tribler.community.channel.preview import PreviewChannelCommunity
             from Tribler.community.tunnel.tunnel_community import TunnelSettings
             from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
+            from Tribler.community.multichain.community import MultiChainCommunity
 
             # make sure this is only called once
             session.remove_observer(define_communities)
@@ -447,6 +448,12 @@ class ABCApp(object):
             settings = TunnelSettings(session.get_install_dir(), tribler_session=session)
             tunnel_kwargs = {'tribler_session': session, 'settings': settings}
 
+            if self.sconfig.get_enable_multichain():
+                # Start the multichain community and hook in the multichain scheduler.
+                multichain = dispersy.define_auto_load(MultiChainCommunity, dispersy_member, load=True)[0]
+
+            # The multichain community MUST be auto_loaded before the tunnel community,
+            #  because it must be unloaded after the tunnel, so that the tunnel closures can be signed
             self.tunnel_community = dispersy.define_auto_load(HiddenTunnelCommunity, dispersy_member, load=True,
                                                               kargs=tunnel_kwargs)[0]
 

@@ -313,6 +313,12 @@ class SettingsDialog(wx.Dialog):
             self.utility.session.set_libtorrent_utp(enable_utp)
             scfg.set_libtorrent_utp(enable_utp)
 
+        # Multichain
+        use_multichain = self._use_multichain.IsChecked()
+        if use_multichain != self.utility.session.get_enable_multichain():
+            scfg.set_enable_multichain(use_multichain)
+            restart = True
+
         scfg.save(cfgfilename)
 
         self.utility.flush_config()
@@ -800,9 +806,16 @@ class SettingsDialog(wx.Dialog):
         exp_s2_sizer.Add(proxytext, 0, wx.EXPAND | wx.BOTTOM, 10)
         exp_s2_sizer.Add(slider_sizer, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
 
+        exp_s3_sizer = create_subsection(exp_panel, exp_vsizer, "Multichain", 1, 3)
+        multichain_text = wx.StaticText(exp_panel, -1, 'Multichain is a blockchain-based way to keep track of sharing ratio, and eventually prevent freeriding.\nIt is currently still in an early phase of development.')
+        exp_s3_sizer.Add(multichain_text, 0, wx.EXPAND | wx.TOP, 5)
+        self._use_multichain = wx.CheckBox(exp_panel, label="Enable multichain")
+        exp_s3_sizer.Add(self._use_multichain, 0, wx.EXPAND)
+
         # load values
         self._become_exitnode.SetValue(self.utility.session.get_tunnel_community_exitnode_enabled())
         self._sliderhops.SetValue(self.utility.read_config('default_number_hops'))
+        self._use_multichain.SetValue(self.utility.session.get_enable_multichain())
 
         return exp_panel, item_id
 

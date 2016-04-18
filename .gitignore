@@ -35,3 +35,8 @@ test_file.torrent
 
 # pycharm
 **.idea/
+
+# Ignore nosetest coverage output
+cover/
+htmlcov/
+.coverage

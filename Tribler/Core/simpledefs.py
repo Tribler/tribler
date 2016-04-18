@@ -112,6 +112,7 @@ NTFY_EXTENDED_FOR = 'extended_for'
 NTFY_BROKEN = 'broken'
 NTFY_SELECT = 'select'
 NTFY_JOINED = 'joined'
+NTFY_REMOVE = 'remove'
 
 # object IDs for NTFY_ACTIVITIES subject
 NTFY_ACT_NONE = 0

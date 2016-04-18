@@ -37,6 +37,7 @@ from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.util import call_on_reactor_thread
 import logging
 
+
 class CircuitRequestCache(NumberCache):
 
     def __init__(self, community, circuit):
@@ -556,6 +557,8 @@ class TunnelCommunity(Community):
     def remove_circuit(self, circuit_id, additional_info='', destroy=False):
         assert isinstance(circuit_id, (long, int)), type(circuit_id)
 
+        self.tunnel_logger.info("MULTICHAIN: Removing circuit")
+
         if circuit_id in self.circuits:
             self.tunnel_logger.info("removing circuit %d " + additional_info, circuit_id)
 
@@ -563,6 +566,14 @@ class TunnelCommunity(Community):
                 self.destroy_circuit(circuit_id)
 
             circuit = self.circuits.pop(circuit_id)
+            if self.notifier:
+                peer = (circuit.first_hop[0], circuit.first_hop[1])
+                candidate = self.get_candidate(peer)
+                if candidate:
+                    from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
+                    self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, self.stats, candidate)
+                else:
+                    self.tunnel_logger.warning("MULTICHAIN: Tunnel candidate not found")
             circuit.destroy()
 
             affected_peers = self.socks_server.circuit_dead(circuit)
@@ -586,6 +597,9 @@ class TunnelCommunity(Community):
         return False
 
     def remove_relay(self, circuit_id, additional_info='', destroy=False, got_destroy_from=None, both_sides=True):
+
+        self.tunnel_logger.info("MULTICHAIN: Removing relay")
+
         # Find other side of relay
         to_remove = [circuit_id]
         if both_sides:
@@ -601,7 +615,15 @@ class TunnelCommunity(Community):
             if cid in self.relay_from_to:
                 self.tunnel_logger.warning("Removing relay %d %s", cid, additional_info)
                 # Remove the relay
-                del self.relay_from_to[cid]
+                relay = self.relay_from_to.pop(cid)
+                if self.notifier:
+                    peer = (relay.sock_addr[0], relay.sock_addr[1])
+                    candidate = self.get_candidate(peer)
+                    if candidate:
+                        from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
+                        self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, relay, self.stats, candidate)
+                    else:
+                        self.tunnel_logger.warning("MULTICHAIN: Tunnel candidate not found")
                 # Remove old session key
                 if cid in self.relay_session_keys:
                     del self.relay_session_keys[cid]
@@ -609,12 +631,23 @@ class TunnelCommunity(Community):
                 self.tunnel_logger.error("Could not remove relay %d %s", circuit_id, additional_info)
 
     def remove_exit_socket(self, circuit_id, additional_info='', destroy=False):
+
+        self.tunnel_logger.info("MULTICHAIN: Removing exit socket")
+
         if circuit_id in self.exit_sockets:
             if destroy:
                 self.destroy_exit_socket(circuit_id)
 
             # Close socket
             exit_socket = self.exit_sockets.pop(circuit_id)
+            if self.notifier:
+                peer = (exit_socket.sock_addr[0], exit_socket.sock_addr[1])
+                candidate = self.get_candidate(peer)
+                if candidate:
+                    from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
+                    self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, exit_socket, self.stats, candidate)
+                else:
+                    self.tunnel_logger.warning("MULTICHAIN: Tunnel candidate not found")
             if exit_socket.enabled:
                 self.tunnel_logger.info("Removing exit socket %d %s", circuit_id, additional_info)
                 exit_socket.close()
