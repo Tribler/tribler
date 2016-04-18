@@ -3,9 +3,11 @@
 
 from binascii import hexlify
 import os
+import shutil
+from Tribler.Core.Utilities.network_utils import get_random_port
 
 from Tribler.Test.common import UBUNTU_1504_INFOHASH
-from Tribler.Test.test_libtorrent_download import TORRENT_R
+from Tribler.Test.test_libtorrent_download import TORRENT_FILE, TORRENT_VIDEO_FILE
 from Tribler.Test.test_as_server import TestGuiAsServer, TESTS_DATA_DIR
 
 from Tribler.Core.TorrentDef import TorrentDef
@@ -14,6 +16,25 @@ DEBUG = True
 
 
 class TestMyChannel(TestGuiAsServer):
+
+    def setUp(self):
+        super(TestMyChannel, self).setUp()
+
+        # Prepare test_rss.xml file, replace the port with a random one
+        self.file_server_port = get_random_port()
+        with open(os.path.join(TESTS_DATA_DIR, 'test_rss.xml'), 'r') as source_xml,\
+                open(os.path.join(self.session_base_dir, 'test_rss.xml'), 'w') as destination_xml:
+                for line in source_xml:
+                    destination_xml.write(line.replace('RANDOMPORT', str(self.file_server_port)))
+
+        # Setup file server to serve torrent file and thumbnails
+        files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
+        os.mkdir(files_path)
+        shutil.copyfile(TORRENT_FILE, os.path.join(files_path, 'ubuntu.torrent'))
+        shutil.copyfile(TORRENT_VIDEO_FILE, os.path.join(files_path, 'video.torrent'))
+        shutil.copyfile(os.path.join(TESTS_DATA_DIR, 'ubuntu-logo14.png'),
+                        os.path.join(files_path, 'ubuntu-logo14.png'))
+        self.setUpFileServer(self.file_server_port, files_path)
 
     def test_rss_import(self):
         def do_files_check():
@@ -32,7 +53,7 @@ class TestMyChannel(TestGuiAsServer):
                 60, lambda: len(managefiles.GetItems()) > 0, do_files_check, 'Channel did not have torrents')
 
         def do_rss():
-            self.managechannel.rss_url.SetValue(os.path.join(TESTS_DATA_DIR, 'test_rss.xml'))
+            self.managechannel.rss_url.SetValue(os.path.join(self.session_base_dir, 'test_rss.xml'))
             self.managechannel.OnAddRss()
 
             # switch to manage tab
@@ -94,7 +115,7 @@ class TestMyChannel(TestGuiAsServer):
             managefiles = self.managechannel.fileslist
             manager = managefiles.GetManager()
             manager.startDownload(torrentfilename, fixtorrent=True)
-            manager.startDownloadFromUrl(TORRENT_R, fixtorrent=True)
+            manager.startDownloadFromUrl(r'http://localhost:%s/video.torrent' % self.file_server_port, fixtorrent=True)
             manager.startDownloadFromMagnet(
                 r'magnet:?xt=urn:btih:%s&dn=ubuntu-14.04.2-desktop-amd64.iso' % hexlify(UBUNTU_1504_INFOHASH), fixtorrent=True)
 
@@ -150,7 +171,7 @@ class TestMyChannel(TestGuiAsServer):
                 60, lambda: len(managefiles.GetItems()) > 0, check_home, 'Channel did not have torrents')
 
         def do_rss():
-            self.managechannel.rss_url.SetValue(os.path.join(TESTS_DATA_DIR, 'test_rss.xml'))
+            self.managechannel.rss_url.SetValue(os.path.join(self.session_base_dir, 'test_rss.xml'))
             self.managechannel.OnAddRss()
 
             # switch to manage tab

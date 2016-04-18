@@ -528,7 +528,7 @@ DROP TABLE IF EXISTS MetaDataTypes;
         # TODO(emilon): It would be nice to drop the corrupted torrent data from the store as a bonus.
         self.status_update_func("Registering recovered torrents...")
         try:
-            for infoshash_str, torrent_data in self.torrent_store.itervalues():
+            for infoshash_str, torrent_data in self.torrent_store.iteritems():
                 self.status_update_func("> %s" % infoshash_str)
                 torrentdef = TorrentDef.load_from_memory(torrent_data)
                 if torrentdef.is_finalized():

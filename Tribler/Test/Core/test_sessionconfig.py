@@ -26,7 +26,7 @@ class TestSessionConfig(TriblerCoreTest):
         sci.set_state_dir(self.session_base_dir)
         self.assertEqual(sci.get_state_dir(), self.session_base_dir)
 
-        self.assertIsInstance(sci.get_install_dir(), str)
+        self.assertIsInstance(sci.get_install_dir(), (unicode, str))
         self.assertIsInstance(sci.get_permid_keypair_filename(), str)
 
         sci.set_listen_port(1337)

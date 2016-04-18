@@ -3,7 +3,17 @@
 # see LICENSE.txt for license information
 
 # Initialize x11 threads before doing anything X11 related.
+import threading
+
 from twisted.internet.base import BasePort
+from twisted.internet.defer import Deferred, maybeDeferred, succeed
+from twisted.web.server import Site
+from twisted.web.static import File
+
+from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING, UPLOAD
+
 from Tribler.Main.Utility.utility import initialize_x11_threads
 initialize_x11_threads()
 
@@ -34,8 +44,9 @@ from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
 import wx
-from .util import process_unhandled_exceptions
+from .util import process_unhandled_exceptions, UnhandledTwistedExceptionCatcher, process_unhandled_twisted_exceptions
 
+from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core import defaults
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
@@ -102,21 +113,25 @@ class AbstractServer(BaseTestCase):
         os.makedirs(self.session_base_dir)
         self.annotate_dict = {}
 
+        self.file_server = None
+
         if annotate:
             self.annotate(self._testMethodName, start=True)
         self.watchdog.start()
-
 
     def setUpCleanup(self):
         # Change to an existing dir before cleaning up.
         os.chdir(TESTS_DIR)
         shutil.rmtree(unicode(self.session_base_dir), ignore_errors=True)
 
-    def tearDown(self, annotate=True):
-        self.tearDownCleanup()
-        if annotate:
-            self.annotate(self._testMethodName, start=False)
+    def setUpFileServer(self, port, path):
+        # Create a local file server, can be used to serve local files. This is preferred over an external network
+        # request in order to get files.
+        resource = File(path)
+        factory = Site(resource)
+        self.file_server = reactor.listenTCP(port, factory)
 
+    def checkReactor(self, _):
         delayed_calls = reactor.getDelayedCalls()
         if delayed_calls:
             self._logger.error("The reactor was dirty:")
@@ -130,12 +145,25 @@ class AbstractServer(BaseTestCase):
         for reader in open_readers:
             self.assertNotIsInstance(reader, BasePort, "The test left a listening port behind: %s" % reader)
 
+    @deferred(timeout=5)
+    def tearDown(self, annotate=True):
+        self.tearDownCleanup()
+        if annotate:
+            self.annotate(self._testMethodName, start=False)
+
         process_unhandled_exceptions()
+        process_unhandled_twisted_exceptions()
+
         self.watchdog.join(2)
         if self.watchdog.is_alive():
             self._logger.critical("The WatchDog didn't stop!")
             self.watchdog.print_all_stacks()
             raise RuntimeError("Couldn't stop the WatchDog")
+
+        if self.file_server:
+            return maybeDeferred(self.file_server.stopListening).addCallback(self.checkReactor)
+        else:
+            return succeed(self.checkReactor)
 
     def tearDownCleanup(self):
         self.setUpCleanup()
@@ -185,6 +213,8 @@ class TestAsServer(AbstractServer):
         self.setUpPreSession()
 
         self.quitting = False
+        self.seeding_event = threading.Event()
+        self.seeder_session = None
 
         self.session = Session(self.config)
         upgrader = self.session.prestart()
@@ -227,12 +257,81 @@ class TestAsServer(AbstractServer):
             self._shutdown_session(self.session)
             Session.del_instance()
 
+        self.stop_seeder()
+
         ts = enumerate_threads()
         self._logger.debug("test_as_server: Number of threads still running %d", len(ts))
         for t in ts:
             self._logger.debug("Thread still running %s, daemon: %s, instance: %s", t.getName(), t.isDaemon(), t)
 
         super(TestAsServer, self).tearDown(annotate=False)
+
+    def create_local_torrent(self, source_file):
+        '''
+        This method creates a torrent from a local file and saves the torrent in the session state dir.
+        Note that the source file needs to exist.
+        '''
+        self.assertTrue(os.path.exists(source_file))
+
+        tdef = TorrentDef()
+        tdef.add_content(source_file)
+        tdef.set_tracker("http://localhost/announce")
+        tdef.finalize()
+
+        torrent_path = os.path.join(self.session.get_state_dir(), "seed.torrent")
+        tdef.save(torrent_path)
+
+        return tdef, torrent_path
+
+    def setup_seeder(self, tdef, seed_dir):
+        self.seed_config = SessionStartupConfig()
+        self.seed_config.set_torrent_checking(False)
+        self.seed_config.set_multicast_local_peer_discovery(False)
+        self.seed_config.set_megacache(False)
+        self.seed_config.set_dispersy(False)
+        self.seed_config.set_mainline_dht(False)
+        self.seed_config.set_torrent_store(False)
+        self.seed_config.set_enable_torrent_search(False)
+        self.seed_config.set_enable_channel_search(False)
+        self.seed_config.set_torrent_collecting(False)
+        self.seed_config.set_libtorrent(True)
+        self.seed_config.set_dht_torrent_collecting(False)
+        self.seed_config.set_videoplayer(False)
+        self.seed_config.set_enable_metadata(False)
+        self.seed_config.set_upgrader_enabled(False)
+        self.seed_config.set_state_dir(self.getStateDir(2))
+
+        self.dscfg_seed = DownloadStartupConfig()
+        self.dscfg_seed.set_dest_dir(self.getDestDir(2))
+
+        self.seeder_session = Session(self.seed_config, ignore_singleton=True)
+        self.seeder_session.prestart()
+        self.seeder_session.start()
+
+        time.sleep(2)
+
+        self.dscfg = DownloadStartupConfig()
+        self.dscfg.set_dest_dir(seed_dir)
+        self.dscfg.set_max_speed(UPLOAD, 3)
+        d = self.seeder_session.start_download_from_tdef(tdef, self.dscfg)
+        d.set_state_callback(self.seeder_state_callback)
+
+        self._logger.debug("starting to wait for download to reach seeding state")
+        assert self.seeding_event.wait(60)
+
+    def stop_seeder(self):
+        if self.seeder_session is not None:
+            self._shutdown_session(self.seeder_session)
+
+    def seeder_state_callback(self, ds):
+        d = ds.get_download()
+        self._logger.debug("seeder status: %s %s %s", repr(d.get_def().get_name()), dlstatus_strings[ds.get_status()],
+                           ds.get_progress())
+
+        if ds.get_status() == DLSTATUS_SEEDING:
+            self.seeding_event.set()
+
+        return 1.0, False
 
     def _shutdown_session(self, session):
         session_shutdown_start = time.time()
@@ -358,6 +457,8 @@ class TestGuiAsServer(TestAsServer):
         self.frame = None
         self.lm = None
         self.session = None
+        self.seeding_event = threading.Event()
+        self.seeder_session = None
 
         self.hadSession = False
         self.quitting = False
@@ -423,6 +524,7 @@ class TestGuiAsServer(TestAsServer):
             self._logger.debug("GUIUtility ready, starting to wait for frame to be ready")
             self.frame = self.guiUtility.frame
             self.frame.Maximize()
+            self.guiUtility.utility.write_config('default_safeseeding_enabled', False)
             self.CallConditional(30, lambda: self.frame.ready, call_callback)
 
         def wait_for_init():
@@ -502,6 +604,8 @@ class TestGuiAsServer(TestAsServer):
 
         time.sleep(1)
         gc.collect()
+
+        self.stop_seeder()
 
         ts = enumerate_threads()
         if ts:

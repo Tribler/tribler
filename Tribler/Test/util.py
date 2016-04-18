@@ -39,6 +39,7 @@ import logging
 import sys
 
 # logging.basicConfig()
+from twisted.python.log import addObserver
 
 __all__ = ["process_unhandled_exceptions"]
 
@@ -110,10 +111,30 @@ class UnhandledExceptionCatcher(object):
 
             raise Exception("Test raised %d unhandled exceptions, last one was: %s" % (exc_counter, last_exc))
 
+
+class UnhandledTwistedExceptionCatcher(object):
+
+    def __init__(self):
+        self._twisted_exceptions = []
+
+        def unhandled_error_observer(event):
+            if event['isError']:
+                self._twisted_exceptions.append(event)
+
+        addObserver(unhandled_error_observer)
+
+    def check_exceptions(self):
+        num_twisted_exceptions = len(self._twisted_exceptions)
+        if num_twisted_exceptions > 0:
+            raise Exception("Test raised %d unhandled Twisted exceptions, last one was: %s"
+                            % (num_twisted_exceptions, self._twisted_exceptions[-1]['log_text']))
+
+
 _catcher = UnhandledExceptionCatcher()
+_twisted_catcher = UnhandledTwistedExceptionCatcher()
 
 process_unhandled_exceptions = _catcher.check_exceptions
-
+process_unhandled_twisted_exceptions = _twisted_catcher.check_exceptions
 
 #
 # util.py ends here

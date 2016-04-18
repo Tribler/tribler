@@ -3,7 +3,9 @@ import os
 from apsw import SQLError, CantOpenError
 
 import shutil
+from unittest import skipIf
 from nose.tools import raises
+import sys
 
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_SCRIPT_NAME, CorruptedDatabaseError
@@ -94,6 +96,7 @@ class TestSqliteCacheDB(TriblerCoreTest):
         sqlite_test_2.initial_begin()
 
     @blocking_call_on_reactor_thread
+    @skipIf(sys.platform == "win32", "chmod does not work on Windows")
     @raises(IOError)
     def test_no_permission_on_script(self):
         db_path = os.path.join(self.session_base_dir, "test_db.db")
@@ -118,6 +121,7 @@ class TestSqliteCacheDB(TriblerCoreTest):
         sqlite_test_2.clean_db(vacuum=True, exiting=True)
 
     @blocking_call_on_reactor_thread
+    @skipIf(sys.platform == "win32", "chmod does not work on Windows")
     @raises(CantOpenError)
     def test_open_db_connection_no_permission(self):
         os.chmod(os.path.join(self.session_base_dir), 0)

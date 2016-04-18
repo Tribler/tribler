@@ -43,8 +43,8 @@ from Tribler.Core.TorrentDef import TorrentDef
 
 class TorrentMigrator65(TorrentMigrator64):
 
-    def __init__(self, session, db, torrent_store, status_update_func=None):
-        super(TorrentMigrator65, self).__init__(session, db, status_update_func)
+    def __init__(self, torrent_collecting_dir, state_dir, torrent_store, status_update_func=None):
+        super(TorrentMigrator65, self).__init__(torrent_collecting_dir, state_dir, status_update_func)
         self.torrent_store = torrent_store
 
     def _migrate_torrent_collecting_dir(self):
