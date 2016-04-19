@@ -257,15 +257,21 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             atp["duplicate_is_error"] = True
             atp["hops"] = self.get_hops()
 
+            self._logger.debug("checkpoint 1")
+
             resume_data = pstate.get('state', 'engineresumedata') if pstate else None
             if not isinstance(self.tdef, TorrentDefNoMetainfo):
                 metainfo = self.tdef.get_metainfo()
                 torrentinfo = lt.torrent_info(metainfo)
 
+                self._logger.debug("checkpoint 2")
+
                 self.orig_files = [file_entry.path.decode('utf-8') for file_entry in torrentinfo.files()]
                 is_multifile = len(self.orig_files) > 1
                 commonprefix = os.path.commonprefix(self.orig_files) if is_multifile else ''
                 swarmname = commonprefix.partition(os.path.sep)[0]
+
+                self._logger.debug("checkpoint 3")
 
                 if is_multifile and swarmname != self.correctedinfoname:
                     for i, filename_old in enumerate(self.orig_files):
@@ -278,17 +284,23 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                             torrentinfo.rename_file(i, filename_new.encode("utf-8"))
                         self.orig_files[i] = filename_new
 
+                self._logger.debug("checkpoint 4")
+
                 atp["ti"] = torrentinfo
                 has_resume_data = resume_data and isinstance(resume_data, dict)
                 if has_resume_data:
                     atp["resume_data"] = lt.bencode(resume_data)
                 self._logger.info("%s %s", self.tdef.get_name_as_unicode(), dict((k, v)
                                   for k, v in resume_data.iteritems() if k not in ['pieces', 'piece_priority', 'peers']) if has_resume_data else None)
+                self._logger.debug("checkpoint 5")
             else:
                 atp["url"] = self.tdef.get_url() or "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash())
                 atp["name"] = self.tdef.get_name_as_unicode()
+                self._logger.debug("checkpoint 7")
 
             self.handle = self.ltmgr.add_torrent(self, atp)
+
+            self._logger.debug("checkpoint 7")
 
             if self.handle:
                 self.set_selected_files()
@@ -305,8 +317,12 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
                 self.handle.resolve_countries(True)
 
+                self._logger.debug("checkpoint 8")
+
             else:
                 self._logger.info("Could not add torrent to LibtorrentManager %s", self.tdef.get_name_as_unicode())
+
+                self._logger.debug("checkpoint 9")
 
             self.cew_scheduled = False
 
