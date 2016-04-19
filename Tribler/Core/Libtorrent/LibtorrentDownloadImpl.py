@@ -2,6 +2,7 @@
 import logging
 import os
 import sys
+from threading import RLock
 import time
 from binascii import hexlify
 from traceback import print_exc
@@ -100,7 +101,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
     def __init__(self, session, tdef):
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.dllock = NoDispersyRLock()
+        self.dllock = RLock()
         self.session = session
         self.tdef = tdef
         self.handle = None
@@ -168,6 +169,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             # The deferred to be returned
             deferred = Deferred()
             with self.dllock:
+                print "hereeeeeeee"
                 # Copy dlconfig, from default if not specified
                 if dcfg is None:
                     cdcfg = DownloadStartupConfig()
