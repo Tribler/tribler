@@ -252,9 +252,12 @@ class LibtorrentMgr(TaskManager):
         return self.dht_ready
 
     def add_torrent(self, torrentdl, atp):
+        print "add torrent 1"
         # If we are collecting the torrent for this infohash, abort this first.
         with self.metainfo_lock:
+            print "add torrent 2"
             ltsession = self.get_session(atp.pop('hops', 0))
+            print "add torrent 3"
 
             if 'ti' in atp:
                 infohash = str(atp['ti'].info_hash())
@@ -263,17 +266,25 @@ class LibtorrentMgr(TaskManager):
             else:
                 raise ValueError('No ti or url key in add_torrent_params')
 
+            print "add torrent 4"
+
             if infohash in self.metainfo_requests:
                 self._logger.info("killing get_metainfo request for %s", infohash)
                 handle = self.metainfo_requests.pop(infohash)['handle']
                 if handle:
                     ltsession.remove_torrent(handle, 0)
 
+            print "add torrent 5"
+
             handle = ltsession.add_torrent(encode_atp(atp))
+            print "add torrent 6"
             infohash = str(handle.info_hash())
+            print "add torrent 7"
             if infohash in self.torrents:
                 raise DuplicateDownloadException()
             self.torrents[infohash] = (torrentdl, ltsession)
+
+            print "add torrent 8"
 
             self._logger.debug("added torrent %s", infohash)
 
