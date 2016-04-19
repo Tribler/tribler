@@ -5,6 +5,7 @@ from twisted.internet.task import Clock
 
 from twisted.internet.defer import Deferred, DeferredList
 
+
 from Tribler.Core.TorrentChecker.session import HttpTrackerSession, UDPScraper, UdpTrackerSession
 from Tribler.Core.Utilities.twisted_thread import deferred, reactor
 from Tribler.Test.Core.base_test import TriblerCoreTest
@@ -50,6 +51,14 @@ class TestTorrentCheckerSession(TriblerCoreTest):
     @deferred(timeout=5)
     def test_httpsession_cancel_operation(self):
         session = HttpTrackerSession("127.0.0.1", ("localhost", 8475), "/announce", None)
+        d = Deferred(session._on_cancel)
+        d.addErrback(lambda _ : None)
+        session.result_deferred = d
+        return session.cleanup()
+
+    @deferred(timeout=5)
+    def test_udpsession_cancel_operation(self):
+        session = UdpTrackerSession("127.0.0.1", ("localhost", 8475), "/announce", None)
         d = Deferred(session._on_cancel)
         d.addErrback(lambda _ : None)
         session.result_deferred = d

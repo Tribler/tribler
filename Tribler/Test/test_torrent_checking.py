@@ -7,7 +7,6 @@ from Tribler.Test.test_libtorrent_download import TORRENT_FILE
 
 
 class TestTorrentChecking(TestAsServer):
-
     def setUp(self):
         super(TestTorrentChecking, self).setUp()
 
@@ -36,4 +35,22 @@ class TestTorrentChecking(TestAsServer):
 
         num_seeders = torrent['num_seeders']
         num_leechers = torrent['num_leechers']
-        assert num_leechers >= 0 or num_seeders >= 0, "No peers found: leechers: %d seeders: %d" % (num_leechers, num_seeders)
+        assert num_leechers >= 0 or num_seeders >= 0, "No peers found: leechers: %d seeders: %d" % (
+        num_leechers, num_seeders)
+
+    def test_udp_torrent_checking(self):
+        tdef = TorrentDef.load(TORRENT_FILE)
+        tdef.set_tracker("udp://localhost")
+        tdef.metainfo_valid = True
+
+        self.tdb.addExternalTorrent(tdef)
+        self.session.check_torrent_health(tdef.get_infohash())
+        sleep(31)
+
+        torrent = self.tdb.getTorrent(tdef.get_infohash())
+        self._logger.debug('got torrent %s', torrent)
+
+        num_seeders = torrent['num_seeders']
+        num_leechers = torrent['num_leechers']
+        assert num_leechers >= 0 or num_seeders >= 0, \
+            "No peers found: leechers: %d seeders: %d" % (num_leechers, num_seeders)
