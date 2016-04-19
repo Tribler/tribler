@@ -311,6 +311,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             self.cew_scheduled = False
 
             # Return a deferred with the callback already being called.
+            self._logger.debug("Just before return of network_create_engine_wrapper")
             return defer.succeed((self, pstate))
 
     def get_anon_mode(self):

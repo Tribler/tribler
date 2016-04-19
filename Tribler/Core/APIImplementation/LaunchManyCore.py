@@ -300,6 +300,7 @@ class TriblerLaunchMany(TaskManager):
 
     def on_download_wrapper_created(self, (d, pstate)):
         """ Called by network thread """
+        self._logger.debug("At beginning of on_download_wrapper_created")
         try:
             if pstate is None:
                 # Checkpoint at startup
