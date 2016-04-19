@@ -10,6 +10,7 @@ import time as timemod
 from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
+from twisted.internet.defer import inlineCallbacks
 
 from twisted.internet import reactor
 
@@ -594,10 +595,12 @@ class TriblerLaunchMany(TaskManager):
                                       repr(infohash))
         self.threadpool.add_task(do_remove)
 
+    @inlineCallbacks
     def early_shutdown(self):
         """ Called as soon as Session shutdown is initiated. Used to start
         shutdown tasks that takes some time and that can run in parallel
         to checkpointing, etc.
+        :returns a Deferred that will fire once all dependencies acknowledge they have shutdown.
         """
         self._logger.info("tlm: early_shutdown")
 
@@ -606,26 +609,26 @@ class TriblerLaunchMany(TaskManager):
         # Note: sesslock not held
         self.shutdownstarttime = timemod.time()
         if self.torrent_checker:
-            self.torrent_checker.shutdown()
+            yield self.torrent_checker.shutdown()
             self.torrent_checker = None
         if self.channel_manager:
-            self.channel_manager.shutdown()
+            yield self.channel_manager.shutdown()
             self.channel_manager = None
         if self.search_manager:
-            self.search_manager.shutdown()
+            yield self.search_manager.shutdown()
             self.search_manager = None
         if self.rtorrent_handler:
-            self.rtorrent_handler.shutdown()
+            yield self.rtorrent_handler.shutdown()
             self.rtorrent_handler = None
         if self.videoplayer:
-            self.videoplayer.shutdown()
+            yield self.videoplayer.shutdown()
             self.videoplayer = None
 
         self.version_check_manager.stop()
         self.version_check_manager = None
 
         if self.tracker_manager:
-            self.tracker_manager.shutdown()
+            yield self.tracker_manager.shutdown()
             self.tracker_manager = None
 
         if self.dispersy:
@@ -644,19 +647,19 @@ class TriblerLaunchMany(TaskManager):
                 self._logger.info("lmc: Dispersy failed to shutdown in %.2f seconds", diff)
 
         if self.metadata_store is not None:
-            self.metadata_store.close()
+            yield self.metadata_store.close()
             self.metadata_store = None
 
         if self.tftp_handler:
-            self.tftp_handler.shutdown()
+            yield self.tftp_handler.shutdown()
             self.tftp_handler = None
 
         if self.session.get_megacache():
-            self.channelcast_db.close()
-            self.votecast_db.close()
-            self.mypref_db.close()
-            self.torrent_db.close()
-            self.peer_db.close()
+            yield self.channelcast_db.close()
+            yield self.votecast_db.close()
+            yield self.mypref_db.close()
+            yield self.torrent_db.close()
+            yield self.peer_db.close()
 
             self.channelcast_db = None
             self.votecast_db = None
@@ -666,15 +669,15 @@ class TriblerLaunchMany(TaskManager):
 
         if self.mainline_dht:
             from Tribler.Core.DecentralizedTracking import mainlineDHT
-            mainlineDHT.deinit(self.mainline_dht)
+            yield mainlineDHT.deinit(self.mainline_dht)
             self.mainline_dht = None
 
         if self.torrent_store is not None:
-            self.torrent_store.close()
+            yield self.torrent_store.close()
             self.torrent_store = None
 
         if self.watch_folder is not None:
-            self.watch_folder.stop()
+            yield self.watch_folder.stop()
             self.watch_folder = None
 
     def network_shutdown(self):
