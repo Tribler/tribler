@@ -63,7 +63,8 @@ setup(
                         "optimize": 2,
                         "skip_archive": True,
                         "dist_dir": os.path.join("dist", "installdir"),
-                        "dll_excludes": ["mswsock.dll"]}},
+                        "dll_excludes": ["mswsock.dll", "msvcr90.dll", "msvcp90.dll",
+			"msvcr100.dll", "msvcp100.dll"]}},
     data_files=[(".", [r"C:\build\libsodium.dll"])],
     windows=[target],
 )

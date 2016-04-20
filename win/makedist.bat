@@ -132,6 +132,8 @@ copy vlc.py dist\installdir\vlc.py
 mkdir dist\installdir\tools
 copy win\tools\reset*.bat dist\installdir\tools
 
+REM Laurens 2016-04-20: copy the c++ redistributable of 2008 and 2010 to the install dir to be executed.
+copy C:\build\vcredist08_x86.exe dist\installdir
 copy C:\build\vcredist10_x86.exe dist\installdir
 
 REM MainClient specific
