@@ -140,7 +140,10 @@ copy vlc.py dist\installdir\vlc.py
 mkdir dist\installdir\tools
 copy win\tools\reset*.bat dist\installdir\tools
 
-copy C:\build\vc_redist.exe dist\installdir
+REM Laurens, 2016-04-20: Copy the redistributables of 2008, 2010 and 2012 to the install dir
+copy C:\build\vc_redist_90.exe dist\installdir
+copy C:\build\vc_redist_100.exe dist\installdir
+copy C:\build\vc_redist_110.exe dist\installdir
 
 REM MainClient specific
 

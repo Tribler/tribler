@@ -177,10 +177,14 @@ Section "!Main EXE" SecMain
  File Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap_stable
  File Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap_unstable
 
- ; Install MSVCR 2010
+ ; Install MSVCR 2008, 2010, 2012
  SetOutPath "$INSTDIR"
- File vc_redist.exe
- ExecWait "$INSTDIR\vc_redist.exe /q /norestart"
+ File vc_redist_90.exe
+ ExecWait "$INSTDIR\vc_redist_90.exe /q /norestart"
+ File vc_redist_100.exe
+ ExecWait "$INSTDIR\vc_redist_100.exe /q /norestart"
+ File vc_redist_110.exe
+ ExecWait "$INSTDIR\vc_redist_110.exe /q /norestart"
 
 FileOpen $9 "$INSTDIR\tribler.exe.log" w
 FileWrite $9 ""
