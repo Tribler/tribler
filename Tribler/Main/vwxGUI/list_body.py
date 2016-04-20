@@ -1436,7 +1436,11 @@ class ListBody(AbstractListBody, scrolled.ScrolledPanel):
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_DOWN, adownId))
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_DELETE, deleteId))
         accelerators.append((wx.ACCEL_NORMAL, wx.WXK_BACK, backId))
-        accelerators.append((wx.ACCEL_RAW_CTRL, ord('a'), ctrlaId))
+
+        # wx.ACCEL_RAW_CTRL is not available in versions < wx3 so disable select all functionality on these versions.
+        if hasattr(wx, 'ACCEL_RAW_CTRL'):
+            accelerators.append((wx.ACCEL_RAW_CTRL, ord('a'), ctrlaId))
+
         self.SetAcceleratorTable(wx.AcceleratorTable(accelerators))
 
         self.SetForegroundColour(parent.GetForegroundColour())
