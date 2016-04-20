@@ -67,8 +67,10 @@ setup(
                         "optimize": 2,
                         "skip_archive": True,
                         "dist_dir": os.path.join("dist", "installdir"),
-                        "dll_excludes": ["mswsock.dll", "MSVCR90.dll", "msvcr71.dll",
-                                         "IPHLPAPI.dll", "NSI.dll", "WINNSI.dll", "WTSAPI32.dll"]
+                        "dll_excludes": ["mswsock.dll", "MSVCR90.dll", "MSVCP90.dll",
+                                         "msvcr71.dll", "msvcp71.dll", "MSVCR100.dll", "MSVCP100.dll",
+                                         "MSVCR110.dll", "MSVCP110.dll", "IPHLPAPI.dll", "NSI.dll",
+                                         "WINNSI.dll", "WTSAPI32.dll"]
                        }
             },
     data_files=[(".", [r"C:\build\libsodium.dll"])],
