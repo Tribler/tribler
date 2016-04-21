@@ -8,7 +8,7 @@
 #
 # see LICENSE.txt for license information
 #
-
+from Tribler.Main.Dialogs.NewVersionDialog import NewVersionDialog
 
 try:
     import prctl
@@ -46,7 +46,8 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
                                      NTFY_MODERATIONS, NTFY_MODIFICATIONS, NTFY_MODIFIED, NTFY_MYPREFERENCES,
                                      NTFY_PLAYLISTS, NTFY_REACHABLE, NTFY_STARTED, NTFY_STATE, NTFY_TORRENTS,
                                      NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings, STATEDIR_GUICONFIG,
-                                     NTFY_STARTUP_TICK, NTFY_CLOSE_TICK, NTFY_UPGRADER, NTFY_WATCH_CORRUPT_FOLDER)
+                                     NTFY_STARTUP_TICK, NTFY_CLOSE_TICK, NTFY_UPGRADER, NTFY_WATCH_CORRUPT_FOLDER,
+                                     NTFY_NEW_VERSION)
 from Tribler.Core.version import commit_id, version_id
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Utility.GuiDBHandler import GUIDBProducer, startWorker
@@ -407,6 +408,10 @@ class ABCApp(object):
         s.add_observer(self.sesscb_ntfy_magnet,
                        NTFY_TORRENTS, [NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE])
         s.add_observer(self.sesscb_ntfy_corrupt_torrent, NTFY_WATCH_CORRUPT_FOLDER, [NTFY_INSERT])
+        s.add_observer(self.sesscb_ntfy_newversion, NTFY_NEW_VERSION, [NTFY_INSERT])
+
+        # Check for a new version
+        s.lm.version_check_manager.start(24 * 3600)
 
         # TODO(emilon): Use the LogObserver I already implemented
         # self.dispersy.callback.attach_exception_handler(self.frame.exceptionHandler)
@@ -790,6 +795,19 @@ class ABCApp(object):
             infohash = objectID
             torrent = self.guiUtility.torrentsearch_manager.getTorrentByInfohash(infohash)
             self.guiUtility.library_manager.addDownloadState(torrent)
+
+    @forceWxThread
+    def sesscb_ntfy_newversion(self, subject, changeType, objectID, *args):
+        if str(self.utility.read_config('last_reported_version')) == args[0]:
+            return
+
+        new_version_dialog = NewVersionDialog(args[0], self.frame, 'new_version_dialog', 'New version available',
+                                              title='New version',
+                                              msg="Version %s of Tribler is available. "
+                                                  "Do you want to visit the website to download the newest version?"
+                                                  % args[0])
+        new_version_dialog.ShowModal()
+        new_version_dialog.Destroy()
 
     def sesscb_ntfy_magnet(self, subject, changetype, objectID, *args):
         if changetype == NTFY_MAGNET_STARTED:

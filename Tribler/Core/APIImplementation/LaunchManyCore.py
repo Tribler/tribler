@@ -17,6 +17,7 @@ from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Modules.search_manager import SearchManager
+from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
 from Tribler.Core.Modules.watch_folder import WatchFolder
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
@@ -71,6 +72,7 @@ class TriblerLaunchMany(TaskManager):
         self.rtorrent_handler = None
         self.tftp_handler = None
         self.watch_folder = None
+        self.version_check_manager = None
 
         self.cat = None
         self.peer_db = None
@@ -249,6 +251,8 @@ class TriblerLaunchMany(TaskManager):
         if self.session.get_watch_folder_enabled():
             self.watch_folder = WatchFolder(self.session)
             self.watch_folder.start()
+
+        self.version_check_manager = VersionCheckManager(self.session)
 
         self.initComplete = True
 
@@ -616,6 +620,9 @@ class TriblerLaunchMany(TaskManager):
         if self.videoplayer:
             self.videoplayer.shutdown()
             self.videoplayer = None
+
+        self.version_check_manager.stop()
+        self.version_check_manager = None
 
         if self.tracker_manager:
             self.tracker_manager.shutdown()
