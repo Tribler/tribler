@@ -133,6 +133,12 @@ class TestSessionConfig(TriblerCoreTest):
         sci.set_upgrader_enabled(False)
         self.assertFalse(sci.get_upgrader_enabled())
 
+        sci.set_http_api_enabled(True)
+        self.assertTrue(sci.get_http_api_enabled())
+
+        sci.set_http_api_port(1337)
+        self.assertEqual(sci.sessconfig.get('http_api', 'port'), 1337)
+
         self.assertIsInstance(sci.get_default_config_filename(self.session_base_dir), str)
 
     def test_startup_session_save_load(self):
