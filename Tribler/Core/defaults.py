@@ -37,8 +37,9 @@ DEFAULTPORT = 7760
 #  Version 10: BarterCommunity settings added (disabled by default)
 #  Version 11: Added a default whether we should upgrade or not.
 #  Version 12: Added watch folder options.
+#  Version 13: Added HTTP API options.
 
-SESSDEFAULTS_VERSION = 12
+SESSDEFAULTS_VERSION = 13
 sessdefaults = OrderedDict()
 
 # General Tribler settings
@@ -146,6 +147,11 @@ sessdefaults['upgrader']['enabled'] = True
 sessdefaults['watch_folder'] = OrderedDict()
 sessdefaults['watch_folder']['enabled'] = False
 sessdefaults['watch_folder']['watch_folder_dir'] = None
+
+# HTTP API config
+sessdefaults['http_api'] = OrderedDict()
+sessdefaults['http_api']['enabled'] = False
+sessdefaults['http_api']['port'] = -1
 
 #
 # BT per download opts
