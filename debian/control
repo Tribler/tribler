@@ -7,7 +7,7 @@ Build-Depends: debhelper (>= 9),
                dpkg-dev (>= 1.16.1~),
                python (>= 2.7.0),
 Standards-Version: 3.9.5
-Homepage: http://www.tribler.org/
+Homepage: https://www.tribler.org/
 X-Python-Version: 2.7
 
 Package: tribler
@@ -17,7 +17,7 @@ Depends: ${misc:Depends},
          ffmpeg | libav-tools,
          libjs-excanvas,
          libjs-mootools,
-         libsodium13,
+         libsodium18 | libsodium13,
          libx11-6,
          python-apsw,
          python-cherrypy3,
@@ -31,7 +31,7 @@ Depends: ${misc:Depends},
          python-pil,
          python-requests,
          python-twisted,
-         python-wxgtk2.8,
+         python-wxgtk3.0 | python-wxgtk2.8,
          vlc (>= 1.1.0),
 Description: Python based Bittorrent/Internet TV application
  It allows you to watch videos and download content. Tribler aims to combine
