@@ -43,6 +43,8 @@ class CallbackConfigParser(RawConfigParser):
                     value = ast.literal_eval(value)
                 except:
                     pass
+            if isinstance(value, str):
+                value = value.decode('utf-8')
             return value
 
     def copy(self):
