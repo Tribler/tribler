@@ -1,0 +1,55 @@
+--version       0.1
+--android_api   16
+--arch          armeabi
+--package       org.tribler.android
+--name          "Tribler"
+--service       Triblerd:service/Triblerd.py
+--private       ./app
+--add-source    ./java-src
+--dist_name     TriblerApp
+--bootstrap     sdl2
+--requirements  android,kivy,libtribler
+--whitelist     .p4a-whitelist
+
+--permission    CAMERA
+--permission    RECORD_AUDIO
+--permission    MODIFY_AUDIO_SETTINGS
+
+--permission    READ_EXTERNAL_STORAGE
+--permission    WRITE_EXTERNAL_STORAGE
+
+--permission    ACCESS_FINE_LOCATION
+--permission    ACCESS_COARSE_LOCATION
+--permission    ACCESS_LOCATION_EXTRA_COMMANDS
+
+--permission    NFC
+--permission    BLUETOOTH
+--permission    BLUETOOTH_ADMIN
+--permission    ACCESS_NETWORK_STATE
+--permission    CHANGE_NETWORK_STATE
+--permission    ACCESS_WIFI_STATE
+--permission    CHANGE_WIFI_STATE
+--permission    CHANGE_WIFI_MULTICAST_STATE
+--permission    INTERNET
+--permission    TRANSMIT_IR
+
+--permission    USE_FINGERPRINT
+--permission    INSTALL_SHORTCUT
+--permission    UNINSTALL_SHORTCUT
+--permission    GET_PACKAGE_SIZE
+--permission    REQUEST_INSTALL_PACKAGES
+--permission    KILL_BACKGROUND_PROCESSES
+--permission    RECEIVE_BOOT_COMPLETED
+--permission    DISABLE_KEYGUARD
+--permission    EXPAND_STATUS_BAR
+--permission    ACCESS_NOTIFICATION_POLICY
+
+--permission    READ_SYNC_STATS
+--permission    READ_SYNC_SETTINGS
+--permission    WRITE_SYNC_SETTINGS
+
+--permission    VIBRATE
+--permission    BROADCAST_STICKY
+--permission    REORDER_TASKS
+--permission    REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+--permission    WAKE_LOCK
