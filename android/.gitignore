@@ -1,0 +1,9 @@
+# Python
+*.pyo
+*.pyc
+
+.*project
+*.*~
+*.apk
+screen.png
+typescript
