@@ -629,14 +629,16 @@ class TorrentFilter(BaseFilter):
 
         self.grid_button.Bind(wx.EVT_LEFT_UP, toggle_grid)
 
+        search_container_panel = wx.Panel(panel)
+
         if sys.platform == 'darwin':
-            self.search = wx.TextCtrl(panel)
+            self.search = wx.TextCtrl(search_container_panel)
             self.search.SetHint('Filter results')
-            self.search.SetMinSize((175, 20))
+            self.search.SetSize((175, 20))
         else:
-            self.search = wx.SearchCtrl(panel)
+            self.search = wx.SearchCtrl(search_container_panel)
             self.search.SetDescriptiveText('Filter results')
-            self.search.SetMinSize((175, -1))
+            self.search.SetSize((175, -1))
 
         self.search.Bind(wx.EVT_TEXT, self.OnKey)
 
@@ -656,7 +658,7 @@ class TorrentFilter(BaseFilter):
         hSizer.AddStretchSpacer()
         hSizer.Add(self.grid_button, 0, wx.CENTER, 3)
         hSizer.AddSpacer((4, -1))
-        hSizer.Add(self.search, 0, wx.CENTER)
+        hSizer.Add(search_container_panel, 0, wx.CENTER)
         hSizer.AddSpacer((self.spacers[1], -1))
         self.filter_sizer = hSizer
 
@@ -901,16 +903,16 @@ class ChannelFilter(BaseFilter):
         self.showlabel = LinkStaticText(panel, 'Show', None, font_colour=wx.BLACK)
         self.showlabel.Bind(wx.EVT_LEFT_DOWN, self.OnPopupShow)
 
-        self.search = None
+        search_container_panel = wx.Panel(panel)
 
         if sys.platform == 'darwin':
-            self.search = wx.TextCtrl(panel)
+            self.search = wx.TextCtrl(search_container_panel)
             self.search.SetHint('Filter channels')
-            self.search.SetMinSize((175, 22))
+            self.search.SetSize((175, 22))
         else:
-            self.search = wx.SearchCtrl(panel)
+            self.search = wx.SearchCtrl(search_container_panel)
             self.search.SetDescriptiveText('Filter channels')
-            self.search.SetMinSize((175, -1))
+            self.search.SetSize((175, -1))
 
         self.search.Bind(wx.EVT_TEXT, self.OnKey)
 
@@ -925,7 +927,7 @@ class ChannelFilter(BaseFilter):
         hSizer.Add(self.show_icon, 0, wx.CENTER | wx.RIGHT, 3)
         hSizer.Add(self.showlabel, 0, wx.CENTER)
         hSizer.AddStretchSpacer()
-        hSizer.Add(self.search, 0, wx.CENTER)
+        hSizer.Add(search_container_panel, 0, wx.CENTER)
         hSizer.AddSpacer((self.spacers[1], -1))
         self.filter_sizer = hSizer
 
@@ -1076,14 +1078,16 @@ class DownloadFilter(BaseFilter):
         self.state = LinkStaticText(panel, 'State', None, font_colour=wx.BLACK)
         self.state.Bind(wx.EVT_LEFT_DOWN, self.OnPopupState)
 
+        search_container_panel = wx.Panel(panel)
+
         if sys.platform == 'darwin':
-            self.search = wx.TextCtrl(panel)
+            self.search = wx.TextCtrl(search_container_panel)
             self.search.SetHint('Filter downloads')
-            self.search.SetMinSize((175, 22))
+            self.search.SetSize((175, 22))
         else:
-            self.search = wx.SearchCtrl(panel)
+            self.search = wx.SearchCtrl(search_container_panel)
             self.search.SetDescriptiveText('Filter downloads')
-            self.search.SetMinSize((175, -1))
+            self.search.SetSize((175, -1))
 
         self.search.Bind(wx.EVT_TEXT, self.OnKey)
 
@@ -1101,7 +1105,7 @@ class DownloadFilter(BaseFilter):
         hSizer.Add(self.filesize_str, 0, wx.CENTER | wx.RIGHT, 10)
         hSizer.Add(self.filesize, 0, wx.CENTER)
         hSizer.AddStretchSpacer()
-        hSizer.Add(self.search, 0, wx.CENTER)
+        hSizer.Add(search_container_panel, 0, wx.CENTER)
         hSizer.AddSpacer((self.spacers[1], -1))
         self.filter_sizer = hSizer
 
