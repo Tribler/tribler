@@ -27,6 +27,7 @@ class ThreadPoolManager(TaskManager):
         return task_name
 
     def add_task(self, wrapper, delay=0, task_name=None):
+        self._logger.debug("At beginning of add_task with task: %s" % task_name)
         """Add task to be called in twisted thread"""
         assert wrapper
 

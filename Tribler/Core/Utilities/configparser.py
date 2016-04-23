@@ -35,7 +35,9 @@ class CallbackConfigParser(RawConfigParser):
             RawConfigParser.set(self, section, option, new_value)
 
     def get(self, section, option, literal_eval=True):
+        print "before configparser lock"
         with self.lock:
+            print "in configparser lock"
             value = RawConfigParser.get(self, section, option) if RawConfigParser.has_option(
                 self, section, option) else None
             if literal_eval:
@@ -43,6 +45,7 @@ class CallbackConfigParser(RawConfigParser):
                     value = ast.literal_eval(value)
                 except:
                     pass
+            print "About to release configparser lock"
             return value
 
     def copy(self):

@@ -2,6 +2,7 @@
 import logging
 import os
 import sys
+from threading import RLock
 import time
 from binascii import hexlify
 from traceback import print_exc
@@ -100,7 +101,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
     def __init__(self, session, tdef):
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.dllock = NoDispersyRLock()
+        self.dllock = RLock()
         self.session = session
         self.tdef = tdef
         self.handle = None
@@ -168,6 +169,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             # The deferred to be returned
             deferred = Deferred()
             with self.dllock:
+                print "hereeeeeeee"
                 # Copy dlconfig, from default if not specified
                 if dcfg is None:
                     cdcfg = DownloadStartupConfig()
@@ -186,6 +188,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 self._logger.debug(u"setup: initialdlstatus %s %s", hexlify(self.tdef.get_infohash()), initialdlstatus)
 
                 def schedule_create_engine():
+                    self._logger.debug("At start of schedule_create_engine")
                     self.cew_scheduled = True
                     create_engine_wrapper_deferred = self.network_create_engine_wrapper(self.pstate_for_restart, initialdlstatus)
                     create_engine_wrapper_deferred.chainDeferred(deferred)
@@ -210,10 +213,13 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         Notifies when it's ready by calling the callback of the deferred being returned.
         :return: A deferred that will be called when you can create the engine wrapper.
         """
+        self._logger.debug("Starting in can_create_engine_wrapper")
         can_create_deferred = Deferred()
         def do_check():
+            self._logger.debug("Starting in do_check")
             with self.dllock:
                 if not self.cew_scheduled:
+                    self._logger.debug("NOT self.cew_scheduled")
                     self.ltmgr = self.session.lm.ltmgr
                     dht_ok = not isinstance(self.tdef, TorrentDefNoMetainfo) or self.ltmgr.is_dht_ready()
                     tunnel_community = self.ltmgr.trsession.lm.tunnel_community
@@ -234,12 +240,14 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                         can_create_deferred.callback(True)
                 else:
                     # Schedule this function call to be called again in 5 seconds
+                    self._logger.debug("Scheduling can_create_engine_wrapper again")
                     self.session.lm.threadpool.add_task(do_check, 5)
 
         do_check()
         return can_create_deferred
 
     def network_create_engine_wrapper(self, pstate, initialdlstatus=None):
+        self._logger.debug("LibtorrentDownloadImpl: just before with self.dllock")
         with self.dllock:
             self._logger.debug("LibtorrentDownloadImpl: network_create_engine_wrapper()")
 
@@ -251,15 +259,21 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             atp["duplicate_is_error"] = True
             atp["hops"] = self.get_hops()
 
+            self._logger.debug("checkpoint 1")
+
             resume_data = pstate.get('state', 'engineresumedata') if pstate else None
             if not isinstance(self.tdef, TorrentDefNoMetainfo):
                 metainfo = self.tdef.get_metainfo()
                 torrentinfo = lt.torrent_info(metainfo)
 
+                self._logger.debug("checkpoint 2")
+
                 self.orig_files = [file_entry.path.decode('utf-8') for file_entry in torrentinfo.files()]
                 is_multifile = len(self.orig_files) > 1
                 commonprefix = os.path.commonprefix(self.orig_files) if is_multifile else ''
                 swarmname = commonprefix.partition(os.path.sep)[0]
+
+                self._logger.debug("checkpoint 3")
 
                 if is_multifile and swarmname != self.correctedinfoname:
                     for i, filename_old in enumerate(self.orig_files):
@@ -272,17 +286,23 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                             torrentinfo.rename_file(i, filename_new.encode("utf-8"))
                         self.orig_files[i] = filename_new
 
+                self._logger.debug("checkpoint 4")
+
                 atp["ti"] = torrentinfo
                 has_resume_data = resume_data and isinstance(resume_data, dict)
                 if has_resume_data:
                     atp["resume_data"] = lt.bencode(resume_data)
                 self._logger.info("%s %s", self.tdef.get_name_as_unicode(), dict((k, v)
                                   for k, v in resume_data.iteritems() if k not in ['pieces', 'piece_priority', 'peers']) if has_resume_data else None)
+                self._logger.debug("checkpoint 5")
             else:
                 atp["url"] = self.tdef.get_url() or "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash())
                 atp["name"] = self.tdef.get_name_as_unicode()
+                self._logger.debug("checkpoint 7")
 
             self.handle = self.ltmgr.add_torrent(self, atp)
+
+            self._logger.debug("checkpoint 7")
 
             if self.handle:
                 self.set_selected_files()
@@ -299,12 +319,17 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
                 self.handle.resolve_countries(True)
 
+                self._logger.debug("checkpoint 8")
+
             else:
                 self._logger.info("Could not add torrent to LibtorrentManager %s", self.tdef.get_name_as_unicode())
+
+                self._logger.debug("checkpoint 9")
 
             self.cew_scheduled = False
 
             # Return a deferred with the callback already being called.
+            self._logger.debug("Just before return of network_create_engine_wrapper")
             return defer.succeed((self, pstate))
 
     def get_anon_mode(self):

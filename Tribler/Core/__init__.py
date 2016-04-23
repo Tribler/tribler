@@ -4,9 +4,11 @@
 '''
 The Core package contains the core functionalities of the Tribler project
 '''
+import inspect
 
 from threading import RLock
 import logging
+import traceback
 
 # Written by BitTornado authors and Arno Bakker
 # see LICENSE.txt for license information
@@ -54,6 +56,8 @@ class NoDispersyRLock():
 
     @warnIfDispersyThread
     def acquire(self, blocking=1):
+        print "here"
+        print inspect.stack()
         return self.lock.acquire(blocking)
 
     @warnIfDispersyThread

@@ -107,6 +107,7 @@ class DownloadConfigInterface(object):
         self.dlconfig.set('downloadconfig', 'hops', hops)
 
     def get_hops(self):
+        print "In begin getting hops"
         return self.dlconfig.get('downloadconfig', 'hops')
 
     def set_safe_seeding(self, value):
