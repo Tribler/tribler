@@ -711,7 +711,7 @@ padding-left: 4px;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>6</number>
+         <number>3</number>
         </property>
         <widget class="QWidget" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1391,7 +1391,7 @@ border-top: 1px solid #555;
                  <number>1</number>
                 </property>
                 <property name="currentIndex">
-                 <number>4</number>
+                 <number>2</number>
                 </property>
                 <widget class="QWidget" name="my_channel_details_overview_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
@@ -2812,6 +2812,9 @@ border: none;
             </widget>
             <widget class="QWidget" name="channel_comments_page">
              <layout class="QVBoxLayout" name="verticalLayout">
+              <property name="spacing">
+               <number>0</number>
+              </property>
               <property name="leftMargin">
                <number>0</number>
               </property>
@@ -2824,6 +2827,134 @@ border: none;
               <property name="bottomMargin">
                <number>0</number>
               </property>
+              <item>
+               <widget class="QWidget" name="write_comment_container" native="true">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <layout class="QVBoxLayout" name="verticalLayout_6">
+                 <item>
+                  <widget class="QLabel" name="write_comment_header">
+                   <property name="styleSheet">
+                    <string notr="true">color: #ddd;</string>
+                   </property>
+                   <property name="text">
+                    <string>Write your comment below:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QWidget" name="widget_9" native="true">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="minimumSize">
+                    <size>
+                     <width>0</width>
+                     <height>60</height>
+                    </size>
+                   </property>
+                   <layout class="QHBoxLayout" name="horizontalLayout_29">
+                    <property name="spacing">
+                     <number>0</number>
+                    </property>
+                    <property name="leftMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="topMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="rightMargin">
+                     <number>0</number>
+                    </property>
+                    <property name="bottomMargin">
+                     <number>0</number>
+                    </property>
+                    <item>
+                     <widget class="QTextEdit" name="comment_text_area">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="minimumSize">
+                       <size>
+                        <width>0</width>
+                        <height>0</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>16777215</width>
+                        <height>100</height>
+                       </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">border: 1px solid #555;
+background-color: #ccc;
+border-radius: 4px;</string>
+                      </property>
+                      <property name="placeholderText">
+                       <string>Comment</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="horizontalSpacer_38">
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeType">
+                       <enum>QSizePolicy::Fixed</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>10</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                    <item>
+                     <widget class="QToolButton" name="toolButton">
+                      <property name="minimumSize">
+                       <size>
+                        <width>40</width>
+                        <height>26</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>40</width>
+                        <height>26</height>
+                       </size>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">border: none;
+border-radius: 2px;
+background-color: #e67300;
+color: white;
+font-size: 14px;
+</string>
+                      </property>
+                      <property name="text">
+                       <string>Post</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
               <item>
                <widget class="QTreeWidget" name="channel_comments_list">
                 <property name="styleSheet">
