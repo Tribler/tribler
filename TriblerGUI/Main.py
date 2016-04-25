@@ -120,13 +120,6 @@ class TriblerWindow(QMainWindow):
         self.event_request_manager = EventRequestManager()
         self.event_request_manager.received_free_space.connect(self.received_free_space)
 
-        # Set profile image
-        placeholder_pix = QPixmap("images/profile_placeholder.jpg")
-        placeholder_pix = placeholder_pix.scaledToHeight(self.my_profile_button.width(), Qt.SmoothTransformation)
-        placeholder_pix = create_rounded_image(placeholder_pix)
-        self.my_profile_button.setIcon(QIcon(placeholder_pix))
-        self.my_profile_button.setIconSize(QSize(self.my_profile_button.width(), self.my_profile_button.height()))
-
         self.left_menu.hide()
 
         self.video_player_page.initialize_player()
