@@ -1,18 +1,16 @@
 from binascii import hexlify
 from collections import deque
 import logging
-import select
-from threading import Thread
 import time
+from twisted.internet.defer import Deferred, DeferredList, CancelledError
 
 from twisted.internet import reactor
 
-from Tribler.dispersy.taskmanager import TaskManager
+from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
 from Tribler.Core.simpledefs import NTFY_TORRENTS
-from Tribler.Core.TorrentChecker.session import TRACKER_ACTION_CONNECT, create_tracker_session
-from Tribler.Core.Utilities.network_utils import InterruptSocket
+from Tribler.Core.TorrentChecker.session import create_tracker_session, UdpTrackerSession
 
 from .session import FakeDHTSession
 
@@ -22,61 +20,6 @@ DEFAULT_TORRENT_CHECK_INTERVAL = 900  # base multiplier for the check delay
 
 DEFAULT_MAX_TORRENT_CHECK_RETRIES = 8  # max check delay increments when failed.
 DEFAULT_TORRENT_CHECK_RETRY_INTERVAL = 30  # interval when the torrent was successfully checked for the last time
-
-
-class TorrentCheckerThread(Thread):
-
-    """
-    Thread used to monitor for data arriving on the scrape sockets.
-    """
-
-    def __init__(self, tracker_checker):
-        super(TorrentCheckerThread, self).__init__(name=u"torrent_checker")
-        self._logger = logging.getLogger(self.__class__.__name__)
-        self._torrent_checker = tracker_checker
-
-        self._interrupt_socket = InterruptSocket()
-
-        self._session_dict = {}
-
-    def cleanup(self):
-        self._session_dict = None
-        self._interrupt_socket.close()
-        self._interrupt_socket = None
-
-    def interrupt(self):
-        self._interrupt_socket.interrupt()
-
-    def run(self):
-        """
-        Checks for data in the scrape sockets until it's time to stop.
-        Every time there's data on one of the sockets, TorrentChecker.check_sessions() will be called.
-        """
-        check_read_socket_list = []
-        check_write_socket_list = []
-        while not self._torrent_checker.should_stop:
-            check_read_socket_list.append(self._interrupt_socket.socket)
-
-            read_socket_list, write_socket_list, _ = select.select(check_read_socket_list,
-                                                                   check_write_socket_list,
-                                                                   [], 5)
-
-            if self._torrent_checker.should_stop:
-                break
-
-            if self._interrupt_socket.socket in read_socket_list:
-                self._interrupt_socket.clear()
-                read_socket_list = [sock for sock in read_socket_list if sock != self._interrupt_socket.socket]
-
-            result = self._torrent_checker.check_sessions(read_socket_list, write_socket_list, [])
-
-            if result is None:
-                break
-            check_read_socket_list, check_write_socket_list = result
-
-        self.cleanup()
-        self._logger.info(u"stopped")
-
 
 class TorrentChecker(TaskManager):
 
@@ -89,8 +32,6 @@ class TorrentChecker(TaskManager):
 
         self._should_stop = False
 
-        self._checker_thread = None
-
         self._pending_request_queue = deque()
         self._pending_response_dict = {}
 
@@ -101,6 +42,9 @@ class TorrentChecker(TaskManager):
         self._session_list = [FakeDHTSession(session, self._on_result_from_session), ]
         self._last_torrent_selection_time = 0
 
+        # Track all session cleanups
+        self.session_stop_defer_list = []
+
     @property
     def should_stop(self):
         return self._should_stop
@@ -108,34 +52,34 @@ class TorrentChecker(TaskManager):
     @blocking_call_on_reactor_thread
     def initialize(self):
         self._torrent_db = self._session.open_dbhandler(NTFY_TORRENTS)
-
         self._reschedule_torrent_select()
 
-        self._checker_thread = TorrentCheckerThread(self)
-        self._checker_thread.start()
+        # Check the session every 200ms
+        self.register_task(u'task_check_torrent_sessions',
+                           LoopingCall(self.check_sessions)).start(0.2, now=True)
 
     def shutdown(self):
         """
         Shutdown the torrent health checker.
 
         Once shut down it can't be started again.
+        :returns A deferred that will fire once the shutdown has completed.
         """
-        # stop the checking thread first because it can block on the reactor thread
-        join_timeout = 10.0  # 10 seconds should be way sufficient
-
         self._should_stop = True
-        self._checker_thread.interrupt()
-        self._checker_thread.join(join_timeout)  # do not block forever
-        if self._checker_thread.is_alive():
-            self._logger.critical("_checker_thread.join(%s) timed out.", join_timeout)
-        self._checker_thread = None
+
+        # Stop the looping call
+        self.cancel_all_pending_tasks()
 
         # it's now safe to block on the reactor thread
         self.cancel_all_pending_tasks()
 
-        # kill all the tracker sessions
+        # kill all the tracker sessions.
+        # Wait for the defers to all have triggered by using a DeferredList
         for session in self._session_list:
-            session.cleanup()
+            self.session_stop_defer_list.append(session.cleanup())
+
+        defer_stop_list = DeferredList(self.session_stop_defer_list)
+
         self._session_list = None
 
         self._pending_request_queue = None
@@ -143,6 +87,8 @@ class TorrentChecker(TaskManager):
 
         self._torrent_db = None
         self._session = None
+
+        return defer_stop_list
 
     def _reschedule_torrent_select(self):
         """
@@ -193,8 +139,6 @@ class TorrentChecker(TaskManager):
             scheduled_torrents += 1
 
         self._logger.debug(u"Selected %d new torrents to check on tracker: %s", scheduled_torrents, tracker_url)
-        if scheduled_torrents > 0:
-            self._checker_thread.interrupt()
 
     @call_on_reactor_thread
     def add_gui_request(self, infohash):
@@ -230,40 +174,95 @@ class TorrentChecker(TaskManager):
             return
 
         self._pending_request_queue.append((torrent_id, infohash, tracker_set))
-        self._checker_thread.interrupt()
 
-    @blocking_call_on_reactor_thread
-    def check_sessions(self, read_socket_list, write_socket_list, _):
+    @call_on_reactor_thread
+    def check_sessions(self):
+        """
+        This function initiates all tracker session if they are ready,
+        checks if they have not timed out yet (udp only) and cleans them if they
+        have failed or are done.
+        :return:
+        """
         if self._should_stop:
             return
 
-        current_time = int(time.time())
-
-        session_dict = {}
-        for session in self._session_list:
-            session_dict[session.socket] = session
-
-        # >> Step 1: Check the sockets
-        self._logger.debug(u"got %d writable sockets, %d readable sockets",
-                           len(write_socket_list), len(read_socket_list))
-        # check writable sockets (TCP connections)
-        for write_socket in write_socket_list:
-            session = session_dict[write_socket]
-            session.process_request()
-
-        # check readable sockets
-        for read_socket in read_socket_list:
-            session = session_dict[read_socket]
-            session.process_request()
+        # >. Step 1: Perform all calls to the trackers
+        check_udp_session_list = self.check_not_initiated_sessions()
 
         # >> Step 2: Handle timed out UDP sessions
-        for session in session_dict.values():
+        self.check_timed_out_udp_session(check_udp_session_list)
+
+        # >> Step 3: Remove completed sessions and update tracker info
+        self.clean_completed_sessions()
+
+        # >> Step 4. check and update new results
+        self.update_with_new_results()
+
+        self._logger.debug(u"total sessions: %d", len(self._session_list))
+        for session in self._session_list:
+            self._logger.debug(u"%s, finished: %d, failed: %d", session, session.is_finished, session.is_failed)
+
+        # process all pending request
+        self._process_pending_requests()
+
+    def check_not_initiated_sessions(self):
+        """
+        Loops over all sessions and lets them connect to their tracker
+        if they haven't done so yet.
+        Returns a list of all active udp sessions as they need to be checked from
+        timeouts.
+        :return: A list of all udp sessions that are currently active
+        """
+        check_udp_session_list = []
+        for session in self._session_list:
+            if session.is_initiated:
+                if isinstance(session, UdpTrackerSession) and not session.is_finished:
+                    check_udp_session_list.append(session)
+                continue # pragma: no cover
+
+            self.session_connect_to_tracker(session)
+
+        return check_udp_session_list
+
+    def session_connect_to_tracker(self, tracker_session):
+        """
+        This function takes a tracker session and starts it, handling the deferred being returned
+        by adding the right callbacks to it.
+
+        :param tracker_session: The tracker session that needs to start.
+        """
+        def on_error(failure):
+            """
+            Handles the scenario of when a tracker session has failed by calling the
+            tracker_manager's update_tracker_info function.
+            :param _: ignored result of the Deferred.
+            """
+            # Trap value errors that are thrown by e.g. the HTTPTrackerSession when a connection fails.
+            # And trap CancelledErrors that can be thrown when shutting down.
+            failure.trap(ValueError, CancelledError)
+            self._logger.info(u"Failed to create session for tracker %s", tracker_session.tracker_url)
+            self._session.lm.tracker_manager.update_tracker_info(tracker_session.tracker_url, False)
+
+        # Make the connection to the trackers and handle the response
+        deferred = tracker_session.connect_to_tracker()
+        deferred.addCallbacks(self._on_result_from_session, on_error)
+
+    def check_timed_out_udp_session(self, udp_sessions):
+        """
+        This method checks if udp sessions have timed out
+        and either retries if they have retries left or cleans them
+        if they are out of retries.
+        """
+        current_time = int(time.time())
+
+        for session in udp_sessions:
             diff = current_time - session.last_contact
-            if diff > session.retry_interval:
+            if diff > session.retry_interval():
                 session._is_timed_out = True
 
                 for infohash in session.infohash_list:
                     self._pending_response_dict[infohash][u'updated'] = True
+                    self._pending_response_dict[infohash][u'last_check'] = int(time.time())
 
                 session.increase_retries()
 
@@ -274,9 +273,13 @@ class TorrentChecker(TaskManager):
                     # re-establish the connection
                     # Do it in a callLater so the timed out flag is not cleared until we are done with it.
                     self._logger.debug(u"%s retrying: %d/%d", session, session.retries, self._max_torrent_check_retries)
-                    reactor.callLater(0, session.recreate_connection)
+                    self.session_connect_to_tracker(session)
 
-        # >> Step 3: Remove completed sessions and update tracker info
+    def clean_completed_sessions(self):
+        """
+        Cleans sessions that have failed or are done.
+        Updated the tracker info by calling the tracker_manager.
+        """
         if self._session_list:
             for i in range(len(self._session_list) - 1, -1, -1):
                 session = self._session_list[i]
@@ -287,14 +290,20 @@ class TorrentChecker(TaskManager):
                     # update tracker info
                     self._session.lm.tracker_manager.update_tracker_info(session.tracker_url, not session.is_failed)
 
+                    if not session.infohash_list:
+                        continue # pragma: no cover
+
                     # set torrent remaining responses
                     for infohash in session.infohash_list:
                         self._pending_response_dict[infohash][u'remaining_responses'] -= 1
 
-                    session.cleanup()
+                    self.session_stop_defer_list.append(session.cleanup())
                     self._session_list.pop(i)
 
-        # >> Step 4. check and update new results
+    def update_with_new_results(self):
+        """
+        Updates the response dictionaries with new results.
+        """
         for infohash, response in self._pending_response_dict.items():
             if response[u'updated']:
                 response[u'updated'] = False
@@ -302,41 +311,6 @@ class TorrentChecker(TaskManager):
 
             if self._pending_response_dict[infohash][u'remaining_responses'] == 0:
                 del self._pending_response_dict[infohash]
-
-        self._logger.debug(u"total sessions: %d", len(self._session_list))
-        for session in self._session_list:
-            self._logger.debug(u"%s, finished: %d, failed: %d", session, session.is_finished, session.is_failed)
-
-        # ---------------------------------------------------
-        # Start processing pending requests and make select socket lists
-
-        # process all pending request
-        self._process_pending_requests()
-
-        # create read and write socket check list
-        # check non-blocking connection TCP sockets if they are writable
-        # check UDP and TCP response sockets if they are readable
-        check_read_socket_list = []
-        check_write_socket_list = []
-
-        session_dict = {}
-        for session in self._session_list:
-            session_dict[session.socket] = session
-
-        for session_socket, session in session_dict.iteritems():
-            if session.tracker_type == u'DHT':
-                # FakeDHTSession doesn't really have a socket as it uses LibtorrentMgr's DHT
-                continue
-            if session.tracker_type == u'UDP':
-                check_read_socket_list.append(session_socket)
-            else:
-                if session.action == TRACKER_ACTION_CONNECT:
-                    check_write_socket_list.append(session_socket)
-                else:
-                    check_read_socket_list.append(session_socket)
-
-        # return select socket lists
-        return check_read_socket_list, check_write_socket_list
 
     def _process_pending_requests(self):
         """
@@ -356,11 +330,13 @@ class TorrentChecker(TaskManager):
         # check there is any existing session that scrapes this torrent
         request_handled = False
         for session in self._session_list:
-            if session.tracker_url != tracker_url or session.is_failed:
+
+            # If this is not the session concerned with this url, continue
+            if session.tracker_url != tracker_url or session.is_failed or session.is_finished:
                 continue
 
+            # a torrent check is already there, ignore this request
             if session.has_request(infohash):
-                # a torrent check is already there, ignore this request
                 request_handled = True
                 break
 
@@ -382,30 +358,18 @@ class TorrentChecker(TaskManager):
             self._logger.warn(u"skipping recently failed tracker %s", tracker_url)
             return
 
-        session = None
-        try:
-            session = create_tracker_session(tracker_url, self._on_result_from_session)
+        session = create_tracker_session(tracker_url, self._on_result_from_session)
 
-            connection_established = session.create_connection()
-            if not connection_established:
-                raise RuntimeError(u"Could not establish connection")
+        session.create_connection()
+        session.add_request(infohash)
 
-            session.add_request(infohash)
+        self._session_list.append(session)
 
-            self._session_list.append(session)
+        # update the number of responses this torrent is expecting
+        self._update_pending_response(infohash)
 
-            # update the number of responses this torrent is expecting
-            self._update_pending_response(infohash)
+        self._logger.debug(u"Session created for infohash %s", hexlify(infohash))
 
-            self._logger.debug(u"Session created for infohash %s", hexlify(infohash))
-
-        except Exception as e:
-            self._logger.info(u"Failed to create session for tracker %s: %s", tracker_url, e)
-
-            if session:
-                session.cleanup()
-
-            self._session.lm.tracker_manager.update_tracker_info(tracker_url, False)
 
     def _update_pending_response(self, infohash):
         if infohash in self._pending_response_dict:
@@ -418,15 +382,24 @@ class TorrentChecker(TaskManager):
                                                      u'leechers': -2,
                                                      u'updated': False}
 
-    def _on_result_from_session(self, infohash, seeders, leechers):
+    def _on_result_from_session(self, seed_leech_dict):
         if self.should_stop:
             return
-        response = self._pending_response_dict[infohash]
-        response[u'last_check'] = int(time.time())
-        if response[u'seeders'] < seeders or (response[u'seeders'] == seeders and response[u'leechers'] < leechers):
-            response[u'seeders'] = seeders
-            response[u'leechers'] = leechers
-            response[u'updated'] = True
+
+        for infohash in seed_leech_dict:
+            seeders = seed_leech_dict[infohash][0]
+            leechers = seed_leech_dict[infohash][1]
+
+            response = self._pending_response_dict[infohash]
+            response[u'last_check'] = int(time.time())
+
+            # Since an infohash can have multiple trackers, possibly with different values, we want to
+            # store the one with the most seeders else the one with the most leechers.
+            # TODO(Laurens): since this makes no sense to me, find out how to do it better.
+            if response[u'seeders'] < seeders or (response[u'seeders'] == seeders and response[u'leechers'] < leechers):
+                response[u'seeders'] = seeders
+                response[u'leechers'] = leechers
+                response[u'updated'] = True
 
     def _update_torrent_result(self, response):
         infohash = response[u'infohash']

@@ -443,12 +443,19 @@ class Session(SessionConfigInterface):
         @param gracetime Time to allow for graceful shutdown + signoff (seconds).
         """
         # Called by any thread
-        self.lm.early_shutdown()
-        self.checkpoint_shutdown(stop=True, checkpoint=checkpoint,
+        deferred = self.lm.early_shutdown()
+        def on_early_shutdown_complete(_):
+            """
+            Callback that gets called when the early shutdown has been compelted.
+            Continues the shutdown procedure that is dependant on the early shutdown.
+            :param _: ignored parameter of the Deferred
+            """
+            self.checkpoint_shutdown(stop=True, checkpoint=checkpoint,
                                  gracetime=gracetime, hacksessconfcheckpoint=hacksessconfcheckpoint)
+            self.sqlite_db.close()
+            self.sqlite_db = None
 
-        self.sqlite_db.close()
-        self.sqlite_db = None
+        deferred.addCallback(on_early_shutdown_complete)
 
     def has_shutdown(self):
         """ Whether the Session has completely shutdown, i.e., its internal
@@ -646,7 +653,8 @@ class Session(SessionConfigInterface):
         Checks the given torrent's health on its trackers.
         :param infohash: The given torrent infohash.
         """
-        self.lm.torrent_checker.add_gui_request(infohash)
+        if self.lm.torrent_checker:
+            self.lm.torrent_checker.add_gui_request(infohash)
 
     def set_max_upload_speed(self, rate):
         """
