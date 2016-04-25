@@ -22,10 +22,9 @@ class TriblerApp(App):
         print text
         print modifiers
 
-        if keycode == 1073742094: # Back
+        if keycode == 27: # Back
             print 'Back'
             return True
-       
         elif keycode == 1073741942: # Menu
             print 'Menu'
             return True
