@@ -8,7 +8,7 @@
 --add-source    ./java-src
 --dist_name     TriblerApp
 --bootstrap     sdl2
---requirements  android,kivy,libtribler
+--requirements  kivy,libtribler
 --whitelist     .p4a-whitelist
 
 --permission    CAMERA
