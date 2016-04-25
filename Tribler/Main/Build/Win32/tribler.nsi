@@ -154,8 +154,10 @@ Section "!Main EXE" SecMain
  File Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap_stable
  File Tribler\Core\DecentralizedTracking\pymdht\core\bootstrap_unstable
 
- ; Install MSVCR 2010
+ ; Install MSVCR 2008 & 2010
  SetOutPath "$INSTDIR"
+ File vcredist08_x86.exe
+ ExecWait "$INSTDIR\vcredist08_x86.exe /q /norestart"
  File vcredist10_x86.exe
  ExecWait "$INSTDIR\vcredist10_x86.exe /q /norestart"
 
