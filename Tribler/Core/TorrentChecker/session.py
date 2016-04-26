@@ -1,18 +1,17 @@
+from abc import ABCMeta, abstractmethod, abstractproperty
 import logging
 import random
 import struct
 import time
-from abc import ABCMeta, abstractmethod, abstractproperty
-from libtorrent import bdecode
 
-from twisted.internet import defer
+from libtorrent import bdecode
+from twisted.internet import reactor, defer
 from twisted.internet.defer import Deferred, maybeDeferred, DeferredList
 from twisted.internet.protocol import DatagramProtocol
 from twisted.web.client import Agent, readBody, RedirectAgent
 
 from Tribler.Core.Utilities.encoding import add_url_params
 from Tribler.Core.Utilities.tracker_utils import parse_tracker_url
-from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.dispersy.util import call_on_reactor_thread
 
 # Although these are the actions for UDP trackers, they can still be used as
