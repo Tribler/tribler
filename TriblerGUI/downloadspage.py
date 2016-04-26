@@ -1,5 +1,7 @@
-from PyQt5.QtCore import QSize
-from PyQt5.QtWidgets import QWidget, QTreeWidget, QTreeWidgetItem, QProgressBar
+from PyQt5.QtWidgets import QWidget, QTreeWidget
+from TriblerGUI.defs import DOWNLOADS_FILTER_ALL, DOWNLOADS_FILTER_DOWNLOADING, DOWNLOADS_FILTER_COMPLETED, \
+    DOWNLOADS_FILTER_ACTIVE, DOWNLOADS_FILTER_INACTIVE, DOWNLOADS_FILTER_DEFINITION
+from TriblerGUI.downloadwidgetitem import DownloadWidgetItem
 
 
 class DownloadsPage(QWidget):
@@ -8,40 +10,37 @@ class DownloadsPage(QWidget):
         self.downloads_tab = self.findChild(QWidget, "downloads_tab")
         self.downloads_tab.initialize()
         self.downloads_tab.clicked_tab_button.connect(self.on_downloads_tab_button_clicked)
+        self.download_widgets = {} # key: infohash, value: QTreeWidgetItem
+        self.filter = DOWNLOADS_FILTER_ALL
 
-        # TODO Martijn: for now, fill the downloads with some dummy data
         self.downloads_list = self.findChild(QTreeWidget, "downloads_list")
 
-        for i in range(0, 10):
-            item = QTreeWidgetItem(self.downloads_list)
-            item.setSizeHint(0, QSize(-1, 24))
-            item.setSizeHint(2, QSize(-1, 1))
-            item.setText(0, "My.test.torrent.HD.iso")
-            item.setText(1, "301.1 MB")
+    def received_download_status(self, downloads):
+        for download in downloads:
+            if download["infohash"] in self.download_widgets:
+                item = self.download_widgets[download["infohash"]]
+            else:
+                item = DownloadWidgetItem(self.downloads_list)
+                self.download_widgets[download["infohash"]] = item
+            item.updateWithDownload(download)
 
-            slider = QProgressBar()
-            slider.setStyleSheet("""
-            QProgressBar {
-                margin: 4px;
-                background-color: white;
-                color: #ddd;
-                font-size: 12px;
-                text-align: center;
-             }
+        self.update_download_visibility()
 
-             QProgressBar::chunk {
-                background-color: #e67300;
-             }
-            """)
-            slider.setValue(58)
-            self.downloads_list.setItemWidget(item, 2, slider)
-
-            item.setText(3, "Downloading")
-            item.setText(4, "4")
-            item.setText(5, "5")
-            item.setText(6, "801.3 KB")
-            item.setText(7, "0.4 KB")
-            item.setText(8, "34:12:03")
+    def update_download_visibility(self):
+        for i in range(self.downloads_list.topLevelItemCount()):
+            item = self.downloads_list.topLevelItem(i)
+            item.setHidden(not item.download_status_raw in DOWNLOADS_FILTER_DEFINITION[self.filter])
 
     def on_downloads_tab_button_clicked(self, button_name):
-        print button_name
+        if button_name == "downloads_all_button":
+            self.filter = DOWNLOADS_FILTER_ALL
+        elif button_name == "downloads_downloading_button":
+            self.filter = DOWNLOADS_FILTER_DOWNLOADING
+        elif button_name == "downloads_completed_button":
+            self.filter = DOWNLOADS_FILTER_COMPLETED
+        elif button_name == "downloads_active_button":
+            self.filter = DOWNLOADS_FILTER_ACTIVE
+        elif button_name == "downloads_inactive_button":
+            self.filter = DOWNLOADS_FILTER_INACTIVE
+
+        self.update_download_visibility()

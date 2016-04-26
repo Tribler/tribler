@@ -119,6 +119,7 @@ class TriblerWindow(QMainWindow):
 
         self.event_request_manager = EventRequestManager()
         self.event_request_manager.received_free_space.connect(self.received_free_space)
+        self.event_request_manager.received_download_status.connect(self.downloads_page.received_download_status)
 
         self.left_menu.hide()
 

@@ -6,9 +6,10 @@ from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 class EventRequestManager(QNetworkAccessManager):
 
     received_free_space = pyqtSignal(str)
+    received_download_status = pyqtSignal(object)
 
     def on_error(self, error):
-        print "GOT ERROR"
+        print "GOT EVENT ERROR"
 
     def on_finished(self):
         print self.reply.error()
@@ -16,7 +17,10 @@ class EventRequestManager(QNetworkAccessManager):
     def on_read_data(self):
         data = self.reply.readAll()
         json_dict = json.loads(str(data))
-        self.received_free_space.emit(json_dict["free_space"])
+        if json_dict["type"] == "free_space":
+            self.received_free_space.emit(json_dict["free_space"])
+        elif json_dict["type"] == "downloads":
+            self.received_download_status.emit(json_dict["downloads"])
 
     def __init__(self):
         QNetworkAccessManager.__init__(self)
