@@ -1,8 +1,10 @@
 import logging
+
+from twisted.internet import reactor
 from twisted.internet.defer import maybeDeferred
 from twisted.web import server
+
 from Tribler.Core.Modules.restapi.root_endpoint import RootEndpoint
-from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.dispersy.taskmanager import TaskManager
 
 
