@@ -22,6 +22,7 @@ setup(
         'Tribler.Core.Libtorrent',
         'Tribler.Core.Modules',
         'Tribler.Core.Modules.channel',
+        'Tribler.Core.Modules.restapi',
         'Tribler.Core.TFTP',
         'Tribler.Core.TorrentChecker',
         'Tribler.Core.Upgrade',

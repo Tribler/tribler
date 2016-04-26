@@ -730,6 +730,37 @@ class SessionConfigInterface(object):
         return self.sessconfig.get(u'watch_folder', u'watch_folder_dir')
 
     #
+    # API
+    #
+    def set_http_api_enabled(self, http_api_enabled):
+        """
+        Sets whether the HTTP API is enabled.
+        :param http_api_enabled: True or False.
+        """
+        return self.sessconfig.set(u'http_api', u'enabled', http_api_enabled)
+
+    def get_http_api_enabled(self):
+        """
+        Returns whether the HTTP API is enabled.
+        :return: A boolean indicating whether the HTTP API is enabled.
+        """
+        return self.sessconfig.get(u'http_api', u'enabled')
+
+    def set_http_api_port(self, http_api_port):
+        """
+        Sets the HTTP API listen port.
+        :param http_api_port: An integer, indicating the port where the HTTP API should listen on.
+        """
+        return self.sessconfig.set(u'http_api', u'port', http_api_port)
+
+    def get_http_api_port(self):
+        """
+        Returns the HTTP API listen port.
+        :return: An integer indicating the port where the HTPT API listens on.
+        """
+        return self._obtain_port(u'http_api', u'port')
+
+    #
     # Static methods
     #
     @staticmethod

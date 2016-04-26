@@ -260,6 +260,7 @@ class TestAsServer(AbstractServer):
         self.config.set_videoplayer(False)
         self.config.set_enable_metadata(False)
         self.config.set_upgrader_enabled(False)
+        self.config.set_http_api_enabled(False)
 
     def tearDown(self):
         self.annotate(self._testMethodName, start=False)

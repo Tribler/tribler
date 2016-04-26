@@ -17,6 +17,7 @@ from twisted.internet import reactor
 from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.Modules.restapi.rest_manager import RESTManager
 from Tribler.Core.Modules.search_manager import SearchManager
 from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
 from Tribler.Core.Modules.watch_folder import WatchFolder
@@ -72,6 +73,7 @@ class TriblerLaunchMany(TaskManager):
         self.metadata_store = None
         self.rtorrent_handler = None
         self.tftp_handler = None
+        self.api_manager = None
         self.watch_folder = None
         self.version_check_manager = None
 
@@ -248,6 +250,10 @@ class TriblerLaunchMany(TaskManager):
 
         if self.rtorrent_handler:
             self.rtorrent_handler.initialize()
+
+        if self.session.get_http_api_enabled():
+            self.api_manager = RESTManager(self.session)
+            self.api_manager.start()
 
         if self.session.get_watch_folder_enabled():
             self.watch_folder = WatchFolder(self.session)
@@ -675,6 +681,10 @@ class TriblerLaunchMany(TaskManager):
         if self.torrent_store is not None:
             yield self.torrent_store.close()
             self.torrent_store = None
+
+        if self.api_manager is not None:
+            yield self.api_manager.stop()
+            self.api_manager = None
 
         if self.watch_folder is not None:
             yield self.watch_folder.stop()
