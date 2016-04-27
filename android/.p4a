@@ -1,6 +1,6 @@
 --version       0.1
 --android_api   16
---arch          armeabi
+--arch          armeabi-v7a
 --package       org.tribler.android
 --name          "Tribler"
 --service       Triblerd:service/Triblerd.py
