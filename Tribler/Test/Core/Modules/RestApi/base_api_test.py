@@ -18,6 +18,7 @@ class AbstractApiTest(TestAsServer):
         super(AbstractApiTest, self).__init__(*args, **kwargs)
         self.expected_response_code = 200
         self.expected_response_json = None
+        self.should_check_equality = True
 
     def setUpPreSession(self):
         super(AbstractApiTest, self).setUpPreSession()
@@ -25,8 +26,9 @@ class AbstractApiTest(TestAsServer):
         self.config.set_megacache(True)
 
     def parse_body(self, body):
-        if body is not None:
+        if body is not None and self.should_check_equality:
             self.assertDictEqual(json.loads(body), self.expected_response_json)
+        return body
 
     def parse_response(self, response):
         self.assertEqual(response.code, self.expected_response_code)
