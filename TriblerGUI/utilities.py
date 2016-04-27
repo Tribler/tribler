@@ -31,3 +31,9 @@ def create_rounded_image(pixmap):
     painter.end()
 
     return pix
+
+
+def seconds_to_string(seconds):
+    minutes = seconds / 60
+    seconds_left = seconds % 60
+    return "%d:%02d" % (minutes, seconds_left)

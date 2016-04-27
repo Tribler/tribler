@@ -41,7 +41,6 @@ class TriblerWindow(QMainWindow):
     def __init__(self):
         super(TriblerWindow, self).__init__()
 
-        self.settings = None
         self.navigation_stack = []
 
         uic.loadUi('qt_resources/mainwindow.ui', self)
@@ -150,9 +149,9 @@ class TriblerWindow(QMainWindow):
 
     def received_settings(self, json_results):
         self.left_menu_home_button.selectMenuButton()
-        results = json.loads(json_results)
+        results = json.loads(json_results)['settings']
         self.video_player_page.video_player_port = results['video']['port']
-        self.settings = json.loads(json_results)
+        self.settings_page.initialize_with_settings(results)
 
     def on_top_search_button_click(self):
         self.clicked_menu_button("-")
