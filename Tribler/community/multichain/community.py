@@ -10,7 +10,7 @@ from twisted.internet.defer import inlineCallbacks
 from twisted.internet.task import LoopingCall
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
-from Tribler.dispersy.authentication import DoubleMemberAuthentication, MemberAuthentication
+from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.destination import CandidateDestination
@@ -18,8 +18,7 @@ from Tribler.dispersy.community import Community
 from Tribler.dispersy.message import Message, DelayPacketByMissingMember
 from Tribler.dispersy.conversion import DefaultConversion
 
-from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
-from Tribler.community.multichain.block import MultiChainBlock
+from Tribler.community.multichain.block import MultiChainBlock, INVALID
 from Tribler.community.multichain.payload import (HalfBlockPayload, FullBlockPayload, CrawlRequestPayload,
                                                   CrawlResumePayload)
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
@@ -165,7 +164,7 @@ class MultiChainCommunity(Community):
             blk = message.payload.block
             self.logger.info("Received signed block: [Up = {0} | Down = {1}]".format(blk.up, blk.down))
             validation = self.process_block(blk)
-            if validation[0] == "invalid":
+            if validation[0] == INVALID:
                 continue
 
             match = MultiChainBlock.create(self.persistence, self.my_member.public_key, blk)
@@ -304,7 +303,7 @@ class MultiChainCommunity(Community):
         """
         validation = blk.validate(self.persistence)
         self.logger.info("Block validation result {0}, {1}".format(validation[0], validation[1]))
-        if validation[0] == "invalid":
+        if validation[0] == INVALID:
             pass
         elif self.persistence.contains(blk):
             self.logger.info("Processing already known block")
@@ -337,8 +336,8 @@ class MultiChainCommunity(Community):
 
         if isinstance(tunnel.bytes_up, int) and isinstance(tunnel.bytes_down, int):
             # Tie breaker to prevent both parties from requesting
-            if self._public_key > candidate.get_member().public_key:
-                self.schedule_block(candidate, tunnel.bytes_up, tunnel.bytes_down)
+            if self.my_member.public_key > candidate.get_member().public_key:
+                self.sign_block(candidate, tunnel.bytes_up, tunnel.bytes_down)
             # else:
                 # TODO Note that you still expect a signature request for these bytes:
                 # pending[peer] = (up, down)

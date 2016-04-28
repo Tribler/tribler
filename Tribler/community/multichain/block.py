@@ -13,8 +13,15 @@ GENESIS_SEQ = 1
 EMPTY_SIG = '0'*SIG_LENGTH
 EMPTY_PK = '0'*PK_LENGTH
 
-block_pack_format = "! I I Q Q {0}s I {0}s I {1}s {2}s".format(PK_LENGTH, HASH_LENGTH, SIG_LENGTH)
+block_pack_format = "! Q Q Q Q {0}s I {0}s I {1}s {2}s".format(PK_LENGTH, HASH_LENGTH, SIG_LENGTH)
 block_pack_size = calcsize(block_pack_format)
+
+VALID="valid"
+PARTIAL="partial"
+PARTIAL_NEXT=PARTIAL+"-next"
+PARTIAL_PREV=PARTIAL+"-prev"
+NO_INFO="no-info"
+INVALID="invalid"
 
 
 class MultiChainBlock(object):
@@ -61,20 +68,20 @@ class MultiChainBlock(object):
         """
         Validates this block against what is known in the database
         :param database: the database to check against
-        :return: "valid" if the block does not violate any rules,
-                 "partial-next" if the block does not violate any rules, but there are missing blocks in the future
-                 "partial-prev" if the block does not violate any rules, but there are missing blocks in the past
-                 "partial" if the block does not violate any rules, but there are missing blocks on either side.
-                 "no-data" if there is not enough information known about the block to validate
-                 "invalid" if the block violate any of the rules,
+        :return: VALID if the block does not violate any rules,
+                 PARTIAL_NEXT if the block does not violate any rules, but there is a gap or no block in the future
+                 PARTIAL_PREV if the block does not violate any rules, but there is a gap or no block in the past
+                 PARTIAL if the block does not violate any rules, but there are gaps or no blocks on either side
+                 NO_INFO if there is not enough information known about the block to validate
+                 INVALID if the block violates any of the rules
         """
 
-        result = ["valid"]
+        result = [VALID]
         errors = []
         crypto = ECCrypto()
 
         def err(reason):
-            result[0] = "invalid"
+            result[0] = INVALID
             errors.append(reason)
 
         # Step 1: get all related blocks from the database, assume that the database speaks the truth and that all
@@ -90,33 +97,33 @@ class MultiChainBlock(object):
             if self.sequence_number != GENESIS_SEQ and self.previous_hash != GENESIS_ID:
                 # No blocks found, there is no info to base on
                 err("No blocks are known for this member before or after the queried sequence number")
-                result[0] = "no-info"
+                result[0] = NO_INFO
             else:
                 # If it is a starting block, we can at least conclude that the start is right if the totals add up
-                result[0] = "partial-next"
+                result[0] = PARTIAL_NEXT
         elif not prev_blk and next_blk:
             # The previous block does not exist in the database, at best our result can now be partial w.r.t. prev
             if self.sequence_number != GENESIS_SEQ and self.previous_hash != GENESIS_ID:
                 # We are not checking the first block after genesis, so we are really missing the previous block
-                result[0] = "partial-prev"
+                result[0] = PARTIAL_PREV
                 if next_blk.sequence_number != self.sequence_number + 1:
                     # If both sides are unknown or non-contiguous return a full partial result.
-                    result[0] = "partial"
+                    result[0] = PARTIAL
         elif prev_blk and not next_blk:
             # The next block does not exist in the database, at best our result can now be partial w.r.t. next
-            result[0] = "partial-next"
+            result[0] = PARTIAL_NEXT
             if prev_blk.sequence_number != self.sequence_number - 1:
                 # If both sides are unknown or non-contiguous return a full partial result.
-                result[0] = "partial"
+                result[0] = PARTIAL
         else:
             # both sides have known blocks, see if there are gaps
             if (prev_blk.sequence_number != self.sequence_number - 1) and \
                     (next_blk.sequence_number != self.sequence_number + 1):
-                result[0] = "partial"
+                result[0] = PARTIAL
             elif prev_blk.sequence_number != self.sequence_number - 1:
-                result[0] = "partial-prev"
+                result[0] = PARTIAL_PREV
             elif next_blk.sequence_number != self.sequence_number + 1:
-                result[0] = "partial-next"
+                result[0] = PARTIAL_NEXT
 
         # Step 3: validate that the block is sane
         if self.up < 0:
