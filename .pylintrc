@@ -145,7 +145,7 @@ spelling-dict=en
 # sudo apt install aspell-en
 
 # List of comma separated words that should not be checked.
-spelling-ignore-words=Tribler,dispersy
+spelling-ignore-words=Tribler,dispersy,pymdht
 
 # A path to a file that contains private dictionary; one word per line.
 spelling-private-dict-file=
