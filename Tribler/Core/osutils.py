@@ -20,6 +20,27 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+def get_android_api_version():
+    """
+    :return: integer Runtime API version or None.
+    """
+    try:
+        from android import api_version
+        return api_version
+    except ImportError:
+        return None
+
+
+def is_android():
+    """
+    This functions checks whether Tribler is running on Android or not, using the Android runtime API version.
+
+    :return: boolean True if running on Android. False otherwise.
+    """
+    return get_android_api_version() is not None
+
+
 if sys.platform == "win32":
     try:
         from win32com.shell import shell, shellcon
@@ -118,6 +139,20 @@ if sys.platform == "win32":
         def get_desktop_dir():
             home = get_home_dir()
             return os.path.join(home, u"Desktop")
+
+elif is_android():
+
+    def get_home_dir():
+        return os.path.realpath(os.environ['ANDROID_PRIVATE'])
+
+    def get_appstate_dir():
+        return os.path.join(get_home_dir(), '.Tribler')
+
+    def get_picture_dir():
+        return os.path.join(get_desktop_dir(), 'DCIM')
+
+    def get_desktop_dir():
+        return os.path.realpath(os.environ['EXTERNAL_STORAGE'])
 
 else:
     # linux or darwin (mac)
@@ -224,28 +259,3 @@ def startfile(filepath):
         subprocess.call(('xdg-open', filepath))
     elif hasattr(os, "startfile"):
         os.startfile(filepath)
-
-
-def is_android(strict=False):
-    """
-    This functions checks whether Tribler is running on Android or not, using the ANDROID_HOST environment variable.
-    When Tribler is launched on Android, this variable is set to "ANDROID-99" where 99 is the current SDK version.
-
-    :param strict: Check if ANDROID_HOST actually starts with "ANDROID". This can be useful for code that must
-    absolutely only run on Android, and not on a computer testing the Android specific code.
-    :return: Whether this is Android or not.
-    """
-
-    # This is not an Android device at all
-    if not 'ANDROID_HOST' in os.environ:
-        return False
-
-    # No strict mode: always return true when ANDROID_HOST is defined
-    if not strict:
-        return True
-    # Strict mode: actually check whether the variable starts with "ANDROID"
-    elif os.environ['ANDROID_HOST'].startswith("ANDROID"):
-        return True
-    # Strict mode, but the variable doesn't start with "ANDROID"
-    else:
-        return False
