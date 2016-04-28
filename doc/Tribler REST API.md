@@ -12,7 +12,13 @@ The API has been built using [Twisted Web](http://twistedmatrix.com/trac/wiki/Tw
 
 | Endpoint | Description |
 | ---- | --------------- |
-| [GET /mychannel/overview](/v3_resources/blocks.md#get-usersloginblocks) | Get the name, description and identifier of your channel |
+| GET /mychannel/overview | Get the name, description and identifier of your channel |
+
+### Settings
+
+| Endpoint | Description |
+| ---- | --------------- |
+| GET /settings | Get settings used by the current Tribler session |
 
 ## `GET /mychannel/overview`
 
@@ -26,6 +32,27 @@ Returns an overview of the channel of the user. This includes the name, descript
         "name": "My Tribler channel",
         "description": "A great collection of open-source movies",
         "identifier": "4a9cfc7ca9d15617765f4151dd9fae94c8f3ba11"
+    }
+}
+```
+
+## `GET /settings`
+
+Returns a dictionary with the settings that the current Tribler session is using. Note that the response below is not the complete settings dictionary returned since that would be too large to display here.
+
+### Example response
+
+```
+{
+    "settings": {
+        "barter_community": {
+            "enabled": false
+        },
+        "libtorrent": {
+            "anon_listen_port": 55638,
+            ...
+        },
+        ...
     }
 }
 ```
