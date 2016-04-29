@@ -21,6 +21,12 @@ The API has been built using [Twisted Web](http://twistedmatrix.com/trac/wiki/Tw
 | ---- | --------------- |
 | GET /settings | Get settings used by the current Tribler session |
 
+### Variables
+
+| Endpoint | Description |
+| ---- | --------------- |
+| GET /variables | Returns runtime-defined variables used by the current Tribler session |
+
 ## `GET /mychannel/overview`
 
 Returns an overview of the channel of the user. This includes the name, description and identifier of the channel.
@@ -67,6 +73,25 @@ Returns a dictionary with the settings that the current Tribler session is using
         },
         "libtorrent": {
             "anon_listen_port": 55638,
+            ...
+        },
+        ...
+    }
+}
+```
+
+## `GET /variables`
+
+Returns a dictionary with the runtime-defined variables that the current Tribler session is using.
+
+### Example response
+
+```
+{
+    "variables": {
+        "ports": {
+            "video~port": 1234,
+            "tunnel_community~socks5_listen_ports~1": 1235,
             ...
         },
         ...
