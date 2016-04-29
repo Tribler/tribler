@@ -24,8 +24,11 @@ class TestLibtorrentDownload(TestGuiAsServer):
         self.setup_seeder(video_tdef, TESTS_DATA_DIR)
 
     def add_peer_to_download(self):
-            download = self.session.get_download(self.torrent_infohash)
-            download.add_peer(("127.0.0.1", self.seeder_session.get_listen_port()))
+        """
+        Add the seeding localhost peer to the torrent being downloaded.
+        """
+        download = self.session.get_download(self.torrent_infohash)
+        download.add_peer(("127.0.0.1", self.seeder_session.get_listen_port()))
 
     def item_has_downloaded(self):
             if self.frame.librarylist.list.HasItem(self.torrent_infohash):
@@ -90,7 +93,10 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.quit()
 
         def item_shown_in_list():
-            self.CallConditional(10, lambda: self.frame.librarylist.list.GetItem(self.torrent_infohash).original_data.ds and self.frame.librarylist.list.GetItem(self.torrent_infohash).original_data.ds.get_current_speed(DOWNLOAD) > 0,
+            self.CallConditional(10,
+                                 lambda: self.frame.librarylist.list.GetItem(self.torrent_infohash).original_data.ds
+                                 and self.frame.librarylist.list.GetItem(self.torrent_infohash)
+                                 .original_data.ds.get_current_speed(DOWNLOAD) > 0,
                                  make_screenshot, 'no download progress')
 
         def download_object_ready():
