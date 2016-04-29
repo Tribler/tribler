@@ -1,16 +1,14 @@
 !define PRODUCT "Tribler"
-; Laurens, 2016-03-14: The __GIT__ string will be replaced by update_version_from_git.py
+; Laurens, 2016-03-14: The __GIT__ string will be replaced by update_version_from_git.py with the current version of the build.
 !define VERSION "__GIT__"
 ; Laurens, 2016-03-14: The _x86 will be replaced by _x64 if needed in update_version_from_git.py
 !define BITVERSION "x86"
 
 !include "MUI2.nsh"
-!include "UAC.nsh"
 !include "FileFunc.nsh"
 !include "nsProcess.nsh"
 
-; In order to use the UAC plugin we are required to set RequestExecutionLevel to user.
-RequestExecutionLevel user
+RequestExecutionLevel admin
 
 ;--------------------------------
 ;Configuration
@@ -76,9 +74,6 @@ BrandingText "${PRODUCT}"
 !define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_ACCEPT "I accept"
 !define MUI_LICENSEPAGE_RADIOBUTTONS_TEXT_DECLINE "I decline"
 
-!define MUI_FINISHPAGE_RUN
-!define MUI_FINISHPAGE_RUN_FUNCTION PageFinishRun
-
 !insertmacro MUI_PAGE_LICENSE "binary-LICENSE.txt"
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
@@ -110,6 +105,7 @@ LangString DESC_SecDefaultMagnet ${LANG_ENGLISH} "Associate magnet links with ${
 ;Installer Sections
 
 Section "!Main EXE" SecMain
+	MessageBox MB_OK "In Section !Main EXE"
  SectionIn RO
  ; Check if tribler is not running when trying to install because files will be in use when cleaning the isntall dir.
  Call checkrunning
@@ -303,9 +299,9 @@ SectionEnd
 ;Uninstaller Section
 
 Section "Uninstall"
+    MessageBox MB_OK "In Uninstall section"
     ; Check if tribler is not running when trying to uninstall because files will be in use then.
     Call un.checkrunning
-
     RMDir /r "$INSTDIR"
 
     Delete "$DESKTOP\${PRODUCT}.lnk"
@@ -325,51 +321,23 @@ SectionEnd
 ;--------------------------------
 ;Macros and Functions Section
 
-
-!macro Init thing
-uac_tryagain:
-!insertmacro UAC_RunElevated
-
-; Currently this throws error 1223 on newer windows systems, but this can be ignored.
-${Switch} $0
-${Case} 0
-	${IfThen} $1 = 1 ${|} Quit ${|} ;we are the outer process, the inner process has done its work, we are done
-	${IfThen} $3 <> 0 ${|} ${Break} ${|} ;we are admin, let the show go on
-	${If} $1 = 3 ;RunAs completed successfully, but with a non-admin user
-		MessageBox mb_YesNo|mb_IconExclamation|mb_TopMost|mb_SetForeground "This ${thing} requires admin privileges, try again" /SD IDNO IDYES uac_tryagain IDNO 0
-	${EndIf}
-	;fall-through and die
-${Case} 1223
-;	Quit
-	${Break}
-${Case} 1062
-	MessageBox mb_IconStop|mb_TopMost|mb_SetForeground "Logon service not running."
-	Quit
-${Default}
-	MessageBox mb_IconStop|mb_TopMost|mb_SetForeground "Unable to elevate , error $0"
-	Quit
-${EndSwitch}
-
-SetShellVarContext all
-!macroend
-
-
 Function .onInit
-  !insertmacro Init "installer"
+	MessageBox MB_OK "In .onInit"
 
   System::Call 'kernel32::CreateMutexA(i 0, i 0, t "Tribler") i .r1 ?e'
 
   Pop $R0
-
-  StrCmp $R0 0 +3
+  StrCmp $R0 0 checkinst
 
   MessageBox MB_OK "The installer is already running."
   Abort
 
+  checkinst:
   ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString"
   StrCmp $R0 "" done
-  IfFileExists $R0 +1 done
+  IfFileExists $R0 showuninstdialog done
 
+  showuninstdialog:
   MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "${PRODUCT} is already installed. $\n$\nClick `OK` to remove the previous version or `Cancel` to cancel this upgrade." /SD IDCANCEL IDOK uninst
   Abort
 
@@ -378,7 +346,8 @@ Function .onInit
     ; Laurens (2016-03-29): Retrieve the uninstallString stored in the register. Do NOT use $INSTDIR as this points to the current $INSTDIR var of the INSTALLER, 
     ; which is the default location at this point.
     ReadRegStr $R0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString"
-    ExecWait '"$R0"' ;Do not copy the uninstaller to a temp file
+ MessageBox MB_OK "$R0"
+    ExecWait '"$R0" _?=$INSTDIR'
     ReadRegStr $R0 HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT}" "UninstallString"
     StrCmp $R0 "" done
     Abort
@@ -386,11 +355,3 @@ Function .onInit
 
 FunctionEnd
 
-Function un.onInit
-	SetShellVarContext all
-    	!insertmacro Init "uninstaller"
-FunctionEnd
-
-Function PageFinishRun
-	!insertmacro UAC_AsUser_ExecShell "" "$INSTDIR\tribler.exe" "" "" ""
-FunctionEnd
