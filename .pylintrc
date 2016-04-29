@@ -139,7 +139,7 @@ generated-members=
 
 # Spelling dictionary name. Available dictionaries: none. To make it working
 # install python-enchant package.
-spelling-dict=en
+# spelling-dict=en # Disable it for now, breaks pylint due to non-ascii chars.
 
 # To install required dictionary:
 # sudo apt install aspell-en
