@@ -16,7 +16,11 @@ persistent=yes
 
 # List of plugins (as comma separated values of python modules names) to load,
 # usually to register additional checkers.
-load-plugins=
+load-plugins=pylint_common,pylint.extensions.check_elif,pylint.extensions.check_docs
+
+# To install required plugins:
+# sudo apt install python-pylint-common python-enchant python-pylint-plugin-utils
+
 
 # Use multiple processes to speed up Pylint.
 jobs=8
@@ -105,7 +109,7 @@ additional-builtins=
 
 # List of strings which can identify a callback function by name. A callback
 # name must start or end with one of those strings.
-callbacks=cb_,_cb
+callbacks=cb_,_cb,on_
 
 
 [TYPECHECK]
@@ -135,10 +139,13 @@ generated-members=
 
 # Spelling dictionary name. Available dictionaries: none. To make it working
 # install python-enchant package.
-spelling-dict=
+spelling-dict=en
+
+# To install required dictionary:
+# sudo apt install aspell-en
 
 # List of comma separated words that should not be checked.
-spelling-ignore-words=
+spelling-ignore-words=Tribler,dispersy,pymdht
 
 # A path to a file that contains private dictionary; one word per line.
 spelling-private-dict-file=
@@ -224,7 +231,7 @@ bad-names=foo,bar,baz,toto,tutu,tata
 name-group=
 
 # Include a hint for the correct naming format with invalid-name
-include-naming-hint=no
+include-naming-hint=yes
 
 # Regular expression matching correct function names
 function-rgx=[a-z_][a-z0-9_]{2,30}$
@@ -292,7 +299,7 @@ no-docstring-rgx=^_
 
 # Minimum line length for functions/classes that require docstrings, shorter
 # ones are exempt.
-docstring-min-length=-1
+docstring-min-length=5
 
 
 [ELIF]
