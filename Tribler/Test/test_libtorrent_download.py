@@ -23,6 +23,10 @@ class TestLibtorrentDownload(TestGuiAsServer):
         self.torrent_infohash = video_tdef.get_infohash()
         self.setup_seeder(video_tdef, TESTS_DATA_DIR)
 
+    def add_peer_to_download(self):
+            download = self.session.get_download(self.torrent_infohash)
+            download.add_peer(("127.0.0.1", self.seeder_session.get_listen_port()))
+
     def item_has_downloaded(self):
             if self.frame.librarylist.list.HasItem(self.torrent_infohash):
                 item = self.frame.librarylist.list.GetItem(self.torrent_infohash)
@@ -65,10 +69,6 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.CallConditional(10, lambda: self.frame.librarylist.list.HasItem(
                 self.torrent_infohash), item_shown_in_list, 'no download in librarylist')
 
-        def add_peer():
-            download = self.session.get_download(self.torrent_infohash)
-            download.add_peer(("127.0.0.1", self.seeder_session.get_listen_port()))
-
         def do_downloadfromfile():
             self.setup_video_seed()
             self.guiUtility.showLibrary()
@@ -76,7 +76,7 @@ class TestLibtorrentDownload(TestGuiAsServer):
             from urllib import pathname2url
             file_uri = "file:" + pathname2url(self.torrent_path)
             self.frame.startDownloadFromArg(file_uri, self.getDestDir())
-            self.callLater(3, add_peer)
+            self.callLater(3, self.add_peer_to_download)
 
             self.CallConditional(30, lambda: self.session.get_download(self.torrent_infohash), download_object_ready,
                                  'do_downloadfromfile() failed')
@@ -90,25 +90,28 @@ class TestLibtorrentDownload(TestGuiAsServer):
             self.quit()
 
         def item_shown_in_list():
-            self.CallConditional(10, lambda: self.frame.librarylist.list.GetItem(TORRENT_FILE_INFOHASH).original_data.ds and self.frame.librarylist.list.GetItem(TORRENT_FILE_INFOHASH).original_data.ds.get_current_speed(DOWNLOAD) > 0,
+            self.CallConditional(10, lambda: self.frame.librarylist.list.GetItem(self.torrent_infohash).original_data.ds and self.frame.librarylist.list.GetItem(self.torrent_infohash).original_data.ds.get_current_speed(DOWNLOAD) > 0,
                                  make_screenshot, 'no download progress')
 
         def download_object_ready():
             self.CallConditional(10, lambda: self.frame.librarylist.list.HasItem(
-                TORRENT_FILE_INFOHASH), item_shown_in_list, 'no download in librarylist')
+                self.torrent_infohash), item_shown_in_list, 'no download in librarylist')
 
         def do_downloadfromurl():
+            self.setup_video_seed()
+            files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
+            shutil.copyfile(self.torrent_path, os.path.join(files_path, 'video.torrent'))
             self.guiUtility.showLibrary()
-            self.frame.startDownloadFromArg(r'http://localhost:%s/ubuntu.torrent' % self.file_server_port,
+            self.frame.startDownloadFromArg(r'http://localhost:%s/video.torrent' % self.file_server_port,
                                             self.getDestDir())
+            self.callLater(3, self.add_peer_to_download)
 
-            self.CallConditional(10, lambda: self.session.get_download(TORRENT_FILE_INFOHASH), download_object_ready,
+            self.CallConditional(15, lambda: self.session.get_download(self.torrent_infohash), download_object_ready,
                                  'do_downloadfromurl() failed')
 
         # Create directory with files and setup file server to serve torrent file
         files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
         os.mkdir(files_path)
-        shutil.copyfile(TORRENT_FILE, os.path.join(files_path, 'ubuntu.torrent'))
         self.file_server_port = get_random_port()
         self.setUpFileServer(self.file_server_port, files_path)
 
