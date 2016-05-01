@@ -5,6 +5,11 @@ from PyQt5.QtWidgets import QWidget, QGraphicsOpacityEffect
 
 
 class ChannelListItem(QWidget):
+    """
+    This class is responsible for managing the item in the list of channels.
+    The list item supports a fade-in effect, which can be enabled with the should_fade parameter in the constructor.
+    """
+
     def __init__(self, parent, channel, fade_delay=0, should_fade=False):
         super(QWidget, self).__init__(parent)
 

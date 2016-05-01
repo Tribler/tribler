@@ -1,37 +1,22 @@
-import json
 import os
 import sys
 from PyQt5 import uic
-from PyQt5.QtCore import Qt, QSize, pyqtSignal
-from PyQt5.QtGui import QPixmap, QIcon
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QMainWindow, QListView, QListWidget, QLineEdit, QListWidgetItem, QApplication, QToolButton, \
-    QWidget, QLabel, QTreeWidget, QTreeWidgetItem, QProgressBar, QStackedWidget
+    QWidget, QLabel, QTreeWidget, QTreeWidgetItem, QStackedWidget
 from TriblerGUI.channel_activity_list_item import ChannelActivityListItem
 from TriblerGUI.channel_comment_list_item import ChannelCommentListItem
 
 from TriblerGUI.channel_list_item import ChannelListItem
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
+from TriblerGUI.defs import PAGE_SEARCH_RESULTS, PAGE_CHANNEL_CONTENT, PAGE_CHANNEL_COMMENTS, PAGE_CHANNEL_ACTIVITY, \
+    PAGE_HOME, PAGE_MY_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
+    PAGE_CHANNEL_DETAILS
 from TriblerGUI.event_request_manager import EventRequestManager
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import create_rounded_image
 
 # TODO martijn: temporary solution to convince VLC to find the plugin path
 os.environ['VLC_PLUGIN_PATH'] = '/Applications/VLC.app/Contents/MacOS/plugins'
-
-
-# Define stacked widget page indices
-PAGE_HOME = 0
-PAGE_MY_CHANNEL = 1
-PAGE_SEARCH_RESULTS = 2
-PAGE_CHANNEL_DETAILS = 3
-PAGE_SETTINGS = 4
-PAGE_VIDEO_PLAYER = 5
-PAGE_SUBSCRIBED_CHANNELS = 6
-PAGE_DOWNLOADS = 7
-
-PAGE_CHANNEL_CONTENT = 0
-PAGE_CHANNEL_COMMENTS = 1
-PAGE_CHANNEL_ACTIVITY = 2
 
 
 class TriblerWindow(QMainWindow):
@@ -96,7 +81,7 @@ class TriblerWindow(QMainWindow):
         self.channel_comments_list = self.findChild(QTreeWidget, "channel_comments_list")
         self.channel_activities_list = self.findChild(QListWidget, "channel_activities_list")
 
-        # TODO Martijn: for now, fill the comments and activity with some dummy data
+        # TODO Martijn: for now, fill the comments and activity items on the channel details page with some dummy data
         for i in range(0, 10):
             parent_item = QTreeWidgetItem(self.channel_comments_list)
             widget_item = ChannelCommentListItem(self.channel_comments_list, 0)

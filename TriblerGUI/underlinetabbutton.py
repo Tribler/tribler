@@ -3,6 +3,9 @@ from PyQt5.QtWidgets import QWidget, QToolButton
 
 
 class UnderlineTabButton(QToolButton):
+    """
+    This class is responsible for the buttons in the tab panels that can often be found at the top of the page.
+    """
 
     clicked_tab_button = pyqtSignal(object)
     common_stylesheet = """

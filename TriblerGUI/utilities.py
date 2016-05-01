@@ -11,6 +11,7 @@ def format_size(num, suffix='B'):
         num /= 1024.0
     return "%.1f%s%s" % (num, 'Yi', suffix)
 
+
 def create_rounded_image(pixmap):
     color = QColor(0, 0, 0, 0)
     pix = QPixmap(QSize(pixmap.width(), pixmap.height()))

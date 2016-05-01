@@ -1,18 +1,16 @@
-from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtWidgets import QWidget, QStackedWidget, QToolButton, QLineEdit, QCheckBox, QLabel, QComboBox, QRadioButton, \
+from PyQt5.QtWidgets import QWidget, QStackedWidget, QLineEdit, QCheckBox, QLabel, QComboBox, QRadioButton, \
     QSlider
+from TriblerGUI.defs import PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_CONNECTION, PAGE_SETTINGS_BANDWIDTH, \
+    PAGE_SETTINGS_SEEDING, PAGE_SETTINGS_ANONYMITY
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
 from TriblerGUI.utilities import seconds_to_string
 
-PAGE_SETTINGS_GENERAL = 0
-PAGE_SETTINGS_CONNECTION = 1
-PAGE_SETTINGS_BANDWIDTH = 2
-PAGE_SETTINGS_SEEDING = 3
-PAGE_SETTINGS_ANONYMITY = 4
-
 
 class SettingsPage(QWidget):
+    """
+    This class is responsible for displaying and adjusting the settings present in Tribler.
+    """
 
     def initialize_settings_page(self):
         self.settings_stacked_widget = self.findChild(QStackedWidget, "settings_stacked_widget")

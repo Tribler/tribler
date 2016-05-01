@@ -1,13 +1,14 @@
-import json
 from random import shuffle
 
-from PyQt5.QtCore import QSize, Qt
-from PyQt5.QtWidgets import QWidget, QListWidget, QListWidgetItem, QLabel
+from PyQt5.QtWidgets import QWidget, QListWidget, QLabel
 from TriblerGUI.channel_list_item import ChannelListItem
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
 
 
 class SearchResultsPage(QWidget):
+    """
+    This class is responsible for displaying the search results.
+    """
 
     def initialize_search_results_page(self):
         self.search_results_list = self.findChild(QListWidget, "search_results_list")
@@ -42,7 +43,7 @@ class SearchResultsPage(QWidget):
             for torrent_item in self.search_results['torrents']:
                 all_items.append((ChannelTorrentListItem, torrent_item))
 
-        # Just sort them randomly, channels and torrents mixed
+        # TODO Martijn: just sort them randomly for now, channels and torrents mixed
         shuffle(all_items)
 
         self.search_results_list.set_data_items(all_items)

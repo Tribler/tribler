@@ -8,6 +8,10 @@ from TriblerGUI.video_file_list_item import VideoFileListItem
 
 
 class VideoPlayerFilesMenu(QWidget):
+    """
+    This class manages the menu to the right of the video player that can be used to choose a different file for
+    playback.
+    """
 
     should_change_playing_file = pyqtSignal(int)
 

@@ -3,6 +3,10 @@ from PyQt5.QtWidgets import QWidget
 
 
 class VideoFileListItem(QWidget):
+    """
+    This class defines a list item in the video files list.
+    """
+
     def __init__(self, parent, file_info, is_selected=False):
         super(QWidget, self).__init__(parent)
 
