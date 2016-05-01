@@ -1,9 +1,11 @@
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtGui import QPainter
-from PyQt5.QtWidgets import QWidget, QStyleOption, QStyle
+from PyQt5.QtWidgets import QWidget
 
 
 class LeftMenuButton(QWidget):
+    """
+    This class handles the change in style of the buttons in the left menu of Tribler when selected/deselected.
+    """
 
     clicked_menu_button = pyqtSignal(str)
     common_stylesheet = """

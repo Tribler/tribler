@@ -1,20 +1,17 @@
-from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QStackedWidget, QTreeWidget, \
     QTreeWidgetItem, QToolButton, QFileDialog, QLineEdit, QTextEdit
 
+from TriblerGUI.defs import PAGE_MY_CHANNEL_OVERVIEW, PAGE_MY_CHANNEL_SETTINGS, PAGE_MY_CHANNEL_TORRENTS, \
+    PAGE_MY_CHANNEL_PLAYLISTS, PAGE_MY_CHANNEL_RSS_FEEDS
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
-
-# Define stacked widget page indices
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-
-PAGE_MY_CHANNEL_OVERVIEW = 0
-PAGE_MY_CHANNEL_SETTINGS = 1
-PAGE_MY_CHANNEL_TORRENTS = 2
-PAGE_MY_CHANNEL_PLAYLISTS = 3
-PAGE_MY_CHANNEL_RSS_FEEDS = 4
 
 
 class MyChannelPage(QWidget):
+    """
+    This class is responsible for managing lists and data on the your channel page, including torrents, playlists
+    and rss feeds.
+    """
 
     def initialize_my_channel_page(self):
         self.my_channel_stacked_widget = self.findChild(QStackedWidget, "my_channel_stacked_widget")

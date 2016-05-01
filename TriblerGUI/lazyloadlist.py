@@ -6,6 +6,10 @@ ITEM_LOAD_BATCH = 30
 
 
 class LazyLoadList(QListWidget):
+    """
+    This class implements a list where widget items are lazy-loaded. When the user has reached the end of the list
+    when scrolling, the next items are created and displayed.
+    """
 
     def __init__(self, parent):
         super(LazyLoadList, self).__init__(parent)

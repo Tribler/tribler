@@ -3,6 +3,9 @@ from PyQt5.QtWidgets import QSlider, QStyle
 
 
 class VideoPlayerPositionSlider(QSlider):
+    """
+    The position slider can be used to seek in a playing video.
+    """
 
     should_change_video_position = pyqtSignal(float)
 

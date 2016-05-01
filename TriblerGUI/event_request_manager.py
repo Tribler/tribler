@@ -1,17 +1,22 @@
 import json
-from PyQt5.QtCore import QByteArray, QUrl, pyqtSignal
+from PyQt5.QtCore import QUrl, pyqtSignal
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 
 class EventRequestManager(QNetworkAccessManager):
+    """
+    The EventRequestManager class handles the events connection over which important events in Tribler are pushed.
+    """
 
     received_free_space = pyqtSignal(str)
     received_download_status = pyqtSignal(object)
 
     def on_error(self, error):
+        # TODO Martijn: do something useful here
         print "GOT EVENT ERROR"
 
     def on_finished(self):
+        # TODO Martijn: do something useful here
         print self.reply.error()
 
     def on_read_data(self):

@@ -4,6 +4,9 @@ from TriblerGUI.defs import DLSTATUS_STRINGS
 
 
 class DownloadWidgetItem(QTreeWidgetItem):
+    """
+    This class is responsible for managing the item in the downloads list and fills the item with the relevant data.
+    """
 
     def __init__(self, parent):
         super(DownloadWidgetItem, self).__init__(parent)

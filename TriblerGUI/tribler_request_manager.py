@@ -4,6 +4,9 @@ from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 
 class TriblerRequestManager(QNetworkAccessManager):
+    """
+    This class is responsible for all the requests made to the Tribler REST API.
+    """
 
     received_search_results = pyqtSignal(object)
     received_channels = pyqtSignal(str)
@@ -24,9 +27,11 @@ class TriblerRequestManager(QNetworkAccessManager):
         self.reply.error.connect(self.on_error)
 
     def on_error(self, error):
+        # TODO Martijn: do something useful here
         print "GOT ERROR"
 
     def on_finished(self):
+        # TODO Martijn: do something useful here
         print "REQUEST FINISHED"
 
     def on_read_data_search_results(self):

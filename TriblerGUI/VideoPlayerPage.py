@@ -1,15 +1,17 @@
 import sys
 
-from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QPixmap, QIcon
-from PyQt5.QtWidgets import QWidget, QFrame, QToolButton, QSlider
+from PyQt5.QtWidgets import QWidget, QToolButton, QSlider
 
 from TriblerGUI import vlc
 
 
 class VideoPlayerPage(QWidget):
+    """
+    This class manages the video player and all controls on the page.
+    """
 
-    INFOHASH = u"8a8898c4f65a2812006e24f34c314ecab74f6b44" # for testing purposes
+    INFOHASH = u"8a8898c4f65a2812006e24f34c314ecab74f6b44" # TODO Martijn: for testing purposes
     ACTIVE_INDEX = -1
 
     def __init__(self):
@@ -48,11 +50,11 @@ class VideoPlayerPage(QWidget):
         self.volume_button.setIcon(self.volume_on_icon)
         self.playlist_button.setIcon(self.menu_icon)
 
-        if sys.platform.startswith('linux'): # for Linux using the X Server
+        if sys.platform.startswith('linux'):
             self.mediaplayer.set_xwindow(self.video_player_widget.winId())
-        elif sys.platform == "win32": # for Windows
+        elif sys.platform == "win32":
             self.mediaplayer.set_hwnd(self.video_player_widget.winId())
-        elif sys.platform == "darwin": # for MacOS
+        elif sys.platform == "darwin":
             self.mediaplayer.set_nsobject(int(self.video_player_widget.winId()))
 
         self.manager = self.mediaplayer.event_manager()

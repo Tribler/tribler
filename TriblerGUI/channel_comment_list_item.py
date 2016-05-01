@@ -1,10 +1,12 @@
 from PyQt5 import uic
-from PyQt5.QtCore import Qt, QTimer, QTimeLine, QPropertyAnimation
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QWidget, QGraphicsOpacityEffect, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QSizePolicy
 
 
 class ChannelCommentListItem(QWidget):
+    """
+    This class is responsible for managing the item in the comments list of a channel.
+    """
+
     def __init__(self, parent, level):
         super(QWidget, self).__init__(parent)
 

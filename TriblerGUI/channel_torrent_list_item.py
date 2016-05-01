@@ -1,11 +1,13 @@
 from PyQt5 import uic
-from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import QWidget
 from TriblerGUI.utilities import format_size
 
 
 class ChannelTorrentListItem(QWidget):
+    """
+    This class is responsible for managing the item in the torrents list of a channel.
+    """
+
     def __init__(self, parent, torrent):
         super(QWidget, self).__init__(parent)
 

@@ -1,3 +1,30 @@
+# Define stacked widget page indices
+PAGE_HOME = 0
+PAGE_MY_CHANNEL = 1
+PAGE_SEARCH_RESULTS = 2
+PAGE_CHANNEL_DETAILS = 3
+PAGE_SETTINGS = 4
+PAGE_VIDEO_PLAYER = 5
+PAGE_SUBSCRIBED_CHANNELS = 6
+PAGE_DOWNLOADS = 7
+
+PAGE_CHANNEL_CONTENT = 0
+PAGE_CHANNEL_COMMENTS = 1
+PAGE_CHANNEL_ACTIVITY = 2
+
+PAGE_MY_CHANNEL_OVERVIEW = 0
+PAGE_MY_CHANNEL_SETTINGS = 1
+PAGE_MY_CHANNEL_TORRENTS = 2
+PAGE_MY_CHANNEL_PLAYLISTS = 3
+PAGE_MY_CHANNEL_RSS_FEEDS = 4
+
+PAGE_SETTINGS_GENERAL = 0
+PAGE_SETTINGS_CONNECTION = 1
+PAGE_SETTINGS_BANDWIDTH = 2
+PAGE_SETTINGS_SEEDING = 3
+PAGE_SETTINGS_ANONYMITY = 4
+
+# Definition of the download statuses and the corresponding strings
 DLSTATUS_ALLOCATING_DISKSPACE = 0
 DLSTATUS_WAITING4HASHCHECK = 1
 DLSTATUS_HASHCHECKING = 2
@@ -11,6 +38,7 @@ DLSTATUS_CIRCUITS = 8
 DLSTATUS_STRINGS = ["Allocating disk space", "Waiting for check", "Checking", "Downloading", "Seeding", "Stopped",
                     "Stopped on error", "Waiting for metadata", "Building circuits"]
 
+# Definitions of the download filters. For each filter, it is specified which download statuses can be displayed.
 DOWNLOADS_FILTER_ALL = 0
 DOWNLOADS_FILTER_DOWNLOADING = 1
 DOWNLOADS_FILTER_COMPLETED = 2

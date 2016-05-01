@@ -5,6 +5,10 @@ from TriblerGUI.downloadwidgetitem import DownloadWidgetItem
 
 
 class DownloadsPage(QWidget):
+    """
+    This class is responsible for managing all items on the downloads page.
+    The downloads page shows all downloads and specific details about a download.
+    """
 
     def initialize_downloads_page(self):
         self.downloads_tab = self.findChild(QWidget, "downloads_tab")
