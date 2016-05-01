@@ -10,7 +10,8 @@ class TriblerRequestManager(QNetworkAccessManager):
     received_subscribed_channels = pyqtSignal(object)
     received_torrents_in_channel = pyqtSignal(object)
     received_download_details = pyqtSignal(str)
-    received_settings = pyqtSignal(str)
+    received_settings = pyqtSignal(object)
+    received_variables = pyqtSignal(object)
 
     def perform_get(self, url, read_callback):
         self.reply = self.get(QNetworkRequest(QUrl(url)))
@@ -41,7 +42,13 @@ class TriblerRequestManager(QNetworkAccessManager):
 
     def on_read_data_settings(self):
         data = self.reply.readAll()
-        self.received_settings.emit(str(data))
+        settings = json.loads(str(data))["settings"]
+        self.received_settings.emit(settings)
+
+    def on_read_data_variables(self):
+        data = self.reply.readAll()
+        variables = json.loads(str(data))["variables"]
+        self.received_variables.emit(variables)
 
     def on_read_data_channels(self):
         data = self.reply.readAll()
@@ -68,6 +75,10 @@ class TriblerRequestManager(QNetworkAccessManager):
     def get_settings(self, callback):
         self.received_settings.connect(callback)
         self.perform_get("http://localhost:8085/settings", self.on_read_data_settings)
+
+    def get_variables(self, callback):
+        self.received_variables.connect(callback)
+        self.perform_get("http://localhost:8085/variables", self.on_read_data_variables)
 
     def get_channels(self, callback):
         self.received_channels.connect(callback)

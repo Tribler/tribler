@@ -1,6 +1,7 @@
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QWidget, QStackedWidget, QToolButton, QLineEdit, QCheckBox, QLabel, QComboBox, QRadioButton, \
     QSlider
+from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
 from TriblerGUI.utilities import seconds_to_string
 
@@ -104,6 +105,9 @@ class SettingsPage(QWidget):
         self.number_hops_slider.setValue(int(settings['Tribler']['default_number_hops']) - 1)
         self.multichain_enabled_checkbox.setChecked(settings['multichain']['enabled'])
 
+    def load_settings(self):
+        self.settings_request_mgr = TriblerRequestManager()
+        self.settings_request_mgr.get_settings(self.initialize_with_settings)
 
     def clicked_tab_button(self, tab_button_name):
         if tab_button_name == "settings_general_button":
