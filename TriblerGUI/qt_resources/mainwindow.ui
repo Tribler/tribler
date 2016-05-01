@@ -710,7 +710,7 @@ padding-left: 4px;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>4</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1390,7 +1390,7 @@ border-top: 1px solid #555;
                  <number>1</number>
                 </property>
                 <property name="currentIndex">
-                 <number>2</number>
+                 <number>4</number>
                 </property>
                 <widget class="QWidget" name="my_channel_details_overview_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
@@ -1438,6 +1438,9 @@ font-size: 14px;</string>
                   </item>
                   <item>
                    <layout class="QFormLayout" name="formLayout_3">
+                    <property name="fieldGrowthPolicy">
+                     <enum>QFormLayout::ExpandingFieldsGrow</enum>
+                    </property>
                     <property name="labelAlignment">
                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
                     </property>
@@ -1450,7 +1453,7 @@ font-size: 14px;</string>
                     <property name="topMargin">
                      <number>0</number>
                     </property>
-                    <item row="0" column="0">
+                    <item row="2" column="0">
                      <widget class="QLabel" name="label_8">
                       <property name="styleSheet">
                        <string notr="true">color: white;
@@ -1461,14 +1464,67 @@ font-size: 14px;</string>
                       </property>
                      </widget>
                     </item>
-                    <item row="0" column="1">
+                    <item row="2" column="1">
+                     <widget class="QLabel" name="my_channel_identifier_label">
+                      <property name="styleSheet">
+                       <string notr="true">color: white;
+font-size: 14px;</string>
+                      </property>
+                      <property name="text">
+                       <string>-</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="0">
                      <widget class="QLabel" name="label_9">
                       <property name="styleSheet">
                        <string notr="true">color: white;
 font-size: 14px;</string>
                       </property>
                       <property name="text">
-                       <string>537285923fds89d</string>
+                       <string>Name:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QLabel" name="my_channel_name_label_2">
+                      <property name="styleSheet">
+                       <string notr="true">color: white;
+font-size: 14px;</string>
+                      </property>
+                      <property name="text">
+                       <string>-</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="0">
+                     <widget class="QLabel" name="label_25">
+                      <property name="styleSheet">
+                       <string notr="true">color: white;
+font-size: 14px;</string>
+                      </property>
+                      <property name="text">
+                       <string>Description:</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="1">
+                     <widget class="QLabel" name="my_channel_description_label">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="styleSheet">
+                       <string notr="true">color: white;
+font-size: 14px;</string>
+                      </property>
+                      <property name="text">
+                       <string>-</string>
+                      </property>
+                      <property name="wordWrap">
+                       <bool>true</bool>
                       </property>
                      </widget>
                     </item>
@@ -1534,7 +1590,7 @@ font-size: 14px;</string>
                      </widget>
                     </item>
                     <item row="0" column="1">
-                     <widget class="QLineEdit" name="lineEdit_3">
+                     <widget class="QLineEdit" name="my_channel_name_input">
                       <property name="styleSheet">
                        <string notr="true">border: 1px solid #555;
 background-color: #ccc;
@@ -1553,7 +1609,7 @@ border-radius: 4px;</string>
                      </widget>
                     </item>
                     <item row="1" column="1">
-                     <widget class="QTextEdit" name="textEdit">
+                     <widget class="QTextEdit" name="my_channel_description_input">
                       <property name="styleSheet">
                        <string notr="true">border: 1px solid #555;
 background-color: #ccc;
@@ -1670,14 +1726,6 @@ color: white;
 }
 QTreeWidget::item::selected {
 background-color: #444;
-}
-QHeaderView::section {
-background-color: transparent;
-color: white;
-border: none;
-margin: 4px;
-margin-left: 8px;
-margin-right: 6px;
 }</string>
                     </property>
                     <property name="alternatingRowColors">
@@ -1687,11 +1735,26 @@ margin-right: 6px;
                      <enum>QAbstractItemView::MultiSelection</enum>
                     </property>
                     <property name="indentation">
-                     <number>4</number>
+                     <number>0</number>
                     </property>
-                    <property name="sortingEnabled">
+                    <property name="uniformRowHeights">
                      <bool>false</bool>
                     </property>
+                    <property name="itemsExpandable">
+                     <bool>true</bool>
+                    </property>
+                    <property name="sortingEnabled">
+                     <bool>true</bool>
+                    </property>
+                    <property name="expandsOnDoubleClick">
+                     <bool>true</bool>
+                    </property>
+                    <attribute name="headerDefaultSectionSize">
+                     <number>300</number>
+                    </attribute>
+                    <attribute name="headerStretchLastSection">
+                     <bool>true</bool>
+                    </attribute>
                     <column>
                      <property name="text">
                       <string notr="true">Name</string>
@@ -1705,7 +1768,7 @@ margin-right: 6px;
                       <string>Date added</string>
                      </property>
                      <property name="textAlignment">
-                      <set>AlignTrailing|AlignVCenter</set>
+                      <set>AlignLeading|AlignVCenter</set>
                      </property>
                     </column>
                    </widget>
@@ -1944,14 +2007,6 @@ color: white;
 }
 QTreeWidget::item::selected {
 background-color: #444;
-}
-QHeaderView::section {
-background-color: transparent;
-color: white;
-border: none;
-margin: 4px;
-margin-left: 8px;
-margin-right: 6px;
 }</string>
                     </property>
                     <property name="alternatingRowColors">
@@ -1961,7 +2016,7 @@ margin-right: 6px;
                      <enum>QAbstractItemView::ScrollPerPixel</enum>
                     </property>
                     <property name="indentation">
-                     <number>4</number>
+                     <number>0</number>
                     </property>
                     <column>
                      <property name="text">
@@ -3108,6 +3163,49 @@ font-weight: bold;</string>
                </property>
               </widget>
              </item>
+             <item>
+              <widget class="QToolButton" name="settings_save_button">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>26</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>26</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">border: none;
+border-radius: 2px;
+background-color: #e67300;
+color: white;
+font-size: 14px;
+</string>
+               </property>
+               <property name="text">
+                <string>Save</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_42">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>10</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
             </layout>
            </widget>
           </item>
@@ -3485,6 +3583,52 @@ border-radius: 4px;</string>
                 </property>
                </widget>
               </item>
+              <item row="5" column="0">
+               <widget class="QLabel" name="default_download_settings_header">
+                <property name="styleSheet">
+                 <string notr="true">font-weight: bold;</string>
+                </property>
+                <property name="text">
+                 <string>Default download settings</string>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="0">
+               <widget class="QLabel" name="download_settings_anon_label">
+                <property name="text">
+                 <string>Download anonymously
+using proxies</string>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="1">
+               <widget class="QCheckBox" name="download_settings_anon_checkbox">
+                <property name="styleSheet">
+                 <string notr="true">margin-top: 10px;</string>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+               </widget>
+              </item>
+              <item row="7" column="0">
+               <widget class="QLabel" name="download_settings_anon_seeding_label">
+                <property name="text">
+                 <string>Encrypted anonymous
+seeding using proxies</string>
+                </property>
+               </widget>
+              </item>
+              <item row="7" column="1">
+               <widget class="QCheckBox" name="download_settings_anon_seeding_checkbox">
+                <property name="styleSheet">
+                 <string notr="true">margin-top: 10px;</string>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+               </widget>
+              </item>
               <item row="8" column="0">
                <widget class="QLabel" name="label_22">
                 <property name="styleSheet">
@@ -3549,52 +3693,6 @@ border-radius: 4px;</string>
                  <string notr="true">border: 1px solid #555;
 background-color: #ccc;
 border-radius: 4px;</string>
-                </property>
-               </widget>
-              </item>
-              <item row="5" column="0">
-               <widget class="QLabel" name="default_download_settings_header">
-                <property name="styleSheet">
-                 <string notr="true">font-weight: bold;</string>
-                </property>
-                <property name="text">
-                 <string>Default download settings</string>
-                </property>
-               </widget>
-              </item>
-              <item row="6" column="1">
-               <widget class="QCheckBox" name="download_settings_anon_checkbox">
-                <property name="styleSheet">
-                 <string notr="true">margin-top: 10px;</string>
-                </property>
-                <property name="text">
-                 <string/>
-                </property>
-               </widget>
-              </item>
-              <item row="6" column="0">
-               <widget class="QLabel" name="download_settings_anon_label">
-                <property name="text">
-                 <string>Download anonymously
-using proxies</string>
-                </property>
-               </widget>
-              </item>
-              <item row="7" column="0">
-               <widget class="QLabel" name="download_settings_anon_seeding_label">
-                <property name="text">
-                 <string>Encrypted anonymous
-seeding using proxies</string>
-                </property>
-               </widget>
-              </item>
-              <item row="7" column="1">
-               <widget class="QCheckBox" name="download_settings_anon_seeding_checkbox">
-                <property name="styleSheet">
-                 <string notr="true">margin-top: 10px;</string>
-                </property>
-                <property name="text">
-                 <string/>
                 </property>
                </widget>
               </item>

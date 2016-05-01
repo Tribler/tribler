@@ -120,8 +120,6 @@ class TriblerWindow(QMainWindow):
         self.event_request_manager.received_free_space.connect(self.received_free_space)
         self.event_request_manager.received_download_status.connect(self.downloads_page.received_download_status)
 
-        self.left_menu.hide()
-
         self.video_player_page.initialize_player()
         self.search_results_page.initialize_search_results_page()
         self.settings_page.initialize_settings_page()
@@ -184,6 +182,7 @@ class TriblerWindow(QMainWindow):
         elif menu_button_name == "left_menu_my_channel_button":
             self.left_menu_my_channel_button.selectMenuButton()
             self.stackedWidget.setCurrentIndex(PAGE_MY_CHANNEL)
+            self.my_channel_page.load_my_channel_overview()
         elif menu_button_name == "left_menu_videoplayer_button":
             self.left_menu_videoplayer_button.selectMenuButton()
             self.stackedWidget.setCurrentIndex(PAGE_VIDEO_PLAYER)
