@@ -112,9 +112,9 @@ class TriblerWindow(QMainWindow):
             item.setSizeHint(widget_item.sizeHint())
             self.channel_activities_list.setItemWidget(item, widget_item)
 
-        # fetch the settings
-        self.settings_request_mgr = TriblerRequestManager()
-        self.settings_request_mgr.get_settings(self.received_settings)
+        # fetch the variables, needed for the video player port
+        self.variables_request_mgr = TriblerRequestManager()
+        self.variables_request_mgr.get_variables(self.received_variables)
 
         self.event_request_manager = EventRequestManager()
         self.event_request_manager.received_free_space.connect(self.received_free_space)
@@ -147,11 +147,9 @@ class TriblerWindow(QMainWindow):
             items.append((ChannelTorrentListItem, result))
         self.channel_torrents_list.set_data_items(items)
 
-    def received_settings(self, json_results):
+    def received_variables(self, variables):
         self.left_menu_home_button.selectMenuButton()
-        results = json.loads(json_results)['settings']
-        self.video_player_page.video_player_port = results['video']['port']
-        self.settings_page.initialize_with_settings(results)
+        self.video_player_page.video_player_port = variables["ports"]["video~port"]
 
     def on_top_search_button_click(self):
         self.clicked_menu_button("-")
@@ -195,6 +193,7 @@ class TriblerWindow(QMainWindow):
         elif menu_button_name == "left_menu_settings_button":
             self.left_menu_settings_button.selectMenuButton()
             self.stackedWidget.setCurrentIndex(PAGE_SETTINGS)
+            self.settings_page.load_settings()
         elif menu_button_name == "left_menu_subscribed_button":
             self.left_menu_subscribed_button.selectMenuButton()
             self.subscribed_channels_request_manager = TriblerRequestManager()
