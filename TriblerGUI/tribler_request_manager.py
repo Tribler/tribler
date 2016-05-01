@@ -12,6 +12,9 @@ class TriblerRequestManager(QNetworkAccessManager):
     received_download_details = pyqtSignal(str)
     received_settings = pyqtSignal(object)
     received_variables = pyqtSignal(object)
+    received_my_channel_overview = pyqtSignal(object)
+    received_my_channel_torrents = pyqtSignal(object)
+    received_my_channel_rss_feeds = pyqtSignal(object)
 
     def perform_get(self, url, read_callback):
         self.reply = self.get(QNetworkRequest(QUrl(url)))
@@ -50,6 +53,21 @@ class TriblerRequestManager(QNetworkAccessManager):
         variables = json.loads(str(data))["variables"]
         self.received_variables.emit(variables)
 
+    def on_read_data_my_channel_overview(self):
+        data = self.reply.readAll()
+        overview = json.loads(str(data))["overview"]
+        self.received_my_channel_overview.emit(overview)
+
+    def on_read_data_my_channel_torrents(self):
+        data = self.reply.readAll()
+        torrents = json.loads(str(data))["torrents"]
+        self.received_my_channel_torrents.emit(torrents)
+
+    def on_read_data_my_channel_rss_feeds(self):
+        data = self.reply.readAll()
+        rss_feeds = json.loads(str(data))["rssfeeds"]
+        self.received_my_channel_rss_feeds.emit(rss_feeds)
+
     def on_read_data_channels(self):
         data = self.reply.readAll()
         self.received_channels.emit(str(data))
@@ -79,6 +97,18 @@ class TriblerRequestManager(QNetworkAccessManager):
     def get_variables(self, callback):
         self.received_variables.connect(callback)
         self.perform_get("http://localhost:8085/variables", self.on_read_data_variables)
+
+    def get_my_channel_overview(self, callback):
+        self.received_my_channel_overview.connect(callback)
+        self.perform_get("http://localhost:8085/mychannel/overview", self.on_read_data_my_channel_overview)
+
+    def get_my_channel_torrents(self, callback):
+        self.received_my_channel_torrents.connect(callback)
+        self.perform_get("http://localhost:8085/mychannel/torrents", self.on_read_data_my_channel_torrents)
+
+    def get_my_channel_rss_feeds(self, callback):
+        self.received_my_channel_rss_feeds.connect(callback)
+        self.perform_get("http://localhost:8085/mychannel/rssfeeds", self.on_read_data_my_channel_rss_feeds)
 
     def get_channels(self, callback):
         self.received_channels.connect(callback)
