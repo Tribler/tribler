@@ -1,0 +1,73 @@
+#:kivy 1.9.2
+
+<HomeScreen>
+    orientation: 'vertical'
+
+    top_pane: top_pane
+    content_pane: content_pane
+
+    canvas.before:
+
+        Color:
+            rgba: 1, 1, 1, 1
+            
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            
+    BoxLayout:
+        id: top_pane
+        orientation: 'vertical'
+        
+        BoxLayout:
+            id: title_panel
+            orientation: 'horizontal'
+            
+            Button:
+                text: '<-'
+                size_hint: (None, None)
+                size: (dp(50), dp(50)), 
+                on_press: root.go_back()
+                
+            Label:
+                text: root.title
+                
+            Button:
+                text: 'O\'
+                size_hint: (None, None)
+                size: (dp(50), dp(50)), 
+                on_press: root.go_search()
+                
+        BoxLayout:
+            id: search_panel
+            orientation: 'horizontal'
+            
+            TextInput:
+                id: search_bar
+                
+            Button:
+                text: 'go'
+                on_press: root.go_search()
+                
+        BoxLayout:
+            id: tabs_panel
+            orientation: 'horizontal'
+            
+            Button:
+                text: '*'
+                on_press: root.go_favs()
+                
+            Button:
+                text: 'Recent'
+                on_press: root.go_recent()
+                
+            Button:
+                text: 'My'
+                on_press: root.go_mine()
+                
+            Button:
+                text: '+'
+                on_press: root.add_video()
+                
+    RecycleView:
+        id: content_pane

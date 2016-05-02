@@ -1,38 +1,14 @@
 from kivy.app import App
-from kivy.core.window import Window
-
-from jnius import autoclass
 
 
 class TriblerApp(App):
 
-    def run(self):
-        self.kv_file = 'gui/TriblerApp.kv'
-        return App.run(self)
-
     def build(self):
-        Window.bind(on_key_down=self.on_key_down)
-        return App.build(self)
-
-    def on_key_down(self, window, keycode, scancode, text, modifiers):
-        print self
-        print window
-        print keycode
-        print scancode
-        print text
-        print modifiers
-
-        if keycode == 27: # Back
-            print 'Back'
-            return True
-        elif keycode == 1073741942: # Menu
-            print 'Menu'
-            return True
-
-        return False
-
+        from HomeScreen import HomeScreen
+        return HomeScreen()
 
     def start_service_triblerd(self):
+        from jnius import autoclass
         service = autoclass('org.tribler.android.ServiceTriblerd')
         mActivity = autoclass('org.kivy.android.PythonActivity').mActivity
         argument = ''
