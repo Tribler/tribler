@@ -3,12 +3,8 @@ from kivy.properties import ObjectProperty, StringProperty
 
 
 class HomeScreen(BoxLayout):
-    
-    def __init__(self):
-        from kivy.lang import Builder
-        Builder.load_file('HomeScreen.kv')
 
-    title = StringProperty('Tribler')
+    title = StringProperty()
 
     top_pane = ObjectProperty()
     content_pane = ObjectProperty()
