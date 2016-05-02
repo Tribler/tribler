@@ -1,4 +1,6 @@
 from twisted.web import resource
+
+from Tribler.Core.Modules.restapi.channels_endpoint import ChannelsEndpoint
 from Tribler.Core.Modules.restapi.my_channel_endpoint import MyChannelEndpoint
 from Tribler.Core.Modules.restapi.settings_endpoint import SettingsEndpoint
 from Tribler.Core.Modules.restapi.variables_endpoint import VariablesEndpoint
@@ -13,6 +15,9 @@ class RootEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.session = session
+
+        self.channels_endpoint = ChannelsEndpoint(self.session)
+        self.putChild("channels", self.channels_endpoint)
 
         self.my_channel_endpoint = MyChannelEndpoint(self.session)
         self.putChild("mychannel", self.my_channel_endpoint)
