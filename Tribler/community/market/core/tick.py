@@ -232,8 +232,8 @@ class Price(object):
 
         self._price = price
 
-    @staticmethod
-    def from_mil(mil_price):
+    @classmethod
+    def from_mil(cls, mil_price):
         """
         Create a price from a mil format
 
@@ -244,10 +244,10 @@ class Price(object):
         :return: The price
         :rtype: Price
         """
-        return Price(mil_price)
+        return cls(mil_price)
 
-    @staticmethod
-    def from_float(float_price):
+    @classmethod
+    def from_float(cls, float_price):
         """
         Create a price from a float format
 
@@ -257,9 +257,15 @@ class Price(object):
         :rtype: Price
         """
         price = int(Decimal(str(float_price)) * Decimal('10000'))
-        return Price(price)
+        return cls(price)
 
     def __int__(self):
+        """
+        Return the integer representation of the price
+
+        :return: The string representation of the price
+        :rtype: integer
+        """
         return self._price
 
     def __str__(self):
