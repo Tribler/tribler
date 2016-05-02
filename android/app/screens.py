@@ -26,3 +26,7 @@ class HomeScreen(BoxLayout):
 
     def add_video(self):
         print self
+
+
+class CameraScreen(BoxLayout):
+    pass

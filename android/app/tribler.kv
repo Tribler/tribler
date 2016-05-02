@@ -1,5 +1,29 @@
 #:kivy 1.9.2
 
+
+##########
+
+<BarBoxLayout@BoxLayout>:
+    text_size: self.size
+    font_size: '25sp'
+    markup: True
+    
+    canvas:
+        Color:
+            rgba: 1, 1, 1, .5
+
+
+##########
+
+<FlatButton@Button>:
+    markup: True
+    size_hint: (1, .5)
+    font_size: '25sp'
+    text_size: self.size
+
+
+##########
+
 <HomeScreen>
     orientation: 'vertical'
 
@@ -28,7 +52,7 @@
                 pos: self.pos
                 size: self.size
                 
-        BoxLayout:
+        BarBoxLayout:
             id: title_panel
             orientation: 'horizontal'
             
@@ -40,6 +64,9 @@
                 
             Label:
                 text: root.title
+                size_hint: (1, .5)
+                font_size: '25sp'
+                text_size: self.size
                 
             Button:
                 text: 'o-'
@@ -47,7 +74,7 @@
                 size: (dp(50), dp(50))
                 on_press: root.go_search()
                 
-        BoxLayout:
+        BarBoxLayout:
             id: search_panel
             orientation: 'horizontal'
             
@@ -58,25 +85,32 @@
                 text: 'go'
                 on_press: root.go_search()
                 
-        BoxLayout:
+        BarBoxLayout:
             id: tabs_panel
             orientation: 'horizontal'
             
-            Button:
+            FlatButton:
                 text: '*'
+                background_color: [1, 1, 1, .5]
                 on_press: root.go_favs()
                 
-            Button:
+            FlatButton:
                 text: 'Recent'
+                background_color: [1, 1, 1, .5]
                 on_press: root.go_recent()
                 
-            Button:
+            FlatButton:
                 text: 'My'
+                background_color: [1, 1, 1, .5]
                 on_press: root.go_mine()
                 
-            Button:
+            FlatButton:
                 text: '+'
+                background_color: [1, 1, 1, 0]
                 on_press: root.add_video()
                 
     RecycleView:
         id: content_pane
+
+
+##########
