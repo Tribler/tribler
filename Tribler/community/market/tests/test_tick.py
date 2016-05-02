@@ -196,5 +196,38 @@ class TickTestSuite(unittest.TestCase):
         self.assertEqual(timeout.__hash__(), timeout2.__hash__())
         self.assertNotEqual(timeout.__hash__(), timeout3.__hash__())
 
+    def test_timestamp(self):
+        # Object creation
+        timestamp = Timestamp(1462224447.117)
+        timestamp2 = Timestamp(1462224447.117)
+        timestamp3 = Timestamp(1305743832.438)
+
+        # Test for init validation
+        with self.assertRaises(ValueError):
+            Timestamp(-1.0)
+
+        # Test for now
+        self.assertEqual(time.time(), float(Timestamp.now()))
+
+        # Test for conversions
+        self.assertEqual(1462224447.117, float(timestamp))
+        self.assertEqual('2016-05-02 23:27:27.117000', str(timestamp))
+
+        # Test for comparison
+        self.assertTrue(timestamp3 < timestamp)
+        self.assertTrue(timestamp <= timestamp)
+        self.assertTrue(timestamp > timestamp3)
+        self.assertTrue(timestamp3 >= timestamp3)
+
+        # Test for equality
+        self.assertTrue(timestamp == timestamp2)
+        self.assertTrue(timestamp == timestamp)
+        self.assertTrue(timestamp != timestamp3)
+        self.assertFalse(timestamp == 6)
+
+        # Test for hashes
+        self.assertEqual(timestamp.__hash__(), timestamp2.__hash__())
+        self.assertNotEqual(timestamp.__hash__(), timestamp3.__hash__())
+
 if __name__ == '__main__':
     unittest.main()
