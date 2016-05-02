@@ -419,6 +419,14 @@ class Quantity(object):
     """Immutable class for representing quantity."""
 
     def __init__(self, quantity):
+        """
+        Initialise the quantity
+
+        Don't call this method directly, but use one of the factory methods: from_mil, from_float
+
+        :param quantity: Integer representation of a quantity that is positive or zero
+        :type quantity: int
+        """
         super(Quantity, self).__init__()
 
         assert isinstance(quantity, int), type(quantity)
@@ -427,6 +435,33 @@ class Quantity(object):
             raise ValueError("Quantity must be positive")
 
         self._quantity = quantity
+
+    @classmethod
+    def from_mil(cls, mil_quantity):
+        """
+        Create a quantity from a mil format
+
+        A mil is 0.0001 of a quantity unit
+
+        :param mil_quantity: A mil quantity (mil = 0.0001)
+        :type mil_quantity: int
+        :return: The quantity
+        :rtype: Quantity
+        """
+        return cls(mil_quantity)
+
+    @classmethod
+    def from_float(cls, float_quantity):
+        """
+        Create a quantity from a float format
+
+        :param float_quantity: A float representation of a quantity
+        :type float_quantity: float
+        :return: The quantity
+        :rtype: Quantity
+        """
+        quantity = int(Decimal(str(float_quantity)) * Decimal('10000'))
+        return cls(quantity)
 
     def __int__(self):
         """
@@ -439,12 +474,12 @@ class Quantity(object):
 
     def __str__(self):
         """
-        Return the string representation of the quantity
+        Return the string representation of the quantity in mil units
 
-        :return: The string representation of the quantity
+        :return: The string representation of the quantity in mil units
         :rtype: str
         """
-        return "%s" % self._quantity
+        return "%s" % (Decimal(str(self._quantity)) / Decimal('10000')).quantize(Decimal('0.0001'))
 
     def __add__(self, other):
         """
@@ -456,7 +491,7 @@ class Quantity(object):
         :rtype: Quantity
         """
         if isinstance(other, Quantity):
-            return Quantity(self._quantity + other._quantity)
+            return Quantity.from_mil(self._quantity + other._quantity)
         else:
             return NotImplemented
 
@@ -481,7 +516,7 @@ class Quantity(object):
         :rtype: Quantity
         """
         if isinstance(other, Quantity):
-            return Quantity(self._quantity - other._quantity)
+            return Quantity.from_mil(self._quantity - other._quantity)
         else:
             return NotImplemented
 
