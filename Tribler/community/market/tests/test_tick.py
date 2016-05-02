@@ -30,5 +30,22 @@ class TickTestSuite(unittest.TestCase):
         self.assertEqual(message_number.__hash__(), message_number2.__hash__())
         self.assertNotEqual(message_number.__hash__(), message_number3.__hash__())
 
+    def test_message_id(self):
+        trader_id = TraderId('trader_id')
+        message_number = MessageNumber('message_number')
+        message_number2 = MessageNumber('message_number2')
+        message_id = MessageId(trader_id, message_number)
+        message_id2 = MessageId(trader_id, message_number)
+        message_id3 = MessageId(trader_id, message_number2)
+        self.assertEqual(trader_id, message_id.trader_id)
+        self.assertEqual(message_number, message_id.message_number)
+        self.assertEqual('trader_id.message_number', str(message_id))
+        self.assertTrue(message_id == message_id2)
+        self.assertTrue(message_id == message_id)
+        self.assertTrue(message_id != message_id3)
+        self.assertFalse(message_id == 6)
+        self.assertEqual(message_id.__hash__(), message_id2.__hash__())
+        self.assertNotEqual(message_id.__hash__(), message_id3.__hash__())
+
 if __name__ == '__main__':
     unittest.main()
