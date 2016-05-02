@@ -1,5 +1,7 @@
+import time
+
 from .context import Tribler
-from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity
+from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp
 import unittest
 
 
@@ -169,6 +171,30 @@ class TickTestSuite(unittest.TestCase):
         # Test for hashes
         self.assertEqual(quantity2.__hash__(), quantity4.__hash__())
         self.assertNotEqual(quantity.__hash__(), quantity2.__hash__())
+
+    def test_timeout(self):
+
+        # Object creation
+        timeout = Timeout(1462224447.117)
+        timeout2 = Timeout(1462224447.117)
+        timeout3 = Timeout(1305743832.438)
+
+        # Test for init validation
+        with self.assertRaises(ValueError):
+            Timeout(-1.0)
+
+        # Test for timed out
+        self.assertFalse(timeout.is_timed_out(Timestamp(1462224447.117)))
+        self.assertFalse(timeout.is_timed_out(Timestamp(1262224447.117)))
+        self.assertTrue(timeout.is_timed_out(Timestamp(1462224448.117)))
+
+        # Test for conversions
+        self.assertEqual(1462224447.117, float(timeout))
+        self.assertEqual('2016-05-02 23:27:27.117000', str(timeout))
+
+        # Test for hashes
+        self.assertEqual(timeout.__hash__(), timeout2.__hash__())
+        self.assertNotEqual(timeout.__hash__(), timeout3.__hash__())
 
 if __name__ == '__main__':
     unittest.main()
