@@ -1,9 +1,14 @@
-import os
-import ast
-
-from time import sleep
-
 from kivy.logger import Logger
+from kivy.support import install_twisted_reactor
+
+# must be called before importing the reactor
+install_twisted_reactor(installSignalHandlers=1) 
+
+from twisted.internet import reactor
+
+import ast
+import os
+import signal
 
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
@@ -20,29 +25,44 @@ class Triblerd(object):
 
 
     def run(self):
-
-        def start_tribler(options):
-            config = SessionStartupConfig()
-            config.set_http_api_enabled(True)
-            config.set_http_api_port(options['restapi'])
-
-            self.session = Session(config)
-
-            Logger.info('Run upgrader...')
-            upgrader = self.session.prestart()
-
-            if upgrader.failed:
-                Logger.error('The upgrader failed')
-            else:
-                Logger.info('Starting Tribler...')
-                self.session.start()
-                Logger.info('Tribler started!')
-
         """
         Pass through options
         """
         options = ast.literal_eval(os.getenv('PYTHON_SERVICE_ARGUMENT'))
-        start_tribler(options)
+        self.start_tribler(options)
+
+
+    def start_tribler(self, options):
+        """
+        Main method to startup Tribler.
+        """
+
+        def signal_handler(sig, _):
+            Logger.info("Received shut down signal %s" % sig)
+            if not self._stopping:
+                self._stopping = True
+                self.session.shutdown()
+                Logger.info("Tribler shut down")
+                reactor.stop()
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+
+        Logger.info("Starting Tribler")
+
+        config = SessionStartupConfig()
+        
+        config.set_http_api_enabled(True)
+        config.set_http_api_port(options["restapi"])
+
+        self.session = Session(config)
+        upgrader = self.session.prestart()
+        if upgrader.failed:
+            Logger.info("The upgrader failed: .Tribler directory backed up, aborting")
+            #reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)
+            reactor.stop()
+        else:
+            self.session.start()
+            Logger.info("Tribler started")
 
 
 if __name__ == '__main__':
