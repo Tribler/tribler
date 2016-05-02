@@ -1,5 +1,6 @@
 from decimal import Decimal
 import time
+import datetime
 
 
 class TraderId(object):
@@ -670,7 +671,7 @@ class Timeout(object):
         :return: The string representation of the timeout
         :rtype: str
         """
-        return "%s" % self._timeout
+        return "%s" % datetime.datetime.fromtimestamp(self._timeout)
 
     def __hash__(self):
         """
@@ -727,7 +728,7 @@ class Timestamp(object):
         :return: The string representation of the timestamp
         :rtype: str
         """
-        return "%s" % self._timestamp
+        return "%s" % datetime.datetime.fromtimestamp(self._timestamp)
 
     def __lt__(self, other):
         """
