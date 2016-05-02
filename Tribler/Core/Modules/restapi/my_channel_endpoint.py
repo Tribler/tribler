@@ -1,5 +1,6 @@
 import json
-from twisted.web import http, server, resource
+from twisted.web import http, resource
+
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST
 
 
@@ -24,16 +25,15 @@ class MyChannelBaseEndpoint(resource.Resource):
 
 class MyChannelEndpoint(MyChannelBaseEndpoint):
     """
-    This endpoint is reponsible for handing all requests regarding your channel such as getting and updating
+    This endpoint is responsible for handing all requests regarding your channel such as getting and updating
     torrents, playlists and rss-feeds.
     """
-
-    def getChild(self, path, request):
-        child_handler_dict = {"overview": MyChannelOverviewEndpoint, "torrents": MyChannelTorrentsEndpoint}
-        if path not in child_handler_dict:
-            return None
-
-        return child_handler_dict[path](self.session)
+    def __init__(self, session):
+        MyChannelBaseEndpoint.__init__(self, session)
+        child_handler_dict = {"overview": MyChannelOverviewEndpoint, "torrents": MyChannelTorrentsEndpoint,
+                              "rssfeeds": MyChannelRssFeedsEndpoint}
+        for path, child_cls in child_handler_dict.iteritems():
+            self.putChild(path, child_cls(self.session))
 
 
 class MyChannelOverviewEndpoint(MyChannelBaseEndpoint):
@@ -90,3 +90,28 @@ class MyChannelTorrentsEndpoint(MyChannelBaseEndpoint):
         for torrent in torrents:
             torrent_list.append({'name': torrent[0], 'infohash': torrent[1].encode('hex'), 'added': torrent[2]})
         return json.dumps({'torrents': torrent_list})
+
+
+class MyChannelRssFeedsEndpoint(MyChannelBaseEndpoint):
+    """
+    Return the RSS feeds in your channel.
+
+    Example response:
+    {
+        "rssfeeds": [{
+            "url": "http://rssprovider.com/feed.xml",
+        }, ...]
+    }
+    """
+
+    def render_GET(self, request):
+        my_channel_id = self.channel_db_handler.getMyChannelId()
+        channel_obj = self.session.lm.channel_manager.get_my_channel(my_channel_id)
+        if my_channel_id is None or channel_obj is None:
+            return MyChannelBaseEndpoint.return_404(request)
+
+        rss_list = channel_obj.get_rss_feed_url_list()
+        request.setHeader('Content-Type', 'text/json')
+        feeds_list = [{'url': rss_item} for rss_item in rss_list]
+
+        return json.dumps({"rssfeeds": feeds_list})
