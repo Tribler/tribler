@@ -19,6 +19,15 @@
         id: top_pane
         orientation: 'vertical'
         
+        canvas.before:
+        
+            Color:
+                rgba: 1, 0, 0, 1
+                
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                
         BoxLayout:
             id: title_panel
             orientation: 'horizontal'
@@ -33,7 +42,7 @@
                 text: root.title
                 
             Button:
-                text: 'O\'
+                text: 'o-'
                 size_hint: (None, None)
                 size: (dp(50), dp(50)), 
                 on_press: root.go_search()
