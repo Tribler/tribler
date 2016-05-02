@@ -541,8 +541,6 @@ class Quantity(object):
         """
         if isinstance(other, Quantity):
             return self._quantity < other._quantity
-        if isinstance(other, int):
-            return self._quantity < other
         else:
             return NotImplemented
 
@@ -556,8 +554,6 @@ class Quantity(object):
         """
         if isinstance(other, Quantity):
             return self._quantity <= other._quantity
-        if isinstance(other, int):
-            return self._quantity <= other
         else:
             return NotImplemented
 
@@ -571,8 +567,6 @@ class Quantity(object):
         """
         if not isinstance(other, Quantity):
             return NotImplemented
-        if isinstance(other, int):
-            return self._quantity == other
         elif self is other:
             return True
         else:
@@ -599,8 +593,6 @@ class Quantity(object):
         """
         if isinstance(other, Quantity):
             return self._quantity > other._quantity
-        if isinstance(other, int):
-            return self._quantity > other
         else:
             return NotImplemented
 
@@ -614,8 +606,6 @@ class Quantity(object):
         """
         if isinstance(other, Quantity):
             return self._quantity >= other._quantity
-        if isinstance(other, int):
-            return self._quantity >= other
         else:
             return NotImplemented
 
