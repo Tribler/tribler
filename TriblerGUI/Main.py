@@ -2,8 +2,10 @@ import os
 import sys
 from PyQt5 import uic
 from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QMainWindow, QListView, QListWidget, QLineEdit, QListWidgetItem, QApplication, QToolButton, \
-    QWidget, QLabel, QTreeWidget, QTreeWidgetItem, QStackedWidget
+    QWidget, QLabel, QTreeWidget, QTreeWidgetItem, QStackedWidget, QSystemTrayIcon
 from TriblerGUI.channel_activity_list_item import ChannelActivityListItem
 from TriblerGUI.channel_comment_list_item import ChannelCommentListItem
 
@@ -12,6 +14,7 @@ from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
 from TriblerGUI.defs import PAGE_SEARCH_RESULTS, PAGE_CHANNEL_CONTENT, PAGE_CHANNEL_COMMENTS, PAGE_CHANNEL_ACTIVITY, \
     PAGE_HOME, PAGE_MY_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
     PAGE_CHANNEL_DETAILS
+from TriblerGUI.dialogs.addtorrentdialog import AddTorrentDialog
 from TriblerGUI.event_request_manager import EventRequestManager
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
@@ -39,6 +42,7 @@ class TriblerWindow(QMainWindow):
         self.top_menu_button = self.findChild(QToolButton, "top_menu_button")
         self.top_search_bar = self.findChild(QLineEdit, "top_search_bar")
         self.top_search_button = self.findChild(QToolButton, "top_search_button")
+        self.add_torrent_button = self.findChild(QToolButton, "add_torrent_button")
         self.my_profile_button = self.findChild(QToolButton, "my_profile_button")
         self.video_player_page = self.findChild(QWidget, "video_player_page")
         self.search_results_page = self.findChild(QWidget, "search_results_page")
@@ -49,6 +53,7 @@ class TriblerWindow(QMainWindow):
 
         self.top_search_bar.returnPressed.connect(self.on_top_search_button_click)
         self.top_search_button.clicked.connect(self.on_top_search_button_click)
+        self.add_torrent_button.clicked.connect(self.on_add_torrent_button_click)
         self.top_menu_button.clicked.connect(self.on_top_menu_button_click)
         self.search_results_list.itemClicked.connect(self.on_channel_item_click)
         self.subscribed_channels_list.itemClicked.connect(self.on_channel_item_click)
@@ -113,6 +118,12 @@ class TriblerWindow(QMainWindow):
 
         self.stackedWidget.setCurrentIndex(PAGE_HOME)
 
+        # Create the system tray icon
+        if QSystemTrayIcon.isSystemTrayAvailable():
+            self.tray_icon = QSystemTrayIcon()
+            self.tray_icon.setIcon(QIcon(QPixmap("images/tribler.png")))
+            self.tray_icon.show()
+
         self.show()
 
     def received_free_space(self, free_space):
@@ -141,6 +152,10 @@ class TriblerWindow(QMainWindow):
         self.search_request_mgr = TriblerRequestManager()
         self.search_request_mgr.search_channels(self.top_search_bar.text(),
                                                 self.search_results_page.received_search_results)
+
+    def on_add_torrent_button_click(self):
+        self.add_torrent_dialog = AddTorrentDialog(self)
+        self.add_torrent_dialog.show()
 
     def on_top_menu_button_click(self):
         if self.left_menu.isHidden():
