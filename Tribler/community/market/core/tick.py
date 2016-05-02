@@ -2,93 +2,6 @@ from decimal import Decimal
 import time
 
 
-class MessageId(object):
-    """Immutable class for representing the id of a message."""
-
-    def __init__(self, trader_id, message_number):
-        """
-        Initialise the message id
-
-        :param trader_id: The trader id who created the message
-        :param message_number: The number of the message created
-        :type trader_id: TraderId
-        :type message_number: MessageNumber
-        """
-        super(MessageId, self).__init__()
-
-        assert isinstance(trader_id, TraderId), type(trader_id)
-        assert isinstance(message_number, MessageNumber), type(message_number)
-
-        self._trader_id = trader_id
-        self._message_number = message_number
-
-    @property
-    def trader_id(self):
-        """
-        Return the trader id
-
-        :return: The trader id of the message id
-        :rtype: TraderId
-        """
-        return self._trader_id
-
-    @property
-    def message_number(self):
-        """
-        Return the message number
-
-        :return: The message number of the message id
-        :rtype: MessageNumber
-        """
-        return self._message_number
-
-    def __str__(self):
-        """
-        Return the string representation of the message id
-
-        format: <trader_id>.<message_number>
-
-        :return: The string representation of the message id
-        :rtype: str
-        """
-        return "%s.%s" % (self._trader_id, self._message_number)
-
-    def __eq__(self, other):
-        """
-        Check if two objects are the same
-
-        :param other: An object to compare with
-        :return: True if the object is the same, False otherwise
-        :rtype: bool
-        """
-        if not isinstance(other, MessageId):
-            return NotImplemented
-        elif self is other:
-            return True
-        else:
-            return (self._trader_id, self._message_number) == \
-                   (other._trader_id, other._message_number)
-
-    def __ne__(self, other):
-        """
-        Check if two objects are not the same
-
-        :param other: An object to compare with
-        :return: True if the object is not the same, False otherwise
-        :rtype: bool
-        """
-        return not self.__eq__(other)
-
-    def __hash__(self):
-        """
-        Return the hash value of this object
-
-        :return: The hash value
-        :rtype: integer
-        """
-        return hash((self._trader_id, self._message_number))
-
-
 class TraderId(object):
     """Immutable class for representing the id of a trader."""
 
@@ -209,6 +122,93 @@ class MessageNumber(object):
         :rtype: integer
         """
         return hash(self._message_number)
+
+
+class MessageId(object):
+    """Immutable class for representing the id of a message."""
+
+    def __init__(self, trader_id, message_number):
+        """
+        Initialise the message id
+
+        :param trader_id: The trader id who created the message
+        :param message_number: The number of the message created
+        :type trader_id: TraderId
+        :type message_number: MessageNumber
+        """
+        super(MessageId, self).__init__()
+
+        assert isinstance(trader_id, TraderId), type(trader_id)
+        assert isinstance(message_number, MessageNumber), type(message_number)
+
+        self._trader_id = trader_id
+        self._message_number = message_number
+
+    @property
+    def trader_id(self):
+        """
+        Return the trader id
+
+        :return: The trader id of the message id
+        :rtype: TraderId
+        """
+        return self._trader_id
+
+    @property
+    def message_number(self):
+        """
+        Return the message number
+
+        :return: The message number of the message id
+        :rtype: MessageNumber
+        """
+        return self._message_number
+
+    def __str__(self):
+        """
+        Return the string representation of the message id
+
+        format: <trader_id>.<message_number>
+
+        :return: The string representation of the message id
+        :rtype: str
+        """
+        return "%s.%s" % (self._trader_id, self._message_number)
+
+    def __eq__(self, other):
+        """
+        Check if two objects are the same
+
+        :param other: An object to compare with
+        :return: True if the object is the same, False otherwise
+        :rtype: bool
+        """
+        if not isinstance(other, MessageId):
+            return NotImplemented
+        elif self is other:
+            return True
+        else:
+            return (self._trader_id, self._message_number) == \
+                   (other._trader_id, other._message_number)
+
+    def __ne__(self, other):
+        """
+        Check if two objects are not the same
+
+        :param other: An object to compare with
+        :return: True if the object is not the same, False otherwise
+        :rtype: bool
+        """
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        """
+        Return the hash value of this object
+
+        :return: The hash value
+        :rtype: integer
+        """
+        return hash((self._trader_id, self._message_number))
 
 
 class Price(object):
