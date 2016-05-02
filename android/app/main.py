@@ -11,8 +11,8 @@ class TriblerApp(App):
         from jnius import autoclass
         service = autoclass('org.tribler.android.ServiceTriblerd')
         mActivity = autoclass('org.kivy.android.PythonActivity').mActivity
-        argument = ''
-        service.start(mActivity, argument)
+        argument = {'restapi': 8085}
+        service.start(mActivity, str(argument))
 
 
     def on_start(self):
