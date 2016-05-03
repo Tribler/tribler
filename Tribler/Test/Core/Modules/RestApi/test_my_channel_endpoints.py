@@ -1,14 +1,38 @@
 import json
+
+from Tribler.Core.Modules.channel.channel import ChannelObject
+from Tribler.Core.Modules.channel.channel_manager import ChannelManager
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 
+
+class ChannelCommunityMock(object):
+
+    def __init__(self, channel_id):
+        self.name = "Channel name"
+        self.cid = 'a' * 20
+        self.channel_id = channel_id
+
+    def get_channel_name(self):
+        return self.name
+
+    def get_channel_id(self):
+        return self.channel_id
 
 class TestMyChannelEndpoints(AbstractApiTest):
 
     def setUp(self, autoload_discovery=True):
         super(TestMyChannelEndpoints, self).setUp(autoload_discovery)
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
+
+    @deferred(timeout=10)
+    def test_my_channel_unknown_endpoint(self):
+        """
+        Testing whether the API returns an error if an unknown endpoint is queried
+        """
+        self.should_check_equality = False
+        return self.do_request('mychannel/thisendpointdoesnotexist123', expected_code=404)
 
     def create_my_channel(self, name, description):
         """
@@ -62,3 +86,31 @@ class TestMyChannelEndpoints(AbstractApiTest):
         self.insert_torrents_into_my_channel(torrent_list)
 
         return self.do_request('mychannel/torrents', expected_code=200).addCallback(self.verify_torrents_json)
+
+    @deferred(timeout=10)
+    def test_rss_feeds_endpoint_no_my_channel(self):
+        """
+        Testing whether the API returns the right JSON data if no channel has been created when fetching rss feeds
+        """
+        self.session.lm.channel_manager = ChannelManager(self.session)
+        return self.do_request('mychannel/rssfeeds', expected_code=404)
+
+    @deferred(timeout=10)
+    def test_rss_feeds_endpoint_with_channel(self):
+        """
+        Testing whether the API returns the right JSON data if a rss feeds from a channel are fetched
+        """
+        expected_json = {u'rssfeeds': [{u'url': u'http://test1.com/feed.xml'}, {u'url': u'http://test2.com/feed.xml'}]}
+
+        # Use a fake ChannelCommunity object (we don't actually want to create a Dispersy community)
+        my_channel_id = self.create_my_channel("my channel", "this is a short description")
+        self.session.lm.channel_manager = ChannelManager(self.session)
+
+        channel_obj = ChannelObject(self.session, ChannelCommunityMock(my_channel_id))
+        self.session.lm.channel_manager._channel_list.append(channel_obj)
+
+        channel_obj = self.session.lm.channel_manager.get_channel("Channel name")
+        for rss_item in expected_json[u'rssfeeds']:
+            channel_obj.create_rss_feed(rss_item[u'url'])
+
+        return self.do_request('mychannel/rssfeeds', expected_code=200, expected_json=expected_json)

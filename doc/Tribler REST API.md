@@ -14,6 +14,7 @@ The API has been built using [Twisted Web](http://twistedmatrix.com/trac/wiki/Tw
 | ---- | --------------- |
 | GET /mychannel/overview | Get the name, description and identifier of your channel |
 | GET /mychannel/torrents | Get a list of torrents in your channel |
+| GET /mychannel/rssfeeds | Get a list of rss feeds used by your channel |
 
 ### Settings
 
@@ -55,6 +56,20 @@ Returns a list of torrents in your channel. Each torrent item in the list contai
         "name": "ubuntu-15.04.iso",
         "added": 1461840601,
         "infohash": "e940a7a57294e4c98f62514b32611e38181b6cae"
+    }, ...]
+}
+```
+
+## `GET /mychannel/rssfeeds`
+
+Returns a list of rss feeds in your channel. Each rss feed items contains the URL of the feed.
+
+### Example response
+
+```json
+{
+    "rssfeeds": [{
+        "url": "http://rssprovider.com/feed.xml",
     }, ...]
 }
 ```
