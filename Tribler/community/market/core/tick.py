@@ -1358,7 +1358,6 @@ class ProposedTrade(Trade):
         assert hasattr(data, 'recipient_message_number')
         assert hasattr(data, 'price')
         assert hasattr(data, 'quantity')
-        assert hasattr(data, 'timeout')
         assert hasattr(data, 'timestamp')
         assert hasattr(data, 'quick')
 
@@ -1476,7 +1475,6 @@ class AcceptedTrade(Trade):
         assert hasattr(data, 'recipient_message_number')
         assert hasattr(data, 'price')
         assert hasattr(data, 'quantity')
-        assert hasattr(data, 'timeout')
         assert hasattr(data, 'timestamp')
         assert hasattr(data, 'quick')
 
