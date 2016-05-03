@@ -282,22 +282,6 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         # Assert
         self.assertEqual((10, 5), node.call(node.community._get_next_total, 0, 0))
 
-    def test_signature_request_timeout(self):
-        """"
-        Test the community to timeout on a signature request message.
-        """
-        # Arrange
-        node, other = self.create_nodes(2)
-        other.send_identity(node)
-        target_other = self._create_target(node, other)
-        # Act
-        node.call(node.community.publish_signature_request_message, target_other, 5, 5)
-        # Wait for the timeout.
-        time.sleep(10 + 2)  # 10 seconds is the default timeout for a signature request in dispersy
-        # Assert
-        self.assertBlocksInDatabase(node, 1)
-        self.assertBlocksInDatabase(other, 0)
-
     def test_request_block_latest(self):
         """
         Test the crawler to request the latest block.
