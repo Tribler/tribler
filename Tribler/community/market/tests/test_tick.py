@@ -1,7 +1,7 @@
 import time
 
 from .context import Tribler
-from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, Tick, Ask, Bid, Trade, ProposedTrade, AcceptedTrade, DeclinedTrade
+from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, Message, Tick, Ask, Bid, Trade, ProposedTrade, AcceptedTrade, DeclinedTrade
 import unittest
 
 
@@ -228,6 +228,27 @@ class TickTestSuite(unittest.TestCase):
         # Test for hashes
         self.assertEqual(timestamp.__hash__(), timestamp2.__hash__())
         self.assertNotEqual(timestamp.__hash__(), timestamp3.__hash__())
+
+    def test_message(self):
+
+        # Auxiliary object creation
+        trader_id = TraderId('trader_id')
+        message_number = MessageNumber('message_number')
+        message_id = MessageId(trader_id, message_number)
+        sender_message_id = MessageId(trader_id, message_number)
+        recipient_message_id = MessageId(trader_id, message_number)
+        price = Price(63400)
+        quantity = Quantity(30)
+        timeout = Timeout(float("inf"))
+        timestamp = Timestamp(float("inf"))
+
+        # Object creation
+        ask = Ask.create(message_id, price, quantity, timeout, timestamp)
+        proposed_trade = Trade.propose(message_id, sender_message_id, recipient_message_id, price, quantity, timestamp)
+
+        # Test 'is tick' function
+        self.assertTrue(ask.is_tick())
+        self.assertFalse(proposed_trade.is_tick())
 
     def test_tick(self):
 
