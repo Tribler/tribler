@@ -8,6 +8,12 @@ The API has been built using [Twisted Web](http://twistedmatrix.com/trac/wiki/Tw
 
 ## Endpoints
 
+### Channels
+
+| Endpoint | Description |
+| ---- | --------------- |
+| GET /channels/subscribed | Get the channels you are subscribed to |
+
 ### My Channel
 
 | Endpoint | Description |
@@ -27,6 +33,26 @@ The API has been built using [Twisted Web](http://twistedmatrix.com/trac/wiki/Tw
 | Endpoint | Description |
 | ---- | --------------- |
 | GET /variables | Returns runtime-defined variables used by the current Tribler session |
+
+## `GET /channels/subscribed`
+
+Returns all the channels you are subscribed to.
+
+```json
+{
+    "subscribed": [{
+        "id": 3,
+        "dispersy_cid": "da69aaad39ccf468aba2ab9177d5f8d8160135e6",
+        "name": "My fancy channel",
+        "description": "A description of this fancy channel",
+        "subscribed": True,
+        "votes": 23,
+        "torrents": 3,
+        "spam": 5,
+        "modified": 14598395,
+    }, ...]
+}
+```
 
 ## `GET /mychannel/overview`
 
