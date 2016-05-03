@@ -1,7 +1,7 @@
 import time
 
 from .context import Tribler
-from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp
+from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, Trade, ProposedTrade, AcceptedTrade, DeclinedTrade
 import unittest
 
 
@@ -228,6 +228,147 @@ class TickTestSuite(unittest.TestCase):
         # Test for hashes
         self.assertEqual(timestamp.__hash__(), timestamp2.__hash__())
         self.assertNotEqual(timestamp.__hash__(), timestamp3.__hash__())
+
+    def test_trade(self):
+
+        # Auxiliary object creation
+        trader_id = TraderId('trader_id')
+        message_number = MessageNumber('message_number')
+        message_id = MessageId(trader_id, message_number)
+        sender_message_id = MessageId(trader_id, message_number)
+        recipient_message_id = MessageId(trader_id, message_number)
+        price = Price(63400)
+        quantity = Quantity(30)
+        timestamp = Timestamp(1462224447.117)
+
+        # Object creation
+        proposed_trade = Trade.propose(message_id, sender_message_id, recipient_message_id, price, quantity, timestamp)
+        quick_proposed_trade = Trade.quick_propose(message_id, sender_message_id, recipient_message_id, price, quantity, timestamp)
+        accepted_trade = Trade.accept(message_id, timestamp, proposed_trade)
+        declined_trade = Trade.decline(message_id, timestamp, proposed_trade)
+
+        # Test 'is accepted' function
+        self.assertTrue(Trade.is_accepted(accepted_trade))
+        self.assertFalse(Trade.is_accepted(declined_trade))
+        self.assertFalse(Trade.is_accepted(quick_proposed_trade))
+        self.assertFalse(Trade.is_accepted(proposed_trade))
+
+        # Test 'is quick' function
+        self.assertTrue(Trade.is_quick(quick_proposed_trade))
+        self.assertFalse(Trade.is_quick(accepted_trade))
+        self.assertFalse(Trade.is_quick(declined_trade))
+        self.assertFalse(Trade.is_quick(proposed_trade))
+
+        # Test 'is proposed' function
+        self.assertTrue(Trade.is_proposed(quick_proposed_trade))
+        self.assertTrue(Trade.is_proposed(proposed_trade))
+        self.assertFalse(Trade.is_proposed(declined_trade))
+        self.assertFalse(Trade.is_proposed(accepted_trade))
+
+    def test_proposed_trade(self):
+
+        # Auxiliary object creation
+        trader_id = TraderId('trader_id')
+        message_number = MessageNumber('message_number')
+        message_id = MessageId(trader_id, message_number)
+        sender_message_id = MessageId(trader_id, message_number)
+        recipient_message_id = MessageId(trader_id, message_number)
+        price = Price(63400)
+        quantity = Quantity(30)
+        timestamp = Timestamp(1462224447.117)
+
+        # Object creation
+        proposed_trade = Trade.propose(message_id, sender_message_id, recipient_message_id, price, quantity, timestamp)
+
+        # Test 'to network' function
+        self.assertEquals((('trader_id', ), ('trader_id', 'message_number', 'trader_id', 'message_number', 'trader_id',
+                                             'message_number', 63400, 30, 1462224447.117, False)),
+                          proposed_trade.to_network())
+
+        # Test 'from network' function
+        data = ProposedTrade.from_network(type('Data', (object,), {"trader_id": 'trader_id',
+                                                                   "message_number": 'message_number',
+                                                                   "sender_trader_id": 'trader_id',
+                                                                   "sender_message_number": 'message_number',
+                                                                   "recipient_trader_id": 'trader_id',
+                                                                   "recipient_message_number": 'message_number',
+                                                                   "price": 63400, "quantity": 30,
+                                                                   "timestamp": 1462224447.117, "quick": False, }))
+        self.assertEquals(data.message_id, message_id)
+        self.assertEquals(data.recipient_message_id, message_id)
+        self.assertEquals(data.sender_message_id, message_id)
+        self.assertEquals(data.price, price)
+        self.assertEquals(data.quantity, quantity)
+        self.assertEquals(data.timestamp, timestamp)
+
+    def test_accepted_trade(self):
+
+        # Auxiliary object creation
+        trader_id = TraderId('trader_id')
+        message_number = MessageNumber('message_number')
+        message_id = MessageId(trader_id, message_number)
+        sender_message_id = MessageId(trader_id, message_number)
+        recipient_message_id = MessageId(trader_id, message_number)
+        price = Price(63400)
+        quantity = Quantity(30)
+        timestamp = Timestamp(1462224447.117)
+        proposed_trade = Trade.propose(message_id, sender_message_id, recipient_message_id, price, quantity, timestamp)
+
+        # Object creation
+        accepted_trade = Trade.accept(message_id, timestamp, proposed_trade)
+
+        # Test 'to network' function
+        self.assertEquals(
+            ((), ('trader_id', 'message_number', 'trader_id', 'message_number', 'trader_id', 'message_number', 63400,
+                  30, 1462224447.117, False)),
+            accepted_trade.to_network())
+
+        # Test 'from network' function
+        data = AcceptedTrade.from_network(type('Data', (object,), {"trader_id": 'trader_id',
+                                                                   "message_number": 'message_number',
+                                                                   "sender_trader_id": 'trader_id',
+                                                                   "sender_message_number": 'message_number',
+                                                                   "recipient_trader_id": 'trader_id',
+                                                                   "recipient_message_number": 'message_number',
+                                                                   "price": 63400, "quantity": 30,
+                                                                   "timestamp": 1462224447.117, "quick": False,}))
+        self.assertEquals(data.message_id, message_id)
+        self.assertEquals(data.recipient_message_id, message_id)
+        self.assertEquals(data.sender_message_id, message_id)
+        self.assertEquals(data.price, price)
+        self.assertEquals(data.quantity, quantity)
+        self.assertEquals(data.timestamp, timestamp)
+
+    def test_declined_trade(self):
+
+        # Auxiliary object creation
+        trader_id = TraderId('trader_id')
+        message_number = MessageNumber('message_number')
+        message_id = MessageId(trader_id, message_number)
+        sender_message_id = MessageId(trader_id, message_number)
+        recipient_message_id = MessageId(trader_id, message_number)
+        price = Price(63400)
+        quantity = Quantity(30)
+        timestamp = Timestamp(1462224447.117)
+        proposed_trade = Trade.propose(message_id, sender_message_id, recipient_message_id, price, quantity, timestamp)
+
+        # Object creation
+        declined_trade = Trade.decline(message_id, timestamp, proposed_trade)
+
+        # Test 'to network' function
+        self.assertEquals(
+            (('trader_id', ), ('trader_id', 'message_number', 'trader_id', 'message_number', 1462224447.117, False)),
+            declined_trade.to_network())
+
+        # Test 'from network' function
+        data = DeclinedTrade.from_network(type('Data', (object,), {"trader_id": 'trader_id',
+                                                                   "message_number": 'message_number',
+                                                                   "recipient_trader_id": 'trader_id',
+                                                                   "recipient_message_number": 'message_number',
+                                                                   "timestamp": 1462224447.117, "quick": False,}))
+        self.assertEquals(data.message_id, message_id)
+        self.assertEquals(data.recipient_message_id, message_id)
+        self.assertEquals(data.timestamp, timestamp)
 
 if __name__ == '__main__':
     unittest.main()
