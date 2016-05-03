@@ -1,7 +1,7 @@
 import time
 
 from .context import Tribler
-from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, Trade, ProposedTrade, AcceptedTrade, DeclinedTrade
+from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, Tick, Ask, Bid, Trade, ProposedTrade, AcceptedTrade, DeclinedTrade
 import unittest
 
 
@@ -228,6 +228,101 @@ class TickTestSuite(unittest.TestCase):
         # Test for hashes
         self.assertEqual(timestamp.__hash__(), timestamp2.__hash__())
         self.assertNotEqual(timestamp.__hash__(), timestamp3.__hash__())
+
+    def test_tick(self):
+
+        # Auxiliary object creation
+        trader_id = TraderId('trader_id')
+        message_number = MessageNumber('message_number')
+        message_id = MessageId(trader_id, message_number)
+        price = Price(63400)
+        quantity = Quantity(30)
+        quantity2 = Quantity(50)
+        timeout = Timeout(float("inf"))
+        timeout2 = Timeout(0.0)
+        timestamp = Timestamp(float("inf"))
+        timestamp2 = Timestamp(0.0)
+
+        # Object creation
+        ask = Ask.create(message_id, price, quantity, timeout, timestamp)
+        bid = Bid.create(message_id, price, quantity, timeout2, timestamp2)
+
+        # Test 'is ask' function
+        self.assertTrue(Tick.is_ask(ask))
+        self.assertFalse(Tick.is_ask(bid))
+
+        # Test 'is valid' function
+        self.assertTrue(Tick.is_valid(ask))
+        self.assertFalse(Tick.is_valid(bid))
+
+        # Test 'to network' function
+        self.assertEquals(((), ('trader_id', 'message_number', 63400, 30, float("inf"), float("inf"))), ask.to_network())
+
+        # Test 'update quantity' function
+        self.assertTrue(ask.update_quantity(quantity2, timestamp2))
+        self.assertEquals(ask.quantity, quantity2)
+        self.assertEquals(ask.timestamp, timestamp2)
+        self.assertFalse(ask.update_quantity(quantity2, timestamp2))
+
+    def test_ask(self):
+
+        # Auxiliary object creation
+        trader_id = TraderId('trader_id')
+        message_number = MessageNumber('message_number')
+        message_id = MessageId(trader_id, message_number)
+        price = Price(63400)
+        quantity = Quantity(30)
+        timeout = Timeout(1462224447.117)
+        timestamp = Timestamp(1462224447.117)
+
+        # Object creation
+        ask = Ask.create(message_id, price, quantity, timeout, timestamp)
+
+        self.assertEquals(ask.message_id, message_id)
+        self.assertEquals(ask.price, price)
+        self.assertEquals(ask.quantity, quantity)
+        self.assertEquals(float(ask.timeout), float(timeout))
+        self.assertEquals(ask.timestamp, timestamp)
+
+        # Test 'from network' function
+        data = Ask.from_network(type('Data', (object,), {"trader_id": 'trader_id', "message_number": 'message_number',
+                                                         "price": 63400, "quantity": 30, "timeout": 1462224447.117,
+                                                         "timestamp": 1462224447.117,}))
+        self.assertEquals(data.message_id, message_id)
+        self.assertEquals(data.price, price)
+        self.assertEquals(data.quantity, quantity)
+        self.assertEquals(float(data.timeout), float(timeout))
+        self.assertEquals(data.timestamp, timestamp)
+
+    def test_bid(self):
+
+        # Auxiliary object creation
+        trader_id = TraderId('trader_id')
+        message_number = MessageNumber('message_number')
+        message_id = MessageId(trader_id, message_number)
+        price = Price(63400)
+        quantity = Quantity(30)
+        timeout = Timeout(1462224447.117)
+        timestamp = Timestamp(1462224447.117)
+
+        # Object creation
+        bid = Bid.create(message_id, price, quantity, timeout, timestamp)
+
+        self.assertEquals(bid.message_id, message_id)
+        self.assertEquals(bid.price, price)
+        self.assertEquals(bid.quantity, quantity)
+        self.assertEquals(float(bid.timeout), float(timeout))
+        self.assertEquals(bid.timestamp, timestamp)
+
+        # Test 'from network' function
+        data = Bid.from_network(type('Data', (object,), {"trader_id": 'trader_id', "message_number": 'message_number',
+                                                         "price": 63400, "quantity": 30, "timeout": 1462224447.117,
+                                                         "timestamp": 1462224447.117,}))
+        self.assertEquals(data.message_id, message_id)
+        self.assertEquals(data.price, price)
+        self.assertEquals(data.quantity, quantity)
+        self.assertEquals(float(data.timeout), float(timeout))
+        self.assertEquals(data.timestamp, timestamp)
 
     def test_trade(self):
 
