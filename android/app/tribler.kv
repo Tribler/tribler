@@ -1,37 +1,25 @@
 #:kivy 1.9.2
 
 
-##########
+########## Buttons
 
-<BarBoxLayout@BoxLayout>:
-    text_size: self.size
-    font_size: '25sp'
+
+<FlatButton@Button>
     markup: True
+    background_color: [0, 0, 0, 0]
+    font_size: '20sp'
     
-    canvas:
-        Color:
-            rgba: 1, 1, 1, .5
 
+########## Screens
 
-##########
-
-<FlatButton@Button>:
-    markup: True
-    size_hint: (1, .5)
-    font_size: '25sp'
-    text_size: self.size
-
-
-##########
 
 <HomeScreen>
     orientation: 'vertical'
-
+    
     top_pane: top_pane
     content_pane: content_pane
-
+    
     canvas.before:
-
         Color:
             rgba: 1, 1, 1, 1
             
@@ -42,9 +30,8 @@
     BoxLayout:
         id: top_pane
         orientation: 'vertical'
-        
+        size_hint_y: .2
         canvas.before:
-        
             Color:
                 rgba: 1, 0, 0, 1
                 
@@ -52,65 +39,60 @@
                 pos: self.pos
                 size: self.size
                 
-        BarBoxLayout:
+        BoxLayout:
             id: title_panel
             orientation: 'horizontal'
             
-            Button:
-                text: '<-'
-                size_hint: (None, None)
-                size: (dp(50), dp(50))
-                on_press: root.go_back()
+            FlatButton:
+                text: 'Menu'
+                on_press: root.go_menu()
                 
             Label:
                 text: root.title
-                size_hint: (1, .5)
-                font_size: '25sp'
-                text_size: self.size
+                font_size: '30sp'
                 
-            Button:
-                text: 'o-'
-                size_hint: (None, None)
-                size: (dp(50), dp(50))
+            FlatButton:
+                text: 'Search'
                 on_press: root.go_search()
                 
-        BarBoxLayout:
+        BoxLayout:
             id: search_panel
             orientation: 'horizontal'
             
+            FlatButton:
+                text: '<-'
+                on_press: root.go_back()
+                
             TextInput:
                 id: search_bar
+                hint_text: 'Search Tribler'
+                on_text_validate: root.start_search()
                 
-            Button:
-                text: 'go'
-                on_press: root.go_search()
+            FlatButton:
+                text: 'X'
+                on_press: search_bar.text = ''
                 
-        BarBoxLayout:
+        BoxLayout:
             id: tabs_panel
             orientation: 'horizontal'
+            padding: [10, 10, 0, 10]
             
             FlatButton:
                 text: '*'
-                background_color: [1, 1, 1, .5]
                 on_press: root.go_favs()
                 
             FlatButton:
                 text: 'Recent'
-                background_color: [1, 1, 1, .5]
                 on_press: root.go_recent()
                 
             FlatButton:
                 text: 'My'
-                background_color: [1, 1, 1, .5]
                 on_press: root.go_mine()
                 
             FlatButton:
                 text: '+'
-                background_color: [1, 1, 1, 0]
                 on_press: root.add_video()
                 
     RecycleView:
         id: content_pane
-
-
-##########
+            
