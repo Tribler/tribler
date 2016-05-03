@@ -1409,7 +1409,7 @@ class ProposedTrade(Trade):
         :rtype: tuple, tuple
         """
         return tuple(
-            [self._recipient_message_id.trader_id]
+            [str(self._recipient_message_id.trader_id)]
         ), (
                    str(self._message_id.trader_id),
                    str(self._message_id.message_number),
