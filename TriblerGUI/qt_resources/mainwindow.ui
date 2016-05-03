@@ -710,7 +710,7 @@ padding-left: 4px;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>1</number>
+         <number>7</number>
         </property>
         <widget class="QWidget" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1390,7 +1390,7 @@ border-top: 1px solid #555;
                  <number>1</number>
                 </property>
                 <property name="currentIndex">
-                 <number>4</number>
+                 <number>2</number>
                 </property>
                 <widget class="QWidget" name="my_channel_details_overview_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
@@ -5278,7 +5278,10 @@ font-weight: bold;</string>
               </widget>
              </item>
              <item>
-              <widget class="QToolButton" name="toolButton_8">
+              <widget class="QToolButton" name="start_download_button">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
                <property name="minimumSize">
                 <size>
                  <width>24</width>
@@ -5331,7 +5334,10 @@ border-radius: 4px;</string>
               </spacer>
              </item>
              <item>
-              <widget class="QToolButton" name="toolButton_7">
+              <widget class="QToolButton" name="stop_download_button">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
                <property name="minimumSize">
                 <size>
                  <width>24</width>
@@ -5384,7 +5390,10 @@ border-radius: 4px;</string>
               </spacer>
              </item>
              <item>
-              <widget class="QToolButton" name="toolButton_6">
+              <widget class="QToolButton" name="remove_download_button">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
                <property name="minimumSize">
                 <size>
                  <width>24</width>
