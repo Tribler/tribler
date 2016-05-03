@@ -1,19 +1,22 @@
 from kivy.app import App
-
+     
 
 class TriblerApp(App):
 
     def build(self):
-        from screens import HomeScreen
+        #from kivy.uix.screenmanager import ScreenManager
+        #self.screen_manager = ScreenManager()
+        from screens.home import HomeScreen
         return HomeScreen(title='Tribler')
+        #self.screen_manager.add_widget(HomeScreen(name='home'))
+        #return self.screen_manager
 
     def start_service_triblerd(self):
         from jnius import autoclass
         service = autoclass('org.tribler.android.ServiceTriblerd')
         mActivity = autoclass('org.kivy.android.PythonActivity').mActivity
-        argument = {'restapi': 8085}
-        service.start(mActivity, str(argument))
-
+        argument = ''
+        service.start(mActivity, argument)
 
     def on_start(self):
         '''Event handler for the `on_start` event which is fired after
