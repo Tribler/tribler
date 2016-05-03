@@ -56,12 +56,14 @@ class SessionConfigInterface(object):
         if not sessconfig:
             return
 
-        # TODO(emilon): This is to work around the case where windows has
-        # non-ASCI chars on %PATH% contents. Should be removed if we migrate to
-        # python 3.
         if sys.platform == 'win32':
+            # TODO(emilon): This is to work around the case where windows has
+            # non-ASCI chars on %PATH% contents. Should be removed if we migrate to
+            # python 3.
             from Tribler.Main.hacks import get_environment_variable
             path_env = get_environment_variable(u"PATH")
+        elif is_android():
+            path_env = os.environ["PYTHONPATH"]
         else:
             path_env = os.environ["PATH"]
 
@@ -70,7 +72,7 @@ class SessionConfigInterface(object):
             ffmpegname = u"ffmpeg.exe"
         elif sys.platform == 'darwin':
             ffmpegname = u"ffmpeg"
-        elif find_executable("avconv"):
+        elif find_executable("avconv", path_env):
             ffmpegname = u"avconv"
         else:
             ffmpegname = u"ffmpeg"
@@ -80,9 +82,6 @@ class SessionConfigInterface(object):
         if ffmpegpath is None:
             if sys.platform == 'darwin':
                 self.sessconfig.set(u'general', u'videoanalyserpath', u"vlc/ffmpeg")
-            elif is_android(strict=True):
-                self.sessconfig.set(u'general', u'videoanalyserpath', os.path.join(
-                    os.environ['ANDROID_PRIVATE'], 'ffmpeg'))
             else:
                 self.sessconfig.set(u'general', u'videoanalyserpath', ffmpegname)
         else:

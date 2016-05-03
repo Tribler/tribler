@@ -7,8 +7,8 @@ if os.path.exists('test_osutils.py'):
 elif os.path.exists('LICENSE.txt'):
     BASE_DIR = '.'
 
-from Tribler.Core.osutils import (fix_filebasename, is_android, get_home_dir, get_appstate_dir, get_picture_dir,
-                                  get_desktop_dir)
+from Tribler.Core.osutils import (fix_filebasename, get_android_api_version, is_android,
+                                  get_home_dir, get_appstate_dir, get_picture_dir, get_desktop_dir)
 from Tribler.Test.test_as_server import BaseTestCase
 
 
@@ -61,14 +61,20 @@ class Test_OsUtils(BaseTestCase):
             fixedname = fix_filebasename(name)
             assert fixedname == name_table[name], (fixedname, name_table[name])
 
+    def test_get_android_api_version(self):
+        if sys.platform.startswith('linux') and 'ANDROID_PRIVATE' in os.environ:
+            version = get_android_api_version()
+            self.assertIsInstance(version, int)
+            self.assertGreater(version, 0)
+            self.assertLess(version, 50)
+        else:
+            self.assertIsNone(get_android_api_version())
+
     def test_is_android(self):
-        # act like the computer is an Android
-        self.assertFalse(is_android())
-        os.environ["ANDROID_HOST"] = "ANDROID_HOST"
-        self.assertTrue(is_android())
-        self.assertTrue(is_android(strict=True))
-        os.environ["ANDROID_HOST"] = "HOST"
-        self.assertFalse(is_android(strict=True))
+        if sys.platform.startswith('linux') and 'ANDROID_PRIVATE' in os.environ:
+            self.assertTrue(is_android())
+        else:
+            self.assertFalse(is_android())
 
     def test_home_dir(self):
         home_dir = get_home_dir()
