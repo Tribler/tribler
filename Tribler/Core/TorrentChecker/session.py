@@ -95,7 +95,11 @@ class TrackerSession(object):
         Checks if we still can add requests to this session.
         :return: True or False.
         """
-        return not self._is_initiated and len(self._infohash_list) < MAX_TRACKER_MULTI_SCRAPE
+
+        #TODO(ardhi) : quickfix for etree.org can't handle multiple infohash in single call
+        etree_condition = "etree" not in self.tracker_url
+
+        return not self._is_initiated and len(self._infohash_list) < MAX_TRACKER_MULTI_SCRAPE and etree_condition
 
     def has_request(self, infohash):
         return infohash in self._infohash_list

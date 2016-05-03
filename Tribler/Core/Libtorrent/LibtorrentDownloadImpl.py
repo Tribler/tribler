@@ -152,7 +152,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.deferreds_resume = []
 
     def __str__(self):
-        return "LibtorrentDownloadImpl <name: '%s' hops: %d checkpoint_disabled: %d>" % (self.correctedinfoname, self.get_hops(), self.checkpoint_disabled)
+        return "LibtorrentDownloadImpl <name: '%s' hops: %d checkpoint_disabled: %d>" % \
+               (self.correctedinfoname, self.get_hops(), self.checkpoint_disabled)
 
     def __repr__(self):
         return self.__str__()
@@ -160,13 +161,13 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
     def get_def(self):
         return self.tdef
 
-    def set_checkpoint_disabled(self, val=True):
-        self.checkpoint_disabled = val
+    def set_checkpoint_disabled(self, disabled=True):
+        self.checkpoint_disabled = disabled
 
     def get_checkpoint_disabled(self):
         return self.checkpoint_disabled
 
-    def setup(self, dcfg=None, pstate=None, initialdlstatus=None, lm_network_engine_wrapper_created_callback=None,
+    def setup(self, dcfg=None, pstate=None, initialdlstatus=None,
               wrapperDelay=0, share_mode=False, checkpoint_disabled=False):
         """
         Create a Download object. Used internally by Session.
@@ -202,7 +203,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
                 def schedule_create_engine():
                     self.cew_scheduled = True
-                    create_engine_wrapper_deferred = self.network_create_engine_wrapper(self.pstate_for_restart, initialdlstatus, share_mode=share_mode)
+                    create_engine_wrapper_deferred = self.network_create_engine_wrapper(
+                        self.pstate_for_restart, initialdlstatus, share_mode=share_mode)
                     create_engine_wrapper_deferred.chainDeferred(deferred)
 
 
@@ -254,7 +256,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         do_check()
         return can_create_deferred
 
-    def network_create_engine_wrapper(self, pstate, initialdlstatus=None, share_mode=False,checkpoint_disabled=False):
+    def network_create_engine_wrapper(self, pstate, initialdlstatus=None, share_mode=False, checkpoint_disabled=False):
         with self.dllock:
             self._logger.debug("LibtorrentDownloadImpl: network_create_engine_wrapper()")
 
@@ -295,6 +297,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 atp["ti"] = torrentinfo
                 has_resume_data = resume_data and isinstance(resume_data, dict)
 
+                # TODO(ardhi) : properly store pstate in BoostingManager
                 if has_resume_data is not None:
                     # we have resume data but somehow its not working (Credit mining case)
                     if not isinstance(resume_data, dict):
@@ -305,9 +308,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
                 if has_resume_data:
                     atp["resume_data"] = lt.bencode(resume_data)
-                if not share_mode:
-                    self._logger.info("%s %s", self.tdef.get_name_as_unicode(), dict((k, v)
-                                      for k, v in resume_data.iteritems() if k not in ['pieces', 'piece_priority', 'peers']) if has_resume_data else None)
             else:
                 atp["url"] = self.tdef.get_url() or "magnet:?xt=urn:btih:" + hexlify(self.tdef.get_infohash())
                 atp["name"] = self.tdef.get_name_as_unicode()
@@ -315,14 +315,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             self.handle = self.ltmgr.add_torrent(self, atp)
 
             if self.handle:
-                self.set_selected_files()
-
-                # set_selected_files sets priorities to 1, so we must set
-                # share_mode again, but first we must unset it, otherwise
-                # set_share_mode doesn't do anything
-                if share_mode:
-                    self.handle.set_share_mode(not share_mode)
-                    self.handle.set_share_mode(share_mode)
+                # if in share mode, don't change priority of the file
+                self.set_selected_files(share_mode=share_mode)
 
                 # If we lost resume_data always resume download in order to force checking
                 if initialdlstatus != DLSTATUS_STOPPED or not resume_data:
@@ -664,7 +658,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             self.correctedinfoname = self.get_corrected_filename()
 
     @checkHandleAndSynchronize()
-    def set_selected_files(self, selected_files=None):
+    def set_selected_files(self, selected_files=None, share_mode=False):
         if not isinstance(self.tdef, TorrentDefNoMetainfo):
 
             if selected_files is None:
@@ -691,7 +685,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
                 torrent_storage = get_info_from_handle(self.handle).files()
 
-                # TODO(ardhi) : as from 1.0, files returning file_storage (lazy-iterable)
+                # as from libtorrent 1.0, files returning file_storage (lazy-iterable)
                 if hasattr(lt, 'file_storage') and isinstance(torrent_storage, lt.file_storage):
                     cur_path = torrent_storage.at(index).path.decode('utf-8')
                 else:
@@ -716,7 +710,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                     except TypeError:
                         self.handle.rename_file(index, new_path.encode("utf-8"))
 
-            self.handle.prioritize_files(filepriorities)
+            if not share_mode:
+                self.handle.prioritize_files(filepriorities)
 
             self.unwanteddir_abs = unwanteddir_abs
 
@@ -878,6 +873,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
     @staticmethod
     def create_peerlist_data(peer_info):
+        """
+        A function to convert peer_info libtorrent object into dictionary
+        This data is used to identify peers with combination of several flags
+        """
         peer_dict = {}
 
         peer_dict['id'] = peer_info.pid
@@ -909,14 +908,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         peer_dict['upload_only'] = bool(peer_info.flags & peer_info.upload_only)
 
         # add read and write state (check unchoke/choke peers)
-        # peer_dict['rstate_bw_limit'] = bool(peer_info.read_state & peer_info.bw_limit)
-        # peer_dict['wstate_bw_limit'] = bool(peer_info.write_state & peer_info.bw_limit)
-        # peer_dict['rstate_bw_network'] = bool(peer_info.read_state & peer_info.bw_network)
-        # peer_dict['wstate_bw_network'] = bool(peer_info.write_state & peer_info.bw_network)
+        # read and write state is char with value 0, 1, 2, 4. May be empty
         peer_dict['rstate'] = peer_info.read_state
         peer_dict['wstate'] = peer_info.write_state
-
-
 
         return peer_dict
 
@@ -1193,9 +1187,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             return False
         return True
 
+    @checkHandleAndSynchronize
     def get_share_mode(self):
-        if self.handle:
-            return self.handle.status().share_mode
+        return self.handle.status().share_mode
 
     @checkHandleAndSynchronize
     def set_share_mode(self, share_mode):

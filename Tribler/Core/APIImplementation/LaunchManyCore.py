@@ -319,7 +319,8 @@ class TriblerLaunchMany(TaskManager):
 
         self.initComplete = True
 
-    def add(self, tdef, dscfg, pstate=None, initialdlstatus=None, setupDelay=0, hidden=False, share_mode=False,checkpoint_disabled=False):
+    def add(self, tdef, dscfg, pstate=None, initialdlstatus=None, setupDelay=0, hidden=False,
+            share_mode=False, checkpoint_disabled=False):
         """ Called by any thread """
         d = None
         with self.sesslock:
