@@ -1,7 +1,8 @@
 import logging
 from hashlib import sha1
 from struct import unpack
-from Tribler.Test.test_multichain_utilities import TestBlock, MultiChainTestCase
+
+from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock, MultiChainTestCase
 from Tribler.community.multichain.conversion import (MultiChainConversion, split_function, signature_format,
                                                      append_format)
 from Tribler.community.multichain.community import SIGNATURE, CRAWL_REQUEST, CRAWL_RESPONSE, CRAWL_RESUME
