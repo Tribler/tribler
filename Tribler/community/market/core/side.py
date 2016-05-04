@@ -94,7 +94,7 @@ class Side(object):
 
     def tick_exists(self, message_id):
         """
-        Check if the tick exists with the given message id
+        Check if a tick exists with the given message id
 
         :param message_id: The message id to search for
         :type message_id: MessageId
