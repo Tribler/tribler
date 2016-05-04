@@ -94,20 +94,30 @@ class MyChannelTorrentsEndpoint(MyChannelBaseEndpoint):
 
 class MyChannelRssFeedsEndpoint(MyChannelBaseEndpoint):
     """
-    Return the RSS feeds in your channel.
-
-    Example response:
-    {
-        "rssfeeds": [{
-            "url": "http://rssprovider.com/feed.xml",
-        }, ...]
-    }
+    This class is responsible for handling requests regarding rss feeds in your channel.
     """
 
-    def render_GET(self, request):
+    def get_my_channel_object(self):
+        """
+        Returns the Channel object associated with you channel that is used to manage rss feeds.
+        """
         my_channel_id = self.channel_db_handler.getMyChannelId()
         channel_obj = self.session.lm.channel_manager.get_my_channel(my_channel_id)
-        if my_channel_id is None or channel_obj is None:
+        return channel_obj
+
+    def render_GET(self, request):
+        """
+        Return the RSS feeds in your channel.
+
+        Example response:
+        {
+            "rssfeeds": [{
+                "url": "http://rssprovider.com/feed.xml",
+            }, ...]
+        }
+        """
+        channel_obj = self.get_my_channel_object()
+        if channel_obj is None:
             return MyChannelBaseEndpoint.return_404(request)
 
         rss_list = channel_obj.get_rss_feed_url_list()
@@ -115,3 +125,25 @@ class MyChannelRssFeedsEndpoint(MyChannelBaseEndpoint):
         feeds_list = [{'url': rss_item} for rss_item in rss_list]
 
         return json.dumps({"rssfeeds": feeds_list})
+
+    def render_PUT(self, request):
+        """
+        Add a RSS feed to your channel.
+
+        Example request:
+        {
+            "rss_feed_url": "http://rssprovider.com/feed.xml"
+        }
+        """
+        channel_obj = self.get_my_channel_object()
+        if channel_obj is None:
+            return MyChannelBaseEndpoint.return_404(request)
+
+        parameters = http.parse_qs(request.content.read(), 1)
+        if 'rss_feed_url' not in parameters or len(parameters['rss_feed_url']) == 0:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "rss_feed_url parameter missing"})
+
+        channel_obj.create_rss_feed(parameters['rss_feed_url'][0])
+        request.setHeader('Content-Type', 'text/json')
+        return json.dumps({"added": True})
