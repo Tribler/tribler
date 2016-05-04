@@ -6,6 +6,12 @@ The Tribler REST API allows you to create your own applications with the channel
 ## Making requests
 The API has been built using [Twisted Web](http://twistedmatrix.com/trac/wiki/TwistedWeb). Requests go over HTTP where GET requests should be used when data is fetched from the Tribler core and POST requests should be used if data in the core is manipulated (such as adding a torrent or removing a download). Responses of the requests are in JSON format.
 
+Some requests require one or more parameters. These parameters are passed using the JSON format. An example of performing a request with parameters using the curl command line tool can be found below:
+
+```
+curl -X PUT -d "rss_feed_url=http://fakerssprovider.com/feed.rss" http://localhost:8085/mychannel/rssfeed
+```
+
 ## Endpoints
 
 ### Channels
@@ -22,6 +28,7 @@ The API has been built using [Twisted Web](http://twistedmatrix.com/trac/wiki/Tw
 | GET /mychannel/overview | Get the name, description and identifier of your channel |
 | GET /mychannel/torrents | Get a list of torrents in your channel |
 | GET /mychannel/rssfeeds | Get a list of rss feeds used by your channel |
+| PUT /mychannel/rssfeeds | Add a rss feed to your channel |
 
 ### Settings
 
@@ -122,6 +129,18 @@ Returns a list of rss feeds in your channel. Each rss feed items contains the UR
     "rssfeeds": [{
         "url": "http://rssprovider.com/feed.xml",
     }, ...]
+}
+```
+
+## `PUT /mychannel/rssfeed`
+
+Add a RSS feed to your channel.
+
+### Example request:
+
+```json
+{
+    "rss_feed_url": "http://rssprovider.com/feed.xml"
 }
 ```
 
