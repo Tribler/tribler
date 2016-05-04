@@ -1,7 +1,8 @@
 import time
 
 from .context import Tribler
-from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, Message, Tick, Ask, Bid, Trade, ProposedTrade, AcceptedTrade, DeclinedTrade
+from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, \
+    Message, Tick, Ask, Bid, Trade, ProposedTrade, AcceptedTrade, DeclinedTrade
 import unittest
 
 
@@ -9,7 +10,6 @@ class TickTestSuite(unittest.TestCase):
     """Tick test cases."""
 
     def test_trader_id(self):
-
         # Object creation
         trader_id = TraderId('trader_id')
         trader_id2 = TraderId('trader_id')
@@ -29,7 +29,6 @@ class TickTestSuite(unittest.TestCase):
         self.assertNotEqual(trader_id.__hash__(), trader_id3.__hash__())
 
     def test_message_number(self):
-
         # Object creation
         message_number = MessageNumber('message_number')
         message_number2 = MessageNumber('message_number')
@@ -49,7 +48,6 @@ class TickTestSuite(unittest.TestCase):
         self.assertNotEqual(message_number.__hash__(), message_number3.__hash__())
 
     def test_message_id(self):
-
         # Object creation
         trader_id = TraderId('trader_id')
         message_number = MessageNumber('message_number')
@@ -76,7 +74,6 @@ class TickTestSuite(unittest.TestCase):
         self.assertNotEqual(message_id.__hash__(), message_id3.__hash__())
 
     def test_price(self):
-
         # Object creation
         price = Price(63400)
         price2 = Price.from_float(6.34)
@@ -125,7 +122,6 @@ class TickTestSuite(unittest.TestCase):
         self.assertNotEqual(price.__hash__(), price4.__hash__())
 
     def test_quantity(self):
-
         # Object creation
         quantity = Quantity(30)
         quantity2 = Quantity.from_mil(100000)
@@ -173,7 +169,6 @@ class TickTestSuite(unittest.TestCase):
         self.assertNotEqual(quantity.__hash__(), quantity2.__hash__())
 
     def test_timeout(self):
-
         # Object creation
         timeout = Timeout(1462224447.117)
         timeout2 = Timeout(1462224447.117)
@@ -230,29 +225,24 @@ class TickTestSuite(unittest.TestCase):
         self.assertNotEqual(timestamp.__hash__(), timestamp3.__hash__())
 
     def test_message(self):
-
-        # Auxiliary object creation
+        # Object creation
         trader_id = TraderId('trader_id')
         message_number = MessageNumber('message_number')
         message_id = MessageId(trader_id, message_number)
-        sender_message_id = MessageId(trader_id, message_number)
-        recipient_message_id = MessageId(trader_id, message_number)
-        price = Price(63400)
-        quantity = Quantity(30)
-        timeout = Timeout(float("inf"))
         timestamp = Timestamp(float("inf"))
+        message = Message(message_id, timestamp, True)
+        message2 = Message(message_id, timestamp, False)
 
-        # Object creation
-        ask = Ask.create(message_id, price, quantity, timeout, timestamp)
-        proposed_trade = Trade.propose(message_id, sender_message_id, recipient_message_id, price, quantity, timestamp)
+        # Test for properties
+        self.assertEqual(message_id, message.message_id)
+        self.assertEqual(timestamp, message.timestamp)
 
-        # Test 'is tick' function
-        self.assertTrue(ask.is_tick())
-        self.assertFalse(proposed_trade.is_tick())
+        # Test for is tick
+        self.assertTrue(message.is_tick())
+        self.assertFalse(message2.is_tick())
 
     def test_tick(self):
-
-        # Auxiliary object creation
+        # Object creation
         trader_id = TraderId('trader_id')
         message_number = MessageNumber('message_number')
         message_id = MessageId(trader_id, message_number)
@@ -264,30 +254,31 @@ class TickTestSuite(unittest.TestCase):
         timestamp = Timestamp(float("inf"))
         timestamp2 = Timestamp(0.0)
 
-        # Object creation
-        ask = Ask.create(message_id, price, quantity, timeout, timestamp)
-        bid = Bid.create(message_id, price, quantity, timeout2, timestamp2)
+        tick = Tick(message_id, price, quantity, timeout, timestamp, True)
+        tick2 = Tick(message_id, price, quantity, timeout2, timestamp2, True)
 
-        # Test 'is ask' function
-        self.assertTrue(Tick.is_ask(ask))
-        self.assertFalse(Tick.is_ask(bid))
+        # Test for properties
+        self.assertEqual(price, tick.price)
+        self.assertEqual(quantity, tick.quantity)
+        self.assertEqual(timeout, tick.timeout)
+        self.assertEqual(timestamp, tick.timestamp)
 
-        # Test 'is valid' function
-        self.assertTrue(Tick.is_valid(ask))
-        self.assertFalse(Tick.is_valid(bid))
+        # Test for is valid
+        self.assertTrue(tick.is_valid())
+        self.assertFalse(tick2.is_valid())
 
-        # Test 'to network' function
-        self.assertEquals(((), ('trader_id', 'message_number', 63400, 30, float("inf"), float("inf"))), ask.to_network())
+        # Test for to network
+        self.assertEquals(((), ('trader_id', 'message_number', 63400, 30, float("inf"), float("inf"))),
+                          tick.to_network())
 
-        # Test 'update quantity' function
-        self.assertTrue(ask.update_quantity(quantity2, timestamp2))
-        self.assertEquals(ask.quantity, quantity2)
-        self.assertEquals(ask.timestamp, timestamp2)
-        self.assertFalse(ask.update_quantity(quantity2, timestamp2))
+        # Test for update quantity
+        self.assertTrue(tick.update_quantity(quantity2, timestamp2))
+        self.assertEquals(tick.quantity, quantity2)
+        self.assertEquals(tick.timestamp, timestamp2)
+        self.assertFalse(tick.update_quantity(quantity2, timestamp2))
 
     def test_ask(self):
-
-        # Auxiliary object creation
+        # Object creation
         trader_id = TraderId('trader_id')
         message_number = MessageNumber('message_number')
         message_id = MessageId(trader_id, message_number)
@@ -296,28 +287,28 @@ class TickTestSuite(unittest.TestCase):
         timeout = Timeout(1462224447.117)
         timestamp = Timestamp(1462224447.117)
 
-        # Object creation
         ask = Ask.create(message_id, price, quantity, timeout, timestamp)
 
-        self.assertEquals(ask.message_id, message_id)
-        self.assertEquals(ask.price, price)
-        self.assertEquals(ask.quantity, quantity)
-        self.assertEquals(float(ask.timeout), float(timeout))
-        self.assertEquals(ask.timestamp, timestamp)
+        # Test for properties
+        self.assertEquals(message_id, ask.message_id)
+        self.assertEquals(price, ask.price)
+        self.assertEquals(quantity, ask.quantity)
+        self.assertEquals(float(timeout), float(ask.timeout))
+        self.assertEquals(timestamp, ask.timestamp)
 
-        # Test 'from network' function
+        # Test for from network
         data = Ask.from_network(type('Data', (object,), {"trader_id": 'trader_id', "message_number": 'message_number',
                                                          "price": 63400, "quantity": 30, "timeout": 1462224447.117,
-                                                         "timestamp": 1462224447.117,}))
-        self.assertEquals(data.message_id, message_id)
-        self.assertEquals(data.price, price)
-        self.assertEquals(data.quantity, quantity)
-        self.assertEquals(float(data.timeout), float(timeout))
-        self.assertEquals(data.timestamp, timestamp)
+                                                         "timestamp": 1462224447.117}))
+
+        self.assertEquals(message_id, data.message_id)
+        self.assertEquals(price, data.price)
+        self.assertEquals(quantity, data.quantity)
+        self.assertEquals(float(timeout), float(data.timeout))
+        self.assertEquals(timestamp, data.timestamp)
 
     def test_bid(self):
-
-        # Auxiliary object creation
+        # Object creation
         trader_id = TraderId('trader_id')
         message_number = MessageNumber('message_number')
         message_id = MessageId(trader_id, message_number)
@@ -326,28 +317,28 @@ class TickTestSuite(unittest.TestCase):
         timeout = Timeout(1462224447.117)
         timestamp = Timestamp(1462224447.117)
 
-        # Object creation
         bid = Bid.create(message_id, price, quantity, timeout, timestamp)
 
-        self.assertEquals(bid.message_id, message_id)
-        self.assertEquals(bid.price, price)
-        self.assertEquals(bid.quantity, quantity)
-        self.assertEquals(float(bid.timeout), float(timeout))
-        self.assertEquals(bid.timestamp, timestamp)
+        # Test for properties
+        self.assertEquals(message_id, bid.message_id)
+        self.assertEquals(price, bid.price)
+        self.assertEquals(quantity, bid.quantity)
+        self.assertEquals(float(timeout), float(bid.timeout))
+        self.assertEquals(timestamp, bid.timestamp)
 
-        # Test 'from network' function
+        # Test for from network
         data = Bid.from_network(type('Data', (object,), {"trader_id": 'trader_id', "message_number": 'message_number',
                                                          "price": 63400, "quantity": 30, "timeout": 1462224447.117,
-                                                         "timestamp": 1462224447.117,}))
-        self.assertEquals(data.message_id, message_id)
-        self.assertEquals(data.price, price)
-        self.assertEquals(data.quantity, quantity)
-        self.assertEquals(float(data.timeout), float(timeout))
-        self.assertEquals(data.timestamp, timestamp)
+                                                         "timestamp": 1462224447.117}))
+
+        self.assertEquals(message_id, data.message_id)
+        self.assertEquals(price, data.price)
+        self.assertEquals(quantity, data.quantity)
+        self.assertEquals(float(timeout), float(data.timeout))
+        self.assertEquals(timestamp, data.timestamp)
 
     def test_trade(self):
-
-        # Auxiliary object creation
+        # Object creation
         trader_id = TraderId('trader_id')
         message_number = MessageNumber('message_number')
         message_id = MessageId(trader_id, message_number)
@@ -357,33 +348,33 @@ class TickTestSuite(unittest.TestCase):
         quantity = Quantity(30)
         timestamp = Timestamp(1462224447.117)
 
-        # Object creation
+        # Test for instantiation
         proposed_trade = Trade.propose(message_id, sender_message_id, recipient_message_id, price, quantity, timestamp)
-        quick_proposed_trade = Trade.quick_propose(message_id, sender_message_id, recipient_message_id, price, quantity, timestamp)
+        quick_proposed_trade = Trade.quick_propose(message_id, sender_message_id, recipient_message_id, price, quantity,
+                                                   timestamp)
         accepted_trade = Trade.accept(message_id, timestamp, proposed_trade)
         declined_trade = Trade.decline(message_id, timestamp, proposed_trade)
 
-        # Test 'is accepted' function
-        self.assertTrue(Trade.is_accepted(accepted_trade))
-        self.assertFalse(Trade.is_accepted(declined_trade))
-        self.assertFalse(Trade.is_accepted(quick_proposed_trade))
-        self.assertFalse(Trade.is_accepted(proposed_trade))
+        # Test for is accepted
+        self.assertFalse(proposed_trade.is_accepted())
+        self.assertFalse(quick_proposed_trade.is_accepted())
+        self.assertTrue(accepted_trade.is_accepted())
+        self.assertFalse(declined_trade.is_accepted())
 
-        # Test 'is quick' function
-        self.assertTrue(Trade.is_quick(quick_proposed_trade))
-        self.assertFalse(Trade.is_quick(accepted_trade))
-        self.assertFalse(Trade.is_quick(declined_trade))
-        self.assertFalse(Trade.is_quick(proposed_trade))
+        # Test for is quick
+        self.assertFalse(proposed_trade.is_quick())
+        self.assertTrue(quick_proposed_trade.is_quick())
+        self.assertFalse(accepted_trade.is_quick())
+        self.assertFalse(declined_trade.is_quick())
 
-        # Test 'is proposed' function
-        self.assertTrue(Trade.is_proposed(quick_proposed_trade))
-        self.assertTrue(Trade.is_proposed(proposed_trade))
-        self.assertFalse(Trade.is_proposed(declined_trade))
-        self.assertFalse(Trade.is_proposed(accepted_trade))
+        # Test for is proposed
+        self.assertTrue(proposed_trade.is_proposed())
+        self.assertTrue(quick_proposed_trade.is_proposed())
+        self.assertFalse(accepted_trade.is_proposed())
+        self.assertFalse(declined_trade.is_proposed())
 
     def test_proposed_trade(self):
-
-        # Auxiliary object creation
+        # Object creation
         trader_id = TraderId('trader_id')
         message_number = MessageNumber('message_number')
         message_id = MessageId(trader_id, message_number)
@@ -393,15 +384,14 @@ class TickTestSuite(unittest.TestCase):
         quantity = Quantity(30)
         timestamp = Timestamp(1462224447.117)
 
-        # Object creation
         proposed_trade = Trade.propose(message_id, sender_message_id, recipient_message_id, price, quantity, timestamp)
 
-        # Test 'to network' function
-        self.assertEquals((('trader_id', ), ('trader_id', 'message_number', 'trader_id', 'message_number', 'trader_id',
-                                             'message_number', 63400, 30, 1462224447.117, False)),
+        # Test for to network
+        self.assertEquals((('trader_id',), ('trader_id', 'message_number', 'trader_id', 'message_number', 'trader_id',
+                                            'message_number', 63400, 30, 1462224447.117, False)),
                           proposed_trade.to_network())
 
-        # Test 'from network' function
+        # Test for from network
         data = ProposedTrade.from_network(type('Data', (object,), {"trader_id": 'trader_id',
                                                                    "message_number": 'message_number',
                                                                    "sender_trader_id": 'trader_id',
@@ -409,17 +399,17 @@ class TickTestSuite(unittest.TestCase):
                                                                    "recipient_trader_id": 'trader_id',
                                                                    "recipient_message_number": 'message_number',
                                                                    "price": 63400, "quantity": 30,
-                                                                   "timestamp": 1462224447.117, "quick": False, }))
-        self.assertEquals(data.message_id, message_id)
-        self.assertEquals(data.recipient_message_id, message_id)
-        self.assertEquals(data.sender_message_id, message_id)
-        self.assertEquals(data.price, price)
-        self.assertEquals(data.quantity, quantity)
-        self.assertEquals(data.timestamp, timestamp)
+                                                                   "timestamp": 1462224447.117, "quick": False,}))
+
+        self.assertEquals(message_id, data.message_id)
+        self.assertEquals(recipient_message_id, data.message_id)
+        self.assertEquals(sender_message_id, data.message_id)
+        self.assertEquals(price, data.price)
+        self.assertEquals(quantity, data.quantity)
+        self.assertEquals(timestamp, data.timestamp)
 
     def test_accepted_trade(self):
-
-        # Auxiliary object creation
+        # Object creation
         trader_id = TraderId('trader_id')
         message_number = MessageNumber('message_number')
         message_id = MessageId(trader_id, message_number)
@@ -430,16 +420,15 @@ class TickTestSuite(unittest.TestCase):
         timestamp = Timestamp(1462224447.117)
         proposed_trade = Trade.propose(message_id, sender_message_id, recipient_message_id, price, quantity, timestamp)
 
-        # Object creation
         accepted_trade = Trade.accept(message_id, timestamp, proposed_trade)
 
-        # Test 'to network' function
+        # Test for to network
         self.assertEquals(
             ((), ('trader_id', 'message_number', 'trader_id', 'message_number', 'trader_id', 'message_number', 63400,
                   30, 1462224447.117, False)),
             accepted_trade.to_network())
 
-        # Test 'from network' function
+        # Test for from network
         data = AcceptedTrade.from_network(type('Data', (object,), {"trader_id": 'trader_id',
                                                                    "message_number": 'message_number',
                                                                    "sender_trader_id": 'trader_id',
@@ -448,16 +437,16 @@ class TickTestSuite(unittest.TestCase):
                                                                    "recipient_message_number": 'message_number',
                                                                    "price": 63400, "quantity": 30,
                                                                    "timestamp": 1462224447.117, "quick": False,}))
-        self.assertEquals(data.message_id, message_id)
-        self.assertEquals(data.recipient_message_id, message_id)
-        self.assertEquals(data.sender_message_id, message_id)
-        self.assertEquals(data.price, price)
-        self.assertEquals(data.quantity, quantity)
-        self.assertEquals(data.timestamp, timestamp)
+
+        self.assertEquals(message_id, data.message_id)
+        self.assertEquals(recipient_message_id, data.message_id)
+        self.assertEquals(sender_message_id, data.message_id)
+        self.assertEquals(price, data.price)
+        self.assertEquals(quantity, data.quantity)
+        self.assertEquals(timestamp, data.timestamp)
 
     def test_declined_trade(self):
-
-        # Auxiliary object creation
+        # Object creation
         trader_id = TraderId('trader_id')
         message_number = MessageNumber('message_number')
         message_id = MessageId(trader_id, message_number)
@@ -468,23 +457,24 @@ class TickTestSuite(unittest.TestCase):
         timestamp = Timestamp(1462224447.117)
         proposed_trade = Trade.propose(message_id, sender_message_id, recipient_message_id, price, quantity, timestamp)
 
-        # Object creation
         declined_trade = Trade.decline(message_id, timestamp, proposed_trade)
 
-        # Test 'to network' function
+        # Test for to network
         self.assertEquals(
-            (('trader_id', ), ('trader_id', 'message_number', 'trader_id', 'message_number', 1462224447.117, False)),
+            (('trader_id',), ('trader_id', 'message_number', 'trader_id', 'message_number', 1462224447.117, False)),
             declined_trade.to_network())
 
-        # Test 'from network' function
+        # Test for from network
         data = DeclinedTrade.from_network(type('Data', (object,), {"trader_id": 'trader_id',
                                                                    "message_number": 'message_number',
                                                                    "recipient_trader_id": 'trader_id',
                                                                    "recipient_message_number": 'message_number',
                                                                    "timestamp": 1462224447.117, "quick": False,}))
-        self.assertEquals(data.message_id, message_id)
-        self.assertEquals(data.recipient_message_id, message_id)
-        self.assertEquals(data.timestamp, timestamp)
+
+        self.assertEquals(message_id, data.message_id)
+        self.assertEquals(recipient_message_id, data.message_id)
+        self.assertEquals(timestamp, data.timestamp)
+
 
 if __name__ == '__main__':
     unittest.main()
