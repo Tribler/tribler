@@ -4,10 +4,8 @@ package org.tribler.android;
  * Deserialization of Json Channel
  */
 public class TriblerChannel {
-    private String name;
-    private String iconUrl;
-    private int videosCount;
-    private int commentsCount;
+    private String name, iconUrl;
+    private int videosCount, commentsCount;
 
     public TriblerChannel() {
     }
@@ -17,6 +15,9 @@ public class TriblerChannel {
     }
 
     public String getIconUrl() {
+        if (iconUrl == null) {
+            iconUrl = ""; //TODO: default image
+        }
         return iconUrl;
     }
 

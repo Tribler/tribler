@@ -4,10 +4,8 @@ package org.tribler.android;
  * Deserialization of Json Torrent
  */
 public class TriblerTorrent {
-    private String title;
-    private String thumbnailUrl;
-    private int duration;
-    private int bitrate;
+    private String title, thumbnailUrl;
+    private int duration, bitrate;
 
     public TriblerTorrent() {
     }
@@ -17,6 +15,9 @@ public class TriblerTorrent {
     }
 
     public String getThumbnailUrl() {
+        if (thumbnailUrl == null) {
+            thumbnailUrl = ""; //TODO: default image
+        }
         return thumbnailUrl;
     }
 

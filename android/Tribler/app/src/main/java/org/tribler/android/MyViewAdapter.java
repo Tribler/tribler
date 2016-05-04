@@ -118,8 +118,8 @@ public class MyViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             ChannelViewHolder view = (ChannelViewHolder) holder;
             TriblerChannel channel = (TriblerChannel) mList.get(position);
             view.name.setText(channel.getName());
-            view.videosCount.setText(channel.getVideosCount());
-            view.commentsCount.setText(channel.getCommentsCount());
+            view.videosCount.setText(String.valueOf(channel.getVideosCount()));
+            view.commentsCount.setText(String.valueOf(channel.getCommentsCount()));
             view.icon.setImageURI(Uri.parse(channel.getIconUrl()));
         }
         // Torrent
@@ -127,8 +127,8 @@ public class MyViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             TorrentViewHolder view = (TorrentViewHolder) holder;
             TriblerTorrent torrent = (TriblerTorrent) mList.get(position);
             view.title.setText(torrent.getTitle());
-            view.duration.setText(torrent.getDuration());
-            view.bitrate.setText(torrent.getBitrate());
+            view.duration.setText(String.valueOf(torrent.getDuration()));
+            view.bitrate.setText(String.valueOf(torrent.getBitrate()));
             view.thumbnail.setImageURI(Uri.parse(torrent.getThumbnailUrl()));
         }
     }

@@ -6,18 +6,17 @@ import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.view.MotionEvent;
 
-import java.nio.channels.Channel;
+import com.google.gson.Gson;
+
 import java.util.ArrayList;
 
 public class Home extends AppCompatActivity {
-    private ArrayList<Object> mList = new ArrayList<Object>();
-
-    private RecyclerView mRecyclerView;
+    private ArrayList<Object> mList;
     private MyViewAdapter mAdapter;
-    private RecyclerView.LayoutManager mLayoutManager;
 
-    private ItemTouchHelper.SimpleCallback mItemTouchCallback =
+    private ItemTouchHelper.SimpleCallback mItemSwipeCallback =
             new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
                 @Override
                 public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
@@ -46,31 +45,68 @@ public class Home extends AppCompatActivity {
                 /**
                  * Not draggable
                  */
+                public boolean isLongPressDragEnabled() {
+                    return false;
+                }
+
+                @Override
+                /**
+                 * Not draggable
+                 */
                 public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder,
                                       RecyclerView.ViewHolder target) {
                     return false;
                 }
             };
 
-    private ItemTouchHelper mItemTouchHelper = new ItemTouchHelper(mItemTouchCallback);
+
+    private RecyclerView.OnItemTouchListener mItemTouchListener = new RecyclerView.SimpleOnItemTouchListener() {
+        @Override
+        public void onTouchEvent(RecyclerView rv, MotionEvent e) {
+
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
-        mRecyclerView = (RecyclerView) findViewById(R.id.content_list);
 
-        // use this setting to improve performance if you know that changes
-        // in content do not change the layout size of the RecyclerView
+        RecyclerView mRecyclerView = (RecyclerView) findViewById(R.id.content_list);
+        // Improve performance since change in content does not change the layout size
         mRecyclerView.setHasFixedSize(true);
 
-        mLayoutManager = new LinearLayoutManager(this);
+        RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(this);
         mRecyclerView.setLayoutManager(mLayoutManager);
+
+        mList = new ArrayList<Object>();
 
         mAdapter = new MyViewAdapter(mList);
         mRecyclerView.setAdapter(mAdapter);
 
+        ItemTouchHelper mItemTouchHelper = new ItemTouchHelper(mItemSwipeCallback);
         mItemTouchHelper.attachToRecyclerView(mRecyclerView);
+
+        Gson gson = new Gson();
+
+        mList.add(gson.fromJson("{title:'Mad Max: Fury Road', genre:'Action & Adventure', year:2015}", TriblerTorrent.class));
+        mList.add(gson.fromJson("{title:'Inside Out', genre:'Animation, Kids & Family', year:2015}", TriblerTorrent.class));
+        mList.add(gson.fromJson("{title:'Star Wars: Episode VII - The Force Awakens', genre:'Action', year:2015}", TriblerTorrent.class));
+        mList.add(gson.fromJson("{title:'Shaun the Sheep', genre:'Animation', year:2015}", TriblerTorrent.class));
+        mList.add(gson.fromJson("{title:'The Martian', genre:'Science Fiction & Fantasy', year:2015}", TriblerTorrent.class));
+        mList.add(gson.fromJson("{title:'Mission: Impossible Rogue Nation', genre:'Action', year:2015}", TriblerTorrent.class));
+        mList.add(gson.fromJson("{title:'Up', genre:'Animation', year:2009}", TriblerTorrent.class));
+        mList.add(gson.fromJson("{title:'Star Trek', genre:'Science Fiction', year:2009}", TriblerTorrent.class));
+        mList.add(gson.fromJson("{title:'The LEGO Movie', genre:'Animation', year:2014}", TriblerTorrent.class));
+        mList.add(gson.fromJson("{title:'Iron Man', genre:'Action & Adventure', year:2008}", TriblerTorrent.class));
+        mList.add(gson.fromJson("{title:'Aliens', genre:'Science Fiction', year:1986}", TriblerTorrent.class));
+        mList.add(gson.fromJson("{title:'Chicken Run', genre:'Animation', year:2000}", TriblerTorrent.class));
+        mList.add(gson.fromJson("{title:'Back to the Future', genre:'Science Fiction', year:1985}", TriblerTorrent.class));
+        mList.add(gson.fromJson("{title:'Raiders of the Lost Ark', genre:'Action & Adventure', year:1981}", TriblerTorrent.class));
+        mList.add(gson.fromJson("{title:'Goldfinger', genre:'Action & Adventure', year:1965}", TriblerTorrent.class));
+        mList.add(gson.fromJson("{title:'Guardians of the Galaxy', genre:'Science Fiction & Fantasy', year:2014}", TriblerTorrent.class));
+
+        mAdapter.notifyDataSetChanged();
     }
 
 }
