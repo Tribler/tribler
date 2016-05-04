@@ -1,6 +1,5 @@
 import time
 
-from .context import Tribler
 from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, \
     Message, Tick, Ask, Bid, Trade, ProposedTrade, AcceptedTrade, DeclinedTrade
 import unittest
