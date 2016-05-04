@@ -964,25 +964,6 @@ class Tick(Message):
         """
         return not self._timeout.is_timed_out(Timestamp.now())
 
-    def update_quantity(self, new_quantity, new_timestamp):
-        """
-        Update the quantity of the tick
-
-        :param new_quantity: The new quantity
-        :param new_timestamp: The timestamp when the message was updated
-        :return: True if the quantity has changed, False otherwise
-        :rtype: bool
-        """
-        assert isinstance(new_quantity, Quantity), type(new_quantity)
-        assert isinstance(new_timestamp, Timestamp), type(new_timestamp)
-
-        if self._quantity == new_quantity:
-            return False
-
-        self._quantity = new_quantity
-        self._timestamp = new_timestamp
-        return True
-
     def to_network(self):
         """
         Return network representation of the tick

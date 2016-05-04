@@ -248,7 +248,6 @@ class TickTestSuite(unittest.TestCase):
         message_id = MessageId(trader_id, message_number)
         price = Price(63400)
         quantity = Quantity(30)
-        quantity2 = Quantity(50)
         timeout = Timeout(float("inf"))
         timeout2 = Timeout(0.0)
         timestamp = Timestamp(float("inf"))
@@ -270,12 +269,6 @@ class TickTestSuite(unittest.TestCase):
         # Test for to network
         self.assertEquals(((), ('trader_id', 'message_number', 63400, 30, float("inf"), float("inf"))),
                           tick.to_network())
-
-        # Test for update quantity
-        self.assertTrue(tick.update_quantity(quantity2, timestamp2))
-        self.assertEquals(tick.quantity, quantity2)
-        self.assertEquals(tick.timestamp, timestamp2)
-        self.assertFalse(tick.update_quantity(quantity2, timestamp2))
 
     def test_ask(self):
         # Object creation
