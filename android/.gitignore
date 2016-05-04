@@ -7,3 +7,5 @@
 *.apk
 screen.png
 typescript
+ffmpeg
+/dist
