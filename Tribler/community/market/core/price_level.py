@@ -9,11 +9,11 @@ class PriceLevel(object):
         """
         Initialise the price level
         """
-        self._head_order = None
-        self._tail_order = None
-        self._length = 0
-        self._depth = Quantity(0)
-        self._last = None
+        self._head_order = None  # First order of the double linked list
+        self._tail_order = None  # Last order of the double linked list
+        self._length = 0  # The number of orders in the price level
+        self._depth = Quantity(0)  # Total amount of quantity contained in this price level
+        self._last = None  # The current order of th iterator
 
     @property
     def first_order(self):
