@@ -12,7 +12,7 @@
     android:paddingTop="10dp">
 
     <ImageView
-        android:id="@+id/torrent_thumbnail"
+        android:id="@+id/channel_icon"
         android:layout_width="75dp"
         android:layout_height="50dp"
         android:layout_alignParentLeft="true"
@@ -21,38 +21,38 @@
         android:background="@color/darkRed" />
 
     <TextView
-        android:id="@+id/torrent_title"
+        android:id="@+id/channel_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignTop="@+id/torrent_thumbnail"
+        android:layout_alignTop="@+id/channel_icon"
         android:layout_marginLeft="16dp"
         android:layout_marginStart="16dp"
-        android:layout_toEndOf="@+id/torrent_thumbnail"
-        android:layout_toRightOf="@+id/torrent_thumbnail"
-        android:text="Torrent title"
+        android:layout_toEndOf="@+id/channel_icon"
+        android:layout_toRightOf="@+id/channel_icon"
+        android:text="Channel name"
         android:textColor="@color/green"
         android:textSize="16sp"
         android:textStyle="bold" />
 
     <TextView
-        android:id="@+id/torrent_duration"
+        android:id="@+id/channel_videos_count"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
-        android:layout_alignTop="@+id/torrent_title"
-        android:text="Duration"
+        android:layout_alignTop="@+id/channel_name"
+        android:text="Videos count"
         android:textColor="@color/blue" />
 
     <TextView
-        android:id="@+id/torrent_bitrate"
+        android:id="@+id/channel_comments_count"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignBottom="@+id/torrent_thumbnail"
+        android:layout_alignBottom="@+id/channel_icon"
         android:layout_marginLeft="16dp"
         android:layout_marginStart="16dp"
-        android:layout_toEndOf="@+id/torrent_thumbnail"
-        android:layout_toRightOf="@+id/torrent_thumbnail"
-        android:text="Bitrate" />
+        android:layout_toEndOf="@+id/channel_icon"
+        android:layout_toRightOf="@+id/channel_icon"
+        android:text="Comments count" />
 
 </RelativeLayout>

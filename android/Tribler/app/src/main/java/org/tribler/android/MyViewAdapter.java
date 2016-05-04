@@ -24,6 +24,14 @@ public class MyViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         this.mList = mList;
     }
 
+    /**
+     * @param position The position in the adapter list
+     * @return The item on the given adapter position
+     */
+    public Object getItem(int position) {
+        return mList.get(position);
+    }
+
     @Override
     /**
      * @return The amount of items in the data set (invoked by the layout manager)
@@ -34,6 +42,7 @@ public class MyViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
 
     @Override
     /**
+     * @param position  The position in the adapter list
      * @return VIEW_TYPE_CHANNEL | VIEW_TYPE_TORRENT | VIEW_TYPE_UNKNOWN based on class type
      */
     public int getItemViewType(int position) {

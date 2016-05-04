@@ -14,15 +14,17 @@ public class Home extends AppCompatActivity {
     private ArrayList<Object> mList = new ArrayList<Object>();
 
     private RecyclerView mRecyclerView;
-    private RecyclerView.Adapter mAdapter;
+    private MyViewAdapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
 
     private ItemTouchHelper.SimpleCallback mItemTouchCallback =
             new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
                 @Override
                 public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
+                    int position = viewHolder.getAdapterPosition();
                     // Swipe channel
                     if (viewHolder instanceof MyViewAdapter.ChannelViewHolder) {
+                        TriblerChannel channel = (TriblerChannel) mAdapter.getItem(position);
                         if (swipeDir == ItemTouchHelper.LEFT) {
                             // un-subscribe / not interested
                         } else if (swipeDir == ItemTouchHelper.RIGHT) {
@@ -31,6 +33,7 @@ public class Home extends AppCompatActivity {
                     }
                     // Swipe torrent
                     else if (viewHolder instanceof MyViewAdapter.TorrentViewHolder) {
+                        TriblerTorrent torrent = (TriblerTorrent) mAdapter.getItem(position);
                         if (swipeDir == ItemTouchHelper.LEFT) {
                             // not interested
                         } else if (swipeDir == ItemTouchHelper.RIGHT) {
