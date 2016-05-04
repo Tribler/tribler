@@ -1,5 +1,5 @@
-from .price_level import PriceLevel
-from .tick import Tick
+from price_level import PriceLevel
+from tick import Tick
 
 
 class Order(object):
