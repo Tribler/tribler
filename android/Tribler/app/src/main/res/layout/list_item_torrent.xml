@@ -12,25 +12,25 @@
     android:orientation="vertical">
 
     <TextView
-        android:id="@+id/title"
-        android:textColor="@color/title"
+        android:id="@+id/torrent_title"
+        android:textColor="@color/green"
         android:textSize="16dp"
         android:textStyle="bold"
         android:layout_alignParentTop="true"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content" android:text="Torrent title"/>
 
     <TextView
-        android:id="@+id/description"
-        android:layout_below="@id/title"
+        android:id="@+id/torrent_bitrate"
+        android:layout_below="@id/torrent_title"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content" android:text="Torrent bitrate" />
 
     <TextView
-        android:id="@+id/duration"
-        android:textColor="@color/duration"
+        android:id="@+id/torrent_duration"
+        android:textColor="@color/blue"
         android:layout_width="wrap_content"
         android:layout_alignParentRight="true"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content" android:text="Torrent duration" />
 
 </RelativeLayout>

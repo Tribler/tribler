@@ -30,7 +30,7 @@ public class Home extends AppCompatActivity {
         mRecyclerView.setLayoutManager(mLayoutManager);
 
         // specify an adapter (see also next example)
-        mAdapter = new ContentListViewAdapter(mTorrentList);
+        mAdapter = new MyViewAdapter(mTorrentList);
         mRecyclerView.setAdapter(mAdapter);
 
         fetchVideosData();
