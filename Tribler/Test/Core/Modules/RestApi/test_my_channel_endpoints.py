@@ -20,19 +20,12 @@ class ChannelCommunityMock(object):
     def get_channel_id(self):
         return self.channel_id
 
-class TestMyChannelEndpoints(AbstractApiTest):
+
+class AbstractTestMyChannelEndpoints(AbstractApiTest):
 
     def setUp(self, autoload_discovery=True):
-        super(TestMyChannelEndpoints, self).setUp(autoload_discovery)
+        super(AbstractTestMyChannelEndpoints, self).setUp(autoload_discovery)
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
-
-    @deferred(timeout=10)
-    def test_my_channel_unknown_endpoint(self):
-        """
-        Testing whether the API returns an error if an unknown endpoint is queried
-        """
-        self.should_check_equality = False
-        return self.do_request('mychannel/thisendpointdoesnotexist123', expected_code=404)
 
     def create_my_channel(self, name, description):
         """
@@ -41,6 +34,26 @@ class TestMyChannelEndpoints(AbstractApiTest):
         self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"
         self.channel_db_handler.on_channel_from_dispersy('fakedispersyid', None, name, description)
         return self.channel_db_handler.getMyChannelId()
+
+    def create_fake_channel(self, channel_name, channel_description):
+        # Use a fake ChannelCommunity object (we don't actually want to create a Dispersy community)
+        my_channel_id = self.create_my_channel(channel_name, channel_description)
+        self.session.lm.channel_manager = ChannelManager(self.session)
+
+        channel_obj = ChannelObject(self.session, ChannelCommunityMock(my_channel_id))
+        self.session.lm.channel_manager._channel_list.append(channel_obj)
+        return my_channel_id
+
+
+class TestMyChannelEndpoints(AbstractTestMyChannelEndpoints):
+
+    @deferred(timeout=10)
+    def test_my_channel_unknown_endpoint(self):
+        """
+        Testing whether the API returns an error if an unknown endpoint is queried
+        """
+        self.should_check_equality = False
+        return self.do_request('mychannel/thisendpointdoesnotexist123', expected_code=404)
 
     def insert_torrents_into_my_channel(self, torrent_list):
         self.channel_db_handler.on_torrents_from_dispersy(torrent_list)
@@ -95,22 +108,50 @@ class TestMyChannelEndpoints(AbstractApiTest):
         self.session.lm.channel_manager = ChannelManager(self.session)
         return self.do_request('mychannel/rssfeeds', expected_code=404)
 
+
+class TestMyChannelRssEndpoints(AbstractTestMyChannelEndpoints):
+
     @deferred(timeout=10)
     def test_rss_feeds_endpoint_with_channel(self):
         """
         Testing whether the API returns the right JSON data if a rss feeds from a channel are fetched
         """
         expected_json = {u'rssfeeds': [{u'url': u'http://test1.com/feed.xml'}, {u'url': u'http://test2.com/feed.xml'}]}
-
-        # Use a fake ChannelCommunity object (we don't actually want to create a Dispersy community)
-        my_channel_id = self.create_my_channel("my channel", "this is a short description")
-        self.session.lm.channel_manager = ChannelManager(self.session)
-
-        channel_obj = ChannelObject(self.session, ChannelCommunityMock(my_channel_id))
-        self.session.lm.channel_manager._channel_list.append(channel_obj)
-
+        self.create_fake_channel("my channel", "this is a short description")
         channel_obj = self.session.lm.channel_manager.get_channel("Channel name")
         for rss_item in expected_json[u'rssfeeds']:
             channel_obj.create_rss_feed(rss_item[u'url'])
 
         return self.do_request('mychannel/rssfeeds', expected_code=200, expected_json=expected_json)
+
+    @deferred(timeout=10)
+    def test_add_rss_feed_no_my_channel(self):
+        """
+        Testing whether the API returns a 404 if no channel has been created when adding a rss feed
+        """
+        self.session.lm.channel_manager = ChannelManager(self.session)
+        return self.do_request('mychannel/rssfeeds', expected_code=404, request_type='PUT')
+
+    @deferred(timeout=10)
+    def test_add_rss_feed_no_parameter(self):
+        """
+        Testing whether the API returns a 400 and error if the url parameter is not passed
+        """
+        expected_json = {"error": "rss_feed_url parameter missing"}
+        self.create_fake_channel("my channel", "this is a short description")
+        return self.do_request('mychannel/rssfeeds', expected_code=400, expected_json=expected_json, request_type='PUT')
+
+    @deferred(timeout=10)
+    def test_add_rss_feed_with_channel(self):
+        """
+        Testing whether the API returns a 200 if a channel has been created and when adding a rss feed
+        """
+        def verify_rss_added(_):
+            channel_obj = self.session.lm.channel_manager.get_my_channel(my_channel_id)
+            self.assertEqual(channel_obj.get_rss_feed_url_list(), ["http://fakerssprovider.com/feed.rss"])
+
+        expected_json = {"added": True}
+        my_channel_id = self.create_fake_channel("my channel", "this is a short description")
+        post_data = {"rss_feed_url": "http://fakerssprovider.com/feed.rss"}
+        return self.do_request('mychannel/rssfeeds', expected_code=200, expected_json=expected_json,
+                               request_type='PUT', post_data=post_data).addCallback(verify_rss_added)
