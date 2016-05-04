@@ -1,3 +1,4 @@
+import json
 import time
 
 from Tribler.Core.Utilities.twisted_thread import deferred
@@ -49,3 +50,30 @@ class TestChannelsEndpoint(AbstractApiTest):
                                         expected_json[u'subscribed'][0][u'description'])
         self.vote_for_channel(cid, expected_json[u'subscribed'][0][u'modified'])
         return self.do_request('channels/subscribed', expected_code=200, expected_json=expected_json)
+
+    @deferred(timeout=10)
+    def test_get_discovered_channels_no_channels(self):
+        """
+        Testing whether the API returns no channels when fetching discovered channels
+        and there are no channels in the database
+        """
+        expected_json = {u'channels': []}
+        return self.do_request('channels/discovered', expected_code=200, expected_json=expected_json)
+
+    def verify_channels(self, channels):
+        channels_json = json.loads(channels)
+        self.assertEqual(len(channels_json['channels']), 10)
+        for i in range(len(channels_json['channels'])):
+            self.assertEqual(channels_json['channels'][i]['name'], 'Test channel %d' % i)
+            self.assertEqual(channels_json['channels'][i]['description'], 'Test description %d' % i)
+
+    @deferred(timeout=10)
+    def test_get_discovered_channels(self):
+        """
+        Testing whether the API returns inserted channels when fetching discovered channels
+        """
+        self.should_check_equality = False
+        for i in range(0, 10):
+            self.insert_channel_in_db('rand%d' % i, 42 + i, 'Test channel %d' % i, 'Test description %d' % i)
+
+        return self.do_request('channels/discovered', expected_code=200).addCallback(self.verify_channels)
