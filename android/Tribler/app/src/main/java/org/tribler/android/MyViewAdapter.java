@@ -56,13 +56,13 @@ public class MyViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     }
 
     public class ChannelViewHolder extends RecyclerView.ViewHolder {
-        public TextView name, videosCount, commentsCount;
+        public TextView name, torrentsCount, commentsCount;
         public ImageView icon;
 
         public ChannelViewHolder(View itemView) {
             super(itemView);
             name = (TextView) itemView.findViewById(R.id.channel_name);
-            videosCount = (TextView) itemView.findViewById(R.id.channel_videos_count);
+            torrentsCount = (TextView) itemView.findViewById(R.id.channel_videos_count);
             commentsCount = (TextView) itemView.findViewById(R.id.channel_comments_count);
             icon = (ImageView) itemView.findViewById(R.id.channel_icon);
         }
@@ -118,7 +118,7 @@ public class MyViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
             ChannelViewHolder view = (ChannelViewHolder) holder;
             TriblerChannel channel = (TriblerChannel) mList.get(position);
             view.name.setText(channel.getName());
-            view.videosCount.setText(String.valueOf(channel.getVideosCount()));
+            view.torrentsCount.setText(String.valueOf(channel.getTorrentsCount()));
             view.commentsCount.setText(String.valueOf(channel.getCommentsCount()));
             view.icon.setImageURI(Uri.parse(channel.getIconUrl()));
         }

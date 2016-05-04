@@ -5,7 +5,7 @@ package org.tribler.android;
  */
 public class TriblerChannel {
     private String name, iconUrl;
-    private int videosCount, commentsCount;
+    private int torrentsCount, commentsCount;
 
     public TriblerChannel() {
     }
@@ -21,8 +21,8 @@ public class TriblerChannel {
         return iconUrl;
     }
 
-    public int getVideosCount() {
-        return videosCount;
+    public int getTorrentsCount() {
+        return torrentsCount;
     }
 
     public int getCommentsCount() {
