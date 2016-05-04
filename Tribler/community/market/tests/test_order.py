@@ -1,7 +1,7 @@
 import unittest
 
 
-class TickTestSuite(unittest.TestCase):
+class OrderTestSuite(unittest.TestCase):
     """Order test cases."""
 
 

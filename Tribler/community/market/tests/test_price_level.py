@@ -1,7 +1,7 @@
 import unittest
 
 
-class TickTestSuite(unittest.TestCase):
+class PriceLevelTestSuite(unittest.TestCase):
     """PriceLevel test cases."""
 
 
