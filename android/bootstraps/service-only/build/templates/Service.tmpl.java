@@ -32,7 +32,7 @@ public class Service{{ name|capitalize }} extends PythonService {
         Intent contextIntent = new Intent(context, PythonActivity.class);
         PendingIntent pIntent = PendingIntent.getActivity(context, 0, contextIntent,
             PendingIntent.FLAG_UPDATE_CURRENT);
-        notification.setLatestEventInfo(context, "{{ args.name }}", "{{ name| capitalize }}", pIntent);
+        notification.setLatestEventInfo(context, "{{ args.name }}", "{{ name|capitalize }}", pIntent);
         startForeground({{ service_id }}, notification);
     }
 
