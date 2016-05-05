@@ -3,9 +3,9 @@ import time
 
 from twisted.web import http, resource
 
+from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST
 from Tribler.community.allchannel.community import AllChannelCommunity
-
 
 VOTE_UNSUBSCRIBE = 0
 VOTE_SUBSCRIBE = 2
@@ -95,7 +95,7 @@ class ChannelsSubscribedEndpoint(BaseChannelsEndpoint):
         }
         """
         subscribed_channels_db = self.channel_db_handler.getMySubscribedChannels(include_dispersy=True)
-        results_json = [self.convert_db_channel_to_json(channel) for channel in subscribed_channels_db]
+        results_json = [convert_db_channel_to_json(channel) for channel in subscribed_channels_db]
         return json.dumps({"subscribed": results_json})
 
 
@@ -173,5 +173,5 @@ class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
 
     def render_GET(self, request):
         all_channels_db = self.channel_db_handler.getAllChannels()
-        results_json = [self.convert_db_channel_to_json(channel) for channel in all_channels_db]
+        results_json = [convert_db_channel_to_json(channel) for channel in all_channels_db]
         return json.dumps({"channels": results_json})
