@@ -2,7 +2,7 @@ from binascii import unhexlify
 import os
 from shutil import copy as copyfile
 from Tribler.Category.Category import Category
-from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
+from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, ChannelCastDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.leveldbstore import LevelDbStore
@@ -262,3 +262,24 @@ class TestTorrentDBHandler(AbstractDB):
     @blocking_call_on_reactor_thread
     def test_get_library_torrents(self):
         self.assertEqual(len(self.tdb.getLibraryTorrents(['infohash'])), 12)
+
+    @blocking_call_on_reactor_thread
+    def test_search_names_no_sort(self):
+        """
+        Test whether the right amount of torrents are returned when searching for torrents in db
+        """
+        columns = ['T.torrent_id', 'infohash', 'status', 'num_seeders']
+        self.tdb.channelcast_db = ChannelCastDBHandler(self.session)
+        self.assertEqual(len(self.tdb.searchNames(['content'], keys=columns, doSort=False)), 4848)
+        self.assertEqual(len(self.tdb.searchNames(['content', '1'], keys=columns, doSort=False)), 1)
+
+    @blocking_call_on_reactor_thread
+    def test_search_names_sort(self):
+        """
+        Test whether the right amount of sorted torrents are returned when searching for torrents in db
+        """
+        columns = ['T.torrent_id', 'infohash', 'status', 'num_seeders']
+        self.tdb.channelcast_db = ChannelCastDBHandler(self.session)
+        results = self.tdb.searchNames(['content'], keys=columns)
+        self.assertEqual(len(results), 4848)
+        self.assertEqual(results[0][3], 493785)
