@@ -12,3 +12,5 @@ rm -f build.py
 rm -f dist_info.json
 rm -f project.properties
 rm -f local.properties
+
+cd ../..
