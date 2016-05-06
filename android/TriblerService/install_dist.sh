@@ -17,3 +17,5 @@ rm -f project.properties
 rm -f local.properties
 
 cd ../..
+
+mv dist/TriblerService dist/TriblerApp
