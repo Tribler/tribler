@@ -254,6 +254,51 @@ def make_package(args):
     #     print 'Did you install ant on your system ?'
     #     sys.exit(-1)
 
+
+    # Prepare some variables for templating process
+
+#     default_icon = 'templates/kivy-icon.png'
+#     shutil.copy(args.icon or default_icon, 'res/drawable/icon.png')
+# 
+#     default_presplash = 'templates/kivy-presplash.jpg'
+#     shutil.copy(args.presplash or default_presplash,
+#                 'res/drawable/presplash.jpg')
+
+    # If extra Java jars were requested, copy them into the libs directory
+    if args.add_jar:
+        for jarname in args.add_jar:
+            if not exists(jarname):
+                print('Requested jar does not exist: {}'.format(jarname))
+                sys.exit(-1)
+            shutil.copy(jarname, 'libs')
+
+    versioned_name = (args.name.replace(' ', '').replace('\'', '') +
+                      '-' + args.version)
+
+    version_code = 0
+    if not args.numeric_version:
+        for i in args.version.split('.'):
+            version_code *= 100
+            version_code += int(i)
+        args.numeric_version = str(version_code)
+
+    if args.intent_filters:
+        with open(args.intent_filters) as fd:
+            args.intent_filters = fd.read()
+
+    if args.extra_source_dirs:
+        esd = []
+        for spec in args.extra_source_dirs:
+            if ':' in spec:
+                specdir, specincludes = spec.split(':')
+            else:
+                specdir = spec
+                specincludes = '**'
+            esd.append((realpath(specdir), specincludes))
+        args.extra_source_dirs = esd
+    else:
+        args.extra_source_dirs = []
+
     service = False
     service_main = join(realpath(args.private), 'service', 'main.py')
     if exists(service_main) or exists(service_main + 'o'):
@@ -289,6 +334,32 @@ def make_package(args):
         service_names=service_names,
         )
 
+#     render(
+#         'build.tmpl.xml',
+#         'build.xml',
+#         args=args,
+#         versioned_name=versioned_name)
+
+#     render(
+#         'strings.tmpl.xml',
+#         'res/values/strings.xml',
+#         args=args)
+
+#     render(
+#         'custom_rules.tmpl.xml',
+#         'custom_rules.xml',
+#         args=args)
+
+#     with open(join(dirname(__file__), 'res',
+#                    'values', 'strings.xml')) as fileh:
+#         lines = fileh.read()
+
+#     with open(join(dirname(__file__), 'res',
+#                    'values', 'strings.xml'), 'w') as fileh:
+#         fileh.write(re.sub(r'"private_version">[0-9\.]*<',
+#                            '"private_version">{}<'.format(
+#                                str(time.time())), lines))
+
 
 def parse_args(args=None):
     global BLACKLIST_PATTERNS, WHITELIST_PATTERNS
@@ -311,6 +382,34 @@ tools directory of the Android SDK.
     ap.add_argument('--name', dest='name',
                     help=('The human-readable name of the project.'),
                     required=True)
+    ap.add_argument('--numeric-version', dest='numeric_version',
+                    help=('The numeric version number of the project. If not '
+                          'given, this is automatically computed from the '
+                          'version.'))
+    ap.add_argument('--version', dest='version',
+                    help=('The version number of the project. This should '
+                          'consist of numbers and dots, and should have the '
+                          'same number of groups of numbers as previous '
+                          'versions.'),
+                    required=True)
+#     ap.add_argument('--orientation', dest='orientation', default='portrait',
+#                     help=('The orientation that the game will display in. '
+#                           'Usually one of "landscape", "portrait" or '
+#                           '"sensor"'))
+#     ap.add_argument('--icon', dest='icon',
+#                     help='A png file to use as the icon for the application.')
+    ap.add_argument('--permission', dest='permissions', action='append',
+                    help='The permissions to give this app.')
+    ap.add_argument('--meta-data', dest='meta_data', action='append',
+                    help='Custom key=value to add in application metadata')
+#     ap.add_argument('--presplash', dest='presplash',
+#                     help=('A jpeg file to use as a screen while the '
+#                           'application is loading.'))
+    ap.add_argument('--wakelock', dest='wakelock', action='store_true',
+                    help=('Indicate if the application needs the device '
+                          'to stay on'))
+    ap.add_argument('--window', dest='window', action='store_true',
+                    help='Indicate if the application will be windowed')
     ap.add_argument('--blacklist', dest='blacklist',
                     default=join(curdir, 'blacklist.txt'),
                     help=('Use a blacklist file to match unwanted file in '
@@ -319,14 +418,49 @@ tools directory of the Android SDK.
                     default=join(curdir, 'whitelist.txt'),
                     help=('Use a whitelist file to prevent blacklisting of '
                           'file in the final APK'))
+    ap.add_argument('--add-jar', dest='add_jar', action='append',
+                    help=('Add a Java .jar to the libs, so you can access its '
+                          'classes with pyjnius. You can specify this '
+                          'argument more than once to include multiple jars'))
+    ap.add_argument('--sdk', dest='sdk_version', default=-1,
+                    type=int, help=('Android SDK version to use. Default to '
+                                    'the value of minsdk'))
+    ap.add_argument('--minsdk', dest='min_sdk_version',
+                    default=default_android_api, type=int,
+                    help=('Minimum Android SDK version to use. Default to '
+                          'the value of ANDROIDAPI, or {} if not set'
+                          .format(default_android_api)))
+#     ap.add_argument('--intent-filters', dest='intent_filters',
+#                     help=('Add intent-filters xml rules to the '
+#                           'AndroidManifest.xml file. The argument is a '
+#                           'filename containing xml. The filename should be '
+#                           'located relative to the python-for-android '
+#                           'directory'))
+#     ap.add_argument('--with-billing', dest='billing_pubkey',
+#                     help='If set, the billing service will be added (not implemented)')
     ap.add_argument('--service', dest='services', action='append',
                     help='Declare a new service entrypoint: '
                          'NAME:PATH_TO_PY[:foreground]')
+    ap.add_argument('--add-source', dest='extra_source_dirs', action='append',
+                    help='Include additional source dirs in Java build')
 
     if args is None:
         args = sys.argv[1:]
     args = ap.parse_args(args)
     args.ignore_path = []
+
+#     if args.billing_pubkey:
+#         print('Billing not yet supported in sdl2 bootstrap!')
+#         exit(1)
+
+    if args.sdk_version == -1:
+        args.sdk_version = args.min_sdk_version
+
+    if args.permissions is None:
+        args.permissions = []
+
+    if args.meta_data is None:
+        args.meta_data = []
 
     if args.services is None:
         args.services = []

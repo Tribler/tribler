@@ -16,7 +16,6 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Vibrator;
 import android.view.View;
-import android.view.inputmethod.InputMethodManager;
 
 /**
  * Methods that are expected to be called via JNI, to access the device's
@@ -162,36 +161,6 @@ public class Hardware {
 		if (magneticFieldSensor == null)
 			return rv;
 		return (float[]) magneticFieldSensor.readSensor();
-	}
-
-	// /**
-	// * Show the soft keyboard.
-	// */
-	// public static void showKeyboard(int input_type) {
-	// //Log.i("python", "hardware.Java show_keyword  " input_type);
-
-	// InputMethodManager imm = (InputMethodManager)
-	// context.getSystemService(Context.INPUT_METHOD_SERVICE);
-
-	// SDLSurfaceView vw = (SDLSurfaceView) view;
-
-	// int inputType = input_type;
-
-	// if (vw.inputType != inputType){
-	// vw.inputType = inputType;
-	// imm.restartInput(view);
-	// }
-
-	// imm.showSoftInput(view, InputMethodManager.SHOW_FORCED);
-	// }
-
-	/**
-	 * Hide the soft keyboard.
-	 */
-	public static void hideKeyboard() {
-		InputMethodManager imm = (InputMethodManager) context
-				.getSystemService(Context.INPUT_METHOD_SERVICE);
-		imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
 	}
 
 	/**
