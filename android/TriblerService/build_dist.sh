@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo Build dist
+
 cd dist/TriblerService
 
 python build.py \

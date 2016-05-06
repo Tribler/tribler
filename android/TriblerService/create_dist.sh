@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo Create dist
+
 p4a create \
 --force-build \
 --require-perfect-match \

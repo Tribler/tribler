@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo Install dist
+
 cd dist/TriblerService
 
 rm -rf collated_objects
