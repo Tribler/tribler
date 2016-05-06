@@ -12,6 +12,7 @@ import shutil
 from zipfile import ZipFile
 import sys
 import re
+import shlex
 
 from fnmatch import fnmatch
 
@@ -272,19 +273,9 @@ def make_package(args):
                 sys.exit(-1)
             shutil.copy(jarname, 'libs')
 
-    versioned_name = (args.name.replace(' ', '').replace('\'', '') +
-                      '-' + args.version)
-
-    version_code = 0
-    if not args.numeric_version:
-        for i in args.version.split('.'):
-            version_code *= 100
-            version_code += int(i)
-        args.numeric_version = str(version_code)
-
-    if args.intent_filters:
-        with open(args.intent_filters) as fd:
-            args.intent_filters = fd.read()
+#     if args.intent_filters:
+#         with open(args.intent_filters) as fd:
+#             args.intent_filters = fd.read()
 
     if args.extra_source_dirs:
         esd = []
@@ -362,6 +353,7 @@ def make_package(args):
 
 
 def parse_args(args=None):
+
     global BLACKLIST_PATTERNS, WHITELIST_PATTERNS
     default_android_api = 12
     import argparse
@@ -379,27 +371,27 @@ tools directory of the Android SDK.
                     help=('The name of the java package the project will be'
                           ' packaged under.'),
                     required=True)
-    ap.add_argument('--name', dest='name',
-                    help=('The human-readable name of the project.'),
-                    required=True)
-    ap.add_argument('--numeric-version', dest='numeric_version',
-                    help=('The numeric version number of the project. If not '
-                          'given, this is automatically computed from the '
-                          'version.'))
-    ap.add_argument('--version', dest='version',
-                    help=('The version number of the project. This should '
-                          'consist of numbers and dots, and should have the '
-                          'same number of groups of numbers as previous '
-                          'versions.'),
-                    required=True)
+#     ap.add_argument('--name', dest='name',
+#                     help=('The human-readable name of the project.'),
+#                     required=True)
+#     ap.add_argument('--numeric-version', dest='numeric_version',
+#                     help=('The numeric version number of the project. If not '
+#                           'given, this is automatically computed from the '
+#                           'version.'))
+#     ap.add_argument('--version', dest='version',
+#                     help=('The version number of the project. This should '
+#                           'consist of numbers and dots, and should have the '
+#                           'same number of groups of numbers as previous '
+#                           'versions.'),
+#                     required=True)
 #     ap.add_argument('--orientation', dest='orientation', default='portrait',
 #                     help=('The orientation that the game will display in. '
 #                           'Usually one of "landscape", "portrait" or '
 #                           '"sensor"'))
 #     ap.add_argument('--icon', dest='icon',
 #                     help='A png file to use as the icon for the application.')
-    ap.add_argument('--permission', dest='permissions', action='append',
-                    help='The permissions to give this app.')
+#     ap.add_argument('--permission', dest='permissions', action='append',
+#                     help='The permissions to give this app.')
     ap.add_argument('--meta-data', dest='meta_data', action='append',
                     help='Custom key=value to add in application metadata')
 #     ap.add_argument('--presplash', dest='presplash',
@@ -444,6 +436,21 @@ tools directory of the Android SDK.
     ap.add_argument('--add-source', dest='extra_source_dirs', action='append',
                     help='Include additional source dirs in Java build')
 
+    def _read_configuration():
+        # search for a .p4a configuration file in the current directory
+        if not exists(".p4a"):
+            return
+        print("Reading .p4a configuration")
+        with open(".p4a") as fd:
+            lines = fd.readlines()
+        lines = [shlex.split(line)
+                 for line in lines if not line.startswith("#")]
+        for line in lines:
+            for arg in line:
+                sys.argv.append(arg)
+
+    _read_configuration()
+
     if args is None:
         args = sys.argv[1:]
     args = ap.parse_args(args)
@@ -456,8 +463,8 @@ tools directory of the Android SDK.
     if args.sdk_version == -1:
         args.sdk_version = args.min_sdk_version
 
-    if args.permissions is None:
-        args.permissions = []
+#     if args.permissions is None:
+#         args.permissions = []
 
     if args.meta_data is None:
         args.meta_data = []
