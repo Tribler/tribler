@@ -12,5 +12,9 @@ export PATH="~/.local/bin/:$PATH"
 cp -R bootstraps ~/.local/lib/python2.7/site-packages/pythonforandroid/
 cp -R recipes ~/.local/lib/python2.7/site-packages/pythonforandroid/
 
-echo Start build APK
-script -c "p4a --force-build --require-perfect-match --copy-libs --debug apk" # uses .p4a config file
+#create dist and build
+script -c "./clean_dist.sh"
+script -a -c "./create_dist.sh"
+script -a -c "./export_dist.sh"
+script -a -c "./build_dist.sh"
+script -a -c "./install_dist.sh"
