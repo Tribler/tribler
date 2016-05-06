@@ -8,6 +8,7 @@ rm -rf collated_objects
 rm -rf private
 rm -rf python-install
 rm -rf templates
+rm -rf build
 rm -f blacklist.txt
 rm -f whitelist.txt
 rm -f build.py
