@@ -35,6 +35,13 @@ model {
         // Configures source set directory.
         sources {
             main {
+                jni {
+                    source {
+                        exclude "**/winsock_pointers.c"
+                        exclude "**/iocpsupport.c"
+                        exclude "**/portmap.c"
+                    }
+                }
                 jniLibs {
                     dependencies {
                         library "gnustl_shared"
