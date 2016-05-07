@@ -365,6 +365,7 @@ class TickTestSuite(unittest.TestCase):
         timestamp = Timestamp(1462224447.117)
 
         # Test for instantiation
+        trade = Trade(message_id, sender_message_id, timestamp, False, False, False)
         proposed_trade = Trade.propose(message_id, sender_message_id, recipient_message_id, price, quantity, timestamp)
         quick_proposed_trade = Trade.quick_propose(message_id, sender_message_id, recipient_message_id, price, quantity,
                                                    timestamp)
@@ -388,6 +389,9 @@ class TickTestSuite(unittest.TestCase):
         self.assertTrue(quick_proposed_trade.is_proposed())
         self.assertFalse(accepted_trade.is_proposed())
         self.assertFalse(declined_trade.is_proposed())
+
+        # Test for to network
+        self.assertEquals(NotImplemented, trade.to_network())
 
     def test_proposed_trade(self):
         # Object creation
