@@ -224,6 +224,14 @@ class TickTestSuite(unittest.TestCase):
         self.assertTrue(timestamp <= timestamp)
         self.assertTrue(timestamp > timestamp3)
         self.assertTrue(timestamp3 >= timestamp3)
+        self.assertTrue(timestamp3 < 1405743832.438)
+        self.assertTrue(timestamp <= 1462224447.117)
+        self.assertTrue(timestamp > 1362224447.117)
+        self.assertTrue(timestamp3 >= 1305743832.438)
+        self.assertEqual(NotImplemented, timestamp.__lt__(10))
+        self.assertEqual(NotImplemented, timestamp.__le__(10))
+        self.assertEqual(NotImplemented, timestamp.__gt__(10))
+        self.assertEqual(NotImplemented, timestamp.__ge__(10))
 
         # Test for equality
         self.assertTrue(timestamp == timestamp2)
