@@ -179,7 +179,7 @@ class OrderBook(object):
         :return: The mid price
         :rtype: Price
         """
-        return Price.from_mil(int(self.ask_price) + int(self.bid_price) / 2)
+        return Price.from_mil((int(self.ask_price) + int(self.bid_price)) / 2)
 
     def bid_side_depth(self, price):
         """
