@@ -112,6 +112,8 @@ public class Home extends AppCompatActivity {
         mList.add(gson.fromJson("{name:'Fedora', commentsCount:999, torrentsCount:8}", TriblerChannel.class));
 
         mAdapter.notifyDataSetChanged();
+
+        ServiceTriblerd.start(this, "");
     }
 
 }
