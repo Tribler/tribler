@@ -148,12 +148,14 @@ class TickTestSuite(unittest.TestCase):
         self.assertFalse(quantity is (quantity + quantity3))
         quantity += quantity3
         self.assertEqual(Quantity(30), quantity)
+        self.assertEqual(NotImplemented, quantity.__add__(10))
 
         # Test for subtraction
         self.assertEqual(Quantity(99970), quantity2 - quantity)
         self.assertFalse(quantity is (quantity - quantity3))
         quantity -= quantity3
         self.assertEqual(Quantity(30), quantity)
+        self.assertEqual(NotImplemented, quantity.__sub__(10))
         with self.assertRaises(ValueError):
             quantity - quantity2
 
@@ -162,6 +164,10 @@ class TickTestSuite(unittest.TestCase):
         self.assertTrue(quantity <= quantity)
         self.assertTrue(quantity2 > quantity)
         self.assertTrue(quantity2 >= quantity2)
+        self.assertEqual(NotImplemented, quantity.__lt__(10))
+        self.assertEqual(NotImplemented, quantity.__le__(10))
+        self.assertEqual(NotImplemented, quantity.__gt__(10))
+        self.assertEqual(NotImplemented, quantity.__ge__(10))
 
         # Test for equality
         self.assertTrue(quantity2 == quantity4)
