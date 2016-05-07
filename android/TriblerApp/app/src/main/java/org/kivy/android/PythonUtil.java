@@ -7,7 +7,7 @@ import android.util.Log;
 public class PythonUtil {
 
 	protected static String[] getLibraries() {
-		return new String[] { "crypto", "python2.7", "python3.5m", "main" };
+		return new String[] { "python2.7", "python3.5m", "main" };
 	}
 
 	public static void loadLibraries(File filesDir) {
