@@ -1,20 +1,39 @@
-apply plugin: 'com.android.application'
+apply plugin: 'com.android.model.application'
 
-android {
-    compileSdkVersion 23
-    buildToolsVersion "23.0.3"
+model {
+    android {
+        compileSdkVersion 23
+        buildToolsVersion "23.0.3"
 
-    defaultConfig {
-        applicationId "org.tribler.android"
-        minSdkVersion 16
-        targetSdkVersion 23
-        versionCode 1
-        versionName "1.0"
-    }
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        defaultConfig {
+            applicationId "org.tribler.android"
+            minSdkVersion.apiLevel 16
+            targetSdkVersion.apiLevel 23
+            versionCode 1
+            versionName "1.0"
+
+            buildConfigFields {
+                create() {
+                    type "int"
+                    name "VALUE"
+                    value "1"
+                }
+            }
+        }
+        ndk {
+            moduleName = "main"
+            toolchain = "gcc"
+            toolchainVersion = "4.9"
+            abiFilters.add("armeabi-v7a")
+            CFlags.add("-I" + file("src/main/jni/include/python2.7"))
+            ldFlags.add("-L" + file("src/main/jniLibs/armeabi-v7a"))
+            ldLibs.addAll(["boost_date_time", "boost_python", "boost_system",
+                           "crypto", "ffi", "gnustl_shared", "leveldb", "log",
+                           "python2.7", "sodium", "sqlite3", "ssl", "torrent"])
+            debuggable = false
+            renderscriptNdkMode = false
+            stl = "gnustl_shared"
+            platformVersion = 16
         }
     }
 }
