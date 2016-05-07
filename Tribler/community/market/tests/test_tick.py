@@ -442,6 +442,9 @@ class TickTestSuite(unittest.TestCase):
 
         accepted_trade = Trade.accept(message_id, timestamp, proposed_trade)
 
+        # Test for properties
+        self.assertEquals(accepted_trade.sender_message_id, sender_message_id)
+
         # Test for to network
         self.assertEquals(
             ((), ('trader_id', 'message_number', 'trader_id', 'message_number', 'trader_id', 'message_number', 63400,
