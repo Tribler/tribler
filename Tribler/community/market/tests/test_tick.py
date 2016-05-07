@@ -95,12 +95,14 @@ class TickTestSuite(unittest.TestCase):
         self.assertFalse(price4 is (price4 + price))
         price3 += price5
         self.assertEqual(Price.from_float(6.34), price3)
+        self.assertEqual(NotImplemented, price.__add__(10))
 
         # Test for subtraction
         self.assertEqual(Price.from_float(11.96), price4 - price2)
         self.assertFalse(price is (price - price))
         price3 -= price5
         self.assertEqual(Price.from_float(6.34), price3)
+        self.assertEqual(NotImplemented, price.__sub__(10))
         with self.assertRaises(ValueError):
             price - price4
 
@@ -109,6 +111,10 @@ class TickTestSuite(unittest.TestCase):
         self.assertTrue(price4 <= price4)
         self.assertTrue(price4 > price2)
         self.assertTrue(price4 >= price4)
+        self.assertEqual(NotImplemented, price.__le__(10))
+        self.assertEqual(NotImplemented, price.__lt__(10))
+        self.assertEqual(NotImplemented, price.__ge__(10))
+        self.assertEqual(NotImplemented, price.__gt__(10))
 
         # Test for equality
         self.assertTrue(price == price3)
