@@ -326,7 +326,7 @@ def make_package(args):
         )
 
     render(
-        'app.build.templ.gradle',
+        'app.build.tmpl.gradle',
         'app.build.gradle',
         args=args
         )
