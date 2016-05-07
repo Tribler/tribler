@@ -19,6 +19,7 @@ class ServiceOnlyBootstrap(Bootstrap):
         with current_directory(self.dist_dir):
             with open('local.properties', 'w') as fileh:
                 fileh.write('sdk.dir={}'.format(self.ctx.sdk_dir))
+                fileh.write('ndk.dir={}'.format(self.ctx.ndk_dir))
 
         arch = self.ctx.archs[0]
         if len(self.ctx.archs) > 1:

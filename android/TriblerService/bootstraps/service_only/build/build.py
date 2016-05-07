@@ -325,6 +325,12 @@ def make_package(args):
         service_names=service_names,
         )
 
+    render(
+        'app.build.templ.gradle',
+        'app.build.gradle',
+        args=args
+        )
+
 #     render(
 #         'build.tmpl.xml',
 #         'build.xml',
