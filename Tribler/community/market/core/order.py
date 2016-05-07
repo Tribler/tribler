@@ -1,4 +1,3 @@
-from price_level import PriceLevel
 from tick import Tick
 
 
@@ -15,7 +14,6 @@ class Order(object):
         :type price_level: PriceLevel
         """
         assert isinstance(tick, Tick), type(tick)
-        assert isinstance(price_level, PriceLevel), type(price_level)
 
         self._tick = tick
         self._price_level = price_level
