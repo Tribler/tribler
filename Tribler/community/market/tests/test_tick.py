@@ -253,13 +253,17 @@ class TickTestSuite(unittest.TestCase):
         timestamp2 = Timestamp(0.0)
 
         tick = Tick(message_id, price, quantity, timeout, timestamp, True)
-        tick2 = Tick(message_id, price, quantity, timeout2, timestamp2, True)
+        tick2 = Tick(message_id, price, quantity, timeout2, timestamp2, False)
 
         # Test for properties
         self.assertEqual(price, tick.price)
         self.assertEqual(quantity, tick.quantity)
         self.assertEqual(timeout, tick.timeout)
         self.assertEqual(timestamp, tick.timestamp)
+
+        # Test 'is ask' function
+        self.assertTrue(tick.is_ask())
+        self.assertFalse(tick2.is_ask())
 
         # Test for is valid
         self.assertTrue(tick.is_valid())
