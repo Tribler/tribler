@@ -148,7 +148,6 @@ class TriblerLaunchMany(TaskManager):
                 self.videoplayer = VideoPlayer(self.session)
 
             # Dispersy
-            self.session.dispersy_member = None
             self.tftp_handler = None
             if self.session.get_dispersy():
                 from Tribler.dispersy.dispersy import Dispersy

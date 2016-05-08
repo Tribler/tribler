@@ -148,6 +148,7 @@ class Session(SessionConfigInterface):
         self.save_pstate_sessconfig()
 
         self.sqlite_db = None
+        self.dispersy_member = None
 
         self.autoload_discovery = autoload_discovery
 
