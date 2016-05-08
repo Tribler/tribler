@@ -9,7 +9,7 @@ The API has been built using [Twisted Web](http://twistedmatrix.com/trac/wiki/Tw
 Some requests require one or more parameters. These parameters are passed using the JSON format. An example of performing a request with parameters using the curl command line tool can be found below:
 
 ```
-curl -X PUT -d "rss_feed_url=http://fakerssprovider.com/feed.rss" http://localhost:8085/mychannel/rssfeed
+curl -X PUT http://localhost:8085/mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml
 ```
 
 ## Endpoints
@@ -28,7 +28,8 @@ curl -X PUT -d "rss_feed_url=http://fakerssprovider.com/feed.rss" http://localho
 | GET /mychannel/overview | Get the name, description and identifier of your channel |
 | GET /mychannel/torrents | Get a list of torrents in your channel |
 | GET /mychannel/rssfeeds | Get a list of rss feeds used by your channel |
-| PUT /mychannel/rssfeeds | Add a rss feed to your channel |
+| PUT /mychannel/rssfeeds/{feedurl} | Add a rss feed to your channel |
+| DELETE /mychannel/rssfeeds/{feedurl} | Remove a rss feed from your channel |
 
 ### Settings
 
@@ -132,17 +133,13 @@ Returns a list of rss feeds in your channel. Each rss feed items contains the UR
 }
 ```
 
-## `PUT /mychannel/rssfeed`
+## `PUT /mychannel/rssfeed/{feedurl}`
 
-Add a RSS feed to your channel.
+Add a RSS feed to your channel. Returns error 409 (Conflict) if the supplied RSS feed already exists. Note that the rss feed url should be URL-encoded.
 
-### Example request:
+## `DELETE /mychannel/rssfeed/{feedurl}`
 
-```json
-{
-    "rss_feed_url": "http://rssprovider.com/feed.xml"
-}
-```
+Delete a RSS feed from your channel. Returns error 404 if the RSS feed that is being removed does not exist. Note that the rss feed url should be URL-encoded.
 
 ## `GET /settings`
 
