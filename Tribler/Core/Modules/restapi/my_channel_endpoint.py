@@ -15,12 +15,19 @@ class MyChannelBaseEndpoint(resource.Resource):
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
 
     @staticmethod
-    def return_404(request):
+    def return_404(request, message="your channel has not been created"):
         """
         Returns a 404 response code if your channel has not been created.
         """
         request.setResponseCode(http.NOT_FOUND)
-        return "your channel has not been created"
+        return json.dumps({"error": message})
+
+    def get_my_channel_object(self):
+        """
+        Returns the Channel object associated with you channel that is used to manage rss feeds.
+        """
+        my_channel_id = self.channel_db_handler.getMyChannelId()
+        return self.session.lm.channel_manager.get_my_channel(my_channel_id)
 
 
 class MyChannelEndpoint(MyChannelBaseEndpoint):
@@ -97,13 +104,8 @@ class MyChannelRssFeedsEndpoint(MyChannelBaseEndpoint):
     This class is responsible for handling requests regarding rss feeds in your channel.
     """
 
-    def get_my_channel_object(self):
-        """
-        Returns the Channel object associated with you channel that is used to manage rss feeds.
-        """
-        my_channel_id = self.channel_db_handler.getMyChannelId()
-        channel_obj = self.session.lm.channel_manager.get_my_channel(my_channel_id)
-        return channel_obj
+    def getChild(self, path, request):
+        return MyChannelModifyRssFeedsEndpoint(self.session, path)
 
     def render_GET(self, request):
         """
@@ -126,24 +128,45 @@ class MyChannelRssFeedsEndpoint(MyChannelBaseEndpoint):
 
         return json.dumps({"rssfeeds": feeds_list})
 
+
+class MyChannelModifyRssFeedsEndpoint(MyChannelBaseEndpoint):
+    """
+    This class is responsible for methods that modify the list of RSS feed URLs (adding/removing feeds).
+    """
+
+    def __init__(self, session, feed_url):
+        MyChannelBaseEndpoint.__init__(self, session)
+        self.feed_url = feed_url
+
     def render_PUT(self, request):
         """
-        Add a RSS feed to your channel.
-
-        Example request:
-        {
-            "rss_feed_url": "http://rssprovider.com/feed.xml"
-        }
+        Add a RSS feed to your channel. Returns error 409 if the supplied RSS feed already exists.
+        Note that the rss feed url should be URL-encoded.
         """
+        request.setHeader('Content-Type', 'text/json')
         channel_obj = self.get_my_channel_object()
         if channel_obj is None:
             return MyChannelBaseEndpoint.return_404(request)
 
-        parameters = http.parse_qs(request.content.read(), 1)
-        if 'rss_feed_url' not in parameters or len(parameters['rss_feed_url']) == 0:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "rss_feed_url parameter missing"})
+        if self.feed_url in channel_obj.get_rss_feed_url_list():
+            request.setResponseCode(http.CONFLICT)
+            return json.dumps({"error": "this rss feed already exists"})
 
-        channel_obj.create_rss_feed(parameters['rss_feed_url'][0])
-        request.setHeader('Content-Type', 'text/json')
+        channel_obj.create_rss_feed(self.feed_url)
         return json.dumps({"added": True})
+
+    def render_DELETE(self, request):
+        """
+        Delete a RSS feed from your channel. Returns error 404 if the RSS feed that is being removed does not exist.
+        Note that the rss feed url should be URL-encoded.
+        """
+        request.setHeader('Content-Type', 'text/json')
+        channel_obj = self.get_my_channel_object()
+        if channel_obj is None:
+            return MyChannelBaseEndpoint.return_404(request)
+
+        if self.feed_url not in channel_obj.get_rss_feed_url_list():
+            return MyChannelBaseEndpoint.return_404(request, message="this url is not added to your RSS feeds")
+
+        channel_obj.remove_rss_feed(self.feed_url)
+        return json.dumps({"removed": True})
