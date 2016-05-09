@@ -1,4 +1,4 @@
-from tick import Tick
+from tick import Tick, Quantity
 
 
 class Order(object):
@@ -49,6 +49,17 @@ class Order(object):
         :rtype: Quantity
         """
         return self._tick.quantity
+
+    @quantity.setter
+    def quantity(self, quantity):
+        """
+        Set the quantity of the tick
+
+        :param quantity: The new quantity
+        :type quantity: Quantity
+        """
+        assert isinstance(quantity, Quantity), type(quantity)
+        self._tick.quantity = quantity
 
     def price_level(self):
         """

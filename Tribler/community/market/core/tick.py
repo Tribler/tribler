@@ -936,6 +936,17 @@ class Tick(Message):
         """
         return self._quantity
 
+    @quantity.setter
+    def quantity(self, quantity):
+        """
+        Set the quantity of the tick
+
+        :param quantity: The new quantity
+        :type quantity: Quantity
+        """
+        assert isinstance(quantity, Quantity), type(quantity)
+        self._quantity = quantity
+
     @property
     def timeout(self):
         """
