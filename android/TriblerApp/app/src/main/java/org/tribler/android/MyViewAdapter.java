@@ -95,7 +95,6 @@ public class MyViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         }
         // Create new torrent view
         else if (viewType == VIEW_TYPE_TORRENT) {
-
             View torrentView = LayoutInflater.from(parent.getContext())
                     .inflate(R.layout.list_item_torrent, parent, false);
             return new TorrentViewHolder(torrentView);

@@ -10,6 +10,7 @@ import android.view.MotionEvent;
 
 import com.google.gson.Gson;
 
+import java.io.File;
 import java.util.ArrayList;
 
 public class Home extends AppCompatActivity {
@@ -25,18 +26,18 @@ public class Home extends AppCompatActivity {
                     if (viewHolder instanceof MyViewAdapter.ChannelViewHolder) {
                         TriblerChannel channel = (TriblerChannel) mAdapter.getItem(position);
                         if (swipeDir == ItemTouchHelper.LEFT) {
-                            // un-subscribe / not interested
+                            //TODO: un-subscribe / not interested
                         } else if (swipeDir == ItemTouchHelper.RIGHT) {
-                            // subscribe / favorite
+                            //TODO: subscribe / favorite
                         }
                     }
                     // Swipe torrent
                     else if (viewHolder instanceof MyViewAdapter.TorrentViewHolder) {
                         TriblerTorrent torrent = (TriblerTorrent) mAdapter.getItem(position);
                         if (swipeDir == ItemTouchHelper.LEFT) {
-                            // not interested
+                            //TODO: not interested
                         } else if (swipeDir == ItemTouchHelper.RIGHT) {
-                            // watch later
+                            //TODO: watch later
                         }
                     }
                 }
@@ -63,13 +64,22 @@ public class Home extends AppCompatActivity {
     private RecyclerView.OnItemTouchListener mItemTouchListener = new RecyclerView.SimpleOnItemTouchListener() {
         @Override
         public void onTouchEvent(RecyclerView rv, MotionEvent e) {
-
+            //TODO: open channel / play video
         }
     };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        ServiceTriblerd.start(this, "");
+
+        initGui();
+        initBeam();
+        exampleData();
+    }
+
+    private void initGui() {
         setContentView(R.layout.activity_home);
 
         RecyclerView mRecyclerView = (RecyclerView) findViewById(R.id.content_list);
@@ -86,7 +96,16 @@ public class Home extends AppCompatActivity {
 
         ItemTouchHelper mItemTouchHelper = new ItemTouchHelper(mItemSwipeCallback);
         mItemTouchHelper.attachToRecyclerView(mRecyclerView);
+    }
 
+    private void initBeam() {
+        // Send app apk with Android Beam from this activity
+        File apk = new File(this.getPackageResourcePath());
+        MyBeamCallback beam = new MyBeamCallback(this);
+        beam.addFile(apk);
+    }
+
+    private void exampleData() {
         Gson gson = new Gson();
 
         mList.add(gson.fromJson("{title:'Mad Max: Fury Road', genre:'Action & Adventure', year:2015}", TriblerTorrent.class));
@@ -112,8 +131,6 @@ public class Home extends AppCompatActivity {
         mList.add(gson.fromJson("{name:'Fedora', commentsCount:999, torrentsCount:8}", TriblerChannel.class));
 
         mAdapter.notifyDataSetChanged();
-
-        ServiceTriblerd.start(this, "");
     }
 
 }
