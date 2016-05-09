@@ -5,16 +5,17 @@
     android:layout_height="wrap_content">
 
     <item
+        android:id="@+id/action_search"
+        android:icon="@android:drawable/ic_menu_search"
+        android:title="@string/search_hint"
+        app:actionViewClass="android.widget.SearchView"
+        app:showAsAction="collapseActionView|always" />
+
+    <item
         android:id="@+id/action_camera"
         android:icon="@android:drawable/ic_menu_camera"
         android:title="@string/camera_hint"
         app:actionViewClass="android.widget."
         app:showAsAction="collapseActionView|always" />
 
-    <item
-        android:id="@+id/action_search"
-        android:icon="@android:drawable/ic_menu_search"
-        android:title="@string/search_hint"
-        app:actionViewClass="android.widget.SearchView"
-        app:showAsAction="collapseActionView|always" />
 </menu>
