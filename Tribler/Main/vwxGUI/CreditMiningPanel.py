@@ -1,160 +1,167 @@
-# Written by Ardhi Putra Pratama Hartono
+"""
+This module contains credit mining panel and list in wx
 
+Written by Ardhi Putra Pratama H
+"""
 
-import os
-import sys
 import logging
-import wx
-from binascii import hexlify, unhexlify
-from wx.lib.agw.ultimatelistctrl import ULC_VIRTUAL, EVT_LIST_ITEM_CHECKED
+from binascii import hexlify
 
-from Tribler import LIBRARYNAME
+# pylint complaining if wx imported before binascii
+import wx
+
+from wx.lib.agw import ultimatelistctrl as ULC
+from wx.lib.agw.ultimatelistctrl import EVT_LIST_ITEM_CHECKED
+
 from Tribler.Core.exceptions import NotYetImplementedException
 from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Main.Dialogs.BoostingDialogs import RemoveBoostingSource, AddBoostingSource
-
-from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent, Torrent, Channel
-from Tribler.Main.Utility.GuiDBHandler import startWorker, cancelWorker, GUI_PRI_DISPERSY
-from Tribler.Main.vwxGUI import forceWxThread, TRIBLER_RED, SEPARATOR_GREY, GRADIENT_LGREY, GRADIENT_DGREY, format_time
+from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
+from Tribler.Main.Utility.GuiDBTuples import Channel
+from Tribler.Main.vwxGUI import SEPARATOR_GREY, GRADIENT_LGREY, GRADIENT_DGREY, format_time
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.list import CreditMiningList
-from Tribler.Main.vwxGUI.widgets import ActionButton, FancyPanel, TextCtrlAutoComplete, ProgressButton, LinkStaticText, \
-    _set_font
-from Tribler.Main.Dialogs.AddTorrent import AddTorrent
-from Tribler.Main.Dialogs.RemoveTorrent import RemoveTorrent
-from Tribler.Policies.BoostingManager import BoostingManager, RSSFeedSource, DirectorySource, ChannelSource, \
-    BoostingSource
+from Tribler.Main.vwxGUI.widgets import FancyPanel, LinkStaticText, _set_font
+from Tribler.Policies.BoostingSource import RSSFeedSource, DirectorySource, ChannelSource, BoostingSource
 
-try:
-    from agw import ultimatelistctrl as ULC
-except ImportError:
-    from wx.lib.agw import ultimatelistctrl as ULC
-
+RETURNED_CHANNELS = 30
 
 
 class CpanelCheckListCtrl(wx.ScrolledWindow, ULC.UltimateListCtrl):
-    def __init__(self, parent, id=wx.ID_ANY, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0, \
-                 agwStyle=0):
-        ULC.UltimateListCtrl.__init__(self, parent, id, pos, size, style, agwStyle)
-        self.boosting_manager = BoostingManager.get_instance()
+    """
+    The checklist of credit mining sources. Check to enable, uncheck to disable.
+    It is grouped by type : RSS, directory, and Channels
+    """
+    def __init__(self, parent, wxid=wx.ID_ANY, style=0, agwStyle=0):
+        ULC.UltimateListCtrl.__init__(self, parent, wxid, wx.DefaultPosition, wx.DefaultSize, style, agwStyle)
+
         self.guiutility = GUIUtility.getInstance()
-        self.utility = self.guiutility.utility
+        self.boosting_manager = self.guiutility.utility.session.lm.boosting_manager
+
         self.channel_list = {}
 
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self.InsertColumn(0,'col')
+        self.InsertColumn(0, 'col')
         self.SetColumnWidth(0, -3)
 
-        self.label_rss_idx = 0
-        self.InsertStringItem(self.label_rss_idx,"RSS")
-        it = self.GetItem(self.label_rss_idx)
-        it.Enable(False)
-        it.SetData("RSS")
-        self.SetItem(it)
+        # index holder for labels. 0 for RSS, 1 for directory, 2 for channel
+        self.labels = [0, 1, 2]
 
-        self.label_dir_idx = 1
-        self.InsertStringItem(self.label_dir_idx,"Directory")
-        it = self.GetItem(self.label_dir_idx)
-        it.Enable(False)
-        it.SetData("Directory")
-        self.SetItem(it)
+        self.InsertStringItem(self.labels[0], "RSS")
+        item = self.GetItem(self.labels[0])
+        item.Enable(False)
+        item.SetData("RSS")
+        self.SetItem(item)
 
-        self.label_channel_idx = 2
-        self.InsertStringItem(self.label_channel_idx,"Channel")
-        it = self.GetItem(self.label_channel_idx)
-        it.Enable(False)
-        it.SetData("Channel")
-        self.SetItem(it)
+        self.InsertStringItem(self.labels[1], "Directory")
+        item = self.GetItem(self.labels[1])
+        item.Enable(False)
+        item.SetData("Directory")
+        self.SetItem(item)
 
-        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.OnItemActivated)
+        self.InsertStringItem(self.labels[2], "Channel")
+        item = self.GetItem(self.labels[2])
+        item.Enable(False)
+        item.SetData("Channel")
+        self.SetItem(item)
+
         self.Bind(EVT_LIST_ITEM_CHECKED, self.OnGetItemCheck)
 
         self.getting_channels = False
-        self._mainWin.Bind(wx.EVT_SCROLLWIN, self.OnScroll)
+        self._mainWin.Bind(wx.EVT_SCROLLWIN, self.on_scroll)
 
-    def OnItemActivated(self, evt):
-        # double click
-        pass
-
-    def OnScroll(self, evt):
+    def on_scroll(self, evt):
+        """
+        scroller watcher. Might be useful for unlimited load channels
+        """
         vpos = self._mainWin.GetScrollPos(wx.VERTICAL)
         list_total = self.GetItemCount()
         list_pp = self.GetCountPerPage()
-        topitem_idx, bottomitem_idx = self._mainWin.GetVisibleLinesRange()
+        topitem_idx, _ = self._mainWin.GetVisibleLinesRange()
 
-        total_page = list_total/list_pp
+        total_page = list_total / list_pp
 
-        # print "vpos %d totlist %d topidx %d pp %d" "btmidx %s" %(vpos, total_page*list_pp, topitem_idx, list_pp, bottomitem_idx)
-        if (vpos >= list_total and total_page*list_pp < vpos and vpos > topitem_idx+list_pp)\
-                or vpos == 0:
-            #not so accurate but this will do
+        # print "vpos %d totlist %d topidx %d pp %d" "btmidx %s"
+        #  %(vpos, total_page*list_pp, topitem_idx, list_pp, bottomitem_idx)
+        if (vpos >= list_total and total_page * list_pp < vpos and
+                vpos > topitem_idx + list_pp) or vpos == 0:
+            # not so accurate but this will do
 
             if self.getting_channels:
                 evt.Skip()
                 return
 
-            self.LoadMore()
+            self.load_more()
 
         evt.Skip()
 
-    def LoadMore(self):
+    def load_more(self):
+        """
+        load more channels to the list
+        """
         self._logger.info("getting new channels..")
         self.getting_channels = True
 
         def do_query_channels():
-            RETURNED_CHANNELS = 30
-
+            """
+            querying channels in the background. Only return as much as RETURNED_CHANNELS
+            """
             _, channels = self.guiutility.channelsearch_manager.getPopularChannels(20)
             dict_channels = {channel.dispersy_cid: channel for channel in channels}
             new_channels_ids = list(set(dict_channels.keys()) - set(self.channel_list.keys()))
 
-            return_list = [dict_channels.get(new_channels_ids[i]) for i in range(0,
-                len(new_channels_ids) if len(new_channels_ids) < RETURNED_CHANNELS else RETURNED_CHANNELS)]
+            return_list = [dict_channels.get(new_channels_ids[i])
+                           for i in xrange(0, min(len(new_channels_ids), RETURNED_CHANNELS))]
 
             if return_list:
-                return [l for l in sorted(return_list, key=lambda x: x.nr_favorites, reverse=True)]# if "tribler" in l.name.lower() or "linux" in l.name.lower()]
-            else:
-                None
+                return [l for l in sorted(return_list, key=lambda x: x.nr_favorites,
+                                          reverse=True)]
 
-        def do_update_gui(delayedResult):
-            channels = delayedResult.get()
+        def do_update_gui(delayed_result):
+            """
+            add fetched channels to GUI
+            """
+            channels = delayed_result.get()
 
             if channels:
-                for s in channels:
+                for channel in channels:
                     # s is channel object
-                    self.channel_list[s.dispersy_cid] = s
-                    self.CreateSourceItem(s)
+                    self.channel_list[channel.dispersy_cid] = channel
+                    self.create_source_item(channel)
 
             self.getting_channels = False
-            self.RefreshData()
+            self.refresh_sourcelist_data()
             self.Layout()
 
         startWorker(do_update_gui, do_query_channels, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
-    def CreateSourceItem(self, source):
+    def create_source_item(self, source):
+        """
+        put the source object in the sourcelist available for enable/disable
+        """
         item_count = self.GetItemCount()
 
         if isinstance(source, RSSFeedSource):
 
-            self.InsertStringItem(self.label_dir_idx, source.getSource(), 1)
-            item = self.GetItem(self.label_dir_idx)
+            # update label for directory as we pushed it down
+            self.InsertStringItem(self.labels[1], source.get_source_text(), 1)
+            item = self.GetItem(self.labels[1])
             item.Check(source.enabled)
             item.SetData(source)
             self.SetItem(item)
-            self.label_dir_idx += 1
-            self.label_channel_idx += 1
+            self.labels[1] += 1
+            self.labels[2] += 1
         elif isinstance(source, DirectorySource):
-            self.InsertStringItem(self.label_channel_idx, source.getSource(), 1)
-            item = self.GetItem(self.label_channel_idx)
+            self.InsertStringItem(self.labels[2], source.get_source_text(), 1)
+            item = self.GetItem(self.labels[2])
             item.Check(source.enabled)
             item.SetData(source)
             self.SetItem(item)
-            self.label_channel_idx += 1
+            self.labels[2] += 1
         elif isinstance(source, ChannelSource):
-            self.InsertStringItem(self.label_channel_idx+1, source.getSource() or "Loading..", 1)
-            item = self.GetItem(self.label_channel_idx+1)
+            self.InsertStringItem(self.labels[2] + 1, source.get_source_text() or "Loading..", 1)
+            item = self.GetItem(self.labels[2] + 1)
             item.Check(source.enabled)
             item.SetData(source)
             self.SetItem(item)
@@ -172,9 +179,15 @@ class CpanelCheckListCtrl(wx.ScrolledWindow, ULC.UltimateListCtrl):
         data = item.GetData()
         flag = item.IsChecked()
 
+        # if it was channel that not stored in cm variables
+        if not isinstance(data, BoostingSource) and flag:
+            source = data.dispersy_cid
+            self.boosting_manager.add_source(source)
+            self.boosting_manager.set_archive(source, False)
+
         self.boosting_manager.set_enable_mining(
             data.dispersy_cid if not isinstance(data, BoostingSource)
-                else data.source, flag, True)
+            else data.source, flag, True)
 
         if isinstance(data, Channel):
             # channel -> channel source
@@ -183,33 +196,33 @@ class CpanelCheckListCtrl(wx.ScrolledWindow, ULC.UltimateListCtrl):
             item.SetData(channel_src)
             self.SetItem(item)
 
+    def refresh_sourcelist_data(self, rerun=True):
+        """
+        delete all the source in the list and adding a new one
+        """
 
-    def RefreshData(self, rerun=True):
-        for i in range(0, self.GetItemCount()):
+        # don't refresh if we are quitting
+        if GUIUtility.getInstance().utility.abcquitting:
+            return
+
+        for i in xrange(0, self.GetItemCount()):
             item = self.GetItem(i)
             data = item.GetData()
 
-            if isinstance(data, BoostingSource):
-                source = data.getSource()
-                if isinstance(data, RSSFeedSource):
-                    sobj = self.boosting_manager.boosting_sources[source]
-                elif isinstance(data, DirectorySource):
-                    sobj = self.boosting_manager.boosting_sources[source]
-                elif isinstance(data, ChannelSource):
-                    source = data.source
-                    sobj = self.boosting_manager.boosting_sources[source]
-                    if item.GetText() == "Loading..":
-                        item.SetText(data.getSource() or "Loading..")
-                        self.SetItem(item)
+            if isinstance(data, ChannelSource):
+                if item.GetText() == "Loading..":
+                    item.SetText(data.get_source_text() or "Loading..")
+                    self.SetItem(item)
 
-            elif isinstance(data, Channel):
-                pass
+        if rerun and not self.guiutility.utility.session.lm.threadpool.is_pending_task_active(
+                str(self) + "_refresh_data_ULC"):
+            self.guiutility.utility.session.lm.threadpool.add_task(self.refresh_sourcelist_data, 30,
+                                                                   task_name=str(self) + "_refresh_data_ULC")
 
-        if rerun:
-            self.utility.session.lm.threadpool.add_task(self.RefreshData, 30,
-                                            task_name=str(self)+"_refresh_data_ULC")
-
-    def FixChannelPos(self, source):
+    def fix_channel_position(self, source):
+        """
+        This function called when new checked channel want to pushed above
+        """
         chn_source = self.boosting_manager.boosting_sources[source]
 
         chn = self.channel_list[source]
@@ -217,8 +230,8 @@ class CpanelCheckListCtrl(wx.ScrolledWindow, ULC.UltimateListCtrl):
         idx = self.FindItemData(-1, chn)
         self.DeleteItem(idx)
 
-        self.InsertStringItem(self.label_channel_idx+1,chn_source.getSource() or "Loading..", 1)
-        item = self.GetItem(self.label_channel_idx+1)
+        self.InsertStringItem(self.labels[2] + 1, chn_source.get_source_text() or "Loading..", 1)
+        item = self.GetItem(self.labels[2] + 1)
         item.Check(chn_source.enabled)
         item.SetData(chn_source)
         self.SetItem(item)
@@ -227,6 +240,9 @@ class CpanelCheckListCtrl(wx.ScrolledWindow, ULC.UltimateListCtrl):
 
 
 class CreditMiningPanel(FancyPanel):
+    """
+    A class representing panel control for credit mining
+    """
     def __init__(self, parent):
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -236,18 +252,21 @@ class CreditMiningPanel(FancyPanel):
         self.utility = self.guiutility.utility
         self.installdir = self.utility.getPath()
 
-        self.boosting_manager = BoostingManager.get_instance(self.utility.session)
-
-        self.tdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
-
         FancyPanel.__init__(self, parent, border=wx.BOTTOM)
 
         self.SetBorderColour(SEPARATOR_GREY)
         self.SetBackgroundColour(GRADIENT_LGREY, GRADIENT_DGREY)
 
+        if not self.utility.session.get_creditmining_enable():
+            wx.StaticText(self, -1, 'Credit mining inactive')
+            return
+
+        self.tdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
+        self.boosting_manager = self.utility.session.lm.boosting_manager
+
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.header = self.CreateHeader(self)
+        self.header = self.create_header_info(self)
         if self.header:
             self.main_sizer.Add(self.header, 0, wx.EXPAND)
 
@@ -255,22 +274,23 @@ class CreditMiningPanel(FancyPanel):
         self.main_splitter.SetMinimumPaneSize(300)
 
         self.sourcelist = CpanelCheckListCtrl(self.main_splitter, -1,
-                                agwStyle=wx.LC_REPORT | wx.LC_NO_HEADER | wx.LC_VRULES
-                                        | wx.LC_HRULES | wx.LC_SINGLE_SEL | ULC.ULC_HAS_VARIABLE_ROW_HEIGHT)
+                                              agwStyle=wx.LC_REPORT | wx.LC_NO_HEADER | wx.LC_VRULES | wx.LC_HRULES
+                                              | wx.LC_SINGLE_SEL | ULC.ULC_HAS_VARIABLE_ROW_HEIGHT)
 
-        self.AddComponents(self.main_splitter)
+        self.add_components(self.main_splitter)
         self.SetSizer(self.main_sizer)
 
+        self.guiutility.utility.session.lm.threadpool.add_task(self._post_init, 2,
+                                                               task_name=str(self) + "_post_init")
 
-        self.guiutility.utility.session.lm.threadpool.add_task(self._PostInit, 2,
-                                            task_name=str(self)+"_post_init")
-
-
-    def AddComponents(self,parent):
-        self.infoPanel = FancyPanel(parent, style=wx.BORDER_SUNKEN)
+    def add_components(self, parent):
+        """
+        adding GUI components to the control panel
+        """
+        self.info_panel = FancyPanel(parent, style=wx.BORDER_SUNKEN)
 
         if_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.top_info_p = FancyPanel(self.infoPanel, border=wx.ALL, style=wx.BORDER_SUNKEN, name="top_info_p")
+        self.top_info_p = FancyPanel(self.info_panel, border=wx.ALL, style=wx.BORDER_SUNKEN, name="top_info_p")
         tinfo_sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.tnfo_subpanel_top = FancyPanel(self.top_info_p, border=wx.ALL)
@@ -300,14 +320,14 @@ class CreditMiningPanel(FancyPanel):
         self.debug_info = wx.StaticText(self.tnfo_subpanel_top, -1, 'Debug Info : -')
         stat_sizer.Add(self.debug_info)
 
-        tinfo_spanel_sizer.Add(stat_sizer,-1)
+        tinfo_spanel_sizer.Add(stat_sizer, -1)
         tinfo_spanel_sizer.Add(wx.StaticText(self.tnfo_subpanel_top, -1, 'Credit Mining Status: '))
         self.status_cm = wx.StaticText(self.tnfo_subpanel_top, -1, '-')
         tinfo_spanel_sizer.Add(self.status_cm)
         self.tnfo_subpanel_top.SetSizer(tinfo_spanel_sizer)
 
         tinfo_sizer.Add(self.tnfo_subpanel_top, 1, wx.EXPAND)
-        tinfo_sizer.Add(wx.StaticLine(self.top_info_p), 0, wx.ALL|wx.EXPAND, 5)
+        tinfo_sizer.Add(wx.StaticLine(self.top_info_p), 0, wx.ALL | wx.EXPAND, 5)
 
         self.up_rate = wx.StaticText(self.top_info_p, -1, 'Upload rate : -', name="up_rate")
         tinfo_sizer.Add(self.up_rate)
@@ -320,32 +340,39 @@ class CreditMiningPanel(FancyPanel):
 
         if_sizer.Add(self.top_info_p, 1, wx.EXPAND)
 
-        self.cmlist = CreditMiningList(self.infoPanel)
+        self.cmlist = CreditMiningList(self.info_panel)
         self.cmlist.do_or_schedule_refresh(True)
         self.cmlist.library_manager.add_download_state_callback(self.cmlist.RefreshItems)
 
         if_sizer.Add(self.cmlist, 1, wx.EXPAND)
-        self.infoPanel.SetSizer(if_sizer)
+        self.info_panel.SetSizer(if_sizer)
 
         self.sourcelist.Hide()
         self.loading_holder = wx.StaticText(self.main_splitter, -1, 'Loading..')
 
-        parent.SplitVertically(self.loading_holder, self.infoPanel,1)
+        parent.SplitVertically(self.loading_holder, self.info_panel, 1)
         parent.SetSashGravity(0.3)
         self.main_sizer.Add(parent, 1, wx.EXPAND)
 
-    def OnItemSelected(self, event):
+    def on_sourceitem_selected(self, event):
+        """
+        This function is called when a user select 'source' in the list.
+        The credit mining list will only show this particular source
+        """
         idx = event.m_itemIndex
         data = self.sourcelist.GetItem(idx).GetData()
 
         if isinstance(data, ChannelSource):
             self.cmlist.GotFilter(data.source)
         else:
-            self.cmlist.GotFilter(data.getSource() if isinstance(data, BoostingSource) else '')
+            self.cmlist.GotFilter(data.get_source_text() if isinstance(data, BoostingSource) else '')
 
-        self.ShowInfo(data)
+        self.show_source_info(data)
 
-    def ShowInfo(self, data):
+    def show_source_info(self, data):
+        """
+        shows information about selected source (not necessarily activated/enabled) in the panel
+        """
 
         if isinstance(data, ChannelSource):
             self.last_updt.Show()
@@ -354,15 +381,14 @@ class CreditMiningPanel(FancyPanel):
             self.rss_desc.Hide()
 
             self.source_label.SetLabel("Source : Channel (stored)")
-            self.source_name.SetLabel("Name : "+data.getSource())
-            self.torrent_num.SetLabel("# Torrents : "+str(data.channel.nr_torrents))
-            self.last_updt.SetLabel("Latest update : "+format_time(data.channel.modified))
-            self.votes_num.SetLabel('Favorite votes : '+str(data.channel.nr_favorites))
+            self.source_name.SetLabel("Name : " + data.get_source_text())
+            self.torrent_num.SetLabel("# Torrents : " + str(data.channel.nr_torrents))
+            self.last_updt.SetLabel("Latest update : " + format_time(data.channel.modified))
+            self.votes_num.SetLabel('Favorite votes : ' + str(data.channel.nr_favorites))
             self.status_cm.SetLabel("Active" if data.enabled else "Inactive")
 
-
             debug_str = hexlify(data.source)
-            self.debug_info.SetLabel("Debug Info : \n"+debug_str)
+            self.debug_info.SetLabel("Debug Info : \n" + debug_str)
 
         elif isinstance(data, Channel):
             self.last_updt.Show()
@@ -371,14 +397,14 @@ class CreditMiningPanel(FancyPanel):
             self.rss_desc.Hide()
 
             self.source_label.SetLabel("Source : Channel")
-            self.source_name.SetLabel("Name : "+data.name)
-            self.torrent_num.SetLabel("# Torrents : "+str(data.nr_torrents))
-            self.last_updt.SetLabel("Latest update : "+format_time(data.modified))
-            self.votes_num.SetLabel('Favorite votes : '+str(data.nr_favorites))
+            self.source_name.SetLabel("Name : " + data.name)
+            self.torrent_num.SetLabel("# Torrents : " + str(data.nr_torrents))
+            self.last_updt.SetLabel("Latest update : " + format_time(data.modified))
+            self.votes_num.SetLabel('Favorite votes : ' + str(data.nr_favorites))
             self.status_cm.SetLabel("Inactive")
 
             debug_str = hexlify(data.dispersy_cid)
-            self.debug_info.SetLabel("Debug Info : \n"+debug_str)
+            self.debug_info.SetLabel("Debug Info : \n" + debug_str)
 
         elif isinstance(data, RSSFeedSource):
             self.last_updt.Hide()
@@ -387,14 +413,14 @@ class CreditMiningPanel(FancyPanel):
             self.rss_desc.Show()
 
             self.source_label.SetLabel("Source : RSS Web Feed")
-            self.source_name.SetLabel("Source URL : "+data.getSource())
-            self.torrent_num.SetLabel("# Torrents : "+str(data.total_torrents))
-            self.rss_title.SetLabel("Title : "+data.title)
-            self.rss_desc.SetLabel("Description : "+data.description)
+            self.source_name.SetLabel("Source URL : " + data.get_source_text())
+            self.torrent_num.SetLabel("# Torrents : %s" % len(data.torrents))
+            self.rss_title.SetLabel("Title : " + data.title)
+            self.rss_desc.SetLabel("Description : " + data.description)
             self.status_cm.SetLabel("Active" if data.enabled else "Inactive")
 
             debug_str = "-"
-            self.debug_info.SetLabel("Debug Info : \n"+debug_str)
+            self.debug_info.SetLabel("Debug Info : \n" + debug_str)
 
         elif isinstance(data, DirectorySource):
             self.last_updt.Hide()
@@ -403,65 +429,73 @@ class CreditMiningPanel(FancyPanel):
             self.rss_desc.Hide()
 
             self.source_label.SetLabel("Source : Directory")
-            self.source_name.SetLabel("Name : "+data.getSource())
-            self.torrent_num.SetLabel("# Torrents : "+str(12345))
+            self.source_name.SetLabel("Name : " + data.get_source_text())
+            self.torrent_num.SetLabel("# Torrents : %d" % len(data.torrents))
             self.status_cm.SetLabel("Active" if data.enabled else "Inactive")
 
             debug_str = "-"
-            self.debug_info.SetLabel("Debug Info : \n"+debug_str)
+            self.debug_info.SetLabel("Debug Info : \n" + debug_str)
 
         else:
             self._logger.debug("Not implemented yet")
-            pass
 
         # show/hide items
         self.tnfo_subpanel_top.Layout()
 
-
-    def CreateHeader(self, parent):
+    def create_header_info(self, parent):
+        """
+        function to create wx header/info panel above the credit mining list
+        """
         if self.guiutility.frame.top_bg:
             header = FancyPanel(parent, border=wx.BOTTOM, name="cm_header")
             text = wx.StaticText(header, -1, 'Investment overview')
 
-            def OnAddSource(event):
+            def on_add_source(_):
+                """
+                callback when a user wants to add new source
+                """
                 dlg = AddBoostingSource(None)
                 if dlg.ShowModal() == wx.ID_OK:
-                    source, archive = dlg.GetValue()
+                    source, archive = dlg.get_value()
                     if source:
                         self.boosting_manager.add_source(source)
                         self.boosting_manager.set_archive(source, archive)
 
-                        self.sourcelist.CreateSourceItem(self.boosting_manager.boosting_sources[source])
+                        self.sourcelist.create_source_item(self.boosting_manager.boosting_sources[source])
 
                 dlg.Destroy()
 
-            def OnRemoveSource(event):
+            def on_remove_source(_):
+                """
+                callback when a user wants to remove source
+                """
                 dlg = RemoveBoostingSource(None)
-                if dlg.ShowModal() == wx.ID_OK and dlg.GetValue():
-                    self.boosting_manager.remove_source(dlg.GetValue())
-                    self.sourcelist.RefreshData()
+                if dlg.ShowModal() == wx.ID_OK and dlg.get_value():
+                    self.boosting_manager.remove_source(dlg.get_value())
+                    self.sourcelist.refresh_sourcelist_data()
                 dlg.Destroy()
 
             addsource = LinkStaticText(header, 'Add', icon=None)
-            addsource.Bind(wx.EVT_LEFT_UP, OnAddSource)
+            addsource.Bind(wx.EVT_LEFT_UP, on_add_source)
             removesource = LinkStaticText(header, 'Remove', icon=None)
-            removesource.Bind(wx.EVT_LEFT_UP, OnRemoveSource)
-            self.b_up = wx.StaticText(header, -1, 'Total bytes up: -',name="b_up")
-            self.b_down = wx.StaticText(header, -1, 'Total bytes down: -',name="b_down")
-            self.s_up = wx.StaticText(header, -1, 'Total speed up: -',name="s_up")
-            self.s_down = wx.StaticText(header, -1, 'Total speed down: -',name="s_down")
-            self.iv_sum = wx.StaticText(header, -1, 'Investment summary: -',name="iv_sum")
+            removesource.Bind(wx.EVT_LEFT_UP, on_remove_source)
+
+            self.b_up = wx.StaticText(header, -1, 'Total bytes up: -', name="b_up")
+            self.b_down = wx.StaticText(header, -1, 'Total bytes down: -', name="b_down")
+            self.s_up = wx.StaticText(header, -1, 'Total speed up: -', name="s_up")
+            self.s_down = wx.StaticText(header, -1, 'Total speed down: -', name="s_down")
+            self.iv_sum = wx.StaticText(header, -1, 'Investment summary: -', name="iv_sum")
             _set_font(text, size_increment=2, fontweight=wx.FONTWEIGHT_BOLD)
             sizer = wx.BoxSizer(wx.VERTICAL)
             sizer.AddStretchSpacer()
-            titleSizer = wx.BoxSizer(wx.HORIZONTAL)
-            titleSizer.Add(text, 0, wx.ALIGN_BOTTOM | wx.RIGHT, 5)
-            titleSizer.Add(wx.StaticText(header, -1, '('), 0, wx.ALIGN_BOTTOM)
-            titleSizer.Add(addsource, 0, wx.ALIGN_BOTTOM)
-            titleSizer.Add(wx.StaticText(header, -1, '/'), 0, wx.ALIGN_BOTTOM)
-            titleSizer.Add(removesource, 0, wx.ALIGN_BOTTOM)
-            titleSizer.Add(wx.StaticText(header, -1, ' boosting source)'), 0, wx.ALIGN_BOTTOM)
-            sizer.Add(titleSizer, 0, wx.LEFT | wx.BOTTOM, 5)
+            titlesizer = wx.BoxSizer(wx.HORIZONTAL)
+            titlesizer.Add(text, 0, wx.ALIGN_BOTTOM | wx.RIGHT, 5)
+            titlesizer.Add(wx.StaticText(header, -1, '('), 0, wx.ALIGN_BOTTOM)
+            titlesizer.Add(addsource, 0, wx.ALIGN_BOTTOM)
+            titlesizer.Add(wx.StaticText(header, -1, '/'), 0, wx.ALIGN_BOTTOM)
+            titlesizer.Add(removesource, 0, wx.ALIGN_BOTTOM)
+            titlesizer.Add(wx.StaticText(header, -1, ' boosting source)'), 0, wx.ALIGN_BOTTOM)
+            sizer.Add(titlesizer, 0, wx.LEFT | wx.BOTTOM, 5)
             sizer.Add(self.b_up, 0, wx.LEFT, 5)
             sizer.Add(self.b_down, 0, wx.LEFT, 5)
             sizer.Add(self.s_up, 0, wx.LEFT, 5)
@@ -475,22 +509,27 @@ class CreditMiningPanel(FancyPanel):
 
         return header
 
-    def _PostInit(self):
+    def _post_init(self):
+        if GUIUtility.getInstance().utility.abcquitting:
+            return
 
-        for i in self.boosting_manager.boosting_sources:
-            if not self.boosting_manager.boosting_sources[i].ready:
-                self.guiutility.utility.session.lm.threadpool.add_task(self._PostInit, 2, task_name=str(self)+"_post_init")
-                return
+        some_ready = any([i.ready for i in self.boosting_manager.boosting_sources.values()])
 
-        for source, source_obj in self.boosting_manager.boosting_sources.items():
-            self.sourcelist.CreateSourceItem(source_obj)
+        # if none are ready, keep waiting or If no source available
+        if not some_ready and len(self.boosting_manager.boosting_sources.values()):
+            self.guiutility.utility.session.lm.threadpool.add_task(self._post_init, 2,
+                                                                   task_name=str(self) + "_post_init")
+            return
+
+        for _, source_obj in self.boosting_manager.boosting_sources.items():
+            self.sourcelist.create_source_item(source_obj)
 
         self.sourcelist.Show()
         self.main_splitter.ReplaceWindow(self.loading_holder, self.sourcelist)
         self.loading_holder.Close()
 
-        self.Bind(ULC.EVT_LIST_ITEM_SELECTED, self.OnItemSelected, self.sourcelist)
+        self.Bind(ULC.EVT_LIST_ITEM_SELECTED, self.on_sourceitem_selected, self.sourcelist)
 
-
-        self.guiutility.utility.session.lm.threadpool.add_task(self.sourcelist.LoadMore, 2, task_name=str(self)+"load_more")
+        self.guiutility.utility.session.lm.threadpool.add_task(self.sourcelist.load_more, 2,
+                                                               task_name=str(self) + "load_more")
         self.Layout()

@@ -296,9 +296,6 @@ class GUIUtility(object):
             self.frame.selectedchannellist.Focus()
         elif page == 'my_files':
             self.frame.librarylist.Focus()
-        elif page == 'creditmining':
-            pass
-            # self.frame.creditmininglist.Focus()
 
     @forceWxThread
     def on_show_startup_splash(self, subject, changetype, objectID, *args):

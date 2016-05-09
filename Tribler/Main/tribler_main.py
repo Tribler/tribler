@@ -9,7 +9,6 @@
 # see LICENSE.txt for license information
 #
 from Tribler.Core.Modules.process_checker import ProcessChecker
-from Tribler.Policies.BoostingManager import BoostingManager
 from Tribler.Main.Dialogs.NewVersionDialog import NewVersionDialog
 
 try:
@@ -28,7 +27,6 @@ import sys
 import tempfile
 import traceback
 import urllib2
-import shutil
 from collections import defaultdict
 from random import randint
 from traceback import print_exc
@@ -399,8 +397,6 @@ class ABCApp(object):
         # TODO(emilon): Use the LogObserver I already implemented
         # self.dispersy.callback.attach_exception_handler(self.frame.exceptionHandler)
 
-        startWorker(None, self.loadSessionCheckpoint, delay=5.0, workerType="ThreadPool")
-
     @forceWxThread
     def sesscb_ntfy_myprefupdates(self, subject, changeType, objectID, *args):
         if self._frame_and_ready():
@@ -686,8 +682,9 @@ class ABCApp(object):
                 manager = self.frame.librarylist.GetManager()
                 manager.torrentsUpdated(infohashes)
 
-                manager = self.frame.creditminingpanel.cmlist.GetManager()
-                manager.torrentsUpdated(infohashes)
+                if self.utility.session.get_creditmining_enable():
+                    manager = self.frame.creditminingpanel.cmlist.GetManager()
+                    manager.torrents_updated(infohashes)
 
             from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent
 
@@ -710,7 +707,7 @@ class ABCApp(object):
         if self._frame_and_ready():
             infohash = objectID
             torrent = self.guiUtility.torrentsearch_manager.getTorrentByInfohash(infohash)
-            # Check if we got the actual torrent as the bandwith investor
+            # Check if we got the actual torrent as the bandwidth investor
             # downloads aren't going to be there.
             if torrent:
                 self.guiUtility.library_manager.addDownloadState(torrent)
@@ -822,15 +819,6 @@ class ABCApp(object):
         if self.webUI:
             self.webUI.stop()
             self.webUI.delInstance()
-
-        if self.boosting_manager:
-
-            #remove credit mining data
-            #TODO(ardhi) : not persistent mode only
-            import shutil; shutil.rmtree(self.boosting_manager.credit_mining_path, ignore_errors=True)
-
-            self.boosting_manager.shutdown()
-            self.boosting_manager.del_instance()
 
         if self.frame:
             self.frame.Destroy()

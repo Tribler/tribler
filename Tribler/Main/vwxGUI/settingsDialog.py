@@ -65,7 +65,7 @@ def add_label(parent, sizer, label):
 class SettingsDialog(wx.Dialog):
 
     def __init__(self):
-        super(SettingsDialog, self).__init__(None, size=(600, 600),
+        super(SettingsDialog, self).__init__(None, size=(600, 700),
                                              title="Settings", name="settingsDialog", style=wx.DEFAULT_DIALOG_STYLE)
         self.SetExtraStyle(self.GetExtraStyle() | wx.WS_EX_VALIDATE_RECURSIVELY)
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -316,6 +316,12 @@ class SettingsDialog(wx.Dialog):
         use_multichain = self._use_multichain.IsChecked()
         if use_multichain != self.utility.session.get_enable_multichain():
             scfg.set_enable_multichain(use_multichain)
+            restart = True
+
+        # Credit Mining
+        use_boosting = self._use_boosting.IsChecked()
+        if use_boosting != self.utility.session.get_creditmining_enable():
+            scfg.set_creditmining_enable(use_boosting)
             restart = True
 
         scfg.save(cfgfilename)
@@ -737,6 +743,13 @@ class SettingsDialog(wx.Dialog):
             exp_panel, label="Tribler connects to Emercoin over its JSON-RPC API.\nThis requires you to enable it by editing the emercoin.conf file and setting\nserver=1, rpcport, rpcuser, rpcpassword, and rpcconnect.")
         exp_vsizer.Add(exp_s2_faq_text, 0, wx.EXPAND | wx.TOP, 10)
 
+        exp_s3_sizer = create_subsection(exp_panel, exp_vsizer, "Credit Mining", 1, 3)
+        boosting_text = wx.StaticText(exp_panel, -1, 'Credit Mining is a mechanism to boost your ratio by '
+                                                     '\nautomatically download and upload data.')
+        exp_s3_sizer.Add(boosting_text, 0, wx.EXPAND | wx.TOP, 5)
+        self._use_boosting = wx.CheckBox(exp_panel, label="Enable credit mining")
+        exp_s3_sizer.Add(self._use_boosting, 0, wx.EXPAND)
+
         # load values
         self._use_webui.SetValue(self.utility.read_config('use_webui'))
         self._webui_port.SetValue(str(self.utility.read_config('webui_port')))
@@ -746,6 +759,8 @@ class SettingsDialog(wx.Dialog):
         self._emc_port.SetValue(str(self.utility.read_config('emc_port')))
         self._emc_username.SetValue(self.utility.read_config('emc_username'))
         self._emc_password.SetValue(self.utility.read_config('emc_password'))
+
+        self._use_boosting.SetValue(self.utility.session.get_creditmining_enable())
 
         return exp_panel, item_id
 

@@ -42,8 +42,6 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Dialogs.systray import ABCTaskBarIcon
-from Tribler.Main.Utility.GuiDBHandler import startWorker
-from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY
 from Tribler.Main.vwxGUI.CreditMiningPanel import CreditMiningPanel
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
