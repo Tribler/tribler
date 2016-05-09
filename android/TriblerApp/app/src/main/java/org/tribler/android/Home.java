@@ -83,7 +83,21 @@ public class Home extends AppCompatActivity {
 
         initGui();
         initBeam();
-        initSearch();
+
+        handleIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        setIntent(intent);
+        handleIntent(intent);
+    }
+
+    private void handleIntent(Intent intent) {
+        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+            String query = intent.getStringExtra(SearchManager.QUERY);
+            doMySearch(query);
+        }
     }
 
     @Override
@@ -101,15 +115,6 @@ public class Home extends AppCompatActivity {
         searchView.setIconifiedByDefault(false); // Do not iconify the widget; expand it by default
 
         return true;
-    }
-
-    private void initSearch() {
-        // Get the intent, verify the action and get the query
-        Intent intent = getIntent();
-        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
-            String query = intent.getStringExtra(SearchManager.QUERY);
-            doMySearch(query);
-        }
     }
 
     private void doMySearch(String query) {
