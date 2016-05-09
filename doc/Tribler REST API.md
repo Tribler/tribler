@@ -20,6 +20,8 @@ curl -X PUT -d "rss_feed_url=http://fakerssprovider.com/feed.rss" http://localho
 | ---- | --------------- |
 | GET /channels/discovered | Get all discovered channels in Tribler |
 | GET /channels/subscribed | Get the channels you are subscribed to |
+| PUT /channels/subscribed/{channelid} | Subscribe to a channel |
+| DELETE /channels/subscribed/{channelid} | Unsubscribe from a channel |
 
 ### My Channel
 
@@ -83,6 +85,30 @@ Returns all the channels you are subscribed to.
         "spam": 5,
         "modified": 14598395,
     }, ...]
+}
+```
+
+## `PUT /channels/subscribed/{channelcid}`
+
+Subscribe to a specific channel. Returns error 409 if you are already subscribed to this channel.
+
+### Example response
+
+```json
+{
+    "subscribed" : True
+}
+```
+
+## `DELETE /channels/subscribed/{channelcid}`
+
+Unsubscribe from a specific channel. Returns error 404 if you are not subscribed to this channel.
+
+### Example response
+
+```json
+{
+    "unsubscribed" : True
 }
 ```
 
