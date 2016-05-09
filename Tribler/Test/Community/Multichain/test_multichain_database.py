@@ -1,8 +1,8 @@
-import unittest
 import datetime
 import os
 from math import pow
-from Tribler.Test.test_multichain_utilities import TestBlock, MultiChainTestCase
+
+from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock, MultiChainTestCase
 from Tribler.community.multichain.database import MultiChainDB
 from Tribler.community.multichain.database import DATABASE_DIRECTORY
 
