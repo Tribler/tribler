@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Tribler</string>
+    <string name="search_hint">Search videos and channels</string>
+    <string name="camera_hint">Record a new video</string>
 </resources>
