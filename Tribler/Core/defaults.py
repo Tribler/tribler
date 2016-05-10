@@ -38,8 +38,9 @@ DEFAULTPORT = 7760
 #  Version 11: Added a default whether we should upgrade or not.
 #  Version 12: Added watch folder options.
 #  Version 13: Added HTTP API options.
+#  Version 14: Added option to enable/disable channel, previewchannel and tunnel community.
 
-SESSDEFAULTS_VERSION = 13
+SESSDEFAULTS_VERSION = 14
 sessdefaults = OrderedDict()
 
 # General Tribler settings
@@ -69,6 +70,14 @@ sessdefaults['general']['live_aux_seeders'] = []
 sessdefaults['allchannel_community'] = OrderedDict()
 sessdefaults['allchannel_community']['enabled'] = True
 
+# Channel community section
+sessdefaults['channel_community'] = OrderedDict()
+sessdefaults['channel_community']['enabled'] = True
+
+# PreviewChannel community section
+sessdefaults['preview_channel_community'] = OrderedDict()
+sessdefaults['preview_channel_community']['enabled'] = True
+
 # Search community section
 sessdefaults['search_community'] = OrderedDict()
 sessdefaults['search_community']['enabled'] = True
@@ -77,6 +86,7 @@ sessdefaults['search_community']['enabled'] = True
 sessdefaults['tunnel_community'] = OrderedDict()
 sessdefaults['tunnel_community']['socks5_listen_ports'] = [-1] * 5
 sessdefaults['tunnel_community']['exitnode_enabled'] = False
+sessdefaults['tunnel_community']['enabled'] = True
 
 # Multichain community section
 sessdefaults['multichain'] = OrderedDict()

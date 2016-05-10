@@ -261,6 +261,7 @@ class TestAsServer(AbstractServer):
         self.config.set_enable_metadata(False)
         self.config.set_upgrader_enabled(False)
         self.config.set_http_api_enabled(False)
+        self.config.set_tunnel_community_enabled(False)
 
     def tearDown(self):
         self.annotate(self._testMethodName, start=False)
@@ -312,6 +313,7 @@ class TestAsServer(AbstractServer):
         self.seed_config.set_videoplayer(False)
         self.seed_config.set_enable_metadata(False)
         self.seed_config.set_upgrader_enabled(False)
+        self.seed_config.set_tunnel_community_enabled(False)
         self.seed_config.set_state_dir(self.getStateDir(2))
 
         self.dscfg_seed = DownloadStartupConfig()

@@ -434,7 +434,7 @@ class Session(SessionConfigInterface):
         """ Create the LaunchManyCore instance and start it"""
 
         # Create engine with network thread
-        self.lm.register(self, self.sesslock, autoload_discovery=self.autoload_discovery)
+        self.lm.register(self, self.sesslock)
 
         self.sessconfig.set_callback(self.lm.sessconfig_changed_callback)
 

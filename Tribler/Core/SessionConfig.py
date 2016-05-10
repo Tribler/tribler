@@ -198,6 +198,10 @@ class SessionConfigInterface(object):
         """
         self.selected_ports['~'.join(('general', 'minport'))] = port
 
+    #
+    # Tunnel Community settings
+    #
+
     def set_tunnel_community_socks5_listen_ports(self, ports):
         self.sessconfig.set(u'tunnel_community', u'socks5_listen_ports', ports)
 
@@ -213,6 +217,20 @@ class SessionConfigInterface(object):
         """ Returns whether being an exitnode is allowed
         @return Boolean. """
         return self.sessconfig.get(u'tunnel_community', u'exitnode_enabled')
+
+    def set_tunnel_community_enabled(self, value):
+        """
+        Enable or disable the tunnel community.
+        :param value: A boolean indicating whether the tunnel community should be enabled
+        """
+        self.sessconfig.set(u'tunnel_community', u'enabled', value)
+
+    def get_tunnel_community_enabled(self):
+        """
+        Returns whether the tunnel community is enabled.
+        :return: A boolean indicating whether the tunnel community is enabled
+        """
+        return self.sessconfig.get(u'tunnel_community', u'enabled')
 
     #
     # BarterCommunity settings
@@ -618,6 +636,10 @@ class SessionConfigInterface(object):
         """
         self.sessconfig.set(u'video', u'preferredmode', mode)
 
+    #
+    # Search Community
+    #
+
     def get_enable_torrent_search(self):
         """ Gets if to enable torrent search (SearchCommunity).
         :return: True or False.
@@ -630,6 +652,10 @@ class SessionConfigInterface(object):
         """
         self.sessconfig.set(u'search_community', u'enabled', mode)
 
+    #
+    # AllChannel Community
+    #
+
     def get_enable_channel_search(self):
         """ Gets if to enable torrent search (AllChannelCommunity).
         :return: True or False.
@@ -641,6 +667,42 @@ class SessionConfigInterface(object):
         :param mode: True or False.
         """
         self.sessconfig.set(u'allchannel_community', u'enabled', mode)
+
+    #
+    # Channel Community
+    #
+
+    def set_channel_community_enabled(self, value):
+        """
+        Enable or disable the channel community.
+        :param value: A boolean indicating whether the channel community should be enabled
+        """
+        self.sessconfig.set(u'channel_community', u'enabled', value)
+
+    def get_channel_community_enabled(self):
+        """
+        Returns whether the channel community is enabled.
+        :return: A boolean indicating whether the channel community is enabled
+        """
+        return self.sessconfig.get(u'channel_community', u'enabled')
+
+    #
+    # PreviewChannel Community
+    #
+
+    def set_preview_channel_community_enabled(self, value):
+        """
+        Enable or disable the preview channel community.
+        :param value: A boolean indicating whether the preview channel community should be enabled
+        """
+        self.sessconfig.set(u'preview_channel_community', u'enabled', value)
+
+    def get_preview_channel_community_enabled(self):
+        """
+        Returns whether the preview channel community is enabled.
+        :return: A boolean indicating whether the preview channel community is enabled
+        """
+        return self.sessconfig.get(u'preview_channel_community', u'enabled')
 
     def get_enable_metadata(self):
         """
