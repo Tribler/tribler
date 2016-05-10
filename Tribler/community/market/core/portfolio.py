@@ -23,10 +23,12 @@ class Portfolio(object):
     def create_ask_order(self, price, quantity, timeout):
         order = Order(self.order_repository.next_identity(), price, quantity, timeout, Timestamp.now(), True)
         self.order_repository.add(order)
+        return order
 
     def create_bid_order(self, price, quantity, timeout):
         order = Order(self.order_repository.next_identity(), price, quantity, timeout, Timestamp.now(), False)
         self.order_repository.add(order)
+        return order
 
     def delete_order(self, order_id):
         assert isinstance(order_id, OrderId), type(order_id)
