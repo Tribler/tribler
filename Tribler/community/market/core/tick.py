@@ -82,9 +82,9 @@ class MessageNumber(object):
 
     def __str__(self):
         """
-        Return the string representation of the trader id
+        Return the string representation of the message number
 
-        :return: The string representation of the trader id
+        :return: The string representation of the message number
         :rtype: str
         """
         return "%s" % self._message_number
