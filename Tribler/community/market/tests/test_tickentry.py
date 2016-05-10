@@ -41,6 +41,12 @@ class OrderTestSuite(unittest.TestCase):
         # Test for tick string representation
         self.assertEquals('0.0030\t@\t6.3400', str(tick_entry))
 
+        # Test for quantity setter
+        price_level.append_tick(tick_entry)
+        price_level.append_tick(tick_entry2)
+        tick_entry.quantity = Quantity(15)
+        self.assertEquals(Quantity(15), tick_entry.quantity)
+
 
 if __name__ == '__main__':
     unittest.main()
