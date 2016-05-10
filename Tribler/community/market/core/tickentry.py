@@ -63,6 +63,15 @@ class TickEntry(object):
         self._price_level.depth -= (self._tick.quantity - new_quantity)
         self._tick.quantity = new_quantity
 
+    def is_valid(self):
+        """
+        Return if the tick is still valid
+
+        :return: True if valid, False otherwise
+        :rtype: bool
+        """
+        return self._tick.is_valid()
+
     def price_level(self):
         """
         Return the price level
