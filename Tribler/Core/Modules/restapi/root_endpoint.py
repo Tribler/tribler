@@ -1,6 +1,7 @@
 from twisted.web import resource
 
 from Tribler.Core.Modules.restapi.channels_endpoint import ChannelsEndpoint
+from Tribler.Core.Modules.restapi.events_endpoint import EventsEndpoint
 from Tribler.Core.Modules.restapi.my_channel_endpoint import MyChannelEndpoint
 from Tribler.Core.Modules.restapi.settings_endpoint import SettingsEndpoint
 from Tribler.Core.Modules.restapi.variables_endpoint import VariablesEndpoint
@@ -18,6 +19,9 @@ class RootEndpoint(resource.Resource):
 
         self.channels_endpoint = ChannelsEndpoint(self.session)
         self.putChild("channels", self.channels_endpoint)
+
+        self.events_endpoint = EventsEndpoint(self.session)
+        self.putChild("events", self.events_endpoint)
 
         self.my_channel_endpoint = MyChannelEndpoint(self.session)
         self.putChild("mychannel", self.my_channel_endpoint)
