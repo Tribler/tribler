@@ -338,6 +338,10 @@ class TickTestSuite(unittest.TestCase):
         self.assertEquals(((), ('trader_id', 'message_number', 63400, 30, float("inf"), float("inf"))),
                           tick.to_network())
 
+        # Test for quantity setter
+        tick.quantity = Quantity(60)
+        self.assertEqual(Quantity(60), tick.quantity)
+
     def test_ask(self):
         # Object creation
         trader_id = TraderId('trader_id')
