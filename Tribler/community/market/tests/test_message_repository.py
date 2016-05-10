@@ -3,6 +3,7 @@ import unittest
 from Tribler.community.market.core.message_repository import MessageRepository, MemoryMessageRepository
 from Tribler.community.market.core.tick import MessageId, TraderId, MessageNumber
 
+
 class MessageRepositoryTestSuite(unittest.TestCase):
     """Message repository test cases."""
 
@@ -20,6 +21,7 @@ class MessageRepositoryTestSuite(unittest.TestCase):
 
         # Test for next identity
         self.assertEquals(message_id, memory_message_repository.next_identity())
+
 
 if __name__ == '__main__':
     unittest.main()

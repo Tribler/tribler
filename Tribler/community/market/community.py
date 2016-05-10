@@ -1,7 +1,7 @@
 import logging
 
 from Tribler.community.market.core.message_repository import MemoryMessageRepository
-from Tribler.community.market.core.order_repository import OrderRepository, MemoryOrderRepository
+from Tribler.community.market.core.order_repository import MemoryOrderRepository
 from Tribler.dispersy.candidate import Candidate
 from .conversion import MarketConversion
 from .core.matching_engine import MatchingEngine, PriceTimeStrategy
@@ -118,7 +118,8 @@ class MarketCommunity(Community):
 
     # Ask
     def create_ask(self, price, quantity, timeout):
-        ask = Ask.create(self.message_repository.next_identity(), Price.from_float(float(price)), Quantity(int(quantity)),
+        ask = Ask.create(self.message_repository.next_identity(), Price.from_float(float(price)),
+                         Quantity(int(quantity)),
                          Timeout(timeout), Timestamp.now())
         self.portfolio.add_tick(ask)
         proposed_trades, active_ticks = self.matching_engine.match_tick(ask)
@@ -162,7 +163,8 @@ class MarketCommunity(Community):
 
     # Bid
     def create_bid(self, price, quantity, timeout):
-        bid = Bid.create(self.message_repository.next_identity(), Price.from_float(float(price)), Quantity(int(quantity)),
+        bid = Bid.create(self.message_repository.next_identity(), Price.from_float(float(price)),
+                         Quantity(int(quantity)),
                          Timeout(timeout), Timestamp.now())
         self.portfolio.add_tick(bid)
         proposed_trades, active_ticks = self.matching_engine.match_tick(bid)

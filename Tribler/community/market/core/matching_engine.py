@@ -74,7 +74,8 @@ class PriceTimeStrategy(MatchingStrategy):
                 next_price_level_price, next_price_level = self.order_book._asks._price_tree.succ_item(
                     price_level_price)
 
-            quantity_to_trade, trades = self._search_for_quantity_in_order_book(next_price_level_price, next_price_level,
+            quantity_to_trade, trades = self._search_for_quantity_in_order_book(next_price_level_price,
+                                                                                next_price_level,
                                                                                 quantity_to_trade, tick)
             proposed_trades = proposed_trades + trades
 

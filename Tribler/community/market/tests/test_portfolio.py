@@ -2,7 +2,8 @@ import unittest
 
 from Tribler.community.market.core.portfolio import Portfolio
 from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, \
-    Ask, Bid, Trade
+    Ask
+
 
 class PortfolioTestSuite(unittest.TestCase):
     """Portfolio test cases."""

@@ -1,9 +1,9 @@
 import unittest
 
-from Tribler.community.market.core.orderbook import OrderBook
 from Tribler.community.market.core.matching_engine import MatchingEngine, PriceTimeStrategy, MatchingStrategy
+from Tribler.community.market.core.orderbook import OrderBook
 from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, \
-    Ask, Bid, Trade
+    Ask, Bid
 
 
 class MatchingEngineTestSuite(unittest.TestCase):
@@ -58,6 +58,7 @@ class MatchingEngineTestSuite(unittest.TestCase):
         # Test for dividable match tick
         self.assertEquals(Quantity(30), matching_engine.match_tick(bid3)[0][0].quantity)
         self.assertEquals(Quantity(30), matching_engine.match_tick(bid3)[0][1].quantity)
+
 
 if __name__ == '__main__':
     unittest.main()
