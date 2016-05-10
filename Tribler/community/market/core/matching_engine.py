@@ -1,3 +1,4 @@
+from Tribler.community.market.core.message_repository import MessageRepository
 from orderbook import OrderBook
 from pricelevel import PriceLevel
 from tick import Tick, Trade, Timestamp, Quantity, Price
@@ -5,12 +6,14 @@ from tickentry import TickEntry
 
 
 class MatchingStrategy(object):
-    def __init__(self, order_book):
+    def __init__(self, order_book, message_repository):
         super(MatchingStrategy, self).__init__()
 
         assert isinstance(order_book, OrderBook), type(order_book)
+        assert isinstance(message_repository, MessageRepository), type(message_repository)
 
         self.order_book = order_book
+        self.message_repository = message_repository
 
     def match_tick(self, tick):
         return NotImplemented
@@ -92,7 +95,7 @@ class PriceTimeStrategy(MatchingStrategy):
             quantity_to_trade = Quantity(0)
 
             proposed_trades = [Trade.propose(
-                self.order_book.generate_message_id(),
+                self.message_repository.next_identity(),
                 tick.message_id,
                 counter_party,
                 traded_price,
@@ -104,7 +107,7 @@ class PriceTimeStrategy(MatchingStrategy):
             quantity_to_trade -= traded_quantity
 
             proposed_trades = [Trade.propose(
-                self.order_book.generate_message_id(),
+                self.message_repository.next_identity(),
                 tick.message_id,
                 counter_party,
                 traded_price,
@@ -122,15 +125,12 @@ class PriceTimeStrategy(MatchingStrategy):
 
 
 class MatchingEngine(object):
-    def __init__(self, order_book, matching_strategy):
+    def __init__(self, matching_strategy):
         super(MatchingEngine, self).__init__()
 
-        assert isinstance(order_book, OrderBook), type(order_book)
-
-        self.order_book = order_book
+        assert isinstance(matching_strategy, MatchingStrategy), type(matching_strategy)
         self.matching_strategy = matching_strategy
 
     def match_tick(self, tick):
         assert isinstance(tick, Tick), type(tick)
-
         return self.matching_strategy.match_tick(tick)
