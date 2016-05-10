@@ -1,23 +1,33 @@
 import logging
 
-from tick import Tick, MessageId
+from Tribler.community.market.core.order_repository import OrderRepository
+from Tribler.community.market.core.tick import Order, Timestamp, OrderId
 
 
 class Portfolio(object):
-    def __init__(self):
+    """Provides an interface to the user to manage the users orders"""
+
+    def __init__(self, order_repository):
+        """
+        Initialise the portfolio
+
+        :param order_repository: The order repository to use for this portfolio
+        :type order_repository: OrderRepository
+        """
         super(Portfolio, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
 
-        self._ticks = {}
+        assert isinstance(order_repository, OrderRepository), type(order_repository)
+        self.order_repository = order_repository
 
-    def add_tick(self, tick):
-        assert isinstance(tick, Tick), type(tick)
-        self._ticks[tick.message_id] = tick
+    def create_ask_order(self, price, quantity, timeout):
+        order = Order(self.order_repository.next_identity(), price, quantity, timeout, Timestamp.now(), True)
+        self.order_repository.add(order)
 
-    def find_tick(self, message_id):
-        assert isinstance(message_id, MessageId), type(message_id)
-        return self._ticks.get(message_id)
+    def create_bid_order(self, price, quantity, timeout):
+        order = Order(self.order_repository.next_identity(), price, quantity, timeout, Timestamp.now(), False)
+        self.order_repository.add(order)
 
-    def delete_tick_by_id(self, message_id):
-        assert isinstance(message_id, MessageId), type(message_id)
-        del self._ticks[message_id]
+    def delete_order(self, order_id):
+        assert isinstance(order_id, OrderId), type(order_id)
+        self.order_repository.delete_by_id(order_id)
