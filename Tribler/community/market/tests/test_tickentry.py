@@ -1,6 +1,6 @@
 import unittest
 
-from Tribler.community.market.core.price_level import PriceLevel
+from Tribler.community.market.core.pricelevel import PriceLevel
 from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, \
     Tick
 from Tribler.community.market.core.tickentry import TickEntry
