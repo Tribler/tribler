@@ -20,7 +20,7 @@ class MatchingEngineTestSuite(unittest.TestCase):
         timestamp = Timestamp(1462224447.117)
 
         ask = Ask.create(message_id, price, quantity, timeout, timestamp)
-        order_book = OrderBook('')
+        order_book = OrderBook()
         matching_strategy = MatchingStrategy(order_book)
 
         # Test for match tick
@@ -39,7 +39,7 @@ class MatchingEngineTestSuite(unittest.TestCase):
         bid2 = Bid.create(MessageId(TraderId('4'), message_number), Price(300), Quantity(30), timeout, timestamp)
         bid3 = Bid.create(MessageId(TraderId('5'), message_number), Price(300), Quantity(60), timeout, timestamp)
 
-        order_book = OrderBook('')
+        order_book = OrderBook()
 
         price_time_strategy = PriceTimeStrategy(order_book)
         matching_engine = MatchingEngine(order_book, price_time_strategy)

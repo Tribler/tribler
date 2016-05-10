@@ -9,6 +9,7 @@ class OrderBookTestSuite(unittest.TestCase):
     """OrderBook test cases."""
 
     def test_order_book(self):
+        # Object creation
         trader_id = TraderId('trader_id')
         trader_id2 = TraderId('trader_id2')
         trader_id3 = TraderId('trader_id3')
@@ -32,7 +33,7 @@ class OrderBookTestSuite(unittest.TestCase):
         bid2 = Bid.create(message_id4, price3, quantity, timeout, timestamp)
         trade = Trade.propose(message_id, message_id, message_id, price, quantity, timestamp)
 
-        order_book = OrderBook('')
+        order_book = OrderBook()
 
         # Test for ask, bid, and trade insertion
         order_book.insert_ask(ask2)
@@ -46,10 +47,6 @@ class OrderBookTestSuite(unittest.TestCase):
 
         self.assertTrue(order_book.tick_exists(message_id2))
         self.assertTrue(order_book.tick_exists(message_id4))
-
-        # Test generate message ID
-        self.assertEquals('.1', str(order_book.generate_message_id()))
-        self.assertEquals('.2', str(order_book.generate_message_id()))
 
         # Test for properties
         self.assertEquals(Price(350), order_book.mid_price)
