@@ -305,6 +305,3 @@ class MarketCommunity(Community):
                 # match again
             else:
                 self.order_book.remove_tick(declined_trade.recipient_message_id)
-
-    def show_ob(self):
-        return str(self.order_book)
