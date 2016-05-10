@@ -44,8 +44,8 @@ class MarketCommunity(Community):
         logger.info("Market community initialized")
 
         self.portfolio = Portfolio(MemoryOrderRepository(self.my_member.mid.encode("HEX")))
-        self.order_book = OrderBook()
         self.message_repository = MemoryMessageRepository(self.my_member.mid.encode("HEX"))
+        self.order_book = OrderBook(self.message_repository)
         self.matching_engine = MatchingEngine(PriceTimeStrategy(self.order_book, self.message_repository))
         self.pubkey_register = {}
 
