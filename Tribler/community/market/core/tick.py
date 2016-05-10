@@ -974,6 +974,104 @@ class Timestamp(object):
         return hash(self._timestamp)
 
 
+class Order(object):
+    """Class for representing an ask or a bid created by the user"""
+
+    def __init__(self, order_id, price, quantity, timeout, timestamp, is_ask):
+        """
+        Initialise the message
+
+        Don't use this class directly
+
+        :param order_id: An order id to identify the order
+        :param price: A price to indicate for which amount to sell or buy
+        :param quantity: A quantity to indicate how much to sell or buy
+        :param timeout: A timeout when this tick is going to expire
+        :param timestamp: A timestamp when the order was created
+        :param is_ask: A bool to indicate if this order is an ask
+        :type order_id: OrderId
+        :type price: Price
+        :type quantity: Quantity
+        :type timeout: Timeout
+        :type timestamp: Timestamp
+        :type is_ask: bool
+        """
+        super(Order, self).__init__()
+
+        assert isinstance(order_id, OrderId), type(order_id)
+        assert isinstance(price, Price), type(price)
+        assert isinstance(quantity, Quantity), type(quantity)
+        assert isinstance(timeout, Timeout), type(timeout)
+        assert isinstance(timestamp, Timestamp), type(timestamp)
+        assert isinstance(is_ask, bool), type(is_ask)
+
+        self._order_id = order_id
+        self._price = price
+        self._quantity = quantity
+        self._timeout = timeout
+        self._timestamp = timestamp
+        self._is_ask = is_ask
+
+    @property
+    def order_id(self):
+        """
+        Return the order id of the order
+
+        :return: The order id
+        :rtype: OrderId
+        """
+        return self._order_id
+
+    @property
+    def price(self):
+        """
+        Return the price of the order
+
+        :return: The price
+        :rtype: Price
+        """
+        return self._price
+
+    @property
+    def quantity(self):
+        """
+        Return the quantity of the order
+
+        :return: The quantity
+        :rtype: Quantity
+        """
+        return self._quantity
+
+    @property
+    def timeout(self):
+        """
+        Return when the order is going to expire
+
+        :return: The timeout
+        :rtype: Timeout
+        """
+        return self._timeout
+
+    @property
+    def timestamp(self):
+        """
+        Return the timestamp of the message
+
+        :return: The timestamp
+        :rtype: Timestamp
+        """
+        return self._timestamp
+
+    def is_ask(self):
+        """
+        Return if the message is an ask
+
+        :return: True if message is an ask, False otherwise
+        :rtype: bool
+        """
+        return self._is_ask
+
+
 class Message(object):
     """Abstract class for representing a message."""
 
