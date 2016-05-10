@@ -7,7 +7,7 @@ from .conversion import MarketConversion
 from .core.matching_engine import MatchingEngine, PriceTimeStrategy
 from .core.orderbook import OrderBook
 from .core.portfolio import Portfolio
-from .core.tick import Ask, Timestamp, Bid, Trade, ProposedTrade, AcceptedTrade, DeclinedTrade, Price, Quantity, Timeout
+from .core.tick import Ask, Timestamp, Bid, Trade, ProposedTrade, AcceptedTrade, DeclinedTrade
 from .payload import AskPayload, BidPayload, ProposedTradePayload, AcceptedTradePayload, DeclinedTradePayload
 from ...dispersy.authentication import MemberAuthentication
 from ...dispersy.community import Community
