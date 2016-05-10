@@ -1,7 +1,7 @@
-from tickentry import TickEntry
-from price_level import PriceLevel
 from orderbook import OrderBook
+from price_level import PriceLevel
 from tick import Tick, Trade, Timestamp, Quantity, Price
+from tickentry import TickEntry
 
 
 class MatchingStrategy(object):
@@ -112,7 +112,8 @@ class PriceTimeStrategy(MatchingStrategy):
                 Timestamp.now()
             )]
 
-            quantity_to_trade, trades = self.search_for_quantity_in_price_level(tick_entry.next_tick(), quantity_to_trade,
+            quantity_to_trade, trades = self.search_for_quantity_in_price_level(tick_entry.next_tick(),
+                                                                                quantity_to_trade,
                                                                                 tick)
 
             proposed_trades = proposed_trades + trades

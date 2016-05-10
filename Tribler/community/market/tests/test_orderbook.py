@@ -1,7 +1,8 @@
-from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, \
-    Message, Tick, Ask, Bid, Trade, ProposedTrade
-from Tribler.community.market.core.orderbook import OrderBook
 import unittest
+
+from Tribler.community.market.core.orderbook import OrderBook
+from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, \
+    Ask, Bid, Trade
 
 
 class OrderBookTestSuite(unittest.TestCase):

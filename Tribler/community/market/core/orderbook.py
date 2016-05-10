@@ -1,8 +1,8 @@
 import logging
 from collections import deque
 
-from tick import MessageId, TraderId, MessageNumber, Ask, Bid, Timestamp, Message, Trade, Price, Tick
 from side import Side
+from tick import MessageId, TraderId, MessageNumber, Ask, Bid, Timestamp, Message, Trade, Price, Tick
 
 
 class OrderBook(object):

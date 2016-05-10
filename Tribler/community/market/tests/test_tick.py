@@ -1,8 +1,8 @@
 import time
+import unittest
 
 from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, \
     Message, Tick, Ask, Bid, Trade, ProposedTrade, AcceptedTrade, DeclinedTrade
-import unittest
 
 
 class TickTestSuite(unittest.TestCase):

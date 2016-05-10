@@ -1,6 +1,6 @@
-from decimal import Decimal
-import time
 import datetime
+import time
+from decimal import Decimal
 
 
 class TraderId(object):

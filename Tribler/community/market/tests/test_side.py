@@ -1,7 +1,8 @@
-from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, \
-    Message, Tick
-from Tribler.community.market.core.side import Side
 import unittest
+
+from Tribler.community.market.core.side import Side
+from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, \
+    Tick
 
 
 class SideTestSuite(unittest.TestCase):
@@ -49,6 +50,7 @@ class SideTestSuite(unittest.TestCase):
         self.assertEquals(1, len(side))
         side.remove_tick(message_id2)
         self.assertEquals(0, len(side))
+
 
 if __name__ == '__main__':
     unittest.main()

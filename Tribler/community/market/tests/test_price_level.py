@@ -1,8 +1,9 @@
-from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, \
-    Message, Tick
-from Tribler.community.market.core.tickentry import TickEntry
-from Tribler.community.market.core.price_level import PriceLevel
 import unittest
+
+from Tribler.community.market.core.price_level import PriceLevel
+from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, \
+    Tick
+from Tribler.community.market.core.tickentry import TickEntry
 
 
 class PriceLevelTestSuite(unittest.TestCase):
@@ -50,6 +51,7 @@ class PriceLevelTestSuite(unittest.TestCase):
         price_level.append_tick(tick_entry2)
         self.assertEquals('0.0030\t@\t6.3400\n'
                           '0.0030\t@\t6.3400\n', str(price_level))
+
 
 if __name__ == '__main__':
     unittest.main()

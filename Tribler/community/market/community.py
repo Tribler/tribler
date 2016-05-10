@@ -1,11 +1,12 @@
 import logging
 
 from Tribler.dispersy.candidate import Candidate
+from .conversion import MarketConversion
 from .core.matching_engine import MatchingEngine, PriceTimeStrategy
+from .core.orderbook import OrderBook
 from .core.portfolio import Portfolio
 from .core.tick import Ask, Timestamp, Bid, Trade, ProposedTrade, AcceptedTrade, DeclinedTrade, Price, Quantity, Timeout
-from .core.orderbook import OrderBook
-
+from .payload import AskPayload, BidPayload, ProposedTradePayload, AcceptedTradePayload, DeclinedTradePayload
 from ...dispersy.authentication import MemberAuthentication
 from ...dispersy.community import Community
 from ...dispersy.conversion import DefaultConversion
@@ -13,9 +14,6 @@ from ...dispersy.destination import CommunityDestination, CandidateDestination
 from ...dispersy.distribution import DirectDistribution
 from ...dispersy.message import Message, DelayMessageByProof
 from ...dispersy.resolution import PublicResolution
-
-from .conversion import MarketConversion
-from .payload import AskPayload, BidPayload, ProposedTradePayload, AcceptedTradePayload, DeclinedTradePayload
 
 logger = logging.getLogger(__name__)
 
