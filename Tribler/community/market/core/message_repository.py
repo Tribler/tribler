@@ -9,7 +9,7 @@ class MessageRepository(object):
         Return the next identity
 
         :return: The next available identity
-        :rtype: OrderId
+        :rtype: MessageId
         """
         return NotImplemented
 
@@ -34,7 +34,7 @@ class MemoryMessageRepository(MessageRepository):
         Return the next identity
 
         :return: The next available identity
-        :rtype: OrderId
+        :rtype: MessageId
         """
         self._next_id += 1
         return MessageId(TraderId(self._mid), MessageNumber(str(self._next_id)))
