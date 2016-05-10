@@ -29,16 +29,16 @@ class PriceTimeStrategy(MatchingStrategy):
         if tick.is_ask():
             if tick.price <= self.order_book.bid_price and tick.quantity > Quantity(0):
                 best_price_level = self.order_book.bid_price_level
-                quantity_to_trade, proposed_trades = self.search_for_quantity_in_order_book(self.order_book.bid_price,
-                                                                                            best_price_level,
-                                                                                            quantity_to_trade, tick)
+                quantity_to_trade, proposed_trades = self._search_for_quantity_in_order_book(self.order_book.bid_price,
+                                                                                             best_price_level,
+                                                                                             quantity_to_trade, tick)
         # Proposed bid ticks
         else:
             if tick.price >= self.order_book.ask_price and tick.quantity > Quantity(0):
                 best_price_level = self.order_book.ask_price_level
-                quantity_to_trade, proposed_trades = self.search_for_quantity_in_order_book(self.order_book.ask_price,
-                                                                                            best_price_level,
-                                                                                            quantity_to_trade, tick)
+                quantity_to_trade, proposed_trades = self._search_for_quantity_in_order_book(self.order_book.ask_price,
+                                                                                             best_price_level,
+                                                                                             quantity_to_trade, tick)
 
         # Active ticks
         if quantity_to_trade > Quantity(0):
@@ -47,7 +47,7 @@ class PriceTimeStrategy(MatchingStrategy):
 
         return proposed_trades, active_ticks
 
-    def search_for_quantity_in_order_book(self, price_level_price, price_level, quantity_to_trade, tick):
+    def _search_for_quantity_in_order_book(self, price_level_price, price_level, quantity_to_trade, tick):
         if price_level is None:
             return quantity_to_trade, []
         assert isinstance(price_level_price, Price), type(price_level_price)
@@ -57,12 +57,12 @@ class PriceTimeStrategy(MatchingStrategy):
 
         if quantity_to_trade <= price_level.depth:
             head_tick = price_level.first_tick
-            quantity_to_trade, proposed_trades = self.search_for_quantity_in_price_level(head_tick, quantity_to_trade,
-                                                                                         tick)
+            quantity_to_trade, proposed_trades = self._search_for_quantity_in_price_level(head_tick, quantity_to_trade,
+                                                                                          tick)
         else:
             head_tick = price_level.first_tick
-            quantity_to_trade, proposed_trades = self.search_for_quantity_in_price_level(head_tick, quantity_to_trade,
-                                                                                         tick)
+            quantity_to_trade, proposed_trades = self._search_for_quantity_in_price_level(head_tick, quantity_to_trade,
+                                                                                          tick)
 
             if tick.is_ask():
                 next_price_level_price, next_price_level = self.order_book._bids._price_tree.succ_item(
@@ -71,13 +71,13 @@ class PriceTimeStrategy(MatchingStrategy):
                 next_price_level_price, next_price_level = self.order_book._asks._price_tree.succ_item(
                     price_level_price)
 
-            quantity_to_trade, trades = self.search_for_quantity_in_order_book(next_price_level_price, next_price_level,
-                                                                               quantity_to_trade, tick)
+            quantity_to_trade, trades = self._search_for_quantity_in_order_book(next_price_level_price, next_price_level,
+                                                                                quantity_to_trade, tick)
             proposed_trades = proposed_trades + trades
 
         return quantity_to_trade, proposed_trades
 
-    def search_for_quantity_in_price_level(self, tick_entry, quantity_to_trade, tick):
+    def _search_for_quantity_in_price_level(self, tick_entry, quantity_to_trade, tick):
         if tick_entry is None:
             return quantity_to_trade, []
         assert isinstance(tick_entry, TickEntry), type(tick_entry)
@@ -112,9 +112,9 @@ class PriceTimeStrategy(MatchingStrategy):
                 Timestamp.now()
             )]
 
-            quantity_to_trade, trades = self.search_for_quantity_in_price_level(tick_entry.next_tick(),
-                                                                                quantity_to_trade,
-                                                                                tick)
+            quantity_to_trade, trades = self._search_for_quantity_in_price_level(tick_entry.next_tick(),
+                                                                                 quantity_to_trade,
+                                                                                 tick)
 
             proposed_trades = proposed_trades + trades
 
