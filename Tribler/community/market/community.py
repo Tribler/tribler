@@ -118,14 +118,8 @@ class MarketCommunity(Community):
 
     # Ask
     def create_ask(self, price, quantity, timeout):
-        ask = Ask.create(self.message_repository.next_identity(), Price.from_float(float(price)),
-                         Quantity(int(quantity)),
-                         Timeout(timeout), Timestamp.now())
-        self.portfolio.add_tick(ask)
-        proposed_trades, active_ticks = self.matching_engine.match_tick(ask)
-
-        for order in active_ticks:
-            self.order_book.insert_ask(order)
+        order = self.portfolio.create_ask_order(price, quantity, timeout)
+        proposed_trades, active_ticks = self.matching_engine.match_order(order)
 
         self.send_ask_messages(active_ticks)
         self.send_proposed_trade_messages(proposed_trades)
@@ -153,24 +147,24 @@ class MarketCommunity(Community):
         for message in messages:
             ask = Ask.from_network(message.payload)
 
+            self.update_ip(str(ask.message_id.trader_id), (message.payload.ip, message.payload.port))
+
             if not self.order_book.tick_exists(ask.message_id):
                 self.order_book.insert_ask(ask)
-                # proposed_trades, asks_to_send = self.matching_engine.match_tick(ask)
 
-                # self.send_proposed_trade_messages(proposed_trades)
+                for order in self.portfolio.order_repository.find_all():
+                    if not order.is_ask():
+                        for message2 in order.get_messages():
+                            if message2.is_tick():
+                                proposed_trades, quantity_to_trade = self.matching_engine.match_tick(message2)
+                                self.send_proposed_trade_messages(proposed_trades)
 
                 self.check_ttl(message)
 
     # Bid
     def create_bid(self, price, quantity, timeout):
-        bid = Bid.create(self.message_repository.next_identity(), Price.from_float(float(price)),
-                         Quantity(int(quantity)),
-                         Timeout(timeout), Timestamp.now())
-        self.portfolio.add_tick(bid)
-        proposed_trades, active_ticks = self.matching_engine.match_tick(bid)
-
-        for order in active_ticks:
-            self.order_book.insert_bid(order)
+        order = self.portfolio.create_bid_order(price, quantity, timeout)
+        proposed_trades, active_ticks = self.matching_engine.match_order(order)
 
         self.send_bid_messages(active_ticks)
         self.send_proposed_trade_messages(proposed_trades)
@@ -198,11 +192,17 @@ class MarketCommunity(Community):
         for message in messages:
             bid = Bid.from_network(message.payload)
 
+            self.update_ip(str(bid.message_id.trader_id), (message.payload.ip, message.payload.port))
+
             if not self.order_book.tick_exists(bid.message_id):
                 self.order_book.insert_bid(bid)
-                # proposed_trades, bids_to_send = self.matching_engine.match_tick(bid)
 
-                # self.send_proposed_trade_messages(proposed_trades)
+                for order in self.portfolio.order_repository.find_all():
+                    if order.is_ask():
+                        for message2 in order.get_messages():
+                            if message2.is_tick():
+                                proposed_trades, quantity_to_trade = self.matching_engine.match_tick(message2)
+                                self.send_proposed_trade_messages(proposed_trades)
 
                 self.check_ttl(message)
 
@@ -271,7 +271,8 @@ class MarketCommunity(Community):
 
             self.order_book.remove_tick(accepted_trade.sender_message_id)
             self.order_book.remove_tick(accepted_trade.recipient_message_id)
-            self.portfolio.delete_tick_by_id(accepted_trade.sender_message_id)
+
+            # Check if tick is our own and delete is from the portfolio
 
             self.check_ttl(message)
 
