@@ -4,6 +4,12 @@ from Tribler.community.market.core.tick import TraderId, OrderNumber, OrderId, O
 class OrderRepository(object):
     """A repository for orders in the portfolio"""
 
+    def find_all(self):
+        """
+        Find all orders
+        """
+        return NotImplemented
+
     def find_by_id(self, order_id):
         """
         Find an order by its identity
@@ -70,6 +76,13 @@ class MemoryOrderRepository(OrderRepository):
         self._asks = {}
         self._bids = {}
         self._orders = {}
+
+    def find_all(self):
+        """
+        Find all orders
+        :rtype: [Order]
+        """
+        return self._orders.values()
 
     def find_by_id(self, order_id):
         """
