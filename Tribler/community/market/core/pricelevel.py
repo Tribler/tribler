@@ -47,6 +47,18 @@ class PriceLevel(object):
         """
         return self._depth
 
+    @depth.setter
+    def depth(self, new_depth):
+        """
+        Set the depth of the price level
+
+        :param new_depth: The new depth
+        :type new_depth: Quantity
+        """
+        assert isinstance(new_depth, Quantity), type(new_depth)
+
+        self._depth = new_depth
+
     def __len__(self):
         """
         Return the length of the amount of ticks contained in the price level
