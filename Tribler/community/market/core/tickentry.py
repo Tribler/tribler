@@ -1,15 +1,15 @@
 from tick import Tick, Quantity
 
 
-class Order(object):
-    """Class for representing an order in the order book"""
+class TickEntry(object):
+    """Class for representing a tick in the order book"""
 
     def __init__(self, tick, price_level):
         """
-        Initialise the order
+        Initialise the tick entry
 
         :param tick: A tick to represent in the order book
-        :param price_level: A price level to place the order in
+        :param price_level: A price level to place the tick in
         :type tick: Tick
         :type price_level: PriceLevel
         """
@@ -17,8 +17,8 @@ class Order(object):
 
         self._tick = tick
         self._price_level = price_level
-        self._prev_order = None
-        self._next_order = None
+        self._prev_tick = None
+        self._next_tick = None
 
     @property
     def message_id(self):
@@ -67,40 +67,40 @@ class Order(object):
         """
         Return the price level
 
-        :return: The price level the order was placed in
+        :return: The price level the tick was placed in
         :rtype: PriceLevel
         """
         return self._price_level
 
-    def prev_order(self):
+    def prev_tick(self):
         """
-        Return the order before this one
+        Return the tick before this one
 
-        This returns an order that was created earlier
+        This returns a tick that was inserted earlier
 
-        :return: The previous order
-        :rtype: Order
+        :return: The previous tick
+        :rtype: TickEntry
         """
-        return self._prev_order
+        return self._prev_tick
 
-    def next_order(self):
+    def next_tick(self):
         """
-        Return the order after this one
+        Return the tick after this one
 
-        This returns an order that was created later
+        This returns a tick that was inserted later
 
-        :return: The next order
-        :rtype: Order
+        :return: The next tick
+        :rtype: TickEntry
         """
-        return self._next_order
+        return self._next_tick
 
     def __str__(self):
         """
-        Return the string representation of the order
+        Return the string representation of the tick entry
 
         format: <quantity>\t@\t<price>
 
-        :return: The string representation of the order
+        :return: The string representation of the tick entry
         :rtype: str
         """
         return "%s\t@\t%s" % (str(self._tick.quantity), str(self._tick.price))

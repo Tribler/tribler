@@ -2,7 +2,7 @@ from bintrees import FastRBTree
 
 from tick import Price, MessageId, Tick, Quantity
 from price_level import PriceLevel
-from order import Order
+from tickentry import TickEntry
 
 
 class Side(object):
@@ -14,18 +14,18 @@ class Side(object):
         """
         self._price_tree = FastRBTree()  # Red Black tree containing price levels: Price -> PriceLevel
         self._price_map = {}  # Map: Price -> PriceLevel
-        self._order_map = {}  # Map: MessageId -> Order
+        self._tick_map = {}  # Map: MessageId -> TickEntry
         self._volume = Quantity(0)  # Total number of quantity contained in all the price levels
         self._depth = 0  # Total amount of price levels
 
     def __len__(self):
         """
-        Return the length of the amount of orders contained in all the price level of this side
+        Return the length of the amount of ticks contained in all the price level of this side
 
         :return: The length
         :rtype: integer
         """
-        return len(self._order_map)
+        return len(self._tick_map)
 
     def get_price_level(self, price):
         """
@@ -39,17 +39,17 @@ class Side(object):
         assert isinstance(price, Price), type(price)
         return self._price_map[price]
 
-    def get_order(self, message_id):
+    def get_tick(self, message_id):
         """
-        Retrieve an order by message id
+        Retrieve a tick by message id
 
-        :param message_id: The message id of the order
+        :param message_id: The message id of the tick
         :type message_id: MessageId
-        :return: The order
-        :rtype: Order
+        :return: The tick
+        :rtype: TickEntry
         """
         assert isinstance(message_id, MessageId), type(message_id)
-        return self._order_map[message_id]
+        return self._tick_map[message_id]
 
     def _create_price_level(self, price):
         """
@@ -102,7 +102,7 @@ class Side(object):
         :rtype: bool
         """
         assert isinstance(message_id, MessageId), type(message_id)
-        return message_id in self._order_map
+        return message_id in self._tick_map
 
     def insert_tick(self, tick):
         """
@@ -115,9 +115,9 @@ class Side(object):
 
         if not self._price_level_exists(tick.price):  # First tick for that price
             self._create_price_level(tick.price)
-        order = Order(tick, self._price_map[tick.price])
-        self.get_price_level(tick.price).append_order(order)
-        self._order_map[tick.message_id] = order
+        tick_entry = TickEntry(tick, self._price_map[tick.price])
+        self.get_price_level(tick.price).append_tick(tick_entry)
+        self._tick_map[tick.message_id] = tick_entry
         self._volume += tick.quantity
 
     def remove_tick(self, message_id):
@@ -129,17 +129,17 @@ class Side(object):
         """
         assert isinstance(message_id, MessageId), type(message_id)
 
-        order = self.get_order(message_id)
-        self._volume -= order.quantity
-        order.price_level().remove_order(order)
-        if len(order.price_level()) == 0:  # Last order for that price
-            self._remove_price_level(order.price)
-        del self._order_map[message_id]
+        tick = self.get_tick(message_id)
+        self._volume -= tick.quantity
+        tick.price_level().remove_tick(tick)
+        if len(tick.price_level()) == 0:  # Last tick for that price
+            self._remove_price_level(tick.price)
+        del self._tick_map[message_id]
 
     @property
     def max_price(self):
         """
-        Return the maximum price that an order is listed for on this side of the order book
+        Return the maximum price that a tick is listed for on this side of the order book
 
         :return: The maximum price
         :rtype: Price
@@ -152,7 +152,7 @@ class Side(object):
     @property
     def min_price(self):
         """
-        Return the minimum price that an order is listed for on this side of the order book
+        Return the minimum price that a tick is listed for on this side of the order book
 
         :return: The minimum price
         :rtype: Price

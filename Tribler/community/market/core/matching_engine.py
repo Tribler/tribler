@@ -1,4 +1,4 @@
-from order import Order
+from tickentry import TickEntry
 from price_level import PriceLevel
 from orderbook import OrderBook
 from tick import Tick, Trade, Timestamp, Quantity, Price
@@ -56,12 +56,12 @@ class PriceTimeStrategy(MatchingStrategy):
         assert isinstance(tick, Tick), type(tick)
 
         if quantity_to_trade <= price_level.depth:
-            head_order = price_level.first_order
-            quantity_to_trade, proposed_trades = self.search_for_quantity_in_price_level(head_order, quantity_to_trade,
+            head_tick = price_level.first_tick
+            quantity_to_trade, proposed_trades = self.search_for_quantity_in_price_level(head_tick, quantity_to_trade,
                                                                                          tick)
         else:
-            head_order = price_level.first_order
-            quantity_to_trade, proposed_trades = self.search_for_quantity_in_price_level(head_order, quantity_to_trade,
+            head_tick = price_level.first_tick
+            quantity_to_trade, proposed_trades = self.search_for_quantity_in_price_level(head_tick, quantity_to_trade,
                                                                                          tick)
 
             if tick.is_ask():
@@ -77,17 +77,17 @@ class PriceTimeStrategy(MatchingStrategy):
 
         return quantity_to_trade, proposed_trades
 
-    def search_for_quantity_in_price_level(self, order, quantity_to_trade, tick):
-        if order is None:
+    def search_for_quantity_in_price_level(self, tick_entry, quantity_to_trade, tick):
+        if tick_entry is None:
             return quantity_to_trade, []
-        assert isinstance(order, Order), type(order)
+        assert isinstance(tick_entry, TickEntry), type(tick_entry)
         assert isinstance(quantity_to_trade, Quantity), type(quantity_to_trade)
         assert isinstance(tick, Tick), type(tick)
 
-        traded_price = order.price
-        counter_party = order.message_id
+        traded_price = tick_entry.price
+        counter_party = tick_entry.message_id
 
-        if quantity_to_trade <= order.quantity:
+        if quantity_to_trade <= tick_entry.quantity:
             traded_quantity = quantity_to_trade
             quantity_to_trade = Quantity(0)
 
@@ -100,7 +100,7 @@ class PriceTimeStrategy(MatchingStrategy):
                 Timestamp.now()
             )]
         else:
-            traded_quantity = order.quantity
+            traded_quantity = tick_entry.quantity
             quantity_to_trade -= traded_quantity
 
             proposed_trades = [Trade.propose(
@@ -112,7 +112,7 @@ class PriceTimeStrategy(MatchingStrategy):
                 Timestamp.now()
             )]
 
-            quantity_to_trade, trades = self.search_for_quantity_in_price_level(order.next_order(), quantity_to_trade,
+            quantity_to_trade, trades = self.search_for_quantity_in_price_level(tick_entry.next_tick(), quantity_to_trade,
                                                                                 tick)
 
             proposed_trades = proposed_trades + trades
