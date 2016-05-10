@@ -2,18 +2,15 @@ import logging
 from collections import deque
 
 from side import Side
-from tick import MessageId, TraderId, MessageNumber, Ask, Bid, Timestamp, Message, Trade, Price, Tick
+from tick import MessageId, Ask, Bid, Timestamp, Message, Trade, Price, Tick
 
 
 class OrderBook(object):
     """Class representation of an order book"""
 
-    def __init__(self, mid):
+    def __init__(self):
         """
         Initialise the order book
-
-        :param mid: Hex encoded version of the public key of this node
-        :type mid: str
         """
         self._logger = logging.getLogger(self.__class__.__name__)
 
@@ -22,18 +19,6 @@ class OrderBook(object):
         self._asks = Side()
         self._last_message = None  # The last message processed by this order book
         self._last_timestamp = Timestamp(0.0)  # The time at which the last message was processed
-        self._mid = mid
-        self._next_order_id = 0  # Counter to keep track of the number of messages created by this order book
-
-    def generate_message_id(self):
-        """
-        Generate an unique message id
-
-        :return: The message id
-        :rtype: MessageId
-        """
-        self._next_order_id += 1
-        return MessageId(TraderId(self._mid), MessageNumber(str(self._next_order_id)))
 
     def _process_message(self, message):
         """
