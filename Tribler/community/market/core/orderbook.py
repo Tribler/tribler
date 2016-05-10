@@ -1,6 +1,7 @@
 import logging
 from collections import deque
 
+from Tribler.community.market.core.message_repository import MessageRepository
 from side import Side
 from tick import MessageId, Ask, Bid, Timestamp, Message, Trade, Price, Tick
 
@@ -8,12 +9,15 @@ from tick import MessageId, Ask, Bid, Timestamp, Message, Trade, Price, Tick
 class OrderBook(object):
     """Class representation of an order book"""
 
-    def __init__(self):
+    def __init__(self, message_repository):
         """
         Initialise the order book
         """
         self._logger = logging.getLogger(self.__class__.__name__)
 
+        assert isinstance(message_repository, MessageRepository), type(message_repository)
+
+        self._message_repository = message_repository
         self._trades = deque(maxlen=100)  # List of trades with a limit of 100
         self._bids = Side()
         self._asks = Side()
@@ -32,6 +36,23 @@ class OrderBook(object):
         if message.timestamp > self._last_timestamp:
             self._last_timestamp = message.timestamp
         self._last_message = message
+
+    def create_ask(self, price, quantity, timeout, timestamp):
+        """
+        create an ask
+
+        :param price: A price that needs to be paid for the ask
+        :param quantity: The quantity that needs to be sold
+        :param timeout: A timeout for the ask
+        :param timestamp: A timestamp for when the ask was created
+        :type price: Price
+        :type quantity: Quantity
+        :type timeout: Timeout
+        :type timestamp: Timestamp
+        """
+        ask = Ask.create(self._message_repository.next_identity(), price, quantity, timeout, timestamp)
+        self.insert_ask(ask)
+        return ask
 
     def insert_ask(self, ask):
         """
@@ -58,6 +79,23 @@ class OrderBook(object):
 
         if self._asks.tick_exists(message_id):
             self._asks.remove_tick(message_id)
+
+    def create_bid(self, price, quantity, timeout, timestamp):
+        """
+        create a bid
+
+        :param price: A price that you are willing to pay for the bid
+        :param quantity: The quantity that you want to buy
+        :param timeout: A timeout for the bid
+        :param timestamp: A timestamp for when the bid was created
+        :type price: Price
+        :type quantity: Quantity
+        :type timeout: Timeout
+        :type timestamp: Timestamp
+        """
+        bid = Bid.create(self._message_repository.next_identity(), price, quantity, timeout, timestamp)
+        self.insert_bid(bid)
+        return bid
 
     def insert_bid(self, bid):
         """
