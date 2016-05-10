@@ -1,5 +1,7 @@
 import logging
 
+from Tribler.community.market.core.message_repository import MemoryMessageRepository
+from Tribler.community.market.core.order_repository import OrderRepository, MemoryOrderRepository
 from Tribler.dispersy.candidate import Candidate
 from .conversion import MarketConversion
 from .core.matching_engine import MatchingEngine, PriceTimeStrategy
@@ -41,9 +43,10 @@ class MarketCommunity(Community):
         super(MarketCommunity, self).initialize()
         logger.info("Market community initialized")
 
-        self.portfolio = Portfolio()
-        self.order_book = OrderBook(self.my_member.mid.encode("HEX"))
-        self.matching_engine = MatchingEngine(self.order_book, PriceTimeStrategy(self.order_book))
+        self.portfolio = Portfolio(MemoryOrderRepository(self.my_member.mid.encode("HEX")))
+        self.order_book = OrderBook()
+        self.message_repository = MemoryMessageRepository(self.my_member.mid.encode("HEX"))
+        self.matching_engine = MatchingEngine(PriceTimeStrategy(self.order_book, self.message_repository))
         self.pubkey_register = {}
 
     def initiate_meta_messages(self):
@@ -115,7 +118,7 @@ class MarketCommunity(Community):
 
     # Ask
     def create_ask(self, price, quantity, timeout):
-        ask = Ask.create(self.order_book.generate_message_id(), Price.from_float(float(price)), Quantity(int(quantity)),
+        ask = Ask.create(self.message_repository.next_identity(), Price.from_float(float(price)), Quantity(int(quantity)),
                          Timeout(timeout), Timestamp.now())
         self.portfolio.add_tick(ask)
         proposed_trades, active_ticks = self.matching_engine.match_tick(ask)
@@ -159,7 +162,7 @@ class MarketCommunity(Community):
 
     # Bid
     def create_bid(self, price, quantity, timeout):
-        bid = Bid.create(self.order_book.generate_message_id(), Price.from_float(float(price)), Quantity(int(quantity)),
+        bid = Bid.create(self.message_repository.next_identity(), Price.from_float(float(price)), Quantity(int(quantity)),
                          Timeout(timeout), Timestamp.now())
         self.portfolio.add_tick(bid)
         proposed_trades, active_ticks = self.matching_engine.match_tick(bid)
@@ -229,14 +232,14 @@ class MarketCommunity(Community):
             if str(proposed_trade.recipient_message_id.trader_id) == str(self.my_member.mid.encode("HEX")):
                 # Check if tick is still valid (send confirm and add to orderbook) : (send cancel)
                 if self.order_book.tick_exists(proposed_trade.recipient_message_id):
-                    accepted_trade = Trade.accept(self.order_book.generate_message_id(), Timestamp.now(),
+                    accepted_trade = Trade.accept(self.message_repository.next_identity(), Timestamp.now(),
                                                   proposed_trade)
                     self.order_book.insert_trade(accepted_trade)
                     self.order_book.remove_tick(proposed_trade.recipient_message_id)
                     self.order_book.remove_tick(proposed_trade.sender_message_id)
                     self.send_accepted_trade(accepted_trade)
                 else:
-                    declined_trade = Trade.decline(self.order_book.generate_message_id(), Timestamp.now(),
+                    declined_trade = Trade.decline(self.message_repository.next_identity(), Timestamp.now(),
                                                    proposed_trade)
                     self.send_declined_trade(declined_trade)
 
