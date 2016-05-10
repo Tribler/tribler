@@ -1005,6 +1005,7 @@ class Order(object):
         assert isinstance(timestamp, Timestamp), type(timestamp)
         assert isinstance(is_ask, bool), type(is_ask)
 
+        self._messages = {}
         self._order_id = order_id
         self._price = price
         self._quantity = quantity
@@ -1070,6 +1071,27 @@ class Order(object):
         :rtype: bool
         """
         return self._is_ask
+
+    def get_messages(self):
+        """
+        Return all the messages
+
+        :return: The messages
+        :rtype: [Message]
+        """
+        return self._messages.values()
+
+    def get_message(self, message_id):
+        assert isinstance(message_id, MessageId), type(message_id)
+        return self._messages.get(message_id)
+
+    def add_message(self, message):
+        assert isinstance(message, Message), type(message)
+        self._messages[message.message_id] = message
+
+    def remove_message(self, message_id):
+        assert isinstance(message_id, MessageId), type(message_id)
+        del self._messages[message_id]
 
 
 class Message(object):
