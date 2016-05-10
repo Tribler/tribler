@@ -1183,6 +1183,7 @@ class Tick(Message):
         self._quantity = quantity
         self._timeout = timeout
         self._is_ask = is_ask
+        self._is_reserved = False
 
     @property
     def price(self):
@@ -1234,6 +1235,27 @@ class Tick(Message):
         """
         return self._is_ask
 
+    def is_reserved(self):
+        """
+        Return if this tick is reserved
+
+        :return: True if this tick is reserved, False otherwise
+        :rtype: bool
+        """
+        return self._is_ask
+
+    def reserve(self):
+        """
+        Reserve this tick
+        """
+        self._is_reserved = True
+
+    def release(self):
+        """
+        Release this tick
+        """
+        self._is_reserved = False
+
     def is_valid(self):
         """
         Return if the tick is still valid
@@ -1241,7 +1263,7 @@ class Tick(Message):
         :return: True if valid, False otherwise
         :rtype: bool
         """
-        return not self._timeout.is_timed_out(Timestamp.now())
+        return not (self._timeout.is_timed_out(Timestamp.now()) or self._is_reserved)
 
     def to_network(self):
         """
