@@ -1,8 +1,8 @@
 import time
 import unittest
 
-from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, \
-    Message, Tick, Ask, Bid, Trade, ProposedTrade, AcceptedTrade, DeclinedTrade
+from Tribler.community.market.core.tick import TraderId, OrderNumber, MessageNumber, OrderId, MessageId, Price, \
+    Quantity, Timeout, Timestamp, Message, Tick, Ask, Bid, Trade, ProposedTrade, AcceptedTrade, DeclinedTrade
 
 
 class TickTestSuite(unittest.TestCase):
@@ -27,6 +27,25 @@ class TickTestSuite(unittest.TestCase):
         self.assertEqual(trader_id.__hash__(), trader_id2.__hash__())
         self.assertNotEqual(trader_id.__hash__(), trader_id3.__hash__())
 
+    def test_order_number(self):
+        # Object creation
+        order_number = OrderNumber('order_number')
+        order_number2 = OrderNumber('order_number')
+        order_number3 = OrderNumber('order_number_2')
+
+        # Test for conversions
+        self.assertEqual('order_number', str(order_number))
+
+        # Test for equality
+        self.assertTrue(order_number == order_number2)
+        self.assertTrue(order_number == order_number)
+        self.assertTrue(order_number != order_number3)
+        self.assertFalse(order_number == 6)
+
+        # Test for hashes
+        self.assertEqual(order_number.__hash__(), order_number2.__hash__())
+        self.assertNotEqual(order_number.__hash__(), order_number3.__hash__())
+
     def test_message_number(self):
         # Object creation
         message_number = MessageNumber('message_number')
@@ -45,6 +64,32 @@ class TickTestSuite(unittest.TestCase):
         # Test for hashes
         self.assertEqual(message_number.__hash__(), message_number2.__hash__())
         self.assertNotEqual(message_number.__hash__(), message_number3.__hash__())
+
+    def test_order_id(self):
+        # Object creation
+        trader_id = TraderId('trader_id')
+        order_number = OrderNumber('order_number')
+        order_number2 = OrderNumber('order_number2')
+        order_id = OrderId(trader_id, order_number)
+        order_id2 = OrderId(trader_id, order_number)
+        order_id3 = OrderId(trader_id, order_number2)
+
+        # Test for properties
+        self.assertEqual(trader_id, order_id.trader_id)
+        self.assertEqual(order_number, order_id.order_number)
+
+        # Test for conversions
+        self.assertEqual('trader_id.order_number', str(order_id))
+
+        # Test for equality
+        self.assertTrue(order_id == order_id2)
+        self.assertTrue(order_id == order_id)
+        self.assertTrue(order_id != order_id3)
+        self.assertFalse(order_id == 6)
+
+        # Test for hashes
+        self.assertEqual(order_id.__hash__(), order_id2.__hash__())
+        self.assertNotEqual(order_id.__hash__(), order_id3.__hash__())
 
     def test_message_id(self):
         # Object creation

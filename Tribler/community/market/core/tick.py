@@ -64,6 +64,67 @@ class TraderId(object):
         return hash(self._trader_id)
 
 
+class OrderNumber(object):
+    """Immutable class for representing the number of an order."""
+
+    def __init__(self, order_number):
+        """
+        Initialise the order number
+
+        :param order_number: String representing the number of an order
+        :type order_number: str
+        """
+        super(OrderNumber, self).__init__()
+
+        assert isinstance(order_number, str), type(order_number)
+
+        self._order_number = order_number
+
+    def __str__(self):
+        """
+        Return the string representation of the order number
+
+        :return: The string representation of the order number
+        :rtype: str
+        """
+        return "%s" % self._order_number
+
+    def __eq__(self, other):
+        """
+        Check if two object are the same
+
+        :param other: An object to compare with
+        :return: True if the objects are the same, False otherwise
+        :rtype: bool
+        """
+        if not isinstance(other, OrderNumber):
+            return NotImplemented
+        elif self is other:
+            return True
+        else:
+            return self._order_number == \
+                   other._order_number
+
+    def __ne__(self, other):
+        """
+        Check if two objects are not the same
+
+        :param other: An object to compare with
+        :return: True if the objects are not the same, False otherwise
+        :rtype: bool
+        """
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        """
+        Return the hash value of this object
+
+        :return: The hash value
+        :rtype: integer
+        """
+        return hash(self._order_number)
+
+
 class MessageNumber(object):
     """Immutable class for representing the number of a message."""
 
@@ -123,6 +184,93 @@ class MessageNumber(object):
         :rtype: integer
         """
         return hash(self._message_number)
+
+
+class OrderId(object):
+    """Immutable class for representing the id of an order."""
+
+    def __init__(self, trader_id, order_number):
+        """
+        Initialise the order id
+
+        :param trader_id: The trader id who created the order
+        :param order_number: The number of the order created
+        :type trader_id: TraderId
+        :type order_number: OrderNumber
+        """
+        super(OrderId, self).__init__()
+
+        assert isinstance(trader_id, TraderId), type(trader_id)
+        assert isinstance(order_number, OrderNumber), type(order_number)
+
+        self._trader_id = trader_id
+        self._order_number = order_number
+
+    @property
+    def trader_id(self):
+        """
+        Return the trader id
+
+        :return: The trader id of the message id
+        :rtype: TraderId
+        """
+        return self._trader_id
+
+    @property
+    def order_number(self):
+        """
+        Return the order number
+
+        :return: The order number of the order id
+        :rtype: OrderNumber
+        """
+        return self._order_number
+
+    def __str__(self):
+        """
+        Return the string representation of the order id
+
+        format: <trader_id>.<order_number>
+
+        :return: The string representation of the order id
+        :rtype: str
+        """
+        return "%s.%s" % (self._trader_id, self._order_number)
+
+    def __eq__(self, other):
+        """
+        Check if two objects are the same
+
+        :param other: An object to compare with
+        :return: True if the object is the same, False otherwise
+        :rtype: bool
+        """
+        if not isinstance(other, OrderId):
+            return NotImplemented
+        elif self is other:
+            return True
+        else:
+            return (self._trader_id, self._order_number) == \
+                   (other._trader_id, other._order_number)
+
+    def __ne__(self, other):
+        """
+        Check if two objects are not the same
+
+        :param other: An object to compare with
+        :return: True if the object is not the same, False otherwise
+        :rtype: bool
+        """
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        """
+        Return the hash value of this object
+
+        :return: The hash value
+        :rtype: integer
+        """
+        return hash((self._trader_id, self._order_number))
 
 
 class MessageId(object):
