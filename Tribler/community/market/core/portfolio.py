@@ -16,7 +16,7 @@ class Portfolio(object):
 
     def find_tick(self, message_id):
         assert isinstance(message_id, MessageId), type(message_id)
-        self._ticks.get(message_id)
+        return self._ticks.get(message_id)
 
     def delete_tick_by_id(self, message_id):
         assert isinstance(message_id, MessageId), type(message_id)
