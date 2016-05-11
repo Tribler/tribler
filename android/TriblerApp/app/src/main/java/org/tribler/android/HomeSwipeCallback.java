@@ -3,7 +3,7 @@ package org.tribler.android;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
 
-class HomeSwipeCallback extends ItemTouchHelper.SimpleCallback {
+public class HomeSwipeCallback extends ItemTouchHelper.SimpleCallback {
 
     private TriblerViewAdapter mAdapter;
 
