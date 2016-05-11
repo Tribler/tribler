@@ -5,7 +5,7 @@ from hashlib import sha256
 from Tribler.dispersy.crypto import ECCrypto
 from Tribler.community.multichain.block import (MultiChainBlock, GENESIS_ID, EMPTY_SIG, GENESIS_SEQ, EMPTY_PK, VALID,
                                                 INVALID, NO_INFO, PARTIAL, PARTIAL_NEXT, PARTIAL_PREV)
-from Tribler.Test.test_multichain_utilities import MultiChainTestCase, TestBlock
+from Tribler.Test.Community.Multichain.test_multichain_utilities import MultiChainTestCase, TestBlock
 
 
 class TestBlocks(MultiChainTestCase):

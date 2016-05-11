@@ -10,6 +10,7 @@ PK_LENGTH = 74
 
 GENESIS_ID = '0'*HASH_LENGTH    # ID of the first block of the chain.
 GENESIS_SEQ = 1
+UNKNOWN_SEQ = 0
 EMPTY_SIG = '0'*SIG_LENGTH
 EMPTY_PK = '0'*PK_LENGTH
 
@@ -40,7 +41,7 @@ class MultiChainBlock(object):
             self.sequence_number = GENESIS_SEQ
             # linked identity
             self.link_public_key = EMPTY_PK
-            self.link_sequence_number = 0
+            self.link_sequence_number = UNKNOWN_SEQ
             # validation
             self.previous_hash = GENESIS_ID
             self.signature = EMPTY_SIG
@@ -59,6 +60,16 @@ class MultiChainBlock(object):
                 self.previous_hash = str(self.previous_hash)
             if isinstance(self.signature, buffer):
                 self.signature = str(self.signature)
+
+    def __str__(self):
+        return "Block {0} from {1}:{2} links {3}:{4} for {5}u:{6}d".format(
+            self.hash.encode("hex")[-8:],
+            self.public_key.encode("hex")[-8:],
+            self.sequence_number,
+            self.link_public_key.encode("hex")[-8:],
+            self.link_sequence_number,
+            self.up,
+            self.down)
 
     @property
     def hash(self):
@@ -136,7 +147,7 @@ class MultiChainBlock(object):
             err("Total down field is negative")
         if self.sequence_number < GENESIS_SEQ:
             err("Sequence number is prior to genesis")
-        if self.link_sequence_number < 0:
+        if self.link_sequence_number < GENESIS_SEQ and self.link_sequence_number != UNKNOWN_SEQ:
             err("Link sequence number not empty and is prior to genesis")
         if not crypto.is_valid_public_bin(self.public_key):
             err("Public key is not valid")

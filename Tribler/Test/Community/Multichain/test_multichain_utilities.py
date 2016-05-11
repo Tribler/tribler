@@ -5,7 +5,7 @@ import random
 from hashlib import sha256
 from Tribler.dispersy.crypto import ECCrypto
 from Tribler.Test.test_as_server import AbstractServer
-from Tribler.community.multichain.block import MultiChainBlock, EMPTY_PK
+from Tribler.community.multichain.block import MultiChainBlock
 
 
 class TestBlock(MultiChainBlock):

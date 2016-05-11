@@ -5,9 +5,8 @@ from twisted.internet.defer import inlineCallbacks
 from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock, MultiChainTestCase
 
 from Tribler.community.multichain.conversion import MultiChainConversion
-from Tribler.community.multichain.community import SIGNED, HALF_BLOCK, FULL_BLOCK, CRAWL, RESUME
-from Tribler.community.multichain.payload import (HalfBlockPayload, FullBlockPayload, CrawlRequestPayload,
-                                                  CrawlResumePayload)
+from Tribler.community.multichain.community import HALF_BLOCK, CRAWL
+from Tribler.community.multichain.payload import HalfBlockPayload, CrawlRequestPayload
 
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.authentication import NoAuthentication
@@ -37,7 +36,7 @@ class TestConversion(MultiChainTestCase):
         Test encoding of a signed message
         """
         # Arrange
-        meta = self.community.get_meta_message(SIGNED)
+        meta = self.community.get_meta_message(HALF_BLOCK)
         message = meta.impl(distribution=(self.community.claim_global_time(),),
                             payload=(self.block,))
         # Act
@@ -52,7 +51,7 @@ class TestConversion(MultiChainTestCase):
         Test if a responder can send a signature message with big total_up and down.
         """
         # Arrange
-        meta = self.community.get_meta_message(SIGNED)
+        meta = self.community.get_meta_message(HALF_BLOCK)
         block = TestBlock()
         block.total_up_requester = pow(2, 63)
         block.total_down_requester = pow(2, 62)
@@ -73,7 +72,7 @@ class TestConversion(MultiChainTestCase):
         Test decoding a signature message with wrong size
         """
         # Arrange
-        meta = self.community.get_meta_message(SIGNED)
+        meta = self.community.get_meta_message(HALF_BLOCK)
         message = meta.impl(distribution=(self.community.claim_global_time(),),
                             payload=(self.block,))
         # Act
@@ -82,43 +81,6 @@ class TestConversion(MultiChainTestCase):
         with self.assertRaises(DropPacket):
             # Remove a bit of message.
             self.converter._decode_half_block(TestPlaceholder(meta), 0, encoded_message[:-10])[1]
-
-    def test_encoding_decoding_full_block(self):
-        """
-        Test encoding of a signed message
-        """
-        # Arrange
-        meta = self.community.get_meta_message(FULL_BLOCK)
-        block_l = TestBlock()
-        block_r = TestBlock()
-
-        message = meta.impl(distribution=(self.community.claim_global_time(),),
-                            payload=(block_l, block_r))
-        # Act
-        encoded_message = self.converter._encode_full_block(message)[0]
-        result = self.converter._decode_full_block(TestPlaceholder(meta), 0, encoded_message)[1]
-
-        # Assert
-        self.assertEqual_block(block_l, result.block_this)
-        self.assertEqual_block(block_r, result.block_that)
-
-    def test_decoding_full_block_wrong_size(self):
-        """
-        Test encoding of a signed message
-        """
-        # Arrange
-        meta = self.community.get_meta_message(FULL_BLOCK)
-        block_l = TestBlock()
-        block_r = TestBlock()
-
-        message = meta.impl(distribution=(self.community.claim_global_time(),),
-                            payload=(block_l, block_r))
-        # Act
-        encoded_message = self.converter._encode_full_block(message)[0]
-        # Act & Assert
-        with self.assertRaises(DropPacket):
-            # Remove a bit of message.
-            self.converter._decode_full_block(TestPlaceholder(meta), 0, encoded_message[:-10])[1]
 
     def test_encoding_decoding_crawl_request(self):
         """
@@ -153,21 +115,6 @@ class TestConversion(MultiChainTestCase):
             # Remove a bit of message.
             result = self.converter._decode_crawl_request(TestPlaceholder(meta), 0, encoded_message[:-10])[1]
 
-    def test_encoding_decoding_crawl_request_empty(self):
-        """
-        Test if a requester can send a crawl request message without specifying the sequence number.
-        """
-        # Arrange
-        meta = self.community.get_meta_message(CRAWL)
-        message = meta.impl(distribution=(self.community.claim_global_time(),),
-                            payload=())
-        # Act
-        encoded_message = self.converter._encode_crawl_request(message)[0]
-
-        result = self.converter._decode_crawl_request(TestPlaceholder(meta), 0, encoded_message)[1]
-        # Assert
-        self.assertEqual(-1, result.requested_sequence_number)
-
 
 class TestPlaceholder:
     def __init__(self, meta):
@@ -195,14 +142,6 @@ class TestCommunity(Community):
 
     def initiate_meta_messages(self):
         return super(TestCommunity, self).initiate_meta_messages() + [
-            Message(self, SIGNED,
-                    NoAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    HalfBlockPayload(),
-                    lambda: None,
-                    lambda: None),
             Message(self, HALF_BLOCK,
                     NoAuthentication(),
                     PublicResolution(),
@@ -211,28 +150,12 @@ class TestCommunity(Community):
                     HalfBlockPayload(),
                     lambda: None,
                     lambda: None),
-            Message(self, FULL_BLOCK,
-                    NoAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    FullBlockPayload(),
-                    lambda: None,
-                    lambda: None),
             Message(self, CRAWL,
                     NoAuthentication(),
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
                     CrawlRequestPayload(),
-                    lambda: None,
-                    lambda: None),
-            Message(self, RESUME,
-                    NoAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    CrawlResumePayload(),
                     lambda: None,
                     lambda: None)]
 

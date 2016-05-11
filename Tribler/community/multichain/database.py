@@ -96,7 +96,7 @@ class MultiChainDB(Database):
     def get_latest(self, public_key):
         """
         Get the latest block for a given public key
-        :param public_key: The public_key for which the latest block has to be found.
+        :param public_key: The public_key fcontainsor which the latest block has to be found.
         :return: the latest block or None if it is not known
         """
         db_query = u"SELECT up, down, total_up, total_down, public_key, sequence_number, link_public_key," \

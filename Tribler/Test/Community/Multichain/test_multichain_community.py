@@ -8,17 +8,17 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Session import Session
 
-from Tribler.community.multichain.community import (MultiChainCommunity, MultiChainCommunityCrawler, SIGNED, HALF_BLOCK,
-                                                    FULL_BLOCK, CRAWL, RESUME)
+from Tribler.Test.Community.Multichain.test_multichain_utilities import MultiChainTestCase
+
+from Tribler.community.multichain.community import MultiChainCommunity, MultiChainCommunityCrawler, HALF_BLOCK, CRAWL
 from Tribler.community.multichain.block import MultiChainBlock, GENESIS_SEQ
 
 from Tribler.community.tunnel.routing import Circuit, RelayRoute
 from Tribler.community.tunnel.tunnel_community import TunnelExitSocket
 from Tribler.Test.test_as_server import AbstractServer
 
-from Tribler.Test.test_multichain_utilities import MultiChainTestCase
-
 from Tribler.dispersy.message import DelayPacketByMissingMember
+
 from Tribler.dispersy.tests.dispersytestclass import DispersyTestFunc
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.dispersy.tests.debugcommunity.node import DebugNode
@@ -72,14 +72,14 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         # Since there is a tie breaker for requests, exactly one of the nodes should send a signature request
         failures = 0
         try:
-            _, signature_request = other.receive_message(names=[SIGNED]).next()
+            _, signature_request = other.receive_message(names=[HALF_BLOCK]).next()
             other.give_message(signature_request, node)
             _, signature_response = node.receive_message(names=[HALF_BLOCK]).next()
             node.give_message(signature_response, node)
         except StopIteration:
             failures += 1
         try:
-            _, signature_request = node.receive_message(names=[SIGNED]).next()
+            _, signature_request = node.receive_message(names=[HALF_BLOCK]).next()
             node.give_message(signature_request, other)
             _, signature_response = other.receive_message(names=[HALF_BLOCK]).next()
             other.give_message(signature_response, other)
@@ -111,14 +111,14 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         # Since there is a tie breaker for requests, exactly one of the nodes should send a signature request
         failures = 0
         try:
-            _, signature_request = other.receive_message(names=[SIGNED]).next()
+            _, signature_request = other.receive_message(names=[HALF_BLOCK]).next()
             other.give_message(signature_request, node)
             _, signature_response = node.receive_message(names=[HALF_BLOCK]).next()
             node.give_message(signature_response, node)
         except StopIteration:
             failures += 1
         try:
-            _, signature_request = node.receive_message(names=[SIGNED]).next()
+            _, signature_request = node.receive_message(names=[HALF_BLOCK]).next()
             node.give_message(signature_request, other)
             _, signature_response = other.receive_message(names=[HALF_BLOCK]).next()
             other.give_message(signature_response, other)
@@ -151,14 +151,14 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         # Since there is a tie breaker for requests, exactly one of the nodes should send a signature request
         failures = 0
         try:
-            _, signature_request = other.receive_message(names=[SIGNED]).next()
+            _, signature_request = other.receive_message(names=[HALF_BLOCK]).next()
             other.give_message(signature_request, node)
             _, signature_response = node.receive_message(names=[HALF_BLOCK]).next()
             node.give_message(signature_response, node)
         except StopIteration:
             failures += 1
         try:
-            _, signature_request = node.receive_message(names=[SIGNED]).next()
+            _, signature_request = node.receive_message(names=[HALF_BLOCK]).next()
             node.give_message(signature_request, other)
             _, signature_response = other.receive_message(names=[HALF_BLOCK]).next()
             other.give_message(signature_response, other)
@@ -184,7 +184,7 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         # Act
         node.call(node.community.sign_block, target_other, 5, 5)
         # Assert
-        _, message = other.receive_message(names=[SIGNED]).next()
+        _, message = other.receive_message(names=[HALF_BLOCK]).next()
         self.assertTrue(message)
 
     def test_sign_block_missing_member(self):
@@ -224,7 +224,7 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         # Assert: Block should now be in the database of the node as halfsigned
         node.call(node.community.persistence.get_latest, node.community.my_member.public_key)
         # Ignore source, as it is a Candidate. We need to use DebugNodes in test.
-        _, signature_request = other.receive_message(names=[SIGNED]).next()
+        _, signature_request = other.receive_message(names=[HALF_BLOCK]).next()
         # Act
         other.give_message(signature_request, node)
         # Return the response.
@@ -254,13 +254,13 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         target_other = self._create_target(node, other)
         node.call(node.community.sign_block, target_other, 10, 5)
         # Ignore source, as it is a Candidate. We need to use DebugNodes in test.
-        _, signature_request = other.receive_message(names=[SIGNED]).next()
+        _, signature_request = other.receive_message(names=[HALF_BLOCK]).next()
         # Act
         # construct faked block
         block = signature_request.payload.block
         block.up += 10
         block.total_up = block.up
-        signature_request = node.community.get_meta_message(SIGNED).impl(
+        signature_request = node.community.get_meta_message(HALF_BLOCK).impl(
                     authentication=(node.community.my_member,),
                     distribution=(node.community.claim_global_time(),),
                     destination=(target_other,),
@@ -287,7 +287,7 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
 
         node.call(node.community.sign_block, target_other, 10, 5)
         # Ignore source, as it is a Candidate. We need to use DebugNodes in test.
-        _, signature_request = other.receive_message(names=[SIGNED]).next()
+        _, signature_request = other.receive_message(names=[HALF_BLOCK]).next()
         # Act
         other.give_message(signature_request, node)
         # Return the response.
@@ -332,7 +332,7 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
 
         node.call(node.community.sign_block, target_other_from_node, 5, 5)
         # Create a block
-        _, signature_request = other.receive_message(names=[SIGNED]).next()
+        _, signature_request = other.receive_message(names=[HALF_BLOCK]).next()
         other.give_message(signature_request, node)
         _, signature_response = node.receive_message(names=[HALF_BLOCK]).next()
         node.give_message(signature_response, node)
@@ -340,7 +340,9 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         crawler.call(crawler.community.send_crawl_request, target_other_from_crawler)
         _, block_request = other.receive_message(names=[CRAWL]).next()
         other.give_message(block_request, crawler)
-        _, block_response = crawler.receive_message(names=[FULL_BLOCK]).next()
+        _, block_response = crawler.receive_message(names=[HALF_BLOCK]).next()
+        crawler.give_message(block_response, other)
+        _, block_response = crawler.receive_message(names=[HALF_BLOCK]).next()
         crawler.give_message(block_response, other)
         # Assert
         self.assertBlocksInDatabase(node, 2)
@@ -362,7 +364,7 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
 
         node.call(node.community.sign_block, target_other_from_node, 5, 5)
         # Create a block
-        _, signature_request = other.receive_message(names=[SIGNED]).next()
+        _, signature_request = other.receive_message(names=[HALF_BLOCK]).next()
         other.give_message(signature_request, node)
 
         # Act
@@ -390,7 +392,7 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         target_other_from_crawler = self._create_target(crawler, other)
         node.call(node.community.sign_block, target_other_from_node, 5, 5)
         # Create a block
-        _, signature_request = other.receive_message(names=[SIGNED]).next()
+        _, signature_request = other.receive_message(names=[HALF_BLOCK]).next()
         other.give_message(signature_request, node)
         _, signature_response = node.receive_message(names=[HALF_BLOCK]).next()
         node.give_message(signature_response, node)
@@ -398,7 +400,9 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         crawler.call(crawler.community.send_crawl_request, target_other_from_crawler, GENESIS_SEQ)
         _, block_request = other.receive_message(names=[CRAWL]).next()
         other.give_message(block_request, crawler)
-        _, block_response = crawler.receive_message(names=[FULL_BLOCK]).next()
+        _, block_response = crawler.receive_message(names=[HALF_BLOCK]).next()
+        crawler.give_message(block_response, other)
+        _, block_response = crawler.receive_message(names=[HALF_BLOCK]).next()
         crawler.give_message(block_response, other)
         # Assert
         self.assertBlocksInDatabase(node, 2)
@@ -420,7 +424,7 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
 
         with self.assertRaises(ValueError):
             "No signature responses should have been sent"
-            _, block_responses = crawler.receive_message(names=[FULL_BLOCK, HALF_BLOCK])
+            _, block_responses = crawler.receive_message(names=[HALF_BLOCK])
 
     def test_crawl_block_known(self):
         """
@@ -437,7 +441,7 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         target_node_from_crawler = self._create_target(crawler, node)
         node.call(node.community.sign_block, target_other_from_node, 5, 5)
         # Create a block
-        _, signature_request = other.receive_message(names=[SIGNED]).next()
+        _, signature_request = other.receive_message(names=[HALF_BLOCK]).next()
         other.give_message(signature_request, node)
         _, signature_response = node.receive_message(names=[HALF_BLOCK]).next()
         node.give_message(signature_response, node)
@@ -445,7 +449,9 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         crawler.call(crawler.community.send_crawl_request, target_other_from_crawler)
         _, block_request = other.receive_message(names=[CRAWL]).next()
         other.give_message(block_request, crawler)
-        _, block_response = crawler.receive_message(names=[FULL_BLOCK]).next()
+        _, block_response = crawler.receive_message(names=[HALF_BLOCK]).next()
+        crawler.give_message(block_response, other)
+        _, block_response = crawler.receive_message(names=[HALF_BLOCK]).next()
         crawler.give_message(block_response, other)
 
         # Act
@@ -453,7 +459,9 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         crawler.call(crawler.community.send_crawl_request, target_node_from_crawler)
         _, block_request = node.receive_message(names=[CRAWL]).next()
         node.give_message(block_request, crawler)
-        _, block_response = crawler.receive_message(names=[FULL_BLOCK]).next()
+        _, block_response = crawler.receive_message(names=[HALF_BLOCK]).next()
+        crawler.give_message(block_response, node)
+        _, block_response = crawler.receive_message(names=[HALF_BLOCK]).next()
         crawler.give_message(block_response, node)
         # Assert
         self.assertBlocksInDatabase(node, 2)
@@ -475,12 +483,12 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
 
         # Create blocks
         node.call(node.community.sign_block, target_other_from_node, 5, 5)
-        _, signature_request = other.receive_message(names=[SIGNED]).next()
+        _, signature_request = other.receive_message(names=[HALF_BLOCK]).next()
         other.give_message(signature_request, node)
         _, signature_response = node.receive_message(names=[HALF_BLOCK]).next()
         node.give_message(signature_response, node)
         node.call(node.community.sign_block, target_other_from_node, 5, 5)
-        _, signature_request = other.receive_message(names=[SIGNED]).next()
+        _, signature_request = other.receive_message(names=[HALF_BLOCK]).next()
         other.give_message(signature_request, node)
         _, signature_response = node.receive_message(names=[HALF_BLOCK]).next()
         node.give_message(signature_response, node)
@@ -490,14 +498,9 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         crawler.call(crawler.community.send_crawl_request, target_node_from_crawler)
         _, block_request = node.receive_message(names=[CRAWL]).next()
         node.give_message(block_request, crawler)
-        for _, block_response in crawler.receive_message(names=[FULL_BLOCK, RESUME]):
+        for _, block_response in crawler.receive_message(names=[HALF_BLOCK]):
             crawler.give_message(block_response, node)
             print "Got another block, %s" % block_response
-
-        _, block_request = node.receive_message(names=[CRAWL]).next()
-        node.give_message(block_request, crawler)
-        _, block_response = crawler.receive_message(names=[FULL_BLOCK]).next()
-        crawler.give_message(block_response, node)
 
         # Assert
         self.assertBlocksInDatabase(node, 4)
@@ -528,6 +531,7 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         ] = intro_request_info
 
         counter = [0]
+
         def replacement(cand):
             counter[0] += 1
         crawler._community.send_crawl_request = replacement
@@ -564,7 +568,8 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
 
     @blocking_call_on_reactor_thread
     def assertBlocksInDatabase(self, node, amount):
-        assert node.community.persistence.execute(u"SELECT COUNT(*) FROM multi_chain").fetchone()[0] == amount
+        count = node.community.persistence.execute(u"SELECT COUNT(*) FROM multi_chain").fetchone()[0]
+        assert count == amount, "Wrong number of blocks in database, was {0} but expected {1}".format(count, amount)
 
     @blocking_call_on_reactor_thread
     def assertBlocksAreEqual(self, node, other):
