@@ -112,18 +112,25 @@ public class Home extends AppCompatActivity {
         setContentView(R.layout.activity_home);
 
         // Set list layout
-        RecyclerView mRecyclerView = (RecyclerView) findViewById(R.id.content_list);
-        mRecyclerView.setHasFixedSize(true);
-        RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(this);
-        mRecyclerView.setLayoutManager(mLayoutManager);
+        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.content_list);
+        recyclerView.setHasFixedSize(true);
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(layoutManager);
 
         // Set list adapter
-        mAdapter = new TriblerViewAdapter(new ArrayList<Object>());
-        mRecyclerView.setAdapter(mAdapter);
+        List<Object> list = new ArrayList<Object>();
+        mAdapter = new TriblerViewAdapter(list);
+        recyclerView.setAdapter(mAdapter);
+
+        // Click list item
+        TriblerViewClickListener.OnItemClickListener onClick = new HomeClickCallback(mAdapter);
+        RecyclerView.SimpleOnItemTouchListener touchListener = new TriblerViewClickListener(this, onClick);
+        recyclerView.addOnItemTouchListener(touchListener);
 
         // Swipe list item
-        ItemTouchHelper mItemTouchHelper = new ItemTouchHelper(new HomeSwipeCallback(mAdapter));
-        mItemTouchHelper.attachToRecyclerView(mRecyclerView);
+        ItemTouchHelper.SimpleCallback onSwipe = new HomeSwipeCallback(mAdapter);
+        ItemTouchHelper touchHelper = new ItemTouchHelper(onSwipe);
+        touchHelper.attachToRecyclerView(recyclerView);
     }
 
     private void initBeam() {

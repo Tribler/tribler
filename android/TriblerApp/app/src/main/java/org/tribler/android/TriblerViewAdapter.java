@@ -98,24 +98,12 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         if (viewType == VIEW_TYPE_CHANNEL) {
             View channelView = LayoutInflater.from(parent.getContext())
                     .inflate(R.layout.list_item_channel, parent, false);
-            channelView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    //TODO: open channel
-                }
-            });
             return new ChannelViewHolder(channelView);
         }
         // Create new torrent view
         else if (viewType == VIEW_TYPE_TORRENT) {
             View torrentView = LayoutInflater.from(parent.getContext())
                     .inflate(R.layout.list_item_torrent, parent, false);
-            torrentView.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    //TODO: play video
-                }
-            });
             return new TorrentViewHolder(torrentView);
         }
         // Unknown view type
