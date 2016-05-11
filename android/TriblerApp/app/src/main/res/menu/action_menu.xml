@@ -12,9 +12,14 @@
         app:showAsAction="collapseActionView|always" />
 
     <item
-        android:id="@+id/btn_videocam"
+        android:id="@+id/btn_record"
         android:icon="@drawable/ic_videocam_36dp"
         android:title="@string/camera_hint"
-        app:showAsAction="collapseActionView|always" />
+        app:showAsAction="collapseActionView|ifRoom" />
 
+    <item
+        android:id="@+id/btn_upload"
+        android:icon="@drawable/ic_cloud_upload_36dp"
+        android:title="@string/upload_hint"
+        app:showAsAction="collapseActionView|ifRoom" />
 </menu>

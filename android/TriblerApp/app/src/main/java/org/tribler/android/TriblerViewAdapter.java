@@ -25,6 +25,13 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     /**
+     * @param list The new data set to replace the current one
+     */
+    public void setList(List<Object> list) {
+        mList = list;
+    }
+
+    /**
      * @return The list being displayed
      */
     public List<Object> getList() {
