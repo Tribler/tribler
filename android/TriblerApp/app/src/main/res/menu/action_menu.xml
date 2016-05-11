@@ -6,14 +6,14 @@
 
     <item
         android:id="@+id/btn_search"
-        android:icon="@android:drawable/ic_menu_search"
+        android:icon="@drawable/ic_search_36dp"
         android:title="@string/search_hint"
         app:actionViewClass="android.support.v7.widget.SearchView"
         app:showAsAction="collapseActionView|always" />
 
     <item
-        android:id="@+id/btn_camera"
-        android:icon="@android:drawable/ic_menu_camera"
+        android:id="@+id/btn_videocam"
+        android:icon="@drawable/ic_videocam_36dp"
         android:title="@string/camera_hint"
         app:showAsAction="collapseActionView|always" />
 

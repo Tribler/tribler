@@ -56,9 +56,9 @@ public class Home extends AppCompatActivity {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.action_menu, menu);
 
-        // Camera button
-        final MenuItem btn_camera = (MenuItem) menu.findItem(R.id.btn_camera);
-        btn_camera.setOnMenuItemClickListener(
+        // Video camera button
+        final MenuItem btn_videocam = (MenuItem) menu.findItem(R.id.btn_videocam);
+        btn_videocam.setOnMenuItemClickListener(
                 new MenuItem.OnMenuItemClickListener() {
                     @Override
                     public boolean onMenuItemClick(MenuItem menuItem) {
@@ -89,12 +89,12 @@ public class Home extends AppCompatActivity {
         searchView.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
             @Override
             public void onViewAttachedToWindow(View view) {
-                btn_camera.setVisible(false);
+                btn_videocam.setVisible(false);
             }
 
             @Override
             public void onViewDetachedFromWindow(View view) {
-                btn_camera.setVisible(true);
+                btn_videocam.setVisible(true);
             }
         });
 
