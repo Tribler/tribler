@@ -13,23 +13,30 @@ import java.util.List;
 /**
  * Creates visual representation for channels and torrents in a list
  */
-public class MyViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private static final int VIEW_TYPE_UNKNOWN = 0;
     private static final int VIEW_TYPE_CHANNEL = 1;
     private static final int VIEW_TYPE_TORRENT = 2;
 
     private List<Object> mList;
 
-    public MyViewAdapter(List<Object> mList) {
-        this.mList = mList;
+    public TriblerViewAdapter(List<Object> list) {
+        mList = list;
     }
 
     /**
-     * @param position The position in the adapter list
+     * @return The list being displayed
+     */
+    public List<Object> getList() {
+        return mList;
+    }
+
+    /**
+     * @param adapterPosition The position in the adapter list
      * @return The item on the given adapter position
      */
-    public Object getItem(int position) {
-        return mList.get(position);
+    public Object getItem(int adapterPosition) {
+        return mList.get(adapterPosition);
     }
 
     @Override
@@ -42,11 +49,11 @@ public class MyViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
 
     @Override
     /**
-     * @param position  The position in the adapter list
+     * @param adapterPosition   The position in the adapter list
      * @return VIEW_TYPE_CHANNEL | VIEW_TYPE_TORRENT | VIEW_TYPE_UNKNOWN based on class type
      */
-    public int getItemViewType(int position) {
-        Object item = mList.get(position);
+    public int getItemViewType(int adapterPosition) {
+        Object item = getItem(adapterPosition);
         if (item instanceof TriblerChannel) {
             return VIEW_TYPE_CHANNEL;
         } else if (item instanceof TriblerTorrent) {
@@ -91,12 +98,24 @@ public class MyViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         if (viewType == VIEW_TYPE_CHANNEL) {
             View channelView = LayoutInflater.from(parent.getContext())
                     .inflate(R.layout.list_item_channel, parent, false);
+            channelView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    //TODO: open channel
+                }
+            });
             return new ChannelViewHolder(channelView);
         }
         // Create new torrent view
         else if (viewType == VIEW_TYPE_TORRENT) {
             View torrentView = LayoutInflater.from(parent.getContext())
                     .inflate(R.layout.list_item_torrent, parent, false);
+            torrentView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    //TODO: play video
+                }
+            });
             return new TorrentViewHolder(torrentView);
         }
         // Unknown view type
@@ -115,7 +134,7 @@ public class MyViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         // Channel
         if (holder instanceof ChannelViewHolder) {
             ChannelViewHolder view = (ChannelViewHolder) holder;
-            TriblerChannel channel = (TriblerChannel) mList.get(position);
+            TriblerChannel channel = (TriblerChannel) getItem(position);
             view.name.setText(channel.getName());
             view.torrentsCount.setText(String.valueOf(channel.getTorrentsCount()));
             view.commentsCount.setText(String.valueOf(channel.getCommentsCount()));
@@ -124,7 +143,7 @@ public class MyViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         // Torrent
         else if (holder instanceof TorrentViewHolder) {
             TorrentViewHolder view = (TorrentViewHolder) holder;
-            TriblerTorrent torrent = (TriblerTorrent) mList.get(position);
+            TriblerTorrent torrent = (TriblerTorrent) getItem(position);
             view.title.setText(torrent.getTitle());
             view.duration.setText(String.valueOf(torrent.getDuration()));
             view.bitrate.setText(String.valueOf(torrent.getBitrate()));
