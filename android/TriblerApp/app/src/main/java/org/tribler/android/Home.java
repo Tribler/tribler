@@ -9,11 +9,12 @@ import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.support.v7.widget.SearchView;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
-import android.widget.SearchView;
+import android.view.View;
 
 import com.google.gson.Gson;
 
@@ -79,7 +80,7 @@ public class Home extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        ServiceTriblerd.start(this, "");
+        //ServiceTriblerd.start(this, "");
 
         initGui();
         initBeam();
@@ -101,18 +102,51 @@ public class Home extends AppCompatActivity {
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the options menu from XML
+    public boolean onCreateOptionsMenu(final Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.action_menu, menu);
 
-        // Get the SearchView and set the searchable configuration
-        SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-        SearchView searchView = (SearchView) menu.findItem(R.id.action_search).getActionView();
+        // Camera button
+        final MenuItem btn_camera = (MenuItem) menu.findItem(R.id.btn_camera);
+        btn_camera.setOnMenuItemClickListener(
+                new MenuItem.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem menuItem) {
+                        //TODO
+                        return false;
+                    }
+                }
+        );
 
-        // Assumes current activity is the searchable activity
+        // Search button
+        final MenuItem btn_search = (MenuItem) menu.findItem(R.id.btn_search);
+        final SearchView searchView = (SearchView) btn_search.getActionView();
+        SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
-        searchView.setIconifiedByDefault(false); // Do not iconify the widget; expand it by default
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                searchView.clearFocus();
+                doMySearch(query);
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                return false;
+            }
+        });
+        searchView.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override
+            public void onViewAttachedToWindow(View view) {
+                btn_camera.setVisible(false);
+            }
+
+            @Override
+            public void onViewDetachedFromWindow(View view) {
+                btn_camera.setVisible(true);
+            }
+        });
 
         return true;
     }
@@ -128,14 +162,12 @@ public class Home extends AppCompatActivity {
         setContentView(R.layout.activity_home);
 
         RecyclerView mRecyclerView = (RecyclerView) findViewById(R.id.content_list);
-        // Improve performance since change in content does not change the layout size
         mRecyclerView.setHasFixedSize(true);
 
         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(this);
         mRecyclerView.setLayoutManager(mLayoutManager);
 
         mList = new ArrayList<Object>();
-
         mAdapter = new MyViewAdapter(mList);
         mRecyclerView.setAdapter(mAdapter);
 
