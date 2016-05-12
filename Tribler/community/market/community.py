@@ -55,11 +55,11 @@ class MarketCommunity(Community):
         self.pubkey = self.my_member.mid.encode("HEX")
         self.pubkey_register = {}
 
-        self.order_repository = MemoryOrderRepository(self.pubkey)
-        self.message_repository = MemoryMessageRepository(self.pubkey)
-        self.portfolio = Portfolio(self.order_repository)
-        self.order_book = OrderBook(self.message_repository)
-        self.matching_engine = MatchingEngine(PriceTimeStrategy(self.order_book, self.message_repository))
+        order_repository = MemoryOrderRepository(self.pubkey)
+        message_repository = MemoryMessageRepository(self.pubkey)
+        self.portfolio = Portfolio(order_repository)
+        self.order_book = OrderBook(message_repository)
+        self.matching_engine = MatchingEngine(PriceTimeStrategy(self.order_book))
 
     def initiate_meta_messages(self):
         return super(MarketCommunity, self).initiate_meta_messages() + [
@@ -321,14 +321,14 @@ class MarketCommunity(Community):
             if str(proposed_trade.recipient_message_id.trader_id) == str(self.my_member.mid.encode("HEX")):
                 # Check if tick is still valid (send confirm and add to orderbook) : (send cancel)
                 if self.order_book.tick_exists(proposed_trade.recipient_message_id):
-                    accepted_trade = Trade.accept(self.message_repository.next_identity(), Timestamp.now(),
+                    accepted_trade = Trade.accept(self.order_book.message_repository.next_identity(), Timestamp.now(),
                                                   proposed_trade)
                     self.order_book.insert_trade(accepted_trade)
                     self.order_book.remove_tick(proposed_trade.recipient_message_id)
                     self.order_book.remove_tick(proposed_trade.sender_message_id)
                     self.send_accepted_trade(accepted_trade)
                 else:
-                    declined_trade = Trade.decline(self.message_repository.next_identity(), Timestamp.now(),
+                    declined_trade = Trade.decline(self.order_book.message_repository.next_identity(), Timestamp.now(),
                                                    proposed_trade)
                     self.send_declined_trade(declined_trade)
 

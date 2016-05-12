@@ -21,7 +21,7 @@ class OrderBook(object):
 
         assert isinstance(message_repository, MessageRepository), type(message_repository)
 
-        self._message_repository = message_repository
+        self.message_repository = message_repository
         self._trades = deque(maxlen=100)  # List of trades with a limit of 100
         self._bids = Side()
         self._asks = Side()
@@ -54,7 +54,7 @@ class OrderBook(object):
         :type timeout: Timeout
         :type timestamp: Timestamp
         """
-        ask = Ask.create(self._message_repository.next_identity(), price, quantity, timeout, timestamp)
+        ask = Ask.create(self.message_repository.next_identity(), price, quantity, timeout, timestamp)
         self.insert_ask(ask)
         return ask
 
@@ -97,7 +97,7 @@ class OrderBook(object):
         :type timeout: Timeout
         :type timestamp: Timestamp
         """
-        bid = Bid.create(self._message_repository.next_identity(), price, quantity, timeout, timestamp)
+        bid = Bid.create(self.message_repository.next_identity(), price, quantity, timeout, timestamp)
         self.insert_bid(bid)
         return bid
 
