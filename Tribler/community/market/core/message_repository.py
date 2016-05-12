@@ -1,4 +1,4 @@
-from Tribler.community.market.core.tick import MessageId, TraderId, MessageNumber
+from tick import TraderId, MessageNumber, MessageId
 
 
 class MessageRepository(object):

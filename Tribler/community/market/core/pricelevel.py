@@ -1,4 +1,4 @@
-from Tribler.community.market.core.tick import Quantity
+from tick import Quantity
 from tickentry import TickEntry
 
 

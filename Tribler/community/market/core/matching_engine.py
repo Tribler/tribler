@@ -1,8 +1,13 @@
-from Tribler.community.market.core.message_repository import MessageRepository
+from message_repository import MessageRepository
+from order import Order
 from orderbook import OrderBook
+from price import Price
 from pricelevel import PriceLevel
-from tick import Tick, Trade, Timestamp, Quantity, Price, Order
+from quantity import Quantity
+from tick import Tick
 from tickentry import TickEntry
+from timestamp import Timestamp
+from trade import Trade
 
 
 class MatchingStrategy(object):

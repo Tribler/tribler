@@ -1,9 +1,13 @@
 import logging
 from collections import deque
 
-from Tribler.community.market.core.message_repository import MessageRepository
+from message import MessageId, Message
+from message_repository import MessageRepository
+from price import Price
 from side import Side
-from tick import MessageId, Ask, Bid, Timestamp, Message, Trade, Price, Tick
+from tick import Tick, Ask, Bid
+from timestamp import Timestamp
+from trade import Trade
 
 
 class OrderBook(object):

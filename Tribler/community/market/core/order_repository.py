@@ -1,6 +1,7 @@
 import logging
 
-from Tribler.community.market.core.tick import TraderId, OrderNumber, OrderId, Order
+from message import TraderId
+from order import OrderNumber, OrderId, Order
 
 
 class OrderRepository(object):

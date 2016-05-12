@@ -1,7 +1,11 @@
 import logging
 
-from Tribler.community.market.core.order_repository import OrderRepository
-from Tribler.community.market.core.tick import Price, Quantity, Timeout, Timestamp, OrderId, Order
+from order import OrderId, Order
+from order_repository import OrderRepository
+from price import Price
+from quantity import Quantity
+from timeout import Timeout
+from timestamp import Timestamp
 
 
 class Portfolio(object):

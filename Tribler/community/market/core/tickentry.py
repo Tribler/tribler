@@ -1,4 +1,5 @@
-from tick import Tick, Quantity
+from quantity import Quantity
+from tick import Tick
 
 
 class TickEntry(object):

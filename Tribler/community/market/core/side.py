@@ -1,7 +1,10 @@
 from bintrees import FastRBTree
 
+from message import MessageId
+from price import Price
 from pricelevel import PriceLevel
-from tick import Price, MessageId, Tick, Quantity
+from quantity import Quantity
+from tick import Tick
 from tickentry import TickEntry
 
 
