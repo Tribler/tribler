@@ -61,11 +61,12 @@ public class CaptureVideoCallback implements MenuItem.OnMenuItemClickListener {
             videoDir = new File(mActivity.getFilesDir(), Environment.DIRECTORY_MOVIES);
         }
         // Create the storage directory if it does not exist
-        if (!videoDir.exists()) {
-            if (!videoDir.mkdirs()) {
-                Log.e("Tribler", "failed to create directory");
-                return null;
-            }
+        if (!videoDir.exists() && !videoDir.mkdirs()) {
+            Log.e(getClass().getName(), "Failed to create directory");
+            return null;
+        } else if (!videoDir.isDirectory()) {
+            Log.e(getClass().getName(), "Not a directory");
+            return null;
         }
         // Create a media file name
         String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH_mm_ss").format(new Date());

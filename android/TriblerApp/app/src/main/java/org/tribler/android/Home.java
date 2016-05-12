@@ -32,10 +32,12 @@ public class Home extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_home);
 
         //ServiceTriblerd.start(this, "");
 
         initGui();
+        initCamera();
         initBeam();
 
         handleIntent(getIntent());
@@ -79,8 +81,7 @@ public class Home extends AppCompatActivity {
         // Record button
         final MenuItem btnRecord = (MenuItem) menu.findItem(R.id.btn_record);
         // Check if device has camera
-        if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
-            mCaptureVideoCallback = new CaptureVideoCallback(this);
+        if (mCaptureVideoCallback != null) {
             btnRecord.setOnMenuItemClickListener(mCaptureVideoCallback);
         } else {
             btnRecord.setEnabled(false).setVisible(false);
@@ -144,8 +145,6 @@ public class Home extends AppCompatActivity {
     }
 
     private void initGui() {
-        setContentView(R.layout.activity_home);
-
         // Set list layout
         RecyclerView recyclerView = (RecyclerView) findViewById(R.id.content_list);
         recyclerView.setHasFixedSize(true);
@@ -166,6 +165,13 @@ public class Home extends AppCompatActivity {
         ItemTouchHelper.SimpleCallback onSwipe = new HomeSwipeCallback(mAdapter);
         ItemTouchHelper touchHelper = new ItemTouchHelper(onSwipe);
         touchHelper.attachToRecyclerView(recyclerView);
+    }
+
+    private void initCamera() {
+        // Check if device has camera
+        if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
+            mCaptureVideoCallback = new CaptureVideoCallback(this);
+        }
     }
 
     private void initBeam() {
