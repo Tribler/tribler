@@ -25,9 +25,9 @@ public class Home extends AppCompatActivity {
     public static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 200;
 
     private TriblerViewAdapter mAdapter;
-    private SearchCallback mSearchCallback;
-    private CaptureVideoCallback mCaptureVideoCallback;
-    private BeamCallback mBeamCallback;
+    private SearchViewListener mSearchViewListener;
+    private CaptureVideoListener mCaptureVideoListener;
+    private NfcBeamListener mNfcBeamListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,7 +60,7 @@ public class Home extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE) {
-            mCaptureVideoCallback.onActivityResult(resultCode, data);
+            mCaptureVideoListener.onActivityResult(resultCode, data);
         }
     }
 
@@ -82,8 +82,8 @@ public class Home extends AppCompatActivity {
         // Record button
         final MenuItem btnRecord = (MenuItem) menu.findItem(R.id.btn_record);
         // Check if device has camera
-        if (mCaptureVideoCallback != null) {
-            btnRecord.setOnMenuItemClickListener(mCaptureVideoCallback);
+        if (mCaptureVideoListener != null) {
+            btnRecord.setOnMenuItemClickListener(mCaptureVideoListener);
         } else {
             btnRecord.setEnabled(false).setVisible(false);
         }
@@ -91,7 +91,7 @@ public class Home extends AppCompatActivity {
         // Search button
         final MenuItem btnSearch = (MenuItem) menu.findItem(R.id.btn_search);
         SearchView searchView = (SearchView) btnSearch.getActionView();
-        mSearchCallback.setSearchView(searchView);
+        mSearchViewListener.setSearchView(searchView);
         searchView.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
             private List<Object> mPrevList;
 
@@ -122,10 +122,6 @@ public class Home extends AppCompatActivity {
         return true;
     }
 
-    private void initSearch() {
-        mSearchCallback = new SearchCallback(this);
-    }
-
     private void initGui() {
         // Set list layout
         RecyclerView recyclerView = (RecyclerView) findViewById(R.id.content_list);
@@ -149,20 +145,24 @@ public class Home extends AppCompatActivity {
         touchHelper.attachToRecyclerView(recyclerView);
     }
 
+    private void initSearch() {
+        mSearchViewListener = new SearchViewListener(this);
+    }
+
     private void initCaptureVideo() {
         // Check if device has camera
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
-            mCaptureVideoCallback = new CaptureVideoCallback(this);
+            mCaptureVideoListener = new CaptureVideoListener(this);
         }
     }
 
     private void initBeam() {
         // Check if device has nfc
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC)) {
-            mBeamCallback = new BeamCallback(this);
+            mNfcBeamListener = new NfcBeamListener(this);
             // Send app apk with Android Beam from this activity
             File apk = new File(this.getPackageResourcePath());
-            mBeamCallback.addFile(apk);
+            mNfcBeamListener.addFile(apk);
         }
     }
 

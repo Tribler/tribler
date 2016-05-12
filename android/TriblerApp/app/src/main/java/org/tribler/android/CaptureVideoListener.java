@@ -12,12 +12,12 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class CaptureVideoCallback implements MenuItem.OnMenuItemClickListener {
+public class CaptureVideoListener implements MenuItem.OnMenuItemClickListener {
 
     private Activity mActivity;
     private Uri mVideoCaptureUri;
 
-    public CaptureVideoCallback(Activity activity) {
+    public CaptureVideoListener(Activity activity) {
         mActivity = activity;
     }
 

@@ -6,12 +6,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v7.widget.SearchView;
 
-public class SearchCallback implements SearchView.OnQueryTextListener {
+public class SearchViewListener implements SearchView.OnQueryTextListener {
 
     private Activity mActivity;
     private SearchView mSearchView;
 
-    public SearchCallback(Activity activity) {
+    public SearchViewListener(Activity activity) {
         mActivity = activity;
     }
 
