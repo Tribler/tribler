@@ -1,5 +1,3 @@
-import logging
-
 from Tribler.community.market.core.message_repository import MemoryMessageRepository
 from Tribler.community.market.core.order_repository import MemoryOrderRepository
 from Tribler.dispersy.candidate import Candidate
@@ -17,8 +15,6 @@ from ...dispersy.distribution import DirectDistribution
 from ...dispersy.message import Message, DelayMessageByProof
 from ...dispersy.resolution import PublicResolution
 
-logger = logging.getLogger(__name__)
-
 
 class MarketCommunity(Community):
     @classmethod
@@ -34,14 +30,16 @@ class MarketCommunity(Community):
         # Y0kGmJOV02aIjQCPQRmtDn9Fudq3+z14oAZcX3qGa3jLjlm5p9BIzA1lDFqGvf2r
         # tDQ5bSOUXRI5+I3kk1RnQkx8wCtleeRfY+4=
         # -----END PUBLIC KEY-----
-        master_key = "3081a7301006072a8648ce3d020106052b8104002703819200040159af0c0925034bba3b4ea26661828e09247236059c773dac29ac9fb84d50fa6bd8acc035127a6f5c11873915f9b9a460e116ecccccfc5db1b5d8ba86bd701886ea45d8dbbb634906989395d366888d008f4119ad0e7f45b9dab7fb3d78a0065c5f7a866b78cb8e59b9a7d048cc0d650c5a86bdfdabb434396d23945d1239f88de4935467424c7cc02b6579e45f63ee".decode(
-            "HEX")
+        master_key = "3081a7301006072a8648ce3d020106052b8104002703819200040159af0c0925034bba3b4ea26661828e09247236059" \
+                     "c773dac29ac9fb84d50fa6bd8acc035127a6f5c11873915f9b9a460e116ecccccfc5db1b5d8ba86bd701886ea45d8db" \
+                     "bb634906989395d366888d008f4119ad0e7f45b9dab7fb3d78a0065c5f7a866b78cb8e59b9a7d048cc0d650c5a86bdf" \
+                     "dabb434396d23945d1239f88de4935467424c7cc02b6579e45f63ee".decode("HEX")
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
     def initialize(self):
         super(MarketCommunity, self).initialize()
-        logger.info("Market community initialized")
+        self._logger.info("Market community initialized")
 
         self.portfolio = Portfolio(MemoryOrderRepository(self.my_member.mid.encode("HEX")))
         self.message_repository = MemoryMessageRepository(self.my_member.mid.encode("HEX"))
