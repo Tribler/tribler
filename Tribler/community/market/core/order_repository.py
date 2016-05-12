@@ -1,8 +1,19 @@
+import logging
+
 from Tribler.community.market.core.tick import TraderId, OrderNumber, OrderId, Order
 
 
 class OrderRepository(object):
-    """A repository for orders in the portfolio"""
+    """A repository interface for orders in the portfolio"""
+
+    def __init__(self):
+        """
+        Do not use this class directly
+
+        Make a subclass of this class with a specific implementation for a storage backend
+        """
+        super(OrderRepository, self).__init__()
+        self._logger = logging.getLogger(self.__class__.__name__)
 
     def find_all(self):
         """
@@ -70,11 +81,11 @@ class MemoryOrderRepository(OrderRepository):
         """
         super(MemoryOrderRepository, self).__init__()
 
+        self._logger.info("Memory order repository used")
+
         self._mid = mid
         self._next_id = 0  # Counter to keep track of the number of messages created by this repository
 
-        self._asks = {}
-        self._bids = {}
         self._orders = {}
 
     def find_all(self):
@@ -94,6 +105,9 @@ class MemoryOrderRepository(OrderRepository):
         :rtype: Order
         """
         assert isinstance(order_id, OrderId), type(order_id)
+
+        self._logger.debug("Order with the id: " + str(order_id) + " was searched for in the order repository")
+
         return self._orders.get(order_id)
 
     def add(self, order):
@@ -104,6 +118,9 @@ class MemoryOrderRepository(OrderRepository):
         :type order: Order
         """
         assert isinstance(order, Order), type(order)
+
+        self._logger.debug("Order with the id: " + str(order.order_id) + " was added to the order repository")
+
         self._orders[order.order_id] = order
 
     def update(self, order):
@@ -114,6 +131,9 @@ class MemoryOrderRepository(OrderRepository):
         :type order: Order
         """
         assert isinstance(order, Order), type(order)
+
+        self._logger.debug("Order with the id: " + str(order.order_id) + " was updated to the order repository")
+
         self._orders[order.order_id] = order
 
     def delete_by_id(self, order_id):
@@ -124,6 +144,9 @@ class MemoryOrderRepository(OrderRepository):
         :type order_id: OrderId
         """
         assert isinstance(order_id, OrderId), type(order_id)
+
+        self._logger.debug("Order with the id: " + str(order_id) + " was deleted from the order repository")
+
         del self._orders[order_id]
 
     def next_identity(self):
