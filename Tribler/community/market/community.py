@@ -17,6 +17,8 @@ from ...dispersy.resolution import PublicResolution
 
 
 class MarketCommunity(Community):
+    """Community for selling and buying multichain coins"""
+
     @classmethod
     def get_master_members(cls, dispersy):
         # generated: Tue Mar 22 23:29:40 2016
