@@ -2,11 +2,11 @@ package org.tribler.android;
 
 import android.view.View;
 
-public class HomeClickCallback implements TriblerViewClickListener.OnItemClickListener {
+public class HomeClickListener implements TriblerViewClickListener.OnItemClickListener {
 
     private TriblerViewAdapter mAdapter;
 
-    public HomeClickCallback(TriblerViewAdapter adapter) {
+    public HomeClickListener(TriblerViewAdapter adapter) {
         mAdapter = adapter;
     }
 

@@ -135,12 +135,12 @@ public class Home extends AppCompatActivity {
         recyclerView.setAdapter(mAdapter);
 
         // Click list item
-        TriblerViewClickListener.OnItemClickListener onClick = new HomeClickCallback(mAdapter);
+        TriblerViewClickListener.OnItemClickListener onClick = new HomeClickListener(mAdapter);
         RecyclerView.SimpleOnItemTouchListener touchListener = new TriblerViewClickListener(this, onClick);
         recyclerView.addOnItemTouchListener(touchListener);
 
         // Swipe list item
-        ItemTouchHelper.SimpleCallback onSwipe = new HomeSwipeCallback(mAdapter);
+        ItemTouchHelper.SimpleCallback onSwipe = new HomeSwipeListener(mAdapter);
         ItemTouchHelper touchHelper = new ItemTouchHelper(onSwipe);
         touchHelper.attachToRecyclerView(recyclerView);
     }
