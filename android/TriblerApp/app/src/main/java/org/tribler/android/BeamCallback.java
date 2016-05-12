@@ -9,12 +9,12 @@ import android.net.Uri;
 import android.nfc.NfcAdapter;
 import android.nfc.NfcEvent;
 
-public class MyBeamCallback implements NfcAdapter.CreateBeamUrisCallback {
+public class BeamCallback implements NfcAdapter.CreateBeamUrisCallback {
 
     private List<Uri> mOutbox;
     private NfcAdapter mNfcAdapter;
 
-    public MyBeamCallback(Activity activity) {
+    public BeamCallback(Activity activity) {
         mOutbox = new ArrayList<Uri>();
         mNfcAdapter = NfcAdapter.getDefaultAdapter(activity);
         mNfcAdapter.setBeamPushUrisCallback(this, activity);

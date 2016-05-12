@@ -1,7 +1,6 @@
 package org.tribler.android;
 
 import android.app.SearchManager;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.support.v7.app.AppCompatActivity;
@@ -26,8 +25,9 @@ public class Home extends AppCompatActivity {
     public static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 200;
 
     private TriblerViewAdapter mAdapter;
-    private MyBeamCallback mBeamCallback;
+    private SearchCallback mSearchCallback;
     private CaptureVideoCallback mCaptureVideoCallback;
+    private BeamCallback mBeamCallback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,7 +37,8 @@ public class Home extends AppCompatActivity {
         //ServiceTriblerd.start(this, "");
 
         initGui();
-        initCamera();
+        initSearch();
+        initCaptureVideo();
         initBeam();
 
         handleIntent(getIntent());
@@ -89,47 +90,31 @@ public class Home extends AppCompatActivity {
 
         // Search button
         final MenuItem btnSearch = (MenuItem) menu.findItem(R.id.btn_search);
-        final SearchView searchView = (SearchView) btnSearch.getActionView();
-        // Set searchable configuration
-        SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-        searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String query) {
-                searchView.clearFocus();
-                doMySearch(query);
-                return true;
-            }
-
-            @Override
-            public boolean onQueryTextChange(String newText) {
-                return false;
-            }
-        });
-        // Swap contents and search results lists
+        SearchView searchView = (SearchView) btnSearch.getActionView();
+        mSearchCallback.setSearchView(searchView);
         searchView.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
-
-            private List<Object> prevList;
+            private List<Object> mPrevList;
 
             @Override
             public void onViewAttachedToWindow(View view) {
-                // Hide buttons
+                // Hide other buttons
                 btnUpload.setVisible(false);
                 btnRecord.setVisible(false);
 
-                prevList = mAdapter.getList();
-                List<Object> searchResults = new ArrayList<Object>();
-                mAdapter.setList(searchResults);
+                // Stash current list
+                mPrevList = mAdapter.getList();
+                mAdapter.setList(new ArrayList<Object>());
                 // Notify adapter after first search result arrived
             }
 
             @Override
             public void onViewDetachedFromWindow(View view) {
-                // Show buttons
+                // Show other buttons
                 btnUpload.setVisible(btnUpload.isEnabled());
                 btnRecord.setVisible(btnRecord.isEnabled());
 
-                mAdapter.setList(prevList);
+                // Drop search results
+                mAdapter.setList(mPrevList);
                 mAdapter.notifyDataSetChanged();
             }
         });
@@ -137,11 +122,8 @@ public class Home extends AppCompatActivity {
         return true;
     }
 
-    private void doMySearch(String query) {
-        mAdapter.getList().clear();
-        mAdapter.notifyDataSetChanged();
-        //TODO
-        exampleData();
+    private void initSearch() {
+        mSearchCallback = new SearchCallback(this);
     }
 
     private void initGui() {
@@ -167,7 +149,7 @@ public class Home extends AppCompatActivity {
         touchHelper.attachToRecyclerView(recyclerView);
     }
 
-    private void initCamera() {
+    private void initCaptureVideo() {
         // Check if device has camera
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             mCaptureVideoCallback = new CaptureVideoCallback(this);
@@ -177,11 +159,17 @@ public class Home extends AppCompatActivity {
     private void initBeam() {
         // Check if device has nfc
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC)) {
-            mBeamCallback = new MyBeamCallback(this);
+            mBeamCallback = new BeamCallback(this);
             // Send app apk with Android Beam from this activity
             File apk = new File(this.getPackageResourcePath());
             mBeamCallback.addFile(apk);
         }
+    }
+
+    public void doMySearch(String query) {
+        exampleData();
+        //TODO
+        mAdapter.notifyDataSetChanged();
     }
 
     private void exampleData() {
@@ -209,8 +197,6 @@ public class Home extends AppCompatActivity {
         list.add(gson.fromJson("{name:'Ubuntu', commentsCount:132, torrentsCount:16}", TriblerChannel.class));
         list.add(gson.fromJson("{title:'Guardians of the Galaxy', genre:'Science Fiction & Fantasy', year:2014}", TriblerTorrent.class));
         list.add(gson.fromJson("{name:'Fedora', commentsCount:999, torrentsCount:8}", TriblerChannel.class));
-
-        mAdapter.notifyDataSetChanged();
     }
 
 }
