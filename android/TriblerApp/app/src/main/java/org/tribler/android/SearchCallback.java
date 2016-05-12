@@ -3,6 +3,7 @@ package org.tribler.android;
 import android.app.Activity;
 import android.app.SearchManager;
 import android.content.Context;
+import android.content.Intent;
 import android.support.v7.widget.SearchView;
 
 public class SearchCallback implements SearchView.OnQueryTextListener {
@@ -25,7 +26,9 @@ public class SearchCallback implements SearchView.OnQueryTextListener {
     @Override
     public boolean onQueryTextSubmit(String query) {
         mSearchView.clearFocus();
-        mActivity.doMySearch(query);
+        Intent intent = new Intent(Intent.ACTION_SEARCH, null, mActivity, Home.class);
+        intent.putExtra(SearchManager.QUERY, query);
+        mActivity.startActivity(intent);
         return true;
     }
 

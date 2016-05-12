@@ -166,15 +166,16 @@ public class Home extends AppCompatActivity {
         }
     }
 
-    public void doMySearch(String query) {
-        exampleData();
+    private void doMySearch(String query) {
         //TODO
+        List<Object> results = exampleData();
+        mAdapter.setList(results);
         mAdapter.notifyDataSetChanged();
     }
 
-    private void exampleData() {
+    private List<Object> exampleData() {
         Gson gson = new Gson();
-        List<Object> list = mAdapter.getList();
+        List<Object> list = new ArrayList<Object>();
 
         list.add(gson.fromJson("{title:'Mad Max: Fury Road', genre:'Action & Adventure', year:2015}", TriblerTorrent.class));
         list.add(gson.fromJson("{title:'Inside Out', genre:'Animation, Kids & Family', year:2015}", TriblerTorrent.class));
@@ -197,6 +198,8 @@ public class Home extends AppCompatActivity {
         list.add(gson.fromJson("{name:'Ubuntu', commentsCount:132, torrentsCount:16}", TriblerChannel.class));
         list.add(gson.fromJson("{title:'Guardians of the Galaxy', genre:'Science Fiction & Fantasy', year:2014}", TriblerTorrent.class));
         list.add(gson.fromJson("{name:'Fedora', commentsCount:999, torrentsCount:8}", TriblerChannel.class));
+
+        return list;
     }
 
 }
