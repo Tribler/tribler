@@ -70,7 +70,7 @@ class TestChannelDBHandler(AbstractDB):
         self.assertEqual(res[2][0], 8)
 
     def test_get_my_subscribed_channels(self):
-        res = self.cdb.getMySubscribedChannels(includeDispsersy=True)
+        res = self.cdb.getMySubscribedChannels(include_dispersy=True)
         self.assertEqual(len(res), 1)
         res = self.cdb.getMySubscribedChannels()
         self.assertEqual(len(res), 0)
