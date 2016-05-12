@@ -12,36 +12,31 @@ class DownloadsPage(QWidget):
     """
 
     def initialize_downloads_page(self):
-        self.downloads_tab = self.findChild(QWidget, "downloads_tab")
-        self.downloads_tab.initialize()
-        self.downloads_tab.clicked_tab_button.connect(self.on_downloads_tab_button_clicked)
+        self.window().downloads_tab.initialize()
+        self.window().downloads_tab.clicked_tab_button.connect(self.on_downloads_tab_button_clicked)
         self.download_widgets = {} # key: infohash, value: QTreeWidgetItem
         self.filter = DOWNLOADS_FILTER_ALL
 
-        self.start_download_button = self.findChild(QToolButton, "start_download_button")
-        self.start_download_button.clicked.connect(self.on_start_download_clicked)
-        self.stop_download_button = self.findChild(QToolButton, "stop_download_button")
-        self.stop_download_button.clicked.connect(self.on_stop_download_clicked)
-        self.remove_download_button = self.findChild(QToolButton, "remove_download_button")
-        self.remove_download_button.clicked.connect(self.on_remove_download_clicked)
+        self.window().start_download_button.clicked.connect(self.on_start_download_clicked)
+        self.window().stop_download_button.clicked.connect(self.on_stop_download_clicked)
+        self.window().remove_download_button.clicked.connect(self.on_remove_download_clicked)
 
-        self.downloads_list = self.findChild(QTreeWidget, "downloads_list")
-        self.downloads_list.itemSelectionChanged.connect(self.on_download_item_clicked)
+        self.window().downloads_list.itemSelectionChanged.connect(self.on_download_item_clicked)
 
     def received_download_status(self, downloads):
         for download in downloads:
             if download["infohash"] in self.download_widgets:
                 item = self.download_widgets[download["infohash"]]
             else:
-                item = DownloadWidgetItem(self.downloads_list)
+                item = DownloadWidgetItem(self.window().downloads_list)
                 self.download_widgets[download["infohash"]] = item
             item.updateWithDownload(download)
 
         self.update_download_visibility()
 
     def update_download_visibility(self):
-        for i in range(self.downloads_list.topLevelItemCount()):
-            item = self.downloads_list.topLevelItem(i)
+        for i in range(self.window().downloads_list.topLevelItemCount()):
+            item = self.window().downloads_list.topLevelItem(i)
             item.setHidden(not item.download_status_raw in DOWNLOADS_FILTER_DEFINITION[self.filter])
 
     def on_downloads_tab_button_clicked(self, button_name):
@@ -59,11 +54,11 @@ class DownloadsPage(QWidget):
         self.update_download_visibility()
 
     def on_download_item_clicked(self):
-        item = self.downloads_list.selectedItems()[0]
+        item = self.window().downloads_list.selectedItems()[0]
         status = item.download_status_raw
-        self.start_download_button.setEnabled(status == DLSTATUS_STOPPED)
-        self.stop_download_button.setEnabled(status != DLSTATUS_STOPPED and status != DLSTATUS_STOPPED_ON_ERROR)
-        self.remove_download_button.setEnabled(True)
+        self.window().start_download_button.setEnabled(status == DLSTATUS_STOPPED)
+        self.window().stop_download_button.setEnabled(status != DLSTATUS_STOPPED and status != DLSTATUS_STOPPED_ON_ERROR)
+        self.window().remove_download_button.setEnabled(True)
 
     def on_start_download_clicked(self):
         pass

@@ -18,8 +18,7 @@ class VideoPlayerFilesMenu(QWidget):
     def initialize_file_menu(self):
         self.request_manager = TriblerRequestManager()
         self.request_manager.received_download_details.connect(self.received_download_details)
-        self.file_list = self.findChild(QListWidget, 'video_player_files')
-        self.file_list.itemClicked.connect(self.on_file_item_click)
+        self.window().video_player_files.itemClicked.connect(self.on_file_item_click)
 
     def load_download_files(self, infohash):
         self.request_manager.get_download_details(infohash)
