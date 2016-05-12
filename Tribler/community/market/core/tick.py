@@ -3,6 +3,16 @@ import time
 from decimal import Decimal
 
 
+class LogicException(Exception):
+    """Used for throwing generic logic exceptions"""
+    pass
+
+
+class TickWasNotReserved(Exception):
+    """Used for throwing exception when a tick was not reserved"""
+    pass
+
+
 class TraderId(object):
     """Immutable class for representing the id of a trader."""
 
@@ -981,8 +991,6 @@ class Order(object):
         """
         Initialise the message
 
-        Don't use this class directly
-
         :param order_id: An order id to identify the order
         :param price: A price to indicate for which amount to sell or buy
         :param quantity: A quantity to indicate how much to sell or buy
@@ -1005,13 +1013,14 @@ class Order(object):
         assert isinstance(timestamp, Timestamp), type(timestamp)
         assert isinstance(is_ask, bool), type(is_ask)
 
-        self._messages = {}
         self._order_id = order_id
         self._price = price
         self._quantity = quantity
+        self._reserved_quantity = Quantity(0)
         self._timeout = timeout
         self._timestamp = timestamp
         self._is_ask = is_ask
+        self._reserved_ticks = {}
 
     @property
     def order_id(self):
@@ -1034,14 +1043,36 @@ class Order(object):
         return self._price
 
     @property
-    def quantity(self):
+    def total_quantity(self):
         """
-        Return the quantity of the order
+        Return the total quantity of the order
 
-        :return: The quantity
+        :return: The total quantity
         :rtype: Quantity
         """
         return self._quantity
+
+    @property
+    def available_quantity(self):
+        """
+        Return the available quantity of the order
+
+        The quantity that is not reserved
+
+        :return: The available quantity
+        :rtype: Quantity
+        """
+        return self._quantity - self._reserved_quantity
+
+    @property
+    def reserved_quantity(self):
+        """
+        Return the reserved quantity of the order
+
+        :return: The reserved quantity
+        :rtype: Quantity
+        """
+        return self._reserved_quantity
 
     @property
     def timeout(self):
@@ -1072,26 +1103,44 @@ class Order(object):
         """
         return self._is_ask
 
-    def get_messages(self):
+    def reserve_quantity_for_tick(self, tick):
         """
-        Return all the messages
+        Reserve quantity in the order for the tick provided
 
-        :return: The messages
-        :rtype: [Message]
+        :param tick: The tick from another peer that the quantity needs to be reserved for
+        :type tick: Tick
+        :return: True if the quantity was reserved, False otherwise
+        :rtype: bool
         """
-        return self._messages.values()
+        assert isinstance(tick, Tick), type(tick)
 
-    def get_message(self, message_id):
-        assert isinstance(message_id, MessageId), type(message_id)
-        return self._messages.get(message_id)
+        if self.available_quantity > tick.quantity:
+            if tick.message_id not in self._reserved_ticks:
+                self._reserved_quantity += tick.quantity
+                self._reserved_ticks[tick.message_id] = tick
+            return True
+        else:
+            return False
 
-    def add_message(self, message):
-        assert isinstance(message, Message), type(message)
-        self._messages[message.message_id] = message
+    def release_quantity_for_tick(self, tick):
+        """
+        Release quantity in the order for the tick provided
 
-    def remove_message(self, message_id):
-        assert isinstance(message_id, MessageId), type(message_id)
-        del self._messages[message_id]
+        :param tick: The tick from another peer that the quantity needs to be released for
+        :type tick: Tick
+        :raises LogicException: Thrown when something bad happened and the reserved quantity does not match up
+        :raises TickWasNotReserved: Thrown when the tick was not reserved first
+        """
+        assert isinstance(tick, Tick), type(tick)
+
+        if tick.message_id in self._reserved_ticks:
+            if self._reserved_quantity > tick.quantity:
+                self._reserved_quantity -= tick.quantity
+                del self._reserved_ticks[tick.message_id]
+            else:
+                raise LogicException()
+        else:
+            raise TickWasNotReserved()
 
 
 class Message(object):
