@@ -25,7 +25,7 @@ public class CaptureVideoCallback implements MenuItem.OnMenuItemClickListener {
     public boolean onMenuItemClick(MenuItem menuItem) {
         Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
         File file = getOutputVideoFile();
-        if (file == null) { // || !file.canWrite()
+        if (file == null) {
             Log.e("Tribler", "failed to obtain output file");
             //TODO: advise user
             return false;
@@ -52,13 +52,14 @@ public class CaptureVideoCallback implements MenuItem.OnMenuItemClickListener {
     /**
      * @return The file created for saving a video
      */
-    private static File getOutputVideoFile() {
-        //TODO: To be safe, you should check that the SDCard is mounted
-        // using Environment.getExternalStorageState() before doing this.
-
-        File videoDir = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_MOVIES).getAbsolutePath());
-
+    private File getOutputVideoFile() {
+        File videoDir;
+        if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+            videoDir = new File(Environment.getExternalStoragePublicDirectory(
+                    Environment.DIRECTORY_MOVIES).getAbsolutePath());
+        } else {
+            videoDir = new File(mActivity.getFilesDir(), Environment.DIRECTORY_MOVIES);
+        }
         // Create the storage directory if it does not exist
         if (!videoDir.exists()) {
             if (!videoDir.mkdirs()) {
@@ -66,9 +67,8 @@ public class CaptureVideoCallback implements MenuItem.OnMenuItemClickListener {
                 return null;
             }
         }
-
         // Create a media file name
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH_mm_ss").format(new Date());
         return new File(videoDir, "VID_" + timeStamp + ".mp4");
     }
 }
