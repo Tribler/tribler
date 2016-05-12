@@ -1,19 +1,24 @@
-from Tribler.community.market.core.message_repository import MemoryMessageRepository
-from Tribler.community.market.core.order_repository import MemoryOrderRepository
+from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.candidate import Candidate
+from Tribler.dispersy.community import Community
+from Tribler.dispersy.conversion import DefaultConversion
+from Tribler.dispersy.destination import CommunityDestination, CandidateDestination
+from Tribler.dispersy.distribution import DirectDistribution
+from Tribler.dispersy.message import Message, DelayMessageByProof
+from Tribler.dispersy.resolution import PublicResolution
+from core.message_repository import MemoryMessageRepository
+from core.order_repository import MemoryOrderRepository
+from core.price import Price
+from core.quantity import Quantity
+from core.timeout import Timeout
+from core.timestamp import Timestamp
+from core.trade import Trade, ProposedTrade, AcceptedTrade, DeclinedTrade
 from .conversion import MarketConversion
 from .core.matching_engine import MatchingEngine, PriceTimeStrategy
 from .core.orderbook import OrderBook
 from .core.portfolio import Portfolio
-from .core.tick import Ask, Timestamp, Bid, Trade, ProposedTrade, AcceptedTrade, DeclinedTrade
+from .core.tick import Ask, Bid
 from .payload import AskPayload, BidPayload, ProposedTradePayload, AcceptedTradePayload, DeclinedTradePayload
-from ...dispersy.authentication import MemberAuthentication
-from ...dispersy.community import Community
-from ...dispersy.conversion import DefaultConversion
-from ...dispersy.destination import CommunityDestination, CandidateDestination
-from ...dispersy.distribution import DirectDistribution
-from ...dispersy.message import Message, DelayMessageByProof
-from ...dispersy.resolution import PublicResolution
 
 
 class MarketCommunity(Community):
@@ -46,11 +51,15 @@ class MarketCommunity(Community):
         super(MarketCommunity, self).initialize()
         self._logger.info("Market community initialized")
 
-        self.portfolio = Portfolio(MemoryOrderRepository(self.my_member.mid.encode("HEX")))
-        self.message_repository = MemoryMessageRepository(self.my_member.mid.encode("HEX"))
+        # The public key of this node
+        self.pubkey = self.my_member.mid.encode("HEX")
+        self.pubkey_register = {}
+
+        self.order_repository = MemoryOrderRepository(self.pubkey)
+        self.message_repository = MemoryMessageRepository(self.pubkey)
+        self.portfolio = Portfolio(self.order_repository)
         self.order_book = OrderBook(self.message_repository)
         self.matching_engine = MatchingEngine(PriceTimeStrategy(self.order_book, self.message_repository))
-        self.pubkey_register = {}
 
     def initiate_meta_messages(self):
         return super(MarketCommunity, self).initiate_meta_messages() + [
@@ -108,27 +117,76 @@ class MarketCommunity(Community):
                 yield DelayMessageByProof(message)
 
     def check_ttl(self, message):
+        """
+        Check if the message has a ttl that is still alive and if so send the message on
+
+        :param message: The message for which the ttl needs to be checked
+        """
         message.payload.ttl -= 1  # Reduce the ttl by 1
 
         if message.payload.ttl > 0:  # Check if the message still has time to live
             self.dispersy.store_update_forward([message], True, True, True)
 
     def lookup_ip(self, pubkey):
+        """
+        Lookup the ip for the public key to send a message to a specific node
+
+        :param pubkey: The public key of the node to send to
+        :type pubkey: str
+        :return: The ip and port tuple: (<ip>, <port>)
+        :rtype: tuple
+        """
+        assert isinstance(pubkey, str), type(pubkey)
         return self.pubkey_register.get(pubkey)
 
     def update_ip(self, pubkey, ip):
+        """
+        Update the public key to ip mapping
+
+        :param pubkey: The public key of the node
+        :param ip: The ip and port of the node
+        :type pubkey: str
+        :type ip: tuple
+        """
+        assert isinstance(pubkey, str), type(pubkey)
+        assert isinstance(ip, tuple), type(ip)
+        assert isinstance(ip[0], str)
+        assert isinstance(ip[1], int)
+
         self.pubkey_register[pubkey] = ip
 
     # Ask
     def create_ask(self, price, quantity, timeout):
-        order = self.portfolio.create_ask_order(price, quantity, timeout)
+        """
+        Create an ask order (sell order)
+
+        :param price: The price for the order
+        :param quantity: The quantity of the order
+        :param timeout: The timeout of the order, when does the order need to be timed out
+        :type price: float
+        :type quantity: float
+        :type timeout: float
+        """
+        self._logger.debug("Ask created")
+
+        order = self.portfolio.create_ask_order(Price.from_float(price), Quantity.from_float(quantity),
+                                                Timeout(timeout))
         proposed_trades, active_ticks = self.matching_engine.match_order(order)
 
         self.send_ask_messages(active_ticks)
         self.send_proposed_trade_messages(proposed_trades)
 
     def send_ask(self, ask):
+        """
+        Send an ask message
+
+        :param ask: The message to send
+        :type ask: Ask
+        """
         assert isinstance(ask, Ask), type(ask)
+
+        self._logger.debug("Ask send with id: " + str(ask.message_id))
+
         destination, payload = ask.to_network()
 
         payload += (2,)  # Add ttl of 2
@@ -150,6 +208,8 @@ class MarketCommunity(Community):
         for message in messages:
             ask = Ask.from_network(message.payload)
 
+            self._logger.debug("Ask received with id: " + str(ask.message_id))
+
             self.update_ip(str(ask.message_id.trader_id), (message.payload.ip, message.payload.port))
 
             if not self.order_book.tick_exists(ask.message_id):
@@ -166,14 +226,36 @@ class MarketCommunity(Community):
 
     # Bid
     def create_bid(self, price, quantity, timeout):
-        order = self.portfolio.create_bid_order(price, quantity, timeout)
+        """
+        Create a bid order (buy order)
+
+        :param price: The price for the order
+        :param quantity: The quantity of the order
+        :param timeout: The timeout of the order, when does the order need to be timed out
+        :type price: float
+        :type quantity: float
+        :type timeout: float
+        """
+        self._logger.debug("Bid created")
+
+        order = self.portfolio.create_bid_order(Price.from_float(price), Quantity.from_float(quantity),
+                                                Timeout(timeout))
         proposed_trades, active_ticks = self.matching_engine.match_order(order)
 
         self.send_bid_messages(active_ticks)
         self.send_proposed_trade_messages(proposed_trades)
 
     def send_bid(self, bid):
+        """
+        Send a bid message
+
+        :param bid: The message to send
+        :type bid: Bid
+        """
         assert isinstance(bid, Bid), type(bid)
+
+        self._logger.debug("Bid send with id: " + str(bid.message_id))
+
         destination, payload = bid.to_network()
 
         payload += (2,)  # Add ttl of 2
@@ -194,6 +276,8 @@ class MarketCommunity(Community):
     def on_bid(self, messages):
         for message in messages:
             bid = Bid.from_network(message.payload)
+
+            self._logger.debug("Bid received with id: " + str(bid.message_id))
 
             self.update_ip(str(bid.message_id.trader_id), (message.payload.ip, message.payload.port))
 
