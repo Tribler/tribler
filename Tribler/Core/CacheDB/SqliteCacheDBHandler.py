@@ -948,8 +948,8 @@ class TorrentDBHandler(BasicDBHandler):
         # step 2, fix all dict fields
         dont_sort_list = []
         results = [list(result) for result in result_dict.values()]
-        for i in xrange(len(results) - 1, -1, -1):
-            result = results[i]
+        for index in xrange(len(results) - 1, -1, -1):
+            result = results[index]
 
             result[infohash_index] = str2bin(result[infohash_index])
 
@@ -979,15 +979,20 @@ class TorrentDBHandler(BasicDBHandler):
             result.extend(channel)
 
             if doSort and result[num_seeders_index] <= 0:
-                dont_sort_list.append(result)
-                results.pop(i)
-
+                dont_sort_list.append((index, result))
 
         if doSort:
+            # Remove the items with 0 seeders from the results list so the sort is faster, append them to the
+            # results list afterwards.
+            for index, result in dont_sort_list:
+                results.pop(index)
+
             def compare(a, b):
                 return cmp(a[num_seeders_index], b[num_seeders_index])
             results.sort(compare, reverse=True)
-        results.extend(dont_sort_list)
+
+            for index, result in dont_sort_list:
+                results.append(result)
 
         if not local:
             results = results[:25]

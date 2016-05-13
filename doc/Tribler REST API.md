@@ -33,6 +33,12 @@ curl -X PUT http://localhost:8085/mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2F
 | PUT /mychannel/rssfeeds/{feedurl} | Add a rss feed to your channel |
 | DELETE /mychannel/rssfeeds/{feedurl} | Remove a rss feed from your channel |
 
+### Search
+
+| Endpoint | Description |
+| ---- | --------------- |
+| GET /search | Search for torrents and channels in the local Tribler database |
+
 ### Settings
 
 | Endpoint | Description |
@@ -44,6 +50,12 @@ curl -X PUT http://localhost:8085/mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2F
 | Endpoint | Description |
 | ---- | --------------- |
 | GET /variables | Returns runtime-defined variables used by the current Tribler session |
+
+### Events
+
+| Endpoint | Description |
+| ---- | --------------- |
+| GET /events | Open the event endpoint over which events in Tribler are pushed |
 
 ## `GET /channels/discovered`
 
@@ -167,6 +179,30 @@ Add a RSS feed to your channel. Returns error 409 (Conflict) if the supplied RSS
 
 Delete a RSS feed from your channel. Returns error 404 if the RSS feed that is being removed does not exist. Note that the rss feed url should be URL-encoded.
 
+## `GET /search`
+
+Search for channels and torrents present in the local Tribler database according to a query. The query is passed using the url, i.e. /search?q=pioneer and results are pushed over the events endpoint.
+
+### Example response over the events endpoint
+
+```json
+{
+    "type": "search_result_channel",
+    "query": "test",
+    "result": {
+        "id": 3,
+        "dispersy_cid": "da69aaad39ccf468aba2ab9177d5f8d8160135e6",
+        "name": "My fancy channel",
+        "description": "A description of this fancy channel",
+        "subscribed": True,
+        "votes": 23,
+        "torrents": 3,
+        "spam": 5,
+        "modified": 14598395,
+    }
+}
+```
+
 ## `GET /settings`
 
 Returns a dictionary with the settings that the current Tribler session is using. Note that the response below is not the complete settings dictionary returned since that would be too large to display here.
@@ -206,3 +242,16 @@ Returns a dictionary with the runtime-defined variables that the current Tribler
     }
 }
 ```
+
+## `GET /events`
+
+Open the event connection. Important events in Tribler are returned over the events endpoint.
+This connection is held open. Each event is pushed over this endpoint in the form of a JSON dictionary.
+Each JSON dictionary contains a type field that indicates the type of the event. No parameters are required.
+If the events connection is not open and Tribler generates events, they will be buffered until the events connections
+opens.
+
+Currently, the following events are implemented:
+- events_start: An indication that the event socket is opened and that the server is ready to push events.
+- search_result_channel: This event dictionary contains a search result with a channel that has been found.
+- search_result_torrent: This event dictionary contains a search result with a torrent that has been found.
