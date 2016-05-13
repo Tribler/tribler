@@ -34,7 +34,7 @@ public class Home extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        //ServiceTriblerd.start(this, "");
+        ServiceTriblerd.start(this, "");
 
         initGui();
         initSearch();
