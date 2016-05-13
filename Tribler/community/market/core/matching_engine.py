@@ -49,18 +49,15 @@ class PriceTimeStrategy(MatchingStrategy):
 
         :param order: The order to match against
         :type order: Order
-        :return: The proposed trades and the active ticks
-        :rtype: [ProposedTrade], [Tick]
+        :return: The proposed trades
+        :rtype: ProposedTrade
         """
         assert isinstance(order, Order), type(order)
 
         proposed_trades = []
-        active_ticks = []
 
         price = order.price
         quantity_to_trade = order.available_quantity
-        timeout = order.timeout
-        timestamp = order.timestamp
 
         # Proposed ask ticks
         if order.is_ask():
@@ -83,19 +80,10 @@ class PriceTimeStrategy(MatchingStrategy):
                                                                                              quantity_to_trade,
                                                                                              order)
 
-        # Active ticks
         if quantity_to_trade > Quantity(0):
-
             self._logger.debug("Quantity not matched: %i", int(quantity_to_trade))
 
-            # Create active ticks for the quantity that could not be matched
-            if order.is_ask():
-                active_tick = self.order_book.create_ask(price, quantity_to_trade, timeout, timestamp)
-            else:
-                active_tick = self.order_book.create_bid(price, quantity_to_trade, timeout, timestamp)
-            active_ticks.append(active_tick)
-
-        return proposed_trades, active_ticks
+        return proposed_trades
 
     def _search_for_quantity_in_order_book(self, price, price_level, quantity_to_trade, order):
         """
