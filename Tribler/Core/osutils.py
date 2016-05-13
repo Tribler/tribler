@@ -21,24 +21,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_android_api_version():
-    """
-    :return: integer Runtime API version or None.
-    """
-    try:
-        from android import api_version
-        return api_version
-    except ImportError:
-        return None
-
-
 def is_android():
     """
-    This functions checks whether Tribler is running on Android or not, using the Android runtime API version.
+    This functions checks whether Tribler is running on Android or not,
+    using the system platform name and OS environment variable ANDROID_PRIVATE
 
     :return: boolean True if running on Android. False otherwise.
     """
-    return get_android_api_version() is not None
+    return sys.platform.startswith('linux') and 'ANDROID_PRIVATE' in os.environ
 
 
 if sys.platform == "win32":
