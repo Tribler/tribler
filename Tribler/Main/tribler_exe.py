@@ -89,6 +89,32 @@ if os.path.exists(LOG_PATH):
     except OSError:
         pass
 
+# TODO(emilon): This hijacks py2exe's hijacked stderr with a version that uses
+# the right log location. This should go away the second we start using something
+# else.
+if sys.frozen == "windows_exe": # py2exe sets this. pylint: disable=no-member
+    class Stderr(object):
+        p2e_stderr = sys.stderr
+
+        def write(self, text, alert=None, fname=LOG_PATH): # pylint: disable=unused-argument
+            self.p2e_stderr.write(text, fname=fname)
+
+        def flush(self):
+            self.p2e_stderr.flush()
+
+    sys.stderr = Stderr()
+    del Stderr
+
+    class Blackhole(object):
+        softspace = 0
+        def write(self, text):
+            pass
+        def flush(self):
+            pass
+    sys.stdout = Blackhole()
+    del Blackhole
+# END OF INCEPTION
+
 INSTALL_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 
 if INSTALL_DIR not in sys.path:
@@ -96,7 +122,7 @@ if INSTALL_DIR not in sys.path:
 
 set_environment_variable("PATH", os.path.abspath(INSTALL_DIR) + os.pathsep + get_environment_variable(u"PATH"))
 
-from Tribler.Main.tribler import __main__
+from Tribler.Main.tribler import __main__  # pylint: disable=wrong-import-position
 
 __main__()
 
