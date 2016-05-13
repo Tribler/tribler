@@ -130,16 +130,21 @@ class TestMyChannelRssEndpoints(AbstractTestMyChannelEndpoints):
         Testing whether the API returns a 404 if no channel has been created when adding a rss feed
         """
         self.session.lm.channel_manager = ChannelManager(self.session)
-        return self.do_request('mychannel/rssfeeds', expected_code=404, request_type='PUT')
+        return self.do_request('mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml',
+                               expected_code=404, request_type='PUT')
 
     @deferred(timeout=10)
-    def test_add_rss_feed_no_parameter(self):
+    def test_add_rss_feed_conflict(self):
         """
-        Testing whether the API returns a 400 and error if the url parameter is not passed
+        Testing whether the API returns error 409 if a channel the rss feed already exists
         """
-        expected_json = {"error": "rss_feed_url parameter missing"}
-        self.create_fake_channel("my channel", "this is a short description")
-        return self.do_request('mychannel/rssfeeds', expected_code=400, expected_json=expected_json, request_type='PUT')
+        expected_json = {"error": "this rss feed already exists"}
+        my_channel_id = self.create_fake_channel("my channel", "this is a short description")
+        channel_obj = self.session.lm.channel_manager.get_my_channel(my_channel_id)
+        channel_obj.create_rss_feed("http://rssfeed.com/rss.xml")
+
+        return self.do_request('mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml', expected_code=409,
+                               expected_json=expected_json, request_type='PUT')
 
     @deferred(timeout=10)
     def test_add_rss_feed_with_channel(self):
@@ -148,10 +153,46 @@ class TestMyChannelRssEndpoints(AbstractTestMyChannelEndpoints):
         """
         def verify_rss_added(_):
             channel_obj = self.session.lm.channel_manager.get_my_channel(my_channel_id)
-            self.assertEqual(channel_obj.get_rss_feed_url_list(), ["http://fakerssprovider.com/feed.rss"])
+            self.assertEqual(channel_obj.get_rss_feed_url_list(), ["http://rssfeed.com/rss.xml"])
 
         expected_json = {"added": True}
         my_channel_id = self.create_fake_channel("my channel", "this is a short description")
-        post_data = {"rss_feed_url": "http://fakerssprovider.com/feed.rss"}
-        return self.do_request('mychannel/rssfeeds', expected_code=200, expected_json=expected_json,
-                               request_type='PUT', post_data=post_data).addCallback(verify_rss_added)
+        return self.do_request('mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml', expected_code=200,
+                               expected_json=expected_json, request_type='PUT')\
+            .addCallback(verify_rss_added)
+
+    @deferred(timeout=10)
+    def test_remove_rss_feed_no_channel(self):
+        """
+        Testing whether the API returns a 404 if no channel has been created when adding a rss feed
+        """
+        self.session.lm.channel_manager = ChannelManager(self.session)
+        return self.do_request('mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml',
+                               expected_code=404, request_type='DELETE')
+
+    @deferred(timeout=10)
+    def test_remove_rss_feed_invalid_url(self):
+        """
+        Testing whether the API returns a 404 and error if the url parameter does not exist in the existing feeds
+        """
+        expected_json = {"error": "this url is not added to your RSS feeds"}
+        self.create_fake_channel("my channel", "this is a short description")
+        return self.do_request('mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml', expected_code=404,
+                               expected_json=expected_json, request_type='DELETE')
+
+    @deferred(timeout=10)
+    def test_remove_rss_feed_with_channel(self):
+        """
+        Testing whether the API returns a 200 if a channel has been created and when removing a rss feed
+        """
+        def verify_rss_removed(_):
+            channel_obj = self.session.lm.channel_manager.get_my_channel(my_channel_id)
+            self.assertEqual(channel_obj.get_rss_feed_url_list(), [])
+
+        expected_json = {"removed": True}
+        my_channel_id = self.create_fake_channel("my channel", "this is a short description")
+        channel_obj = self.session.lm.channel_manager.get_my_channel(my_channel_id)
+        channel_obj.create_rss_feed("http://rssfeed.com/rss.xml")
+
+        return self.do_request('mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml', expected_code=200,
+                               expected_json=expected_json, request_type='DELETE').addCallback(verify_rss_removed)
