@@ -19,11 +19,13 @@ class MarketConversion(BinaryConversion):
         packet = encode((
             message.payload.trader_id,
             message.payload.message_number,
+            message.payload.order_number,
             message.payload.price,
             message.payload.quantity,
             message.payload.timeout,
             message.payload.timestamp,
-            message.payload.ttl
+            message.payload.ttl,
+            message.payload.address
         ))
         return packet,
 
@@ -36,11 +38,13 @@ class MarketConversion(BinaryConversion):
         if not isinstance(payload, tuple):
             raise DropPacket("Invalid payload type")
 
-        trader_id, message_number, price, quantity, timeout, timestamp, ttl = payload
+        trader_id, message_number, order_number, price, quantity, timeout, timestamp, ttl, address = payload
 
         if not isinstance(trader_id, str):
             raise DropPacket("Invalid 'trader_id' type")
         if not isinstance(message_number, str):
+            raise DropPacket("Invalid 'message_number' type")
+        if not isinstance(order_number, str):
             raise DropPacket("Invalid 'message_number' type")
         if not isinstance(price, int):
             raise DropPacket("Invalid 'price' type")
@@ -52,15 +56,19 @@ class MarketConversion(BinaryConversion):
             raise DropPacket("Invalid 'timestamp' type")
         if not isinstance(ttl, int):
             raise DropPacket("Invalid 'ttl' type")
+        if not (isinstance(address, str) and isinstance(address[0], str) and isinstance(address[1], int)):
+            raise DropPacket("Invalid 'address' type")
 
         return offset, placeholder.meta.payload.implement(
             trader_id,
             message_number,
+            order_number,
             price,
             quantity,
             timeout,
             timestamp,
-            ttl
+            ttl,
+            address
         )
 
     def _encode_proposed_trade(self, message):

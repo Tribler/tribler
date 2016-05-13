@@ -1,3 +1,4 @@
+from Tribler.community.market.core.order import OrderId, OrderNumber, Order
 from message import TraderId, MessageNumber, MessageId, Message
 from price import Price
 from quantity import Quantity
@@ -8,37 +9,69 @@ from timestamp import Timestamp
 class Tick(Message):
     """Abstract class for representing a tick."""
 
-    def __init__(self, message_id, price, quantity, timeout, timestamp, is_ask):
+    def __init__(self, message_id, order_id, price, quantity, timeout, timestamp, is_ask):
         """
         Initialise the tick
 
         Don't use this class directly
 
         :param message_id: A message id to identify the tick
+        :param order_id: A order id to identify the order this tick represents
         :param price: A price to indicate for which amount to sell or buy
         :param quantity: A quantity to indicate how much to sell or buy
         :param timeout: A timeout when this tick is going to expire
         :param timestamp: A timestamp when the tick was created
         :param is_ask: A bool to indicate if this tick is an ask
         :type message_id: MessageId
+        :type order_id: OrderId
         :type price: Price
         :type quantity: Quantity
         :type timeout: Timeout
         :type timestamp: Timestamp
         :type is_ask: bool
         """
-        super(Tick, self).__init__(message_id, timestamp, True)
+        super(Tick, self).__init__(message_id, timestamp)
 
+        assert isinstance(order_id, OrderId), type(order_id)
         assert isinstance(price, Price), type(price)
         assert isinstance(quantity, Quantity), type(quantity)
         assert isinstance(timeout, Timeout), type(timeout)
         assert isinstance(is_ask, bool), type(is_ask)
 
+        self._order_id = order_id
         self._price = price
         self._quantity = quantity
         self._timeout = timeout
         self._is_ask = is_ask
         self._is_reserved = False
+
+    @classmethod
+    def from_order(cls, order, message_id):
+        """
+        Create a tick from an order
+
+        :param order: The order that this tick represents
+        :param message_id: The message id for the tick
+        :return: The created tick
+        :rtype: Tick
+        """
+        assert isinstance(order, Order), type(order)
+        assert isinstance(message_id, MessageId), type(message_id)
+
+        if order.is_ask():
+            return Ask(message_id, order.order_id, order.price, order.total_quantity, order.timeout, order.timestamp)
+        else:
+            return Bid(message_id, order.order_id, order.price, order.total_quantity, order.timeout, order.timestamp)
+
+    @property
+    def order_id(self):
+        """
+        Return the order id of the tick
+
+        :return: The order id
+        :rtype: OrderId
+        """
+        return self._order_id
 
     @property
     def price(self):
@@ -128,8 +161,9 @@ class Tick(Message):
         :rtype: tuple, tuple
         """
         return tuple(), (
-            str(self._message_id.trader_id),
+            str(self._order_id.trader_id),
             str(self._message_id.message_number),
+            str(self._order_id.order_number),
             int(self._price),
             int(self._quantity),
             float(self._timeout),
@@ -140,52 +174,37 @@ class Tick(Message):
 class Ask(Tick):
     """Class representing an ask."""
 
-    def __init__(self, message_id, price, quantity, timeout, timestamp):
+    def __init__(self, message_id, order_id, price, quantity, timeout, timestamp):
         """
         Initialise the ask
 
         :param message_id: A message id to identify the ask
+        :param order_id: A order id to identify the order this tick represents
         :param price: A price that needs to be paid for the ask
         :param quantity: The quantity that needs to be sold
         :param timeout: A timeout for the ask
         :param timestamp: A timestamp for when the ask was created
         :type message_id: MessageId
+        :type order_id: OrderId
         :type price: Price
         :type quantity: Quantity
         :type timeout: Timeout
         :type timestamp: Timestamp
         """
-        super(Ask, self).__init__(message_id, price, quantity, timeout, timestamp, True)
-
-    @classmethod
-    def create(cls, message_id, price, quantity, timeout, timestamp):
-        """
-        Create an ask
-
-        :param message_id: A message id to identify the ask
-        :param price: A price that needs to be paid for the ask
-        :param quantity: The quantity that needs to be sold
-        :param timeout: A timeout for the ask
-        :param timestamp: A timestamp for when the ask was created
-        :type message_id: MessageId
-        :type price: Price
-        :type quantity: Quantity
-        :type timeout: Timeout
-        :type timestamp: Timestamp
-        """
-        return cls(message_id, price, quantity, timeout, timestamp)
+        super(Ask, self).__init__(message_id, order_id, price, quantity, timeout, timestamp, True)
 
     @classmethod
     def from_network(cls, data):
         """
         Restore an ask from the network
 
-        :param data: object with (trader_id, message_number, price, quantity, timeout, timestamp) properties
+        :param data: object with (trader_id, message_number, order_number, price, quantity, timeout, timestamp) properties
         :return: Restored ask
         :rtype: Ask
         """
         assert hasattr(data, 'trader_id')
         assert hasattr(data, 'message_number')
+        assert hasattr(data, 'order_number')
         assert hasattr(data, 'price')
         assert hasattr(data, 'quantity')
         assert hasattr(data, 'timeout')
@@ -193,6 +212,7 @@ class Ask(Tick):
 
         return cls(
             MessageId(TraderId(data.trader_id), MessageNumber(data.message_number)),
+            OrderId(TraderId(data.trader_id), OrderNumber(data.order_number)),
             Price.from_mil(data.price),
             Quantity(data.quantity),
             Timeout(data.timeout),
@@ -203,52 +223,37 @@ class Ask(Tick):
 class Bid(Tick):
     """Class representing a bid."""
 
-    def __init__(self, message_id, price, quantity, timeout, timestamp):
+    def __init__(self, message_id, order_id, price, quantity, timeout, timestamp):
         """
         Initialise the bid
 
         :param message_id: A message id to identify the bid
+        :param order_id: A order id to identify the order this tick represents
         :param price: A price that you are willing to pay for the bid
         :param quantity: The quantity that you want to buy
         :param timeout: A timeout for the bid
         :param timestamp: A timestamp for when the bid was created
         :type message_id: MessageId
+        :type order_id: OrderId
         :type price: Price
         :type quantity: Quantity
         :type timeout: Timeout
         :type timestamp: Timestamp
         """
-        super(Bid, self).__init__(message_id, price, quantity, timeout, timestamp, False)
-
-    @classmethod
-    def create(cls, message_id, price, quantity, timeout, timestamp):
-        """
-        Create a bid
-
-        :param message_id: A message id to identify the bid
-        :param price: A price that you are willing to pay for the bid
-        :param quantity: The quantity that you want to buy
-        :param timeout: A timeout for the bid
-        :param timestamp: A timestamp for when the bid was created
-        :type message_id: MessageId
-        :type price: Price
-        :type quantity: Quantity
-        :type timeout: Timeout
-        :type timestamp: Timestamp
-        """
-        return cls(message_id, price, quantity, timeout, timestamp)
+        super(Bid, self).__init__(message_id, order_id, price, quantity, timeout, timestamp, False)
 
     @classmethod
     def from_network(cls, data):
         """
         Restore a bid from the network
 
-        :param data: object with (trader_id, message_number, price, quantity, timeout, timestamp) properties
+        :param data: object with (trader_id, message_number, order_number, price, quantity, timeout, timestamp) properties
         :return: Restored bid
         :rtype: Bid
         """
         assert hasattr(data, 'trader_id')
         assert hasattr(data, 'message_number')
+        assert hasattr(data, 'order_number')
         assert hasattr(data, 'price')
         assert hasattr(data, 'quantity')
         assert hasattr(data, 'timeout')
@@ -256,6 +261,7 @@ class Bid(Tick):
 
         return cls(
             MessageId(TraderId(data.trader_id), MessageNumber(data.message_number)),
+            OrderId(TraderId(data.trader_id), OrderNumber(data.order_number)),
             Price.from_mil(data.price),
             Quantity(data.quantity),
             Timeout(data.timeout),

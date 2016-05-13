@@ -1,3 +1,6 @@
+from timestamp import Timestamp
+
+
 class TraderId(object):
     """Immutable class for representing the id of a trader."""
 
@@ -210,7 +213,7 @@ class MessageId(object):
 class Message(object):
     """Abstract class for representing a message."""
 
-    def __init__(self, message_id, timestamp, is_tick):
+    def __init__(self, message_id, timestamp):
         """
         Initialise the message
 
@@ -218,20 +221,16 @@ class Message(object):
 
         :param message_id: A message id to identify the message
         :param timestamp: A timestamp when the message was created
-        :param is_tick: A bool to indicate if this message is a tick
         :type message_id: MessageId
         :type timestamp: Timestamp
-        :type is_tick: bool
         """
         super(Message, self).__init__()
 
         assert isinstance(message_id, MessageId), type(message_id)
         assert isinstance(timestamp, Timestamp), type(timestamp)
-        assert isinstance(is_tick, bool), type(is_tick)
 
         self._message_id = message_id
         self._timestamp = timestamp
-        self._is_tick = is_tick
 
     @property
     def message_id(self):
@@ -252,12 +251,3 @@ class Message(object):
         :rtype: Timestamp
         """
         return self._timestamp
-
-    def is_tick(self):
-        """
-        Return if the message is a tick
-
-        :return: True if message is a tick, False otherwise
-        :rtype: bool
-        """
-        return self._is_tick

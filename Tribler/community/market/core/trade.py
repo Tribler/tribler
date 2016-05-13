@@ -26,7 +26,7 @@ class Trade(Message):
         :type proposed: bool
         :type accepted: bool
         """
-        super(Trade, self).__init__(message_id, timestamp, False)
+        super(Trade, self).__init__(message_id, timestamp)
 
         assert isinstance(recipient_message_id, MessageId), type(recipient_message_id)
         assert isinstance(proposed, bool), type(proposed)

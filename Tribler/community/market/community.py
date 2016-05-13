@@ -17,8 +17,8 @@ from .conversion import MarketConversion
 from .core.matching_engine import MatchingEngine, PriceTimeStrategy
 from .core.orderbook import OrderBook
 from .core.portfolio import Portfolio
-from .core.tick import Ask, Bid
-from .payload import AskPayload, BidPayload, ProposedTradePayload, AcceptedTradePayload, DeclinedTradePayload
+from .core.tick import Ask, Bid, Tick
+from .payload import OfferPayload, ProposedTradePayload, AcceptedTradePayload, DeclinedTradePayload
 
 
 class MarketCommunity(Community):
@@ -68,7 +68,7 @@ class MarketCommunity(Community):
                     PublicResolution(),
                     DirectDistribution(),
                     CommunityDestination(node_count=10),
-                    AskPayload(),
+                    OfferPayload(),
                     self.check_message,
                     self.on_ask),
             Message(self, u"bid",
@@ -76,7 +76,7 @@ class MarketCommunity(Community):
                     PublicResolution(),
                     DirectDistribution(),
                     CommunityDestination(node_count=10),
-                    BidPayload(),
+                    OfferPayload(),
                     self.check_message,
                     self.on_bid),
             Message(self, u"proposed-trade",
@@ -172,14 +172,16 @@ class MarketCommunity(Community):
         price = Price.from_float(price)
         quantity = Quantity.from_float(quantity)
         timeout = Timeout(timeout)
-        timestamp = Timestamp.now()
 
-        tick = self.order_book.create_ask(price, quantity, timeout, timestamp)
+        # Create the order
+        order = self.portfolio.create_ask_order(price, quantity, timeout)
+
+        # Create the tick
+        tick = Tick.from_order(order, self.order_book.message_repository.next_identity())
         self.send_ask_messages([tick])
 
-        order = self.portfolio.create_ask_order(price, quantity, timeout)
+        # Search for matches
         proposed_trades = self.matching_engine.match_order(order)
-
         self.send_proposed_trade_messages(proposed_trades)
 
     def send_ask(self, ask):
@@ -195,7 +197,7 @@ class MarketCommunity(Community):
 
         destination, payload = ask.to_network()
 
-        payload += (2,)  # Add ttl of 2
+        payload += (2, self.dispersy.wan_address)  # Add ttl of 2 and the address
 
         meta = self.get_meta_message(u"ask")
         message = meta.impl(
@@ -216,7 +218,7 @@ class MarketCommunity(Community):
 
             self._logger.debug("Ask received with id: " + str(ask.message_id))
 
-            self.update_ip(str(ask.message_id.trader_id), (message.payload.ip, message.payload.port))
+            self.update_ip(str(ask.message_id.trader_id), message.payload.address)
 
             if not self.order_book.tick_exists(ask.message_id):  # Message has not been received before
                 self.order_book.insert_ask(ask)
@@ -245,14 +247,16 @@ class MarketCommunity(Community):
         price = Price.from_float(price)
         quantity = Quantity.from_float(quantity)
         timeout = Timeout(timeout)
-        timestamp = Timestamp.now()
 
-        tick = self.order_book.create_bid(price, quantity, timeout, timestamp)
+        # Create the order
+        order = self.portfolio.create_bid_order(price, quantity, timeout)
+
+        # Create the tick
+        tick = Tick.from_order(order, self.order_book.message_repository.next_identity())
         self.send_bid_messages([tick])
 
-        order = self.portfolio.create_bid_order(price, quantity, timeout)
+        # Search for matches
         proposed_trades = self.matching_engine.match_order(order)
-
         self.send_proposed_trade_messages(proposed_trades)
 
     def send_bid(self, bid):
@@ -268,7 +272,7 @@ class MarketCommunity(Community):
 
         destination, payload = bid.to_network()
 
-        payload += (2,)  # Add ttl of 2
+        payload += (2, self.dispersy.wan_address)  # Add ttl of 2 and the address
 
         meta = self.get_meta_message(u"bid")
         message = meta.impl(
@@ -289,7 +293,7 @@ class MarketCommunity(Community):
 
             self._logger.debug("Bid received with id: " + str(bid.message_id))
 
-            self.update_ip(str(bid.message_id.trader_id), (message.payload.ip, message.payload.port))
+            self.update_ip(str(bid.message_id.trader_id), message.payload.address)
 
             if not self.order_book.tick_exists(bid.message_id):  # Message has not been received before
                 self.order_book.insert_bid(bid)
