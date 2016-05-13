@@ -1005,7 +1005,7 @@ class ChannelManager(object):
         return self._createChannels(allchannels)
 
     def getMySubscriptions(self):
-        subscriptions = self.channelcast_db.getMySubscribedChannels(includeDispsersy=True)
+        subscriptions = self.channelcast_db.getMySubscribedChannels(include_dispersy=True)
         return self._createChannels(subscriptions)
 
     def getPopularChannels(self):
