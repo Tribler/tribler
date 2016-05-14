@@ -1,7 +1,6 @@
 from message import TraderId
 from price import Price
 from quantity import Quantity
-from tick import Tick
 from timeout import Timeout
 from timestamp import Timestamp
 
@@ -292,8 +291,6 @@ class Order(object):
         :return: True if the quantity was reserved, False otherwise
         :rtype: bool
         """
-        assert isinstance(tick, Tick), type(tick)
-
         if self.available_quantity > tick.quantity:
             if tick.message_id not in self._reserved_ticks:
                 self._reserved_quantity += tick.quantity
@@ -311,8 +308,6 @@ class Order(object):
         :raises LogicException: Thrown when something bad happened and the reserved quantity does not match up
         :raises TickWasNotReserved: Thrown when the tick was not reserved first
         """
-        assert isinstance(tick, Tick), type(tick)
-
         if tick.message_id in self._reserved_ticks:
             if self._reserved_quantity > tick.quantity:
                 self._reserved_quantity -= tick.quantity
