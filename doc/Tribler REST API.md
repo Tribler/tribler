@@ -33,6 +33,7 @@ curl -X PUT http://localhost:8085/mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2F
 | GET /mychannel/rssfeeds | Get a list of rss feeds used by your channel |
 | PUT /mychannel/rssfeeds/{feedurl} | Add a rss feed to your channel |
 | DELETE /mychannel/rssfeeds/{feedurl} | Remove a rss feed from your channel |
+| POST /mychannel/recheckfeeds | Recheck all rss feeds in your channel |
 | GET /mychannel/playlists | Get a list of playlists in your channel |
 
 ### Search
@@ -201,6 +202,10 @@ Add a RSS feed to your channel. Returns error 409 (Conflict) if the supplied RSS
 ## `DELETE /mychannel/rssfeed/{feedurl}`
 
 Delete a RSS feed from your channel. Returns error 404 if the RSS feed that is being removed does not exist. Note that the rss feed url should be URL-encoded.
+
+## `POST /mychannel/recheckfeeds`
+
+Rechecks all rss feeds in your channel. Returns error 404 if you channel does not exist.
 
 ## `GET /mychannel/playlists`
 
