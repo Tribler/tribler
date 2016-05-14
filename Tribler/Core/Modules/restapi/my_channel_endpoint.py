@@ -1,5 +1,6 @@
 import json
 from twisted.web import http, resource
+from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST
 
@@ -38,7 +39,7 @@ class MyChannelEndpoint(MyChannelBaseEndpoint):
     def __init__(self, session):
         MyChannelBaseEndpoint.__init__(self, session)
         child_handler_dict = {"overview": MyChannelOverviewEndpoint, "torrents": MyChannelTorrentsEndpoint,
-                              "rssfeeds": MyChannelRssFeedsEndpoint}
+                              "rssfeeds": MyChannelRssFeedsEndpoint, "playlists": MyChannelPlaylistsEndpoint}
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(self.session))
 
@@ -170,3 +171,45 @@ class MyChannelModifyRssFeedsEndpoint(MyChannelBaseEndpoint):
 
         channel_obj.remove_rss_feed(self.feed_url)
         return json.dumps({"removed": True})
+
+
+class MyChannelPlaylistsEndpoint(MyChannelBaseEndpoint):
+    """
+    This class is responsible for handling requests regarding playlists in your channel.
+    """
+
+    def render_GET(self, request):
+        """
+        Returns the playlists in your channel. Returns error 404 if you have not created a channel.
+
+        Example response:
+        {
+            "playlists": [{
+                "id": 1,
+                "name": "My first playlist",
+                "description": "Funny movies",
+                "torrents": [{
+                    "name": "movie_1",
+                    "infohash": "e940a7a57294e4c98f62514b32611e38181b6cae"
+                }, ... ]
+            }, ...]
+        }
+        """
+        request.setHeader('Content-Type', 'text/json')
+
+        my_channel_id = self.channel_db_handler.getMyChannelId()
+        if my_channel_id is None:
+            return MyChannelBaseEndpoint.return_404(request)
+
+        playlists = []
+        req_columns = ['Playlists.id', 'Playlists.name', 'Playlists.description']
+        req_columns_torrents = ['ChannelTorrents.name', 'Torrent.infohash']
+        for playlist in self.channel_db_handler.getPlaylistsFromChannelId(my_channel_id, req_columns):
+            # Fetch torrents in the playlist
+            torrents = []
+            for torrent in self.channel_db_handler.getTorrentsFromPlaylist(playlist[0], req_columns_torrents):
+                torrents.append({"name": torrent[0], "infohash": str2bin(torrent[1]).encode('hex')})
+
+            playlists.append({"id": playlist[0], "name": playlist[1], "description": playlist[2], "torrents": torrents})
+
+        return json.dumps({"playlists": playlists})
