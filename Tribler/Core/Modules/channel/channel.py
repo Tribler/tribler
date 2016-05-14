@@ -39,6 +39,9 @@ class ChannelObject(TaskManager):
     def get_rss_feed_url_list(self):
         return [url for url in self._rss_feed_dict.iterkeys()]
 
+    def refresh_all_feeds(self):
+        [feed.parse_feed() for feed in self._rss_feed_dict.itervalues()]
+
     @call_on_reactor_thread
     def initialize(self):
         # load existing rss_feeds
