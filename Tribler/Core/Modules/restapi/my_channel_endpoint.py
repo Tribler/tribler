@@ -39,7 +39,8 @@ class MyChannelEndpoint(MyChannelBaseEndpoint):
     def __init__(self, session):
         MyChannelBaseEndpoint.__init__(self, session)
         child_handler_dict = {"overview": MyChannelOverviewEndpoint, "torrents": MyChannelTorrentsEndpoint,
-                              "rssfeeds": MyChannelRssFeedsEndpoint, "playlists": MyChannelPlaylistsEndpoint}
+                              "rssfeeds": MyChannelRssFeedsEndpoint, "playlists": MyChannelPlaylistsEndpoint,
+                              "recheckfeeds": MyChannelRecheckFeedsEndpoint}
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(self.session))
 
@@ -128,6 +129,26 @@ class MyChannelRssFeedsEndpoint(MyChannelBaseEndpoint):
         feeds_list = [{'url': rss_item} for rss_item in rss_list]
 
         return json.dumps({"rssfeeds": feeds_list})
+
+
+class MyChannelRecheckFeedsEndpoint(MyChannelBaseEndpoint):
+    """
+    This class is responsible for handling requests regarding refreshing rss feeds in your channel.
+    """
+
+    def render_POST(self, request):
+        """
+        Rechecks all rss feeds in your channel. Returns error 404 if you channel does not exist.
+        """
+        request.setHeader('Content-Type', 'text/json')
+
+        channel_obj = self.get_my_channel_object()
+        if channel_obj is None:
+            return MyChannelBaseEndpoint.return_404(request)
+
+        channel_obj.refresh_all_feeds()
+
+        return json.dumps({"rechecked": True})
 
 
 class MyChannelModifyRssFeedsEndpoint(MyChannelBaseEndpoint):
