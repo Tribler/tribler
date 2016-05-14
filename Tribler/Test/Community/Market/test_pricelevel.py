@@ -1,9 +1,14 @@
 import unittest
 
-from Tribler.community.market.core.pricelevel import PriceLevel
-from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, \
-    Tick
+from Tribler.community.market.core.price import Price
+from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.timestamp import Timestamp
+from Tribler.community.market.core.timeout import Timeout
+from Tribler.community.market.core.message import Message, TraderId, MessageNumber, MessageId
+from Tribler.community.market.core.tick import Tick, Ask, Bid
+from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.tickentry import TickEntry
+from Tribler.community.market.core.pricelevel import PriceLevel
 
 
 class PriceLevelTestSuite(unittest.TestCase):
@@ -18,7 +23,8 @@ class PriceLevelTestSuite(unittest.TestCase):
         quantity = Quantity(30)
         timeout = Timeout(float("inf"))
         timestamp = Timestamp(float("inf"))
-        tick = Tick(message_id, price, quantity, timeout, timestamp, True)
+        order_id = OrderId(trader_id, OrderNumber("order_number"))
+        tick = Tick(message_id, order_id, price, quantity, timeout, timestamp, True)
 
         price_level = PriceLevel()
         tick_entry1 = TickEntry(tick, price_level)
