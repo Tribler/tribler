@@ -6,6 +6,7 @@ from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.message import Message, TraderId, MessageNumber, MessageId
 from Tribler.community.market.core.tick import Tick, Ask, Bid
+from Tribler.community.market.core.order import OrderId, OrderNumber
 
 
 class TickTestSuite(unittest.TestCase):
@@ -22,9 +23,10 @@ class TickTestSuite(unittest.TestCase):
         timeout2 = Timeout(0.0)
         timestamp = Timestamp(float("inf"))
         timestamp2 = Timestamp(0.0)
+        order_id = OrderId(trader_id, OrderNumber("order_number"))
 
-        tick = Tick(message_id, price, quantity, timeout, timestamp, True)
-        tick2 = Tick(message_id, price, quantity, timeout2, timestamp2, False)
+        tick = Tick(message_id, order_id, price, quantity, timeout, timestamp, True)
+        tick2 = Tick(message_id, order_id, price, quantity, timeout2, timestamp2, False)
 
         # Test for properties
         self.assertEqual(price, tick.price)
@@ -41,7 +43,7 @@ class TickTestSuite(unittest.TestCase):
         self.assertFalse(tick2.is_valid())
 
         # Test for to network
-        self.assertEquals(((), ('trader_id', 'message_number', 63400, 30, float("inf"), float("inf"))),
+        self.assertEquals(((), ('trader_id', 'message_number', 'order_number', 63400, 30, float("inf"), float("inf"))),
                           tick.to_network())
 
         # Test for quantity setter
@@ -57,8 +59,9 @@ class TickTestSuite(unittest.TestCase):
         quantity = Quantity(30)
         timeout = Timeout(1462224447.117)
         timestamp = Timestamp(1462224447.117)
+        order_id = OrderId(trader_id, OrderNumber("order_number"))
 
-        ask = Ask.create(message_id, price, quantity, timeout, timestamp)
+        ask = Ask(message_id, order_id, price, quantity, timeout, timestamp)
 
         # Test for properties
         self.assertEquals(message_id, ask.message_id)
@@ -68,8 +71,9 @@ class TickTestSuite(unittest.TestCase):
         self.assertEquals(timestamp, ask.timestamp)
 
         # Test for from network
-        data = Ask.from_network(type('Data', (object,), {"trader_id": 'trader_id', "message_number": 'message_number',
-                                                         "price": 63400, "quantity": 30, "timeout": 1462224447.117,
+        data = Ask.from_network(type('Data', (object,), {"trader_id": 'trader_id', "order_number": 'order_number',
+                                                         "message_number": 'message_number', "price": 63400,
+                                                         "quantity": 30, "timeout": 1462224447.117,
                                                          "timestamp": 1462224447.117}))
 
         self.assertEquals(message_id, data.message_id)
@@ -87,8 +91,9 @@ class TickTestSuite(unittest.TestCase):
         quantity = Quantity(30)
         timeout = Timeout(1462224447.117)
         timestamp = Timestamp(1462224447.117)
+        order_id = OrderId(trader_id, OrderNumber("order_number"))
 
-        bid = Bid.create(message_id, price, quantity, timeout, timestamp)
+        bid = Bid(message_id, order_id, price, quantity, timeout, timestamp)
 
         # Test for properties
         self.assertEquals(message_id, bid.message_id)
@@ -98,8 +103,9 @@ class TickTestSuite(unittest.TestCase):
         self.assertEquals(timestamp, bid.timestamp)
 
         # Test for from network
-        data = Bid.from_network(type('Data', (object,), {"trader_id": 'trader_id', "message_number": 'message_number',
-                                                         "price": 63400, "quantity": 30, "timeout": 1462224447.117,
+        data = Bid.from_network(type('Data', (object,), {"trader_id": 'trader_id', "order_number": 'order_number',
+                                                         "message_number": 'message_number', "price": 63400,
+                                                         "quantity": 30, "timeout": 1462224447.117,
                                                          "timestamp": 1462224447.117}))
 
         self.assertEquals(message_id, data.message_id)
