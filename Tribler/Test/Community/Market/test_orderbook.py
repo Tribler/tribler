@@ -1,8 +1,15 @@
 import unittest
 
 from Tribler.community.market.core.orderbook import OrderBook
-from Tribler.community.market.core.tick import TraderId, MessageNumber, MessageId, Price, Quantity, Timeout, Timestamp, \
-    Ask, Bid, Trade
+from Tribler.community.market.core.price import Price
+from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.timestamp import Timestamp
+from Tribler.community.market.core.timeout import Timeout
+from Tribler.community.market.core.order import OrderId, OrderNumber
+from Tribler.community.market.core.message import Message, TraderId, MessageNumber, MessageId
+from Tribler.community.market.core.trade import Trade, ProposedTrade, DeclinedTrade, AcceptedTrade
+from Tribler.community.market.core.tick import Ask, Bid
+from Tribler.community.market.core.message_repository import MessageRepository, MemoryMessageRepository
 
 
 class OrderBookTestSuite(unittest.TestCase):
@@ -26,14 +33,16 @@ class OrderBookTestSuite(unittest.TestCase):
         quantity = Quantity(30)
         timeout = Timeout(1462224447.117)
         timestamp = Timestamp(1462224447.117)
+        order_id = OrderId(trader_id, OrderNumber("order_number"))
+        memory_message_repository = MemoryMessageRepository('trader_id')
 
-        ask = Ask.create(message_id, price, quantity, timeout, timestamp)
-        ask2 = Ask.create(message_id2, price4, quantity, timeout, timestamp)
-        bid = Bid.create(message_id3, price2, quantity, timeout, timestamp)
-        bid2 = Bid.create(message_id4, price3, quantity, timeout, timestamp)
+        ask = Ask(message_id, order_id, price, quantity, timeout, timestamp)
+        ask2 = Ask(message_id2, order_id, price4, quantity, timeout, timestamp)
+        bid = Bid(message_id3, order_id, price2, quantity, timeout, timestamp)
+        bid2 = Bid(message_id4, order_id, price3, quantity, timeout, timestamp)
         trade = Trade.propose(message_id, message_id, message_id, price, quantity, timestamp)
 
-        order_book = OrderBook()
+        order_book = OrderBook(memory_message_repository)
 
         # Test for ask, bid, and trade insertion
         order_book.insert_ask(ask2)
