@@ -11,11 +11,10 @@ from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.order_repository import MemoryOrderRepository
 
 
-
 class PortfolioTestSuite(unittest.TestCase):
     """Portfolio test cases."""
 
-    def test_portfolio(self):
+    def setUp(self):
         # Object creation
         trader_id = TraderId('1')
         message_number = MessageNumber('message_number')
@@ -23,8 +22,8 @@ class PortfolioTestSuite(unittest.TestCase):
         timestamp = Timestamp(1462224447.117)
         message_id = MessageId(trader_id, message_number)
         order_id = OrderId(trader_id, OrderNumber("order_number"))
-        ask = Ask(message_id, order_id, Price(100), Quantity(30), timeout, timestamp)
-        portfolio = Portfolio(MemoryOrderRepository("mid"))
+        self.ask = Ask(message_id, order_id, Price(100), Quantity(30), timeout, timestamp)
+        self.portfolio = Portfolio(MemoryOrderRepository("mid"))
 
 
 if __name__ == '__main__':

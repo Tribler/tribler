@@ -7,46 +7,52 @@ from Tribler.community.market.core.timestamp import Timestamp
 class TimestampTestSuite(unittest.TestCase):
     """Timestamp test cases."""
 
-    def test_timestamp(self):
+    def setUp(self):
         # Object creation
-        timestamp = Timestamp(1462224447.117)
-        timestamp2 = Timestamp(1462224447.117)
-        timestamp3 = Timestamp(1305743832.438)
+        self.timestamp = Timestamp(1462224447.117)
+        self.timestamp2 = Timestamp(1462224447.117)
+        self.timestamp3 = Timestamp(1305743832.438)
 
+    def test_init(self):
         # Test for init validation
         with self.assertRaises(ValueError):
             Timestamp(-1.0)
 
-        # Test for now
+    def test_now(self):
+        # Test for Timestamp.now
         self.assertEqual(time.time(), float(Timestamp.now()))
 
+    def test_conversion(self):
         # Test for conversions
-        self.assertEqual(1462224447.117, float(timestamp))
-        self.assertEqual('2016-05-02 23:27:27.117000', str(timestamp))
+        self.assertEqual(1462224447.117, float(self.timestamp))
+        self.assertEqual('2016-05-02 23:27:27.117000', str(self.timestamp))
 
+    def test_comparison(self):
         # Test for comparison
-        self.assertTrue(timestamp3 < timestamp)
-        self.assertTrue(timestamp <= timestamp)
-        self.assertTrue(timestamp > timestamp3)
-        self.assertTrue(timestamp3 >= timestamp3)
-        self.assertTrue(timestamp3 < 1405743832.438)
-        self.assertTrue(timestamp <= 1462224447.117)
-        self.assertTrue(timestamp > 1362224447.117)
-        self.assertTrue(timestamp3 >= 1305743832.438)
-        self.assertEqual(NotImplemented, timestamp.__lt__(10))
-        self.assertEqual(NotImplemented, timestamp.__le__(10))
-        self.assertEqual(NotImplemented, timestamp.__gt__(10))
-        self.assertEqual(NotImplemented, timestamp.__ge__(10))
+        self.assertTrue(self.timestamp3 < self.timestamp)
+        self.assertTrue(self.timestamp <= self.timestamp)
+        self.assertTrue(self.timestamp > self.timestamp3)
+        self.assertTrue(self.timestamp3 >= self.timestamp3)
+        self.assertTrue(self.timestamp3 < 1405743832.438)
+        self.assertTrue(self.timestamp <= 1462224447.117)
+        self.assertTrue(self.timestamp > 1362224447.117)
+        self.assertTrue(self.timestamp3 >= 1305743832.438)
+        self.assertEqual(NotImplemented, self.timestamp.__lt__(10))
+        self.assertEqual(NotImplemented, self.timestamp.__le__(10))
+        self.assertEqual(NotImplemented, self.timestamp.__gt__(10))
+        self.assertEqual(NotImplemented, self.timestamp.__ge__(10))
 
+    def test_equality(self):
         # Test for equality
-        self.assertTrue(timestamp == timestamp2)
-        self.assertTrue(timestamp == timestamp)
-        self.assertTrue(timestamp != timestamp3)
-        self.assertFalse(timestamp == 6)
+        self.assertTrue(self.timestamp == self.timestamp2)
+        self.assertTrue(self.timestamp == self.timestamp)
+        self.assertTrue(self.timestamp != self.timestamp3)
+        self.assertFalse(self.timestamp == 6)
 
+    def test_hash(self):
         # Test for hashes
-        self.assertEqual(timestamp.__hash__(), timestamp2.__hash__())
-        self.assertNotEqual(timestamp.__hash__(), timestamp3.__hash__())
+        self.assertEqual(self.timestamp.__hash__(), self.timestamp2.__hash__())
+        self.assertNotEqual(self.timestamp.__hash__(), self.timestamp3.__hash__())
 
 
 if __name__ == '__main__':

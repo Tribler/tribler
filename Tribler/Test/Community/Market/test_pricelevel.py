@@ -14,49 +14,60 @@ from Tribler.community.market.core.pricelevel import PriceLevel
 class PriceLevelTestSuite(unittest.TestCase):
     """PriceLevel test cases."""
 
-    def test_price_level(self):
+    def setUp(self):
         # Object creation
-        trader_id = TraderId('trader_id')
-        message_number = MessageNumber('message_number')
-        message_id = MessageId(trader_id, message_number)
-        price = Price(63400)
-        quantity = Quantity(30)
-        timeout = Timeout(float("inf"))
-        timestamp = Timestamp(float("inf"))
-        order_id = OrderId(trader_id, OrderNumber("order_number"))
-        tick = Tick(message_id, order_id, price, quantity, timeout, timestamp, True)
+        tick = Tick(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                    OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(63400), Quantity(30),
+                    Timeout(float("inf")), Timestamp(float("inf")), True)
 
-        price_level = PriceLevel()
-        tick_entry1 = TickEntry(tick, price_level)
-        tick_entry2 = TickEntry(tick, price_level)
-        tick_entry3 = TickEntry(tick, price_level)
-        tick_entry4 = TickEntry(tick, price_level)
+        self.price_level = PriceLevel()
+        self.tick_entry1 = TickEntry(tick, self.price_level)
+        self.tick_entry2 = TickEntry(tick, self.price_level)
+        self.tick_entry3 = TickEntry(tick, self.price_level)
+        self.tick_entry4 = TickEntry(tick, self.price_level)
 
-        # Test for tick appending
-        price_level.append_tick(tick_entry1)
-        price_level.append_tick(tick_entry2)
-        price_level.append_tick(tick_entry3)
-        price_level.append_tick(tick_entry4)
-        self.assertEquals(4, price_level.length)
+    def test_appending_length(self):
+        # Test for tick appending and length
+        self.assertEquals(0, self.price_level.length)
+        self.assertEquals(0, len(self.price_level))
 
-        # Test for properties and len()
-        self.assertEquals(tick_entry1, price_level.first_tick)
-        self.assertEquals(4, price_level.length)
-        self.assertEquals(4, len(price_level))
-        self.assertEquals(Quantity(120), price_level.depth)
+        self.price_level.append_tick(self.tick_entry1)
+        self.price_level.append_tick(self.tick_entry2)
+        self.price_level.append_tick(self.tick_entry3)
+        self.price_level.append_tick(self.tick_entry4)
 
+        self.assertEquals(4, self.price_level.length)
+        self.assertEquals(4, len(self.price_level))
+
+    def test_properties(self):
+        # Test for properties
+        self.price_level.append_tick(self.tick_entry1)
+        self.price_level.append_tick(self.tick_entry2)
+        self.price_level.append_tick(self.tick_entry3)
+        self.price_level.append_tick(self.tick_entry4)
+
+        self.assertEquals(self.tick_entry1, self.price_level.first_tick)
+        self.assertEquals(Quantity(120), self.price_level.depth)
+
+    def test_tick_removal(self):
         # Test for tick removal
-        price_level.remove_tick(tick_entry2)
-        price_level.remove_tick(tick_entry1)
-        price_level.remove_tick(tick_entry4)
-        price_level.remove_tick(tick_entry3)
-        self.assertEquals(0, price_level.length)
+        self.price_level.append_tick(self.tick_entry1)
+        self.price_level.append_tick(self.tick_entry2)
+        self.price_level.append_tick(self.tick_entry3)
+        self.price_level.append_tick(self.tick_entry4)
 
+        self.price_level.remove_tick(self.tick_entry2)
+        self.price_level.remove_tick(self.tick_entry1)
+        self.price_level.remove_tick(self.tick_entry4)
+        self.price_level.remove_tick(self.tick_entry3)
+        self.assertEquals(0, self.price_level.length)
+
+    def test_str(self):
         # Test for price level string representation
-        price_level.append_tick(tick_entry1)
-        price_level.append_tick(tick_entry2)
+        self.price_level.append_tick(self.tick_entry1)
+        self.price_level.append_tick(self.tick_entry2)
         self.assertEquals('0.0030\t@\t6.3400\n'
-                          '0.0030\t@\t6.3400\n', str(price_level))
+                          '0.0030\t@\t6.3400\n', str(self.price_level))
 
 
 if __name__ == '__main__':

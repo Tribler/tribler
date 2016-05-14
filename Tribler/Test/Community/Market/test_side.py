@@ -13,49 +13,59 @@ from Tribler.community.market.core.side import Side
 class SideTestSuite(unittest.TestCase):
     """Side test cases."""
 
-    def test_side(self):
+    def setUp(self):
         # Object creation
-        trader_id = TraderId('trader_id')
-        trader_id2 = TraderId('trader_id2')
-        message_number = MessageNumber('message_number')
-        message_id = MessageId(trader_id, message_number)
-        message_id2 = MessageId(trader_id2, message_number)
-        price = Price(400)
-        price2 = Price(800)
-        quantity = Quantity(30)
-        timeout = Timeout(float("inf"))
-        timestamp = Timestamp(float("inf"))
-        order_id = OrderId(trader_id, OrderNumber("order_number"))
 
-        tick = Tick(message_id, order_id, price, quantity, timeout, timestamp, True)
-        tick2 = Tick(message_id2, order_id, price2, quantity, timeout, timestamp, True)
-        side = Side()
+        self.tick = Tick(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                         OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(400), Quantity(30),
+                         Timeout(float("inf")), Timestamp(float("inf")), True)
+        self.tick2 = Tick(MessageId(TraderId('trader_id2'), MessageNumber('message_number')),
+                          OrderId(TraderId('trader_id2'), OrderNumber("order_number")), Price(800), Quantity(30),
+                          Timeout(float("inf")), Timestamp(float("inf")), True)
+        self.side = Side()
 
-        # Test max price (list) and min price (list)
-        self.assertEquals(None, side.max_price)
-        self.assertEquals(None, side.min_price)
-        self.assertEquals(None, side.max_price_list)
-        self.assertEquals(None, side.min_price_list)
+    def test_max_price(self):
+        # Test max price (list)
+        self.assertEquals(None, self.side.max_price)
+        self.assertEquals(None, self.side.max_price_list)
 
+        self.side.insert_tick(self.tick)
+        self.side.insert_tick(self.tick2)
+
+        self.assertEquals('0.0030\t@\t0.0800\n', str(self.side.max_price_list))
+        self.assertEquals(Price(800), self.side.max_price)
+
+    def test_min_price(self):
+        # Test min price (list)
+        self.assertEquals(None, self.side.min_price_list)
+        self.assertEquals(None, self.side.min_price)
+
+        self.side.insert_tick(self.tick)
+        self.side.insert_tick(self.tick2)
+
+        self.assertEquals('0.0030\t@\t0.0400\n', str(self.side.min_price_list))
+        self.assertEquals(Price(400), self.side.min_price)
+
+    def test_insert_tick(self):
         # Test insert tick
-        self.assertEquals(0, len(side))
-        self.assertFalse(side.tick_exists(message_id))
-        side.insert_tick(tick)
-        side.insert_tick(tick2)
-        self.assertEquals(2, len(side))
-        self.assertTrue(side.tick_exists(message_id))
+        self.assertEquals(0, len(self.side))
+        self.assertFalse(self.side.tick_exists(MessageId(TraderId('trader_id'), MessageNumber('message_number'))))
 
-        # Test max price (list) and min price (list)
-        self.assertEquals(price2, side.max_price)
-        self.assertEquals(price, side.min_price)
-        self.assertEquals('0.0030\t@\t0.0800\n', str(side.max_price_list))
-        self.assertEquals('0.0030\t@\t0.0400\n', str(side.min_price_list))
+        self.side.insert_tick(self.tick)
+        self.side.insert_tick(self.tick2)
 
+        self.assertEquals(2, len(self.side))
+        self.assertTrue(self.side.tick_exists(MessageId(TraderId('trader_id'), MessageNumber('message_number'))))
+
+    def test_remove_tick(self):
         # Test remove tick
-        side.remove_tick(message_id)
-        self.assertEquals(1, len(side))
-        side.remove_tick(message_id2)
-        self.assertEquals(0, len(side))
+        self.side.insert_tick(self.tick)
+        self.side.insert_tick(self.tick2)
+
+        self.side.remove_tick(MessageId(TraderId('trader_id'), MessageNumber('message_number')))
+        self.assertEquals(1, len(self.side))
+        self.side.remove_tick(MessageId(TraderId('trader_id2'), MessageNumber('message_number')))
+        self.assertEquals(0, len(self.side))
 
 
 if __name__ == '__main__':
