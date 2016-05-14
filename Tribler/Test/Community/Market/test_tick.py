@@ -12,107 +12,104 @@ from Tribler.community.market.core.order import OrderId, OrderNumber
 class TickTestSuite(unittest.TestCase):
     """Tick test cases."""
 
-    def test_tick(self):
+    def setUp(self):
+        self.inf = Timeout(float("inf"))
         # Object creation
-        trader_id = TraderId('trader_id')
-        message_number = MessageNumber('message_number')
-        message_id = MessageId(trader_id, message_number)
-        price = Price(63400)
-        quantity = Quantity(30)
-        timeout = Timeout(float("inf"))
-        timeout2 = Timeout(0.0)
-        timestamp = Timestamp(float("inf"))
-        timestamp2 = Timestamp(0.0)
-        order_id = OrderId(trader_id, OrderNumber("order_number"))
+        self.tick = Tick(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                         OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(63400), Quantity(30),
+                         self.inf, Timestamp(float("inf")), True)
+        self.tick2 = Tick(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                          OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(63400), Quantity(30),
+                          Timeout(0.0), Timestamp(0.0), False)
 
-        tick = Tick(message_id, order_id, price, quantity, timeout, timestamp, True)
-        tick2 = Tick(message_id, order_id, price, quantity, timeout2, timestamp2, False)
-
+    def test_properties(self):
         # Test for properties
-        self.assertEqual(price, tick.price)
-        self.assertEqual(quantity, tick.quantity)
-        self.assertEqual(timeout, tick.timeout)
-        self.assertEqual(timestamp, tick.timestamp)
+        self.assertEqual(Price(63400), self.tick.price)
+        self.assertEqual(Quantity(30), self.tick.quantity)
+        self.assertEqual(self.inf, self.tick.timeout)
+        self.assertEqual(Timestamp(float("inf")), self.tick.timestamp)
 
+    def test_is_ask(self):
         # Test 'is ask' function
-        self.assertTrue(tick.is_ask())
-        self.assertFalse(tick2.is_ask())
+        self.assertTrue(self.tick.is_ask())
+        self.assertFalse(self.tick2.is_ask())
 
+    def test_is_valid(self):
         # Test for is valid
-        self.assertTrue(tick.is_valid())
-        self.assertFalse(tick2.is_valid())
+        self.assertTrue(self.tick.is_valid())
+        self.assertFalse(self.tick2.is_valid())
 
+    def test_to_network(self):
         # Test for to network
         self.assertEquals(((), ('trader_id', 'message_number', 'order_number', 63400, 30, float("inf"), float("inf"))),
-                          tick.to_network())
+                          self.tick.to_network())
 
+    def test_quantity_setter(self):
         # Test for quantity setter
-        tick.quantity = Quantity(60)
-        self.assertEqual(Quantity(60), tick.quantity)
+        self.tick.quantity = Quantity(60)
+        self.assertEqual(Quantity(60), self.tick.quantity)
 
-    def test_ask(self):
+
+class AskTestSuite(unittest.TestCase):
+    """Ask test cases."""
+
+    def setUp(self):
         # Object creation
-        trader_id = TraderId('trader_id')
-        message_number = MessageNumber('message_number')
-        message_id = MessageId(trader_id, message_number)
-        price = Price(63400)
-        quantity = Quantity(30)
-        timeout = Timeout(1462224447.117)
-        timestamp = Timestamp(1462224447.117)
-        order_id = OrderId(trader_id, OrderNumber("order_number"))
+        self.ask = Ask(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                       OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(63400), Quantity(30),
+                       Timeout(1462224447.117), Timestamp(1462224447.117))
 
-        ask = Ask(message_id, order_id, price, quantity, timeout, timestamp)
-
+    def test_properties(self):
         # Test for properties
-        self.assertEquals(message_id, ask.message_id)
-        self.assertEquals(price, ask.price)
-        self.assertEquals(quantity, ask.quantity)
-        self.assertEquals(float(timeout), float(ask.timeout))
-        self.assertEquals(timestamp, ask.timestamp)
+        self.assertEquals(MessageId(TraderId('trader_id'), MessageNumber('message_number')), self.ask.message_id)
+        self.assertEquals(Price(63400), self.ask.price)
+        self.assertEquals(Quantity(30), self.ask.quantity)
+        self.assertEquals(float(Timeout(1462224447.117)), float(self.ask.timeout))
+        self.assertEquals(Timestamp(1462224447.117), self.ask.timestamp)
 
+    def test_from_network(self):
         # Test for from network
         data = Ask.from_network(type('Data', (object,), {"trader_id": 'trader_id', "order_number": 'order_number',
                                                          "message_number": 'message_number', "price": 63400,
                                                          "quantity": 30, "timeout": 1462224447.117,
                                                          "timestamp": 1462224447.117}))
 
-        self.assertEquals(message_id, data.message_id)
-        self.assertEquals(price, data.price)
-        self.assertEquals(quantity, data.quantity)
-        self.assertEquals(float(timeout), float(data.timeout))
-        self.assertEquals(timestamp, data.timestamp)
+        self.assertEquals(MessageId(TraderId('trader_id'), MessageNumber('message_number')), data.message_id)
+        self.assertEquals(Price(63400), data.price)
+        self.assertEquals(Quantity(30), data.quantity)
+        self.assertEquals(float(Timeout(1462224447.117)), float(data.timeout))
+        self.assertEquals(Timestamp(1462224447.117), data.timestamp)
 
-    def test_bid(self):
+
+class BidTestSuite(unittest.TestCase):
+    """Bid test cases."""
+
+    def setUp(self):
         # Object creation
-        trader_id = TraderId('trader_id')
-        message_number = MessageNumber('message_number')
-        message_id = MessageId(trader_id, message_number)
-        price = Price(63400)
-        quantity = Quantity(30)
-        timeout = Timeout(1462224447.117)
-        timestamp = Timestamp(1462224447.117)
-        order_id = OrderId(trader_id, OrderNumber("order_number"))
+        self.bid = Bid(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                       OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(63400), Quantity(30),
+                       Timeout(1462224447.117), Timestamp(1462224447.117))
 
-        bid = Bid(message_id, order_id, price, quantity, timeout, timestamp)
-
+    def test_properties(self):
         # Test for properties
-        self.assertEquals(message_id, bid.message_id)
-        self.assertEquals(price, bid.price)
-        self.assertEquals(quantity, bid.quantity)
-        self.assertEquals(float(timeout), float(bid.timeout))
-        self.assertEquals(timestamp, bid.timestamp)
+        self.assertEquals(MessageId(TraderId('trader_id'), MessageNumber('message_number')), self.bid.message_id)
+        self.assertEquals(Price(63400), self.bid.price)
+        self.assertEquals(Quantity(30), self.bid.quantity)
+        self.assertEquals(float(Timeout(1462224447.117)), float(self.bid.timeout))
+        self.assertEquals(Timestamp(1462224447.117), self.bid.timestamp)
 
+    def test_from_network(self):
         # Test for from network
         data = Bid.from_network(type('Data', (object,), {"trader_id": 'trader_id', "order_number": 'order_number',
                                                          "message_number": 'message_number', "price": 63400,
                                                          "quantity": 30, "timeout": 1462224447.117,
                                                          "timestamp": 1462224447.117}))
 
-        self.assertEquals(message_id, data.message_id)
-        self.assertEquals(price, data.price)
-        self.assertEquals(quantity, data.quantity)
-        self.assertEquals(float(timeout), float(data.timeout))
-        self.assertEquals(timestamp, data.timestamp)
+        self.assertEquals(MessageId(TraderId('trader_id'), MessageNumber('message_number')), data.message_id)
+        self.assertEquals(Price(63400), data.price)
+        self.assertEquals(Quantity(30), data.quantity)
+        self.assertEquals(float(Timeout(1462224447.117)), float(data.timeout))
+        self.assertEquals(Timestamp(1462224447.117), data.timestamp)
 
 
 if __name__ == '__main__':
