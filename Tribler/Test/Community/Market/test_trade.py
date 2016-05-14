@@ -11,64 +11,64 @@ from Tribler.community.market.core.trade import Trade, ProposedTrade, DeclinedTr
 class TradeTestSuite(unittest.TestCase):
     """Trade test cases."""
 
-    def test_trade(self):
+    def setUp(self):
         # Object creation
-        trader_id = TraderId('trader_id')
-        message_number = MessageNumber('message_number')
-        message_id = MessageId(trader_id, message_number)
-        sender_message_id = MessageId(trader_id, message_number)
-        recipient_message_id = MessageId(trader_id, message_number)
-        price = Price(63400)
-        quantity = Quantity(30)
-        timestamp = Timestamp(1462224447.117)
+        self.trade = Trade(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                           MessageId(TraderId('trader_id'), MessageNumber('message_number')), Timestamp(1462224447.117),
+                           False, False, False)
+        self.proposed_trade = Trade.propose(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                                            MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                                            MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                                            Price(63400), Quantity(30), Timestamp(1462224447.117))
+        self.quick_trade = Trade.quick_propose(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                                               MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                                               MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                                               Price(63400), Quantity(30), Timestamp(1462224447.117))
+        self.accepted_trade = Trade.accept(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                                           Timestamp(1462224447.117), self.proposed_trade)
+        self.declined_trade = Trade.decline(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                                            Timestamp(1462224447.117), self.proposed_trade)
 
-        # Test for instantiation
-        trade = Trade(message_id, sender_message_id, timestamp, False, False, False)
-        proposed_trade = Trade.propose(message_id, sender_message_id, recipient_message_id, price, quantity, timestamp)
-        quick_proposed_trade = Trade.quick_propose(message_id, sender_message_id, recipient_message_id, price, quantity,
-                                                   timestamp)
-        accepted_trade = Trade.accept(message_id, timestamp, proposed_trade)
-        declined_trade = Trade.decline(message_id, timestamp, proposed_trade)
-
+    def test_is_accepted(self):
         # Test for is accepted
-        self.assertFalse(proposed_trade.is_accepted())
-        self.assertFalse(quick_proposed_trade.is_accepted())
-        self.assertTrue(accepted_trade.is_accepted())
-        self.assertFalse(declined_trade.is_accepted())
+        self.assertFalse(self.proposed_trade.is_accepted())
+        self.assertFalse(self.quick_trade.is_accepted())
+        self.assertTrue(self.accepted_trade.is_accepted())
+        self.assertFalse(self.declined_trade.is_accepted())
 
+    def test_is_quick(self):
         # Test for is quick
-        self.assertFalse(proposed_trade.is_quick())
-        self.assertTrue(quick_proposed_trade.is_quick())
-        self.assertFalse(accepted_trade.is_quick())
-        self.assertFalse(declined_trade.is_quick())
+        self.assertFalse(self.proposed_trade.is_quick())
+        self.assertTrue(self.quick_trade.is_quick())
+        self.assertFalse(self.accepted_trade.is_quick())
+        self.assertFalse(self.declined_trade.is_quick())
 
+    def test_is_proposed(self):
         # Test for is proposed
-        self.assertTrue(proposed_trade.is_proposed())
-        self.assertTrue(quick_proposed_trade.is_proposed())
-        self.assertFalse(accepted_trade.is_proposed())
-        self.assertFalse(declined_trade.is_proposed())
+        self.assertTrue(self.proposed_trade.is_proposed())
+        self.assertTrue(self.quick_trade.is_proposed())
+        self.assertFalse(self.accepted_trade.is_proposed())
+        self.assertFalse(self.declined_trade.is_proposed())
 
+    def test_to_network(self):
         # Test for to network
-        self.assertEquals(NotImplemented, trade.to_network())
+        self.assertEquals(NotImplemented, self.trade.to_network())
 
-    def test_proposed_trade(self):
+
+class ProposedTradeTestSuite(unittest.TestCase):
+    """Proposed trade test cases."""
+	
+    def setUp(self):
         # Object creation
-        trader_id = TraderId('trader_id')
-        message_number = MessageNumber('message_number')
-        message_id = MessageId(trader_id, message_number)
-        sender_message_id = MessageId(trader_id, message_number)
-        recipient_message_id = MessageId(trader_id, message_number)
-        price = Price(63400)
-        quantity = Quantity(30)
-        timestamp = Timestamp(1462224447.117)
+        self.proposed_trade = Trade.propose(MessageId(TraderId('trader_id'), MessageNumber('message_number')), MessageId(TraderId('trader_id'), MessageNumber('message_number')), MessageId(TraderId('trader_id'), MessageNumber('message_number')), Price(63400), Quantity(30), Timestamp(1462224447.117))
 
-        proposed_trade = Trade.propose(message_id, sender_message_id, recipient_message_id, price, quantity, timestamp)
-
+    def test_to_network(self):
         # Test for to network
         self.assertEquals((('trader_id',), ('trader_id', 'message_number', 'trader_id', 'message_number', 'trader_id',
                                             'message_number', 63400, 30, 1462224447.117, False)),
-                          proposed_trade.to_network())
+                          self.proposed_trade.to_network())
 
+    def test_from_network(self):
         # Test for from network
         data = ProposedTrade.from_network(type('Data', (object,), {"trader_id": 'trader_id',
                                                                    "message_number": 'message_number',
@@ -79,36 +79,34 @@ class TradeTestSuite(unittest.TestCase):
                                                                    "price": 63400, "quantity": 30,
                                                                    "timestamp": 1462224447.117, "quick": False,}))
 
-        self.assertEquals(message_id, data.message_id)
-        self.assertEquals(recipient_message_id, data.message_id)
-        self.assertEquals(sender_message_id, data.message_id)
-        self.assertEquals(price, data.price)
-        self.assertEquals(quantity, data.quantity)
-        self.assertEquals(timestamp, data.timestamp)
+        self.assertEquals(MessageId(TraderId('trader_id'), MessageNumber('message_number')), data.message_id)
+        self.assertEquals(MessageId(TraderId('trader_id'), MessageNumber('message_number')), data.recipient_message_id)
+        self.assertEquals(MessageId(TraderId('trader_id'), MessageNumber('message_number')), data.sender_message_id)
+        self.assertEquals(Price(63400), data.price)
+        self.assertEquals(Quantity(30), data.quantity)
+        self.assertEquals(Timestamp(1462224447.117), data.timestamp)
 
-    def test_accepted_trade(self):
+
+class AcceptedTradeTestSuite(unittest.TestCase):
+    """Accepted trade test cases."""
+	
+    def setUp(self):
         # Object creation
-        trader_id = TraderId('trader_id')
-        message_number = MessageNumber('message_number')
-        message_id = MessageId(trader_id, message_number)
-        sender_message_id = MessageId(trader_id, message_number)
-        recipient_message_id = MessageId(trader_id, message_number)
-        price = Price(63400)
-        quantity = Quantity(30)
-        timestamp = Timestamp(1462224447.117)
-        proposed_trade = Trade.propose(message_id, sender_message_id, recipient_message_id, price, quantity, timestamp)
-
-        accepted_trade = Trade.accept(message_id, timestamp, proposed_trade)
-
+        proposed_trade = Trade.propose(MessageId(TraderId('trader_id'), MessageNumber('message_number')), MessageId(TraderId('trader_id'), MessageNumber('message_number')), MessageId(TraderId('trader_id'), MessageNumber('message_number')), Price(63400), Quantity(30), Timestamp(1462224447.117))
+        self.accepted_trade = Trade.accept(MessageId(TraderId('trader_id'), MessageNumber('message_number')), Timestamp(1462224447.117), proposed_trade)
+	
+    def test_accepted_trade(self):
         # Test for properties
-        self.assertEquals(accepted_trade.sender_message_id, sender_message_id)
-
+        self.assertEquals(self.accepted_trade.sender_message_id, MessageId(TraderId('trader_id'), MessageNumber('message_number')))
+	
+    def test_to_network(self):
         # Test for to network
         self.assertEquals(
             ((), ('trader_id', 'message_number', 'trader_id', 'message_number', 'trader_id', 'message_number', 63400,
                   30, 1462224447.117, False)),
-            accepted_trade.to_network())
-
+            self.accepted_trade.to_network())
+	
+    def test_from_network(self):
         # Test for from network
         data = AcceptedTrade.from_network(type('Data', (object,), {"trader_id": 'trader_id',
                                                                    "message_number": 'message_number',
@@ -119,32 +117,29 @@ class TradeTestSuite(unittest.TestCase):
                                                                    "price": 63400, "quantity": 30,
                                                                    "timestamp": 1462224447.117, "quick": False,}))
 
-        self.assertEquals(message_id, data.message_id)
-        self.assertEquals(recipient_message_id, data.message_id)
-        self.assertEquals(sender_message_id, data.message_id)
-        self.assertEquals(price, data.price)
-        self.assertEquals(quantity, data.quantity)
-        self.assertEquals(timestamp, data.timestamp)
+        self.assertEquals(MessageId(TraderId('trader_id'), MessageNumber('message_number')), data.message_id)
+        self.assertEquals(MessageId(TraderId('trader_id'), MessageNumber('message_number')), data.sender_message_id)
+        self.assertEquals(MessageId(TraderId('trader_id'), MessageNumber('message_number')), data.recipient_message_id)
+        self.assertEquals(Price(63400), data.price)
+        self.assertEquals(Quantity(30), data.quantity)
+        self.assertEquals(Timestamp(1462224447.117), data.timestamp)
 
-    def test_declined_trade(self):
+
+class DeclinedTradeTestSuite(unittest.TestCase):
+    """Declined trade test cases."""
+	
+    def setUp(self):
         # Object creation
-        trader_id = TraderId('trader_id')
-        message_number = MessageNumber('message_number')
-        message_id = MessageId(trader_id, message_number)
-        sender_message_id = MessageId(trader_id, message_number)
-        recipient_message_id = MessageId(trader_id, message_number)
-        price = Price(63400)
-        quantity = Quantity(30)
-        timestamp = Timestamp(1462224447.117)
-        proposed_trade = Trade.propose(message_id, sender_message_id, recipient_message_id, price, quantity, timestamp)
-
-        declined_trade = Trade.decline(message_id, timestamp, proposed_trade)
-
+        proposed_trade = Trade.propose(MessageId(TraderId('trader_id'), MessageNumber('message_number')), MessageId(TraderId('trader_id'), MessageNumber('message_number')), MessageId(TraderId('trader_id'), MessageNumber('message_number')), Price(63400), Quantity(30), Timestamp(1462224447.117))
+        self.declined_trade = Trade.decline(MessageId(TraderId('trader_id'), MessageNumber('message_number')), Timestamp(1462224447.117), proposed_trade)
+	
+    def test_to_network(self):
         # Test for to network
         self.assertEquals(
             (('trader_id',), ('trader_id', 'message_number', 'trader_id', 'message_number', 1462224447.117, False)),
-            declined_trade.to_network())
-
+            self.declined_trade.to_network())
+	
+    def test_from_network(self):
         # Test for from network
         data = DeclinedTrade.from_network(type('Data', (object,), {"trader_id": 'trader_id',
                                                                    "message_number": 'message_number',
@@ -152,6 +147,10 @@ class TradeTestSuite(unittest.TestCase):
                                                                    "recipient_message_number": 'message_number',
                                                                    "timestamp": 1462224447.117, "quick": False,}))
 
-        self.assertEquals(message_id, data.message_id)
-        self.assertEquals(recipient_message_id, data.message_id)
-        self.assertEquals(timestamp, data.timestamp)
+        self.assertEquals(MessageId(TraderId('trader_id'), MessageNumber('message_number')), data.message_id)
+        self.assertEquals(MessageId(TraderId('trader_id'), MessageNumber('message_number')), data.recipient_message_id)
+        self.assertEquals(Timestamp(1462224447.117), data.timestamp)
+
+
+if __name__ == '__main__':
+    unittest.main()
