@@ -196,7 +196,7 @@ class OrderBook(object):
         :rtype: Quantity
         """
         assert isinstance(price, Price), type(price)
-        return self._bids.get_price_level(price).depth
+        return self._asks.get_price_level(price).depth
 
     @property
     def bid_side_depth_profile(self):
