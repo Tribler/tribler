@@ -14,44 +14,47 @@ from Tribler.community.market.core.tickentry import TickEntry
 class OrderTestSuite(unittest.TestCase):
     """TickEntry test cases."""
 
-    def test_tick_entry(self):
+    def setUp(self):
         # Object creation
-        trader_id = TraderId('trader_id')
-        message_number = MessageNumber('message_number')
-        message_id = MessageId(trader_id, message_number)
-        price = Price(63400)
-        quantity = Quantity(30)
-        timeout = Timeout(float("inf"))
-        timestamp = Timestamp(float("inf"))
-        order_id = OrderId(trader_id, OrderNumber("order_number"))
-        tick = Tick(message_id, order_id, price, quantity, timeout, timestamp, True)
+        tick = Tick(MessageId(TraderId('trader_id'), MessageNumber('message_number')), OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(63400), Quantity(30), Timeout(float("inf")), Timestamp(float("inf")), True)
 
-        price_level = PriceLevel()
-        tick_entry = TickEntry(tick, price_level)
-        tick_entry2 = TickEntry(tick, price_level)
+        self.price_level = PriceLevel()
+        self.tick_entry = TickEntry(tick, self.price_level)
+        self.tick_entry2 = TickEntry(tick, self.price_level)
 
-        # Test properties and price level
-        self.assertEquals(message_id, tick_entry.message_id)
-        self.assertEquals(price, tick_entry.price)
-        self.assertEquals(quantity, tick_entry.quantity)
-        self.assertEquals(price_level, tick_entry.price_level())
+    def test_properties(self):
+        # Test properties
+        self.assertEquals(MessageId(TraderId('trader_id'), MessageNumber('message_number')), self.tick_entry.message_id)
+        self.assertEquals(Price(63400), self.tick_entry.price)
+        self.assertEquals(Quantity(30), self.tick_entry.quantity)
 
-        # Test for next tick and previous tick
-        self.assertEquals(None, tick_entry.next_tick())
-        self.assertEquals(None, tick_entry.prev_tick())
-        price_level.append_tick(tick_entry)
-        price_level.append_tick(tick_entry2)
-        self.assertEquals(tick_entry2, tick_entry.next_tick())
-        self.assertEquals(tick_entry, tick_entry2.prev_tick())
+    def test_price_level(self):
+        self.assertEquals(self.price_level, self.tick_entry.price_level())
 
+    def test_next_tick(self):
+        # Test for next tick
+        self.assertEquals(None, self.tick_entry.next_tick())
+        self.price_level.append_tick(self.tick_entry)
+        self.price_level.append_tick(self.tick_entry2)
+        self.assertEquals(self.tick_entry2, self.tick_entry.next_tick())
+
+    def test_prev_tick(self):
+        # Test for previous tick
+        self.assertEquals(None, self.tick_entry.prev_tick())
+        self.price_level.append_tick(self.tick_entry)
+        self.price_level.append_tick(self.tick_entry2)
+        self.assertEquals(self.tick_entry, self.tick_entry2.prev_tick())
+
+    def test_str(self):
         # Test for tick string representation
-        self.assertEquals('0.0030\t@\t6.3400', str(tick_entry))
+        self.assertEquals('0.0030\t@\t6.3400', str(self.tick_entry))
 
+    def test_quantity_setter(self):
         # Test for quantity setter
-        price_level.append_tick(tick_entry)
-        price_level.append_tick(tick_entry2)
-        tick_entry.quantity = Quantity(15)
-        self.assertEquals(Quantity(15), tick_entry.quantity)
+        self.price_level.append_tick(self.tick_entry)
+        self.price_level.append_tick(self.tick_entry2)
+        self.tick_entry.quantity = Quantity(15)
+        self.assertEquals(Quantity(15), self.tick_entry.quantity)
 
 
 if __name__ == '__main__':
