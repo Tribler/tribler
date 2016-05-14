@@ -15,73 +15,100 @@ from Tribler.community.market.core.message_repository import MessageRepository, 
 class OrderBookTestSuite(unittest.TestCase):
     """OrderBook test cases."""
 
-    def test_order_book(self):
+    def setUp(self):
         # Object creation
-        trader_id = TraderId('trader_id')
-        trader_id2 = TraderId('trader_id2')
-        trader_id3 = TraderId('trader_id3')
-        trader_id4 = TraderId('trader_id4')
-        message_number = MessageNumber('message_number')
-        message_id = MessageId(trader_id, message_number)
-        message_id2 = MessageId(trader_id2, message_number)
-        message_id3 = MessageId(trader_id3, message_number)
-        message_id4 = MessageId(trader_id4, message_number)
-        price = Price(100)
-        price2 = Price(200)
-        price3 = Price(300)
-        price4 = Price(400)
-        quantity = Quantity(30)
-        timeout = Timeout(1462224447.117)
-        timestamp = Timestamp(1462224447.117)
-        order_id = OrderId(trader_id, OrderNumber("order_number"))
-        memory_message_repository = MemoryMessageRepository('trader_id')
+        self.ask = Ask(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                       OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100), Quantity(30),
+                       Timeout(1462224447.117), Timestamp(1462224447.117))
+        self.ask2 = Ask(MessageId(TraderId('trader_id2'), MessageNumber('message_number')),
+                        OrderId(TraderId('trader_id2'), OrderNumber("order_number")), Price(400), Quantity(30),
+                        Timeout(1462224447.117), Timestamp(1462224447.117))
+        self.bid = Bid(MessageId(TraderId('trader_id3'), MessageNumber('message_number')),
+                       OrderId(TraderId('trader_id3'), OrderNumber("order_number")), Price(200), Quantity(30),
+                       Timeout(1462224447.117), Timestamp(1462224447.117))
+        self.bid2 = Bid(MessageId(TraderId('trader_id4'), MessageNumber('message_number')),
+                        OrderId(TraderId('trader_id4'), OrderNumber("order_number")), Price(300), Quantity(30),
+                        Timeout(1462224447.117), Timestamp(1462224447.117))
+        self.trade = Trade.propose(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                                   MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                                   MessageId(TraderId('trader_id'), MessageNumber('message_number')), Price(100),
+                                   Quantity(30), Timestamp(1462224447.117))
+        self.order_book = OrderBook(MemoryMessageRepository('trader_id'))
 
-        ask = Ask(message_id, order_id, price, quantity, timeout, timestamp)
-        ask2 = Ask(message_id2, order_id, price4, quantity, timeout, timestamp)
-        bid = Bid(message_id3, order_id, price2, quantity, timeout, timestamp)
-        bid2 = Bid(message_id4, order_id, price3, quantity, timeout, timestamp)
-        trade = Trade.propose(message_id, message_id, message_id, price, quantity, timestamp)
+    def test_ask_insertion(self):
+        # Test for ask insertion
+        self.order_book.insert_ask(self.ask2)
+        self.assertTrue(self.order_book.tick_exists(MessageId(TraderId('trader_id2'), MessageNumber('message_number'))))
 
-        order_book = OrderBook(memory_message_repository)
+    def test_bid_insertion(self):
+        # Test for bid insertion
+        self.order_book.insert_bid(self.bid2)
+        self.assertTrue(self.order_book.tick_exists(MessageId(TraderId('trader_id4'), MessageNumber('message_number'))))
 
-        # Test for ask, bid, and trade insertion
-        order_book.insert_ask(ask2)
-        order_book.insert_bid(bid2)
-        order_book.insert_trade(trade)
-        order_book.insert_trade(trade)
-        order_book.insert_trade(trade)
-        order_book.insert_trade(trade)
-        order_book.insert_trade(trade)
-        order_book.insert_trade(trade)
+    def test_trade_insertion(self):
+        # Test for trade insertion
+        self.order_book.insert_trade(self.trade)
+        self.order_book.insert_trade(self.trade)
+        self.order_book.insert_trade(self.trade)
+        self.order_book.insert_trade(self.trade)
+        self.order_book.insert_trade(self.trade)
+        self.order_book.insert_trade(self.trade)
 
-        self.assertTrue(order_book.tick_exists(message_id2))
-        self.assertTrue(order_book.tick_exists(message_id4))
-
+    def test_properties(self):
         # Test for properties
-        self.assertEquals(Price(350), order_book.mid_price)
-        self.assertEquals(Price(100), order_book.bid_ask_spread)
-        self.assertEquals(Price(300), order_book.relative_tick_price(ask))
-        self.assertEquals(Price(100), order_book.relative_tick_price(bid))
+        self.order_book.insert_ask(self.ask2)
+        self.order_book.insert_bid(self.bid2)
+        self.assertEquals(Price(350), self.order_book.mid_price)
+        self.assertEquals(Price(100), self.order_book.bid_ask_spread)
 
-        order_book.insert_ask(ask)
-        order_book.insert_bid(bid)
+    def test_tick_price(self):
+        # Test for tick price
+        self.order_book.insert_ask(self.ask2)
+        self.order_book.insert_bid(self.bid2)
+        self.assertEquals(Price(300), self.order_book.relative_tick_price(self.ask))
+        self.assertEquals(Price(100), self.order_book.relative_tick_price(self.bid))
 
-        self.assertEquals('0.0030\t@\t0.0100\n', str(order_book.ask_price_level))
-        self.assertEquals('0.0030\t@\t0.0300\n', str(order_book.bid_price_level))
+    def test_bid_ask_price_level(self):
+        self.order_book.insert_ask(self.ask)
+        self.assertEquals('0.0030\t@\t0.0100\n', str(self.order_book.ask_price_level))
 
-        # Test for ask / bid side depth
-        self.assertEquals(Quantity(30), order_book.ask_side_depth(Price(200)))
-        self.assertEquals(Quantity(30), order_book.bid_side_depth(Price(300)))
+    def test_bid_price_level(self):
+        # Test for tick price
+        self.order_book.insert_bid(self.bid2)
+        self.assertEquals('0.0030\t@\t0.0300\n', str(self.order_book.bid_price_level))
 
-        # Test for ask / bid side depth profile
-        self.assertEquals([(Price(100), Quantity(30)), (Price(400), Quantity(30))], order_book.ask_side_depth_profile)
-        self.assertEquals([(Price(200), Quantity(30)), (Price(300), Quantity(30))], order_book.bid_side_depth_profile)
+    def test_ask_side_depth(self):
+        # Test for ask side depth
+        self.order_book.insert_ask(self.ask)
+        self.order_book.insert_ask(self.ask2)
+        self.assertEquals(Quantity(30), self.order_book.ask_side_depth(Price(100)))
+        self.assertEquals([(Price(100), Quantity(30)), (Price(400), Quantity(30))],
+                          self.order_book.ask_side_depth_profile)
 
+    def test_bid_side_depth(self):
+        # Test for bid side depth
+        self.order_book.insert_bid(self.bid)
+        self.order_book.insert_bid(self.bid2)
+        self.assertEquals(Quantity(30), self.order_book.bid_side_depth(Price(300)))
+        self.assertEquals([(Price(200), Quantity(30)), (Price(300), Quantity(30))],
+                          self.order_book.bid_side_depth_profile)
+
+    def test_remove_tick(self):
         # Test for tick removal
-        order_book.remove_tick(message_id2)
-        order_book.remove_tick(message_id4)
+        self.order_book.remove_tick(MessageId(TraderId('trader_id2'), MessageNumber('message_number')))
+        self.order_book.remove_tick(MessageId(TraderId('trader_id4'), MessageNumber('message_number')))
 
+    def test_str(self):
         # Test for order book string representation
+        self.order_book.insert_ask(self.ask)
+        self.order_book.insert_bid(self.bid)
+        self.order_book.insert_trade(self.trade)
+        self.order_book.insert_trade(self.trade)
+        self.order_book.insert_trade(self.trade)
+        self.order_book.insert_trade(self.trade)
+        self.order_book.insert_trade(self.trade)
+        self.order_book.insert_trade(self.trade)
+
         self.assertEquals('------ Bids -------\n'
                           '0.0030\t@\t0.0200\n\n'
                           '------ Asks -------\n'
@@ -91,7 +118,7 @@ class OrderBookTestSuite(unittest.TestCase):
                           '0.0030 @ 0.0100 (2016-05-02 23:27:27.117000)\n'
                           '0.0030 @ 0.0100 (2016-05-02 23:27:27.117000)\n'
                           '0.0030 @ 0.0100 (2016-05-02 23:27:27.117000)\n'
-                          '0.0030 @ 0.0100 (2016-05-02 23:27:27.117000)\n\n', str(order_book))
+                          '0.0030 @ 0.0100 (2016-05-02 23:27:27.117000)\n\n', str(self.order_book))
 
 
 if __name__ == '__main__':
