@@ -197,6 +197,28 @@ class TestMyChannelRssEndpoints(AbstractTestMyChannelEndpoints):
         return self.do_request('mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml', expected_code=200,
                                expected_json=expected_json, request_type='DELETE').addCallback(verify_rss_removed)
 
+    @deferred(timeout=10)
+    def test_recheck_rss_feeds_no_channel(self):
+        """
+        Testing whether the API returns a 404 if no channel has been created when rechecking rss feeds
+        """
+        self.session.lm.channel_manager = ChannelManager(self.session)
+        return self.do_request('mychannel/recheckfeeds', expected_code=404, request_type='POST')
+
+    @deferred(timeout=10)
+    def test_recheck_rss_feeds(self):
+        """
+        Testing whether the API returns a 200 if the rss feeds are rechecked in your channel
+        """
+        expected_json = {"rechecked": True}
+        my_channel_id = self.create_fake_channel("my channel", "this is a short description")
+        channel_obj = self.session.lm.channel_manager.get_my_channel(my_channel_id)
+        channel_obj._is_created = True
+        channel_obj.create_rss_feed("http://rssfeed.com/rss.xml")
+
+        return self.do_request('mychannel/recheckfeeds', expected_code=200,
+                               expected_json=expected_json, request_type='POST')
+
 
 class TestMyChannelPlaylistEndpoints(AbstractTestMyChannelEndpoints):
 
