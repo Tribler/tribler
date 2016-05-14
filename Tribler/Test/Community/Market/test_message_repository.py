@@ -1,7 +1,7 @@
 import unittest
 
 from Tribler.community.market.core.message_repository import MessageRepository, MemoryMessageRepository
-from Tribler.community.market.core.tick import MessageId, TraderId, MessageNumber
+from Tribler.community.market.core.message import MessageId, TraderId, MessageNumber
 
 
 class MessageRepositoryTestSuite(unittest.TestCase):
