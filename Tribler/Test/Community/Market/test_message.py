@@ -78,15 +78,10 @@ class MessageTestSuite(unittest.TestCase):
         message_id = MessageId(trader_id, message_number)
         timestamp = Timestamp(float("inf"))
         message = Message(message_id, timestamp)
-        message2 = Message(message_id, timestamp)
 
         # Test for properties
         self.assertEqual(message_id, message.message_id)
         self.assertEqual(timestamp, message.timestamp)
-
-        # Test for is tick
-        self.assertTrue(message.is_tick())
-        self.assertFalse(message2.is_tick())
 
 if __name__ == '__main__':
     unittest.main()
