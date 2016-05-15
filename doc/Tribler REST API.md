@@ -19,9 +19,10 @@ curl -X PUT http://localhost:8085/mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2F
 | Endpoint | Description |
 | ---- | --------------- |
 | GET /channels/discovered | Get all discovered channels in Tribler |
+| GET /channels/discovered/{channelcid}/torrents | Get all discovered torrents in a specific channel |
 | GET /channels/subscribed | Get the channels you are subscribed to |
-| PUT /channels/subscribed/{channelid} | Subscribe to a channel |
-| DELETE /channels/subscribed/{channelid} | Unsubscribe from a channel |
+| PUT /channels/subscribed/{channelcid} | Subscribe to a channel |
+| DELETE /channels/subscribed/{channelcid} | Unsubscribe from a channel |
 
 ### My Channel
 
@@ -75,6 +76,27 @@ Returns all discovered channels in Tribler.
         "torrents": 3,
         "spam": 5,
         "modified": 14598395,
+    }, ...]
+}
+```
+
+## `GET /channels/discovered/{channelcid}/torrents`
+
+Returns all discovered torrents in a specific channel. The size of the torrent is in number of bytes. The last_tracker_check value will be 0 if we did not check the tracker state of the torrent yet.
+
+### Example response
+
+```json
+{
+    "torrents": [{
+        "id": 4,
+        "infohash": "97d2d8f5d37e56cfaeaae151d55f05b077074779",
+        "name": "Ubuntu-16.04-desktop-amd64",
+        "size": 8592385,
+        "category": "other",
+        "num_seeders": 42,
+        "num_leechers": 184,
+        "last_tracker_check": 1463176959
     }, ...]
 }
 ```
