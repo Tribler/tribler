@@ -168,7 +168,7 @@ class PriceTimeStrategy(MatchingStrategy):
         assert isinstance(quantity_to_trade, Quantity), type(quantity_to_trade)
         assert isinstance(order, Order), type(order)
 
-        if tick_entry.message_id not in order._reserved_ticks:  # Tick is already reserved for this order
+        if tick_entry.message_id in order._reserved_ticks:  # Tick is already reserved for this order
             return self._search_for_quantity_in_price_level(tick_entry.next_tick(), quantity_to_trade, order)
 
         if not tick_entry.is_valid():  # Tick is time out or reserved
