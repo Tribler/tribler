@@ -1,3 +1,3 @@
 """
-This testing package contains tests for the channel module.
+This package contains tests for the channel management objects.
 """

@@ -35,6 +35,21 @@ If a valid request of a client caused a recoverable error the response will have
 }
 ```
 
+## Download states
+There are various download states possible which are returned when fetching downloads. These states are explained in the table below.
+
+| State | Description |
+| ---- | --------------- |
+| DLSTATUS_ALLOCATING_DISKSPACE | Libtorrent is allocating disk space for the download |
+| DLSTATUS_WAITING4HASHCHECK | The download is waiting for the hash check to be performed |
+| DLSTATUS_HASHCHECKING | Libtorrent is checking the hashes of the download |
+| DLSTATUS_DOWNLOADING | The torrent is being downloaded |
+| DLSTATUS_SEEDING | The torrent has been downloaded and is now being seeded to other peers |
+| DLSTATUS_STOPPED | The torrent has stopped downloading, either because the downloading has completed or the user has stopped the download |
+| DLSTATUS_STOPPED_ON_ERROR | The torrent has stopped because an error occurred |
+| DLSTATUS_METADATA | The torrent information is being fetched from the DHT |
+| DLSTATUS_CIRCUITS | The (anonymous) download is building circuits |
+
 ## Endpoints
 
 ### Channels
@@ -77,6 +92,12 @@ If a valid request of a client caused a recoverable error the response will have
 | Endpoint | Description |
 | ---- | --------------- |
 | GET /variables | Returns runtime-defined variables used by the current Tribler session |
+
+### Downloads
+
+| Endpoint | Description |
+| ---- | --------------- |
+| GET /downloads | Get information about the downloads in Tribler, both active and inactive |
 
 ### Events
 
@@ -326,6 +347,45 @@ Returns a dictionary with the runtime-defined variables that the current Tribler
         },
         ...
     }
+}
+```
+
+## `GET /downloads`
+
+A GET request to this endpoint returns all downloads in Tribler, both active and inactive. The progress is a number ranging from 0 to 1, indicating the progress of the specific state (downloading, checking etc). The download speeds have the unit bytes/sec. The size of the torrent is given in bytes. The estimated time assumed is given in seconds.
+
+### Example response
+
+```
+{
+    "downloads": [{
+        "name": "Ubuntu-16.04-desktop-amd64",
+        "progress": 0.31459265,
+        "infohash": "4344503b7e797ebf31582327a5baae35b11bda01",
+        "speed_down": 4938.83,
+        "speed_up": 321.84,
+        "status": "DLSTATUS_DOWNLOADING",
+        "size": 89432483,
+        "eta": 38493,
+        "num_peers": 53,
+        "num_seeds": 93,
+        "files": [{
+            "index": 0,
+            "name": "ubuntu.iso",
+            "size": 89432483,
+            "included": True
+        }, ...],
+        "trackers": [{
+            "url": "http://ipv6.torrent.ubuntu.com:6969/announce",
+            "status": "Working",
+            "peers": 42
+        }, ...],
+        "hops": 1,
+        "anon_download": True,
+        "safe_seeding": True,
+        "max_upload_speed": 0,
+        "max_download_speed": 0,
+    }, ...]
 }
 ```
 
