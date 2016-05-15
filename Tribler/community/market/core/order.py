@@ -291,7 +291,7 @@ class Order(object):
         :return: True if the quantity was reserved, False otherwise
         :rtype: bool
         """
-        if self.available_quantity > tick.quantity:
+        if self.available_quantity >= tick.quantity:
             if tick.message_id not in self._reserved_ticks:
                 self._reserved_quantity += tick.quantity
                 self._reserved_ticks[tick.message_id] = tick
@@ -309,7 +309,7 @@ class Order(object):
         :raises TickWasNotReserved: Thrown when the tick was not reserved first
         """
         if tick.message_id in self._reserved_ticks:
-            if self._reserved_quantity > tick.quantity:
+            if self._reserved_quantity >= tick.quantity:
                 self._reserved_quantity -= tick.quantity
                 del self._reserved_ticks[tick.message_id]
             else:
