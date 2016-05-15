@@ -130,7 +130,7 @@ class Tick(Message):
         :return: True if this tick is reserved, False otherwise
         :rtype: bool
         """
-        return self._is_ask
+        return self._is_reserved
 
     def reserve(self):
         """
