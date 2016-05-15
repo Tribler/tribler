@@ -6,7 +6,7 @@ from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.message import Message, TraderId, MessageNumber, MessageId
 from Tribler.community.market.core.tick import Tick, Ask, Bid
-from Tribler.community.market.core.order import OrderId, OrderNumber
+from Tribler.community.market.core.order import Order, OrderId, OrderNumber
 
 
 class TickTestSuite(unittest.TestCase):
@@ -21,6 +21,10 @@ class TickTestSuite(unittest.TestCase):
         self.tick2 = Tick(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
                           OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(63400), Quantity(30),
                           Timeout(0.0), Timestamp(0.0), False)
+        self.order_ask = Order(OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(63400), Quantity(30),
+                               Timeout(0.0), Timestamp(0.0), True)
+        self.order_bid = Order(OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(63400), Quantity(30),
+                               Timeout(0.0), Timestamp(0.0), False)
 
     def test_properties(self):
         # Test for properties
@@ -28,6 +32,20 @@ class TickTestSuite(unittest.TestCase):
         self.assertEqual(Quantity(30), self.tick.quantity)
         self.assertEqual(self.inf, self.tick.timeout)
         self.assertEqual(Timestamp(float("inf")), self.tick.timestamp)
+        self.assertEqual(OrderId(TraderId('trader_id'), OrderNumber("order_number")), self.tick.order_id)
+
+    def test_reserve(self):
+        # Test 'reserve' function
+        self.assertFalse(self.tick.is_reserved())
+        self.tick.reserve()
+        self.assertTrue(self.tick.is_reserved())
+
+    def test_release(self):
+        # Test 'release' function
+        self.tick.reserve()
+        self.assertTrue(self.tick.is_reserved())
+        self.tick.release()
+        self.assertFalse(self.tick.is_reserved())
 
     def test_is_ask(self):
         # Test 'is ask' function
@@ -48,6 +66,26 @@ class TickTestSuite(unittest.TestCase):
         # Test for quantity setter
         self.tick.quantity = Quantity(60)
         self.assertEqual(Quantity(60), self.tick.quantity)
+
+    def test_from_order_ask(self):
+        # Test for from order
+        ask = Tick.from_order(self.order_ask, MessageId(TraderId('trader_id'), MessageNumber('message_number')))
+        self.assertIsInstance(ask, Ask)
+        self.assertEqual(self.tick2.price, ask.price)
+        self.assertEqual(self.tick2.quantity, ask.quantity)
+        self.assertEqual(self.tick2.timestamp, ask.timestamp)
+        self.assertEqual(self.tick2.order_id, ask.order_id)
+        self.assertEqual(self.tick2.message_id, ask.message_id)
+
+    def test_from_order_bid(self):
+        # Test for from order
+        bid = Tick.from_order(self.order_bid, MessageId(TraderId('trader_id'), MessageNumber('message_number')))
+        self.assertIsInstance(bid, Bid)
+        self.assertEqual(self.tick2.price, bid.price)
+        self.assertEqual(self.tick2.quantity, bid.quantity)
+        self.assertEqual(self.tick2.timestamp, bid.timestamp)
+        self.assertEqual(self.tick2.order_id, bid.order_id)
+        self.assertEqual(self.tick2.message_id, bid.message_id)
 
 
 class AskTestSuite(unittest.TestCase):
