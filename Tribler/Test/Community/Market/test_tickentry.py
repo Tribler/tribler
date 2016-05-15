@@ -16,11 +16,16 @@ class OrderTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        tick = Tick(MessageId(TraderId('trader_id'), MessageNumber('message_number')), OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(63400), Quantity(30), Timeout(float("inf")), Timestamp(float("inf")), True)
+        tick = Tick(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                    OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(63400), Quantity(30),
+                    Timeout(0.0), Timestamp(0.0), True)
+        tick2 = Tick(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                     OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(63400), Quantity(30),
+                     Timeout(float("inf")), Timestamp(float("inf")), True)
 
         self.price_level = PriceLevel()
         self.tick_entry = TickEntry(tick, self.price_level)
-        self.tick_entry2 = TickEntry(tick, self.price_level)
+        self.tick_entry2 = TickEntry(tick2, self.price_level)
 
     def test_properties(self):
         # Test properties
@@ -48,6 +53,11 @@ class OrderTestSuite(unittest.TestCase):
     def test_str(self):
         # Test for tick string representation
         self.assertEquals('0.0030\t@\t6.3400', str(self.tick_entry))
+
+    def test_is_valid(self):
+        # Test for is valid
+        self.assertFalse(self.tick_entry.is_valid())
+        self.assertTrue(self.tick_entry2.is_valid())
 
     def test_quantity_setter(self):
         # Test for quantity setter

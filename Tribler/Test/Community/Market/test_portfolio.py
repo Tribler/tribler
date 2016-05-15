@@ -16,15 +16,30 @@ class PortfolioTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        trader_id = TraderId('1')
-        message_number = MessageNumber('message_number')
-        timeout = Timeout(1462224447.117)
-        timestamp = Timestamp(1462224447.117)
-        message_id = MessageId(trader_id, message_number)
-        order_id = OrderId(trader_id, OrderNumber("order_number"))
-        self.ask = Ask(message_id, order_id, Price(100), Quantity(30), timeout, timestamp)
         self.portfolio = Portfolio(MemoryOrderRepository("mid"))
 
+    def test_create_ask_order(self):
+        # Test for create ask order
+        ask_order = self.portfolio.create_ask_order(Price(100), Quantity(10), Timeout(0.0))
+        self.assertTrue(ask_order.is_ask())
+        self.assertEquals(OrderId(TraderId("mid"), OrderNumber("1")), ask_order.order_id)
+        self.assertEquals(Price(100), ask_order.price)
+        self.assertEquals(Quantity(10), ask_order.total_quantity)
+        self.assertEquals(0.0, float(ask_order.timeout))
+
+    def test_create_bid_order(self):
+        # Test for create bid order
+        bid_order = self.portfolio.create_bid_order(Price(100), Quantity(10), Timeout(0.0))
+        self.assertFalse(bid_order.is_ask())
+        self.assertEquals(OrderId(TraderId("mid"), OrderNumber("1")), bid_order.order_id)
+        self.assertEquals(Price(100), bid_order.price)
+        self.assertEquals(Quantity(10), bid_order.total_quantity)
+        self.assertEquals(0.0, float(bid_order.timeout))
+
+    def test_cancel_order(self):
+        # test for cancel order
+        order = self.portfolio.create_ask_order(Price(100), Quantity(10), Timeout(0.0))
+        self.portfolio.cancel_order(order.order_id)
 
 if __name__ == '__main__':
     unittest.main()

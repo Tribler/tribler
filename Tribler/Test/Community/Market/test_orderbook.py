@@ -38,12 +38,26 @@ class OrderBookTestSuite(unittest.TestCase):
     def test_ask_insertion(self):
         # Test for ask insertion
         self.order_book.insert_ask(self.ask2)
-        self.assertTrue(self.order_book.tick_exists(MessageId(TraderId('trader_id2'), MessageNumber('message_number'))))
+        self.assertTrue(self.order_book.tick_exists(self.ask2.message_id))
+
+    def test_ask_removal(self):
+        # Test for ask removal
+        self.order_book.insert_ask(self.ask2)
+        self.assertTrue(self.order_book.tick_exists(self.ask2.message_id))
+        self.order_book.remove_ask(self.ask2.message_id)
+        self.assertFalse(self.order_book.tick_exists(self.ask2.message_id))
 
     def test_bid_insertion(self):
         # Test for bid insertion
         self.order_book.insert_bid(self.bid2)
-        self.assertTrue(self.order_book.tick_exists(MessageId(TraderId('trader_id4'), MessageNumber('message_number'))))
+        self.assertTrue(self.order_book.tick_exists(self.bid2.message_id))
+
+    def test_bid_removal(self):
+        # Test for bid removal
+        self.order_book.insert_bid(self.bid2)
+        self.assertTrue(self.order_book.tick_exists(self.bid2.message_id))
+        self.order_book.remove_bid(self.bid2.message_id)
+        self.assertFalse(self.order_book.tick_exists(self.bid2.message_id))
 
     def test_trade_insertion(self):
         # Test for trade insertion
