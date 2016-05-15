@@ -7,20 +7,25 @@ from Tribler.community.market.core.message import MessageId, TraderId, MessageNu
 class MessageRepositoryTestSuite(unittest.TestCase):
     """Message repository test cases."""
 
-    def test_message_repository(self):
+    def setUp(self):
         # Object creation
-        message_repository = MessageRepository()
+        self.message_repository = MessageRepository()
 
+    def test_next_identity(self):
         # Test for next identity
-        self.assertEquals(NotImplemented, message_repository.next_identity())
+        self.assertEquals(NotImplemented, self.message_repository.next_identity())
 
-    def test_memory_message_repository(self):
+class MemoryMessageRepositoryTestSuite(unittest.TestCase):
+    """Memory message repository test cases."""
+
+    def setUp(self):
         # Object creation
-        memory_message_repository = MemoryMessageRepository('trader_id')
-        message_id = MessageId(TraderId('trader_id'), MessageNumber('1'))
+        self.memory_message_repository = MemoryMessageRepository('trader_id')
 
+    def test_next_identity(self):
         # Test for next identity
-        self.assertEquals(message_id, memory_message_repository.next_identity())
+        self.assertEquals(MessageId(TraderId('trader_id'), MessageNumber('1')),
+                          self.memory_message_repository.next_identity())
 
 
 if __name__ == '__main__':
