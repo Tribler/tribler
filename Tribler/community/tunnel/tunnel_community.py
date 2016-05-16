@@ -5,12 +5,12 @@ import socket
 import time
 from collections import defaultdict
 from cryptography.exceptions import InvalidTag
+from twisted.internet.defer import maybeDeferred, succeed
 
 from twisted.internet import reactor
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet.task import LoopingCall
 
-from Tribler import dispersy
 from Tribler.Core.Utilities.encoding import decode, encode
 from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
 from Tribler.community.tunnel import (CIRCUIT_ID_PORT, CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA,
@@ -172,9 +172,19 @@ class TunnelExitSocket(DatagramProtocol):
         self.community.send_data([Candidate(self.sock_addr, False)], self.circuit_id, ('0.0.0.0', 0), source, data)
 
     def close(self):
+        """
+        Closes the UDP socket if enabled.
+        :return: A deferred that fires once the UDP socket has closed.
+        """
+        for deferred in self.deferred_cleanup_list:
+            deferred.cancel()
+
+        done_closing_deferred = succeed(None)
         if self.enabled:
-            self.port.stopListening()
+            done_closing_deferred = maybeDeferred(self.port.stopListening)
             self.port = None
+
+        return done_closing_deferred
 
     def check_num_packets(self, ip, incoming):
         if self.ips[ip] < 0:
@@ -650,10 +660,14 @@ class TunnelCommunity(Community):
                     self.tunnel_logger.warning("MULTICHAIN: Tunnel candidate not found")
             if exit_socket.enabled:
                 self.tunnel_logger.info("Removing exit socket %d %s", circuit_id, additional_info)
-                exit_socket.close()
-                # Remove old session key
-                if circuit_id in self.relay_session_keys:
-                    del self.relay_session_keys[circuit_id]
+
+                def on_exit_socket_closed(_):
+                    # Remove old session key
+                    if circuit_id in self.relay_session_keys:
+                        del self.relay_session_keys[circuit_id]
+
+                exit_socket.close().addCallback(on_exit_socket_closed)
+
         else:
             self.tunnel_logger.error("could not remove exit socket %d %s", circuit_id, additional_info)
 
