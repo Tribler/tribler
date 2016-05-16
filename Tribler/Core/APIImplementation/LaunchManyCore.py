@@ -251,7 +251,7 @@ class TriblerLaunchMany(TaskManager):
                     from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
                     # The multichain community MUST be auto_loaded before the tunnel community,
                     #  because it must be unloaded after the tunnel, so that the tunnel closures can be signed
-                    tunnel_settings = TunnelSettings(self.session.get_install_dir(), tribler_session=self.session)
+                    tunnel_settings = TunnelSettings(tribler_session=self.session)
                     tunnel_kwargs = {'tribler_session': self.session, 'settings': tunnel_settings}
                     self.tunnel_community = self.dispersy.define_auto_load(
                         HiddenTunnelCommunity, dispersy_member, load=True, kargs=tunnel_kwargs)[0]

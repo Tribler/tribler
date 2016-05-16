@@ -197,7 +197,7 @@ class TunnelExitSocket(DatagramProtocol):
 
 class TunnelSettings(object):
 
-    def __init__(self, install_dir=None, tribler_session=None):
+    def __init__(self, tribler_session=None):
         self.tunnel_logger = logging.getLogger('TunnelLogger')
 
         self.crypto = TunnelCrypto()
