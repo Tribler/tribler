@@ -48,6 +48,14 @@ class NotYetImplementedException(TriblerException):
         TriblerException.__init__(self, msg)
 
 
+class DuplicateChannelNameError(TriblerException):
+
+    """ The Channel name already exists in the ChannelManager channel list,
+    i.e., one of your own Channels with the same name already exists. """
+
+    pass
+
+
 class DuplicateDownloadException(TriblerException):
 
     """ The Download already exists in the Session, i.e., a Download for
@@ -64,6 +72,7 @@ class TorrentDefNotFinalizedException(TriblerException):
 
     def __init__(self, msg=None):
         TriblerException.__init__(self, msg)
+
 
 class TorrentFileException(TriblerException):
 
