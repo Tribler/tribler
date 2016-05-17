@@ -14,6 +14,7 @@ from twisted.python import usage
 from twisted.python.log import msg
 from zope.interface import implements
 
+from Tribler.Core.Modules.process_checker import ProcessChecker
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 
@@ -21,10 +22,6 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 class Options(usage.Options):
     optParameters = [
         ["manhole", "m", 0, "Enable manhole telnet service listening at the specified port", int],
-        ["statedir", "s", None, "Use an alternate statedir", str],
-        ["restapi", "p", 8085, "Use an alternate port for the REST API", int],
-        ["dispersy", "d", -1, "Use an alternate port for Dispersy", int],
-        ["libtorrent", "l", -1, "Use an alternate port for libtorrent", int],
     ]
 
 
@@ -41,7 +38,12 @@ class TriblerServiceMaker(object):
         self.session = None
         self._stopping = False
 
-    def start_tribler(self, options):
+    def shutdown_process(self, shutdown_message, code=1):
+        msg(shutdown_message)
+        reactor.addSystemEventTrigger('after', 'shutdown', os._exit, code)
+        reactor.stop()
+
+    def start_tribler(self):
         """
         Main method to startup Tribler.
         """
@@ -53,32 +55,25 @@ class TriblerServiceMaker(object):
                 self.session.shutdown()
                 msg("Tribler shut down")
                 reactor.stop()
+                self.process_checker.remove_lock_file()
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
 
-        msg("Starting Tribler")
-
         config = SessionStartupConfig()
+        config.set_http_api_enabled(True)
 
-        if options["statedir"]:
-            config.set_state_dir(options["statedir"])
+        # Check if we are already running a Tribler instance
+        self.process_checker = ProcessChecker()
+        if self.process_checker.already_running:
+            self.shutdown_process("Another Tribler instance is already using statedir %s" % config.get_state_dir())
+            return
 
-        if options["restapi"] != 0:
-            config.set_http_api_enabled(True)
-            config.set_http_api_port(options["restapi"])
-
-        if options["dispersy"] != -1:
-            config.set_dispersy_port(options["dispersy"])
-
-        if options["libtorrent"] != -1:
-            config.set_listen_port(options["libtorrent"])
+        msg("Starting Tribler")
 
         self.session = Session(config)
         upgrader = self.session.prestart()
         if upgrader.failed:
-            msg("The upgrader failed: .Tribler directory backed up, aborting")
-            reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)
-            reactor.stop()
+            self.shutdown_process("The upgrader failed: .Tribler directory backed up, aborting")
         else:
             self.session.start()
             msg("Tribler started")
@@ -101,7 +96,7 @@ class TriblerServiceMaker(object):
             })
             tribler_service.addService(manhole)
 
-        reactor.callWhenRunning(self.start_tribler, options)
+        reactor.callWhenRunning(self.start_tribler)
 
         return tribler_service
 
