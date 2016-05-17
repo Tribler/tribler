@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
+import android.support.v7.app.AppCompatDelegate;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
@@ -24,6 +25,10 @@ import java.util.List;
 
 public class Home extends AppCompatActivity {
     public static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 200;
+
+    static {
+        AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
+    }
 
     private TriblerViewAdapter mAdapter;
     private SearchViewListener mSearchViewListener;
@@ -54,8 +59,7 @@ public class Home extends AppCompatActivity {
     private void handleIntent(Intent intent) {
         if (Intent.ACTION_MAIN.equals(intent.getAction())) {
             //TODO: show home content
-        }
-        else if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+        } else if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
             String query = intent.getStringExtra(SearchManager.QUERY);
             doMySearch(query);
         }
