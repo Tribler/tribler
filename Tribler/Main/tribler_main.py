@@ -8,6 +8,7 @@
 #
 # see LICENSE.txt for license information
 #
+from Tribler.Core.Modules.process_checker import ProcessChecker
 from Tribler.Main.Dialogs.NewVersionDialog import NewVersionDialog
 
 try:
@@ -63,7 +64,6 @@ from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame
 from Tribler.Main.vwxGUI.TriblerApp import TriblerApp
 from Tribler.Main.vwxGUI.TriblerUpgradeDialog import TriblerUpgradeDialog
 from Tribler.Utilities.Instance2Instance import Instance2InstanceClient, Instance2InstanceServer
-from Tribler.Utilities.SingleInstanceChecker import SingleInstanceChecker
 from Tribler.dispersy.util import attach_profiler, call_on_reactor_thread
 
 
@@ -1030,11 +1030,11 @@ def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_chann
             params = sys.argv[1:]
     try:
         # Create single instance semaphore
-        single_instance_checker = SingleInstanceChecker("tribler")
+        process_checker = ProcessChecker()
 
         installdir = determine_install_dir()
 
-        if not ALLOW_MULTIPLE and single_instance_checker.IsAnotherRunning():
+        if not ALLOW_MULTIPLE and process_checker.already_running:
             statedir = SessionStartupConfig().get_state_dir()
 
             # Send  torrent info to abc single instance
@@ -1062,6 +1062,8 @@ def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_chann
             abc.OnExit()
 
             # Niels: No code should be present here, only executed after gui closes
+
+        process_checker.remove_lock_file()
 
         logger.info("Client shutting down. Sleeping for a few seconds to allow other threads to finish")
         sleep(5)
