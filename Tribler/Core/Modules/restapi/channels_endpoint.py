@@ -3,12 +3,10 @@ import time
 
 from twisted.web import http, resource
 
-from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json
+from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE, VOTE_UNSUBSCRIBE
+from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json, convert_db_torrent_to_json
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST
 from Tribler.community.allchannel.community import AllChannelCommunity
-
-VOTE_UNSUBSCRIBE = 0
-VOTE_SUBSCRIBE = 2
 
 
 class BaseChannelsEndpoint(resource.Resource):
@@ -48,11 +46,6 @@ class BaseChannelsEndpoint(resource.Resource):
             if isinstance(community, AllChannelCommunity):
                 community.disp_create_votecast(cid, vote, int(time.time()))
                 break
-
-    def convert_db_channel_to_json(self, channel):
-        return {"id": channel[0], "dispersy_cid": channel[1].encode('hex'), "name": channel[2], "description": channel[3],
-                "votes": channel[5], "torrents": channel[4], "spam": channel[6], "modified": channel[8],
-                "subscribed": (channel[7] == VOTE_SUBSCRIBE)}
 
 
 class ChannelsEndpoint(BaseChannelsEndpoint):
@@ -153,25 +146,82 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
 
 class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
     """
-    A GET request to this endpoint returns all channels discovered in Tribler.
+    This class is responsible for requests regarding the subscriptions to channels.
+    """
+    def getChild(self, path, request):
+        return ChannelsDiscoveredSpecificEndpoint(self.session, path)
+
+    def render_GET(self, request):
+        """
+        A GET request to this endpoint returns all channels discovered in Tribler.
+
+        Example GET response:
+        {
+            "channels": [{
+                "id": 3,
+                "dispersy_cid": "da69aaad39ccf468aba2ab9177d5f8d8160135e6",
+                "name": "My fancy channel",
+                "description": "A description of this fancy channel",
+                "subscribed": False,
+                "votes": 23,
+                "torrents": 3,
+                "spam": 5,
+                "modified": 14598395,
+            }, ...]
+        }
+        """
+        all_channels_db = self.channel_db_handler.getAllChannels()
+        results_json = [convert_db_channel_to_json(channel) for channel in all_channels_db]
+        return json.dumps({"channels": results_json})
+
+
+class ChannelsDiscoveredSpecificEndpoint(BaseChannelsEndpoint):
+    """
+    This class is responsible for dispatching requests to perform operations in a specific discovered channel.
+    """
+
+    def __init__(self, session, cid):
+        BaseChannelsEndpoint.__init__(self, session)
+
+        child_handler_dict = {"torrents": ChannelTorrentsEndpoint}
+        for path, child_cls in child_handler_dict.iteritems():
+            self.putChild(path, child_cls(session, bytes(cid.decode('hex'))))
+
+
+class ChannelTorrentsEndpoint(BaseChannelsEndpoint):
+    """
+    A GET request to this endpoint returns all discovered torrents in a specific channel. The size of the torrent is
+    in number of bytes. The last_tracker_check value will be 0 if we did not check the tracker state of the torrent yet.
 
     Example GET response:
     {
-        "channels": [{
-            "id": 3,
-            "dispersy_cid": "da69aaad39ccf468aba2ab9177d5f8d8160135e6",
-            "name": "My fancy channel",
-            "description": "A description of this fancy channel",
-            "subscribed": False,
-            "votes": 23,
-            "torrents": 3,
-            "spam": 5,
-            "modified": 14598395,
+        "torrents": [{
+            "id": 4,
+            "infohash": "97d2d8f5d37e56cfaeaae151d55f05b077074779",
+            "name": "Ubuntu-16.04-desktop-amd64",
+            "size": 8592385,
+            "category": "other",
+            "num_seeders": 42,
+            "num_leechers": 184,
+            "last_tracker_check": 1463176959
         }, ...]
     }
     """
 
+    def __init__(self, session, cid):
+        BaseChannelsEndpoint.__init__(self, session)
+        self.cid = cid
+
     def render_GET(self, request):
-        all_channels_db = self.channel_db_handler.getAllChannels()
-        results_json = [convert_db_channel_to_json(channel) for channel in all_channels_db]
-        return json.dumps({"channels": results_json})
+        request.setHeader('Content-Type', 'text/json')
+        channel_info = self.get_channel_from_db(self.cid)
+        if channel_info is None:
+            return ChannelTorrentsEndpoint.return_404(request)
+
+        torrent_db_columns = ['Torrent.torrent_id', 'infohash', 'Torrent.name', 'length',
+                              'Torrent.category', 'num_seeders', 'num_leechers', 'last_tracker_check']
+        results_local_torrents_channel = self.channel_db_handler\
+            .getTorrentsFromChannelId(channel_info[0], True, torrent_db_columns)
+
+        results_json = [convert_db_torrent_to_json(torrent_result) for torrent_result in results_local_torrents_channel]
+        return json.dumps({"torrents": results_json})

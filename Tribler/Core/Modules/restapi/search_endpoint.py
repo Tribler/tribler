@@ -57,7 +57,8 @@ class SearchEndpoint(resource.Resource):
         results_dict = {"keywords": keywords, "result_list": results_local_channels}
         self.session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
 
-        torrent_db_columns = ['T.torrent_id', 'infohash', 'T.name', 'length', 'category', 'num_seeders', 'num_leechers']
+        torrent_db_columns = ['T.torrent_id', 'infohash', 'T.name', 'length', 'category',
+                              'num_seeders', 'num_leechers', 'last_tracker_check']
         results_local_torrents = self.torrent_db_handler.searchNames(keywords, keys=torrent_db_columns, doSort=False)
         results_dict = {"keywords": keywords, "result_list": results_local_torrents}
         self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
