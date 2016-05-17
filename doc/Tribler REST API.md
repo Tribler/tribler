@@ -32,6 +32,7 @@ curl -X PUT http://localhost:8085/mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2F
 | GET /mychannel/rssfeeds | Get a list of rss feeds used by your channel |
 | PUT /mychannel/rssfeeds/{feedurl} | Add a rss feed to your channel |
 | DELETE /mychannel/rssfeeds/{feedurl} | Remove a rss feed from your channel |
+| GET /mychannel/playlists | Get a list of playlists in your channel |
 
 ### Search
 
@@ -178,6 +179,26 @@ Add a RSS feed to your channel. Returns error 409 (Conflict) if the supplied RSS
 ## `DELETE /mychannel/rssfeed/{feedurl}`
 
 Delete a RSS feed from your channel. Returns error 404 if the RSS feed that is being removed does not exist. Note that the rss feed url should be URL-encoded.
+
+## `GET /mychannel/playlists`
+
+Returns the playlists in your channel. Returns error 404 if you have not created a channel.
+
+### Example response
+
+```json
+{
+    "playlists": [{
+        "id": 1,
+        "name": "My first playlist",
+        "description": "Funny movies",
+        "torrents": [{
+            "name": "movie_1",
+            "infohash": "e940a7a57294e4c98f62514b32611e38181b6cae"
+        }, ... ]
+    }, ...]
+}
+```
 
 ## `GET /search`
 
