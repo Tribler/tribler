@@ -39,3 +39,19 @@ class testSession(TriblerCoreTest):
             session.lm.torrent_store.close()
 
         self.assertTrue(raised_key_error)
+
+    def test_create_channel(self):
+        """
+        Test the pass through function of Session.create_channel to the ChannelManager.
+        """
+
+        class LmMock(object):
+            class ChannelManager(object):
+                def create_channel(self, name, description, mode=u"closed"):
+                    pass
+            channel_manager = ChannelManager()
+
+        config = SessionStartupConfig()
+        session = Session(config, ignore_singleton=True)
+        session.lm = LmMock
+        session.create_channel("name", "description", "open")
