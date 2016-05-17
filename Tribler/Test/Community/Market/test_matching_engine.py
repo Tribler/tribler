@@ -3,66 +3,67 @@ import unittest
 from Tribler.community.market.core.matching_engine import MatchingEngine, PriceTimeStrategy, MatchingStrategy
 from Tribler.community.market.core.orderbook import OrderBook
 from Tribler.community.market.core.price import Price
+from Tribler.community.market.core.pricelevel import PriceLevel
 from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.message import Message, TraderId, MessageNumber, MessageId
+from Tribler.community.market.core.tickentry import TickEntry
 from Tribler.community.market.core.tick import Tick, Ask, Bid
-from Tribler.community.market.core.order import OrderId, OrderNumber
+from Tribler.community.market.core.order import Order, OrderId, OrderNumber
 from Tribler.community.market.core.message_repository import MessageRepository, MemoryMessageRepository
+
+
+class MatchingStrategyTestSuite(unittest.TestCase):
+    """Matching strategy test cases."""
+
+    def setUp(self):
+        # Object creation
+        self.order = Order(OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100), Quantity(30),
+                           Timeout(0.0), Timestamp(10.0), False)
+        self.matching_strategy = MatchingStrategy(OrderBook(MemoryMessageRepository('trader_id')))
+
+    def test_match_order(self):
+        # Test for match order
+        self.assertEquals(NotImplemented, self.matching_strategy.match_order(self.order))
+
+
+class PriceTimeStrategyTestSuite(unittest.TestCase):
+    """Price time strategy test cases."""
+
+    def setUp(self):
+        # Object creation
+        self.ask = Ask(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                       OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100), Quantity(30),
+                       Timeout(float('inf')), Timestamp(float('inf')))
+        self.bid = Bid(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                       OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100), Quantity(30),
+                       Timeout(float('inf')), Timestamp(float('inf')))
+        self.ask_order = Order(OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100), Quantity(30),
+                               Timeout(float('inf')), Timestamp(float('inf')), True)
+        self.bid_order = Order(OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100), Quantity(30),
+                               Timeout(float('inf')), Timestamp(float('inf')), False)
+        self.price_level_ask = PriceLevel()
+        self.tick_entry_ask = TickEntry(self.ask, self.price_level_ask)
+        self.price_level_bid = PriceLevel()
+        self.tick_entry_bid = TickEntry(self.bid, self.price_level_bid)
+
+        self.order_book = OrderBook(MemoryMessageRepository('trader_id'))
+        self.price_time_strategy = PriceTimeStrategy(self.order_book)
 
 
 class MatchingEngineTestSuite(unittest.TestCase):
     """Matching engine test cases."""
 
-    def test_matching_strategy(self):
+    def setUp(self):
         # Object creation
-        trader_id = TraderId('trader_id')
-        message_number = MessageNumber('message_number')
-        message_id = MessageId(trader_id, message_number)
-        price = Price(100)
-        quantity = Quantity(30)
-        timeout = Timeout(1462224447.117)
-        timestamp = Timestamp(1462224447.117)
-        order_id = OrderId(trader_id, OrderNumber("order_number"))
-        memory_message_repository = MemoryMessageRepository('trader_id')
-
-        ask = Ask(message_id, order_id, price, quantity, timeout, timestamp)
-        order_book = OrderBook(memory_message_repository)
-        matching_strategy = MatchingStrategy(order_book)
-
-    def test_matching_engine(self):
-        # Object creation
-        trader_id = TraderId('trader_id')
-        message_number = MessageNumber('message_number')
-        timeout = Timeout(1462224447.117)
-        timestamp = Timestamp(1462224447.117)
-        order_id = OrderId(trader_id, OrderNumber("order_number"))
-        memory_message_repository = MemoryMessageRepository('trader_id')
-
-        ask = Ask(MessageId(TraderId('1'), message_number), order_id, Price(100), Quantity(30), timeout,
-                  timestamp)
-        ask2 = Ask(MessageId(TraderId('2'), message_number), order_id, Price(400), Quantity(30), timeout,
-                   timestamp)
-        ask3 = Ask(MessageId(TraderId('2'), message_number), order_id, Price(50), Quantity(60), timeout,
-                   timestamp)
-        bid = Bid(MessageId(TraderId('3'), message_number), order_id, Price(200), Quantity(30), timeout,
-                  timestamp)
-        bid2 = Bid(MessageId(TraderId('4'), message_number), order_id, Price(300), Quantity(30), timeout,
-                   timestamp)
-        bid3 = Bid(MessageId(TraderId('5'), message_number), order_id, Price(300), Quantity(60), timeout,
-                   timestamp)
-
-        order_book = OrderBook(memory_message_repository)
-
-        price_time_strategy = PriceTimeStrategy(order_book)
-        matching_engine = MatchingEngine(price_time_strategy)
-
-        # Insert ticks in order book
-        order_book.insert_ask(ask)
-        order_book.insert_ask(ask2)
-        order_book.insert_bid(bid)
-        order_book.insert_bid(bid2)
+        self.ask = Ask(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                       OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100), Quantity(30),
+                       Timeout(float('inf')), Timestamp(float('inf')))
+        self.bid_order = Order(OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100), Quantity(30),
+                               Timeout(float('inf')), Timestamp(float('inf')), False)
+        self.order_book = OrderBook(MemoryMessageRepository('trader_id'))
+        self.matching_engine = MatchingEngine(PriceTimeStrategy(self.order_book))
 
 
 if __name__ == '__main__':
