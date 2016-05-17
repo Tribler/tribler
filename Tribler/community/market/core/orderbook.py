@@ -1,7 +1,8 @@
 import logging
 from collections import deque
 
-from message import MessageId, Message
+from Tribler.community.market.core.order import OrderId
+from message import Message
 from message_repository import MessageRepository
 from price import Price
 from side import Side
@@ -52,20 +53,20 @@ class OrderBook(object):
 
         self._process_message(ask)
 
-        if not self._asks.tick_exists(ask.message_id):
+        if not self._asks.tick_exists(ask.order_id):
             self._asks.insert_tick(ask)
 
-    def remove_ask(self, message_id):
+    def remove_ask(self, order_id):
         """
         Remove an ask from the order book
 
-        :param message_id: The id of the ask to remove
-        :type message_id: MessageId
+        :param order_id: The id of the ask to remove
+        :type order_id: OrderId
         """
-        assert isinstance(message_id, MessageId), type(message_id)
+        assert isinstance(order_id, OrderId), type(order_id)
 
-        if self._asks.tick_exists(message_id):
-            self._asks.remove_tick(message_id)
+        if self._asks.tick_exists(order_id):
+            self._asks.remove_tick(order_id)
 
     def insert_bid(self, bid):
         """
@@ -78,20 +79,20 @@ class OrderBook(object):
 
         self._process_message(bid)
 
-        if not self._bids.tick_exists(bid.message_id):
+        if not self._bids.tick_exists(bid.order_id):
             self._bids.insert_tick(bid)
 
-    def remove_bid(self, message_id):
+    def remove_bid(self, order_id):
         """
         Remove a bid from the order book
 
-        :param message_id: The id of the bid to remove
-        :type message_id: MessageId
+        :param order_id: The id of the bid to remove
+        :type order_id: OrderId
         """
-        assert isinstance(message_id, MessageId), type(message_id)
+        assert isinstance(order_id, OrderId), type(order_id)
 
-        if self._bids.tick_exists(message_id):
-            self._bids.remove_tick(message_id)
+        if self._bids.tick_exists(order_id):
+            self._bids.remove_tick(order_id)
 
     def insert_trade(self, trade):
         """
@@ -106,33 +107,33 @@ class OrderBook(object):
 
         self._trades.appendleft(trade)
 
-    def tick_exists(self, message_id):
+    def tick_exists(self, order_id):
         """
-        Check if a tick exists with the given message id
+        Check if a tick exists with the given order id
 
-        :param message_id: The message id to search for
-        :type message_id: MessageId
+        :param order_id: The order id to search for
+        :type order_id: OrderId
         :return: True if the tick exists, False otherwise
         :rtype: bool
         """
-        assert isinstance(message_id, MessageId), type(message_id)
+        assert isinstance(order_id, OrderId), type(order_id)
 
-        is_ask = self._asks.tick_exists(message_id)
-        is_bid = self._bids.tick_exists(message_id)
+        is_ask = self._asks.tick_exists(order_id)
+        is_bid = self._bids.tick_exists(order_id)
 
         return is_ask or is_bid
 
-    def remove_tick(self, message_id):
+    def remove_tick(self, order_id):
         """
-        Remove a tick with the given message id from the order book
+        Remove a tick with the given order id from the order book
 
-        :param message_id: The message id of the tick that needs to be removed
-        :type message_id: MessageId
+        :param order_id: The order id of the tick that needs to be removed
+        :type order_id: OrderId
         """
-        assert isinstance(message_id, MessageId), type(message_id)
+        assert isinstance(order_id, OrderId), type(order_id)
 
-        self.remove_ask(message_id)
-        self.remove_bid(message_id)
+        self.remove_ask(order_id)
+        self.remove_bid(order_id)
 
     @property
     def bid_price(self):

@@ -22,14 +22,14 @@ class TickEntry(object):
         self._next_tick = None
 
     @property
-    def message_id(self):
+    def order_id(self):
         """
-        Return the message id of the tick
+        Return the order id of the tick
 
-        :return: The message id
-        :rtype: MessageId
+        :return: The order id
+        :rtype: OrderId
         """
-        return self._tick.message_id
+        return self._tick.order_id
 
     @property
     def price(self):

@@ -178,6 +178,8 @@ class MarketCommunity(Community):
 
         # Create the tick
         tick = Tick.from_order(order, self.order_book.message_repository.next_identity())
+        assert isinstance(tick, Ask), type(tick)
+        self.order_book.insert_ask(tick)
         self.send_ask_messages([tick])
 
         # Search for matches
@@ -193,7 +195,7 @@ class MarketCommunity(Community):
         """
         assert isinstance(ask, Ask), type(ask)
 
-        self._logger.debug("Ask send with id: " + str(ask.message_id))
+        self._logger.debug("Ask send with id: %s for order with id: %s", str(ask.message_id), str(ask.order_id))
 
         destination, payload = ask.to_network()
 
@@ -216,11 +218,11 @@ class MarketCommunity(Community):
         for message in messages:
             ask = Ask.from_network(message.payload)
 
-            self._logger.debug("Ask received with id: " + str(ask.message_id))
+            self._logger.debug("Ask received with id: %s for order with id: %s", str(ask.message_id), str(ask.order_id))
 
             self.update_ip(str(ask.message_id.trader_id), message.payload.address)
 
-            if not self.order_book.tick_exists(ask.message_id):  # Message has not been received before
+            if not self.order_book.tick_exists(ask.order_id):  # Message has not been received before
                 self.order_book.insert_ask(ask)
 
                 for order in self.portfolio.order_repository.find_all():
@@ -253,6 +255,8 @@ class MarketCommunity(Community):
 
         # Create the tick
         tick = Tick.from_order(order, self.order_book.message_repository.next_identity())
+        assert isinstance(tick, Bid), type(tick)
+        self.order_book.insert_bid(tick)
         self.send_bid_messages([tick])
 
         # Search for matches
@@ -268,7 +272,7 @@ class MarketCommunity(Community):
         """
         assert isinstance(bid, Bid), type(bid)
 
-        self._logger.debug("Bid send with id: " + str(bid.message_id))
+        self._logger.debug("Bid send with id: %s for order with id: %s", str(bid.message_id), str(bid.order_id))
 
         destination, payload = bid.to_network()
 
@@ -291,11 +295,11 @@ class MarketCommunity(Community):
         for message in messages:
             bid = Bid.from_network(message.payload)
 
-            self._logger.debug("Bid received with id: " + str(bid.message_id))
+            self._logger.debug("Bid received with id: %s for order with id: %s", str(bid.message_id), str(bid.order_id))
 
             self.update_ip(str(bid.message_id.trader_id), message.payload.address)
 
-            if not self.order_book.tick_exists(bid.message_id):  # Message has not been received before
+            if not self.order_book.tick_exists(bid.order_id):  # Message has not been received before
                 self.order_book.insert_bid(bid)
 
                 for order in self.portfolio.order_repository.find_all():

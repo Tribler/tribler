@@ -292,9 +292,9 @@ class Order(object):
         :rtype: bool
         """
         if self.available_quantity >= tick.quantity:
-            if tick.message_id not in self._reserved_ticks:
+            if tick.order_id not in self._reserved_ticks:
                 self._reserved_quantity += tick.quantity
-                self._reserved_ticks[tick.message_id] = tick
+                self._reserved_ticks[tick.order_id] = tick
             return True
         else:
             return False
@@ -308,10 +308,10 @@ class Order(object):
         :raises LogicException: Thrown when something bad happened and the reserved quantity does not match up
         :raises TickWasNotReserved: Thrown when the tick was not reserved first
         """
-        if tick.message_id in self._reserved_ticks:
+        if tick.order_id in self._reserved_ticks:
             if self._reserved_quantity >= tick.quantity:
                 self._reserved_quantity -= tick.quantity
-                del self._reserved_ticks[tick.message_id]
+                del self._reserved_ticks[tick.order_id]
             else:
                 raise LogicException()
         else:
