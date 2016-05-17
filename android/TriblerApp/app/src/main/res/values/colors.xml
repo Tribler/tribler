@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="black">#000000</color>
+    <color name="white">#ffffff</color>
     <color name="red">#d50000</color>
     <color name="darkRed">#b71c1c</color>
-    <color name="white">#ffffff</color>
     <color name="yellow">#ffab40</color>
     <color name="green">#43a047</color>
     <color name="blue">#1a237e</color>
 
-    <color name="action_bar">@color/red</color>
+    <color name="menu_background">@color/white</color>
+    <color name="menu_icon">@color/black</color>
+
+    <color name="action_background">@color/red</color>
     <color name="action_icon">@color/white</color>
 </resources>

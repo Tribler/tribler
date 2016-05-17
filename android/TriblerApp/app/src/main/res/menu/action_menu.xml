@@ -6,20 +6,20 @@
 
     <item
         android:id="@+id/btn_search"
-        android:icon="@drawable/ic_search_36dp"
+        android:icon="@drawable/ic_menu_search"
         android:title="@string/search_hint"
         app:actionViewClass="android.support.v7.widget.SearchView"
         app:showAsAction="collapseActionView|always" />
 
     <item
         android:id="@+id/btn_record"
-        android:icon="@drawable/ic_videocam_36dp"
+        android:icon="@drawable/ic_menu_videocamera"
         android:title="@string/camera_hint"
         app:showAsAction="collapseActionView|ifRoom" />
 
     <item
         android:id="@+id/btn_upload"
-        android:icon="@drawable/ic_cloud_upload_36dp"
+        android:icon="@drawable/ic_menu_cloud_upload"
         android:title="@string/upload_hint"
         app:showAsAction="collapseActionView|ifRoom" />
 </menu>

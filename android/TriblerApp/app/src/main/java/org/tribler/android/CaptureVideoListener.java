@@ -33,7 +33,7 @@ public class CaptureVideoListener implements MenuItem.OnMenuItemClickListener {
         mVideoCaptureUri = Uri.fromFile(file);
         intent.putExtra(MediaStore.EXTRA_OUTPUT, mVideoCaptureUri);
         intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1); // 0: low 1: high
-        mActivity.startActivityForResult(intent, Home.CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
+        mActivity.startActivityForResult(intent, SearchActivity.CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
         return true;
     }
 

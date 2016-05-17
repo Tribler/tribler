@@ -3,4 +3,10 @@
     <string name="search_hint">Search videos and channels</string>
     <string name="camera_hint">Record a new video</string>
     <string name="upload_hint">Upload a video</string>
+    <string name="title_activity_main">MainActivity</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="action_settings">Settings</string>
 </resources>

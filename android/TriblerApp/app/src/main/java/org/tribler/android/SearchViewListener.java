@@ -26,7 +26,7 @@ public class SearchViewListener implements SearchView.OnQueryTextListener {
     @Override
     public boolean onQueryTextSubmit(String query) {
         mSearchView.clearFocus();
-        Intent intent = new Intent(Intent.ACTION_SEARCH, null, mActivity, Home.class);
+        Intent intent = new Intent(Intent.ACTION_SEARCH, null, mActivity, SearchActivity.class);
         intent.putExtra(SearchManager.QUERY, query);
         mActivity.startActivity(intent);
         return true;
