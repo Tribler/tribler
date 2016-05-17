@@ -12,6 +12,29 @@ Some requests require one or more parameters. These parameters are passed using 
 curl -X PUT http://localhost:8085/mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml
 ```
 
+## Error handling
+
+If an unhandled exception occurs the response will have code HTTP 500 and look like this:
+```json
+{
+    "error": {
+        "handled": False,
+        "code": "SomeException",
+        "message": "Human readable error message"
+    }
+}
+```
+If a valid request of a client caused a recoverable error the response will have code HTTP 500 and look like this:
+```json
+{
+    "error": {
+        "handled": True,
+        "code": "DuplicateChannelNameError",
+        "message": "Channel name already exists: foo"
+    }
+}
+```
+
 ## Endpoints
 
 ### Channels
@@ -28,7 +51,8 @@ curl -X PUT http://localhost:8085/mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2F
 
 | Endpoint | Description |
 | ---- | --------------- |
-| GET /mychannel/overview | Get the name, description and identifier of your channel |
+| GET /mychannel         | Get the name, description and identifier of your channel |
+| PUT /mychannel         | Create your own new channel |
 | GET /mychannel/torrents | Get a list of torrents in your channel |
 | GET /mychannel/rssfeeds | Get a list of rss feeds used by your channel |
 | PUT /mychannel/rssfeeds/{feedurl} | Add a rss feed to your channel |
@@ -149,7 +173,7 @@ Unsubscribe from a specific channel. Returns error 404 if you are not subscribed
 }
 ```
 
-## `GET /mychannel/overview`
+## `GET /mychannel`
 
 Returns an overview of the channel of the user. This includes the name, description and identifier of the channel.
 
@@ -162,6 +186,20 @@ Returns an overview of the channel of the user. This includes the name, descript
         "description": "A great collection of open-source movies",
         "identifier": "4a9cfc7ca9d15617765f4151dd9fae94c8f3ba11"
     }
+}
+```
+
+## `PUT /mychannel`
+
+Create your own new channel.
+
+### Example request:
+
+```json
+{
+    "name": "John Smit's channel",
+    "description": "Video's of my cat",
+    "mode" (optional): "open" or "semi-open" or "closed" (default)
 }
 ```
 
