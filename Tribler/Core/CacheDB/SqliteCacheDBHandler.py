@@ -457,7 +457,8 @@ class TorrentDBHandler(BasicDBHandler):
                 u"INSERT INTO FullTextIndex (rowid, swarmname, filenames, fileextensions) VALUES(?,?,?,?)", values)
         except:
             # this will fail if the fts3 module cannot be found
-            print_exc()
+            self._logger.exception("""Exception in _indexTorrent. sqlite_cache_db could not execute write.
+            Probably couldn't find the fts3 module.""")
 
     # ------------------------------------------------------------
     # Adds the trackers of a given torrent into the database.
