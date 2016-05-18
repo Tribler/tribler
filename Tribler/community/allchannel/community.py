@@ -443,12 +443,13 @@ class AllChannelCommunity(Community):
                     # insert placeholder into database which will be replaced after channelmessage has been received
                     if not channel_id:
                         select_channel = "SELECT id FROM _Channels WHERE dispersy_cid = ?"
-                        channel_id = self._channelcast_db._db.fetchone(select_channel, (buffer(message.payload.cid),))
+                        channel_id = self._channelcast_db._sqlite_cache_db.fetchone(
+                            select_channel, (buffer(message.payload.cid),))
 
                         if not channel_id:
                             insert_channel = "INSERT INTO _Channels (dispersy_cid, peer_id, name) " \
                                              "VALUES (?, ?, ?); SELECT last_insert_rowid();"
-                            channel_id = self._channelcast_db._db.fetchone(insert_channel,
+                            channel_id = self._channelcast_db._sqlite_cache_db.fetchone(insert_channel,
                                                                            (buffer(message.payload.cid), -1, ''))
                 else:
                     peer_id = self._peer_db.addOrGetPeerID(authentication_member.public_key)

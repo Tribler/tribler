@@ -919,7 +919,7 @@ class ABCApp(object):
                 self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Cleaning database')
                 wx.Yield()
                 torrent_db = self.utility.session.open_dbhandler(NTFY_TORRENTS)
-                torrent_db._db.clean_db(randint(0, 24) == 0, exiting=True)
+                torrent_db._sqlite_cache_db.clean_db(randint(0, 24) == 0, exiting=True)
             except:
                 print_exc()
 
