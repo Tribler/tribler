@@ -66,14 +66,13 @@ class OfferPayload(Payload):
 
 class ProposedTradePayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, trader_id, message_number, sender_trader_id, sender_message_number,
-                     recipient_trader_id, recipient_message_number, price, quantity, timestamp, quick):
+        def __init__(self, meta, trader_id, message_number, order_number, recipient_trader_id, recipient_order_number,
+                     price, quantity, timestamp, quick):
             assert isinstance(trader_id, str), type(trader_id)
             assert isinstance(message_number, str), type(message_number)
-            assert isinstance(sender_trader_id, str), type(sender_trader_id)
-            assert isinstance(sender_message_number, str), type(sender_message_number)
+            assert isinstance(order_number, str), type(order_number)
             assert isinstance(recipient_trader_id, str), type(recipient_trader_id)
-            assert isinstance(recipient_message_number, str), type(recipient_message_number)
+            assert isinstance(recipient_order_number, str), type(recipient_order_number)
             assert isinstance(price, int), type(price)
             assert isinstance(quantity, int), type(quantity)
             assert isinstance(timestamp, float), type(timestamp)
@@ -81,10 +80,9 @@ class ProposedTradePayload(Payload):
             super(ProposedTradePayload.Implementation, self).__init__(meta)
             self._trader_id = trader_id
             self._message_number = message_number
-            self._sender_trader_id = sender_trader_id
-            self._sender_message_number = sender_message_number
+            self._order_number = order_number
             self._recipient_trader_id = recipient_trader_id
-            self._recipient_message_number = recipient_message_number
+            self._recipient_order_number = recipient_order_number
             self._price = price
             self._quantity = quantity
             self._timestamp = timestamp
@@ -99,20 +97,16 @@ class ProposedTradePayload(Payload):
             return self._message_number
 
         @property
-        def sender_trader_id(self):
-            return self._sender_trader_id
-
-        @property
-        def sender_message_number(self):
-            return self._sender_message_number
+        def order_number(self):
+            return self._order_number
 
         @property
         def recipient_trader_id(self):
             return self._recipient_trader_id
 
         @property
-        def recipient_message_number(self):
-            return self._recipient_message_number
+        def recipient_order_number(self):
+            return self._recipient_order_number
 
         @property
         def price(self):
@@ -133,14 +127,13 @@ class ProposedTradePayload(Payload):
 
 class AcceptedTradePayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, trader_id, message_number, sender_trader_id, sender_message_number,
-                     recipient_trader_id, recipient_message_number, price, quantity, timestamp, quick, ttl):
+        def __init__(self, meta, trader_id, message_number, order_number, recipient_trader_id, recipient_order_number,
+                     price, quantity, timestamp, quick, ttl):
             assert isinstance(trader_id, str), type(trader_id)
             assert isinstance(message_number, str), type(message_number)
-            assert isinstance(sender_trader_id, str), type(sender_trader_id)
-            assert isinstance(sender_message_number, str), type(sender_message_number)
+            assert isinstance(order_number, str), type(order_number)
             assert isinstance(recipient_trader_id, str), type(recipient_trader_id)
-            assert isinstance(recipient_message_number, str), type(recipient_message_number)
+            assert isinstance(recipient_order_number, str), type(recipient_order_number)
             assert isinstance(price, int), type(price)
             assert isinstance(quantity, int), type(quantity)
             assert isinstance(timestamp, float), type(timestamp)
@@ -149,10 +142,9 @@ class AcceptedTradePayload(Payload):
             super(AcceptedTradePayload.Implementation, self).__init__(meta)
             self._trader_id = trader_id
             self._message_number = message_number
-            self._sender_trader_id = sender_trader_id
-            self._sender_message_number = sender_message_number
+            self._order_number = order_number
             self._recipient_trader_id = recipient_trader_id
-            self._recipient_message_number = recipient_message_number
+            self._recipient_order_number = recipient_order_number
             self._price = price
             self._quantity = quantity
             self._timestamp = timestamp
@@ -168,20 +160,16 @@ class AcceptedTradePayload(Payload):
             return self._message_number
 
         @property
-        def sender_trader_id(self):
-            return self._sender_trader_id
-
-        @property
-        def sender_message_number(self):
-            return self._sender_message_number
+        def order_number(self):
+            return self._order_number
 
         @property
         def recipient_trader_id(self):
             return self._recipient_trader_id
 
         @property
-        def recipient_message_number(self):
-            return self._recipient_message_number
+        def recipient_order_number(self):
+            return self._recipient_order_number
 
         @property
         def price(self):
@@ -206,19 +194,21 @@ class AcceptedTradePayload(Payload):
 
 class DeclinedTradePayload(Payload):
     class Implementation(Payload.Implementation):
-        def __init__(self, meta, trader_id, message_number, recipient_trader_id, recipient_message_number, timestamp,
-                     quick):
+        def __init__(self, meta, trader_id, message_number, order_number, recipient_trader_id, recipient_order_number,
+                     timestamp, quick):
             assert isinstance(trader_id, str), type(trader_id)
             assert isinstance(message_number, str), type(message_number)
+            assert isinstance(order_number, str), type(order_number)
             assert isinstance(recipient_trader_id, str), type(recipient_trader_id)
-            assert isinstance(recipient_message_number, str), type(recipient_message_number)
+            assert isinstance(recipient_order_number, str), type(recipient_order_number)
             assert isinstance(timestamp, float), type(timestamp)
             assert isinstance(quick, bool), type(quick)
             super(DeclinedTradePayload.Implementation, self).__init__(meta)
             self._trader_id = trader_id
             self._message_number = message_number
+            self._order_number = order_number
             self._recipient_trader_id = recipient_trader_id
-            self._recipient_message_number = recipient_message_number
+            self._recipient_order_number = recipient_order_number
             self._timestamp = timestamp
             self._quick = quick
 
@@ -231,12 +221,16 @@ class DeclinedTradePayload(Payload):
             return self._message_number
 
         @property
+        def order_number(self):
+            return self._order_number
+
+        @property
         def recipient_trader_id(self):
             return self._recipient_trader_id
 
         @property
-        def recipient_message_number(self):
-            return self._recipient_message_number
+        def recipient_order_number(self):
+            return self._recipient_order_number
 
         @property
         def timestamp(self):

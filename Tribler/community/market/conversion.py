@@ -1,6 +1,6 @@
-from ...Core.Utilities.encoding import encode, decode
-from ...dispersy.conversion import BinaryConversion
-from ...dispersy.message import DropPacket
+from Tribler.Core.Utilities.encoding import encode, decode
+from Tribler.dispersy.conversion import BinaryConversion
+from Tribler.dispersy.message import DropPacket
 
 
 class MarketConversion(BinaryConversion):
@@ -14,6 +14,8 @@ class MarketConversion(BinaryConversion):
                                  self._decode_accepted_trade)
         self.define_meta_message(chr(5), community.get_meta_message(u"declined-trade"), self._encode_declined_trade,
                                  self._decode_declined_trade)
+        self.define_meta_message(chr(6), community.get_meta_message(u"counter-trade"), self._encode_proposed_trade,
+                                 self._decode_proposed_trade)
 
     def _encode_offer(self, message):
         packet = encode((
@@ -75,10 +77,9 @@ class MarketConversion(BinaryConversion):
         packet = encode((
             message.payload.trader_id,
             message.payload.message_number,
-            message.payload.sender_trader_id,
-            message.payload.sender_message_number,
+            message.payload.order_number,
             message.payload.recipient_trader_id,
-            message.payload.recipient_message_number,
+            message.payload.recipient_order_number,
             message.payload.price,
             message.payload.quantity,
             message.payload.timestamp,
@@ -95,20 +96,18 @@ class MarketConversion(BinaryConversion):
         if not isinstance(payload, tuple):
             raise DropPacket("Invalid payload type")
 
-        trader_id, message_number, sender_trader_id, sender_message_number, recipient_trader_id, recipient_message_number, price, quantity, timestamp, quick = payload
+        trader_id, message_number, order_number, recipient_trader_id, recipient_order_number, price, quantity, timestamp, quick = payload
 
         if not isinstance(trader_id, str):
             raise DropPacket("Invalid 'trader_id' type")
         if not isinstance(message_number, str):
             raise DropPacket("Invalid 'message_number' type")
-        if not isinstance(sender_trader_id, str):
-            raise DropPacket("Invalid 'sender_trader_id' type")
-        if not isinstance(sender_message_number, str):
-            raise DropPacket("Invalid 'sender_message_number' type")
+        if not isinstance(order_number, str):
+            raise DropPacket("Invalid 'order_number' type")
         if not isinstance(recipient_trader_id, str):
             raise DropPacket("Invalid 'recipient_trader_id' type")
-        if not isinstance(recipient_message_number, str):
-            raise DropPacket("Invalid 'recipient_message_number' type")
+        if not isinstance(recipient_order_number, str):
+            raise DropPacket("Invalid 'recipient_order_number' type")
         if not isinstance(price, int):
             raise DropPacket("Invalid 'price' type")
         if not isinstance(quantity, int):
@@ -118,18 +117,16 @@ class MarketConversion(BinaryConversion):
         if not isinstance(quick, bool):
             raise DropPacket("Invalid 'quick' type")
 
-        return offset, placeholder.meta.payload.implement(trader_id, message_number, sender_trader_id,
-                                                          sender_message_number, recipient_trader_id,
-                                                          recipient_message_number, price, quantity, timestamp, quick)
+        return offset, placeholder.meta.payload.implement(trader_id, message_number, order_number, recipient_trader_id,
+                                                          recipient_order_number, price, quantity, timestamp, quick)
 
     def _encode_accepted_trade(self, message):
         packet = encode((
             message.payload.trader_id,
             message.payload.message_number,
-            message.payload.sender_trader_id,
-            message.payload.sender_message_number,
+            message.payload.order_number,
             message.payload.recipient_trader_id,
-            message.payload.recipient_message_number,
+            message.payload.recipient_order_number,
             message.payload.price,
             message.payload.quantity,
             message.payload.timestamp,
@@ -147,19 +144,17 @@ class MarketConversion(BinaryConversion):
         if not isinstance(payload, tuple):
             raise DropPacket("Invalid payload type")
 
-        trader_id, message_number, sender_trader_id, sender_message_number, recipient_trader_id, recipient_message_number, price, quantity, timestamp, quick, ttl = payload
+        trader_id, message_number, order_number, recipient_trader_id, recipient_order_number, price, quantity, timestamp, quick, ttl = payload
 
         if not isinstance(trader_id, str):
             raise DropPacket("Invalid 'trader_id' type")
         if not isinstance(message_number, str):
             raise DropPacket("Invalid 'message_number' type")
-        if not isinstance(sender_trader_id, str):
-            raise DropPacket("Invalid 'sender_trader_id' type")
-        if not isinstance(sender_message_number, str):
-            raise DropPacket("Invalid 'sender_message_number' type")
+        if not isinstance(order_number, str):
+            raise DropPacket("Invalid 'order_number' type")
         if not isinstance(recipient_trader_id, str):
             raise DropPacket("Invalid 'recipient_trader_id' type")
-        if not isinstance(recipient_message_number, str):
+        if not isinstance(recipient_order_number, str):
             raise DropPacket("Invalid 'recipient_message_number' type")
         if not isinstance(price, int):
             raise DropPacket("Invalid 'price' type")
@@ -172,17 +167,17 @@ class MarketConversion(BinaryConversion):
         if not isinstance(ttl, int):
             raise DropPacket("Invalid 'ttl' type")
 
-        return offset, placeholder.meta.payload.implement(trader_id, message_number, sender_trader_id,
-                                                          sender_message_number, recipient_trader_id,
-                                                          recipient_message_number, price, quantity, timestamp, quick,
+        return offset, placeholder.meta.payload.implement(trader_id, message_number, order_number, recipient_trader_id,
+                                                          recipient_order_number, price, quantity, timestamp, quick,
                                                           ttl)
 
     def _encode_declined_trade(self, message):
         packet = encode((
             message.payload.trader_id,
             message.payload.message_number,
+            message.payload.order_number,
             message.payload.recipient_trader_id,
-            message.payload.recipient_message_number,
+            message.payload.recipient_order_number,
             message.payload.timestamp,
             message.payload.quick
         ))
@@ -197,20 +192,22 @@ class MarketConversion(BinaryConversion):
         if not isinstance(payload, tuple):
             raise DropPacket("Invalid payload type")
 
-        trader_id, message_number, recipient_trader_id, recipient_message_number, timestamp, quick = payload
+        trader_id, message_number, order_number, recipient_trader_id, recipient_order_number, timestamp, quick = payload
 
         if not isinstance(trader_id, str):
             raise DropPacket("Invalid 'trader_id' type")
         if not isinstance(message_number, str):
             raise DropPacket("Invalid 'message_number' type")
+        if not isinstance(order_number, str):
+            raise DropPacket("Invalid 'order_number' type")
         if not isinstance(recipient_trader_id, str):
             raise DropPacket("Invalid 'recipient_trader_id' type")
-        if not isinstance(recipient_message_number, str):
+        if not isinstance(recipient_order_number, str):
             raise DropPacket("Invalid 'recipient_message_number' type")
         if not isinstance(timestamp, float):
             raise DropPacket("Invalid 'timestamp' type")
         if not isinstance(quick, bool):
             raise DropPacket("Invalid 'quick' type")
 
-        return offset, placeholder.meta.payload.implement(trader_id, message_number, recipient_trader_id,
-                                                          recipient_message_number, timestamp, quick)
+        return offset, placeholder.meta.payload.implement(trader_id, message_number, order_number, recipient_trader_id,
+                                                          recipient_order_number, timestamp, quick)

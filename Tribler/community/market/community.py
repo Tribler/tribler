@@ -6,19 +6,19 @@ from Tribler.dispersy.destination import CommunityDestination, CandidateDestinat
 from Tribler.dispersy.distribution import DirectDistribution
 from Tribler.dispersy.message import Message, DelayMessageByProof
 from Tribler.dispersy.resolution import PublicResolution
+from conversion import MarketConversion
+from core.matching_engine import MatchingEngine, PriceTimeStrategy
 from core.message_repository import MemoryMessageRepository
 from core.order_repository import MemoryOrderRepository
+from core.orderbook import OrderBook
+from core.portfolio import Portfolio
 from core.price import Price
 from core.quantity import Quantity
+from core.tick import Ask, Bid, Tick
 from core.timeout import Timeout
 from core.timestamp import Timestamp
-from core.trade import Trade, ProposedTrade, AcceptedTrade, DeclinedTrade
-from .conversion import MarketConversion
-from .core.matching_engine import MatchingEngine, PriceTimeStrategy
-from .core.orderbook import OrderBook
-from .core.portfolio import Portfolio
-from .core.tick import Ask, Bid, Tick
-from .payload import OfferPayload, ProposedTradePayload, AcceptedTradePayload, DeclinedTradePayload
+from core.trade import Trade, ProposedTrade, AcceptedTrade, DeclinedTrade, CounterTrade
+from payload import OfferPayload, ProposedTradePayload, AcceptedTradePayload, DeclinedTradePayload
 
 
 class MarketCommunity(Community):
@@ -61,6 +61,8 @@ class MarketCommunity(Community):
         self.order_book = OrderBook(message_repository)
         self.matching_engine = MatchingEngine(PriceTimeStrategy(self.order_book))
 
+        self.history = {}  # List for received messages
+
     def initiate_meta_messages(self):
         return super(MarketCommunity, self).initiate_meta_messages() + [
             Message(self, u"ask",
@@ -102,7 +104,15 @@ class MarketCommunity(Community):
                     CandidateDestination(),
                     DeclinedTradePayload(),
                     self.check_message,
-                    self.on_declined_trade)
+                    self.on_declined_trade),
+            Message(self, u"counter-trade",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    ProposedTradePayload(),
+                    self.check_message,
+                    self.on_counter_trade)
         ]
 
     def initiate_conversions(self):
@@ -169,6 +179,7 @@ class MarketCommunity(Community):
         """
         self._logger.debug("Ask created")
 
+        # Convert values to value objects
         price = Price.from_float(price)
         quantity = Quantity.from_float(quantity)
         timeout = Timeout(timeout)
@@ -199,7 +210,7 @@ class MarketCommunity(Community):
 
         destination, payload = ask.to_network()
 
-        payload += (2, self.dispersy.wan_address)  # Add ttl of 2 and the address
+        payload += (2, self.dispersy.wan_address)  # Add ttl of 2 and the local wan address
 
         meta = self.get_meta_message(u"ask")
         message = meta.impl(
@@ -220,16 +231,19 @@ class MarketCommunity(Community):
 
             self._logger.debug("Ask received with id: %s for order with id: %s", str(ask.message_id), str(ask.order_id))
 
+            # Update the pubkey register with the current address
             self.update_ip(str(ask.message_id.trader_id), message.payload.address)
 
             if not self.order_book.tick_exists(ask.order_id):  # Message has not been received before
                 self.order_book.insert_ask(ask)
 
+                # Check for new matches against the orders of this node
                 for order in self.portfolio.order_repository.find_all():
                     if not order.is_ask():
                         proposed_trades = self.matching_engine.match_order(order)
                         self.send_proposed_trade_messages(proposed_trades)
 
+                # Check if message needs to be send on
                 self.check_ttl(message)
 
     # Bid
@@ -246,6 +260,7 @@ class MarketCommunity(Community):
         """
         self._logger.debug("Bid created")
 
+        # Convert values to value objects
         price = Price.from_float(price)
         quantity = Quantity.from_float(quantity)
         timeout = Timeout(timeout)
@@ -276,7 +291,7 @@ class MarketCommunity(Community):
 
         destination, payload = bid.to_network()
 
-        payload += (2, self.dispersy.wan_address)  # Add ttl of 2 and the address
+        payload += (2, self.dispersy.wan_address)  # Add ttl of 2 and the local wan address
 
         meta = self.get_meta_message(u"bid")
         message = meta.impl(
@@ -297,16 +312,19 @@ class MarketCommunity(Community):
 
             self._logger.debug("Bid received with id: %s for order with id: %s", str(bid.message_id), str(bid.order_id))
 
+            # Update the pubkey register with the current address
             self.update_ip(str(bid.message_id.trader_id), message.payload.address)
 
             if not self.order_book.tick_exists(bid.order_id):  # Message has not been received before
                 self.order_book.insert_bid(bid)
 
+                # Check for new matches against the orders of this node
                 for order in self.portfolio.order_repository.find_all():
                     if order.is_ask():
                         proposed_trades = self.matching_engine.match_order(order)
                         self.send_proposed_trade_messages(proposed_trades)
 
+                # Check if the message needs to be send on
                 self.check_ttl(message)
 
     # Proposed trade
@@ -314,6 +332,7 @@ class MarketCommunity(Community):
         assert isinstance(proposed_trade, ProposedTrade), type(proposed_trade)
         destination, payload = proposed_trade.to_network()
 
+        # Lookup the remote address of the peer with the pubkey
         candidate = Candidate(self.lookup_ip(destination), False)
 
         meta = self.get_meta_message(u"proposed-trade")
@@ -334,19 +353,28 @@ class MarketCommunity(Community):
         for message in messages:
             proposed_trade = ProposedTrade.from_network(message.payload)
 
-            if str(proposed_trade.recipient_message_id.trader_id) == str(self.my_member.mid.encode("HEX")):
-                # Check if tick is still valid (send confirm and add to orderbook) : (send cancel)
-                if self.order_book.tick_exists(proposed_trade.recipient_message_id):
+            if str(proposed_trade.recipient_order_id.trader_id) == str(self.pubkey):  # The message is for this node
+                order = self.portfolio.order_repository.find_by_id(proposed_trade.recipient_order_id)
+
+                if order and order.available_quantity >= proposed_trade.quantity:
                     accepted_trade = Trade.accept(self.order_book.message_repository.next_identity(), Timestamp.now(),
                                                   proposed_trade)
+
+                    # Set the message received as true TODO: make a function for this
+                    self.history[accepted_trade.message_id] = True
+
                     self.order_book.insert_trade(accepted_trade)
-                    self.order_book.remove_tick(proposed_trade.recipient_message_id)
-                    self.order_book.remove_tick(proposed_trade.sender_message_id)
+
+                    # TODO: do not delete the tick but update it
+                    self.order_book.remove_tick(proposed_trade.order_id)
+                    self.order_book.remove_tick(proposed_trade.recipient_order_id)
+
                     self.send_accepted_trade(accepted_trade)
-                else:
-                    declined_trade = Trade.decline(self.order_book.message_repository.next_identity(), Timestamp.now(),
-                                                   proposed_trade)
-                    self.send_declined_trade(declined_trade)
+                elif order:
+                    # TODO: reserve quantity for counter trade
+                    counter_trade = Trade.counter(self.order_book.message_repository.next_identity(),
+                                                  order.available_quantity, Timestamp.now(), proposed_trade)
+                    self.send_counter_trade(counter_trade)
 
     # Accepted trade
     def send_accepted_trade(self, accepted_trade):
@@ -372,18 +400,25 @@ class MarketCommunity(Community):
         for message in messages:
             accepted_trade = AcceptedTrade.from_network(message.payload)
 
-            self.order_book.remove_tick(accepted_trade.sender_message_id)
-            self.order_book.remove_tick(accepted_trade.recipient_message_id)
+            if not accepted_trade.message_id in self.history:
+                # Set the message received as true TODO: make a function for this
+                self.history[accepted_trade.message_id] = True
 
-            # Check if tick is our own and delete is from the portfolio
+                # TODO: do not delete the tick but update it
+                self.order_book.remove_tick(accepted_trade.order_id)
+                self.order_book.remove_tick(accepted_trade.recipient_order_id)
 
-            self.check_ttl(message)
+                # TODO: update the portfolio
+
+                # Check if the message needs to be send on
+                self.check_ttl(message)
 
     # Declined trade
     def send_declined_trade(self, declined_trade):
         assert isinstance(declined_trade, DeclinedTrade), type(declined_trade)
         destination, payload = declined_trade.to_network()
 
+        # Lookup the remote address of the peer with the pubkey
         candidate = Candidate(self.lookup_ip(destination), False)
 
         meta = self.get_meta_message(u"declined-trade")
@@ -404,8 +439,32 @@ class MarketCommunity(Community):
         for message in messages:
             declined_trade = DeclinedTrade.from_network(message.payload)
 
-            if declined_trade.is_quick():
-                self.order_book.remove_tick(declined_trade.recipient_message_id)
-                # match again
-            else:
-                self.order_book.remove_tick(declined_trade.recipient_message_id)
+            if str(declined_trade.recipient_order_id.trader_id) == str(self.pubkey):  # The message is for this node
+                order = self.portfolio.order_repository.find_by_id(declined_trade.recipient_order_id)
+
+                # TODO: release reservation for quantity
+
+    # Counter trade
+    def send_counter_trade(self, counter_trade):
+        assert isinstance(counter_trade, CounterTrade), type(counter_trade)
+        destination, payload = counter_trade.to_network()
+
+        candidate = Candidate(self.lookup_ip(destination), False)
+
+        meta = self.get_meta_message(u"counter-trade")
+        message = meta.impl(
+            authentication=(self.my_member,),
+            distribution=(self.claim_global_time(),),
+            destination=candidate,
+            payload=payload
+        )
+
+        self.dispersy.store_update_forward([message], True, True, True)
+
+    def send_counter_trade_messages(self, messages):
+        for message in messages:
+            self.send_counter_trade(message)
+
+    def on_counter_trade(self, messages):
+        for message in messages:
+            counter_trade = CounterTrade.from_network(message.payload)
