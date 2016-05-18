@@ -147,7 +147,7 @@ class Session(SessionConfigInterface):
         # Checkpoint startup config
         self.save_pstate_sessconfig()
 
-        self.sqlite_db = None
+        self.sqlite_cache_db = None
 
         self.autoload_discovery = autoload_discovery
 
@@ -159,10 +159,10 @@ class Session(SessionConfigInterface):
         db_path = os.path.join(self.get_state_dir(), DB_FILE_RELATIVE_PATH)
         db_script_path = os.path.join(self.get_install_dir(), DB_SCRIPT_RELATIVE_PATH)
 
-        self.sqlite_db = SQLiteCacheDB(db_path, db_script_path)
-        self.sqlite_db.initialize()
-        self.sqlite_db.initial_begin()
-        self.upgrader = TriblerUpgrader(self, self.sqlite_db)
+        self.sqlite_cache_db = SQLiteCacheDB(db_path, db_script_path)
+        self.sqlite_cache_db.initialize()
+        self.sqlite_cache_db.initial_begin()
+        self.upgrader = TriblerUpgrader(self, self.sqlite_cache_db)
         self.upgrader.run()
         return self.upgrader
 
@@ -452,8 +452,8 @@ class Session(SessionConfigInterface):
             """
             self.checkpoint_shutdown(stop=True, checkpoint=checkpoint,
                                  gracetime=gracetime, hacksessconfcheckpoint=hacksessconfcheckpoint)
-            self.sqlite_db.close()
-            self.sqlite_db = None
+            self.sqlite_cache_db.close()
+            self.sqlite_cache_db = None
 
         deferred.addCallback(on_early_shutdown_complete)
 

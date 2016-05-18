@@ -53,7 +53,7 @@ class BasicDBHandler(TaskManager):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.session = session
-        self._sqlite_cache_db = self.session.sqlite_db
+        self._sqlite_cache_db = self.session.sqlite_cache_db
         self.table_name = table_name
         self.notifier = session.notifier
 
@@ -1164,7 +1164,7 @@ class VoteCastDBHandler(BasicDBHandler):
 
     def initialize(self, *args, **kwargs):
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
-        self.session.sqlite_db.register_task(u"flush to database",
+        self.session.sqlite_cache_db.register_task(u"flush to database",
                                              LoopingCall(self._flush_to_database)).start(VOTECAST_FLUSH_DB_INTERVAL,
                                                                                          now=False)
 

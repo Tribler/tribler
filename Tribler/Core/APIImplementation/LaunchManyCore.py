@@ -198,7 +198,7 @@ class TriblerLaunchMany(TaskManager):
                                    self.session.dispersy_member, load=True)
 
             if self.session.get_megacache():
-                self.dispersy.database.attach_commit_callback(self.session.sqlite_db.commit_now)
+                self.dispersy.database.attach_commit_callback(self.session.sqlite_cache_db.commit_now)
 
             # notify dispersy finished loading
             self.session.notifier.notify(NTFY_DISPERSY, NTFY_STARTED, None)

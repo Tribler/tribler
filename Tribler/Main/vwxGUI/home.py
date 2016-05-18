@@ -290,7 +290,7 @@ class Stats(wx.Panel):
             traceback.print_exc()
 
     def _printDBStats(self):
-        sqlite_db = self.guiutility.utility.session.sqlite_db
+        sqlite_db = self.guiutility.utility.session.sqlite_cache_db
         tables = sqlite_db.fetchall("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
         for table, in tables:
             self._logger.info("%s %s", table, sqlite_db.fetchone("SELECT COUNT(*) FROM %s" % table))

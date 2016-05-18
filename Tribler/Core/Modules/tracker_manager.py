@@ -32,7 +32,7 @@ class TrackerManager(object):
     def initialize(self):
         # load all tracker information into the memory
         sql_stmt = u"SELECT tracker_id, tracker, last_check, failures, is_alive FROM TrackerInfo"
-        result_list = self._session.sqlite_db.execute(sql_stmt)
+        result_list = self._session.sqlite_cache_db.execute(sql_stmt)
         for tracker_id, tracker_url, last_check, failures, is_alive in result_list:
             self._tracker_dict[tracker_url] = {u'id': tracker_id,
                                                u'last_check': last_check,
@@ -71,7 +71,7 @@ class TrackerManager(object):
                     """
         value_tuple = (sanitized_tracker_url, tracker_info[u'last_check'], tracker_info[u'failures'],
                        tracker_info[u'is_alive'], sanitized_tracker_url)
-        tracker_id, = self._session.sqlite_db.execute(sql_stmt, value_tuple).next()
+        tracker_id, = self._session.sqlite_cache_db.execute(sql_stmt, value_tuple).next()
 
         # update dict
         tracker_info[u'id'] = tracker_id
@@ -110,7 +110,7 @@ class TrackerManager(object):
         sql_stmt = u"UPDATE TrackerInfo SET last_check = ?, failures = ?, is_alive = ? WHERE tracker_id = ?"
         value_tuple = (tracker_info[u'last_check'], tracker_info[u'failures'], tracker_info[u'is_alive'],
                        tracker_info[u'id'])
-        self._session.sqlite_db.execute(sql_stmt, value_tuple)
+        self._session.sqlite_cache_db.execute(sql_stmt, value_tuple)
 
     @call_on_reactor_thread
     def should_check_tracker(self, tracker_url):

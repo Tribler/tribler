@@ -57,7 +57,7 @@ class AbstractDB(TriblerCoreTest):
 
         self.sqlitedb = SQLiteCacheDB(db_path, db_script_path, busytimeout=BUSYTIMEOUT)
         self.sqlitedb.initialize()
-        self.session.sqlite_db = self.sqlitedb
+        self.session.sqlite_cache_db = self.sqlitedb
 
     def tearDown(self):
         self.sqlitedb.close()

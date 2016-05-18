@@ -58,4 +58,4 @@ class AbstractUpgrader(TriblerCoreTest):
         self.sqlitedb = SQLiteCacheDB(db_path, db_script_path)
         self.sqlitedb.initialize()
         self.sqlitedb.initial_begin()
-        self.session.sqlite_db = self.sqlitedb
+        self.session.sqlite_cache_db = self.sqlitedb
