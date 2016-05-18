@@ -1536,6 +1536,9 @@ class ManageChannel(AbstractDetails):
         my_channel_object.remove_rss_feed(item.url)
 
     def OnRefreshRss(self, event):
+        my_channel_object = self.guiutility.utility.session.lm.channel_manager.get_my_channel(self.channel.id)
+        my_channel_object.refresh_all_feeds()
+
         button = event.GetEventObject()
         button.Enable(False)
         wx.CallLater(5000, button.Enable, True)

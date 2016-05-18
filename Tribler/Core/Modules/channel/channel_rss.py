@@ -1,6 +1,5 @@
 from binascii import hexlify
 import logging
-import tempfile
 import hashlib
 import json
 import time
@@ -9,6 +8,7 @@ import re
 import feedparser
 
 from twisted.internet import reactor
+from twisted.internet.defer import DeferredList
 from twisted.web.client import getPage
 
 from Tribler.dispersy.taskmanager import TaskManager
@@ -33,7 +33,6 @@ class ChannelRssParser(TaskManager):
         self.rss_url = rss_url
         self.check_interval = check_interval
 
-        self._tmp_dir = None
         self._url_cache = None
 
         self._pending_metadata_requests = {}
@@ -55,9 +54,6 @@ class ChannelRssParser(TaskManager):
         self._url_cache = SimpleCache(url_cache_path)
         self._url_cache.load()
 
-        # create temporary directory
-        self._tmp_dir = tempfile.mkdtemp()
-
         # schedule the scraping task
         self.register_task(u"rss_scrape",
                            reactor.callLater(2, self._task_scrape))
@@ -76,22 +72,29 @@ class ChannelRssParser(TaskManager):
         self._to_stop = True
         self.cancel_all_pending_tasks()
 
-        self._tmp_dir = None
         self._url_cache.save()
         self._url_cache = None
 
         self.channel_community = None
         self.session = None
 
-    def _task_scrape(self):
+    def parse_feed(self):
         rss_parser = RSSFeedParser()
+
+        def_list = []
 
         for rss_item in rss_parser.parse(self.rss_url, self._url_cache):
             if self._to_stop:
-                return
+                return None
 
             torrent_deferred = getPage(rss_item[u'torrent_url'].encode('utf-8'))
             torrent_deferred.addCallback(lambda t, r=rss_item: self.on_got_torrent(t, rss_item=r))
+            def_list.append(torrent_deferred)
+
+        return DeferredList(def_list)
+
+    def _task_scrape(self):
+        self.parse_feed()
 
         if not self._to_stop:
             # schedule the next scraping task
