@@ -25,10 +25,25 @@ class POSTDataProducer(object):
         return succeed(None)
 
 
-class AbstractApiTest(TestAsServer):
+class AbstractBaseApiTest(TestAsServer):
     """
     Tests for the Tribler HTTP API should create a subclass of this class.
-    This class contains some auxiliary methods to perform requests and to check the right response code/
+    """
+
+    def setUpPreSession(self):
+        super(AbstractBaseApiTest, self).setUpPreSession()
+        self.config.set_http_api_enabled(True)
+        self.config.set_megacache(True)
+
+    def do_request(self, endpoint, request_type, post_data):
+        agent = Agent(reactor)
+        return agent.request(request_type, 'http://localhost:%s/%s' % (self.session.get_http_api_port(), endpoint),
+                             Headers({'User-Agent': ['Tribler ' + version_id]}), POSTDataProducer(post_data))
+
+
+class AbstractApiTest(AbstractBaseApiTest):
+    """
+    This class contains some helper methods to perform requests and to check the right response code/
     response json returned.
     """
 
@@ -37,11 +52,6 @@ class AbstractApiTest(TestAsServer):
         self.expected_response_code = 200
         self.expected_response_json = None
         self.should_check_equality = True
-
-    def setUpPreSession(self):
-        super(AbstractApiTest, self).setUpPreSession()
-        self.config.set_http_api_enabled(True)
-        self.config.set_megacache(True)
 
     def parse_body(self, body):
         if body is not None and self.should_check_equality:
@@ -58,7 +68,6 @@ class AbstractApiTest(TestAsServer):
         self.expected_response_code = expected_code
         self.expected_response_json = expected_json
 
-        agent = Agent(reactor)
-        return agent.request(request_type, 'http://localhost:%s/%s' % (self.session.get_http_api_port(), endpoint),
-                             Headers({'User-Agent': ['Tribler ' + version_id]}), POSTDataProducer(post_data))\
-            .addCallback(self.parse_response).addCallback(self.parse_body)
+        return super(AbstractApiTest, self).do_request(endpoint, request_type, post_data)\
+                                           .addCallback(self.parse_response)\
+                                           .addCallback(self.parse_body)
