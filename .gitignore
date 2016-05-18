@@ -1,20 +1,21 @@
-*.bak
+# Python
 *.pyc
 *.pyo
-*~
+
+# Apple
 .DS_Store
-.ropeproject
+
+.*project
+local.properties
+*.bak
+*~
 /*.log
 /.Tribler
 /.coverage
 /.dir-locals.el
 /.gdb_history
-/.idea/
+**.idea/
 /.noseids
-/.project
-/.pydevproject
-/Tribler/.project
-/Tribler/.pydevproject
 /TAGS
 /bootstraptribler.txt
 /core
@@ -33,10 +34,28 @@ memorydump.out
 test_file
 test_file.torrent
 
-# pycharm
-**.idea/
-
 # Ignore nosetest coverage output
 cover/
 htmlcov/
 .coverage
+
+# Android
+*.apk
+
+/android/TriblerService/service/typescript
+/android/TriblerService/service/ffmpeg
+/android/TriblerService/dist
+
+/android/TriblerApp/app/src/main/jniLibs
+/android/TriblerApp/app/src/main/jni/include/python2.7
+/android/TriblerApp/app/src/main/jni/lib
+/android/TriblerApp/app/src/main/assets/private.mp3
+
+# Android Studio
+/android/TriblerApp/app/*.iml
+/android/TriblerApp/*.iml
+/android/TriblerApp/app/build
+/android/TriblerApp/build
+/android/TriblerApp/.gradle
+/android/TriblerApp/captures
+
