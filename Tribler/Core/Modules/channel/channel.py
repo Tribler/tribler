@@ -36,6 +36,14 @@ class ChannelObject(TaskManager):
     def name(self):
         return self._channel_community.get_channel_name()
 
+    @property
+    def description(self):
+        return self._channel_community.get_channel_description()
+
+    @property
+    def mode(self):
+        return self._channel_community.get_channel_mode()
+
     def get_rss_feed_url_list(self):
         return [url for url in self._rss_feed_dict.iterkeys()]
 

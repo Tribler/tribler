@@ -5,6 +5,7 @@ from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 from Tribler.community.channel.community import ChannelCommunity
 
+from Tribler.Core.exceptions import DuplicateChannelNameError
 from Tribler.Core.Modules.channel.channel import ChannelObject
 
 
@@ -61,6 +62,8 @@ class ChannelManager(TaskManager):
         :param description: Description of the Channel.
         :param mode: Mode of the Channel ('open', 'semi-open', or 'closed').
         :param rss_url: RSS URL for the Channel.
+        :return: Channel ID
+        :raises DuplicateChannelNameError if name already exists
         """
         assert isinstance(name, basestring), u"name is not a basestring: %s" % type(name)
         assert isinstance(description, basestring), u"description is not a basestring: %s" % type(description)
@@ -70,8 +73,7 @@ class ChannelManager(TaskManager):
         # if two channels have the same name, this will not work
         for channel_object in self._channel_list:
             if name == channel_object.name:
-                self._logger.error(u"Channel name already exists: %s", name)
-                return
+                raise DuplicateChannelNameError(u"Channel name already exists: %s" % name)
 
         channel_mode = self._channel_mode_map[mode]
         community = ChannelCommunity.create_community(self.dispersy, self.session.dispersy_member,
@@ -90,6 +92,7 @@ class ChannelManager(TaskManager):
             channel_obj.create_rss_feed(rss_url)
 
         self._logger.debug(u"creating channel '%s', %s", channel_obj.name, hexlify(community.cid))
+        return channel_obj.channel_id
 
     def get_my_channel(self, channel_id):
         """
