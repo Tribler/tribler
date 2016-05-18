@@ -50,7 +50,7 @@ class AbstractApiTest(TestAsServer):
 
     def parse_response(self, response):
         self.assertEqual(response.code, self.expected_response_code)
-        if response.code == 200 or response.code == 400:
+        if response.code in (200, 400, 500):
             return readBody(response)
         return succeed(None)
 

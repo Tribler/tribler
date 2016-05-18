@@ -3,6 +3,7 @@ from twisted.web import http, resource
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST
+from Tribler.Core.exceptions import DuplicateChannelNameError
 
 
 class MyChannelBaseEndpoint(resource.Resource):
@@ -36,31 +37,30 @@ class MyChannelEndpoint(MyChannelBaseEndpoint):
     This endpoint is responsible for handing all requests regarding your channel such as getting and updating
     torrents, playlists and rss-feeds.
     """
+
     def __init__(self, session):
         MyChannelBaseEndpoint.__init__(self, session)
-        child_handler_dict = {"overview": MyChannelOverviewEndpoint, "torrents": MyChannelTorrentsEndpoint,
-                              "rssfeeds": MyChannelRssFeedsEndpoint, "playlists": MyChannelPlaylistsEndpoint,
+        child_handler_dict = {"torrents": MyChannelTorrentsEndpoint,
+                              "rssfeeds": MyChannelRssFeedsEndpoint,
+                              "playlists": MyChannelPlaylistsEndpoint,
                               "recheckfeeds": MyChannelRecheckFeedsEndpoint}
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(self.session))
 
-
-class MyChannelOverviewEndpoint(MyChannelBaseEndpoint):
-    """
-    Return the name, description and identifier of your channel.
-    This endpoint returns a 404 HTTP response if you have not created a channel (yet).
-
-    Example response:
-    {
-        "overview": {
-            "name": "My Tribler channel",
-            "description": "A great collection of open-source movies",
-            "identifier": "4a9cfc7ca9d15617765f4151dd9fae94c8f3ba11"
-        }
-    }
-    """
-
     def render_GET(self, request):
+        """
+            Return the name, description and identifier of your channel.
+            This endpoint returns a 404 HTTP response if you have not created a channel (yet).
+
+            Example response:
+            {
+                "overview": {
+                    "name": "My Tribler channel",
+                    "description": "A great collection of open-source movies",
+                    "identifier": "4a9cfc7ca9d15617765f4151dd9fae94c8f3ba11"
+                }
+            }
+            """
         my_channel_id = self.channel_db_handler.getMyChannelId()
         if my_channel_id is None:
             return MyChannelBaseEndpoint.return_404(request)
@@ -69,6 +69,48 @@ class MyChannelOverviewEndpoint(MyChannelBaseEndpoint):
         request.setHeader('Content-Type', 'text/json')
         return json.dumps({'overview': {'identifier': my_channel[1].encode('hex'), 'name': my_channel[2],
                                         'description': my_channel[3]}})
+
+    def render_PUT(self, request):
+        """
+        Create your own new channel.
+
+        Example request:
+        {
+            "name": "John Smit's channel",
+            "description": "Video's of my cat",
+            "mode": "open" or "semi-open" or "closed" (default)
+        }
+        """
+        parameters = http.parse_qs(request.content.read(), 1)
+
+        if 'name' not in parameters or len(parameters['name']) == 0:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "name parameter missing"})
+
+        if 'description' not in parameters or len(parameters['description']) == 0:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "description parameter missing"})
+
+        if 'mode' not in parameters or len(parameters['mode']) == 0:
+            mode = u'closed'
+        else:
+            mode = parameters['mode'][0]
+
+        try:
+            channel_id = self.session.create_channel(parameters['name'][0], parameters['description'][0], mode)
+        except DuplicateChannelNameError as ex:
+            request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+            request.setHeader('Content-Type', 'text/json')
+            return json.dumps({
+                u"error": {
+                    u"handled": True,
+                    u"code": ex.__class__.__name__,
+                    u"message": ex.message
+                }
+            })
+
+        request.setHeader('Content-Type', 'text/json')
+        return json.dumps({"added": channel_id})
 
 
 class MyChannelTorrentsEndpoint(MyChannelBaseEndpoint):
