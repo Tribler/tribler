@@ -27,19 +27,23 @@ class DownloadWidgetItem(QTreeWidgetItem):
 
         parent.setItemWidget(self, 2, self.progress_slider)
         self.setSizeHint(0, QSize(-1, 24))
-        self.download_status_raw = -1
 
     def updateWithDownload(self, download):
-        self.setText(0, download["name"])
-        self.setText(1, download["size"])
+        self.download_info = download
+        self.updateItem()
 
-        self.progress_slider.setValue(int(download["progress"] * 100))
+    def getRawDownloadStatus(self):
+        return eval(self.download_info["status"])
 
-        self.setText(3, DLSTATUS_STRINGS[eval(download["status"])])
-        self.setText(4, str(download["seeds"]))
-        self.setText(5, str(download["peers"]))
-        self.setText(6, str(download["speed_down"]))
-        self.setText(7, str(download["speed_up"]))
+    def updateItem(self):
+        self.setText(0, self.download_info["name"])
+        self.setText(1, self.download_info["size"])
+
+        self.progress_slider.setValue(int(self.download_info["progress"] * 100))
+
+        self.setText(3, DLSTATUS_STRINGS[eval(self.download_info["status"])])
+        self.setText(4, str(self.download_info["seeds"]))
+        self.setText(5, str(self.download_info["peers"]))
+        self.setText(6, str(self.download_info["speed_down"]))
+        self.setText(7, str(self.download_info["speed_up"]))
         self.setText(8, "-")
-
-        self.download_status_raw = eval(download["status"])
