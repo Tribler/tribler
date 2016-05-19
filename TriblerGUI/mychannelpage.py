@@ -1,3 +1,4 @@
+import urllib
 from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QStackedWidget, QTreeWidget, \
     QTreeWidgetItem, QToolButton, QFileDialog, QLineEdit, QTextEdit
 
@@ -25,6 +26,8 @@ class MyChannelPage(QWidget):
         self.window().my_channel_torrents_remove_all_button.clicked.connect(self.on_torrents_remove_all_clicked)
         self.window().my_channel_torrents_export_button.clicked.connect(self.on_torrents_export_clicked)
 
+        self.window().my_channel_details_rss_feeds_remove_selected_button.clicked.connect(self.on_rss_feeds_remove_selected_clicked)
+        self.window().my_channel_details_rss_add_button.clicked.connect(self.on_rss_feed_add_clicked)
         self.window().my_channel_details_rss_refresh_button.clicked.connect(self.on_rss_feeds_refresh_clicked)
 
         # Tab bar buttons
@@ -116,8 +119,44 @@ class MyChannelPage(QWidget):
         self.window().create_channel_intro_button_container.hide()
         self.window().create_new_channel_intro_label.setText("Please enter your channel details below.")
 
+    def on_rss_feed_add_clicked(self):
+        self.dialog = ConfirmationDialog(self, "Add RSS feed", "Please enter the RSS feed URL in the field below:", [('add', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)], show_input=True)
+        self.dialog.dialog_widget.dialog_input.setPlaceholderText('RSS feed URL')
+        self.dialog.button_clicked.connect(self.on_rss_feed_dialog_added)
+        self.dialog.show()
+
+    def on_rss_feed_dialog_added(self, action):
+        if action == 0:
+            url = urllib.quote_plus(self.dialog.dialog_widget.dialog_input.text())
+            self.mychannel_request_mgr = TriblerRequestManager()
+            self.mychannel_request_mgr.perform_request("mychannel/rssfeeds/%s" % url, self.on_rss_feed_added, method='PUT')
+
+        self.dialog.setParent(None)
+        self.dialog = None
+
+    def on_rss_feed_added(self, json_result):
+        if json_result['added']:
+            self.load_my_channel_rss_feeds()
+
     def on_rss_feeds_remove_selected_clicked(self):
-        print "hi"
+        self.dialog = ConfirmationDialog(self, "Remove RSS feed", "Are you sure you want to remove the selected RSS feed?", [('remove', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)])
+        self.dialog.button_clicked.connect(self.on_rss_feed_dialog_removed)
+        self.dialog.show()
+
+    def on_rss_feed_dialog_removed(self, action):
+        if action == 0:
+            url = urllib.quote_plus(self.window().my_channel_rss_feeds_list.selectedItems()[0].text(0))
+            print url
+            self.mychannel_request_mgr = TriblerRequestManager()
+            self.mychannel_request_mgr.perform_request("mychannel/rssfeeds/%s" % url, self.on_rss_feed_removed, method='DELETE')
+
+        self.dialog.setParent(None)
+        self.dialog = None
+
+    def on_rss_feed_removed(self, json_result):
+        print json_result
+        if json_result['removed']:
+            self.load_my_channel_rss_feeds()
 
     def on_rss_feeds_refresh_clicked(self):
         self.window().my_channel_details_rss_refresh_button.setEnabled(False)
