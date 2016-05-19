@@ -72,6 +72,18 @@ border-radius: 2px;</string>
       <property name="sizeConstraint">
        <enum>QLayout::SetMinimumSize</enum>
       </property>
+      <property name="leftMargin">
+       <number>12</number>
+      </property>
+      <property name="topMargin">
+       <number>12</number>
+      </property>
+      <property name="rightMargin">
+       <number>12</number>
+      </property>
+      <property name="bottomMargin">
+       <number>12</number>
+      </property>
       <item>
        <widget class="QLabel" name="dialog_title_label">
         <property name="sizePolicy">
@@ -165,6 +177,18 @@ padding-left: 4px;</string>
       <string notr="true">background-color: #ababab;</string>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout">
+      <property name="leftMargin">
+       <number>12</number>
+      </property>
+      <property name="topMargin">
+       <number>12</number>
+      </property>
+      <property name="rightMargin">
+       <number>12</number>
+      </property>
+      <property name="bottomMargin">
+       <number>12</number>
+      </property>
       <item>
        <spacer name="horizontalSpacer">
         <property name="orientation">
@@ -177,65 +201,6 @@ padding-left: 4px;</string>
          </size>
         </property>
        </spacer>
-      </item>
-      <item>
-       <widget class="QToolButton" name="dialog_confirm_button">
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>24</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>24</height>
-         </size>
-        </property>
-        <property name="cursor">
-         <cursorShape>PointingHandCursor</cursorShape>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">border: none;
-border-radius: 2px;
-background-color: #eee;
-font-size: 12px;
-</string>
-        </property>
-        <property name="text">
-         <string>Confirm</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QToolButton" name="dialog_cancel_button">
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>24</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>24</height>
-         </size>
-        </property>
-        <property name="cursor">
-         <cursorShape>PointingHandCursor</cursorShape>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">border: none;
-border-radius: 2px;
-background-color: #e67300;
-color: white;
-font-size: 12px;
-</string>
-        </property>
-        <property name="text">
-         <string>Cancel</string>
-        </property>
-       </widget>
       </item>
      </layout>
     </widget>

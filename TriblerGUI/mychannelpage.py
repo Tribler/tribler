@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QStackedWidget, QTreeW
     QTreeWidgetItem, QToolButton, QFileDialog, QLineEdit, QTextEdit
 
 from TriblerGUI.defs import PAGE_MY_CHANNEL_OVERVIEW, PAGE_MY_CHANNEL_SETTINGS, PAGE_MY_CHANNEL_TORRENTS, \
-    PAGE_MY_CHANNEL_PLAYLISTS, PAGE_MY_CHANNEL_RSS_FEEDS
+    PAGE_MY_CHANNEL_PLAYLISTS, PAGE_MY_CHANNEL_RSS_FEEDS, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
@@ -24,6 +24,8 @@ class MyChannelPage(QWidget):
         self.window().my_channel_torrents_remove_selected_button.clicked.connect(self.on_torrents_remove_selected_clicked)
         self.window().my_channel_torrents_remove_all_button.clicked.connect(self.on_torrents_remove_all_clicked)
         self.window().my_channel_torrents_export_button.clicked.connect(self.on_torrents_export_clicked)
+
+        self.window().my_channel_details_rss_refresh_button.clicked.connect(self.on_rss_feeds_refresh_clicked)
 
         # Tab bar buttons
         self.window().channel_settings_tab.initialize()
@@ -73,13 +75,13 @@ class MyChannelPage(QWidget):
             return
 
         self.dialog = ConfirmationDialog(self, "Remove %s selected torrents" % num_selected,
-                    "Are you sure that you want to remove %s selected torrents from your channel?" % num_selected)
+                    "Are you sure that you want to remove %s selected torrents from your channel?" % num_selected, [('confirm', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)])
         self.dialog.button_clicked.connect(self.on_torrents_remove_selected_action)
         self.dialog.show()
 
     def on_torrents_remove_all_clicked(self):
         self.dialog = ConfirmationDialog(self.window(), "Remove all torrents",
-                    "Are you sure that you want to remove all torrents from your channel? You cannot undo this action.")
+                    "Are you sure that you want to remove all torrents from your channel? You cannot undo this action.", [('confirm', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)])
         self.dialog.button_clicked.connect(self.on_torrents_remove_all_action)
         self.dialog.show()
 
@@ -115,5 +117,13 @@ class MyChannelPage(QWidget):
         self.window().create_new_channel_intro_label.setText("Please enter your channel details below.")
 
     def on_rss_feeds_remove_selected_clicked(self):
-        pass
+        print "hi"
 
+    def on_rss_feeds_refresh_clicked(self):
+        self.window().my_channel_details_rss_refresh_button.setEnabled(False)
+        self.mychannel_request_mgr = TriblerRequestManager()
+        self.mychannel_request_mgr.perform_request('mychannel/recheckfeeds', self.on_rss_feeds_refreshed,  method='POST')
+
+    def on_rss_feeds_refreshed(self, json_result):
+        if json_result["rechecked"]:
+            self.window().my_channel_details_rss_refresh_button.setEnabled(True)
