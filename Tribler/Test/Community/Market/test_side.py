@@ -49,22 +49,22 @@ class SideTestSuite(unittest.TestCase):
     def test_insert_tick(self):
         # Test insert tick
         self.assertEquals(0, len(self.side))
-        self.assertFalse(self.side.tick_exists(MessageId(TraderId('trader_id'), MessageNumber('message_number'))))
+        self.assertFalse(self.side.tick_exists(OrderId(TraderId('trader_id'), OrderNumber("order_number"))))
 
         self.side.insert_tick(self.tick)
         self.side.insert_tick(self.tick2)
 
         self.assertEquals(2, len(self.side))
-        self.assertTrue(self.side.tick_exists(MessageId(TraderId('trader_id'), MessageNumber('message_number'))))
+        self.assertTrue(self.side.tick_exists(OrderId(TraderId('trader_id'), OrderNumber("order_number"))))
 
     def test_remove_tick(self):
         # Test remove tick
         self.side.insert_tick(self.tick)
         self.side.insert_tick(self.tick2)
 
-        self.side.remove_tick(MessageId(TraderId('trader_id'), MessageNumber('message_number')))
+        self.side.remove_tick(OrderId(TraderId('trader_id'), OrderNumber("order_number")))
         self.assertEquals(1, len(self.side))
-        self.side.remove_tick(MessageId(TraderId('trader_id2'), MessageNumber('message_number')))
+        self.side.remove_tick(OrderId(TraderId('trader_id2'), OrderNumber("order_number")))
         self.assertEquals(0, len(self.side))
 
 

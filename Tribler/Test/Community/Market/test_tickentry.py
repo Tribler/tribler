@@ -29,7 +29,7 @@ class OrderTestSuite(unittest.TestCase):
 
     def test_properties(self):
         # Test properties
-        self.assertEquals(MessageId(TraderId('trader_id'), MessageNumber('message_number')), self.tick_entry.message_id)
+        self.assertEquals(OrderId(TraderId('trader_id'), OrderNumber("order_number")), self.tick_entry.order_id)
         self.assertEquals(Price(63400), self.tick_entry.price)
         self.assertEquals(Quantity(30), self.tick_entry.quantity)
 

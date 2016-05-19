@@ -30,34 +30,34 @@ class OrderBookTestSuite(unittest.TestCase):
                         OrderId(TraderId('trader_id4'), OrderNumber("order_number")), Price(300), Quantity(30),
                         Timeout(1462224447.117), Timestamp(1462224447.117))
         self.trade = Trade.propose(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
-                                   MessageId(TraderId('trader_id'), MessageNumber('message_number')),
-                                   MessageId(TraderId('trader_id'), MessageNumber('message_number')), Price(100),
+                                   OrderId(TraderId('trader_id'), OrderNumber("order_number")),
+                                   OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100),
                                    Quantity(30), Timestamp(1462224447.117))
         self.order_book = OrderBook(MemoryMessageRepository('trader_id'))
 
     def test_ask_insertion(self):
         # Test for ask insertion
         self.order_book.insert_ask(self.ask2)
-        self.assertTrue(self.order_book.tick_exists(self.ask2.message_id))
+        self.assertTrue(self.order_book.tick_exists(self.ask2.order_id))
 
     def test_ask_removal(self):
         # Test for ask removal
         self.order_book.insert_ask(self.ask2)
-        self.assertTrue(self.order_book.tick_exists(self.ask2.message_id))
-        self.order_book.remove_ask(self.ask2.message_id)
-        self.assertFalse(self.order_book.tick_exists(self.ask2.message_id))
+        self.assertTrue(self.order_book.tick_exists(self.ask2.order_id))
+        self.order_book.remove_ask(self.ask2.order_id)
+        self.assertFalse(self.order_book.tick_exists(self.ask2.order_id))
 
     def test_bid_insertion(self):
         # Test for bid insertion
         self.order_book.insert_bid(self.bid2)
-        self.assertTrue(self.order_book.tick_exists(self.bid2.message_id))
+        self.assertTrue(self.order_book.tick_exists(self.bid2.order_id))
 
     def test_bid_removal(self):
         # Test for bid removal
         self.order_book.insert_bid(self.bid2)
-        self.assertTrue(self.order_book.tick_exists(self.bid2.message_id))
-        self.order_book.remove_bid(self.bid2.message_id)
-        self.assertFalse(self.order_book.tick_exists(self.bid2.message_id))
+        self.assertTrue(self.order_book.tick_exists(self.bid2.order_id))
+        self.order_book.remove_bid(self.bid2.order_id)
+        self.assertFalse(self.order_book.tick_exists(self.bid2.order_id))
 
     def test_trade_insertion(self):
         # Test for trade insertion
@@ -109,8 +109,12 @@ class OrderBookTestSuite(unittest.TestCase):
 
     def test_remove_tick(self):
         # Test for tick removal
-        self.order_book.remove_tick(MessageId(TraderId('trader_id2'), MessageNumber('message_number')))
-        self.order_book.remove_tick(MessageId(TraderId('trader_id4'), MessageNumber('message_number')))
+        self.order_book.insert_ask(self.ask2)
+        self.order_book.insert_bid(self.bid2)
+        self.order_book.remove_tick(self.ask2.order_id)
+        self.assertFalse(self.order_book.tick_exists(self.ask2.order_id))
+        self.order_book.remove_tick(self.bid2.order_id)
+        self.assertFalse(self.order_book.tick_exists(self.bid2.order_id))
 
     def test_str(self):
         # Test for order book string representation

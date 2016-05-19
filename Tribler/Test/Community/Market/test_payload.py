@@ -18,9 +18,8 @@ class AcceptedTradePayloadTestSuite(unittest.TestCase):
     def setUp(self):
         # Object creation
         self.accepted_trade_payload = AcceptedTradePayload.Implementation(MetaObject(), 'trader_id', 'message_number',
-                                                                          'sender_trader_id', 'sender_message_number',
-                                                                          'recipient_trader_id',
-                                                                          'recipient_message_number', 63400, 30,
+                                                                          'order_number', 'recipient_trader_id',
+                                                                          'recipient_order_number', 63400, 30,
                                                                           1462224447.117, False, 2)
 
     def test_properties(self):
@@ -28,11 +27,10 @@ class AcceptedTradePayloadTestSuite(unittest.TestCase):
         self.assertEquals(63400, self.accepted_trade_payload.price)
         self.assertEquals(30, self.accepted_trade_payload.quantity)
         self.assertEquals('message_number', self.accepted_trade_payload.message_number)
+        self.assertEquals('order_number', self.accepted_trade_payload.order_number)
         self.assertEquals(False, self.accepted_trade_payload.quick)
-        self.assertEquals('recipient_message_number', self.accepted_trade_payload.recipient_message_number)
+        self.assertEquals('recipient_order_number', self.accepted_trade_payload.recipient_order_number)
         self.assertEquals('recipient_trader_id', self.accepted_trade_payload.recipient_trader_id)
-        self.assertEquals('sender_message_number', self.accepted_trade_payload.sender_message_number)
-        self.assertEquals('sender_trader_id', self.accepted_trade_payload.sender_trader_id)
         self.assertEquals(1462224447.117, self.accepted_trade_payload.timestamp)
         self.assertEquals(2, self.accepted_trade_payload.ttl)
         self.assertEquals('trader_id', self.accepted_trade_payload.trader_id)
@@ -44,15 +42,16 @@ class DeclinedTradePayloadTestSuite(unittest.TestCase):
     def setUp(self):
         # Object creation
         self.declined_trade_payload = DeclinedTradePayload.Implementation(MetaObject(), 'trader_id', 'message_number',
-                                                                          'recipient_trader_id',
-                                                                          'recipient_message_number', 1462224447.117,
+                                                                          'order_number', 'recipient_trader_id',
+                                                                          'recipient_order_number', 1462224447.117,
                                                                           False)
 
     def test_properties(self):
         # Test for properties
         self.assertEquals('message_number', self.declined_trade_payload.message_number)
+        self.assertEquals('order_number', self.declined_trade_payload.order_number)
         self.assertEquals(False, self.declined_trade_payload.quick)
-        self.assertEquals('recipient_message_number', self.declined_trade_payload.recipient_message_number)
+        self.assertEquals('recipient_order_number', self.declined_trade_payload.recipient_order_number)
         self.assertEquals('recipient_trader_id', self.declined_trade_payload.recipient_trader_id)
         self.assertEquals(1462224447.117, self.declined_trade_payload.timestamp)
         self.assertEquals('trader_id', self.declined_trade_payload.trader_id)
@@ -64,9 +63,9 @@ class ProposedTradePayloadTestSuite(unittest.TestCase):
     def setUp(self):
         # Object creation
         self.proposed_trade_payload = ProposedTradePayload.Implementation(MetaObject(), 'trader_id', 'message_number',
-                                                                          'sender_trader_id', 'sender_message_number',
+                                                                          'order_number',
                                                                           'recipient_trader_id',
-                                                                          'recipient_message_number', 63400, 30,
+                                                                          'recipient_order_number', 63400, 30,
                                                                           1462224447.117, False)
 
     def test_properties(self):
@@ -74,11 +73,10 @@ class ProposedTradePayloadTestSuite(unittest.TestCase):
         self.assertEquals(63400, self.proposed_trade_payload.price)
         self.assertEquals(30, self.proposed_trade_payload.quantity)
         self.assertEquals('message_number', self.proposed_trade_payload.message_number)
+        self.assertEquals('order_number', self.proposed_trade_payload.order_number)
         self.assertEquals(False, self.proposed_trade_payload.quick)
-        self.assertEquals('recipient_message_number', self.proposed_trade_payload.recipient_message_number)
+        self.assertEquals('recipient_order_number', self.proposed_trade_payload.recipient_order_number)
         self.assertEquals('recipient_trader_id', self.proposed_trade_payload.recipient_trader_id)
-        self.assertEquals('sender_message_number', self.proposed_trade_payload.sender_message_number)
-        self.assertEquals('sender_trader_id', self.proposed_trade_payload.sender_trader_id)
         self.assertEquals(1462224447.117, self.proposed_trade_payload.timestamp)
         self.assertEquals('trader_id', self.proposed_trade_payload.trader_id)
 
@@ -101,6 +99,7 @@ class OfferPayloadTestSuite(unittest.TestCase):
         self.assertEquals(1462224447.117, self.offer_payload.timestamp)
         self.assertEquals(2, self.offer_payload.ttl)
         self.assertEquals('trader_id', self.offer_payload.trader_id)
+        self.assertEquals(('address', 0), self.offer_payload.address)
 
 
 if __name__ == '__main__':
