@@ -217,6 +217,13 @@ class TriblerLaunchMany(TaskManager):
                     from Tribler.community.allchannel.community import AllChannelCommunity
                     self.dispersy.define_auto_load(AllChannelCommunity, self.session.dispersy_member, load=True,
                                                    kargs={'tribler_session': self.session})
+                # MultiChain Community
+                if self.session.get_enable_multichain():
+                    from Tribler.community.multichain.community import MultiChainCommunity
+                    
+                    keypair = self.dispersy.crypto.generate_key(u"curve25519")
+                    dispersy_member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair),)
+                    self.dispersy.define_auto_load(MultiChainCommunity, dispersy_member, load=True)
             load_communities()
 
             if self.session.get_enable_channel_search():
