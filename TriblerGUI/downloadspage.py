@@ -1,7 +1,8 @@
 from PyQt5.QtWidgets import QWidget
 from TriblerGUI.defs import DOWNLOADS_FILTER_ALL, DOWNLOADS_FILTER_DOWNLOADING, DOWNLOADS_FILTER_COMPLETED, \
     DOWNLOADS_FILTER_ACTIVE, DOWNLOADS_FILTER_INACTIVE, DOWNLOADS_FILTER_DEFINITION, DLSTATUS_STOPPED, \
-    DLSTATUS_STOPPED_ON_ERROR
+    DLSTATUS_STOPPED_ON_ERROR, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM
+from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.downloadwidgetitem import DownloadWidgetItem
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
@@ -42,7 +43,7 @@ class DownloadsPage(QWidget):
     def update_download_visibility(self):
         for i in range(self.window().downloads_list.topLevelItemCount()):
             item = self.window().downloads_list.topLevelItem(i)
-            item.setHidden(not item.download_status_raw in DOWNLOADS_FILTER_DEFINITION[self.filter])
+            item.setHidden(not item.getRawDownloadStatus() in DOWNLOADS_FILTER_DEFINITION[self.filter])
 
     def on_downloads_tab_button_clicked(self, button_name):
         if button_name == "downloads_all_button":
@@ -59,8 +60,8 @@ class DownloadsPage(QWidget):
         self.update_download_visibility()
 
     def on_download_item_clicked(self):
-        item = self.window().downloads_list.selectedItems()[0]
-        status = item.download_status_raw
+        self.selected_item = self.window().downloads_list.selectedItems()[0]
+        status = self.selected_item.getRawDownloadStatus()
         self.window().start_download_button.setEnabled(status == DLSTATUS_STOPPED)
         self.window().stop_download_button.setEnabled(status != DLSTATUS_STOPPED and status != DLSTATUS_STOPPED_ON_ERROR)
         self.window().remove_download_button.setEnabled(True)
@@ -69,7 +70,33 @@ class DownloadsPage(QWidget):
         pass
 
     def on_stop_download_clicked(self):
-        pass
+        infohash = self.selected_item.download_info["infohash"]
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("downloads/%s/stop" % infohash, self.on_download_stopped, method='POST')
+
+    def on_download_stopped(self, json_result):
+        if json_result["stopped"]:
+            self.selected_item.download_info['status'] = "DLSTATUS_STOPPED"
+            self.selected_item.updateItem()
+            self.on_download_item_clicked()
 
     def on_remove_download_clicked(self):
-        pass
+        self.dialog = ConfirmationDialog(self, "Remove download", "Are you sure you want to remove this download?", [('remove download', BUTTON_TYPE_NORMAL), ('remove download + data', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)])
+        self.dialog.button_clicked.connect(self.on_remove_download_dialog)
+        self.dialog.show()
+
+    def on_remove_download_dialog(self, action):
+        if action != 2:
+            infohash = self.selected_item.download_info["infohash"]
+            self.request_mgr = TriblerRequestManager()
+            self.request_mgr.perform_request("downloads/%s/remove" % infohash, self.on_download_removed, data="remove_data=%d" % (action == 1), method='POST')
+
+        self.dialog.setParent(None)
+        self.dialog = None
+
+    def on_download_removed(self, json_result):
+        if json_result["removed"]:
+            infohash = self.selected_item.download_info["infohash"]
+            index = self.window().downloads_list.indexOfTopLevelItem(self.selected_item)
+            self.window().downloads_list.takeTopLevelItem(index)
+            del self.download_widgets[infohash]

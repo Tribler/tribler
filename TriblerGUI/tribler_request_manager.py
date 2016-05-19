@@ -22,7 +22,9 @@ class TriblerRequestManager(QNetworkAccessManager):
         elif method == 'DELETE':
             self.reply = self.deleteResource(QNetworkRequest(QUrl(url)))
         elif method == 'POST':
-            self.reply = self.post(QNetworkRequest(QUrl(url)), data)
+            request = QNetworkRequest(QUrl(url))
+            request.setHeader(QNetworkRequest.ContentTypeHeader, "application/x-www-form-urlencoded")
+            self.reply = self.post(request, data)
 
         if read_callback:
             self.received_json.connect(read_callback)
