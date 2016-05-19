@@ -21,6 +21,8 @@ class TriblerRequestManager(QNetworkAccessManager):
             self.reply = self.put(QNetworkRequest(QUrl(url)), data)
         elif method == 'DELETE':
             self.reply = self.deleteResource(QNetworkRequest(QUrl(url)))
+        elif method == 'POST':
+            self.reply = self.post(QNetworkRequest(QUrl(url)), data)
 
         if read_callback:
             self.received_json.connect(read_callback)
@@ -34,6 +36,5 @@ class TriblerRequestManager(QNetworkAccessManager):
 
     def on_read_data(self):
         data = self.reply.readAll()
-        print data
         json_result = json.loads(str(data))
         self.received_json.emit(json_result)
