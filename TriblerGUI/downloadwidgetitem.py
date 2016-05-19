@@ -46,4 +46,8 @@ class DownloadWidgetItem(QTreeWidgetItem):
         self.setText(5, str(self.download_info["peers"]))
         self.setText(6, str(self.download_info["speed_down"]))
         self.setText(7, str(self.download_info["speed_up"]))
-        self.setText(8, "-")
+
+        eta_text = "-"
+        if self.getRawDownloadStatus() == DLSTATUS_DOWNLOADING:
+            eta_text = str(self.download_info["eta"])
+        self.setText(8, eta_text)

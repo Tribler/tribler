@@ -49,13 +49,15 @@ class TriblerWindow(QMainWindow):
         self.variables_request_mgr = TriblerRequestManager()
         self.variables_request_mgr.perform_request("variables", self.received_variables)
 
-        self.event_request_manager = EventRequestManager()
-
         self.video_player_page.initialize_player()
         self.search_results_page.initialize_search_results_page()
         self.settings_page.initialize_settings_page()
         self.my_channel_page.initialize_my_channel_page()
         self.downloads_page.initialize_downloads_page()
+
+        self.event_request_manager = EventRequestManager()
+        self.event_request_manager.received_search_result_channel.connect(self.search_results_page.received_search_result_channel)
+        self.event_request_manager.received_search_result_torrent.connect(self.search_results_page.received_search_result_torrent)
 
         self.stackedWidget.setCurrentIndex(PAGE_HOME)
 
@@ -83,12 +85,10 @@ class TriblerWindow(QMainWindow):
         self.video_player_page.video_player_port = variables["variables"]["ports"]["video~port"]
 
     def on_top_search_button_click(self):
-        self.clicked_menu_button("-")
         self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
         self.search_results_page.perform_search(self.top_search_bar.text())
         self.search_request_mgr = TriblerRequestManager()
-        self.search_request_mgr.search_channels(self.top_search_bar.text(),
-                                                self.search_results_page.received_search_results)
+        self.search_request_mgr.perform_request("search?q=%s" % self.top_search_bar.text(), None)
 
     def on_add_torrent_button_click(self):
         self.add_torrent_dialog = AddTorrentDialog(self)
@@ -152,7 +152,7 @@ class TriblerWindow(QMainWindow):
     def on_channel_item_click(self, channel_list_item):
         channel_info = channel_list_item.data(Qt.UserRole)
         self.get_torents_in_channel_manager = TriblerRequestManager()
-        self.get_torents_in_channel_manager.perform_request("channels/%s/torrents" % channel_info['dispersy_cid'], self.received_torrents_in_channel)
+        self.get_torents_in_channel_manager.perform_request("channels/discovered/%s/torrents" % channel_info['dispersy_cid'], self.received_torrents_in_channel)
         self.navigation_stack.append(self.stackedWidget.currentIndex())
         self.stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
 
