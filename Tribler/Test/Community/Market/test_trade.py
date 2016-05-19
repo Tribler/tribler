@@ -6,7 +6,7 @@ from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.message import Message, TraderId, MessageNumber, MessageId
-from Tribler.community.market.core.trade import Trade, ProposedTrade, DeclinedTrade, AcceptedTrade
+from Tribler.community.market.core.trade import Trade, ProposedTrade, DeclinedTrade, AcceptedTrade, CounterTrade
 
 
 class TradeTestSuite(unittest.TestCase):
@@ -155,6 +155,44 @@ class DeclinedTradeTestSuite(unittest.TestCase):
         self.assertEquals(OrderId(TraderId('recipient_trader_id'), OrderNumber('recipient_order_number')),
                           data.recipient_order_id)
         self.assertEquals(Timestamp(1462224447.117), data.timestamp)
+
+
+class CounterTradeTestSuite(unittest.TestCase):
+    """Counter trade test cases."""
+
+    def setUp(self):
+        # Object creation
+        self.proposed_trade = Trade.propose(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                                            OrderId(TraderId('trader_id'), OrderNumber('order_number')),
+                                            OrderId(TraderId('recipient_trader_id'),
+                                                    OrderNumber('recipient_order_number')), Price(63400), Quantity(30),
+                                            Timestamp(1462224447.117))
+        self.counter_trade = Trade.counter(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
+                                           Quantity(15), Timestamp(1462224447.117), self.proposed_trade)
+
+    def test_to_network(self):
+        # Test for to network
+        self.assertEquals((('trader_id',), ('recipient_trader_id', 'message_number', 'recipient_order_number',
+                                                      'trader_id', 'order_number', 63400, 15,
+                                                      1462224447.117, False)),
+                          self.counter_trade.to_network())
+
+    def test_from_network(self):
+        # Test for from network
+        data = CounterTrade.from_network(type('Data', (object,), {"trader_id": 'trader_id',
+                                                                   "message_number": 'message_number',
+                                                                   "order_number": 'order_number',
+                                                                   "recipient_trader_id": 'recipient_trader_id',
+                                                                   "recipient_order_number": 'recipient_order_number',
+                                                                   "price": 63400, "quantity": 15,
+                                                                   "timestamp": 1462224447.117, "quick": False,}))
+
+        self.assertEquals(MessageId(TraderId('trader_id'), MessageNumber('message_number')), data.message_id)
+        self.assertEquals(OrderId(TraderId('trader_id'), OrderNumber('order_number')), data.order_id)
+        self.assertEquals(OrderId(TraderId('recipient_trader_id'), OrderNumber('recipient_order_number')),
+                          data.recipient_order_id)
+        self.assertEquals(Price(63400), data.price)
+        self.assertEquals(Quantity(15), data.quantity)
         self.assertEquals(Timestamp(1462224447.117), data.timestamp)
 
 
