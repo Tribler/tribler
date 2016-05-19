@@ -87,7 +87,8 @@ check_yappi_args.coerceDoc = "Profile option should be wall or cpu."
 
 class Options(usage.Options):
     optFlags = [
-        ["exit", "x", "Allow being an exit-node"]
+        ["exit", "x", "Allow being an exit-node"],
+        ["multichain", "M", "Enable the multichain community"]
     ]
 
     optParameters = [
@@ -201,6 +202,7 @@ class Tunnel(object):
         config.set_dispersy_port(self.dispersy_port)
         config.set_enable_torrent_search(False)
         config.set_enable_channel_search(False)
+        config.set_enable_multichain(self.settings.enable_multichain)
 
         # We do not want to load the TunnelCommunity in the session but instead our own community
         config.set_tunnel_community_enabled(False)
@@ -458,6 +460,12 @@ class TunnelHelperServiceMaker(object):
             logger.info("Exit-node enabled")
         else:
             logger.info("Exit-node disabled")
+
+        settings.enable_multichain = bool(options["multichain"])
+        if settings.enable_multichain:
+            logger.info("Multichain enabled")
+        else:
+            logger.info("Multichain disabled")
 
         tunnel = Tunnel(settings, crawl_keypair_filename, dispersy_port)
         StandardIO(LineHandler(tunnel, profile))
