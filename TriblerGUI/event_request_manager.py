@@ -8,8 +8,8 @@ class EventRequestManager(QNetworkAccessManager):
     The EventRequestManager class handles the events connection over which important events in Tribler are pushed.
     """
 
-    received_free_space = pyqtSignal(str)
-    received_download_status = pyqtSignal(object)
+    received_search_result_channel = pyqtSignal(object)
+    received_search_result_torrent = pyqtSignal(object)
 
     def on_error(self, error):
         # TODO Martijn: do something useful here
@@ -21,11 +21,14 @@ class EventRequestManager(QNetworkAccessManager):
 
     def on_read_data(self):
         data = self.reply.readAll()
-        json_dict = json.loads(str(data))
-        if json_dict["type"] == "free_space":
-            self.received_free_space.emit(json_dict["free_space"])
-        elif json_dict["type"] == "downloads":
-            self.received_download_status.emit(json_dict["downloads"])
+        for event in data.split('\n'):
+            if len(event) == 0:
+                continue
+            json_dict = json.loads(str(event))
+            if json_dict["type"] == "search_result_channel":
+                self.received_search_result_channel.emit(json_dict["result"])
+            elif json_dict["type"] == "search_result_torrent":
+                self.received_search_result_torrent.emit(json_dict["result"])
 
     def __init__(self):
         QNetworkAccessManager.__init__(self)
