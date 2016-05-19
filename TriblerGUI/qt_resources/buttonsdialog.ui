@@ -118,6 +118,26 @@ color: #333;</string>
         </property>
        </widget>
       </item>
+      <item>
+       <widget class="QLineEdit" name="dialog_input">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color: #eee;
+padding-left: 4px;</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>

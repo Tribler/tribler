@@ -29,33 +29,26 @@ class MyChannelPage(QWidget):
         self.window().channel_settings_tab.initialize()
         self.window().channel_settings_tab.clicked_tab_button.connect(self.clicked_tab_button)
 
-        # add some dummy items to rss feeds list
-        for i in range(0, 10):
-            item = QTreeWidgetItem(self.window().my_channel_rss_feeds_list)
-            item.setText(0, "http://fancyurl.com/rss_feed.xml")
-
-            self.window().my_channel_rss_feeds_list.addTopLevelItem(item)
-
     def load_my_channel_overview(self):
         self.mychannel_request_mgr = TriblerRequestManager()
-        self.mychannel_request_mgr.get_my_channel_overview(self.initialize_with_overview)
+        self.mychannel_request_mgr.perform_request("mychannel/overview", self.initialize_with_overview)
 
     def initialize_with_overview(self, overview):
         self.my_channel_overview = overview
-        self.window().my_channel_name_label.setText(overview["name"])
-        self.window().my_channel_description_label.setText(overview["description"])
-        self.window().my_channel_identifier_label.setText(overview["identifier"])
+        self.window().my_channel_name_label.setText(overview["overview"]["name"])
+        self.window().my_channel_description_label.setText(overview["overview"]["description"])
+        self.window().my_channel_identifier_label.setText(overview["overview"]["identifier"])
 
-        self.window().my_channel_name_input.setText(overview["name"])
-        self.window().my_channel_description_input.setText(overview["description"])
+        self.window().my_channel_name_input.setText(overview["overview"]["name"])
+        self.window().my_channel_description_input.setText(overview["overview"]["description"])
 
     def load_my_channel_torrents(self):
         self.mychannel_request_mgr = TriblerRequestManager()
-        self.mychannel_request_mgr.get_my_channel_torrents(self.initialize_with_torrents)
+        self.mychannel_request_mgr.perform_request("mychannel/torrents", self.initialize_with_torrents)
 
     def initialize_with_torrents(self, torrents):
         self.window().my_channel_torrents_list.clear()
-        for torrent in torrents:
+        for torrent in torrents["torrents"]:
             item = QTreeWidgetItem(self.window().my_channel_torrents_list)
             item.setText(0, torrent["name"])
             item.setText(1, str(torrent["added"]))
@@ -64,11 +57,11 @@ class MyChannelPage(QWidget):
 
     def load_my_channel_rss_feeds(self):
         self.mychannel_request_mgr = TriblerRequestManager()
-        self.mychannel_request_mgr.get_my_channel_rss_feeds(self.initialize_with_rss_feeds)
+        self.mychannel_request_mgr.perform_request("mychannel/rssfeeds", self.initialize_with_rss_feeds)
 
     def initialize_with_rss_feeds(self, rss_feeds):
         self.window().my_channel_rss_feeds_list.clear()
-        for feed in rss_feeds:
+        for feed in rss_feeds["rssfeeds"]:
             item = QTreeWidgetItem(self.window().my_channel_rss_feeds_list)
             item.setText(0, feed["url"])
 
@@ -120,3 +113,7 @@ class MyChannelPage(QWidget):
         self.window().create_channel_form.show()
         self.window().create_channel_intro_button_container.hide()
         self.window().create_new_channel_intro_label.setText("Please enter your channel details below.")
+
+    def on_rss_feeds_remove_selected_clicked(self):
+        pass
+

@@ -396,8 +396,8 @@ background-color: #e67300;
            </property>
            <property name="iconSize">
             <size>
-             <width>20</width>
-             <height>20</height>
+             <width>18</width>
+             <height>18</height>
             </size>
            </property>
            <property name="checkable">
@@ -458,8 +458,8 @@ background-color: #e67300;
            </property>
            <property name="iconSize">
             <size>
-             <width>20</width>
-             <height>20</height>
+             <width>18</width>
+             <height>18</height>
             </size>
            </property>
            <property name="checkable">
@@ -514,8 +514,8 @@ background-color: #e67300;
            </property>
            <property name="iconSize">
             <size>
-             <width>20</width>
-             <height>20</height>
+             <width>18</width>
+             <height>18</height>
             </size>
            </property>
            <property name="checkable">
@@ -570,8 +570,8 @@ background-color: #e67300;
            </property>
            <property name="iconSize">
             <size>
-             <width>20</width>
-             <height>20</height>
+             <width>18</width>
+             <height>18</height>
             </size>
            </property>
            <property name="checkable">
@@ -626,8 +626,8 @@ background-color: #e67300;
            </property>
            <property name="iconSize">
             <size>
-             <width>20</width>
-             <height>20</height>
+             <width>18</width>
+             <height>18</height>
             </size>
            </property>
            <property name="checkable">
@@ -682,8 +682,8 @@ background-color: #e67300;
            </property>
            <property name="iconSize">
             <size>
-             <width>20</width>
-             <height>20</height>
+             <width>18</width>
+             <height>18</height>
             </size>
            </property>
            <property name="checkable">
@@ -713,7 +713,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1393,7 +1393,7 @@ border-top: 1px solid #555;
                  <number>1</number>
                 </property>
                 <property name="currentIndex">
-                 <number>2</number>
+                 <number>4</number>
                 </property>
                 <widget class="QWidget" name="my_channel_details_overview_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
@@ -2057,7 +2057,7 @@ background-color: #444;
                       </spacer>
                      </item>
                      <item>
-                      <widget class="QToolButton" name="toolButton_5">
+                      <widget class="QToolButton" name="my_channel_details_rss_feeds_remove_selected_button">
                        <property name="minimumSize">
                         <size>
                          <width>0</width>
@@ -2084,7 +2084,7 @@ font-size: 14px;
                       </widget>
                      </item>
                      <item>
-                      <widget class="QToolButton" name="toolButton_4">
+                      <widget class="QToolButton" name="my_channel_details_rss_add_button">
                        <property name="minimumSize">
                         <size>
                          <width>0</width>
@@ -2111,7 +2111,7 @@ font-size: 14px;
                       </widget>
                      </item>
                      <item>
-                      <widget class="QToolButton" name="toolButton_3">
+                      <widget class="QToolButton" name="my_channel_details_rss_refresh_button">
                        <property name="minimumSize">
                         <size>
                          <width>0</width>
