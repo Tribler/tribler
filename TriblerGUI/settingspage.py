@@ -26,6 +26,8 @@ class SettingsPage(QWidget):
         self.window().download_settings_anon_seeding_checkbox.setHidden(should_hide)
 
     def initialize_with_settings(self, settings):
+        settings = settings["settings"]
+
         # General settings
         self.window().nickname_input.setText(settings['general']['nickname'])
         self.window().download_location_input.setText(settings['Tribler']['saveas'])
@@ -64,7 +66,7 @@ class SettingsPage(QWidget):
 
     def load_settings(self):
         self.settings_request_mgr = TriblerRequestManager()
-        self.settings_request_mgr.get_settings(self.initialize_with_settings)
+        self.settings_request_mgr.perform_request("settings", self.initialize_with_settings)
 
     def clicked_tab_button(self, tab_button_name):
         if tab_button_name == "settings_general_button":

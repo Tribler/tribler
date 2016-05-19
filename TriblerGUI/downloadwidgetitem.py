@@ -1,6 +1,6 @@
 from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QTreeWidgetItem, QProgressBar
-from TriblerGUI.defs import DLSTATUS_STRINGS
+from TriblerGUI.defs import *
 
 
 class DownloadWidgetItem(QTreeWidgetItem):
@@ -35,11 +35,11 @@ class DownloadWidgetItem(QTreeWidgetItem):
 
         self.progress_slider.setValue(int(download["progress"] * 100))
 
-        self.setText(3, DLSTATUS_STRINGS[download["status"]])
+        self.setText(3, DLSTATUS_STRINGS[eval(download["status"])])
         self.setText(4, str(download["seeds"]))
         self.setText(5, str(download["peers"]))
-        self.setText(6, str(download["down_speed"]))
-        self.setText(7, str(download["up_speed"]))
+        self.setText(6, str(download["speed_down"]))
+        self.setText(7, str(download["speed_up"]))
         self.setText(8, "-")
 
-        self.download_status_raw = download["status"]
+        self.download_status_raw = eval(download["status"])

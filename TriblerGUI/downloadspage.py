@@ -1,8 +1,9 @@
-from PyQt5.QtWidgets import QWidget, QTreeWidget, QToolButton
+from PyQt5.QtWidgets import QWidget
 from TriblerGUI.defs import DOWNLOADS_FILTER_ALL, DOWNLOADS_FILTER_DOWNLOADING, DOWNLOADS_FILTER_COMPLETED, \
     DOWNLOADS_FILTER_ACTIVE, DOWNLOADS_FILTER_INACTIVE, DOWNLOADS_FILTER_DEFINITION, DLSTATUS_STOPPED, \
     DLSTATUS_STOPPED_ON_ERROR
 from TriblerGUI.downloadwidgetitem import DownloadWidgetItem
+from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
 
 class DownloadsPage(QWidget):
@@ -23,8 +24,12 @@ class DownloadsPage(QWidget):
 
         self.window().downloads_list.itemSelectionChanged.connect(self.on_download_item_clicked)
 
-    def received_download_status(self, downloads):
-        for download in downloads:
+    def load_downloads(self):
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("downloads", self.received_downloads)
+
+    def received_downloads(self, downloads):
+        for download in downloads["downloads"]:
             if download["infohash"] in self.download_widgets:
                 item = self.download_widgets[download["infohash"]]
             else:

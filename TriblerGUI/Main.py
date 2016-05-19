@@ -47,11 +47,9 @@ class TriblerWindow(QMainWindow):
 
         # fetch the variables, needed for the video player port
         self.variables_request_mgr = TriblerRequestManager()
-        self.variables_request_mgr.get_variables(self.received_variables)
+        self.variables_request_mgr.perform_request("variables", self.received_variables)
 
         self.event_request_manager = EventRequestManager()
-        self.event_request_manager.received_free_space.connect(self.received_free_space)
-        self.event_request_manager.received_download_status.connect(self.downloads_page.received_download_status)
 
         self.video_player_page.initialize_player()
         self.search_results_page.initialize_search_results_page()
@@ -69,9 +67,6 @@ class TriblerWindow(QMainWindow):
 
         self.show()
 
-    def received_free_space(self, free_space):
-        self.statusBar.set_free_space(free_space)
-
     def received_subscribed_channels(self, results):
         items = []
         for result in results['subscribed']:
@@ -85,7 +80,7 @@ class TriblerWindow(QMainWindow):
         self.channel_torrents_list.set_data_items(items)
 
     def received_variables(self, variables):
-        self.video_player_page.video_player_port = variables["ports"]["video~port"]
+        self.video_player_page.video_player_port = variables["variables"]["ports"]["video~port"]
 
     def on_top_search_button_click(self):
         self.clicked_menu_button("-")
@@ -139,6 +134,7 @@ class TriblerWindow(QMainWindow):
         self.deselect_all_menu_buttons(self.left_menu_button_downloads)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
         self.navigation_stack = []
+        self.downloads_page.load_downloads()
 
     def clicked_menu_button_settings(self):
         self.deselect_all_menu_buttons(self.left_menu_button_settings)
@@ -149,14 +145,14 @@ class TriblerWindow(QMainWindow):
     def clicked_menu_button_subscriptions(self):
         self.deselect_all_menu_buttons(self.left_menu_button_subscriptions)
         self.subscribed_channels_request_manager = TriblerRequestManager()
-        self.subscribed_channels_request_manager.get_subscribed_channels(self.received_subscribed_channels)
+        self.subscribed_channels_request_manager.perform_request("channels/subscribed", self.received_subscribed_channels)
         self.stackedWidget.setCurrentIndex(PAGE_SUBSCRIBED_CHANNELS)
         self.navigation_stack = []
 
     def on_channel_item_click(self, channel_list_item):
         channel_info = channel_list_item.data(Qt.UserRole)
         self.get_torents_in_channel_manager = TriblerRequestManager()
-        self.get_torents_in_channel_manager.get_torrents_in_channel(str(channel_info['id']), self.received_torrents_in_channel)
+        self.get_torents_in_channel_manager.perform_request("channels/%s/torrents" % channel_info['dispersy_cid'], self.received_torrents_in_channel)
         self.navigation_stack.append(self.stackedWidget.currentIndex())
         self.stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
 

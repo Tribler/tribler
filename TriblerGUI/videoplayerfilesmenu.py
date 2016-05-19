@@ -16,8 +16,6 @@ class VideoPlayerFilesMenu(QWidget):
     should_change_playing_file = pyqtSignal(int)
 
     def initialize_file_menu(self):
-        self.request_manager = TriblerRequestManager()
-        self.request_manager.received_download_details.connect(self.received_download_details)
         self.window().video_player_files.itemClicked.connect(self.on_file_item_click)
 
     def load_download_files(self, infohash):
