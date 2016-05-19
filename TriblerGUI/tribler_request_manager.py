@@ -12,13 +12,15 @@ class TriblerRequestManager(QNetworkAccessManager):
 
     received_json = pyqtSignal(object)
 
-    def perform_request(self, endpoint, read_callback, method='GET'):
+    def perform_request(self, endpoint, read_callback, data="", method='GET'):
         url = self.base_url + endpoint
 
         if method == 'GET':
             self.reply = self.get(QNetworkRequest(QUrl(url)))
         elif method == 'PUT':
-            self.reply = self.put(QNetworkRequest(QUrl(url)))
+            self.reply = self.put(QNetworkRequest(QUrl(url)), data)
+        elif method == 'DELETE':
+            self.reply = self.deleteResource(QNetworkRequest(QUrl(url)))
 
         if read_callback:
             self.received_json.connect(read_callback)
