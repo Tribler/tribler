@@ -618,14 +618,15 @@ class SearchCommunity(Community):
         assert isinstance(cid, str)
         assert len(cid) == 20
 
-        return self._channelcast_db._db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ?", (buffer(cid),))
+        return self._channelcast_db._sqlite_cache_db.fetchone(u"SELECT id FROM Channels WHERE dispersy_cid = ?", (buffer(cid),))
 
     def _get_unknown_channels(self, cids):
         assert all(isinstance(cid, str) for cid in cids)
         assert all(len(cid) == 20 for cid in cids)
 
         parameters = u",".join(["?"] * len(cids))
-        known_cids = self._channelcast_db._db.fetchall(u"SELECT dispersy_cid FROM Channels WHERE dispersy_cid in (" + parameters + u")", map(buffer, cids))
+        known_cids = self._channelcast_db._sqlite_cache_db.fetchall(
+            u"SELECT dispersy_cid FROM Channels WHERE dispersy_cid in (" + parameters + u")", map(buffer, cids))
         known_cids = map(str, known_cids)
         return [cid for cid in cids if cid not in known_cids]
 

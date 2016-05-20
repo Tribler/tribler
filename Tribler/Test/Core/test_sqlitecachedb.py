@@ -35,8 +35,15 @@ class TestSqliteCacheDB(TriblerCoreTest):
         self.sqlite_test = None
 
     @blocking_call_on_reactor_thread
-    def test_create_db(self):
+    def test_create_person_db(self):
         sql = u"CREATE TABLE person(lastname, firstname);"
+        self.sqlite_test.execute(sql)
+
+        self.assertIsInstance(self.sqlite_test.version, int)
+
+    @blocking_call_on_reactor_thread
+    def test_create_car_db(self):
+        sql = u"CREATE TABLE car(brand);"
         self.sqlite_test.execute(sql)
 
         self.assertIsInstance(self.sqlite_test.version, int)
@@ -129,15 +136,22 @@ class TestSqliteCacheDB(TriblerCoreTest):
         sqlite_test_2.initialize()
 
     @blocking_call_on_reactor_thread
-    def test_insert(self):
-        self.test_create_db()
+    def test_insert_multiple_args(self):
+        self.test_create_person_db()
 
         self.sqlite_test.insert('person', lastname='a', firstname='b')
         self.assertEqual(self.sqlite_test.size('person'), 1)
 
     @blocking_call_on_reactor_thread
+    def test_insert_single_arg(self):
+        self.test_create_car_db()
+
+        self.sqlite_test.insert('car', brand='BMW')
+        self.assertEqual(self.sqlite_test.size('car'), 1)
+
+    @blocking_call_on_reactor_thread
     def test_fetchone(self):
-        self.test_insert()
+        self.test_insert_multiple_args()
         one = self.sqlite_test.fetchone(u"SELECT * FROM person")
         self.assertEqual(one, ('a', 'b'))
 
@@ -149,7 +163,7 @@ class TestSqliteCacheDB(TriblerCoreTest):
 
     @blocking_call_on_reactor_thread
     def test_insertmany(self):
-        self.test_create_db()
+        self.test_create_person_db()
 
         values = []
         for i in range(100):

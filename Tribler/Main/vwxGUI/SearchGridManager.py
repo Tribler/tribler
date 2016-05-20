@@ -1322,7 +1322,7 @@ class ChannelManager(object):
         to_be_removed = set()
 
         sql = "SELECT distinct infohash, PL.dispersy_id FROM PlaylistTorrents PL, ChannelTorrents CT, Torrent T WHERE PL.channeltorrent_id = CT.id AND CT.torrent_id = T.torrent_id AND playlist_id = ?"
-        records = self.channelcast_db._db.fetchall(sql, (playlist_id,))
+        records = self.channelcast_db._sqlite_cache_db.fetchall(sql, (playlist_id,))
         for infohash, dispersy_id in records:
             infohash = str2bin(infohash)
             if infohash in to_be_created:
@@ -1457,7 +1457,7 @@ class ChannelManager(object):
     @call_on_reactor_thread
     def removeAllPlaylistTorrents(self, community, playlist):
         sql = "SELECT dispersy_id FROM PlaylistTorrents WHERE playlist_id = ?"
-        records = self.channelcast_db._db.fetchall(sql, (playlist.id,))
+        records = self.channelcast_db._sqlite_cache_db.fetchall(sql, (playlist.id,))
         to_be_removed = [dispersy_id for dispersy_id, in records]
 
         community.remove_playlist_torrents(playlist.dispersy_id, to_be_removed)

@@ -21,10 +21,10 @@ from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_react
 
 class TriblerUpgrader(object):
 
-    def __init__(self, session, db):
+    def __init__(self, session, sqlite_cache_db):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.session = session
-        self.db = db
+        self.sqlite_cache_db = sqlite_cache_db
 
         self.notified = False
         self.is_done = False
@@ -76,14 +76,14 @@ class TriblerUpgrader(object):
 
         self.failed = True
         should_upgrade = False
-        if self.db.version > LATEST_DB_VERSION:
+        if self.sqlite_cache_db.version > LATEST_DB_VERSION:
             msg = u"The on-disk tribler database is newer than your tribler version. Your database will be backed up."
             self.current_status = msg
             self._logger.info(msg)
-        elif self.db.version < LOWEST_SUPPORTED_DB_VERSION:
-            msg = u"Database is too old %s < %s" % (self.db.version, LOWEST_SUPPORTED_DB_VERSION)
+        elif self.sqlite_cache_db.version < LOWEST_SUPPORTED_DB_VERSION:
+            msg = u"Database is too old %s < %s" % (self.sqlite_cache_db.version, LOWEST_SUPPORTED_DB_VERSION)
             self.current_status = msg
-        elif self.db.version == LATEST_DB_VERSION:
+        elif self.sqlite_cache_db.version == LATEST_DB_VERSION:
             self._logger.info(u"tribler is in the latest version, no need to upgrade")
             self.failed = False
             self.is_done = True
@@ -109,7 +109,7 @@ class TriblerUpgrader(object):
             yield torrent_migrator.start_migrate()
 
             db_migrator = DBUpgrader(
-                self.session, self.db, torrent_store=torrent_store, status_update_func=self.update_status)
+                self.session, self.sqlite_cache_db, torrent_store=torrent_store, status_update_func=self.update_status)
             yield db_migrator.start_migrate()
 
             # Import all the torrent files not in the database, we do this in
@@ -129,11 +129,11 @@ class TriblerUpgrader(object):
 
     @call_on_reactor_thread
     def stash_database(self):
-        self.db.close()
-        old_dir = os.path.dirname(self.db.sqlite_db_path)
+        self.sqlite_cache_db.close()
+        old_dir = os.path.dirname(self.sqlite_cache_db.sqlite_db_path)
         new_dir = u'%s_backup_%d' % (old_dir, LATEST_DB_VERSION)
         shutil.move(old_dir, new_dir)
         os.makedirs(old_dir)
-        self.db.initialize()
+        self.sqlite_cache_db.initialize()
         self.is_done = True
         self.notify_done()

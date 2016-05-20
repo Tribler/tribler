@@ -83,7 +83,7 @@ class TestTorrentDBHandler(AbstractDB):
     @blocking_call_on_reactor_thread
     def addTorrent(self):
         old_size = self.tdb.size()
-        old_tracker_size = self.tdb._db.size('TrackerInfo')
+        old_tracker_size = self.tdb._sqlite_cache_db.size('TrackerInfo')
 
         s_infohash = unhexlify('44865489ac16e2f34ea0cd3043cfd970cc24ec09')
         m_infohash = unhexlify('ed81da94d21ad1b305133f2726cdaec5a57fed98')
@@ -114,7 +114,7 @@ class TestTorrentDBHandler(AbstractDB):
         multiple_name = 'Tribler_4.1.7_src'
 
         self.assertEqual(self.tdb.size(), old_size + 2)
-        new_tracker_table_size = self.tdb._db.size('TrackerInfo')
+        new_tracker_table_size = self.tdb._sqlite_cache_db.size('TrackerInfo')
         self.assertLess(old_tracker_size, new_tracker_table_size)
 
         sname = self.tdb.getOne('name', torrent_id=single_torrent_id)

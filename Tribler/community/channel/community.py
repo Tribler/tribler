@@ -75,7 +75,7 @@ class ChannelCommunity(Community):
             self._channelcast_db = tribler_session.open_dbhandler(NTFY_CHANNELCAST)
 
             # tribler channel_id
-            result = self._channelcast_db._db.fetchone(
+            result = self._channelcast_db._sqlite_cache_db.fetchone(
                 u"SELECT id, name, description FROM Channels WHERE dispersy_cid = ? and (peer_id <> -1 or peer_id ISNULL)",
                 (buffer(self._master_member.mid),
                  ))
@@ -720,10 +720,10 @@ class ChannelCommunity(Community):
                     continue
                 else:
                     modifying_dispersy_id = message.payload.modification_on.packet_id
-                    torrent_id = self._channelcast_db._db.fetchone(
+                    torrent_id = self._channelcast_db._sqlite_cache_db.fetchone(
                         u"SELECT torrent_id FROM _ChannelTorrents WHERE dispersy_id = ?",
                         (modifying_dispersy_id,))
-                    infohash = self._channelcast_db._db.fetchone(
+                    infohash = self._channelcast_db._sqlite_cache_db.fetchone(
                         u"SELECT infohash FROM Torrent WHERE torrent_id = ?", (torrent_id,))
                     if infohash:
                         infohash = str2bin(infohash)
@@ -1144,7 +1144,7 @@ class ChannelCommunity(Community):
 
     def _get_playlist_id_from_message(self, dispersy_id):
         assert isinstance(dispersy_id, (int, long))
-        return self._channelcast_db._db.fetchone(u"SELECT id FROM _Playlists WHERE dispersy_id = ?", (dispersy_id,))
+        return self._channelcast_db._sqlite_cache_db.fetchone(u"SELECT id FROM _Playlists WHERE dispersy_id = ?", (dispersy_id,))
 
     def _get_message_from_torrent_id(self, torrent_id):
         assert isinstance(torrent_id, (int, long))
@@ -1172,13 +1172,13 @@ class ChannelCommunity(Community):
     def _get_torrent_id_from_message(self, dispersy_id):
         assert isinstance(dispersy_id, (int, long)), "dispersy_id type is '%s'" % type(dispersy_id)
 
-        return self._channelcast_db._db.fetchone(u"SELECT id FROM _ChannelTorrents WHERE dispersy_id = ?", (dispersy_id,))
+        return self._channelcast_db._sqlite_cache_db.fetchone(u"SELECT id FROM _ChannelTorrents WHERE dispersy_id = ?", (dispersy_id,))
 
     def _get_latest_modification_from_channel_id(self, type_name):
         assert isinstance(type_name, basestring), "type_name is not a basestring: %s" % repr(type_name)
 
         # 1. get the dispersy identifier from the channel_id
-        dispersy_ids = self._channelcast_db._db.fetchall(
+        dispersy_ids = self._channelcast_db._sqlite_cache_db.fetchall(
             u"SELECT dispersy_id, prev_global_time " + \
             u"FROM ChannelMetaData WHERE type = ? " + \
             u"AND channel_id = ? " + \
@@ -1194,7 +1194,7 @@ class ChannelCommunity(Community):
         assert isinstance(type_name, basestring), "type_name is not a basestring: %s" % repr(type_name)
 
         # 1. get the dispersy identifier from the channel_id
-        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time " + \
+        dispersy_ids = self._channelcast_db._sqlite_cache_db.fetchall(u"SELECT dispersy_id, prev_global_time " + \
                                                          u"FROM ChannelMetaData, MetaDataTorrent " + \
                                                          u"WHERE ChannelMetaData.id = MetaDataTorrent.metadata_id " + \
                                                          u"AND type = ? AND channeltorrent_id = ? " + \
@@ -1209,7 +1209,7 @@ class ChannelCommunity(Community):
         assert isinstance(type_name, basestring), "type_name is not a basestring: %s" % repr(type_name)
 
         # 1. get the dispersy identifier from the channel_id
-        dispersy_ids = self._channelcast_db._db.fetchall(u"SELECT dispersy_id, prev_global_time " + \
+        dispersy_ids = self._channelcast_db._sqlite_cache_db.fetchall(u"SELECT dispersy_id, prev_global_time " + \
                                                          u"FROM ChannelMetaData, MetaDataPlaylist " + \
                                                          u"WHERE ChannelMetaData.id = MetaDataPlaylist.metadata_id " + \
                                                          u"AND type = ? AND playlist_id = ? " + \
