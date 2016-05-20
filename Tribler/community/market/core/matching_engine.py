@@ -34,8 +34,8 @@ class MatchingStrategy(object):
 
         :param order: The order to match against
         :type order: Order
-        :return: The proposed trades and the active ticks
-        :rtype: [ProposedTrade], [Tick]
+        :return: The proposed trades
+        :rtype: [ProposedTrade]
         """
         return NotImplemented
 
@@ -50,7 +50,7 @@ class PriceTimeStrategy(MatchingStrategy):
         :param order: The order to match against
         :type order: Order
         :return: The proposed trades
-        :rtype: ProposedTrade
+        :rtype: [ProposedTrade]
         """
         assert isinstance(order, Order), type(order)
 
@@ -253,12 +253,12 @@ class MatchingEngine(object):
 
         :param order: The order to match against
         :type order: Order
-        :return: The proposed trades and the active ticks
-        :rtype: [ProposedTrade], [Tick]
+        :return: The proposed trades
+        :rtype: [ProposedTrade]
         """
         assert isinstance(order, Order), type(order)
         now = time()
         proposed_trades, active_ticks = self.matching_strategy.match_order(order)
         diff = time() - now
         self._logger.debug("Matching engine completed in %.2f seconds", diff)
-        return proposed_trades, active_ticks
+        return proposed_trades
