@@ -129,6 +129,7 @@ class Tunnel(object):
         config.set_dispersy_port(self.dispersy_port)
         config.set_enable_torrent_search(False)
         config.set_enable_channel_search(False)
+        config.set_enable_multichain(self.settings.enable_multichain)
         self.session = Session(config)
         upgrader = self.session.prestart()
         while not upgrader.is_done:
@@ -343,6 +344,7 @@ def main(argv):
     try:
         parser.add_argument('-p', '--socks5', help='Socks5 port')
         parser.add_argument('-x', '--exit', help='Allow being an exit-node')
+        parser.add_argument('-m', '--multichain', help="Enable MultiChain community")
         parser.add_argument('-i', '--introduce', help='Introduce the dispersy port of another tribler instance')
         parser.add_argument('-d', '--dispersy', help='Dispersy port')
         parser.add_argument('-c', '--crawl', help='Enable crawler and use the keypair specified in the given filename')
@@ -387,6 +389,13 @@ def main(argv):
         logger.info("Exit-node enabled")
     else:
         logger.info("Exit-node disabled")
+
+    settings.enable_multichain = True if args.multichain in ['true'] else False
+    if settings.enable_multichain:
+        logger.info("MultiChain enabled")
+    else:
+        logger.info("MultiChain disabled")
+
 
     tunnel = Tunnel(settings, crawl_keypair_filename, dispersy_port)
     StandardIO(LineHandler(tunnel, profile))
