@@ -1,6 +1,7 @@
 from twisted.web import resource
 
 from Tribler.Core.Modules.restapi.channels_endpoint import ChannelsEndpoint
+from Tribler.Core.Modules.restapi.downloads_endpoint import DownloadsEndpoint
 from Tribler.Core.Modules.restapi.events_endpoint import EventsEndpoint
 from Tribler.Core.Modules.restapi.my_channel_endpoint import MyChannelEndpoint
 from Tribler.Core.Modules.restapi.search_endpoint import SearchEndpoint
@@ -19,7 +20,8 @@ class RootEndpoint(resource.Resource):
         self.session = session
 
         child_handler_dict = {"search": SearchEndpoint, "channels": ChannelsEndpoint, "mychannel": MyChannelEndpoint,
-                              "settings": SettingsEndpoint, "variables": VariablesEndpoint, "events": EventsEndpoint}
+                              "settings": SettingsEndpoint, "variables": VariablesEndpoint, "events": EventsEndpoint,
+                              "downloads": DownloadsEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(self.session))
