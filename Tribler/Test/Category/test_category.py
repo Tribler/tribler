@@ -1,7 +1,8 @@
 import os
 from nose.tools import raises
 from Tribler.Category.Category import Category, cmp_rank
-from Tribler.Test.test_as_server import BaseTestCase, AbstractServer
+from Tribler.Test.test_as_server import AbstractServer
+from Tribler.Category import Category as category
 
 
 class TriblerCategoryTest(AbstractServer):
@@ -11,6 +12,7 @@ class TriblerCategoryTest(AbstractServer):
 
     def tearDown(self):
         Category.delInstance()
+        category.CATEGORY_CONFIG_FILE = "category.conf"
 
     @raises(RuntimeError)
     def test_category_singleton(self):
@@ -53,3 +55,8 @@ class TriblerCategoryTest(AbstractServer):
     def test_cmp_rank(self):
         self.assertEquals(cmp_rank({'bla': 3}, {'bla': 4}), 1)
         self.assertEquals(cmp_rank({'rank': 3}, {'bla': 4}), -1)
+
+    def test_conf_not_found(self):
+        category.CATEGORY_CONFIG_FILE = "nonexistant"
+        cat = Category.getInstance(install_dir=self.CATEGORY_TEST_DATA_DIR)
+        self.assertEquals(cat.category_info, [])
