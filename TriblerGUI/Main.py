@@ -1,5 +1,7 @@
+import logging
 import os
 import sys
+import traceback
 
 from PyQt5 import uic
 from PyQt5.QtCore import Qt, pyqtSignal
@@ -13,6 +15,7 @@ from TriblerGUI.defs import PAGE_SEARCH_RESULTS, PAGE_CHANNEL_CONTENT, PAGE_CHAN
     PAGE_HOME, PAGE_MY_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
     PAGE_CHANNEL_DETAILS
 from TriblerGUI.dialogs.addtorrentdialog import AddTorrentDialog
+from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.event_request_manager import EventRequestManager
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
@@ -25,10 +28,21 @@ class TriblerWindow(QMainWindow):
 
     resize_event = pyqtSignal()
 
+    def on_exception(self, *exc_info):
+        self.setHidden(True)
+
+        exception_text = "".join(traceback.format_exception(*exc_info))
+        logging.error(exception_text)
+
+        dialog = FeedbackDialog(self, exception_text)
+        result = dialog.exec_()
+
     def __init__(self):
         super(TriblerWindow, self).__init__()
 
         self.navigation_stack = []
+
+        sys.excepthook = self.on_exception
 
         uic.loadUi('qt_resources/mainwindow.ui', self)
 
