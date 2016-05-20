@@ -56,7 +56,7 @@ class MarketConversion(BinaryConversion):
             raise DropPacket("Invalid 'timeout' type")
         if not isinstance(timestamp, float):
             raise DropPacket("Invalid 'timestamp' type")
-        if not isinstance(ttl, int):
+        if not isinstance(ttl, int) and ttl >= 0:
             raise DropPacket("Invalid 'ttl' type")
         if not (isinstance(address, str) and isinstance(address[0], str) and isinstance(address[1], int)):
             raise DropPacket("Invalid 'address' type")
@@ -164,7 +164,7 @@ class MarketConversion(BinaryConversion):
             raise DropPacket("Invalid 'timestamp' type")
         if not isinstance(quick, bool):
             raise DropPacket("Invalid 'quick' type")
-        if not isinstance(ttl, int):
+        if not isinstance(ttl, int) and ttl >= 0:
             raise DropPacket("Invalid 'ttl' type")
 
         return offset, placeholder.meta.payload.implement(trader_id, message_number, order_number, recipient_trader_id,

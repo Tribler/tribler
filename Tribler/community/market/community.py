@@ -130,12 +130,29 @@ class MarketCommunity(Community):
         """
         Check if the message has a ttl that is still alive and if so send the message on
 
+        There is also a check to see if the ttl has not been tampered with
+
         :param message: The message for which the ttl needs to be checked
         """
-        message.payload.ttl -= 1  # Reduce the ttl by 1
+        if 0 <= message.payload.ttl <= 2:
+            message.payload.ttl -= 1  # Reduce the ttl by 1
 
-        if message.payload.ttl > 0:  # Check if the message still has time to live
-            self.dispersy.store_update_forward([message], True, True, True)
+            if message.payload.ttl > 0:  # Check if the message still has time to live
+                self.dispersy.store_update_forward([message], True, True, True)
+
+    def check_history(self, message):
+        """
+        Check if the message is already in the history, meaning it has already been received before
+
+        :param message: The message to check for
+        :return: True if the message is new to this node, False otherwise
+        :rtype: bool
+        """
+        if message.message_id in self.history:
+            return False
+        else:
+            self.history[message.message_id] = True
+            return True
 
     def lookup_ip(self, pubkey):
         """
@@ -360,8 +377,8 @@ class MarketCommunity(Community):
                     accepted_trade = Trade.accept(self.order_book.message_repository.next_identity(), Timestamp.now(),
                                                   proposed_trade)
 
-                    # Set the message received as true TODO: make a function for this
-                    self.history[accepted_trade.message_id] = True
+                    # Set the message received as true
+                    self.check_history(accepted_trade)
 
                     self.order_book.insert_trade(accepted_trade)
 
@@ -400,9 +417,7 @@ class MarketCommunity(Community):
         for message in messages:
             accepted_trade = AcceptedTrade.from_network(message.payload)
 
-            if not accepted_trade.message_id in self.history:
-                # Set the message received as true TODO: make a function for this
-                self.history[accepted_trade.message_id] = True
+            if self.check_history(accepted_trade):
 
                 # TODO: do not delete the tick but update it
                 self.order_book.remove_tick(accepted_trade.order_id)
