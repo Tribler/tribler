@@ -71,6 +71,22 @@ class MyChannelPage(QWidget):
 
             self.window().my_channel_torrents_list.addTopLevelItem(item)
 
+    def load_my_channel_playlists(self):
+        self.mychannel_request_mgr = TriblerRequestManager()
+        self.mychannel_request_mgr.perform_request("mychannel/playlists", self.initialize_with_playlists)
+
+    def initialize_with_playlists(self, playlists):
+        self.window().my_channel_playlists_list.clear()
+        for playlist in playlists["playlists"]:
+            item = QTreeWidgetItem(self.window().my_channel_playlists_list)
+            item.setText(0, playlist["name"])
+            self.window().my_channel_playlists_list.addTopLevelItem(item)
+
+            for torrent in playlist["torrents"]:
+                torrent_item = QTreeWidgetItem(item)
+                torrent_item.setText(0, torrent["name"])
+                item.addChild(torrent_item)
+
     def load_my_channel_rss_feeds(self):
         self.mychannel_request_mgr = TriblerRequestManager()
         self.mychannel_request_mgr.perform_request("mychannel/rssfeeds", self.initialize_with_rss_feeds)
@@ -151,6 +167,7 @@ class MyChannelPage(QWidget):
             self.load_my_channel_torrents()
         elif tab_button_name == "my_channel_playlists_button":
             self.window().my_channel_details_stacked_widget.setCurrentIndex(PAGE_MY_CHANNEL_PLAYLISTS)
+            self.load_my_channel_playlists()
         elif tab_button_name == "my_channel_rss_feeds_button":
             self.window().my_channel_details_stacked_widget.setCurrentIndex(PAGE_MY_CHANNEL_RSS_FEEDS)
             self.load_my_channel_rss_feeds()

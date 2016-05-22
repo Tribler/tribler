@@ -1,4 +1,5 @@
 from datetime import datetime
+from random import randint
 
 
 def format_size(num, suffix='B'):
@@ -27,3 +28,10 @@ def timestamp_to_time(timestamp):
     if diff.days > 0 or today.day != discovered.day:
         return discovered.strftime('%d-%m-%Y')
     return discovered.strftime('Today %H:%M')
+
+
+def get_random_color():
+    red = randint(127, 255)
+    green = randint(127, 255)
+    blue = randint(127, 255)
+    return '#%02x%02x%02x' % (red, green, blue)
