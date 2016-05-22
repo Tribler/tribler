@@ -943,7 +943,6 @@ class ABCApp(object):
             self._logger.info("ONEXIT Session is shutdown")
 
         self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Deleting instances')
-        wx.Yield()
         self._logger.debug("ONEXIT deleting instances")
 
         Session.del_instance()
