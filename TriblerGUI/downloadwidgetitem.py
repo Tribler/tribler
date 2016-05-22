@@ -1,6 +1,7 @@
 from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QTreeWidgetItem, QProgressBar
 from TriblerGUI.defs import *
+from TriblerGUI.utilities import format_size, format_speed
 
 
 class DownloadWidgetItem(QTreeWidgetItem):
@@ -37,17 +38,19 @@ class DownloadWidgetItem(QTreeWidgetItem):
 
     def updateItem(self):
         self.setText(0, self.download_info["name"])
-        self.setText(1, self.download_info["size"])
+        self.setText(1, format_size(float(self.download_info["size"])))
 
         self.progress_slider.setValue(int(self.download_info["progress"] * 100))
 
         self.setText(3, DLSTATUS_STRINGS[eval(self.download_info["status"])])
-        self.setText(4, str(self.download_info["seeds"]))
-        self.setText(5, str(self.download_info["peers"]))
-        self.setText(6, str(self.download_info["speed_down"]))
-        self.setText(7, str(self.download_info["speed_up"]))
+        self.setText(4, str(self.download_info["num_seeds"]))
+        self.setText(5, str(self.download_info["num_peers"]))
+        self.setText(6, format_speed(self.download_info["speed_down"]))
+        self.setText(7, format_speed(self.download_info["speed_up"]))
+        self.setText(8, "yes" if self.download_info["anon_download"] else "no")
+        self.setText(9, str(self.download_info["hops"]) if self.download_info["anon_download"] else "-")
 
         eta_text = "-"
         if self.getRawDownloadStatus() == DLSTATUS_DOWNLOADING:
             eta_text = str(self.download_info["eta"])
-        self.setText(8, eta_text)
+        self.setText(10, eta_text)

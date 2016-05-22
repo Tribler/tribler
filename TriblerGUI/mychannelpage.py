@@ -6,6 +6,7 @@ from TriblerGUI.defs import PAGE_MY_CHANNEL_OVERVIEW, PAGE_MY_CHANNEL_SETTINGS, 
     PAGE_MY_CHANNEL_PLAYLISTS, PAGE_MY_CHANNEL_RSS_FEEDS, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.utilities import timestamp_to_time
 
 
 class MyChannelPage(QWidget):
@@ -22,6 +23,9 @@ class MyChannelPage(QWidget):
         self.window().my_channel_stacked_widget.setCurrentIndex(1)
         self.window().my_channel_details_stacked_widget.setCurrentIndex(PAGE_MY_CHANNEL_OVERVIEW)
 
+        self.window().create_channel_button.clicked.connect(self.on_create_channel_button_pressed)
+        self.window().edit_channel_save_button.clicked.connect(self.on_edit_channel_save_button_pressed)
+
         self.window().my_channel_torrents_remove_selected_button.clicked.connect(self.on_torrents_remove_selected_clicked)
         self.window().my_channel_torrents_remove_all_button.clicked.connect(self.on_torrents_remove_all_clicked)
         self.window().my_channel_torrents_export_button.clicked.connect(self.on_torrents_export_clicked)
@@ -36,16 +40,23 @@ class MyChannelPage(QWidget):
 
     def load_my_channel_overview(self):
         self.mychannel_request_mgr = TriblerRequestManager()
-        self.mychannel_request_mgr.perform_request("mychannel/overview", self.initialize_with_overview)
+        self.mychannel_request_mgr.perform_request("mychannel", self.initialize_with_overview)
 
     def initialize_with_overview(self, overview):
-        self.my_channel_overview = overview
-        self.window().my_channel_name_label.setText(overview["overview"]["name"])
-        self.window().my_channel_description_label.setText(overview["overview"]["description"])
-        self.window().my_channel_identifier_label.setText(overview["overview"]["identifier"])
+        if 'error' in overview:
+            self.window().my_channel_stacked_widget.setCurrentIndex(0)
+            self.window().my_channel_sharing_torrents.setHidden(True)
+        else:
+            self.my_channel_overview = overview
+            self.window().my_channel_name_label.setText(overview["overview"]["name"])
+            self.window().my_channel_description_label.setText(overview["overview"]["description"])
+            self.window().my_channel_identifier_label.setText(overview["overview"]["identifier"])
 
-        self.window().my_channel_name_input.setText(overview["overview"]["name"])
-        self.window().my_channel_description_input.setText(overview["overview"]["description"])
+            self.window().edit_channel_name_edit.setText(overview["overview"]["name"])
+            self.window().edit_channel_description_edit.setText(overview["overview"]["description"])
+
+            self.window().my_channel_stacked_widget.setCurrentIndex(1)
+            self.window().my_channel_sharing_torrents.setHidden(False)
 
     def load_my_channel_torrents(self):
         self.mychannel_request_mgr = TriblerRequestManager()
@@ -56,7 +67,7 @@ class MyChannelPage(QWidget):
         for torrent in torrents["torrents"]:
             item = QTreeWidgetItem(self.window().my_channel_torrents_list)
             item.setText(0, torrent["name"])
-            item.setText(1, str(torrent["added"]))
+            item.setText(1, str(timestamp_to_time(torrent["added"])))
 
             self.window().my_channel_torrents_list.addTopLevelItem(item)
 
@@ -71,6 +82,36 @@ class MyChannelPage(QWidget):
             item.setText(0, feed["url"])
 
             self.window().my_channel_rss_feeds_list.addTopLevelItem(item)
+
+    def on_create_channel_button_pressed(self):
+        channel_name = self.window().new_channel_name_edit.text()
+        channel_description = self.window().new_channel_description_edit.toPlainText()
+        if len(channel_name) == 0:
+            self.window().new_channel_name_label.setStyleSheet("color: red;")
+            return
+
+        self.window().create_channel_button.setEnabled(False)
+        self.mychannel_request_mgr = TriblerRequestManager()
+        self.mychannel_request_mgr.perform_request("mychannel", self.on_channel_created, data=str('name=%s&description=%s' % (channel_name, channel_description)), method='PUT')
+
+    def on_channel_created(self, result):
+        if u'added' in result:
+            self.window().create_channel_button.setEnabled(True)
+            self.load_my_channel_overview()
+
+    def on_edit_channel_save_button_pressed(self):
+        channel_name = self.window().edit_channel_name_edit.text()
+        channel_description = self.window().edit_channel_description_edit.toPlainText()
+        self.window().edit_channel_save_button.setEnabled(False)
+
+        self.mychannel_request_mgr = TriblerRequestManager()
+        self.mychannel_request_mgr.perform_request("mychannel", self.on_channel_edited, data=str('name=%s&description=%s' % (channel_name, channel_description)), method='POST')
+
+    def on_channel_edited(self, result):
+        if 'edited' in result:
+            self.window().my_channel_name_label.setText(self.window().edit_channel_name_edit.text())
+            self.window().my_channel_description_label.setText(self.window().edit_channel_description_edit.toPlainText())
+            self.window().edit_channel_save_button.setEnabled(True)
 
     def on_torrents_remove_selected_clicked(self):
         num_selected = len(self.my_channel_torrents_list.selectedItems())
