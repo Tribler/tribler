@@ -20,7 +20,26 @@
    <string>MainWindow</string>
   </property>
   <property name="styleSheet">
-   <string notr="true"/>
+   <string notr="true">QScrollBar:vertical {
+border: none;
+width: 10px;
+}
+QScrollBar:horizontal {
+border: none;
+height: 10px;
+}
+QScrollBar::handle:vertical {
+background: #bbb;
+border-radius: 5px;
+}
+
+QScrollBar::handle:horizontal {
+background: #bbb;
+border-radius: 5px;
+}
+Line {
+background-color: red;
+}</string>
   </property>
   <widget class="QWidget" name="central_widget">
    <property name="styleSheet">
@@ -720,6 +739,9 @@ background-color: #e67300;
         </property>
         <widget class="QWidget" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
+          <property name="spacing">
+           <number>0</number>
+          </property>
           <property name="leftMargin">
            <number>0</number>
           </property>
@@ -733,17 +755,41 @@ background-color: #e67300;
            <number>0</number>
           </property>
           <item>
-           <spacer name="verticalSpacer_2">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
+           <widget class="QLabel" name="label_26">
+            <property name="styleSheet">
+             <string notr="true">color: white;
+font-weight: bold;
+font-size: 16px;
+margin: 10px;</string>
             </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
+            <property name="text">
+             <string>Recommended</string>
             </property>
-           </spacer>
+           </widget>
+          </item>
+          <item>
+           <widget class="QTableWidget" name="home_page_table_view">
+            <property name="cursor" stdset="0">
+             <cursorShape>PointingHandCursor</cursorShape>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QTableWidget {
+border: none;
+}</string>
+            </property>
+            <property name="verticalScrollMode">
+             <enum>QAbstractItemView::ScrollPerPixel</enum>
+            </property>
+            <property name="showGrid">
+             <bool>false</bool>
+            </property>
+            <attribute name="horizontalHeaderVisible">
+             <bool>false</bool>
+            </attribute>
+            <attribute name="verticalHeaderVisible">
+             <bool>false</bool>
+            </attribute>
+           </widget>
           </item>
          </layout>
         </widget>
@@ -1383,13 +1429,24 @@ font-size: 14px;
                 <property name="styleSheet">
                  <string notr="true">QStackedWidget {
 border-top: 1px solid #555;
+}
+QLabel {
+color: white;
+font-size: 14px;
+}
+QToolButton {
+border: none;
+border-radius: 2px;
+background-color: #e67300;
+color: white;
+font-size: 14px;
 }</string>
                 </property>
                 <property name="lineWidth">
                  <number>1</number>
                 </property>
                 <property name="currentIndex">
-                 <number>1</number>
+                 <number>4</number>
                 </property>
                 <widget class="QWidget" name="my_channel_details_overview_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
@@ -1441,7 +1498,7 @@ font-size: 14px;</string>
                      <enum>QFormLayout::ExpandingFieldsGrow</enum>
                     </property>
                     <property name="labelAlignment">
-                     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
                     </property>
                     <property name="formAlignment">
                      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
@@ -1455,11 +1512,10 @@ font-size: 14px;</string>
                     <item row="2" column="0">
                      <widget class="QLabel" name="label_8">
                       <property name="styleSheet">
-                       <string notr="true">color: white;
-font-size: 14px;</string>
+                       <string notr="true">font-weight: bold;</string>
                       </property>
                       <property name="text">
-                       <string>Identifier:</string>
+                       <string>Identifier</string>
                       </property>
                      </widget>
                     </item>
@@ -1477,11 +1533,10 @@ font-size: 14px;</string>
                     <item row="0" column="0">
                      <widget class="QLabel" name="label_9">
                       <property name="styleSheet">
-                       <string notr="true">color: white;
-font-size: 14px;</string>
+                       <string notr="true">font-weight: bold;</string>
                       </property>
                       <property name="text">
-                       <string>Name:</string>
+                       <string>Name</string>
                       </property>
                      </widget>
                     </item>
@@ -1499,11 +1554,10 @@ font-size: 14px;</string>
                     <item row="1" column="0">
                      <widget class="QLabel" name="label_25">
                       <property name="styleSheet">
-                       <string notr="true">color: white;
-font-size: 14px;</string>
+                       <string notr="true">font-weight: bold;</string>
                       </property>
                       <property name="text">
-                       <string>Description:</string>
+                       <string>Description</string>
                       </property>
                      </widget>
                     </item>
@@ -1671,12 +1725,7 @@ border-radius: 4px;</string>
                           <cursorShape>PointingHandCursor</cursorShape>
                          </property>
                          <property name="styleSheet">
-                          <string notr="true">border: none;
-border-radius: 2px;
-background-color: #e67300;
-color: white;
-font-size: 14px;
-</string>
+                          <string notr="true"/>
                          </property>
                          <property name="text">
                           <string>Save</string>
@@ -1836,12 +1885,7 @@ background-color: #444;
                         <cursorShape>PointingHandCursor</cursorShape>
                        </property>
                        <property name="styleSheet">
-                        <string notr="true">border: none;
-border-radius: 2px;
-background-color: #e67300;
-color: white;
-font-size: 14px;
-</string>
+                        <string notr="true"/>
                        </property>
                        <property name="text">
                         <string>Remove selected</string>
@@ -1872,12 +1916,7 @@ font-size: 14px;
                         <cursorShape>PointingHandCursor</cursorShape>
                        </property>
                        <property name="styleSheet">
-                        <string notr="true">border: none;
-border-radius: 2px;
-background-color: #e67300;
-color: white;
-font-size: 14px;
-</string>
+                        <string notr="true"/>
                        </property>
                        <property name="text">
                         <string>Remove all</string>
@@ -1908,15 +1947,10 @@ font-size: 14px;
                         <cursorShape>PointingHandCursor</cursorShape>
                        </property>
                        <property name="styleSheet">
-                        <string notr="true">border: none;
-border-radius: 2px;
-background-color: #e67300;
-color: white;
-font-size: 14px;
-</string>
+                        <string notr="true"/>
                        </property>
                        <property name="text">
-                        <string>Add</string>
+                        <string>+ Add</string>
                        </property>
                       </widget>
                      </item>
@@ -1938,12 +1972,7 @@ font-size: 14px;
                         <cursorShape>PointingHandCursor</cursorShape>
                        </property>
                        <property name="styleSheet">
-                        <string notr="true">border: none;
-border-radius: 2px;
-background-color: #e67300;
-color: white;
-font-size: 14px;
-</string>
+                        <string notr="true"/>
                        </property>
                        <property name="text">
                         <string>Export</string>
@@ -1957,6 +1986,9 @@ font-size: 14px;
                 </widget>
                 <widget class="QWidget" name="my_channel_details_playlists_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
+                  <property name="spacing">
+                   <number>0</number>
+                  </property>
                   <property name="leftMargin">
                    <number>0</number>
                   </property>
@@ -1970,17 +2002,86 @@ font-size: 14px;
                    <number>0</number>
                   </property>
                   <item>
-                   <spacer name="verticalSpacer_2">
-                    <property name="orientation">
-                     <enum>Qt::Vertical</enum>
+                   <widget class="QTreeWidget" name="my_channel_playlists_list">
+                    <property name="styleSheet">
+                     <string notr="true">QTreeWidget {
+border: none;
+font-size: 14px;
+alternate-background-color: #6e6e6e;
+background-color: #666666;
+}
+QTreeWidget::item {
+color: white;
+}
+QTreeWidget::item::selected {
+background-color: #444;
+}</string>
                     </property>
-                    <property name="sizeHint" stdset="0">
-                     <size>
-                      <width>20</width>
-                      <height>40</height>
-                     </size>
+                    <property name="alternatingRowColors">
+                     <bool>true</bool>
                     </property>
-                   </spacer>
+                    <column>
+                     <property name="text">
+                      <string>Name</string>
+                     </property>
+                    </column>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QWidget" name="widget_8" native="true">
+                    <layout class="QHBoxLayout" name="horizontalLayout_4">
+                     <property name="leftMargin">
+                      <number>8</number>
+                     </property>
+                     <property name="topMargin">
+                      <number>8</number>
+                     </property>
+                     <property name="rightMargin">
+                      <number>8</number>
+                     </property>
+                     <property name="bottomMargin">
+                      <number>8</number>
+                     </property>
+                     <item>
+                      <spacer name="horizontalSpacer_43">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>40</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                     <item>
+                      <widget class="QToolButton" name="create_playlist_button">
+                       <property name="minimumSize">
+                        <size>
+                         <width>0</width>
+                         <height>24</height>
+                        </size>
+                       </property>
+                       <property name="maximumSize">
+                        <size>
+                         <width>16777215</width>
+                         <height>24</height>
+                        </size>
+                       </property>
+                       <property name="cursor">
+                        <cursorShape>PointingHandCursor</cursorShape>
+                       </property>
+                       <property name="styleSheet">
+                        <string notr="true"/>
+                       </property>
+                       <property name="text">
+                        <string>+ New playlist</string>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </widget>
                   </item>
                  </layout>
                 </widget>
@@ -2079,12 +2180,7 @@ background-color: #444;
                         <cursorShape>PointingHandCursor</cursorShape>
                        </property>
                        <property name="styleSheet">
-                        <string notr="true">border: none;
-border-radius: 2px;
-background-color: #e67300;
-color: white;
-font-size: 14px;
-</string>
+                        <string notr="true"/>
                        </property>
                        <property name="text">
                         <string>Remove selected</string>
@@ -2109,15 +2205,10 @@ font-size: 14px;
                         <cursorShape>PointingHandCursor</cursorShape>
                        </property>
                        <property name="styleSheet">
-                        <string notr="true">border: none;
-border-radius: 2px;
-background-color: #e67300;
-color: white;
-font-size: 14px;
-</string>
+                        <string notr="true"/>
                        </property>
                        <property name="text">
-                        <string>Add</string>
+                        <string>+ Add</string>
                        </property>
                       </widget>
                      </item>
@@ -2139,12 +2230,7 @@ font-size: 14px;
                         <cursorShape>PointingHandCursor</cursorShape>
                        </property>
                        <property name="styleSheet">
-                        <string notr="true">border: none;
-border-radius: 2px;
-background-color: #e67300;
-color: white;
-font-size: 14px;
-</string>
+                        <string notr="true"/>
                        </property>
                        <property name="text">
                         <string>Refresh all</string>
@@ -5629,12 +5715,34 @@ font-size: 14px;
            </widget>
           </item>
           <item>
-           <widget class="QTreeWidget" name="downloads_list">
-            <property name="contextMenuPolicy">
-             <enum>Qt::CustomContextMenu</enum>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">QTreeWidget {
+           <widget class="QWidget" name="widget_10" native="true">
+            <layout class="QGridLayout" name="gridLayout_3">
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item row="0" column="0">
+              <widget class="QSplitter" name="splitter">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="handleWidth">
+                <number>5</number>
+               </property>
+               <widget class="QTreeWidget" name="downloads_list">
+                <property name="contextMenuPolicy">
+                 <enum>Qt::CustomContextMenu</enum>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">QTreeWidget {
 border: none;
 font-size: 13px;
 alternate-background-color: #6e6e6e;
@@ -5647,80 +5755,162 @@ QTreeWidget::item::selected {
 background-color: #444;
 }
 </string>
-            </property>
-            <property name="sizeAdjustPolicy">
-             <enum>QAbstractScrollArea::AdjustToContents</enum>
-            </property>
-            <property name="alternatingRowColors">
-             <bool>true</bool>
-            </property>
-            <property name="verticalScrollMode">
-             <enum>QAbstractItemView::ScrollPerPixel</enum>
-            </property>
-            <property name="indentation">
-             <number>0</number>
-            </property>
-            <property name="uniformRowHeights">
-             <bool>true</bool>
-            </property>
-            <property name="sortingEnabled">
-             <bool>true</bool>
-            </property>
-            <column>
-             <property name="text">
-              <string>Name</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Size</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Progress</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Status</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Seeds</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Peers</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>↓ Speed</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>↑ Speed</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Anonymous?</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>Hops</string>
-             </property>
-            </column>
-            <column>
-             <property name="text">
-              <string>ETA</string>
-             </property>
-            </column>
+                </property>
+                <property name="sizeAdjustPolicy">
+                 <enum>QAbstractScrollArea::AdjustToContents</enum>
+                </property>
+                <property name="alternatingRowColors">
+                 <bool>true</bool>
+                </property>
+                <property name="verticalScrollMode">
+                 <enum>QAbstractItemView::ScrollPerPixel</enum>
+                </property>
+                <property name="indentation">
+                 <number>0</number>
+                </property>
+                <property name="uniformRowHeights">
+                 <bool>true</bool>
+                </property>
+                <property name="sortingEnabled">
+                 <bool>true</bool>
+                </property>
+                <column>
+                 <property name="text">
+                  <string>Name</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Size</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Progress</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Status</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Seeds</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Peers</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>↓ Speed</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>↑ Speed</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Anonymous?</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>Hops</string>
+                 </property>
+                </column>
+                <column>
+                 <property name="text">
+                  <string>ETA</string>
+                 </property>
+                </column>
+               </widget>
+               <widget class="QTabWidget" name="tabWidget">
+                <property name="styleSheet">
+                 <string notr="true">QLabel {
+color: white;
+}</string>
+                </property>
+                <property name="currentIndex">
+                 <number>0</number>
+                </property>
+                <property name="movable">
+                 <bool>false</bool>
+                </property>
+                <widget class="QWidget" name="tab">
+                 <attribute name="title">
+                  <string>Details</string>
+                 </attribute>
+                 <layout class="QFormLayout" name="formLayout_4">
+                  <property name="labelAlignment">
+                   <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+                  </property>
+                  <property name="formAlignment">
+                   <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+                  </property>
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_28">
+                    <property name="styleSheet">
+                     <string notr="true">font-weight: bold;</string>
+                    </property>
+                    <property name="text">
+                     <string>Name</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLabel" name="label_29">
+                    <property name="text">
+                     <string>Ubuntu-test</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QLabel" name="label_30">
+                    <property name="styleSheet">
+                     <string notr="true">font-weight: bold;</string>
+                    </property>
+                    <property name="text">
+                     <string>Status</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QLabel" name="label_31">
+                    <property name="text">
+                     <string>Checking</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+                <widget class="QWidget" name="tab_2">
+                 <attribute name="title">
+                  <string>Tab 2</string>
+                 </attribute>
+                 <widget class="QLabel" name="label_27">
+                  <property name="geometry">
+                   <rect>
+                    <x>70</x>
+                    <y>10</y>
+                    <width>59</width>
+                    <height>16</height>
+                   </rect>
+                  </property>
+                  <property name="text">
+                   <string>TextLabel</string>
+                  </property>
+                 </widget>
+                </widget>
+               </widget>
+              </widget>
+             </item>
+            </layout>
            </widget>
           </item>
          </layout>

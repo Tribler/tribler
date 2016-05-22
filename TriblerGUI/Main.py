@@ -7,7 +7,8 @@ from PyQt5 import uic
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QIcon
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QMainWindow, QListView, QLineEdit, QApplication, QTreeWidget, QSystemTrayIcon
+from PyQt5.QtWidgets import QMainWindow, QListView, QLineEdit, QApplication, QTreeWidget, QSystemTrayIcon, \
+    QTableWidgetItem, QHeaderView
 
 from TriblerGUI.channel_list_item import ChannelListItem
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
@@ -17,10 +18,13 @@ from TriblerGUI.defs import PAGE_SEARCH_RESULTS, PAGE_CHANNEL_CONTENT, PAGE_CHAN
 from TriblerGUI.dialogs.addtorrentdialog import AddTorrentDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.event_request_manager import EventRequestManager
+from TriblerGUI.home_recommended_item import HomeRecommendedItem
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
 
 # TODO martijn: temporary solution to convince VLC to find the plugin path
+from TriblerGUI.utilities import get_random_color
+
 os.environ['VLC_PLUGIN_PATH'] = '/Applications/VLC.app/Contents/MacOS/plugins'
 
 
@@ -80,6 +84,17 @@ class TriblerWindow(QMainWindow):
             self.tray_icon = QSystemTrayIcon()
             self.tray_icon.setIcon(QIcon(QPixmap("images/tribler.png")))
             self.tray_icon.show()
+
+        # TODO Martijn: for now, fill the home page with random items
+        self.home_page_table_view.setRowCount(3)
+        self.home_page_table_view.setColumnCount(3)
+
+        for x in range(0, 3):
+            for y in range(0, 3):
+                #item = QTableWidgetItem()
+                widget_item = HomeRecommendedItem(self, get_random_color())
+                self.home_page_table_view.setCellWidget(x, y, widget_item)
+                #self.home_page_table_view.setItem(x, y, item)
 
         self.show()
 
@@ -179,6 +194,10 @@ class TriblerWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(prev_page)
 
     def resizeEvent(self, event):
+        for i in range(0, 3):
+            self.home_page_table_view.setColumnWidth(i, self.home_page_table_view.width() / 3)
+            self.home_page_table_view.setRowHeight(i, 200)
+
         self.resize_event.emit()
 
 app = QApplication(sys.argv)
