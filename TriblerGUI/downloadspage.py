@@ -1,7 +1,9 @@
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtGui import QCursor
+from PyQt5.QtWidgets import QWidget, QMenu, QAction
 from TriblerGUI.defs import DOWNLOADS_FILTER_ALL, DOWNLOADS_FILTER_DOWNLOADING, DOWNLOADS_FILTER_COMPLETED, \
     DOWNLOADS_FILTER_ACTIVE, DOWNLOADS_FILTER_INACTIVE, DOWNLOADS_FILTER_DEFINITION, DLSTATUS_STOPPED, \
-    DLSTATUS_STOPPED_ON_ERROR, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM
+    DLSTATUS_STOPPED_ON_ERROR, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, DLSTATUS_METADATA, DLSTATUS_HASHCHECKING, \
+    DLSTATUS_WAITING4HASHCHECK
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.downloadwidgetitem import DownloadWidgetItem
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
@@ -24,6 +26,8 @@ class DownloadsPage(QWidget):
         self.window().remove_download_button.clicked.connect(self.on_remove_download_clicked)
 
         self.window().downloads_list.itemSelectionChanged.connect(self.on_download_item_clicked)
+
+        self.window().downloads_list.customContextMenuRequested.connect(self.on_right_click_item)
 
     def load_downloads(self):
         self.request_mgr = TriblerRequestManager()
@@ -59,15 +63,32 @@ class DownloadsPage(QWidget):
 
         self.update_download_visibility()
 
+    def start_download_enabled(self, download_widget):
+        return download_widget.getRawDownloadStatus() == DLSTATUS_STOPPED
+
+    def stop_download_enabled(self, download_widget):
+        status = download_widget.getRawDownloadStatus()
+        return status != DLSTATUS_STOPPED and status != DLSTATUS_STOPPED_ON_ERROR
+
+    def force_recheck_download_enabled(self, download_widget):
+        status = download_widget.getRawDownloadStatus()
+        return status != DLSTATUS_METADATA and status != DLSTATUS_HASHCHECKING and status != DLSTATUS_WAITING4HASHCHECK
+
     def on_download_item_clicked(self):
         self.selected_item = self.window().downloads_list.selectedItems()[0]
-        status = self.selected_item.getRawDownloadStatus()
-        self.window().start_download_button.setEnabled(status == DLSTATUS_STOPPED)
-        self.window().stop_download_button.setEnabled(status != DLSTATUS_STOPPED and status != DLSTATUS_STOPPED_ON_ERROR)
-        self.window().remove_download_button.setEnabled(True)
+        self.window().start_download_button.setEnabled(self.start_download_enabled(self.selected_item))
+        self.window().stop_download_button.setEnabled(self.stop_download_enabled(self.selected_item))
 
     def on_start_download_clicked(self):
-        pass
+        infohash = self.selected_item.download_info["infohash"]
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("downloads/%s/resume" % infohash, self.on_download_resumed, method='POST')
+
+    def on_download_resumed(self, json_result):
+        if json_result["resumed"]:
+            self.selected_item.download_info['status'] = "DLSTATUS_DOWNLOADING"
+            self.selected_item.updateItem()
+            self.on_download_item_clicked()
 
     def on_stop_download_clicked(self):
         infohash = self.selected_item.download_info["infohash"]
@@ -100,3 +121,60 @@ class DownloadsPage(QWidget):
             index = self.window().downloads_list.indexOfTopLevelItem(self.selected_item)
             self.window().downloads_list.takeTopLevelItem(index)
             del self.download_widgets[infohash]
+
+    def on_force_recheck_download(self):
+        infohash = self.selected_item.download_info["infohash"]
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("downloads/%s/forcerecheck" % infohash, self.on_forced_recheck, method='POST')
+
+    def on_forced_recheck(self, result):
+        if result['forcedrecheck']:
+            self.selected_item.download_info['status'] = "DLSTATUS_HASHCHECKING"
+            self.selected_item.updateItem()
+            self.on_download_item_clicked()
+
+    def on_export_download(self):
+        # TODO
+        pass
+
+    def on_explore_files(self):
+        # TODO
+        pass
+
+    def on_right_click_item(self, pos):
+        self.selected_item = self.window().downloads_list.selectedItems()[0]
+
+        menu = QMenu(self)
+        menu.setStyleSheet("QMenu { background-color: #ddd;} QMenu::item:selected { color: #aaa; }")
+        startAction = QAction('Start', self)
+        stopAction = QAction('Stop', self)
+        removeDownloadAction = QAction('Remove download', self)
+        removeDownloadDataAction = QAction('Remove download + data', self)
+        forceRecheckAction = QAction('Force recheck', self)
+        exportDownloadAction = QAction('Export download to .torrent', self)
+        exploreFilesAction = QAction('Explore files', self)
+
+        startAction.triggered.connect(self.on_start_download_clicked)
+        startAction.setEnabled(self.start_download_enabled(self.selected_item))
+        stopAction.triggered.connect(self.on_stop_download_clicked)
+        stopAction.setEnabled(self.stop_download_enabled(self.selected_item))
+        removeDownloadAction.triggered.connect(lambda: self.on_remove_download_dialog(0))
+        removeDownloadDataAction.triggered.connect(lambda: self.on_remove_download_dialog(1))
+        forceRecheckAction.triggered.connect(self.on_force_recheck_download)
+        forceRecheckAction.setEnabled(self.force_recheck_download_enabled(self.selected_item))
+        exportDownloadAction.triggered.connect(self.on_export_download)
+        exploreFilesAction.triggered.connect(self.on_explore_files)
+
+        menu.addAction(startAction)
+        menu.addAction(stopAction)
+        menu.addSeparator()
+        menu.addAction(removeDownloadAction)
+        menu.addAction(removeDownloadDataAction)
+        menu.addSeparator()
+        menu.addAction(forceRecheckAction)
+        menu.addSeparator()
+        menu.addAction(exportDownloadAction)
+        menu.addSeparator()
+        menu.addAction(exploreFilesAction)
+
+        menu.exec_(self.window().downloads_list.mapToGlobal(pos))

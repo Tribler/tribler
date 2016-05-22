@@ -200,6 +200,9 @@ border-top-left-radius: 2px;
 border-bottom-left-radius: 2px;
 }</string>
          </property>
+         <property name="placeholderText">
+          <string>Search for your favorite content</string>
+         </property>
         </widget>
        </item>
        <item>
@@ -713,7 +716,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>7</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -995,26 +998,13 @@ font-size: 14px;
                </widget>
               </item>
               <item>
-               <spacer name="verticalSpacer_3">
-                <property name="orientation">
-                 <enum>Qt::Vertical</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>20</width>
-                  <height>40</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item>
                <widget class="QWidget" name="create_channel_form" native="true">
                 <layout class="QFormLayout" name="formLayout_2">
                  <property name="fieldGrowthPolicy">
                   <enum>QFormLayout::ExpandingFieldsGrow</enum>
                  </property>
                  <item row="0" column="0">
-                  <widget class="QLabel" name="channel_name_label_2">
+                  <widget class="QLabel" name="new_channel_name_label">
                    <property name="styleSheet">
                     <string notr="true">color: #eee;</string>
                    </property>
@@ -1034,7 +1024,7 @@ font-size: 14px;
                   </widget>
                  </item>
                  <item row="0" column="1">
-                  <widget class="QLineEdit" name="channel_name_edit">
+                  <widget class="QLineEdit" name="new_channel_name_edit">
                    <property name="minimumSize">
                     <size>
                      <width>0</width>
@@ -1052,14 +1042,20 @@ font-size: 14px;
 background-color: #ccc;
 border-radius: 4px;</string>
                    </property>
+                   <property name="placeholderText">
+                    <string>Channel name</string>
+                   </property>
                   </widget>
                  </item>
                  <item row="1" column="1">
-                  <widget class="QTextEdit" name="channel_description_text_edit">
+                  <widget class="QTextEdit" name="new_channel_description_edit">
                    <property name="styleSheet">
                     <string notr="true">border: 1px solid #555;
 background-color: #ccc;
 border-radius: 4px;</string>
+                   </property>
+                   <property name="placeholderText">
+                    <string>Channel description</string>
                    </property>
                   </widget>
                  </item>
@@ -1393,7 +1389,7 @@ border-top: 1px solid #555;
                  <number>1</number>
                 </property>
                 <property name="currentIndex">
-                 <number>4</number>
+                 <number>1</number>
                 </property>
                 <widget class="QWidget" name="my_channel_details_overview_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
@@ -1593,11 +1589,14 @@ font-size: 14px;</string>
                      </widget>
                     </item>
                     <item row="0" column="1">
-                     <widget class="QLineEdit" name="my_channel_name_input">
+                     <widget class="QLineEdit" name="edit_channel_name_edit">
                       <property name="styleSheet">
                        <string notr="true">border: 1px solid #555;
 background-color: #ccc;
 border-radius: 4px;</string>
+                      </property>
+                      <property name="placeholderText">
+                       <string>Channel name</string>
                       </property>
                      </widget>
                     </item>
@@ -1612,11 +1611,14 @@ border-radius: 4px;</string>
                      </widget>
                     </item>
                     <item row="1" column="1">
-                     <widget class="QTextEdit" name="my_channel_description_input">
+                     <widget class="QTextEdit" name="edit_channel_description_edit">
                       <property name="styleSheet">
                        <string notr="true">border: 1px solid #555;
 background-color: #ccc;
 border-radius: 4px;</string>
+                      </property>
+                      <property name="placeholderText">
+                       <string>Channel description</string>
                       </property>
                      </widget>
                     </item>
@@ -1652,7 +1654,7 @@ border-radius: 4px;</string>
                         </spacer>
                        </item>
                        <item>
-                        <widget class="QToolButton" name="toolButton_2">
+                        <widget class="QToolButton" name="edit_channel_save_button">
                          <property name="minimumSize">
                           <size>
                            <width>54</width>
@@ -1664,6 +1666,9 @@ border-radius: 4px;</string>
                            <width>54</width>
                            <height>26</height>
                           </size>
+                         </property>
+                         <property name="cursor">
+                          <cursorShape>PointingHandCursor</cursorShape>
                          </property>
                          <property name="styleSheet">
                           <string notr="true">border: none;
@@ -3396,6 +3401,11 @@ border-top: 1px solid #555;
 }
 QStackedWidget QLabel, QStackedWidget QRadioButton, QStackedWidget QCheckBox {
 color: white;
+}
+QComboBox {
+background-color: #ccc;
+border: 1px solid #555;
+border-radius: 4px;
 }</string>
             </property>
             <widget class="QWidget" name="settings_general_tab">
@@ -5332,7 +5342,7 @@ border-radius: 4px;</string>
              <item>
               <widget class="QToolButton" name="remove_download_button">
                <property name="enabled">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
                <property name="minimumSize">
                 <size>
@@ -5620,6 +5630,9 @@ font-size: 14px;
           </item>
           <item>
            <widget class="QTreeWidget" name="downloads_list">
+            <property name="contextMenuPolicy">
+             <enum>Qt::CustomContextMenu</enum>
+            </property>
             <property name="styleSheet">
              <string notr="true">QTreeWidget {
 border: none;
@@ -5691,6 +5704,16 @@ background-color: #444;
             <column>
              <property name="text">
               <string>↑ Speed</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Anonymous?</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Hops</string>
              </property>
             </column>
             <column>
