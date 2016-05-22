@@ -12,13 +12,17 @@ class Price(object):
 
         :param price: Integer representation of a price that is positive or zero
         :type price: int
+        :raises ValueError: Thrown when one of the arguments are invalid
         """
         super(Price, self).__init__()
 
         assert isinstance(price, int), type(price)
 
+        if not isinstance(price, int):
+            raise ValueError("Price must be an int")
+
         if price < 0:
-            raise ValueError("Price can not be negative")
+            raise ValueError("Price must be positive or zero")
 
         self._price = price
 
@@ -53,7 +57,7 @@ class Price(object):
         """
         Return the integer representation of the price
 
-        :return: The string representation of the price
+        :return: The integer representation of the price
         :rtype: integer
         """
         return self._price

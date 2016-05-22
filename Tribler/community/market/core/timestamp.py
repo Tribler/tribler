@@ -11,10 +11,14 @@ class Timestamp(object):
 
         :param timestamp: Float representation of a timestamp
         :type timestamp: float
+        :raises ValueError: Thrown when one of the arguments are invalid
         """
         super(Timestamp, self).__init__()
 
         assert isinstance(timestamp, float), type(timestamp)
+
+        if not isinstance(timestamp, float):
+            raise ValueError("Timestamp must be a float")
 
         if timestamp < 0:
             raise ValueError("Timestamp can not be negative")

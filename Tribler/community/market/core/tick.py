@@ -1,4 +1,4 @@
-from Tribler.community.market.core.order import OrderId, OrderNumber, Order
+from order import OrderId, OrderNumber, Order
 from message import TraderId, MessageNumber, MessageId, Message
 from price import Price
 from quantity import Quantity
@@ -161,13 +161,13 @@ class Tick(Message):
         :rtype: tuple, tuple
         """
         return tuple(), (
-            str(self._order_id.trader_id),
-            str(self._message_id.message_number),
-            str(self._order_id.order_number),
-            int(self._price),
-            int(self._quantity),
-            float(self._timeout),
-            float(self._timestamp),
+            self._order_id.trader_id,
+            self._message_id.message_number,
+            self._order_id.order_number,
+            self._price,
+            self._quantity,
+            self._timeout,
+            self._timestamp,
         )
 
 
@@ -202,21 +202,21 @@ class Ask(Tick):
         :return: Restored ask
         :rtype: Ask
         """
-        assert hasattr(data, 'trader_id')
-        assert hasattr(data, 'message_number')
-        assert hasattr(data, 'order_number')
-        assert hasattr(data, 'price')
-        assert hasattr(data, 'quantity')
-        assert hasattr(data, 'timeout')
-        assert hasattr(data, 'timestamp')
+        assert hasattr(data, 'trader_id'), isinstance(data.trader_id, TraderId)
+        assert hasattr(data, 'message_number'), isinstance(data.message_number, MessageNumber)
+        assert hasattr(data, 'order_number'), isinstance(data.order_number, OrderNumber)
+        assert hasattr(data, 'price'), isinstance(data.price, Price)
+        assert hasattr(data, 'quantity'), isinstance(data.quantity, Quantity)
+        assert hasattr(data, 'timeout'), isinstance(data.timeout, Timeout)
+        assert hasattr(data, 'timestamp'), isinstance(data.timestamp, Timestamp)
 
         return cls(
-            MessageId(TraderId(data.trader_id), MessageNumber(data.message_number)),
-            OrderId(TraderId(data.trader_id), OrderNumber(data.order_number)),
-            Price.from_mil(data.price),
-            Quantity(data.quantity),
-            Timeout(data.timeout),
-            Timestamp(data.timestamp),
+            MessageId(data.trader_id, data.message_number),
+            OrderId(data.trader_id, data.order_number),
+            data.price,
+            data.quantity,
+            data.timeout,
+            data.timestamp,
         )
 
 
@@ -251,19 +251,19 @@ class Bid(Tick):
         :return: Restored bid
         :rtype: Bid
         """
-        assert hasattr(data, 'trader_id')
-        assert hasattr(data, 'message_number')
-        assert hasattr(data, 'order_number')
-        assert hasattr(data, 'price')
-        assert hasattr(data, 'quantity')
-        assert hasattr(data, 'timeout')
-        assert hasattr(data, 'timestamp')
+        assert hasattr(data, 'trader_id'), isinstance(data.trader_id, TraderId)
+        assert hasattr(data, 'message_number'), isinstance(data.message_number, MessageNumber)
+        assert hasattr(data, 'order_number'), isinstance(data.order_number, OrderNumber)
+        assert hasattr(data, 'price'), isinstance(data.price, Price)
+        assert hasattr(data, 'quantity'), isinstance(data.quantity, Quantity)
+        assert hasattr(data, 'timeout'), isinstance(data.timeout, Timeout)
+        assert hasattr(data, 'timestamp'), isinstance(data.timestamp, Timestamp)
 
         return cls(
-            MessageId(TraderId(data.trader_id), MessageNumber(data.message_number)),
-            OrderId(TraderId(data.trader_id), OrderNumber(data.order_number)),
-            Price.from_mil(data.price),
-            Quantity(data.quantity),
-            Timeout(data.timeout),
-            Timestamp(data.timestamp),
+            MessageId(data.trader_id, data.message_number),
+            OrderId(data.trader_id, data.order_number),
+            data.price,
+            data.quantity,
+            data.timeout,
+            data.timestamp,
         )

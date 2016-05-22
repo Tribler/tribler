@@ -1,3 +1,7 @@
+from Tribler.community.market.core.message import TraderId
+from Tribler.community.market.core.order import TickWasNotReserved, LogicException
+from Tribler.community.market.socket_address import SocketAddress
+from Tribler.community.market.ttl import Ttl
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.community import Community
@@ -52,7 +56,7 @@ class MarketCommunity(Community):
         self._logger.info("Market community initialized")
 
         # The public key of this node
-        self.pubkey = self.my_member.mid.encode("HEX")
+        self.pubkey = self.my_member.public_key.encode("HEX")
         self.pubkey_register = {}
 
         order_repository = MemoryOrderRepository(self.pubkey)
@@ -126,20 +130,6 @@ class MarketCommunity(Community):
             else:
                 yield DelayMessageByProof(message)
 
-    def check_ttl(self, message):
-        """
-        Check if the message has a ttl that is still alive and if so send the message on
-
-        There is also a check to see if the ttl has not been tampered with
-
-        :param message: The message for which the ttl needs to be checked
-        """
-        if 0 <= message.payload.ttl <= 2:
-            message.payload.ttl -= 1  # Reduce the ttl by 1
-
-            if message.payload.ttl > 0:  # Check if the message still has time to live
-                self.dispersy.store_update_forward([message], True, True, True)
-
     def check_history(self, message):
         """
         Check if the message is already in the history, meaning it has already been received before
@@ -154,33 +144,33 @@ class MarketCommunity(Community):
             self.history[message.message_id] = True
             return True
 
-    def lookup_ip(self, pubkey):
+    def lookup_ip(self, trader_id):
         """
         Lookup the ip for the public key to send a message to a specific node
 
-        :param pubkey: The public key of the node to send to
-        :type pubkey: str
+        :param trader_id: The public key of the node to send to
+        :type trader_id: TraderId
         :return: The ip and port tuple: (<ip>, <port>)
         :rtype: tuple
         """
-        assert isinstance(pubkey, str), type(pubkey)
-        return self.pubkey_register.get(pubkey)
+        assert isinstance(trader_id, TraderId), type(trader_id)
+        return self.pubkey_register.get(trader_id)
 
-    def update_ip(self, pubkey, ip):
+    def update_ip(self, trader_id, ip):
         """
         Update the public key to ip mapping
 
-        :param pubkey: The public key of the node
+        :param trader_id: The public key of the node
         :param ip: The ip and port of the node
-        :type pubkey: str
+        :type trader_id: TraderId
         :type ip: tuple
         """
-        assert isinstance(pubkey, str), type(pubkey)
+        assert isinstance(trader_id, TraderId), type(trader_id)
         assert isinstance(ip, tuple), type(ip)
         assert isinstance(ip[0], str)
         assert isinstance(ip[1], int)
 
-        self.pubkey_register[pubkey] = ip
+        self.pubkey_register[trader_id] = ip
 
     # Ask
     def create_ask(self, price, quantity, timeout):
@@ -227,7 +217,8 @@ class MarketCommunity(Community):
 
         destination, payload = ask.to_network()
 
-        payload += (2, self.dispersy.wan_address)  # Add ttl of 2 and the local wan address
+        # Add ttl and the local wan address
+        payload += (Ttl.default(), SocketAddress(self.dispersy.wan_address[0], self.dispersy.wan_address[1]))
 
         meta = self.get_meta_message(u"ask")
         message = meta.impl(
@@ -249,7 +240,7 @@ class MarketCommunity(Community):
             self._logger.debug("Ask received with id: %s for order with id: %s", str(ask.message_id), str(ask.order_id))
 
             # Update the pubkey register with the current address
-            self.update_ip(str(ask.message_id.trader_id), message.payload.address)
+            self.update_ip(ask.message_id.trader_id, (message.payload.address.ip, message.payload.address.port))
 
             if not self.order_book.tick_exists(ask.order_id):  # Message has not been received before
                 self.order_book.insert_ask(ask)
@@ -261,7 +252,12 @@ class MarketCommunity(Community):
                         self.send_proposed_trade_messages(proposed_trades)
 
                 # Check if message needs to be send on
-                self.check_ttl(message)
+                ttl = message.payload.ttl
+
+                ttl.make_hop()  # Complete the hop from the previous node
+
+                if ttl.is_alive():  # The ttl is still alive and can be forwarded
+                    self.dispersy.store_update_forward([message], True, True, True)
 
     # Bid
     def create_bid(self, price, quantity, timeout):
@@ -308,7 +304,8 @@ class MarketCommunity(Community):
 
         destination, payload = bid.to_network()
 
-        payload += (2, self.dispersy.wan_address)  # Add ttl of 2 and the local wan address
+        # Add ttl and the local wan address
+        payload += (Ttl.default(), SocketAddress(self.dispersy.wan_address[0], self.dispersy.wan_address[1]))
 
         meta = self.get_meta_message(u"bid")
         message = meta.impl(
@@ -330,7 +327,7 @@ class MarketCommunity(Community):
             self._logger.debug("Bid received with id: %s for order with id: %s", str(bid.message_id), str(bid.order_id))
 
             # Update the pubkey register with the current address
-            self.update_ip(str(bid.message_id.trader_id), message.payload.address)
+            self.update_ip(bid.message_id.trader_id, (message.payload.address.ip, message.payload.address.port))
 
             if not self.order_book.tick_exists(bid.order_id):  # Message has not been received before
                 self.order_book.insert_bid(bid)
@@ -341,8 +338,13 @@ class MarketCommunity(Community):
                         proposed_trades = self.matching_engine.match_order(order)
                         self.send_proposed_trade_messages(proposed_trades)
 
-                # Check if the message needs to be send on
-                self.check_ttl(message)
+                # Check if message needs to be send on
+                ttl = message.payload.ttl
+
+                ttl.make_hop()  # Complete the hop from the previous node
+
+                if ttl.is_alive():  # The ttl is still alive and can be forwarded
+                    self.dispersy.store_update_forward([message], True, True, True)
 
     # Proposed trade
     def send_proposed_trade(self, proposed_trade):
@@ -373,32 +375,41 @@ class MarketCommunity(Community):
             if str(proposed_trade.recipient_order_id.trader_id) == str(self.pubkey):  # The message is for this node
                 order = self.portfolio.order_repository.find_by_id(proposed_trade.recipient_order_id)
 
-                if order and order.available_quantity >= proposed_trade.quantity:
-                    accepted_trade = Trade.accept(self.order_book.message_repository.next_identity(), Timestamp.now(),
-                                                  proposed_trade)
+                if order:
+                    if order.available_quantity >= proposed_trade.quantity:
+                        accepted_trade = Trade.accept(self.order_book.message_repository.next_identity(),
+                                                      Timestamp.now(), proposed_trade)
 
-                    # Set the message received as true
-                    self.check_history(accepted_trade)
+                        self.check_history(accepted_trade)  # Set the message received as true
 
-                    self.order_book.insert_trade(accepted_trade)
+                        self.order_book.insert_trade(accepted_trade)
 
-                    # TODO: do not delete the tick but update it
-                    self.order_book.remove_tick(proposed_trade.order_id)
-                    self.order_book.remove_tick(proposed_trade.recipient_order_id)
+                        order._quantity -= proposed_trade.quantity
 
-                    self.send_accepted_trade(accepted_trade)
-                elif order:
-                    # TODO: reserve quantity for counter trade
-                    counter_trade = Trade.counter(self.order_book.message_repository.next_identity(),
-                                                  order.available_quantity, Timestamp.now(), proposed_trade)
-                    self.send_counter_trade(counter_trade)
+                        if order.is_ask():
+                            if self.order_book._bids.tick_exists(proposed_trade.order_id):
+                                self.order_book._bids.get_tick(
+                                    proposed_trade.order_id).quantity -= proposed_trade.quantity
+                        else:
+                            if self.order_book._asks.tick_exists(proposed_trade.order_id):
+                                self.order_book._asks.get_tick(
+                                    proposed_trade.order_id).quantity -= proposed_trade.quantity
+
+                        self.send_accepted_trade(accepted_trade)
+                    else:
+                        order.reserve_quantity_for_tick(proposed_trade.order_id, order.available_quantity)
+
+                        counter_trade = Trade.counter(self.order_book.message_repository.next_identity(),
+                                                      order.available_quantity, Timestamp.now(), proposed_trade)
+                        self.send_counter_trade(counter_trade)
 
     # Accepted trade
     def send_accepted_trade(self, accepted_trade):
         assert isinstance(accepted_trade, AcceptedTrade), type(accepted_trade)
         destination, payload = accepted_trade.to_network()
 
-        payload += (2,)  # Add ttl of 2
+        # Add ttl
+        payload += (Ttl.default())
 
         meta = self.get_meta_message(u"accepted-trade")
         message = meta.impl(
@@ -417,16 +428,47 @@ class MarketCommunity(Community):
         for message in messages:
             accepted_trade = AcceptedTrade.from_network(message.payload)
 
-            if self.check_history(accepted_trade):
+            if self.check_history(accepted_trade):  # The message is new to this node
+                order = self.portfolio.order_repository.find_by_id(accepted_trade.recipient_order_id)
 
-                # TODO: do not delete the tick but update it
-                self.order_book.remove_tick(accepted_trade.order_id)
-                self.order_book.remove_tick(accepted_trade.recipient_order_id)
+                if order:
+                    try:
+                        order.release_quantity_for_tick(accepted_trade.order_id)
+                    except (TickWasNotReserved, LogicException):
+                        # TODO: send cancel
+                        pass
 
-                # TODO: update the portfolio
+                    order._quantity -= accepted_trade.quantity
 
-                # Check if the message needs to be send on
-                self.check_ttl(message)
+                    if order.is_ask():
+                        if self.order_book._bids.tick_exists(accepted_trade.order_id):
+                            self.order_book._bids.get_tick(
+                                accepted_trade.order_id).quantity -= accepted_trade.quantity
+                    else:
+                        if self.order_book._asks.tick_exists(accepted_trade.order_id):
+                            self.order_book._asks.get_tick(
+                                accepted_trade.order_id).quantity -= accepted_trade.quantity
+                else:
+                    if self.order_book._bids.tick_exists(accepted_trade.order_id):
+                        self.order_book._bids.get_tick(
+                            accepted_trade.order_id).quantity -= accepted_trade.quantity
+                    if self.order_book._asks.tick_exists(accepted_trade.order_id):
+                        self.order_book._asks.get_tick(
+                            accepted_trade.order_id).quantity -= accepted_trade.quantity
+                    if self.order_book._bids.tick_exists(accepted_trade.recipient_order_id):
+                        self.order_book._bids.get_tick(
+                            accepted_trade.recipient_order_id).quantity -= accepted_trade.quantity
+                    if self.order_book._asks.tick_exists(accepted_trade.recipient_order_id):
+                        self.order_book._asks.get_tick(
+                            accepted_trade.recipient_order_id).quantity -= accepted_trade.quantity
+
+                # Check if message needs to be send on
+                ttl = message.payload.ttl
+
+                ttl.make_hop()  # Complete the hop from the previous node
+
+                if ttl.is_alive():  # The ttl is still alive and can be forwarded
+                    self.dispersy.store_update_forward([message], True, True, True)
 
     # Declined trade
     def send_declined_trade(self, declined_trade):
@@ -457,7 +499,11 @@ class MarketCommunity(Community):
             if str(declined_trade.recipient_order_id.trader_id) == str(self.pubkey):  # The message is for this node
                 order = self.portfolio.order_repository.find_by_id(declined_trade.recipient_order_id)
 
-                # TODO: release reservation for quantity
+                if order:
+                    try:
+                        order.release_quantity_for_tick(declined_trade.order_id)
+                    except (TickWasNotReserved, LogicException):
+                        pass
 
     # Counter trade
     def send_counter_trade(self, counter_trade):
@@ -483,3 +529,31 @@ class MarketCommunity(Community):
     def on_counter_trade(self, messages):
         for message in messages:
             counter_trade = CounterTrade.from_network(message.payload)
+
+            if str(counter_trade.recipient_order_id.trader_id) == str(self.pubkey):  # The message is for this node
+                order = self.portfolio.order_repository.find_by_id(counter_trade.recipient_order_id)
+
+                if order:
+                    try:
+                        order.release_quantity_for_tick(counter_trade.order_id)
+                        accepted_trade = Trade.accept(self.order_book.message_repository.next_identity(),
+                                                      Timestamp.now(), counter_trade)
+
+                        self.check_history(accepted_trade)  # Set the message received as true
+
+                        self.order_book.insert_trade(accepted_trade)
+
+                        order._quantity -= counter_trade.quantity
+
+                        if order.is_ask():
+                            if self.order_book._bids.tick_exists(counter_trade.order_id):
+                                self.order_book._bids.get_tick(
+                                    counter_trade.order_id).quantity -= counter_trade.quantity
+                        else:
+                            if self.order_book._asks.tick_exists(counter_trade.order_id):
+                                self.order_book._asks.get_tick(
+                                    counter_trade.order_id).quantity -= counter_trade.quantity
+
+                        self.send_accepted_trade(accepted_trade)
+                    except (TickWasNotReserved, LogicException):
+                        pass

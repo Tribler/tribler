@@ -12,13 +12,17 @@ class Quantity(object):
 
         :param quantity: Integer representation of a quantity that is positive or zero
         :type quantity: int
+        :raises ValueError: Thrown when one of the arguments are invalid
         """
         super(Quantity, self).__init__()
 
         assert isinstance(quantity, int), type(quantity)
 
+        if not isinstance(quantity, int):
+            raise ValueError("Quantity must be an int")
+
         if quantity < 0:
-            raise ValueError("Quantity must be positive")
+            raise ValueError("Quantity must be positive or zero")
 
         self._quantity = quantity
 
@@ -53,7 +57,7 @@ class Quantity(object):
         """
         Return the integer representation of the quantity
 
-        :return: The string representation of the quantity
+        :return: The integer representation of the quantity
         :rtype: integer
         """
         return self._quantity

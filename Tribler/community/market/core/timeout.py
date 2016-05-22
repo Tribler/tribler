@@ -12,13 +12,17 @@ class Timeout(object):
 
         :param timeout: Float representation of a timeout
         :type timeout: float
+        :raises ValueError: Thrown when one of the arguments are invalid
         """
         super(Timeout, self).__init__()
 
         assert isinstance(timeout, float), type(timeout)
 
+        if not isinstance(timeout, float):
+            raise ValueError("Timeout must be a float")
+
         if timeout < 0:
-            raise ValueError("Timeout can not be negative")
+            raise ValueError("Timeout must be positive or zero")
 
         self._timeout = timeout
 

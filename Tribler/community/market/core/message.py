@@ -10,10 +10,19 @@ class TraderId(object):
 
         :param trader_id: String representing the trader id
         :type trader_id: str
+        :raises ValueError: Thrown when one of the arguments are invalid
         """
         super(TraderId, self).__init__()
 
         assert isinstance(trader_id, str), type(trader_id)
+
+        if not isinstance(trader_id, str):
+            raise ValueError("Trader id must be a string")
+
+        try:
+            int(trader_id, 16)
+        except ValueError:  # Not a hexadecimal
+            raise ValueError("Trader id must be hexadecimal")
 
         self._trader_id = trader_id
 
@@ -71,10 +80,14 @@ class MessageNumber(object):
 
         :param message_number: String representing the number of a message
         :type message_number: str
+        :raises ValueError: Thrown when one of the arguments are invalid
         """
         super(MessageNumber, self).__init__()
 
         assert isinstance(message_number, str), type(message_number)
+
+        if not isinstance(message_number, str):
+            raise ValueError("Message number must be a string")
 
         self._message_number = message_number
 

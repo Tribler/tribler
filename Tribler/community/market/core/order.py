@@ -24,10 +24,14 @@ class OrderNumber(object):
 
         :param order_number: String representing the number of an order
         :type order_number: str
+        :raises ValueError: Thrown when one of the arguments are invalid
         """
         super(OrderNumber, self).__init__()
 
         assert isinstance(order_number, str), type(order_number)
+
+        if not isinstance(order_number, str):
+            raise ValueError("Order number must be a string")
 
         self._order_number = order_number
 
@@ -282,36 +286,41 @@ class Order(object):
         """
         return self._is_ask
 
-    def reserve_quantity_for_tick(self, tick):
+    def reserve_quantity_for_tick(self, order_id, quantity):
         """
         Reserve quantity in the order for the tick provided
 
-        :param tick: The tick from another peer that the quantity needs to be reserved for
-        :type tick: Tick
+        :param order_id: The order id from another peer that the quantity needs to be reserved for
+        :param quantity: The quantity to reserve
+        :type order_id: OrderId
+        :type quantity: Quantity
         :return: True if the quantity was reserved, False otherwise
         :rtype: bool
         """
-        if self.available_quantity >= tick.quantity:
-            if tick.order_id not in self._reserved_ticks:
-                self._reserved_quantity += tick.quantity
-                self._reserved_ticks[tick.order_id] = tick
+        assert isinstance(order_id, OrderId), type(order_id)
+        assert isinstance(quantity, Quantity), type(quantity)
+
+        if self.available_quantity >= quantity:
+            if order_id not in self._reserved_ticks:
+                self._reserved_quantity += quantity
+                self._reserved_ticks[order_id] = quantity
             return True
         else:
             return False
 
-    def release_quantity_for_tick(self, tick):
+    def release_quantity_for_tick(self, order_id):
         """
         Release quantity in the order for the tick provided
 
-        :param tick: The tick from another peer that the quantity needs to be released for
-        :type tick: Tick
+        :param order_id: The order id from another peer that the quantity needs to be released for
+        :type order_id: OrderId
         :raises LogicException: Thrown when something bad happened and the reserved quantity does not match up
         :raises TickWasNotReserved: Thrown when the tick was not reserved first
         """
-        if tick.order_id in self._reserved_ticks:
-            if self._reserved_quantity >= tick.quantity:
-                self._reserved_quantity -= tick.quantity
-                del self._reserved_ticks[tick.order_id]
+        if order_id in self._reserved_ticks:
+            if self._reserved_quantity >= self._reserved_ticks[order_id]:
+                self._reserved_quantity -= self._reserved_ticks[order_id]
+                del self._reserved_ticks[order_id]
             else:
                 raise LogicException()
         else:
