@@ -1,5 +1,5 @@
 from Tribler.community.market.core.message import TraderId
-from Tribler.community.market.core.order import TickWasNotReserved, LogicException
+from Tribler.community.market.core.order import TickWasNotReserved
 from Tribler.community.market.socket_address import SocketAddress
 from Tribler.community.market.ttl import Ttl
 from Tribler.dispersy.authentication import MemberAuthentication
@@ -502,7 +502,7 @@ class MarketCommunity(Community):
                 if order:
                     try:
                         order.release_quantity_for_tick(declined_trade.order_id)
-                    except (TickWasNotReserved, LogicException):
+                    except TickWasNotReserved:
                         pass
 
     # Counter trade
@@ -555,5 +555,5 @@ class MarketCommunity(Community):
                                     counter_trade.order_id).quantity -= counter_trade.quantity
 
                         self.send_accepted_trade(accepted_trade)
-                    except (TickWasNotReserved, LogicException):
+                    except TickWasNotReserved:
                         pass

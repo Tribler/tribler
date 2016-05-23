@@ -5,11 +5,6 @@ from timeout import Timeout
 from timestamp import Timestamp
 
 
-class LogicException(Exception):
-    """Used for throwing generic logic exceptions"""
-    pass
-
-
 class TickWasNotReserved(Exception):
     """Used for throwing exception when a tick was not reserved"""
     pass
@@ -314,14 +309,11 @@ class Order(object):
 
         :param order_id: The order id from another peer that the quantity needs to be released for
         :type order_id: OrderId
-        :raises LogicException: Thrown when something bad happened and the reserved quantity does not match up
         :raises TickWasNotReserved: Thrown when the tick was not reserved first
         """
         if order_id in self._reserved_ticks:
             if self._reserved_quantity >= self._reserved_ticks[order_id]:
                 self._reserved_quantity -= self._reserved_ticks[order_id]
                 del self._reserved_ticks[order_id]
-            else:
-                raise LogicException()
         else:
             raise TickWasNotReserved()
