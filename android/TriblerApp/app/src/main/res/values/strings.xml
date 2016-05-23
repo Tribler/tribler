@@ -20,6 +20,7 @@
     <string name="action_playlists">My playlists</string>
 
     <string name="action_beam_app">Send to nearby phone</string>
+    <string name="action_beam_app_chooser">Send app via</string>
     <string name="action_beam">Place phones back to back</string>
     <string name="action_beam_nfc_enable">Please enable NFC and Android Beam</string>
     <string name="action_beam_enable">Please enable Android Beam</string>

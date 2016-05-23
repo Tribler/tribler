@@ -2,9 +2,14 @@ package org.tribler.android;
 
 import android.content.Context;
 import android.content.res.Configuration;
+import android.net.Uri;
 import android.webkit.MimeTypeMap;
 
 public class MyUtils {
+
+    public static String getMimeType(Uri uri) {
+        return getMimeType(uri.toString());
+    }
 
     public static String getMimeType(String file) {
         String type = null;

@@ -181,7 +181,7 @@ public class MainActivity extends AppCompatActivity
 
     private void startBeam(Uri uri) {
         // Check if device has nfc
-        if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC)) {
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC)) {
             NfcManager nfcManager = (NfcManager) getSystemService(Context.NFC_SERVICE);
             NfcAdapter nfcAdapter = nfcManager.getDefaultAdapter();
             assert nfcAdapter != null;
@@ -207,11 +207,11 @@ public class MainActivity extends AppCompatActivity
 
         } else {
             // Use bluetooth
-            File apk = new File(this.getPackageResourcePath());
-            Intent beam = new Intent(Intent.ACTION_SEND);
-            beam.setPackage("com.android.bluetooth");
-            beam.putExtra(Intent.EXTRA_STREAM, uri);
-            startActivity(Intent.createChooser(beam, "Send application"));
+            Intent shareIntent = new Intent();
+            shareIntent.setAction(Intent.ACTION_SEND);
+            shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
+            shareIntent.setType(MyUtils.getMimeType(uri));
+            startActivity(Intent.createChooser(shareIntent, getText(R.string.action_beam_app_chooser)));
         }
     }
 
