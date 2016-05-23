@@ -133,7 +133,7 @@ public class MainActivity extends AppCompatActivity
 
                 return true;
             case R.id.nav_settings:
-
+                this.startActivity(new Intent(this, SettingsActivity.class));
                 return true;
             case R.id.nav_shutdown:
 
