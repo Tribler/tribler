@@ -16,13 +16,13 @@ class PortfolioTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.portfolio = Portfolio(MemoryOrderRepository("mid"))
+        self.portfolio = Portfolio(MemoryOrderRepository("0"))
 
     def test_create_ask_order(self):
         # Test for create ask order
         ask_order = self.portfolio.create_ask_order(Price(100), Quantity(10), Timeout(0.0))
         self.assertTrue(ask_order.is_ask())
-        self.assertEquals(OrderId(TraderId("mid"), OrderNumber("1")), ask_order.order_id)
+        self.assertEquals(OrderId(TraderId("0"), OrderNumber("1")), ask_order.order_id)
         self.assertEquals(Price(100), ask_order.price)
         self.assertEquals(Quantity(10), ask_order.total_quantity)
         self.assertEquals(0.0, float(ask_order.timeout))
@@ -31,7 +31,7 @@ class PortfolioTestSuite(unittest.TestCase):
         # Test for create bid order
         bid_order = self.portfolio.create_bid_order(Price(100), Quantity(10), Timeout(0.0))
         self.assertFalse(bid_order.is_ask())
-        self.assertEquals(OrderId(TraderId("mid"), OrderNumber("1")), bid_order.order_id)
+        self.assertEquals(OrderId(TraderId("0"), OrderNumber("1")), bid_order.order_id)
         self.assertEquals(Price(100), bid_order.price)
         self.assertEquals(Quantity(10), bid_order.total_quantity)
         self.assertEquals(0.0, float(bid_order.timeout))

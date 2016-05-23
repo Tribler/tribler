@@ -16,11 +16,11 @@ class SideTestSuite(unittest.TestCase):
     def setUp(self):
         # Object creation
 
-        self.tick = Tick(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
-                         OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(400), Quantity(30),
+        self.tick = Tick(MessageId(TraderId('0'), MessageNumber('message_number')),
+                         OrderId(TraderId('0'), OrderNumber("order_number")), Price(400), Quantity(30),
                          Timeout(float("inf")), Timestamp(float("inf")), True)
-        self.tick2 = Tick(MessageId(TraderId('trader_id2'), MessageNumber('message_number')),
-                          OrderId(TraderId('trader_id2'), OrderNumber("order_number")), Price(800), Quantity(30),
+        self.tick2 = Tick(MessageId(TraderId('1'), MessageNumber('message_number')),
+                          OrderId(TraderId('1'), OrderNumber("order_number")), Price(800), Quantity(30),
                           Timeout(float("inf")), Timestamp(float("inf")), True)
         self.side = Side()
 
@@ -49,22 +49,22 @@ class SideTestSuite(unittest.TestCase):
     def test_insert_tick(self):
         # Test insert tick
         self.assertEquals(0, len(self.side))
-        self.assertFalse(self.side.tick_exists(OrderId(TraderId('trader_id'), OrderNumber("order_number"))))
+        self.assertFalse(self.side.tick_exists(OrderId(TraderId('0'), OrderNumber("order_number"))))
 
         self.side.insert_tick(self.tick)
         self.side.insert_tick(self.tick2)
 
         self.assertEquals(2, len(self.side))
-        self.assertTrue(self.side.tick_exists(OrderId(TraderId('trader_id'), OrderNumber("order_number"))))
+        self.assertTrue(self.side.tick_exists(OrderId(TraderId('0'), OrderNumber("order_number"))))
 
     def test_remove_tick(self):
         # Test remove tick
         self.side.insert_tick(self.tick)
         self.side.insert_tick(self.tick2)
 
-        self.side.remove_tick(OrderId(TraderId('trader_id'), OrderNumber("order_number")))
+        self.side.remove_tick(OrderId(TraderId('0'), OrderNumber("order_number")))
         self.assertEquals(1, len(self.side))
-        self.side.remove_tick(OrderId(TraderId('trader_id2'), OrderNumber("order_number")))
+        self.side.remove_tick(OrderId(TraderId('1'), OrderNumber("order_number")))
         self.assertEquals(0, len(self.side))
 
 

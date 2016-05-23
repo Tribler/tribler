@@ -6,8 +6,7 @@ from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.message import Message, TraderId, MessageNumber, MessageId
 from Tribler.community.market.core.tick import Tick, Ask, Bid
-from Tribler.community.market.core.order import Order, OrderId, OrderNumber, TickWasNotReserved, LogicException, \
-    TickWasNotReserved
+from Tribler.community.market.core.order import Order, OrderId, OrderNumber, TickWasNotReserved
 
 
 class OrderTestSuite(unittest.TestCase):
@@ -15,20 +14,20 @@ class OrderTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.tick = Tick(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
-                         OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100), Quantity(5),
+        self.tick = Tick(MessageId(TraderId('0'), MessageNumber('message_number')),
+                         OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(5),
                          Timeout(float("inf")), Timestamp(float("inf")), True)
-        self.tick2 = Tick(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
-                          OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100), Quantity(100),
+        self.tick2 = Tick(MessageId(TraderId('0'), MessageNumber('message_number')),
+                          OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(100),
                           Timeout(float("inf")), Timestamp(float("inf")), True)
-        self.order = Order(OrderId(TraderId("trader_id"), OrderNumber("order_number")), Price(100), Quantity(30),
+        self.order = Order(OrderId(TraderId("0"), OrderNumber("order_number")), Price(100), Quantity(30),
                            Timeout(0.0), Timestamp(10.0), False)
-        self.order2 = Order(OrderId(TraderId("trader_id"), OrderNumber("order_number")), Price(100), Quantity(30),
-                           Timeout(0.0), Timestamp(10.0), True)
+        self.order2 = Order(OrderId(TraderId("0"), OrderNumber("order_number")), Price(100), Quantity(30),
+                            Timeout(0.0), Timestamp(10.0), True)
 
     def test_properties(self):
         # Test for properties
-        self.assertEquals(OrderId(TraderId("trader_id"), OrderNumber("order_number")), self.order.order_id)
+        self.assertEquals(OrderId(TraderId("0"), OrderNumber("order_number")), self.order.order_id)
         self.assertEquals(Price(100), self.order.price)
         self.assertEquals(Quantity(30), self.order.total_quantity)
         self.assertEquals(Quantity(30), self.order.available_quantity)
@@ -43,32 +42,25 @@ class OrderTestSuite(unittest.TestCase):
 
     def test_reserve_quantity_insufficient(self):
         # Test for reserve insufficient quantity
-        self.assertFalse(self.order.reserve_quantity_for_tick(self.tick2))
+        self.assertFalse(self.order.reserve_quantity_for_tick(self.tick2.order_id, self.tick2.quantity))
 
     def test_reserve_quantity(self):
         # Test for reserve quantity
         self.assertEquals(Quantity(0), self.order.reserved_quantity)
-        self.assertTrue(self.order.reserve_quantity_for_tick(self.tick))
+        self.assertTrue(self.order.reserve_quantity_for_tick(self.tick.order_id, self.tick.quantity))
         self.assertEquals(Quantity(5), self.order.reserved_quantity)
 
     def test_release_quantity(self):
         # Test for release quantity
-        self.order.reserve_quantity_for_tick(self.tick)
+        self.order.reserve_quantity_for_tick(self.tick.order_id, self.tick.quantity)
         self.assertEquals(Quantity(5), self.order.reserved_quantity)
-        self.order.release_quantity_for_tick(self.tick)
+        self.order.release_quantity_for_tick(self.tick.order_id)
         self.assertEquals(Quantity(0), self.order.reserved_quantity)
 
     def test_release_unreserved_quantity(self):
         # Test for release unreserved quantity
         with self.assertRaises(TickWasNotReserved):
-            self.order.release_quantity_for_tick(self.tick)
-
-    def test_release_updated_quantity(self):
-        # Test for release updated quantity
-        self.order.reserve_quantity_for_tick(self.tick)
-        self.tick.quantity = Quantity(100)
-        with self.assertRaises(LogicException):
-            self.order.release_quantity_for_tick(self.tick)
+            self.order.release_quantity_for_tick(self.tick.order_id)
 
 
 class OrderIDTestSuite(unittest.TestCase):
@@ -76,9 +68,9 @@ class OrderIDTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.order_id = OrderId(TraderId("trader_id"), OrderNumber("order_number"))
-        self.order_id2 = OrderId(TraderId("trader_id"), OrderNumber("order_number"))
-        self.order_id3 = OrderId(TraderId("trader_id2"), OrderNumber("order_number2"))
+        self.order_id = OrderId(TraderId("0"), OrderNumber("order_number"))
+        self.order_id2 = OrderId(TraderId("0"), OrderNumber("order_number"))
+        self.order_id3 = OrderId(TraderId("0"), OrderNumber("order_number2"))
 
     def test_equality(self):
         # Test for equality
@@ -94,7 +86,7 @@ class OrderIDTestSuite(unittest.TestCase):
     def test_properties(self):
         # Test for properties
         self.assertEquals(OrderNumber("order_number"), self.order_id.order_number)
-        self.assertEquals(TraderId("trader_id"), self.order_id.trader_id)
+        self.assertEquals(TraderId("0"), self.order_id.trader_id)
 
     def test_hashes(self):
         # Test for hashes
@@ -103,7 +95,7 @@ class OrderIDTestSuite(unittest.TestCase):
 
     def test_str(self):
         # Test for string representation
-        self.assertEquals('trader_id.order_number', str(self.order_id))
+        self.assertEquals('0.order_number', str(self.order_id))
 
 
 class OrderNumberTestSuite(unittest.TestCase):

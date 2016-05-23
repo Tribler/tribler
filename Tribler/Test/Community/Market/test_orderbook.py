@@ -17,23 +17,23 @@ class OrderBookTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.ask = Ask(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
-                       OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100), Quantity(30),
+        self.ask = Ask(MessageId(TraderId('0'), MessageNumber('message_number')),
+                       OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
                        Timeout(1462224447.117), Timestamp(1462224447.117))
-        self.ask2 = Ask(MessageId(TraderId('trader_id2'), MessageNumber('message_number')),
-                        OrderId(TraderId('trader_id2'), OrderNumber("order_number")), Price(400), Quantity(30),
+        self.ask2 = Ask(MessageId(TraderId('1'), MessageNumber('message_number')),
+                        OrderId(TraderId('1'), OrderNumber("order_number")), Price(400), Quantity(30),
                         Timeout(1462224447.117), Timestamp(1462224447.117))
-        self.bid = Bid(MessageId(TraderId('trader_id3'), MessageNumber('message_number')),
-                       OrderId(TraderId('trader_id3'), OrderNumber("order_number")), Price(200), Quantity(30),
+        self.bid = Bid(MessageId(TraderId('2'), MessageNumber('message_number')),
+                       OrderId(TraderId('2'), OrderNumber("order_number")), Price(200), Quantity(30),
                        Timeout(1462224447.117), Timestamp(1462224447.117))
-        self.bid2 = Bid(MessageId(TraderId('trader_id4'), MessageNumber('message_number')),
-                        OrderId(TraderId('trader_id4'), OrderNumber("order_number")), Price(300), Quantity(30),
+        self.bid2 = Bid(MessageId(TraderId('3'), MessageNumber('message_number')),
+                        OrderId(TraderId('3'), OrderNumber("order_number")), Price(300), Quantity(30),
                         Timeout(1462224447.117), Timestamp(1462224447.117))
-        self.trade = Trade.propose(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
-                                   OrderId(TraderId('trader_id'), OrderNumber("order_number")),
-                                   OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100),
+        self.trade = Trade.propose(MessageId(TraderId('0'), MessageNumber('message_number')),
+                                   OrderId(TraderId('0'), OrderNumber("order_number")),
+                                   OrderId(TraderId('0'), OrderNumber("order_number")), Price(100),
                                    Quantity(30), Timestamp(1462224447.117))
-        self.order_book = OrderBook(MemoryMessageRepository('trader_id'))
+        self.order_book = OrderBook(MemoryMessageRepository('0'))
 
     def test_ask_insertion(self):
         # Test for ask insertion

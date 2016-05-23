@@ -6,7 +6,7 @@ from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.community.market.core.order import Order, OrderId, OrderNumber, TickWasNotReserved, LogicException, TickWasNotReserved
+from Tribler.community.market.core.order import Order, OrderId, OrderNumber, TickWasNotReserved
 
 
 class OrderRepositoryTestSuite(unittest.TestCase):
@@ -15,7 +15,7 @@ class OrderRepositoryTestSuite(unittest.TestCase):
     def setUp(self):
         # Object creation
         self.order_repository = OrderRepository()
-        self.order_id = OrderId(TraderId("trader_id"), OrderNumber("order_number"))
+        self.order_id = OrderId(TraderId("0"), OrderNumber("order_number"))
         self.order = Order(self.order_id, Price(100), Quantity(30), Timeout(0.0), Timestamp(10.0), False)
 
     def test_add(self):
@@ -42,13 +42,14 @@ class OrderRepositoryTestSuite(unittest.TestCase):
         # Test for update
         self.assertEquals(NotImplemented, self.order_repository.update(self.order))
 
+
 class MemoryOrderRepositoryTestSuite(unittest.TestCase):
     """Memory order repository test cases."""
 
     def setUp(self):
         # Object creation
-        self.memory_order_repository = MemoryOrderRepository("mid")
-        self.order_id = OrderId(TraderId("trader_id"), OrderNumber("order_number"))
+        self.memory_order_repository = MemoryOrderRepository("0")
+        self.order_id = OrderId(TraderId("0"), OrderNumber("order_number"))
         self.order = Order(self.order_id, Price(100), Quantity(30), Timeout(0.0), Timestamp(10.0), False)
         self.order2 = Order(self.order_id, Price(1000), Quantity(30), Timeout(0.0), Timestamp(10.0), False)
 
@@ -79,7 +80,7 @@ class MemoryOrderRepositoryTestSuite(unittest.TestCase):
 
     def test_next_identity(self):
         # Test for next identity
-        self.assertEquals(OrderId(TraderId("mid"), OrderNumber("1")),
+        self.assertEquals(OrderId(TraderId("0"), OrderNumber("1")),
                           self.memory_order_repository.next_identity())
 
     def test_update(self):

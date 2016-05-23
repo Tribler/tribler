@@ -15,16 +15,17 @@ class MessageRepositoryTestSuite(unittest.TestCase):
         # Test for next identity
         self.assertEquals(NotImplemented, self.message_repository.next_identity())
 
+
 class MemoryMessageRepositoryTestSuite(unittest.TestCase):
     """Memory message repository test cases."""
 
     def setUp(self):
         # Object creation
-        self.memory_message_repository = MemoryMessageRepository('trader_id')
+        self.memory_message_repository = MemoryMessageRepository('0')
 
     def test_next_identity(self):
         # Test for next identity
-        self.assertEquals(MessageId(TraderId('trader_id'), MessageNumber('1')),
+        self.assertEquals(MessageId(TraderId('0'), MessageNumber('1')),
                           self.memory_message_repository.next_identity())
 
 

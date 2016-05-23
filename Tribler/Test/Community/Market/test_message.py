@@ -9,13 +9,13 @@ class TraderIdTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.trader_id = TraderId('trader_id')
-        self.trader_id2 = TraderId('trader_id')
-        self.trader_id3 = TraderId('trader_id_2')
+        self.trader_id = TraderId('0')
+        self.trader_id2 = TraderId('0')
+        self.trader_id3 = TraderId('1')
 
     def test_conversion(self):
         # Test for conversions
-        self.assertEqual('trader_id', str(self.trader_id))
+        self.assertEqual('0', str(self.trader_id))
 
     def test_equality(self):
         # Test for equality
@@ -61,18 +61,18 @@ class MessageIdTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.message_id = MessageId(TraderId('trader_id'), MessageNumber('message_number'))
-        self.message_id2 = MessageId(TraderId('trader_id'), MessageNumber('message_number'))
-        self.message_id3 = MessageId(TraderId('trader_id'), MessageNumber('message_number2'))
+        self.message_id = MessageId(TraderId('0'), MessageNumber('message_number'))
+        self.message_id2 = MessageId(TraderId('0'), MessageNumber('message_number'))
+        self.message_id3 = MessageId(TraderId('0'), MessageNumber('message_number2'))
 
     def test_properties(self):
         # Test for properties
-        self.assertEqual(TraderId('trader_id'), self.message_id.trader_id)
+        self.assertEqual(TraderId('0'), self.message_id.trader_id)
         self.assertEqual(MessageNumber('message_number'), self.message_id.message_number)
 
     def test_conversion(self):
         # Test for conversions
-        self.assertEqual('trader_id.message_number', str(self.message_id))
+        self.assertEqual('0.message_number', str(self.message_id))
 
     def test_equality(self):
         # Test for equality
@@ -92,11 +92,11 @@ class MessageTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.message = Message(MessageId(TraderId('trader_id'), MessageNumber('message_number')), Timestamp(float("inf")))
+        self.message = Message(MessageId(TraderId('0'), MessageNumber('message_number')), Timestamp(float("inf")))
 
     def test_properties(self):
         # Test for properties
-        self.assertEqual(MessageId(TraderId('trader_id'), MessageNumber('message_number')), self.message.message_id)
+        self.assertEqual(MessageId(TraderId('0'), MessageNumber('message_number')), self.message.message_id)
         self.assertEqual(Timestamp(float("inf")), self.message.timestamp)
 
 if __name__ == '__main__':

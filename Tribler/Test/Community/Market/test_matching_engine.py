@@ -19,7 +19,7 @@ class MatchingStrategyTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.order = Order(OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100), Quantity(30),
+        self.order = Order(OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
                            Timeout(0.0), Timestamp(10.0), False)
         self.matching_strategy = MatchingStrategy(OrderBook(MemoryMessageRepository('trader_id')))
 
@@ -33,15 +33,15 @@ class PriceTimeStrategyTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.ask = Ask(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
-                       OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100), Quantity(30),
+        self.ask = Ask(MessageId(TraderId('0'), MessageNumber('message_number')),
+                       OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
                        Timeout(float('inf')), Timestamp(float('inf')))
-        self.bid = Bid(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
-                       OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100), Quantity(30),
+        self.bid = Bid(MessageId(TraderId('0'), MessageNumber('message_number')),
+                       OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
                        Timeout(float('inf')), Timestamp(float('inf')))
-        self.ask_order = Order(OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100), Quantity(30),
+        self.ask_order = Order(OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
                                Timeout(float('inf')), Timestamp(float('inf')), True)
-        self.bid_order = Order(OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100), Quantity(30),
+        self.bid_order = Order(OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
                                Timeout(float('inf')), Timestamp(float('inf')), False)
         self.price_level_ask = PriceLevel()
         self.tick_entry_ask = TickEntry(self.ask, self.price_level_ask)
@@ -57,12 +57,12 @@ class MatchingEngineTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.ask = Ask(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
-                       OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100), Quantity(30),
+        self.ask = Ask(MessageId(TraderId('0'), MessageNumber('message_number')),
+                       OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
                        Timeout(float('inf')), Timestamp(float('inf')))
-        self.bid_order = Order(OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(100), Quantity(30),
+        self.bid_order = Order(OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
                                Timeout(float('inf')), Timestamp(float('inf')), False)
-        self.order_book = OrderBook(MemoryMessageRepository('trader_id'))
+        self.order_book = OrderBook(MemoryMessageRepository('0'))
         self.matching_engine = MatchingEngine(PriceTimeStrategy(self.order_book))
 
 

@@ -16,11 +16,11 @@ class OrderTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        tick = Tick(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
-                    OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(63400), Quantity(30),
+        tick = Tick(MessageId(TraderId('0'), MessageNumber('message_number')),
+                    OrderId(TraderId('0'), OrderNumber("order_number")), Price(63400), Quantity(30),
                     Timeout(0.0), Timestamp(0.0), True)
-        tick2 = Tick(MessageId(TraderId('trader_id'), MessageNumber('message_number')),
-                     OrderId(TraderId('trader_id'), OrderNumber("order_number")), Price(63400), Quantity(30),
+        tick2 = Tick(MessageId(TraderId('0'), MessageNumber('message_number')),
+                     OrderId(TraderId('0'), OrderNumber("order_number")), Price(63400), Quantity(30),
                      Timeout(float("inf")), Timestamp(float("inf")), True)
 
         self.price_level = PriceLevel()
@@ -29,7 +29,7 @@ class OrderTestSuite(unittest.TestCase):
 
     def test_properties(self):
         # Test properties
-        self.assertEquals(OrderId(TraderId('trader_id'), OrderNumber("order_number")), self.tick_entry.order_id)
+        self.assertEquals(OrderId(TraderId('0'), OrderNumber("order_number")), self.tick_entry.order_id)
         self.assertEquals(Price(63400), self.tick_entry.price)
         self.assertEquals(Quantity(30), self.tick_entry.quantity)
 
