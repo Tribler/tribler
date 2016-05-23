@@ -9,14 +9,21 @@
     <string name="navigation_drawer_open">Open menu</string>
     <string name="navigation_drawer_close">Close menu</string>
 
+    <string name="action_cancel">Cancel</string>
+    <string name="action_ok">OK</string>
     <string name="action_search">Search videos and channels</string>
     <string name="action_upload">Upload a video</string>
     <string name="action_capture_video">Record a new video</string>
+
 
     <string name="action_my_channel">My channel</string>
     <string name="action_playlists">My playlists</string>
 
     <string name="action_beam_app">Send to nearby phone</string>
+    <string name="action_beam">Place phones back to back</string>
+    <string name="action_beam_nfc_enable">Please enable NFC and Android Beam</string>
+    <string name="action_beam_enable">Please enable Android Beam</string>
+
     <string name="action_settings">Change settings</string>
     <string name="action_shutdown">Shutdown service</string>
 

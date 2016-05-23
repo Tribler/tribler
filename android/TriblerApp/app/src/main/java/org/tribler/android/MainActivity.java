@@ -1,16 +1,22 @@
 package org.tribler.android;
 
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.nfc.NfcAdapter;
+import android.nfc.NfcEvent;
+import android.nfc.NfcManager;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
-import android.support.v4.app.NavUtils;
-import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.AppCompatDelegate;
 import android.support.v7.widget.SearchView;
@@ -19,6 +25,8 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ImageView;
+import android.widget.Toast;
 
 import java.io.File;
 
@@ -33,7 +41,6 @@ public class MainActivity extends AppCompatActivity
 
     private SearchViewListener mSearchViewListener;
     private CaptureVideoListener mCaptureVideoListener;
-    private NfcBeamListener mNfcBeamListener;
 
     /**
      * {@inheritDoc}
@@ -46,7 +53,6 @@ public class MainActivity extends AppCompatActivity
 
         initCaptureVideo();
         initSearch();
-        initBeam();
         initGui();
     }
 
@@ -132,6 +138,10 @@ public class MainActivity extends AppCompatActivity
             case R.id.nav_my_playlists:
 
                 return true;
+            case R.id.nav_beam:
+                File apk = new File(this.getPackageResourcePath());
+                startBeam(Uri.fromFile(apk));
+                return true;
             case R.id.nav_settings:
                 this.startActivity(new Intent(this, SettingsActivity.class));
                 return true;
@@ -158,16 +168,6 @@ public class MainActivity extends AppCompatActivity
         });
     }
 
-    private void initBeam() {
-        // Check if device has nfc
-        if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC)) {
-            mNfcBeamListener = new NfcBeamListener(this);
-            // Send app apk with Android Beam from this activity
-            File apk = new File(this.getPackageResourcePath());
-            mNfcBeamListener.addFile(apk);
-        }
-    }
-
     private void initCaptureVideo() {
         // Check if device has camera
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
@@ -179,5 +179,40 @@ public class MainActivity extends AppCompatActivity
         mSearchViewListener = new SearchViewListener(this);
     }
 
+    private void startBeam(Uri uri) {
+        // Check if device has nfc
+        if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC)) {
+            NfcManager nfcManager = (NfcManager) getSystemService(Context.NFC_SERVICE);
+            NfcAdapter nfcAdapter = nfcManager.getDefaultAdapter();
+            assert nfcAdapter != null;
+
+            // Check if android beam is enabled
+            if (!nfcAdapter.isEnabled()) {
+                Toast.makeText(MainActivity.this, R.string.action_beam_nfc_enable, Toast.LENGTH_LONG).show();
+                startActivity(new Intent(Settings.ACTION_NFC_SETTINGS));
+            } else if (!nfcAdapter.isNdefPushEnabled()) {
+                Toast.makeText(MainActivity.this, R.string.action_beam_enable, Toast.LENGTH_LONG).show();
+                startActivity(new Intent(Settings.ACTION_NFCSHARING_SETTINGS));
+            }
+
+            nfcAdapter.setBeamPushUris(new Uri[]{uri}, this);
+
+            // Show instructions
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            ImageView image = new ImageView(this);
+            image.setImageResource(R.drawable.beam);
+            builder.setView(image);
+            AlertDialog dialog = builder.create();
+            dialog.show();
+
+        } else {
+            // Use bluetooth
+            File apk = new File(this.getPackageResourcePath());
+            Intent beam = new Intent(Intent.ACTION_SEND);
+            beam.setPackage("com.android.bluetooth");
+            beam.putExtra(Intent.EXTRA_STREAM, uri);
+            startActivity(Intent.createChooser(beam, "Send application"));
+        }
+    }
 
 }
