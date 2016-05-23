@@ -3,33 +3,33 @@
 
     <group android:checkableBehavior="single">
         <item
-            android:id="@+id/nav_camera"
-            android:icon="@drawable/ic_menu_camera"
-            android:title="Import" />
+            android:id="@+id/nav_capture_video"
+            android:icon="@drawable/ic_menu_video_camera"
+            android:title="@string/action_capture_video" />
         <item
-            android:id="@+id/nav_gallery"
-            android:icon="@drawable/ic_menu_gallery"
-            android:title="Gallery" />
+            android:id="@+id/nav_my_channel"
+            android:icon="@drawable/ic_menu_me"
+            android:title="@string/action_my_channel" />
         <item
-            android:id="@+id/nav_slideshow"
-            android:icon="@drawable/ic_menu_slideshow"
-            android:title="Slideshow" />
-        <item
-            android:id="@+id/nav_manage"
-            android:icon="@drawable/ic_menu_manage"
-            android:title="Tools" />
+            android:id="@+id/nav_my_playlists"
+            android:icon="@drawable/ic_menu_playlists"
+            android:title="@string/action_playlists" />
     </group>
 
-    <item android:title="Communicate">
+    <item android:title="Application">
         <menu>
             <item
-                android:id="@+id/nav_share"
-                android:icon="@drawable/ic_menu_share"
-                android:title="Share" />
+                android:id="@+id/nav_beam"
+                android:icon="@drawable/ic_menu_beam"
+                android:title="@string/action_beam_app" />
             <item
-                android:id="@+id/nav_send"
-                android:icon="@drawable/ic_menu_send"
-                android:title="Send" />
+                android:id="@+id/nav_settings"
+                android:icon="@drawable/ic_menu_settings"
+                android:title="@string/action_settings" />
+            <item
+                android:id="@+id/nav_shutdown"
+                android:icon="@drawable/ic_menu_shutdown"
+                android:title="@string/action_shutdown" />
         </menu>
     </item>
 

@@ -6,13 +6,13 @@ import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
-import android.view.MenuItem;
+import android.view.View;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class CaptureVideoListener implements MenuItem.OnMenuItemClickListener {
+public class CaptureVideoListener implements View.OnClickListener {
 
     private Activity mActivity;
     private Uri mVideoCaptureUri;
@@ -22,25 +22,23 @@ public class CaptureVideoListener implements MenuItem.OnMenuItemClickListener {
     }
 
     @Override
-    public boolean onMenuItemClick(MenuItem menuItem) {
+    public void onClick(View view) {
         Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
         File file = getOutputVideoFile();
         if (file == null) {
             Log.e("Tribler", "failed to obtain output file");
             //TODO: advise user
-            return false;
         }
         mVideoCaptureUri = Uri.fromFile(file);
         intent.putExtra(MediaStore.EXTRA_OUTPUT, mVideoCaptureUri);
         intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1); // 0: low 1: high
-        mActivity.startActivityForResult(intent, SearchActivity.CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
-        return true;
+        mActivity.startActivityForResult(intent, MainActivity.CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
     }
 
     public void onActivityResult(int resultCode, Intent data) {
         if (resultCode == Activity.RESULT_OK) {
-            //TODO: advise user
             Log.d("Tribler", "Video saved to:\n" + data.getData());
+            //TODO: advise user
         } else if (resultCode == Activity.RESULT_CANCELED) {
             Log.d("Tribler", "User cancelled the video capture");
         } else {

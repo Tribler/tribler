@@ -6,20 +6,9 @@
 
     <item
         android:id="@+id/btn_search"
-        android:icon="@drawable/ic_menu_search"
-        android:title="@string/search_hint"
+        android:icon="@drawable/ic_action_search"
+        android:title="@string/action_search"
         app:actionViewClass="android.support.v7.widget.SearchView"
         app:showAsAction="collapseActionView|always" />
 
-    <item
-        android:id="@+id/btn_record"
-        android:icon="@drawable/ic_menu_videocamera"
-        android:title="@string/camera_hint"
-        app:showAsAction="collapseActionView|ifRoom" />
-
-    <item
-        android:id="@+id/btn_upload"
-        android:icon="@drawable/ic_menu_cloud_upload"
-        android:title="@string/upload_hint"
-        app:showAsAction="collapseActionView|ifRoom" />
 </menu>
