@@ -21,6 +21,9 @@ public class CaptureVideoListener implements View.OnClickListener {
         mActivity = activity;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onClick(View view) {
         Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);

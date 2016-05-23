@@ -35,6 +35,9 @@ public class MainActivity extends AppCompatActivity
     private CaptureVideoListener mCaptureVideoListener;
     private NfcBeamListener mNfcBeamListener;
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -45,22 +48,11 @@ public class MainActivity extends AppCompatActivity
         initSearch();
         initBeam();
         initGui();
-
-        handleIntent(getIntent());
     }
 
-    @Override
-    protected void onNewIntent(Intent intent) {
-        setIntent(intent);
-        handleIntent(intent);
-    }
-
-    private void handleIntent(Intent intent) {
-        if (Intent.ACTION_MAIN.equals(intent.getAction())) {
-            //TODO: show home content
-        }
-    }
-
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE) {
@@ -89,6 +81,9 @@ public class MainActivity extends AppCompatActivity
         navigationView.setNavigationItemSelectedListener(this);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onBackPressed() {
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -99,6 +94,9 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Add items to the action bar if it is present
@@ -114,33 +112,9 @@ public class MainActivity extends AppCompatActivity
         return true;
     }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        switch (item.getItemId()) {
-            // Respond to the action bar's Up/Home button
-            case android.R.id.home:
-                Intent upIntent = NavUtils.getParentActivityIntent(this);
-                if (NavUtils.shouldUpRecreateTask(this, upIntent)) {
-                    // This activity is NOT part of this app's task, so create a new task
-                    // when navigating up, with a synthesized back stack.
-                    TaskStackBuilder.create(this)
-                            // Add all of this activity's parents to the back stack
-                            .addNextIntentWithParentStack(upIntent)
-                            // Navigate up to the closest parent
-                            .startActivities();
-                } else {
-                    // This activity is part of this app's task, so simply
-                    // navigate up to the logical parent activity.
-                    NavUtils.navigateUpTo(this, upIntent);
-                }
-                return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -173,6 +147,9 @@ public class MainActivity extends AppCompatActivity
         assert fab != null;
 
         fab.setOnClickListener(new View.OnClickListener() {
+            /**
+             * {@inheritDoc}
+             */
             @Override
             public void onClick(View view) {
                 Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)

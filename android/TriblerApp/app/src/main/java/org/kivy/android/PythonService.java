@@ -48,11 +48,17 @@ public class PythonService extends Service implements Runnable {
         return START_NOT_STICKY;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public IBinder onBind(Intent arg0) {
         return null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onCreate() {
         Log.v(TAG, "Device: " + android.os.Build.DEVICE);
@@ -61,6 +67,9 @@ public class PythonService extends Service implements Runnable {
         super.onCreate();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (pythonThread != null) {
@@ -84,6 +93,9 @@ public class PythonService extends Service implements Runnable {
         return startType();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -95,6 +107,9 @@ public class PythonService extends Service implements Runnable {
         Process.killProcess(Process.myPid());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void run() {
         PythonUtil.loadLibraries(getFilesDir());

@@ -12,6 +12,9 @@ public class HomeSwipeListener extends ItemTouchHelper.SimpleCallback {
         mAdapter = adapter;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
         int adapterPosition = viewHolder.getAdapterPosition();
@@ -35,18 +38,18 @@ public class HomeSwipeListener extends ItemTouchHelper.SimpleCallback {
         }
     }
 
-    @Override
     /**
      * Not draggable
      */
+    @Override
     public boolean isLongPressDragEnabled() {
         return false;
     }
 
-    @Override
     /**
      * Not draggable
      */
+    @Override
     public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder,
                           RecyclerView.ViewHolder target) {
         return false;

@@ -46,19 +46,19 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         return mList.get(adapterPosition);
     }
 
-    @Override
     /**
      * @return The amount of items in the data set (invoked by the layout manager)
      */
+    @Override
     public int getItemCount() {
         return mList.size();
     }
 
-    @Override
     /**
-     * @param adapterPosition   The position in the adapter list
+     * @param adapterPosition The position in the adapter list
      * @return VIEW_TYPE_CHANNEL | VIEW_TYPE_TORRENT | VIEW_TYPE_UNKNOWN based on class type
      */
+    @Override
     public int getItemViewType(int adapterPosition) {
         Object item = getItem(adapterPosition);
         if (item instanceof TriblerChannel) {
@@ -95,11 +95,11 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         }
     }
 
-    @Override
     /**
-     * @param parent    The group to which the view should be added
-     * @param viewType  The type of view to create
+     * @param parent   The group to which the view should be added
+     * @param viewType The type of view to create
      */
+    @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         // Create new channel view
         if (viewType == VIEW_TYPE_CHANNEL) {
@@ -119,12 +119,13 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         }
     }
 
-    @Override
     /**
      * Replaces the contents of a view (invoked by the layout manager)
-     * @param holder    The holder of the view of an item
-     * @param position  The position of the item in the data set
+     *
+     * @param holder   The holder of the view of an item
+     * @param position The position of the item in the data set
      */
+    @Override
     public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
         // Channel
         if (holder instanceof ChannelViewHolder) {

@@ -17,6 +17,9 @@ public class SearchActivity extends AppCompatActivity {
 
     private TriblerViewAdapter mAdapter;
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -26,6 +29,9 @@ public class SearchActivity extends AppCompatActivity {
         handleIntent(getIntent());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected void onNewIntent(Intent intent) {
         setIntent(intent);

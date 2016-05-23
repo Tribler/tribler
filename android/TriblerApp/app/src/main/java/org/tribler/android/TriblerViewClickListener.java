@@ -18,6 +18,9 @@ public class TriblerViewClickListener extends RecyclerView.SimpleOnItemTouchList
     public TriblerViewClickListener(Context context, OnItemClickListener listener) {
         mListener = listener;
         mGestureDetector = new GestureDetector(context, new GestureDetector.SimpleOnGestureListener() {
+            /**
+             * {@inheritDoc}
+             */
             @Override
             public boolean onSingleTapUp(MotionEvent e) {
                 return true;
@@ -25,6 +28,9 @@ public class TriblerViewClickListener extends RecyclerView.SimpleOnItemTouchList
         });
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean onInterceptTouchEvent(RecyclerView view, MotionEvent e) {
         View childView = view.findChildViewUnder(e.getX(), e.getY());

@@ -20,6 +20,9 @@ public class NfcBeamListener implements NfcAdapter.CreateBeamUrisCallback {
         mNfcAdapter.setBeamPushUrisCallback(this, activity);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Uri[] createBeamUris(NfcEvent nfcEvent) {
         return mOutbox.toArray(new Uri[mOutbox.size()]);

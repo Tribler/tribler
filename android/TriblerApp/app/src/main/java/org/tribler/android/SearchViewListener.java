@@ -23,6 +23,9 @@ public class SearchViewListener implements SearchView.OnQueryTextListener {
         mSearchView.setSearchableInfo(searchManager.getSearchableInfo(mActivity.getComponentName()));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean onQueryTextSubmit(String query) {
         mSearchView.clearFocus();
@@ -32,6 +35,9 @@ public class SearchViewListener implements SearchView.OnQueryTextListener {
         return true;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean onQueryTextChange(String newText) {
         return false;

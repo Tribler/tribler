@@ -10,6 +10,9 @@ public class HomeClickListener implements TriblerViewClickListener.OnItemClickLi
         mAdapter = adapter;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onItemClick(View view, int adapterPosition) {
         Object item = mAdapter.getItem(adapterPosition);

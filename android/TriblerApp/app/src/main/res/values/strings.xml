@@ -4,6 +4,7 @@
 
     <string name="title_activity_main">@string/app_name</string>
     <string name="title_activity_search">@string/action_search</string>
+    <string name="title_activity_settings">@string/action_settings</string>
 
     <string name="navigation_drawer_open">Open menu</string>
     <string name="navigation_drawer_close">Close menu</string>
