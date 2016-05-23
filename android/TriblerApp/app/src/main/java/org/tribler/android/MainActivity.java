@@ -181,7 +181,7 @@ public class MainActivity extends AppCompatActivity
 
     private void startBeam(Uri uri) {
         // Check if device has nfc
-        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC)) {
+        if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC)) {
             NfcManager nfcManager = (NfcManager) getSystemService(Context.NFC_SERVICE);
             NfcAdapter nfcAdapter = nfcManager.getDefaultAdapter();
             assert nfcAdapter != null;
