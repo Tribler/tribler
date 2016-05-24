@@ -19,11 +19,10 @@
     <string name="action_my_channel">My channel</string>
     <string name="action_playlists">My playlists</string>
 
-    <string name="action_beam_app">Send to nearby phone</string>
-    <string name="action_beam_app_chooser">Send app via</string>
-    <string name="action_beam">Place phones back to back</string>
-    <string name="action_beam_nfc_enable">Please enable NFC and Android Beam</string>
-    <string name="action_beam_enable">Please enable Android Beam</string>
+    <string name="action_send_app">Send to nearby phone</string>
+    <string name="action_send_app_chooser">Send app via</string>
+    <string name="dialog_enable_nfc_beam">To send the app, you must first turn on NFC and Android Beam on both phones.\n\nTurn on NFC and Android Beam now?</string>
+    <string name="dialog_enable_beam">To send the app, you must first turn on NFC and Android Beam on both phones.\n\nTurn on Android Beam now?</string>
 
     <string name="action_settings">Change settings</string>
     <string name="action_shutdown">Shutdown service</string>

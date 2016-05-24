@@ -1,22 +1,15 @@
 package org.tribler.android;
 
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.nfc.NfcAdapter;
-import android.nfc.NfcEvent;
-import android.nfc.NfcManager;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.AppCompatDelegate;
 import android.support.v7.widget.SearchView;
@@ -25,8 +18,6 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ImageView;
-import android.widget.Toast;
 
 import java.io.File;
 
@@ -34,6 +25,7 @@ public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
     public static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 200;
+    public static final int ENABLE_NFC_BEAM_ACTIVITY_REQUEST_CODE = 400;
 
     static {
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
@@ -62,6 +54,8 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE) {
+            mCaptureVideoListener.onActivityResult(resultCode, data);
+        } else if (requestCode == ENABLE_NFC_BEAM_ACTIVITY_REQUEST_CODE) {
             mCaptureVideoListener.onActivityResult(resultCode, data);
         }
     }
@@ -140,7 +134,7 @@ public class MainActivity extends AppCompatActivity
                 return true;
             case R.id.nav_beam:
                 File apk = new File(this.getPackageResourcePath());
-                MyUtils.startBeam(Uri.fromFile(apk), this);
+                MyUtils.nfcBeam(Uri.fromFile(apk), this);
                 return true;
             case R.id.nav_settings:
                 this.startActivity(new Intent(this, SettingsActivity.class));
