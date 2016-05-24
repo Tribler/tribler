@@ -36,5 +36,9 @@ class ConversionTestSuite(unittest.TestCase):
     def test_init(self):
         self.assertIsInstance(self.market_conversion, MarketConversion)
 
+    def tearDown(self):
+        # Closing and unlocking dispersy database for other tests in test suite
+        self.dispersy._database.close()
+
 if __name__ == '__main__':
     unittest.main()
