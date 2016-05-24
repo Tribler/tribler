@@ -26,6 +26,11 @@ class MemoryMessageRepository(MessageRepository):
         """
         super(MemoryMessageRepository, self).__init__()
 
+        try:
+            int(mid, 16)
+        except ValueError:  # Not a hexadecimal
+            raise ValueError("Encoded public key must be hexadecimal")
+
         self._mid = mid
         self._next_id = 0  # Counter to keep track of the number of messages created by this repository
 

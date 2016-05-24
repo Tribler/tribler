@@ -23,6 +23,11 @@ class MemoryMessageRepositoryTestSuite(unittest.TestCase):
         # Object creation
         self.memory_message_repository = MemoryMessageRepository('0')
 
+    def test_init(self):
+        # Test for init validation
+        with self.assertRaises(ValueError):
+            MemoryMessageRepository('mid')
+
     def test_next_identity(self):
         # Test for next identity
         self.assertEquals(MessageId(TraderId('0'), MessageNumber('1')),
