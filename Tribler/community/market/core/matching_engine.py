@@ -184,7 +184,7 @@ class PriceTimeStrategy(MatchingStrategy):
             self._logger.debug("Match with the id (%s) was found for order (%s). Price: %i, Quantity: %i)",
                                str(trading_party), str(order.order_id), int(trading_price), int(trading_quantity))
 
-            reserved = order.reserve_quantity_for_tick(tick_entry._tick)
+            reserved = order.reserve_quantity_for_tick(tick_entry._tick.order_id, trading_quantity)
 
             if not reserved:  # Error happened
                 self._logger.warn("Something went wrong")
