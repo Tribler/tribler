@@ -1,7 +1,7 @@
 import logging
 from collections import deque
 
-from Tribler.community.market.core.order import OrderId
+from order import OrderId
 from message import Message
 from message_repository import MessageRepository
 from price import Price
