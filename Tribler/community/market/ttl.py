@@ -16,7 +16,7 @@ class Ttl(object):
         if not isinstance(ttl, int):
             raise ValueError("Time to live must be an int")
 
-        if 2 > ttl > 0:
+        if ttl > 2 or ttl < 0:
             raise ValueError("Time to live must be between 0 and 2")
 
         self._ttl = ttl
