@@ -13,8 +13,6 @@ class Ttl(object):
         """
         super(Ttl, self).__init__()
 
-        assert isinstance(ttl, int), type(ttl)
-
         if not isinstance(ttl, int):
             raise ValueError("Time to live must be an int")
 

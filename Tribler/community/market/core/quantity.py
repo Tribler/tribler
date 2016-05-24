@@ -16,8 +16,6 @@ class Quantity(object):
         """
         super(Quantity, self).__init__()
 
-        assert isinstance(quantity, int), type(quantity)
-
         if not isinstance(quantity, int):
             raise ValueError("Quantity must be an int")
 

@@ -15,8 +15,6 @@ class Timestamp(object):
         """
         super(Timestamp, self).__init__()
 
-        assert isinstance(timestamp, float), type(timestamp)
-
         if not isinstance(timestamp, float):
             raise ValueError("Timestamp must be a float")
 

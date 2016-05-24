@@ -23,8 +23,6 @@ class OrderNumber(object):
         """
         super(OrderNumber, self).__init__()
 
-        assert isinstance(order_number, str), type(order_number)
-
         if not isinstance(order_number, str):
             raise ValueError("Order number must be a string")
 

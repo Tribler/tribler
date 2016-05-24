@@ -14,8 +14,6 @@ class TraderId(object):
         """
         super(TraderId, self).__init__()
 
-        assert isinstance(trader_id, str), type(trader_id)
-
         if not isinstance(trader_id, str):
             raise ValueError("Trader id must be a string")
 
@@ -83,8 +81,6 @@ class MessageNumber(object):
         :raises ValueError: Thrown when one of the arguments are invalid
         """
         super(MessageNumber, self).__init__()
-
-        assert isinstance(message_number, str), type(message_number)
 
         if not isinstance(message_number, str):
             raise ValueError("Message number must be a string")

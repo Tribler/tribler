@@ -16,8 +16,6 @@ class Timeout(object):
         """
         super(Timeout, self).__init__()
 
-        assert isinstance(timeout, float), type(timeout)
-
         if not isinstance(timeout, float):
             raise ValueError("Timeout must be a float")
 

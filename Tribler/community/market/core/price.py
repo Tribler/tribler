@@ -16,8 +16,6 @@ class Price(object):
         """
         super(Price, self).__init__()
 
-        assert isinstance(price, int), type(price)
-
         if not isinstance(price, int):
             raise ValueError("Price must be an int")
 
