@@ -352,7 +352,7 @@ class MarketCommunity(Community):
         destination, payload = proposed_trade.to_network()
 
         # Lookup the remote address of the peer with the pubkey
-        candidate = Candidate(self.lookup_ip(destination), False)
+        candidate = Candidate(self.lookup_ip(destination[0]), False)
 
         meta = self.get_meta_message(u"proposed-trade")
         message = meta.impl(
@@ -409,7 +409,7 @@ class MarketCommunity(Community):
         destination, payload = accepted_trade.to_network()
 
         # Add ttl
-        payload += (Ttl.default())
+        payload += (Ttl.default(),)
 
         meta = self.get_meta_message(u"accepted-trade")
         message = meta.impl(
@@ -476,7 +476,7 @@ class MarketCommunity(Community):
         destination, payload = declined_trade.to_network()
 
         # Lookup the remote address of the peer with the pubkey
-        candidate = Candidate(self.lookup_ip(destination), False)
+        candidate = Candidate(self.lookup_ip(destination[0]), False)
 
         meta = self.get_meta_message(u"declined-trade")
         message = meta.impl(
@@ -510,7 +510,8 @@ class MarketCommunity(Community):
         assert isinstance(counter_trade, CounterTrade), type(counter_trade)
         destination, payload = counter_trade.to_network()
 
-        candidate = Candidate(self.lookup_ip(destination), False)
+        # Lookup the remote address of the peer with the pubkey
+        candidate = Candidate(self.lookup_ip(destination[0]), False)
 
         meta = self.get_meta_message(u"counter-trade")
         message = meta.impl(
