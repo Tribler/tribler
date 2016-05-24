@@ -52,7 +52,7 @@ class SocketAddress(object):
         :return: The string representation of the address
         :rtype: str
         """
-        return "%s:%i" % self._ip, self._port
+        return "%s:%i" % (self._ip, self._port)
 
     def __eq__(self, other):
         """
