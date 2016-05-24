@@ -258,7 +258,7 @@ class MatchingEngine(object):
         """
         assert isinstance(order, Order), type(order)
         now = time()
-        proposed_trades, active_ticks = self.matching_strategy.match_order(order)
+        proposed_trades = self.matching_strategy.match_order(order)
         diff = time() - now
         self._logger.debug("Matching engine completed in %.2f seconds", diff)
         return proposed_trades
