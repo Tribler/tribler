@@ -21,7 +21,7 @@ class MatchingStrategyTestSuite(unittest.TestCase):
         # Object creation
         self.order = Order(OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
                            Timeout(0.0), Timestamp(10.0), False)
-        self.matching_strategy = MatchingStrategy(OrderBook(MemoryMessageRepository('trader_id')))
+        self.matching_strategy = MatchingStrategy(OrderBook(MemoryMessageRepository('0')))
 
     def test_match_order(self):
         # Test for match order
@@ -48,8 +48,18 @@ class PriceTimeStrategyTestSuite(unittest.TestCase):
         self.price_level_bid = PriceLevel()
         self.tick_entry_bid = TickEntry(self.bid, self.price_level_bid)
 
-        self.order_book = OrderBook(MemoryMessageRepository('trader_id'))
+        self.order_book = OrderBook(MemoryMessageRepository('0'))
         self.price_time_strategy = PriceTimeStrategy(self.order_book)
+
+    def test_match_order_empty(self):
+        # Test for match order with empty orde book
+        self.assertEquals([], self.price_time_strategy.match_order(self.bid_order))
+
+    def test_match_order(self):
+        # Test for match order
+        self.order_book.insert_bid(self.bid)
+        self.order_book.insert_ask(self.ask)
+        self.assertEquals(1, len(self.price_time_strategy.match_order(self.bid_order)))
 
 
 class MatchingEngineTestSuite(unittest.TestCase):
@@ -65,6 +75,14 @@ class MatchingEngineTestSuite(unittest.TestCase):
         self.order_book = OrderBook(MemoryMessageRepository('0'))
         self.matching_engine = MatchingEngine(PriceTimeStrategy(self.order_book))
 
+    def test_match_order_empty(self):
+        # Test for match order with empty order book
+        self.assertEquals([], self.matching_engine.match_order(self.bid_order))
+
+    def test_match_order(self):
+        # Test for match order
+        self.order_book.insert_ask(self.ask)
+        self.assertEquals(1, len(self.matching_engine.match_order(self.bid_order)))
 
 if __name__ == '__main__':
     unittest.main()
