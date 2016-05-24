@@ -107,6 +107,11 @@ class OrderNumberTestSuite(unittest.TestCase):
         self.order_number2 = OrderNumber("order_number")
         self.order_number3 = OrderNumber("order_number3")
 
+    def test_init(self):
+        # Test for init validation
+        with self.assertRaises(ValueError):
+            OrderNumber(1.0)
+
     def test_equality(self):
         # Test for equality
         self.assertEquals(self.order_number, self.order_number)

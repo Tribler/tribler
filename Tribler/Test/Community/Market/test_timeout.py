@@ -17,6 +17,8 @@ class TimeoutTestSuite(unittest.TestCase):
         # Test for init validation
         with self.assertRaises(ValueError):
             Timeout(-1.0)
+        with self.assertRaises(ValueError):
+            Timeout(1)
 
     def test_timed_out(self):
         # Test for timed out

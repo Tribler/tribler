@@ -17,6 +17,8 @@ class QuantityTestSuite(unittest.TestCase):
         # Test for init validation
         with self.assertRaises(ValueError):
             Quantity(-1)
+        with self.assertRaises(ValueError):
+            Quantity(1.0)
 
     def test_conversion(self):
         # Test for conversions

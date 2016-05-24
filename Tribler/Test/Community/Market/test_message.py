@@ -13,6 +13,13 @@ class TraderIdTestSuite(unittest.TestCase):
         self.trader_id2 = TraderId('0')
         self.trader_id3 = TraderId('1')
 
+    def test_init(self):
+        # Test for init validation
+        with self.assertRaises(ValueError):
+            TraderId(1.0)
+        with self.assertRaises(ValueError):
+            TraderId('non hexadecimal')
+
     def test_conversion(self):
         # Test for conversions
         self.assertEqual('0', str(self.trader_id))
@@ -42,6 +49,11 @@ class MessageNumberTestSuite(unittest.TestCase):
     def test_conversion(self):
         # Test for conversions
         self.assertEqual('message_number', str(self.message_number))
+
+    def test_init(self):
+        # Test for init validation
+        with self.assertRaises(ValueError):
+            MessageNumber(1.0)
 
     def test_equality(self):
         # Test for equality
