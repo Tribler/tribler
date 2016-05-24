@@ -9,18 +9,19 @@
     <string name="navigation_drawer_open">Open menu</string>
     <string name="navigation_drawer_close">Close menu</string>
 
-    <string name="action_cancel">Cancel</string>
     <string name="action_ok">OK</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_turn_on">Turn On</string>
+
     <string name="action_search">Search videos and channels</string>
     <string name="action_upload">Upload a video</string>
     <string name="action_capture_video">Record a new video</string>
-
 
     <string name="action_my_channel">My channel</string>
     <string name="action_playlists">My playlists</string>
 
     <string name="action_send_app">Send to nearby phone</string>
-    <string name="action_send_app_chooser">Send app via</string>
+    <string name="dialog_send_chooser">Send via</string>
     <string name="dialog_enable_nfc_beam">To send the app, you must first turn on NFC and Android Beam on both phones.\n\nTurn on NFC and Android Beam now?</string>
     <string name="dialog_enable_beam">To send the app, you must first turn on NFC and Android Beam on both phones.\n\nTurn on Android Beam now?</string>
 

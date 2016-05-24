@@ -90,6 +90,13 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="org.tribler.android.MainActivity" />
         </activity>
+        <activity
+            android:name=".BeamActivity"
+            android:parentActivityName=".MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="org.tribler.android.MainActivity" />
+        </activity>
     </application>
 
 </manifest>
