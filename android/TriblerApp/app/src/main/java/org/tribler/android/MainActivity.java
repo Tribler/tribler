@@ -140,7 +140,7 @@ public class MainActivity extends AppCompatActivity
                 return true;
             case R.id.nav_beam:
                 File apk = new File(this.getPackageResourcePath());
-                startBeam(Uri.fromFile(apk));
+                MyUtils.startBeam(Uri.fromFile(apk), this);
                 return true;
             case R.id.nav_settings:
                 this.startActivity(new Intent(this, SettingsActivity.class));
@@ -179,40 +179,6 @@ public class MainActivity extends AppCompatActivity
         mSearchViewListener = new SearchViewListener(this);
     }
 
-    private void startBeam(Uri uri) {
-        // Check if device has nfc
-        if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC)) {
-            NfcManager nfcManager = (NfcManager) getSystemService(Context.NFC_SERVICE);
-            NfcAdapter nfcAdapter = nfcManager.getDefaultAdapter();
-            assert nfcAdapter != null;
 
-            // Check if android beam is enabled
-            if (!nfcAdapter.isEnabled()) {
-                Toast.makeText(MainActivity.this, R.string.action_beam_nfc_enable, Toast.LENGTH_LONG).show();
-                startActivity(new Intent(Settings.ACTION_NFC_SETTINGS));
-            } else if (!nfcAdapter.isNdefPushEnabled()) {
-                Toast.makeText(MainActivity.this, R.string.action_beam_enable, Toast.LENGTH_LONG).show();
-                startActivity(new Intent(Settings.ACTION_NFCSHARING_SETTINGS));
-            }
-
-            nfcAdapter.setBeamPushUris(new Uri[]{uri}, this);
-
-            // Show instructions
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            ImageView image = new ImageView(this);
-            image.setImageResource(R.drawable.beam);
-            builder.setView(image);
-            AlertDialog dialog = builder.create();
-            dialog.show();
-
-        } else {
-            // Use bluetooth
-            Intent shareIntent = new Intent();
-            shareIntent.setAction(Intent.ACTION_SEND);
-            shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
-            shareIntent.setType(MyUtils.getMimeType(uri));
-            startActivity(Intent.createChooser(shareIntent, getText(R.string.action_beam_app_chooser)));
-        }
-    }
 
 }
