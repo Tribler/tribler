@@ -53,7 +53,7 @@ class OrderRepository(object):
 
     def delete_by_id(self, order_id):
         """
-        Return the next identity
+        Delete the order with the given id
 
         :param order_id: The order id for the order to delete
         :type order_id: OrderId
@@ -73,18 +73,18 @@ class OrderRepository(object):
 class MemoryOrderRepository(OrderRepository):
     """A repository for orders in the portfolio stored in memory"""
 
-    def __init__(self, mid):
+    def __init__(self, pubkey):
         """
         Initialise the MemoryOrderRepository
 
-        :param mid: Hex encoded version of the public key of this node
-        :type mid: str
+        :param pubkey: Hex encoded version of the public key of this node
+        :type pubkey: str
         """
         super(MemoryOrderRepository, self).__init__()
 
         self._logger.info("Memory order repository used")
 
-        self._mid = mid
+        self._pubkey = pubkey
         self._next_id = 0  # Counter to keep track of the number of messages created by this repository
 
         self._orders = {}
@@ -158,4 +158,4 @@ class MemoryOrderRepository(OrderRepository):
         :rtype: OrderId
         """
         self._next_id += 1
-        return OrderId(TraderId(self._mid), OrderNumber(str(self._next_id)))
+        return OrderId(TraderId(self._pubkey), OrderNumber(str(self._next_id)))
