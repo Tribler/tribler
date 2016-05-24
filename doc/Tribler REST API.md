@@ -9,12 +9,12 @@ The API has been built using [Twisted Web](http://twistedmatrix.com/trac/wiki/Tw
 Some requests require one or more parameters. These parameters are passed using the JSON format. An example of performing a request with parameters using the curl command line tool can be found below:
 
 ```
-curl -X PUT http://localhost:8085/mychannel/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml
+curl -X PUT http://localhost:8085/channels/discovered/aabb/rssfeeds/http%3A%2F%2Frssfeed.com%2Frss.xml
 ```
 
 ## Error handling
 
-If an unhandled exception occurs the response will have code HTTP 500 and look like this:
+If an unhandled exception occurs the response will have code HTTP 500 and looks like this:
 ```json
 {
     "error": {
@@ -57,7 +57,14 @@ There are various download states possible which are returned when fetching down
 | Endpoint | Description |
 | ---- | --------------- |
 | GET /channels/discovered | Get all discovered channels in Tribler |
+| PUT /channels/discovered | Create your own new channel |
+| GET /channels/discovered/{channelcid} | Get general information about a discovered channel |
 | GET /channels/discovered/{channelcid}/torrents | Get all discovered torrents in a specific channel |
+| GET /channels/discovered/{channelcid}/rssfeeds | Get the rss feeds of a channel |
+| PUT /channels/discovered/{channelcid}/rssfeeds/{feedurl} | Add a rss feed to your channel |
+| DELETE /channels/discovered/{channelcid}/rssfeeds/{feedurl} | Remove a rss feed from your channel |
+| POST /channels/discovered/{channelcid}/recheckfeeds | Recheck all rss feeds in a channel |
+| GET /channels/discovered/{channelcid}/playlists | Get a list of playlists in a channel |
 | GET /channels/subscribed | Get the channels you are subscribed to |
 | PUT /channels/subscribed/{channelcid} | Subscribe to a channel |
 | DELETE /channels/subscribed/{channelcid} | Unsubscribe from a channel |
@@ -67,13 +74,6 @@ There are various download states possible which are returned when fetching down
 | Endpoint | Description |
 | ---- | --------------- |
 | GET /mychannel         | Get the name, description and identifier of your channel |
-| PUT /mychannel         | Create your own new channel |
-| GET /mychannel/torrents | Get a list of torrents in your channel |
-| GET /mychannel/rssfeeds | Get a list of rss feeds used by your channel |
-| PUT /mychannel/rssfeeds/{feedurl} | Add a rss feed to your channel |
-| DELETE /mychannel/rssfeeds/{feedurl} | Remove a rss feed from your channel |
-| POST /mychannel/recheckfeeds | Recheck all rss feeds in your channel |
-| GET /mychannel/playlists | Get a list of playlists in your channel |
 
 ### Search
 
@@ -127,6 +127,36 @@ Returns all discovered channels in Tribler.
 }
 ```
 
+## `PUT /channels/discovered/{channelcid}`
+
+Create your own new channel.
+
+### Example request:
+
+```json
+{
+    "name": "John Smit's channel",
+    "description": "Video's of my cat",
+    "mode" (optional): "open" or "semi-open" or "closed" (default)
+}
+```
+
+## `GET /channels/discovered/{channelcid}`
+
+Returns general info about a discovered channel. This includes the name, description and identifier of the channel.
+
+### Example response
+
+```json
+{
+    "overview": {
+        "name": "My Tribler channel",
+        "description": "A great collection of open-source movies",
+        "identifier": "4a9cfc7ca9d15617765f4151dd9fae94c8f3ba11"
+    }
+}
+```
+
 ## `GET /channels/discovered/{channelcid}/torrents`
 
 Returns all discovered torrents in a specific channel. The size of the torrent is in number of bytes. The last_tracker_check value will be 0 if we did not check the tracker state of the torrent yet.
@@ -143,7 +173,54 @@ Returns all discovered torrents in a specific channel. The size of the torrent i
         "category": "other",
         "num_seeders": 42,
         "num_leechers": 184,
-        "last_tracker_check": 1463176959
+        "last_tracker_check": 1463176959,
+        "added": 1461840601
+    }, ...]
+}
+```
+
+## `GET /channels/discovered/{channelcid}/rssfeeds`
+
+Returns a list of rss feeds in a channel. Each rss feed items contains the URL of the feed.
+
+### Example response
+
+```json
+{
+    "rssfeeds": [{
+        "url": "http://rssprovider.com/feed.xml",
+    }, ...]
+}
+```
+
+## `PUT /channels/discovered/{channelcid}/rssfeeds/{feedurl}`
+
+Add a RSS feed to your channel. Returns error 409 (Conflict) if the supplied RSS feed already exists. Note that the rss feed url should be URL-encoded.
+
+## `DELETE /channels/discovered/{channelcid}/rssfeeds/{feedurl}`
+
+Delete a RSS feed from your channel. Returns error 404 if the RSS feed that is being removed does not exist. Note that the rss feed url should be URL-encoded.
+
+## `POST /channels/discovered/{channelcid}/recheckfeeds`
+
+Rechecks all rss feeds in your channel. Returns error 404 if you channel does not exist.
+
+## `GET /channels/discovered/{channelcid}/playlists`
+
+Returns the playlists in a channel. Returns error 404 if you have not created a channel.
+
+### Example response
+
+```json
+{
+    "playlists": [{
+        "id": 1,
+        "name": "My first playlist",
+        "description": "Funny movies",
+        "torrents": [{
+            "name": "movie_1",
+            "infohash": "e940a7a57294e4c98f62514b32611e38181b6cae"
+        }, ... ]
     }, ...]
 }
 ```
@@ -207,82 +284,6 @@ Returns an overview of the channel of the user. This includes the name, descript
         "description": "A great collection of open-source movies",
         "identifier": "4a9cfc7ca9d15617765f4151dd9fae94c8f3ba11"
     }
-}
-```
-
-## `PUT /mychannel`
-
-Create your own new channel.
-
-### Example request:
-
-```json
-{
-    "name": "John Smit's channel",
-    "description": "Video's of my cat",
-    "mode" (optional): "open" or "semi-open" or "closed" (default)
-}
-```
-
-## `GET /mychannel/torrents`
-
-Returns a list of torrents in your channel. Each torrent item in the list contains the infohash, name and the timestamp of addition of the torrent.
-
-### Example response
-
-```json
-{
-    "torrents": [{
-        "name": "ubuntu-15.04.iso",
-        "added": 1461840601,
-        "infohash": "e940a7a57294e4c98f62514b32611e38181b6cae"
-    }, ...]
-}
-```
-
-## `GET /mychannel/rssfeeds`
-
-Returns a list of rss feeds in your channel. Each rss feed items contains the URL of the feed.
-
-### Example response
-
-```json
-{
-    "rssfeeds": [{
-        "url": "http://rssprovider.com/feed.xml",
-    }, ...]
-}
-```
-
-## `PUT /mychannel/rssfeed/{feedurl}`
-
-Add a RSS feed to your channel. Returns error 409 (Conflict) if the supplied RSS feed already exists. Note that the rss feed url should be URL-encoded.
-
-## `DELETE /mychannel/rssfeed/{feedurl}`
-
-Delete a RSS feed from your channel. Returns error 404 if the RSS feed that is being removed does not exist. Note that the rss feed url should be URL-encoded.
-
-## `POST /mychannel/recheckfeeds`
-
-Rechecks all rss feeds in your channel. Returns error 404 if you channel does not exist.
-
-## `GET /mychannel/playlists`
-
-Returns the playlists in your channel. Returns error 404 if you have not created a channel.
-
-### Example response
-
-```json
-{
-    "playlists": [{
-        "id": 1,
-        "name": "My first playlist",
-        "description": "Funny movies",
-        "torrents": [{
-            "name": "movie_1",
-            "infohash": "e940a7a57294e4c98f62514b32611e38181b6cae"
-        }, ... ]
-    }, ...]
 }
 ```
 
