@@ -19,6 +19,7 @@ from TriblerGUI.dialogs.addtorrentdialog import AddTorrentDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.event_request_manager import EventRequestManager
 from TriblerGUI.home_recommended_item import HomeRecommendedItem
+from TriblerGUI.loading_screen import LoadingScreen
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
 
@@ -95,6 +96,10 @@ class TriblerWindow(QMainWindow):
                 widget_item = HomeRecommendedItem(self, get_random_color())
                 self.home_page_table_view.setCellWidget(x, y, widget_item)
                 #self.home_page_table_view.setItem(x, y, item)
+
+        # TEMP show loading screen
+        self.loading_screen = LoadingScreen(self.home_page)
+        self.loading_screen.show()
 
         self.show()
 
