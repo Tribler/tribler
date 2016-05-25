@@ -22,7 +22,6 @@ public class BeamActivity extends AppCompatActivity {
     private NfcAdapter mNfcAdapter;
 
     private void initNfc() {
-        System.out.println("initNfc");
         // Check if device has NFC
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC)) {
 
@@ -48,7 +47,6 @@ public class BeamActivity extends AppCompatActivity {
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        System.out.println("onCreate");
         super.onCreate(savedInstanceState);
         initNfc();
         initGui();
@@ -60,7 +58,6 @@ public class BeamActivity extends AppCompatActivity {
      */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        System.out.println("onActivityResult");
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == ENABLE_NFC_BEAM_ACTIVITY_REQUEST_CODE || requestCode == ENABLE_BEAM_ACTIVITY_REQUEST_CODE) {
             // Proceed with original intent
@@ -73,18 +70,16 @@ public class BeamActivity extends AppCompatActivity {
      */
     @Override
     protected void onNewIntent(Intent intent) {
-        System.out.println("onNewIntent");
         super.onNewIntent(intent);
         setIntent(intent);
         handleIntent(intent);
     }
 
     private void handleIntent(Intent intent) {
-        System.out.println("handleIntent");
-        System.out.println(intent.toString());
-        System.out.println(intent.getAction());
-
-        switch (intent.getAction()) {
+        String action = intent.getAction();
+        if (action == null)
+            return;
+        switch (action) {
 
             case Intent.ACTION_SEND:
                 // Fetch uri of file to send
@@ -118,20 +113,16 @@ public class BeamActivity extends AppCompatActivity {
     }
 
     private void doMyBeam(Uri uri) {
-        System.out.println("doMyBeam");
         // Check if NFC is enabled
         if (!mNfcAdapter.isEnabled()) {
-            System.out.println("NFC OFF");
-            askUser(getText(R.string.dialog_enable_nfc_beam), Settings.ACTION_NFC_SETTINGS, uri);
+            askUser(R.string.dialog_enable_nfc_beam, Settings.ACTION_NFC_SETTINGS);
         }
         // Check if Android Beam is enabled
         else if (!mNfcAdapter.isNdefPushEnabled()) {
-            System.out.println("BEAM OFF");
-            askUser(getText(R.string.dialog_enable_beam), Settings.ACTION_NFCSHARING_SETTINGS, uri);
+            askUser(R.string.dialog_enable_beam, Settings.ACTION_NFCSHARING_SETTINGS);
         }
         // NFC and Android Beam are enabled
         else {
-            System.out.println("BEAM ON");
             mNfcAdapter.setBeamPushUris(new Uri[]{uri}, this);
 
             // Show instructions
@@ -141,24 +132,23 @@ public class BeamActivity extends AppCompatActivity {
         }
     }
 
-    private void askUser(CharSequence question, final String intentAction, final Uri uri) {
-        System.out.println("askUser");
+    private void askUser(int stringId, final String action) {
         // Ask user to turn on NFC and/or Android Beam
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage(question);
+        builder.setMessage(getText(stringId));
         builder.setPositiveButton(getText(R.string.action_turn_on), new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                Intent settingsIntent = new Intent(intentAction);
-                handleIntent(settingsIntent);
+                handleIntent(new Intent(action));
             }
         });
         builder.setNegativeButton(getText(R.string.action_cancel), new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                // Send via other means
-                Intent chooserIntent = MyUtils.sendChooser(uri, getText(R.string.dialog_send_chooser));
-                handleIntent(chooserIntent);
+                // Pretend NFC is not available
+                mNfcAdapter = null;
+                // Proceed with original intent
+                handleIntent(getIntent());
             }
         });
         AlertDialog dialog = builder.create();
