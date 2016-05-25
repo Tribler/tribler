@@ -11,7 +11,6 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.AppCompatDelegate;
-import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
@@ -29,8 +28,6 @@ public class MainActivity extends AppCompatActivity
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
     }
 
-    private SearchViewListener mSearchViewListener;
-
     /**
      * {@inheritDoc}
      */
@@ -38,8 +35,32 @@ public class MainActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //ServiceTriblerd.start(this, "");
-        initSearch();
         initGui();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        // Add items to the action bar if it is present
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.activity_main_action_bar, menu);
+
+        // Search button
+        final MenuItem btnSearch = (MenuItem) menu.findItem(R.id.btn_search);
+        assert btnSearch != null;
+        btnSearch.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem menuItem) {
+                Intent intent = new Intent(MainActivity.this, SearchActivity.class);
+                startActivity(intent);
+                return true;
+            }
+        });
+
+        return true;
     }
 
     /**
@@ -100,25 +121,6 @@ public class MainActivity extends AppCompatActivity
      * {@inheritDoc}
      */
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        super.onCreateOptionsMenu(menu);
-        // Add items to the action bar if it is present
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.action_menu, menu);
-
-        // Search button
-        final MenuItem btnSearch = (MenuItem) menu.findItem(R.id.btn_search);
-        assert btnSearch != null;
-        SearchView searchView = (SearchView) btnSearch.getActionView();
-        mSearchViewListener.setSearchView(searchView);
-
-        return true;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         assert drawer != null;
@@ -171,10 +173,5 @@ public class MainActivity extends AppCompatActivity
         }
         return true;
     }
-
-    private void initSearch() {
-        mSearchViewListener = new SearchViewListener(this);
-    }
-
 
 }
