@@ -84,6 +84,11 @@ class MemoryOrderRepository(OrderRepository):
 
         self._logger.info("Memory order repository used")
 
+        try:
+            int(pubkey, 16)
+        except ValueError:  # Not a hexadecimal
+            raise ValueError("Encoded public key must be hexadecimal")
+
         self._pubkey = pubkey
         self._next_id = 0  # Counter to keep track of the number of messages created by this repository
 

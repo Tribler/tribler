@@ -17,21 +17,21 @@ class MessageRepository(object):
 class MemoryMessageRepository(MessageRepository):
     """A repository for messages in the order book stored in memory"""
 
-    def __init__(self, mid):
+    def __init__(self, pubkey):
         """
         Initialise the MemoryMessageRepository
 
-        :param mid: Hex encoded version of the public key of this node
-        :type mid: str
+        :param pubkey: Hex encoded version of the public key of this node
+        :type pubkey: str
         """
         super(MemoryMessageRepository, self).__init__()
 
         try:
-            int(mid, 16)
+            int(pubkey, 16)
         except ValueError:  # Not a hexadecimal
             raise ValueError("Encoded public key must be hexadecimal")
 
-        self._mid = mid
+        self.pubkey = pubkey
         self._next_id = 0  # Counter to keep track of the number of messages created by this repository
 
     def next_identity(self):
@@ -42,4 +42,4 @@ class MemoryMessageRepository(MessageRepository):
         :rtype: MessageId
         """
         self._next_id += 1
-        return MessageId(TraderId(self._mid), MessageNumber(str(self._next_id)))
+        return MessageId(TraderId(self.pubkey), MessageNumber(str(self._next_id)))
