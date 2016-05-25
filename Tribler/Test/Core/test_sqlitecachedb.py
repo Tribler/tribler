@@ -194,3 +194,29 @@ class TestSqliteCacheDB(TriblerCoreTest):
         self.sqlite_test.update('person', "lastname == '4'", firstname=654, lastname=44)
         one = self.sqlite_test.fetchone("select firstname from person where lastname == 44")
         self.assertEqual(one, 654)
+
+    @blocking_call_on_reactor_thread
+    def test_delete_single_element(self):
+        """
+        This test tests whether deleting using a single element as value works.
+        """
+        self.test_insert()
+        self.sqlite_test.insert('person', lastname='x', firstname='z')
+        one = self.sqlite_test.fetchone(u"SELECT * FROM person")
+        self.assertEqual(one, ('a', 'b'))
+        self.sqlite_test.delete("person", lastname="a")
+        one = self.sqlite_test.fetchone(u"SELECT * FROM person")
+        self.assertEqual(one, ('x', 'z'))
+
+    @blocking_call_on_reactor_thread
+    def test_delete_tuple(self):
+        """
+        This test tests whether deleting using a tuple as value works.
+        """
+        self.test_insert()
+        self.sqlite_test.insert('person', lastname='x', firstname='z')
+        one = self.sqlite_test.fetchone(u"SELECT * FROM person")
+        self.assertEqual(one, ('a', 'b'))
+        self.sqlite_test.delete("person", lastname=("LIKE", "a"))
+        one = self.sqlite_test.fetchone(u"SELECT * FROM person")
+        self.assertEqual(one, ('x', 'z'))
