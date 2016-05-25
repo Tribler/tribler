@@ -19,6 +19,7 @@ class OrderRepository(object):
     def find_all(self):
         """
         Find all orders
+        :rtype: [Order]
         """
         return NotImplemented
 

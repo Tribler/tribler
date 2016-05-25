@@ -165,7 +165,7 @@ class Order(object):
 
     def __init__(self, order_id, price, quantity, timeout, timestamp, is_ask):
         """
-        Initialise the message
+        Initialise the order
 
         :param order_id: An order id to identify the order
         :param price: A price to indicate for which amount to sell or buy
