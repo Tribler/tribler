@@ -369,7 +369,7 @@ class SQLiteCacheDB(TaskManager):
                 sql += u'%s=? AND ' % k
                 arg.append(v)
         sql = sql[:-5]
-        self.execute_write(sql, argv.values())
+        self.execute_write(sql, arg)
 
     # -------- Read Operations --------
     def size(self, table_name):
