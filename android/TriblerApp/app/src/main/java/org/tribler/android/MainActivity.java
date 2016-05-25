@@ -5,9 +5,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
-import android.support.design.widget.Snackbar;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -19,7 +17,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
 
 import java.io.File;
 
@@ -51,7 +48,9 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+
         if (requestCode == CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE) {
+
             if (resultCode == Activity.RESULT_OK) {
                 Log.d("Tribler", "Video saved to:\n" + data.getData());
                 //TODO: advise user
@@ -66,17 +65,16 @@ public class MainActivity extends AppCompatActivity
 
     private void initGui() {
         setContentView(R.layout.activity_main);
+        // Top bar
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         assert toolbar != null;
         setSupportActionBar(toolbar);
 
-        initFloatingActionButton();
-
+        // Main menu
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         assert drawer != null;
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
@@ -129,20 +127,8 @@ public class MainActivity extends AppCompatActivity
         // Handle navigation view item clicks here
         switch (item.getItemId()) {
 
-            case R.id.nav_capture_video:
+            case R.id.nav_subscribtions:
 
-                // Check if device has camera
-                if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
-                    //TODO
-                }
-
-                File output = MyUtils.getOutputVideoFile(this);
-                if (output == null) {
-                    Log.e(getClass().getName(), "failed to obtain output file");
-                    //TODO: advise user
-                }
-                Intent captureIntent = MyUtils.captureVideo(Uri.fromFile(output));
-                startActivityForResult(captureIntent, CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
                 return true;
 
             case R.id.nav_my_channel:
@@ -151,6 +137,20 @@ public class MainActivity extends AppCompatActivity
 
             case R.id.nav_my_playlists:
 
+                return true;
+
+            case R.id.nav_capture_video:
+                // Check if device has camera
+                if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
+                    // Obtain output file
+                    File output = MyUtils.getOutputVideoFile(this);
+                    if (output == null) {
+                        Log.e(getClass().getName(), "failed to obtain output file");
+                        //TODO: advise user
+                    }
+                    Intent captureIntent = MyUtils.captureVideo(Uri.fromFile(output));
+                    startActivityForResult(captureIntent, CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
+                }
                 return true;
 
             case R.id.nav_beam:
@@ -164,26 +164,12 @@ public class MainActivity extends AppCompatActivity
                 return true;
 
             case R.id.nav_shutdown:
-
+                ServiceTriblerd.stop(this);
+                // Exit MainActivity
+                finish();
                 return true;
         }
         return true;
-    }
-
-    private void initFloatingActionButton() {
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        assert fab != null;
-
-        fab.setOnClickListener(new View.OnClickListener() {
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
     }
 
     private void initSearch() {

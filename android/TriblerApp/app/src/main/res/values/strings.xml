@@ -2,6 +2,9 @@
     <string name="app_name">Tribler</string>
     <string name="app_website">www.tribler.org</string>
 
+    <string name="title_app">Application</string>
+    <string name="title_create_content">Create new content</string>
+
     <string name="title_activity_main">@string/app_name</string>
     <string name="title_activity_search">@string/action_search</string>
     <string name="title_activity_settings">@string/action_settings</string>
@@ -14,9 +17,9 @@
     <string name="action_turn_on">Turn On</string>
 
     <string name="action_search">Search videos and channels</string>
-    <string name="action_upload">Upload a video</string>
     <string name="action_capture_video">Record a new video</string>
 
+    <string name="action_subscribtions">Favorite channels</string>
     <string name="action_my_channel">My channel</string>
     <string name="action_playlists">My playlists</string>
 

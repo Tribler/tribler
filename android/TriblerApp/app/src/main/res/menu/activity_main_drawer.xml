@@ -3,9 +3,9 @@
 
     <group android:checkableBehavior="single">
         <item
-            android:id="@+id/nav_capture_video"
-            android:icon="@drawable/ic_menu_video_camera"
-            android:title="@string/action_capture_video" />
+            android:id="@+id/nav_subscribtions"
+            android:icon="@drawable/ic_menu_star"
+            android:title="@string/action_subscribtions" />
         <item
             android:id="@+id/nav_my_channel"
             android:icon="@drawable/ic_menu_me"
@@ -16,7 +16,14 @@
             android:title="@string/action_playlists" />
     </group>
 
-    <item android:title="Application">
+    <item android:title="@string/title_create_content">
+        <item
+            android:id="@+id/nav_capture_video"
+            android:icon="@drawable/ic_menu_video_camera"
+            android:title="@string/action_capture_video" />
+    </item>
+
+    <item android:title="@string/title_app">
         <menu>
             <item
                 android:id="@+id/nav_beam"
