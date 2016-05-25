@@ -358,7 +358,7 @@ class MarketCommunity(Community):
         message = meta.impl(
             authentication=(self.my_member,),
             distribution=(self.claim_global_time(),),
-            destination=candidate,
+            destination=(candidate,),
             payload=payload
         )
 
@@ -482,7 +482,7 @@ class MarketCommunity(Community):
         message = meta.impl(
             authentication=(self.my_member,),
             distribution=(self.claim_global_time(),),
-            destination=candidate,
+            destination=(candidate,),
             payload=payload
         )
 
@@ -517,7 +517,7 @@ class MarketCommunity(Community):
         message = meta.impl(
             authentication=(self.my_member,),
             distribution=(self.claim_global_time(),),
-            destination=candidate,
+            destination=(candidate,),
             payload=payload
         )
 
