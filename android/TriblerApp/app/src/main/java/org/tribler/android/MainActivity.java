@@ -1,5 +1,6 @@
 package org.tribler.android;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -14,6 +15,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.AppCompatDelegate;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -31,7 +33,6 @@ public class MainActivity extends AppCompatActivity
     }
 
     private SearchViewListener mSearchViewListener;
-    private CaptureVideoListener mCaptureVideoListener;
 
     /**
      * {@inheritDoc}
@@ -40,7 +41,6 @@ public class MainActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //ServiceTriblerd.start(this, "");
-        initCaptureVideo();
         initSearch();
         initGui();
     }
@@ -52,7 +52,15 @@ public class MainActivity extends AppCompatActivity
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE) {
-            mCaptureVideoListener.onActivityResult(resultCode, data);
+            if (resultCode == Activity.RESULT_OK) {
+                Log.d("Tribler", "Video saved to:\n" + data.getData());
+                //TODO: advise user
+            } else if (resultCode == Activity.RESULT_CANCELED) {
+                Log.d("Tribler", "User cancelled the video capture");
+            } else {
+                Log.e("Tribler", "failed to capture video");
+                //TODO: advise user
+            }
         }
     }
 
@@ -120,23 +128,41 @@ public class MainActivity extends AppCompatActivity
 
         // Handle navigation view item clicks here
         switch (item.getItemId()) {
+
             case R.id.nav_capture_video:
 
+                // Check if device has camera
+                if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
+                    //TODO
+                }
+
+                File output = MyUtils.getOutputVideoFile(this);
+                if (output == null) {
+                    Log.e(getClass().getName(), "failed to obtain output file");
+                    //TODO: advise user
+                }
+                Intent captureIntent = MyUtils.captureVideo(Uri.fromFile(output));
+                startActivityForResult(captureIntent, CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
                 return true;
+
             case R.id.nav_my_channel:
 
                 return true;
+
             case R.id.nav_my_playlists:
 
                 return true;
+
             case R.id.nav_beam:
                 File apk = new File(this.getPackageResourcePath());
                 MyUtils.sendBeam(Uri.fromFile(apk), this);
                 return true;
+
             case R.id.nav_settings:
                 Intent settingsIntent = new Intent(this, SettingsActivity.class);
-                this.startActivity(settingsIntent);
+                startActivity(settingsIntent);
                 return true;
+
             case R.id.nav_shutdown:
 
                 return true;
@@ -158,13 +184,6 @@ public class MainActivity extends AppCompatActivity
                         .setAction("Action", null).show();
             }
         });
-    }
-
-    private void initCaptureVideo() {
-        // Check if device has camera
-        if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
-            mCaptureVideoListener = new CaptureVideoListener(this);
-        }
     }
 
     private void initSearch() {
