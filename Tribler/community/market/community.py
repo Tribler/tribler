@@ -1,7 +1,3 @@
-from Tribler.community.market.core.message import TraderId
-from Tribler.community.market.core.order import TickWasNotReserved
-from Tribler.community.market.socket_address import SocketAddress
-from Tribler.community.market.ttl import Ttl
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.community import Community
@@ -12,7 +8,9 @@ from Tribler.dispersy.message import Message, DelayMessageByProof
 from Tribler.dispersy.resolution import PublicResolution
 from conversion import MarketConversion
 from core.matching_engine import MatchingEngine, PriceTimeStrategy
+from core.message import TraderId
 from core.message_repository import MemoryMessageRepository
+from core.order import TickWasNotReserved
 from core.order_repository import MemoryOrderRepository
 from core.orderbook import OrderBook
 from core.portfolio import Portfolio
@@ -23,6 +21,8 @@ from core.timeout import Timeout
 from core.timestamp import Timestamp
 from core.trade import Trade, ProposedTrade, AcceptedTrade, DeclinedTrade, CounterTrade
 from payload import OfferPayload, ProposedTradePayload, AcceptedTradePayload, DeclinedTradePayload
+from socket_address import SocketAddress
+from ttl import Ttl
 
 
 class MarketCommunity(Community):

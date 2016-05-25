@@ -1,14 +1,14 @@
 from Tribler.Core.Utilities.encoding import encode, decode
-from Tribler.community.market.core.message import TraderId, MessageNumber
-from Tribler.community.market.core.order import OrderNumber
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
-from Tribler.community.market.core.timeout import Timeout
-from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.community.market.socket_address import SocketAddress
-from Tribler.community.market.ttl import Ttl
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
+from core.message import TraderId, MessageNumber
+from core.order import OrderNumber
+from core.price import Price
+from core.quantity import Quantity
+from core.timeout import Timeout
+from core.timestamp import Timestamp
+from socket_address import SocketAddress
+from ttl import Ttl
 
 
 class MarketConversion(BinaryConversion):

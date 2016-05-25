@@ -1,6 +1,6 @@
 from bintrees import FastRBTree
 
-from Tribler.community.market.core.order import OrderId
+from order import OrderId
 from price import Price
 from pricelevel import PriceLevel
 from quantity import Quantity
