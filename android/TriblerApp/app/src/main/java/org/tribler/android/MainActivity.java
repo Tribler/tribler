@@ -49,7 +49,7 @@ public class MainActivity extends AppCompatActivity
         inflater.inflate(R.menu.activity_main_action_bar, menu);
 
         // Search button
-        final MenuItem btnSearch = (MenuItem) menu.findItem(R.id.btn_search);
+        MenuItem btnSearch = (MenuItem) menu.findItem(R.id.btn_search);
         assert btnSearch != null;
         btnSearch.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
@@ -157,7 +157,8 @@ public class MainActivity extends AppCompatActivity
 
             case R.id.nav_beam:
                 File apk = new File(this.getPackageResourcePath());
-                MyUtils.sendBeam(Uri.fromFile(apk), this);
+                Intent beamIntent = MyUtils.sendBeam(Uri.fromFile(apk), this);
+                startActivity(beamIntent);
                 return true;
 
             case R.id.nav_settings:

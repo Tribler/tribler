@@ -33,12 +33,12 @@ public class MyUtils {
         return type;
     }
 
-    public static void sendBeam(Uri uri, Context ctx) {
+    public static Intent sendBeam(Uri uri, Context ctx) {
         Intent intent = new Intent(ctx, BeamActivity.class);
         intent.setAction(Intent.ACTION_SEND);
         intent.putExtra(Intent.EXTRA_STREAM, uri);
         intent.setType(getMimeType(uri));
-        ctx.startActivity(intent);
+        return intent;
     }
 
     public static Intent sendChooser(Uri uri, CharSequence title) {

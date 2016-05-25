@@ -60,7 +60,7 @@ public class SearchActivity extends AppCompatActivity {
         inflater.inflate(R.menu.activity_search_action_bar, menu);
 
         // Search button
-        final MenuItem btnSearch = (MenuItem) menu.findItem(R.id.btn_search);
+        MenuItem btnSearch = (MenuItem) menu.findItem(R.id.btn_search);
         assert btnSearch != null;
         final SearchView searchView = (SearchView) btnSearch.getActionView();
         searchView.setIconifiedByDefault(false);
