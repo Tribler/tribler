@@ -97,6 +97,7 @@ public class BeamActivity extends AppCompatActivity {
             case Intent.ACTION_CHOOSER:
                 // Show system settings
                 startActivity(intent);
+                // Exit BeamActivity
                 finish();
                 return;
 
