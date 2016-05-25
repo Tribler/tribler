@@ -5,6 +5,7 @@ from core.price import Price
 from core.quantity import Quantity
 from core.timeout import Timeout
 from core.timestamp import Timestamp
+from core.transaction import TransactionNumber
 from socket_address import SocketAddress
 from ttl import Ttl
 
@@ -151,3 +152,74 @@ class DeclinedTradePayload(MessagePayload):
         @property
         def recipient_order_number(self):
             return self._recipient_order_number
+
+
+class StartTransactionPayload(MessagePayload):
+    class Implementation(MessagePayload.Implementation):
+        def __init__(self, meta, trader_id, message_number, transaction_number, timestamp):
+            assert isinstance(transaction_number, TransactionNumber), type(transaction_number)
+            super(StartTransactionPayload.Implementation, self).__init__(meta, trader_id, message_number, timestamp)
+            self._transaction_number = transaction_number
+
+        @property
+        def transaction_number(self):
+            return self._transaction_number
+
+class MultiChainTransactionPayload(MessagePayload):
+    class Implementation(MessagePayload.Implementation):
+        def __init__(self, meta, trader_id, message_number, transaction_number, bitcoin_address, transferor_quantity, transferee_quantity, timestamp):
+            assert isinstance(transaction_number, TransactionNumber), type(transaction_number)
+            assert isinstance(bitcoin_address, str), type(bitcoin_address)
+            assert isinstance(transferor_quantity, Quantity), type(transferor_quantity)
+            assert isinstance(transferee_quantity, Quantity), type(transferee_quantity)
+            super(MultiChainTransactionPayload.Implementation, self).__init__(meta, trader_id, message_number, timestamp)
+            self._transaction_number = transaction_number
+            self._bitcoin_address = bitcoin_address
+            self._transferor_quantity = transferor_quantity
+            self._transferee_quantity = transferee_quantity
+
+        @property
+        def transaction_number(self):
+            return self._transaction_number
+
+        @property
+        def bitcoin_address(self):
+            return self._bitcoin_address
+
+        @property
+        def transferor_quantity(self):
+            return self._transferor_quantity
+
+        @property
+        def transferee_quantity(self):
+            return self._transferee_quantity
+
+
+class BitcoinTransactionPayload(MessagePayload):
+    class Implementation(MessagePayload.Implementation):
+        def __init__(self, meta, trader_id, message_number, transaction_number, quantity, timestamp):
+            assert isinstance(transaction_number, TransactionNumber), type(transaction_number)
+            assert isinstance(quantity, Quantity), type(quantity)
+            super(BitcoinTransactionPayload.Implementation, self).__init__(meta, trader_id, message_number, timestamp)
+            self._transaction_number = transaction_number
+            self._quantity = quantity
+
+        @property
+        def transaction_number(self):
+            return self._transaction_number
+
+        @property
+        def quantity(self):
+            return self._quantity
+
+
+class EndTransactionPayload(MessagePayload):
+    class Implementation(MessagePayload.Implementation):
+        def __init__(self, meta, trader_id, message_number, transaction_number, timestamp):
+            assert isinstance(transaction_number, TransactionNumber), type(transaction_number)
+            super(EndTransactionPayload.Implementation, self).__init__(meta, trader_id, message_number, timestamp)
+            self._transaction_number = transaction_number
+
+        @property
+        def transaction_number(self):
+            return self._transaction_number
