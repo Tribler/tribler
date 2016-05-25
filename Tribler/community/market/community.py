@@ -13,7 +13,7 @@ from core.message_repository import MemoryMessageRepository
 from core.order import TickWasNotReserved
 from core.order_repository import MemoryOrderRepository
 from core.orderbook import OrderBook
-from core.portfolio import Portfolio
+from core.order_manager import OrderManager
 from core.price import Price
 from core.quantity import Quantity
 from core.tick import Ask, Bid, Tick
@@ -61,7 +61,7 @@ class MarketCommunity(Community):
 
         order_repository = MemoryOrderRepository(self.pubkey)
         message_repository = MemoryMessageRepository(self.pubkey)
-        self.portfolio = Portfolio(order_repository)
+        self.order_manager = OrderManager(order_repository)
         self.order_book = OrderBook(message_repository)
         self.matching_engine = MatchingEngine(PriceTimeStrategy(self.order_book))
 
@@ -192,7 +192,7 @@ class MarketCommunity(Community):
         timeout = Timeout(timeout)
 
         # Create the order
-        order = self.portfolio.create_ask_order(price, quantity, timeout)
+        order = self.order_manager.create_ask_order(price, quantity, timeout)
 
         # Create the tick
         tick = Tick.from_order(order, self.order_book.message_repository.next_identity())
@@ -246,7 +246,7 @@ class MarketCommunity(Community):
                 self.order_book.insert_ask(ask)
 
                 # Check for new matches against the orders of this node
-                for order in self.portfolio.order_repository.find_all():
+                for order in self.order_manager.order_repository.find_all():
                     if not order.is_ask():
                         proposed_trades = self.matching_engine.match_order(order)
                         self.send_proposed_trade_messages(proposed_trades)
@@ -279,7 +279,7 @@ class MarketCommunity(Community):
         timeout = Timeout(timeout)
 
         # Create the order
-        order = self.portfolio.create_bid_order(price, quantity, timeout)
+        order = self.order_manager.create_bid_order(price, quantity, timeout)
 
         # Create the tick
         tick = Tick.from_order(order, self.order_book.message_repository.next_identity())
@@ -333,7 +333,7 @@ class MarketCommunity(Community):
                 self.order_book.insert_bid(bid)
 
                 # Check for new matches against the orders of this node
-                for order in self.portfolio.order_repository.find_all():
+                for order in self.order_manager.order_repository.find_all():
                     if order.is_ask():
                         proposed_trades = self.matching_engine.match_order(order)
                         self.send_proposed_trade_messages(proposed_trades)
@@ -373,7 +373,7 @@ class MarketCommunity(Community):
             proposed_trade = ProposedTrade.from_network(message.payload)
 
             if str(proposed_trade.recipient_order_id.trader_id) == str(self.pubkey):  # The message is for this node
-                order = self.portfolio.order_repository.find_by_id(proposed_trade.recipient_order_id)
+                order = self.order_manager.order_repository.find_by_id(proposed_trade.recipient_order_id)
 
                 if order:
                     if order.available_quantity >= proposed_trade.quantity:
@@ -429,7 +429,7 @@ class MarketCommunity(Community):
             accepted_trade = AcceptedTrade.from_network(message.payload)
 
             if self.check_history(accepted_trade):  # The message is new to this node
-                order = self.portfolio.order_repository.find_by_id(accepted_trade.recipient_order_id)
+                order = self.order_manager.order_repository.find_by_id(accepted_trade.recipient_order_id)
 
                 if order:
                     try:
@@ -497,7 +497,7 @@ class MarketCommunity(Community):
             declined_trade = DeclinedTrade.from_network(message.payload)
 
             if str(declined_trade.recipient_order_id.trader_id) == str(self.pubkey):  # The message is for this node
-                order = self.portfolio.order_repository.find_by_id(declined_trade.recipient_order_id)
+                order = self.order_manager.order_repository.find_by_id(declined_trade.recipient_order_id)
 
                 if order:
                     try:
@@ -532,7 +532,7 @@ class MarketCommunity(Community):
             counter_trade = CounterTrade.from_network(message.payload)
 
             if str(counter_trade.recipient_order_id.trader_id) == str(self.pubkey):  # The message is for this node
-                order = self.portfolio.order_repository.find_by_id(counter_trade.recipient_order_id)
+                order = self.order_manager.order_repository.find_by_id(counter_trade.recipient_order_id)
 
                 if order:
                     try:

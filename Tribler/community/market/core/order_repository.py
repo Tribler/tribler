@@ -5,7 +5,7 @@ from order import OrderNumber, OrderId, Order
 
 
 class OrderRepository(object):
-    """A repository interface for orders in the portfolio"""
+    """A repository interface for orders in the order manager"""
 
     def __init__(self):
         """
@@ -72,7 +72,7 @@ class OrderRepository(object):
 
 
 class MemoryOrderRepository(OrderRepository):
-    """A repository for orders in the portfolio stored in memory"""
+    """A repository for orders in the order manager stored in memory"""
 
     def __init__(self, pubkey):
         """

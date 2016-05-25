@@ -8,19 +8,19 @@ from timeout import Timeout
 from timestamp import Timestamp
 
 
-class Portfolio(object):
+class OrderManager(object):
     """Provides an interface to the user to manage the users orders"""
 
     def __init__(self, order_repository):
         """
-        Initialise the portfolio
+        Initialise the order manager
 
-        :param order_repository: The order repository to use for this portfolio
+        :param order_repository: The order repository to use for this order manager
         :type order_repository: OrderRepository
         """
-        super(Portfolio, self).__init__()
+        super(OrderManager, self).__init__()
         self._logger = logging.getLogger(self.__class__.__name__)
-        self._logger.info("Market Portfolio initialized")
+        self._logger.info("Market OrderManager initialized")
 
         assert isinstance(order_repository, OrderRepository), type(order_repository)
 
