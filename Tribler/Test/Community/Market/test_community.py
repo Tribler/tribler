@@ -32,8 +32,10 @@ class CommunityTestSuite(unittest.TestCase):
         registerAsIOThread()
 
         # Object creation
-        self.dispersy = Dispersy(ManualEnpoint(0), unicode("dispersy_temporary"))
+        endpoint = ManualEnpoint(0)
+        self.dispersy = Dispersy(endpoint, unicode("dispersy_temporary"))
         self.dispersy._database.open()
+        endpoint.open(self.dispersy)
 
         # Faking wan address vote
         self.dispersy.wan_address_vote(('1.1.1.1', 1), Candidate(('1.1.1.1', 1), False))
