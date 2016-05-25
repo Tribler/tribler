@@ -25,7 +25,6 @@ public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
     public static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 200;
-    public static final int ENABLE_NFC_BEAM_ACTIVITY_REQUEST_CODE = 400;
 
     static {
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
@@ -40,9 +39,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         //ServiceTriblerd.start(this, "");
-
         initCaptureVideo();
         initSearch();
         initGui();
@@ -53,9 +50,8 @@ public class MainActivity extends AppCompatActivity
      */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE) {
-            mCaptureVideoListener.onActivityResult(resultCode, data);
-        } else if (requestCode == ENABLE_NFC_BEAM_ACTIVITY_REQUEST_CODE) {
             mCaptureVideoListener.onActivityResult(resultCode, data);
         }
     }
@@ -99,6 +95,7 @@ public class MainActivity extends AppCompatActivity
      */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
         // Add items to the action bar if it is present
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.action_menu, menu);
@@ -134,10 +131,11 @@ public class MainActivity extends AppCompatActivity
                 return true;
             case R.id.nav_beam:
                 File apk = new File(this.getPackageResourcePath());
-                MyUtils.nfcBeam(Uri.fromFile(apk), this);
+                MyUtils.sendBeam(Uri.fromFile(apk), this);
                 return true;
             case R.id.nav_settings:
-                this.startActivity(new Intent(this, SettingsActivity.class));
+                Intent settingsIntent = new Intent(this, SettingsActivity.class);
+                this.startActivity(settingsIntent);
                 return true;
             case R.id.nav_shutdown:
 
@@ -172,7 +170,6 @@ public class MainActivity extends AppCompatActivity
     private void initSearch() {
         mSearchViewListener = new SearchViewListener(this);
     }
-
 
 
 }

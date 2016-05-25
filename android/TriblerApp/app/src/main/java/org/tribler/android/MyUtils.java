@@ -9,12 +9,8 @@ import android.webkit.MimeTypeMap;
 public class MyUtils {
 
     public static String getMimeType(Uri uri) {
-        return getMimeType(uri.toString());
-    }
-
-    public static String getMimeType(String file) {
         String type = null;
-        String extension = MimeTypeMap.getFileExtensionFromUrl(file);
+        String extension = MimeTypeMap.getFileExtensionFromUrl(uri.toString());
         if (extension != null) {
             type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
         }
@@ -30,11 +26,19 @@ public class MyUtils {
                 & Configuration.SCREENLAYOUT_SIZE_MASK) >= Configuration.SCREENLAYOUT_SIZE_XLARGE;
     }
 
-    public static void nfcBeam(Uri uri, Context ctx) {
+    public static void sendBeam(Uri uri, Context ctx) {
         Intent intent = new Intent(ctx, BeamActivity.class);
         intent.setAction(Intent.ACTION_SEND);
         intent.putExtra(Intent.EXTRA_STREAM, uri);
-        intent.setType(getMimeType(uri));
+        intent.setType(MyUtils.getMimeType(uri));
         ctx.startActivity(intent);
+    }
+
+    public static Intent sendChooser(Uri uri, CharSequence title) {
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_SEND);
+        intent.putExtra(Intent.EXTRA_STREAM, uri);
+        intent.setType(MyUtils.getMimeType(uri));
+        return Intent.createChooser(intent, title);
     }
 }

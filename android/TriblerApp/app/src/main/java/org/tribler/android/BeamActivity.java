@@ -16,9 +16,13 @@ import android.widget.ImageView;
 
 public class BeamActivity extends AppCompatActivity {
 
+    public static final int ENABLE_NFC_BEAM_ACTIVITY_REQUEST_CODE = 400;
+    public static final int ENABLE_BEAM_ACTIVITY_REQUEST_CODE = 800;
+
     private NfcAdapter mNfcAdapter;
 
     private void initNfc() {
+        System.out.println("initNfc");
         // Check if device has NFC
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC)) {
 
@@ -44,11 +48,10 @@ public class BeamActivity extends AppCompatActivity {
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        System.out.println("onCreate");
         super.onCreate(savedInstanceState);
-
         initNfc();
         initGui();
-
         handleIntent(getIntent());
     }
 
@@ -56,10 +59,13 @@ public class BeamActivity extends AppCompatActivity {
      * {@inheritDoc}
      */
     @Override
-    protected void onResume() {
-        super.onResume();
-
-        handleIntent(getIntent());
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        System.out.println("onActivityResult");
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == ENABLE_NFC_BEAM_ACTIVITY_REQUEST_CODE || requestCode == ENABLE_BEAM_ACTIVITY_REQUEST_CODE) {
+            // Proceed with original intent
+            handleIntent(getIntent());
+        }
     }
 
     /**
@@ -67,36 +73,65 @@ public class BeamActivity extends AppCompatActivity {
      */
     @Override
     protected void onNewIntent(Intent intent) {
+        System.out.println("onNewIntent");
+        super.onNewIntent(intent);
         setIntent(intent);
         handleIntent(intent);
     }
 
     private void handleIntent(Intent intent) {
-        System.out.println(intent.toString()); //DEBUG
+        System.out.println("handleIntent");
+        System.out.println(intent.toString());
+        System.out.println(intent.getAction());
 
-        if (Intent.ACTION_SEND.equals(intent.getAction())) {
-            // Fetch uri of file to send
-            Uri uri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
-            if (mNfcAdapter == null) {
-                // Send via other means
-                sendChooser(uri);
-            } else {
-                doMyBeam(uri);
-            }
+        switch (intent.getAction()) {
+
+            case Intent.ACTION_SEND:
+                // Fetch uri of file to send
+                Uri uri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+
+                if (mNfcAdapter != null) {
+                    doMyBeam(uri);
+                } else {
+                    // Send via other means
+                    Intent chooserIntent = MyUtils.sendChooser(uri, getText(R.string.dialog_send_chooser));
+                    handleIntent(chooserIntent);
+                }
+                return;
+
+            case Intent.ACTION_CHOOSER:
+                // Show system settings
+                startActivity(intent);
+                finish();
+                return;
+
+            case Settings.ACTION_NFC_SETTINGS:
+                // Open system settings
+                startActivityForResult(intent, ENABLE_NFC_BEAM_ACTIVITY_REQUEST_CODE);
+                return;
+
+            case Settings.ACTION_NFCSHARING_SETTINGS:
+                // Open system settings
+                startActivityForResult(intent, ENABLE_BEAM_ACTIVITY_REQUEST_CODE);
+                return;
         }
     }
 
     private void doMyBeam(Uri uri) {
+        System.out.println("doMyBeam");
         // Check if NFC is enabled
         if (!mNfcAdapter.isEnabled()) {
+            System.out.println("NFC OFF");
             askUser(getText(R.string.dialog_enable_nfc_beam), Settings.ACTION_NFC_SETTINGS, uri);
         }
         // Check if Android Beam is enabled
         else if (!mNfcAdapter.isNdefPushEnabled()) {
+            System.out.println("BEAM OFF");
             askUser(getText(R.string.dialog_enable_beam), Settings.ACTION_NFCSHARING_SETTINGS, uri);
         }
         // NFC and Android Beam are enabled
         else {
+            System.out.println("BEAM ON");
             mNfcAdapter.setBeamPushUris(new Uri[]{uri}, this);
 
             // Show instructions
@@ -107,32 +142,26 @@ public class BeamActivity extends AppCompatActivity {
     }
 
     private void askUser(CharSequence question, final String intentAction, final Uri uri) {
+        System.out.println("askUser");
         // Ask user to turn on NFC and/or Android Beam
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage(question);
         builder.setPositiveButton(getText(R.string.action_turn_on), new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                // Open system settings
-                startActivity(new Intent(intentAction));
+                Intent settingsIntent = new Intent(intentAction);
+                handleIntent(settingsIntent);
             }
         });
         builder.setNegativeButton(getText(R.string.action_cancel), new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 // Send via other means
-                sendChooser(uri);
+                Intent chooserIntent = MyUtils.sendChooser(uri, getText(R.string.dialog_send_chooser));
+                handleIntent(chooserIntent);
             }
         });
         AlertDialog dialog = builder.create();
         dialog.show();
-    }
-
-    private void sendChooser(Uri uri) {
-        Intent intent = new Intent();
-        intent.setAction(Intent.ACTION_SEND);
-        intent.putExtra(Intent.EXTRA_STREAM, uri);
-        intent.setType(MyUtils.getMimeType(uri));
-        startActivity(Intent.createChooser(intent, getText(R.string.dialog_send_chooser)));
     }
 }
