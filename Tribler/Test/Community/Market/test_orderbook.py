@@ -1,15 +1,15 @@
 import unittest
 
+from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId
+from Tribler.community.market.core.message_repository import MemoryMessageRepository
+from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.orderbook import OrderBook
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
-from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.community.market.core.timeout import Timeout
-from Tribler.community.market.core.order import OrderId, OrderNumber
-from Tribler.community.market.core.message import Message, TraderId, MessageNumber, MessageId
-from Tribler.community.market.core.trade import Trade, ProposedTrade, DeclinedTrade, AcceptedTrade
 from Tribler.community.market.core.tick import Ask, Bid
-from Tribler.community.market.core.message_repository import MessageRepository, MemoryMessageRepository
+from Tribler.community.market.core.timeout import Timeout
+from Tribler.community.market.core.timestamp import Timestamp
+from Tribler.community.market.core.trade import Trade
 
 
 class OrderBookTestSuite(unittest.TestCase):

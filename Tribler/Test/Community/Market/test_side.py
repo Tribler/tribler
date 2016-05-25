@@ -1,13 +1,13 @@
 import unittest
 
+from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId
+from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
-from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.community.market.core.timeout import Timeout
-from Tribler.community.market.core.message import Message, TraderId, MessageNumber, MessageId
-from Tribler.community.market.core.tick import Tick, Ask, Bid
-from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.side import Side
+from Tribler.community.market.core.tick import Tick
+from Tribler.community.market.core.timeout import Timeout
+from Tribler.community.market.core.timestamp import Timestamp
 
 
 class SideTestSuite(unittest.TestCase):

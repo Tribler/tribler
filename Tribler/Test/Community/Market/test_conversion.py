@@ -1,5 +1,4 @@
 import unittest
-import os
 
 from twisted.python.threadable import registerAsIOThread
 
@@ -10,9 +9,6 @@ from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint
 from Tribler.dispersy.member import DummyMember
 from Tribler.dispersy.requestcache import RequestCache
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.quantity import Quantity
-from Tribler.community.market.core.timeout import Timeout
 
 
 class ConversionTestSuite(unittest.TestCase):
@@ -39,6 +35,7 @@ class ConversionTestSuite(unittest.TestCase):
     def tearDown(self):
         # Closing and unlocking dispersy database for other tests in test suite
         self.dispersy._database.close()
+
 
 if __name__ == '__main__':
     unittest.main()

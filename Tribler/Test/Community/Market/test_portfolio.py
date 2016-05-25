@@ -1,14 +1,12 @@
 import unittest
 
+from Tribler.community.market.core.message import TraderId
+from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.order_manager import OrderManager
+from Tribler.community.market.core.order_repository import MemoryOrderRepository
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
-from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.timeout import Timeout
-from Tribler.community.market.core.message import Message, TraderId, MessageNumber, MessageId
-from Tribler.community.market.core.tick import Tick, Ask, Bid
-from Tribler.community.market.core.order import OrderId, OrderNumber
-from Tribler.community.market.core.order_repository import MemoryOrderRepository
 
 
 class PortfolioTestSuite(unittest.TestCase):
@@ -40,6 +38,7 @@ class PortfolioTestSuite(unittest.TestCase):
         # test for cancel order
         order = self.order_manager.create_ask_order(Price(100), Quantity(10), Timeout(0.0))
         self.order_manager.cancel_order(order.order_id)
+
 
 if __name__ == '__main__':
     unittest.main()

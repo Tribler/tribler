@@ -1,12 +1,12 @@
 import unittest
 
+from Tribler.community.market.core.message import TraderId
+from Tribler.community.market.core.order import Order, OrderId, OrderNumber
 from Tribler.community.market.core.order_repository import OrderRepository, MemoryOrderRepository
-from Tribler.community.market.core.message import Message, TraderId, MessageNumber, MessageId
-from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.price import Price
+from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.community.market.core.order import Order, OrderId, OrderNumber, TickWasNotReserved
 
 
 class OrderRepositoryTestSuite(unittest.TestCase):

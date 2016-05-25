@@ -1,7 +1,7 @@
 import unittest
 
-from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.timeout import Timeout
+from Tribler.community.market.core.timestamp import Timestamp
 
 
 class TimeoutTestSuite(unittest.TestCase):

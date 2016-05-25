@@ -1,26 +1,24 @@
 import unittest
-import os
 
 from twisted.python.threadable import registerAsIOThread
 
-from Tribler.community.market.ttl import Ttl
-from Tribler.community.market.socket_address import SocketAddress
-from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.trade import Trade, ProposedTrade, DeclinedTrade, AcceptedTrade, CounterTrade
-from Tribler.community.market.core.quantity import Quantity
-from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.community.market.core.timeout import Timeout
-from Tribler.community.market.core.message import Message, TraderId, MessageNumber, MessageId
-from Tribler.community.market.core.tick import Tick, Ask, Bid
-from Tribler.community.market.core.order import Order, OrderId, OrderNumber
 from Tribler.community.market.community import MarketCommunity
 from Tribler.community.market.conversion import MarketConversion
+from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId
+from Tribler.community.market.core.order import OrderId, OrderNumber
+from Tribler.community.market.core.price import Price
+from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.tick import Tick, Ask, Bid
+from Tribler.community.market.core.timeout import Timeout
+from Tribler.community.market.core.timestamp import Timestamp
+from Tribler.community.market.core.trade import Trade
+from Tribler.community.market.socket_address import SocketAddress
+from Tribler.community.market.ttl import Ttl
 from Tribler.community.tunnel.Socks5.server import Socks5Server
-from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.candidate import Candidate
+from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint
 from Tribler.dispersy.member import DummyMember
-from Tribler.dispersy.message import DelayMessageByProof
 from Tribler.dispersy.requestcache import RequestCache
 
 
@@ -95,7 +93,7 @@ class CommunityTestSuite(unittest.TestCase):
             authentication=(self.market_community.my_member,),
             distribution=(self.market_community.claim_global_time(),),
             payload=self.ask.to_network()[1] + (
-            Ttl.default(), SocketAddress(self.dispersy.wan_address[0], self.dispersy.wan_address[1]))
+                Ttl.default(), SocketAddress(self.dispersy.wan_address[0], self.dispersy.wan_address[1]))
         )
         self.market_community.on_ask([message])
         self.assertEquals(1, len(self.market_community.order_book._asks))
@@ -114,7 +112,7 @@ class CommunityTestSuite(unittest.TestCase):
             authentication=(self.market_community.my_member,),
             distribution=(self.market_community.claim_global_time(),),
             payload=self.bid.to_network()[1] + (
-            Ttl.default(), SocketAddress(self.dispersy.wan_address[0], self.dispersy.wan_address[1]))
+                Ttl.default(), SocketAddress(self.dispersy.wan_address[0], self.dispersy.wan_address[1]))
         )
         self.market_community.on_bid([message])
         self.assertEquals(0, len(self.market_community.order_book._asks))

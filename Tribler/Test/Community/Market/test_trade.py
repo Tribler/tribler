@@ -1,11 +1,10 @@
 import unittest
 
-
+from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId
+from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.community.market.core.order import OrderId, OrderNumber
-from Tribler.community.market.core.message import Message, TraderId, MessageNumber, MessageId
 from Tribler.community.market.core.trade import Trade, ProposedTrade, DeclinedTrade, AcceptedTrade, CounterTrade
 
 
@@ -59,7 +58,7 @@ class ProposedTradeTestSuite(unittest.TestCase):
                                                                        'recipient_order_number'),
                                                                    "timestamp": Timestamp(1462224447.117),
                                                                    "price": Price(63400),
-                                                                   "quantity": Quantity(30), }))
+                                                                   "quantity": Quantity(30),}))
 
         self.assertEquals(MessageId(TraderId('0'), MessageNumber('message_number')), data.message_id)
         self.assertEquals(OrderId(TraderId('0'), OrderNumber('order_number')), data.order_id)
@@ -104,7 +103,7 @@ class AcceptedTradeTestSuite(unittest.TestCase):
                                                                        'recipient_order_number'),
                                                                    "timestamp": Timestamp(1462224447.117),
                                                                    "price": Price(63400),
-                                                                   "quantity": Quantity(30), }))
+                                                                   "quantity": Quantity(30),}))
 
         self.assertEquals(MessageId(TraderId('0'), MessageNumber('message_number')), data.message_id)
         self.assertEquals(OrderId(TraderId('0'), OrderNumber('order_number')), data.order_id)
@@ -140,8 +139,9 @@ class DeclinedTradeTestSuite(unittest.TestCase):
                                                                    "message_number": MessageNumber('message_number'),
                                                                    "order_number": OrderNumber('order_number'),
                                                                    "recipient_trader_id": TraderId('1'),
-                                                                   "recipient_order_number": OrderNumber('recipient_order_number'),
-                                                                   "timestamp": Timestamp(1462224447.117), }))
+                                                                   "recipient_order_number": OrderNumber(
+                                                                       'recipient_order_number'),
+                                                                   "timestamp": Timestamp(1462224447.117),}))
 
         self.assertEquals(MessageId(TraderId('0'), MessageNumber('message_number')), data.message_id)
         self.assertEquals(OrderId(TraderId('1'), OrderNumber('recipient_order_number')),
@@ -179,7 +179,7 @@ class CounterTradeTestSuite(unittest.TestCase):
                                                                       'recipient_order_number'),
                                                                   "timestamp": Timestamp(1462224447.117),
                                                                   "price": Price(63400),
-                                                                  "quantity": Quantity(15), }))
+                                                                  "quantity": Quantity(15),}))
 
         self.assertEquals(MessageId(TraderId('0'), MessageNumber('message_number')), data.message_id)
         self.assertEquals(OrderId(TraderId('0'), OrderNumber('order_number')), data.order_id)

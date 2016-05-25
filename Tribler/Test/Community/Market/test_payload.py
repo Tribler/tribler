@@ -1,17 +1,17 @@
 import unittest
 
+from Tribler.community.market.core.message import TraderId, MessageNumber
+from Tribler.community.market.core.order import OrderNumber
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
-from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.timeout import Timeout
-from Tribler.community.market.core.message import Message, TraderId, MessageNumber, MessageId
-from Tribler.community.market.core.tick import Tick, Ask, Bid
-from Tribler.community.market.core.order import Order, OrderId, OrderNumber
-from Tribler.community.market.payload import AcceptedTradePayload, DeclinedTradePayload, ProposedTradePayload,\
+from Tribler.community.market.core.timestamp import Timestamp
+from Tribler.community.market.payload import AcceptedTradePayload, DeclinedTradePayload, ProposedTradePayload, \
     OfferPayload
-from Tribler.dispersy.meta import MetaObject
-from Tribler.community.market.ttl import Ttl
 from Tribler.community.market.socket_address import SocketAddress
+from Tribler.community.market.ttl import Ttl
+from Tribler.dispersy.meta import MetaObject
+
 
 class AcceptedTradePayloadTestSuite(unittest.TestCase):
     """Accepted trade payload test cases."""

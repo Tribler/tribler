@@ -111,5 +111,6 @@ class MessageTestSuite(unittest.TestCase):
         self.assertEqual(MessageId(TraderId('0'), MessageNumber('message_number')), self.message.message_id)
         self.assertEqual(Timestamp(float("inf")), self.message.timestamp)
 
+
 if __name__ == '__main__':
     unittest.main()

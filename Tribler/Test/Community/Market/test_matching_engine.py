@@ -1,17 +1,15 @@
 import unittest
 
 from Tribler.community.market.core.matching_engine import MatchingEngine, PriceTimeStrategy, MatchingStrategy
+from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId
+from Tribler.community.market.core.message_repository import MemoryMessageRepository
+from Tribler.community.market.core.order import Order, OrderId, OrderNumber
 from Tribler.community.market.core.orderbook import OrderBook
 from Tribler.community.market.core.price import Price
-from Tribler.community.market.core.pricelevel import PriceLevel
 from Tribler.community.market.core.quantity import Quantity
-from Tribler.community.market.core.timestamp import Timestamp
+from Tribler.community.market.core.tick import Ask, Bid
 from Tribler.community.market.core.timeout import Timeout
-from Tribler.community.market.core.message import Message, TraderId, MessageNumber, MessageId
-from Tribler.community.market.core.tickentry import TickEntry
-from Tribler.community.market.core.tick import Tick, Ask, Bid
-from Tribler.community.market.core.order import Order, OrderId, OrderNumber
-from Tribler.community.market.core.message_repository import MessageRepository, MemoryMessageRepository
+from Tribler.community.market.core.timestamp import Timestamp
 
 
 class MatchingStrategyTestSuite(unittest.TestCase):
@@ -37,22 +35,22 @@ class PriceTimeStrategyTestSuite(unittest.TestCase):
                        OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
                        Timeout(float('inf')), Timestamp(float('inf')))
         self.ask2 = Ask(MessageId(TraderId('1'), MessageNumber('message_number1')),
-                       OrderId(TraderId('1'), OrderNumber("order_number")), Price(100), Quantity(30),
-                       Timeout(float('inf')), Timestamp(float('inf')))
+                        OrderId(TraderId('1'), OrderNumber("order_number")), Price(100), Quantity(30),
+                        Timeout(float('inf')), Timestamp(float('inf')))
         self.bid = Bid(MessageId(TraderId('0'), MessageNumber('message_number2')),
                        OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
                        Timeout(float('inf')), Timestamp(float('inf')))
         self.bid2 = Bid(MessageId(TraderId('0'), MessageNumber('message_number2')),
-                       OrderId(TraderId('0'), OrderNumber("order_number")), Price(200), Quantity(30),
-                       Timeout(float('inf')), Timestamp(float('inf')))
+                        OrderId(TraderId('0'), OrderNumber("order_number")), Price(200), Quantity(30),
+                        Timeout(float('inf')), Timestamp(float('inf')))
         self.ask_order = Order(OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
                                Timeout(float('inf')), Timestamp(float('inf')), True)
         self.ask_order2 = Order(OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(60),
-                               Timeout(float('inf')), Timestamp(float('inf')), True)
+                                Timeout(float('inf')), Timestamp(float('inf')), True)
         self.bid_order = Order(OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
                                Timeout(float('inf')), Timestamp(float('inf')), False)
         self.bid_order2 = Order(OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(60),
-                               Timeout(float('inf')), Timestamp(float('inf')), False)
+                                Timeout(float('inf')), Timestamp(float('inf')), False)
         self.order_book = OrderBook(MemoryMessageRepository('0'))
         self.price_time_strategy = PriceTimeStrategy(self.order_book)
 
@@ -139,6 +137,7 @@ class MatchingEngineTestSuite(unittest.TestCase):
         self.assertEquals(1, len(proposed_trades))
         self.assertEquals(Price(100), proposed_trades[0].price)
         self.assertEquals(Quantity(30), proposed_trades[0].quantity)
+
 
 if __name__ == '__main__':
     unittest.main()
