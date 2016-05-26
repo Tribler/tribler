@@ -108,7 +108,8 @@ class MemoryTransactionRepository(TransactionRepository):
         """
         assert isinstance(transaction_id, TransactionId), type(transaction_id)
 
-        self._logger.debug("Transaction with the id: " + str(transaction_id) + " was searched for in the transaction repository")
+        self._logger.debug(
+            "Transaction with the id: " + str(transaction_id) + " was searched for in the transaction repository")
 
         return self._transactions.get(transaction_id)
 
@@ -121,7 +122,8 @@ class MemoryTransactionRepository(TransactionRepository):
         """
         assert isinstance(transaction, Transaction), type(transaction)
 
-        self._logger.debug("Transaction with the id: " + str(transaction.transaction_id) + " was added to the transaction repository")
+        self._logger.debug(
+            "Transaction with the id: " + str(transaction.transaction_id) + " was added to the transaction repository")
 
         self._transactions[transaction.transaction_id] = transaction
 
@@ -134,7 +136,8 @@ class MemoryTransactionRepository(TransactionRepository):
         """
         assert isinstance(transaction, Transaction), type(transaction)
 
-        self._logger.debug("Transaction with the id: " + str(transaction.transaction_id) + " was updated to the transaction repository")
+        self._logger.debug("Transaction with the id: " + str(
+            transaction.transaction_id) + " was updated to the transaction repository")
 
         self._transactions[transaction.transaction_id] = transaction
 
@@ -147,7 +150,8 @@ class MemoryTransactionRepository(TransactionRepository):
         """
         assert isinstance(transaction_id, TransactionId), type(transaction_id)
 
-        self._logger.debug("Transaction with the id: " + str(transaction_id) + " was deleted from the transaction repository")
+        self._logger.debug(
+            "Transaction with the id: " + str(transaction_id) + " was deleted from the transaction repository")
 
         del self._transactions[transaction_id]
 
