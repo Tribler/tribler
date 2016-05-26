@@ -129,6 +129,10 @@ class Tunnel(object):
         config.set_dispersy_port(self.dispersy_port)
         config.set_enable_torrent_search(False)
         config.set_enable_channel_search(False)
+
+        # We do not want to load the TunnelCommunity in the session but instead our own community
+        config.set_tunnel_community_enabled(False)
+
         self.session = Session(config)
         upgrader = self.session.prestart()
         while not upgrader.is_done:

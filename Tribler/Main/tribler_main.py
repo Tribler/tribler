@@ -138,7 +138,6 @@ class ABCApp(object):
 
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Starting API')
             wx.Yield()
-            s = self.startAPI(session)
 
             self._logger.info('Tribler Version: %s Build: %s', version_id, commit_id)
 
@@ -151,8 +150,10 @@ class ABCApp(object):
 
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Starting session and upgrading database (it may take a while)')
             wx.Yield()
-            s.start()
-            self.dispersy = s.lm.dispersy
+
+            session.start()
+            self.dispersy = session.lm.dispersy
+            self.dispersy.attach_progress_handler(self.progressHandler)
 
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Loading userdownloadchoice')
             wx.Yield()
@@ -182,12 +183,12 @@ class ABCApp(object):
             maxup = self.utility.read_config('maxuploadrate')
             maxdown = self.utility.read_config('maxdownloadrate')
             # set speed limits using LibtorrentMgr
-            s.set_max_upload_speed(maxup)
-            s.set_max_download_speed(maxdown)
+            session.set_max_upload_speed(maxup)
+            session.set_max_download_speed(maxdown)
 
             # Only allow updates to come in after we defined ratelimiter
             self.prevActiveDownloads = []
-            s.set_download_states_callback(self.sesscb_states_callback)
+            session.set_download_states_callback(self.sesscb_states_callback)
 
             # Schedule task for checkpointing Session, to avoid hash checks after
             # crashes.
@@ -214,7 +215,7 @@ class ABCApp(object):
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             self.frame.videoframe = None
             if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes():
-                vlcwrap = s.lm.videoplayer.get_vlcwrap()
+                vlcwrap = session.lm.videoplayer.get_vlcwrap()
                 wx.CallLater(3000, vlcwrap._init_vlc)
                 self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel, self.utility, vlcwrap)
 
@@ -417,59 +418,6 @@ class ABCApp(object):
         # self.dispersy.callback.attach_exception_handler(self.frame.exceptionHandler)
 
         startWorker(None, self.loadSessionCheckpoint, delay=5.0, workerType="ThreadPool")
-
-    def startAPI(self, session):
-        @call_on_reactor_thread
-        def define_communities(*args):
-            assert isInIOThread()
-            from Tribler.community.channel.community import ChannelCommunity
-            from Tribler.community.channel.preview import PreviewChannelCommunity
-            from Tribler.community.tunnel.tunnel_community import TunnelSettings
-            from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
-            from Tribler.community.multichain.community import MultiChainCommunity
-
-            # make sure this is only called once
-            session.remove_observer(define_communities)
-
-            dispersy = session.get_dispersy_instance()
-
-            self._logger.info("tribler: Preparing communities...")
-            now = time()
-
-            dispersy.attach_progress_handler(self.progressHandler)
-
-            default_kwargs = {'tribler_session': session}
-            # must be called on the Dispersy thread
-            if session.get_barter_community_enabled():
-                from Tribler.community.bartercast4.community import BarterCommunity
-                dispersy.define_auto_load(BarterCommunity, session.dispersy_member, load=True)
-
-            # load metadata community
-            dispersy.define_auto_load(ChannelCommunity, session.dispersy_member, load=True, kargs=default_kwargs)
-            dispersy.define_auto_load(PreviewChannelCommunity, session.dispersy_member, kargs=default_kwargs)
-
-            keypair = dispersy.crypto.generate_key(u"curve25519")
-            dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair),)
-            settings = TunnelSettings(session.get_install_dir(), tribler_session=session)
-            tunnel_kwargs = {'tribler_session': session, 'settings': settings}
-
-            if self.sconfig.get_enable_multichain():
-                # Start the multichain community and hook in the multichain scheduler.
-                multichain = dispersy.define_auto_load(MultiChainCommunity, dispersy_member, load=True)[0]
-
-            # The multichain community MUST be auto_loaded before the tunnel community,
-            #  because it must be unloaded after the tunnel, so that the tunnel closures can be signed
-            self.tunnel_community = dispersy.define_auto_load(HiddenTunnelCommunity, dispersy_member, load=True,
-                                                              kargs=tunnel_kwargs)[0]
-
-            session.set_anon_proxy_settings(2, ("127.0.0.1", session.get_tunnel_community_socks5_listen_ports()))
-
-            diff = time() - now
-            self._logger.info("tribler: communities are ready in %.2f seconds", diff)
-
-        session.add_observer(define_communities, NTFY_DISPERSY, [NTFY_STARTED])
-
-        return session
 
     @forceWxThread
     def sesscb_ntfy_myprefupdates(self, subject, changeType, objectID, *args):

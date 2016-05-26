@@ -22,6 +22,10 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 class Options(usage.Options):
     optParameters = [
         ["manhole", "m", 0, "Enable manhole telnet service listening at the specified port", int],
+        ["statedir", "s", None, "Use an alternate statedir", str],
+        ["restapi", "p", 8085, "Use an alternate port for the REST API", int],
+        ["dispersy", "d", -1, "Use an alternate port for Dispersy", int],
+        ["libtorrent", "l", -1, "Use an alternate port for libtorrent", int],
     ]
 
 
@@ -37,13 +41,14 @@ class TriblerServiceMaker(object):
         """
         self.session = None
         self._stopping = False
+        self.process_checker = None
 
     def shutdown_process(self, shutdown_message, code=1):
         msg(shutdown_message)
         reactor.addSystemEventTrigger('after', 'shutdown', os._exit, code)
         reactor.stop()
 
-    def start_tribler(self):
+    def start_tribler(self, options):
         """
         Main method to startup Tribler.
         """
@@ -56,6 +61,7 @@ class TriblerServiceMaker(object):
                 msg("Tribler shut down")
                 reactor.stop()
                 self.process_checker.remove_lock_file()
+
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
 
@@ -69,6 +75,19 @@ class TriblerServiceMaker(object):
             return
 
         msg("Starting Tribler")
+
+        if options["statedir"]:
+            config.set_state_dir(options["statedir"])
+
+        if options["restapi"] > 0:
+            config.set_http_api_enabled(True)
+            config.set_http_api_port(options["restapi"])
+
+        if options["dispersy"] != -1 and options["dispersy"] > 0:
+            config.set_dispersy_port(options["dispersy"])
+
+        if options["libtorrent"] != -1 and options["libtorrent"] > 0:
+            config.set_listen_port(options["libtorrent"])
 
         self.session = Session(config)
         upgrader = self.session.prestart()
@@ -86,7 +105,7 @@ class TriblerServiceMaker(object):
         tribler_service.setName("Tribler")
 
         manhole_namespace = {}
-        if options["manhole"]:
+        if options["manhole"] > 0:
             port = options["manhole"]
             manhole = manhole_tap.makeService({
                 'namespace': manhole_namespace,
@@ -96,7 +115,7 @@ class TriblerServiceMaker(object):
             })
             tribler_service.addService(manhole)
 
-        reactor.callWhenRunning(self.start_tribler)
+        reactor.callWhenRunning(self.start_tribler, options)
 
         return tribler_service
 

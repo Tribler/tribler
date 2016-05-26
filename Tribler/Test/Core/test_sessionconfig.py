@@ -37,6 +37,9 @@ class TestSessionConfig(TriblerCoreTest):
         self.assertFalse(sci.get_tunnel_community_exitnode_enabled())
         self.assertFalse(sci.get_barter_community_enabled())
 
+        sci.set_tunnel_community_enabled(False)
+        self.assertFalse(sci.get_tunnel_community_enabled())
+
         sci.set_megacache(False)
         self.assertFalse(sci.get_megacache())
 
@@ -129,6 +132,12 @@ class TestSessionConfig(TriblerCoreTest):
 
         sci.set_metadata_store_dir(self.session_base_dir)
         self.assertEqual(sci.get_metadata_store_dir(), self.session_base_dir)
+
+        sci.set_channel_community_enabled(False)
+        self.assertFalse(sci.get_channel_community_enabled())
+
+        sci.set_preview_channel_community_enabled(False)
+        self.assertFalse(sci.get_preview_channel_community_enabled())
 
         sci.set_upgrader_enabled(False)
         self.assertFalse(sci.get_upgrader_enabled())

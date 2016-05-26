@@ -98,6 +98,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
     """ Download subclass that represents a libtorrent download."""
 
     def __init__(self, session, tdef):
+        super(LibtorrentDownloadImpl, self).__init__()
+
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.dllock = NoDispersyRLock()

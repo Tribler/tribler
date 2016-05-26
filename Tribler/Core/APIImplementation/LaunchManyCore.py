@@ -27,6 +27,7 @@ from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE
 from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
 
@@ -95,7 +96,7 @@ class TriblerLaunchMany(TaskManager):
         self.torrent_checker = None
         self.tunnel_community = None
 
-    def register(self, session, sesslock, autoload_discovery=True):
+    def register(self, session, sesslock):
         if not self.registered:
             self.registered = True
 
@@ -148,7 +149,6 @@ class TriblerLaunchMany(TaskManager):
                 self.videoplayer = VideoPlayer(self.session)
 
             # Dispersy
-            self.session.dispersy_member = None
             self.tftp_handler = None
             if self.session.get_dispersy():
                 from Tribler.dispersy.dispersy import Dispersy
@@ -170,16 +170,16 @@ class TriblerLaunchMany(TaskManager):
                 self.search_manager.initialize()
 
         if not self.initComplete:
-            self.init(autoload_discovery)
+            self.init()
 
-    def init(self, autoload_discovery):
+    def init(self):
         if self.dispersy:
             from Tribler.dispersy.community import HardKilledCommunity
 
             self._logger.info("lmc: Starting Dispersy...")
 
             now = timemod.time()
-            success = self.dispersy.start(autoload_discovery)
+            success = self.dispersy.start(self.session.autoload_discovery)
 
             diff = timemod.time() - now
             if success:
@@ -205,18 +205,62 @@ class TriblerLaunchMany(TaskManager):
 
             @blocking_call_on_reactor_thread
             def load_communities():
-                # load communities
+                self._logger.info("tribler: Preparing communities...")
+                now_time = timemod.time()
+                default_kwargs = {'tribler_session': self.session}
+
                 # Search Community
                 if self.session.get_enable_torrent_search():
                     from Tribler.community.search.community import SearchCommunity
                     self.dispersy.define_auto_load(SearchCommunity, self.session.dispersy_member, load=True,
-                                                   kargs={'tribler_session': self.session})
+                                                   kargs=default_kwargs)
 
                 # AllChannel Community
                 if self.session.get_enable_channel_search():
                     from Tribler.community.allchannel.community import AllChannelCommunity
                     self.dispersy.define_auto_load(AllChannelCommunity, self.session.dispersy_member, load=True,
-                                                   kargs={'tribler_session': self.session})
+                                                   kargs=default_kwargs)
+
+                # Bartercast Community
+                if self.session.get_barter_community_enabled():
+                    from Tribler.community.bartercast4.community import BarterCommunity
+                    self.dispersy.define_auto_load(BarterCommunity, self.session.dispersy_member, load=True)
+
+                # Channel Community
+                if self.session.get_channel_community_enabled():
+                    from Tribler.community.channel.community import ChannelCommunity
+                    self.dispersy.define_auto_load(ChannelCommunity,
+                                                   self.session.dispersy_member, load=True, kargs=default_kwargs)
+
+                # PreviewChannel Community
+                if self.session.get_preview_channel_community_enabled():
+                    from Tribler.community.channel.preview import PreviewChannelCommunity
+                    self.dispersy.define_auto_load(PreviewChannelCommunity,
+                                                   self.session.dispersy_member, kargs=default_kwargs)
+
+                # Define settings for the Tunnel and Multichain community
+                keypair = self.dispersy.crypto.generate_key(u"curve25519")
+                dispersy_member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair),)
+
+                if self.session.get_enable_multichain():
+                    from Tribler.community.multichain.community import MultiChainCommunity
+                    # Start the multichain community and hook in the multichain scheduler.
+                    self.dispersy.define_auto_load(MultiChainCommunity, dispersy_member, load=True)
+
+                if self.session.get_tunnel_community_enabled():
+                    from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
+                    # The multichain community MUST be auto_loaded before the tunnel community,
+                    #  because it must be unloaded after the tunnel, so that the tunnel closures can be signed
+                    tunnel_settings = TunnelSettings(self.session.get_install_dir(), tribler_session=self.session)
+                    tunnel_kwargs = {'tribler_session': self.session, 'settings': tunnel_settings}
+                    self.tunnel_community = self.dispersy.define_auto_load(
+                        HiddenTunnelCommunity, dispersy_member, load=True, kargs=tunnel_kwargs)[0]
+
+                self.session.set_anon_proxy_settings(2, ("127.0.0.1",
+                                                         self.session.get_tunnel_community_socks5_listen_ports()))
+
+                self._logger.info("tribler: communities are ready in %.2f seconds", timemod.time() - now_time)
+
             load_communities()
 
             if self.session.get_enable_channel_search():
