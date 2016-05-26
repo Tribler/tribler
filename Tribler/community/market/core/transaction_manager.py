@@ -1,8 +1,92 @@
-class TransactionManager(object):
-    """Manager for retrieving editing and creating transactions"""
+import logging
 
-    def __init__(self):
+from transaction_repository import TransactionRepository
+from price import Price
+from quantity import Quantity
+from timeout import Timeout
+from timestamp import Timestamp
+from transaction import TransactionNumber, TransactionId, Transaction
+from trade import AcceptedTrade
+
+
+class TransactionManager(object):
+    """Manager for retrieving and creating transactions"""
+
+    def __init__(self, transaction_repository):
         """
         Initialise the transaction manager
+
+        :param transaction_repository: The transaction repository to use for this transaction manager
+        :type transaction_repository: TransactionRepository
         """
         super(TransactionManager, self).__init__()
+
+        self._logger = logging.getLogger(self.__class__.__name__)
+        self._logger.info("Transaction Manager initialized")
+
+        assert isinstance(transaction_repository, TransactionRepository), type(transaction_repository)
+
+        self.transaction_repository = transaction_repository
+
+    def create_from_accepted_trade(self, accepted_trade):
+        """
+        Create a transaction from an accepted trade
+
+        :param accepted_trade: The accepted trade from which the transaction is created
+        :type accepted_trade: AcceptedTrade
+        :return: The created transaction
+        :rtype: Transaction
+        """
+        assert isinstance(accepted_trade, AcceptedTrade), type(accepted_trade)
+
+        transaction = Transaction.from_accepted_trade(accepted_trade, self.transaction_repository.next_identity())
+        self.transaction_repository.add(transaction)
+
+        self._logger.info("Transaction created with id: " + str(transaction.transaction_id))
+        return transaction
+
+    def create_transaction(self, price, quantity, timeout):
+        """
+        Create a transaction
+
+        :param price: The price for the transaction
+        :param quantity: The quantity of the transaction
+        :param timeout: The timeout of the transaction, when does the transaction need to be timed out
+        :type price: Price
+        :type quantity: Quantity
+        :type timeout: Timeout
+        :return: The created transaction
+        :rtype: Transaction
+        """
+
+        assert isinstance(price, Price), type(price)
+        assert isinstance(quantity, Quantity), type(quantity)
+        assert isinstance(timeout, Timeout), type(timeout)
+
+        transaction = Transaction(self.transaction_repository.next_identity(), price, quantity, timeout,
+                                  Timestamp.now())
+        self.transaction_repository.add(transaction)
+
+        self._logger.info("Transaction created with id: " + str(transaction.transaction_id))
+
+        return transaction
+
+    def find_by_id(self, transaction_id):
+        """
+        Find a transaction by its identity
+
+        :param transaction_id: The transaction id to look for
+        :type transaction_id: TransactionId
+        :return: The transaction or null if it cannot be found
+        :rtype: Transaction
+        """
+        assert isinstance(transaction_id, TransactionId), type(transaction_id)
+
+        return self.transaction_repository.find_by_id(transaction_id)
+
+    def find_all(self):
+        """
+        Find all transactions
+        :rtype: [Transaction]
+        """
+        return self.transaction_repository.find_all()
