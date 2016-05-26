@@ -27,10 +27,6 @@ class VideoPlayerPage(QWidget):
 
         self.window().video_player_play_pause_button.clicked.connect(self.on_play_pause_button_click)
         self.window().video_player_volume_button.clicked.connect(self.on_volume_button_click)
-        self.window().video_player_playlist_button.clicked.connect(self.on_playlist_button_click)
-        self.window().video_player_files_menu.should_change_playing_file.connect(self.should_change_playing_file)
-        self.window().video_player_files_menu.initialize_file_menu()
-        self.window().video_player_files_menu.hide()
 
         # Create play/pause and volume button images
         self.play_icon = QIcon(QPixmap("images/play.png"))
@@ -40,7 +36,6 @@ class VideoPlayerPage(QWidget):
         self.volume_off_icon = QIcon(QPixmap("images/volume_off.png"))
         self.window().video_player_play_pause_button.setIcon(self.play_icon)
         self.window().video_player_volume_button.setIcon(self.volume_on_icon)
-        self.window().video_player_playlist_button.setIcon(self.menu_icon)
 
         if sys.platform.startswith('linux'):
             self.mediaplayer.set_xwindow(self.window().video_player_widget.winId())
@@ -83,13 +78,6 @@ class VideoPlayerPage(QWidget):
 
     def on_volume_change(self):
         self.mediaplayer.audio_set_volume(self.window().video_player_volume_slider.value())
-
-    def on_playlist_button_click(self):
-        if self.video_player_files_menu.isHidden():
-            self.video_player_files_menu.show()
-            self.video_player_files_menu.load_download_files(self.INFOHASH)
-        else:
-            self.video_player_files_menu.hide()
 
     def should_change_playing_file(self, index):
         self.ACTIVE_INDEX = index

@@ -19,7 +19,6 @@ class ChannelListItem(QWidget):
         self.channel_info = channel
         self.channel_name.setText(channel["name"])
         self.channel_description_label.setText("Active 6 days ago • %d items" % channel["torrents"])
-        self.channel_num_subs_label.setText(str(channel["votes"]))
         self.channel_subscribe_button.clicked.connect(self.on_channel_subscribe_button_click)
 
         self.update_subscribe_button()
@@ -48,6 +47,8 @@ class ChannelListItem(QWidget):
         else:
             self.channel_subscribe_button.setText("subscribe")
 
+        self.channel_num_subs_label.setText(str(self.channel_info["votes"]))
+
     def on_channel_subscribe_button_click(self):
         self.request_mgr = TriblerRequestManager()
         if self.channel_info["subscribed"]:
@@ -58,9 +59,11 @@ class ChannelListItem(QWidget):
     def on_channel_unsubscribed(self, json_result):
         if json_result["unsubscribed"]:
             self.channel_info["subscribed"] = False
+            self.channel_info["votes"] -= 1
             self.update_subscribe_button()
 
     def on_channel_subscribed(self, json_result):
         if json_result["subscribed"]:
             self.channel_info["subscribed"] = True
+            self.channel_info["votes"] += 1
             self.update_subscribe_button()

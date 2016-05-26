@@ -7,9 +7,9 @@ from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
 class HomeRecommendedItem(QWidget):
 
-    def __init__(self, parent, item_color):
+    def __init__(self, parent):
         super(QWidget, self).__init__(parent)
 
         uic.loadUi('qt_resources/home_recommended_item.ui', self)
 
-        self.art_widget.setStyleSheet("background-color: %s" % item_color)
+        self.thumbnail_widget.initialize("Pioneer One", 44)
