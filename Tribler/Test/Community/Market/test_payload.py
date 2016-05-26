@@ -6,7 +6,7 @@ from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
-from Tribler.community.market.payload import AcceptedTradePayload, DeclinedTradePayload, ProposedTradePayload, \
+from Tribler.community.market.payload import AcceptedTradePayload, DeclinedTradePayload, TradePayload, \
     OfferPayload
 from Tribler.community.market.socket_address import SocketAddress
 from Tribler.community.market.ttl import Ttl
@@ -64,7 +64,7 @@ class ProposedTradePayloadTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.proposed_trade_payload = ProposedTradePayload.Implementation(MetaObject(), TraderId('0'),
+        self.proposed_trade_payload = TradePayload.Implementation(MetaObject(), TraderId('0'),
                                                                           MessageNumber('message_number'),
                                                                           OrderNumber('order_number'), TraderId('1'),
                                                                           OrderNumber('recipient_order_number'),
