@@ -20,7 +20,7 @@ from core.tick import Ask, Bid, Tick
 from core.timeout import Timeout
 from core.timestamp import Timestamp
 from core.trade import Trade, ProposedTrade, AcceptedTrade, DeclinedTrade, CounterTrade
-from payload import OfferPayload, ProposedTradePayload, AcceptedTradePayload, DeclinedTradePayload
+from payload import OfferPayload, TradePayload, AcceptedTradePayload, DeclinedTradePayload
 from socket_address import SocketAddress
 from ttl import Ttl
 
@@ -90,7 +90,7 @@ class MarketCommunity(Community):
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
-                    ProposedTradePayload(),
+                    TradePayload(),
                     self.check_message,
                     self.on_proposed_trade),
             Message(self, u"accepted-trade",
@@ -114,7 +114,7 @@ class MarketCommunity(Community):
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
-                    ProposedTradePayload(),
+                    TradePayload(),
                     self.check_message,
                     self.on_counter_trade)
         ]
