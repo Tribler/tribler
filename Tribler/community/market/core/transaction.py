@@ -19,8 +19,6 @@ class TransactionNumber(object):
         """
         super(TransactionNumber, self).__init__()
 
-        assert isinstance(transaction_number, str), type(transaction_number)
-
         if not isinstance(transaction_number, str):
             raise ValueError("Transaction number must be a string")
 
