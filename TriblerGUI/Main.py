@@ -4,13 +4,13 @@ import sys
 import traceback
 
 from PyQt5 import uic
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QPoint
 from PyQt5.QtGui import QIcon
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QMainWindow, QListView, QLineEdit, QApplication, QTreeWidget, QSystemTrayIcon, \
-    QTableWidgetItem, QHeaderView
+    QTableWidgetItem, QHeaderView, QAction, QFileDialog
+from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 
-from TriblerGUI.channel_list_item import ChannelListItem
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
 from TriblerGUI.defs import PAGE_SEARCH_RESULTS, PAGE_CHANNEL_CONTENT, PAGE_CHANNEL_COMMENTS, PAGE_CHANNEL_ACTIVITY, \
     PAGE_HOME, PAGE_MY_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
@@ -71,6 +71,7 @@ class TriblerWindow(QMainWindow):
         self.video_player_page.initialize_player()
         self.search_results_page.initialize_search_results_page()
         self.settings_page.initialize_settings_page()
+        self.subscribed_channels_page.initialize()
         self.my_channel_page.initialize_my_channel_page()
         self.downloads_page.initialize_downloads_page()
 
@@ -92,22 +93,12 @@ class TriblerWindow(QMainWindow):
 
         for x in range(0, 3):
             for y in range(0, 3):
-                #item = QTableWidgetItem()
-                widget_item = HomeRecommendedItem(self, get_random_color())
+                widget_item = HomeRecommendedItem(self)
                 self.home_page_table_view.setCellWidget(x, y, widget_item)
-                #self.home_page_table_view.setItem(x, y, item)
 
-        # TEMP show loading screen
-        self.loading_screen = LoadingScreen(self.home_page)
-        self.loading_screen.show()
+        self.hide_left_menu_playlist()
 
         self.show()
-
-    def received_subscribed_channels(self, results):
-        items = []
-        for result in results['subscribed']:
-            items.append((ChannelListItem, result))
-        self.subscribed_channels_list.set_data_items(items)
 
     def received_torrents_in_channel(self, results):
         items = []
@@ -124,9 +115,34 @@ class TriblerWindow(QMainWindow):
         self.search_request_mgr = TriblerRequestManager()
         self.search_request_mgr.perform_request("search?q=%s" % self.top_search_bar.text(), None)
 
-    def on_add_torrent_button_click(self):
-        self.add_torrent_dialog = AddTorrentDialog(self)
-        self.add_torrent_dialog.show()
+    def on_add_torrent_button_click(self, pos):
+        menu = TriblerActionMenu(self)
+
+        browseFilesAction = QAction('Browse files', self)
+        browseDirectoryAction = QAction('Browse directory', self)
+        addUrlAction = QAction('Add URL', self)
+
+        browseFilesAction.triggered.connect(self.on_add_torrent_browse_file)
+        browseDirectoryAction.triggered.connect(self.on_add_torrent_browse_dir)
+        addUrlAction.triggered.connect(self.on_add_torrent_browse_file)
+
+        menu.addAction(browseFilesAction)
+        menu.addAction(browseDirectoryAction)
+        menu.addAction(addUrlAction)
+
+        menu.exec_(self.mapToGlobal(self.add_torrent_button.pos()))
+
+    def on_add_torrent_browse_file(self):
+        dialog = QFileDialog(self)
+        dialog.setWindowTitle("Please select the .torrent file(s)")
+        dialog.setNameFilters(["Torrent files (*.torrent)"])
+        dialog.exec_()
+
+    def on_add_torrent_browse_dir(self):
+        dialog = QFileDialog(self)
+        dialog.setFileMode(QFileDialog.DirectoryOnly)
+        dialog.setWindowTitle("Please select the directory containing the .torrent files")
+        dialog.exec_()
 
     def on_top_menu_button_click(self):
         if self.left_menu.isHidden():
@@ -152,36 +168,51 @@ class TriblerWindow(QMainWindow):
         self.deselect_all_menu_buttons(self.left_menu_button_home)
         self.stackedWidget.setCurrentIndex(PAGE_HOME)
         self.navigation_stack = []
+        self.hide_left_menu_playlist()
 
     def clicked_menu_button_my_channel(self):
         self.deselect_all_menu_buttons(self.left_menu_button_my_channel)
         self.stackedWidget.setCurrentIndex(PAGE_MY_CHANNEL)
         self.my_channel_page.load_my_channel_overview()
         self.navigation_stack = []
+        self.hide_left_menu_playlist()
 
     def clicked_menu_button_video_player(self):
         self.deselect_all_menu_buttons(self.left_menu_button_video_player)
         self.stackedWidget.setCurrentIndex(PAGE_VIDEO_PLAYER)
         self.navigation_stack = []
+        self.show_left_menu_playlist()
 
     def clicked_menu_button_downloads(self):
         self.deselect_all_menu_buttons(self.left_menu_button_downloads)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
         self.navigation_stack = []
         self.downloads_page.load_downloads()
+        self.hide_left_menu_playlist()
 
     def clicked_menu_button_settings(self):
         self.deselect_all_menu_buttons(self.left_menu_button_settings)
         self.stackedWidget.setCurrentIndex(PAGE_SETTINGS)
         self.settings_page.load_settings()
         self.navigation_stack = []
+        self.hide_left_menu_playlist()
 
     def clicked_menu_button_subscriptions(self):
         self.deselect_all_menu_buttons(self.left_menu_button_subscriptions)
-        self.subscribed_channels_request_manager = TriblerRequestManager()
-        self.subscribed_channels_request_manager.perform_request("channels/subscribed", self.received_subscribed_channels)
+        self.subscribed_channels_page.load_subscribed_channels()
         self.stackedWidget.setCurrentIndex(PAGE_SUBSCRIBED_CHANNELS)
         self.navigation_stack = []
+        self.hide_left_menu_playlist()
+
+    def hide_left_menu_playlist(self):
+        self.left_menu_seperator.setHidden(True)
+        self.left_menu_playlist_label.setHidden(True)
+        self.left_menu_playlist_list.setHidden(True)
+
+    def show_left_menu_playlist(self):
+        self.left_menu_seperator.setHidden(False)
+        self.left_menu_playlist_label.setHidden(False)
+        self.left_menu_playlist_list.setHidden(False)
 
     def on_channel_item_click(self, channel_list_item):
         channel_info = channel_list_item.data(Qt.UserRole)

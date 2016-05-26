@@ -20,3 +20,4 @@ class ChannelTorrentListItem(QWidget):
             self.channel_torrent_description.setText("Size: %s" % format_size(float(torrent["length"])))
 
         self.channel_torrent_category.setText(torrent["category"])
+        self.thumbnail_widget.initialize(torrent["name"], 24)

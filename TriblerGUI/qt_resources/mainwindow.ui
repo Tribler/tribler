@@ -717,17 +717,102 @@ background-color: #e67300;
           </widget>
          </item>
          <item>
-          <spacer name="verticalSpacer">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
+          <widget class="QWidget" name="left_menu_playlist" native="true">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
            </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>0</height>
-            </size>
+           <property name="styleSheet">
+            <string notr="true">border: none;</string>
            </property>
-          </spacer>
+           <layout class="QVBoxLayout" name="verticalLayout_5">
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QWidget" name="left_menu_seperator" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>2</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>2</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">background-color: #666;
+border-radius: 1px;</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="left_menu_playlist_label">
+              <property name="styleSheet">
+               <string notr="true">border: none;
+color: white;
+font-size: 15px;
+margin-left: 1px;</string>
+              </property>
+              <property name="text">
+               <string>Video playlist</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QListWidget" name="left_menu_playlist_list">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="cursor" stdset="0">
+               <cursorShape>ArrowCursor</cursorShape>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QListWidget {
+color: white;
+border: none;
+}
+QListWidget:item:selected:active {
+background-color: #e67300;
+}</string>
+              </property>
+              <item>
+               <property name="text">
+                <string>test1</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>test2</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </widget>
          </item>
         </layout>
        </widget>
@@ -735,7 +820,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>7</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -775,7 +860,13 @@ margin: 10px;</string>
             <property name="styleSheet">
              <string notr="true">QTableWidget {
 border: none;
+}
+QTableWidget::item:hover {
+background-color: #999;
 }</string>
+            </property>
+            <property name="selectionMode">
+             <enum>QAbstractItemView::NoSelection</enum>
             </property>
             <property name="verticalScrollMode">
              <enum>QAbstractItemView::ScrollPerPixel</enum>
@@ -1446,7 +1537,7 @@ font-size: 14px;
                  <number>1</number>
                 </property>
                 <property name="currentIndex">
-                 <number>4</number>
+                 <number>2</number>
                 </property>
                 <widget class="QWidget" name="my_channel_details_overview_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
@@ -3208,6 +3299,9 @@ font-weight: bold;</string>
                  <height>26</height>
                 </size>
                </property>
+               <property name="cursor">
+                <cursorShape>PointingHandCursor</cursorShape>
+               </property>
                <property name="styleSheet">
                 <string notr="true">border: none;
 border-radius: 2px;
@@ -4937,53 +5031,6 @@ font-size: 12px;</string>
                        </property>
                       </spacer>
                      </item>
-                     <item>
-                      <widget class="QToolButton" name="video_player_playlist_button">
-                       <property name="minimumSize">
-                        <size>
-                         <width>22</width>
-                         <height>22</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>22</width>
-                         <height>22</height>
-                        </size>
-                       </property>
-                       <property name="cursor">
-                        <cursorShape>PointingHandCursor</cursorShape>
-                       </property>
-                       <property name="styleSheet">
-                        <string notr="true">border: none;</string>
-                       </property>
-                       <property name="text">
-                        <string>...</string>
-                       </property>
-                       <property name="iconSize">
-                        <size>
-                         <width>22</width>
-                         <height>22</height>
-                        </size>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <spacer name="horizontalSpacer_16">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeType">
-                        <enum>QSizePolicy::Fixed</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>12</width>
-                         <height>20</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
                     </layout>
                    </widget>
                   </item>
@@ -4995,76 +5042,9 @@ font-size: 12px;</string>
             </item>
            </layout>
           </item>
-          <item>
-           <widget class="VideoPlayerFilesMenu" name="video_player_files_menu" native="true">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>200</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>200</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <layout class="QVBoxLayout" name="verticalLayout_5">
-             <property name="spacing">
-              <number>0</number>
-             </property>
-             <property name="leftMargin">
-              <number>12</number>
-             </property>
-             <property name="topMargin">
-              <number>12</number>
-             </property>
-             <property name="rightMargin">
-              <number>12</number>
-             </property>
-             <property name="bottomMargin">
-              <number>12</number>
-             </property>
-             <item>
-              <widget class="QLabel" name="video_player_files_menu_top_label">
-               <property name="styleSheet">
-                <string notr="true">font-size: 15px;
-color: white;
-font-weight: bold;</string>
-               </property>
-               <property name="text">
-                <string>Files</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QListWidget" name="video_player_files">
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">border: none;</string>
-               </property>
-               <property name="selectionMode">
-                <enum>QAbstractItemView::NoSelection</enum>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="subscribed_channels_page">
+        <widget class="SubscribedChannelsPage" name="subscribed_channels_page">
          <layout class="QVBoxLayout" name="verticalLayout">
           <property name="spacing">
            <number>0</number>
@@ -5428,7 +5408,7 @@ border-radius: 4px;</string>
              <item>
               <widget class="QToolButton" name="remove_download_button">
                <property name="enabled">
-                <bool>true</bool>
+                <bool>false</bool>
                </property>
                <property name="minimumSize">
                 <size>
@@ -5841,7 +5821,7 @@ color: white;
 </string>
                 </property>
                 <property name="currentIndex">
-                 <number>3</number>
+                 <number>0</number>
                 </property>
                 <property name="movable">
                  <bool>false</bool>
@@ -5879,8 +5859,8 @@ color: white;
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>647</width>
-                       <height>337</height>
+                       <width>281</width>
+                       <height>184</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -6251,12 +6231,6 @@ background-color: #444;
    <header>videoplayerpositionslider.h</header>
   </customwidget>
   <customwidget>
-   <class>VideoPlayerFilesMenu</class>
-   <extends>QWidget</extends>
-   <header>videoplayerfilesmenu.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
    <class>MyChannelPage</class>
    <extends>QWidget</extends>
    <header>mychannelpage.h</header>
@@ -6295,6 +6269,12 @@ background-color: #444;
    <class>LazyLoadList</class>
    <extends>QListWidget</extends>
    <header>lazyloadlist.h</header>
+  </customwidget>
+  <customwidget>
+   <class>SubscribedChannelsPage</class>
+   <extends>QWidget</extends>
+   <header>subscribedchannelspage.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>

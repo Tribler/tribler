@@ -1,12 +1,10 @@
-from PyQt5.QtCore import QPoint, QByteArray
-from PyQt5.QtGui import QPainter, QMovie, QImage, QPixmap
+from PyQt5.QtCore import QPoint
+from PyQt5.QtGui import QPainter
 from PyQt5.QtSvg import QSvgRenderer, QGraphicsSvgItem
-from PyQt5.QtWidgets import QSizePolicy, QFileDialog, QWidget, QStyleOption, QStyle, QLabel, QGraphicsItem, \
-    QGraphicsScene, QGraphicsView
+from PyQt5.QtWidgets import QWidget, QStyleOption, QStyle, QGraphicsScene, QGraphicsView
 
 
 class LoadingScreen(QWidget):
-
 
     def __init__(self, parent):
         super(LoadingScreen, self).__init__(parent)

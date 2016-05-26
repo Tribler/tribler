@@ -1,11 +1,13 @@
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QWidget, QMenu, QAction
+from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 from TriblerGUI.defs import DOWNLOADS_FILTER_ALL, DOWNLOADS_FILTER_DOWNLOADING, DOWNLOADS_FILTER_COMPLETED, \
     DOWNLOADS_FILTER_ACTIVE, DOWNLOADS_FILTER_INACTIVE, DOWNLOADS_FILTER_DEFINITION, DLSTATUS_STOPPED, \
     DLSTATUS_STOPPED_ON_ERROR, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, DLSTATUS_METADATA, DLSTATUS_HASHCHECKING, \
     DLSTATUS_WAITING4HASHCHECK
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.downloadwidgetitem import DownloadWidgetItem
+from TriblerGUI.loading_screen import LoadingScreen
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
 
@@ -76,6 +78,7 @@ class DownloadsPage(QWidget):
 
     def on_download_item_clicked(self):
         self.selected_item = self.window().downloads_list.selectedItems()[0]
+        self.window().remove_download_button.setEnabled(True)
         self.window().start_download_button.setEnabled(self.start_download_enabled(self.selected_item))
         self.window().stop_download_button.setEnabled(self.stop_download_enabled(self.selected_item))
 
@@ -144,8 +147,8 @@ class DownloadsPage(QWidget):
     def on_right_click_item(self, pos):
         self.selected_item = self.window().downloads_list.selectedItems()[0]
 
-        menu = QMenu(self)
-        menu.setStyleSheet("QMenu { background-color: #ddd;} QMenu::item:selected { color: #aaa; }")
+        menu = TriblerActionMenu(self)
+
         startAction = QAction('Start', self)
         stopAction = QAction('Stop', self)
         removeDownloadAction = QAction('Remove download', self)

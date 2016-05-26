@@ -1,6 +1,7 @@
 import urllib
 from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QStackedWidget, QTreeWidget, \
-    QTreeWidgetItem, QToolButton, QFileDialog, QLineEdit, QTextEdit
+    QTreeWidgetItem, QToolButton, QFileDialog, QLineEdit, QTextEdit, QAction
+from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 
 from TriblerGUI.defs import PAGE_MY_CHANNEL_OVERVIEW, PAGE_MY_CHANNEL_SETTINGS, PAGE_MY_CHANNEL_TORRENTS, \
     PAGE_MY_CHANNEL_PLAYLISTS, PAGE_MY_CHANNEL_RSS_FEEDS, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM
@@ -28,6 +29,7 @@ class MyChannelPage(QWidget):
 
         self.window().my_channel_torrents_remove_selected_button.clicked.connect(self.on_torrents_remove_selected_clicked)
         self.window().my_channel_torrents_remove_all_button.clicked.connect(self.on_torrents_remove_all_clicked)
+        self.window().my_channel_torrents_add_button.clicked.connect(self.on_torrents_add_clicked)
         self.window().my_channel_torrents_export_button.clicked.connect(self.on_torrents_export_clicked)
 
         self.window().my_channel_details_rss_feeds_remove_selected_button.clicked.connect(self.on_rss_feeds_remove_selected_clicked)
@@ -144,6 +146,20 @@ class MyChannelPage(QWidget):
                     "Are you sure that you want to remove all torrents from your channel? You cannot undo this action.", [('confirm', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)])
         self.dialog.button_clicked.connect(self.on_torrents_remove_all_action)
         self.dialog.show()
+
+    def on_torrents_add_clicked(self):
+        menu = TriblerActionMenu(self)
+
+        addUrlAction = QAction('Add from URL', self)
+        stopAction = QAction('Stop', self)
+
+        startAction.triggered.connect(self.on_start_download_clicked)
+        stopAction.triggered.connect(self.on_stop_download_clicked)
+
+        menu.addAction(startAction)
+        menu.addAction(stopAction)
+
+        menu.exec_()
 
     def on_torrents_export_clicked(self):
         selected_dir = QFileDialog.getExistingDirectory(self, "Choose a directory to export the torrent files to")
