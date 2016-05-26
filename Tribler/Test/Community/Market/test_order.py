@@ -16,12 +16,12 @@ class OrderTestSuite(unittest.TestCase):
         # Object creation
         self.tick = Tick(MessageId(TraderId('0'), MessageNumber('message_number')),
                          OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(5),
-                         Timeout(float("inf")), Timestamp(float("inf")), True)
+                         Timeout(0.0), Timestamp(float("inf")), True)
         self.tick2 = Tick(MessageId(TraderId('0'), MessageNumber('message_number')),
                           OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(100),
-                          Timeout(float("inf")), Timestamp(float("inf")), True)
+                          Timeout(0.0), Timestamp(float("inf")), True)
         self.order = Order(OrderId(TraderId("0"), OrderNumber("order_number")), Price(100), Quantity(30),
-                           Timeout(0.0), Timestamp(10.0), False)
+                           Timeout(float("inf")), Timestamp(0.0), False)
         self.order2 = Order(OrderId(TraderId("0"), OrderNumber("order_number")), Price(100), Quantity(30),
                             Timeout(0.0), Timestamp(10.0), True)
 
@@ -31,8 +31,8 @@ class OrderTestSuite(unittest.TestCase):
         self.assertEquals(Price(100), self.order.price)
         self.assertEquals(Quantity(30), self.order.total_quantity)
         self.assertEquals(Quantity(30), self.order.available_quantity)
-        self.assertEquals(Timestamp(10.0), self.order.timestamp)
-        self.assertEquals(0.0, float(self.order.timeout))
+        self.assertEquals(Timestamp(0.0), self.order.timestamp)
+        self.assertEquals(float("inf"), float(self.order.timeout))
         self.assertEquals(Quantity(0), self.order.reserved_quantity)
 
     def test_is_ask(self):
@@ -61,6 +61,10 @@ class OrderTestSuite(unittest.TestCase):
         # Test for release unreserved quantity
         with self.assertRaises(TickWasNotReserved):
             self.order.release_quantity_for_tick(self.tick.order_id)
+
+    def test_is_valid(self):
+        self.assertTrue(self.order.is_valid())
+        self.assertFalse(self.order2.is_valid())
 
 
 class OrderIDTestSuite(unittest.TestCase):

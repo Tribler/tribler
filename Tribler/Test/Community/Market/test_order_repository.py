@@ -53,6 +53,11 @@ class MemoryOrderRepositoryTestSuite(unittest.TestCase):
         self.order = Order(self.order_id, Price(100), Quantity(30), Timeout(0.0), Timestamp(10.0), False)
         self.order2 = Order(self.order_id, Price(1000), Quantity(30), Timeout(0.0), Timestamp(10.0), False)
 
+    def test_init(self):
+        # Test for init validation
+        with self.assertRaises(ValueError):
+            self.memory_order_repository = MemoryOrderRepository("-")
+
     def test_add(self):
         # Test for add
         self.assertEquals([], self.memory_order_repository.find_all())
