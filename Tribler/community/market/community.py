@@ -11,9 +11,9 @@ from core.matching_engine import MatchingEngine, PriceTimeStrategy
 from core.message import TraderId
 from core.message_repository import MemoryMessageRepository
 from core.order import TickWasNotReserved
+from core.order_manager import OrderManager
 from core.order_repository import MemoryOrderRepository
 from core.orderbook import OrderBook
-from core.order_manager import OrderManager
 from core.price import Price
 from core.quantity import Quantity
 from core.tick import Ask, Bid, Tick
@@ -57,7 +57,7 @@ class MarketCommunity(Community):
 
         # The public key of this node
         self.pubkey = self.my_member.public_key.encode("HEX")
-        self.pubkey_register = {}
+        self.pubkey_register = {}  # TODO: fix memory leak
 
         order_repository = MemoryOrderRepository(self.pubkey)
         message_repository = MemoryMessageRepository(self.pubkey)
@@ -65,7 +65,7 @@ class MarketCommunity(Community):
         self.order_book = OrderBook(message_repository)
         self.matching_engine = MatchingEngine(PriceTimeStrategy(self.order_book))
 
-        self.history = {}  # List for received messages
+        self.history = {}  # List for received messages TODO: fix memory leak
 
     def initiate_meta_messages(self):
         return super(MarketCommunity, self).initiate_meta_messages() + [
@@ -382,6 +382,7 @@ class MarketCommunity(Community):
 
                         self.check_history(accepted_trade)  # Set the message received as true
 
+                        # TODO: make this only possible for accepted trades
                         self.order_book.insert_trade(accepted_trade)
 
                         order._quantity -= proposed_trade.quantity
@@ -403,8 +404,9 @@ class MarketCommunity(Community):
                                                       order.available_quantity, Timestamp.now(), proposed_trade)
                         self.send_counter_trade(counter_trade)
                 else:  # Send cancel
-                    # TODO: send cancel
-                    pass
+                    declined_trade = Trade.decline(self.order_book.message_repository.next_identity(), Timestamp.now(),
+                                                   proposed_trade)
+                    self.send_declined_trade(declined_trade)
 
     # Accepted trade
     def send_accepted_trade(self, accepted_trade):
@@ -560,5 +562,6 @@ class MarketCommunity(Community):
 
                         self.send_accepted_trade(accepted_trade)
                     except TickWasNotReserved:  # Send cancel
-                        # TODO: send cancel
-                        pass
+                        declined_trade = Trade.decline(self.order_book.message_repository.next_identity(),
+                                                       Timestamp.now(), counter_trade)
+                        self.send_declined_trade(declined_trade)
