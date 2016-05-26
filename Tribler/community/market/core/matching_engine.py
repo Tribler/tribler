@@ -16,8 +16,6 @@ class MatchingStrategy(object):
 
     def __init__(self, order_book):
         """
-        Initialise the matching strategy
-
         :param order_book: The order book to search in
         :type order_book: OrderBook
         """
@@ -30,8 +28,6 @@ class MatchingStrategy(object):
 
     def match_order(self, order):
         """
-        Match an order against the order book
-
         :param order: The order to match against
         :type order: Order
         :return: The proposed trades
@@ -45,8 +41,6 @@ class PriceTimeStrategy(MatchingStrategy):
 
     def match_order(self, order):
         """
-        Match an order against the order book
-
         :param order: The order to match against
         :type order: Order
         :return: The proposed trades
@@ -242,8 +236,6 @@ class MatchingEngine(object):
 
     def __init__(self, matching_strategy):
         """
-        Initialise the matching engine
-
         :param matching_strategy: The strategy to use
         :type matching_strategy: MatchingStrategy
         """
@@ -255,8 +247,6 @@ class MatchingEngine(object):
 
     def match_order(self, order):
         """
-        Match an order against the order book
-
         :param order: The order to match against
         :type order: Order
         :return: The proposed trades

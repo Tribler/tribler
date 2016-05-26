@@ -13,9 +13,6 @@ class OrderManager(object):
 
     def __init__(self, order_repository):
         """
-        Initialise the order manager
-
-        :param order_repository: The order repository to use for this order manager
         :type order_repository: OrderRepository
         """
         super(OrderManager, self).__init__()
@@ -85,6 +82,10 @@ class OrderManager(object):
         """
         assert isinstance(order_id, OrderId), type(order_id)
 
-        self.order_repository.delete_by_id(order_id)
+        order = self.order_repository.find_by_id(order_id)
+
+        if order:
+            order.cancel()
+            self.order_repository.update(order)
 
         self._logger.info("Order canceled with id: " + str(order_id))

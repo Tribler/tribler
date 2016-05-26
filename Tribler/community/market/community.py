@@ -247,7 +247,7 @@ class MarketCommunity(Community):
 
                 # Check for new matches against the orders of this node
                 for order in self.order_manager.order_repository.find_all():
-                    if not order.is_ask():
+                    if (not order.is_ask()) and order.is_valid():
                         proposed_trades = self.matching_engine.match_order(order)
                         self.send_proposed_trade_messages(proposed_trades)
 
@@ -334,7 +334,7 @@ class MarketCommunity(Community):
 
                 # Check for new matches against the orders of this node
                 for order in self.order_manager.order_repository.find_all():
-                    if order.is_ask():
+                    if order.is_ask() and order.is_valid():
                         proposed_trades = self.matching_engine.match_order(order)
                         self.send_proposed_trade_messages(proposed_trades)
 
@@ -375,7 +375,7 @@ class MarketCommunity(Community):
             if str(proposed_trade.recipient_order_id.trader_id) == str(self.pubkey):  # The message is for this node
                 order = self.order_manager.order_repository.find_by_id(proposed_trade.recipient_order_id)
 
-                if order:
+                if order and order.is_valid():
                     if order.available_quantity >= proposed_trade.quantity:
                         accepted_trade = Trade.accept(self.order_book.message_repository.next_identity(),
                                                       Timestamp.now(), proposed_trade)
@@ -402,6 +402,9 @@ class MarketCommunity(Community):
                         counter_trade = Trade.counter(self.order_book.message_repository.next_identity(),
                                                       order.available_quantity, Timestamp.now(), proposed_trade)
                         self.send_counter_trade(counter_trade)
+                else:  # Send cancel
+                    # TODO: send cancel
+                    pass
 
     # Accepted trade
     def send_accepted_trade(self, accepted_trade):
@@ -434,7 +437,7 @@ class MarketCommunity(Community):
                 if order:
                     try:
                         order.release_quantity_for_tick(accepted_trade.order_id)
-                    except (TickWasNotReserved, LogicException):
+                    except TickWasNotReserved:  # Send cancel
                         # TODO: send cancel
                         pass
 
@@ -556,5 +559,6 @@ class MarketCommunity(Community):
                                     counter_trade.order_id).quantity -= counter_trade.quantity
 
                         self.send_accepted_trade(accepted_trade)
-                    except TickWasNotReserved:
+                    except TickWasNotReserved:  # Send cancel
+                        # TODO: send cancel
                         pass

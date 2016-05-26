@@ -1,12 +1,15 @@
 class Ttl(object):
-    """Class for representing a time to live."""
+    """
+    The time to live is used for keeping track of how many nodes have relayed this messages.
+    The number of relayed nodes should be kept low to prevent a flooding of the overlay network.
+    Two was chosen because it provides the best balance between flooding the network and still
+    reaching enough nodes to find good trades
+    """
 
     DEFAULT = 2
 
     def __init__(self, ttl):
         """
-        Initialise the time to live
-
         :param ttl: Integer representation of a time to live
         :type ttl: int
         :raises ValueError: Thrown when one of the arguments are invalid
@@ -33,7 +36,7 @@ class Ttl(object):
 
     def is_alive(self):
         """
-        Check if the ttl is still alive and needs to be send on
+        Check if the ttl is still hig enough to be send on
 
         :return: True if it is alive, False otherwise
         :rtype: bool
@@ -42,59 +45,9 @@ class Ttl(object):
 
     def make_hop(self):
         """
-        Makes a hop by reducing the ttl by 1
+        Makes a hop by reducing the ttl by 1, to simulate the message being relayed through a node
         """
         self._ttl -= 1
 
     def __int__(self):
-        """
-        Return the integer representation of the ttl
-
-        :return: The integer representation of the ttl
-        :rtype: integer
-        """
         return self._ttl
-
-    def __str__(self):
-        """
-        Return the string representation of the ttl
-
-        :return: The string representation of the ttl
-        :rtype: str
-        """
-        return "%s" % str(self._ttl)
-
-    def __eq__(self, other):
-        """
-        Check if two object are the same
-
-        :param other: An object to compare with
-        :return: True if the objects are the same, False otherwise
-        :rtype: bool
-        """
-        if not isinstance(other, Ttl):
-            return NotImplemented
-        elif self is other:
-            return True
-        else:
-            return self._ttl == \
-                   other._ttl
-
-    def __ne__(self, other):
-        """
-        Check if two objects are not the same
-
-        :param other: An object to compare with
-        :return: True if the objects are not the same, False otherwise
-        :rtype: bool
-        """
-        return not self.__eq__(other)
-
-    def __hash__(self):
-        """
-        Return the hash value of this object
-
-        :return: The hash value
-        :rtype: integer
-        """
-        return hash(self._ttl)

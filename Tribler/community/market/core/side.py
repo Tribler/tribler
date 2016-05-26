@@ -12,9 +12,6 @@ class Side(object):
     """Class for representing a side of the order book"""
 
     def __init__(self):
-        """
-        Initialise the side
-        """
         self._price_tree = FastRBTree()  # Red Black tree containing price levels: Price -> PriceLevel
         self._price_map = {}  # Map: Price -> PriceLevel
         self._tick_map = {}  # Map: MessageId -> TickEntry
@@ -24,9 +21,6 @@ class Side(object):
     def __len__(self):
         """
         Return the length of the amount of ticks contained in all the price level of this side
-
-        :return: The length
-        :rtype: integer
         """
         return len(self._tick_map)
 
@@ -44,8 +38,6 @@ class Side(object):
 
     def get_tick(self, order_id):
         """
-        Retrieve a tick by order id
-
         :param order_id: The order id of the tick
         :type order_id: OrderId
         :return: The tick
@@ -56,8 +48,6 @@ class Side(object):
 
     def _create_price_level(self, price):
         """
-        Create a price level
-
         :param price: The price to create the level for
         :type price: Price
         """
@@ -71,8 +61,6 @@ class Side(object):
 
     def _remove_price_level(self, price):
         """
-        Remove a price level by price
-
         :param price: The price to remove the level for
         :type price: Price
         """
@@ -85,8 +73,6 @@ class Side(object):
 
     def _price_level_exists(self, price):
         """
-        Check if the price level exists
-
         :param price: The price to check for
         :type price: Price
         :return: True if the price level exists, False otherwise
@@ -97,8 +83,6 @@ class Side(object):
 
     def tick_exists(self, order_id):
         """
-        Check if a tick exists with the given order id
-
         :param order_id: The order id to search for
         :type order_id: OrderId
         :return: True if the tick exists, False otherwise
@@ -109,8 +93,6 @@ class Side(object):
 
     def insert_tick(self, tick):
         """
-        Insert a tick into this side of the order book
-
         :param tick: The tick to insert
         :type tick: Tick
         """
@@ -125,8 +107,6 @@ class Side(object):
 
     def remove_tick(self, order_id):
         """
-        Remove a tick with the given order id from this side of the order book
-
         :param order_id: The order id of the tick that needs to be removed
         :type order_id: OrderId
         """
@@ -143,8 +123,6 @@ class Side(object):
     def max_price(self):
         """
         Return the maximum price that a tick is listed for on this side of the order book
-
-        :return: The maximum price
         :rtype: Price
         """
         if self._depth > 0:
@@ -156,8 +134,6 @@ class Side(object):
     def min_price(self):
         """
         Return the minimum price that a tick is listed for on this side of the order book
-
-        :return: The minimum price
         :rtype: Price
         """
         if self._depth > 0:
@@ -169,8 +145,6 @@ class Side(object):
     def max_price_list(self):
         """
         Return the price level for the maximum price
-
-        :return: The maximum price level
         :rtype: PriceLevel
         """
         if self._depth > 0:
@@ -182,8 +156,6 @@ class Side(object):
     def min_price_list(self):
         """
         Return the price level for the minimum price
-
-        :return: The minimum price level
         :rtype: PriceLevel
         """
         if self._depth > 0:

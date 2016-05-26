@@ -1,9 +1,9 @@
 import logging
 from collections import deque
 
-from order import OrderId
 from message import Message
 from message_repository import MessageRepository
+from order import OrderId
 from price import Price
 from side import Side
 from tick import Tick, Ask, Bid
@@ -12,12 +12,12 @@ from trade import Trade
 
 
 class OrderBook(object):
-    """Class representation of an order book"""
+    """
+    OrderBook is used for searching through all the orders and giving an indication to the user of what other offers
+    are out there.
+    """
 
     def __init__(self, message_repository):
-        """
-        Initialise the order book
-        """
         self._logger = logging.getLogger(self.__class__.__name__)
 
         assert isinstance(message_repository, MessageRepository), type(message_repository)
@@ -32,9 +32,6 @@ class OrderBook(object):
     def _process_message(self, message):
         """
         Process a message that is passed to this order book
-
-        :param message: The message that needs to be processed
-        :type message: Message
         """
         assert isinstance(message, Message), type(message)
 
@@ -44,9 +41,6 @@ class OrderBook(object):
 
     def insert_ask(self, ask):
         """
-        Insert an ask into the order book
-
-        :param ask: The ask to add
         :type ask: Ask
         """
         assert isinstance(ask, Ask), type(ask)
@@ -58,9 +52,6 @@ class OrderBook(object):
 
     def remove_ask(self, order_id):
         """
-        Remove an ask from the order book
-
-        :param order_id: The id of the ask to remove
         :type order_id: OrderId
         """
         assert isinstance(order_id, OrderId), type(order_id)
@@ -70,9 +61,6 @@ class OrderBook(object):
 
     def insert_bid(self, bid):
         """
-        Insert a bid into the order book
-
-        :param bid: The bid to add
         :type bid: Bid
         """
         assert isinstance(bid, Bid), type(bid)
@@ -84,9 +72,6 @@ class OrderBook(object):
 
     def remove_bid(self, order_id):
         """
-        Remove a bid from the order book
-
-        :param order_id: The id of the bid to remove
         :type order_id: OrderId
         """
         assert isinstance(order_id, OrderId), type(order_id)
@@ -96,9 +81,6 @@ class OrderBook(object):
 
     def insert_trade(self, trade):
         """
-        Insert a trade into the order book
-
-        :param trade: The trade to add
         :type trade: Trade
         """
         assert isinstance(trade, Trade), type(trade)
@@ -109,8 +91,6 @@ class OrderBook(object):
 
     def tick_exists(self, order_id):
         """
-        Check if a tick exists with the given order id
-
         :param order_id: The order id to search for
         :type order_id: OrderId
         :return: True if the tick exists, False otherwise
@@ -125,9 +105,6 @@ class OrderBook(object):
 
     def remove_tick(self, order_id):
         """
-        Remove a tick with the given order id from the order book
-
-        :param order_id: The order id of the tick that needs to be removed
         :type order_id: OrderId
         """
         assert isinstance(order_id, OrderId), type(order_id)
@@ -138,9 +115,7 @@ class OrderBook(object):
     @property
     def bid_price(self):
         """
-        Return the price of a bid
-
-        :return: The price an ask needs to have to make a trade
+        Return the price an ask needs to have to make a trade
         :rtype: Price
         """
         return self._bids.max_price
@@ -148,9 +123,7 @@ class OrderBook(object):
     @property
     def ask_price(self):
         """
-        Return the price of an ask
-
-        :return: The price a bid needs to have to make a trade
+        Return the price a bid needs to have to make a trade
         :rtype: Price
         """
         return self._asks.min_price
@@ -159,8 +132,6 @@ class OrderBook(object):
     def bid_ask_spread(self):
         """
         Return the spread between the bid and the ask price
-
-        :return: The spread
         :rtype: Price
         """
         return self.ask_price - self.bid_price
@@ -169,8 +140,6 @@ class OrderBook(object):
     def mid_price(self):
         """
         Return the price in between the bid and the ask price
-
-        :return: The mid price
         :rtype: Price
         """
         return Price.from_mil((int(self.ask_price) + int(self.bid_price)) / 2)
@@ -202,8 +171,6 @@ class OrderBook(object):
     @property
     def bid_side_depth_profile(self):
         """
-        Return the bid side depth profile
-
         format: [(<price>, <depth>), (<price>, <depth>), ...]
 
         :return: The depth profile
@@ -217,8 +184,6 @@ class OrderBook(object):
     @property
     def ask_side_depth_profile(self):
         """
-        Return the ask side depth profile
-
         format: [(<price>, <depth>), (<price>, <depth>), ...]
 
         :return: The depth profile
@@ -231,8 +196,6 @@ class OrderBook(object):
 
     def bid_relative_price(self, price):
         """
-        Return the relative bid price
-
         :param price: The price to be relative to
         :type price: Price
         :return: The relative price
@@ -243,8 +206,6 @@ class OrderBook(object):
 
     def ask_relative_price(self, price):
         """
-        Return the relative ask price
-
         :param price: The price to be relative to
         :type price: Price
         :return: The relative price
@@ -255,8 +216,6 @@ class OrderBook(object):
 
     def relative_tick_price(self, tick):
         """
-        Return the relative tick price
-
         :param tick: The tick with the price to be relative to
         :type tick: Tick
         :return: The relative price
@@ -273,8 +232,6 @@ class OrderBook(object):
     def bid_price_level(self):
         """
         Return the price level that an ask has to match to make a trade
-
-        :return: The maximum bid price level
         :rtype: PriceLevel
         """
         return self._bids.max_price_list
@@ -283,19 +240,11 @@ class OrderBook(object):
     def ask_price_level(self):
         """
         Return the price level that a bid has to match to make a trade
-
-        :return: The maximum ask price level
         :rtype: PriceLevel
         """
         return self._asks.min_price_list
 
     def __str__(self):
-        """
-        Return the string representation of the order book
-
-        :return: The string representation of the order book
-        :rtype: str
-        """
         from cStringIO import StringIO
 
         tempfile = StringIO()

@@ -6,8 +6,6 @@ class TraderId(object):
 
     def __init__(self, trader_id):
         """
-        Initialise the trader id
-
         :param trader_id: String representing the trader id
         :type trader_id: str
         :raises ValueError: Thrown when one of the arguments are invalid
@@ -25,22 +23,9 @@ class TraderId(object):
         self._trader_id = trader_id
 
     def __str__(self):
-        """
-        Return the string representation of the trader id
-
-        :return: The string representation of the trader id
-        :rtype: str
-        """
         return "%s" % self._trader_id
 
     def __eq__(self, other):
-        """
-        Check if two object are the same
-
-        :param other: An object to compare with
-        :return: True if the objects are the same, False otherwise
-        :rtype: bool
-        """
         if not isinstance(other, TraderId):
             return NotImplemented
         elif self is other:
@@ -50,22 +35,9 @@ class TraderId(object):
                    other._trader_id
 
     def __ne__(self, other):
-        """
-        Check if two objects are not the same
-
-        :param other: An object to compare with
-        :return: True if the objects are not the same, False otherwise
-        :rtype: bool
-        """
         return not self.__eq__(other)
 
     def __hash__(self):
-        """
-        Return the hash value of this object
-
-        :return: The hash value
-        :rtype: integer
-        """
         return hash(self._trader_id)
 
 
@@ -74,8 +46,6 @@ class MessageNumber(object):
 
     def __init__(self, message_number):
         """
-        Initialise the message number
-
         :param message_number: String representing the number of a message
         :type message_number: str
         :raises ValueError: Thrown when one of the arguments are invalid
@@ -88,22 +58,9 @@ class MessageNumber(object):
         self._message_number = message_number
 
     def __str__(self):
-        """
-        Return the string representation of the message number
-
-        :return: The string representation of the message number
-        :rtype: str
-        """
         return "%s" % self._message_number
 
     def __eq__(self, other):
-        """
-        Check if two object are the same
-
-        :param other: An object to compare with
-        :return: True if the objects are the same, False otherwise
-        :rtype: bool
-        """
         if not isinstance(other, MessageNumber):
             return NotImplemented
         elif self is other:
@@ -113,22 +70,9 @@ class MessageNumber(object):
                    other._message_number
 
     def __ne__(self, other):
-        """
-        Check if two objects are not the same
-
-        :param other: An object to compare with
-        :return: True if the objects are not the same, False otherwise
-        :rtype: bool
-        """
         return not self.__eq__(other)
 
     def __hash__(self):
-        """
-        Return the hash value of this object
-
-        :return: The hash value
-        :rtype: integer
-        """
         return hash(self._message_number)
 
 
@@ -137,8 +81,6 @@ class MessageId(object):
 
     def __init__(self, trader_id, message_number):
         """
-        Initialise the message id
-
         :param trader_id: The trader id who created the message
         :param message_number: The number of the message created
         :type trader_id: TraderId
@@ -155,9 +97,6 @@ class MessageId(object):
     @property
     def trader_id(self):
         """
-        Return the trader id
-
-        :return: The trader id of the message id
         :rtype: TraderId
         """
         return self._trader_id
@@ -165,32 +104,18 @@ class MessageId(object):
     @property
     def message_number(self):
         """
-        Return the message number
-
-        :return: The message number of the message id
         :rtype: MessageNumber
         """
         return self._message_number
 
     def __str__(self):
         """
-        Return the string representation of the message id
-
         format: <trader_id>.<message_number>
-
-        :return: The string representation of the message id
         :rtype: str
         """
         return "%s.%s" % (self._trader_id, self._message_number)
 
     def __eq__(self, other):
-        """
-        Check if two objects are the same
-
-        :param other: An object to compare with
-        :return: True if the object is the same, False otherwise
-        :rtype: bool
-        """
         if not isinstance(other, MessageId):
             return NotImplemented
         elif self is other:
@@ -200,22 +125,9 @@ class MessageId(object):
                    (other._trader_id, other._message_number)
 
     def __ne__(self, other):
-        """
-        Check if two objects are not the same
-
-        :param other: An object to compare with
-        :return: True if the object is not the same, False otherwise
-        :rtype: bool
-        """
         return not self.__eq__(other)
 
     def __hash__(self):
-        """
-        Return the hash value of this object
-
-        :return: The hash value
-        :rtype: integer
-        """
         return hash((self._trader_id, self._message_number))
 
 
@@ -224,9 +136,7 @@ class Message(object):
 
     def __init__(self, message_id, timestamp):
         """
-        Initialise the message
-
-        Don't use this class directly
+        Don't use this class directly, use on of its implementations
 
         :param message_id: A message id to identify the message
         :param timestamp: A timestamp when the message was created
@@ -244,9 +154,6 @@ class Message(object):
     @property
     def message_id(self):
         """
-        Return the message id of the message
-
-        :return: The message id
         :rtype: MessageId
         """
         return self._message_id
@@ -254,9 +161,6 @@ class Message(object):
     @property
     def timestamp(self):
         """
-        Return the timestamp of the message
-
-        :return: The timestamp
         :rtype: Timestamp
         """
         return self._timestamp

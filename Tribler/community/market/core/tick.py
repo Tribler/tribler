@@ -7,13 +7,14 @@ from timestamp import Timestamp
 
 
 class Tick(Message):
-    """Abstract class for representing a tick."""
+    """
+    Abstract message class for representing a order on another node. This tick is replicating the order sitting on
+    the node it belongs to.
+    """
 
     def __init__(self, message_id, order_id, price, quantity, timeout, timestamp, is_ask):
         """
-        Initialise the tick
-
-        Don't use this class directly
+        Don't use this class directly, use one of the class methods
 
         :param message_id: A message id to identify the tick
         :param order_id: A order id to identify the order this tick represents
@@ -43,7 +44,6 @@ class Tick(Message):
         self._quantity = quantity
         self._timeout = timeout
         self._is_ask = is_ask
-        self._is_reserved = False
 
     @classmethod
     def from_order(cls, order, message_id):
@@ -66,9 +66,6 @@ class Tick(Message):
     @property
     def order_id(self):
         """
-        Return the order id of the tick
-
-        :return: The order id
         :rtype: OrderId
         """
         return self._order_id
@@ -76,9 +73,6 @@ class Tick(Message):
     @property
     def price(self):
         """
-        Return the price of the tick
-
-        :return: The price
         :rtype: Price
         """
         return self._price
@@ -86,9 +80,6 @@ class Tick(Message):
     @property
     def quantity(self):
         """
-        Return the quantity of the tick
-
-        :return: The quantity
         :rtype: Quantity
         """
         return self._quantity
@@ -96,8 +87,6 @@ class Tick(Message):
     @quantity.setter
     def quantity(self, quantity):
         """
-        Set the quantity of the tick
-
         :param quantity: The new quantity
         :type quantity: Quantity
         """
@@ -108,50 +97,23 @@ class Tick(Message):
     def timeout(self):
         """
         Return when the tick is going to expire
-
-        :return: The timeout
         :rtype: Timeout
         """
         return self._timeout
 
     def is_ask(self):
         """
-        Return if this tick is an ask
-
         :return: True if this tick is an ask, False otherwise
         :rtype: bool
         """
         return self._is_ask
 
-    def is_reserved(self):
-        """
-        Return if this tick is reserved
-
-        :return: True if this tick is reserved, False otherwise
-        :rtype: bool
-        """
-        return self._is_reserved
-
-    def reserve(self):
-        """
-        Reserve this tick
-        """
-        self._is_reserved = True
-
-    def release(self):
-        """
-        Release this tick
-        """
-        self._is_reserved = False
-
     def is_valid(self):
         """
-        Return if the tick is still valid
-
         :return: True if valid, False otherwise
         :rtype: bool
         """
-        return not (self._timeout.is_timed_out(Timestamp.now()) or self._is_reserved)
+        return not self._timeout.is_timed_out(Timestamp.now())
 
     def to_network(self):
         """
@@ -172,12 +134,10 @@ class Tick(Message):
 
 
 class Ask(Tick):
-    """Class representing an ask."""
+    """Represents an ask from a order located on another node."""
 
     def __init__(self, message_id, order_id, price, quantity, timeout, timestamp):
         """
-        Initialise the ask
-
         :param message_id: A message id to identify the ask
         :param order_id: A order id to identify the order this tick represents
         :param price: A price that needs to be paid for the ask
@@ -221,12 +181,10 @@ class Ask(Tick):
 
 
 class Bid(Tick):
-    """Class representing a bid."""
+    """Represents a bid from a order located on another node."""
 
     def __init__(self, message_id, order_id, price, quantity, timeout, timestamp):
         """
-        Initialise the bid
-
         :param message_id: A message id to identify the bid
         :param order_id: A order id to identify the order this tick represents
         :param price: A price that you are willing to pay for the bid

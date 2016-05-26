@@ -2,15 +2,9 @@ from tick import TraderId, MessageNumber, MessageId
 
 
 class MessageRepository(object):
-    """A repository for messages in the order book"""
+    """A repository interface for messages in the order book"""
 
     def next_identity(self):
-        """
-        Return the next identity
-
-        :return: The next available identity
-        :rtype: MessageId
-        """
         return NotImplemented
 
 
@@ -19,8 +13,6 @@ class MemoryMessageRepository(MessageRepository):
 
     def __init__(self, pubkey):
         """
-        Initialise the MemoryMessageRepository
-
         :param pubkey: Hex encoded version of the public key of this node
         :type pubkey: str
         """
@@ -36,9 +28,6 @@ class MemoryMessageRepository(MessageRepository):
 
     def next_identity(self):
         """
-        Return the next identity
-
-        :return: The next available identity
         :rtype: MessageId
         """
         self._next_id += 1

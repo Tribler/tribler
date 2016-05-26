@@ -17,57 +17,21 @@ class OrderRepository(object):
         self._logger = logging.getLogger(self.__class__.__name__)
 
     def find_all(self):
-        """
-        Find all orders
-        :rtype: [Order]
-        """
         return NotImplemented
 
     def find_by_id(self, order_id):
-        """
-        Find an order by its identity
-
-        :param order_id: The order id to look for
-        :type order_id: OrderId
-        :return: The order or null if it cannot be found
-        :rtype: Order
-        """
         return NotImplemented
 
     def add(self, order):
-        """
-        Add an order to the collection
-
-        :param order: The order to add
-        :type order: Order
-        """
         return NotImplemented
 
     def update(self, order):
-        """
-        Update an order in the collection
-
-        :param order: The order that has been updated
-        :type order: Order
-        """
         return NotImplemented
 
     def delete_by_id(self, order_id):
-        """
-        Delete the order with the given id
-
-        :param order_id: The order id for the order to delete
-        :type order_id: OrderId
-        """
         return NotImplemented
 
     def next_identity(self):
-        """
-        Return the next identity
-
-        :return: The next available identity
-        :rtype: OrderId
-        """
         return NotImplemented
 
 
@@ -76,8 +40,6 @@ class MemoryOrderRepository(OrderRepository):
 
     def __init__(self, pubkey):
         """
-        Initialise the MemoryOrderRepository
-
         :param pubkey: Hex encoded version of the public key of this node
         :type pubkey: str
         """
@@ -97,15 +59,12 @@ class MemoryOrderRepository(OrderRepository):
 
     def find_all(self):
         """
-        Find all orders
         :rtype: [Order]
         """
         return self._orders.values()
 
     def find_by_id(self, order_id):
         """
-        Find an order by its identity
-
         :param order_id: The order id to look for
         :type order_id: OrderId
         :return: The order or null if it cannot be found
@@ -119,9 +78,6 @@ class MemoryOrderRepository(OrderRepository):
 
     def add(self, order):
         """
-        Add an order to the collection
-
-        :param order: The order to add
         :type order: Order
         """
         assert isinstance(order, Order), type(order)
@@ -132,9 +88,6 @@ class MemoryOrderRepository(OrderRepository):
 
     def update(self, order):
         """
-        Update an order in the collection
-
-        :param order: The order that has been updated
         :type order: Order
         """
         assert isinstance(order, Order), type(order)
@@ -145,9 +98,6 @@ class MemoryOrderRepository(OrderRepository):
 
     def delete_by_id(self, order_id):
         """
-        Return the next identity
-
-        :param order_id: The order id for the order to delete
         :type order_id: OrderId
         """
         assert isinstance(order_id, OrderId), type(order_id)
@@ -158,9 +108,6 @@ class MemoryOrderRepository(OrderRepository):
 
     def next_identity(self):
         """
-        Return the next identity
-
-        :return: The next available identity
         :rtype: OrderId
         """
         self._next_id += 1

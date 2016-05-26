@@ -4,12 +4,10 @@ from timestamp import Timestamp
 
 
 class Timeout(object):
-    """Immutable class for representing a timeout."""
+    """Used for having a validated instance of a timeout that we can easily check if it still valid."""
 
     def __init__(self, timeout):
         """
-        Initialise the timeout
-
         :param timeout: Float representation of a timeout
         :type timeout: float
         :raises ValueError: Thrown when one of the arguments are invalid
@@ -41,28 +39,10 @@ class Timeout(object):
             return False
 
     def __float__(self):
-        """
-        Return the float representation of the timeout
-
-        :return: The float representation of the timeout
-        :rtype: float
-        """
         return self._timeout
 
     def __str__(self):
-        """
-        Return the string representation of the timeout
-
-        :return: The string representation of the timeout
-        :rtype: str
-        """
         return "%s" % datetime.datetime.fromtimestamp(self._timeout)
 
     def __hash__(self):
-        """
-        Return the hash value of this object
-
-        :return: The hash value
-        :rtype: integer
-        """
         return hash(self._timeout)
