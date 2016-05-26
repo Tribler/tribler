@@ -343,7 +343,7 @@ class AcceptedTrade(Trade):
         )
 
 
-class CounterTrade(Trade):
+class CounterTrade(ProposedTrade):
     """
     Counter trades are send as a response to a proposed trade. If after receiving the order to be trade for
     is not fully available anymore, a counter offer is made with the quantity that is still left. This was
@@ -367,13 +367,7 @@ class CounterTrade(Trade):
         :type quantity: Quantity
         :type timestamp: Timestamp
         """
-        super(CounterTrade, self).__init__(message_id, order_id, recipient_order_id, timestamp)
-
-        assert isinstance(price, Price), type(price)
-        assert isinstance(quantity, Quantity), type(quantity)
-
-        self._price = price
-        self._quantity = quantity
+        super(CounterTrade, self).__init__(message_id, order_id, recipient_order_id, price, quantity, timestamp)
 
     @classmethod
     def from_network(cls, data):
@@ -401,22 +395,6 @@ class CounterTrade(Trade):
             data.quantity,
             data.timestamp
         )
-
-    @property
-    def price(self):
-        """
-        :return: The price
-        :rtype: Price
-        """
-        return self._price
-
-    @property
-    def quantity(self):
-        """
-        :return: The quantity
-        :rtype: Quantity
-        """
-        return self._quantity
 
     def to_network(self):
         """
