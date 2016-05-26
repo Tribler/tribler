@@ -7,13 +7,10 @@ from trade import AcceptedTrade
 
 
 class TransactionNumber(object):
-    """Immutable class for representing the number of a transaction."""
+    """Used for having a validated instance of a transaction number that we can easily check if it still valid."""
 
     def __init__(self, transaction_number):
         """
-        Initialise the transaction number
-
-        :param transaction_number: String representing the number of a transaction
         :type transaction_number: str
         :raises ValueError: Thrown when one of the arguments are invalid
         """
@@ -25,22 +22,9 @@ class TransactionNumber(object):
         self._transaction_number = transaction_number
 
     def __str__(self):
-        """
-        Return the string representation of the order number
-
-        :return: The string representation of the order number
-        :rtype: str
-        """
         return "%s" % self._transaction_number
 
     def __eq__(self, other):
-        """
-        Check if two object are the same
-
-        :param other: An object to compare with
-        :return: True if the objects are the same, False otherwise
-        :rtype: bool
-        """
         if not isinstance(other, TransactionNumber):
             return NotImplemented
         elif self is other:
@@ -50,32 +34,17 @@ class TransactionNumber(object):
                    other._transaction_number
 
     def __ne__(self, other):
-        """
-        Check if two objects are not the same
-
-        :param other: An object to compare with
-        :return: True if the objects are not the same, False otherwise
-        :rtype: bool
-        """
         return not self.__eq__(other)
 
     def __hash__(self):
-        """
-        Return the hash value of this object
-
-        :return: The hash value
-        :rtype: integer
-        """
         return hash(self._transaction_number)
 
 
 class TransactionId(object):
-    """Immutable class for representing the id of a transaction."""
+    """Used for having a validated instance of a transaction id that we can easily check if it still valid."""
 
     def __init__(self, trader_id, transaction_number):
         """
-        Initialise the transaction id
-
         :param trader_id: The trader id who created the order
         :param transaction_number: The number of the transaction created
         :type trader_id: TraderId
@@ -92,9 +61,6 @@ class TransactionId(object):
     @property
     def trader_id(self):
         """
-        Return the trader id
-
-        :return: The trader id of the message id
         :rtype: TraderId
         """
         return self._trader_id
@@ -102,32 +68,17 @@ class TransactionId(object):
     @property
     def transaction_number(self):
         """
-        Return the transaction number
-
-        :return: The transaction number of the transaction id
         :rtype: TransactionNumber
         """
         return self._transaction_number
 
     def __str__(self):
         """
-        Return the string representation of the transaction id
-
         format: <trader_id>.<transaction_number>
-
-        :return: The string representation of the transaction id
-        :rtype: str
         """
         return "%s.%s" % (self._trader_id, self._transaction_number)
 
     def __eq__(self, other):
-        """
-        Check if two objects are the same
-
-        :param other: An object to compare with
-        :return: True if the object is the same, False otherwise
-        :rtype: bool
-        """
         if not isinstance(other, TransactionId):
             return NotImplemented
         elif self is other:
@@ -137,22 +88,9 @@ class TransactionId(object):
                    (other._trader_id, other._transaction_number)
 
     def __ne__(self, other):
-        """
-        Check if two objects are not the same
-
-        :param other: An object to compare with
-        :return: True if the object is not the same, False otherwise
-        :rtype: bool
-        """
         return not self.__eq__(other)
 
     def __hash__(self):
-        """
-        Return the hash value of this object
-
-        :return: The hash value
-        :rtype: integer
-        """
         return hash((self._trader_id, self._transaction_number))
 
 
@@ -161,8 +99,6 @@ class Transaction(object):
 
     def __init__(self, transaction_id, price, quantity, timeout, timestamp):
         """
-        Initialise the transaction
-
         :param transaction_id: An transaction id to identify the order
         :param price: A price to indicate for which amount to sell or buy
         :param quantity: A quantity to indicate how much to sell or buy
@@ -191,7 +127,6 @@ class Transaction(object):
     @classmethod
     def from_accepted_trade(cls, accepted_trade, transaction_id):
         """
-
         :param accepted_trade: The accepted trade to create the transaction for
         :param transaction_id: The transaction id to use for this transaction
         :type accepted_trade: AcceptedTrade
@@ -208,9 +143,6 @@ class Transaction(object):
     @property
     def transaction_id(self):
         """
-        Return the transaction id of the transaction
-
-        :return: The transaction id
         :rtype: TransactionId
         """
         return self._transaction_id
@@ -218,9 +150,6 @@ class Transaction(object):
     @property
     def price(self):
         """
-        Return the price of the order
-
-        :return: The price
         :rtype: Price
         """
         return self._price
@@ -228,9 +157,6 @@ class Transaction(object):
     @property
     def total_quantity(self):
         """
-        Return the total quantity of the order
-
-        :return: The total quantity
         :rtype: Quantity
         """
         return self._quantity
@@ -239,8 +165,6 @@ class Transaction(object):
     def timeout(self):
         """
         Return when the transaction is going to expire
-
-        :return: The timeout
         :rtype: Timeout
         """
         return self._timeout
@@ -248,9 +172,6 @@ class Transaction(object):
     @property
     def timestamp(self):
         """
-        Return the timestamp of the message
-
-        :return: The timestamp
         :rtype: Timestamp
         """
         return self._timestamp

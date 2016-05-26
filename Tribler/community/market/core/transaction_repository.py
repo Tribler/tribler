@@ -17,57 +17,21 @@ class TransactionRepository(object):
         self._logger = logging.getLogger(self.__class__.__name__)
 
     def find_all(self):
-        """
-        Find all transactions
-        :rtype: [Transaction]
-        """
         return NotImplemented
 
     def find_by_id(self, transaction_id):
-        """
-        Find a transaction by its identity
-
-        :param transaction_id: The transaction id to look for
-        :type transaction_id: TransactionId
-        :return: The transaction or null if it cannot be found
-        :rtype: Transaction
-        """
         return NotImplemented
 
     def add(self, transaction):
-        """
-        Add a transaction to the collection
-
-        :param transaction: The transaction to add
-        :type transaction: Transaction
-        """
         return NotImplemented
 
     def update(self, transaction):
-        """
-        Update a transaction in the collection
-
-        :param transaction: The transaction that has been updated
-        :type transaction: Transaction
-        """
         return NotImplemented
 
     def delete_by_id(self, transaction_id):
-        """
-        Delete the transaction with the given id
-
-        :param transaction_id: The transaction id for the transaction to delete
-        :type transaction_id: TransactionId
-        """
         return NotImplemented
 
     def next_identity(self):
-        """
-        Return the next identity
-
-        :return: The next available identity
-        :rtype: TransactionId
-        """
         return NotImplemented
 
 
@@ -76,8 +40,6 @@ class MemoryTransactionRepository(TransactionRepository):
 
     def __init__(self, pubkey):
         """
-        Initialise the MemoryTransactionRepository
-
         :param pubkey: Hex encoded version of the public key of this node
         :type pubkey: str
         """
@@ -92,15 +54,12 @@ class MemoryTransactionRepository(TransactionRepository):
 
     def find_all(self):
         """
-        Find all transactions
         :rtype: [Transaction]
         """
         return self._transactions.values()
 
     def find_by_id(self, transaction_id):
         """
-        Find a transaction by its identity
-
         :param transaction_id: The transaction id to look for
         :type transaction_id: TransactionId
         :return: The transaction or null if it cannot be found
@@ -115,9 +74,6 @@ class MemoryTransactionRepository(TransactionRepository):
 
     def add(self, transaction):
         """
-        Add a transaction to the collection
-
-        :param transaction: The transaction to add
         :type transaction: Transaction
         """
         assert isinstance(transaction, Transaction), type(transaction)
@@ -129,9 +85,6 @@ class MemoryTransactionRepository(TransactionRepository):
 
     def update(self, transaction):
         """
-        Update a transaction in the collection
-
-        :param transaction: The transaction that has been updated
         :type transaction: Transaction
         """
         assert isinstance(transaction, Transaction), type(transaction)
@@ -143,9 +96,6 @@ class MemoryTransactionRepository(TransactionRepository):
 
     def delete_by_id(self, transaction_id):
         """
-        Delete the transaction with the given id
-
-        :param transaction_id: The transaction id for the transaction to delete
         :type transaction_id: TransactionId
         """
         assert isinstance(transaction_id, TransactionId), type(transaction_id)
@@ -157,9 +107,6 @@ class MemoryTransactionRepository(TransactionRepository):
 
     def next_identity(self):
         """
-        Return the next identity
-
-        :return: The next available identity
         :rtype: TransactionId
         """
         self._next_id += 1

@@ -14,9 +14,6 @@ class TransactionManager(object):
 
     def __init__(self, transaction_repository):
         """
-        Initialise the transaction manager
-
-        :param transaction_repository: The transaction repository to use for this transaction manager
         :type transaction_repository: TransactionRepository
         """
         super(TransactionManager, self).__init__()
@@ -30,11 +27,7 @@ class TransactionManager(object):
 
     def create_from_accepted_trade(self, accepted_trade):
         """
-        Create a transaction from an accepted trade
-
-        :param accepted_trade: The accepted trade from which the transaction is created
         :type accepted_trade: AcceptedTrade
-        :return: The created transaction
         :rtype: Transaction
         """
         assert isinstance(accepted_trade, AcceptedTrade), type(accepted_trade)
@@ -47,18 +40,14 @@ class TransactionManager(object):
 
     def create_transaction(self, price, quantity, timeout):
         """
-        Create a transaction
-
         :param price: The price for the transaction
         :param quantity: The quantity of the transaction
         :param timeout: The timeout of the transaction, when does the transaction need to be timed out
         :type price: Price
         :type quantity: Quantity
         :type timeout: Timeout
-        :return: The created transaction
         :rtype: Transaction
         """
-
         assert isinstance(price, Price), type(price)
         assert isinstance(quantity, Quantity), type(quantity)
         assert isinstance(timeout, Timeout), type(timeout)
@@ -73,8 +62,6 @@ class TransactionManager(object):
 
     def find_by_id(self, transaction_id):
         """
-        Find a transaction by its identity
-
         :param transaction_id: The transaction id to look for
         :type transaction_id: TransactionId
         :return: The transaction or null if it cannot be found
@@ -86,7 +73,6 @@ class TransactionManager(object):
 
     def find_all(self):
         """
-        Find all transactions
         :rtype: [Transaction]
         """
         return self.transaction_repository.find_all()
