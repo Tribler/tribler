@@ -1,4 +1,6 @@
 from Tribler.dispersy.payload import Payload
+
+from core.bitcoin_address import BitcoinAddress
 from core.message import TraderId, MessageNumber
 from core.order import OrderNumber
 from core.price import Price
@@ -7,7 +9,6 @@ from core.timeout import Timeout
 from core.timestamp import Timestamp
 from core.transaction import TransactionNumber
 from socket_address import SocketAddress
-from bitcoin_address import BitcoinAddress
 from ttl import Ttl
 
 

@@ -1,6 +1,6 @@
 import unittest
 
-from Tribler.community.market.bitcoin_address import BitcoinAddress
+from Tribler.community.market.core.bitcoin_address import BitcoinAddress
 
 
 class BitcoinAddressTestSuite(unittest.TestCase):
