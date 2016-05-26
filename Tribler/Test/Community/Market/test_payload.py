@@ -34,7 +34,7 @@ class AcceptedTradePayloadTestSuite(unittest.TestCase):
         self.assertEquals(OrderNumber('recipient_order_number'), self.accepted_trade_payload.recipient_order_number)
         self.assertEquals(TraderId('1'), self.accepted_trade_payload.recipient_trader_id)
         self.assertEquals(Timestamp(1462224447.117), self.accepted_trade_payload.timestamp)
-        self.assertEquals(Ttl(2), self.accepted_trade_payload.ttl)
+        self.assertEquals(2, int(self.accepted_trade_payload.ttl))
         self.assertEquals(TraderId('0'), self.accepted_trade_payload.trader_id)
 
 
@@ -101,9 +101,10 @@ class OfferPayloadTestSuite(unittest.TestCase):
         self.assertEquals(OrderNumber('order_number'), self.offer_payload.order_number)
         self.assertEquals(1470004447.117, float(self.offer_payload.timeout))
         self.assertEquals(Timestamp(1462224447.117), self.offer_payload.timestamp)
-        self.assertEquals(Ttl(2), self.offer_payload.ttl)
+        self.assertEquals(2, int(self.offer_payload.ttl))
         self.assertEquals(TraderId('0'), self.offer_payload.trader_id)
-        self.assertEquals(SocketAddress("1.1.1.1", 1), self.offer_payload.address)
+        self.assertEquals(1, self.offer_payload.address.port)
+        self.assertEquals("1.1.1.1", self.offer_payload.address.ip)
 
 
 if __name__ == '__main__':

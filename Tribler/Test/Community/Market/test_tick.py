@@ -34,19 +34,6 @@ class TickTestSuite(unittest.TestCase):
         self.assertEqual(Timestamp(float("inf")), self.tick.timestamp)
         self.assertEqual(OrderId(TraderId('0'), OrderNumber("order_number")), self.tick.order_id)
 
-    def test_reserve(self):
-        # Test 'reserve' function
-        self.assertFalse(self.tick.is_reserved())
-        self.tick.reserve()
-        self.assertTrue(self.tick.is_reserved())
-
-    def test_release(self):
-        # Test 'release' function
-        self.tick.reserve()
-        self.assertTrue(self.tick.is_reserved())
-        self.tick.release()
-        self.assertFalse(self.tick.is_reserved())
-
     def test_is_ask(self):
         # Test 'is ask' function
         self.assertTrue(self.tick.is_ask())
