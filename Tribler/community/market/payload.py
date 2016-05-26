@@ -7,6 +7,7 @@ from core.timeout import Timeout
 from core.timestamp import Timestamp
 from core.transaction import TransactionNumber
 from socket_address import SocketAddress
+from bitcoin_address import BitcoinAddress
 from ttl import Ttl
 
 
@@ -170,7 +171,7 @@ class MultiChainPaymentPayload(MessagePayload):
     class Implementation(MessagePayload.Implementation):
         def __init__(self, meta, trader_id, message_number, transaction_number, bitcoin_address, transferor_quantity, transferee_quantity, timestamp):
             assert isinstance(transaction_number, TransactionNumber), type(transaction_number)
-            assert isinstance(bitcoin_address, str), type(bitcoin_address)
+            assert isinstance(bitcoin_address, BitcoinAddress), type(bitcoin_address)
             assert isinstance(transferor_quantity, Quantity), type(transferor_quantity)
             assert isinstance(transferee_quantity, Quantity), type(transferee_quantity)
             super(MultiChainPaymentPayload.Implementation, self).__init__(meta, trader_id, message_number, timestamp)

@@ -68,4 +68,3 @@ class BitcoinAddress(object):
         :rtype: integer
         """
         return hash(self._bitcoin_address)
-
