@@ -1,4 +1,4 @@
-from community.multichain.community import MultiChainCommunity
+from Tribler.community.multichain.community import MultiChainCommunity
 from Tribler.dispersy.candidate import Candidate
 from quantity import Quantity
 
@@ -14,8 +14,6 @@ class MultiChainPaymentProvider(object):
 
     def __init__(self, multi_chain_community, public_key):
         """
-        Initialise the multi chain payment provider
-
         :param multi_chain_community: The multi chain community which manages multi chain transfers
         :param public_key: The public key of this peer
         """
@@ -47,12 +45,9 @@ class MultiChainPaymentProvider(object):
 
     def get_balance(self):
         """
-        Returns the balance of this peer
-
-        :return: tradable balance
         :rtype: Quantity
         """
-        total = self.multi_chain_community.persistence.get_total(public_key)
+        total = self.multi_chain_community.persistence.get_total(self.public_key)
 
         if total == (-1, -1):
             return Quantity(0)
