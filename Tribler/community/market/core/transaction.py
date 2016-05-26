@@ -204,7 +204,7 @@ class Transaction(object):
         assert isinstance(accepted_trade, AcceptedTrade), type(accepted_trade)
         assert isinstance(transaction_id, TransactionId), type(transaction_id)
 
-        return cls(transaction_id, accepted_trade.message_id, accepted_trade.price, accepted_trade.quantity, Timeout(float('inf')), Timestamp)
+        return cls(transaction_id, accepted_trade.price, accepted_trade.quantity, Timeout(float('inf')), Timestamp.now())
 
     @property
     def transaction_id(self):
