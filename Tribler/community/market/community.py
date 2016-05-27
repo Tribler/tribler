@@ -377,26 +377,7 @@ class MarketCommunity(Community):
 
                 if order and order.is_valid():
                     if order.available_quantity >= proposed_trade.quantity:
-                        accepted_trade = Trade.accept(self.order_book.message_repository.next_identity(),
-                                                      Timestamp.now(), proposed_trade)
-
-                        self.check_history(accepted_trade)  # Set the message received as true
-
-                        # TODO: make this only possible for accepted trades
-                        self.order_book.insert_trade(accepted_trade)
-
-                        order._quantity -= proposed_trade.quantity
-
-                        if order.is_ask():
-                            if self.order_book._bids.tick_exists(proposed_trade.order_id):
-                                self.order_book._bids.get_tick(
-                                    proposed_trade.order_id).quantity -= proposed_trade.quantity
-                        else:
-                            if self.order_book._asks.tick_exists(proposed_trade.order_id):
-                                self.order_book._asks.get_tick(
-                                    proposed_trade.order_id).quantity -= proposed_trade.quantity
-
-                        self.send_accepted_trade(accepted_trade)
+                        self.accept_trade(order, proposed_trade)
                     else:
                         order.reserve_quantity_for_tick(proposed_trade.order_id, order.available_quantity)
 
@@ -507,7 +488,7 @@ class MarketCommunity(Community):
                 if order:
                     try:
                         order.release_quantity_for_tick(declined_trade.order_id)
-                    except TickWasNotReserved:
+                    except TickWasNotReserved:  # Nothing left to do
                         pass
 
     # Counter trade
@@ -540,28 +521,32 @@ class MarketCommunity(Community):
                 order = self.order_manager.order_repository.find_by_id(counter_trade.recipient_order_id)
 
                 if order:
-                    try:
+                    try:  # Accept trade
                         order.release_quantity_for_tick(counter_trade.order_id)
-                        accepted_trade = Trade.accept(self.order_book.message_repository.next_identity(),
-                                                      Timestamp.now(), counter_trade)
-
-                        self.check_history(accepted_trade)  # Set the message received as true
-
-                        self.order_book.insert_trade(accepted_trade)
-
-                        order._quantity -= counter_trade.quantity
-
-                        if order.is_ask():
-                            if self.order_book._bids.tick_exists(counter_trade.order_id):
-                                self.order_book._bids.get_tick(
-                                    counter_trade.order_id).quantity -= counter_trade.quantity
-                        else:
-                            if self.order_book._asks.tick_exists(counter_trade.order_id):
-                                self.order_book._asks.get_tick(
-                                    counter_trade.order_id).quantity -= counter_trade.quantity
-
-                        self.send_accepted_trade(accepted_trade)
+                        self.accept_trade(order, counter_trade)
                     except TickWasNotReserved:  # Send cancel
                         declined_trade = Trade.decline(self.order_book.message_repository.next_identity(),
                                                        Timestamp.now(), counter_trade)
                         self.send_declined_trade(declined_trade)
+
+    def accept_trade(self, order, proposed_trade):
+        accepted_trade = Trade.accept(self.order_book.message_repository.next_identity(), Timestamp.now(),
+                                      proposed_trade)
+
+        self.check_history(accepted_trade)  # Set the message received as true
+
+        # TODO: make this only possible for accepted trades
+        self.order_book.insert_trade(accepted_trade)
+
+        order._quantity -= proposed_trade.quantity
+
+        if order.is_ask():
+            if self.order_book._bids.tick_exists(proposed_trade.order_id):
+                self.order_book._bids.get_tick(
+                    proposed_trade.order_id).quantity -= proposed_trade.quantity
+        else:
+            if self.order_book._asks.tick_exists(proposed_trade.order_id):
+                self.order_book._asks.get_tick(
+                    proposed_trade.order_id).quantity -= proposed_trade.quantity
+
+        self.send_accepted_trade(accepted_trade)
