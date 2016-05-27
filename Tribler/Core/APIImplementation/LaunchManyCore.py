@@ -802,7 +802,10 @@ class TriblerLaunchMany(TaskManager):
                                                    'anon_listen_port']) or \
              (section == 'torrent_collecting' and name in ['stop_collecting_threshold']) or \
              (section == 'watch_folder') or \
-             (section == 'tunnel_community' and name in ['socks5_listen_port']):
+             (section == 'tunnel_community' and name in ['socks5_listen_port']) or \
+             (section == 'credit_mining' and name in ['max_torrents_per_source', 'max_torrents_active',
+                                                      'source_interval', 'swarm_interval', 'boosting_sources',
+                                                      'boosting_enabled', 'boosting_disabled', 'archive_sources']):
             return True
         else:
             return False

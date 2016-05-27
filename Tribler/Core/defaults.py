@@ -39,8 +39,9 @@ DEFAULTPORT = 7760
 #  Version 12: Added watch folder options.
 #  Version 13: Added HTTP API options.
 #  Version 14: Added option to enable/disable channel, previewchannel and tunnel community.
+#  Version 15: Added credit mining options
 
-SESSDEFAULTS_VERSION = 14
+SESSDEFAULTS_VERSION = 15
 sessdefaults = OrderedDict()
 
 # General Tribler settings
@@ -162,6 +163,24 @@ sessdefaults['watch_folder']['watch_folder_dir'] = None
 sessdefaults['http_api'] = OrderedDict()
 sessdefaults['http_api']['enabled'] = False
 sessdefaults['http_api']['port'] = -1
+
+# Credit mining config
+sessdefaults['credit_mining'] = OrderedDict()
+sessdefaults['credit_mining']['max_torrents_per_source'] = 10
+sessdefaults['credit_mining']['max_torrents_active'] = 20
+sessdefaults['credit_mining']['source_interval'] = 100
+sessdefaults['credit_mining']['swarm_interval'] = 100
+sessdefaults['credit_mining']['share_mode_target'] = 3
+sessdefaults['credit_mining']['tracker_interval'] = 200
+sessdefaults['credit_mining']['logging_interval'] = 60
+sessdefaults['credit_mining']['boosting_sources'] = ["http://bt.etree.org/rss/bt_etree_org.rdf",
+                                                "9e1a3fac737543d36c83d54818ed77620932ff80",
+                                                "028d2b5eea5277ddc3cedf78601f9be246b29bf1"]
+sessdefaults['credit_mining']['boosting_enabled'] = ["http://bt.etree.org/rss/bt_etree_org.rdf",
+                                                "9e1a3fac737543d36c83d54818ed77620932ff80"]
+sessdefaults['credit_mining']['boosting_disabled'] = ["028d2b5eea5277ddc3cedf78601f9be246b29bf1"]
+sessdefaults['credit_mining']['archive_sources'] = ["9e1a3fac737543d36c83d54818ed77620932ff80"]
+sessdefaults['credit_mining']['policy'] = "seederratio"
 
 #
 # BT per download opts

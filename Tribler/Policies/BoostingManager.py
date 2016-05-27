@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 # Written by Egbert Bouman, Mihai Capotă, Elric Milon, and Ardhi Putra Pratama H
 """Manage boosting of swarms"""
-import ConfigParser
-import json
+import errno
 import logging
 import os
-import random
 from binascii import hexlify, unhexlify
 
 import libtorrent as lt
@@ -19,18 +17,16 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.Utilities import utilities
 from Tribler.Core.Utilities.install_dir import determine_install_dir
+from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
 from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Policies.BoostingPolicy import RandomPolicy, CreationDatePolicy, SeederRatioPolicy
 from Tribler.Policies.BoostingSource import ChannelSource
 from Tribler.Policies.BoostingSource import DirectorySource
 from Tribler.Policies.BoostingSource import RSSFeedSource
+from Tribler.Policies.defs import NUMBER_TYPES, SAVED_ATTR, CREDIT_MINING_FOLDER_DOWNLOAD, CONFIG_KEY_ARCHIVELIST, \
+    CONFIG_OP_RM, CONFIG_OP_ADD, CONFIG_KEY_SOURCELIST, CONFIG_KEY_ENABLEDLIST, CONFIG_KEY_DISABLEDLIST
 from Tribler.dispersy.taskmanager import TaskManager
-
-NUMBER_TYPES = (int, long, float)
-
-# CONFIG_FILE = "boosting.ini"
-TRIBLER_ROOT = determine_install_dir()
-CONFIG_FILE = os.path.join(TRIBLER_ROOT, "boosting.ini")
 
 
 def levenshtein_dist(t1_fname, t2_fname):
@@ -63,115 +59,35 @@ def string_to_source(source_str):
     return source_str.decode('hex') \
         if len(source_str) == 40 and not (os.path.isdir(source_str) or source_str.startswith('http://')) else source_str
 
-class BoostingPolicy(object):
-    """
-    Base class for determining what swarm selection policy will be applied
-    """
-
-    def __init__(self, session):
-        self.session = session
-        self.key = lambda x: None
-        # function that checks if key can be applied to torrent
-        self.key_check = lambda x: False
-        self.reverse = None
-
-        self._logger = logging.getLogger(self.__class__.__name__)
-
-    def apply(self, torrents, max_active, force=False):
-        """
-        apply the policy to the torrents stored
-        """
-        sorted_torrents = sorted([torrent for torrent in torrents.itervalues()
-                                  if self.key_check(torrent)],
-                                 key=self.key, reverse=self.reverse)
-
-        torrents_start = []
-        for torrent in sorted_torrents[:max_active]:
-            if not self.session.get_download(torrent["metainfo"].get_infohash()):
-                torrents_start.append(torrent)
-        torrents_stop = []
-        for torrent in sorted_torrents[max_active:]:
-            if self.session.get_download(torrent["metainfo"].get_infohash()):
-                torrents_stop.append(torrent)
-
-        if force:
-            return torrents_start, torrents_stop
-
-        # if both results are empty for some reason (e.g, key_check too restrictive)
-        # or torrent started less than half available torrent (try to keep boosting alive)
-        # if it's already random, just let it be
-        if not isinstance(self, RandomPolicy) and ((not torrents_start and not torrents_stop) or
-                                                   (len(torrents_start) < len(torrents) / 2 and len(
-                                                       torrents_start) < max_active / 2)):
-            self._logger.error("Start and stop torrent list are empty. Fallback to Random")
-            # fallback to random policy
-            torrents_start, torrents_stop = RandomPolicy(self.session).apply(torrents, max_active)
-
-        return torrents_start, torrents_stop
-
-
-class RandomPolicy(BoostingPolicy):
-    """
-    A credit mining policy that chooses swarm randomly
-    """
-    def __init__(self, session):
-        BoostingPolicy.__init__(self, session)
-        self.key = lambda v: random.random()
-        self.key_check = lambda v: True
-        self.reverse = False
-
-
-class CreationDatePolicy(BoostingPolicy):
-    """
-    A credit mining policy that chooses swarm by its creation date
-
-    The idea is, older swarm need to be boosted.
-    """
-    def __init__(self, session):
-        BoostingPolicy.__init__(self, session)
-        self.key = lambda v: v['creation_date']
-        self.key_check = lambda v: v['creation_date'] > 0
-        self.reverse = True
-
-
-class SeederRatioPolicy(BoostingPolicy):
-    """
-    Default policy. Find the most underseeded swarm to boost.
-    """
-    def __init__(self, session):
-        BoostingPolicy.__init__(self, session)
-        self.key = lambda v: v['num_seeders'] / float(v['num_seeders'] +
-                                                      v['num_leechers'])
-        self.key_check = lambda v: isinstance(v['num_seeders'], NUMBER_TYPES) and isinstance(
-            v['num_leechers'], NUMBER_TYPES) and v['num_seeders'] + v['num_leechers'] > 0
-        self.reverse = False
-
 
 class BoostingSettings(object):
     """
     Class contains settings on boosting manager
     """
-    def __init__(self, session, policy=SeederRatioPolicy):
+    def __init__(self, session, policy=SeederRatioPolicy, load_config=True):
         self.session = session
 
-        self.config_file = CONFIG_FILE
-        self.max_torrents_active = 30
-        self.max_torrents_per_source = 100
-        self.source_interval = 20
-        self.swarm_interval = 20
-        self.initial_swarm_interval = 30
-        self.policy = policy(session)
-        self.tracker_interval = 50
-        self.initial_tracker_interval = 25
-        self.logging_interval = 40
-        self.initial_logging_interval = 20
+        # Configurable parameter (changeable in runtime -plus sources-)
+        self.max_torrents_active = 20
+        self.max_torrents_per_source = 10
+        self.source_interval = 100
+        self.swarm_interval = 100
 
+        # Can't be changed in runtime
+        self.tracker_interval = 200
+        self.logging_interval = 60
+        self.share_mode_target = 3
+        self.policy = policy(session)
+
+        # Non-Configurable
+        self.initial_logging_interval = 20
+        self.initial_tracker_interval = 25
+        self.initial_swarm_interval = 30
         self.min_connection_start = 5
         self.min_channels_start = 100
-
-        self.share_mode_target = 2
         self.credit_mining_path = os.path.join(DefaultDownloadStartupConfig.getInstance().get_dest_dir(),
-                                               "credit_mining")
+                                               CREDIT_MINING_FOLDER_DOWNLOAD)
+        self.load_config = load_config
 
 
 class BoostingManager(TaskManager):
@@ -186,11 +102,9 @@ class BoostingManager(TaskManager):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         BoostingManager.__single = self
-
-        self._saved_attributes = ["max_torrents_per_source",
-                                  "max_torrents_active", "source_interval",
-                                  "swarm_interval", "share_mode_target",
-                                  "tracker_interval", "logging_interval"]
+        self.boosting_sources = {}
+        self.torrents = {}
+        self.running = True
 
         self.session = session
         assert self.session.get_libtorrent()
@@ -199,23 +113,18 @@ class BoostingManager(TaskManager):
         self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
 
         # use provided settings or a default one
-        self.settings = settings or BoostingSettings(session)
+        self.settings = settings or BoostingSettings(session, load_config=True)
+
+        if self.settings.load_config:
+            self._logger.info("Loading config file from session configuration")
+            self.load_config()
 
         if not os.path.exists(self.settings.credit_mining_path):
             os.makedirs(self.settings.credit_mining_path)
 
-        self.boosting_sources = {}
-        self.torrents = {}
-
         local_settings = {}
         local_settings['share_mode_target'] = self.settings.share_mode_target
         self.session.lm.ltmgr.get_session().set_settings(local_settings)
-
-        if os.path.exists(self.settings.config_file):
-            self._logger.info("Config file %s", open(self.settings.config_file).read())
-            self.load_config()
-        else:
-            self._logger.warning("Initial config file missing")
 
         self.session.add_observer(self.on_torrent_notify, NTFY_TORRENTS, [NTFY_UPDATE])
 
@@ -521,34 +430,31 @@ class BoostingManager(TaskManager):
         """
         load config in file configuration and apply it to manager
         """
-        config = ConfigParser.ConfigParser()
-        config.read(self.settings.config_file)
-        validate_source = lambda source_str: unhexlify(source_str) if len(source_str) == 40 and \
-                                                                      not source_str.startswith("http") else source_str
+        validate_source = lambda s: unhexlify(s) if len(s) == 40 and not s.startswith("http") else s
 
-        def _add_sources(value):
+        def _add_sources(values):
             """
             adding sources in configuration file
             """
-            for boosting_source in json.loads(value):
+            for boosting_source in values:
                 boosting_source = validate_source(boosting_source)
                 self.add_source(boosting_source)
 
-        def _archive_sources(value):
+        def _archive_sources(values):
             """
             setting archive to sources
             """
-            for archive_source in json.loads(value):
+            for archive_source in values:
                 archive_source = validate_source(archive_source)
                 self.set_archive(archive_source, True)
 
-        def _set_enable_boosting(value, enabled):
+        def _set_enable_boosting(values, enabled):
             """
             set disable/enable source
             """
-            for boosting_source in json.loads(value):
+            for boosting_source in values:
                 boosting_source = validate_source(boosting_source)
-                if not self.boosting_sources[boosting_source]:
+                if boosting_source not in self.boosting_sources.keys():
                     self.add_source(boosting_source)
                 self.boosting_sources[boosting_source].enabled = enabled
 
@@ -577,13 +483,20 @@ class BoostingManager(TaskManager):
             "seederratio" : SeederRatioPolicy
         }
 
-        for k, val in config.items(__name__):
+        # set policy
+        self.settings.policy = self.session.get_credit_mining_policy(True)(self.session)
+
+        dict_to_load = {}
+        dict_to_load.update(self.session.get_credit_mining_sources())
+        dict_to_load.update(dict.fromkeys(SAVED_ATTR))
+
+        for k, val in dict_to_load.items():
             try:
-                if k in self._saved_attributes:
-                    object.__setattr__(self.settings, k, int(val))
-                elif k == "policy":
-                    self.settings.policy = switch_policy[val](self.session)
-                else:
+                if k in SAVED_ATTR:
+                    # see the session configuration
+                    object.__setattr__(self.settings, k,
+                                       getattr(self.session, "get_credit_mining_%s" %k)())
+                else: #credit mining source handle
                     switch[k]["cmd"](*((switch[k]['args'][0] or val,) + switch[k]['args'][1:]))
             except KeyError:
                 self._logger.error("Key %s can't be applied", k)
@@ -592,10 +505,12 @@ class BoostingManager(TaskManager):
         """
         save the environment parameters in config file
         """
-        config = ConfigParser.ConfigParser()
-        config.add_section(__name__)
-        for k in self._saved_attributes:
-            config.set(__name__, k, BoostingSettings.__getattribute__(self.settings, k))
+        for k in SAVED_ATTR:
+            try:
+                setattr(self.session, "set_credit_mining_%s" % k, getattr(self.settings, k))
+            except OperationNotPossibleAtRuntimeException, err_msg:
+                # some of the attribute can't be changed in runtime. See lm.sessconfig_changed_callback
+                self._logger.debug("Cannot set attribute %s. Not permitted in runtime", k)
 
         archive_sources = []
         lboosting_sources = []
@@ -615,22 +530,12 @@ class BoostingManager(TaskManager):
             if boosting_source.archive:
                 archive_sources.append(bsname)
 
-        config.set(__name__, "boosting_sources", json.dumps(lboosting_sources))
-        config.set(__name__, "boosting_enabled", json.dumps(flag_enabled_sources))
-        config.set(__name__, "boosting_disabled", json.dumps(flag_disabled_sources))
-        if archive_sources:
-            config.set(__name__, "archive_sources", json.dumps(archive_sources))
+        self.session.set_credit_mining_sources(lboosting_sources, CONFIG_KEY_SOURCELIST)
+        self.session.set_credit_mining_sources(flag_enabled_sources, CONFIG_KEY_ENABLEDLIST)
+        self.session.set_credit_mining_sources(flag_disabled_sources, CONFIG_KEY_DISABLEDLIST)
+        self.session.set_credit_mining_sources(archive_sources, CONFIG_KEY_ARCHIVELIST)
 
-        policy = "None"
-        if isinstance(self.settings.policy, RandomPolicy):
-            policy = "random"
-        elif isinstance(self.settings.policy, CreationDatePolicy):
-            policy = "creation"
-        elif isinstance(self.settings.policy, SeederRatioPolicy):
-            policy = "seederratio"
-        config.set(__name__, "policy", policy)
-        with open(self.settings.config_file, "w") as configf:
-            config.write(configf)
+        self.session.save_pstate_sessconfig()
 
     def log_statistics(self):
         """Log transfer statistics"""
