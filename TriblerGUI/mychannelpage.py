@@ -150,16 +150,28 @@ class MyChannelPage(QWidget):
     def on_torrents_add_clicked(self):
         menu = TriblerActionMenu(self)
 
-        addUrlAction = QAction('Add from URL', self)
-        stopAction = QAction('Stop', self)
+        browseFilesAction = QAction('Browse files', self)
+        browseDirectoryAction = QAction('Browse directory', self)
+        addUrlAction = QAction('Add URL', self)
+        addFromLibraryAction = QAction('Add from library', self)
+        createTorrentAction = QAction('Create torrent from file(s)', self)
 
-        startAction.triggered.connect(self.on_start_download_clicked)
-        stopAction.triggered.connect(self.on_stop_download_clicked)
+        browseFilesAction.triggered.connect(self.on_add_torrent_browse_file)
+        browseDirectoryAction.triggered.connect(self.on_add_torrent_browse_file)
+        addUrlAction.triggered.connect(self.on_add_torrent_browse_file)
+        addFromLibraryAction.triggered.connect(self.on_add_torrent_browse_file)
+        createTorrentAction.triggered.connect(self.on_add_torrent_browse_file)
 
-        menu.addAction(startAction)
-        menu.addAction(stopAction)
+        menu.addAction(browseFilesAction)
+        menu.addAction(browseDirectoryAction)
+        menu.addAction(addUrlAction)
+        menu.addAction(addFromLibraryAction)
+        menu.addAction(createTorrentAction)
 
-        menu.exec_()
+        menu.exec_(self.window().mapToGlobal(self.window().my_channel_torrents_add_button.pos()))
+
+    def on_add_torrent_browse_file(self):
+        pass
 
     def on_torrents_export_clicked(self):
         selected_dir = QFileDialog.getExistingDirectory(self, "Choose a directory to export the torrent files to")
