@@ -15,11 +15,11 @@ from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
 from TriblerGUI.defs import PAGE_SEARCH_RESULTS, PAGE_CHANNEL_CONTENT, PAGE_CHANNEL_COMMENTS, PAGE_CHANNEL_ACTIVITY, \
     PAGE_HOME, PAGE_MY_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
     PAGE_CHANNEL_DETAILS
-from TriblerGUI.dialogs.addtorrentdialog import AddTorrentDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.event_request_manager import EventRequestManager
 from TriblerGUI.home_recommended_item import HomeRecommendedItem
 from TriblerGUI.loading_screen import LoadingScreen
+from TriblerGUI.playlist_list_item import PlaylistListItem
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
 
@@ -61,9 +61,6 @@ class TriblerWindow(QMainWindow):
 
         self.channel_back_button.clicked.connect(self.on_page_back_clicked)
 
-        self.channel_tab.initialize()
-        self.channel_tab.clicked_tab_button.connect(self.on_channel_tab_button_clicked)
-
         # fetch the variables, needed for the video player port
         self.variables_request_mgr = TriblerRequestManager()
         self.variables_request_mgr.perform_request("variables", self.received_variables)
@@ -99,12 +96,6 @@ class TriblerWindow(QMainWindow):
         self.hide_left_menu_playlist()
 
         self.show()
-
-    def received_torrents_in_channel(self, results):
-        items = []
-        for result in results['torrents']:
-            items.append((ChannelTorrentListItem, result))
-        self.channel_torrents_list.set_data_items(items)
 
     def received_variables(self, variables):
         self.video_player_page.video_player_port = variables["variables"]["ports"]["video~port"]
@@ -149,14 +140,6 @@ class TriblerWindow(QMainWindow):
             self.left_menu.show()
         else:
             self.left_menu.hide()
-
-    def on_channel_tab_button_clicked(self, button_name):
-        if button_name == "channel_content_button":
-            self.channel_stacked_widget.setCurrentIndex(PAGE_CHANNEL_CONTENT)
-        elif button_name == "channel_comments_button":
-            self.channel_stacked_widget.setCurrentIndex(PAGE_CHANNEL_COMMENTS)
-        elif button_name == "channel_activity_button":
-            self.channel_stacked_widget.setCurrentIndex(PAGE_CHANNEL_ACTIVITY)
 
     def deselect_all_menu_buttons(self, except_select=None):
         for button in self.menu_buttons:
@@ -216,14 +199,9 @@ class TriblerWindow(QMainWindow):
 
     def on_channel_item_click(self, channel_list_item):
         channel_info = channel_list_item.data(Qt.UserRole)
-        self.get_torents_in_channel_manager = TriblerRequestManager()
-        self.get_torents_in_channel_manager.perform_request("channels/discovered/%s/torrents" % channel_info['dispersy_cid'], self.received_torrents_in_channel)
+        self.channel_page.initialize_with_channel(channel_info)
         self.navigation_stack.append(self.stackedWidget.currentIndex())
         self.stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
-
-        # initialize the page about a channel
-        self.channel_name_label.setText(channel_info['name'])
-        self.channel_num_subs_label.setText(str(channel_info['votes']))
 
     def on_page_back_clicked(self):
         prev_page = self.navigation_stack.pop()

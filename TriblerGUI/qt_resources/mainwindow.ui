@@ -820,7 +820,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>1</number>
+         <number>3</number>
         </property>
         <widget class="QWidget" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1537,7 +1537,7 @@ font-size: 14px;
                  <number>1</number>
                 </property>
                 <property name="currentIndex">
-                 <number>2</number>
+                 <number>4</number>
                 </property>
                 <widget class="QWidget" name="my_channel_details_overview_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
@@ -2648,7 +2648,7 @@ border-top: 1px solid #555;
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="channel_details">
+        <widget class="ChannelPage" name="channel_page">
          <property name="styleSheet">
           <string notr="true"/>
          </property>
@@ -2838,6 +2838,51 @@ border-bottom-right-radius: 2px;</string>
               </widget>
              </item>
              <item>
+              <spacer name="horizontalSpacer_16">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>10</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QToolButton" name="edit_channel_button">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>24</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>24</height>
+                </size>
+               </property>
+               <property name="cursor">
+                <cursorShape>PointingHandCursor</cursorShape>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">border: none;</string>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+               <property name="icon">
+                <iconset>
+                 <normaloff>../images/edit.png</normaloff>../images/edit.png</iconset>
+               </property>
+              </widget>
+             </item>
+             <item>
               <spacer name="horizontalSpacer_6">
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
@@ -2848,92 +2893,6 @@ border-bottom-right-radius: 2px;</string>
                <property name="sizeHint" stdset="0">
                 <size>
                  <width>10</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-            </layout>
-           </widget>
-          </item>
-          <item>
-           <widget class="TabButtonPanel" name="channel_tab" native="true">
-            <layout class="QHBoxLayout" name="horizontalLayout_19">
-             <property name="spacing">
-              <number>0</number>
-             </property>
-             <property name="leftMargin">
-              <number>0</number>
-             </property>
-             <property name="topMargin">
-              <number>0</number>
-             </property>
-             <property name="rightMargin">
-              <number>0</number>
-             </property>
-             <property name="bottomMargin">
-              <number>0</number>
-             </property>
-             <item>
-              <spacer name="horizontalSpacer_27">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeType">
-                <enum>QSizePolicy::Fixed</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>10</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item>
-              <widget class="UnderlineTabButton" name="channel_content_button">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>36</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>36</height>
-                </size>
-               </property>
-               <property name="cursor">
-                <cursorShape>PointingHandCursor</cursorShape>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">color: white;
-border: none;
-border-bottom: 3px solid #e67300;
-background: none;
-font-size: 14px;
-</string>
-               </property>
-               <property name="text">
-                <string>Content</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <spacer name="horizontalSpacer_23">
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>40</width>
                  <height>20</height>
                 </size>
                </property>
@@ -5821,7 +5780,7 @@ color: white;
 </string>
                 </property>
                 <property name="currentIndex">
-                 <number>0</number>
+                 <number>3</number>
                 </property>
                 <property name="movable">
                  <bool>false</bool>
@@ -6274,6 +6233,12 @@ background-color: #444;
    <class>SubscribedChannelsPage</class>
    <extends>QWidget</extends>
    <header>subscribedchannelspage.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ChannelPage</class>
+   <extends>QWidget</extends>
+   <header>channelpage.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
