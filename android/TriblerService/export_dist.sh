@@ -5,7 +5,6 @@ echo Export dist
 mkdir -p dist
 
 p4a export_dist \
---require-perfect-match \
 --copy-libs \
 --debug \
 --android_api=16 \
