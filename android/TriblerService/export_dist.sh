@@ -7,4 +7,6 @@ mkdir -p dist
 p4a export_dist \
 --android_api=16 \
 --dist_name=TriblerService \
+--bootstrap=service_only \
+--requirements=libtribler_local \
 --output=./dist
