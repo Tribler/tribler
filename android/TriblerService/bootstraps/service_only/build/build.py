@@ -260,7 +260,7 @@ def make_package(args):
 
 #     default_icon = 'templates/kivy-icon.png'
 #     shutil.copy(args.icon or default_icon, 'res/drawable/icon.png')
-# 
+
 #     default_presplash = 'templates/kivy-presplash.jpg'
 #     shutil.copy(args.presplash or default_presplash,
 #                 'res/drawable/presplash.jpg')
@@ -272,6 +272,16 @@ def make_package(args):
                 print('Requested jar does not exist: {}'.format(jarname))
                 sys.exit(-1)
             shutil.copy(jarname, 'libs')
+
+#     versioned_name = (args.name.replace(' ', '').replace('\'', '') +
+#                       '-' + args.version)
+
+#     version_code = 0
+#     if not args.numeric_version:
+#         for i in args.version.split('.'):
+#             version_code *= 100
+#             version_code += int(i)
+#         args.numeric_version = str(version_code)
 
 #     if args.intent_filters:
 #         with open(args.intent_filters) as fd:
@@ -406,7 +416,7 @@ tools directory of the Android SDK.
     ap.add_argument('--wakelock', dest='wakelock', action='store_true',
                     help=('Indicate if the application needs the device '
                           'to stay on'))
-    ap.add_argument('--window', dest='window', action='store_true',
+    ap.add_argument('--window', dest='window', action='store_false',
                     help='Indicate if the application will be windowed')
     ap.add_argument('--blacklist', dest='blacklist',
                     default=join(curdir, 'blacklist.txt'),

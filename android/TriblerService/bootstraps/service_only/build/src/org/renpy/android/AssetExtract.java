@@ -64,8 +64,8 @@ public class AssetExtract {
                 try {
                     new File(target + "/" + entry.getName()).mkdirs();
                 } catch (SecurityException e) {
+                	Log.e("python", "extracting tar", e);
                 }
-                ;
 
                 continue;
             }
@@ -76,9 +76,10 @@ public class AssetExtract {
             try {
                 out = new BufferedOutputStream(new FileOutputStream(path), 8192);
             } catch (FileNotFoundException e) {
+            	Log.e("python", "extracting tar", e);
             } catch (SecurityException e) {
+            	Log.e("python", "extracting tar", e);
             }
-            ;
 
             if (out == null) {
                 Log.e("python", "could not open " + path);
