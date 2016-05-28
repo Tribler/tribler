@@ -15,5 +15,5 @@ p4a export_dist \
 --dist_name=TriblerService \
 --bootstrap=service_only \
 --requirements=libtribler_local \
---whitelist=.p4a-whitelist
+--whitelist=.p4a-whitelist \
 --output=./dist
