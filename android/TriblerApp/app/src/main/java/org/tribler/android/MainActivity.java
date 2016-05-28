@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        ServiceTriblerd.start(this, "");
+        ServiceTriblerd.start(this, "-p " + ServiceTriblerd.REST_API_PORT);
         initGui();
     }
 
