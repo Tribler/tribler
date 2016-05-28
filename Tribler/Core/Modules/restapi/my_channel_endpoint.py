@@ -1,9 +1,13 @@
 import json
-from twisted.web import http, resource
-from Tribler.Core.CacheDB.sqlitecachedb import str2bin
+import base64
+import logging
 
+from twisted.web import http, resource
+
+from Tribler.Core.CacheDB.sqlitecachedb import str2bin
+from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST
-from Tribler.Core.exceptions import DuplicateChannelNameError
+from Tribler.Core.exceptions import DuplicateChannelNameError, DuplicateTorrentFileError
 
 
 class MyChannelBaseEndpoint(resource.Resource):
@@ -13,6 +17,7 @@ class MyChannelBaseEndpoint(resource.Resource):
 
     def __init__(self, session):
         resource.Resource.__init__(self)
+        self._logger = logging.getLogger(self.__class__.__name__)
         self.session = session
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
 
@@ -23,6 +28,17 @@ class MyChannelBaseEndpoint(resource.Resource):
         """
         request.setResponseCode(http.NOT_FOUND)
         return json.dumps({"error": message})
+
+    def return_500(self, request, exception):
+        self._logger.exception(exception)
+        request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+        return json.dumps({
+            u"error": {
+                u"handled": True,
+                u"code": exception.__class__.__name__,
+                u"message": exception.message
+            }
+        })
 
     def get_my_channel_object(self):
         """
@@ -66,7 +82,6 @@ class MyChannelEndpoint(MyChannelBaseEndpoint):
             return MyChannelBaseEndpoint.return_404(request)
 
         my_channel = self.channel_db_handler.getChannel(my_channel_id)
-        request.setHeader('Content-Type', 'text/json')
         return json.dumps({'overview': {'identifier': my_channel[1].encode('hex'), 'name': my_channel[2],
                                         'description': my_channel[3]}})
 
@@ -77,8 +92,8 @@ class MyChannelEndpoint(MyChannelBaseEndpoint):
         Example request:
         {
             "name": "John Smit's channel",
-            "description": "Video's of my cat",
-            "mode": "open" or "semi-open" or "closed" (default)
+            "description" (optional): "Video's of my cat" (default: empty),
+            "mode" (optional): "open" or "semi-open" or "closed" (default)
         }
         """
         parameters = http.parse_qs(request.content.read(), 1)
@@ -88,8 +103,9 @@ class MyChannelEndpoint(MyChannelBaseEndpoint):
             return json.dumps({"error": "name parameter missing"})
 
         if 'description' not in parameters or len(parameters['description']) == 0:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "description parameter missing"})
+            description = u''
+        else:
+            description = parameters['description'][0]
 
         if 'mode' not in parameters or len(parameters['mode']) == 0:
             mode = u'closed'
@@ -97,38 +113,35 @@ class MyChannelEndpoint(MyChannelBaseEndpoint):
             mode = parameters['mode'][0]
 
         try:
-            channel_id = self.session.create_channel(parameters['name'][0], parameters['description'][0], mode)
+            channel_id = self.session.create_channel(parameters['name'][0], description, mode)
         except DuplicateChannelNameError as ex:
-            request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-            request.setHeader('Content-Type', 'text/json')
-            return json.dumps({
-                u"error": {
-                    u"handled": True,
-                    u"code": ex.__class__.__name__,
-                    u"message": ex.message
-                }
-            })
+            return MyChannelBaseEndpoint.return_500(self, request, ex)
 
-        request.setHeader('Content-Type', 'text/json')
         return json.dumps({"added": channel_id})
 
 
 class MyChannelTorrentsEndpoint(MyChannelBaseEndpoint):
     """
-    Return the torrents in your channel. For each torrent item, the infohash, name and timestamp added is included.
-    This endpoint returns a 404 HTTP response if you have not created a channel (yet).
-
-    Example response:
-    {
-        "torrents": [{
-            "name": "ubuntu-15.04.iso",
-            "added": 1461840601,
-            "infohash": "e940a7a57294e4c98f62514b32611e38181b6cae"
-        }, ...]
-    }
+    This end is responsible for handling requests regarding torrents in your channel.
     """
 
+    def getChild(self, path, request):
+        return MyChannelModifyTorrentsEndpoint(self.session, path)
+
     def render_GET(self, request):
+        """
+        Return the torrents in your channel. For each torrent item, the infohash, name and timestamp added is included.
+        This endpoint returns a 404 HTTP response if you have not created a channel (yet).
+
+        Example response:
+        {
+            "torrents": [{
+                "name": "ubuntu-15.04.iso",
+                "added": 1461840601,
+                "infohash": "e940a7a57294e4c98f62514b32611e38181b6cae"
+            }, ...]
+        }
+        """
         my_channel_id = self.channel_db_handler.getMyChannelId()
         if my_channel_id is None:
             return MyChannelBaseEndpoint.return_404(request)
@@ -136,16 +149,101 @@ class MyChannelTorrentsEndpoint(MyChannelBaseEndpoint):
         req_columns = ['ChannelTorrents.name', 'infohash', 'ChannelTorrents.inserted']
         torrents = self.channel_db_handler.getTorrentsFromChannelId(my_channel_id, True, req_columns)
 
-        request.setHeader('Content-Type', 'text/json')
         torrent_list = []
         for torrent in torrents:
             torrent_list.append({'name': torrent[0], 'infohash': torrent[1].encode('hex'), 'added': torrent[2]})
         return json.dumps({'torrents': torrent_list})
 
+    def render_PUT(self, request):
+        """
+        Add a torrent file to your own channel. Returns error 500 if something is wrong with the torrent file
+        and DuplicateTorrentFileError if already added to your channel.
+
+        Example request:
+        {
+            "torrent": "base64 encoded string of torrent file contents",
+            "description" (optional): "A video of my cat" (default: empty)
+        }
+        """
+        my_channel_id = self.channel_db_handler.getMyChannelId()
+        if my_channel_id is None:
+            return MyChannelBaseEndpoint.return_404(request)
+
+        parameters = http.parse_qs(request.content.read(), 1)
+
+        if 'torrent' not in parameters or len(parameters['torrent']) == 0:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "torrent parameter missing"})
+
+        if 'description' not in parameters or len(parameters['description']) == 0:
+            extra_info = {}
+        else:
+            extra_info = {'description': parameters['description'][0]}
+
+        try:
+            torrent = base64.b64decode(parameters['torrent'][0])
+            torrent_def = TorrentDef.load_from_memory(torrent)
+            self.session.add_torrent_def_to_channel(my_channel_id, torrent_def, extra_info, forward=True)
+
+        except (DuplicateTorrentFileError, ValueError) as ex:
+            return MyChannelBaseEndpoint.return_500(self, request, ex)
+
+        return json.dumps({"added": True})
+
+
+class MyChannelModifyTorrentsEndpoint(MyChannelBaseEndpoint):
+    """
+    This class is responsible for methods that modify the list of torrents (adding/removing torrents).
+    """
+
+    def __init__(self, session, torrent_url):
+        MyChannelBaseEndpoint.__init__(self, session)
+        self.torrent_url = torrent_url
+
+    def render_PUT(self, request):
+        """
+        Add a torrent by magnet or url to your channel. Returns error 500 if something is wrong with the torrent file
+        and DuplicateTorrentFileError if already added to your channel (except with magnet links).
+
+        Example request:
+        {
+            "description" (optional): "A video of my cat" (default: empty)
+        }
+        """
+        my_channel_id = self.channel_db_handler.getMyChannelId()
+        if my_channel_id is None:
+            return MyChannelBaseEndpoint.return_404(request)
+
+        parameters = http.parse_qs(request.content.read(), 1)
+
+        if 'description' not in parameters or len(parameters['description']) == 0:
+            extra_info = {}
+        else:
+            extra_info = {'description': parameters['description'][0]}
+
+        try:
+            if self.torrent_url.startswith("http:") or self.torrent_url.startswith("https:"):
+                torrent_def = TorrentDef.load_from_url(self.torrent_url)
+                self.session.add_torrent_def_to_channel(my_channel_id, torrent_def, extra_info, forward=True)
+            if self.torrent_url.startswith("magnet:"):
+
+                def on_receive_magnet_meta_info(meta_info):
+                    torrent_def = TorrentDef.load_from_dict(meta_info)
+                    self.session.add_torrent_def_to_channel(my_channel_id, torrent_def, extra_info, forward=True)
+
+                infohash_or_magnet = self.torrent_url
+                callback = on_receive_magnet_meta_info
+                self.session.lm.ltmgr.get_metainfo(infohash_or_magnet, callback)
+
+        except (DuplicateTorrentFileError, ValueError) as ex:
+            return MyChannelBaseEndpoint.return_500(self, request, ex)
+
+        return json.dumps({"added": self.torrent_url})
+
 
 class MyChannelRssFeedsEndpoint(MyChannelBaseEndpoint):
     """
-    This class is responsible for handling requests regarding rss feeds in your channel.
+    This endpoint is responsible for handling requests regarding rss feeds in your channel.
     """
 
     def getChild(self, path, request):
@@ -167,7 +265,6 @@ class MyChannelRssFeedsEndpoint(MyChannelBaseEndpoint):
             return MyChannelBaseEndpoint.return_404(request)
 
         rss_list = channel_obj.get_rss_feed_url_list()
-        request.setHeader('Content-Type', 'text/json')
         feeds_list = [{'url': rss_item} for rss_item in rss_list]
 
         return json.dumps({"rssfeeds": feeds_list})
@@ -182,8 +279,6 @@ class MyChannelRecheckFeedsEndpoint(MyChannelBaseEndpoint):
         """
         Rechecks all rss feeds in your channel. Returns error 404 if you channel does not exist.
         """
-        request.setHeader('Content-Type', 'text/json')
-
         channel_obj = self.get_my_channel_object()
         if channel_obj is None:
             return MyChannelBaseEndpoint.return_404(request)
@@ -207,7 +302,6 @@ class MyChannelModifyRssFeedsEndpoint(MyChannelBaseEndpoint):
         Add a RSS feed to your channel. Returns error 409 if the supplied RSS feed already exists.
         Note that the rss feed url should be URL-encoded.
         """
-        request.setHeader('Content-Type', 'text/json')
         channel_obj = self.get_my_channel_object()
         if channel_obj is None:
             return MyChannelBaseEndpoint.return_404(request)
@@ -224,7 +318,6 @@ class MyChannelModifyRssFeedsEndpoint(MyChannelBaseEndpoint):
         Delete a RSS feed from your channel. Returns error 404 if the RSS feed that is being removed does not exist.
         Note that the rss feed url should be URL-encoded.
         """
-        request.setHeader('Content-Type', 'text/json')
         channel_obj = self.get_my_channel_object()
         if channel_obj is None:
             return MyChannelBaseEndpoint.return_404(request)
@@ -258,8 +351,6 @@ class MyChannelPlaylistsEndpoint(MyChannelBaseEndpoint):
             }, ...]
         }
         """
-        request.setHeader('Content-Type', 'text/json')
-
         my_channel_id = self.channel_db_handler.getMyChannelId()
         if my_channel_id is None:
             return MyChannelBaseEndpoint.return_404(request)
