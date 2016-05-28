@@ -14,7 +14,7 @@ class LocalTriblerRecipe(PythonRecipe):
     depends = ['apsw', 'cherrypy', 'cryptography', 'decorator', 'feedparser',
                'ffmpeg', 'libnacl', 'libsodium', 'libtorrent', 'm2crypto',
                'netifaces', 'openssl', 'pyasn1', 'pil', 'pycrypto', 'pyleveldb',
-               'python2', 'requests', 'twisted']
+               'python2', 'requests', 'six', 'twisted']
 
     site_packages_name = 'Tribler'
 
@@ -33,11 +33,11 @@ class LocalTriblerRecipe(PythonRecipe):
 
         with current_directory(container_dir):
             # Copy source from working copy
-            cp('-rf', '/home/paul/repos/tribler', self.name)
+            cp('-rf', '/home/paul/repos/tribler-app', self.name)
 
             # Copy twisted plugin
             shutil.copyfile(join(self.name, 'twisted/twisted/plugins/tribler_plugin.py'),
-                            '/home/paul/repos/tribler/android/TriblerService/service/tribler_plugin.py')
+                            '/home/paul/repos/tribler-app/android/TriblerService/service/tribler_plugin.py')
 
         super(LocalTriblerRecipe, self).prebuild_arch(arch)
 
@@ -46,7 +46,7 @@ class LocalTriblerRecipe(PythonRecipe):
         super(LocalTriblerRecipe, self).postbuild_arch(arch)
         # Install ffmpeg binary
         shutil.copyfile(self.get_recipe('ffmpeg', self.ctx).get_build_bin(arch),
-                        '/home/paul/repos/tribler/android/TriblerService/service/ffmpeg')
+                        '/home/paul/repos/tribler-app/android/TriblerService/service/ffmpeg')
 
 
 recipe = LocalTriblerRecipe()
