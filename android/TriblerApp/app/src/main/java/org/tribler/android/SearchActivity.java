@@ -16,8 +16,6 @@ import android.view.MenuItem;
 import com.google.gson.Gson;
 import com.loopj.android.http.JsonHttpResponseHandler;
 
-import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -131,11 +129,25 @@ public class SearchActivity extends AppCompatActivity {
     private void doMySearch(String query) {
         //TODO
         TriblerRestClient.get("mychannel", null, new JsonHttpResponseHandler() {
+            /**
+             * {@inheritDoc}
+             */
             @Override
             public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
                 System.out.println(statusCode);
                 System.out.println(headers);
                 System.out.println(response.toString());
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public void onFailure(int statusCode, Header[] headers, Throwable throwable, JSONObject errorResponse) {
+                System.err.println(statusCode);
+                System.err.println(headers);
+                throwable.printStackTrace(System.err);
+                System.err.println(errorResponse.toString());
             }
         });
         List<Object> results = exampleData();
