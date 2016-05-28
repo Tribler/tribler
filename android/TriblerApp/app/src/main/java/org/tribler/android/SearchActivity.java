@@ -14,9 +14,16 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 
 import com.google.gson.Gson;
+import com.loopj.android.http.JsonHttpResponseHandler;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import cz.msebera.android.httpclient.Header;
 
 public class SearchActivity extends AppCompatActivity {
 
@@ -123,6 +130,14 @@ public class SearchActivity extends AppCompatActivity {
 
     private void doMySearch(String query) {
         //TODO
+        TriblerRestClient.get("mychannel", null, new JsonHttpResponseHandler() {
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+                System.out.println(statusCode);
+                System.out.println(headers);
+                System.out.println(response.toString());
+            }
+        });
         List<Object> results = exampleData();
         mAdapter.setList(results);
         mAdapter.notifyDataSetChanged();
