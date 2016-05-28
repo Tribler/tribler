@@ -24,5 +24,5 @@ rm -f project.properties
 
 cd ../..
 
-rm -rf dist/TriblerApp-import/*
+rm -rf dist/TriblerApp-import
 mv dist/TriblerService dist/TriblerApp-import
