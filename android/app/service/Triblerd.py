@@ -20,7 +20,7 @@ class Triblerd(object):
         Pass through options
         '''
         options = Options()
-        Options.parseOptions(options, os.getenv('PYTHON_SERVICE_ARGUMENT', ''))
+        Options.parseOptions(options, [ os.getenv('PYTHON_SERVICE_ARGUMENT', '') ])
         service_maker.makeService(options)
         reactor.run()
         
