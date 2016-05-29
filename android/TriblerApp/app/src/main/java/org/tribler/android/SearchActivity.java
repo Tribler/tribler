@@ -21,11 +21,11 @@ import com.loopj.android.http.AsyncHttpResponseHandler;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 
 import cz.msebera.android.httpclient.Header;
 import cz.msebera.android.httpclient.HttpEntity;
 import cz.msebera.android.httpclient.HttpResponse;
+import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
 
 public class SearchActivity extends AppCompatActivity {
 
@@ -113,6 +113,14 @@ public class SearchActivity extends AppCompatActivity {
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
 
+        // Set scrollbar for fast scrolling
+        VerticalRecyclerViewFastScroller fastScroller =
+                (VerticalRecyclerViewFastScroller) findViewById(R.id.fast_scroller);
+        // Connect the recycler to the scroller (to let the scroller scroll the list)
+        fastScroller.setRecyclerView(recyclerView);
+        // Connect the scroller to the recycler (to let the recycler scroll the scroller's handle)
+        recyclerView.addOnScrollListener(fastScroller.getOnScrollListener());
+
         // Set list adapter
         mAdapter = new TriblerViewAdapter();
         recyclerView.setAdapter(mAdapter);
@@ -194,30 +202,14 @@ public class SearchActivity extends AppCompatActivity {
                 mAdapter.addItem(channel);
             }
 
-            /**
-             * {@inheritDoc}
-             */
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                System.out.println(statusCode);
-                try {
-                    System.out.println(new String(responseBody, getCharset()));
-                } catch (UnsupportedEncodingException ex) {
-
-                }
+                // unused
             }
 
-            /**
-             * {@inheritDoc}
-             */
             @Override
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-                System.err.println(statusCode);
-                try {
-                    System.err.println(new String(responseBody, getCharset()));
-                } catch (UnsupportedEncodingException ex) {
-
-                }
+                // unused
             }
         });
     }
