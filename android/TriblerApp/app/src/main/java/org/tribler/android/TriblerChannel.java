@@ -4,29 +4,54 @@ package org.tribler.android;
  * Deserialization of Json Channel
  */
 public class TriblerChannel {
-    private String name, iconUrl;
-    private int torrentsCount, commentsCount;
+
+    private boolean subscribed;
+    private int id, votes, torrents, spam, modified;
+    private String dispersy_cid, name, description, icon_url;
 
     public TriblerChannel() {
+    }
+
+    public boolean isSubscribed() {
+        return subscribed;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public int getVotesCount() {
+        return votes;
+    }
+
+    public int getTorrentsCount() {
+        return torrents;
+    }
+
+    public int getSpamCount() {
+        return spam;
+    }
+
+    public int getModified() {
+        return modified;
+    }
+
+    public String getDispersyCid() {
+        return dispersy_cid;
     }
 
     public String getName() {
         return name;
     }
 
+    public String getDescription() {
+        return description;
+    }
+
     public String getIconUrl() {
-        if (iconUrl == null) {
-            iconUrl = ""; //TODO: default image
+        if (icon_url == null) {
+            icon_url = ""; //TODO: default image
         }
-        return iconUrl;
+        return icon_url;
     }
-
-    public int getTorrentsCount() {
-        return torrentsCount;
-    }
-
-    public int getCommentsCount() {
-        return commentsCount;
-    }
-
 }

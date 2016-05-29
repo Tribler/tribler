@@ -8,7 +8,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Creates visual representation for channels and torrents in a list
@@ -18,24 +18,23 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     private static final int VIEW_TYPE_CHANNEL = 1;
     private static final int VIEW_TYPE_TORRENT = 2;
 
-    private List<Object> mList;
+    private ArrayList<Object> mList;
 
-    public TriblerViewAdapter(List<Object> list) {
-        mList = list;
+    public TriblerViewAdapter() {
+        mList = new ArrayList<Object>();
     }
 
     /**
-     * @param list The new data set to replace the current one
+     * @param item The item to add to the adapter list
+     * @return True if the item is successfully added, false otherwise
      */
-    public void setList(List<Object> list) {
-        mList = list;
-    }
-
-    /**
-     * @return The list being displayed
-     */
-    public List<Object> getList() {
-        return mList;
+    public boolean addItem(Object item) {
+        int adapterPosition = getItemCount();
+        boolean inserted = mList.add(item);
+        if (inserted) {
+            notifyItemInserted(adapterPosition);
+        }
+        return inserted;
     }
 
     /**
@@ -70,14 +69,14 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     public class ChannelViewHolder extends RecyclerView.ViewHolder {
-        public TextView name, torrentsCount, commentsCount;
+        public TextView name, torrentsCount, votesCount;
         public ImageView icon;
 
         public ChannelViewHolder(View itemView) {
             super(itemView);
             name = (TextView) itemView.findViewById(R.id.channel_name);
-            torrentsCount = (TextView) itemView.findViewById(R.id.channel_videos_count);
-            commentsCount = (TextView) itemView.findViewById(R.id.channel_comments_count);
+            torrentsCount = (TextView) itemView.findViewById(R.id.channel_torrents_count);
+            votesCount = (TextView) itemView.findViewById(R.id.channel_votes_count);
             icon = (ImageView) itemView.findViewById(R.id.channel_icon);
         }
     }
@@ -133,7 +132,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             TriblerChannel channel = (TriblerChannel) getItem(position);
             view.name.setText(channel.getName());
             view.torrentsCount.setText(String.valueOf(channel.getTorrentsCount()));
-            view.commentsCount.setText(String.valueOf(channel.getCommentsCount()));
+            view.votesCount.setText(String.valueOf(channel.getVotesCount()));
             view.icon.setImageURI(Uri.parse(channel.getIconUrl()));
         }
         // Torrent

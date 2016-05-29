@@ -4,6 +4,7 @@ import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -14,14 +15,17 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 
 import com.google.gson.Gson;
-import com.loopj.android.http.JsonHttpResponseHandler;
+import com.google.gson.stream.JsonReader;
+import com.loopj.android.http.AsyncHttpResponseHandler;
 
-import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.List;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 
 import cz.msebera.android.httpclient.Header;
+import cz.msebera.android.httpclient.HttpEntity;
+import cz.msebera.android.httpclient.HttpResponse;
 
 public class SearchActivity extends AppCompatActivity {
 
@@ -110,8 +114,7 @@ public class SearchActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(layoutManager);
 
         // Set list adapter
-        List<Object> list = new ArrayList<Object>();
-        mAdapter = new TriblerViewAdapter(list);
+        mAdapter = new TriblerViewAdapter();
         recyclerView.setAdapter(mAdapter);
 
         // Click list item
@@ -128,57 +131,95 @@ public class SearchActivity extends AppCompatActivity {
 
     private void doMySearch(String query) {
         //TODO
-        Triblerd.restApi.get(this, Triblerd.BASE_URL + "mychannel", new JsonHttpResponseHandler() {
+        Triblerd.restApi.get(this, Triblerd.BASE_URL + "/channels/discovered", new AsyncHttpResponseHandler() {
+
+            protected static final int MY_MESSAGE = -1;
+
+            public Gson gson = new Gson();
+
             /**
              * {@inheritDoc}
              */
             @Override
-            public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
-                System.out.println(statusCode);
-                System.out.println(response.toString());
+            public void sendResponseMessage(HttpResponse response) throws IOException {
+                // do not process if request has been cancelled
+                if (!Thread.currentThread().isInterrupted()) {
+                    HttpEntity entity = response.getEntity();
+                    if (entity != null) {
+                        InputStream inputStream = entity.getContent();
+                        if (inputStream != null) {
+                            readJsonStream(inputStream);
+                        }
+                    }
+                }
+            }
+
+            /**
+             * This code reads a JSON document containing an array of messages.
+             * It steps through array elements as a stream to avoid loading the complete document into memory.
+             * It is concise because it uses Gson’s object-model to parse the individual messages:
+             *
+             * @param in
+             * @return
+             * @throws IOException
+             */
+            public void readJsonStream(InputStream in) throws IOException {
+                JsonReader reader = new JsonReader(new InputStreamReader(in, getCharset()));
+                reader.beginObject();
+                reader.nextName(); // "channels":
+                reader.beginArray();
+                while (reader.hasNext()) {
+                    TriblerChannel channel = gson.fromJson(reader, TriblerChannel.class);
+                    sendMyMessage(channel);
+                }
+                reader.endArray();
+                reader.endObject();
+                reader.close();
+            }
+
+            final public void sendMyMessage(TriblerChannel channel) {
+                sendMessage(obtainMessage(MY_MESSAGE, channel));
+            }
+
+            @Override
+            protected void handleMessage(Message message) {
+                if (MY_MESSAGE == message.what) {
+                    onMy((TriblerChannel) message.obj);
+                } else {
+                    super.handleMessage(message);
+                }
+            }
+
+            public void onMy(TriblerChannel channel) {
+                mAdapter.addItem(channel);
             }
 
             /**
              * {@inheritDoc}
              */
             @Override
-            public void onFailure(int statusCode, Header[] headers, Throwable throwable, JSONObject errorResponse) {
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                System.out.println(statusCode);
+                try {
+                    System.out.println(new String(responseBody, getCharset()));
+                } catch (UnsupportedEncodingException ex) {
+
+                }
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
                 System.err.println(statusCode);
-                System.err.println(errorResponse.toString());
+                try {
+                    System.err.println(new String(responseBody, getCharset()));
+                } catch (UnsupportedEncodingException ex) {
+
+                }
             }
         });
-        List<Object> results = exampleData();
-        mAdapter.setList(results);
-        mAdapter.notifyDataSetChanged();
-    }
-
-    private List<Object> exampleData() {
-        Gson gson = new Gson();
-        List<Object> list = new ArrayList<Object>();
-
-        list.add(gson.fromJson("{title:'Mad Max: Fury Road', genre:'Action & Adventure', year:2015}", TriblerTorrent.class));
-        list.add(gson.fromJson("{title:'Inside Out', genre:'Animation, Kids & Family', year:2015}", TriblerTorrent.class));
-        list.add(gson.fromJson("{title:'Star Wars: Episode VII - The Force Awakens', genre:'Action', year:2015}", TriblerTorrent.class));
-        list.add(gson.fromJson("{title:'Shaun the Sheep', genre:'Animation', year:2015}", TriblerTorrent.class));
-        list.add(gson.fromJson("{title:'The Martian', genre:'Science Fiction & Fantasy', year:2015}", TriblerTorrent.class));
-        list.add(gson.fromJson("{title:'Mission: Impossible Rogue Nation', genre:'Action', year:2015}", TriblerTorrent.class));
-        list.add(gson.fromJson("{title:'Up', genre:'Animation', year:2009}", TriblerTorrent.class));
-        list.add(gson.fromJson("{name:'Debian', commentsCount:123456, torrentsCount:8}", TriblerChannel.class));
-        list.add(gson.fromJson("{name:'Red Hat', commentsCount:987654, torrentsCount:200}", TriblerChannel.class));
-        list.add(gson.fromJson("{title:'Star Trek', genre:'Science Fiction', year:2009}", TriblerTorrent.class));
-        list.add(gson.fromJson("{title:'The LEGO Movie', genre:'Animation', year:2014}", TriblerTorrent.class));
-        list.add(gson.fromJson("{title:'Iron Man', genre:'Action & Adventure', year:2008}", TriblerTorrent.class));
-        list.add(gson.fromJson("{title:'Aliens', genre:'Science Fiction', year:1986}", TriblerTorrent.class));
-        list.add(gson.fromJson("{title:'Chicken Run', genre:'Animation', year:2000}", TriblerTorrent.class));
-        list.add(gson.fromJson("{title:'Back to the Future', genre:'Science Fiction', year:1985}", TriblerTorrent.class));
-        list.add(gson.fromJson("{name:'Pioneer One', commentsCount:0, torrentsCount:36}", TriblerChannel.class));
-        list.add(gson.fromJson("{title:'Raiders of the Lost Ark', genre:'Action & Adventure', year:1981}", TriblerTorrent.class));
-        list.add(gson.fromJson("{title:'Goldfinger', genre:'Action & Adventure', year:1965}", TriblerTorrent.class));
-        list.add(gson.fromJson("{name:'Ubuntu', commentsCount:132, torrentsCount:16}", TriblerChannel.class));
-        list.add(gson.fromJson("{title:'Guardians of the Galaxy', genre:'Science Fiction & Fantasy', year:2014}", TriblerTorrent.class));
-        list.add(gson.fromJson("{name:'Fedora', commentsCount:999, torrentsCount:8}", TriblerChannel.class));
-
-        return list;
     }
 
 }

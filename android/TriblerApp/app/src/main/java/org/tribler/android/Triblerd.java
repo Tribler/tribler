@@ -10,7 +10,7 @@ import org.kivy.android.PythonService;
 public class Triblerd extends PythonService {
 
     public static final int REST_API_PORT = 8085;
-    public static final String BASE_URL = "http://127.0.0.1/";
+    public static final String BASE_URL = "http://127.0.0.1";
     public static final AsyncHttpClient restApi = new AsyncHttpClient(REST_API_PORT);
 
     @Override

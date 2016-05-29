@@ -35,7 +35,7 @@
         android:textStyle="bold" />
 
     <TextView
-        android:id="@+id/channel_videos_count"
+        android:id="@+id/channel_torrents_count"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
@@ -45,7 +45,7 @@
         android:textColor="@color/blue" />
 
     <TextView
-        android:id="@+id/channel_comments_count"
+        android:id="@+id/channel_votes_count"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignBottom="@+id/channel_icon"
