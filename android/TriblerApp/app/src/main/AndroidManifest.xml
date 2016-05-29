@@ -53,7 +53,8 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <service
-            android:name=".ServiceTriblerd"
+            android:name=".Triblerd"
+            android:label="Tribler service"
             android:process=":service_Triblerd" />
 
         <activity

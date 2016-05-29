@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        ServiceTriblerd.start(this, "-p " + ServiceTriblerd.REST_API_PORT);
+        Triblerd.start(this);
         initGui();
     }
 
@@ -167,7 +167,7 @@ public class MainActivity extends AppCompatActivity
                 return true;
 
             case R.id.nav_shutdown:
-                ServiceTriblerd.stop(this);
+                Triblerd.stop(this);
                 // Exit MainActivity
                 finish();
                 return true;

@@ -128,14 +128,13 @@ public class SearchActivity extends AppCompatActivity {
 
     private void doMySearch(String query) {
         //TODO
-        TriblerRestClient.get("mychannel", null, new JsonHttpResponseHandler() {
+        Triblerd.restApi.get(this, Triblerd.BASE_URL + "mychannel", new JsonHttpResponseHandler() {
             /**
              * {@inheritDoc}
              */
             @Override
             public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
                 System.out.println(statusCode);
-                System.out.println(headers);
                 System.out.println(response.toString());
             }
 
@@ -145,8 +144,6 @@ public class SearchActivity extends AppCompatActivity {
             @Override
             public void onFailure(int statusCode, Header[] headers, Throwable throwable, JSONObject errorResponse) {
                 System.err.println(statusCode);
-                System.err.println(headers);
-                throwable.printStackTrace(System.err);
                 System.err.println(errorResponse.toString());
             }
         });
