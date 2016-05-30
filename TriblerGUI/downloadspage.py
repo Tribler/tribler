@@ -1,3 +1,4 @@
+from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QWidget, QMenu, QAction
 from TriblerGUI.TriblerActionMenu import TriblerActionMenu
@@ -31,11 +32,18 @@ class DownloadsPage(QWidget):
 
         self.window().downloads_list.customContextMenuRequested.connect(self.on_right_click_item)
 
+        self.downloads_timer = QTimer()
+        self.downloads_timer.timeout.connect(self.load_downloads)
+        self.downloads_timer.start(1000)
+
     def load_downloads(self):
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("downloads", self.received_downloads)
 
     def received_downloads(self, downloads):
+        total_download = 0
+        total_upload = 0
+
         for download in downloads["downloads"]:
             if download["infohash"] in self.download_widgets:
                 item = self.download_widgets[download["infohash"]]
@@ -44,6 +52,15 @@ class DownloadsPage(QWidget):
                 self.download_widgets[download["infohash"]] = item
             item.updateWithDownload(download)
 
+            # Update video player with download info
+            video_infohash = self.window().video_player_page.active_infohash
+            if video_infohash != "" and download["infohash"] == video_infohash:
+                self.window().video_player_page.update_with_download_info(download)
+
+            total_download += download["speed_down"]
+            total_upload += download["speed_up"]
+
+        self.window().statusBar.set_speeds(total_download, total_upload)
         self.update_download_visibility()
 
     def update_download_visibility(self):
