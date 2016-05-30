@@ -118,6 +118,18 @@ public class SearchActivity extends AppCompatActivity {
         // Show search input field
         searchView.setIconified(false);
 
+        // Never close search view
+        searchView.setOnCloseListener(new SearchView.OnCloseListener() {
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public boolean onClose() {
+                // Override default behaviour with return true
+                return true;
+            }
+        });
+
         // Restore last query
         String query = getIntent().getStringExtra(SearchManager.QUERY);
         if (query != null && !query.isEmpty()) {
