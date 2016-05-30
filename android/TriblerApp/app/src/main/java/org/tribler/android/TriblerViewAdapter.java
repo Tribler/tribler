@@ -25,6 +25,14 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     /**
+     * Empty data list
+     */
+    public void clear() {
+        mList.clear();
+        notifyDataSetChanged();
+    }
+
+    /**
      * @param item The item to add to the adapter list
      * @return True if the item is successfully added, false otherwise
      */

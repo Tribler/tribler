@@ -51,6 +51,7 @@ public class SearchActivityFragment extends Fragment {
     }
 
     public void doMySearch(String query) {
+        mAdapter.clear();
         //TODO
         Triblerd.restApi.get(getActivity(), Triblerd.BASE_URL + "/channels/discovered", new AsyncHttpResponseHandler() {
 

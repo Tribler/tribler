@@ -35,9 +35,9 @@ public class SearchActivity extends AppCompatActivity {
         if (mWorkFragment == null) {
             mWorkFragment = new SearchActivityFragment();
             fm.beginTransaction().add(mWorkFragment, "work").commit();
-        }
 
-        handleIntent(getIntent());
+            handleIntent(getIntent());
+        }
     }
 
     /**
@@ -117,7 +117,6 @@ public class SearchActivity extends AppCompatActivity {
         assert btnSearch != null;
         final SearchView searchView = (SearchView) btnSearch.getActionView();
         searchView.setIconifiedByDefault(false);
-        searchView.requestFocus();
 
         SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
