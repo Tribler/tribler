@@ -57,7 +57,6 @@ public class SearchActivity extends AppCompatActivity {
         }
     }
 
-
     private void initGui() {
         setContentView(R.layout.activity_search);
 
@@ -116,7 +115,7 @@ public class SearchActivity extends AppCompatActivity {
         MenuItem btnSearch = (MenuItem) menu.findItem(R.id.btn_search);
         assert btnSearch != null;
         final SearchView searchView = (SearchView) btnSearch.getActionView();
-        searchView.setIconifiedByDefault(false);
+        searchView.setIconified(false);
 
         SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
