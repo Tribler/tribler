@@ -240,6 +240,59 @@ font-size: 15px;</string>
     </layout>
    </item>
    <item>
+    <spacer name="horizontalSpacer_4">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>6</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QPushButton" name="torrent_play_button">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>24</width>
+       <height>24</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>24</width>
+       <height>24</height>
+      </size>
+     </property>
+     <property name="cursor">
+      <cursorShape>PointingHandCursor</cursorShape>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">border: none;
+background-color: #e67300;
+border-radius: 4px;</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset>
+       <normaloff>../images/play.png</normaloff>../images/play.png</iconset>
+     </property>
+    </widget>
+   </item>
+   <item>
     <spacer name="horizontalSpacer">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
@@ -249,7 +302,7 @@ font-size: 15px;</string>
      </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>10</width>
+       <width>6</width>
        <height>20</height>
       </size>
      </property>
@@ -265,14 +318,14 @@ font-size: 15px;</string>
      </property>
      <property name="minimumSize">
       <size>
-       <width>64</width>
-       <height>22</height>
+       <width>24</width>
+       <height>24</height>
       </size>
      </property>
      <property name="maximumSize">
       <size>
-       <width>64</width>
-       <height>22</height>
+       <width>24</width>
+       <height>24</height>
       </size>
      </property>
      <property name="cursor">
@@ -287,7 +340,11 @@ color: white;
 font-size: 12px;</string>
      </property>
      <property name="text">
-      <string>download</string>
+      <string/>
+     </property>
+     <property name="icon">
+      <iconset>
+       <normaloff>../images/downloads.png</normaloff>../images/downloads.png</iconset>
      </property>
     </widget>
    </item>
@@ -301,7 +358,7 @@ font-size: 12px;</string>
      </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>18</width>
+       <width>14</width>
        <height>20</height>
       </size>
      </property>

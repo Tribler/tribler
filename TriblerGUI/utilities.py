@@ -1,5 +1,7 @@
 from datetime import datetime
+import os
 from random import randint
+from TriblerGUI.defs import VIDEO_EXTS
 
 
 def format_size(num, suffix='B'):
@@ -35,3 +37,9 @@ def get_random_color():
     green = randint(127, 255)
     blue = randint(127, 255)
     return '#%02x%02x%02x' % (red, green, blue)
+
+def is_video_file(filename):
+    _, ext = os.path.splitext(filename)
+    if ext.startswith('.'):
+        ext = ext[1:]
+    return ext in VIDEO_EXTS

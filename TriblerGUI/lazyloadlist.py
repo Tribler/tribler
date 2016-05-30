@@ -18,7 +18,7 @@ class LazyLoadList(QListWidget):
         self.items_loaded = 0
 
     def load_next_items(self):
-        for i in range(self.items_loaded, min(self.items_loaded + ITEM_LOAD_BATCH, len(self.data_items) - 1)):
+        for i in range(self.items_loaded, min(self.items_loaded + ITEM_LOAD_BATCH, len(self.data_items))):
             self.load_item(i)
 
     def load_item(self, index):
@@ -40,7 +40,7 @@ class LazyLoadList(QListWidget):
     def append_item(self, item):
         self.data_items.append(item)
         if self.items_loaded < ITEM_LOAD_BATCH:
-            self.load_item(self.items_loaded - 1)
+            self.load_item(self.items_loaded)
 
     def on_list_scroll(self, event):
         if self.verticalScrollBar().value() == self.verticalScrollBar().maximum():

@@ -39,13 +39,16 @@ class TriblerWindow(QMainWindow):
         exception_text = "".join(traceback.format_exception(*exc_info))
         logging.error(exception_text)
 
-        dialog = FeedbackDialog(self, exception_text)
-        result = dialog.exec_()
+        if not self.feedback_dialog_is_open:
+            dialog = FeedbackDialog(self, exception_text)
+            self.feedback_dialog_is_open = True
+            result = dialog.exec_()
 
     def __init__(self):
         super(TriblerWindow, self).__init__()
 
         self.navigation_stack = []
+        self.feedback_dialog_is_open = False
 
         sys.excepthook = self.on_exception
 
@@ -170,7 +173,6 @@ class TriblerWindow(QMainWindow):
         self.deselect_all_menu_buttons(self.left_menu_button_downloads)
         self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
         self.navigation_stack = []
-        self.downloads_page.load_downloads()
         self.hide_left_menu_playlist()
 
     def clicked_menu_button_settings(self):
@@ -190,12 +192,12 @@ class TriblerWindow(QMainWindow):
     def hide_left_menu_playlist(self):
         self.left_menu_seperator.setHidden(True)
         self.left_menu_playlist_label.setHidden(True)
-        self.left_menu_playlist_list.setHidden(True)
+        self.left_menu_playlist.setHidden(True)
 
     def show_left_menu_playlist(self):
         self.left_menu_seperator.setHidden(False)
         self.left_menu_playlist_label.setHidden(False)
-        self.left_menu_playlist_list.setHidden(False)
+        self.left_menu_playlist.setHidden(False)
 
     def on_channel_item_click(self, channel_list_item):
         channel_info = channel_list_item.data(Qt.UserRole)

@@ -5,7 +5,6 @@ from TriblerGUI.utilities import get_random_color
 class ThumbnailWidget(QLabel):
 
     def initialize(self, torrent_name, font_size):
-
         parts = torrent_name.split(" ")
         if len(parts) == 1:
             self.setText(parts[0][:1])

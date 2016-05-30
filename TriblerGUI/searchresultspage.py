@@ -18,6 +18,7 @@ class SearchResultsPage(QWidget):
         self.search_results = {'channels': [], 'torrents': []}
         self.window().num_search_results_label.setText("")
         self.window().search_results_header_label.setText("Search results for '%s'" % query)
+        self.load_search_results_in_list() # To clean the list
 
     def clicked_tab_button(self, tab_button_name):
         if tab_button_name == "search_results_all_button":
@@ -40,9 +41,6 @@ class SearchResultsPage(QWidget):
         if show_torrents:
             for torrent_item in self.search_results['torrents']:
                 all_items.append((ChannelTorrentListItem, torrent_item))
-
-        # TODO Martijn: just sort them randomly for now, channels and torrents mixed
-        shuffle(all_items)
 
         self.window().search_results_list.set_data_items(all_items)
 
