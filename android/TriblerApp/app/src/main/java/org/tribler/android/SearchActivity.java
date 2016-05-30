@@ -1,17 +1,24 @@
 package org.tribler.android;
 
+import android.app.FragmentManager;
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 
+import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
+
 public class SearchActivity extends AppCompatActivity {
+
+    private SearchActivityFragment mWorkFragment;
 
     /**
      * {@inheritDoc}
@@ -21,15 +28,13 @@ public class SearchActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         initGui();
 
-        // First time init, create the UI.
-        if (savedInstanceState == null) {
-            getFragmentManager().beginTransaction().add(
-                    R.id.search_fragment,
-                    new SearchActivityFragment()
-            ).commit();
-        }
-        else {
-            
+        FragmentManager fm = getFragmentManager();
+        // Check to see if we have retained the worker fragment.
+        mWorkFragment = (SearchActivityFragment) fm.findFragmentByTag("work");
+        // If not retained (or first time running), we need to create it.
+        if (mWorkFragment == null) {
+            mWorkFragment = new SearchActivityFragment();
+            fm.beginTransaction().add(mWorkFragment, "work").commit();
         }
 
         handleIntent(getIntent());
@@ -48,9 +53,7 @@ public class SearchActivity extends AppCompatActivity {
     private void handleIntent(Intent intent) {
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
             String query = intent.getStringExtra(SearchManager.QUERY);
-
-            SearchActivityFragment fragment = (SearchActivityFragment) getFragmentManager().findFragmentById(R.id.search_fragment);
-            fragment.doMySearch(query);
+            mWorkFragment.doMySearch(query);
         }
     }
 
@@ -62,6 +65,40 @@ public class SearchActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.activity_search_toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.search_results_list);
+        // Improve performance
+        recyclerView.setHasFixedSize(true);
+
+        VerticalRecyclerViewFastScroller fastScroller =
+                (VerticalRecyclerViewFastScroller) findViewById(R.id.fast_scroller);
+
+        // Connect the recycler to the scroller (to let the scroller scroll the list)
+        fastScroller.setRecyclerView(recyclerView);
+
+        // Connect the scroller to the recycler (to let the recycler scroll the scroller's handle)
+        recyclerView.addOnScrollListener(fastScroller.getOnScrollListener());
+
+        // Scroll to the current position of the layout manager
+        setRecyclerViewLayoutManager(recyclerView);
+    }
+
+    /**
+     * @param recyclerView Set the LayoutManager of this RecycleView
+     */
+    private void setRecyclerViewLayoutManager(RecyclerView recyclerView) {
+        int scrollPosition = 0;
+
+        // If a layout manager has already been set, get current scroll position.
+        if (recyclerView.getLayoutManager() != null) {
+            scrollPosition =
+                    ((LinearLayoutManager) recyclerView.getLayoutManager()).findFirstCompletelyVisibleItemPosition();
+        }
+
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
+
+        recyclerView.setLayoutManager(linearLayoutManager);
+        recyclerView.scrollToPosition(scrollPosition);
     }
 
 

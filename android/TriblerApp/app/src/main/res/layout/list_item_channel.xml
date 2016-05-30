@@ -35,17 +35,17 @@
         android:textStyle="bold" />
 
     <TextView
-        android:id="@+id/channel_torrents_count"
+        android:id="@+id/channel_votes_count"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
         android:layout_alignTop="@+id/channel_name"
-        android:text="Videos count"
+        android:text="Votes count"
         android:textColor="@color/blue" />
 
     <TextView
-        android:id="@+id/channel_votes_count"
+        android:id="@+id/channel_torrents_count"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignBottom="@+id/channel_icon"
@@ -53,6 +53,6 @@
         android:layout_marginStart="16dp"
         android:layout_toEndOf="@+id/channel_icon"
         android:layout_toRightOf="@+id/channel_icon"
-        android:text="Comments count" />
+        android:text="Torrents count" />
 
 </RelativeLayout>

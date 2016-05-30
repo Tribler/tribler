@@ -3,12 +3,8 @@ package org.tribler.android;
 import android.app.Fragment;
 import android.os.Bundle;
 import android.os.Message;
-import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
@@ -21,7 +17,6 @@ import java.io.InputStreamReader;
 import cz.msebera.android.httpclient.Header;
 import cz.msebera.android.httpclient.HttpEntity;
 import cz.msebera.android.httpclient.HttpResponse;
-import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
 
 public class SearchActivityFragment extends Fragment {
 
@@ -30,31 +25,17 @@ public class SearchActivityFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Tell the framework to try to keep this fragment around during a configuration change
+        setRetainInstance(true);
 
         mAdapter = new TriblerViewAdapter();
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.activity_search_fragment, container, false);
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
 
-        RecyclerView recyclerView = (RecyclerView) rootView.findViewById(R.id.search_results_list);
-        // Improve performance
-        recyclerView.setHasFixedSize(true);
-
-        VerticalRecyclerViewFastScroller fastScroller =
-                (VerticalRecyclerViewFastScroller) rootView.findViewById(R.id.fast_scroller);
-
-        // Connect the recycler to the scroller (to let the scroller scroll the list)
-        fastScroller.setRecyclerView(recyclerView);
-
-        // Connect the scroller to the recycler (to let the recycler scroll the scroller's handle)
-        recyclerView.addOnScrollListener(fastScroller.getOnScrollListener());
-
-        // Scroll to the current position of the layout manager
-        setRecyclerViewLayoutManager(recyclerView);
-
+        RecyclerView recyclerView = (RecyclerView) getActivity().findViewById(R.id.search_results_list);
         // Set list adapter
         recyclerView.setAdapter(mAdapter);
 
@@ -67,26 +48,6 @@ public class SearchActivityFragment extends Fragment {
         ItemTouchHelper.SimpleCallback onSwipe = new HomeSwipeListener(mAdapter);
         ItemTouchHelper touchHelper = new ItemTouchHelper(onSwipe);
         touchHelper.attachToRecyclerView(recyclerView);
-
-        return rootView;
-    }
-
-    /**
-     * @param recyclerView Set the LayoutManager of this RecycleView
-     */
-    public void setRecyclerViewLayoutManager(RecyclerView recyclerView) {
-        int scrollPosition = 0;
-
-        // If a layout manager has already been set, get current scroll position.
-        if (recyclerView.getLayoutManager() != null) {
-            scrollPosition =
-                    ((LinearLayoutManager) recyclerView.getLayoutManager()).findFirstCompletelyVisibleItemPosition();
-        }
-
-        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getActivity());
-
-        recyclerView.setLayoutManager(linearLayoutManager);
-        recyclerView.scrollToPosition(scrollPosition);
     }
 
     public void doMySearch(String query) {

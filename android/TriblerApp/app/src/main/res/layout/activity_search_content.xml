@@ -1,9 +1,27 @@
-<fragment xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:recyclerviewfastscroller="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/search_fragment"
-    android:name="org.tribler.android.SearchActivityFragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    tools:layout="@layout/activity_search_fragment" />
+    tools:context="org.tribler.android.SearchActivityFragment"
+    tools:showIn="@layout/activity_search">
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/search_results_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="vertical" />
+
+    <xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller
+        android:id="@+id/fast_scroller"
+        android:layout_width="@dimen/scrollbar_width"
+        android:layout_height="match_parent"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        recyclerviewfastscroller:rfs_barColor="@color/transparent"
+        recyclerviewfastscroller:rfs_handleColor="@color/transparent" />
+
+</RelativeLayout>
