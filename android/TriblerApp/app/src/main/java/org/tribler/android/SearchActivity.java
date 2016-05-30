@@ -100,7 +100,6 @@ public class SearchActivity extends AppCompatActivity {
         recyclerView.scrollToPosition(scrollPosition);
     }
 
-
     /**
      * {@inheritDoc}
      */
