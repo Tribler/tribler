@@ -114,7 +114,16 @@ public class SearchActivity extends AppCompatActivity {
         MenuItem btnSearch = (MenuItem) menu.findItem(R.id.btn_search);
         assert btnSearch != null;
         final SearchView searchView = (SearchView) btnSearch.getActionView();
+
+        // Show search input field
         searchView.setIconified(false);
+
+        // Restore last query
+        String query = getIntent().getStringExtra(SearchManager.QUERY);
+        if (query != null && !query.isEmpty()) {
+            searchView.setQuery(query, false);
+            searchView.clearFocus();
+        }
 
         SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
