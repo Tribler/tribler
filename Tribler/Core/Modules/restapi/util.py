@@ -27,7 +27,9 @@ def convert_db_torrent_to_json(torrent):
     """
     This method converts a torrent in the database to a JSON dictionary.
     """
-    return {"id": torrent[0], "infohash": torrent[1].encode('hex'), "name": torrent[2], "size": torrent[3],
+    torrent_name = torrent[2] if torrent[2] is not None else "Unnamed torrent"
+
+    return {"id": torrent[0], "infohash": torrent[1].encode('hex'), "name": torrent_name, "size": torrent[3],
             "category": torrent[4], "num_seeders": torrent[5] or 0, "num_leechers": torrent[6] or 0,
             "last_tracker_check": torrent[7] or 0}
 
@@ -36,6 +38,8 @@ def convert_remote_torrent_to_json(torrent):
     """
     This method converts a torrent that has been received by remote peers in the network to a JSON dictionary.
     """
-    return {'id': torrent['torrent_id'], "infohash": torrent['infohash'].encode('hex'), "name": torrent['name'],
+    torrent_name = torrent['name'] if torrent['name'] is not None else "Unnamed torrent"
+
+    return {'id': torrent['torrent_id'], "infohash": torrent['infohash'].encode('hex'), "name": torrent_name,
             'size': torrent['length'], 'category': torrent['category'], 'num_seeders': torrent['num_seeders'],
             'num_leechers': torrent['num_leechers'], 'last_tracker_check': 0}
