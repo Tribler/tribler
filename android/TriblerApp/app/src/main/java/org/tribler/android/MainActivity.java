@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity
     private void initGui() {
         setContentView(R.layout.activity_main);
         // Top bar
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.activity_main_toolbar);
         assert toolbar != null;
         setSupportActionBar(toolbar);
 
