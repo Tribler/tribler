@@ -291,3 +291,36 @@ class MarketConversion(BinaryConversion):
 
         return offset, placeholder.meta.payload.implement(trader_id, message_number, order_number, recipient_trader_id,
                                                           recipient_order_number, timestamp)
+
+    def _encode_start_transaction(self, message):
+        payload = message.payload
+        packet = encode((
+            str(payload.trader_id), str(payload.message_number), str(payload.transaction_number),
+            float(payload.timestamp)
+        ))
+        return packet,
+
+    def _encode_multi_chain_payment(self, message):
+        payload = message.payload
+        packet = encode((
+            str(payload.trader_id), str(payload.message_number), str(payload.transaction_number),
+            str(payload.bitcoin_address), int(payload.transferor_quantity), int(payload.transferee_quantity),
+            float(payload.timestamp)
+        ))
+        return packet,
+
+    def _encode_bitcoin_payment(self, message):
+        payload = message.payload
+        packet = encode((
+            str(payload.trader_id), str(payload.message_number), str(payload.transaction_number), int(payload.quantity),
+            float(payload.timestamp)
+        ))
+        return packet,
+
+    def _encode_end_transaction(self, message):
+        payload = message.payload
+        packet = encode((
+            str(payload.trader_id), str(payload.message_number), str(payload.transaction_number),
+            float(payload.timestamp)
+        ))
+        return packet,
