@@ -182,10 +182,6 @@ Section "!Main EXE" SecMain
     File vc_redist_90.exe
     ExecWait "$INSTDIR\vc_redist_90.exe /q /norestart"
 
-    ; Libraries dependant on 2010 are:M2Crypto, netifaces
-    File vc_redist_100.exe
-    ExecWait "$INSTDIR\vc_redist_100.exe /q /norestart"
-
     ; Libraries dependant on 2012 are: LevelDB, LibTorrent
     File vc_redist_110.exe
     ExecWait "$INSTDIR\vc_redist_110.exe /q /norestart"
