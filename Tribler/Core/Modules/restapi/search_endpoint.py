@@ -37,6 +37,7 @@ class SearchEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.session = session
+        self.events_endpoint = None
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.torrent_db_handler = self.session.open_dbhandler(NTFY_TORRENTS)
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -50,6 +51,9 @@ class SearchEndpoint(resource.Resource):
         if 'q' not in request.args:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "query parameter missing"})
+
+        # Notify the events endpoint that we are starting a new search query
+        self.events_endpoint.start_new_query()
 
         # We first search the local database for torrents and channels
         keywords = split_into_keywords(unicode(request.args['q'][0]))
