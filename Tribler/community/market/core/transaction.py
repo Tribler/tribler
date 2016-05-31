@@ -1,4 +1,4 @@
-from message import TraderId
+from message import TraderId, Message, MessageId
 from price import Price
 from quantity import Quantity
 from timeout import Timeout
@@ -175,3 +175,119 @@ class Transaction(object):
         :rtype: Timestamp
         """
         return self._timestamp
+
+
+class StartTransaction(Message):
+    """Class for representing a message to indicate the start of a payment set"""
+
+    def __init__(self, message_id, transaction_id, timestamp):
+        """
+        :param message_id: A message id to identify the message
+        :param transaction_id: An transaction id to identify the order
+        :param timestamp: A timestamp when the transaction was created
+        :type message_id: MessageId
+        :type transaction_id: TransactionId
+        :type timestamp: Timestamp
+        """
+        super(StartTransaction, self).__init__(message_id, timestamp)
+
+        assert isinstance(transaction_id, TransactionId), type(transaction_id)
+
+        self._transaction_id = transaction_id
+
+    @property
+    def transaction_id(self):
+        """
+        :rtype: TransactionId
+        """
+        return self._transaction_id
+
+    @classmethod
+    def from_network(cls, data):
+        """
+        Restore a start transaction message from the network
+
+        :param data: object with (message_id, transaction_id, timestamp) properties
+        :return: Restored start transaction
+        :rtype: StartTransaction
+        """
+        assert hasattr(data, 'message_id'), isinstance(data.message_id, MessageId)
+        assert hasattr(data, 'transaction_id'), isinstance(data.transaction_id, TransactionNumber)
+        assert hasattr(data, 'timestamp'), isinstance(data.timestamp, Timestamp)
+
+        return cls(
+            data.message_id,
+            data.transaction_number,
+            data.timestamp,
+        )
+
+    def to_network(self):
+        """
+        Return network representation of the start transaction message
+
+        :return: tuple(<destination public identifiers>),tuple(<message_id>, <transaction_id>, <timestamp>)
+        :rtype: tuple, tuple
+        """
+        return tuple(), (
+            self._message_id,
+            self._transaction_id,
+            self._timestamp,
+        )
+
+
+class EndTransaction(Message):
+    """Class for representing a message to indicate the completion of a successful payment set """
+
+    def __init__(self, message_id, transaction_id, timestamp):
+        """
+        :param message_id: A message id to identify the message
+        :param transaction_id: An transaction id to identify the order
+        :param timestamp: A timestamp when the transaction was created
+        :type message_id: MessageId
+        :type transaction_id: TransactionId
+        :type timestamp: Timestamp
+        """
+        super(EndTransaction, self).__init__(message_id, timestamp)
+
+        assert isinstance(transaction_id, TransactionId), type(transaction_id)
+
+        self._transaction_id = transaction_id
+
+    @property
+    def transaction_id(self):
+        """
+        :rtype: TransactionId
+        """
+        return self._transaction_id
+
+    @classmethod
+    def from_network(cls, data):
+        """
+        Restore a end transaction message from the network
+
+        :param data: object with (message_id, transaction_id, timestamp) properties
+        :return: Restored end transaction
+        :rtype: EndTransaction
+        """
+        assert hasattr(data, 'message_id'), isinstance(data.message_id, MessageId)
+        assert hasattr(data, 'transaction_id'), isinstance(data.transaction_id, TransactionNumber)
+        assert hasattr(data, 'timestamp'), isinstance(data.timestamp, Timestamp)
+
+        return cls(
+            data.message_id,
+            data.transaction_number,
+            data.timestamp,
+        )
+
+    def to_network(self):
+        """
+        Return network representation of the end transaction message
+
+        :return: tuple(<destination public identifiers>),tuple(<message_id>, <transaction_id>, <timestamp>)
+        :rtype: tuple, tuple
+        """
+        return tuple(), (
+            self._message_id,
+            self._transaction_id,
+            self._timestamp,
+        )
