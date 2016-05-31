@@ -1,14 +1,14 @@
 import unittest
 
-from Tribler.community.market.core.transaction import TransactionNumber, TransactionId, Transaction
-from Tribler.community.market.core.message import TraderId
+from Tribler.community.market.core.transaction import TransactionNumber, TransactionId, Transaction, EndTransaction,\
+    StartTransaction
 from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.order import OrderId, OrderNumber
-from Tribler.community.market.core.message import Message, TraderId, MessageNumber, MessageId
-from Tribler.community.market.core.trade import Trade, AcceptedTrade
+from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId
+from Tribler.community.market.core.trade import Trade
 
 
 class TransactionNumberTestSuite(unittest.TestCase):
@@ -94,3 +94,57 @@ class TransactionTestSuite(unittest.TestCase):
         self.assertEqual(transaction.total_quantity, self.transaction.total_quantity)
         self.assertEqual(float(transaction.timeout), float(self.transaction.timeout))
         self.assertEqual(transaction.timestamp, self.transaction.timestamp)
+
+
+class StartTransactionTestSuite(unittest.TestCase):
+    """Start transaction test cases."""
+
+    def setUp(self):
+        # Object creation
+        self.start_transaction = StartTransaction(MessageId(TraderId('0'), MessageNumber('1')),
+                                                  TransactionId(TraderId("0"), TransactionNumber("1")), Timestamp(0.0))
+
+    def test_from_network(self):
+        # Test for from network
+        data = StartTransaction.from_network(
+            type('Data', (object,), {"message_id": MessageId(TraderId("0"), MessageNumber("1")),
+                                     "transaction_id": TransactionId(TraderId("0"), TransactionNumber("1")),
+                                     "timestamp": Timestamp(0.0)}))
+
+        self.assertEquals(MessageId(TraderId("0"), MessageNumber("1")), data.message_id)
+        self.assertEquals(TransactionId(TraderId("0"), TransactionNumber("1")), data.transaction_id)
+        self.assertEquals(Timestamp(0.0), data.timestamp)
+
+    def test_to_network(self):
+        # Test for to network
+        self.assertEquals(
+            ((), (MessageId(TraderId('0'), MessageNumber('1')), TransactionId(TraderId("0"), TransactionNumber("1")),
+                  Timestamp(0.0))),
+            self.start_transaction.to_network())
+
+
+class EndTransactionTestSuite(unittest.TestCase):
+    """End transaction test cases."""
+
+    def setUp(self):
+        # Object creation
+        self.end_transaction = EndTransaction(MessageId(TraderId('0'), MessageNumber('1')),
+                                              TransactionId(TraderId("0"), TransactionNumber("1")), Timestamp(0.0))
+
+    def test_from_network(self):
+        # Test for from network
+        data = EndTransaction.from_network(
+            type('Data', (object,), {"message_id": MessageId(TraderId("0"), MessageNumber("1")),
+                                     "transaction_id": TransactionId(TraderId("0"), TransactionNumber("1")),
+                                     "timestamp": Timestamp(0.0)}))
+
+        self.assertEquals(MessageId(TraderId("0"), MessageNumber("1")), data.message_id)
+        self.assertEquals(TransactionId(TraderId("0"), TransactionNumber("1")), data.transaction_id)
+        self.assertEquals(Timestamp(0.0), data.timestamp)
+
+    def test_to_network(self):
+        # Test for to network
+        self.assertEquals(
+            ((), (MessageId(TraderId('0'), MessageNumber('1')), TransactionId(TraderId("0"), TransactionNumber("1")),
+                  Timestamp(0.0))),
+            self.end_transaction.to_network())
