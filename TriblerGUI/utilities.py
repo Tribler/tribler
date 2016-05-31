@@ -1,6 +1,6 @@
 from datetime import datetime
+import hashlib
 import os
-from random import randint
 from TriblerGUI.defs import VIDEO_EXTS
 
 
@@ -32,10 +32,18 @@ def timestamp_to_time(timestamp):
     return discovered.strftime('Today %H:%M')
 
 
-def get_random_color():
-    red = randint(127, 255)
-    green = randint(127, 255)
-    blue = randint(127, 255)
+def get_color(name):
+    """
+    This method deterministically determines a color of a given name. This is done by taking the MD5 hash of the text.
+    """
+    md5_hash = hashlib.md5()
+    md5_hash.update(name.encode('utf-8'))
+    md5_str_hash = md5_hash.hexdigest()
+
+    red = int(md5_str_hash[0:10], 16) % 128 + 127
+    green = int(md5_str_hash[10:20], 16) % 128 + 127
+    blue = int(md5_str_hash[20:30], 16) % 128 + 127
+
     return '#%02x%02x%02x' % (red, green, blue)
 
 def is_video_file(filename):

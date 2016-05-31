@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QLabel
-from TriblerGUI.utilities import get_random_color
+from TriblerGUI.utilities import get_color
 
 
 class ThumbnailWidget(QLabel):
@@ -11,4 +11,4 @@ class ThumbnailWidget(QLabel):
         else:
             self.setText(parts[0][:1] + parts[1][:1])
 
-        self.setStyleSheet("font-size: " + str(font_size) + "px; color: rgba(255, 255, 255, 0.7); background-color: %s" % get_random_color())
+        self.setStyleSheet("font-size: " + str(font_size) + "px; color: rgba(255, 255, 255, 0.7); background-color: %s" % get_color(torrent_name))
