@@ -1,16 +1,17 @@
 # Written by Egbert Bouman
 
 import random
-import socket
 import time
 from collections import defaultdict
 from cryptography.exceptions import InvalidTag
+from twisted.internet.error import MessageLengthError
+
+from twisted.internet.defer import maybeDeferred, succeed
 
 from twisted.internet import reactor
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet.task import LoopingCall
 
-from Tribler import dispersy
 from Tribler.Core.Utilities.encoding import decode, encode
 from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
 from Tribler.community.tunnel import (CIRCUIT_ID_PORT, CIRCUIT_STATE_EXTENDING, CIRCUIT_STATE_READY, CIRCUIT_TYPE_DATA,
@@ -34,6 +35,7 @@ from Tribler.dispersy.endpoint import TUNNEL_PREFIX_LENGHT
 from Tribler.dispersy.message import DropMessage, Message
 from Tribler.dispersy.requestcache import NumberCache, RandomNumberCache
 from Tribler.dispersy.resolution import PublicResolution
+from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import call_on_reactor_thread
 import logging
 
@@ -109,10 +111,11 @@ class StatsRequestCache(RandomNumberCache):
         pass
 
 
-class TunnelExitSocket(DatagramProtocol):
+class TunnelExitSocket(DatagramProtocol, TaskManager):
 
     def __init__(self, circuit_id, community, sock_addr, mid=None):
         self.tunnel_logger = logging.getLogger('TunnelLogger')
+        super(TunnelExitSocket, self).__init__()
 
         self.port = None
         self.sock_addr = sock_addr
@@ -134,26 +137,23 @@ class TunnelExitSocket(DatagramProtocol):
     def sendto(self, data, destination):
         if self.check_num_packets(destination, False):
             if TunnelConversion.is_allowed(data):
-                if dispersy.util.is_valid_address(destination):
-                    ip_address = destination[0]
-                else:
+                def on_error(failure):
+                    self.tunnel_logger.error("Can't resolve ip address for hostname %s. Failure: %s",
+                                             destination[0], failure)
+
+                def on_ip_address(ip_address):
+                    self.tunnel_logger.debug("Resolved hostname %s to ip_address %s", destination[0], ip_address)
                     try:
-                        ip_address = socket.gethostbyname(destination[0])
-                        self.tunnel_logger.info("Resolved ip address %s for hostname %s",
-                                                 ip_address,
-                                                 destination[0])
-                    except:
-                        self.tunnel_logger.error("Can't resolve ip address for hostname %s", destination[0])
+                        self.transport.write(data, (ip_address, destination[1]))
+                        self.community.increase_bytes_sent(self, len(data))
+                    except (AttributeError, MessageLengthError) as exception:
+                        self.tunnel_logger.error(
+                            "Failed to write data to transport: %s. Destination: %r error was: %r",
+                            exception, destination, exception)
 
-                try:
-                    self.transport.write(data, (ip_address, destination[1]))
-                except Exception, e:
-                    self.tunnel_logger.error("Failed to write data to transport: %s. Destination: %s",
-                                             e[1],
-                                             repr(destination))
-                    raise
-
-                self.community.increase_bytes_sent(self, len(data))
+                resolve_ip_address_deferred = reactor.resolve(destination[0])
+                resolve_ip_address_deferred.addCallbacks(on_ip_address, on_error)
+                self.register_task("resolving_%r" % destination[0], resolve_ip_address_deferred)
             else:
                 self.tunnel_logger.error("dropping forbidden packets from exit socket with circuit_id %d",
                                          self.circuit_id)
@@ -172,9 +172,18 @@ class TunnelExitSocket(DatagramProtocol):
         self.community.send_data([Candidate(self.sock_addr, False)], self.circuit_id, ('0.0.0.0', 0), source, data)
 
     def close(self):
+        """
+        Closes the UDP socket if enabled and cancels all pending deferreds.
+        :return: A deferred that fires once the UDP socket has closed.
+        """
+        self.cancel_all_pending_tasks()
+
+        done_closing_deferred = succeed(None)
         if self.enabled:
-            self.port.stopListening()
+            done_closing_deferred = maybeDeferred(self.port.stopListening)
             self.port = None
+
+        return done_closing_deferred
 
     def check_num_packets(self, ip, incoming):
         if self.ips[ip] < 0:
@@ -197,7 +206,7 @@ class TunnelExitSocket(DatagramProtocol):
 
 class TunnelSettings(object):
 
-    def __init__(self, install_dir=None, tribler_session=None):
+    def __init__(self, tribler_session=None):
         self.tunnel_logger = logging.getLogger('TunnelLogger')
 
         self.crypto = TunnelCrypto()
@@ -531,7 +540,7 @@ class TunnelCommunity(Community):
         circuit.unverified_hop.address = first_hop.sock_addr
         circuit.unverified_hop.dh_secret, circuit.unverified_hop.dh_first_part = self.crypto.generate_diffie_secret()
 
-        self.tunnel_logger.error("creating circuit %d of %d hops. First hop: %s:%d", circuit_id, circuit.goal_hops,
+        self.tunnel_logger.info("creating circuit %d of %d hops. First hop: %s:%d", circuit_id, circuit.goal_hops,
                            first_hop.sock_addr[0], first_hop.sock_addr[1])
 
         self.circuits[circuit_id] = circuit
@@ -650,10 +659,14 @@ class TunnelCommunity(Community):
                     self.tunnel_logger.warning("MULTICHAIN: Tunnel candidate not found")
             if exit_socket.enabled:
                 self.tunnel_logger.info("Removing exit socket %d %s", circuit_id, additional_info)
-                exit_socket.close()
-                # Remove old session key
-                if circuit_id in self.relay_session_keys:
-                    del self.relay_session_keys[circuit_id]
+
+                def on_exit_socket_closed(_):
+                    # Remove old session key
+                    if circuit_id in self.relay_session_keys:
+                        del self.relay_session_keys[circuit_id]
+
+                exit_socket.close().addCallback(on_exit_socket_closed)
+
         else:
             self.tunnel_logger.error("could not remove exit socket %d %s", circuit_id, additional_info)
 
@@ -1212,13 +1225,13 @@ class TunnelCommunity(Community):
                     self.global_time,), payload=(request.payload.identifier, stats))
                 self.send_packet([request.candidate], u"stats-response", response.packet)
             else:
-                self.tunnel_logger.error("Got stats request from unknown crawler %s", request.candidate.sock_addr)
+                self.tunnel_logger.warning("Got stats request from unknown crawler %s", request.candidate.sock_addr)
 
     def on_stats_response(self, messages):
         for message in messages:
             request = self.request_cache.get(u"stats", message.payload.identifier)
             if not request:
-                self.tunnel_logger.error("Got unexpected stats response from %s", message.candidate.sock_addr)
+                self.tunnel_logger.warning("Got unexpected stats response from %s", message.candidate.sock_addr)
                 continue
 
             request.handler(message.candidate, message.payload.stats)
@@ -1245,7 +1258,7 @@ class TunnelCommunity(Community):
             try:
                 self.exit_sockets[circuit_id].sendto(data, destination)
             except:
-                self.tunnel_logger.error("Dropping data packets while EXITing")
+                self.tunnel_logger.warning("Dropping data packets while EXITing")
         else:
             self.tunnel_logger.error("Dropping data packets with unknown circuit_id")
 
