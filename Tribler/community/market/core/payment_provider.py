@@ -1,4 +1,3 @@
-from Tribler.community.multichain.community import MultiChainCommunity
 from Tribler.dispersy.candidate import Candidate
 from quantity import Quantity
 
@@ -17,7 +16,6 @@ class MultiChainPaymentProvider(object):
         :param multi_chain_community: The multi chain community which manages multi chain transfers
         :param public_key: The public key of this peer
         """
-        assert isinstance(multi_chain_community, MultiChainCommunity), type(multi_chain_community)
         assert isinstance(public_key, str), type(public_key)
 
         super(MultiChainPaymentProvider, self).__init__()
@@ -43,7 +41,7 @@ class MultiChainPaymentProvider(object):
         else:
             raise InsufficientFunds()
 
-    def get_balance(self):
+    def balance(self):
         """
         :rtype: Quantity
         """
