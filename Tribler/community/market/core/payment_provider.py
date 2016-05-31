@@ -36,7 +36,7 @@ class MultiChainPaymentProvider(object):
 
         byte_quantity = int(quantity) * 100
 
-        if self.get_balance() >= byte_quantity:
+        if int(self.balance()) * 100 >= byte_quantity:
             self.multi_chain_community.schedule_block(candidate, -byte_quantity, byte_quantity)
         else:
             raise InsufficientFunds()
@@ -50,4 +50,4 @@ class MultiChainPaymentProvider(object):
         if total == (-1, -1):
             return Quantity(0)
         else:
-            return Quantity((max(0, total[0] - total[1]) / 2) / 1000)
+            return Quantity((max(0, total[0] - total[1]) / 2) / 100)
