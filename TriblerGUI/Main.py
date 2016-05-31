@@ -11,21 +11,16 @@ from PyQt5.QtWidgets import QMainWindow, QListView, QLineEdit, QApplication, QTr
     QTableWidgetItem, QHeaderView, QAction, QFileDialog
 from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 
-from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
-from TriblerGUI.defs import PAGE_SEARCH_RESULTS, PAGE_CHANNEL_CONTENT, PAGE_CHANNEL_COMMENTS, PAGE_CHANNEL_ACTIVITY, \
+from TriblerGUI.defs import PAGE_SEARCH_RESULTS, \
     PAGE_HOME, PAGE_MY_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
     PAGE_CHANNEL_DETAILS
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.event_request_manager import EventRequestManager
 from TriblerGUI.home_recommended_item import HomeRecommendedItem
-from TriblerGUI.loading_screen import LoadingScreen
-from TriblerGUI.playlist_list_item import PlaylistListItem
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
 
 # TODO martijn: temporary solution to convince VLC to find the plugin path
-from TriblerGUI.utilities import get_random_color
-
 os.environ['VLC_PLUGIN_PATH'] = '/Applications/VLC.app/Contents/MacOS/plugins'
 
 

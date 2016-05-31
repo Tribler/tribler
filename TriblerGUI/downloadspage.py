@@ -10,6 +10,7 @@ from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.downloadwidgetitem import DownloadWidgetItem
 from TriblerGUI.loading_screen import LoadingScreen
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
+from TriblerGUI.utilities import format_speed
 
 
 class DownloadsPage(QWidget):
@@ -61,6 +62,7 @@ class DownloadsPage(QWidget):
             total_upload += download["speed_up"]
 
         self.window().statusBar.set_speeds(total_download, total_upload)
+        self.window().tray_icon.setToolTip("Down: %s, Up: %s" % (format_speed(total_download), format_speed(total_upload)))
         self.update_download_visibility()
 
     def update_download_visibility(self):
