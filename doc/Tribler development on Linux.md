@@ -9,6 +9,18 @@ This page contains information about setting up a Tribler development environmen
 sudo apt-get install libav-tools libjs-excanvas libjs-mootools libsodium13 libx11-6 python-apsw python-cherrypy3 python-crypto python-cryptography python-feedparser python-leveldb python-libtorrent python-m2crypto python-netifaces python-pil python-pyasn1 python-requests python-twisted python-wxgtk2.8 python2.7 vlc python-pip
 pip install decorator
 ```
+
+#### **Experimental support for Ubuntu 16.04**
+
+Please try if the latest experimental build works for you.
+
+```
+bash
+sudo apt-get install libsodium-dev python-nacl python-nacl python-nacl
+https://jenkins.tribler.org/job/Build-Tribler_Ubuntu-64_devel/lastStableBuild/
+Download the latest .deb file
+```
+
 ##### **Installing libsodium13 and python-cryptography on Ubuntu 14.04**
 
 While installing libsodium13 and python-cryptography on a clean Ubuntu 14.04 install (possibly other versions as well), the situation can occur where the Ubuntu terminal throws the following error when trying to install the dependencies mentioned earlier in the README.md:
