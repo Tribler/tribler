@@ -20,7 +20,8 @@ from core.tick import Ask, Bid, Tick
 from core.timeout import Timeout
 from core.timestamp import Timestamp
 from core.trade import Trade, ProposedTrade, AcceptedTrade, DeclinedTrade, CounterTrade
-from payload import OfferPayload, TradePayload, AcceptedTradePayload, DeclinedTradePayload
+from payload import OfferPayload, TradePayload, AcceptedTradePayload, DeclinedTradePayload, StartTransactionPayload,\
+    MultiChainPaymentPayload, BitcoinPaymentPayload, EndTransactionPayload
 from socket_address import SocketAddress
 from ttl import Ttl
 
@@ -116,7 +117,39 @@ class MarketCommunity(Community):
                     CandidateDestination(),
                     TradePayload(),
                     self.check_message,
-                    self.on_counter_trade)
+                    self.on_counter_trade),
+            Message(self, u"start-transaction",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    StartTransactionPayload(),
+                    self.check_message,
+                    self.on_start_transaction),
+            Message(self, u"multi-chain-payment",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    MultiChainPaymentPayload(),
+                    self.check_message,
+                    self.on_multi_chain_payment),
+            Message(self, u"bitcoin-payment",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    BitcoinPaymentPayload(),
+                    self.check_message,
+                    self.on_bitcoin_payment),
+            Message(self, u"end-transaction",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    EndTransactionPayload(),
+                    self.check_message,
+                    self.on_end_transaction)
         ]
 
     def initiate_conversions(self):
