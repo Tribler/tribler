@@ -98,6 +98,9 @@ There are various download states possible which are returned when fetching down
 | Endpoint | Description |
 | ---- | --------------- |
 | GET /downloads | Get information about the downloads in Tribler, both active and inactive |
+| POST /download/{infohash}/resume | Resumes a specific download |
+| POST /download/{infohash}/stop | Stops a specific download |
+| DELETE /download/{infohash}/remove | Stops a specific download |
 
 ### Events
 
@@ -316,7 +319,7 @@ Returns a dictionary with the settings that the current Tribler session is using
 
 ### Example response
 
-```
+```json
 {
     "settings": {
         "barter_community": {
@@ -337,7 +340,7 @@ Returns a dictionary with the runtime-defined variables that the current Tribler
 
 ### Example response
 
-```
+```json
 {
     "variables": {
         "ports": {
@@ -356,7 +359,7 @@ A GET request to this endpoint returns all downloads in Tribler, both active and
 
 ### Example response
 
-```
+```json
 {
     "downloads": [{
         "name": "Ubuntu-16.04-desktop-amd64",
@@ -386,6 +389,26 @@ A GET request to this endpoint returns all downloads in Tribler, both active and
         "max_upload_speed": 0,
         "max_download_speed": 0,
     }, ...]
+}
+```
+
+## `POST /download/{infohash}/resume`
+
+A POST request to this endpoint resumes a specific download in Tribler. This method requires no parameters.
+
+## `POST /download/{infohash}/stop`
+
+A POST request to this endpoint stops a specific download in Tribler. This method requires no parameters.
+
+## `DELETE /download/{infohash}/remove`
+
+A DELETE request to this endpoint removes a specific download from Tribler. You can specify whether you only want to remove the download or the download and the downloaded data using the remove_data parameter.
+
+### Example request
+
+```json
+{
+    "remove_data": True
 }
 ```
 

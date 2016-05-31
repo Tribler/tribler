@@ -1,20 +1,37 @@
 import json
 
-from twisted.web import resource
+from twisted.web import http, resource
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentStatisticsResponse
 
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings
 
 
-class DownloadsEndpoint(resource.Resource):
+class DownloadBaseEndpoint(resource.Resource):
     """
-    This endpoint is responsible for all requests regarding downloads. Examples include getting all downloads,
-    starting, pausing and stopping downloads.
+    Base class for all endpoints related to fetching information about downloads or a specific download.
     """
 
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.session = session
+
+    @staticmethod
+    def return_404(request, message="this download does not exist"):
+        """
+        Returns a 404 response code if your channel has not been created.
+        """
+        request.setResponseCode(http.NOT_FOUND)
+        return json.dumps({"error": message})
+
+
+class DownloadsEndpoint(DownloadBaseEndpoint):
+    """
+    This endpoint is responsible for all requests regarding downloads. Examples include getting all downloads,
+    starting, pausing and stopping downloads.
+    """
+
+    def getChild(self, path, request):
+        return DownloadSpecificEndpoint(self.session, path)
 
     def render_GET(self, request):
         """
@@ -90,3 +107,87 @@ class DownloadsEndpoint(resource.Resource):
                              "max_download_speed": download.get_max_speed(DOWNLOAD)}
             downloads_json.append(download_json)
         return json.dumps({"downloads": downloads_json})
+
+
+class DownloadSpecificEndpoint(DownloadBaseEndpoint):
+    """
+    This class is responsible for dispatching requests to perform operations in a specific discovered channel.
+    """
+
+    def __init__(self, session, infohash):
+        DownloadBaseEndpoint.__init__(self, session)
+
+        child_handler_dict = {"remove": DownloadRemoveEndpoint, "stop": DownloadStopEndpoint,
+                              "resume": DownloadResumeEndpoint}
+        for path, child_cls in child_handler_dict.iteritems():
+            self.putChild(path, child_cls(session, bytes(infohash.decode('hex'))))
+
+
+class DownloadRemoveEndpoint(DownloadBaseEndpoint):
+    """
+    A DELETE request to this endpoint removes a specific download from Tribler. You can specify whether you only
+    want to remove the download or the download and the downloaded data using the remove_data parameter.
+
+    Example request:
+    {
+        "remove_data": True
+    }
+    """
+
+    def __init__(self, session, infohash):
+        DownloadBaseEndpoint.__init__(self, session)
+        self.infohash = infohash
+
+    def render_DELETE(self, request):
+        parameters = http.parse_qs(request.content.read(), 1)
+
+        if 'remove_data' not in parameters or len(parameters['remove_data']) == 0:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "remove_data parameter missing"})
+
+        download = self.session.get_download(self.infohash)
+        if not download:
+            return DownloadRemoveEndpoint.return_404(request)
+
+        remove_data = parameters['remove_data'][0] is True
+        self.session.remove_download(download, removecontent=remove_data)
+
+        return json.dumps({"removed": True})
+
+
+class DownloadStopEndpoint(DownloadBaseEndpoint):
+    """
+    A POST request to this endpoint stops a specific download in Tribler. This method requires no parameters.
+    """
+
+    def __init__(self, session, infohash):
+        DownloadBaseEndpoint.__init__(self, session)
+        self.infohash = infohash
+
+    def render_POST(self, request):
+        download = self.session.get_download(self.infohash)
+        if not download:
+            return DownloadStopEndpoint.return_404(request)
+
+        download.stop()
+
+        return json.dumps({"stopped": True})
+
+
+class DownloadResumeEndpoint(DownloadBaseEndpoint):
+    """
+    A POST request to this endpoint resumes a specific download in Tribler. This method requires no parameters.
+    """
+
+    def __init__(self, session, infohash):
+        DownloadBaseEndpoint.__init__(self, session)
+        self.infohash = infohash
+
+    def render_POST(self, request):
+        download = self.session.get_download(self.infohash)
+        if not download:
+            return DownloadResumeEndpoint.return_404(request)
+
+        download.restart()
+
+        return json.dumps({"resumed": True})
