@@ -27,12 +27,6 @@ class OrderTestSuite(unittest.TestCase):
         self.tick_entry = TickEntry(tick, self.price_level)
         self.tick_entry2 = TickEntry(tick2, self.price_level)
 
-    def test_properties(self):
-        # Test properties
-        self.assertEquals(OrderId(TraderId('0'), OrderNumber("order_number")), self.tick_entry.order_id)
-        self.assertEquals(Price(63400), self.tick_entry.price)
-        self.assertEquals(Quantity(30), self.tick_entry.quantity)
-
     def test_price_level(self):
         self.assertEquals(self.price_level, self.tick_entry.price_level())
 

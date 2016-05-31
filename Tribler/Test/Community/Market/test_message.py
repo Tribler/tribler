@@ -1,7 +1,6 @@
 import unittest
 
-from Tribler.community.market.core.message import Message, TraderId, MessageNumber, MessageId
-from Tribler.community.market.core.timestamp import Timestamp
+from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId
 
 
 class TraderIdTestSuite(unittest.TestCase):
@@ -80,7 +79,6 @@ class MessageIdTestSuite(unittest.TestCase):
     def test_properties(self):
         # Test for properties
         self.assertEqual(TraderId('0'), self.message_id.trader_id)
-        self.assertEqual(MessageNumber('message_number'), self.message_id.message_number)
 
     def test_conversion(self):
         # Test for conversions
@@ -97,19 +95,6 @@ class MessageIdTestSuite(unittest.TestCase):
         # Test for hashes
         self.assertEqual(self.message_id.__hash__(), self.message_id2.__hash__())
         self.assertNotEqual(self.message_id.__hash__(), self.message_id3.__hash__())
-
-
-class MessageTestSuite(unittest.TestCase):
-    """Message test cases."""
-
-    def setUp(self):
-        # Object creation
-        self.message = Message(MessageId(TraderId('0'), MessageNumber('message_number')), Timestamp(float("inf")))
-
-    def test_properties(self):
-        # Test for properties
-        self.assertEqual(MessageId(TraderId('0'), MessageNumber('message_number')), self.message.message_id)
-        self.assertEqual(Timestamp(float("inf")), self.message.timestamp)
 
 
 if __name__ == '__main__':

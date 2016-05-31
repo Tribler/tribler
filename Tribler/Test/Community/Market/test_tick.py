@@ -26,14 +26,6 @@ class TickTestSuite(unittest.TestCase):
         self.order_bid = Order(OrderId(TraderId('0'), OrderNumber("order_number")), Price(63400), Quantity(30),
                                Timeout(0.0), Timestamp(0.0), False)
 
-    def test_properties(self):
-        # Test for properties
-        self.assertEqual(Price(63400), self.tick.price)
-        self.assertEqual(Quantity(30), self.tick.quantity)
-        self.assertEqual(self.inf, self.tick.timeout)
-        self.assertEqual(Timestamp(float("inf")), self.tick.timestamp)
-        self.assertEqual(OrderId(TraderId('0'), OrderNumber("order_number")), self.tick.order_id)
-
     def test_is_ask(self):
         # Test 'is ask' function
         self.assertTrue(self.tick.is_ask())
@@ -85,14 +77,6 @@ class AskTestSuite(unittest.TestCase):
                        OrderId(TraderId('0'), OrderNumber("order_number")), Price(63400), Quantity(30),
                        Timeout(1462224447.117), Timestamp(1462224447.117))
 
-    def test_properties(self):
-        # Test for properties
-        self.assertEquals(MessageId(TraderId('0'), MessageNumber('message_number')), self.ask.message_id)
-        self.assertEquals(Price(63400), self.ask.price)
-        self.assertEquals(Quantity(30), self.ask.quantity)
-        self.assertEquals(float(Timeout(1462224447.117)), float(self.ask.timeout))
-        self.assertEquals(Timestamp(1462224447.117), self.ask.timestamp)
-
     def test_from_network(self):
         # Test for from network
         data = Ask.from_network(type('Data', (object,), {"trader_id": TraderId('0'),
@@ -117,14 +101,6 @@ class BidTestSuite(unittest.TestCase):
         self.bid = Bid(MessageId(TraderId('0'), MessageNumber('message_number')),
                        OrderId(TraderId('0'), OrderNumber("order_number")), Price(63400), Quantity(30),
                        Timeout(1462224447.117), Timestamp(1462224447.117))
-
-    def test_properties(self):
-        # Test for properties
-        self.assertEquals(MessageId(TraderId('0'), MessageNumber('message_number')), self.bid.message_id)
-        self.assertEquals(Price(63400), self.bid.price)
-        self.assertEquals(Quantity(30), self.bid.quantity)
-        self.assertEquals(float(Timeout(1462224447.117)), float(self.bid.timeout))
-        self.assertEquals(Timestamp(1462224447.117), self.bid.timestamp)
 
     def test_from_network(self):
         # Test for from network

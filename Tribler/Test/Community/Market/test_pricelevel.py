@@ -39,16 +39,6 @@ class PriceLevelTestSuite(unittest.TestCase):
         self.assertEquals(4, self.price_level.length)
         self.assertEquals(4, len(self.price_level))
 
-    def test_properties(self):
-        # Test for properties
-        self.price_level.append_tick(self.tick_entry1)
-        self.price_level.append_tick(self.tick_entry2)
-        self.price_level.append_tick(self.tick_entry3)
-        self.price_level.append_tick(self.tick_entry4)
-
-        self.assertEquals(self.tick_entry1, self.price_level.first_tick)
-        self.assertEquals(Quantity(120), self.price_level.depth)
-
     def test_tick_removal(self):
         # Test for tick removal
         self.price_level.append_tick(self.tick_entry1)

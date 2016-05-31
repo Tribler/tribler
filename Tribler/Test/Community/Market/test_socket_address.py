@@ -17,11 +17,6 @@ class SocketAddressTestSuite(unittest.TestCase):
         with self.assertRaises(ValueError):
             SocketAddress("0.0.0.0", 0)
 
-    def test_properties(self):
-        # Test for properties
-        self.assertEqual("1.1.1.1", self.socket_address.ip)
-        self.assertEqual(1, self.socket_address.port)
-
 
 if __name__ == '__main__':
     unittest.main()
