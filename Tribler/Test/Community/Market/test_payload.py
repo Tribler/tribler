@@ -65,11 +65,11 @@ class ProposedTradePayloadTestSuite(unittest.TestCase):
     def setUp(self):
         # Object creation
         self.proposed_trade_payload = TradePayload.Implementation(MetaObject(), TraderId('0'),
-                                                                          MessageNumber('message_number'),
-                                                                          OrderNumber('order_number'), TraderId('1'),
-                                                                          OrderNumber('recipient_order_number'),
-                                                                          Price(63400), Quantity(30),
-                                                                          Timestamp(1462224447.117))
+                                                                  MessageNumber('message_number'),
+                                                                  OrderNumber('order_number'), TraderId('1'),
+                                                                  OrderNumber('recipient_order_number'),
+                                                                  Price(63400), Quantity(30),
+                                                                  Timestamp(1462224447.117))
 
     def test_properties(self):
         # Test for properties

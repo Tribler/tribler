@@ -1,7 +1,7 @@
 import unittest
 
-from Tribler.community.market.core.transaction import TransactionNumber, TransactionId, Transaction, EndTransaction,\
-    StartTransaction
+from Tribler.community.market.core.transaction import TransactionNumber, TransactionId, Transaction, StartTransaction, \
+    EndTransaction
 from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.timeout import Timeout
@@ -79,7 +79,8 @@ class TransactionTestSuite(unittest.TestCase):
     def setUp(self):
         # Object creation
         self.transaction_id = TransactionId(TraderId("0"), TransactionNumber("1"))
-        self.transaction = Transaction(self.transaction_id, Price(100), Quantity(30), Timeout(float("inf")), Timestamp(0.0))
+        self.transaction = Transaction(self.transaction_id, Price(100), Quantity(30), Timeout(float("inf")),
+                                       Timestamp(0.0))
         proposed_trade = Trade.propose(MessageId(TraderId('0'), MessageNumber('1')),
                                        OrderId(TraderId('0'), OrderNumber('2')),
                                        OrderId(TraderId('1'), OrderNumber('3')),

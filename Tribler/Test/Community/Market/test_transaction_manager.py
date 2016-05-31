@@ -8,8 +8,8 @@ from Tribler.community.market.core.transaction import TransactionNumber, Transac
 from Tribler.community.market.core.transaction_repository import MemoryTransactionRepository
 from Tribler.community.market.core.transaction_manager import TransactionManager
 from Tribler.community.market.core.order import OrderId, OrderNumber
-from Tribler.community.market.core.message import Message, TraderId, MessageNumber, MessageId
-from Tribler.community.market.core.trade import Trade, AcceptedTrade
+from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId
+from Tribler.community.market.core.trade import Trade
 
 
 class TransactionManagerTestSuite(unittest.TestCase):
@@ -33,7 +33,6 @@ class TransactionManagerTestSuite(unittest.TestCase):
         # Test for create from accepted trade
         transaction = self.transaction_manager.create_from_accepted_trade(self.accepted_trade)
         self.assertEquals(transaction, self.transaction_manager.find_by_id(transaction.transaction_id))
-
 
     def test_find_by_id(self):
         # Test for find by id
