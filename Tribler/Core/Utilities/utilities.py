@@ -245,16 +245,12 @@ def fix_torrent(file_path):
 
     return fixed_data
 
+
 def translate_peers_into_health(peer_info_dicts):
     """
     peer_info_dicts is a peer_info dictionary from LibTorrentDownloadImpl.create_peerlist_data
     purpose : where we want to measure a swarm's health but no tracker can be contacted
     """
-    num_seeders = 0
-    num_leech = 0
-
-    num_all_peer = len(peer_info_dicts)
-
     upload_only = 0
     finished = 0
     unfinished_able_dl = 0
@@ -285,6 +281,6 @@ def translate_peers_into_health(peer_info_dicts):
     # make sure to change those description when changing the algorithm
 
     num_seeders = max(upload_only, finished)
-    num_leech = max(interest_in_us, min(unfinished_able_dl, num_all_peer - finished))
+    num_leech = max(interest_in_us, min(unfinished_able_dl, len(peer_info_dicts) - finished))
     return num_seeders, num_leech
 

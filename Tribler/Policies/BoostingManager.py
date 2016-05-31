@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # Written by Egbert Bouman, Mihai Capotă, Elric Milon, and Ardhi Putra Pratama H
 """Manage boosting of swarms"""
-import errno
 import logging
 import os
 from binascii import hexlify, unhexlify
@@ -16,7 +15,6 @@ from twisted.web.http_headers import Headers
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.Utilities import utilities
-from Tribler.Core.Utilities.install_dir import determine_install_dir
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
 from Tribler.Main.globals import DefaultDownloadStartupConfig
@@ -24,45 +22,15 @@ from Tribler.Policies.BoostingPolicy import RandomPolicy, CreationDatePolicy, Se
 from Tribler.Policies.BoostingSource import ChannelSource
 from Tribler.Policies.BoostingSource import DirectorySource
 from Tribler.Policies.BoostingSource import RSSFeedSource
-from Tribler.Policies.defs import NUMBER_TYPES, SAVED_ATTR, CREDIT_MINING_FOLDER_DOWNLOAD, CONFIG_KEY_ARCHIVELIST, \
-    CONFIG_OP_RM, CONFIG_OP_ADD, CONFIG_KEY_SOURCELIST, CONFIG_KEY_ENABLEDLIST, CONFIG_KEY_DISABLEDLIST
+from Tribler.Policies.credit_mining_util import source_to_string, string_to_source, compare_torrents
+from Tribler.Policies.defs import SAVED_ATTR, CREDIT_MINING_FOLDER_DOWNLOAD, CONFIG_KEY_ARCHIVELIST, \
+    CONFIG_KEY_SOURCELIST, CONFIG_KEY_ENABLEDLIST, CONFIG_KEY_DISABLEDLIST
 from Tribler.dispersy.taskmanager import TaskManager
-
-
-def levenshtein_dist(t1_fname, t2_fname):
-    """
-    Calculates the Levenshtein distance between a and b.
-    """
-    len_t1_fname, len_t2_fname = len(t1_fname), len(t2_fname)
-    if len_t1_fname > len_t2_fname:
-        # Make sure len_t1_fname <= len_t2_fname, to use O(min(len_t1_fname,len_t2_fname)) space
-        t1_fname, t2_fname = t2_fname, t1_fname
-        len_t1_fname, len_t2_fname = len_t2_fname, len_t1_fname
-
-    current = range(len_t1_fname + 1)
-    for i in range(1, len_t2_fname + 1):
-        previous, current = current, [i] + [0] * len_t1_fname
-        for j in range(1, len_t1_fname + 1):
-            add, delete = previous[j] + 1, current[j - 1] + 1
-            change = previous[j - 1]
-            if t1_fname[j - 1] != t2_fname[i - 1]:
-                change += 1
-            current[j] = min(add, delete, change)
-
-    return current[len_t1_fname]
-
-def source_to_string(source_obj):
-    return hexlify(source_obj) if len(source_obj) == 20 and not (source_obj.startswith('http://')
-                                                                 or source_obj.startswith('https://')) else source_obj
-
-def string_to_source(source_str):
-    return source_str.decode('hex') \
-        if len(source_str) == 40 and not (os.path.isdir(source_str) or source_str.startswith('http://')) else source_str
 
 
 class BoostingSettings(object):
     """
-    Class contains settings on boosting manager
+    This class contains settings used by the boosting manager
     """
     def __init__(self, session, policy=SeederRatioPolicy, load_config=True):
         self.session = session
@@ -73,7 +41,7 @@ class BoostingSettings(object):
         self.source_interval = 100
         self.swarm_interval = 100
 
-        # Can't be changed in runtime
+        # Can't be changed on runtime
         self.tracker_interval = 200
         self.logging_interval = 60
         self.share_mode_target = 3
@@ -154,7 +122,7 @@ class BoostingManager(TaskManager):
 
     def shutdown(self):
         """
-        save configuration before stopping stuffs
+        Shutting down boosting manager. It also stops and remove all the sources.
         """
         self.save_config()
         self._logger.info("Shutting down boostingmanager")
@@ -170,8 +138,9 @@ class BoostingManager(TaskManager):
             self.session.lm.threadpool.cancel_pending_task("CreditMining_log_init")
 
         self.cancel_all_pending_tasks()
-        # for torrent in self.torrents.itervalues():
-        #     self.stop_download(torrent)
+
+        # remove credit mining downloaded data
+        shutil.rmtree(self.settings.credit_mining_path, ignore_errors=True)
 
     def get_source_object(self, sourcekey):
         return self.boosting_sources.get(sourcekey, None)
@@ -205,6 +174,7 @@ class BoostingManager(TaskManager):
             try:
                 isdir = os.path.isdir(source)
             except TypeError:
+                # this handle binary data that has null bytes '\00'
                 isdir = False
 
             if isdir:
@@ -242,23 +212,8 @@ class BoostingManager(TaskManager):
     def on_torrent_insert(self, source, infohash, torrent):
         """
         This function called when a source is finally determined. Fetch some torrents from it,
-        then insert it to our data
+        then insert it into our data
         """
-        def compare_torrents(torrent_1, torrent_2):
-            """
-            comparing swarms. We don't want to download same swarm with different infohash
-            :return: whether those t1 and t2 similar enough
-            """
-            files1 = [files for files in torrent_1['metainfo'].get_files_with_length() if files[1] > 1024 * 1024]
-            files2 = [files for files in torrent_2['metainfo'].get_files_with_length() if files[1] > 1024 * 1024]
-
-            if len(files1) == len(files2):
-                for ft1 in files1:
-                    for ft2 in files2:
-                        if ft1[1] != ft2[1] or levenshtein_dist(ft1[0], ft2[0]) > 5:
-                            return False
-                return True
-            return False
 
         # Remember where we got this torrent from
         self._logger.debug("remember torrent %s from %s", torrent, source_to_string(source))
@@ -546,8 +501,8 @@ class BoostingManager(TaskManager):
 
             if unhexlify(str(status.info_hash)) in self.torrents:
                 self._logger.debug("Status for %s : %s %s | ul_lim : %d, max_ul %d, maxcon %d", status.info_hash,
-                                   status.all_time_download,
-                                   status.all_time_upload)
+                                   status.all_time_download, status.all_time_upload, lt_torrent.upload_limit(),
+                                   lt_torrent.max_uploads(), lt_torrent.max_connections())
 
                 # piece_priorities will fail in libtorrent 1.0.9
                 if lt.version == '1.0.9.0':
@@ -564,7 +519,10 @@ class BoostingManager(TaskManager):
 
     def update_torrent_stats(self, torrent_infohash_str, seeding_stats):
         """
-        function to update swarm statistics
+        function to update swarm statistics.
+
+        This function called when we get new Downloadstate for active torrents.
+        Updated downloadstate (seeding_stats) for a particular torrent is stored here.
         """
         if 'time_seeding' in self.torrents[torrent_infohash_str]['last_seeding_stats']:
             if seeding_stats['time_seeding'] >= self.torrents[torrent_infohash_str][

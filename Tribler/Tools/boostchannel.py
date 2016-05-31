@@ -10,7 +10,8 @@ from traceback import print_exc
 
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
-from Tribler.Policies.BoostingManager import BoostingManager, RandomPolicy, CreationDatePolicy, SeederRatioPolicy
+from Tribler.Policies.BoostingManager import BoostingManager
+from Tribler.Policies.BoostingPolicy import RandomPolicy, CreationDatePolicy, SeederRatioPolicy
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.community.allchannel.community import AllChannelCommunity
@@ -84,7 +85,6 @@ def main():
     config.set_multicast_local_peer_discovery(False)
     config.set_megacache(True)
     config.set_dispersy(True)
-    config.set_swift_proc(False)
     config.set_mainline_dht(False)
     config.set_torrent_collecting(False)
     config.set_libtorrent(True)
