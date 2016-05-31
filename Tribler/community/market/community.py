@@ -14,6 +14,7 @@ from core.order import TickWasNotReserved
 from core.order_manager import OrderManager
 from core.order_repository import MemoryOrderRepository
 from core.orderbook import OrderBook
+from core.payment import BitcoinPayment, MultiChainPayment
 from core.price import Price
 from core.quantity import Quantity
 from core.tick import Ask, Bid, Tick
@@ -583,3 +584,27 @@ class MarketCommunity(Community):
                     proposed_trade.order_id).quantity -= proposed_trade.quantity
 
         self.send_accepted_trade(accepted_trade)
+
+    # Multi chain payment
+    def send_multi_chain_payment(self, multi_chain_payment):
+        assert isinstance(multi_chain_payment, MultiChainPayment), type(multi_chain_payment)
+
+        # TODO: add send_multi_chain_payment logic
+
+    def on_multi_chain_payment(self, messages):
+        for message in messages:
+            multi_chain_payment = MultiChainPayment.from_network(message.payload)
+
+            # TODO: add on_multi_chain_payment logic
+
+    # Bitcoin payment
+    def send_bitcoin_payment(self, bitcoin_payment):
+        assert isinstance(bitcoin_payment, BitcoinPayment), type(bitcoin_payment)
+
+        # TODO: add send_bitcoin_payment logic
+
+    def on_bitcoin_payment(self, messages):
+        for message in messages:
+            bitcoin_payment = BitcoinPayment.from_network(message.payload)
+
+            # TODO: add on_bitcoin_payment logic
