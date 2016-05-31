@@ -1,12 +1,14 @@
 from Tribler.Core.Utilities.encoding import encode, decode
 from Tribler.dispersy.conversion import BinaryConversion
 from Tribler.dispersy.message import DropPacket
+from core.bitcoin_address import BitcoinAddress
 from core.message import TraderId, MessageNumber
 from core.order import OrderNumber
 from core.price import Price
 from core.quantity import Quantity
 from core.timeout import Timeout
 from core.timestamp import Timestamp
+from core.transaction import TransactionNumber
 from socket_address import SocketAddress
 from ttl import Ttl
 
@@ -28,6 +30,14 @@ class MarketConversion(BinaryConversion):
                                  self._encode_declined_trade, self._decode_declined_trade)
         self.define_meta_message(chr(6), community.get_meta_message(u"counter-trade"),
                                  self._encode_proposed_trade, self._decode_proposed_trade)
+        self.define_meta_message(chr(7), community.get_meta_message(u"start-transaction"),
+                                 self._encode_start_transaction, self._decode_start_transaction)
+        self.define_meta_message(chr(8), community.get_meta_message(u"multi-chain-payment"),
+                                 self._encode_multi_chain_payment, self._decode_multi_chain_payment)
+        self.define_meta_message(chr(9), community.get_meta_message(u"bitcoin-payment"),
+                                 self._encode_bitcoin_payment, self._decode_bitcoin_payment)
+        self.define_meta_message(chr(10), community.get_meta_message(u"end-transaction"),
+                                 self._encode_end_transaction, self._decode_end_transaction)
 
     def _encode_offer(self, message):
         payload = message.payload
