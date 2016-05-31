@@ -217,7 +217,7 @@ class StartTransaction(Message):
 
         return cls(
             data.message_id,
-            data.transaction_number,
+            data.transaction_id,
             data.timestamp,
         )
 
@@ -275,7 +275,7 @@ class EndTransaction(Message):
 
         return cls(
             data.message_id,
-            data.transaction_number,
+            data.transaction_id,
             data.timestamp,
         )
 
