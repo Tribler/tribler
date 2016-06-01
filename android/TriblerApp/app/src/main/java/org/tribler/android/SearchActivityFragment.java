@@ -62,7 +62,8 @@ public class SearchActivityFragment extends Fragment implements TriblerViewAdapt
     public void doMySearch(String query) {
         mAdapter.clear();
         JsonStreamAsyncHttpResponseHandler responseHandler = new JsonStreamAsyncHttpResponseHandler() {
-            protected static final int MY_MESSAGE = -1;
+            private static final int CHANNEL = 100;
+            private static final int TORRENT = 200;
 
             /**
              * {@inheritDoc}
@@ -74,8 +75,7 @@ public class SearchActivityFragment extends Fragment implements TriblerViewAdapt
                 reader.beginArray();
                 while (reader.hasNext()) {
                     TriblerChannel channel = gson.fromJson(reader, TriblerChannel.class);
-
-                    Message msg = obtainMessage(MY_MESSAGE, channel);
+                    Message msg = obtainMessage(CHANNEL, channel);
                     sendMessage(msg);
                 }
                 reader.endArray();
@@ -87,15 +87,16 @@ public class SearchActivityFragment extends Fragment implements TriblerViewAdapt
              */
             @Override
             public void handleMessage(Message message) {
-                if (MY_MESSAGE == message.what) {
-                    onMy((TriblerChannel) message.obj);
-                } else {
-                    super.handleMessage(message);
-                }
-            }
+                switch (message.what) {
 
-            private void onMy(TriblerChannel channel) {
-                mAdapter.addItem(channel);
+                    case CHANNEL:
+                    case TORRENT:
+                        mAdapter.addItem(message.obj);
+                        break;
+
+                    default:
+                        super.handleMessage(message);
+                }
             }
 
             /**
@@ -103,7 +104,7 @@ public class SearchActivityFragment extends Fragment implements TriblerViewAdapt
              */
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-
+                //nothing
             }
 
             /**
@@ -111,7 +112,7 @@ public class SearchActivityFragment extends Fragment implements TriblerViewAdapt
              */
             @Override
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-
+                //TODO: advise user
             }
         };
         restApi.get(getActivity(), Triblerd.BASE_URL + "/channels/discovered", responseHandler);
