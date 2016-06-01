@@ -16,7 +16,6 @@ import static org.tribler.android.Triblerd.restApi;
 public class SearchActivityFragment extends Fragment {
 
     private TriblerViewAdapter mAdapter;
-    private TriblerViewAdapterSwipeListener mSwipeListener;
 
     /**
      * {@inheritDoc}
@@ -25,7 +24,6 @@ public class SearchActivityFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mAdapter = new TriblerViewAdapter();
-        mSwipeListener = new TriblerViewAdapterSwipeListener(mAdapter);
     }
 
     /**
@@ -35,10 +33,9 @@ public class SearchActivityFragment extends Fragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         RecyclerView recyclerView = (RecyclerView) getActivity().findViewById(R.id.search_results_list);
-        recyclerView.setAdapter(mAdapter);
+        mAdapter.attachToRecyclerView(recyclerView);
         mAdapter.setOnClickListener((TriblerViewAdapter.OnClickListener) getActivity());
         mAdapter.setOnSwipeListener((TriblerViewAdapter.OnSwipeListener) getActivity());
-        mSwipeListener.attachToRecyclerView(recyclerView);
     }
 
     /**
@@ -47,7 +44,7 @@ public class SearchActivityFragment extends Fragment {
     @Override
     public void onDetach() {
         super.onDetach();
-        mSwipeListener.attachToRecyclerView(null);
+        mAdapter.attachToRecyclerView(null);
         mAdapter.setOnClickListener(null);
         mAdapter.setOnSwipeListener(null);
     }

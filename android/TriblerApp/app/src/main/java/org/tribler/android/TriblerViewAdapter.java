@@ -1,6 +1,7 @@
 package org.tribler.android;
 
 import android.net.Uri;
+import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -37,9 +38,18 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     private ArrayList<Object> mList;
     private OnClickListener mClickListener;
     private OnSwipeListener mSwipeListener;
+    private TriblerViewAdapterTouchListener mTouchListener;
 
     public TriblerViewAdapter() {
         mList = new ArrayList<Object>();
+        mTouchListener = new TriblerViewAdapterTouchListener(this);
+    }
+
+    public void attachToRecyclerView(@Nullable RecyclerView view) {
+        if (view != null) {
+            view.setAdapter(this);
+        }
+        mTouchListener.attachToRecyclerView(view);
     }
 
     public OnClickListener getOnClickListener() {

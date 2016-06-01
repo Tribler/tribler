@@ -1,23 +1,24 @@
 package org.tribler.android;
 
+import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
 
-public class TriblerViewAdapterSwipeListener extends ItemTouchHelper.SimpleCallback {
+public class TriblerViewAdapterTouchListener extends ItemTouchHelper.SimpleCallback {
 
-    private ItemTouchHelper mHelper;
     private TriblerViewAdapter mAdapter;
+    private ItemTouchHelper mHelper;
 
     /**
      * Swipe left and right
      */
-    public TriblerViewAdapterSwipeListener(TriblerViewAdapter adapter) {
+    public TriblerViewAdapterTouchListener(TriblerViewAdapter adapter) {
         super(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT);
-        mHelper = new ItemTouchHelper(this);
         mAdapter = adapter;
+        mHelper = new ItemTouchHelper(this);
     }
 
-    public void attachToRecyclerView(RecyclerView view) {
+    public void attachToRecyclerView(@Nullable RecyclerView view) {
         mHelper.attachToRecyclerView(view);
     }
 
