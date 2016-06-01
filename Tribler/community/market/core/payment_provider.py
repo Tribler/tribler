@@ -1,10 +1,46 @@
-from Tribler.dispersy.candidate import Candidate
-from quantity import Quantity
+import os
+import json
 
+from Tribler.dispersy.candidate import Candidate
+from bitcoin_address import BitcoinAddress
+from quantity import Quantity
 
 class InsufficientFunds(Exception):
     """Used for throwing exception when there isn't sufficient funds available to transfer"""
     pass
+
+
+class BitcoinPaymentProvider(object):
+    """"Bitcoin payment provider which enables checking the bitcoin balance of this peer and transferring bitcoin to
+    other bitcoin addresses through the electrum command line"""
+
+    def transfer_bitcoin(self, bitcoin_address, quantity):
+        """
+        Transfers the selected quantity in bitcoin to another bitcoin address if there is sufficient bitcoin
+
+        :param bitcoin_address: Receiver of the multi chain coin
+        :param quantity: Quantity to be transferred
+        :raises InsufficientFunds: Thrown when there isn't sufficient multi chain coin to transfer
+        """
+        assert isinstance(bitcoin_address, BitcoinAddress), type(bitcoin_address)
+        assert isinstance(quantity, Quantity), type(quantity)
+
+        if self.balance() >= quantity:
+            os.system('electrum payto -f 0 ' + str(bitcoin_address) + ' ' + str(int(quantity) / 100.0))
+        else:
+            raise InsufficientFunds()
+
+    def balance(self):
+        """
+        :rtype: Quantity
+        """
+        data = json.loads(os.system('electrum getbalance'))
+
+        balance = 0.0
+        if 'confirmed' in data:
+            return Quantity(int(float(data['confirmed']) * 100))
+        else:
+            return Quantity(0)
 
 
 class MultiChainPaymentProvider(object):
