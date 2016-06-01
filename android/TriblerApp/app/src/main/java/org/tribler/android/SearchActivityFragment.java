@@ -2,7 +2,6 @@ package org.tribler.android;
 
 import android.app.Fragment;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.Message;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
@@ -62,8 +61,26 @@ public class SearchActivityFragment extends Fragment implements TriblerViewAdapt
 
     public void doMySearch(String query) {
         mAdapter.clear();
-        //TODO
-        Handler handler = new Handler() {
+        JsonStreamAsyncHttpResponseHandler responseHandler = new JsonStreamAsyncHttpResponseHandler() {
+            protected static final int MY_MESSAGE = -1;
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            protected void readJsonStream(JsonReader reader) throws IOException {
+                reader.beginObject();
+                reader.nextName(); // "channels":
+                reader.beginArray();
+                while (reader.hasNext()) {
+                    TriblerChannel channel = gson.fromJson(reader, TriblerChannel.class);
+
+                    Message msg = obtainMessage(MY_MESSAGE, channel);
+                    sendMessage(msg);
+                }
+                reader.endArray();
+                reader.endObject();
+            }
 
             /**
              * {@inheritDoc}
@@ -80,37 +97,20 @@ public class SearchActivityFragment extends Fragment implements TriblerViewAdapt
             private void onMy(TriblerChannel channel) {
                 mAdapter.addItem(channel);
             }
-        };
-        JsonStreamAsyncHttpResponseHandler<Handler> responseHandler = new JsonStreamAsyncHttpResponseHandler<Handler>(handler) {
-
-            protected static final int MY_MESSAGE = -1;
 
             /**
              * {@inheritDoc}
              */
             @Override
-            void readJsonStream(JsonReader reader) throws IOException {
-                reader.beginObject();
-                reader.nextName(); // "channels":
-                reader.beginArray();
-                while (reader.hasNext()) {
-                    TriblerChannel channel = gson.fromJson(reader, TriblerChannel.class);
-
-                    Message msg = handler.obtainMessage(MY_MESSAGE, channel);
-                    handler.sendMessage(msg);
-                }
-                reader.endArray();
-                reader.endObject();
-            }
-
-
-            @Override
-            public void onSuccess(int statusCode, Header[] headers, Handler handler) {
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
 
             }
 
+            /**
+             * {@inheritDoc}
+             */
             @Override
-            public void onFailure(int statusCode, Header[] headers, Handler handler) {
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
 
             }
         };
