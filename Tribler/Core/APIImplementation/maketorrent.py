@@ -12,6 +12,8 @@ from time import time
 from types import LongType
 from libtorrent import bencode
 
+import chardet
+
 from Tribler.Core.Utilities.unicode import bin2unicode
 from Tribler.Core.APIImplementation.miscutils import offset2piece
 from Tribler.Core.osutils import fix_filebasename
@@ -243,7 +245,12 @@ def pathlist2filename(pathlist):
     fullpath = ''
     for elem in pathlist:
         fullpath = os.path.join(fullpath, elem)
-    return fullpath.decode('utf-8')
+
+    try:
+        return fullpath.decode('utf-8')
+    except UnicodeDecodeError:
+        charenc = chardet.detect(fullpath)['encoding']
+        return fullpath.decode(charenc)
 
 
 def pathlist2savefilename(pathlist, encoding):
