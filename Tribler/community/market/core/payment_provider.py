@@ -18,9 +18,9 @@ class BitcoinPaymentProvider(object):
         """
         Transfers the selected quantity in bitcoin to another bitcoin address if there is sufficient bitcoin
 
-        :param bitcoin_address: Receiver of the multi chain coin
+        :param bitcoin_address: Bitcoin address of the receiver of the bitcoin
         :param quantity: Quantity to be transferred
-        :raises InsufficientFunds: Thrown when there isn't sufficient multi chain coin to transfer
+        :raises InsufficientFunds: Thrown when there isn't sufficient bitcoin to transfer
         """
         assert isinstance(bitcoin_address, BitcoinAddress), type(bitcoin_address)
         assert isinstance(quantity, Quantity), type(quantity)
