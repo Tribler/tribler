@@ -311,6 +311,9 @@ padding-left: 4px;
           <height>24</height>
          </size>
         </property>
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
         <property name="styleSheet">
          <string notr="true">border: none;
 border-radius: 2px;
@@ -336,6 +339,9 @@ font-size: 12px;
           <width>16777215</width>
           <height>24</height>
          </size>
+        </property>
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
         </property>
         <property name="styleSheet">
          <string notr="true">border: none;
