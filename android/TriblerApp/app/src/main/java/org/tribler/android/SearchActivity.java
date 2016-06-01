@@ -18,7 +18,7 @@ import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScrol
 
 public class SearchActivity extends AppCompatActivity {
 
-    private SearchActivityFragment mWorkFragment;
+    private SearchActivityFragment mSearchFragment;
 
     /**
      * {@inheritDoc}
@@ -29,12 +29,14 @@ public class SearchActivity extends AppCompatActivity {
         initGui();
 
         FragmentManager fm = getFragmentManager();
-        // Check to see if we have retained the worker fragment.
-        mWorkFragment = (SearchActivityFragment) fm.findFragmentByTag("work");
-        // If not retained (or first time running), we need to create it.
-        if (mWorkFragment == null) {
-            mWorkFragment = new SearchActivityFragment();
-            fm.beginTransaction().add(mWorkFragment, "work").commit();
+        // Check to see if we have retained the worker fragment
+        mSearchFragment = (SearchActivityFragment) fm.findFragmentByTag("search");
+        // If not retained (or first time running), we need to create it
+        if (mSearchFragment == null) {
+            mSearchFragment = new SearchActivityFragment();
+            // Tell the framework to try to keep this fragment around during a configuration change
+            mSearchFragment.setRetainInstance(true);
+            fm.beginTransaction().add(mSearchFragment, "search").commit();
 
             handleIntent(getIntent());
         }
@@ -53,7 +55,7 @@ public class SearchActivity extends AppCompatActivity {
     private void handleIntent(Intent intent) {
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
             String query = intent.getStringExtra(SearchManager.QUERY);
-            mWorkFragment.doMySearch(query);
+            mSearchFragment.doMySearch(query);
         }
     }
 

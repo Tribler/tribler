@@ -1,7 +1,7 @@
 package org.tribler.android;
 
 /**
- * Deserialization of Json Channel
+ * Deserialization of JSON Channel
  */
 public class TriblerChannel {
 
@@ -54,4 +54,5 @@ public class TriblerChannel {
         }
         return icon_url;
     }
+
 }

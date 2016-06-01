@@ -18,10 +18,19 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     private static final int VIEW_TYPE_CHANNEL = 1;
     private static final int VIEW_TYPE_TORRENT = 2;
 
-    private ArrayList<Object> mList;
+    public interface OnClickListener {
 
-    public TriblerViewAdapter() {
+        void onClick(TriblerChannel channel);
+
+        void onClick(TriblerTorrent torrent);
+    }
+
+    private ArrayList<Object> mList;
+    private OnClickListener mClickListener;
+
+    public TriblerViewAdapter(OnClickListener onClickListener) {
         mList = new ArrayList<Object>();
+        mClickListener = onClickListener;
     }
 
     /**
@@ -54,7 +63,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     /**
-     * @return The amount of items in the data set (invoked by the layout manager)
+     * {@inheritDoc}
      */
     @Override
     public int getItemCount() {
@@ -62,8 +71,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     /**
-     * @param adapterPosition The position in the adapter list
-     * @return VIEW_TYPE_CHANNEL | VIEW_TYPE_TORRENT | VIEW_TYPE_UNKNOWN based on class type
+     * {@inheritDoc}
      */
     @Override
     public int getItemViewType(int adapterPosition) {
@@ -103,8 +111,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     /**
-     * @param parent   The group to which the view should be added
-     * @param viewType The type of view to create
+     * {@inheritDoc}
      */
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -127,30 +134,45 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     /**
-     * Replaces the contents of a view (invoked by the layout manager)
-     *
-     * @param holder   The holder of the view of an item
-     * @param position The position of the item in the data set
+     * {@inheritDoc}
      */
     @Override
-    public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+    public void onBindViewHolder(RecyclerView.ViewHolder viewHolder, int adapterPosition) {
         // Channel
-        if (holder instanceof ChannelViewHolder) {
-            ChannelViewHolder view = (ChannelViewHolder) holder;
-            TriblerChannel channel = (TriblerChannel) getItem(position);
-            view.name.setText(channel.getName());
-            view.torrentsCount.setText(String.valueOf(channel.getTorrentsCount()));
-            view.votesCount.setText(String.valueOf(channel.getVotesCount()));
-            view.icon.setImageURI(Uri.parse(channel.getIconUrl()));
+        if (viewHolder instanceof ChannelViewHolder) {
+            ChannelViewHolder holder = (ChannelViewHolder) viewHolder;
+            final TriblerChannel channel = (TriblerChannel) getItem(adapterPosition);
+            holder.name.setText(channel.getName());
+            holder.torrentsCount.setText(String.valueOf(channel.getTorrentsCount()));
+            holder.votesCount.setText(String.valueOf(channel.getVotesCount()));
+            holder.icon.setImageURI(Uri.parse(channel.getIconUrl()));
+            holder.itemView.setOnClickListener(new View.OnClickListener() {
+                /**
+                 * {@inheritDoc}
+                 */
+                @Override
+                public void onClick(View view) {
+                    mClickListener.onClick(channel);
+                }
+            });
         }
         // Torrent
-        else if (holder instanceof TorrentViewHolder) {
-            TorrentViewHolder view = (TorrentViewHolder) holder;
-            TriblerTorrent torrent = (TriblerTorrent) getItem(position);
-            view.title.setText(torrent.getTitle());
-            view.duration.setText(String.valueOf(torrent.getDuration()));
-            view.bitrate.setText(String.valueOf(torrent.getBitrate()));
-            view.thumbnail.setImageURI(Uri.parse(torrent.getThumbnailUrl()));
+        else if (viewHolder instanceof TorrentViewHolder) {
+            TorrentViewHolder holder = (TorrentViewHolder) viewHolder;
+            final TriblerTorrent torrent = (TriblerTorrent) getItem(adapterPosition);
+            holder.title.setText(torrent.getTitle());
+            holder.duration.setText(String.valueOf(torrent.getDuration()));
+            holder.bitrate.setText(String.valueOf(torrent.getBitrate()));
+            holder.thumbnail.setImageURI(Uri.parse(torrent.getThumbnailUrl()));
+            holder.itemView.setOnClickListener(new View.OnClickListener() {
+                /**
+                 * {@inheritDoc}
+                 */
+                @Override
+                public void onClick(View view) {
+                    mClickListener.onClick(torrent);
+                }
+            });
         }
     }
 
