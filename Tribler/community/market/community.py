@@ -21,6 +21,7 @@ from core.tick import Ask, Bid, Tick
 from core.timeout import Timeout
 from core.timestamp import Timestamp
 from core.trade import Trade, ProposedTrade, AcceptedTrade, DeclinedTrade, CounterTrade
+from core.transaction import StartTransaction, EndTransaction
 from payload import OfferPayload, TradePayload, AcceptedTradePayload, DeclinedTradePayload, StartTransactionPayload,\
     MultiChainPaymentPayload, BitcoinPaymentPayload, EndTransactionPayload
 from socket_address import SocketAddress
@@ -585,6 +586,18 @@ class MarketCommunity(Community):
 
         self.send_accepted_trade(accepted_trade)
 
+    # Start transaction
+    def send_start_transaction(self, start_transaction):
+        assert isinstance(start_transaction, StartTransaction), type(start_transaction)
+
+        # TODO: add send_start_transaction logic
+
+    def on_start_transaction(self, messages):
+        for message in messages:
+            start_transaction = StartTransaction.from_network(message.payload)
+
+            # TODO: add on_start_transaction logic
+
     # Multi chain payment
     def send_multi_chain_payment(self, multi_chain_payment):
         assert isinstance(multi_chain_payment, MultiChainPayment), type(multi_chain_payment)
@@ -608,3 +621,15 @@ class MarketCommunity(Community):
             bitcoin_payment = BitcoinPayment.from_network(message.payload)
 
             # TODO: add on_bitcoin_payment logic
+
+    # End transaction
+    def send_end_transaction(self, end_transaction):
+        assert isinstance(end_transaction, EndTransaction), type(end_transaction)
+
+        # TODO: add send_end_transaction logic
+
+    def on_end_transaction(self, messages):
+        for message in messages:
+            end_transaction = EndTransaction.from_network(message.payload)
+
+            # TODO: add on_end_transaction logic
