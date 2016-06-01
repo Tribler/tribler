@@ -152,7 +152,9 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                  */
                 @Override
                 public void onClick(View view) {
-                    mClickListener.onClick(view, channel);
+                    if (mClickListener != null) {
+                        mClickListener.onClick(view, channel);
+                    }
                 }
             });
         }
@@ -170,7 +172,9 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                  */
                 @Override
                 public void onClick(View view) {
-                    mClickListener.onClick(view, torrent);
+                    if (mClickListener != null) {
+                        mClickListener.onClick(view, torrent);
+                    }
                 }
             });
         }
