@@ -1,9 +1,6 @@
 package org.tribler.android;
 
-import android.app.Fragment;
-import android.os.Bundle;
 import android.os.Message;
-import android.support.v7.widget.RecyclerView;
 
 import com.google.gson.stream.JsonReader;
 
@@ -13,41 +10,7 @@ import cz.msebera.android.httpclient.Header;
 
 import static org.tribler.android.Triblerd.restApi;
 
-public class SearchActivityFragment extends Fragment {
-
-    private TriblerViewAdapter mAdapter;
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        mAdapter = new TriblerViewAdapter();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        RecyclerView recyclerView = (RecyclerView) getActivity().findViewById(R.id.search_results_list);
-        mAdapter.attachToRecyclerView(recyclerView);
-        mAdapter.setOnClickListener((TriblerViewAdapter.OnClickListener) getActivity());
-        mAdapter.setOnSwipeListener((TriblerViewAdapter.OnSwipeListener) getActivity());
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        mAdapter.attachToRecyclerView(null);
-        mAdapter.setOnClickListener(null);
-        mAdapter.setOnSwipeListener(null);
-    }
+public class SearchActivityFragment extends TriblerViewFragment {
 
     public void doMySearch(String query) {
         mAdapter.clear();
