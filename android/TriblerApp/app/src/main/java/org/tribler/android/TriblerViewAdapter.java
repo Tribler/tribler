@@ -20,9 +20,9 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
 
     public interface OnClickListener {
 
-        void onClick(TriblerChannel channel);
+        void onClick(View view, TriblerChannel channel);
 
-        void onClick(TriblerTorrent torrent);
+        void onClick(View view, TriblerTorrent torrent);
     }
 
     private ArrayList<Object> mList;
@@ -152,7 +152,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                  */
                 @Override
                 public void onClick(View view) {
-                    mClickListener.onClick(channel);
+                    mClickListener.onClick(view, channel);
                 }
             });
         }
@@ -170,7 +170,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                  */
                 @Override
                 public void onClick(View view) {
-                    mClickListener.onClick(torrent);
+                    mClickListener.onClick(view, torrent);
                 }
             });
         }

@@ -3,8 +3,10 @@ package org.tribler.android;
 import android.app.Fragment;
 import android.os.Bundle;
 import android.os.Message;
+import android.support.design.widget.Snackbar;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
+import android.view.View;
 
 import com.google.gson.stream.JsonReader;
 
@@ -47,21 +49,24 @@ public class SearchActivityFragment extends Fragment implements TriblerViewAdapt
      * {@inheritDoc}
      */
     @Override
-    public void onClick(TriblerChannel channel) {
+    public void onClick(View view, TriblerChannel channel) {
         //TODO: open channel
+        Snackbar.make(view, channel.getDescription(), Snackbar.LENGTH_LONG).show();
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void onClick(TriblerTorrent torrent) {
+    public void onClick(View view, TriblerTorrent torrent) {
         //TODO: play video
+        Snackbar.make(view, torrent.getTitle(), Snackbar.LENGTH_LONG).show();
     }
 
     public void doMySearch(String query) {
         mAdapter.clear();
-        JsonStreamAsyncHttpResponseHandler responseHandler = new JsonStreamAsyncHttpResponseHandler() {
+        //TODO: real search
+        restApi.get(getActivity(), Triblerd.BASE_URL + "/channels/discovered", new JsonStreamAsyncHttpResponseHandler() {
             private static final int CHANNEL = 100;
             private static final int TORRENT = 200;
 
@@ -114,8 +119,7 @@ public class SearchActivityFragment extends Fragment implements TriblerViewAdapt
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
                 //TODO: advise user
             }
-        };
-        restApi.get(getActivity(), Triblerd.BASE_URL + "/channels/discovered", responseHandler);
+        });
     }
 
 }
