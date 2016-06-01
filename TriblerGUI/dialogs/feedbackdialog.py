@@ -1,11 +1,13 @@
 import os
 from PyQt5 import uic
+from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtWidgets import QDialog, QTreeWidgetItem
 import sys
 import platform
 
 
 class FeedbackDialog(QDialog):
+
     def __init__(self,  parent, exception_text):
         super(FeedbackDialog, self).__init__(parent)
 
@@ -19,6 +21,8 @@ class FeedbackDialog(QDialog):
             item.setText(1, value)
 
         self.error_text_edit.setPlainText(exception_text)
+
+        self.cancel_button.clicked.connect(self.on_cancel_clicked)
 
         # Add machine information to the tree widget
         add_item_to_info_widget('os.getcwd', '%s' % os.getcwd())
@@ -39,3 +43,6 @@ class FeedbackDialog(QDialog):
 
         for key in os.environ.keys():
             add_item_to_info_widget('os.environ', '%s: %s' % (key, os.environ[key]))
+
+    def on_cancel_clicked(self):
+        QCoreApplication.instance().quit()

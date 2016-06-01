@@ -4,11 +4,11 @@ import sys
 import traceback
 
 from PyQt5 import uic
-from PyQt5.QtCore import Qt, pyqtSignal, QPoint
+from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QAbstractListModel, QStringListModel
 from PyQt5.QtGui import QIcon
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QMainWindow, QListView, QLineEdit, QApplication, QTreeWidget, QSystemTrayIcon, \
-    QTableWidgetItem, QHeaderView, QAction, QFileDialog
+    QTableWidgetItem, QHeaderView, QAction, QFileDialog, QCompleter
 from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 
 from TriblerGUI.defs import PAGE_SEARCH_RESULTS, \
@@ -16,7 +16,7 @@ from TriblerGUI.defs import PAGE_SEARCH_RESULTS, \
     PAGE_CHANNEL_DETAILS
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.event_request_manager import EventRequestManager
-from TriblerGUI.home_recommended_item import HomeRecommendedItem
+from TriblerGUI.home_recommended_item import HomeRecommendedChannelItem, HomeRecommendedTorrentItem
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
 
@@ -86,14 +86,51 @@ class TriblerWindow(QMainWindow):
         self.home_page_table_view.setRowCount(3)
         self.home_page_table_view.setColumnCount(3)
 
-        for x in range(0, 3):
-            for y in range(0, 3):
-                widget_item = HomeRecommendedItem(self)
-                self.home_page_table_view.setCellWidget(x, y, widget_item)
+        self.recommended_request_mgr = TriblerRequestManager()
+        self.recommended_request_mgr.perform_request("torrents/random", self.received_popular_torrents)
 
         self.hide_left_menu_playlist()
 
+        self.search_completion_model = QStringListModel()
+        completer = QCompleter()
+        completer.setModel(self.search_completion_model)
+        completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
+        self.top_search_bar.setCompleter(completer)
+
+        self.home_tab.initialize()
+        self.home_tab.clicked_tab_button.connect(self.clicked_tab_button)
+
         self.show()
+
+    def clicked_tab_button(self, tab_button_name):
+        self.home_page_table_view.clear()
+        if tab_button_name == "home_tab_channels_button":
+            self.recommended_request_mgr = TriblerRequestManager()
+            self.recommended_request_mgr.perform_request("channels/popular", self.received_popular_channels)
+        elif tab_button_name == "home_tab_torrents_button":
+            self.recommended_request_mgr = TriblerRequestManager()
+            self.recommended_request_mgr.perform_request("torrents/random", self.received_popular_torrents)
+
+    def received_popular_channels(self, result):
+        cur_ind = 0
+        for channel in result["channels"]:
+            widget_item = HomeRecommendedChannelItem(self, channel)
+            self.home_page_table_view.setCellWidget(cur_ind % 3, cur_ind / 3, widget_item)
+            cur_ind += 1
+
+    def received_popular_torrents(self, result):
+        cur_ind = 0
+        for torrent in result["torrents"]:
+            widget_item = HomeRecommendedTorrentItem(self, torrent)
+            self.home_page_table_view.setCellWidget(cur_ind % 3, cur_ind / 3, widget_item)
+            cur_ind += 1
+
+    def on_search_text_change(self, text):
+        self.search_suggestion_mgr = TriblerRequestManager()
+        self.search_suggestion_mgr.perform_request("search/completions?q=%s" % text, self.received_search_completions)
+
+    def received_search_completions(self, completions):
+        self.search_completion_model.setStringList(completions["completions"])
 
     def received_variables(self, variables):
         self.video_player_page.video_player_port = variables["variables"]["ports"]["video~port"]

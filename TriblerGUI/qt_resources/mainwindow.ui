@@ -843,7 +843,7 @@ margin: 10px;</string>
            </widget>
           </item>
           <item>
-           <widget class="QWidget" name="widget_11" native="true">
+           <widget class="TabButtonPanel" name="home_tab" native="true">
             <layout class="QHBoxLayout" name="horizontalLayout_5">
              <property name="spacing">
               <number>0</number>
@@ -874,7 +874,7 @@ margin: 10px;</string>
               </spacer>
              </item>
              <item>
-              <widget class="UnderlineTabButton" name="my_channel_overview_button_2">
+              <widget class="UnderlineTabButton" name="home_tab_torrents_button">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -910,6 +910,42 @@ font-size: 14px;
               </widget>
              </item>
              <item>
+              <widget class="UnderlineTabButton" name="home_tab_channels_button">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>36</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>36</height>
+                </size>
+               </property>
+               <property name="cursor">
+                <cursorShape>PointingHandCursor</cursorShape>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">color: white;
+border: none;
+border-bottom: 3px solid transparent;
+background: none;
+font-size: 14px;
+</string>
+               </property>
+               <property name="text">
+                <string>Channels</string>
+               </property>
+              </widget>
+             </item>
+             <item>
               <spacer name="horizontalSpacer_44">
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
@@ -933,6 +969,7 @@ font-size: 14px;
             <property name="styleSheet">
              <string notr="true">QTableWidget {
 border: none;
+border-top: 1px solid #555;
 }
 QTableWidget::item:hover {
 background-color: #999;
@@ -6584,6 +6621,22 @@ background-color: #444;
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>top_search_bar</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_search_text_change()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>308</x>
+     <y>24</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>on_top_search_button_click()</slot>
@@ -6596,5 +6649,6 @@ background-color: #444;
   <slot>clicked_menu_button_downloads()</slot>
   <slot>clicked_menu_button_settings()</slot>
   <slot>clicked_menu_button_subscriptions()</slot>
+  <slot>on_search_text_change()</slot>
  </slots>
 </ui>

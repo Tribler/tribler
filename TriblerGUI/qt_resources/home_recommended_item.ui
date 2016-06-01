@@ -90,7 +90,7 @@ font-size: 44px;</string>
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="label">
+    <widget class="QLabel" name="main_label">
      <property name="styleSheet">
       <string notr="true">color: white;
 margin-top: 10px;
@@ -102,7 +102,7 @@ font-weight: bold;</string>
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="label_3">
+    <widget class="QLabel" name="detail_label">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
        <horstretch>0</horstretch>
