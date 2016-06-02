@@ -589,8 +589,19 @@ class MarketCommunity(Community):
     # Start transaction
     def send_start_transaction(self, start_transaction):
         assert isinstance(start_transaction, StartTransaction), type(start_transaction)
+        destination, payload = start_transaction.to_network()
 
-        # TODO: add send_start_transaction logic
+        # Add ttl
+        payload += (Ttl.default(),)
+
+        meta = self.get_meta_message(u"start-transaction")
+        message = meta.impl(
+            authentication=(self.my_member,),
+            distribution=(self.claim_global_time(),),
+            payload=payload
+        )
+
+        self.dispersy.store_update_forward([message], True, True, True)
 
     def on_start_transaction(self, messages):
         for message in messages:
@@ -601,8 +612,19 @@ class MarketCommunity(Community):
     # Multi chain payment
     def send_multi_chain_payment(self, multi_chain_payment):
         assert isinstance(multi_chain_payment, MultiChainPayment), type(multi_chain_payment)
+        destination, payload = multi_chain_payment.to_network()
 
-        # TODO: add send_multi_chain_payment logic
+        # Add ttl
+        payload += (Ttl.default(),)
+
+        meta = self.get_meta_message(u"multi-chain-payment")
+        message = meta.impl(
+            authentication=(self.my_member,),
+            distribution=(self.claim_global_time(),),
+            payload=payload
+        )
+
+        self.dispersy.store_update_forward([message], True, True, True)
 
     def on_multi_chain_payment(self, messages):
         for message in messages:
@@ -613,8 +635,19 @@ class MarketCommunity(Community):
     # Bitcoin payment
     def send_bitcoin_payment(self, bitcoin_payment):
         assert isinstance(bitcoin_payment, BitcoinPayment), type(bitcoin_payment)
+        destination, payload = bitcoin_payment.to_network()
 
-        # TODO: add send_bitcoin_payment logic
+        # Add ttl
+        payload += (Ttl.default(),)
+
+        meta = self.get_meta_message(u"bitcoin-payment")
+        message = meta.impl(
+            authentication=(self.my_member,),
+            distribution=(self.claim_global_time(),),
+            payload=payload
+        )
+
+        self.dispersy.store_update_forward([message], True, True, True)
 
     def on_bitcoin_payment(self, messages):
         for message in messages:
@@ -625,8 +658,19 @@ class MarketCommunity(Community):
     # End transaction
     def send_end_transaction(self, end_transaction):
         assert isinstance(end_transaction, EndTransaction), type(end_transaction)
+        destination, payload = end_transaction.to_network()
 
-        # TODO: add send_end_transaction logic
+        # Add ttl
+        payload += (Ttl.default(),)
+
+        meta = self.get_meta_message(u"end-transaction")
+        message = meta.impl(
+            authentication=(self.my_member,),
+            distribution=(self.claim_global_time(),),
+            payload=payload
+        )
+
+        self.dispersy.store_update_forward([message], True, True, True)
 
     def on_end_transaction(self, messages):
         for message in messages:
