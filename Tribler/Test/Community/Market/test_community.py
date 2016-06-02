@@ -123,7 +123,7 @@ class CommunityTestSuite(unittest.TestCase):
         self.assertTrue(self.market_community.check_history(self.tick))
         self.assertFalse(self.market_community.check_history(self.tick))
 
-    def test_on_proposed_trade(self):
+    def test_on_proposed_trade(self):  # TODO: Add assertions to test
         # Test for on proposed trade
         self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
         self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
@@ -138,7 +138,7 @@ class CommunityTestSuite(unittest.TestCase):
         )
         self.market_community.on_proposed_trade([message])
 
-    def test_on_accepted_trade(self):
+    def test_on_accepted_trade(self):  # TODO: Add assertions to test
         # Test for on accepted trade
         self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
         self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
@@ -152,7 +152,7 @@ class CommunityTestSuite(unittest.TestCase):
         )
         self.market_community.on_accepted_trade([message])
 
-    def test_on_declined_trade(self):
+    def test_on_declined_trade(self):  # TODO: Add assertions to test
         # Test for on declined trade
         self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
         self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
@@ -167,7 +167,7 @@ class CommunityTestSuite(unittest.TestCase):
         )
         self.market_community.on_declined_trade([message])
 
-    def test_on_counter_trade(self):
+    def test_on_counter_trade(self):  # TODO: Add assertions to test
         # Test for on counter trade
         self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
         self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
@@ -182,23 +182,23 @@ class CommunityTestSuite(unittest.TestCase):
         )
         self.market_community.on_counter_trade([message])
 
-    def test_send_proposed_trade(self):
+    def test_send_proposed_trade(self):  # TODO: Add assertions to test
         # Test for send proposed trade
         self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
         self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
         self.market_community.send_proposed_trade(self.proposed_trade)
 
-    def test_send_accepted_trade(self):
+    def test_send_accepted_trade(self):  # TODO: Add assertions to test
         # Test for send accepted trade
         self.market_community.send_accepted_trade(self.accepted_trade)
 
-    def test_send_declined_trade(self):
+    def test_send_declined_trade(self):  # TODO: Add assertions to test
         # Test for send declined trade
         self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
         self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
         self.market_community.send_declined_trade(self.declined_trade)
 
-    def test_send_counter_trade(self):
+    def test_send_counter_trade(self):  # TODO: Add assertions to test
         # Test for send counter trade
         self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
         self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
