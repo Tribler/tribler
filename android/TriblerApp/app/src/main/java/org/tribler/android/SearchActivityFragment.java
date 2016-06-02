@@ -8,6 +8,7 @@ import java.io.IOException;
 
 import cz.msebera.android.httpclient.Header;
 
+import static org.tribler.android.Triblerd.BASE_URL;
 import static org.tribler.android.Triblerd.restApi;
 
 public class SearchActivityFragment extends TriblerViewFragment {
@@ -15,7 +16,7 @@ public class SearchActivityFragment extends TriblerViewFragment {
     public void doMySearch(String query) {
         mAdapter.clear();
         //TODO: real search
-        restApi.get(getActivity(), Triblerd.BASE_URL + "/channels/discovered", new JsonStreamAsyncHttpResponseHandler() {
+        restApi.get(getActivity(), BASE_URL + "/channels/discovered", new JsonStreamAsyncHttpResponseHandler() {
             private static final int CHANNEL = 100;
             private static final int TORRENT = 200;
 
@@ -58,7 +59,7 @@ public class SearchActivityFragment extends TriblerViewFragment {
              */
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                //nothing
+                // Nothing
             }
 
             /**
