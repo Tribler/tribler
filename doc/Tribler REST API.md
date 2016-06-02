@@ -105,6 +105,12 @@ There are various download states possible which are returned when fetching down
 | ---- | --------------- |
 | GET /events | Open the event endpoint over which events in Tribler are pushed |
 
+### Debug
+
+| Endpoint | Description |
+| ---- | --------------- |
+| GET /debug/communities | Get statistics about the communities that are loaded in Dispersy |
+
 ## `GET /channels/discovered`
 
 Returns all discovered channels in Tribler.
@@ -401,3 +407,28 @@ Currently, the following events are implemented:
 - events_start: An indication that the event socket is opened and that the server is ready to push events.
 - search_result_channel: This event dictionary contains a search result with a channel that has been found.
 - search_result_torrent: This event dictionary contains a search result with a torrent that has been found.
+
+## `GET /debug/communities`
+
+Returns statistics about the communities that are loaded in Dispersy.
+
+### Example response
+
+```json
+{
+    "communities": {
+        "<ChannelCommunity>: b9754da88799ff2dc4042325bd8640d3a5685100": {
+            "Sync bloom created": "8",
+            "Statistics": {
+                "outgoing": {
+                    "-caused by missing-proof-": "1",
+                    "dispersy-puncture-request": "8",
+                    ...
+                },
+            "Sync bloom reused":"0",
+            ...
+        },
+        ...
+    }
+}
+```
