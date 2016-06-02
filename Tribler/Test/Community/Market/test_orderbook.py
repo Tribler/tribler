@@ -39,6 +39,9 @@ class OrderBookTestSuite(unittest.TestCase):
         # Test for ask insertion
         self.order_book.insert_ask(self.ask2)
         self.assertTrue(self.order_book.tick_exists(self.ask2.order_id))
+        self.assertTrue(self.order_book.ask_exists(self.ask2.order_id))
+        self.assertFalse(self.order_book.bid_exists(self.ask2.order_id))
+        self.assertEquals(self.ask2, self.order_book.get_ask(self.ask2.order_id)._tick)
 
     def test_ask_removal(self):
         # Test for ask removal
@@ -51,6 +54,9 @@ class OrderBookTestSuite(unittest.TestCase):
         # Test for bid insertion
         self.order_book.insert_bid(self.bid2)
         self.assertTrue(self.order_book.tick_exists(self.bid2.order_id))
+        self.assertTrue(self.order_book.bid_exists(self.bid2.order_id))
+        self.assertFalse(self.order_book.ask_exists(self.bid2.order_id))
+        self.assertEquals(self.bid2, self.order_book.get_bid(self.bid2.order_id)._tick)
 
     def test_bid_removal(self):
         # Test for bid removal
