@@ -1,33 +1,105 @@
-import os
-import sys
-import json
-import time
-import random
-import argparse
-import threading
+"""
+This twistd plugin enables to start a tunnel helper headless using the twistd command.
+"""
 import cherrypy
-
+import json
+import logging
+import logging.config
+import os
+import random
+import signal
+import sys
+import threading
+import time
 from collections import defaultdict, deque
 
-from twisted.internet.task import LoopingCall
+from twisted.application.service import MultiService, IServiceMaker
+from twisted.conch import manhole_tap
+from twisted.internet import reactor
 from twisted.internet.stdio import StandardIO
-from twisted.logger import globalLogPublisher
-from twisted.protocols.basic import LineReceiver
-from twisted.internet.threads import blockingCallFromThread
+from twisted.internet.task import LoopingCall
 
-from Tribler.community.tunnel.tunnel_community import TunnelSettings
-from Tribler.Core.SessionConfig import SessionStartupConfig
+# Laurens(23-05-2016): As of writing, Debian stable does not have
+# the globalLogPublisher in the current version of Twisted.
+# So we make it a conditional import.
+try:
+    from twisted.logger import globalLogPublisher
+
+    global_log_publisher_available = True
+except:
+    pass
+from twisted.plugin import IPlugin
+from twisted.protocols.basic import LineReceiver
+from twisted.python import usage
+from twisted.python.log import msg
+from zope.interface import implements
+
 from Tribler.Core.Session import Session
-from Tribler.Core.Utilities.twisted_thread import reactor
-from Tribler.Core.permid import read_keypair
+from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.permid import read_keypair
+from Tribler.Core.simpledefs import dlstatus_strings
 from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
-
-import logging.config
-from Tribler.Core.simpledefs import dlstatus_strings
+from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.tool.clean_observers import clean_twisted_observers
+from Tribler.dispersy.util import blockingCallFromThread
+
+
+def check_socks5_port(val):
+    socks5_port = int(val)
+    if socks5_port <= 0:
+        raise ValueError("Invalid port number")
+    return socks5_port
+check_socks5_port.coerceDoc = "Socks5 port must be greater than 0."
+
+def check_introduce_port(val):
+    introduce_port = int(val)
+    if introduce_port <= 0:
+        raise ValueError("Invalid port number")
+    return introduce_port
+check_introduce_port.coerceDoc = "Introduction port must be greater than 0."
+
+def check_dispersy_port(val):
+    dispersy_port = int(val)
+    if dispersy_port < -1 or dispersy_port == 0:
+        raise ValueError("Invalid port number")
+    return dispersy_port
+check_dispersy_port.coerceDoc = "Dispersy port must be greater than 0 or -1."
+
+def check_crawler_keypair(crawl_keypair_filename):
+    if crawl_keypair_filename and not os.path.exists(crawl_keypair_filename):
+        raise ValueError("Crawler file does not exist")
+    return crawl_keypair_filename
+check_crawler_keypair.coerceDoc = "Give a path to an existing file."
+
+def check_json_port(val):
+    json_port = int(val)
+    if json_port <= 0:
+        raise ValueError("Invalid port number")
+    return json_port
+check_json_port.coerceDoc = "Json API port must be greater than 0."
+
+def check_yappi_args(profile):
+    if profile and profile not in ["wall", "cpu"]:
+        raise ValueError("Crawler file does not exist")
+    return profile
+check_yappi_args.coerceDoc = "Profile option should be wall or cpu."
+
+class Options(usage.Options):
+    optParameters = [
+        ["manhole", "m", 0, "Enable manhole telnet service listening at the specified port", int],
+        ["socks5", "p", None, "Socks5 port", check_socks5_port],
+        ["exit", "x", False, "Allow being an exit-node", bool],
+        ["introduce", "i", None, 'Introduce the dispersy port of another tribler instance', check_introduce_port],
+        ["dispersy", "d", -1, 'Dispersy port', check_dispersy_port],
+        ["crawl", "c", None, 'Enable crawler and use the keypair specified in the given filename', check_crawler_keypair],
+        ["json", "j", 0, 'Enable JSON api, which will run on the provided port number ' +
+         '(only available if the crawler is enabled)', check_json_port],
+        ["yappi", "y", None, "Profiling mode, either 'wall' or 'cpu'", check_yappi_args],
+    ]
+
 
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger('TunnelMain')
@@ -41,7 +113,6 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file_
 
 
 class TunnelCommunityCrawler(HiddenTunnelCommunity):
-
     def on_introduction_response(self, messages):
         super(TunnelCommunityCrawler, self).on_introduction_response(messages)
         handler = Tunnel.get_instance().stats_handler
@@ -53,7 +124,6 @@ class TunnelCommunityCrawler(HiddenTunnelCommunity):
 
 
 class Tunnel(object):
-
     __single = None
 
     def __init__(self, settings, crawl_keypair_filename=None, dispersy_port=-1):
@@ -81,6 +151,7 @@ class Tunnel(object):
         if Tunnel.__single is None:
             Tunnel(*args, **kw)
         return Tunnel.__single
+
     get_instance = staticmethod(get_instance)
 
     def clean_messages(self):
@@ -89,14 +160,15 @@ class Tunnel(object):
             if now - 3600 > self.crawl_message[k]['time']:
                 self.crawl_message.pop(k)
 
-        clean_twisted_observers(globalLogPublisher)
+        if global_log_publisher_available:
+            clean_twisted_observers(globalLogPublisher)
 
     def build_history(self):
         self.history_stats.append(self.get_stats())
 
     def stats_handler(self, candidate, stats, message):
         now = int(time.time())
-        print '@%d' % now, message.candidate.get_member().mid.encode('hex'), json.dumps(stats)
+        logger.debug('@%d %r %r', now, message.candidate.get_member().mid.encode('hex'), json.dumps(stats))
 
         candidate_mid = candidate.get_member().mid
         stats = self.preprocess_stats(stats)
@@ -111,7 +183,7 @@ class Tunnel(object):
         if time_dif > 0:
             for index, key in enumerate(['bytes_orig', 'bytes_exit', 'bytes_relay']):
                 self.current_stats[index] = self.current_stats[index] * 0.875 + \
-                    (((stats[key] - stats_old[key]) / time_dif) / 1024) * 0.125
+                                            (((stats[key] - stats_old[key]) / time_dif) / 1024) * 0.125
 
     def start_tribler(self):
         config = SessionStartupConfig()
@@ -135,8 +207,11 @@ class Tunnel(object):
 
         self.session = Session(config)
         upgrader = self.session.prestart()
-        while not upgrader.is_done:
-            time.sleep(0.1)
+        if upgrader.failed:
+            msg("The upgrader failed: .Tribler directory backed up, aborting")
+            reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)
+            self.session.shutdown()
+            reactor.stop()
         self.session.start()
         logger.info("Using port %d" % self.session.get_dispersy_port())
 
@@ -155,6 +230,7 @@ class Tunnel(object):
                 2, ("127.0.0.1", self.session.get_tunnel_community_socks5_listen_ports()))
             if introduce_port:
                 self.community.add_discovered_candidate(Candidate(('127.0.0.1', introduce_port), tunnel=False))
+
         blockingCallFromThread(reactor, start_community)
 
         self.session.set_download_states_callback(self.download_states_callback, False)
@@ -177,17 +253,8 @@ class Tunnel(object):
             self.build_history_lc = None
 
         if self.session:
-            session_shutdown_start = time.time()
-            waittime = 60
             self.session.shutdown()
-            while not self.session.has_shutdown():
-                diff = time.time() - session_shutdown_start
-                assert diff < waittime, "Took too long for Session to shutdown"
-                logger.info("ONEXIT Waiting for Session to shutdown, will wait for %d more seconds" % (
-                    waittime - diff))
-                time.sleep(1)
             logger.info("Session is shut down")
-            Session.del_instance()
 
     def preprocess_stats(self, stats):
         result = defaultdict(int)
@@ -220,7 +287,6 @@ class Tunnel(object):
 
 
 class LineHandler(LineReceiver):
-
     delimiter = os.linesep
 
     def __init__(self, anon_tunnel, profile):
@@ -233,11 +299,11 @@ class LineHandler(LineReceiver):
 
         if line == 'threads':
             for thread in threading.enumerate():
-                print "%s \t %d" % (thread.name, thread.ident)
+                logger.debug("%s \t %d", thread.name, thread.ident)
         elif line == 'p':
             if profile:
                 for func_stats in yappi.get_func_stats().sort("subtime")[:50]:
-                    print "YAPPI: %10dx  %10.3fs" % (func_stats.ncall, func_stats.tsub), func_stats.name
+                    logger.debug("YAPPI: %10dx  %10.3f %s", func_stats.ncall, func_stats.tsub, func_stats.name)
             else:
                 logger.error("Profiling disabled!")
 
@@ -256,18 +322,18 @@ class LineHandler(LineReceiver):
                 logger.error("Profiling disabled!")
 
         elif line == 'c':
-            print "========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)\tinfohash\ttype"
+            logger.debug("========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)\tinfohash\ttype")
             for circuit_id, circuit in anon_tunnel.community.circuits.items():
                 info_hash = circuit.info_hash.encode('hex')[:10] if circuit.info_hash else '?'
-                print "%d\t%s:%d\t%d\t%d\t\t%.2f\t\t%.2f\t\t%s\t%s" % (circuit_id,
-                                                             circuit.first_hop[0],
-                                                             circuit.first_hop[1],
-                                                             circuit.goal_hops,
-                                                             len(circuit.hops),
-                                                             circuit.bytes_down / 1024.0 / 1024.0,
-                                                             circuit.bytes_up / 1024.0 / 1024.0,
-                                                             info_hash,
-                                                             circuit.ctype)
+                logger.debug("%d\t%s:%d\t%d\t%d\t\t%.2f\t\t%.2f\t\t%s\t%s" % circuit_id,
+                                                                       circuit.first_hop[0],
+                                                                       circuit.first_hop[1],
+                                                                       circuit.goal_hops,
+                                                                       len(circuit.hops),
+                                                                       circuit.bytes_down / 1024.0 / 1024.0,
+                                                                       circuit.bytes_up / 1024.0 / 1024.0,
+                                                                       info_hash,
+                                                                       circuit.ctype)
 
         elif line.startswith('s'):
             cur_path = os.getcwd()
@@ -300,7 +366,8 @@ class LineHandler(LineReceiver):
             line_split = line.split(' ')
             to_introduce_ip = line_split[1]
             to_introduce_port = int(line_split[2])
-            self.anon_tunnel.community.add_discovered_candidate(Candidate((to_introduce_ip, to_introduce_port), tunnel=False))
+            self.anon_tunnel.community.add_discovered_candidate(
+                Candidate((to_introduce_ip, to_introduce_port), tunnel=False))
         elif line.startswith('d'):
             line_split = line.split(' ')
             filename = 'test_file' if len(line_split) == 1 else line_split[1]
@@ -324,6 +391,7 @@ class LineHandler(LineReceiver):
                                  sum(ds.get_num_seeds_peers()),
                                  sum(1 for _ in anon_tunnel.community.dispersy_yield_verified_candidates())))
                     return 1.0, False
+
                 download = anon_tunnel.session.start_download_from_tdef(tdef, dscfg)
                 download.set_state_callback(cb, delay=1)
 
@@ -333,7 +401,7 @@ class LineHandler(LineReceiver):
             anon_tunnel.should_run = False
 
         elif line == 'r':
-            print "circuit\t\t\tdirection\tcircuit\t\t\tTraffic (MB)"
+            logger.debug("circuit\t\t\tdirection\tcircuit\t\t\tTraffic (MB)")
             from_to = anon_tunnel.community.relay_from_to
             for key in from_to.keys():
                 relay = from_to[key]
@@ -341,69 +409,99 @@ class LineHandler(LineReceiver):
                                                    relay.bytes[1] / 1024.0 / 1024.0,))
 
 
-def main(argv):
-    parser = argparse.ArgumentParser(description='Anonymous Tunnel CLI interface')
+class TunnelHelperServiceMaker(object):
+    implements(IServiceMaker, IPlugin)
+    tapname = "tunnel_helper"
+    description = "Tunnel Helper twistd plugin, starts a (hidden) tunnel as a service."
+    options = Options
 
-    try:
-        parser.add_argument('-p', '--socks5', help='Socks5 port')
-        parser.add_argument('-x', '--exit', help='Allow being an exit-node')
-        parser.add_argument('-i', '--introduce', help='Introduce the dispersy port of another tribler instance')
-        parser.add_argument('-d', '--dispersy', help='Dispersy port')
-        parser.add_argument('-c', '--crawl', help='Enable crawler and use the keypair specified in the given filename')
-        parser.add_argument('-j', '--json', help='Enable JSON api, which will run on the provided port number ' +
-                                                 '(only available if the crawler is enabled)', type=int)
-        parser.add_argument('-y', '--yappi', help="Profiling mode, either 'wall' or 'cpu'")
-        parser.add_help = True
-        args = parser.parse_args(sys.argv[1:])
+    def __init__(self):
+        """
+        Initialize the variables of this service and the logger.
+        """
+        self._stopping = False
 
-    except argparse.ArgumentError:
-        parser.print_help()
-        sys.exit(2)
+    def shutdown_process(self, shutdown_message, code=1):
+        msg(shutdown_message)
+        reactor.addSystemEventTrigger('after', 'shutdown', os._exit, code)
+        reactor.stop()
 
-    socks5_port = int(args.socks5) if args.socks5 else None
-    introduce_port = int(args.introduce) if args.introduce else None
-    dispersy_port = int(args.dispersy) if args.dispersy else -1
-    crawl_keypair_filename = args.crawl
-    profile = args.yappi if args.yappi in ['wall', 'cpu'] else None
+    def start_tunnel(self, options):
+        """
+        Main method to startup a tunnel helper and add a signal handler.
+        """
 
-    if profile:
-        yappi.set_clock_type(profile)
-        yappi.start(builtins=True)
-        logger.error("Profiling using %s time" % yappi.get_clock_type()['type'])
+        socks5_port = options["socks5"]
+        introduce_port = options["introduce"]
+        dispersy_port = options["dispersy"]
+        crawl_keypair_filename = options["crawl"]
+        profile = options["yappi"]
 
-    if crawl_keypair_filename and not os.path.exists(crawl_keypair_filename):
-        logger.error("Could not find keypair filename", crawl_keypair_filename)
-        sys.exit(1)
+        if profile:
+            yappi.set_clock_type(profile)
+            yappi.start(builtins=True)
+            logger.error("Profiling using %s time" % yappi.get_clock_type()['type'])
 
-    settings = TunnelSettings()
+        settings = TunnelSettings()
 
-    # For disbling anonymous downloading, limiting download to hidden services only
-    settings.min_circuits = 0
-    settings.max_circuits = 0
+        # For disabling anonymous downloading, limiting download to hidden services only.
+        settings.min_circuits = 0
+        settings.max_circuits = 0
 
-    if socks5_port is not None:
-        settings.socks_listen_ports = range(socks5_port, socks5_port + 5)
-    else:
-        settings.socks_listen_ports = [random.randint(1000, 65535) for _ in range(5)]
+        if socks5_port is not None:
+            settings.socks_listen_ports = range(socks5_port, socks5_port + 5)
+        else:
+            settings.socks_listen_ports = [random.randint(1000, 65535) for _ in range(5)]
 
-    settings.become_exitnode = True if args.exit in ['true'] else False
-    if settings.become_exitnode:
-        logger.info("Exit-node enabled")
-    else:
-        logger.info("Exit-node disabled")
+        settings.become_exitnode = options["exit"]
+        if settings.become_exitnode:
+            logger.info("Exit-node enabled")
+        else:
+            logger.info("Exit-node disabled")
 
-    tunnel = Tunnel(settings, crawl_keypair_filename, dispersy_port)
-    StandardIO(LineHandler(tunnel, profile))
-    tunnel.start(introduce_port)
+        tunnel = Tunnel(settings, crawl_keypair_filename, dispersy_port)
+        StandardIO(LineHandler(tunnel, profile))
 
-    if crawl_keypair_filename and args.json > 0:
-        cherrypy.config.update({'server.socket_host': '0.0.0.0', 'server.socket_port': args.json})
-        cherrypy.quickstart(tunnel)
-    else:
-        while tunnel.should_run:
-            time.sleep(1)
+        def signal_handler(sig, _):
+            msg("Received shut down signal %s" % sig)
+            if not self._stopping:
+                self._stopping = True
+                msg("Setting the tunnel should_run variable to False")
+                tunnel.should_run = False
+                tunnel.stop()
+                reactor.stop()
 
-    tunnel.stop()
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
 
-if __name__ == "__main__":
-    main(sys.argv[1:])
+        tunnel.start(introduce_port)
+
+        if crawl_keypair_filename and options["json"] > 0:
+            cherrypy.config.update({'server.socket_host': '0.0.0.0', 'server.socket_port': options["json"]})
+            cherrypy.quickstart(tunnel)
+
+    def makeService(self, options):
+        """
+        Construct a tunnel helper service.
+        """
+
+        tunnel_helper_service = MultiService()
+        tunnel_helper_service.setName("Tunnel_helper")
+
+        manhole_namespace = {}
+        if options["manhole"]:
+            port = options["manhole"]
+            manhole = manhole_tap.makeService({
+                'namespace': manhole_namespace,
+                'telnetPort': 'tcp:%d:interface=127.0.0.1' % port,
+                'sshPort': None,
+                'passwd': os.path.join(os.path.dirname(__file__), 'passwd'),
+            })
+            tunnel_helper_service.addService(manhole)
+
+        reactor.callWhenRunning(self.start_tunnel, options)
+
+        return tunnel_helper_service
+
+
+service_maker = TunnelHelperServiceMaker()
