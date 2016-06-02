@@ -103,6 +103,48 @@ class OrderBook(object):
 
         return is_ask or is_bid
 
+    def get_ask(self, order_id):
+        """
+        :param order_id: The order id to search for
+        :type order_id: OrderId
+        :rtype: Tick
+        """
+        assert isinstance(order_id, OrderId), type(order_id)
+
+        return self._asks.get_tick(order_id)
+
+    def get_bid(self, order_id):
+        """
+        :param order_id: The order id to search for
+        :type order_id: OrderId
+        :rtype: Tick
+        """
+        assert isinstance(order_id, OrderId), type(order_id)
+
+        return self._bids.get_tick(order_id)
+
+    def ask_exists(self, order_id):
+        """
+        :param order_id: The order id to search for
+        :type order_id: OrderId
+        :return: True if the ask exists, False otherwise
+        :rtype: bool
+        """
+        assert isinstance(order_id, OrderId), type(order_id)
+
+        return self._asks.tick_exists(order_id)
+
+    def bid_exists(self, order_id):
+        """
+        :param order_id: The order id to search for
+        :type order_id: OrderId
+        :return: True if the bid exists, False otherwise
+        :rtype: bool
+        """
+        assert isinstance(order_id, OrderId), type(order_id)
+
+        return self._bids.tick_exists(order_id)
+
     def remove_tick(self, order_id):
         """
         :type order_id: OrderId

@@ -22,7 +22,7 @@ from core.timeout import Timeout
 from core.timestamp import Timestamp
 from core.trade import Trade, ProposedTrade, AcceptedTrade, DeclinedTrade, CounterTrade
 from core.transaction import StartTransaction, EndTransaction
-from payload import OfferPayload, TradePayload, AcceptedTradePayload, DeclinedTradePayload, StartTransactionPayload,\
+from payload import OfferPayload, TradePayload, AcceptedTradePayload, DeclinedTradePayload, StartTransactionPayload, \
     MultiChainPaymentPayload, BitcoinPaymentPayload, EndTransactionPayload
 from socket_address import SocketAddress
 from ttl import Ttl
@@ -459,28 +459,28 @@ class MarketCommunity(Community):
                         # TODO: send cancel
                         pass
 
-                    order._quantity -= accepted_trade.quantity
+                    order.total_quantity -= accepted_trade.quantity
 
                     if order.is_ask():
-                        if self.order_book._bids.tick_exists(accepted_trade.order_id):
-                            self.order_book._bids.get_tick(
+                        if self.order_book.bid_exists(accepted_trade.order_id):
+                            self.order_book.get_bid(
                                 accepted_trade.order_id).quantity -= accepted_trade.quantity
                     else:
-                        if self.order_book._asks.tick_exists(accepted_trade.order_id):
-                            self.order_book._asks.get_tick(
+                        if self.order_book.ask_exists(accepted_trade.order_id):
+                            self.order_book.get_ask(
                                 accepted_trade.order_id).quantity -= accepted_trade.quantity
                 else:
-                    if self.order_book._bids.tick_exists(accepted_trade.order_id):
-                        self.order_book._bids.get_tick(
+                    if self.order_book.bid_exists(accepted_trade.order_id):
+                        self.order_book.get_bid(
                             accepted_trade.order_id).quantity -= accepted_trade.quantity
-                    if self.order_book._asks.tick_exists(accepted_trade.order_id):
-                        self.order_book._asks.get_tick(
+                    if self.order_book.ask_exists(accepted_trade.order_id):
+                        self.order_book.get_ask(
                             accepted_trade.order_id).quantity -= accepted_trade.quantity
-                    if self.order_book._bids.tick_exists(accepted_trade.recipient_order_id):
-                        self.order_book._bids.get_tick(
+                    if self.order_book.bid_exists(accepted_trade.recipient_order_id):
+                        self.order_book.get_bid(
                             accepted_trade.recipient_order_id).quantity -= accepted_trade.quantity
-                    if self.order_book._asks.tick_exists(accepted_trade.recipient_order_id):
-                        self.order_book._asks.get_tick(
+                    if self.order_book.ask_exists(accepted_trade.recipient_order_id):
+                        self.order_book.get_ask(
                             accepted_trade.recipient_order_id).quantity -= accepted_trade.quantity
 
                 # Check if message needs to be send on
@@ -573,16 +573,14 @@ class MarketCommunity(Community):
         # TODO: make this only possible for accepted trades
         self.order_book.insert_trade(accepted_trade)
 
-        order._quantity -= proposed_trade.quantity
+        order.total_quantity -= proposed_trade.quantity
 
         if order.is_ask():
-            if self.order_book._bids.tick_exists(proposed_trade.order_id):
-                self.order_book._bids.get_tick(
-                    proposed_trade.order_id).quantity -= proposed_trade.quantity
+            if self.order_book.bid_exists(proposed_trade.order_id):
+                self.order_book.get_bid(proposed_trade.order_id).quantity -= proposed_trade.quantity
         else:
-            if self.order_book._asks.tick_exists(proposed_trade.order_id):
-                self.order_book._asks.get_tick(
-                    proposed_trade.order_id).quantity -= proposed_trade.quantity
+            if self.order_book.ask_exists(proposed_trade.order_id):
+                self.order_book.get_ask(proposed_trade.order_id).quantity -= proposed_trade.quantity
 
         self.send_accepted_trade(accepted_trade)
 
