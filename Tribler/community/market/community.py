@@ -591,8 +591,8 @@ class MarketCommunity(Community):
         assert isinstance(start_transaction, StartTransaction), type(start_transaction)
         destination, payload = start_transaction.to_network()
 
-        # Add ttl
-        payload += (Ttl.default(),)
+        # Lookup the remote address of the peer with the pubkey
+        candidate = Candidate(self.lookup_ip(destination[0]), False)
 
         meta = self.get_meta_message(u"start-transaction")
         message = meta.impl(
@@ -614,13 +614,14 @@ class MarketCommunity(Community):
         assert isinstance(multi_chain_payment, MultiChainPayment), type(multi_chain_payment)
         destination, payload = multi_chain_payment.to_network()
 
-        # Add ttl
-        payload += (Ttl.default(),)
+        # Lookup the remote address of the peer with the pubkey
+        candidate = Candidate(self.lookup_ip(destination[0]), False)
 
         meta = self.get_meta_message(u"multi-chain-payment")
         message = meta.impl(
             authentication=(self.my_member,),
             distribution=(self.claim_global_time(),),
+            destination=(candidate,),
             payload=payload
         )
 
@@ -637,13 +638,14 @@ class MarketCommunity(Community):
         assert isinstance(bitcoin_payment, BitcoinPayment), type(bitcoin_payment)
         destination, payload = bitcoin_payment.to_network()
 
-        # Add ttl
-        payload += (Ttl.default(),)
+        # Lookup the remote address of the peer with the pubkey
+        candidate = Candidate(self.lookup_ip(destination[0]), False)
 
         meta = self.get_meta_message(u"bitcoin-payment")
         message = meta.impl(
             authentication=(self.my_member,),
             distribution=(self.claim_global_time(),),
+            destination=(candidate,),
             payload=payload
         )
 
@@ -660,13 +662,14 @@ class MarketCommunity(Community):
         assert isinstance(end_transaction, EndTransaction), type(end_transaction)
         destination, payload = end_transaction.to_network()
 
-        # Add ttl
-        payload += (Ttl.default(),)
+        # Lookup the remote address of the peer with the pubkey
+        candidate = Candidate(self.lookup_ip(destination[0]), False)
 
         meta = self.get_meta_message(u"end-transaction")
         message = meta.impl(
             authentication=(self.my_member,),
             distribution=(self.claim_global_time(),),
+            destination=(candidate,),
             payload=payload
         )
 
