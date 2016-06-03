@@ -24,8 +24,8 @@ import java.io.File;
 
 import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
 
-public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+    private static final String TAG = MainActivity.class.getSimpleName();
 
     public static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 200;
 
@@ -78,12 +78,12 @@ public class MainActivity extends AppCompatActivity
         if (requestCode == CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE) {
 
             if (resultCode == Activity.RESULT_OK) {
-                Log.d("Tribler", "Video saved to:\n" + data.getData());
+                Log.d(TAG, "Video saved to:\n" + data.getData());
                 //TODO: advise user
             } else if (resultCode == Activity.RESULT_CANCELED) {
-                Log.d("Tribler", "User cancelled the video capture");
+                Log.d(TAG, "User cancelled the video capture");
             } else {
-                Log.e("Tribler", "failed to capture video");
+                Log.e(TAG, "failed to capture video");
                 //TODO: advise user
             }
         }
@@ -171,17 +171,15 @@ public class MainActivity extends AppCompatActivity
         switch (item.getItemId()) {
 
             case R.id.nav_subscribtions:
-                // Check to see if we have retained the worker fragment
-                SubscribedFragment fragment = (SubscribedFragment) fm.findFragmentByTag("subscribed");
+                SubscribedFragment subscribedFragment = (SubscribedFragment) fm.findFragmentByTag(SubscribedFragment.TAG);
                 // If not retained (or first time running), we need to create it
-                if (fragment == null) {
-                    fragment = new SubscribedFragment();
+                if (subscribedFragment == null) {
+                    subscribedFragment = new SubscribedFragment();
                     // Tell the framework to try to keep this fragment around during a configuration change
-                    fragment.setRetainInstance(true);
-                    fm.beginTransaction().add(fragment, "subscribed").commit();
-
-                    fragment.getSubscriptions();
+                    subscribedFragment.setRetainInstance(true);
+                    fm.beginTransaction().addToBackStack(null).add(subscribedFragment, SubscribedFragment.TAG).commit();
                 }
+                subscribedFragment.getSubscriptions();
                 return true;
 
             case R.id.nav_my_channel:
@@ -198,7 +196,7 @@ public class MainActivity extends AppCompatActivity
                     // Obtain output file
                     File output = MyUtils.getOutputVideoFile(this);
                     if (output == null) {
-                        Log.e(getClass().getName(), "failed to obtain output file");
+                        Log.e(TAG, "failed to obtain output file");
                         //TODO: advise user
                     }
                     Intent captureIntent = MyUtils.captureVideo(Uri.fromFile(output));

@@ -30,14 +30,13 @@ public class SearchActivity extends AppCompatActivity {
         initGui();
 
         FragmentManager fm = getFragmentManager();
-        // Check to see if we have retained the worker fragment
-        mSearchFragment = (SearchActivityFragment) fm.findFragmentByTag("search");
+        mSearchFragment = (SearchActivityFragment) fm.findFragmentByTag(SearchActivityFragment.TAG);
         // If not retained (or first time running), we need to create it
         if (mSearchFragment == null) {
             mSearchFragment = new SearchActivityFragment();
             // Tell the framework to try to keep this fragment around during a configuration change
             mSearchFragment.setRetainInstance(true);
-            fm.beginTransaction().add(mSearchFragment, "search").commit();
+            fm.beginTransaction().add(mSearchFragment, SearchActivityFragment.TAG).commit();
 
             handleIntent(getIntent());
         }

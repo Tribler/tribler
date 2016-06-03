@@ -12,6 +12,7 @@ import static org.tribler.android.Triblerd.BASE_URL;
 import static org.tribler.android.Triblerd.restApi;
 
 public class SubscribedFragment extends TriblerViewFragment {
+    public static final String TAG = SubscribedFragment.class.getSimpleName();
 
     public void getSubscriptions() {
         restApi.get(getActivity(), BASE_URL + "/channels/subscribed", new JsonStreamAsyncHttpResponseHandler() {

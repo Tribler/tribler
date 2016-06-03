@@ -14,11 +14,15 @@ import static org.tribler.android.Triblerd.BASE_URL;
 import static org.tribler.android.Triblerd.restApi;
 
 public class SearchActivityFragment extends TriblerViewFragment {
+    public static final String TAG = SearchActivityFragment.class.getSimpleName();
 
     private RequestHandle mSearch;
 
     public void startSearch(String query) {
-        mAdapter.clear();
+        if (mSearch != null) {
+            mSearch.cancel(true);
+            mAdapter.clear();
+        }
         //TODO: real search
         mSearch = restApi.get(getActivity(), BASE_URL + "/channels/discovered", new JsonStreamAsyncHttpResponseHandler() {
             private static final int CHANNEL = 100;
