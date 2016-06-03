@@ -9,7 +9,7 @@ from Tribler.Core.defaults import tribler_defaults
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.simpledefs import STATEDIR_GUICONFIG, UPLOAD, DOWNLOAD
 from Tribler.Core.version import version_id
-from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 
 logger = logging.getLogger(__name__)
 

@@ -15,7 +15,7 @@ import StringIO
 from ConfigParser import RawConfigParser
 
 from Tribler.Core.SessionConfig import SessionStartupConfig
-from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.simpledefs import PERSISTENTSTATE_CURRENTVERSION
 
 

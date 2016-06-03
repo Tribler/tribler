@@ -4,7 +4,7 @@
 import wx
 import os
 
-from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.widgets import _set_font
 from Tribler.Main.Dialogs.CreateTorrentDialog import CreateTorrentDialog
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility

@@ -24,7 +24,7 @@ from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM
 from Tribler.Main.Utility.GuiDBTuples import Torrent, CollectedTorrent
 
-from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.Video.VideoUtility import limit_resolution
 from Tribler.Core.TorrentDef import TorrentDef
 

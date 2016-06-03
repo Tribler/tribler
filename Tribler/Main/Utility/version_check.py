@@ -13,7 +13,7 @@ from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING, NTFY_ACT
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.TorrentDef import TorrentDef
 
-from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI import forceWxThread
 
 

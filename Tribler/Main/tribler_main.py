@@ -35,7 +35,7 @@ import wx
 from twisted.python.threadable import isInIOThread
 
 from Tribler.Category.Category import Category
-from Tribler.Core.DownloadConfig import get_default_dest_dir, get_default_dscfg_filename
+from Tribler.Core.DownloadConfig import get_default_dest_dir, get_default_dscfg_filename, DefaultDownloadStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Video.VideoPlayer import PLAYBACKMODE_INTERNAL, return_feasible_playback_modes
@@ -56,7 +56,6 @@ from Tribler.Main.Utility.compat import (convertDefaultDownloadConfig, convertDo
                                          convertSessionConfig)
 from Tribler.Core.Utilities.install_dir import determine_install_dir
 from Tribler.Main.Utility.utility import Utility, get_download_upload_speed
-from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.MainFrame import MainFrame
