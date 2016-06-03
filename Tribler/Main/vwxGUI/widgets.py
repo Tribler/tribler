@@ -13,7 +13,6 @@ from Tribler.Main.vwxGUI import (TRIBLER_RED, LIST_HIGHTLIGHT, GRADIENT_LRED, GR
                                  STOPPED_COLOUR)
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
-from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Core.simpledefs import DLMODE_VOD
 
 
@@ -1851,7 +1850,8 @@ class TorrentStatus(wx.Panel):
             status = 'Fetching torrent'
         elif 'seeding' in torrent_state:
             status = 'Seeding'
-            if torrent.ds and UserDownloadChoice.get_singleton().get_download_state(torrent.ds.get_download().get_def().get_infohash()) == 'restartseed':
+            tribler_config = GUIUtility.getInstance().utility.session.tribler_config
+            if torrent.ds and tribler_config.get_download_state(torrent.ds.get_download().get_def().get_infohash()) == 'restartseed':
                 status = "[F] " + status
         elif finished:
             status = 'Completed'

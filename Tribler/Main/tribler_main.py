@@ -151,11 +151,6 @@ class ABCApp(object):
             self.dispersy = session.lm.dispersy
             self.dispersy.attach_progress_handler(self.progressHandler)
 
-            session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Loading userdownloadchoice')
-            wx.Yield()
-            from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-            UserDownloadChoice.get_singleton().set_utility(self.utility)
-
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Initializing Family Filter')
             wx.Yield()
             cat = Category.getInstance()
@@ -568,8 +563,7 @@ class ABCApp(object):
             if self.utility.read_config(u'seeding_mode') == 'never':
                 for data in seeding_download_list:
                     data[u'download'].stop()
-                    from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-                    UserDownloadChoice.get_singleton().set_download_state(data[u'infohash'], "stop")
+                    self.utility.session.tribler_config.set_download_state(data[u'infohash'], "stop")
 
             # Adjust speeds and call TunnelCommunity.monitor_downloads once every 4 seconds
             adjustspeeds = False
@@ -585,10 +579,8 @@ class ABCApp(object):
         return 1.0, wantpeers
 
     def loadSessionCheckpoint(self):
-        from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
-        user_download_choice = UserDownloadChoice.get_singleton()
         initialdlstatus_dict = {}
-        for infohash, state in user_download_choice.get_download_states().iteritems():
+        for infohash, state in self.utility.session.tribler_config.get_download_states().iteritems():
             if state == 'stop':
                 initialdlstatus_dict[infohash] = DLSTATUS_STOPPED
 

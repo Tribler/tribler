@@ -12,6 +12,7 @@ from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_FILE_RELATIVE_PATH, DB_SCRIPT_RELATIVE_PATH
+from Tribler.Core.Config.tribler_config import TriblerConfig
 from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException, \
@@ -166,6 +167,8 @@ class Session(SessionConfigInterface):
 
         self.autoload_discovery = autoload_discovery
 
+        self.tribler_config = TriblerConfig(self)
+
     def prestart(self):
         """
         Pre-starts the session. We check the current version and upgrade if needed
@@ -305,6 +308,7 @@ class Session(SessionConfigInterface):
         for download in downloadList:
             if download.get_def().get_infohash() == infohash:
                 self.remove_download(download, removecontent, removestate)
+                self.tribler_config.remove_download_state(infohash)
                 return
 
         self.lm.remove_id(infohash)
