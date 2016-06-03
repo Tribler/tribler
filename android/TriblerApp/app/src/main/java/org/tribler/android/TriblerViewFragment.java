@@ -86,6 +86,7 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
      */
     @Override
     public void onSwipedRight(final TriblerChannel channel) {
+        mAdapter.removeItem(channel);
         restApi.put(getActivity(), BASE_URL + "/channels/subscribed/" + channel.getDispersyCid(), null, new JsonStreamAsyncHttpResponseHandler() {
             /**
              * {@inheritDoc}
@@ -106,7 +107,6 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
              */
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                mAdapter.removeItem(channel);
                 Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_subscribe_success), Snackbar.LENGTH_LONG).show();
             }
 
@@ -116,10 +116,8 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
             @Override
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
                 if (statusCode == 409) {
-                    mAdapter.removeItem(channel);
                     Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_subscribe_already), Snackbar.LENGTH_LONG).show();
                 } else {
-                    mAdapter.updateItem(channel);
                     Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_subscribe_failure), Snackbar.LENGTH_LONG).show();
                 }
             }
@@ -132,6 +130,7 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
      */
     @Override
     public void onSwipedLeft(final TriblerChannel channel) {
+        mAdapter.removeItem(channel);
         restApi.delete(getActivity(), BASE_URL + "/channels/subscribed/" + channel.getDispersyCid(), null, new JsonStreamAsyncHttpResponseHandler() {
             /**
              * {@inheritDoc}
@@ -152,7 +151,6 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
              */
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                mAdapter.removeItem(channel);
                 Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_unsubscribe_success), Snackbar.LENGTH_LONG).show();
             }
 
@@ -163,10 +161,8 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
                 if (statusCode == 404) {
                     //TODO:idea never see channel again?
-                    mAdapter.removeItem(channel);
                     Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_unsubscribe_already), Snackbar.LENGTH_LONG).show();
                 } else {
-                    mAdapter.updateItem(channel);
                     Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_unsubscribe_failure), Snackbar.LENGTH_LONG).show();
                 }
             }
