@@ -69,6 +69,7 @@ class TriblerWindow(QMainWindow):
         self.subscribed_channels_page.initialize()
         self.my_channel_page.initialize_my_channel_page()
         self.downloads_page.initialize_downloads_page()
+        self.home_page.initialize_home_page()
 
         self.event_request_manager = EventRequestManager()
         self.event_request_manager.received_search_result_channel.connect(self.search_results_page.received_search_result_channel)
@@ -82,13 +83,6 @@ class TriblerWindow(QMainWindow):
             self.tray_icon.setIcon(QIcon(QPixmap("images/tribler.png")))
             self.tray_icon.show()
 
-        # TODO Martijn: for now, fill the home page with random items
-        self.home_page_table_view.setRowCount(3)
-        self.home_page_table_view.setColumnCount(3)
-
-        self.recommended_request_mgr = TriblerRequestManager()
-        self.recommended_request_mgr.perform_request("torrents/random", self.received_popular_torrents)
-
         self.hide_left_menu_playlist()
 
         self.search_completion_model = QStringListModel()
@@ -97,33 +91,7 @@ class TriblerWindow(QMainWindow):
         completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
         self.top_search_bar.setCompleter(completer)
 
-        self.home_tab.initialize()
-        self.home_tab.clicked_tab_button.connect(self.clicked_tab_button)
-
         self.show()
-
-    def clicked_tab_button(self, tab_button_name):
-        self.home_page_table_view.clear()
-        if tab_button_name == "home_tab_channels_button":
-            self.recommended_request_mgr = TriblerRequestManager()
-            self.recommended_request_mgr.perform_request("channels/popular", self.received_popular_channels)
-        elif tab_button_name == "home_tab_torrents_button":
-            self.recommended_request_mgr = TriblerRequestManager()
-            self.recommended_request_mgr.perform_request("torrents/random", self.received_popular_torrents)
-
-    def received_popular_channels(self, result):
-        cur_ind = 0
-        for channel in result["channels"]:
-            widget_item = HomeRecommendedChannelItem(self, channel)
-            self.home_page_table_view.setCellWidget(cur_ind % 3, cur_ind / 3, widget_item)
-            cur_ind += 1
-
-    def received_popular_torrents(self, result):
-        cur_ind = 0
-        for torrent in result["torrents"]:
-            widget_item = HomeRecommendedTorrentItem(self, torrent)
-            self.home_page_table_view.setCellWidget(cur_ind % 3, cur_ind / 3, widget_item)
-            cur_ind += 1
 
     def on_search_text_change(self, text):
         self.search_suggestion_mgr = TriblerRequestManager()
@@ -144,9 +112,9 @@ class TriblerWindow(QMainWindow):
     def on_add_torrent_button_click(self, pos):
         menu = TriblerActionMenu(self)
 
-        browseFilesAction = QAction('Browse files', self)
-        browseDirectoryAction = QAction('Browse directory', self)
-        addUrlAction = QAction('Add URL', self)
+        browseFilesAction = QAction('Load torrent from file', self)
+        browseDirectoryAction = QAction('Load torrents from directory', self)
+        addUrlAction = QAction('Load torrent from URL', self)
 
         browseFilesAction.triggered.connect(self.on_add_torrent_browse_file)
         browseDirectoryAction.triggered.connect(self.on_add_torrent_browse_dir)

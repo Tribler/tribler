@@ -810,9 +810,9 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>0</number>
+         <number>1</number>
         </property>
-        <widget class="QWidget" name="home_page">
+        <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
           <property name="spacing">
            <number>0</number>
@@ -5998,8 +5998,8 @@ color: white;
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>647</width>
-                       <height>337</height>
+                       <width>281</width>
+                       <height>184</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -6425,6 +6425,12 @@ background-color: #444;
    <class>LeftMenuPlaylist</class>
    <extends>QListWidget</extends>
    <header>leftmenuplaylist.h</header>
+  </customwidget>
+  <customwidget>
+   <class>HomePage</class>
+   <extends>QWidget</extends>
+   <header>homepage.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>
