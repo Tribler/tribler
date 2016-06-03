@@ -19,7 +19,8 @@ from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnab
     DuplicateTorrentFileError
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_METADATA, NTFY_MYPREFERENCES,
                                      NTFY_PEERS, NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
-                                     STATEDIR_METADATA_STORE_DIR, STATEDIR_PEERICON_DIR, STATEDIR_TORRENT_STORE_DIR)
+                                     STATEDIR_METADATA_STORE_DIR, STATEDIR_PEERICON_DIR, STATEDIR_TORRENT_STORE_DIR,
+                                     DLSTATUS_STOPPED)
 
 
 GOTM2CRYPTO = False
@@ -430,18 +431,18 @@ class Session(SessionConfigInterface):
     #
     # Persistence and shutdown
     #
-    def load_checkpoint(self, initialdlstatus=None, initialdlstatus_dict={}):
-        """ Restart Downloads from checkpoint, if any.
-
-        This method allows the API user to manage restoring downloads.
-        E.g. a video player that wants to start the torrent the user clicked
-        on first, and only then restart any sleeping torrents (e.g. seeding).
-        The optional initialdlstatus parameter can be set to DLSTATUS_STOPPED
-        to restore all the Downloads in DLSTATUS_STOPPED state.
-        The options initialdlstatus_dict parameter can be used to specify a
-        state overriding the initaldlstatus parameter per download id.
+    def load_checkpoint(self):
         """
-        self.lm.load_checkpoint(initialdlstatus, initialdlstatus_dict)
+        Restart Downloads from a saved checkpoint, if any. Note that we fetch information from the user download
+        choices since it might be that a user has stopped a download. In that case, the download should not be
+        resumed immediately when being loaded by libtorrent.
+        """
+        initialdlstatus_dict = {}
+        for infohash, state in self.tribler_config.get_download_states().iteritems():
+            if state == 'stop':
+                initialdlstatus_dict[infohash] = DLSTATUS_STOPPED
+
+        self.lm.load_checkpoint(initialdlstatus_dict=initialdlstatus_dict)
 
     def checkpoint(self):
         """ Saves the internal session state to the Session's state dir. """
@@ -453,6 +454,9 @@ class Session(SessionConfigInterface):
 
         # Create engine with network thread
         self.lm.register(self, self.sesslock)
+
+        if self.get_libtorrent():
+            self.load_checkpoint()
 
         self.sessconfig.set_callback(self.lm.sessconfig_changed_callback)
 

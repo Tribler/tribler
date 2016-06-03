@@ -396,8 +396,6 @@ class ABCApp(object):
         # TODO(emilon): Use the LogObserver I already implemented
         # self.dispersy.callback.attach_exception_handler(self.frame.exceptionHandler)
 
-        startWorker(None, self.loadSessionCheckpoint, delay=5.0, workerType="ThreadPool")
-
     @forceWxThread
     def sesscb_ntfy_myprefupdates(self, subject, changeType, objectID, *args):
         if self._frame_and_ready():
@@ -577,14 +575,6 @@ class ABCApp(object):
             print_exc()
 
         return 1.0, wantpeers
-
-    def loadSessionCheckpoint(self):
-        initialdlstatus_dict = {}
-        for infohash, state in self.utility.session.tribler_config.get_download_states().iteritems():
-            if state == 'stop':
-                initialdlstatus_dict[infohash] = DLSTATUS_STOPPED
-
-        self.utility.session.load_checkpoint(initialdlstatus_dict=initialdlstatus_dict)
 
     def guiservthread_free_space_check(self):
         if not (self and self.frame and self.frame.SRstatusbar):
