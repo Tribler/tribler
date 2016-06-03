@@ -4,7 +4,7 @@ import android.app.Fragment;
 import android.os.Bundle;
 import android.support.v7.widget.RecyclerView;
 
-public class TriblerViewFragment extends Fragment {
+public abstract class TriblerViewFragment extends Fragment implements TriblerViewAdapter.OnClickListener, TriblerViewAdapter.OnSwipeListener {
 
     protected TriblerViewAdapter mAdapter;
 
@@ -25,8 +25,8 @@ public class TriblerViewFragment extends Fragment {
         super.onActivityCreated(savedInstanceState);
         RecyclerView recyclerView = (RecyclerView) getActivity().findViewById(R.id.search_results_list);
         mAdapter.attachToRecyclerView(recyclerView);
-        mAdapter.setOnClickListener((TriblerViewAdapter.OnClickListener) getActivity());
-        mAdapter.setOnSwipeListener((TriblerViewAdapter.OnSwipeListener) getActivity());
+        mAdapter.setOnClickListener(this);
+        mAdapter.setOnSwipeListener(this);
     }
 
     /**

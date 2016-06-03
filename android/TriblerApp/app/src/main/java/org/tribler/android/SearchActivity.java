@@ -5,7 +5,6 @@ import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -14,11 +13,10 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
 
 import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
 
-public class SearchActivity extends AppCompatActivity implements TriblerViewAdapter.OnClickListener, TriblerViewAdapter.OnSwipeListener {
+public class SearchActivity extends AppCompatActivity {
 
     private SearchActivityFragment mSearchFragment;
 
@@ -168,61 +166,6 @@ public class SearchActivity extends AppCompatActivity implements TriblerViewAdap
         });
 
         return true;
-    }
-
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onClick(View view, TriblerChannel channel) {
-        //TODO: open channel
-        Snackbar.make(view, "open channel", Snackbar.LENGTH_LONG).show();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onClick(View view, TriblerTorrent torrent) {
-        //TODO: play video
-        Snackbar.make(view, "play video", Snackbar.LENGTH_LONG).show();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onSwipedLeft(View view, TriblerChannel channel) {
-        //TODO: unsubscribe / not interested
-        Snackbar.make(view, "unsubscribe", Snackbar.LENGTH_LONG).show();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onSwipedRight(View view, TriblerChannel channel) {
-        //TODO: subscribe / favorite
-        Snackbar.make(view, "subscribe", Snackbar.LENGTH_LONG).show();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onSwipedLeft(View view, TriblerTorrent torrent) {
-        //TODO: not interested
-        Snackbar.make(view, "not interested", Snackbar.LENGTH_LONG).show();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onSwipedRight(View view, TriblerTorrent torrent) {
-        //TODO: watch later
-        Snackbar.make(view, "watch later", Snackbar.LENGTH_LONG).show();
     }
 
 }

@@ -4,7 +4,7 @@ import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
 
-public class TriblerViewAdapterTouchListener extends ItemTouchHelper.SimpleCallback {
+public class TriblerViewAdapterTouchCallback extends ItemTouchHelper.SimpleCallback {
 
     private TriblerViewAdapter mAdapter;
     private ItemTouchHelper mHelper;
@@ -12,7 +12,7 @@ public class TriblerViewAdapterTouchListener extends ItemTouchHelper.SimpleCallb
     /**
      * Swipe left and right
      */
-    public TriblerViewAdapterTouchListener(TriblerViewAdapter adapter) {
+    public TriblerViewAdapterTouchCallback(TriblerViewAdapter adapter) {
         super(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT);
         mAdapter = adapter;
         mHelper = new ItemTouchHelper(this);

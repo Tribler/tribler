@@ -38,18 +38,18 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     private ArrayList<Object> mList;
     private OnClickListener mClickListener;
     private OnSwipeListener mSwipeListener;
-    private TriblerViewAdapterTouchListener mTouchListener;
+    private TriblerViewAdapterTouchCallback mTouchCallback;
 
     public TriblerViewAdapter() {
         mList = new ArrayList<Object>();
-        mTouchListener = new TriblerViewAdapterTouchListener(this);
+        mTouchCallback = new TriblerViewAdapterTouchCallback(this);
     }
 
     public void attachToRecyclerView(@Nullable RecyclerView view) {
         if (view != null) {
             view.setAdapter(this);
         }
-        mTouchListener.attachToRecyclerView(view);
+        mTouchCallback.attachToRecyclerView(view);
     }
 
     public OnClickListener getOnClickListener() {
