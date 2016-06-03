@@ -20,19 +20,19 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     private static final int VIEW_TYPE_TORRENT = 2;
 
     public interface OnClickListener {
-        void onClick(View view, TriblerChannel channel);
+        void onClick(TriblerChannel channel);
 
-        void onClick(View view, TriblerTorrent torrent);
+        void onClick(TriblerTorrent torrent);
     }
 
     public interface OnSwipeListener {
-        void onSwipedLeft(View view, TriblerChannel channel);
+        void onSwipedLeft(TriblerChannel channel);
 
-        void onSwipedRight(View view, TriblerChannel channel);
+        void onSwipedRight(TriblerChannel channel);
 
-        void onSwipedLeft(View view, TriblerTorrent torrent);
+        void onSwipedLeft(TriblerTorrent torrent);
 
-        void onSwipedRight(View view, TriblerTorrent torrent);
+        void onSwipedRight(TriblerTorrent torrent);
     }
 
     private ArrayList<Object> mList;
@@ -188,7 +188,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                 @Override
                 public void onClick(View view) {
                     if (mClickListener != null) {
-                        mClickListener.onClick(view, channel);
+                        mClickListener.onClick(channel);
                     }
                 }
             });
@@ -208,7 +208,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                 @Override
                 public void onClick(View view) {
                     if (mClickListener != null) {
-                        mClickListener.onClick(view, torrent);
+                        mClickListener.onClick(torrent);
                     }
                 }
             });

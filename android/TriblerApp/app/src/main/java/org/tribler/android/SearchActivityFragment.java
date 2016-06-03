@@ -2,7 +2,6 @@ package org.tribler.android;
 
 import android.os.Message;
 import android.support.design.widget.Snackbar;
-import android.view.View;
 
 import com.google.gson.stream.JsonReader;
 
@@ -78,34 +77,34 @@ public class SearchActivityFragment extends TriblerViewFragment {
      * {@inheritDoc}
      */
     @Override
-    public void onClick(View view, TriblerChannel channel) {
+    public void onClick(TriblerChannel channel) {
         //TODO: open channel
-        Snackbar.make(view, "open channel", Snackbar.LENGTH_LONG).show();
+        Snackbar.make(getView(), "open channel", Snackbar.LENGTH_LONG).show();
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void onClick(View view, TriblerTorrent torrent) {
+    public void onClick(TriblerTorrent torrent) {
         //TODO: play video
-        Snackbar.make(view, "play video", Snackbar.LENGTH_LONG).show();
+        Snackbar.make(getView(), "play video", Snackbar.LENGTH_LONG).show();
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void onSwipedLeft(View view, TriblerChannel channel) {
+    public void onSwipedLeft(TriblerChannel channel) {
         //TODO: unsubscribe / not interested
-        Snackbar.make(view, "unsubscribe", Snackbar.LENGTH_LONG).show();
+        Snackbar.make(getView(), "unsubscribe", Snackbar.LENGTH_LONG).show();
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void onSwipedRight(final View view, final TriblerChannel channel) {
+    public void onSwipedRight(final TriblerChannel channel) {
         restApi.put(getActivity(), BASE_URL + "/channels/subscribed/" + channel.getDispersyCid(), null, new JsonStreamAsyncHttpResponseHandler() {
             /**
              * {@inheritDoc}
@@ -126,7 +125,7 @@ public class SearchActivityFragment extends TriblerViewFragment {
              */
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                Snackbar.make(view, getText(R.string.msg_subscribe_success) + channel.getName(), Snackbar.LENGTH_LONG).show();
+                Snackbar.make(getView(), getText(R.string.msg_subscribe_success) + channel.getName(), Snackbar.LENGTH_LONG).show();
             }
 
             /**
@@ -135,9 +134,9 @@ public class SearchActivityFragment extends TriblerViewFragment {
             @Override
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
                 if (statusCode == 409) {
-                    Snackbar.make(view, getText(R.string.msg_subscribe_already) + channel.getName(), Snackbar.LENGTH_LONG).show();
+                    Snackbar.make(getView(), getText(R.string.msg_subscribe_already) + channel.getName(), Snackbar.LENGTH_LONG).show();
                 } else {
-                    Snackbar.make(view, getText(R.string.msg_subscribe_failure) + channel.getName(), Snackbar.LENGTH_LONG).show();
+                    Snackbar.make(getView(), getText(R.string.msg_subscribe_failure) + channel.getName(), Snackbar.LENGTH_LONG).show();
                 }
             }
 
@@ -148,18 +147,18 @@ public class SearchActivityFragment extends TriblerViewFragment {
      * {@inheritDoc}
      */
     @Override
-    public void onSwipedLeft(View view, TriblerTorrent torrent) {
+    public void onSwipedLeft(TriblerTorrent torrent) {
         //TODO: not interested
-        Snackbar.make(view, "not interested", Snackbar.LENGTH_LONG).show();
+        Snackbar.make(getView(), "not interested", Snackbar.LENGTH_LONG).show();
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void onSwipedRight(View view, TriblerTorrent torrent) {
+    public void onSwipedRight(TriblerTorrent torrent) {
         //TODO: watch later
-        Snackbar.make(view, "watch later", Snackbar.LENGTH_LONG).show();
+        Snackbar.make(getView(), "watch later", Snackbar.LENGTH_LONG).show();
     }
 
 }

@@ -36,18 +36,18 @@ public class TriblerViewAdapterTouchCallback extends ItemTouchHelper.SimpleCallb
         if (viewHolder instanceof TriblerViewAdapter.ChannelViewHolder) {
             TriblerChannel channel = (TriblerChannel) mAdapter.getItem(adapterPosition);
             if (swipeDir == ItemTouchHelper.LEFT) {
-                listener.onSwipedLeft(viewHolder.itemView, channel);
+                listener.onSwipedLeft(channel);
             } else if (swipeDir == ItemTouchHelper.RIGHT) {
-                listener.onSwipedRight(viewHolder.itemView, channel);
+                listener.onSwipedRight(channel);
             }
         }
         // Swipe torrent
         else if (viewHolder instanceof TriblerViewAdapter.TorrentViewHolder) {
             TriblerTorrent torrent = (TriblerTorrent) mAdapter.getItem(adapterPosition);
             if (swipeDir == ItemTouchHelper.LEFT) {
-                listener.onSwipedLeft(viewHolder.itemView, torrent);
+                listener.onSwipedLeft(torrent);
             } else if (swipeDir == ItemTouchHelper.RIGHT) {
-                listener.onSwipedRight(viewHolder.itemView, torrent);
+                listener.onSwipedRight(torrent);
             }
         }
     }
