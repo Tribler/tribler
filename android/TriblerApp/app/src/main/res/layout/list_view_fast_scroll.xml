@@ -10,13 +10,13 @@
     tools:showIn="@layout/activity_search">
 
     <android.support.v7.widget.RecyclerView
-        android:id="@+id/search_results_list"
+        android:id="@+id/list_recycler_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:scrollbars="vertical" />
 
     <xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller
-        android:id="@+id/fast_scroller"
+        android:id="@+id/list_fast_scroller"
         android:layout_width="@dimen/scrollbar_width"
         android:layout_height="match_parent"
         android:layout_alignParentEnd="true"

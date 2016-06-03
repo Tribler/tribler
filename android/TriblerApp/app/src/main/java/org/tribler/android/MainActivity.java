@@ -11,6 +11,8 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.AppCompatDelegate;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
@@ -18,6 +20,8 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 
 import java.io.File;
+
+import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -86,7 +90,8 @@ public class MainActivity extends AppCompatActivity
 
     private void initGui() {
         setContentView(R.layout.activity_main);
-        // Top bar
+
+        // Set action toolbar
         Toolbar toolbar = (Toolbar) findViewById(R.id.activity_main_toolbar);
         assert toolbar != null;
         setSupportActionBar(toolbar);
@@ -102,6 +107,38 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         assert navigationView != null;
         navigationView.setNavigationItemSelectedListener(this);
+
+        // Set list view
+        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.list_recycler_view);
+        assert recyclerView != null;
+        // Improve performance
+        recyclerView.setHasFixedSize(true);
+
+        // Set fast scroller
+        VerticalRecyclerViewFastScroller fastScroller = (VerticalRecyclerViewFastScroller) findViewById(R.id.list_fast_scroller);
+        assert fastScroller != null;
+        // Connect the recycler to the scroller (to let the scroller scroll the list)
+        fastScroller.setRecyclerView(recyclerView);
+        // Connect the scroller to the recycler (to let the recycler scroll the scroller's handle)
+        recyclerView.addOnScrollListener(fastScroller.getOnScrollListener());
+        // Scroll to the current position of the layout manager
+        setRecyclerViewLayoutManager(recyclerView);
+    }
+
+    /**
+     * @param recyclerView Set the LayoutManager of this RecycleView
+     */
+    private void setRecyclerViewLayoutManager(RecyclerView recyclerView) {
+        int scrollPosition = 0;
+        LinearLayoutManager linearLayoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
+        // If a layout manager has already been set, get current scroll position.
+        if (linearLayoutManager != null) {
+            scrollPosition = linearLayoutManager.findFirstCompletelyVisibleItemPosition();
+        } else {
+            linearLayoutManager = new LinearLayoutManager(this);
+            recyclerView.setLayoutManager(linearLayoutManager);
+        }
+        recyclerView.scrollToPosition(scrollPosition);
     }
 
     /**

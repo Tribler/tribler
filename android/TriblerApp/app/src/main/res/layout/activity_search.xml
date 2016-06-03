@@ -21,6 +21,6 @@
 
     </android.support.design.widget.AppBarLayout>
 
-    <include layout="@layout/activity_search_content" />
+    <include layout="@layout/list_view_fast_scroll" />
 
 </android.support.design.widget.CoordinatorLayout>

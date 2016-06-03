@@ -35,7 +35,7 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        mRecyclerView = (RecyclerView) getActivity().findViewById(R.id.search_results_list);
+        mRecyclerView = (RecyclerView) getActivity().findViewById(R.id.list_recycler_view);
         mAdapter.attachToRecyclerView(mRecyclerView);
         mAdapter.setOnClickListener(this);
         mAdapter.setOnSwipeListener(this);

@@ -64,22 +64,23 @@ public class SearchActivity extends AppCompatActivity {
 
         // Set action toolbar
         Toolbar toolbar = (Toolbar) findViewById(R.id.activity_search_toolbar);
+        assert toolbar != null;
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.search_results_list);
+        // Set list view
+        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.list_recycler_view);
+        assert recyclerView != null;
         // Improve performance
         recyclerView.setHasFixedSize(true);
 
-        VerticalRecyclerViewFastScroller fastScroller =
-                (VerticalRecyclerViewFastScroller) findViewById(R.id.fast_scroller);
-
+        // Set fast scroller
+        VerticalRecyclerViewFastScroller fastScroller = (VerticalRecyclerViewFastScroller) findViewById(R.id.list_fast_scroller);
+        assert fastScroller != null;
         // Connect the recycler to the scroller (to let the scroller scroll the list)
         fastScroller.setRecyclerView(recyclerView);
-
         // Connect the scroller to the recycler (to let the recycler scroll the scroller's handle)
         recyclerView.addOnScrollListener(fastScroller.getOnScrollListener());
-
         // Scroll to the current position of the layout manager
         setRecyclerViewLayoutManager(recyclerView);
     }
@@ -89,16 +90,14 @@ public class SearchActivity extends AppCompatActivity {
      */
     private void setRecyclerViewLayoutManager(RecyclerView recyclerView) {
         int scrollPosition = 0;
-
+        LinearLayoutManager linearLayoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
         // If a layout manager has already been set, get current scroll position.
-        if (recyclerView.getLayoutManager() != null) {
-            scrollPosition =
-                    ((LinearLayoutManager) recyclerView.getLayoutManager()).findFirstCompletelyVisibleItemPosition();
+        if (linearLayoutManager != null) {
+            scrollPosition = linearLayoutManager.findFirstCompletelyVisibleItemPosition();
+        } else {
+            linearLayoutManager = new LinearLayoutManager(this);
+            recyclerView.setLayoutManager(linearLayoutManager);
         }
-
-        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
-
-        recyclerView.setLayoutManager(linearLayoutManager);
         recyclerView.scrollToPosition(scrollPosition);
     }
 
