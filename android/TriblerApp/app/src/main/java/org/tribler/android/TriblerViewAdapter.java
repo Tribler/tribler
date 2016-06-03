@@ -10,6 +10,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Creates visual representation for channels and torrents in a list
@@ -26,22 +28,22 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     public interface OnSwipeListener {
-        void onSwipedLeft(TriblerChannel channel);
-
         void onSwipedRight(TriblerChannel channel);
 
-        void onSwipedLeft(TriblerTorrent torrent);
+        void onSwipedLeft(TriblerChannel channel);
 
         void onSwipedRight(TriblerTorrent torrent);
+
+        void onSwipedLeft(TriblerTorrent torrent);
     }
 
-    private ArrayList<Object> mList;
+    private List<Object> mList;
     private OnClickListener mClickListener;
     private OnSwipeListener mSwipeListener;
     private TriblerViewAdapterTouchCallback mTouchCallback;
 
     public TriblerViewAdapter() {
-        mList = new ArrayList<Object>();
+        mList = Collections.synchronizedList(new ArrayList<Object>());
         mTouchCallback = new TriblerViewAdapterTouchCallback(this);
     }
 
@@ -71,7 +73,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     /**
      * Empty data list
      */
-    public void clear() {
+    public synchronized void clear() {
         mList.clear();
         notifyDataSetChanged();
     }
@@ -80,7 +82,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
      * @param item The item to add to the adapter list
      * @return True if the item is successfully added, false otherwise
      */
-    public boolean addItem(Object item) {
+    public synchronized boolean addItem(Object item) {
         int adapterPosition = getItemCount();
         boolean inserted = mList.add(item);
         if (inserted) {
@@ -90,10 +92,37 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     /**
+     * @param item The item to remove from the adapter list
+     * @return True if the item is successfully removed, false otherwise
+     */
+    public synchronized boolean removeItem(Object item) {
+        int adapterPosition = mList.indexOf(item);
+        if (adapterPosition < 0) {
+            return false;
+        }
+        mList.remove(adapterPosition);
+        notifyItemRemoved(adapterPosition);
+        return true;
+    }
+
+    /**
+     * @param item The item to refresh the view of in the adapter list
+     * @return True if the view of the item is successfully refreshed, false otherwise
+     */
+    public synchronized boolean updateItem(Object item) {
+        int adapterPosition = mList.indexOf(item);
+        if (adapterPosition < 0) {
+            return false;
+        }
+        notifyItemChanged(adapterPosition);
+        return true;
+    }
+
+    /**
      * @param adapterPosition The position in the adapter list
      * @return The item on the given adapter position
      */
-    public Object getItem(int adapterPosition) {
+    public synchronized Object getItem(int adapterPosition) {
         return mList.get(adapterPosition);
     }
 
@@ -101,7 +130,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
      * {@inheritDoc}
      */
     @Override
-    public int getItemCount() {
+    public synchronized int getItemCount() {
         return mList.size();
     }
 

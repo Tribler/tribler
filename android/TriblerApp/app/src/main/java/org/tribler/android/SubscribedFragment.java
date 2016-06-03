@@ -24,14 +24,17 @@ public class SubscribedFragment extends TriblerViewFragment {
             @Override
             protected void readJsonStream(JsonReader reader) throws IOException {
                 reader.beginObject();
-                reader.nextName(); // "subscribed":
-                reader.beginArray();
-                while (reader.hasNext()) {
-                    TriblerChannel channel = gson.fromJson(reader, TriblerChannel.class);
-                    Message msg = obtainMessage(CHANNEL, channel);
-                    sendMessage(msg);
+                if ("subscribed".equals(reader.nextName())) {
+                    reader.beginArray();
+                    while (reader.hasNext()) {
+                        TriblerChannel channel = gson.fromJson(reader, TriblerChannel.class);
+                        Message msg = obtainMessage(CHANNEL, channel);
+                        sendMessage(msg);
+                    }
+                    reader.endArray();
+                } else {
+                    return;
                 }
-                reader.endArray();
                 reader.endObject();
             }
 
@@ -70,33 +73,4 @@ public class SubscribedFragment extends TriblerViewFragment {
         });
     }
 
-    @Override
-    public void onClick(TriblerChannel channel) {
-
-    }
-
-    @Override
-    public void onClick(TriblerTorrent torrent) {
-
-    }
-
-    @Override
-    public void onSwipedLeft(TriblerChannel channel) {
-
-    }
-
-    @Override
-    public void onSwipedRight(TriblerChannel channel) {
-
-    }
-
-    @Override
-    public void onSwipedLeft(TriblerTorrent torrent) {
-
-    }
-
-    @Override
-    public void onSwipedRight(TriblerTorrent torrent) {
-
-    }
 }

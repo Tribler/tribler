@@ -31,9 +31,12 @@
     <string name="action_settings">Change settings</string>
     <string name="action_shutdown">Shutdown service</string>
 
-    <string name="msg_subscribe_already">Already subscribed to </string>
-    <string name="msg_subscribe_success">Successfully subscribed to </string>
-    <string name="msg_subscribe_failure">Failed to subscribed to </string>
+    <string name="msg_subscribe_already">is already a favorite!</string>
+    <string name="msg_subscribe_success">is now a favorite!</string>
+    <string name="msg_subscribe_failure">is still not a favorite…</string>
+    <string name="msg_unsubscribe_already">is already not a favorite!</string>
+    <string name="msg_unsubscribe_success">is now not a favorite anymore!</string>
+    <string name="msg_unsubscribe_failure">is still a favorite…</string>
 
     <!-- Strings related to Settings -->
 
