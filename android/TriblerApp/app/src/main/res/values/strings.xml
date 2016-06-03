@@ -31,6 +31,10 @@
     <string name="action_settings">Change settings</string>
     <string name="action_shutdown">Shutdown service</string>
 
+    <string name="msg_subscribe_already">Already subscribed to </string>
+    <string name="msg_subscribe_success">Successfully subscribed to </string>
+    <string name="msg_subscribe_failure">Failed to subscribed to </string>
+
     <!-- Strings related to Settings -->
 
     <!-- Example General settings -->

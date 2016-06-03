@@ -105,10 +105,7 @@ public class SearchActivityFragment extends TriblerViewFragment {
      * {@inheritDoc}
      */
     @Override
-    public void onSwipedRight(View view, TriblerChannel channel) {
-        //TODO: subscribe / favorite
-        Snackbar.make(view, "subscribe", Snackbar.LENGTH_LONG).show();
-
+    public void onSwipedRight(final View view, final TriblerChannel channel) {
         restApi.put(getActivity(), BASE_URL + "/channels/subscribed/" + channel.getDispersyCid(), null, new JsonStreamAsyncHttpResponseHandler() {
             /**
              * {@inheritDoc}
@@ -116,7 +113,11 @@ public class SearchActivityFragment extends TriblerViewFragment {
             @Override
             protected void readJsonStream(JsonReader reader) throws IOException {
                 reader.beginObject();
-                
+                if ("subscribed".equals(reader.nextName()) && reader.nextBoolean()) {
+                    // subscribed: True
+                } else {
+                    return;
+                }
                 reader.endObject();
             }
 
@@ -125,7 +126,7 @@ public class SearchActivityFragment extends TriblerViewFragment {
              */
             @Override
             public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                // Nothing
+                Snackbar.make(view, getText(R.string.msg_subscribe_success) + channel.getName(), Snackbar.LENGTH_LONG).show();
             }
 
             /**
@@ -133,7 +134,11 @@ public class SearchActivityFragment extends TriblerViewFragment {
              */
             @Override
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-                // Ignore error 409 if already subscribed to this channel
+                if (statusCode == 409) {
+                    Snackbar.make(view, getText(R.string.msg_subscribe_already) + channel.getName(), Snackbar.LENGTH_LONG).show();
+                } else {
+                    Snackbar.make(view, getText(R.string.msg_subscribe_failure) + channel.getName(), Snackbar.LENGTH_LONG).show();
+                }
             }
 
         });
