@@ -6,6 +6,7 @@ from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION, LOWEST_SUPPORTED_DB_VERSION
 from Tribler.Core.Upgrade.db_upgrader import DBUpgrader
+from Tribler.Core.Upgrade.pickle_converter import PickleConverter
 from Tribler.Core.Upgrade.torrent_upgrade65 import TorrentMigrator65
 from Tribler.Core.simpledefs import NTFY_UPGRADER, NTFY_FINISHED, NTFY_STARTED
 from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread
@@ -39,6 +40,11 @@ class TriblerUpgrader(object):
             if has_to_upgrade and not failed:
                 self.notify_starting()
                 self.upgrade_database_to_current_version()
+
+                # Convert old (pre 6.3 Tribler) pickle files to the newer .state format
+                pickle_converter = PickleConverter(self.session)
+                pickle_converter.convert()
+
             if self.failed:
                 self.notify_starting()
                 self.stash_database()

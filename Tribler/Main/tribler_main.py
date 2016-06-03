@@ -46,14 +46,11 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
                                      NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED, NTFY_MARKINGS,
                                      NTFY_MODERATIONS, NTFY_MODIFICATIONS, NTFY_MODIFIED, NTFY_MYPREFERENCES,
                                      NTFY_PLAYLISTS, NTFY_REACHABLE, NTFY_STARTED, NTFY_STATE, NTFY_TORRENTS,
-                                     NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings, STATEDIR_GUICONFIG,
-                                     NTFY_STARTUP_TICK, NTFY_CLOSE_TICK, NTFY_UPGRADER, NTFY_WATCH_CORRUPT_FOLDER,
-                                     NTFY_NEW_VERSION)
+                                     NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings, NTFY_STARTUP_TICK,
+                                     NTFY_CLOSE_TICK, NTFY_UPGRADER, NTFY_WATCH_CORRUPT_FOLDER, NTFY_NEW_VERSION)
 from Tribler.Core.version import commit_id, version_id
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Utility.GuiDBHandler import GUIDBProducer, startWorker
-from Tribler.Main.Utility.compat import (convertDefaultDownloadConfig, convertDownloadCheckpoints, convertMainConfig,
-                                         convertSessionConfig)
 from Tribler.Core.Utilities.install_dir import determine_install_dir
 from Tribler.Main.Utility.utility import Utility, get_download_upload_speed
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
@@ -295,17 +292,8 @@ class ABCApp(object):
         cfgfilename = Session.get_default_config_filename(state_dir)
 
         self._logger.debug(u"Session config %s", cfgfilename)
-        try:
-            self.sconfig = SessionStartupConfig.load(cfgfilename)
-        except:
-            try:
-                self.sconfig = convertSessionConfig(os.path.join(state_dir, 'sessconfig.pickle'), cfgfilename)
-                convertMainConfig(state_dir, os.path.join(state_dir, 'abc.conf'),
-                                  os.path.join(state_dir, STATEDIR_GUICONFIG))
-            except:
-                self.sconfig = SessionStartupConfig()
-                self.sconfig.set_state_dir(state_dir)
 
+        self.sconfig = SessionStartupConfig.load(cfgfilename)
         self.sconfig.set_install_dir(self.installdir)
 
         if not self.sconfig.get_watch_folder_path():
@@ -322,14 +310,11 @@ class ABCApp(object):
 
         dlcfgfilename = get_default_dscfg_filename(self.sconfig.get_state_dir())
         self._logger.debug("main: Download config %s", dlcfgfilename)
-        try:
+
+        if os.path.exists(dlcfgfilename):
             defaultDLConfig = DefaultDownloadStartupConfig.load(dlcfgfilename)
-        except:
-            try:
-                defaultDLConfig = convertDefaultDownloadConfig(
-                    os.path.join(state_dir, 'dlconfig.pickle'), dlcfgfilename)
-            except:
-                defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
+        else:
+            defaultDLConfig = DefaultDownloadStartupConfig.getInstance()
 
         if not defaultDLConfig.get_dest_dir():
             defaultDLConfig.set_dest_dir(get_default_dest_dir())
@@ -600,12 +585,6 @@ class ABCApp(object):
         return 1.0, wantpeers
 
     def loadSessionCheckpoint(self):
-        pstate_dir = self.utility.session.get_downloads_pstate_dir()
-
-        filelist = os.listdir(pstate_dir)
-        if any([filename.endswith('.pickle') for filename in filelist]):
-            convertDownloadCheckpoints(pstate_dir)
-
         from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
         user_download_choice = UserDownloadChoice.get_singleton()
         initialdlstatus_dict = {}
