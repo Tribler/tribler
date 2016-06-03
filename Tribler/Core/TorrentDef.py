@@ -13,7 +13,7 @@ import requests
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Core.defaults import TDEF_DEFAULTS
 from Tribler.Core.exceptions import TorrentDefNotFinalizedException, NotYetImplementedException
-import Tribler.Core.APIImplementation.maketorrent as maketorrent
+import Tribler.Core.Utilities.maketorrent as maketorrent
 
 from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL, parse_magnetlink
 from Tribler.Core.Utilities.unicode import dunno2unicode
