@@ -96,7 +96,7 @@ public class MainActivity extends AppCompatActivity
         assert toolbar != null;
         setSupportActionBar(toolbar);
 
-        // Main menu
+        // Set collapsible menu
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         assert drawer != null;
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -104,6 +104,7 @@ public class MainActivity extends AppCompatActivity
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
+        // Set main menu
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         assert navigationView != null;
         navigationView.setNavigationItemSelectedListener(this);
