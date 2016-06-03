@@ -40,6 +40,8 @@ class MyChannelPage(QWidget):
         self.window().channel_settings_tab.initialize()
         self.window().channel_settings_tab.clicked_tab_button.connect(self.clicked_tab_button)
 
+        self.load_my_channel_overview()
+
     def load_my_channel_overview(self):
         self.mychannel_request_mgr = TriblerRequestManager()
         self.mychannel_request_mgr.perform_request("mychannel", self.initialize_with_overview)
@@ -50,21 +52,22 @@ class MyChannelPage(QWidget):
             self.window().my_channel_sharing_torrents.setHidden(True)
         else:
             self.my_channel_overview = overview
-            self.window().my_channel_name_label.setText(overview["overview"]["name"])
-            self.window().my_channel_description_label.setText(overview["overview"]["description"])
-            self.window().my_channel_identifier_label.setText(overview["overview"]["identifier"])
+            self.window().my_channel_name_label.setText(overview["mychannel"]["name"])
+            self.window().my_channel_description_label.setText(overview["mychannel"]["description"])
+            self.window().my_channel_identifier_label.setText(overview["mychannel"]["identifier"])
 
-            self.window().edit_channel_name_edit.setText(overview["overview"]["name"])
-            self.window().edit_channel_description_edit.setText(overview["overview"]["description"])
+            self.window().edit_channel_name_edit.setText(overview["mychannel"]["name"])
+            self.window().edit_channel_description_edit.setText(overview["mychannel"]["description"])
 
             self.window().my_channel_stacked_widget.setCurrentIndex(1)
             self.window().my_channel_sharing_torrents.setHidden(False)
 
     def load_my_channel_torrents(self):
         self.mychannel_request_mgr = TriblerRequestManager()
-        self.mychannel_request_mgr.perform_request("mychannel/torrents", self.initialize_with_torrents)
+        self.mychannel_request_mgr.perform_request("channels/discovered/%s/torrents" % self.my_channel_overview["mychannel"]["identifier"], self.initialize_with_torrents)
 
     def initialize_with_torrents(self, torrents):
+        print torrents
         self.window().my_channel_torrents_list.clear()
         for torrent in torrents["torrents"]:
             item = QTreeWidgetItem(self.window().my_channel_torrents_list)
@@ -75,7 +78,7 @@ class MyChannelPage(QWidget):
 
     def load_my_channel_playlists(self):
         self.mychannel_request_mgr = TriblerRequestManager()
-        self.mychannel_request_mgr.perform_request("mychannel/playlists", self.initialize_with_playlists)
+        self.mychannel_request_mgr.perform_request("channels/discovered/%s/playlists" % self.my_channel_overview["mychannel"]["identifier"], self.initialize_with_playlists)
 
     def initialize_with_playlists(self, playlists):
         self.window().my_channel_playlists_list.clear()
@@ -91,7 +94,7 @@ class MyChannelPage(QWidget):
 
     def load_my_channel_rss_feeds(self):
         self.mychannel_request_mgr = TriblerRequestManager()
-        self.mychannel_request_mgr.perform_request("mychannel/rssfeeds", self.initialize_with_rss_feeds)
+        self.mychannel_request_mgr.perform_request("channels/discovered/%s/rssfeeds" % self.my_channel_overview["mychannel"]["identifier"], self.initialize_with_rss_feeds)
 
     def initialize_with_rss_feeds(self, rss_feeds):
         self.window().my_channel_rss_feeds_list.clear()
@@ -110,7 +113,7 @@ class MyChannelPage(QWidget):
 
         self.window().create_channel_button.setEnabled(False)
         self.mychannel_request_mgr = TriblerRequestManager()
-        self.mychannel_request_mgr.perform_request("mychannel", self.on_channel_created, data=str('name=%s&description=%s' % (channel_name, channel_description)), method='PUT')
+        self.mychannel_request_mgr.perform_request("channels/discovered", self.on_channel_created, data=str('name=%s&description=%s' % (channel_name, channel_description)), method='PUT')
 
     def on_channel_created(self, result):
         if u'added' in result:
@@ -215,7 +218,7 @@ class MyChannelPage(QWidget):
         if action == 0:
             url = urllib.quote_plus(self.dialog.dialog_widget.dialog_input.text())
             self.mychannel_request_mgr = TriblerRequestManager()
-            self.mychannel_request_mgr.perform_request("mychannel/rssfeeds/%s" % url, self.on_rss_feed_added, method='PUT')
+            self.mychannel_request_mgr.perform_request("channels/discovered/%s/rssfeeds/%s" % (self.my_channel_overview["mychannel"]["identifier"], url), self.on_rss_feed_added, method='PUT')
 
         self.dialog.setParent(None)
         self.dialog = None
@@ -234,7 +237,7 @@ class MyChannelPage(QWidget):
             url = urllib.quote_plus(self.window().my_channel_rss_feeds_list.selectedItems()[0].text(0))
             print url
             self.mychannel_request_mgr = TriblerRequestManager()
-            self.mychannel_request_mgr.perform_request("mychannel/rssfeeds/%s" % url, self.on_rss_feed_removed, method='DELETE')
+            self.mychannel_request_mgr.perform_request("channels/discovered/%s/rssfeeds/%s" % (self.my_channel_overview["mychannel"]["identifier"], url), self.on_rss_feed_removed, method='DELETE')
 
         self.dialog.setParent(None)
         self.dialog = None
@@ -247,7 +250,7 @@ class MyChannelPage(QWidget):
     def on_rss_feeds_refresh_clicked(self):
         self.window().my_channel_details_rss_refresh_button.setEnabled(False)
         self.mychannel_request_mgr = TriblerRequestManager()
-        self.mychannel_request_mgr.perform_request('mychannel/recheckfeeds', self.on_rss_feeds_refreshed,  method='POST')
+        self.mychannel_request_mgr.perform_request('channels/discovered/%s/recheckfeeds' % self.my_channel_overview["mychannel"]["identifier"], self.on_rss_feeds_refreshed,  method='POST')
 
     def on_rss_feeds_refreshed(self, json_result):
         if json_result["rechecked"]:
