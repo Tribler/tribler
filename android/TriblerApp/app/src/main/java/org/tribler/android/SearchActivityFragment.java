@@ -4,6 +4,7 @@ import android.os.Message;
 import android.support.design.widget.Snackbar;
 
 import com.google.gson.stream.JsonReader;
+import com.loopj.android.http.RequestHandle;
 
 import java.io.IOException;
 
@@ -14,10 +15,12 @@ import static org.tribler.android.Triblerd.restApi;
 
 public class SearchActivityFragment extends TriblerViewFragment {
 
-    public void doMySearch(String query) {
+    private RequestHandle mSearch;
+
+    public void startSearch(String query) {
         mAdapter.clear();
         //TODO: real search
-        restApi.get(getActivity(), BASE_URL + "/channels/discovered", new JsonStreamAsyncHttpResponseHandler() {
+        mSearch = restApi.get(getActivity(), BASE_URL + "/channels/discovered", new JsonStreamAsyncHttpResponseHandler() {
             private static final int CHANNEL = 100;
             private static final int TORRENT = 200;
 

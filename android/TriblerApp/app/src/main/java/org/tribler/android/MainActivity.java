@@ -1,6 +1,7 @@
 package org.tribler.android;
 
 import android.app.Activity;
+import android.app.FragmentManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -164,11 +165,23 @@ public class MainActivity extends AppCompatActivity
         assert drawer != null;
         drawer.closeDrawer(GravityCompat.START);
 
+        FragmentManager fm = getFragmentManager();
+
         // Handle navigation view item clicks here
         switch (item.getItemId()) {
 
             case R.id.nav_subscribtions:
+                // Check to see if we have retained the worker fragment
+                SubscribedFragment fragment = (SubscribedFragment) fm.findFragmentByTag("subscribed");
+                // If not retained (or first time running), we need to create it
+                if (fragment == null) {
+                    fragment = new SubscribedFragment();
+                    // Tell the framework to try to keep this fragment around during a configuration change
+                    fragment.setRetainInstance(true);
+                    fm.beginTransaction().add(fragment, "subscribed").commit();
 
+                    fragment.getSubscriptions();
+                }
                 return true;
 
             case R.id.nav_my_channel:
