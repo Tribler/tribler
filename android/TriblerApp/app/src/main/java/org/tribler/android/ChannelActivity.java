@@ -151,9 +151,8 @@ public class ChannelActivity extends AppCompatActivity {
      */
     @Override
     public void onBackPressed() {
-        MenuItem btnSearch = (MenuItem) findViewById(R.id.btn_search);
-        assert btnSearch != null;
-        SearchView searchView = (SearchView) btnSearch.getActionView();
+        SearchView searchView = (SearchView) findViewById(R.id.btn_search);
+        ;
         if (searchView != null && !searchView.isIconified()) {
             searchView.setIconified(true);
         } else {
