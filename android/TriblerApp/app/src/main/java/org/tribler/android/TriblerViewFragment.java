@@ -163,7 +163,7 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
             @Override
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
                 if (statusCode == 404) {
-                    //TODO:idea never see channel again?
+                    //TODO: idea: never see channel again?
                     Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_unsubscribe_already), Snackbar.LENGTH_LONG).show();
                 } else {
                     Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_unsubscribe_failure), Snackbar.LENGTH_LONG).show();
@@ -178,6 +178,7 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
      */
     @Override
     public void onSwipedRight(final TriblerTorrent torrent) {
+        mAdapter.removeItem(torrent);
         //TODO: watch later
         Snackbar.make(getView(), "watch later", Snackbar.LENGTH_LONG).show();
     }
@@ -187,7 +188,9 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
      */
     @Override
     public void onSwipedLeft(final TriblerTorrent torrent) {
+        mAdapter.removeItem(torrent);
         //TODO: not interested
+        //TODO: idea: never see torrent again?
         Snackbar.make(getView(), "not interested", Snackbar.LENGTH_LONG).show();
 
     }
