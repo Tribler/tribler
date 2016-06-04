@@ -5,7 +5,8 @@ package org.tribler.android;
  */
 public class TriblerTorrent {
 
-    private int id, size, num_seeders, num_leechers, last_tracker_check;
+    private int id, num_seeders, num_leechers, last_tracker_check;
+    long size;
     private String infohash, name, category, thumbnail_url;
 
     public TriblerTorrent() {
@@ -15,7 +16,7 @@ public class TriblerTorrent {
         return id;
     }
 
-    public int getSize() {
+    public long getSize() {
         return size;
     }
 
