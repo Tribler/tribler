@@ -5,14 +5,18 @@ package org.tribler.android;
  */
 public class TriblerTorrent {
 
-    private String title, thumbnailUrl;
+    private String name, category, thumbnailUrl;
     private int duration, bitrate;
 
     public TriblerTorrent() {
     }
 
-    public String getTitle() {
-        return title;
+    public String getName() {
+        return name;
+    }
+
+    public String getCategory() {
+        return category;
     }
 
     public String getThumbnailUrl() {

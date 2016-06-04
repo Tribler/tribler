@@ -1,6 +1,7 @@
 package org.tribler.android;
 
 import android.app.Fragment;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
@@ -68,8 +69,10 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
      */
     @Override
     public void onClick(final TriblerChannel channel) {
-        //TODO: open channel
-        Snackbar.make(getView(), "open channel", Snackbar.LENGTH_LONG).show();
+        Intent intent = new Intent(getActivity(), ChannelActivity.class);
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        intent.putExtra(ChannelActivity.EXTRA_DISPERSY_CID, channel.getDispersyCid());
+        startActivity(intent);
     }
 
     /**

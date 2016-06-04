@@ -99,6 +99,15 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="org.tribler.android.MainActivity" />
         </activity>
+        <activity
+            android:name=".ChannelActivity"
+            android:label="@string/title_activity_channel"
+            android:parentActivityName=".MainActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="org.tribler.android.MainActivity" />
+        </activity>
     </application>
 
 </manifest>

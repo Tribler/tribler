@@ -1,8 +1,6 @@
 package org.tribler.android;
 
 import android.app.FragmentManager;
-import android.app.SearchManager;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
@@ -17,26 +15,25 @@ import android.view.MenuItem;
 
 import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
 
-public class SearchActivity extends AppCompatActivity {
+public class ChannelActivity extends AppCompatActivity {
 
-    private SearchFragment mSearchFragment;
+    public static final String EXTRA_DISPERSY_CID = "dispersy.CID";
 
-    /**
-     * {@inheritDoc}
-     */
+    private ChannelFragment mChannelFragment;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         initGui();
 
         FragmentManager fm = getFragmentManager();
-        mSearchFragment = (SearchFragment) fm.findFragmentByTag(SearchFragment.TAG);
+        mChannelFragment = (ChannelFragment) fm.findFragmentByTag(ChannelFragment.TAG);
         // If not retained (or first time running), we need to create it
-        if (mSearchFragment == null) {
-            mSearchFragment = new SearchFragment();
+        if (mChannelFragment == null) {
+            mChannelFragment = new ChannelFragment();
             // Tell the framework to try to keep this fragment around during a configuration change
-            mSearchFragment.setRetainInstance(true);
-            fm.beginTransaction().add(mSearchFragment, SearchFragment.TAG).commit();
+            mChannelFragment.setRetainInstance(true);
+            fm.beginTransaction().add(mChannelFragment, ChannelFragment.TAG).commit();
 
             handleIntent(getIntent());
         }
@@ -53,17 +50,17 @@ public class SearchActivity extends AppCompatActivity {
     }
 
     private void handleIntent(Intent intent) {
-        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
-            String query = intent.getStringExtra(SearchManager.QUERY);
-            mSearchFragment.startSearch(query);
+        if (Intent.ACTION_GET_CONTENT.equals(intent.getAction())) {
+            String cid = intent.getStringExtra(EXTRA_DISPERSY_CID);
+            mChannelFragment.getTorrents(cid);
         }
     }
 
     private void initGui() {
-        setContentView(R.layout.activity_search);
+        setContentView(R.layout.activity_channel);
 
         // Set action toolbar
-        Toolbar toolbar = (Toolbar) findViewById(R.id.activity_search_toolbar);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.activity_channel_toolbar);
         assert toolbar != null;
         setSupportActionBar(toolbar);
         ActionBar actionbar = getSupportActionBar();
@@ -111,62 +108,31 @@ public class SearchActivity extends AppCompatActivity {
         super.onCreateOptionsMenu(menu);
         // Add items to the action bar if it is present
         MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.activity_search_action_bar, menu);
+        inflater.inflate(R.menu.activity_channel_action_bar, menu);
 
         // Search button
         MenuItem btnSearch = (MenuItem) menu.findItem(R.id.btn_search);
         assert btnSearch != null;
         final SearchView searchView = (SearchView) btnSearch.getActionView();
-
-        // Show search input field
-        searchView.setIconified(false);
-
-        // Never close search view
-        searchView.setOnCloseListener(new SearchView.OnCloseListener() {
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public boolean onClose() {
-                // Override default behaviour with return true
-                return true;
-            }
-        });
-
-        // Restore last query
-        String query = getIntent().getStringExtra(SearchManager.QUERY);
-        if (query != null && !query.isEmpty()) {
-            searchView.setQuery(query, false);
-            searchView.clearFocus();
-        }
-
-        SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-        searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
-
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             /**
              * {@inheritDoc}
              */
             @Override
             public boolean onQueryTextSubmit(String query) {
-                searchView.clearFocus();
-                Intent intent = new Intent(SearchActivity.this, SearchActivity.class);
-                intent.setAction(Intent.ACTION_SEARCH);
-                intent.putExtra(SearchManager.QUERY, query);
-                onNewIntent(intent);
-                return true;
+                return false;
             }
 
             /**
              * {@inheritDoc}
              */
             @Override
-            public boolean onQueryTextChange(String newText) {
-                return false;
+            public boolean onQueryTextChange(String query) {
+                mChannelFragment.mAdapter.getFilter().filter(query);
+                return true;
             }
         });
 
         return true;
     }
-
 }

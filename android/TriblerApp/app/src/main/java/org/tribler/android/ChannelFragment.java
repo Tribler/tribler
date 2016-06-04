@@ -3,7 +3,6 @@ package org.tribler.android;
 import android.os.Message;
 
 import com.google.gson.stream.JsonReader;
-import com.loopj.android.http.RequestHandle;
 
 import java.io.IOException;
 
@@ -12,19 +11,11 @@ import cz.msebera.android.httpclient.Header;
 import static org.tribler.android.Triblerd.BASE_URL;
 import static org.tribler.android.Triblerd.restApi;
 
-public class SearchActivityFragment extends TriblerViewFragment {
-    public static final String TAG = SearchActivityFragment.class.getSimpleName();
+public class ChannelFragment extends TriblerViewFragment {
+    public static final String TAG = ChannelFragment.class.getSimpleName();
 
-    private RequestHandle mSearchRequest;
-
-    public void startSearch(String query) {
-        if (mSearchRequest != null) {
-            mSearchRequest.cancel(true);
-            mAdapter.clear();
-        }
-        //TODO: real search
-        mSearchRequest = restApi.get(getActivity(), BASE_URL + "/channels/discovered", new JsonStreamAsyncHttpResponseHandler() {
-            private static final int CHANNEL = 100;
+    public void getTorrents(String dispersyCid) {
+        restApi.get(getActivity(), BASE_URL + "/channels/discovered/" + dispersyCid + "/torrents", new JsonStreamAsyncHttpResponseHandler() {
             private static final int TORRENT = 200;
 
             /**
@@ -33,11 +24,11 @@ public class SearchActivityFragment extends TriblerViewFragment {
             @Override
             protected void readJsonStream(JsonReader reader) throws IOException {
                 reader.beginObject();
-                if ("channels".equals(reader.nextName())) {
+                if ("torrents".equals(reader.nextName())) {
                     reader.beginArray();
                     while (reader.hasNext()) {
-                        TriblerChannel channel = gson.fromJson(reader, TriblerChannel.class);
-                        Message msg = obtainMessage(CHANNEL, channel);
+                        TriblerTorrent torrent = gson.fromJson(reader, TriblerTorrent.class);
+                        Message msg = obtainMessage(TORRENT, torrent);
                         sendMessage(msg);
                     }
                     reader.endArray();
@@ -54,7 +45,6 @@ public class SearchActivityFragment extends TriblerViewFragment {
             public void handleMessage(Message message) {
                 switch (message.what) {
 
-                    case CHANNEL:
                     case TORRENT:
                         mAdapter.addItem(message.obj);
                         break;
@@ -76,7 +66,8 @@ public class SearchActivityFragment extends TriblerViewFragment {
              * {@inheritDoc}
              */
             @Override
-            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+            public void onFailure(int statusCode, Header[] headers,
+                                  byte[] responseBody, Throwable error) {
                 //TODO: advise user
             }
         });

@@ -17,6 +17,7 @@
     <string name="action_turn_on">Turn On</string>
 
     <string name="action_search">Search videos and channels</string>
+    <string name="action_search_in_channel">Search in this channel</string>
     <string name="action_capture_video">Record a new video</string>
 
     <string name="action_subscribtions">Favorite channels</string>
@@ -95,5 +96,6 @@
     <string name="pref_ringtone_silent">Silent</string>
 
     <string name="pref_title_vibrate">Vibrate</string>
+    <string name="title_activity_channel">ChannelActivity</string>
 
 </resources>

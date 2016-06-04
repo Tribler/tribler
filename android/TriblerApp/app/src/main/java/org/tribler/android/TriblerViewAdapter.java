@@ -6,15 +6,18 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Filter;
+import android.widget.Filterable;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Creates visual representation for channels and torrents in a list
  */
-public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements Filterable {
     private static final int VIEW_TYPE_UNKNOWN = 0;
     private static final int VIEW_TYPE_CHANNEL = 1;
     private static final int VIEW_TYPE_TORRENT = 2;
@@ -35,13 +38,15 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         void onSwipedLeft(TriblerTorrent torrent);
     }
 
-    private ArrayList<Object> mList;
+    private List<Object> mDataList;
+    private TriblerViewAdapterFilter mFilter;
+    private TriblerViewAdapterTouchCallback mTouchCallback;
     private OnClickListener mClickListener;
     private OnSwipeListener mSwipeListener;
-    private TriblerViewAdapterTouchCallback mTouchCallback;
 
     public TriblerViewAdapter() {
-        mList = new ArrayList<Object>();
+        mDataList = new ArrayList<>();
+        mFilter = new TriblerViewAdapterFilter(this, mDataList);
         mTouchCallback = new TriblerViewAdapterTouchCallback(this);
     }
 
@@ -50,6 +55,14 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             view.setAdapter(this);
         }
         mTouchCallback.attachToRecyclerView(view);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Filter getFilter() {
+        return mFilter;
     }
 
     public OnClickListener getOnClickListener() {
@@ -72,7 +85,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
      * Empty data list
      */
     public void clear() {
-        mList.clear();
+        mDataList.clear();
         notifyDataSetChanged();
     }
 
@@ -82,7 +95,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
      */
     public boolean addItem(Object item) {
         int adapterPosition = getItemCount();
-        boolean inserted = mList.add(item);
+        boolean inserted = mDataList.add(item);
         if (inserted) {
             notifyItemInserted(adapterPosition);
         }
@@ -94,11 +107,11 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
      * @return True if the item is successfully removed, false otherwise
      */
     public boolean removeItem(Object item) {
-        int adapterPosition = mList.indexOf(item);
+        int adapterPosition = mDataList.indexOf(item);
         if (adapterPosition < 0) {
             return false;
         }
-        mList.remove(adapterPosition);
+        mDataList.remove(adapterPosition);
         notifyItemRemoved(adapterPosition);
         return true;
     }
@@ -108,7 +121,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
      * @return True if the view of the item is successfully refreshed, false otherwise
      */
     public boolean updateItem(Object item) {
-        int adapterPosition = mList.indexOf(item);
+        int adapterPosition = mDataList.indexOf(item);
         if (adapterPosition < 0) {
             return false;
         }
@@ -121,7 +134,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
      * @return The item on the given adapter position
      */
     public Object getItem(int adapterPosition) {
-        return mList.get(adapterPosition);
+        return mDataList.get(adapterPosition);
     }
 
     /**
@@ -129,7 +142,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
      */
     @Override
     public int getItemCount() {
-        return mList.size();
+        return mDataList.size();
     }
 
     /**
@@ -160,12 +173,12 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     public class TorrentViewHolder extends RecyclerView.ViewHolder {
-        public TextView title, duration, bitrate;
+        public TextView name, duration, bitrate;
         public ImageView thumbnail;
 
         public TorrentViewHolder(View itemView) {
             super(itemView);
-            title = (TextView) itemView.findViewById(R.id.torrent_title);
+            name = (TextView) itemView.findViewById(R.id.torrent_name);
             duration = (TextView) itemView.findViewById(R.id.torrent_duration);
             bitrate = (TextView) itemView.findViewById(R.id.torrent_bitrate);
             thumbnail = (ImageView) itemView.findViewById(R.id.torrent_thumbnail);
@@ -224,7 +237,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         else if (viewHolder instanceof TorrentViewHolder) {
             TorrentViewHolder holder = (TorrentViewHolder) viewHolder;
             final TriblerTorrent torrent = (TriblerTorrent) getItem(adapterPosition);
-            holder.title.setText(torrent.getTitle());
+            holder.name.setText(torrent.getName());
             holder.duration.setText(String.valueOf(torrent.getDuration()));
             holder.bitrate.setText(String.valueOf(torrent.getBitrate()));
             holder.thumbnail.setImageURI(Uri.parse(torrent.getThumbnailUrl()));
