@@ -53,6 +53,12 @@ public class ChannelActivity extends AppCompatActivity {
         if (Intent.ACTION_GET_CONTENT.equals(intent.getAction())) {
             String cid = intent.getStringExtra(EXTRA_DISPERSY_CID);
             mChannelFragment.getTorrents(cid);
+
+            // Set title
+            String title = intent.getStringExtra(Intent.EXTRA_TITLE);
+            ActionBar actionbar = getSupportActionBar();
+            assert actionbar != null;
+            actionbar.setTitle(title);
         }
     }
 
@@ -134,5 +140,20 @@ public class ChannelActivity extends AppCompatActivity {
         });
 
         return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onBackPressed() {
+        MenuItem btnSearch = (MenuItem) findViewById(R.id.btn_search);
+        assert btnSearch != null;
+        SearchView searchView = (SearchView) btnSearch.getActionView();
+        if (searchView != null && !searchView.isIconified()) {
+            searchView.setIconified(true);
+        } else {
+            super.onBackPressed();
+        }
     }
 }

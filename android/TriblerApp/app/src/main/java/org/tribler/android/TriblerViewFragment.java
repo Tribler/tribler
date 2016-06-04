@@ -72,6 +72,7 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
         Intent intent = new Intent(getActivity(), ChannelActivity.class);
         intent.setAction(Intent.ACTION_GET_CONTENT);
         intent.putExtra(ChannelActivity.EXTRA_DISPERSY_CID, channel.getDispersyCid());
+        intent.putExtra(Intent.EXTRA_TITLE, channel.getName());
         startActivity(intent);
     }
 
