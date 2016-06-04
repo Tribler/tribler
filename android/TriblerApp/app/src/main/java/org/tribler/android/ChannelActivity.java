@@ -13,6 +13,8 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 
+import java.util.List;
+
 import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
 
 public class ChannelActivity extends AppCompatActivity {
@@ -134,7 +136,9 @@ public class ChannelActivity extends AppCompatActivity {
              */
             @Override
             public boolean onQueryTextChange(String query) {
-                mChannelFragment.mAdapter.getFilter().filter(query);
+                List<Object> filteredModelList = mChannelFragment.mAdapter.filter(query);
+                mChannelFragment.mAdapter.animateTo(filteredModelList);
+                mChannelFragment.getView().scrollToPosition(0);
                 return true;
             }
         });

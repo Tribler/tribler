@@ -46,7 +46,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
 
     public TriblerViewAdapter() {
         mDataList = new ArrayList<>();
-        mFilter = new TriblerViewAdapterFilter(this, mDataList);
+        //mFilter = new TriblerViewAdapterFilter(this, mDataList);
         mTouchCallback = new TriblerViewAdapterTouchCallback(this);
     }
 
@@ -82,54 +82,6 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     /**
-     * Empty data list
-     */
-    public void clear() {
-        mDataList.clear();
-        notifyDataSetChanged();
-    }
-
-    /**
-     * @param item The item to add to the adapter list
-     * @return True if the item is successfully added, false otherwise
-     */
-    public boolean addItem(Object item) {
-        int adapterPosition = getItemCount();
-        boolean inserted = mDataList.add(item);
-        if (inserted) {
-            notifyItemInserted(adapterPosition);
-        }
-        return inserted;
-    }
-
-    /**
-     * @param item The item to remove from the adapter list
-     * @return True if the item is successfully removed, false otherwise
-     */
-    public boolean removeItem(Object item) {
-        int adapterPosition = mDataList.indexOf(item);
-        if (adapterPosition < 0) {
-            return false;
-        }
-        mDataList.remove(adapterPosition);
-        notifyItemRemoved(adapterPosition);
-        return true;
-    }
-
-    /**
-     * @param item The item to refresh the view of in the adapter list
-     * @return True if the view of the item is successfully refreshed, false otherwise
-     */
-    public boolean updateItem(Object item) {
-        int adapterPosition = mDataList.indexOf(item);
-        if (adapterPosition < 0) {
-            return false;
-        }
-        notifyItemChanged(adapterPosition);
-        return true;
-    }
-
-    /**
      * @param adapterPosition The position in the adapter list
      * @return The item on the given adapter position
      */
@@ -143,6 +95,147 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     @Override
     public int getItemCount() {
         return mDataList.size();
+    }
+
+    /**
+     * Empty data list
+     */
+    public void clear() {
+        mDataList.clear();
+        notifyDataSetChanged();
+    }
+
+    /**
+     * @param item The item to add to the adapter list
+     * @return True if the item is successfully added, false otherwise
+     */
+    public boolean addItem(Object item) {
+        int adapterPosition = getItemCount();
+        boolean added = mDataList.add(item);
+        if (added) {
+            notifyItemInserted(adapterPosition);
+        }
+        return added;
+    }
+
+    /**
+     * @param adapterPosition The position in the adapter list of where to add the item
+     * @param item            The item to add to the adapter list
+     */
+    public void addItem(int adapterPosition, Object item) {
+        mDataList.add(adapterPosition, item);
+        notifyItemInserted(adapterPosition);
+    }
+
+    /**
+     * @param item The item to remove from the adapter list
+     * @return True if the item is successfully removed, false otherwise
+     */
+    public boolean removeItem(Object item) {
+        int adapterPosition = mDataList.indexOf(item);
+        if (adapterPosition < 0) {
+            return false;
+        }
+        removeItem(adapterPosition);
+        return true;
+    }
+
+    /**
+     * @param adapterPosition The position of the item in adapter list to remove
+     * @return True if the item at given position is successfully removed, false otherwise
+     */
+    public void removeItem(int adapterPosition) {
+        mDataList.remove(adapterPosition);
+        notifyItemRemoved(adapterPosition);
+    }
+
+    /**
+     * @param item The item to refresh the view of in the adapter list
+     * @return True if the view of the item is successfully refreshed, false otherwise
+     */
+    public boolean updateItem(Object item) {
+        int adapterPosition = mDataList.indexOf(item);
+        if (adapterPosition < 0) {
+            return false;
+        }
+        updateItem(adapterPosition);
+        return true;
+    }
+
+    /**
+     * @param adapterPosition The position of the item in the adapter list that is updated
+     */
+    public void updateItem(int adapterPosition) {
+        notifyItemChanged(adapterPosition);
+    }
+
+    /**
+     * @param fromPosition The position in the adapter list of the item to move from
+     * @param toPosition   The position in the adapter list of the item to move to
+     */
+    public void moveItem(int fromPosition, int toPosition) {
+        Object model = mDataList.remove(fromPosition);
+        mDataList.add(toPosition, model);
+        notifyItemMoved(fromPosition, toPosition);
+    }
+
+    public void animateTo(List<Object> list) {
+        applyAndAnimateRemovals(list);
+        applyAndAnimateAdditions(list);
+        applyAndAnimateMovedItems(list);
+    }
+
+    private void applyAndAnimateRemovals(List<Object> list) {
+        for (int i = mDataList.size() - 1; i >= 0; i--) {
+            Object item = mDataList.get(i);
+            if (!list.contains(item)) {
+                removeItem(i);
+            }
+        }
+    }
+
+    private void applyAndAnimateAdditions(List<Object> list) {
+        for (int i = 0, count = list.size(); i < count; i++) {
+            Object item = list.get(i);
+            if (!mDataList.contains(item)) {
+                addItem(i, item);
+            }
+        }
+    }
+
+    private void applyAndAnimateMovedItems(List<Object> list) {
+        for (int toPosition = list.size() - 1; toPosition >= 0; toPosition--) {
+            Object item = list.get(toPosition);
+            int fromPosition = mDataList.indexOf(item);
+            if (fromPosition >= 0 && fromPosition != toPosition) {
+                moveItem(fromPosition, toPosition);
+            }
+        }
+    }
+
+    protected List<Object> filter(String filterPattern) {
+        List<Object> filteredList = new ArrayList<>();
+        String constraint = filterPattern.toString().trim().toLowerCase();
+        if (constraint.isEmpty()) {
+            filteredList.addAll(mDataList);
+        } else {
+            for (Object item : mDataList) {
+                if (item instanceof TriblerChannel) {
+                    TriblerChannel channel = (TriblerChannel) item;
+                    if (channel.getName().toLowerCase().contains(constraint)
+                            || channel.getDescription().toLowerCase().contains(constraint)) {
+                        filteredList.add(channel);
+                    }
+                } else if (item instanceof TriblerTorrent) {
+                    TriblerTorrent torrent = (TriblerTorrent) item;
+                    if (torrent.getName().toLowerCase().contains(constraint)
+                            || torrent.getCategory().toLowerCase().contains(constraint)) {
+                        filteredList.add(torrent);
+                    }
+                }
+            }
+        }
+        return filteredList;
     }
 
     /**
@@ -160,27 +253,27 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     public class ChannelViewHolder extends RecyclerView.ViewHolder {
-        public TextView name, torrentsCount, votesCount;
+        public TextView name, votesCount, torrentsCount;
         public ImageView icon;
 
         public ChannelViewHolder(View itemView) {
             super(itemView);
             name = (TextView) itemView.findViewById(R.id.channel_name);
-            torrentsCount = (TextView) itemView.findViewById(R.id.channel_torrents_count);
             votesCount = (TextView) itemView.findViewById(R.id.channel_votes_count);
+            torrentsCount = (TextView) itemView.findViewById(R.id.channel_torrents_count);
             icon = (ImageView) itemView.findViewById(R.id.channel_icon);
         }
     }
 
     public class TorrentViewHolder extends RecyclerView.ViewHolder {
-        public TextView name, duration, bitrate;
+        public TextView name, seeders, size;
         public ImageView thumbnail;
 
         public TorrentViewHolder(View itemView) {
             super(itemView);
             name = (TextView) itemView.findViewById(R.id.torrent_name);
-            duration = (TextView) itemView.findViewById(R.id.torrent_duration);
-            bitrate = (TextView) itemView.findViewById(R.id.torrent_bitrate);
+            seeders = (TextView) itemView.findViewById(R.id.torrent_seeders);
+            size = (TextView) itemView.findViewById(R.id.torrent_size);
             thumbnail = (ImageView) itemView.findViewById(R.id.torrent_thumbnail);
         }
     }
@@ -218,8 +311,8 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             ChannelViewHolder holder = (ChannelViewHolder) viewHolder;
             final TriblerChannel channel = (TriblerChannel) getItem(adapterPosition);
             holder.name.setText(channel.getName());
-            holder.torrentsCount.setText(String.valueOf(channel.getTorrentsCount()));
             holder.votesCount.setText(String.valueOf(channel.getVotesCount()));
+            holder.torrentsCount.setText(String.valueOf(channel.getTorrentsCount()));
             holder.icon.setImageURI(Uri.parse(channel.getIconUrl()));
             holder.itemView.setOnClickListener(new View.OnClickListener() {
                 /**
@@ -238,8 +331,8 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             TorrentViewHolder holder = (TorrentViewHolder) viewHolder;
             final TriblerTorrent torrent = (TriblerTorrent) getItem(adapterPosition);
             holder.name.setText(torrent.getName());
-            holder.duration.setText(String.valueOf(torrent.getDuration()));
-            holder.bitrate.setText(String.valueOf(torrent.getBitrate()));
+            holder.seeders.setText(String.valueOf(torrent.getNumSeeders()));
+            holder.size.setText(String.valueOf(torrent.getSize()));
             holder.thumbnail.setImageURI(Uri.parse(torrent.getThumbnailUrl()));
             holder.itemView.setOnClickListener(new View.OnClickListener() {
                 /**

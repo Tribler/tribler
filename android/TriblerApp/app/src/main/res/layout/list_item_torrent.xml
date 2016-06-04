@@ -35,17 +35,17 @@
         android:textStyle="bold" />
 
     <TextView
-        android:id="@+id/torrent_duration"
+        android:id="@+id/torrent_seeders"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
         android:layout_alignTop="@+id/torrent_name"
-        android:text="Duration"
+        android:text="Seeders"
         android:textColor="@color/blue" />
 
     <TextView
-        android:id="@+id/torrent_bitrate"
+        android:id="@+id/torrent_size"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignBottom="@+id/torrent_thumbnail"
@@ -53,6 +53,6 @@
         android:layout_marginStart="16dp"
         android:layout_toEndOf="@+id/torrent_thumbnail"
         android:layout_toRightOf="@+id/torrent_thumbnail"
-        android:text="Bitrate" />
+        android:text="Size" />
 
 </RelativeLayout>

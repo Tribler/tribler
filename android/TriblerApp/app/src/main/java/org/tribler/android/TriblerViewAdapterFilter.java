@@ -24,9 +24,9 @@ public class TriblerViewAdapterFilter extends Filter {
      * {@inheritDoc}
      */
     @Override
-    protected Filter.FilterResults performFiltering(CharSequence filterPattern) {
+    protected Filter.FilterResults performFiltering(CharSequence query) {
         List<Object> filteredList = new ArrayList<>();
-        String constraint = filterPattern.toString().trim().toLowerCase();
+        String constraint = query.toString().trim().toLowerCase();
         if (constraint.isEmpty()) {
             filteredList.addAll(mOriginalList);
         } else {
@@ -57,10 +57,7 @@ public class TriblerViewAdapterFilter extends Filter {
      */
     @Override
     protected void publishResults(CharSequence filterPattern, FilterResults filterResults) {
-        mAdapter.clear();
-        for (Object item : (List<Object>) filterResults.values) {
-            mAdapter.addItem(item);
-        }
-        mAdapter.notifyDataSetChanged();
+        List<Object> filteredList = (List<Object>) filterResults.values;
+        mAdapter.animateTo(filteredList);
     }
 }

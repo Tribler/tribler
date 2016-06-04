@@ -6,7 +6,6 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
 import android.support.v7.widget.RecyclerView;
-import android.view.View;
 
 import com.google.gson.stream.JsonReader;
 
@@ -27,7 +26,7 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
      */
     @Nullable
     @Override
-    public View getView() {
+    public RecyclerView getView() {
         return mRecyclerView;
     }
 
