@@ -224,7 +224,12 @@ class Tunnel(object):
                 member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair))
                 cls = TunnelCommunityCrawler
             else:
-                member = self.dispersy.get_new_member(u"curve25519")
+                if self.settings.enable_multichain:
+                    from Tribler.community.multichain.community import MultiChainCommunity
+                    member = self.dispersy.get_member(private_key=self.session.multichain_keypair.key_to_bin())
+                    self.dispersy.define_auto_load(MultiChainCommunity, member, load=True)
+                else:
+                    member = self.dispersy.get_new_member(u"curve25519")
                 cls = HiddenTunnelCommunity
             self.community = self.dispersy.define_auto_load(cls, member, (self.session, self.settings), load=True)[0]
 

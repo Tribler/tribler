@@ -49,6 +49,7 @@ class MultiChainCommunity(Community):
         self._private_key = self.my_member.private_key
         self._public_key = self.my_member.public_key
         self.persistence = MultiChainDB(self.dispersy, self.dispersy.working_directory)
+        self.logger.debug("The multichain community started with Public Key: %s", base64.encodestring(self._public_key))
 
         # No response is expected yet.
         self.expected_response = None

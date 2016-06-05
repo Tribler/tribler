@@ -238,19 +238,21 @@ class TriblerLaunchMany(TaskManager):
                     self.dispersy.define_auto_load(PreviewChannelCommunity,
                                                    self.session.dispersy_member, kargs=default_kwargs)
 
-                # Define settings for the Tunnel and Multichain community
-                keypair = self.dispersy.crypto.generate_key(u"curve25519")
-                dispersy_member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair),)
-
-                if self.session.get_enable_multichain():
-                    from Tribler.community.multichain.community import MultiChainCommunity
-                    # Start the multichain community and hook in the multichain scheduler.
-                    self.dispersy.define_auto_load(MultiChainCommunity, dispersy_member, load=True)
-
                 if self.session.get_tunnel_community_enabled():
+
+                    if self.session.get_enable_multichain():
+                        # If the multichain is enabled, we use the permanent multichain keypair
+                        # for both the multichain and the tunnel community
+                        keypair = self.session.multichain_keypair
+                        dispersy_member = self.dispersy.get_member(private_key=keypair.key_to_bin())
+
+                        from Tribler.community.multichain.community import MultiChainCommunity
+                        self.dispersy.define_auto_load(MultiChainCommunity, dispersy_member, load=True)
+                    else:
+                        keypair = self.dispersy.crypto.generate_key(u"curve25519")
+                        dispersy_member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair))
+
                     from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
-                    # The multichain community MUST be auto_loaded before the tunnel community,
-                    #  because it must be unloaded after the tunnel, so that the tunnel closures can be signed
                     tunnel_settings = TunnelSettings(tribler_session=self.session)
                     tunnel_kwargs = {'tribler_session': self.session, 'settings': tunnel_settings}
                     self.tunnel_community = self.dispersy.define_auto_load(
