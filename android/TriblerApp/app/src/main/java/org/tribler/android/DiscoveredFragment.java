@@ -15,8 +15,8 @@ import okhttp3.Response;
 import static org.tribler.android.Triblerd.API;
 import static org.tribler.android.Triblerd.BASE_URL;
 
-public class SubscribedFragment extends TriblerViewFragment {
-    public static final String TAG = SubscribedFragment.class.getSimpleName();
+public class DiscoveredFragment extends TriblerViewFragment {
+    public static final String TAG = DiscoveredFragment.class.getSimpleName();
 
     private Callback mCallback = new Callback() {
 
@@ -57,13 +57,12 @@ public class SubscribedFragment extends TriblerViewFragment {
 
     };
 
-    public void getSubscriptions() {
+    public void getDiscoveredChannels() {
         Request request = new Request.Builder()
-                .url(BASE_URL + "/channels/subscribed")
+                .url(BASE_URL + "/channels/discovered")
                 .build();
 
         API.newCall(request).enqueue(mCallback);
     }
 
 }
-

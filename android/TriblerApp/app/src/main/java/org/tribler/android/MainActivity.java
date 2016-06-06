@@ -20,6 +20,8 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 
+import com.facebook.stetho.Stetho;
+
 import java.io.File;
 
 import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
@@ -39,6 +41,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        Stetho.initializeWithDefaults(this); //DEBUG
+
         Triblerd.start(this);
         initGui();
     }
@@ -183,7 +188,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 return true;
 
             case R.id.nav_my_channel:
-
+                DiscoveredFragment discoveredFragment = (DiscoveredFragment) fm.findFragmentByTag(DiscoveredFragment.TAG);
+                // If not retained (or first time running), we need to create it
+                if (discoveredFragment == null) {
+                    discoveredFragment = new DiscoveredFragment();
+                    // Tell the framework to try to keep this fragment around during a configuration change
+                    discoveredFragment.setRetainInstance(true);
+                    fm.beginTransaction().add(discoveredFragment, DiscoveredFragment.TAG).commit();
+                }
+                discoveredFragment.getDiscoveredChannels();
                 return true;
 
             case R.id.nav_my_playlists:

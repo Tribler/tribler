@@ -7,14 +7,17 @@ import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
 import android.support.v7.widget.RecyclerView;
 
-import com.google.gson.stream.JsonReader;
-
 import java.io.IOException;
 
-import cz.msebera.android.httpclient.Header;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
+import static org.tribler.android.Triblerd.API;
 import static org.tribler.android.Triblerd.BASE_URL;
-import static org.tribler.android.Triblerd.restApi;
+import static org.tribler.android.Triblerd.JSON;
 
 public abstract class TriblerViewFragment extends Fragment implements TriblerViewAdapter.OnClickListener, TriblerViewAdapter.OnSwipeListener {
 
@@ -90,42 +93,35 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
     @Override
     public void onSwipedRight(final TriblerChannel channel) {
         mAdapter.removeItem(channel);
-        restApi.put(getActivity(), BASE_URL + "/channels/subscribed/" + channel.getDispersyCid(), null, new JsonStreamAsyncHttpResponseHandler() {
+        Request request = new Request.Builder()
+                .url(BASE_URL + "/channels/subscribed/" + channel.getDispersyCid())
+                .put(RequestBody.create(JSON, ""))
+                .build();
+        Callback callback = new Callback() {
             /**
              * {@inheritDoc}
              */
             @Override
-            protected void readJsonStream(JsonReader reader) throws IOException {
-                reader.beginObject();
-                if ("subscribed".equals(reader.nextName()) && reader.nextBoolean()) {
-                    // subscribed: True
-                } else {
-                    return;
-                }
-                reader.endObject();
+            public void onFailure(Call call, IOException e) {
+                e.printStackTrace();
+                Snackbar.make(getView(), e.getClass().getName(), Snackbar.LENGTH_LONG).show();
             }
 
             /**
              * {@inheritDoc}
              */
             @Override
-            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_subscribe_success), Snackbar.LENGTH_LONG).show();
-            }
-
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-                if (statusCode == 409) {
+            public void onResponse(Call call, Response response) throws IOException {
+                if (response.isSuccessful()) {
+                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_subscribe_success), Snackbar.LENGTH_LONG).show();
+                } else if (response.code() == 409) {
                     Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_subscribe_already), Snackbar.LENGTH_LONG).show();
                 } else {
                     Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_subscribe_failure), Snackbar.LENGTH_LONG).show();
                 }
             }
-
-        });
+        };
+        API.newCall(request).enqueue(callback);
     }
 
     /**
@@ -134,43 +130,36 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
     @Override
     public void onSwipedLeft(final TriblerChannel channel) {
         mAdapter.removeItem(channel);
-        restApi.delete(getActivity(), BASE_URL + "/channels/subscribed/" + channel.getDispersyCid(), null, new JsonStreamAsyncHttpResponseHandler() {
+        Request request = new Request.Builder()
+                .url(BASE_URL + "/channels/discovered")
+                .delete()
+                .build();
+        Callback callback = new Callback() {
             /**
              * {@inheritDoc}
              */
             @Override
-            protected void readJsonStream(JsonReader reader) throws IOException {
-                reader.beginObject();
-                if ("unsubscribed".equals(reader.nextName()) && reader.nextBoolean()) {
-                    // unsubscribed: True
-                } else {
-                    return;
-                }
-                reader.endObject();
+            public void onFailure(Call call, IOException e) {
+                e.printStackTrace();
+                Snackbar.make(getView(), e.getClass().getName(), Snackbar.LENGTH_LONG).show();
             }
 
             /**
              * {@inheritDoc}
              */
             @Override
-            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_unsubscribe_success), Snackbar.LENGTH_LONG).show();
-            }
-
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-                if (statusCode == 404) {
+            public void onResponse(Call call, Response response) throws IOException {
+                if (response.isSuccessful()) {
+                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_unsubscribe_success), Snackbar.LENGTH_LONG).show();
+                } else if (response.code() == 404) {
                     //TODO: idea: never see channel again?
                     Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_unsubscribe_already), Snackbar.LENGTH_LONG).show();
                 } else {
                     Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_unsubscribe_failure), Snackbar.LENGTH_LONG).show();
                 }
             }
-
-        });
+        };
+        API.newCall(request).enqueue(callback);
     }
 
     /**

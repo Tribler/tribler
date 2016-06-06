@@ -1,76 +1,69 @@
 package org.tribler.android;
 
-import android.os.Message;
+import android.net.Uri;
+import android.support.design.widget.Snackbar;
 
+import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 
 import java.io.IOException;
 
-import cz.msebera.android.httpclient.Header;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Request;
+import okhttp3.Response;
 
+import static org.tribler.android.Triblerd.API;
 import static org.tribler.android.Triblerd.BASE_URL;
-import static org.tribler.android.Triblerd.restApi;
 
 public class ChannelFragment extends TriblerViewFragment {
     public static final String TAG = ChannelFragment.class.getSimpleName();
 
+    private Callback mCallback = new Callback() {
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onFailure(Call call, IOException e) {
+            e.printStackTrace();
+            Snackbar.make(getView(), e.getClass().getName(), Snackbar.LENGTH_LONG).show();
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onResponse(Call call, Response response) throws IOException {
+            if (!response.isSuccessful()) {
+                throw new IOException("Unexpected code " + response);
+            }
+
+            Gson gson = new Gson();
+            JsonReader reader = new JsonReader(response.body().charStream());
+
+            reader.beginObject();
+            if ("torrents".equals(reader.nextName())) {
+                reader.beginArray();
+                while (reader.hasNext()) {
+                    TriblerTorrent torrent = gson.fromJson(reader, TriblerTorrent.class);
+                    mAdapter.addItem(torrent);
+                }
+                reader.endArray();
+            } else {
+                return;
+            }
+            reader.endObject();
+        }
+
+    };
+
     public void getTorrents(String dispersyCid) {
-        restApi.get(getActivity(), BASE_URL + "/channels/discovered/" + dispersyCid + "/torrents", new JsonStreamAsyncHttpResponseHandler() {
-            private static final int TORRENT = 200;
+        Request request = new Request.Builder()
+                .url(BASE_URL + "/channels/discovered/" + Uri.encode(dispersyCid).toString() + "/torrents")
+                .build();
 
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            protected void readJsonStream(JsonReader reader) throws IOException {
-                reader.beginObject();
-                if ("torrents".equals(reader.nextName())) {
-                    reader.beginArray();
-                    while (reader.hasNext()) {
-                        TriblerTorrent torrent = gson.fromJson(reader, TriblerTorrent.class);
-                        Message msg = obtainMessage(TORRENT, torrent);
-                        sendMessage(msg);
-                    }
-                    reader.endArray();
-                } else {
-                    return;
-                }
-                reader.endObject();
-            }
-
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public void handleMessage(Message message) {
-                switch (message.what) {
-
-                    case TORRENT:
-                        mAdapter.addItem(message.obj);
-                        break;
-
-                    default:
-                        super.handleMessage(message);
-                }
-            }
-
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                // Nothing
-            }
-
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public void onFailure(int statusCode, Header[] headers,
-                                  byte[] responseBody, Throwable error) {
-                //TODO: advise user
-            }
-        });
+        API.newCall(request).enqueue(mCallback);
     }
 
 }

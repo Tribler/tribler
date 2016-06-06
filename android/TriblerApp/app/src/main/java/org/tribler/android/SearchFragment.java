@@ -1,85 +1,66 @@
 package org.tribler.android;
 
-import android.os.Message;
-
-import com.google.gson.stream.JsonReader;
-import com.loopj.android.http.RequestHandle;
+import android.net.Uri;
+import android.support.design.widget.Snackbar;
 
 import java.io.IOException;
 
-import cz.msebera.android.httpclient.Header;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Headers;
+import okhttp3.Request;
+import okhttp3.Response;
 
+import static org.tribler.android.Triblerd.API;
 import static org.tribler.android.Triblerd.BASE_URL;
-import static org.tribler.android.Triblerd.restApi;
 
 public class SearchFragment extends TriblerViewFragment {
     public static final String TAG = SearchFragment.class.getSimpleName();
 
-    private RequestHandle mSearchRequest;
+    private Call mSearchCall;
+
+    private Callback mSearchCallback = new Callback() {
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onFailure(Call call, IOException e) {
+            e.printStackTrace();
+            Snackbar.make(getView(), e.getClass().getName(), Snackbar.LENGTH_LONG).show();
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void onResponse(Call call, Response response) throws IOException {
+            if (!response.isSuccessful()) {
+                throw new IOException("Unexpected code " + response);
+            }
+
+            Headers responseHeaders = response.headers();
+            for (int i = 0, size = responseHeaders.size(); i < size; i++) {
+                System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
+            }
+
+            System.out.println(response.body().string());
+        }
+    };
 
     public void startSearch(String query) {
-        if (mSearchRequest != null) {
-            mSearchRequest.cancel(true);
+        if (mSearchCall != null) {
+            mSearchCall.cancel();
             mAdapter.clear();
         }
-        //TODO: real search
-        mSearchRequest = restApi.get(getActivity(), BASE_URL + "/channels/discovered", new JsonStreamAsyncHttpResponseHandler() {
-            private static final int CHANNEL = 100;
-            private static final int TORRENT = 200;
 
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            protected void readJsonStream(JsonReader reader) throws IOException {
-                reader.beginObject();
-                if ("channels".equals(reader.nextName())) {
-                    reader.beginArray();
-                    while (reader.hasNext()) {
-                        TriblerChannel channel = gson.fromJson(reader, TriblerChannel.class);
-                        Message msg = obtainMessage(CHANNEL, channel);
-                        sendMessage(msg);
-                    }
-                    reader.endArray();
-                } else {
-                    return;
-                }
-                reader.endObject();
-            }
+        Request request = new Request.Builder()
+                .url(BASE_URL + "/search?q=" + Uri.encode(query).toString())
+                .build();
 
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public void handleMessage(Message message) {
-                switch (message.what) {
+        mSearchCall = API.newCall(request);
 
-                    case CHANNEL:
-                    case TORRENT:
-                        mAdapter.addItem(message.obj);
-                        break;
-
-                    default:
-                        super.handleMessage(message);
-                }
-            }
-
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                // Nothing
-            }
-
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-                //TODO: advise user
-            }
-        });
+        mSearchCall.enqueue(mSearchCallback);
     }
 
 }
