@@ -23,8 +23,6 @@ from twisted.internet.task import LoopingCall
 # the globalLogPublisher in the current version of Twisted.
 # So we make it a conditional import.
 try:
-    from twisted.logger import globalLogPublisher
-
     global_log_publisher_available = True
 except:
     pass
@@ -163,8 +161,7 @@ class Tunnel(object):
             if now - 3600 > self.crawl_message[k]['time']:
                 self.crawl_message.pop(k)
 
-        if global_log_publisher_available:
-            clean_twisted_observers(globalLogPublisher)
+        clean_twisted_observers()
 
     def build_history(self):
         self.history_stats.append(self.get_stats())
@@ -456,7 +453,7 @@ class TunnelHelperServiceMaker(object):
         else:
             settings.socks_listen_ports = [random.randint(1000, 65535) for _ in range(5)]
 
-        settings.become_exitnode = options["exit"]
+        settings.become_exitnode = bool(options["exit"])
         if settings.become_exitnode:
             logger.info("Exit-node enabled")
         else:

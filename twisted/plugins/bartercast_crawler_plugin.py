@@ -8,8 +8,6 @@ Temporary approach: all peers will run this service if this works OK. See Github
 import os
 import signal
 
-from twisted.logger import globalLogPublisher
-
 from Tribler.dispersy.crypto import NoVerifyCrypto, NoCrypto
 # from dispersy.discovery.community import DiscoveryCommunity
 from Tribler.dispersy.dispersy import Dispersy
@@ -27,7 +25,7 @@ from Tribler.community.bartercast4.community import BarterCommunityCrawler
 from Tribler.dispersy.tool.clean_observers import clean_twisted_observers
 
 
-clean_twisted_observers(globalLogPublisher)
+clean_twisted_observers()
 
 
 class BartercastCrawler(Dispersy):
