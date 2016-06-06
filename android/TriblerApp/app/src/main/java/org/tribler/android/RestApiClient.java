@@ -3,6 +3,7 @@ package org.tribler.android;
 import com.facebook.stetho.okhttp3.StethoInterceptor;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -19,8 +20,18 @@ public class RestApiClient {
     public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     public static final OkHttpClient API = new OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
             .addNetworkInterceptor(new StethoInterceptor()) // DEBUG
             .build();
+
+    /**
+     * Don't instantiate; all members and methods are static.
+     */
+    private RestApiClient() {
+    }
 
     private static Call mEventCall;
 
@@ -33,6 +44,11 @@ public class RestApiClient {
         public void onFailure(Call call, IOException e) {
             e.printStackTrace();
             // Retry until service comes up
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e1) {
+                e1.printStackTrace();
+            }
             openEvents();
         }
 
@@ -56,10 +72,6 @@ public class RestApiClient {
     };
 
     public static void openEvents() {
-        if (mEventCall != null) {
-            return;
-        }
-
         Request request = new Request.Builder()
                 .url(BASE_URL + "/events")
                 .build();
