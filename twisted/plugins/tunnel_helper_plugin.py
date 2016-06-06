@@ -453,7 +453,7 @@ class TunnelHelperServiceMaker(object):
         else:
             settings.socks_listen_ports = [random.randint(1000, 65535) for _ in range(5)]
 
-        settings.become_exitnode = options["exit"]
+        settings.become_exitnode = bool(options["exit"])
         if settings.become_exitnode:
             logger.info("Exit-node enabled")
         else:
