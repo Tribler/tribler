@@ -827,7 +827,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
         return plist
 
-    @checkHandleAndSynchronize()
+    @checkHandleAndSynchronize(default={})
     def network_tracker_status(self):
         # Make sure all trackers are in the tracker_status dict
         for announce_entry in self.handle.trackers():
