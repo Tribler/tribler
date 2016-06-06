@@ -88,10 +88,13 @@ def check_yappi_args(profile):
 check_yappi_args.coerceDoc = "Profile option should be wall or cpu."
 
 class Options(usage.Options):
+    optFlags = [
+        ["exit", "x", "Allow being an exit-node"]
+    ]
+
     optParameters = [
         ["manhole", "m", 0, "Enable manhole telnet service listening at the specified port", int],
         ["socks5", "p", None, "Socks5 port", check_socks5_port],
-        ["exit", "x", False, "Allow being an exit-node", bool],
         ["introduce", "i", None, 'Introduce the dispersy port of another tribler instance', check_introduce_port],
         ["dispersy", "d", -1, 'Dispersy port', check_dispersy_port],
         ["crawl", "c", None, 'Enable crawler and use the keypair specified in the given filename', check_crawler_keypair],
