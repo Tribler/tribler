@@ -44,7 +44,7 @@ public class SubscribedFragment extends TriblerViewFragment {
                 JsonReader reader = new JsonReader(response.body().charStream());
 
                 reader.beginObject();
-                if ("channels".equals(reader.nextName())) {
+                if ("subscribed".equals(reader.nextName())) {
                     reader.beginArray();
                     while (reader.hasNext()) {
                         final TriblerChannel channel = gson.fromJson(reader, TriblerChannel.class);
