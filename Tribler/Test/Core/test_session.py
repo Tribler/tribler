@@ -6,7 +6,7 @@ from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException, DuplicateTorrentFileError
 from Tribler.Core.leveldbstore import LevelDbStore
-from Tribler.Core.simpledefs import NTFY_CHANNELCAST
+from Tribler.Core.simpledefs import NTFY_CHANNELCAST, DLSTATUS_STOPPED
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.test_as_server import TestAsServer
@@ -117,3 +117,15 @@ class TestSessionAsServer(TestAsServer):
             self.session.add_torrent_def_to_channel(channel_id, torrent_def, forward=False)
             self.session.add_torrent_def_to_channel(channel_id, torrent_def, forward=False)
         do_test()
+
+    def test_load_checkpoint(self):
+        self.session.tribler_config.set_download_state("abc", "stop")
+        self.load_checkpoint_called = False
+
+        def verify_load_checkpoint_call(initialdlstatus_dict={}):
+            self.load_checkpoint_called = True
+            self.assertEqual(initialdlstatus_dict, {"abc": DLSTATUS_STOPPED})
+
+        self.session.lm.load_checkpoint = verify_load_checkpoint_call
+        self.session.load_checkpoint()
+        self.assertTrue(self.load_checkpoint_called)
