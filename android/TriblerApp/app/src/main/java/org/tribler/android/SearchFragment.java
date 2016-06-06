@@ -1,7 +1,6 @@
 package org.tribler.android;
 
 import android.net.Uri;
-import android.support.design.widget.Snackbar;
 
 import java.io.IOException;
 
@@ -11,8 +10,8 @@ import okhttp3.Headers;
 import okhttp3.Request;
 import okhttp3.Response;
 
-import static org.tribler.android.Triblerd.API;
-import static org.tribler.android.Triblerd.BASE_URL;
+import static org.tribler.android.RestApiClient.API;
+import static org.tribler.android.RestApiClient.BASE_URL;
 
 public class SearchFragment extends TriblerViewFragment {
     public static final String TAG = SearchFragment.class.getSimpleName();
@@ -27,7 +26,6 @@ public class SearchFragment extends TriblerViewFragment {
         @Override
         public void onFailure(Call call, IOException e) {
             e.printStackTrace();
-            Snackbar.make(getView(), e.getClass().getName(), Snackbar.LENGTH_LONG).show();
         }
 
         /**
@@ -51,11 +49,16 @@ public class SearchFragment extends TriblerViewFragment {
     public void startSearch(String query) {
         if (mSearchCall != null) {
             mSearchCall.cancel();
-            mAdapter.clear();
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mAdapter.clear();
+                }
+            });
         }
 
         Request request = new Request.Builder()
-                .url(BASE_URL + "/search?q=" + Uri.encode(query).toString())
+                .url(BASE_URL + "/search?q=" + Uri.encode(query))
                 .build();
 
         mSearchCall = API.newCall(request);
