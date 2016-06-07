@@ -224,17 +224,13 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                 if (item instanceof TriblerChannel) {
                     TriblerChannel channel = (TriblerChannel) item;
                     String name = channel.getName();
-                    String description = channel.getDescription();
-                    if ((name != null && name.toLowerCase().contains(constraint))
-                            || (description != null && description.toLowerCase().contains(constraint))) {
+                    if ((name != null && name.toLowerCase().contains(constraint))) {
                         filteredList.add(channel);
                     }
                 } else if (item instanceof TriblerTorrent) {
                     TriblerTorrent torrent = (TriblerTorrent) item;
                     String name = torrent.getName();
-                    String category = torrent.getCategory();
-                    if ((name != null && name.toLowerCase().contains(constraint))
-                            || (category != null && category.toLowerCase().contains(constraint))) {
+                    if ((name != null && name.toLowerCase().contains(constraint))) {
                         filteredList.add(torrent);
                     }
                 }
