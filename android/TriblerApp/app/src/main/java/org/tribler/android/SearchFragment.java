@@ -85,14 +85,24 @@ public class SearchFragment extends TriblerViewFragment implements RestApiClient
     }
 
     @Override
-    public void onSearchResultChannel(String query, TriblerChannel result) {
+    public void onSearchResultChannel(String query, final TriblerChannel result) {
         //if (mQuery.equals(query))
-        mAdapter.addItem(result);
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mAdapter.addItem(result);
+            }
+        });
     }
 
     @Override
-    public void onSearchResultTorrent(String query, TriblerTorrent result) {
+    public void onSearchResultTorrent(String query, final TriblerTorrent result) {
         //if (mQuery.equals(query))
-        mAdapter.addItem(result);
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mAdapter.addItem(result);
+            }
+        });
     }
 }
