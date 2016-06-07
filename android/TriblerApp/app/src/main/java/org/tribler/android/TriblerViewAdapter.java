@@ -11,6 +11,7 @@ import android.widget.Filterable;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -317,7 +318,10 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             holder.name.setText(channel.getName());
             holder.votesCount.setText(String.valueOf(channel.getVotesCount()));
             holder.torrentsCount.setText(String.valueOf(channel.getTorrentsCount()));
-            holder.icon.setImageURI(Uri.parse(channel.getIconUrl()));
+            File icon = new File(channel.getIconUrl());
+            if (icon.exists()) {
+                holder.icon.setImageURI(Uri.fromFile(icon));
+            }
             holder.itemView.setOnClickListener(new View.OnClickListener() {
                 /**
                  * {@inheritDoc}
@@ -337,7 +341,10 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             holder.name.setText(torrent.getName());
             holder.seeders.setText(String.valueOf(torrent.getNumSeeders()));
             holder.size.setText(String.valueOf(torrent.getSize()));
-            holder.thumbnail.setImageURI(Uri.parse(torrent.getThumbnailUrl()));
+            File thumbnail = new File(torrent.getThumbnailUrl());
+            if (thumbnail.exists()) {
+                holder.thumbnail.setImageURI(Uri.fromFile(thumbnail));
+            }
             holder.itemView.setOnClickListener(new View.OnClickListener() {
                 /**
                  * {@inheritDoc}
