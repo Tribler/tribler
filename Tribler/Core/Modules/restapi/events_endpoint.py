@@ -51,20 +51,26 @@ class EventsEndpoint(resource.Resource):
         """
         Returns the channel search results over the events endpoint.
         """
+        query = ' '.join(results['keywords'])
+
         for channel in results['result_list']:
             channel_json = convert_db_channel_to_json(channel)
             if channel_json['dispersy_cid'] not in self.channel_cids_sent:
-                self.write_data(json.dumps({"type": "search_result_channel", "result": channel_json}) + '\n')
+                self.write_data(json.dumps({"type": "search_result_channel", "query": query,
+                                            "result": channel_json}) + '\n')
                 self.channel_cids_sent.add(channel_json['dispersy_cid'])
 
     def on_search_results_torrents(self, subject, changetype, objectID, results):
         """
         Returns the torrent search results over the events endpoint.
         """
+        query = ' '.join(results['keywords'])
+
         for torrent in results['result_list']:
             torrent_json = convert_torrent_to_json(torrent)
             if 'infohash' in torrent_json and torrent_json['infohash'] not in self.infohashes_sent:
-                self.write_data(json.dumps({"type": "search_result_torrent", "result": torrent_json}) + '\n')
+                self.write_data(json.dumps({"type": "search_result_torrent", "query": query,
+                                            "result": torrent_json}) + '\n')
                 self.infohashes_sent.add(torrent_json['infohash'])
 
     def render_GET(self, request):
