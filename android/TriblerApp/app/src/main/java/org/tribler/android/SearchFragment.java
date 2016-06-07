@@ -1,6 +1,7 @@
 package org.tribler.android;
 
 import android.net.Uri;
+import android.os.Bundle;
 
 import java.io.IOException;
 
@@ -13,8 +14,10 @@ import okhttp3.Response;
 import static org.tribler.android.RestApiClient.API;
 import static org.tribler.android.RestApiClient.BASE_URL;
 
-public class SearchFragment extends TriblerViewFragment {
+public class SearchFragment extends TriblerViewFragment implements RestApiClient.EventListener {
     public static final String TAG = SearchFragment.class.getSimpleName();
+
+    private String mQuery;
 
     private Call mSearchCall;
 
@@ -56,6 +59,7 @@ public class SearchFragment extends TriblerViewFragment {
                 }
             });
         }
+        mQuery = query;
 
         Request request = new Request.Builder()
                 .url(BASE_URL + "/search?q=" + Uri.encode(query))
@@ -66,4 +70,31 @@ public class SearchFragment extends TriblerViewFragment {
         mSearchCall.enqueue(mSearchCallback);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        RestApiClient.setEventListener(this);
+    }
+
+    @Override
+    public void onEventsStart() {
+
+    }
+
+    @Override
+    public void onSearchResultChannel(String query, TriblerChannel result) {
+        if (mQuery.equals(query)) {
+            mAdapter.addItem(result);
+        }
+    }
+
+    @Override
+    public void onSearchResultTorrent(String query, TriblerTorrent result) {
+        if (mQuery.equals(query)) {
+            mAdapter.addItem(result);
+        }
+    }
 }

@@ -46,8 +46,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         Triblerd.start(this);
         initGui();
-
-        RestApiClient.openEvents();
     }
 
     /**
