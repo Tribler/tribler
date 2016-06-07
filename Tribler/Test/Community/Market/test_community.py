@@ -93,7 +93,7 @@ class CommunityTestSuite(unittest.TestCase):
             authentication=(self.market_community.my_member,),
             distribution=(self.market_community.claim_global_time(),),
             payload=self.ask.to_network()[1] + (
-                Ttl.default(), SocketAddress(self.dispersy.wan_address[0], self.dispersy.wan_address[1]))
+                Ttl.default(), self.dispersy.wan_address[0], self.dispersy.wan_address[1])
         )
         self.market_community.on_ask([message])
         self.assertEquals(1, len(self.market_community.order_book._asks))
@@ -112,7 +112,7 @@ class CommunityTestSuite(unittest.TestCase):
             authentication=(self.market_community.my_member,),
             distribution=(self.market_community.claim_global_time(),),
             payload=self.bid.to_network()[1] + (
-                Ttl.default(), SocketAddress(self.dispersy.wan_address[0], self.dispersy.wan_address[1]))
+                Ttl.default(), self.dispersy.wan_address[0], self.dispersy.wan_address[1])
         )
         self.market_community.on_bid([message])
         self.assertEquals(0, len(self.market_community.order_book._asks))
