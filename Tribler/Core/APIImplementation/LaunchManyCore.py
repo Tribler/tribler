@@ -239,6 +239,8 @@ class TriblerLaunchMany(TaskManager):
                                                    self.session.dispersy_member, kargs=default_kwargs)
 
                 if self.session.get_tunnel_community_enabled():
+                    tunnel_settings = TunnelSettings(tribler_session=self.session)
+                    tunnel_kwargs = {'tribler_session': self.session, 'settings': tunnel_settings}
 
                     if self.session.get_enable_multichain():
                         # If the multichain is enabled, we use the permanent multichain keypair
@@ -248,15 +250,17 @@ class TriblerLaunchMany(TaskManager):
 
                         from Tribler.community.multichain.community import MultiChainCommunity
                         self.dispersy.define_auto_load(MultiChainCommunity, dispersy_member, load=True)
+
+                        from Tribler.community.tunnel.hidden_community_multichain import HiddenTunnelCommunityMultichain
+                        self.tunnel_community = self.dispersy.define_auto_load(
+                            HiddenTunnelCommunityMultichain, dispersy_member, load=True, kargs=tunnel_kwargs)[0]
                     else:
                         keypair = self.dispersy.crypto.generate_key(u"curve25519")
                         dispersy_member = self.dispersy.get_member(private_key=self.dispersy.crypto.key_to_bin(keypair))
 
-                    from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
-                    tunnel_settings = TunnelSettings(tribler_session=self.session)
-                    tunnel_kwargs = {'tribler_session': self.session, 'settings': tunnel_settings}
-                    self.tunnel_community = self.dispersy.define_auto_load(
-                        HiddenTunnelCommunity, dispersy_member, load=True, kargs=tunnel_kwargs)[0]
+                        from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
+                        self.tunnel_community = self.dispersy.define_auto_load(
+                            HiddenTunnelCommunity, dispersy_member, load=True, kargs=tunnel_kwargs)[0]
 
                 self.session.set_anon_proxy_settings(2, ("127.0.0.1",
                                                          self.session.get_tunnel_community_socks5_listen_ports()))
