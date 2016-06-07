@@ -206,17 +206,29 @@ class MarketCommunity(Community):
 
         self.pubkey_register[trader_id] = ip
 
+    def get_multichain_balance(self):
+        """
+        Return the current multichain balance from the payment provider
+
+        :return: The quantity (1 mil is 100 bytes)
+        :rtype: Quantity
+        """
+        # TODO: implement
+        return Quantity(0)
+
     # Ask
     def create_ask(self, price, quantity, timeout):
         """
         Create an ask order (sell order)
 
-        :param price: The price for the order
-        :param quantity: The quantity of the order
+        :param price: The price for the order in btc
+        :param quantity: The quantity of the order in MB (10^6)
         :param timeout: The timeout of the order, when does the order need to be timed out
         :type price: float
         :type quantity: float
         :type timeout: float
+        :return: The created order
+        :rtype: Order
         """
         self._logger.debug("Ask created")
 
@@ -237,6 +249,8 @@ class MarketCommunity(Community):
         # Search for matches
         proposed_trades = self.matching_engine.match_order(order)
         self.send_proposed_trade_messages(proposed_trades)
+
+        return order
 
     def send_ask(self, ask):
         """
@@ -298,12 +312,14 @@ class MarketCommunity(Community):
         """
         Create a bid order (buy order)
 
-        :param price: The price for the order
-        :param quantity: The quantity of the order
+        :param price: The price for the order in btc
+        :param quantity: The quantity of the order in MB (10^6)
         :param timeout: The timeout of the order, when does the order need to be timed out
         :type price: float
         :type quantity: float
         :type timeout: float
+        :return: The created order
+        :rtype: Order
         """
         self._logger.debug("Bid created")
 
@@ -324,6 +340,8 @@ class MarketCommunity(Community):
         # Search for matches
         proposed_trades = self.matching_engine.match_order(order)
         self.send_proposed_trade_messages(proposed_trades)
+
+        return order
 
     def send_bid(self, bid):
         """
