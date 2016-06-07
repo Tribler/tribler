@@ -3,6 +3,7 @@
 import os
 import logging
 from M2Crypto import Rand, EC, BIO
+from Tribler.dispersy.crypto import LibNaCLSK
 
 logger = logging.getLogger(__name__)
 
@@ -47,3 +48,24 @@ def save_pub_key(keypair, pubkeyfilename):
     with open(pubkeyfilename, 'w') as file:
         file.write(membuf.read())
     membuf.close()
+
+
+def generate_keypair_multichain():
+    return LibNaCLSK()
+
+
+def read_keypair_multichain(keypairfilename):
+    with open(keypairfilename, 'rb') as keyfile:
+        binarykey = keyfile.read()
+    return LibNaCLSK(binarykey=binarykey)
+
+
+def save_keypair_multichain(keypair, keypairfilename):
+    with open(keypairfilename, 'wb') as keyfile:
+        keyfile.write(keypair.key.sk)
+        keyfile.write(keypair.key.seed)
+
+def save_pub_key_multichain(keypair, pubkeyfilename):
+    with open(pubkeyfilename, 'wb') as keyfile:
+        keyfile.write(keypair.key.pk)
+

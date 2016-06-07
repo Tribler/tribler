@@ -112,8 +112,7 @@ class Session(SessionConfigInterface):
             #
             pairfilename = scfg.get_permid_keypair_filename()
 
-            if os.access(pairfilename, os.F_OK):
-                # May throw exceptions
+            if os.path.exists(pairfilename):
                 self.keypair = permidmod.read_keypair(pairfilename)
             else:
                 self.keypair = permidmod.generate_keypair()
@@ -122,6 +121,18 @@ class Session(SessionConfigInterface):
                 pubfilename = os.path.join(scfg.get_state_dir(), 'ecpub.pem')
                 permidmod.save_keypair(self.keypair, pairfilename)
                 permidmod.save_pub_key(self.keypair, pubfilename)
+
+            multichain_pairfilename = scfg.get_multichain_permid_keypair_filename()
+
+            if os.path.exists(multichain_pairfilename):
+                self.multichain_keypair = permidmod.read_keypair_multichain(multichain_pairfilename)
+            else:
+                self.multichain_keypair = permidmod.generate_keypair_multichain()
+
+                # Save keypair
+                multichain_pubfilename = os.path.join(scfg.get_state_dir(), 'ecpub_multichain.pem')
+                permidmod.save_keypair_multichain(self.multichain_keypair, multichain_pairfilename)
+                permidmod.save_pub_key_multichain(self.multichain_keypair, multichain_pubfilename)
 
         if not scfg.get_megacache():
             scfg.set_torrent_checking(0)

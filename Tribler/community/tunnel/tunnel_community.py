@@ -225,8 +225,10 @@ class TunnelSettings(object):
 
         if tribler_session:
             self.become_exitnode = tribler_session.get_tunnel_community_exitnode_enabled()
+            self.enable_multichain = tribler_session.get_enable_multichain()
         else:
             self.become_exitnode = False
+            self.enable_multichain = False
 
 
 class ExitCandidate(object):
