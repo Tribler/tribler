@@ -13,10 +13,9 @@ from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 
 from TriblerGUI.defs import PAGE_SEARCH_RESULTS, \
     PAGE_HOME, PAGE_MY_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
-    PAGE_CHANNEL_DETAILS
+    PAGE_CHANNEL_DETAILS, PAGE_PLAYLIST_DETAILS
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.event_request_manager import EventRequestManager
-from TriblerGUI.home_recommended_item import HomeRecommendedChannelItem, HomeRecommendedTorrentItem
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
 
@@ -56,8 +55,6 @@ class TriblerWindow(QMainWindow):
         self.menu_buttons = [self.left_menu_button_home, self.left_menu_button_my_channel,
                              self.left_menu_button_subscriptions, self.left_menu_button_video_player,
                              self.left_menu_button_settings, self.left_menu_button_downloads]
-
-        self.channel_back_button.clicked.connect(self.on_page_back_clicked)
 
         # fetch the variables, needed for the video player port
         self.variables_request_mgr = TriblerRequestManager()
@@ -204,6 +201,12 @@ class TriblerWindow(QMainWindow):
         self.channel_page.initialize_with_channel(channel_info)
         self.navigation_stack.append(self.stackedWidget.currentIndex())
         self.stackedWidget.setCurrentIndex(PAGE_CHANNEL_DETAILS)
+
+    def on_playlist_item_click(self, playlist_list_item):
+        playlist_info = playlist_list_item.data(Qt.UserRole)
+        self.playlist_page.initialize_with_playlist(playlist_info)
+        self.navigation_stack.append(self.stackedWidget.currentIndex())
+        self.stackedWidget.setCurrentIndex(PAGE_PLAYLIST_DETAILS)
 
     def on_page_back_clicked(self):
         prev_page = self.navigation_stack.pop()

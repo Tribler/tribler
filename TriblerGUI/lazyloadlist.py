@@ -26,7 +26,10 @@ class LazyLoadList(QListWidget):
         item.setSizeHint(QSize(-1, 60))
         data_item = self.data_items[index]
         item.setData(Qt.UserRole, data_item[1])
-        widget_item = data_item[0](self, data_item[1])
+        if len(data_item) > 2:
+            widget_item = data_item[0](self, data_item[1], **data_item[2])
+        else:
+            widget_item = data_item[0](self, data_item[1])
         self.addItem(item)
         self.setItemWidget(item, widget_item)
         self.items_loaded += 1

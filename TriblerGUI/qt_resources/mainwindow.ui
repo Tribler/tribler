@@ -1647,7 +1647,7 @@ font-size: 14px;
                  <number>1</number>
                 </property>
                 <property name="currentIndex">
-                 <number>4</number>
+                 <number>5</number>
                 </property>
                 <widget class="QWidget" name="my_channel_details_overview_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
@@ -1728,6 +1728,9 @@ font-size: 14px;</string>
                       </property>
                       <property name="text">
                        <string>-</string>
+                      </property>
+                      <property name="textInteractionFlags">
+                       <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
                       </property>
                      </widget>
                     </item>
@@ -1971,64 +1974,30 @@ border-radius: 4px;</string>
                    <number>0</number>
                   </property>
                   <item>
-                   <widget class="QTreeWidget" name="my_channel_torrents_list">
+                   <widget class="LazyLoadList" name="my_channel_torrents_list">
                     <property name="styleSheet">
-                     <string notr="true">QTreeWidget {
-border: none;
-font-size: 14px;
-alternate-background-color: #6e6e6e;
-background-color: #666666;
+                     <string notr="true">QListWidget::item:hover {
+background-color: #999;
 }
-QTreeWidget::item {
-color: white;
-}
-QTreeWidget::item::selected {
+QListWidget::item:selected {
 background-color: #444;
+}
+QListWidget::item {
+border-bottom: 1px solid #555;
+}
+QListWidget {
+border: none;
 }</string>
                     </property>
-                    <property name="alternatingRowColors">
-                     <bool>true</bool>
-                    </property>
                     <property name="selectionMode">
-                     <enum>QAbstractItemView::MultiSelection</enum>
+                     <enum>QAbstractItemView::SingleSelection</enum>
                     </property>
-                    <property name="indentation">
-                     <number>0</number>
+                    <property name="verticalScrollMode">
+                     <enum>QAbstractItemView::ScrollPerPixel</enum>
                     </property>
-                    <property name="uniformRowHeights">
+                    <property name="selectionRectVisible">
                      <bool>false</bool>
                     </property>
-                    <property name="itemsExpandable">
-                     <bool>true</bool>
-                    </property>
-                    <property name="sortingEnabled">
-                     <bool>true</bool>
-                    </property>
-                    <property name="expandsOnDoubleClick">
-                     <bool>true</bool>
-                    </property>
-                    <attribute name="headerDefaultSectionSize">
-                     <number>300</number>
-                    </attribute>
-                    <attribute name="headerStretchLastSection">
-                     <bool>true</bool>
-                    </attribute>
-                    <column>
-                     <property name="text">
-                      <string notr="true">Name</string>
-                     </property>
-                     <property name="textAlignment">
-                      <set>AlignLeading|AlignVCenter</set>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>Date added</string>
-                     </property>
-                     <property name="textAlignment">
-                      <set>AlignLeading|AlignVCenter</set>
-                     </property>
-                    </column>
                    </widget>
                   </item>
                   <item>
@@ -2155,31 +2124,6 @@ background-color: #444;
                        </property>
                       </widget>
                      </item>
-                     <item>
-                      <widget class="QToolButton" name="my_channel_torrents_export_button">
-                       <property name="minimumSize">
-                        <size>
-                         <width>0</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="maximumSize">
-                        <size>
-                         <width>16777215</width>
-                         <height>24</height>
-                        </size>
-                       </property>
-                       <property name="cursor">
-                        <cursorShape>PointingHandCursor</cursorShape>
-                       </property>
-                       <property name="styleSheet">
-                        <string notr="true"/>
-                       </property>
-                       <property name="text">
-                        <string>Export</string>
-                       </property>
-                      </widget>
-                     </item>
                     </layout>
                    </widget>
                   </item>
@@ -2203,29 +2147,24 @@ background-color: #444;
                    <number>0</number>
                   </property>
                   <item>
-                   <widget class="QTreeWidget" name="my_channel_playlists_list">
+                   <widget class="LazyLoadList" name="my_channel_playlists_list">
                     <property name="styleSheet">
-                     <string notr="true">QTreeWidget {
-border: none;
-font-size: 14px;
-alternate-background-color: #6e6e6e;
-background-color: #666666;
+                     <string notr="true">QListWidget::item:hover {
+background-color: #999;
 }
-QTreeWidget::item {
-color: white;
-}
-QTreeWidget::item::selected {
+QListWidget::item:selected {
 background-color: #444;
+}
+QListWidget::item {
+border-bottom: 1px solid #555;
+}
+QListWidget {
+border: none;
 }</string>
                     </property>
-                    <property name="alternatingRowColors">
-                     <bool>true</bool>
+                    <property name="verticalScrollMode">
+                     <enum>QAbstractItemView::ScrollPerPixel</enum>
                     </property>
-                    <column>
-                     <property name="text">
-                      <string>Name</string>
-                     </property>
-                    </column>
                    </widget>
                   </item>
                   <item>
@@ -2257,7 +2196,7 @@ background-color: #444;
                       </spacer>
                      </item>
                      <item>
-                      <widget class="QToolButton" name="create_playlist_button">
+                      <widget class="QToolButton" name="my_channel_create_playlist_button">
                        <property name="minimumSize">
                         <size>
                          <width>0</width>
@@ -2440,6 +2379,230 @@ background-color: #444;
                      </item>
                     </layout>
                    </widget>
+                  </item>
+                 </layout>
+                </widget>
+                <widget class="QWidget" name="my_channel_details_playlist_edit_page">
+                 <layout class="QVBoxLayout" name="verticalLayout">
+                  <property name="spacing">
+                   <number>0</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <spacer name="verticalSpacer">
+                    <property name="orientation">
+                     <enum>Qt::Vertical</enum>
+                    </property>
+                    <property name="sizeType">
+                     <enum>QSizePolicy::Fixed</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>20</width>
+                      <height>10</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="label_27">
+                    <property name="styleSheet">
+                     <string notr="true">margin-left: 10px;</string>
+                    </property>
+                    <property name="text">
+                     <string>Please enter the details of your playlist below.</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="verticalSpacer_3">
+                    <property name="orientation">
+                     <enum>Qt::Vertical</enum>
+                    </property>
+                    <property name="sizeType">
+                     <enum>QSizePolicy::Minimum</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>20</width>
+                      <height>10</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
+                   <widget class="QWidget" name="playlist_edit_form" native="true">
+                    <layout class="QFormLayout" name="formLayout_5">
+                     <property name="fieldGrowthPolicy">
+                      <enum>QFormLayout::ExpandingFieldsGrow</enum>
+                     </property>
+                     <item row="0" column="0">
+                      <widget class="QLabel" name="playlist_edit_name_label">
+                       <property name="styleSheet">
+                        <string notr="true">color: #eee;</string>
+                       </property>
+                       <property name="text">
+                        <string>Playlist name</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="0" column="1">
+                      <widget class="QLineEdit" name="playlist_edit_name">
+                       <property name="styleSheet">
+                        <string notr="true">border: 1px solid #555;
+background-color: #ccc;
+border-radius: 4px;</string>
+                       </property>
+                       <property name="placeholderText">
+                        <string>Playlist name</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="0">
+                      <widget class="QLabel" name="playlist_edit_description_label">
+                       <property name="styleSheet">
+                        <string notr="true">color: #eee;</string>
+                       </property>
+                       <property name="text">
+                        <string>Playlist description</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="1" column="1">
+                      <widget class="QTextEdit" name="playlist_edit_description">
+                       <property name="styleSheet">
+                        <string notr="true">border: 1px solid #555;
+background-color: #ccc;
+border-radius: 4px;</string>
+                       </property>
+                       <property name="placeholderText">
+                        <string>Playlist description</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="2" column="1">
+                      <widget class="QWidget" name="widget_12" native="true">
+                       <layout class="QHBoxLayout" name="horizontalLayout_30">
+                        <property name="spacing">
+                         <number>0</number>
+                        </property>
+                        <property name="leftMargin">
+                         <number>0</number>
+                        </property>
+                        <property name="topMargin">
+                         <number>0</number>
+                        </property>
+                        <property name="rightMargin">
+                         <number>0</number>
+                        </property>
+                        <property name="bottomMargin">
+                         <number>0</number>
+                        </property>
+                        <item>
+                         <spacer name="horizontalSpacer_49">
+                          <property name="orientation">
+                           <enum>Qt::Horizontal</enum>
+                          </property>
+                          <property name="sizeHint" stdset="0">
+                           <size>
+                            <width>440</width>
+                            <height>20</height>
+                           </size>
+                          </property>
+                         </spacer>
+                        </item>
+                        <item>
+                         <widget class="QToolButton" name="playlist_edit_cancel_button">
+                          <property name="minimumSize">
+                           <size>
+                            <width>0</width>
+                            <height>26</height>
+                           </size>
+                          </property>
+                          <property name="maximumSize">
+                           <size>
+                            <width>16777215</width>
+                            <height>26</height>
+                           </size>
+                          </property>
+                          <property name="cursor">
+                           <cursorShape>PointingHandCursor</cursorShape>
+                          </property>
+                          <property name="text">
+                           <string>Cancel</string>
+                          </property>
+                         </widget>
+                        </item>
+                        <item>
+                         <spacer name="horizontalSpacer_50">
+                          <property name="orientation">
+                           <enum>Qt::Horizontal</enum>
+                          </property>
+                          <property name="sizeType">
+                           <enum>QSizePolicy::Fixed</enum>
+                          </property>
+                          <property name="sizeHint" stdset="0">
+                           <size>
+                            <width>10</width>
+                            <height>20</height>
+                           </size>
+                          </property>
+                         </spacer>
+                        </item>
+                        <item>
+                         <widget class="QToolButton" name="playlist_edit_save_button">
+                          <property name="minimumSize">
+                           <size>
+                            <width>54</width>
+                            <height>26</height>
+                           </size>
+                          </property>
+                          <property name="maximumSize">
+                           <size>
+                            <width>54</width>
+                            <height>26</height>
+                           </size>
+                          </property>
+                          <property name="cursor">
+                           <cursorShape>PointingHandCursor</cursorShape>
+                          </property>
+                          <property name="styleSheet">
+                           <string notr="true"/>
+                          </property>
+                          <property name="text">
+                           <string>Save</string>
+                          </property>
+                         </widget>
+                        </item>
+                       </layout>
+                      </widget>
+                     </item>
+                    </layout>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="verticalSpacer_2">
+                    <property name="orientation">
+                     <enum>Qt::Vertical</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>20</width>
+                      <height>40</height>
+                     </size>
+                    </property>
+                   </spacer>
                   </item>
                  </layout>
                 </widget>
@@ -6333,6 +6496,203 @@ background-color: #444;
           </item>
          </layout>
         </widget>
+        <widget class="PlaylistPage" name="playlist_page">
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QWidget" name="playlist_page_header" native="true">
+            <layout class="QHBoxLayout" name="horizontalLayout_6">
+             <property name="spacing">
+              <number>0</number>
+             </property>
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <spacer name="horizontalSpacer_46">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>10</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QToolButton" name="playlist_back_button">
+               <property name="minimumSize">
+                <size>
+                 <width>16</width>
+                 <height>18</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16</width>
+                 <height>18</height>
+                </size>
+               </property>
+               <property name="cursor">
+                <cursorShape>PointingHandCursor</cursorShape>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">border: none; 
+border-image: url(images/page_back.png) 0 0 0 0 stretch stretch;</string>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_48">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>10</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QLabel" name="playlist_name_label">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>50</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>50</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">color: #eee;
+background-color: transparent;
+font-size: 20px;
+font-weight: bold;</string>
+               </property>
+               <property name="text">
+                <string>My Playlist</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_45">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>10</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QLabel" name="playlist_num_items_label">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">font-size: 14px;
+color: white;</string>
+               </property>
+               <property name="text">
+                <string>23 items</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_47">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>10</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="LazyLoadList" name="playlist_torrents_list">
+            <property name="styleSheet">
+             <string notr="true">QListWidget::item:hover {
+background-color: #999;
+}
+QListWidget::item {
+border-bottom: 1px solid #555;
+}
+QListWidget {
+border: none;
+border-top: 1px solid #555;
+}</string>
+            </property>
+            <property name="verticalScrollMode">
+             <enum>QAbstractItemView::ScrollPerPixel</enum>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
        </widget>
       </item>
      </layout>
@@ -6430,6 +6790,12 @@ background-color: #444;
    <class>HomePage</class>
    <extends>QWidget</extends>
    <header>homepage.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>PlaylistPage</class>
+   <extends>QWidget</extends>
+   <header>playlistpage.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
@@ -6643,6 +7009,54 @@ background-color: #444;
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>channel_back_button</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_page_back_clicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>218</x>
+     <y>75</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>channel_torrents_list</sender>
+   <signal>itemClicked(QListWidgetItem*)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_playlist_item_click(QListWidgetItem*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>527</x>
+     <y>357</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>playlist_back_button</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_page_back_clicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>221</x>
+     <y>75</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>on_top_search_button_click()</slot>
@@ -6656,5 +7070,7 @@ background-color: #444;
   <slot>clicked_menu_button_settings()</slot>
   <slot>clicked_menu_button_subscriptions()</slot>
   <slot>on_search_text_change()</slot>
+  <slot>on_page_back_clicked()</slot>
+  <slot>on_playlist_item_click(QListWidgetItem*)</slot>
  </slots>
 </ui>
