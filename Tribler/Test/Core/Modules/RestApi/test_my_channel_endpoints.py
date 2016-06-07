@@ -1,7 +1,6 @@
 import json
 import base64
 import urllib
-from os.path import join
 
 from Tribler.Core.Modules.channel.channel import ChannelObject
 from Tribler.Core.Modules.channel.channel_manager import ChannelManager
@@ -11,6 +10,7 @@ from Tribler.Core.exceptions import DuplicateChannelNameError
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.test_libtorrent_download import TORRENT_FILE
+
 
 class ChannelCommunityMock(object):
 

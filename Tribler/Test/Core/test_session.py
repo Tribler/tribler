@@ -11,6 +11,7 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.test_libtorrent_download import TORRENT_FILE
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestSession(TriblerCoreTest):
@@ -94,10 +95,13 @@ class TestSessionAsServer(TestAsServer):
         torrent_def = TorrentDef.load(TORRENT_FILE)
         extra_info = {"description": "iso"}
 
-        self.session.add_torrent_def_to_channel(channel_id, torrent_def, extra_info, forward=False)
+        @blocking_call_on_reactor_thread
+        def do_test():
+            self.session.add_torrent_def_to_channel(channel_id, torrent_def, extra_info, forward=False)
+        do_test()
+
         self.assertTrue(self.channel_db_handler.hasTorrent(channel_id, torrent_def.get_infohash()))
 
-    @raises(DuplicateTorrentFileError)
     def test_add_torrent_def_to_channel_duplicate(self):
         """
         Test whether adding a torrent def to a channel works
@@ -107,5 +111,9 @@ class TestSessionAsServer(TestAsServer):
         channel_id = self.channel_db_handler.getMyChannelId()
         torrent_def = TorrentDef.load(TORRENT_FILE)
 
-        self.session.add_torrent_def_to_channel(channel_id, torrent_def, forward=False)
-        self.session.add_torrent_def_to_channel(channel_id, torrent_def, forward=False)
+        @raises(DuplicateTorrentFileError)
+        @blocking_call_on_reactor_thread
+        def do_test():
+            self.session.add_torrent_def_to_channel(channel_id, torrent_def, forward=False)
+            self.session.add_torrent_def_to_channel(channel_id, torrent_def, forward=False)
+        do_test()

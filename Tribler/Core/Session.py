@@ -19,7 +19,7 @@ from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnab
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_METADATA, NTFY_MYPREFERENCES,
                                      NTFY_PEERS, NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
                                      STATEDIR_METADATA_STORE_DIR, STATEDIR_PEERICON_DIR, STATEDIR_TORRENT_STORE_DIR)
-from Tribler.dispersy.util import blocking_call_on_reactor_thread
+
 
 GOTM2CRYPTO = False
 try:
@@ -663,7 +663,6 @@ class Session(SessionConfigInterface):
         """
         return self.lm.channel_manager.create_channel(name, description, mode)
 
-    @blocking_call_on_reactor_thread
     def add_torrent_def_to_channel(self, channel_id, torrent_def, extra_info={}, forward=True):
         """
         Adds a TorrentDef to a Channel.
