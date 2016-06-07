@@ -102,6 +102,7 @@ class TestSessionAsServer(TestAsServer):
 
         self.assertTrue(self.channel_db_handler.hasTorrent(channel_id, torrent_def.get_infohash()))
 
+    @raises(DuplicateTorrentFileError)
     def test_add_torrent_def_to_channel_duplicate(self):
         """
         Test whether adding a torrent def to a channel works
@@ -111,7 +112,6 @@ class TestSessionAsServer(TestAsServer):
         channel_id = self.channel_db_handler.getMyChannelId()
         torrent_def = TorrentDef.load(TORRENT_FILE)
 
-        @raises(DuplicateTorrentFileError)
         @blocking_call_on_reactor_thread
         def do_test():
             self.session.add_torrent_def_to_channel(channel_id, torrent_def, forward=False)
