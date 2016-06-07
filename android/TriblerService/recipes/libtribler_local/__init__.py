@@ -36,7 +36,7 @@ class LocalTriblerRecipe(PythonRecipe):
             cp('-rf', '/home/paul/repos/tribler-app', self.name)
 
             # Copy twisted plugin
-            shutil.copyfile(join(self.name, 'twisted/twisted/plugins/tribler_plugin.py'),
+            shutil.copyfile(join(self.name, 'twisted/plugins/tribler_plugin.py'),
                             '/home/paul/repos/tribler-app/android/TriblerService/service/tribler_plugin.py')
 
         super(LocalTriblerRecipe, self).prebuild_arch(arch)
