@@ -16,6 +16,8 @@ class LocalTriblerRecipe(PythonRecipe):
                'netifaces', 'openssl', 'pyasn1', 'pil', 'pycrypto', 'pyleveldb',
                'python2', 'requests', 'six', 'twisted']
 
+    python_depends = ['chardet']
+
     site_packages_name = 'Tribler'
 
     def should_build(self, arch):
