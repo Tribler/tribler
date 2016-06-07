@@ -24,7 +24,7 @@ class BitcoinPaymentProviderTestSuite(unittest.TestCase):
     def test_balance(self):
         # Test for balance
         os.system = MagicMock(return_value='{"confirmed": "1", "unconfirmed": "0"}')
-        self.assertEquals(100, int(self.bitcoin_payment_provider.balance()))
+        self.assertEquals(1000, int(self.bitcoin_payment_provider.balance()))
 
     def test_transfer_bitcoin_empty(self):
         # Test for bitcoin transfer when there is insufficient bitcoin
