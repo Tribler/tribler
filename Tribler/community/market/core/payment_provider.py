@@ -5,6 +5,7 @@ from Tribler.dispersy.candidate import Candidate
 from bitcoin_address import BitcoinAddress
 from quantity import Quantity
 
+
 class InsufficientFunds(Exception):
     """Used for throwing exception when there isn't sufficient funds available to transfer"""
     pass
@@ -13,6 +14,8 @@ class InsufficientFunds(Exception):
 class BitcoinPaymentProvider(object):
     """"Bitcoin payment provider which enables checking the bitcoin balance of this peer and transferring bitcoin to
     other bitcoin addresses through the electrum command line"""
+
+    BITCOIN_MULTIPLIER = 1000
 
     def transfer_bitcoin(self, bitcoin_address, quantity):
         """
@@ -26,7 +29,8 @@ class BitcoinPaymentProvider(object):
         assert isinstance(quantity, Quantity), type(quantity)
 
         if self.balance() >= quantity:
-            os.system('electrum payto -f 0 ' + str(bitcoin_address) + ' ' + str(int(quantity) / 100.0))
+            bitcoin_quantity = int(quantity) * self.BITCOIN_MULTIPLIER
+            os.system('electrum payto -f 0 ' + str(bitcoin_address) + ' ' + str(bitcoin_quantity))
         else:
             raise InsufficientFunds()
 
@@ -38,7 +42,7 @@ class BitcoinPaymentProvider(object):
 
         balance = 0.0
         if 'confirmed' in data:
-            return Quantity(int(float(data['confirmed']) * 100))
+            return Quantity(int(float(data['confirmed']) * self.BITCOIN_MULTIPLIER))
         else:
             return Quantity(0)
 
@@ -46,6 +50,8 @@ class BitcoinPaymentProvider(object):
 class MultiChainPaymentProvider(object):
     """"Multi chain payment provider which enables checking the multi chain balance of this peer and transferring multi
     chain to other peers"""
+
+    MULTI_CHAIN_MULTIPLIER = 100
 
     def __init__(self, multi_chain_community, public_key):
         """
@@ -70,9 +76,8 @@ class MultiChainPaymentProvider(object):
         assert isinstance(candidate, Candidate), type(candidate)
         assert isinstance(quantity, Quantity), type(quantity)
 
-        byte_quantity = int(quantity) * 100
-
-        if int(self.balance()) * 100 >= byte_quantity:
+        if self.balance() >= quantity:
+            byte_quantity = int(quantity) * self.MULTI_CHAIN_MULTIPLIER
             self.multi_chain_community.schedule_block(candidate, -byte_quantity, byte_quantity)
         else:
             raise InsufficientFunds()
@@ -86,4 +91,4 @@ class MultiChainPaymentProvider(object):
         if total == (-1, -1):
             return Quantity(0)
         else:
-            return Quantity((max(0, total[0] - total[1]) / 2) / 100)
+            return Quantity((max(0, total[0] - total[1]) / 2) / self.MULTI_CHAIN_MULTIPLIER)
