@@ -87,17 +87,18 @@ class Utility(object):
 def speed_format(s):
     text = ''
     if s is not None:
-        if s < 102400:
+        s_abs = abs(s)
+        if s_abs < 102400:
             text = '%2.1f KB/s' % (s / 1024.0)
-        elif s < 1022797:
+        elif s_abs < 1022797:
             text = '%d KB/s' % (s // 1024)
-        elif s < 104857600:
+        elif s_abs < 104857600:
             text = '%2.1f MB/s' % (s / 1048576.0)
-        elif s < 1047527425:
+        elif s_abs < 1047527425:
             text = '%d MB/s' % (s // 1048576)
-        elif s < 107374182400:
+        elif s_abs < 107374182400:
             text = '%2.1f GB/s' % (s / 1073741824.0)
-        elif s < 1072668082177:
+        elif s_abs < 1072668082177:
             text = '%d GB/s' % (s // 1073741824)
         else:
             text = '%2.1f TB/s' % (s / 1099511627776.0)
@@ -179,17 +180,19 @@ def size_format(s, truncate=None, stopearly=None, applylabel=True, rawsize=False
     if truncate is None:
         truncate = 2
 
-    if ((s < 1024) and showbytes and stopearly is None) or stopearly == "Byte":
+    s_abs = abs(s)
+
+    if ((s_abs < 1024) and showbytes and stopearly is None) or stopearly == "Byte" or stopearly == "B":
         truncate = 0
         size = s
         text = u"Byte"
-    elif ((s < 1048576) and stopearly is None) or stopearly == "KB":
+    elif ((s_abs < 1048576) and stopearly is None) or stopearly == "KB":
         size = (s / 1024.0)
         text = u"KB"
-    elif ((s < 1073741824) and stopearly is None) or stopearly == "MB":
+    elif ((s_abs < 1073741824) and stopearly is None) or stopearly == "MB":
         size = (s / 1048576.0)
         text = u"MB"
-    elif ((s < 1099511627776) and stopearly is None) or stopearly == "GB":
+    elif ((s_abs < 1099511627776) and stopearly is None) or stopearly == "GB":
         size = (s / 1073741824.0)
         text = u"GB"
     else:
