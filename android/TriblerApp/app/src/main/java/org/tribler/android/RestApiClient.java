@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.ConnectionPool;
 import okhttp3.Headers;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -26,6 +27,7 @@ public class RestApiClient {
     public static final MediaType TYPE_JSON = MediaType.parse("application/json; charset=utf-8");
 
     public static final OkHttpClient API = new OkHttpClient.Builder()
+            .connectionPool(new ConnectionPool(5, 5, TimeUnit.MINUTES))
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
@@ -34,8 +36,9 @@ public class RestApiClient {
             .build();
 
     private static final OkHttpClient EVENTS = new OkHttpClient.Builder()
+            .connectionPool(new ConnectionPool(1, 30, TimeUnit.MINUTES))
             .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.MINUTES)
+            .readTimeout(30, TimeUnit.MINUTES)
             .writeTimeout(30, TimeUnit.SECONDS)
             .addNetworkInterceptor(new StethoInterceptor()) // DEBUG
             .build();
