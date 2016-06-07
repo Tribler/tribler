@@ -32,7 +32,7 @@ public class RestApiClient {
             .build();
 
     private static final OkHttpClient EVENTS = new OkHttpClient.Builder()
-            .readTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.MINUTES)
             .addNetworkInterceptor(new StethoInterceptor()) // DEBUG
             .build();
 
