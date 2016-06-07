@@ -21,14 +21,15 @@ class RESTManager(TaskManager):
         self._logger = logging.getLogger(self.__class__.__name__)
         self.session = session
         self.site = None
+        self.root_endpoint = None
 
     def start(self):
         """
         Starts the HTTP API with the listen port as specified in the session configuration.
         """
+        self.root_endpoint = RootEndpoint(self.session)
         self.site = reactor.listenTCP(self.session.get_http_api_port(),
-                                      server.Site(resource=RootEndpoint(self.session),
-                                                  requestFactory=RESTRequest))
+                                      server.Site(resource=self.root_endpoint, requestFactory=RESTRequest))
 
     def stop(self):
         """

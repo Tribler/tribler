@@ -33,7 +33,7 @@ class TestDownloadsEndpoint(AbstractApiTest):
         video_tdef, self.torrent_path = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
         self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
         self.session.start_download_from_uri("file:" + pathname2url(
-            os.path.join(TESTS_DATA_DIR, "bak_multiple.torrent")))
+            os.path.join(TESTS_DATA_DIR, "bak_single.torrent")))
 
         self.should_check_equality = False
         return self.do_request('downloads', expected_code=200).addCallback(verify_download)
