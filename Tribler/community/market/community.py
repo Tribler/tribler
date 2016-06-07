@@ -253,7 +253,7 @@ class MarketCommunity(Community):
         destination, payload = ask.to_network()
 
         # Add ttl and the local wan address
-        payload += (Ttl.default(), SocketAddress(self.dispersy.wan_address[0], self.dispersy.wan_address[1]))
+        payload += (Ttl.default(), self.dispersy.wan_address[0], self.dispersy.wan_address[1])
 
         meta = self.get_meta_message(u"ask")
         message = meta.impl(
@@ -340,7 +340,7 @@ class MarketCommunity(Community):
         destination, payload = bid.to_network()
 
         # Add ttl and the local wan address
-        payload += (Ttl.default(), SocketAddress(self.dispersy.wan_address[0], self.dispersy.wan_address[1]))
+        payload += (Ttl.default(), self.dispersy.wan_address[0], self.dispersy.wan_address[1])
 
         meta = self.get_meta_message(u"bid")
         message = meta.impl(

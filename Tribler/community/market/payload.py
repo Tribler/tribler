@@ -39,20 +39,22 @@ class MessagePayload(Payload):
 class OfferPayload(MessagePayload):
     class Implementation(MessagePayload.Implementation):
         def __init__(self, meta, trader_id, message_number, order_number, price, quantity, timeout, timestamp, ttl,
-                     address):
+                     ip, port):
             assert isinstance(order_number, OrderNumber), type(order_number)
             assert isinstance(price, Price), type(price)
             assert isinstance(quantity, Quantity), type(quantity)
             assert isinstance(timeout, Timeout), type(timeout)
             assert isinstance(ttl, Ttl), type(ttl)
-            assert isinstance(address, SocketAddress), type(address)
+            assert isinstance(ip, str), type(ip)
+            assert isinstance(port, int), type(port)
             super(OfferPayload.Implementation, self).__init__(meta, trader_id, message_number, timestamp)
             self._order_number = order_number
             self._price = price
             self._quantity = quantity
             self._timeout = timeout
             self._ttl = ttl
-            self._address = address
+            self._ip = ip
+            self._port = port
 
         @property
         def order_number(self):
@@ -76,7 +78,7 @@ class OfferPayload(MessagePayload):
 
         @property
         def address(self):
-            return self._address
+            return SocketAddress(self._ip, self._port)
 
 
 class TradePayload(MessagePayload):
@@ -170,7 +172,8 @@ class StartTransactionPayload(MessagePayload):
 
 class MultiChainPaymentPayload(MessagePayload):
     class Implementation(MessagePayload.Implementation):
-        def __init__(self, meta, trader_id, message_number, transaction_number, bitcoin_address, transferor_quantity, transferee_quantity, timestamp):
+        def __init__(self, meta, trader_id, message_number, transaction_number, bitcoin_address, transferor_quantity,
+                     transferee_quantity, timestamp):
             assert isinstance(transaction_number, TransactionNumber), type(transaction_number)
             assert isinstance(bitcoin_address, BitcoinAddress), type(bitcoin_address)
             assert isinstance(transferor_quantity, Quantity), type(transferor_quantity)
