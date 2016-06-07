@@ -17,7 +17,7 @@ import okhttp3.Response;
 
 import static org.tribler.android.RestApiClient.API;
 import static org.tribler.android.RestApiClient.BASE_URL;
-import static org.tribler.android.RestApiClient.JSON;
+import static org.tribler.android.RestApiClient.TYPE_JSON;
 
 public abstract class TriblerViewFragment extends Fragment implements TriblerViewAdapter.OnClickListener, TriblerViewAdapter.OnSwipeListener {
 
@@ -96,7 +96,7 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
 
         Request request = new Request.Builder()
                 .url(BASE_URL + "/channels/subscribed/" + channel.getDispersyCid())
-                .put(RequestBody.create(JSON, ""))
+                .put(RequestBody.create(TYPE_JSON, ""))
                 .build();
 
         Callback callback = new Callback() {

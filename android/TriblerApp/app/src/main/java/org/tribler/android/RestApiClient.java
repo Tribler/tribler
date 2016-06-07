@@ -1,8 +1,11 @@
 package org.tribler.android;
 
+import android.util.Log;
+
 import com.facebook.stetho.okhttp3.StethoInterceptor;
 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
@@ -14,16 +17,22 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class RestApiClient {
+    public static final String TAG = SearchFragment.class.getSimpleName();
 
     public static final String BASE_URL = "http://127.0.0.1:" + Triblerd.REST_API_PORT;
 
-    public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+    public static final MediaType TYPE_JSON = MediaType.parse("application/json; charset=utf-8");
 
     public static final OkHttpClient API = new OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
+            .addNetworkInterceptor(new StethoInterceptor()) // DEBUG
+            .build();
+
+    private static final OkHttpClient EVENTS = new OkHttpClient.Builder()
+            .readTimeout(10, TimeUnit.SECONDS)
             .addNetworkInterceptor(new StethoInterceptor()) // DEBUG
             .build();
 
@@ -41,13 +50,13 @@ public class RestApiClient {
          * {@inheritDoc}
          */
         @Override
-        public void onFailure(Call call, IOException e) {
-            e.printStackTrace();
+        public void onFailure(Call call, IOException ex) {
+            Log.v(TAG, "Service events stream not ready. Retrying in 1s...");
             // Retry until service comes up
             try {
                 Thread.sleep(1000);
-            } catch (InterruptedException e1) {
-                e1.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
             openEvents();
         }
@@ -67,7 +76,12 @@ public class RestApiClient {
                 System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
             }
 
-            System.out.println(response.body().string());
+            try {
+                System.out.println(response.body().string());
+            } catch (SocketTimeoutException e) {
+                // Reconnect on timeout
+                openEvents();
+            }
         }
     };
 
@@ -76,7 +90,7 @@ public class RestApiClient {
                 .url(BASE_URL + "/events")
                 .build();
 
-        mEventCall = API.newCall(request);
+        mEventCall = EVENTS.newCall(request);
 
         mEventCall.enqueue(mEventCallback);
     }
