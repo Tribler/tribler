@@ -6,7 +6,9 @@ import com.facebook.stetho.okhttp3.StethoInterceptor;
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.Reader;
 import java.lang.ref.WeakReference;
 import java.util.concurrent.TimeUnit;
 
@@ -114,24 +116,17 @@ public class RestApiClient {
                 System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
             }
 
-            JsonReader reader = new JsonReader(response.body().charStream()); // Never close reader
-            Exception ex = null;
-            while (ex == null) {
-                try {
-                    if (reader.hasNext()) {
-                        readEvents(reader);
-                    }
-                } catch (IOException e) {
-                    ex = e;
-                }
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    // Continue working
-                }
+            try {
+                BufferedReader in = new BufferedReader(response.body().charStream());
+                String inputLine;
+                while ((inputLine = in.readLine()) != null)
+                    System.out.println(inputLine);
+                in.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+                // Reconnect on timeout
+                openEvents();
             }
-            // Reconnect on timeout
-            openEvents();
         }
     };
 
@@ -142,6 +137,7 @@ public class RestApiClient {
 
         mEventCall = EVENTS.newCall(request);
 
+        System.out.println("Open events stream");
         mEventCall.enqueue(mEventCallback);
     }
 
@@ -152,6 +148,7 @@ public class RestApiClient {
 
             switch (reader.nextString()) {
                 case "events_start":
+                    System.out.println("Events start");
                     mEventListener.get().onEventsStart();
                     break;
 
