@@ -9,7 +9,6 @@ from core.quantity import Quantity
 from core.timeout import Timeout
 from core.timestamp import Timestamp
 from core.transaction import TransactionNumber
-from socket_address import SocketAddress
 from ttl import Ttl
 
 
@@ -39,6 +38,31 @@ class MarketConversion(BinaryConversion):
         self.define_meta_message(chr(10), community.get_meta_message(u"end-transaction"),
                                  self._encode_end_transaction, self._decode_end_transaction)
 
+    def _decode_payload(self, placeholder, offset, data, types):
+        try:
+            offset, payload = decode(data, offset)
+        except ValueError:
+            raise DropPacket("Unable to decode the payload")
+
+        if not isinstance(payload, tuple):
+            raise DropPacket("Invalid payload type")
+
+        if not len(payload) == len(types):
+            raise DropPacket("Invalid payload length")
+
+        args = []
+        for i, arg_type in enumerate(types):
+            try:
+                if arg_type == Price or arg_type == Quantity:
+                    args.append(arg_type.from_mil(payload[i]))
+                elif arg_type == str or arg_type == int:
+                    args.append(payload[i])
+                else:
+                    args.append(arg_type(payload[i]))
+            except ValueError:
+                raise DropPacket("Invalid '" + arg_type.__name__ + "' type")
+        return offset, placeholder.meta.payload.implement(*args)
+
     def _encode_offer(self, message):
         payload = message.payload
         packet = encode((
@@ -49,66 +73,9 @@ class MarketConversion(BinaryConversion):
         return packet,
 
     def _decode_offer(self, placeholder, offset, data):
-        try:
-            offset, payload = decode(data, offset)
-        except ValueError:
-            raise DropPacket("Unable to decode the offer-payload")
-
-        if not isinstance(payload, tuple):
-            raise DropPacket("Invalid offer-payload type")
-
-        if not len(payload) == 10:
-            raise DropPacket("Invalid offer-payload length")
-
-        trader_id, message_number, order_number, price, quantity, timeout, timestamp, ttl, ip, port = payload
-
-        try:
-            trader_id = TraderId(trader_id)
-        except ValueError:
-            raise DropPacket("Invalid 'trader_id' type")
-
-        try:
-            message_number = MessageNumber(message_number)
-        except ValueError:
-            raise DropPacket("Invalid 'message_number' type")
-
-        try:
-            order_number = OrderNumber(order_number)
-        except ValueError:
-            raise DropPacket("Invalid 'order_number' type")
-
-        try:
-            price = Price.from_mil(price)
-        except ValueError:
-            raise DropPacket("Invalid 'price' type")
-
-        try:
-            quantity = Quantity.from_mil(quantity)
-        except ValueError:
-            raise DropPacket("Invalid 'quantity' type")
-
-        try:
-            timeout = Timeout(timeout)
-        except ValueError:
-            raise DropPacket("Invalid 'timeout' type")
-
-        try:
-            timestamp = Timestamp(timestamp)
-        except ValueError:
-            raise DropPacket("Invalid 'timestamp' type")
-
-        try:
-            ttl = Ttl(ttl)
-        except ValueError:
-            raise DropPacket("Invalid 'ttl' type")
-
-        try:
-            address = SocketAddress(ip, port)
-        except ValueError:
-            raise DropPacket("Invalid 'address' type")
-
-        return offset, placeholder.meta.payload.implement(trader_id, message_number, order_number, price, quantity,
-                                                          timeout, timestamp, ttl, address)
+        return self._decode_payload(placeholder, offset, data,
+                                    [TraderId, MessageNumber, OrderNumber, Price, Quantity, Timeout, Timestamp, Ttl,
+                                     str, int])
 
     def _encode_proposed_trade(self, message):
         payload = message.payload
@@ -120,61 +87,9 @@ class MarketConversion(BinaryConversion):
         return packet,
 
     def _decode_proposed_trade(self, placeholder, offset, data):
-        try:
-            offset, payload = decode(data, offset)
-        except ValueError:
-            raise DropPacket("Unable to decode the proposed-trade-payload")
-
-        if not isinstance(payload, tuple):
-            raise DropPacket("Invalid proposed-trade-payload type")
-
-        if not len(payload) == 8:
-            raise DropPacket("Invalid proposed-trade-payload length")
-
-        trader_id, message_number, order_number, recipient_trader_id, recipient_order_number, price, quantity, timestamp = payload
-
-        try:
-            trader_id = TraderId(trader_id)
-        except ValueError:
-            raise DropPacket("Invalid 'trader_id' type")
-
-        try:
-            message_number = MessageNumber(message_number)
-        except ValueError:
-            raise DropPacket("Invalid 'message_number' type")
-
-        try:
-            order_number = OrderNumber(order_number)
-        except ValueError:
-            raise DropPacket("Invalid 'order_number' type")
-
-        try:
-            recipient_trader_id = TraderId(recipient_trader_id)
-        except ValueError:
-            raise DropPacket("Invalid 'recipient_trader_id' type")
-
-        try:
-            recipient_order_number = OrderNumber(recipient_order_number)
-        except ValueError:
-            raise DropPacket("Invalid 'recipient_order_number' type")
-
-        try:
-            price = Price.from_mil(price)
-        except ValueError:
-            raise DropPacket("Invalid 'price' type")
-
-        try:
-            quantity = Quantity.from_mil(quantity)
-        except ValueError:
-            raise DropPacket("Invalid 'quantity' type")
-
-        try:
-            timestamp = Timestamp(timestamp)
-        except ValueError:
-            raise DropPacket("Invalid 'timestamp' type")
-
-        return offset, placeholder.meta.payload.implement(trader_id, message_number, order_number, recipient_trader_id,
-                                                          recipient_order_number, price, quantity, timestamp)
+        return self._decode_payload(placeholder, offset, data,
+                                    [TraderId, MessageNumber, OrderNumber, TraderId, OrderNumber, Price, Quantity,
+                                     Timestamp])
 
     def _encode_accepted_trade(self, message):
         payload = message.payload
@@ -186,66 +101,9 @@ class MarketConversion(BinaryConversion):
         return packet,
 
     def _decode_accepted_trade(self, placeholder, offset, data):
-        try:
-            offset, payload = decode(data, offset)
-        except ValueError:
-            raise DropPacket("Unable to decode the accepted-trade-payload")
-
-        if not isinstance(payload, tuple):
-            raise DropPacket("Invalid accepted-trade-payload type")
-
-        if not len(payload) == 9:
-            raise DropPacket("Invalid accepted-trade-payload length")
-
-        trader_id, message_number, order_number, recipient_trader_id, recipient_order_number, price, quantity, timestamp, ttl = payload
-
-        try:
-            trader_id = TraderId(trader_id)
-        except ValueError:
-            raise DropPacket("Invalid 'trader_id' type")
-
-        try:
-            message_number = MessageNumber(message_number)
-        except ValueError:
-            raise DropPacket("Invalid 'message_number' type")
-
-        try:
-            order_number = OrderNumber(order_number)
-        except ValueError:
-            raise DropPacket("Invalid 'order_number' type")
-
-        try:
-            recipient_trader_id = TraderId(recipient_trader_id)
-        except ValueError:
-            raise DropPacket("Invalid 'recipient_trader_id' type")
-
-        try:
-            recipient_order_number = OrderNumber(recipient_order_number)
-        except ValueError:
-            raise DropPacket("Invalid 'recipient_order_number' type")
-
-        try:
-            price = Price.from_mil(price)
-        except ValueError:
-            raise DropPacket("Invalid 'price' type")
-
-        try:
-            quantity = Quantity.from_mil(quantity)
-        except ValueError:
-            raise DropPacket("Invalid 'quantity' type")
-
-        try:
-            timestamp = Timestamp(timestamp)
-        except ValueError:
-            raise DropPacket("Invalid 'timestamp' type")
-
-        try:
-            ttl = Ttl(ttl)
-        except ValueError:
-            raise DropPacket("Invalid 'ttl' type")
-
-        return offset, placeholder.meta.payload.implement(trader_id, message_number, order_number, recipient_trader_id,
-                                                          recipient_order_number, price, quantity, timestamp, ttl)
+        return self._decode_payload(placeholder, offset, data,
+                                    [TraderId, MessageNumber, OrderNumber, TraderId, OrderNumber, Price, Quantity,
+                                     Timestamp, Ttl])
 
     def _encode_declined_trade(self, message):
         payload = message.payload
@@ -256,51 +114,8 @@ class MarketConversion(BinaryConversion):
         return packet,
 
     def _decode_declined_trade(self, placeholder, offset, data):
-        try:
-            offset, payload = decode(data, offset)
-        except ValueError:
-            raise DropPacket("Unable to decode the declined-trade-payload")
-
-        if not isinstance(payload, tuple):
-            raise DropPacket("Invalid declined-trade-payload type")
-
-        if not len(payload) == 6:
-            raise DropPacket("Invalid declined-trade-payload length")
-
-        trader_id, message_number, order_number, recipient_trader_id, recipient_order_number, timestamp = payload
-
-        try:
-            trader_id = TraderId(trader_id)
-        except ValueError:
-            raise DropPacket("Invalid 'trader_id' type")
-
-        try:
-            message_number = MessageNumber(message_number)
-        except ValueError:
-            raise DropPacket("Invalid 'message_number' type")
-
-        try:
-            order_number = OrderNumber(order_number)
-        except ValueError:
-            raise DropPacket("Invalid 'order_number' type")
-
-        try:
-            recipient_trader_id = TraderId(recipient_trader_id)
-        except ValueError:
-            raise DropPacket("Invalid 'recipient_trader_id' type")
-
-        try:
-            recipient_order_number = OrderNumber(recipient_order_number)
-        except ValueError:
-            raise DropPacket("Invalid 'recipient_order_number' type")
-
-        try:
-            timestamp = Timestamp(timestamp)
-        except ValueError:
-            raise DropPacket("Invalid 'timestamp' type")
-
-        return offset, placeholder.meta.payload.implement(trader_id, message_number, order_number, recipient_trader_id,
-                                                          recipient_order_number, timestamp)
+        return self._decode_payload(placeholder, offset, data,
+                                    [TraderId, MessageNumber, OrderNumber, TraderId, OrderNumber, Timestamp])
 
     def _encode_start_transaction(self, message):
         payload = message.payload
@@ -311,40 +126,7 @@ class MarketConversion(BinaryConversion):
         return packet,
 
     def _decode_start_transaction(self, placeholder, offset, data):
-        try:
-            offset, payload = decode(data, offset)
-        except ValueError:
-            raise DropPacket("Unable to decode the start_transaction")
-
-        if not isinstance(payload, tuple):
-            raise DropPacket("Invalid start_transaction type")
-
-        if not len(payload) == 4:
-            raise DropPacket("Invalid start_transaction length")
-
-        trader_id, message_number, transaction_number, timestamp = payload
-
-        try:
-            trader_id = TraderId(trader_id)
-        except ValueError:
-            raise DropPacket("Invalid 'trader_id' type")
-
-        try:
-            message_number = MessageNumber(message_number)
-        except ValueError:
-            raise DropPacket("Invalid 'message_number' type")
-
-        try:
-            transaction_number = TransactionNumber(transaction_number)
-        except ValueError:
-            raise DropPacket("Invalid 'transaction_number' type")
-
-        try:
-            timestamp = Timestamp(timestamp)
-        except ValueError:
-            raise DropPacket("Invalid 'timestamp' type")
-
-        return offset, placeholder.meta.payload.implement(trader_id, message_number, transaction_number, timestamp)
+        return self._decode_payload(placeholder, offset, data, [TraderId, MessageNumber, TransactionNumber, Timestamp])
 
     def _encode_multi_chain_payment(self, message):
         payload = message.payload
@@ -356,58 +138,9 @@ class MarketConversion(BinaryConversion):
         return packet,
 
     def _decode_multi_chain_payment(self, placeholder, offset, data):
-        try:
-            offset, payload = decode(data, offset)
-        except ValueError:
-            raise DropPacket("Unable to decode the multi_chain_payment")
-
-        if not isinstance(payload, tuple):
-            raise DropPacket("Invalid multi_chain_payment type")
-
-        if not len(payload) == 7:
-            raise DropPacket("Invalid multi_chain_payment length")
-
-        trader_id, message_number, transaction_number, bitcoin_address, transferor_quantity, transferee_quantity,\
-        timestamp = payload
-
-        try:
-            trader_id = TraderId(trader_id)
-        except ValueError:
-            raise DropPacket("Invalid 'trader_id' type")
-
-        try:
-            message_number = MessageNumber(message_number)
-        except ValueError:
-            raise DropPacket("Invalid 'message_number' type")
-
-        try:
-            transaction_number = TransactionNumber(transaction_number)
-        except ValueError:
-            raise DropPacket("Invalid 'transaction_number' type")
-
-        try:
-            bitcoin_address = BitcoinAddress(bitcoin_address)
-        except ValueError:
-            raise DropPacket("Invalid 'bitcoin_address' type")
-
-        try:
-            transferor_quantity = Quantity.from_mil(transferor_quantity)
-        except ValueError:
-            raise DropPacket("Invalid 'transferor_quantity' type")
-
-        try:
-            transferee_quantity = Quantity.from_mil(transferee_quantity)
-        except ValueError:
-            raise DropPacket("Invalid 'transferee_quantity' type")
-
-        try:
-            timestamp = Timestamp(timestamp)
-        except ValueError:
-            raise DropPacket("Invalid 'timestamp' type")
-
-        return offset, placeholder.meta.payload.implement(trader_id, message_number, transaction_number,
-                                                          bitcoin_address, transferor_quantity, transferee_quantity,
-                                                          timestamp)
+        return self._decode_payload(placeholder, offset, data,
+                                    [TraderId, MessageNumber, TransactionNumber, BitcoinAddress, Quantity, Quantity,
+                                     Timestamp])
 
     def _encode_bitcoin_payment(self, message):
         payload = message.payload
@@ -418,46 +151,8 @@ class MarketConversion(BinaryConversion):
         return packet,
 
     def _decode_bitcoin_payment(self, placeholder, offset, data):
-        try:
-            offset, payload = decode(data, offset)
-        except ValueError:
-            raise DropPacket("Unable to decode the bitcoin_payment")
-
-        if not isinstance(payload, tuple):
-            raise DropPacket("Invalid bitcoin_payment type")
-
-        if not len(payload) == 5:
-            raise DropPacket("Invalid bitcoin_payment length")
-
-        trader_id, message_number, transaction_number, quantity, timestamp = payload
-
-        try:
-            trader_id = TraderId(trader_id)
-        except ValueError:
-            raise DropPacket("Invalid 'trader_id' type")
-
-        try:
-            message_number = MessageNumber(message_number)
-        except ValueError:
-            raise DropPacket("Invalid 'message_number' type")
-
-        try:
-            transaction_number = TransactionNumber(transaction_number)
-        except ValueError:
-            raise DropPacket("Invalid 'transaction_number' type")
-
-        try:
-            quantity = Quantity.from_mil(quantity)
-        except ValueError:
-            raise DropPacket("Invalid 'quantity' type")
-
-        try:
-            timestamp = Timestamp(timestamp)
-        except ValueError:
-            raise DropPacket("Invalid 'timestamp' type")
-
-        return offset, placeholder.meta.payload.implement(trader_id, message_number, transaction_number, quantity,
-                                                          timestamp)
+        return self._decode_payload(placeholder, offset, data,
+                                    [TraderId, MessageNumber, TransactionNumber, Quantity, Timestamp])
 
     def _encode_end_transaction(self, message):
         payload = message.payload
@@ -468,37 +163,4 @@ class MarketConversion(BinaryConversion):
         return packet,
 
     def _decode_end_transaction(self, placeholder, offset, data):
-        try:
-            offset, payload = decode(data, offset)
-        except ValueError:
-            raise DropPacket("Unable to decode the end_transaction")
-
-        if not isinstance(payload, tuple):
-            raise DropPacket("Invalid end_transaction type")
-
-        if not len(payload) == 4:
-            raise DropPacket("Invalid end_transaction length")
-
-        trader_id, message_number, transaction_number, timestamp = payload
-
-        try:
-            trader_id = TraderId(trader_id)
-        except ValueError:
-            raise DropPacket("Invalid 'trader_id' type")
-
-        try:
-            message_number = MessageNumber(message_number)
-        except ValueError:
-            raise DropPacket("Invalid 'message_number' type")
-
-        try:
-            transaction_number = TransactionNumber(transaction_number)
-        except ValueError:
-            raise DropPacket("Invalid 'transaction_number' type")
-
-        try:
-            timestamp = Timestamp(timestamp)
-        except ValueError:
-            raise DropPacket("Invalid 'timestamp' type")
-
-        return offset, placeholder.meta.payload.implement(trader_id, message_number, transaction_number, timestamp)
+        return self._decode_payload(placeholder, offset, data, [TraderId, MessageNumber, TransactionNumber, Timestamp])
