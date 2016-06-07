@@ -93,7 +93,7 @@ class OfferPayloadTestSuite(unittest.TestCase):
         self.offer_payload = OfferPayload.Implementation(MetaObject(), TraderId('0'), MessageNumber('message_number'),
                                                          OrderNumber('order_number'), Price(63400),
                                                          Quantity(30), Timeout(1470004447.117),
-                                                         Timestamp(1462224447.117), Ttl(2), SocketAddress("1.1.1.1", 1))
+                                                         Timestamp(1462224447.117), Ttl(2), "1.1.1.1", 1)
 
     def test_properties(self):
         # Test for properties
