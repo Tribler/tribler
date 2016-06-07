@@ -4,14 +4,17 @@ from twisted.python.threadable import registerAsIOThread
 
 from Tribler.community.market.community import MarketCommunity
 from Tribler.community.market.conversion import MarketConversion
+from Tribler.community.market.core.bitcoin_address import BitcoinAddress
 from Tribler.community.market.core.message import TraderId, MessageNumber, MessageId
 from Tribler.community.market.core.order import OrderId, OrderNumber
 from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
+from Tribler.community.market.core.payment import BitcoinPayment, MultiChainPayment
 from Tribler.community.market.core.tick import Tick, Ask, Bid
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import Trade
+from Tribler.community.market.core.transaction import StartTransaction, EndTransaction, TransactionId, TransactionNumber
 from Tribler.community.market.socket_address import SocketAddress
 from Tribler.community.market.ttl import Ttl
 from Tribler.community.tunnel.Socks5.server import Socks5Server
@@ -65,6 +68,16 @@ class CommunityTestSuite(unittest.TestCase):
                                             Timestamp(1462224447.117), self.proposed_trade)
         self.counter_trade = Trade.counter(MessageId(TraderId('0'), MessageNumber('message_number')),
                                            Quantity(15), Timestamp(1462224447.117), self.proposed_trade)
+        self.start_transaction = StartTransaction(MessageId(TraderId('0'), MessageNumber('1')),
+                                                  TransactionId(TraderId("0"), TransactionNumber("1")), Timestamp(0.0))
+        self.end_transaction = EndTransaction(MessageId(TraderId('0'), MessageNumber('1')),
+                                              TransactionId(TraderId("0"), TransactionNumber("1")), Timestamp(0.0))
+        self.multi_chain_payment = MultiChainPayment(MessageId(TraderId("0"), MessageNumber("1")),
+                                                     TransactionNumber("2"),
+                                                     BitcoinAddress("0"), Quantity(3), Quantity(2), Timestamp(4.0))
+        self.bitcoin_payment = BitcoinPayment(MessageId(TraderId("0"), MessageNumber("1")), TransactionNumber("2"),
+                                              Quantity(10),
+                                              Timestamp(4.0))
 
     def test_get_master_members(self):
         # Test for get masters members
@@ -203,6 +216,30 @@ class CommunityTestSuite(unittest.TestCase):
         self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
         self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
         self.market_community.send_counter_trade(self.counter_trade)
+
+    def test_send_start_transaction(self):  # TODO: Add assertions to test
+        # Test for send start transaction
+        self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
+        self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
+        self.market_community.send_start_transaction(self.start_transaction)
+
+    def test_send_bitcoin_payment(self):  # TODO: Add assertions to test
+        # Test for send bitcoin payment
+        self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
+        self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
+        self.market_community.send_bitcoin_payment(self.bitcoin_payment)
+
+    def test_send_multi_chain_payment(self):  # TODO: Add assertions to test
+        # Test for send multi chain payment
+        self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
+        self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
+        self.market_community.send_multi_chain_payment(self.multi_chain_payment)
+
+    def test_send_end_transaction(self):  # TODO: Add assertions to test
+        # Test for send end transaction
+        self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
+        self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
+        self.market_community.send_end_transaction(self.end_transaction)
 
     def tearDown(self):
         # Closing and unlocking dispersy database for other tests in test suite
