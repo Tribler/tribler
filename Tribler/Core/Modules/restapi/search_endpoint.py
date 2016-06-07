@@ -19,17 +19,19 @@ class SearchEndpoint(resource.Resource):
     Example response over the events endpoint:
     {
         "type": "search_result_channel",
-        "query": "test",
-        "result": {
-            "id": 3,
-            "dispersy_cid": "da69aaad39ccf468aba2ab9177d5f8d8160135e6",
-            "name": "My fancy channel",
-            "description": "A description of this fancy channel",
-            "subscribed": True,
-            "votes": 23,
-            "torrents": 3,
-            "spam": 5,
-            "modified": 14598395,
+        "event": {
+            "query": "test",
+            "result": {
+                "id": 3,
+                "dispersy_cid": "da69aaad39ccf468aba2ab9177d5f8d8160135e6",
+                "name": "My fancy channel",
+                "description": "A description of this fancy channel",
+                "subscribed": True,
+                "votes": 23,
+                "torrents": 3,
+                "spam": 5,
+                "modified": 14598395,
+            }
         }
     }
     """
