@@ -761,11 +761,11 @@ class TriblerLaunchMany(TaskManager):
 
     def save_download_pstate(self, infohash, pstate):
         """ Called by network thread """
-        basename = binascii.hexlify(infohash) + '.state'
-        filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
 
-        self._logger.debug("tlm: network checkpointing: to file %s", filename)
-        pstate.write_file(filename)
+        self.downloads[infohash].pstate_for_restart = pstate
+
+        self.register_task("save_pstate %f" % timemod.clock(),
+                           self.downloads[infohash].save_resume_data())
 
     def load_download_pstate(self, filename):
         """ Called by any thread """
