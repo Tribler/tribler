@@ -24,7 +24,6 @@ from core.trade import Trade, ProposedTrade, AcceptedTrade, DeclinedTrade, Count
 from core.transaction import StartTransaction, EndTransaction
 from payload import OfferPayload, TradePayload, AcceptedTradePayload, DeclinedTradePayload, StartTransactionPayload, \
     MultiChainPaymentPayload, BitcoinPaymentPayload, EndTransactionPayload
-from socket_address import SocketAddress
 from ttl import Ttl
 
 
