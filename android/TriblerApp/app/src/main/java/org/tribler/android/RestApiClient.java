@@ -8,7 +8,7 @@ import com.google.gson.stream.JsonReader;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.Reader;
+import java.io.StringReader;
 import java.lang.ref.WeakReference;
 import java.util.concurrent.TimeUnit;
 
@@ -98,6 +98,7 @@ public class RestApiClient {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+            // Reconnect on timeout
             openEvents();
         }
 
@@ -118,9 +119,12 @@ public class RestApiClient {
 
             try {
                 BufferedReader in = new BufferedReader(response.body().charStream());
-                String inputLine;
-                while ((inputLine = in.readLine()) != null)
-                    System.out.println(inputLine);
+                String line;
+                while ((line = in.readLine()) != null) {
+                    System.out.println(line);
+                    JsonReader reader = new JsonReader(new StringReader(line));
+                    readEvents(reader);
+                }
                 in.close();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -137,27 +141,27 @@ public class RestApiClient {
 
         mEventCall = EVENTS.newCall(request);
 
-        System.out.println("Open events stream");
+        System.err.println("**************   (RE)CONNECT   ******************");
         mEventCall.enqueue(mEventCallback);
     }
 
     private static void readEvents(JsonReader reader) throws IOException {
-        String query;
+        String query = null;
         reader.beginObject();
         if ("type".equals(reader.nextName())) {
 
             switch (reader.nextString()) {
                 case "events_start":
-                    System.out.println("Events start");
+                    System.err.println("------------- START EVENTS --------------");
                     mEventListener.get().onEventsStart();
                     break;
 
                 case "search_result_channel":
-                    if ("query".equals(reader.nextName())) {
+                    /*if ("query".equals(reader.nextName())) {
                         query = reader.nextString();
                     } else {
                         throw new IOException("Invalid query");
-                    }
+                    }*/
                     TriblerChannel channel;
                     if ("result".equals(reader.nextName())) {
                         channel = GSON.fromJson(reader, TriblerChannel.class);
@@ -168,11 +172,11 @@ public class RestApiClient {
                     break;
 
                 case "search_result_torrent":
-                    if ("query".equals(reader.nextName())) {
+                    /*if ("query".equals(reader.nextName())) {
                         query = reader.nextString();
                     } else {
                         throw new IOException("Invalid query");
-                    }
+                    }*/
                     TriblerTorrent torrent;
                     if ("result".equals(reader.nextName())) {
                         torrent = GSON.fromJson(reader, TriblerTorrent.class);
@@ -181,6 +185,10 @@ public class RestApiClient {
                     }
                     mEventListener.get().onSearchResultTorrent(query, torrent);
                     break;
+
+                default:
+                    System.err.println("------------- UNKNOWN EVENT --------------");
+                    throw new IOException("Unknown event");
             }
         } else {
             throw new IOException("Invalid type");
