@@ -46,7 +46,6 @@ class SearchEndpoint(resource.Resource):
         This method first fires a search query in the SearchCommunity/AllChannelCommunity to search for torrents and
         channels. Next, the results in the local database are queried and returned over the events endpoint.
         """
-        request.setHeader('Content-Type', 'text/json')
         if 'q' not in request.args:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "query parameter missing"})

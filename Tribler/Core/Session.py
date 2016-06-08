@@ -6,6 +6,7 @@ import logging
 import os
 import socket
 from binascii import hexlify
+import time
 
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
@@ -13,10 +14,12 @@ from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_FILE_RELATIVE_PATH, DB_SCRIPT_RELATIVE_PATH
 from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
-from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException
+from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException, \
+    DuplicateTorrentFileError
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT, NTFY_METADATA, NTFY_MYPREFERENCES,
                                      NTFY_PEERS, NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
                                      STATEDIR_METADATA_STORE_DIR, STATEDIR_PEERICON_DIR, STATEDIR_TORRENT_STORE_DIR)
+
 
 GOTM2CRYPTO = False
 try:
@@ -659,6 +662,40 @@ class Session(SessionConfigInterface):
         :raises DuplicateChannelNameError if name already exists
         """
         return self.lm.channel_manager.create_channel(name, description, mode)
+
+    def add_torrent_def_to_channel(self, channel_id, torrent_def, extra_info={}, forward=True):
+        """
+        Adds a TorrentDef to a Channel.
+        :param channel_id: Id of the Channel to add the Torrent to.
+        :param torrent_def: Definition of the Torrent to add.
+        :param extra_info: Description of the Torrent to add.
+        :param forward: When True the messages are forwarded (as defined by their message
+         destination policy) to other nodes in the community. This parameter should (almost always)
+         be True, its inclusion is mostly to allow certain debugging scenarios.
+        """
+        # Make sure that this new torrent_def is also in collected torrents
+        self.lm.rtorrent_handler.save_torrent(torrent_def)
+
+        channelcast_db = self.open_dbhandler(NTFY_CHANNELCAST)
+        if channelcast_db.hasTorrent(channel_id, torrent_def.infohash):
+            raise DuplicateTorrentFileError()
+
+        dispersy_cid = str(channelcast_db.getDispersyCIDFromChannelId(channel_id))
+        community = self.get_dispersy_instance().get_community(dispersy_cid)
+
+        community._disp_create_torrent(
+            torrent_def.infohash,
+            long(time.time()),
+            torrent_def.get_name_as_unicode(),
+            tuple(torrent_def.get_files_as_unicode_with_length()),
+            torrent_def.get_trackers_as_single_tuple(),
+            forward=forward)
+
+        if 'description' in extra_info:
+            desc = extra_info['description'].strip()
+            if desc != '':
+                data = channelcast_db.getTorrentFromChannelId(channel_id, torrent_def.infohash, ['ChannelTorrents.id'])
+                community.modifyTorrent(data, {'description': desc}, forward=forward)
 
     def check_torrent_health(self, infohash):
         """

@@ -63,6 +63,14 @@ class TorrentDef(object):
         # a Session. Alternatively, the tracker will be set to the internal
         # tracker by default when Session::start_download() is called, if the
         # 'announce' field is the empty string.
+
+    def __eq__(self, other):
+        return (isinstance(other, TorrentDef) and
+                self.metainfo_valid == other.metainfo_valid and
+                self.input == other.input and
+                self.infohash == other.infohash and
+                self.metainfo == other.metainfo)
+
     #
     # Class methods for creating a TorrentDef from a .torrent file
     #

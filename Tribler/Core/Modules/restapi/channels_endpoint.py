@@ -110,7 +110,6 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
             "subscribed" : True
         }
         """
-        request.setHeader('Content-Type', 'text/json')
         channel_info = self.get_channel_from_db(self.cid)
         if channel_info is None:
             return ChannelsModifySubscriptionEndpoint.return_404(request)
@@ -131,7 +130,6 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
             "unsubscribed" : True
         }
         """
-        request.setHeader('Content-Type', 'text/json')
         channel_info = self.get_channel_from_db(self.cid)
         if channel_info is None:
             return ChannelsModifySubscriptionEndpoint.return_404(request)
@@ -213,7 +211,6 @@ class ChannelTorrentsEndpoint(BaseChannelsEndpoint):
         self.cid = cid
 
     def render_GET(self, request):
-        request.setHeader('Content-Type', 'text/json')
         channel_info = self.get_channel_from_db(self.cid)
         if channel_info is None:
             return ChannelTorrentsEndpoint.return_404(request)

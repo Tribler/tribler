@@ -1,4 +1,6 @@
 import json
+import base64
+import urllib
 
 from Tribler.Core.Modules.channel.channel import ChannelObject
 from Tribler.Core.Modules.channel.channel_manager import ChannelManager
@@ -6,6 +8,8 @@ from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST
 from Tribler.Core.exceptions import DuplicateChannelNameError
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Test.test_libtorrent_download import TORRENT_FILE
 
 
 class ChannelCommunityMock(object):
@@ -90,8 +94,29 @@ class TestMyChannelEndpoints(AbstractTestMyChannelEndpoints):
         }
         self.session.create_channel = self.create_fake_channel
         self.should_check_equality = False
-        return self.do_request('mychannel', expected_code=200, expected_json=None,
-                               request_type='PUT', post_data=post_data).addCallback(verify_channel_created)
+        return self.do_request('mychannel', expected_code=200, expected_json=None, request_type='PUT',
+                               post_data=post_data).addCallback(verify_channel_created)
+
+    @deferred(timeout=10)
+    def test_my_channel_endpoint_create_no_description_param(self):
+        """
+        Testing whether the API returns the right JSON data if description parameter is not passed
+        """
+        def verify_channel_created(body):
+            channel_obj = self.session.lm.channel_manager._channel_list[0]
+            self.assertEqual(channel_obj.name, post_data["name"])
+            self.assertEqual(channel_obj.description, u'')
+            self.assertEqual(channel_obj.mode, post_data["mode"])
+            self.assertDictEqual(json.loads(body), {"added": channel_obj.channel_id})
+
+        post_data = {
+            "name": "John Smit's channel",
+            "mode": "semi-open"
+        }
+        self.session.create_channel = self.create_fake_channel
+        self.should_check_equality = False
+        return self.do_request('mychannel', expected_code=200, expected_json=None, request_type='PUT',
+                               post_data=post_data).addCallback(verify_channel_created)
 
     @deferred(timeout=10)
     def test_my_channel_endpoint_create_default_mode(self):
@@ -112,8 +137,8 @@ class TestMyChannelEndpoints(AbstractTestMyChannelEndpoints):
         }
         self.session.create_channel = self.create_fake_channel
         self.should_check_equality = False
-        return self.do_request('mychannel', expected_code=200, expected_json=None,
-                               request_type='PUT', post_data=post_data).addCallback(verify_channel_created)
+        return self.do_request('mychannel', expected_code=200, expected_json=None, request_type='PUT',
+                               post_data=post_data).addCallback(verify_channel_created)
 
     @deferred(timeout=10)
     def test_my_channel_endpoint_create_duplicate_name_error(self):
@@ -152,19 +177,6 @@ class TestMyChannelEndpoints(AbstractTestMyChannelEndpoints):
             "mode": "semi-open"
         }
         expected_json = {"error": "name parameter missing"}
-        return self.do_request('mychannel', expected_code=400, expected_json=expected_json, request_type='PUT',
-                               post_data=post_data)
-
-    @deferred(timeout=10)
-    def test_my_channel_endpoint_create_no_description_param(self):
-        """
-        Testing whether the API returns a 400 and error if the name parameter is not passed
-        """
-        post_data = {
-            "name": "John Smit's channel",
-            "mode": "semi-open"
-        }
-        expected_json = {"error": "description parameter missing"}
         return self.do_request('mychannel', expected_code=400, expected_json=expected_json, request_type='PUT',
                                post_data=post_data)
 
@@ -218,6 +230,183 @@ class TestMyChannelEndpoints(AbstractTestMyChannelEndpoints):
         """
         self.session.lm.channel_manager = ChannelManager(self.session)
         return self.do_request('mychannel/rssfeeds', expected_code=404)
+
+
+class TestMyChannelTorrentsEndpoint(AbstractTestMyChannelEndpoints):
+
+    @deferred(timeout=10)
+    def test_add_torrent_to_my_channel(self):
+        my_channel_id = self.create_fake_channel("channel", "")
+        torrent_path = TORRENT_FILE
+
+        def verify_method_invocation(channel_id, torrent_def, extra_info={}, forward=True):
+            self.assertEqual(my_channel_id, channel_id)
+            self.assertEqual(TorrentDef.load(torrent_path), torrent_def)
+            self.assertEqual({}, extra_info)
+            self.assertEqual(True, forward)
+
+        self.session.add_torrent_def_to_channel = verify_method_invocation
+
+        torrent_file = open(torrent_path, mode='rb')
+        torrent_64 = base64.b64encode(torrent_file.read())
+        post_data = {
+            "torrent": torrent_64
+        }
+        expected_json = {"added": True}
+        return self.do_request('mychannel/torrents', 200, expected_json, 'PUT', post_data)
+
+    @deferred(timeout=10)
+    def test_add_torrent_to_my_channel_with_description(self):
+        my_channel_id = self.create_fake_channel("channel", "")
+        torrent_path = TORRENT_FILE
+
+        def verify_method_invocation(channel_id, torrent_def, extra_info={}, forward=True):
+            self.assertEqual(my_channel_id, channel_id)
+            self.assertEqual(TorrentDef.load(torrent_path), torrent_def)
+            self.assertEqual({"description": "video of my cat"}, extra_info)
+            self.assertEqual(True, forward)
+
+        self.session.add_torrent_def_to_channel = verify_method_invocation
+
+        torrent_file = open(torrent_path, mode='rb')
+        torrent_64 = base64.b64encode(torrent_file.read())
+        post_data = {
+            "torrent": torrent_64,
+            "description": "video of my cat"
+        }
+        expected_json = {"added": True}
+        return self.do_request('mychannel/torrents', 200, expected_json, 'PUT', post_data)
+
+    @deferred(timeout=10)
+    def test_add_torrent_to_my_channel_404(self):
+        return self.do_request('mychannel/torrents', 404, None, 'PUT')
+
+    @deferred(timeout=10)
+    def test_add_torrent_to_my_channel_missing_parameter(self):
+        self.create_fake_channel("channel", "")
+        expected_json = {"error": "torrent parameter missing"}
+        return self.do_request('mychannel/torrents', 400, expected_json, 'PUT')
+
+    @deferred(timeout=10)
+    def test_add_torrent_to_my_channel_500(self):
+        """
+        Testing whether the API returns a formatted 500 error if ValueError is raised
+        """
+        self.create_fake_channel("channel", "")
+        torrent_path = TORRENT_FILE
+
+        def fake_error(channel_id, torrent_def, extra_info={}, forward=True):
+            raise ValueError("Test error")
+
+        self.session.add_torrent_def_to_channel = fake_error
+
+        def verify_error_message(body):
+            error_response = json.loads(body)
+            expected_response = {
+                u"error": {
+                    u"handled": True,
+                    u"code": u"ValueError",
+                    u"message": u"Test error"
+                }
+            }
+            self.assertDictContainsSubset(expected_response[u"error"], error_response[u"error"])
+
+        torrent_file = open(torrent_path, mode='rb')
+        torrent_64 = base64.b64encode(torrent_file.read())
+        post_data = {
+            "torrent": torrent_64
+        }
+        self.should_check_equality = False
+        return self.do_request('mychannel/torrents', expected_code=500, expected_json=None, request_type='PUT',
+                               post_data=post_data).addCallback(verify_error_message)
+
+
+class TestMyChannelModifyTorrentsEndpoint(AbstractTestMyChannelEndpoints):
+
+    def setUpPreSession(self):
+        super(TestMyChannelModifyTorrentsEndpoint, self).setUpPreSession()
+        self.config.set_libtorrent(True)
+
+    @deferred(timeout=10)
+    def test_add_torrent_from_url_to_my_channel_with_description(self):
+        my_channel_id = self.create_fake_channel("channel", "")
+        torrent_path = TORRENT_FILE
+
+        @staticmethod
+        def fake_load_from_url(url):
+            return TorrentDef.load(torrent_path)
+
+        TorrentDef.load_from_url = fake_load_from_url
+
+        def verify_method_invocation(channel_id, torrent_def, extra_info={}, forward=True):
+            self.assertEqual(my_channel_id, channel_id)
+            self.assertEqual(TorrentDef.load(torrent_path), torrent_def)
+            self.assertEqual({"description": "test add torrent"}, extra_info)
+            self.assertEqual(True, forward)
+
+        self.session.add_torrent_def_to_channel = verify_method_invocation
+
+        torrent_url = 'https://www.tribler.org'
+        url = 'mychannel/torrents/' + urllib.quote_plus(torrent_url)
+        return self.do_request(url, expected_code=200, expected_json={"added": torrent_url}, request_type='PUT',
+                               post_data={"description": "test add torrent"})
+
+    @deferred(timeout=10)
+    def test_add_torrent_from_magnet_to_my_channel_without_description(self):
+        my_channel_id = self.create_fake_channel("channel", "")
+        torrent_path = TORRENT_FILE
+
+        def fake_load_from_dht(infohash_or_magnet, callback):
+            meta_info = TorrentDef.load(torrent_path).get_metainfo()
+            callback(meta_info)
+
+        self.session.lm.ltmgr.get_metainfo = fake_load_from_dht
+
+        def verify_method_invocation(channel_id, torrent_def, extra_info={}, forward=True):
+            self.assertEqual(my_channel_id, channel_id)
+            self.assertEqual(TorrentDef.load(torrent_path), torrent_def)
+            self.assertEqual({}, extra_info)
+            self.assertEqual(True, forward)
+
+        self.session.add_torrent_def_to_channel = verify_method_invocation
+
+        magnet_url = 'magnet:?fake'
+        url = 'mychannel/torrents/' + urllib.quote_plus(magnet_url)
+        return self.do_request(url, expected_code=200, expected_json={"added": magnet_url}, request_type='PUT')
+
+    @deferred(timeout=10)
+    def test_add_torrent_to_my_channel_404(self):
+        return self.do_request('mychannel/torrents/fake_url', expected_code=404, expected_json=None, request_type='PUT')
+
+    @deferred(timeout=10)
+    def test_add_torrent_to_my_channel_500(self):
+        """
+        Testing whether the API returns a formatted 500 error if ValueError is raised
+        """
+        self.create_fake_channel("channel", "")
+
+        @staticmethod
+        def fake_load_from_url(url):
+            raise ValueError("Test error")
+
+        TorrentDef.load_from_url = fake_load_from_url
+
+        def verify_error_message(body):
+            error_response = json.loads(body)
+            expected_response = {
+                u"error": {
+                    u"handled": True,
+                    u"code": u"ValueError",
+                    u"message": u"Test error"
+                }
+            }
+            self.assertDictContainsSubset(expected_response[u"error"], error_response[u"error"])
+
+        torrent_url = 'https://www.tribler.org'
+        url = 'mychannel/torrents/' + urllib.quote_plus(torrent_url)
+        self.should_check_equality = False
+        return self.do_request(url, expected_code=500, expected_json=None, request_type='PUT')\
+                   .addCallback(verify_error_message)
 
 
 class TestMyChannelRssEndpoints(AbstractTestMyChannelEndpoints):

@@ -56,6 +56,13 @@ class DuplicateChannelNameError(TriblerException):
     pass
 
 
+class DuplicateTorrentFileError(TriblerException):
+
+    """ The Torrent already exists in the Channel you try to add it to. """
+
+    pass
+
+
 class DuplicateDownloadException(TriblerException):
 
     """ The Download already exists in the Session, i.e., a Download for
