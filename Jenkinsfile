@@ -92,6 +92,8 @@ ulimit -c unlimited
   },
   "Pylint": {
 
+    unstash 'tribler'
+
     sh '''
 export PATH=$PATH:$HOME/.local/bin/
 
