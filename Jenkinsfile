@@ -111,7 +111,7 @@ PYLINTRC=.pylintrc diff-quality --violations=pylint --options="Tribler" --compar
 pwd
 ls -l
 '''
-      publishHTML()
+      publishHTML target: [yada: "."]
     }
   },
              failFast: true
