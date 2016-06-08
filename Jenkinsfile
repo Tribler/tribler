@@ -112,6 +112,7 @@ pwd
 ls -l
 '''
       publishHTML(target: [reportDir:'.', reportFiles: '**', reportName: 'Code quality diff'])
+      step([$class: 'GitHubCommitStatusSetter'])
     }
   },
              failFast: true
