@@ -81,7 +81,7 @@ export GUMBY_nose_tests_parallelisation=12
 export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages:$PYTHONPATH
 export PYLINTRC=$PWD/tribler/.pylintrc
 ulimit -c unlimited
-gumby/run.py gumby/experiments/tribler/run_all_tests_parallel.conf
+#gumby/run.py gumby/experiments/tribler/run_all_tests_parallel.conf
 '''
     } finally {
       archive 'output/**'
@@ -104,7 +104,9 @@ cd tribler
 
 PYLINTRC=.pylintrc diff-quality --violations=pylint --options="Tribler" --compare-branch origin/${CHANGE_TARGET} --fail-under 100 --html-report ../output/quality_report.html --external-css-file ../output/style.css
 '''
-    publishHTML()
+    dir('output') {
+      publishHTML()
+    }
   },
              failFast: true
 }
