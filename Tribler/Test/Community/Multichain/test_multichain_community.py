@@ -43,18 +43,17 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         other.send_identity(node)
         target_other = self._create_target(node, other)
         target_node = self._create_target(other, node)
-        tunnel = Circuit(long(0), 0)
+        tunnel_node = Circuit(long(0), 0)
+        tunnel_other = Circuit(long(0), 0)
         up = 12
         down = 14
-        stats_node = dict()
-        stats_other = dict()
-        stats_node['bytes_up'] = up * 1024 * 1024
-        stats_node['bytes_down'] = down * 1024 * 1024
-        stats_other['bytes_up'] = down * 1024 * 1024
-        stats_other['bytes_down'] = up * 1024 * 1024
+        tunnel_node.bytes_up = up * 1024 * 1024
+        tunnel_node.bytes_down = down * 1024 * 1024
+        tunnel_other.bytes_up = down * 1024 * 1024
+        tunnel_other.bytes_down = up * 1024 * 1024
         # Act
-        node.call(node.community.on_tunnel_remove, None, None, tunnel, stats_node, target_other)
-        other.call(other.community.on_tunnel_remove, None, None, tunnel, stats_other, target_node)
+        node.call(node.community.on_tunnel_remove, None, None, tunnel_node, target_other)
+        other.call(other.community.on_tunnel_remove, None, None, tunnel_other, target_node)
         # Assert
         # Since there is a tie breaker for requests, exactly one of the nodes should send a signature request
         failures = 0
@@ -85,18 +84,17 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         other.send_identity(node)
         target_other = self._create_target(node, other)
         target_node = self._create_target(other, node)
-        tunnel = RelayRoute(None, None, None)
+        tunnel_node = RelayRoute(None, None, None)
+        tunnel_other = RelayRoute(None, None, None)
         up = 12
         down = 14
-        stats_node = dict()
-        stats_other = dict()
-        stats_node['bytes_relay_up'] = up * 1024 * 1024
-        stats_node['bytes_relay_down'] = down * 1024 * 1024
-        stats_other['bytes_relay_up'] = down * 1024 * 1024
-        stats_other['bytes_relay_down'] = up * 1024 * 1024
+        tunnel_node.bytes_up = up * 1024 * 1024
+        tunnel_node.bytes_down = down * 1024 * 1024
+        tunnel_other.bytes_up = down * 1024 * 1024
+        tunnel_other.bytes_down = up * 1024 * 1024
         # Act
-        node.call(node.community.on_tunnel_remove, None, None, tunnel, stats_node, target_other)
-        other.call(other.community.on_tunnel_remove, None, None, tunnel, stats_other, target_node)
+        node.call(node.community.on_tunnel_remove, None, None, tunnel_node, target_other)
+        other.call(other.community.on_tunnel_remove, None, None, tunnel_other, target_node)
         # Assert
         # Since there is a tie breaker for requests, exactly one of the nodes should send a signature request
         failures = 0
@@ -127,19 +125,18 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         other.send_identity(node)
         target_other = self._create_target(node, other)
         target_node = self._create_target(other, node)
-        tunnel = TunnelExitSocket(None, None, None)
+        tunnel_node = TunnelExitSocket(None, None, None)
+        tunnel_other = TunnelExitSocket(None, None, None)
         up = 12
         down = 14
-        stats_node = dict()
-        stats_other = dict()
-        stats_node['bytes_exit'] = up * 1024 * 1024
-        stats_node['bytes_enter'] = down * 1024 * 1024
-        stats_other['bytes_exit'] = down * 1024 * 1024
-        stats_other['bytes_enter'] = up * 1024 * 1024
+        tunnel_node.bytes_up = up * 1024 * 1024
+        tunnel_node.bytes_down = down * 1024 * 1024
+        tunnel_other.bytes_up = down * 1024 * 1024
+        tunnel_other.bytes_down = up * 1024 * 1024
 
         # Act
-        node.call(node.community.on_tunnel_remove, None, None, tunnel, stats_node, target_other)
-        other.call(other.community.on_tunnel_remove, None, None, tunnel, stats_other, target_node)
+        node.call(node.community.on_tunnel_remove, None, None, tunnel_node, target_other)
+        other.call(other.community.on_tunnel_remove, None, None, tunnel_other, target_node)
         # Assert
         # Since there is a tie breaker for requests, exactly one of the nodes should send a signature request
         failures = 0
