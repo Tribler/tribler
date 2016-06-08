@@ -9,23 +9,17 @@ from binascii import hexlify, unhexlify
 import libtorrent as lt
 from twisted.internet.task import LoopingCall
 
-from twisted.internet import reactor
-from twisted.internet.task import LoopingCall
-from twisted.web.client import Agent, readBody
-from twisted.web.http_headers import Headers
-
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.Utilities import utilities
-from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
-from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.Policies.BoostingPolicy import SeederRatioPolicy
 from Tribler.Policies.BoostingSource import ChannelSource
 from Tribler.Policies.BoostingSource import DirectorySource
 from Tribler.Policies.BoostingSource import RSSFeedSource
-from Tribler.Policies.credit_mining_util import source_to_string, string_to_source, compare_torrents
+from Tribler.Policies.credit_mining_util import source_to_string, string_to_source, compare_torrents, \
+    validate_source_string
 from Tribler.Policies.defs import SAVED_ATTR, CREDIT_MINING_FOLDER_DOWNLOAD, CONFIG_KEY_ARCHIVELIST, \
     CONFIG_KEY_SOURCELIST, CONFIG_KEY_ENABLEDLIST, CONFIG_KEY_DISABLEDLIST
 from Tribler.dispersy.taskmanager import TaskManager
@@ -60,13 +54,15 @@ class BoostingSettings(object):
                                                CREDIT_MINING_FOLDER_DOWNLOAD)
         self.load_config = load_config
 
+        # whether we want to check dependencies of BoostingManager
+        self.check_dependencies = True
+        self.auto_start_source = True
+
 
 class BoostingManager(TaskManager):
     """
     Class to manage all the credit mining activities
     """
-
-    __single = None
 
     def __init__(self, session, settings=None):
         super(BoostingManager, self).__init__()
@@ -77,16 +73,23 @@ class BoostingManager(TaskManager):
         self.torrents = {}
 
         self.session = session
-        assert self.session.get_libtorrent()
-
-        self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
-        self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
 
         # use provided settings or a default one
         self.settings = settings or BoostingSettings(session, load_config=True)
 
+        if self.settings.check_dependencies:
+            assert self.session.get_libtorrent()
+            assert self.session.get_torrent_checking()
+            assert self.session.get_dispersy()
+            assert self.session.get_torrent_store()
+            assert self.session.get_enable_torrent_search()
+            assert self.session.get_enable_channel_search()
+            assert self.session.get_megacache()
+
+        self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
+        self.channelcast_db = self.session.open_dbhandler(NTFY_CHANNELCAST)
+
         if self.settings.load_config:
-            self._logger.info("Loading config file from session configuration")
             self.load_config()
 
         if not os.path.exists(self.settings.credit_mining_path):
@@ -106,22 +109,6 @@ class BoostingManager(TaskManager):
         self.register_task("CreditMining_log", LoopingCall(self.log_statistics),
                            self.settings.initial_logging_interval, interval=self.settings.logging_interval)
 
-    @staticmethod
-    def get_instance(*args, **kw):
-        """
-        get single instance of Boostingmanager
-        """
-        if BoostingManager.__single is None:
-            BoostingManager(*args, **kw)
-        return BoostingManager.__single
-
-    @staticmethod
-    def del_instance():
-        """
-        resetting, then deleting single instance
-        """
-        BoostingManager.__single = None
-
     def shutdown(self):
         """
         Shutting down boosting manager. It also stops and remove all the sources.
@@ -134,10 +121,13 @@ class BoostingManager(TaskManager):
 
         self.cancel_all_pending_tasks()
 
-        #remove credit mining data in not persistent mode
+        # remove credit mining downloaded data
         shutil.rmtree(self.settings.credit_mining_path, ignore_errors=True)
 
     def get_source_object(self, sourcekey):
+        """
+        Get the actual object of the source key
+        """
         return self.boosting_sources.get(sourcekey, None)
 
     def set_enable_mining(self, source, mining_bool=True, force_restart=False):
@@ -181,6 +171,9 @@ class BoostingManager(TaskManager):
             else:
                 self._logger.error("Cannot add unknown source %s", source)
                 return
+
+            if self.settings.auto_start_source:
+                self.boosting_sources[source].start()
 
             self._logger.info("Added source %s", source)
         else:
@@ -267,7 +260,7 @@ class BoostingManager(TaskManager):
         Manually scrape tracker by requesting to tracker manager
         """
 
-        for infohash, _ in self.torrents.iteritems():
+        for infohash in list(self.torrents):
             # torrent handle
             lt_torrent = self.session.lm.ltmgr.get_session().find_torrent(lt.big_number(infohash))
 
@@ -277,6 +270,13 @@ class BoostingManager(TaskManager):
                 peer_list.append(peer)
 
             num_seed, num_leech = utilities.translate_peers_into_health(peer_list)
+
+            # calculate number of seeder and leecher by looking at the peers
+            if self.torrents[infohash]['num_seeders'] == 0:
+                self.torrents[infohash]['num_seeders'] = num_seed
+            if self.torrents[infohash]['num_leechers'] == 0:
+                self.torrents[infohash]['num_leechers'] = num_leech
+
             self._logger.debug("Seeder/leecher data translated from peers : seeder %s, leecher %s", num_seed, num_leech)
 
             # check health(seeder/leecher)
@@ -284,7 +284,7 @@ class BoostingManager(TaskManager):
 
     def set_archive(self, source, enable):
         """
-        setting archive of a particular source. Affect all the torrents in this source
+        setting archive of a particular source. This affects all the torrents in this source
         """
         if source in self.boosting_sources:
             self.boosting_sources[source].archive = enable
@@ -302,22 +302,16 @@ class BoostingManager(TaskManager):
 
         preload = torrent.get('preload', False)
 
-        pstate = CallbackConfigParser()
-        pstate.add_section('state')
-        pstate.set('state', 'engineresumedata', torrent.get('pstate', None))
-
-        # not using Session.start_download because we need to specify pstate
         if self.session.lm.download_exists(torrent["metainfo"].get_infohash()):
             self._logger.error("Already downloading %s. Cancel start_download",
                                hexlify(torrent["metainfo"].get_infohash()))
             return
 
-        self._logger.info("Starting %s preload %s has pstate %s",
-                          hexlify(torrent["metainfo"].get_infohash()), preload,
-                          True if torrent.get('pstate', None) else False)
+        self._logger.info("Starting %s preload %s",
+                          hexlify(torrent["metainfo"].get_infohash()), preload)
 
-        torrent['download'] = self.session.lm.add(torrent['metainfo'], dscfg, pstate=pstate,
-                                                  hidden=True, share_mode=not preload, checkpoint_disabled=True)
+        torrent['download'] = self.session.lm.add(torrent['metainfo'], dscfg, hidden=True,
+                                                  share_mode=not preload, checkpoint_disabled=True)
         torrent['download'].set_priority(torrent.get('prio', 1))
 
     def stop_download(self, torrent):
@@ -330,7 +324,7 @@ class BoostingManager(TaskManager):
         lt_torrent = self.session.lm.ltmgr.get_session().find_torrent(ihash)
         if download and lt_torrent.is_valid():
             self._logger.info("Writing resume data for %s", str(ihash))
-            torrent['pstate'] = download.write_resume_data()
+            download.save_resume_data()
             self.session.remove_download(download, hidden=True)
 
     def _select_torrent(self):
@@ -365,14 +359,14 @@ class BoostingManager(TaskManager):
         """
         load config in file configuration and apply it to manager
         """
-        validate_source = lambda s: unhexlify(s) if len(s) == 40 and not s.startswith("http") else s
+        self._logger.info("Loading config file from session configuration")
 
         def _add_sources(values):
             """
             adding sources in configuration file
             """
             for boosting_source in values:
-                boosting_source = validate_source(boosting_source)
+                boosting_source = validate_source_string(boosting_source)
                 self.add_source(boosting_source)
 
         def _archive_sources(values):
@@ -380,7 +374,7 @@ class BoostingManager(TaskManager):
             setting archive to sources
             """
             for archive_source in values:
-                archive_source = validate_source(archive_source)
+                archive_source = validate_source_string(archive_source)
                 self.set_archive(archive_source, True)
 
         def _set_enable_boosting(values, enabled):
@@ -388,47 +382,27 @@ class BoostingManager(TaskManager):
             set disable/enable source
             """
             for boosting_source in values:
-                boosting_source = validate_source(boosting_source)
+                boosting_source = validate_source_string(boosting_source)
                 if boosting_source not in self.boosting_sources.keys():
                     self.add_source(boosting_source)
                 self.boosting_sources[boosting_source].enabled = enabled
 
-        switch = {
-            "boosting_sources": {
-                "cmd": _add_sources,
-                "args": (None,)
-            },
-            "archive_sources": {
-                "cmd": _archive_sources,
-                "args": (None,)
-            },
-            "boosting_enabled": {
-                "cmd": _set_enable_boosting,
-                "args": (None, True)
-            },
-            "boosting_disabled": {
-                "cmd": _set_enable_boosting,
-                "args": (None, False)
-            },
-        }
-
         # set policy
         self.settings.policy = self.session.get_cm_policy(True)(self.session)
 
-        dict_to_load = {}
-        dict_to_load.update(self.session.get_cm_sources())
-        dict_to_load.update(dict.fromkeys(SAVED_ATTR))
+        for k in SAVED_ATTR:
+            # see the session configuration
+            object.__setattr__(self.settings, k, getattr(self.session, "get_cm_%s" %k)())
 
-        for k, val in dict_to_load.items():
-            try:
-                if k in SAVED_ATTR:
-                    # see the session configuration
-                    object.__setattr__(self.settings, k,
-                                       getattr(self.session, "get_cm_%s" %k)())
-                else: #credit mining source handle
-                    switch[k]["cmd"](*((switch[k]['args'][0] or val,) + switch[k]['args'][1:]))
-            except KeyError:
-                self._logger.error("Key %s can't be applied", k)
+        for k, val in self.session.get_cm_sources().items():
+            if k is "boosting_sources":
+                _add_sources(val)
+            elif k is "archive_sources":
+                _archive_sources(val)
+            elif k is "boosting_enabled":
+                _set_enable_boosting(val, True)
+            elif k is "boosting_disabled":
+                _set_enable_boosting(val, False)
 
     def save_config(self):
         """

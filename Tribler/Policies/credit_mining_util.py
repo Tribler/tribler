@@ -4,7 +4,7 @@ File containing function used in credit mining module.
 
 
 import os
-from binascii import hexlify
+from binascii import hexlify, unhexlify
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST
@@ -12,7 +12,15 @@ from Tribler.Core.simpledefs import NTFY_TORRENTS
 from Tribler.Core.simpledefs import NTFY_VOTECAST
 from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent, RemoteTorrent, NotCollectedTorrent, Channel, \
     ChannelTorrent
+from Tribler.Policies.defs import SIMILARITY_TRESHOLD
 from Tribler.dispersy.taskmanager import TaskManager
+
+
+def validate_source_string(source):
+    """
+    Function to check whether a source string is a valid source or not
+    """
+    return unhexlify(source) if len(source) == 40 and not source.startswith("http") else source
 
 
 def levenshtein_dist(t1_fname, t2_fname):
@@ -63,7 +71,7 @@ def compare_torrents(torrent_1, torrent_2):
     if len(files1) == len(files2):
         for ft1 in files1:
             for ft2 in files2:
-                if ft1[1] != ft2[1] or levenshtein_dist(ft1[0], ft2[0]) > 5:
+                if ft1[1] != ft2[1] or levenshtein_dist(ft1[0], ft2[0]) > SIMILARITY_TRESHOLD:
                     return False
         return True
     return False
@@ -85,11 +93,8 @@ class TorrentManagerCM(TaskManager):
 
     Adapted from TorrentManager in SearchGridManager
     """
-    __single = None
-
     def __init__(self, session):
         super(TorrentManagerCM, self).__init__()
-        TorrentManagerCM.__single = self
 
         self.session = session
         self.torrent_db = self.session.open_dbhandler(NTFY_TORRENTS)
@@ -192,19 +197,3 @@ class TorrentManagerCM(TaskManager):
                     torrents.append(chan_torrent)
 
         return torrents
-
-    @staticmethod
-    def get_instance(*args, **kw):
-        """
-        get single instance of TorrentManagerCM
-        """
-        if TorrentManagerCM.__single is None:
-            TorrentManagerCM(*args, **kw)
-        return TorrentManagerCM.__single
-
-    @staticmethod
-    def del_instance():
-        """
-        resetting, then deleting single instance
-        """
-        TorrentManagerCM.__single = None

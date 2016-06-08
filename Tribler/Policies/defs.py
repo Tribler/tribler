@@ -4,7 +4,7 @@ Definition/Constant that used in credit mining
 
 from Tribler.Core.Utilities.install_dir import determine_install_dir
 
-NUMBER_TYPES = (int, long, float)
+SIMILARITY_TRESHOLD = 5
 
 TRIBLER_ROOT = determine_install_dir()
 
