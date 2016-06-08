@@ -85,9 +85,9 @@ ulimit -c unlimited
 '''
     } finally {
       archive 'output/**'
-      step([$class: 'JUnitResultArchiver',
-            healthScaleFactor: 1000,
-            testResults: '**/*nosetests.xml'])
+      // step([$class: 'JUnitResultArchiver',
+      //       healthScaleFactor: 1000,
+      //       testResults: '**/*nosetests.xml'])
     }
   },
   "Pylint": {
