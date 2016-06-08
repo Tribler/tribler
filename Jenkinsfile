@@ -111,7 +111,7 @@ PYLINTRC=.pylintrc diff-quality --violations=pylint --options="Tribler" --compar
 pwd
 ls -l
 '''
-      publishHTML target: [yada: "."]
+      publishHTML(target: [reportDir:'.', reportFiles: '**', reportName: 'Code quality diff'])
     }
   },
              failFast: true
