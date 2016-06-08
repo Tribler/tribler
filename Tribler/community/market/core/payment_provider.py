@@ -3,6 +3,7 @@ import json
 
 from Tribler.dispersy.candidate import Candidate
 from bitcoin_address import BitcoinAddress
+from price import Price
 from quantity import Quantity
 
 
@@ -17,34 +18,34 @@ class BitcoinPaymentProvider(object):
 
     BITCOIN_MULTIPLIER = 1000
 
-    def transfer_bitcoin(self, bitcoin_address, quantity):
+    def transfer_bitcoin(self, bitcoin_address, price):
         """
-        Transfers the selected quantity in bitcoin to another bitcoin address if there is sufficient bitcoin
+        Transfers the selected price in bitcoin to another bitcoin address if there is sufficient bitcoin
 
         :param bitcoin_address: Bitcoin address of the receiver of the bitcoin
-        :param quantity: Quantity to be transferred
+        :param quantity: Price to be transferred
         :raises InsufficientFunds: Thrown when there isn't sufficient bitcoin to transfer
         """
         assert isinstance(bitcoin_address, BitcoinAddress), type(bitcoin_address)
-        assert isinstance(quantity, Quantity), type(quantity)
+        assert isinstance(price, Price), type(price)
 
-        if self.balance() >= quantity:
-            bitcoin_quantity = int(quantity) * self.BITCOIN_MULTIPLIER
-            os.system('electrum payto -f 0 ' + str(bitcoin_address) + ' ' + str(bitcoin_quantity))
+        if self.balance() >= price:
+            bitcoin_price = int(price) * self.BITCOIN_MULTIPLIER
+            os.system('electrum payto -f 0 ' + str(bitcoin_address) + ' ' + str(bitcoin_price))
         else:
             raise InsufficientFunds()
 
     def balance(self):
         """
-        :rtype: Quantity
+        :rtype: Price
         """
         data = json.loads(os.system('electrum getbalance'))
 
         balance = 0.0
         if 'confirmed' in data:
-            return Quantity(int(float(data['confirmed']) * self.BITCOIN_MULTIPLIER))
+            return Price(int(float(data['confirmed']) * self.BITCOIN_MULTIPLIER))
         else:
-            return Quantity(0)
+            return Price(0)
 
 
 class MultiChainPaymentProvider(object):
