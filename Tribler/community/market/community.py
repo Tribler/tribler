@@ -15,6 +15,7 @@ from core.order_manager import OrderManager
 from core.order_repository import MemoryOrderRepository
 from core.orderbook import OrderBook
 from core.payment import BitcoinPayment, MultiChainPayment
+from core.payment_provider import BitcoinPaymentProvider, MultiChainPaymentProvider
 from core.price import Price
 from core.quantity import Quantity
 from core.tick import Ask, Bid, Tick
@@ -66,6 +67,10 @@ class MarketCommunity(Community):
         self.order_manager = OrderManager(order_repository)
         self.order_book = OrderBook(message_repository)
         self.matching_engine = MatchingEngine(PriceTimeStrategy(self.order_book))
+
+        multi_chain_community = None  # TODO: initiate multi chain community
+        self.multi_chain_payment_provider = MultiChainPaymentProvider(multi_chain_community, self.pubkey)
+        self.bitcoin_payment_provider = BitcoinPaymentProvider()
 
         self.history = {}  # List for received messages TODO: fix memory leak
 
@@ -213,8 +218,7 @@ class MarketCommunity(Community):
         :return: The quantity (1 mil is 100 bytes)
         :rtype: Quantity
         """
-        # TODO: implement
-        return Quantity(0)
+        return self.multi_chain_payment_provider.balance()
 
     # Ask
     def create_ask(self, price, quantity, timeout):
