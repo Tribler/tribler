@@ -90,8 +90,21 @@ gumby/run.py gumby/experiments/tribler/run_all_tests_parallel.conf
             testResults: '**/*nosetests.xml'])
     }
   },
-  "foo": {
-    echo "barz"
+  "Pylint": {
+
+    sh '''
+mkdir -p output
+
+cd tribler
+
+git branch -r
+
+(git diff origin/${CHANGE_TARGET}..HEAD | grep ^diff)||:
+
+export PATH=$PATH:~/.local/bin/
+
+PYLINTRC=.pylintrc diff-quality --violations=pylint --options="Tribler" --compare-branch origin/${CHANGE_TARGET} --fail-under 100 --html-report ../output/quality_report.html --external-css-file ../output/style.css
+'''
   },
              failFast: true
 }
