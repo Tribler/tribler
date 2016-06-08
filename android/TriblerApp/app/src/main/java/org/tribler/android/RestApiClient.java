@@ -157,11 +157,11 @@ public class RestApiClient {
                     break;
 
                 case "search_result_channel":
-                    /*if ("query".equals(reader.nextName())) {
+                    if ("query".equals(reader.nextName())) {
                         query = reader.nextString();
                     } else {
                         throw new IOException("Invalid query");
-                    }*/
+                    }
                     TriblerChannel channel;
                     if ("result".equals(reader.nextName())) {
                         channel = GSON.fromJson(reader, TriblerChannel.class);
@@ -172,11 +172,11 @@ public class RestApiClient {
                     break;
 
                 case "search_result_torrent":
-                    /*if ("query".equals(reader.nextName())) {
+                    if ("query".equals(reader.nextName())) {
                         query = reader.nextString();
                     } else {
                         throw new IOException("Invalid query");
-                    }*/
+                    }
                     TriblerTorrent torrent;
                     if ("result".equals(reader.nextName())) {
                         torrent = GSON.fromJson(reader, TriblerTorrent.class);
