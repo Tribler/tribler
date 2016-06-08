@@ -582,7 +582,7 @@ class TunnelCommunity(Community):
                 candidate = self.get_candidate(peer)
                 if candidate:
                     from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
-                    self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, self.stats, candidate)
+                    self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, circuit, candidate)
                 else:
                     self.tunnel_logger.warning("MULTICHAIN: Tunnel candidate not found")
             circuit.destroy()
@@ -632,7 +632,7 @@ class TunnelCommunity(Community):
                     candidate = self.get_candidate(peer)
                     if candidate:
                         from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
-                        self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, relay, self.stats, candidate)
+                        self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, relay, candidate)
                     else:
                         self.tunnel_logger.warning("MULTICHAIN: Tunnel candidate not found")
                 # Remove old session key
@@ -656,7 +656,7 @@ class TunnelCommunity(Community):
                 candidate = self.get_candidate(peer)
                 if candidate:
                     from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
-                    self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, exit_socket, self.stats, candidate)
+                    self.notifier.notify(NTFY_TUNNEL, NTFY_REMOVE, exit_socket, candidate)
                 else:
                     self.tunnel_logger.warning("MULTICHAIN: Tunnel candidate not found")
             if exit_socket.enabled:
