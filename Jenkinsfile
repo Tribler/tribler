@@ -40,7 +40,7 @@ def checkoutGumby() {
 stage "Checkout"
 node {
 
-        sh '''
+  sh '''
 env
 '''
   deleteDir()
@@ -104,6 +104,7 @@ cd tribler
 
 PYLINTRC=.pylintrc diff-quality --violations=pylint --options="Tribler" --compare-branch origin/${CHANGE_TARGET} --fail-under 100 --html-report ../output/quality_report.html --external-css-file ../output/style.css
 '''
+    publishHTML()
   },
              failFast: true
 }
