@@ -107,6 +107,10 @@ cd tribler
 PYLINTRC=.pylintrc diff-quality --violations=pylint --options="Tribler" --compare-branch origin/${CHANGE_TARGET} --fail-under 100 --html-report ../output/quality_report.html --external-css-file ../output/style.css
 '''
     dir('output') {
+      sh '''
+pwd
+ls -l
+'''
       publishHTML()
     }
   },
