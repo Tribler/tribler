@@ -157,6 +157,8 @@ public class RestApiClient {
                     break;
 
                 case "search_result_channel":
+                    reader.nextName();
+                    reader.beginObject();
                     if ("query".equals(reader.nextName())) {
                         query = reader.nextString();
                     } else {
@@ -168,10 +170,13 @@ public class RestApiClient {
                     } else {
                         throw new IOException("Invalid result");
                     }
+                    reader.endObject();
                     mEventListener.get().onSearchResultChannel(query, channel);
                     break;
 
                 case "search_result_torrent":
+                    reader.nextName();
+                    reader.beginObject();
                     if ("query".equals(reader.nextName())) {
                         query = reader.nextString();
                     } else {
@@ -183,6 +188,7 @@ public class RestApiClient {
                     } else {
                         throw new IOException("Invalid result");
                     }
+                    reader.endObject();
                     mEventListener.get().onSearchResultTorrent(query, torrent);
                     break;
 
