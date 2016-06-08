@@ -4,6 +4,7 @@ from mock import Mock, MagicMock
 
 from Tribler.dispersy.candidate import Candidate
 from Tribler.community.market.core.bitcoin_address import BitcoinAddress
+from Tribler.community.market.core.price import Price
 from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.payment_provider import BitcoinPaymentProvider, MultiChainPaymentProvider, \
     InsufficientFunds
@@ -30,12 +31,12 @@ class BitcoinPaymentProviderTestSuite(unittest.TestCase):
         # Test for bitcoin transfer when there is insufficient bitcoin
         os.system = MagicMock(return_value='{"confirmed": "0", "unconfirmed": "0"}')
         with self.assertRaises(InsufficientFunds):
-            self.bitcoin_payment_provider.transfer_bitcoin(BitcoinAddress("0"), Quantity(1000))
+            self.bitcoin_payment_provider.transfer_bitcoin(BitcoinAddress("0"), Price(1000))
 
     def test_transfer_bitcoin(self):
         # Test for bitcoin transfer
         os.system = MagicMock(return_value='{"confirmed": "1", "unconfirmed": "0"}')
-        self.bitcoin_payment_provider.transfer_bitcoin(BitcoinAddress("0"), Quantity(10))
+        self.bitcoin_payment_provider.transfer_bitcoin(BitcoinAddress("0"), Price(10))
 
 
 class MultiChainPaymentProviderTestSuite(unittest.TestCase):
