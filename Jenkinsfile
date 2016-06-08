@@ -93,7 +93,7 @@ gumby/run.py gumby/experiments/tribler/run_all_tests_parallel.conf
   "Pylint": {
 
     sh '''
-export PATH=$PATH:~/.local/bin/
+export PATH=$PATH:$HOME/.local/bin/
 
 mkdir -p output
 
