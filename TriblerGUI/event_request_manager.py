@@ -26,9 +26,9 @@ class EventRequestManager(QNetworkAccessManager):
                 continue
             json_dict = json.loads(str(event))
             if json_dict["type"] == "search_result_channel":
-                self.received_search_result_channel.emit(json_dict["result"])
+                self.received_search_result_channel.emit(json_dict["event"]["result"])
             elif json_dict["type"] == "search_result_torrent":
-                self.received_search_result_torrent.emit(json_dict["result"])
+                self.received_search_result_torrent.emit(json_dict["event"]["result"])
 
     def __init__(self):
         QNetworkAccessManager.__init__(self)

@@ -19,6 +19,7 @@ class VideoPlayerPage(QWidget):
         self.video_player_port = None
         self.active_infohash = ""
         self.active_index = -1
+        self.is_full_screen = False
 
     def initialize_player(self):
         self.instance = vlc.Instance()
@@ -63,8 +64,12 @@ class VideoPlayerPage(QWidget):
             self.window().video_player_position_slider.setValue(0)
             self.window().video_player_time_label.setText("0:00 / 0:00")
         else:
+            video_time = self.mediaplayer.get_time()
+            if video_time == -1:
+                video_time = 0
+
             self.window().video_player_position_slider.setValue(self.mediaplayer.get_position() * 1000)
-            self.window().video_player_time_label.setText("%s / 0:00" % seconds_to_string(self.mediaplayer.get_time() / 1000))
+            self.window().video_player_time_label.setText("%s / 0:00" % seconds_to_string(video_time / 1000))
 
     def update_with_download_info(self, download):
         if len(download["files"]) > 0 and not self.window().left_menu_playlist.loaded_list:
@@ -108,10 +113,17 @@ class VideoPlayerPage(QWidget):
         self.mediaplayer.audio_set_volume(self.window().video_player_volume_slider.value())
 
     def on_full_screen_button_click(self):
-        self.window().top_bar.hide()
-        self.window().left_menu.hide()
-        self.window().statusBar.hide()
-        self.window().showFullScreen()
+        if not self.is_full_screen:
+            self.window().top_bar.hide()
+            self.window().left_menu.hide()
+            self.window().statusBar.hide()
+            self.window().showFullScreen()
+        else:
+            self.window().top_bar.show()
+            self.window().left_menu.show()
+            self.window().statusBar.show()
+            self.window().showNormal()
+        self.is_full_screen = not self.is_full_screen
 
     def set_torrent(self, torrent_info):
         self.active_infohash = torrent_info['infohash']
@@ -125,8 +137,6 @@ class VideoPlayerPage(QWidget):
         self.window().video_player_play_pause_button.setIcon(self.play_icon)
         self.window().video_player_position_slider.setValue(0)
 
-        # TODO martijn: temporarily set media hardcoded
-        #filename = u"http://qthttp.apple.com.edgesuite.net/1010qwoeiuryfg/sl.m3u8"
         media_filename = u"http://127.0.0.1:" + unicode(self.video_player_port) + "/" + self.active_infohash + "/" + unicode(index)
         print media_filename
         self.media = self.instance.media_new(media_filename)

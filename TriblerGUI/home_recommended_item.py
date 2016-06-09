@@ -10,6 +10,8 @@ class HomeRecommendedChannelItem(QWidget):
     def __init__(self, parent, channel):
         super(QWidget, self).__init__(parent)
 
+        self.channel_info = channel
+
         uic.loadUi('qt_resources/home_recommended_item.ui', self)
         self.thumbnail_widget.initialize(channel["name"], HOME_ITEM_FONT_SIZE)
 

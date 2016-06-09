@@ -1,5 +1,4 @@
 from PyQt5 import uic
-from PyQt5.QtNetwork import QNetworkReply
 from PyQt5.QtWidgets import QWidget
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size
@@ -10,7 +9,7 @@ class ChannelTorrentListItem(QWidget):
     This class is responsible for managing the item in the torrents list of a channel.
     """
 
-    def __init__(self, parent, torrent):
+    def __init__(self, parent, torrent, show_controls=False, on_remove_clicked=None):
         super(QWidget, self).__init__(parent)
 
         self.torrent_info = torrent
@@ -27,6 +26,14 @@ class ChannelTorrentListItem(QWidget):
         self.thumbnail_widget.initialize(torrent["name"], 24)
 
         self.torrent_play_button.clicked.connect(self.on_play_button_clicked)
+
+        if not show_controls:
+            self.remove_control_button_container.setHidden(True)
+        else:
+            self.control_buttons_container.setHidden(True)
+
+        if on_remove_clicked is not None:
+            self.remove_torrent_button.clicked.connect(lambda: on_remove_clicked(self))
 
     def on_play_button_clicked(self):
         self.request_mgr = TriblerRequestManager()
