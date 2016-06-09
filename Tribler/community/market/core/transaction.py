@@ -208,6 +208,13 @@ class StartTransaction(Message):
         """
         return self._transaction_id
 
+    @property
+    def order_id(self):
+        """
+        :rtype: OrderId
+        """
+        return self._order_id
+
     @classmethod
     def from_network(cls, data):
         """
@@ -218,12 +225,14 @@ class StartTransaction(Message):
         :rtype: StartTransaction
         """
         assert hasattr(data, 'message_id'), isinstance(data.message_id, MessageId)
-        assert hasattr(data, 'transaction_id'), isinstance(data.transaction_id, TransactionNumber)
+        assert hasattr(data, 'transaction_id'), isinstance(data.transaction_id, TransactionId)
+        assert hasattr(data, 'order_id'), isinstance(data.order_id, OrderId)
         assert hasattr(data, 'timestamp'), isinstance(data.timestamp, Timestamp)
 
         return cls(
             data.message_id,
             data.transaction_id,
+            data.order_id,
             data.timestamp,
         )
 
@@ -276,7 +285,7 @@ class EndTransaction(Message):
         :rtype: EndTransaction
         """
         assert hasattr(data, 'message_id'), isinstance(data.message_id, MessageId)
-        assert hasattr(data, 'transaction_id'), isinstance(data.transaction_id, TransactionNumber)
+        assert hasattr(data, 'transaction_id'), isinstance(data.transaction_id, TransactionId)
         assert hasattr(data, 'timestamp'), isinstance(data.timestamp, Timestamp)
 
         return cls(
