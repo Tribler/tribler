@@ -4,3 +4,6 @@
 [submodule "Tribler/Core/DecentralizedTracking/pymdht"]
 	path = Tribler/Core/DecentralizedTracking/pymdht
 	url = https://github.com/LipuFei/pymdht.git
+[submodule "Tribler/community/market/core/bintrees"]
+    path = Tribler/community/market/core/bintrees
+    url = https://bitbucket.org/mozman/bintrees
