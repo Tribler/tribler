@@ -14,6 +14,7 @@
 #
 
 import os
+from ConfigParser import ParsingError
 from types import StringType
 
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
@@ -191,8 +192,8 @@ class DownloadStartupConfig(DownloadConfigInterface):
         dlconfig = CallbackConfigParser()
         try:
             dlconfig.read_file(filename)
-        except:
-            raise IOError, "Failed to open download config file"
+        except (ParsingError, IOError):
+            raise IOError, "Failed to open download config file: %s" % filename
 
         return DownloadStartupConfig(dlconfig)
 

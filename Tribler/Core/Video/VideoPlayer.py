@@ -159,8 +159,8 @@ class VideoPlayer(object):
             # Launch an external player. Play URL from network or disk.
             try:
                 self.player_out, self.player_in = os.popen2(cmd, 'b')
-            except:
-                print_exc()
+            except OSError:
+                self._logger.exception("An OSError was thrown, could not launch video player")
 
     def get_video_player(self, ext, videourl):
         if self.playbackmode == PLAYBACKMODE_INTERNAL:

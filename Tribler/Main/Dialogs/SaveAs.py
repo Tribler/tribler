@@ -33,7 +33,7 @@ class SaveAs(wx.Dialog):
         self.filehistory = []
         try:
             self.filehistory = json.loads(self.utility.read_config("recent_download_history", literal_eval=False))
-        except:
+        except (ValueError, TypeError):
             pass
 
         self.defaultdir = defaultdir
