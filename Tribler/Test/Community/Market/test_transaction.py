@@ -103,17 +103,20 @@ class StartTransactionTestSuite(unittest.TestCase):
     def setUp(self):
         # Object creation
         self.start_transaction = StartTransaction(MessageId(TraderId('0'), MessageNumber('1')),
-                                                  TransactionId(TraderId("0"), TransactionNumber("1")), Timestamp(0.0))
+                                                  TransactionId(TraderId("0"), TransactionNumber("1")),
+                                                  OrderId(TraderId('0'), OrderNumber('1')), Timestamp(0.0))
 
     def test_from_network(self):
         # Test for from network
         data = StartTransaction.from_network(
             type('Data', (object,), {"message_id": MessageId(TraderId("0"), MessageNumber("1")),
                                      "transaction_id": TransactionId(TraderId("0"), TransactionNumber("1")),
+                                     "order_id": OrderId(TraderId('0'), OrderNumber('1')),
                                      "timestamp": Timestamp(0.0)}))
 
         self.assertEquals(MessageId(TraderId("0"), MessageNumber("1")), data.message_id)
         self.assertEquals(TransactionId(TraderId("0"), TransactionNumber("1")), data.transaction_id)
+        self.assertEquals(OrderId(TraderId('0'), OrderNumber('1')), data.order_id)
         self.assertEquals(Timestamp(0.0), data.timestamp)
 
     def test_to_network(self):

@@ -69,7 +69,8 @@ class CommunityTestSuite(unittest.TestCase):
         self.counter_trade = Trade.counter(MessageId(TraderId('0'), MessageNumber('message_number')),
                                            Quantity(15), Timestamp(1462224447.117), self.proposed_trade)
         self.start_transaction = StartTransaction(MessageId(TraderId('0'), MessageNumber('1')),
-                                                  TransactionId(TraderId("0"), TransactionNumber("1")), Timestamp(0.0))
+                                                  TransactionId(TraderId("0"), TransactionNumber("1")),
+                                                  OrderId(TraderId('0'), OrderNumber('order_number')), Timestamp(0.0))
         self.end_transaction = EndTransaction(MessageId(TraderId('0'), MessageNumber('1')),
                                               TransactionId(TraderId("0"), TransactionNumber("1")), Timestamp(0.0))
         self.multi_chain_payment = MultiChainPayment(MessageId(TraderId("0"), MessageNumber("1")),
