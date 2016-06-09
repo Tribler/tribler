@@ -436,7 +436,6 @@ class UdpTrackerSession(TrackerSession):
         super(UdpTrackerSession, self).__init__(u'UDP', tracker_url, tracker_address, announce_page, on_result_callback)
         self._connection_id = 0
         self._transaction_id = 0
-        self.transaction_id = 0
         self.port = tracker_address[1]
         self.ip_address = None
         self.scraper = None
@@ -494,7 +493,7 @@ class UdpTrackerSession(TrackerSession):
             transaction_id = random.randint(0, MAX_INT32)
             if transaction_id not in UdpTrackerSession._active_session_dict.items():
                 UdpTrackerSession._active_session_dict[self] = transaction_id
-                self.transaction_id = transaction_id
+                self._transaction_id = transaction_id
                 break
 
     @staticmethod
