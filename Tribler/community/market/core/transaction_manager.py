@@ -1,12 +1,12 @@
 import logging
 
-from transaction_repository import TransactionRepository
 from price import Price
 from quantity import Quantity
 from timeout import Timeout
 from timestamp import Timestamp
-from transaction import TransactionNumber, TransactionId, Transaction
 from trade import AcceptedTrade
+from transaction import TransactionId, Transaction
+from transaction_repository import TransactionRepository
 
 
 class TransactionManager(object):

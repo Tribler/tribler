@@ -134,6 +134,8 @@ class Order(object):
         self._timestamp = timestamp
         self._is_ask = is_ask
         self._reserved_ticks = {}
+        self._accepted_trades = {}
+        self._transactions = {}
 
     @property
     def order_id(self):
@@ -237,3 +239,7 @@ class Order(object):
 
     def cancel(self):
         self._timeout = Timestamp.now()
+
+    def add_transaction(self, accepted_trade, transaction):
+        self._accepted_trades[accepted_trade.message_id] = accepted_trade
+        self._transactions[accepted_trade.message_id] = transaction.transaction_id

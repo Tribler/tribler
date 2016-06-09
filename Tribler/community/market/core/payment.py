@@ -1,9 +1,8 @@
-from message import MessageId, Message
-from transaction import TransactionNumber
-from timestamp import Timestamp
-from quantity import Quantity
-from price import Price
 from bitcoin_address import BitcoinAddress
+from message import MessageId, Message
+from quantity import Quantity
+from timestamp import Timestamp
+from transaction import TransactionNumber
 
 
 class Payment(Message):

@@ -1,5 +1,5 @@
-from order import OrderId, OrderNumber, Order
 from message import TraderId, MessageNumber, MessageId, Message
+from order import OrderId, OrderNumber, Order
 from price import Price
 from quantity import Quantity
 from timeout import Timeout

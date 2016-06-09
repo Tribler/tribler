@@ -1,7 +1,7 @@
 import logging
 
-from transaction import TransactionNumber, TransactionId, Transaction
 from message import TraderId
+from transaction import TransactionNumber, TransactionId, Transaction
 
 
 class TransactionRepository(object):

@@ -1,3 +1,4 @@
+from order import OrderId
 from message import TraderId, Message, MessageId
 from price import Price
 from quantity import Quantity
@@ -123,6 +124,7 @@ class Transaction(object):
         self._quantity = quantity
         self._timeout = timeout
         self._timestamp = timestamp
+        self._payments = {}
 
     @classmethod
     def from_accepted_trade(cls, accepted_trade, transaction_id):
@@ -180,20 +182,24 @@ class Transaction(object):
 class StartTransaction(Message):
     """Class for representing a message to indicate the start of a payment set"""
 
-    def __init__(self, message_id, transaction_id, timestamp):
+    def __init__(self, message_id, transaction_id, order_id, timestamp):
         """
         :param message_id: A message id to identify the message
-        :param transaction_id: An transaction id to identify the order
+        :param transaction_id: A transaction id to identify the transaction
+        :param order_id: An order id to identify the order
         :param timestamp: A timestamp when the transaction was created
         :type message_id: MessageId
         :type transaction_id: TransactionId
+        :type order_id: OrderId
         :type timestamp: Timestamp
         """
         super(StartTransaction, self).__init__(message_id, timestamp)
 
         assert isinstance(transaction_id, TransactionId), type(transaction_id)
+        assert isinstance(order_id, OrderId), type(order_id)
 
         self._transaction_id = transaction_id
+        self._order_id = order_id
 
     @property
     def transaction_id(self):

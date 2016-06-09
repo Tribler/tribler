@@ -23,6 +23,8 @@ from core.timeout import Timeout
 from core.timestamp import Timestamp
 from core.trade import Trade, ProposedTrade, AcceptedTrade, DeclinedTrade, CounterTrade
 from core.transaction import StartTransaction, EndTransaction
+from core.transaction_manager import TransactionManager
+from core.transaction_repository import MemoryTransactionRepository
 from payload import OfferPayload, TradePayload, AcceptedTradePayload, DeclinedTradePayload, StartTransactionPayload, \
     MultiChainPaymentPayload, BitcoinPaymentPayload, EndTransactionPayload
 from ttl import Ttl
@@ -71,6 +73,8 @@ class MarketCommunity(Community):
         multi_chain_community = None  # TODO: initiate multi chain community
         self.multi_chain_payment_provider = MultiChainPaymentProvider(multi_chain_community, self.pubkey)
         self.bitcoin_payment_provider = BitcoinPaymentProvider()
+        transaction_repository = MemoryTransactionRepository(self.pubkey)
+        self.transaction_manager = TransactionManager(transaction_repository)
 
         self.history = {}  # List for received messages TODO: fix memory leak
 
@@ -476,20 +480,21 @@ class MarketCommunity(Community):
                 if order:
                     try:
                         order.release_quantity_for_tick(accepted_trade.order_id)
-                    except TickWasNotReserved:  # Send cancel
-                        # TODO: send cancel
+
+                        order.total_quantity -= accepted_trade.quantity
+
+                        if order.is_ask():
+                            if self.order_book.bid_exists(accepted_trade.order_id):
+                                self.order_book.get_bid(
+                                    accepted_trade.order_id).quantity -= accepted_trade.quantity
+                        else:
+                            if self.order_book.ask_exists(accepted_trade.order_id):
+                                self.order_book.get_ask(
+                                    accepted_trade.order_id).quantity -= accepted_trade.quantity
+                    except TickWasNotReserved:
+                        # Something went wrong
                         pass
 
-                    order.total_quantity -= accepted_trade.quantity
-
-                    if order.is_ask():
-                        if self.order_book.bid_exists(accepted_trade.order_id):
-                            self.order_book.get_bid(
-                                accepted_trade.order_id).quantity -= accepted_trade.quantity
-                    else:
-                        if self.order_book.ask_exists(accepted_trade.order_id):
-                            self.order_book.get_ask(
-                                accepted_trade.order_id).quantity -= accepted_trade.quantity
                 else:
                     if self.order_book.bid_exists(accepted_trade.order_id):
                         self.order_book.get_bid(
@@ -591,7 +596,6 @@ class MarketCommunity(Community):
 
         self.check_history(accepted_trade)  # Set the message received as true
 
-        # TODO: make this only possible for accepted trades
         self.order_book.insert_trade(accepted_trade)
 
         order.total_quantity -= proposed_trade.quantity
@@ -605,6 +609,18 @@ class MarketCommunity(Community):
 
         self.send_accepted_trade(accepted_trade)
 
+        self.create_transaction(accepted_trade)
+
+    # Transactions
+    def create_transaction(self, accepted_trade):
+        transaction = self.transaction_manager.create_from_accepted_trade(accepted_trade)
+        order = self.order_manager.order_repository.find_by_id(accepted_trade.order_id)
+
+        if order:
+            order.add_transaction(accepted_trade, transaction)
+            start_transaction = StartTransaction(self.order_book.message_repository.next_identity(),
+                                                 transaction.transaction_id, order.order_id, Timestamp.now())
+
     # Start transaction
     def send_start_transaction(self, start_transaction):
         assert isinstance(start_transaction, StartTransaction), type(start_transaction)
@@ -617,6 +633,7 @@ class MarketCommunity(Community):
         message = meta.impl(
             authentication=(self.my_member,),
             distribution=(self.claim_global_time(),),
+            destination=(candidate,),
             payload=payload
         )
 

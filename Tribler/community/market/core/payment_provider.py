@@ -1,5 +1,5 @@
-import os
 import json
+import os
 
 from Tribler.dispersy.candidate import Candidate
 from bitcoin_address import BitcoinAddress
