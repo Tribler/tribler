@@ -2,6 +2,8 @@ from binascii import hexlify
 from collections import deque
 import logging
 import time
+from twisted.internet.error import ConnectingCancelledError
+
 from twisted.internet.defer import Deferred, DeferredList, CancelledError
 
 from twisted.internet import reactor
@@ -66,9 +68,6 @@ class TorrentChecker(TaskManager):
         :returns A deferred that will fire once the shutdown has completed.
         """
         self._should_stop = True
-
-        # Stop the looping call
-        self.cancel_all_pending_tasks()
 
         # it's now safe to block on the reactor thread
         self.cancel_all_pending_tasks()
@@ -235,13 +234,16 @@ class TorrentChecker(TaskManager):
             """
             Handles the scenario of when a tracker session has failed by calling the
             tracker_manager's update_tracker_info function.
-            :param _: ignored result of the Deferred.
+            :param failure: The failure object raised by Twisted.
             """
             # Trap value errors that are thrown by e.g. the HTTPTrackerSession when a connection fails.
             # And trap CancelledErrors that can be thrown when shutting down.
-            failure.trap(ValueError, CancelledError)
+            failure.trap(ValueError, CancelledError, ConnectingCancelledError)
             self._logger.info(u"Failed to create session for tracker %s", tracker_session.tracker_url)
-            self._session.lm.tracker_manager.update_tracker_info(tracker_session.tracker_url, False)
+            # Do not update if the connection got cancelled, we are probably shutting down
+            # and the tracker_manager may have shutdown already.
+            if failure.check(CancelledError, ConnectingCancelledError) is None:
+                self._session.lm.tracker_manager.update_tracker_info(tracker_session.tracker_url, False)
 
         # Make the connection to the trackers and handle the response
         deferred = tracker_session.connect_to_tracker()

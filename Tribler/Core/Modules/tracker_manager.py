@@ -88,7 +88,6 @@ class TrackerManager(object):
         sanitized_tracker_url = get_uniformed_tracker_url(tracker_url)
         return self._tracker_dict.get(sanitized_tracker_url)
 
-    @call_on_reactor_thread
     def update_tracker_info(self, tracker_url, is_successful):
         """
         Updates a tracker information.
