@@ -99,6 +99,7 @@ class DownloadsEndpoint(resource.Resource):
                              "trackers": tracker_info, "hops": download.get_hops(),
                              "anon_download": download.get_anon_mode(), "safe_seeding": download.get_safe_seeding(),
                              "max_upload_speed": download.get_max_speed(UPLOAD),
-                             "max_download_speed": download.get_max_speed(DOWNLOAD)}
+                             "max_download_speed": download.get_max_speed(DOWNLOAD),
+                             "destination": download.get_dest_dir()}
             downloads_json.append(download_json)
         return json.dumps({"downloads": downloads_json})
