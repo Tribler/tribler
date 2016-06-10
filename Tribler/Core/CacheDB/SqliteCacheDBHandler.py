@@ -1628,9 +1628,10 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         playlist_id = self._db.fetchone(get_playlist, (playlist_dispersy_id, channel_id))
 
         if playlist_id:
-            get_channeltorent_id = """SELECT id FROM _ChannelTorrents, Torrent
-            WHERE _ChannelTorrents.torrent_id = Torrent.torrent_id AND Torrent.infohash = ?"""
-            channeltorrent_id = self._db.fetchone(get_channeltorent_id, (bin2str(infohash),))
+            get_channeltorent_id = """SELECT _ChannelTorrents.id FROM _ChannelTorrents, Torrent, _PlaylistTorrents
+            WHERE _ChannelTorrents.torrent_id = Torrent.torrent_id AND _ChannelTorrents.id =
+            _PlaylistTorrents.channeltorrent_id AND playlist_id = ? AND Torrent.infohash = ?"""
+            channeltorrent_id = self._db.fetchone(get_channeltorent_id, (playlist_id, bin2str(infohash)))
 
             if channeltorrent_id:
                 sql = "UPDATE _PlaylistTorrents SET deleted_at = ? WHERE playlist_id = ? AND channeltorrent_id = ?"
