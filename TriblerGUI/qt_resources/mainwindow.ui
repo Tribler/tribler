@@ -866,7 +866,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>4</number>
+         <number>7</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1050,7 +1050,7 @@ background-color: #999;
           </item>
          </layout>
         </widget>
-        <widget class="MyChannelPage" name="my_channel_page">
+        <widget class="EditChannelPage" name="edit_channel_page">
          <layout class="QVBoxLayout" name="verticalLayout">
           <property name="spacing">
            <number>0</number>
@@ -1068,7 +1068,7 @@ background-color: #999;
            <number>0</number>
           </property>
           <item>
-           <widget class="QWidget" name="my_channel_header" native="true">
+           <widget class="QWidget" name="edit_channel_header" native="true">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
               <horstretch>0</horstretch>
@@ -1120,7 +1120,7 @@ background-color: #999;
               </spacer>
              </item>
              <item>
-              <widget class="QLabel" name="my_channel_name_label">
+              <widget class="QLabel" name="edit_channel_name_label">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                  <horstretch>0</horstretch>
@@ -1170,7 +1170,7 @@ font-weight: bold;</string>
            </widget>
           </item>
           <item>
-           <widget class="QStackedWidget" name="my_channel_stacked_widget">
+           <widget class="QStackedWidget" name="edit_channel_stacked_widget">
             <property name="currentIndex">
              <number>1</number>
             </property>
@@ -1490,7 +1490,7 @@ font-size: 14px;
                   </spacer>
                  </item>
                  <item>
-                  <widget class="UnderlineTabButton" name="my_channel_overview_button">
+                  <widget class="UnderlineTabButton" name="edit_channel_overview_button">
                    <property name="sizePolicy">
                     <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                      <horstretch>0</horstretch>
@@ -1526,7 +1526,7 @@ font-size: 14px;
                   </widget>
                  </item>
                  <item>
-                  <widget class="UnderlineTabButton" name="my_channel_settings_button">
+                  <widget class="UnderlineTabButton" name="edit_channel_settings_button">
                    <property name="minimumSize">
                     <size>
                      <width>0</width>
@@ -1556,7 +1556,7 @@ font-size: 14px;
                   </widget>
                  </item>
                  <item>
-                  <widget class="UnderlineTabButton" name="my_channel_torrents_button">
+                  <widget class="UnderlineTabButton" name="edit_channel_torrents_button">
                    <property name="minimumSize">
                     <size>
                      <width>0</width>
@@ -1586,7 +1586,7 @@ font-size: 14px;
                   </widget>
                  </item>
                  <item>
-                  <widget class="UnderlineTabButton" name="my_channel_playlists_button">
+                  <widget class="UnderlineTabButton" name="edit_channel_playlists_button">
                    <property name="minimumSize">
                     <size>
                      <width>0</width>
@@ -1616,7 +1616,7 @@ font-size: 14px;
                   </widget>
                  </item>
                  <item>
-                  <widget class="UnderlineTabButton" name="my_channel_rss_feeds_button">
+                  <widget class="UnderlineTabButton" name="edit_channel_rss_feeds_button">
                    <property name="minimumSize">
                     <size>
                      <width>0</width>
@@ -1665,7 +1665,7 @@ font-size: 14px;
                </widget>
               </item>
               <item>
-               <widget class="QStackedWidget" name="my_channel_details_stacked_widget">
+               <widget class="QStackedWidget" name="edit_channel_details_stacked_widget">
                 <property name="styleSheet">
                  <string notr="true">QStackedWidget {
 border-top: 1px solid #555;
@@ -1686,9 +1686,9 @@ font-size: 14px;
                  <number>1</number>
                 </property>
                 <property name="currentIndex">
-                 <number>7</number>
+                 <number>2</number>
                 </property>
-                <widget class="QWidget" name="my_channel_details_overview_page">
+                <widget class="QWidget" name="edit_channel_details_overview_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
                   <property name="leftMargin">
                    <number>10</number>
@@ -1760,7 +1760,7 @@ font-size: 14px;</string>
                      </widget>
                     </item>
                     <item row="2" column="1">
-                     <widget class="QLabel" name="my_channel_identifier_label">
+                     <widget class="QLabel" name="edit_channel_identifier_label">
                       <property name="styleSheet">
                        <string notr="true">color: white;
 font-size: 14px;</string>
@@ -1784,7 +1784,7 @@ font-size: 14px;</string>
                      </widget>
                     </item>
                     <item row="0" column="1">
-                     <widget class="QLabel" name="my_channel_name_label_2">
+                     <widget class="QLabel" name="edit_channel_overview_name_label">
                       <property name="styleSheet">
                        <string notr="true">color: white;
 font-size: 14px;</string>
@@ -1805,7 +1805,7 @@ font-size: 14px;</string>
                      </widget>
                     </item>
                     <item row="1" column="1">
-                     <widget class="QLabel" name="my_channel_description_label">
+                     <widget class="QLabel" name="edit_channel_description_label">
                       <property name="sizePolicy">
                        <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
                         <horstretch>0</horstretch>
@@ -1841,7 +1841,7 @@ font-size: 14px;</string>
                   </item>
                  </layout>
                 </widget>
-                <widget class="QWidget" name="my_channel_details_settings_page">
+                <widget class="QWidget" name="edit_channel_details_settings_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
                   <property name="leftMargin">
                    <number>0</number>
@@ -1856,7 +1856,7 @@ font-size: 14px;</string>
                    <number>0</number>
                   </property>
                   <item>
-                   <layout class="QFormLayout" name="my_channel_settings_form">
+                   <layout class="QFormLayout" name="edit_channel_settings_form">
                     <property name="fieldGrowthPolicy">
                      <enum>QFormLayout::ExpandingFieldsGrow</enum>
                     </property>
@@ -1876,7 +1876,7 @@ font-size: 14px;</string>
                      <number>12</number>
                     </property>
                     <item row="0" column="0">
-                     <widget class="QLabel" name="my_channel_settings_name_label">
+                     <widget class="QLabel" name="edit_channel_settings_name_label">
                       <property name="styleSheet">
                        <string notr="true">color: #eee;</string>
                       </property>
@@ -1898,7 +1898,7 @@ border-radius: 4px;</string>
                      </widget>
                     </item>
                     <item row="1" column="0">
-                     <widget class="QLabel" name="my_channel_settings_description_label">
+                     <widget class="QLabel" name="edit_channel_settings_description_label">
                       <property name="styleSheet">
                        <string notr="true">color: #eee;</string>
                       </property>
@@ -1995,7 +1995,7 @@ border-radius: 4px;</string>
                   </item>
                  </layout>
                 </widget>
-                <widget class="QWidget" name="my_channel_details_torrents_page">
+                <widget class="QWidget" name="edit_channel_details_torrents_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
                   <property name="spacing">
                    <number>0</number>
@@ -2013,7 +2013,7 @@ border-radius: 4px;</string>
                    <number>0</number>
                   </property>
                   <item>
-                   <widget class="LazyLoadList" name="my_channel_torrents_list">
+                   <widget class="LazyLoadList" name="edit_channel_torrents_list">
                     <property name="styleSheet">
                      <string notr="true">QListWidget::item:hover {
 background-color: #999;
@@ -2040,7 +2040,7 @@ border: none;
                    </widget>
                   </item>
                   <item>
-                   <widget class="QWidget" name="my_channel_torrents_buttons_container" native="true">
+                   <widget class="QWidget" name="edit_channel_torrents_buttons_container" native="true">
                     <layout class="QHBoxLayout" name="horizontalLayout_15">
                      <property name="spacing">
                       <number>-1</number>
@@ -2071,7 +2071,7 @@ border: none;
                       </spacer>
                      </item>
                      <item>
-                      <widget class="QToolButton" name="my_channel_torrents_remove_selected_button">
+                      <widget class="QToolButton" name="edit_channel_torrents_remove_selected_button">
                        <property name="sizePolicy">
                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                          <horstretch>0</horstretch>
@@ -2102,7 +2102,7 @@ border: none;
                       </widget>
                      </item>
                      <item>
-                      <widget class="QToolButton" name="my_channel_torrents_remove_all_button">
+                      <widget class="QToolButton" name="edit_channel_torrents_remove_all_button">
                        <property name="sizePolicy">
                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                          <horstretch>0</horstretch>
@@ -2133,7 +2133,7 @@ border: none;
                       </widget>
                      </item>
                      <item>
-                      <widget class="QToolButton" name="my_channel_torrents_add_button">
+                      <widget class="QToolButton" name="edit_channel_torrents_add_button">
                        <property name="sizePolicy">
                         <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                          <horstretch>0</horstretch>
@@ -2168,7 +2168,7 @@ border: none;
                   </item>
                  </layout>
                 </widget>
-                <widget class="QWidget" name="my_channel_details_playlists_page">
+                <widget class="QWidget" name="edit_channel_details_playlists_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
                   <property name="spacing">
                    <number>0</number>
@@ -2186,7 +2186,7 @@ border: none;
                    <number>0</number>
                   </property>
                   <item>
-                   <widget class="LazyLoadList" name="my_channel_playlists_list">
+                   <widget class="LazyLoadList" name="edit_channel_playlists_list">
                     <property name="styleSheet">
                      <string notr="true">QListWidget::item:hover {
 background-color: #999;
@@ -2238,7 +2238,7 @@ border: none;
                       </spacer>
                      </item>
                      <item>
-                      <widget class="QToolButton" name="my_channel_create_playlist_button">
+                      <widget class="QToolButton" name="edit_channel_create_playlist_button">
                        <property name="minimumSize">
                         <size>
                          <width>0</width>
@@ -2267,7 +2267,7 @@ border: none;
                   </item>
                  </layout>
                 </widget>
-                <widget class="QWidget" name="my_channel_details_rss_feeds_page">
+                <widget class="QWidget" name="edit_channel_details_rss_feeds_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
                   <property name="spacing">
                    <number>0</number>
@@ -2285,7 +2285,7 @@ border: none;
                    <number>0</number>
                   </property>
                   <item>
-                   <widget class="QTreeWidget" name="my_channel_rss_feeds_list">
+                   <widget class="QTreeWidget" name="edit_channel_rss_feeds_list">
                     <property name="styleSheet">
                      <string notr="true">QTreeWidget {
 border: none;
@@ -2317,7 +2317,7 @@ background-color: #444;
                    </widget>
                   </item>
                   <item>
-                   <widget class="QWidget" name="my_channel_rss_feeds_buttons_container" native="true">
+                   <widget class="QWidget" name="edit_channel_rss_feeds_buttons_container" native="true">
                     <layout class="QHBoxLayout" name="horizontalLayout_23">
                      <property name="leftMargin">
                       <number>8</number>
@@ -2345,7 +2345,7 @@ background-color: #444;
                       </spacer>
                      </item>
                      <item>
-                      <widget class="QToolButton" name="my_channel_details_rss_feeds_remove_selected_button">
+                      <widget class="QToolButton" name="edit_channel_details_rss_feeds_remove_selected_button">
                        <property name="minimumSize">
                         <size>
                          <width>0</width>
@@ -2370,7 +2370,7 @@ background-color: #444;
                       </widget>
                      </item>
                      <item>
-                      <widget class="QToolButton" name="my_channel_details_rss_add_button">
+                      <widget class="QToolButton" name="edit_channel_details_rss_add_button">
                        <property name="minimumSize">
                         <size>
                          <width>0</width>
@@ -2395,7 +2395,7 @@ background-color: #444;
                       </widget>
                      </item>
                      <item>
-                      <widget class="QToolButton" name="my_channel_details_rss_refresh_button">
+                      <widget class="QToolButton" name="edit_channel_details_rss_refresh_button">
                        <property name="minimumSize">
                         <size>
                          <width>0</width>
@@ -2424,7 +2424,7 @@ background-color: #444;
                   </item>
                  </layout>
                 </widget>
-                <widget class="QWidget" name="my_channel_details_playlist_edit_page">
+                <widget class="QWidget" name="edit_channel_details_playlist_edit_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
                   <property name="spacing">
                    <number>0</number>
@@ -2616,7 +2616,7 @@ border-radius: 4px;</string>
                   </item>
                  </layout>
                 </widget>
-                <widget class="QWidget" name="my_channel_details_playlist_torrents_page">
+                <widget class="QWidget" name="edit_channel_details_playlist_torrents_page">
                  <layout class="QVBoxLayout" name="verticalLayout">
                   <property name="spacing">
                    <number>0</number>
@@ -2695,7 +2695,7 @@ background: none;</string>
                       </widget>
                      </item>
                      <item>
-                      <widget class="QLabel" name="my_channel_details_playlist_torrents_header">
+                      <widget class="QLabel" name="edit_channel_details_playlist_torrents_header">
                        <property name="styleSheet">
                         <string notr="true">margin: 10px; font-size: 15px; font-weight: bold;
 margin-left: 5px;</string>
@@ -2709,7 +2709,7 @@ margin-left: 5px;</string>
                    </widget>
                   </item>
                   <item>
-                   <widget class="LazyLoadList" name="my_channel_playlist_torrents_list">
+                   <widget class="LazyLoadList" name="edit_channel_playlist_torrents_list">
                     <property name="styleSheet">
                      <string notr="true">QListWidget::item:hover {
 background-color: #999;
@@ -2758,7 +2758,7 @@ border: none;
                       </spacer>
                      </item>
                      <item>
-                      <widget class="QToolButton" name="my_channel_playlist_manage_torrents_button">
+                      <widget class="QToolButton" name="edit_channel_playlist_manage_torrents_button">
                        <property name="minimumSize">
                         <size>
                          <width>0</width>
@@ -2787,7 +2787,7 @@ border: none;
                   </item>
                  </layout>
                 </widget>
-                <widget class="ManagePlaylistPage" name="my_channel_details_playlist_manage">
+                <widget class="ManagePlaylistPage" name="edit_channel_details_playlist_manage">
                  <layout class="QVBoxLayout" name="verticalLayout">
                   <property name="spacing">
                    <number>0</number>
@@ -2866,7 +2866,7 @@ background: none;</string>
                       </widget>
                      </item>
                      <item>
-                      <widget class="QLabel" name="my_channel_details_manage_playlist_header">
+                      <widget class="QLabel" name="edit_channel_details_manage_playlist_header">
                        <property name="styleSheet">
                         <string notr="true">margin: 10px; font-size: 15px; font-weight: bold;
 margin-left: 5px;</string>
@@ -3026,7 +3026,7 @@ color: white;
                       </spacer>
                      </item>
                      <item>
-                      <widget class="QToolButton" name="my_channel_manage_playlist_save_button">
+                      <widget class="QToolButton" name="edit_channel_manage_playlist_save_button">
                        <property name="minimumSize">
                         <size>
                          <width>0</width>
@@ -6861,6 +6861,9 @@ background-color: #444;
                     <property name="alternatingRowColors">
                      <bool>true</bool>
                     </property>
+                    <property name="indentation">
+                     <number>0</number>
+                    </property>
                     <column>
                      <property name="text">
                       <string>Name</string>
@@ -7122,9 +7125,9 @@ border-top: 1px solid #555;
    <header>videoplayerpositionslider.h</header>
   </customwidget>
   <customwidget>
-   <class>MyChannelPage</class>
+   <class>EditChannelPage</class>
    <extends>QWidget</extends>
-   <header>mychannelpage.h</header>
+   <header>editchannelpage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
@@ -7461,6 +7464,22 @@ border-top: 1px solid #555;
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>edit_channel_button</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_edit_channel_clicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>834</x>
+     <y>75</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>317</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>on_top_search_button_click()</slot>
@@ -7476,5 +7495,6 @@ border-top: 1px solid #555;
   <slot>on_search_text_change()</slot>
   <slot>on_page_back_clicked()</slot>
   <slot>on_playlist_item_click(QListWidgetItem*)</slot>
+  <slot>on_edit_channel_clicked()</slot>
  </slots>
 </ui>

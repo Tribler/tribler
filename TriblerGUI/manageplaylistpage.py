@@ -1,6 +1,6 @@
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QListWidgetItem
-from TriblerGUI.defs import PAGE_MY_CHANNEL_PLAYLIST_TORRENTS
+from TriblerGUI.defs import PAGE_EDIT_CHANNEL_PLAYLIST_TORRENTS
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
 
@@ -11,16 +11,16 @@ class ManagePlaylistPage(QWidget):
     def initialize(self, channel_info, playlist_info):
         self.channel_info = channel_info
         self.playlist_info = playlist_info
-        self.window().my_channel_details_manage_playlist_header.setText("Manage torrents in playlist '%s'" % playlist_info['name'])
+        self.window().edit_channel_details_manage_playlist_header.setText("Manage torrents in playlist '%s'" % playlist_info['name'])
 
         self.window().playlist_manage_add_to_playlist.clicked.connect(self.on_add_clicked)
         self.window().playlist_manage_remove_from_playlist.clicked.connect(self.on_remove_clicked)
-        self.window().my_channel_manage_playlist_save_button.clicked.connect(self.on_save_clicked)
+        self.window().edit_channel_manage_playlist_save_button.clicked.connect(self.on_save_clicked)
         self.window().manage_channel_playlist_torrents_back.clicked.connect(self.on_playlist_manage_back_clicked)
 
         # Load torrents in your channel
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("channels/discovered/%s/torrents" % channel_info["mychannel"]["identifier"], self.on_received_channel_torrents)
+        self.request_mgr.perform_request("channels/discovered/%s/torrents" % channel_info["identifier"], self.on_received_channel_torrents)
 
         self.torrents_in_playlist = []
         self.torrents_in_channel = []
@@ -32,7 +32,7 @@ class ManagePlaylistPage(QWidget):
         self.requests_done = 0
 
     def on_playlist_manage_back_clicked(self):
-        self.window().my_channel_details_stacked_widget.setCurrentIndex(PAGE_MY_CHANNEL_PLAYLIST_TORRENTS)
+        self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_PLAYLIST_TORRENTS)
 
     def update_lists(self):
         self.window().playlist_manage_in_channel_list.clear()
@@ -103,11 +103,11 @@ class ManagePlaylistPage(QWidget):
         self.pending_requests = []
         for torrent in self.torrents_to_create:
             request = TriblerRequestManager()
-            request.perform_request("channels/discovered/%s/playlists/%s/%s" % (self.channel_info["mychannel"]["identifier"], self.playlist_info['id'], torrent['infohash']), self.on_request_done, method="PUT")
+            request.perform_request("channels/discovered/%s/playlists/%s/%s" % (self.channel_info["identifier"], self.playlist_info['id'], torrent['infohash']), self.on_request_done, method="PUT")
             self.pending_requests.append(request)
         for torrent in self.torrents_to_remove:
             request = TriblerRequestManager()
-            request.perform_request("channels/discovered/%s/playlists/%s/%s" % (self.channel_info["mychannel"]["identifier"], self.playlist_info['id'], torrent['infohash']), self.on_request_done, method="DELETE")
+            request.perform_request("channels/discovered/%s/playlists/%s/%s" % (self.channel_info["identifier"], self.playlist_info['id'], torrent['infohash']), self.on_request_done, method="DELETE")
             self.pending_requests.append(request)
 
     def on_request_done(self, result):
@@ -117,5 +117,5 @@ class ManagePlaylistPage(QWidget):
             self.on_requests_done()
 
     def on_requests_done(self):
-        self.window().my_channel_details_stacked_widget.setCurrentIndex(PAGE_MY_CHANNEL_PLAYLIST_TORRENTS)
+        self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_PLAYLIST_TORRENTS)
         self.playlist_saved.emit()

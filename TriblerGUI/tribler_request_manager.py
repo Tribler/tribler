@@ -1,6 +1,7 @@
 import json
 import logging
-from PyQt5.QtCore import QUrl, pyqtSignal
+import mimetypes
+from PyQt5.QtCore import QUrl, pyqtSignal, QFile, QIODevice, QByteArray, QFileInfo
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 
@@ -13,13 +14,50 @@ class TriblerRequestManager(QNetworkAccessManager):
 
     received_json = pyqtSignal(object, int)
 
+    def send_file(self, endpoint, read_callback, file):
+        """
+        From http://stackoverflow.com/questions/7922015/qnetworkaccessmanager-posting-files-via-http
+        """
+        url = QUrl(self.base_url + endpoint)
+        self.request = QNetworkRequest(url)
+
+        self.request.setRawHeader("Host", str(url.host()))
+        self.request.setRawHeader("Content-type", "multipart/form-data; boundary=AaB03x")
+
+        fp = QFile(file)
+        fp.open(QIODevice.ReadOnly)
+        bytes = QByteArray()
+
+        bytes.append("--AaB03x\r\n")
+        bytes.append("Content-Disposition: ")
+        bytes.append("form-data; name=\"file\"; filename=\"" + QByteArray(str(QFileInfo(file).fileName())) + "\"\r\n")
+        bytes.append("Content-Type: %s\r\n" % mimetypes.guess_type(str(file))[0])
+        bytes.append("\r\n")
+        bytes.append(fp.readAll())
+
+        fp.close()
+
+        bytes.append("\r\n--AaB03x\r\n")
+        bytes.append("Content-Disposition: form-data; name=\"source\"\r\nfile")
+        bytes.append("\r\n")
+        bytes.append("--AaB03x--")
+
+        contentLength = bytes.length()
+        self.request.setRawHeader("Content-Length", "%s" % contentLength)
+
+        self.reply = self.put(self.request, bytes)
+        self.received_json.connect(read_callback)
+        self.finished.connect(self.on_finished)
+
     def perform_request(self, endpoint, read_callback, data="", method='GET'):
         url = self.base_url + endpoint
 
         if method == 'GET':
             self.reply = self.get(QNetworkRequest(QUrl(url)))
         elif method == 'PUT':
-            self.reply = self.put(QNetworkRequest(QUrl(url)), data)
+            request = QNetworkRequest(QUrl(url))
+            request.setHeader(QNetworkRequest.ContentTypeHeader, "application/x-www-form-urlencoded")
+            self.reply = self.put(request, data)
         elif method == 'DELETE':
             self.reply = self.deleteResource(QNetworkRequest(QUrl(url)))
         elif method == 'POST':
