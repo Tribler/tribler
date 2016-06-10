@@ -45,6 +45,7 @@ class DownloadsPage(QWidget):
         total_download = 0
         total_upload = 0
 
+        download_infohashes = set()
         for download in downloads["downloads"]:
             if download["infohash"] in self.download_widgets:
                 item = self.download_widgets[download["infohash"]]
@@ -60,6 +61,19 @@ class DownloadsPage(QWidget):
 
             total_download += download["speed_down"]
             total_upload += download["speed_up"]
+
+            download_infohashes.add(download["infohash"])
+
+        # Check whether there are download that should be removed
+        toremove = set()
+        for infohash, item in self.download_widgets.iteritems():
+            if infohash not in download_infohashes:
+                index = self.window().downloads_list.indexOfTopLevelItem(item)
+                toremove.add((infohash, index))
+
+        for infohash, index in toremove:
+            self.window().downloads_list.takeTopLevelItem(index)
+            del self.download_widgets[infohash]
 
         self.window().statusBar.set_speeds(total_download, total_upload)
         self.window().tray_icon.setToolTip("Down: %s, Up: %s" % (format_speed(total_download), format_speed(total_upload)))
@@ -134,7 +148,7 @@ class DownloadsPage(QWidget):
         if action != 2:
             infohash = self.selected_item.download_info["infohash"]
             self.request_mgr = TriblerRequestManager()
-            self.request_mgr.perform_request("downloads/%s/remove" % infohash, self.on_download_removed, data="remove_data=%d" % (action == 1), method='POST')
+            self.request_mgr.perform_request("downloads/%s/remove?remove_data=%d" % (infohash, action == 1), self.on_download_removed, method='DELETE')
 
         self.dialog.setParent(None)
         self.dialog = None

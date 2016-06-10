@@ -1,10 +1,11 @@
+import glob
 import logging
 import os
 import sys
 import traceback
 
 from PyQt5 import uic
-from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QAbstractListModel, QStringListModel
+from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QAbstractListModel, QStringListModel, QFile, QIODevice
 from PyQt5.QtGui import QIcon
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QMainWindow, QListView, QLineEdit, QApplication, QTreeWidget, QSystemTrayIcon, \
@@ -12,8 +13,9 @@ from PyQt5.QtWidgets import QMainWindow, QListView, QLineEdit, QApplication, QTr
 from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 
 from TriblerGUI.defs import PAGE_SEARCH_RESULTS, \
-    PAGE_HOME, PAGE_MY_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
-    PAGE_CHANNEL_DETAILS, PAGE_PLAYLIST_DETAILS
+    PAGE_HOME, PAGE_EDIT_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
+    PAGE_CHANNEL_DETAILS, PAGE_PLAYLIST_DETAILS, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM
+from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
 from TriblerGUI.event_request_manager import EventRequestManager
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
@@ -64,7 +66,7 @@ class TriblerWindow(QMainWindow):
         self.search_results_page.initialize_search_results_page()
         self.settings_page.initialize_settings_page()
         self.subscribed_channels_page.initialize()
-        self.my_channel_page.initialize_my_channel_page()
+        self.edit_channel_page.initialize_edit_channel_page()
         self.downloads_page.initialize_downloads_page()
         self.home_page.initialize_home_page()
 
@@ -110,13 +112,13 @@ class TriblerWindow(QMainWindow):
     def on_add_torrent_button_click(self, pos):
         menu = TriblerActionMenu(self)
 
-        browseFilesAction = QAction('Load torrent from file', self)
-        browseDirectoryAction = QAction('Load torrents from directory', self)
-        addUrlAction = QAction('Load torrent from URL', self)
+        browseFilesAction = QAction('Import torrent from file', self)
+        browseDirectoryAction = QAction('Import torrents from directory', self)
+        addUrlAction = QAction('Import torrent from URL', self)
 
         browseFilesAction.triggered.connect(self.on_add_torrent_browse_file)
         browseDirectoryAction.triggered.connect(self.on_add_torrent_browse_dir)
-        addUrlAction.triggered.connect(self.on_add_torrent_browse_file)
+        addUrlAction.triggered.connect(self.on_add_torrent_from_url)
 
         menu.addAction(browseFilesAction)
         menu.addAction(browseDirectoryAction)
@@ -125,16 +127,40 @@ class TriblerWindow(QMainWindow):
         menu.exec_(self.mapToGlobal(self.add_torrent_button.pos()))
 
     def on_add_torrent_browse_file(self):
-        dialog = QFileDialog(self)
-        dialog.setWindowTitle("Please select the .torrent file(s)")
-        dialog.setNameFilters(["Torrent files (*.torrent)"])
-        dialog.exec_()
+        filename = QFileDialog.getOpenFileName(self, "Please select the .torrent file", "", "Torrent files (*.torrent)")
+
+        self.file_request_mgr = TriblerRequestManager()
+        self.file_request_mgr.send_file("downloads", self.on_download_added, filename[0])
 
     def on_add_torrent_browse_dir(self):
-        dialog = QFileDialog(self)
-        dialog.setFileMode(QFileDialog.DirectoryOnly)
-        dialog.setWindowTitle("Please select the directory containing the .torrent files")
-        dialog.exec_()
+
+        dir = QFileDialog.getExistingDirectory(self, "Please select the directory containing the .torrent files", "",
+                                               QFileDialog.ShowDirsOnly)
+        for torrent_file in glob.glob(dir + "/*.torrent"):
+            self.file_request_mgr = TriblerRequestManager()
+            self.file_request_mgr.send_file("downloads", self.on_download_added, torrent_file)
+
+    def on_add_torrent_from_url(self):
+        self.dialog = ConfirmationDialog(self, "Add torrent from URL/magnet link", "Please enter the URL/magnet link in the field below:", [('add', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)], show_input=True)
+        self.dialog.dialog_widget.dialog_input.setPlaceholderText('URL/magnet link')
+        self.dialog.button_clicked.connect(self.on_torrent_from_url_dialog_done)
+        self.dialog.show()
+
+    def on_torrent_from_url_dialog_done(self, action):
+        if action == 0:
+            url = self.dialog.dialog_widget.dialog_input.text()
+            self.request_mgr = TriblerRequestManager()
+            self.request_mgr.perform_request("downloads", self.on_download_added, data=str("source=url&url=%s" % url), method='PUT')
+
+        self.dialog.setParent(None)
+        self.dialog = None
+
+    def on_download_added(self, result):
+        print result
+        if 'added' in result:
+            self.deselect_all_menu_buttons()
+            self.left_menu_button_downloads.setChecked(True)
+            self.stackedWidget.setCurrentIndex(PAGE_DOWNLOADS)
 
     def on_top_menu_button_click(self):
         if self.left_menu.isHidden():
@@ -156,8 +182,8 @@ class TriblerWindow(QMainWindow):
 
     def clicked_menu_button_my_channel(self):
         self.deselect_all_menu_buttons(self.left_menu_button_my_channel)
-        self.stackedWidget.setCurrentIndex(PAGE_MY_CHANNEL)
-        self.my_channel_page.load_my_channel_overview()
+        self.stackedWidget.setCurrentIndex(PAGE_EDIT_CHANNEL)
+        self.edit_channel_page.load_my_channel_overview()
         self.navigation_stack = []
         self.hide_left_menu_playlist()
 
@@ -212,6 +238,11 @@ class TriblerWindow(QMainWindow):
     def on_page_back_clicked(self):
         prev_page = self.navigation_stack.pop()
         self.stackedWidget.setCurrentIndex(prev_page)
+
+    def on_edit_channel_clicked(self):
+        self.stackedWidget.setCurrentIndex(PAGE_EDIT_CHANNEL)
+        self.navigation_stack = []
+        self.channel_page.on_edit_channel_clicked()
 
     def resizeEvent(self, event):
         for i in range(0, 3):

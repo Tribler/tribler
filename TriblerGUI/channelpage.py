@@ -13,6 +13,7 @@ class ChannelPage(QWidget):
         self.torrents = []
         self.loaded_channels = False
         self.loaded_playlists = False
+        self.channel_info = channel_info
 
         self.get_torents_in_channel_manager = TriblerRequestManager()
         self.get_torents_in_channel_manager.perform_request("channels/discovered/%s/torrents" % channel_info['dispersy_cid'], self.received_torrents_in_channel)
@@ -39,3 +40,6 @@ class ChannelPage(QWidget):
             self.playlists.append((PlaylistListItem, result))
         self.loaded_playlists = True
         self.update_result_list()
+
+    def on_edit_channel_clicked(self):
+        self.window().edit_channel_page.initialize_with_channel_overview({"channel": {"name": self.channel_info["name"], "description": self.channel_info["description"], "identifier": self.channel_info["dispersy_cid"]}})
