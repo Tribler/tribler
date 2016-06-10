@@ -53,3 +53,10 @@ class TriblerCategoryTest(AbstractServer):
     def test_cmp_rank(self):
         self.assertEquals(cmp_rank({'bla': 3}, {'bla': 4}), 1)
         self.assertEquals(cmp_rank({'rank': 3}, {'bla': 4}), -1)
+
+    def test_non_existent_conf_file(self):
+        import Tribler.Category.Category as category_file
+        category_file.CATEGORY_CONFIG_FILE = "thisfiledoesnotexist.conf"
+        test_category = Category()
+        self.assertEqual(test_category.category_info, [])
+
