@@ -717,6 +717,62 @@ background-color: #e67300;
           </widget>
          </item>
          <item>
+          <widget class="QPushButton" name="left_menu_button_debug">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="cursor">
+            <cursorShape>PointingHandCursor</cursorShape>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {
+border: none;
+background: none;
+text-align: left;
+font-size: 15px;
+color: white;
+padding-left: 8px;
+}
+
+QPushButton::hover {
+background-color: #666;
+}
+
+QPushButton::checked {
+background-color: #e67300;
+}</string>
+           </property>
+           <property name="text">
+            <string> Debug</string>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normaloff>../images/debug.png</normaloff>../images/debug.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>20</width>
+             <height>20</height>
+            </size>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QWidget" name="left_menu_playlist_container" native="true">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
@@ -810,7 +866,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>1</number>
+         <number>4</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -4451,6 +4507,33 @@ border-radius: 4px;</string>
                 </property>
                </widget>
               </item>
+              <item row="11" column="0">
+               <widget class="QLabel" name="label_31">
+                <property name="styleSheet">
+                 <string notr="true">font-weight: bold;</string>
+                </property>
+                <property name="text">
+                 <string>Developer mode</string>
+                </property>
+               </widget>
+              </item>
+              <item row="12" column="0">
+               <widget class="QLabel" name="label_32">
+                <property name="text">
+                 <string>Enable developer mode?</string>
+                </property>
+               </widget>
+              </item>
+              <item row="12" column="1">
+               <widget class="QCheckBox" name="developer_mode_enabled_checkbox">
+                <property name="styleSheet">
+                 <string notr="true">margin-top: 2px;</string>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+               </widget>
+              </item>
              </layout>
             </widget>
             <widget class="QWidget" name="settings_connection_tab">
@@ -6516,7 +6599,7 @@ color: white;
 </string>
                 </property>
                 <property name="currentIndex">
-                 <number>0</number>
+                 <number>2</number>
                 </property>
                 <property name="movable">
                  <bool>false</bool>
@@ -6554,8 +6637,8 @@ color: white;
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>281</width>
-                       <height>184</height>
+                       <width>647</width>
+                       <height>337</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -6605,47 +6688,13 @@ color: white;
                        </widget>
                       </item>
                       <item row="1" column="1">
-                       <widget class="QLabel" name="label_31">
+                       <widget class="QLabel" name="download_detail_status_label">
                         <property name="text">
                          <string>Checking</string>
                         </property>
                        </widget>
                       </item>
                       <item row="2" column="0">
-                       <widget class="QLabel" name="label_34">
-                        <property name="styleSheet">
-                         <string notr="true">font-weight: bold;</string>
-                        </property>
-                        <property name="text">
-                         <string>Type</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="2" column="1">
-                       <widget class="QLabel" name="label_35">
-                        <property name="text">
-                         <string>Unknown</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="3" column="0">
-                       <widget class="QLabel" name="label_32">
-                        <property name="styleSheet">
-                         <string notr="true">font-weight: bold;</string>
-                        </property>
-                        <property name="text">
-                         <string>Uploaded</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="3" column="1">
-                       <widget class="QLabel" name="label_33">
-                        <property name="text">
-                         <string>23-05-2016</string>
-                        </property>
-                       </widget>
-                      </item>
-                      <item row="4" column="0">
                        <widget class="QLabel" name="label_36">
                         <property name="styleSheet">
                          <string notr="true">font-weight: bold;</string>
@@ -6655,14 +6704,14 @@ color: white;
                         </property>
                        </widget>
                       </item>
-                      <item row="4" column="1">
-                       <widget class="QLabel" name="label_37">
+                      <item row="2" column="1">
+                       <widget class="QLabel" name="download_detail_filesize_label">
                         <property name="text">
                          <string>2.3GB in 3 file(s)</string>
                         </property>
                        </widget>
                       </item>
-                      <item row="5" column="0">
+                      <item row="3" column="0">
                        <widget class="QLabel" name="label_38">
                         <property name="styleSheet">
                          <string notr="true">font-weight: bold;</string>
@@ -6672,14 +6721,14 @@ color: white;
                         </property>
                        </widget>
                       </item>
-                      <item row="5" column="1">
-                       <widget class="QLabel" name="label_39">
+                      <item row="3" column="1">
+                       <widget class="QLabel" name="download_detail_health_label">
                         <property name="text">
                          <string>0 seeders, 0 leechers (current)</string>
                         </property>
                        </widget>
                       </item>
-                      <item row="6" column="0">
+                      <item row="4" column="0">
                        <widget class="QLabel" name="label_40">
                         <property name="styleSheet">
                          <string notr="true">font-weight: bold;</string>
@@ -6689,8 +6738,8 @@ color: white;
                         </property>
                        </widget>
                       </item>
-                      <item row="6" column="1">
-                       <widget class="QLabel" name="label_41">
+                      <item row="4" column="1">
+                       <widget class="QLabel" name="download_detail_infohash_label">
                         <property name="text">
                          <string>aabbccddee</string>
                         </property>
@@ -6723,17 +6772,24 @@ color: white;
                    <number>0</number>
                   </property>
                   <item>
-                   <widget class="QTreeWidget" name="download_files_widget">
+                   <widget class="QTreeWidget" name="download_files_list">
                     <property name="styleSheet">
                      <string notr="true">QTreeWidget {
 border: none;
+font-size: 13px;
+alternate-background-color: #6e6e6e;
+background-color: #666666;
 }
 QTreeWidget::item {
 color: white;
 }
 QTreeWidget::item::selected {
 background-color: #444;
-}</string>
+}
+</string>
+                    </property>
+                    <property name="alternatingRowColors">
+                     <bool>true</bool>
                     </property>
                     <property name="indentation">
                      <number>0</number>
@@ -6756,12 +6812,7 @@ background-color: #444;
                     </column>
                     <column>
                      <property name="text">
-                      <string>Done</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>%</string>
+                      <string>% Done</string>
                      </property>
                     </column>
                     <column>
@@ -6791,17 +6842,24 @@ background-color: #444;
                    <number>0</number>
                   </property>
                   <item>
-                   <widget class="QTreeWidget" name="download_trackers_widget">
+                   <widget class="QTreeWidget" name="download_trackers_list">
                     <property name="styleSheet">
                      <string notr="true">QTreeWidget {
 border: none;
+font-size: 13px;
+alternate-background-color: #6e6e6e;
+background-color: #666666;
 }
 QTreeWidget::item {
 color: white;
 }
 QTreeWidget::item::selected {
 background-color: #444;
-}</string>
+}
+</string>
+                    </property>
+                    <property name="alternatingRowColors">
+                     <bool>true</bool>
                     </property>
                     <column>
                      <property name="text">
@@ -6816,65 +6874,6 @@ background-color: #444;
                     <column>
                      <property name="text">
                       <string>Peers</string>
-                     </property>
-                    </column>
-                   </widget>
-                  </item>
-                 </layout>
-                </widget>
-                <widget class="QWidget" name="tab_3">
-                 <attribute name="title">
-                  <string>Peers</string>
-                 </attribute>
-                 <layout class="QVBoxLayout" name="verticalLayout_10">
-                  <property name="leftMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="topMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="rightMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="bottomMargin">
-                   <number>0</number>
-                  </property>
-                  <item>
-                   <widget class="QTreeWidget" name="download_peers_widget">
-                    <property name="styleSheet">
-                     <string notr="true">QTreeWidget {
-border: none;
-}
-QTreeWidget::item {
-color: white;
-}
-QTreeWidget::item::selected {
-background-color: #444;
-}</string>
-                    </property>
-                    <column>
-                     <property name="text">
-                      <string>IP</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>Client</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>Flags</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>Down speed</string>
-                     </property>
-                    </column>
-                    <column>
-                     <property name="text">
-                      <string>Up speed</string>
                      </property>
                     </column>
                    </widget>

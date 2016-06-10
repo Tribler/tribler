@@ -81,6 +81,7 @@ class TriblerWindow(QMainWindow):
             self.tray_icon.show()
 
         self.hide_left_menu_playlist()
+        self.window().left_menu_button_debug.setHidden(True)
 
         self.search_completion_model = QStringListModel()
         completer = QCompleter()
