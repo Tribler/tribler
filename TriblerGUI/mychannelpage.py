@@ -34,8 +34,9 @@ class MyChannelPage(QWidget):
         self.window().my_channel_torrents_remove_all_button.clicked.connect(self.on_torrents_remove_all_clicked)
         self.window().my_channel_torrents_add_button.clicked.connect(self.on_torrents_add_clicked)
 
+        self.window().my_channel_details_playlist_manage.playlist_saved.connect(self.load_my_channel_playlists)
+
         self.window().edit_channel_playlist_torrents_back.clicked.connect(self.on_playlist_torrents_back_clicked)
-        self.window().manage_channel_playlist_torrents_back.clicked.connect(self.on_playlist_manage_back_clicked)
         self.window().my_channel_playlists_list.itemClicked.connect(self.on_playlist_item_clicked)
         self.window().my_channel_playlist_manage_torrents_button.clicked.connect(self.on_playlist_manage_clicked)
         self.window().my_channel_create_playlist_button.clicked.connect(self.on_playlist_created_clicked)
@@ -52,6 +53,7 @@ class MyChannelPage(QWidget):
         self.window().channel_settings_tab.clicked_tab_button.connect(self.clicked_tab_button)
 
         self.remove_torrent_requests = []
+        self.playlists = None
         self.editing_playlist = None
         self.viewing_playlist = None
 
@@ -93,14 +95,15 @@ class MyChannelPage(QWidget):
         self.mychannel_request_mgr.perform_request("channels/discovered/%s/playlists" % self.my_channel_overview["mychannel"]["identifier"], self.initialize_with_playlists)
 
     def initialize_with_playlists(self, playlists):
+        self.playlists = playlists
         self.window().my_channel_playlists_list.set_data_items([])
 
-        playlists['playlists'].sort(key=lambda torrent: len(torrent['torrents']), reverse=True)
+        self.update_playlist_list()
 
-        items = []
-        for result in playlists['playlists']:
-            items.append((PlaylistListItem, result, {"show_controls": True, "on_remove_clicked": self.on_playlist_remove_clicked, "on_edit_clicked": self.on_playlist_edit_clicked}))
-        self.window().my_channel_playlists_list.set_data_items(items)
+        viewing_playlist_index = self.get_index_of_viewing_playlist()
+        if viewing_playlist_index != -1:
+            self.viewing_playlist = self.playlists['playlists'][viewing_playlist_index]
+            self.update_playlist_torrent_list()
 
     def load_my_channel_rss_feeds(self):
         self.mychannel_request_mgr = TriblerRequestManager()
@@ -186,22 +189,29 @@ class MyChannelPage(QWidget):
     def on_playlist_torrents_back_clicked(self):
         self.window().my_channel_details_stacked_widget.setCurrentIndex(PAGE_MY_CHANNEL_PLAYLISTS)
 
-    def on_playlist_manage_back_clicked(self):
-        self.window().my_channel_details_stacked_widget.setCurrentIndex(PAGE_MY_CHANNEL_PLAYLIST_TORRENTS)
-
     def on_playlist_item_clicked(self, item):
         playlist_info = item.data(Qt.UserRole)
         self.window().my_channel_playlist_torrents_list.set_data_items([])
         self.window().my_channel_details_playlist_torrents_header.setText("Torrents in '%s'" % playlist_info['name'])
 
         self.viewing_playlist = playlist_info
-
-        items = []
-        for torrent in playlist_info["torrents"]:
-            items.append((ChannelTorrentListItem, torrent, {"show_controls": True, "on_remove_clicked": self.on_playlist_torrent_remove_clicked}))
-        self.window().my_channel_playlist_torrents_list.set_data_items(items)
+        self.update_playlist_torrent_list()
 
         self.window().my_channel_details_stacked_widget.setCurrentIndex(PAGE_MY_CHANNEL_PLAYLIST_TORRENTS)
+
+    def update_playlist_list(self):
+        self.playlists['playlists'].sort(key=lambda torrent: len(torrent['torrents']), reverse=True)
+
+        items = []
+        for result in self.playlists['playlists']:
+            items.append((PlaylistListItem, result, {"show_controls": True, "on_remove_clicked": self.on_playlist_remove_clicked, "on_edit_clicked": self.on_playlist_edit_clicked}))
+        self.window().my_channel_playlists_list.set_data_items(items)
+
+    def update_playlist_torrent_list(self):
+        items = []
+        for torrent in self.viewing_playlist["torrents"]:
+            items.append((ChannelTorrentListItem, torrent, {"show_controls": True, "on_remove_clicked": self.on_playlist_torrent_remove_clicked}))
+        self.window().my_channel_playlist_torrents_list.set_data_items(items)
 
     def on_playlist_manage_clicked(self):
         self.window().my_channel_details_playlist_manage.initialize(self.my_channel_overview, self.viewing_playlist)
@@ -215,10 +225,38 @@ class MyChannelPage(QWidget):
     def on_playlist_torrent_remove_selected_action(self, item, action):
         if action == 0:
             self.mychannel_request_mgr = TriblerRequestManager()
-            #self.mychannel_request_mgr.perform_request("channels/discovered/%s/playlists/%s" % (self.my_channel_overview["mychannel"]["identifier"], item.playlist_info['id']), self.on_playlist_removed, method='DELETE')
+            self.mychannel_request_mgr.perform_request("channels/discovered/%s/playlists/%s/%s" % (self.my_channel_overview["mychannel"]["identifier"], self.viewing_playlist['id'], item.torrent_info['infohash']), lambda result: self.on_playlist_torrent_removed(result, item.torrent_info), method='DELETE')
 
         self.dialog.setParent(None)
         self.dialog = None
+
+    def on_playlist_torrent_removed(self, result, torrent):
+        self.remove_torrent_from_playlist(torrent)
+
+    def get_index_of_viewing_playlist(self):
+        if self.viewing_playlist is None:
+            return -1
+
+        for index in xrange(len(self.playlists['playlists'])):
+            if self.playlists['playlists'][index]['id'] == self.viewing_playlist['id']:
+                return index
+
+        return -1
+
+    def remove_torrent_from_playlist(self, torrent):
+        playlist_index = self.get_index_of_viewing_playlist()
+
+        torrent_index = -1
+        for index in xrange(len(self.viewing_playlist['torrents'])):
+            if self.viewing_playlist['torrents'][index]['infohash'] == torrent['infohash']:
+                torrent_index = index
+                break
+
+        if torrent_index != -1:
+            del self.playlists['playlists'][playlist_index]['torrents'][torrent_index]
+            self.viewing_playlist = self.playlists['playlists'][playlist_index]
+            self.update_playlist_list()
+            self.update_playlist_torrent_list()
 
     def on_playlist_edit_save_clicked(self):
         if len(self.window().playlist_edit_name.text()) == 0:

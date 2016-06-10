@@ -15,7 +15,11 @@ class SettingsPage(QWidget):
         self.window().settings_tab.initialize()
         self.window().settings_tab.clicked_tab_button.connect(self.clicked_tab_button)
 
+        self.window().developer_mode_enabled_checkbox.stateChanged.connect(self.on_developer_mode_checkbox_changed)
         self.window().always_ask_location_checkbox.stateChanged.connect(self.on_always_ask_location_checkbox_changed)
+
+    def on_developer_mode_checkbox_changed(self, event):
+        self.window().left_menu_button_debug.setHidden(not self.window().developer_mode_enabled_checkbox.isChecked())
 
     def on_always_ask_location_checkbox_changed(self, event):
         should_hide = self.window().always_ask_location_checkbox.isChecked()

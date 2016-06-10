@@ -1,9 +1,12 @@
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QListWidgetItem
+from TriblerGUI.defs import PAGE_MY_CHANNEL_PLAYLIST_TORRENTS
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
 
 class ManagePlaylistPage(QWidget):
+
+    playlist_saved = pyqtSignal()
 
     def initialize(self, channel_info, playlist_info):
         self.channel_info = channel_info
@@ -13,6 +16,7 @@ class ManagePlaylistPage(QWidget):
         self.window().playlist_manage_add_to_playlist.clicked.connect(self.on_add_clicked)
         self.window().playlist_manage_remove_from_playlist.clicked.connect(self.on_remove_clicked)
         self.window().my_channel_manage_playlist_save_button.clicked.connect(self.on_save_clicked)
+        self.window().manage_channel_playlist_torrents_back.clicked.connect(self.on_playlist_manage_back_clicked)
 
         # Load torrents in your channel
         self.request_mgr = TriblerRequestManager()
@@ -24,7 +28,11 @@ class ManagePlaylistPage(QWidget):
         self.torrents_to_create = []
         self.torrents_to_remove = []
 
-        self.requests = []
+        self.pending_requests = []
+        self.requests_done = 0
+
+    def on_playlist_manage_back_clicked(self):
+        self.window().my_channel_details_stacked_widget.setCurrentIndex(PAGE_MY_CHANNEL_PLAYLIST_TORRENTS)
 
     def update_lists(self):
         self.window().playlist_manage_in_channel_list.clear()
@@ -91,17 +99,23 @@ class ManagePlaylistPage(QWidget):
         self.update_lists()
 
     def on_save_clicked(self):
+        self.requests_done = 0
+        self.pending_requests = []
         for torrent in self.torrents_to_create:
             request = TriblerRequestManager()
-            request.perform_request("channels/discovered/%s/playlists/%s/%s" % (self.channel_info["mychannel"]["identifier"], self.playlist_info['id'], torrent['infohash']), self.on_torrent_created, method="PUT")
-            self.requests.append(request)
+            request.perform_request("channels/discovered/%s/playlists/%s/%s" % (self.channel_info["mychannel"]["identifier"], self.playlist_info['id'], torrent['infohash']), self.on_request_done, method="PUT")
+            self.pending_requests.append(request)
         for torrent in self.torrents_to_remove:
             request = TriblerRequestManager()
-            request.perform_request("channels/discovered/%s/playlists/%s/%s" % (self.channel_info["mychannel"]["identifier"], self.playlist_info['id'], torrent['infohash']), self.on_torrent_created, method="DELETE")
-            self.requests.append(request)
+            request.perform_request("channels/discovered/%s/playlists/%s/%s" % (self.channel_info["mychannel"]["identifier"], self.playlist_info['id'], torrent['infohash']), self.on_request_done, method="DELETE")
+            self.pending_requests.append(request)
 
-    def on_torrent_removed(self, result):
+    def on_request_done(self, result):
         print result
+        self.requests_done += 1
+        if self.requests_done == len(self.pending_requests):
+            self.on_requests_done()
 
-    def on_torrent_created(self, result):
-        print result
+    def on_requests_done(self):
+        self.window().my_channel_details_stacked_widget.setCurrentIndex(PAGE_MY_CHANNEL_PLAYLIST_TORRENTS)
+        self.playlist_saved.emit()
