@@ -668,12 +668,33 @@ class NetworkPanel(HomePanel):
         else:
             self.totalSize.SetLabel(size_format(stats[1]))
         self.nrFiles.SetLabel(str(stats[2]))
-        self.queueSize.SetLabel(self.remotetorrenthandler.getQueueSize())
-        self.queueBW.SetLabel(self.remotetorrenthandler.getBandwidthSpent())
 
-        qsuccess = self.remotetorrenthandler.getQueueSuccess()
-        qlabel = ", ".join(label for label, tooltip in qsuccess)
-        qtooltip = ", ".join(tooltip for label, tooltip in qsuccess)
+        queuesize_label = ""
+        for stats_dict in self.remotetorrenthandler.get_queue_size_stats():
+            queuesize_label += "%s: " % stats_dict["type"]
+            for size_dict in stats_dict["size_stats"]:
+                queuesize_label += "%d/%d, " % (size_dict["priority"], size_dict["size"])
+            queuesize_label += ", "
+
+        self.queueSize.SetLabel(queuesize_label)
+
+        queuebw_label = ""
+        for stats_dict in self.remotetorrenthandler.get_bandwidth_stats():
+            queuebw_label += "%s: %.1f KB, " % (stats_dict["type"], (stats_dict["bandwidth"] / 1024.0))
+
+        self.queueBW.SetLabel(queuebw_label)
+
+        qlabel = ""
+        qtooltip = ""
+
+        for stats_dict in self.remotetorrenthandler.get_queue_stats():
+            qlabel += "%s: %d/%d, " % (stats_dict['type'], stats_dict['success'], stats_dict['total'])
+            qtooltip += "%s: pending: %d, success: %d, failed: %d, total: %d" % (stats_dict['type'],
+                                                                                 stats_dict['pending'],
+                                                                                 stats_dict['success'],
+                                                                                 stats_dict['failed'],
+                                                                                 stats_dict['total'])
+
         self.queueSuccess.SetLabel(qlabel)
         self.queueSuccess.SetToolTipString(qtooltip)
         self.nrChannels.SetLabel(str(nr_channels))
