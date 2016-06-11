@@ -1,7 +1,8 @@
-from PyQt5 import uic
 from PyQt5.QtWidgets import QWidget
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_size
+
+from generated_channel_torrent_list_item import Ui_Form
 
 
 class ChannelTorrentListItem(QWidget):
@@ -14,26 +15,27 @@ class ChannelTorrentListItem(QWidget):
 
         self.torrent_info = torrent
 
-        uic.loadUi('qt_resources/channel_torrent_list_item.ui', self)
+        self.ui = Ui_Form()
+        self.ui.setupUi(self)
 
-        self.channel_torrent_name.setText(torrent["name"])
+        self.ui.channel_torrent_name.setText(torrent["name"])
         if torrent["size"] is None:
-            self.channel_torrent_description.setText("Size: -")
+            self.ui.channel_torrent_description.setText("Size: -")
         else:
-            self.channel_torrent_description.setText("Size: %s" % format_size(float(torrent["size"])))
+            self.ui.channel_torrent_description.setText("Size: %s" % format_size(float(torrent["size"])))
 
-        self.channel_torrent_category.setText(torrent["category"])
-        self.thumbnail_widget.initialize(torrent["name"], 24)
+        self.ui.channel_torrent_category.setText(torrent["category"])
+        self.ui.thumbnail_widget.initialize(torrent["name"], 24)
 
-        self.torrent_play_button.clicked.connect(self.on_play_button_clicked)
+        self.ui.torrent_play_button.clicked.connect(self.on_play_button_clicked)
 
         if not show_controls:
-            self.remove_control_button_container.setHidden(True)
+            self.ui.remove_control_button_container.setHidden(True)
         else:
-            self.control_buttons_container.setHidden(True)
+            self.ui.control_buttons_container.setHidden(True)
 
         if on_remove_clicked is not None:
-            self.remove_torrent_button.clicked.connect(lambda: on_remove_clicked(self))
+            self.ui.remove_torrent_button.clicked.connect(lambda: on_remove_clicked(self))
 
     def on_play_button_clicked(self):
         self.request_mgr = TriblerRequestManager()

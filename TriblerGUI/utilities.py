@@ -1,6 +1,10 @@
 from datetime import datetime
 import hashlib
+import heapq
+from itertools import izip, count
+from operator import itemgetter
 import os
+import re
 from TriblerGUI.defs import VIDEO_EXTS
 
 
@@ -45,6 +49,7 @@ def get_color(name):
     blue = int(md5_str_hash[20:30], 16) % 128 + 127
 
     return '#%02x%02x%02x' % (red, green, blue)
+
 
 def is_video_file(filename):
     _, ext = os.path.splitext(filename)
@@ -95,3 +100,14 @@ def pretty_date(time=False):
     if day_diff < 365:
         return str(day_diff / 30) + " months ago"
     return str(day_diff / 365) + " years ago"
+
+
+def split_into_keywords(query):
+    RE_KEYWORD_SPLIT = re.compile(r"[\W_]", re.UNICODE)
+    return [kw for kw in RE_KEYWORD_SPLIT.split(query.lower()) if len(kw) > 0]
+
+
+def interleave_lists(a, b):
+    fst = enumerate(a)
+    snd = izip(count(0, len(a) // len(b)), b)
+    return map(itemgetter(1), heapq.merge(fst, snd))

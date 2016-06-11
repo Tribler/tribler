@@ -22,7 +22,7 @@ class LazyLoadList(QListWidget):
             self.load_item(i)
 
     def load_item(self, index):
-        item = QListWidgetItem(self)
+        item = QListWidgetItem()
         item.setSizeHint(QSize(-1, 60))
         data_item = self.data_items[index]
         item.setData(Qt.UserRole, data_item[1])
@@ -30,9 +30,14 @@ class LazyLoadList(QListWidget):
             widget_item = data_item[0](self, data_item[1], **data_item[2])
         else:
             widget_item = data_item[0](self, data_item[1])
-        self.addItem(item)
+        self.insertItem(index, item)
         self.setItemWidget(item, widget_item)
         self.items_loaded += 1
+
+    def insert_item(self, index, item):
+        self.data_items.insert(index, item)
+        if index < ITEM_LOAD_BATCH:
+            self.load_item(index)
 
     def set_data_items(self, items):
         self.clear()

@@ -1,6 +1,7 @@
+import os
 from PyQt5.QtCore import QTimer, QUrl
 from PyQt5.QtGui import QCursor, QDesktopServices
-from PyQt5.QtWidgets import QWidget, QMenu, QAction
+from PyQt5.QtWidgets import QWidget, QMenu, QAction, QFileDialog
 from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 from TriblerGUI.defs import DOWNLOADS_FILTER_ALL, DOWNLOADS_FILTER_DOWNLOADING, DOWNLOADS_FILTER_COMPLETED, \
     DOWNLOADS_FILTER_ACTIVE, DOWNLOADS_FILTER_INACTIVE, DOWNLOADS_FILTER_DEFINITION, DLSTATUS_STOPPED, \
@@ -173,7 +174,21 @@ class DownloadsPage(QWidget):
 
     def on_explore_files(self):
         QDesktopServices.openUrl(QUrl.fromLocalFile(self.selected_item.download_info["destination"]))
-        pass
+
+    def on_export_download(self):
+        self.export_dir = QFileDialog.getExistingDirectory(self, "Please select the destination directory", "",
+                                               QFileDialog.ShowDirsOnly)
+
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.download_file("downloads/%s/torrent" % self.selected_item.download_info['infohash'],
+                                       self.on_export_download_request_done)
+
+    def on_export_download_request_done(self, filename, data):
+        dest_path = os.path.join(self.export_dir, filename)
+        with open(dest_path, "wb") as torrent_file:
+            torrent_file.write(data)
+
+        self.window().tray_icon.showMessage("Torrent file exported", "Torrent file exported to %s" % dest_path)
 
     def on_right_click_item(self, pos):
         self.selected_item = self.window().downloads_list.selectedItems()[0]
@@ -185,6 +200,7 @@ class DownloadsPage(QWidget):
         removeDownloadAction = QAction('Remove download', self)
         removeDownloadDataAction = QAction('Remove download + data', self)
         forceRecheckAction = QAction('Force recheck', self)
+        exportDownloadAction = QAction('Export .torrent file', self)
         exploreFilesAction = QAction('Explore files', self)
 
         startAction.triggered.connect(self.on_start_download_clicked)
@@ -195,6 +211,7 @@ class DownloadsPage(QWidget):
         removeDownloadDataAction.triggered.connect(lambda: self.on_remove_download_dialog(1))
         forceRecheckAction.triggered.connect(self.on_force_recheck_download)
         forceRecheckAction.setEnabled(self.force_recheck_download_enabled(self.selected_item))
+        exportDownloadAction.triggered.connect(self.on_export_download)
         exploreFilesAction.triggered.connect(self.on_explore_files)
 
         menu.addAction(startAction)
@@ -204,6 +221,8 @@ class DownloadsPage(QWidget):
         menu.addAction(removeDownloadDataAction)
         menu.addSeparator()
         menu.addAction(forceRecheckAction)
+        menu.addSeparator()
+        menu.addAction(exportDownloadAction)
         menu.addSeparator()
         menu.addAction(exploreFilesAction)
 

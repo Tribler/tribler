@@ -18,7 +18,7 @@ class DownloadsDetailsTabWidget(QTabWidget):
             item = QTreeWidgetItem(self.window().download_files_list)
             item.setText(0, file["name"])
             item.setText(1, format_size(float(file["size"])))
-            item.setText(2, "42%")
+            item.setText(2, '{percent:.1%}'.format(percent=file["progress"]))
             item.setText(3, "yes" if file["included"] else "no")
             self.window().download_files_list.addTopLevelItem(item)
 
