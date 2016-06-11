@@ -18,6 +18,7 @@ from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 from Tribler.Core.CacheDB.db_versions import LOWEST_SUPPORTED_DB_VERSION, LATEST_DB_VERSION
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.search_utils import split_into_keywords
 
 
 class VersionNoLongerSupportedError(Exception):
@@ -80,6 +81,10 @@ class DBUpgrader(object):
         # version 27 -> 28
         if self.db.version == 27:
             self._upgrade_27_to_28()
+
+        # version 28 -> 29
+        if self.db.version == 28:
+            self._upgrade_28_to_29()
 
         # check if we managed to upgrade to the latest DB version.
         if self.db.version == LATEST_DB_VERSION:
@@ -517,6 +522,21 @@ DROP TABLE IF EXISTS MetaDataTypes;
         # update database version
         self.db.write_version(28)
 
+    def _upgrade_28_to_29(self):
+        self.status_update_func(u"Upgrading FTS engine...")
+
+        self.db.execute(u"""
+DROP TABLE IF EXISTS FullTextIndex;
+CREATE VIRTUAL TABLE FullTextIndex USING fts4(swarmname, filenames, fileextensions);
+        """)
+        self.db.commit_now()
+
+        self.status_update_func(u"Reindexing torrents...")
+        self.reindex_torrents()
+
+        # update database version
+        self.db.write_version(29)
+
     def reimport_torrents(self):
         """Import all torrent files in the collected torrent dir, all the files already in the database will be ignored.
         """
@@ -541,3 +561,28 @@ DROP TABLE IF EXISTS MetaDataTypes;
             Category.delInstance()
             self.db.commit_now()
             return self.torrent_store.flush()
+
+    def reindex_torrents(self):
+        """
+        Reindex all torrents in the database. Required when upgrading to a newer FTS engine.
+        """
+        results = self.db.fetchall("SELECT torrent_id, name FROM Torrent")
+        for torrent_result in results:
+            if torrent_result[1] is None:
+                continue
+
+            swarmname = split_into_keywords(torrent_result[1])
+            files_results = self.db.fetchall("SELECT path FROM TorrentFiles WHERE torrent_id = ?", (torrent_result[0],))
+            filenames = ""
+            fileexts = ""
+            for file_result in files_results:
+                filename, ext = os.path.splitext(file_result[0])
+                parts = split_into_keywords(filename)
+                filenames += " ".join(parts) + " "
+                fileexts += ext[1:] + " "
+
+            self.db.execute_write(u"INSERT INTO FullTextIndex (rowid, swarmname, filenames, fileextensions)"
+                                  u" VALUES(?,?,?,?)",
+                                  (torrent_result[0], " ".join(swarmname), filenames[:-1], fileexts[:-1]))
+
+        self.db.commit_now()
