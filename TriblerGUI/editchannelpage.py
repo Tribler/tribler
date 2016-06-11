@@ -1,7 +1,8 @@
+import base64
 import urllib
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QAction, QTreeWidgetItem
+from PyQt5.QtWidgets import QWidget, QAction, QTreeWidgetItem, QFileDialog
 from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
 from TriblerGUI.defs import PAGE_EDIT_CHANNEL_OVERVIEW, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, \
@@ -183,25 +184,46 @@ class EditChannelPage(QWidget):
     def on_torrents_add_clicked(self):
         menu = TriblerActionMenu(self)
 
-        browseFilesAction = QAction('Browse files', self)
-        browseDirectoryAction = QAction('Browse directory', self)
+        browseFilesAction = QAction('Import torrent from file', self)
         addUrlAction = QAction('Add URL', self)
-        addFromLibraryAction = QAction('Add from library', self)
         createTorrentAction = QAction('Create torrent from file(s)', self)
 
         browseFilesAction.triggered.connect(self.on_add_torrent_browse_file)
-        browseDirectoryAction.triggered.connect(self.on_add_torrent_browse_file)
-        addUrlAction.triggered.connect(self.on_add_torrent_browse_file)
-        addFromLibraryAction.triggered.connect(self.on_add_torrent_browse_file)
+        addUrlAction.triggered.connect(self.on_add_torrent_from_url)
         createTorrentAction.triggered.connect(self.on_add_torrent_browse_file)
 
         menu.addAction(browseFilesAction)
-        menu.addAction(browseDirectoryAction)
         menu.addAction(addUrlAction)
-        menu.addAction(addFromLibraryAction)
         menu.addAction(createTorrentAction)
 
         menu.exec_(self.window().mapToGlobal(self.window().edit_channel_torrents_add_button.pos()))
+
+    def on_add_torrent_browse_file(self):
+        filename = QFileDialog.getOpenFileName(self, "Please select the .torrent file", "", "Torrent files (*.torrent)")
+
+        with open(filename[0], "rb") as torrent_file:
+            torrent_content = base64.b64encode(torrent_file.read())
+            self.editchannel_request_mgr = TriblerRequestManager()
+            self.editchannel_request_mgr.perform_request("channels/discovered/%s/torrents" % self.channel_overview['identifier'], self.on_torrent_to_channel_added, method='PUT', data='torrent=%s' % torrent_content)
+
+    def on_add_torrent_from_url(self):
+        self.dialog = ConfirmationDialog(self, "Add torrent from URL/magnet link", "Please enter the URL/magnet link in the field below:", [('add', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)], show_input=True)
+        self.dialog.dialog_widget.dialog_input.setPlaceholderText('URL/magnet link')
+        self.dialog.button_clicked.connect(self.on_torrent_from_url_dialog_done)
+        self.dialog.show()
+
+    def on_torrent_from_url_dialog_done(self, action):
+        if action == 0:
+            url = urllib.quote_plus(self.dialog.dialog_widget.dialog_input.text())
+            self.request_mgr = TriblerRequestManager()
+            self.request_mgr.perform_request("channels/discovered/%s/torrents/%s" % (self.channel_overview['identifier'], url), self.on_torrent_to_channel_added, method='PUT')
+
+        self.dialog.setParent(None)
+        self.dialog = None
+
+    def on_torrent_to_channel_added(self, result):
+        if 'added' in result:
+            self.load_channel_torrents()
 
     def on_playlist_torrents_back_clicked(self):
         self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_PLAYLISTS)
@@ -334,9 +356,6 @@ class EditChannelPage(QWidget):
         self.window().playlist_edit_name.setText(item.playlist_info["name"])
         self.window().playlist_edit_description.setText(item.playlist_info["description"])
         self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_PLAYLIST_EDIT)
-
-    def on_add_torrent_browse_file(self):
-        pass
 
     def on_torrents_remove_selected_action(self, action):
         if action == 0:

@@ -13,6 +13,7 @@ class TriblerRequestManager(QNetworkAccessManager):
     base_url = "http://localhost:8085/"
 
     received_json = pyqtSignal(object, int)
+    received_file = pyqtSignal(str, object)
 
     def send_file(self, endpoint, read_callback, file):
         """
@@ -83,3 +84,14 @@ class TriblerRequestManager(QNetworkAccessManager):
             self.received_json.emit(None, reply.error())
             logging.exception(ex)
             pass
+
+    def download_file(self, endpoint, read_callback):
+        url = self.base_url + endpoint
+        self.reply = self.get(QNetworkRequest(QUrl(url)))
+        self.received_file.connect(read_callback)
+        self.finished.connect(self.on_file_download_finished)
+
+    def on_file_download_finished(self, reply):
+        content_header = str(reply.rawHeader("Content-Disposition"))
+        data = reply.readAll()
+        self.received_file.emit(content_header.split("=")[1], data)
