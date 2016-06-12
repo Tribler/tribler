@@ -19,7 +19,7 @@ from Tribler.Core.simpledefs import (NTFY_TORRENTS, NTFY_CHANNELCAST, NTFY_INSER
                                      NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, NTFY_EXTENDED_FOR,
                                      NTFY_IP_REMOVED, NTFY_RP_REMOVED, NTFY_IP_RECREATE, NTFY_DHT_LOOKUP,
                                      NTFY_KEY_REQUEST, NTFY_KEY_RESPOND, NTFY_KEY_RESPONSE, NTFY_CREATE_E2E,
-                                     NTFY_ONCREATED_E2E, NTFY_IP_CREATED, NTFY_RP_CREATED)
+                                     NTFY_ONCREATED_E2E, NTFY_IP_CREATED, NTFY_RP_CREATED, NTFY_REMOVE)
 from Tribler.Core.Session import Session
 
 from Tribler.Main.vwxGUI import SEPARATOR_GREY, DEFAULT_BACKGROUND, LIST_BLUE, THUMBNAIL_FILETYPES
@@ -649,6 +649,8 @@ class ActivityPanel(NewTorrentPanel):
 
     def __init__(self, parent):
         HomePanel.__init__(self, parent, 'Recent Activity', SEPARATOR_GREY, (1, 0))
+        session = self.utility.session
+        session.add_observer(self.on_tunnel_remove, NTFY_TUNNEL, [NTFY_REMOVE])
 
     @forceWxThread
     def onActivity(self, msg):
@@ -657,6 +659,11 @@ class ActivityPanel(NewTorrentPanel):
         size = self.list.GetItemCount()
         if size > 50:
             self.list.DeleteItem(size - 1)
+
+    @forceWxThread
+    def on_tunnel_remove(self, subject, change_type, tunnel, candidate):
+        self.onActivity("Request a Multichain block with: [Up = " + str(tunnel.bytes_up) +
+                        " bytes | Down = " + str(tunnel.bytes_down) + " bytes]")
 
 
 class NetworkGraphPanel(wx.Panel):
