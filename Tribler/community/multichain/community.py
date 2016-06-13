@@ -360,37 +360,21 @@ class MultiChainCommunity(Community):
         self.persistence.close()
 
     @forceDBThread
-    def on_tunnel_remove(self, subject, changeType, tunnel, stats, candidate):
+    def on_tunnel_remove(self, subject, change_type, tunnel, candidate):
         """
         Handler for the remove event of a tunnel. This function will attempt to create a block for the amounts that
         were transferred using the tunnel.
-        :param subject:
-        :param changeType:
+        :param subject: Category of the notifier event
+        :param change_type: Type of the notifier event
         :param tunnel: The tunnel that was removed (closed)
-        :param stats: The statistics regarding this tunnel
         :param candidate: The dispersy candidate with whom this node has interacted in the tunnel
         :return:TGliTmFDTFBLOirMUruvuMNO6fVRukZ2mut3a05I38dkdkzkohaqwZlFT24t/1xCug/pVglwArD+YEG4dx47ohoByy5lWWtQwno=
         """
-        if isinstance(tunnel, Circuit):
-            bytes_up = stats['bytes_up']
-            bytes_down = stats['bytes_down']
-        elif isinstance(tunnel, RelayRoute):
-            bytes_up = stats['bytes_relay_up']
-            bytes_down = stats['bytes_relay_down']
-        elif isinstance(tunnel, TunnelExitSocket):
-            bytes_up = stats['bytes_exit']
-            bytes_down = stats['bytes_enter']
-        else:
-            self.logger.error("Got a tunnel remove event for an object that is not a Circuit, "
-                              "RelayRoute or TunnelExitSocket")
-            raise TypeError("Got a tunnel remove event for an object that is not a Circuit,"
-                            " RelayRoute or TunnelExitSocket")
-
-        if isinstance(bytes_up, int) and isinstance(bytes_down, int):
-            if bytes_up > MEGA_DIVIDER or bytes_down > MEGA_DIVIDER:
+        if isinstance(tunnel.bytes_up, int) and isinstance(tunnel.bytes_down, int):
+            if tunnel.bytes_up > MEGA_DIVIDER or tunnel.bytes_down > MEGA_DIVIDER:
                 # Tie breaker to prevent both parties from requesting
                 if self._public_key > candidate.get_member().public_key:
-                    self.schedule_block(candidate, bytes_up, bytes_down)
+                    self.schedule_block(candidate, tunnel.bytes_up, tunnel.bytes_down)
                 # else:
                     # TODO Note that you still expect a signature request for these bytes:
                     # pending[peer] = (up, down)
