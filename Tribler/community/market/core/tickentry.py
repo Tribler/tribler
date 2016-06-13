@@ -20,6 +20,13 @@ class TickEntry(object):
         self._next_tick = None
 
     @property
+    def tick(self):
+        """
+        :rtype: Tick
+        """
+        return self._tick
+
+    @property
     def order_id(self):
         """
         :rtype: OrderId

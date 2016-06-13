@@ -48,36 +48,39 @@ class PriceTimeStrategy(MatchingStrategy):
         """
         assert isinstance(order, Order), type(order)
 
-        proposed_trades = []
-
-        price = order.price
-        quantity_to_trade = order.available_quantity
-
-        # Proposed ask ticks
         if order.is_ask():
-            if price <= self.order_book.bid_price and quantity_to_trade > Quantity(0):
-                best_price_level = self.order_book.bid_price_level
-
-                # Scan the price levels in the order book
-                quantity_to_trade, proposed_trades = self._search_for_quantity_in_order_book(self.order_book.bid_price,
-                                                                                             best_price_level,
-                                                                                             quantity_to_trade,
-                                                                                             order)
-        # Proposed bid ticks
+            quantity_to_trade, proposed_trades = self._match_ask(order)
         else:
-            if price >= self.order_book.ask_price and quantity_to_trade > Quantity(0):
-                best_price_level = self.order_book.ask_price_level
-
-                # Scan the price levels in the order book
-                quantity_to_trade, proposed_trades = self._search_for_quantity_in_order_book(self.order_book.ask_price,
-                                                                                             best_price_level,
-                                                                                             quantity_to_trade,
-                                                                                             order)
+            quantity_to_trade, proposed_trades = self._match_bid(order)
 
         if quantity_to_trade > Quantity(0):
             self._logger.debug("Quantity not matched: %i", int(quantity_to_trade))
 
         return proposed_trades
+
+    def _match_ask(self, order):
+        proposed_trades = []
+        quantity_to_trade = order.available_quantity
+
+        if order.price <= self.order_book.bid_price and quantity_to_trade > Quantity(0):
+            # Scan the price levels in the order book
+            quantity_to_trade, proposed_trades = self._search_for_quantity_in_order_book(self.order_book.bid_price,
+                                                                                         self.order_book.bid_price_level,
+                                                                                         quantity_to_trade,
+                                                                                         order)
+        return quantity_to_trade, proposed_trades
+
+    def _match_bid(self, order):
+        proposed_trades = []
+        quantity_to_trade = order.available_quantity
+
+        if order.price >= self.order_book.ask_price and quantity_to_trade > Quantity(0):
+            # Scan the price levels in the order book
+            quantity_to_trade, proposed_trades = self._search_for_quantity_in_order_book(self.order_book.ask_price,
+                                                                                         self.order_book.ask_price_level,
+                                                                                         quantity_to_trade,
+                                                                                         order)
+        return quantity_to_trade, proposed_trades
 
     def _search_for_quantity_in_order_book(self, price, price_level, quantity_to_trade, order):
         """
@@ -105,47 +108,64 @@ class PriceTimeStrategy(MatchingStrategy):
         self._logger.debug("Searching in price level: %i", int(price))
 
         if quantity_to_trade <= price_level.depth:  # All the quantity can be matched in this price level
-            first_tick = price_level.first_tick
-
-            # Scan the ticks in the price level
-            quantity_to_trade, proposed_trades = self._search_for_quantity_in_price_level(first_tick,
+            quantity_to_trade, proposed_trades = self._search_for_quantity_in_price_level(price_level.first_tick,
                                                                                           quantity_to_trade,
                                                                                           order)
         else:  # Not all the quantity can be matched in this price level
-            first_tick = price_level.first_tick
+            quantity_to_trade, proposed_trades = self._search_for_quantity_in_order_book_partial(price,
+                                                                                                 price_level,
+                                                                                                 quantity_to_trade,
+                                                                                                 order)
+        return quantity_to_trade, proposed_trades
 
-            # Scan the ticks in the price level
-            quantity_to_trade, proposed_trades = self._search_for_quantity_in_price_level(first_tick,
-                                                                                          quantity_to_trade,
-                                                                                          order)
+    def _search_for_quantity_in_order_book_partial(self, price, price_level, quantity_to_trade, order):
+        # Not all the quantity can be matched in this price level
+        quantity_to_trade, proposed_trades = self._search_for_quantity_in_price_level(price_level.first_tick,
+                                                                                      quantity_to_trade,
+                                                                                      order)
+        if order.is_ask():
+            return self._search_for_quantity_in_order_book_partial_ask(price, price_level, quantity_to_trade,
+                                                                       proposed_trades, order)
+        else:
+            return self._search_for_quantity_in_order_book_partial_bid(price, price_level, quantity_to_trade,
+                                                                       proposed_trades, order)
 
-            if order.is_ask():
-                # Select the next price level
-                try:
-                    next_price, next_price_level = self.order_book._bids._price_tree.prev_item(price)
-                except KeyError:
-                    return quantity_to_trade, []
-
-                if order.price > next_price:  # Price is too low
-                    return quantity_to_trade, proposed_trades
-
-            else:
-                # Select the next price level
-                try:
-                    next_price, next_price_level = self.order_book._asks._price_tree.succ_item(price)
-                except KeyError:
-                    return quantity_to_trade, []
-
-                if order.price < next_price:  # Price is too high
-                    return quantity_to_trade, proposed_trades
-
+    def _search_for_quantity_in_order_book_partial_ask(self, price, price_level, quantity_to_trade, proposed_trades,
+                                                       order):
+        # Select the next price level
+        try:
             # Search the next price level
-            quantity_to_trade, trades = self._search_for_quantity_in_order_book(next_price,
-                                                                                next_price_level,
-                                                                                quantity_to_trade,
-                                                                                order)
-            proposed_trades = proposed_trades + trades
+            next_price, next_price_level = self.order_book._bids._price_tree.prev_item(price)
+        except KeyError:
+            return quantity_to_trade, []
 
+        if order.price > next_price:  # Price is too low
+            return quantity_to_trade, proposed_trades
+
+        quantity_to_trade, trades = self._search_for_quantity_in_order_book(next_price,
+                                                                            next_price_level,
+                                                                            quantity_to_trade,
+                                                                            order)
+        proposed_trades = proposed_trades + trades
+        return quantity_to_trade, proposed_trades
+
+    def _search_for_quantity_in_order_book_partial_bid(self, price, price_level, quantity_to_trade, proposed_trades,
+                                                       order):
+        # Select the next price level
+        try:
+            # Search the next price level
+            next_price, next_price_level = self.order_book._asks._price_tree.succ_item(price)
+        except KeyError:
+            return quantity_to_trade, []
+
+        if order.price < next_price:  # Price is too high
+            return quantity_to_trade, proposed_trades
+
+        quantity_to_trade, trades = self._search_for_quantity_in_order_book(next_price,
+                                                                            next_price_level,
+                                                                            quantity_to_trade,
+                                                                            order)
+        proposed_trades = proposed_trades + trades
         return quantity_to_trade, proposed_trades
 
     def _search_for_quantity_in_price_level(self, tick_entry, quantity_to_trade, order):
@@ -174,60 +194,68 @@ class PriceTimeStrategy(MatchingStrategy):
         if not tick_entry.is_valid():  # Tick is time out or reserved
             return self._search_for_quantity_in_price_level(tick_entry.next_tick(), quantity_to_trade, order)
 
-        trading_price = tick_entry.price
-        trading_party = tick_entry.order_id
-
         if quantity_to_trade <= tick_entry.quantity:  # All the quantity can be matched in this tick
-            trading_quantity = quantity_to_trade
-            quantity_to_trade = Quantity(0)
-
-            self._logger.debug("Match with the id (%s) was found for order (%s). Price: %i, Quantity: %i)",
-                               str(trading_party), str(order.order_id), int(trading_price), int(trading_quantity))
-
-            reserved = order.reserve_quantity_for_tick(tick_entry._tick.order_id, trading_quantity)
-
-            if not reserved:  # Error happened
-                self._logger.warn("Something went wrong")
-                return self._search_for_quantity_in_price_level(tick_entry.next_tick(), quantity_to_trade, order)
-
-            proposed_trades = [Trade.propose(
-                self.order_book.message_repository.next_identity(),
-                order.order_id,
-                trading_party,
-                trading_price,
-                trading_quantity,
-                Timestamp.now()
-            )]
-
+            quantity_to_trade, proposed_trades = self._search_for_quantity_in_price_level_total(tick_entry,
+                                                                                                quantity_to_trade,
+                                                                                                order)
         else:  # Not all the quantity can be matched in this tick
-            trading_quantity = tick_entry.quantity
-            quantity_to_trade -= trading_quantity
+            quantity_to_trade, proposed_trades = self._search_for_quantity_in_price_level_partial(tick_entry,
+                                                                                                  quantity_to_trade,
+                                                                                                  order)
 
-            self._logger.debug("Match with the id (%s) was found for order (%s) ", str(tick_entry.order_id),
-                               str(order.order_id))
+        return quantity_to_trade, proposed_trades
 
-            reserved = order.reserve_quantity_for_tick(tick_entry._tick.order_id, trading_quantity)
+    def _search_for_quantity_in_price_level_total(self, tick_entry, quantity_to_trade, order):
+        trading_quantity = quantity_to_trade
+        quantity_to_trade = Quantity(0)
 
-            if not reserved:  # Error happened
-                self._logger.warn("Something went wrong")
-                return self._search_for_quantity_in_price_level(tick_entry.next_tick(), quantity_to_trade, order)
+        self._logger.debug("Match with the id (%s) was found for order (%s). Price: %i, Quantity: %i)",
+                           str(tick_entry.order_id), str(order.order_id), int(tick_entry.price), int(trading_quantity))
 
-            proposed_trades = [Trade.propose(
-                self.order_book.message_repository.next_identity(),
-                order.order_id,
-                trading_party,
-                trading_price,
-                trading_quantity,
-                Timestamp.now()
-            )]
+        reserved = order.reserve_quantity_for_tick(tick_entry.tick.order_id, trading_quantity)
 
-            # Search the next tick
-            quantity_to_trade, trades = self._search_for_quantity_in_price_level(tick_entry.next_tick(),
-                                                                                 quantity_to_trade,
-                                                                                 order)
+        if not reserved:  # Error happened
+            self._logger.warn("Something went wrong")
+            return self._search_for_quantity_in_price_level(tick_entry.next_tick(), quantity_to_trade, order)
 
-            proposed_trades = proposed_trades + trades
+        proposed_trades = [Trade.propose(
+            self.order_book.message_repository.next_identity(),
+            order.order_id,
+            tick_entry.order_id,
+            tick_entry.price,
+            trading_quantity,
+            Timestamp.now()
+        )]
 
+        return quantity_to_trade, proposed_trades
+
+    def _search_for_quantity_in_price_level_partial(self, tick_entry, quantity_to_trade, order):
+        quantity_to_trade -= tick_entry.quantity
+
+        self._logger.debug("Match with the id (%s) was found for order (%s) ", str(tick_entry.order_id),
+                           str(order.order_id))
+
+        reserved = order.reserve_quantity_for_tick(tick_entry.tick.order_id, tick_entry.quantity)
+
+        if not reserved:  # Error happened
+            self._logger.warn("Something went wrong")
+            return self._search_for_quantity_in_price_level(tick_entry.next_tick(), quantity_to_trade, order)
+
+        proposed_trades = [Trade.propose(
+            self.order_book.message_repository.next_identity(),
+            order.order_id,
+            tick_entry.order_id,
+            tick_entry.price,
+            tick_entry.quantity,
+            Timestamp.now()
+        )]
+
+        # Search the next tick
+        quantity_to_trade, trades = self._search_for_quantity_in_price_level(tick_entry.next_tick(),
+                                                                             quantity_to_trade,
+                                                                             order)
+
+        proposed_trades = proposed_trades + trades
         return quantity_to_trade, proposed_trades
 
 
