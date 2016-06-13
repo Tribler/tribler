@@ -1,6 +1,6 @@
 import json
 from twisted.web import server, resource
-from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json, convert_db_torrent_to_json
+from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json, convert_torrent_to_json
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT
 
 
@@ -62,8 +62,8 @@ class EventsEndpoint(resource.Resource):
         Returns the torrent search results over the events endpoint.
         """
         for torrent in results['result_list']:
-            torrent_json = convert_db_torrent_to_json(torrent)
-            if torrent_json['infohash'] not in self.infohashes_sent:
+            torrent_json = convert_torrent_to_json(torrent)
+            if 'infohash' in torrent_json and torrent_json['infohash'] not in self.infohashes_sent:
                 self.write_data(json.dumps({"type": "search_result_torrent", "result": torrent_json}) + '\n')
                 self.infohashes_sent.add(torrent_json['infohash'])
 
