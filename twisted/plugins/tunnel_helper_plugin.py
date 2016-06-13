@@ -37,7 +37,7 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.permid import read_keypair
 from Tribler.Core.simpledefs import dlstatus_strings
-from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.candidate import Candidate

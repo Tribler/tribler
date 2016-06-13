@@ -17,14 +17,13 @@ from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 
 from Tribler.Main.vwxGUI import (warnWxThread, GRADIENT_DGREY, SEPARATOR_GREY, LIST_AT_HIGHLIST, LIST_SELECTED,
                                  LIST_EXPANDED, format_time, LIST_DARKBLUE, LIST_DESELECTED, THUMBNAIL_FILETYPES)
-from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Main.vwxGUI.widgets import _set_font, TagText, ActionButton, ProgressButton, MaxBetterText, FancyPanel
 from Tribler.Main.vwxGUI.list_body import ListItem
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, SMALL_ICON_MAX_DIM
 from Tribler.Main.Utility.GuiDBTuples import Torrent, CollectedTorrent
 
-from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.Video.VideoUtility import limit_resolution
 from Tribler.Core.TorrentDef import TorrentDef
 
@@ -711,7 +710,8 @@ class TorrentListItem(DoubleLineListItemWithButtons):
             if 'completed' in torrent.state or 'seeding' in torrent.state:
                 tdef = torrent.ds.get_download().get_def() if torrent.ds else None
                 if tdef:
-                    if UserDownloadChoice.get_singleton().get_download_state(tdef.get_infohash()) == 'restartseed':
+                    tribler_config = self.guiutility.utility.session.tribler_config
+                    if tribler_config.get_download_state(tdef.get_infohash()) == 'restartseed':
                         enable = False
                         break
         event.Enable(enable)

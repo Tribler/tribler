@@ -11,7 +11,7 @@ from cherrypy import response
 from cherrypy.lib.auth_basic import checkpassword_dict
 
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD
-from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 
 
 def jsonify(func):

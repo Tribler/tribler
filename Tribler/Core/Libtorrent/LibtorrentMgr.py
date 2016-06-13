@@ -21,7 +21,7 @@ from Tribler.Core.exceptions import DuplicateDownloadException, TorrentFileExcep
 from Tribler.Core.simpledefs import (NTFY_INSERT, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED,
                                      NTFY_REACHABLE, NTFY_TORRENTS)
 from Tribler.Core.version import version_id
-from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.dispersy.taskmanager import LoopingCall, TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 

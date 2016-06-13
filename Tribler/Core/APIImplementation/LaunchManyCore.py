@@ -16,7 +16,7 @@ from twisted.internet import reactor
 
 from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
-from Tribler.Core.DownloadConfig import DownloadStartupConfig
+from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
 from Tribler.Core.Modules.restapi.rest_manager import RESTManager
 from Tribler.Core.Modules.search_manager import SearchManager
 from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
@@ -26,7 +26,6 @@ from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE
-from Tribler.Main.globals import DefaultDownloadStartupConfig
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread

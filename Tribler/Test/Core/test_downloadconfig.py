@@ -3,7 +3,7 @@ import os
 from nose.tools import raises
 
 from Tribler.Core.DownloadConfig import DownloadConfigInterface, DownloadStartupConfig, get_default_dest_dir, \
-    get_default_dscfg_filename
+    get_default_dscfg_filename, DefaultDownloadStartupConfig
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.simpledefs import DLMODE_VOD, UPLOAD, DOWNLOAD
 from Tribler.Test.Core.base_test import TriblerCoreTest
@@ -13,6 +13,12 @@ class TestConfigParser(TriblerCoreTest):
 
     FILE_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
     CONFIG_FILES_DIR = os.path.abspath(os.path.join(FILE_DIR, u"data/config_files/"))
+
+    def tearDown(self, annotate=True):
+        super(TestConfigParser, self).tearDown(annotate=annotate)
+
+        # Make sure we don't leave a DefaultDownloadStartupConfig instance behind
+        DefaultDownloadStartupConfig.delInstance()
 
     def test_downloadconfig(self):
         dlconf = CallbackConfigParser()
@@ -76,3 +82,15 @@ class TestConfigParser(TriblerCoreTest):
     def test_get_default_dest_dir(self):
         self.assertIsInstance(get_default_dest_dir(), unicode)
         self.assertIsInstance(get_default_dscfg_filename(""), str)
+
+    @raises(RuntimeError)
+    def test_default_download_startup_config_init(self):
+        _ = DefaultDownloadStartupConfig.getInstance()
+        DefaultDownloadStartupConfig()
+
+    def test_default_download_startup_config_load(self):
+        with open(os.path.join(self.session_base_dir, "dlconfig.conf"), 'wb') as conf_file:
+            conf_file.write("[Tribler]\nabc=def")
+
+        ddsc = DefaultDownloadStartupConfig.load(os.path.join(self.session_base_dir, "dlconfig.conf"))
+        self.assertEqual(ddsc.dlconfig.get('Tribler', 'abc'), 'def')

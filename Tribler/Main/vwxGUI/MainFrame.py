@@ -35,7 +35,7 @@ from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
 
-from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Main.Utility.GuiDBHandler import startWorker
 
 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog

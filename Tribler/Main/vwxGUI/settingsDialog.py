@@ -16,8 +16,7 @@ from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.osutils import get_picture_dir
 from Tribler.Core.simpledefs import UPLOAD, DOWNLOAD
-from Tribler.Core.DownloadConfig import get_default_dscfg_filename
-from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Core.DownloadConfig import get_default_dscfg_filename, DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager, data2wxBitmap, ICON_MAX_DIM
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
 from Tribler.Main.vwxGUI.validator import DirectoryValidator, NetworkSpeedValidator, NumberValidator

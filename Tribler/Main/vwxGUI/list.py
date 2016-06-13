@@ -21,7 +21,6 @@ from Tribler.Main.vwxGUI import (DEFAULT_BACKGROUND, GRADIENT_DGREY, GRADIENT_LG
                                  LIST_GREY, LIST_ORANGE, SEPARATOR_GREY, TRIBLER_RED, format_time, warnWxThread)
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
-from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 from Tribler.Main.vwxGUI.list_body import FixedListBody, ListBody
 from Tribler.Main.vwxGUI.list_details import (ChannelDetails, ChannelInfoPanel, ChannelsExpandedPanel, LibraryDetails,
                                               LibraryInfoPanel, SearchInfoPanel, TorrentDetails, VideoplayerExpandedPanel)
@@ -1574,7 +1573,6 @@ class SearchList(GenericSearchList):
 class LibraryList(SizeList):
 
     def __init__(self, parent):
-        self.user_download_choice = UserDownloadChoice.get_singleton()
         self.guiutility = GUIUtility.getInstance()
         self.utility = self.guiutility.utility
 

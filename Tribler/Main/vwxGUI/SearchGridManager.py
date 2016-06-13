@@ -21,11 +21,10 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.Utility.GuiDBTuples import (Torrent, ChannelTorrent, CollectedTorrent, RemoteTorrent,
                                               NotCollectedTorrent, LibraryTorrent, Comment, Modification, Channel,
                                               RemoteChannel, Playlist, Moderation, RemoteChannelTorrent, Marking)
-from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Main.vwxGUI import (warnWxThread, forceWxThread, TORRENT_REQ_COLUMNS,
                                  CHANNEL_REQ_COLUMNS, PLAYLIST_REQ_COLUMNS, MODIFICATION_REQ_COLUMNS,
                                  MODERATION_REQ_COLUMNS, MARKING_REQ_COLUMNS, COMMENT_REQ_COLUMNS)
-from Tribler.Main.vwxGUI.UserDownloadChoice import UserDownloadChoice
 
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import (ChannelCommunity, warnIfNotDispersyThread)
@@ -557,7 +556,6 @@ class LibraryManager(object):
 
         # Gui callbacks
         self.gui_callback = []
-        self.user_download_choice = UserDownloadChoice.get_singleton()
         self.wantpeers = []
 
         self.last_vod_torrent = None
@@ -751,10 +749,8 @@ class LibraryManager(object):
             resumed = True
 
             infohash = download.get_def().get_infohash()
-            self.user_download_choice.set_download_state(
-                infohash,
-                "restartseed" if force_seed and download.get_progress(
-                ) == 1.0 else "restart")
+            value = "restartseed" if force_seed and download.get_progress() == 1.0 else "restart"
+            self.session.tribler_config.set_download_state(infohash, value)
 
         if not resumed:
             torrent_data = self.guiUtility.utility.session.get_collected_torrent(torrent.infohash)
@@ -778,7 +774,7 @@ class LibraryManager(object):
             download.stop()
 
             infohash = download.get_def().get_infohash()
-            self.user_download_choice.set_download_state(infohash, "stop")
+            self.session.tribler_config.set_download_state(infohash, "stop")
 
     def deleteTorrent(self, torrent, removecontent=False):
         ds = torrent.download_state
@@ -788,7 +784,6 @@ class LibraryManager(object):
             self.stopVideoIfEqual(ds.download, reset_playlist=True)
 
         self.session.remove_download_by_id(infohash, removecontent, removestate=True)
-        self.user_download_choice.remove_download_state(infohash)
 
     def stopVideoIfEqual(self, download, reset_playlist=False):
         videoplayer = self._get_videoplayer()
