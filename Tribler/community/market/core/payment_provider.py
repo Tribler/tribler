@@ -18,6 +18,9 @@ class BitcoinPaymentProvider(object):
 
     BITCOIN_MULTIPLIER = 1000
 
+    def __init__(self):
+        super(BitcoinPaymentProvider, self).__init__()
+
     def transfer_bitcoin(self, bitcoin_address, price):
         """
         Transfers the selected price in bitcoin to another bitcoin address if there is sufficient bitcoin
