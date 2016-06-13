@@ -7,7 +7,8 @@ from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
 from TriblerGUI.defs import PAGE_EDIT_CHANNEL_OVERVIEW, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, \
     PAGE_EDIT_CHANNEL_PLAYLISTS, PAGE_EDIT_CHANNEL_PLAYLIST_TORRENTS, PAGE_EDIT_CHANNEL_PLAYLIST_MANAGE, \
-    PAGE_EDIT_CHANNEL_PLAYLIST_EDIT, PAGE_EDIT_CHANNEL_SETTINGS, PAGE_EDIT_CHANNEL_TORRENTS, PAGE_EDIT_CHANNEL_RSS_FEEDS
+    PAGE_EDIT_CHANNEL_PLAYLIST_EDIT, PAGE_EDIT_CHANNEL_SETTINGS, PAGE_EDIT_CHANNEL_TORRENTS, PAGE_EDIT_CHANNEL_RSS_FEEDS, \
+    PAGE_EDIT_CHANNEL_CREATE_TORRENT
 
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.playlist_list_item import PlaylistListItem
@@ -190,7 +191,7 @@ class EditChannelPage(QWidget):
 
         browseFilesAction.triggered.connect(self.on_add_torrent_browse_file)
         addUrlAction.triggered.connect(self.on_add_torrent_from_url)
-        createTorrentAction.triggered.connect(self.on_add_torrent_browse_file)
+        createTorrentAction.triggered.connect(self.on_create_torrent_from_files)
 
         menu.addAction(browseFilesAction)
         menu.addAction(addUrlAction)
@@ -224,6 +225,10 @@ class EditChannelPage(QWidget):
     def on_torrent_to_channel_added(self, result):
         if 'added' in result:
             self.load_channel_torrents()
+
+    def on_create_torrent_from_files(self):
+        self.window().edit_channel_details_create_torrent.initialize()
+        self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_CREATE_TORRENT)
 
     def on_playlist_torrents_back_clicked(self):
         self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_PLAYLISTS)

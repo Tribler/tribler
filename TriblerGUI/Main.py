@@ -129,16 +129,19 @@ class TriblerWindow(QMainWindow):
     def on_add_torrent_browse_file(self):
         filename = QFileDialog.getOpenFileName(self, "Please select the .torrent file", "", "Torrent files (*.torrent)")
 
-        self.file_request_mgr = TriblerRequestManager()
-        self.file_request_mgr.send_file("downloads", self.on_download_added, filename[0])
+        if filename[0] != u'':
+            self.file_request_mgr = TriblerRequestManager()
+            self.file_request_mgr.send_file("downloads", self.on_download_added, filename[0])
 
     def on_add_torrent_browse_dir(self):
 
         dir = QFileDialog.getExistingDirectory(self, "Please select the directory containing the .torrent files", "",
                                                QFileDialog.ShowDirsOnly)
-        for torrent_file in glob.glob(dir + "/*.torrent"):
-            self.file_request_mgr = TriblerRequestManager()
-            self.file_request_mgr.send_file("downloads", self.on_download_added, torrent_file)
+
+        if len(dir) != 0:
+            for torrent_file in glob.glob(dir + "/*.torrent"):
+                self.file_request_mgr = TriblerRequestManager()
+                self.file_request_mgr.send_file("downloads", self.on_download_added, torrent_file)
 
     def on_add_torrent_from_url(self):
         self.dialog = ConfirmationDialog(self, "Add torrent from URL/magnet link", "Please enter the URL/magnet link in the field below:", [('add', BUTTON_TYPE_NORMAL), ('cancel', BUTTON_TYPE_CONFIRM)], show_input=True)
