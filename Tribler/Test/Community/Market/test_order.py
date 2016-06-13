@@ -7,6 +7,8 @@ from Tribler.community.market.core.quantity import Quantity
 from Tribler.community.market.core.tick import Tick
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
+from Tribler.community.market.core.trade import Trade
+from Tribler.community.market.core.transaction import TransactionNumber, TransactionId, Transaction
 
 
 class OrderTestSuite(unittest.TestCase):
@@ -14,6 +16,16 @@ class OrderTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
+        self.transaction_id = TransactionId(TraderId("0"), TransactionNumber("1"))
+        self.transaction = Transaction(self.transaction_id, Price(100), Quantity(30), Timeout(float("inf")),
+                                       Timestamp(0.0))
+        proposed_trade = Trade.propose(MessageId(TraderId('0'), MessageNumber('1')),
+                                       OrderId(TraderId('0'), OrderNumber('2')),
+                                       OrderId(TraderId('1'), OrderNumber('3')),
+                                       Price(100), Quantity(30), Timestamp(0.0))
+        self.accepted_trade = Trade.accept(MessageId(TraderId('0'), MessageNumber('1')),
+                                           Timestamp(0.0), proposed_trade)
+
         self.tick = Tick(MessageId(TraderId('0'), MessageNumber('message_number')),
                          OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(5),
                          Timeout(0.0), Timestamp(float("inf")), True)
@@ -24,6 +36,12 @@ class OrderTestSuite(unittest.TestCase):
                            Timeout(float("inf")), Timestamp(0.0), False)
         self.order2 = Order(OrderId(TraderId("0"), OrderNumber("order_number")), Price(100), Quantity(30),
                             Timeout(0.0), Timestamp(10.0), True)
+
+    def test_add_transaction(self):
+        # Test for add transaction
+        self.order.add_transaction(self.accepted_trade, self.transaction)
+        self.assertEquals(self.accepted_trade, self.order._accepted_trades[self.accepted_trade.message_id])
+        self.assertEquals(self.transaction.transaction_id, self.order._transactions[self.accepted_trade.message_id])
 
     def test_is_ask(self):
         # Test for is ask
