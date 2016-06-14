@@ -141,6 +141,7 @@ class TorrentDef(object):
         """
         # Class method, no locking required
         try:
+            # TODO Martijn: this request should be done using Twisted
             response = requests.get(url, timeout=30, verify=False)
             if response.ok:
                 return TorrentDef.load_from_memory(response.content)
