@@ -133,7 +133,7 @@ class PickleConverter(object):
             dlconfig = pickle.load(old_file)
 
         # Upgrade to new config
-        ddsconfig = DefaultDownloadStartupConfig()
+        ddsconfig = DefaultDownloadStartupConfig.getInstance()
         for key, value in dlconfig.iteritems():
             if key in ['saveas', 'max_upload_rate', 'max_download_rate', 'super_seeder', 'mode', 'selected_files',
                        'correctedfilename']:
