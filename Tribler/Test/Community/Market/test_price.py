@@ -28,8 +28,8 @@ class PriceTestSuite(unittest.TestCase):
         self.assertEqual(63400, int(self.price2))
         self.assertEqual('6.3400', str(self.price))
         self.assertEqual('6.3400', str(self.price2))
-        self.assertEqual(Decimal('6.3400'), self.price.__float__())
-        self.assertEqual(Decimal('6.3400'), self.price2.__float__())
+        self.assertEqual(float('6.3400'), self.price.__float__())
+        self.assertEqual(float('6.3400'), self.price2.__float__())
 
     def test_addition(self):
         # Test for addition
