@@ -1,12 +1,14 @@
 from binascii import hexlify
 
 from nose.tools import raises
+from twisted.internet.defer import Deferred
 
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
+from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException, DuplicateTorrentFileError
 from Tribler.Core.leveldbstore import LevelDbStore
-from Tribler.Core.simpledefs import NTFY_CHANNELCAST, DLSTATUS_STOPPED
+from Tribler.Core.simpledefs import NTFY_CHANNELCAST, DLSTATUS_STOPPED, SIGNAL_CHANNEL, SIGNAL_ON_CREATED
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.test_as_server import TestAsServer
@@ -85,38 +87,49 @@ class TestSessionAsServer(TestAsServer):
         super(TestSessionAsServer, self).setUp(autoload_discovery=autoload_discovery)
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
 
+    @deferred(timeout=10)
     def test_add_torrent_def_to_channel(self):
         """
         Test whether adding a torrent def to a channel works
         """
-        self.session.create_channel("name", "description", "open")
+        test_deferred = Deferred()
 
-        channel_id = self.channel_db_handler.getMyChannelId()
         torrent_def = TorrentDef.load(TORRENT_FILE)
-        extra_info = {"description": "iso"}
 
         @blocking_call_on_reactor_thread
-        def do_test():
-            self.session.add_torrent_def_to_channel(channel_id, torrent_def, extra_info, forward=False)
-        do_test()
+        def on_channel_created(subject, change_type, object_id, channel_data):
+            channel_id = self.channel_db_handler.getMyChannelId()
+            self.session.add_torrent_def_to_channel(channel_id, torrent_def, {"description": "iso"}, forward=False)
+            self.assertTrue(self.channel_db_handler.hasTorrent(channel_id, torrent_def.get_infohash()))
+            test_deferred.callback(None)
 
-        self.assertTrue(self.channel_db_handler.hasTorrent(channel_id, torrent_def.get_infohash()))
+        self.session.add_observer(on_channel_created, SIGNAL_CHANNEL, [SIGNAL_ON_CREATED])
+        self.session.create_channel("name", "description", "open")
 
-    @raises(DuplicateTorrentFileError)
+        return test_deferred
+
+    @deferred(timeout=10)
     def test_add_torrent_def_to_channel_duplicate(self):
         """
-        Test whether adding a torrent def to a channel works
+        Test whether adding a torrent def twice to a channel raises an exception
         """
-        self.session.create_channel("name", "description", "open")
+        test_deferred = Deferred()
 
-        channel_id = self.channel_db_handler.getMyChannelId()
         torrent_def = TorrentDef.load(TORRENT_FILE)
 
         @blocking_call_on_reactor_thread
-        def do_test():
-            self.session.add_torrent_def_to_channel(channel_id, torrent_def, forward=False)
-            self.session.add_torrent_def_to_channel(channel_id, torrent_def, forward=False)
-        do_test()
+        def on_channel_created(subject, change_type, object_id, channel_data):
+            channel_id = self.channel_db_handler.getMyChannelId()
+            try:
+                self.session.add_torrent_def_to_channel(channel_id, torrent_def, forward=False)
+                self.session.add_torrent_def_to_channel(channel_id, torrent_def, forward=False)
+            except DuplicateTorrentFileError:
+                test_deferred.callback(None)
+
+        self.session.add_observer(on_channel_created, SIGNAL_CHANNEL, [SIGNAL_ON_CREATED])
+        self.session.create_channel("name", "description", "open")
+
+        return test_deferred
 
     def test_load_checkpoint(self):
         self.session.tribler_config.set_download_state("abc", "stop")
