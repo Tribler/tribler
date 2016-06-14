@@ -138,6 +138,13 @@ class Order(object):
         self._transactions = {}
 
     @property
+    def reserved_ticks(self):
+        """
+        :rtype: Dictionary[OrderId: Quantity]
+        """
+        return self._reserved_ticks
+
+    @property
     def order_id(self):
         """
         :rtype: OrderId

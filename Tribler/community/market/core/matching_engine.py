@@ -64,10 +64,11 @@ class PriceTimeStrategy(MatchingStrategy):
 
         if order.price <= self.order_book.bid_price and quantity_to_trade > Quantity(0):
             # Scan the price levels in the order book
-            quantity_to_trade, proposed_trades = self._search_for_quantity_in_order_book(self.order_book.bid_price,
-                                                                                         self.order_book.bid_price_level,
-                                                                                         quantity_to_trade,
-                                                                                         order)
+            quantity_to_trade, proposed_trades = self._search_for_quantity_in_order_book(
+                self.order_book.bid_price,
+                self.order_book.bid_price_level,
+                quantity_to_trade,
+                order)
         return quantity_to_trade, proposed_trades
 
     def _match_bid(self, order):
@@ -76,10 +77,11 @@ class PriceTimeStrategy(MatchingStrategy):
 
         if order.price >= self.order_book.ask_price and quantity_to_trade > Quantity(0):
             # Scan the price levels in the order book
-            quantity_to_trade, proposed_trades = self._search_for_quantity_in_order_book(self.order_book.ask_price,
-                                                                                         self.order_book.ask_price_level,
-                                                                                         quantity_to_trade,
-                                                                                         order)
+            quantity_to_trade, proposed_trades = self._search_for_quantity_in_order_book(
+                self.order_book.ask_price,
+                self.order_book.ask_price_level,
+                quantity_to_trade,
+                order)
         return quantity_to_trade, proposed_trades
 
     def _search_for_quantity_in_order_book(self, price, price_level, quantity_to_trade, order):
@@ -124,18 +126,18 @@ class PriceTimeStrategy(MatchingStrategy):
                                                                                       quantity_to_trade,
                                                                                       order)
         if order.is_ask():
-            return self._search_for_quantity_in_order_book_partial_ask(price, price_level, quantity_to_trade,
+            return self._search_for_quantity_in_order_book_partial_ask(price, quantity_to_trade,
                                                                        proposed_trades, order)
         else:
-            return self._search_for_quantity_in_order_book_partial_bid(price, price_level, quantity_to_trade,
+            return self._search_for_quantity_in_order_book_partial_bid(price, quantity_to_trade,
                                                                        proposed_trades, order)
 
-    def _search_for_quantity_in_order_book_partial_ask(self, price, price_level, quantity_to_trade, proposed_trades,
+    def _search_for_quantity_in_order_book_partial_ask(self, price, quantity_to_trade, proposed_trades,
                                                        order):
         # Select the next price level
         try:
             # Search the next price level
-            next_price, next_price_level = self.order_book._bids._price_tree.prev_item(price)
+            next_price, next_price_level = self.order_book.bids._price_tree.prev_item(price)
         except KeyError:
             return quantity_to_trade, []
 
@@ -149,12 +151,12 @@ class PriceTimeStrategy(MatchingStrategy):
         proposed_trades = proposed_trades + trades
         return quantity_to_trade, proposed_trades
 
-    def _search_for_quantity_in_order_book_partial_bid(self, price, price_level, quantity_to_trade, proposed_trades,
+    def _search_for_quantity_in_order_book_partial_bid(self, price, quantity_to_trade, proposed_trades,
                                                        order):
         # Select the next price level
         try:
             # Search the next price level
-            next_price, next_price_level = self.order_book._asks._price_tree.succ_item(price)
+            next_price, next_price_level = self.order_book.asks.price_tree.succ_item(price)
         except KeyError:
             return quantity_to_trade, []
 
@@ -188,7 +190,7 @@ class PriceTimeStrategy(MatchingStrategy):
         assert isinstance(quantity_to_trade, Quantity), type(quantity_to_trade)
         assert isinstance(order, Order), type(order)
 
-        if tick_entry.order_id in order._reserved_ticks:  # Tick is already reserved for this order
+        if tick_entry.order_id in order.reserved_ticks:  # Tick is already reserved for this order
             return self._search_for_quantity_in_price_level(tick_entry.next_tick(), quantity_to_trade, order)
 
         if not tick_entry.is_valid():  # Tick is time out or reserved

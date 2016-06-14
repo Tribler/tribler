@@ -120,6 +120,13 @@ class Side(object):
         del self._tick_map[order_id]
 
     @property
+    def price_tree(self):
+        """
+        :return: FastRBTree
+        """
+        return self._price_tree
+
+    @property
     def max_price(self):
         """
         Return the maximum price that a tick is listed for on this side of the order book

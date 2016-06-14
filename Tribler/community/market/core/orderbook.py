@@ -155,6 +155,22 @@ class OrderBook(object):
         self.remove_bid(order_id)
 
     @property
+    def asks(self):
+        """
+        Return the asks side
+        :rtype: Side
+        """
+        return self._asks
+
+    @property
+    def bids(self):
+        """
+        Return the bids side
+        :rtype: Side
+        """
+        return self._bids
+
+    @property
     def bid_price(self):
         """
         Return the price an ask needs to have to make a trade
