@@ -70,7 +70,6 @@ class MarketCommunity(Community):
         self.order_book = OrderBook(message_repository)
         self.matching_engine = MatchingEngine(PriceTimeStrategy(self.order_book))
 
-        multi_chain_community = None  # TODO: initiate multi chain community
         self.multi_chain_payment_provider = MultiChainPaymentProvider(multi_chain_community, self.pubkey)
         self.bitcoin_payment_provider = BitcoinPaymentProvider()
         transaction_repository = MemoryTransactionRepository(self.pubkey)
