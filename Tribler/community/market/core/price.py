@@ -49,7 +49,7 @@ class Price(object):
         return self._price
 
     def __float__(self):
-        return (Decimal(str(self._price)) / Decimal('10000')).quantize(Decimal('0.0001'))
+        return float((Decimal(str(self._price)) / Decimal('10000')).quantize(Decimal('0.0001')))
 
     def __str__(self):
         return "%s" % (Decimal(str(self._price)) / Decimal('10000')).quantize(Decimal('0.0001'))
