@@ -15,16 +15,18 @@ class EventDataProtocol(Protocol):
     """
     This class is responsible for reading the data received over the event socket.
     """
-    def __init__(self, messages_to_wait_for, finished):
+    def __init__(self, messages_to_wait_for, finished, response):
         self.json_buffer = []
         self.messages_to_wait_for = messages_to_wait_for + 1  # The first event message is always events_start
         self.finished = finished
+        self.response = response
 
     def dataReceived(self, data):
         self.json_buffer.append(json.loads(data))
         self.messages_to_wait_for -= 1
         if self.messages_to_wait_for == 0:
             self.finished.callback(self.json_buffer[1:])
+            self.response.connectionLost(self)
 
 
 class TestEventsEndpoint(AbstractApiTest):
@@ -34,7 +36,7 @@ class TestEventsEndpoint(AbstractApiTest):
         self.events_deferred = Deferred()
 
     def on_event_socket_opened(self, response):
-        response.deliverBody(EventDataProtocol(self.messages_to_wait_for, self.events_deferred))
+        response.deliverBody(EventDataProtocol(self.messages_to_wait_for, self.events_deferred, response))
 
     def open_events_socket(self):
         agent = Agent(reactor)
