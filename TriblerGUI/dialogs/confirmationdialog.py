@@ -4,6 +4,7 @@ from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QSizePolicy, QToolButton
 from TriblerGUI.defs import BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM
 from TriblerGUI.dialogs.dialogcontainer import DialogContainer
+from TriblerGUI.utilities import get_ui_file_path
 
 
 class ConfirmationDialog(DialogContainer):
@@ -13,7 +14,7 @@ class ConfirmationDialog(DialogContainer):
     def __init__(self, parent, title, main_text, buttons, show_input=False):
         super(ConfirmationDialog, self).__init__(parent)
 
-        uic.loadUi('qt_resources/buttonsdialog.ui', self.dialog_widget)
+        uic.loadUi(get_ui_file_path('buttonsdialog.ui'), self.dialog_widget)
 
         self.dialog_widget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
 
@@ -25,6 +26,7 @@ class ConfirmationDialog(DialogContainer):
         if not show_input:
             self.dialog_widget.dialog_input.setHidden(True)
 
+        self.buttons = []
         for index in range(len(buttons)):
             self.create_button(index, *buttons[index])
 
@@ -35,6 +37,7 @@ class ConfirmationDialog(DialogContainer):
         button.setText(button_text)
         button.setFixedHeight(24)
         button.setCursor(QCursor(Qt.PointingHandCursor))
+        self.buttons.append(button)
 
         stylesheet = "border: none; border-radius: 2px; font-size: 12px; "
         if button_type == BUTTON_TYPE_NORMAL:
