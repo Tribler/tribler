@@ -31,25 +31,30 @@ class PriceTimeStrategyTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.ask = Ask(MessageId(TraderId('0'), MessageNumber('message_number1')),
-                       OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
-                       Timeout(float('inf')), Timestamp(float('inf')))
-        self.ask2 = Ask(MessageId(TraderId('1'), MessageNumber('message_number1')),
-                        OrderId(TraderId('1'), OrderNumber("order_number")), Price(100), Quantity(30),
-                        Timeout(float('inf')), Timestamp(float('inf')))
-        self.bid = Bid(MessageId(TraderId('0'), MessageNumber('message_number2')),
-                       OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
-                       Timeout(float('inf')), Timestamp(float('inf')))
-        self.bid2 = Bid(MessageId(TraderId('0'), MessageNumber('message_number2')),
-                        OrderId(TraderId('0'), OrderNumber("order_number")), Price(200), Quantity(30),
-                        Timeout(float('inf')), Timestamp(float('inf')))
-        self.ask_order = Order(OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
+        self.ask = Ask(MessageId(TraderId('0'), MessageNumber('1')), OrderId(TraderId('0'), OrderNumber("1")),
+                       Price(100), Quantity(30), Timeout(float('inf')), Timestamp(float('inf')))
+        self.ask2 = Ask(MessageId(TraderId('1'), MessageNumber('1')), OrderId(TraderId('1'), OrderNumber("2")),
+                        Price(100), Quantity(30), Timeout(float('inf')), Timestamp(float('inf')))
+        self.ask3 = Ask(MessageId(TraderId('0'), MessageNumber('1')), OrderId(TraderId('0'), OrderNumber("3")),
+                        Price(200), Quantity(200), Timeout(float('inf')), Timestamp(float('inf')))
+        self.ask4 = Ask(MessageId(TraderId('1'), MessageNumber('1')), OrderId(TraderId('1'), OrderNumber("4")),
+                        Price(50), Quantity(200), Timeout(float('inf')), Timestamp(float('inf')))
+        self.bid = Bid(MessageId(TraderId('0'), MessageNumber('2')), OrderId(TraderId('0'), OrderNumber("5")),
+                       Price(100), Quantity(30), Timeout(float('inf')), Timestamp(float('inf')))
+        self.bid2 = Bid(MessageId(TraderId('0'), MessageNumber('2')), OrderId(TraderId('0'), OrderNumber("6")),
+                        Price(200), Quantity(30), Timeout(float('inf')), Timestamp(float('inf')))
+        self.bid3 = Bid(MessageId(TraderId('0'), MessageNumber('2')), OrderId(TraderId('0'), OrderNumber("7")),
+                        Price(50), Quantity(200), Timeout(float('inf')), Timestamp(float('inf')))
+        self.bid4 = Bid(MessageId(TraderId('0'), MessageNumber('2')), OrderId(TraderId('0'), OrderNumber("8")),
+                        Price(100), Quantity(200), Timeout(float('inf')), Timestamp(float('inf')))
+
+        self.ask_order = Order(OrderId(TraderId('0'), OrderNumber("11")), Price(100), Quantity(30),
                                Timeout(float('inf')), Timestamp(float('inf')), True)
-        self.ask_order2 = Order(OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(60),
+        self.ask_order2 = Order(OrderId(TraderId('0'), OrderNumber("12")), Price(10), Quantity(60),
                                 Timeout(float('inf')), Timestamp(float('inf')), True)
-        self.bid_order = Order(OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
+        self.bid_order = Order(OrderId(TraderId('0'), OrderNumber("13")), Price(100), Quantity(30),
                                Timeout(float('inf')), Timestamp(float('inf')), False)
-        self.bid_order2 = Order(OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(60),
+        self.bid_order2 = Order(OrderId(TraderId('0'), OrderNumber("14")), Price(100), Quantity(60),
                                 Timeout(float('inf')), Timestamp(float('inf')), False)
         self.order_book = OrderBook(MemoryMessageRepository('0'))
         self.price_time_strategy = PriceTimeStrategy(self.order_book)
@@ -105,6 +110,54 @@ class PriceTimeStrategyTestSuite(unittest.TestCase):
         self.assertEquals(1, len(proposed_trades))
         self.assertEquals(Price(200), proposed_trades[0].price)
         self.assertEquals(Quantity(30), proposed_trades[0].quantity)
+
+    def test_search_for_quantity_in_order_book_partial_ask_low(self):
+        # Test for protected search for quantity in order book partial ask when price is too low
+        self.order_book.insert_bid(self.bid)
+        self.order_book.insert_bid(self.bid2)
+        self.order_book.insert_bid(self.bid3)
+        self.order_book.insert_bid(self.bid4)
+        quantity_to_trade, proposed_trades = self.price_time_strategy._search_for_quantity_in_order_book_partial_ask(
+            Price(100), Quantity(30), [],
+            self.ask_order2)
+        self.assertEquals(1, len(proposed_trades))
+        self.assertEquals(Quantity(0), quantity_to_trade)
+
+    def test_search_for_quantity_in_order_book_partial_ask(self):
+        # Test for protected search for quantity in order book partial ask
+        self.order_book.insert_bid(self.bid)
+        self.order_book.insert_bid(self.bid2)
+        self.order_book.insert_bid(self.bid3)
+        self.order_book.insert_bid(self.bid4)
+        quantity_to_trade, proposed_trades = self.price_time_strategy._search_for_quantity_in_order_book_partial_ask(
+            Price(100), Quantity(30), [],
+            self.ask_order)
+        self.assertEquals(0, len(proposed_trades))
+        self.assertEquals(Quantity(30), quantity_to_trade)
+
+    def test_search_for_quantity_in_order_book_partial_bid_high(self):
+        # Test for protected search for quantity in order book partial bid when price is too high
+        self.order_book.insert_ask(self.ask)
+        self.order_book.insert_ask(self.ask2)
+        self.order_book.insert_ask(self.ask3)
+        self.order_book.insert_ask(self.ask4)
+        quantity_to_trade, proposed_trades = self.price_time_strategy._search_for_quantity_in_order_book_partial_bid(
+            Price(100), Quantity(30), [],
+            self.bid_order)
+        self.assertEquals(0, len(proposed_trades))
+        self.assertEquals(Quantity(30), quantity_to_trade)
+
+    def test_search_for_quantity_in_order_book_partial_bid(self):
+        # Test for protected search for quantity in order book partial bid
+        self.order_book.insert_ask(self.ask)
+        self.order_book.insert_ask(self.ask2)
+        self.order_book.insert_ask(self.ask3)
+        self.order_book.insert_ask(self.ask4)
+        quantity_to_trade, proposed_trades = self.price_time_strategy._search_for_quantity_in_order_book_partial_bid(
+            Price(50), Quantity(30), [],
+            self.bid_order)
+        self.assertEquals(1, len(proposed_trades))
+        self.assertEquals(Quantity(0), quantity_to_trade)
 
 
 class MatchingEngineTestSuite(unittest.TestCase):

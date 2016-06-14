@@ -137,7 +137,7 @@ class PriceTimeStrategy(MatchingStrategy):
         # Select the next price level
         try:
             # Search the next price level
-            next_price, next_price_level = self.order_book.bids._price_tree.prev_item(price)
+            next_price, next_price_level = self.order_book.bids.price_tree.prev_item(price)
         except KeyError:
             return quantity_to_trade, []
 
