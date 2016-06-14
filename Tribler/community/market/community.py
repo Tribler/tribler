@@ -56,7 +56,7 @@ class MarketCommunity(Community):
         master = dispersy.get_member(public_key=master_key)
         return [master]
 
-    def initialize(self):
+    def initialize(self, multi_chain_community=None):
         super(MarketCommunity, self).initialize()
         self._logger.info("Market community initialized")
 
