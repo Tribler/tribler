@@ -34,9 +34,13 @@ class DownloadsPage(QWidget):
 
         self.window().downloads_list.customContextMenuRequested.connect(self.on_right_click_item)
 
+        self.load_downloads()
         self.downloads_timer = QTimer()
         self.downloads_timer.timeout.connect(self.load_downloads)
         self.downloads_timer.start(1000)
+
+        self.downloads = None
+        self.can_update_items = True
 
     def load_downloads(self):
         self.request_mgr = TriblerRequestManager()
@@ -45,6 +49,7 @@ class DownloadsPage(QWidget):
     def received_downloads(self, downloads):
         total_download = 0
         total_upload = 0
+        self.downloads = downloads
 
         download_infohashes = set()
         for download in downloads["downloads"]:
@@ -53,7 +58,9 @@ class DownloadsPage(QWidget):
             else:
                 item = DownloadWidgetItem(self.window().downloads_list)
                 self.download_widgets[download["infohash"]] = item
-            item.updateWithDownload(download)
+
+            if self.can_update_items:
+                item.updateWithDownload(download)
 
             # Update video player with download info
             video_infohash = self.window().video_player_page.active_infohash

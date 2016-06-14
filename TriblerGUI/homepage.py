@@ -2,6 +2,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget
 from TriblerGUI.defs import PAGE_CHANNEL_DETAILS
 from TriblerGUI.home_recommended_item import HomeRecommendedChannelItem, HomeRecommendedTorrentItem
+from TriblerGUI.loading_list_item import LoadingListItem
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
 
@@ -20,6 +21,8 @@ class HomePage(QWidget):
 
     def clicked_tab_button(self, tab_button_name):
         self.window().home_page_table_view.clear()
+        self.window().home_page_table_view.setCellWidget(0, 1, LoadingListItem(self))
+
         if tab_button_name == "home_tab_channels_button":
             self.recommended_request_mgr = TriblerRequestManager()
             self.recommended_request_mgr.perform_request("channels/popular", self.received_popular_channels)

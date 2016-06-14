@@ -5,6 +5,8 @@ from itertools import izip, count
 from operator import itemgetter
 import os
 import re
+
+import TriblerGUI
 from TriblerGUI.defs import VIDEO_EXTS
 
 
@@ -111,3 +113,10 @@ def interleave_lists(a, b):
     fst = enumerate(a)
     snd = izip(count(0, len(a) // len(b)), b)
     return map(itemgetter(1), heapq.merge(fst, snd))
+
+
+def get_ui_file_path(filename):
+    return os.path.join(os.path.dirname(TriblerGUI.__file__), 'qt_resources/%s' % filename)
+
+def get_image_path(filename):
+    return os.path.join(os.path.dirname(TriblerGUI.__file__), 'images/%s' % filename)

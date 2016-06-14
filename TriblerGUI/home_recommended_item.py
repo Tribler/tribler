@@ -1,6 +1,6 @@
 from PyQt5 import uic
 from PyQt5.QtWidgets import QWidget
-from TriblerGUI.utilities import pretty_date
+from TriblerGUI.utilities import pretty_date, get_ui_file_path
 
 HOME_ITEM_FONT_SIZE = 44
 
@@ -12,7 +12,7 @@ class HomeRecommendedChannelItem(QWidget):
 
         self.channel_info = channel
 
-        uic.loadUi('qt_resources/home_recommended_item.ui', self)
+        uic.loadUi(get_ui_file_path('home_recommended_item.ui'), self)
         self.thumbnail_widget.initialize(channel["name"], HOME_ITEM_FONT_SIZE)
 
         self.main_label.setText(channel["name"])
@@ -24,7 +24,7 @@ class HomeRecommendedTorrentItem(QWidget):
     def __init__(self, parent, torrent):
         super(QWidget, self).__init__(parent)
 
-        uic.loadUi('qt_resources/home_recommended_item.ui', self)
+        uic.loadUi(get_ui_file_path('home_recommended_item.ui'), self)
         self.thumbnail_widget.initialize(torrent["name"], HOME_ITEM_FONT_SIZE)
 
         self.main_label.setText(torrent["name"])

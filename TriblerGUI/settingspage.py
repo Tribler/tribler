@@ -1,3 +1,4 @@
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QWidget
 
 from TriblerGUI.defs import PAGE_SETTINGS_GENERAL, PAGE_SETTINGS_CONNECTION, PAGE_SETTINGS_BANDWIDTH, \
@@ -18,6 +19,8 @@ class SettingsPage(QWidget):
         self.window().developer_mode_enabled_checkbox.stateChanged.connect(self.on_developer_mode_checkbox_changed)
         self.window().always_ask_location_checkbox.stateChanged.connect(self.on_always_ask_location_checkbox_changed)
 
+        self.settings = None
+
     def on_developer_mode_checkbox_changed(self, event):
         self.window().left_menu_button_debug.setHidden(not self.window().developer_mode_enabled_checkbox.isChecked())
 
@@ -30,6 +33,7 @@ class SettingsPage(QWidget):
         self.window().download_settings_anon_seeding_checkbox.setHidden(should_hide)
 
     def initialize_with_settings(self, settings):
+        self.settings = settings
         settings = settings["settings"]
 
         # General settings
