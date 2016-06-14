@@ -18,10 +18,14 @@ class RootEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.session = session
+        self.events_endpoint = EventsEndpoint(self.session)
 
         child_handler_dict = {"search": SearchEndpoint, "channels": ChannelsEndpoint, "mychannel": MyChannelEndpoint,
-                              "settings": SettingsEndpoint, "variables": VariablesEndpoint, "events": EventsEndpoint,
+                              "settings": SettingsEndpoint, "variables": VariablesEndpoint,
                               "downloads": DownloadsEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(self.session))
+
+        self.putChild("events", self.events_endpoint)
+        self.getChildWithDefault("search", None).events_endpoint = self.events_endpoint

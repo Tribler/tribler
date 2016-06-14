@@ -104,7 +104,7 @@ class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
     @deferred(timeout=10)
     def test_get_torrents_in_channel(self):
         """
-        Testing whether the API returns inserted channels when fetching discovered channels
+        Testing whether the API returns inserted torrents when fetching discovered channels
         """
         def verify_torrents(torrents):
             torrents_json = json.loads(torrents)
@@ -114,7 +114,8 @@ class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
         self.should_check_equality = False
         channel_id = self.insert_channel_in_db('rand', 42, 'Test channel', 'Test description')
 
-        torrent_list = [[channel_id, 1, 1, ('a' * 40).decode('hex'), 1460000000, "ubuntu-torrent.iso", [], []]]
+        torrent_list = [[channel_id, 1, 1, ('a' * 40).decode('hex'), 1460000000, "ubuntu-torrent.iso",
+                         [['file1.txt', 42]], []]]
         self.insert_torrents_into_channel(torrent_list)
 
         return self.do_request('channels/discovered/%s/torrents' % 'rand'.encode('hex'), expected_code=200)\

@@ -19,17 +19,19 @@ class SearchEndpoint(resource.Resource):
     Example response over the events endpoint:
     {
         "type": "search_result_channel",
-        "query": "test",
-        "result": {
-            "id": 3,
-            "dispersy_cid": "da69aaad39ccf468aba2ab9177d5f8d8160135e6",
-            "name": "My fancy channel",
-            "description": "A description of this fancy channel",
-            "subscribed": True,
-            "votes": 23,
-            "torrents": 3,
-            "spam": 5,
-            "modified": 14598395,
+        "event": {
+            "query": "test",
+            "result": {
+                "id": 3,
+                "dispersy_cid": "da69aaad39ccf468aba2ab9177d5f8d8160135e6",
+                "name": "My fancy channel",
+                "description": "A description of this fancy channel",
+                "subscribed": True,
+                "votes": 23,
+                "torrents": 3,
+                "spam": 5,
+                "modified": 14598395,
+            }
         }
     }
     """
@@ -37,6 +39,7 @@ class SearchEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.session = session
+        self.events_endpoint = None
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.torrent_db_handler = self.session.open_dbhandler(NTFY_TORRENTS)
         self._logger = logging.getLogger(self.__class__.__name__)
@@ -49,6 +52,9 @@ class SearchEndpoint(resource.Resource):
         if 'q' not in request.args:
             request.setResponseCode(http.BAD_REQUEST)
             return json.dumps({"error": "query parameter missing"})
+
+        # Notify the events endpoint that we are starting a new search query
+        self.events_endpoint.start_new_query()
 
         # We first search the local database for torrents and channels
         keywords = split_into_keywords(unicode(request.args['q'][0]))

@@ -764,6 +764,12 @@ class TorrentDef(object):
 
 
 class TorrentDefNoMetainfo(object):
+    """
+    Instances of this class are used when working with a torrent def that contains no metainfo (yet), for instance,
+    when starting a download with only an infohash. Other methods that are using this class do not distinguish between
+    a TorrentDef with and without data and may still expect this class to have various methods in TorrentDef
+    implemented.
+    """
 
     def __init__(self, infohash, name, url=None):
         assert isinstance(infohash, str), "INFOHASH has invalid type: %s" % type(infohash)
@@ -797,6 +803,9 @@ class TorrentDefNoMetainfo(object):
         return []
 
     def get_files_as_unicode(self, exts=None):
+        return []
+
+    def get_files_as_unicode_with_length(self, exts=None):
         return []
 
     def get_trackers_as_single_tuple(self):

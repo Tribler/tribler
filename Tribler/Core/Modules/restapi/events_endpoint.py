@@ -1,6 +1,6 @@
 import json
 from twisted.web import server, resource
-from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json, convert_db_torrent_to_json
+from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json, convert_torrent_to_json
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT
 
 
@@ -26,6 +26,9 @@ class EventsEndpoint(resource.Resource):
         self.events_request = None
         self.buffer = []
 
+        self.infohashes_sent = None
+        self.channel_cids_sent = None
+
         self.session.add_observer(self.on_search_results_channels, SIGNAL_CHANNEL, [SIGNAL_ON_SEARCH_RESULTS])
         self.session.add_observer(self.on_search_results_torrents, SIGNAL_TORRENT, [SIGNAL_ON_SEARCH_RESULTS])
 
@@ -40,21 +43,35 @@ class EventsEndpoint(resource.Resource):
         else:
             self.events_request.write(message)
 
+    def start_new_query(self):
+        self.infohashes_sent = set()
+        self.channel_cids_sent = set()
+
     def on_search_results_channels(self, subject, changetype, objectID, results):
         """
         Returns the channel search results over the events endpoint.
         """
+        query = ' '.join(results['keywords'])
+
         for channel in results['result_list']:
-            self.write_data(json.dumps({"type": "search_result_channel",
-                                        "result": convert_db_channel_to_json(channel)}) + '\n')
+            channel_json = convert_db_channel_to_json(channel)
+            if channel_json['dispersy_cid'] not in self.channel_cids_sent:
+                self.write_data(json.dumps({"type": "search_result_channel",
+                                            "event": {"query": query, "result": channel_json}}) + '\n')
+                self.channel_cids_sent.add(channel_json['dispersy_cid'])
 
     def on_search_results_torrents(self, subject, changetype, objectID, results):
         """
         Returns the torrent search results over the events endpoint.
         """
+        query = ' '.join(results['keywords'])
+
         for torrent in results['result_list']:
-            self.write_data(json.dumps({"type": "search_result_torrent",
-                                        "result": convert_db_torrent_to_json(torrent)}) + '\n')
+            torrent_json = convert_torrent_to_json(torrent)
+            if 'infohash' in torrent_json and torrent_json['infohash'] not in self.infohashes_sent:
+                self.write_data(json.dumps({"type": "search_result_torrent",
+                                            "event": {"query": query, "result": torrent_json}}) + '\n')
+                self.infohashes_sent.add(torrent_json['infohash'])
 
     def render_GET(self, request):
         self.events_request = request

@@ -51,10 +51,11 @@ class TestEventsEndpoint(AbstractApiTest):
         """
         def verify_delayed_message(results):
             self.assertEqual(results[0][u'type'], u'search_result_channel')
-            self.assertTrue(results[0][u'result'])
+            self.assertTrue(results[0][u'event'][u'result'])
 
         events_endpoint.MAX_EVENTS_BUFFER_SIZE = 1
 
+        self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
         results_dict = {"keywords": ["test"], "result_list": [('a',) * 9]}
         self.session.notifier.use_pool = False
         self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
@@ -72,8 +73,8 @@ class TestEventsEndpoint(AbstractApiTest):
             self.assertEqual(results[0][u'type'], u'search_result_channel')
             self.assertEqual(results[1][u'type'], u'search_result_torrent')
 
-            self.assertTrue(results[0][u'result'])
-            self.assertTrue(results[1][u'result'])
+            self.assertTrue(results[0][u'event'][u'result'])
+            self.assertTrue(results[1][u'event'][u'result'])
 
         def create_search_results(_):
             results_dict = {"keywords": ["test"], "result_list": [('a',) * 9]}
@@ -81,6 +82,7 @@ class TestEventsEndpoint(AbstractApiTest):
             self.session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
             self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
 
+        self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
         self.messages_to_wait_for = 2
         self.open_events_socket().addCallback(create_search_results)
         return self.events_deferred.addCallback(verify_search_results)
