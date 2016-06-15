@@ -10,8 +10,8 @@ from Tribler.Test.test_as_server import TESTS_DATA_DIR
 
 class TriblerCoreTestTorrentUtils(TriblerCoreTest):
 
-    def setUp(self):
-        super(TriblerCoreTestTorrentUtils, self).setUp()
+    def setUp(self, annotate=True):
+        super(TriblerCoreTestTorrentUtils, self).setUp(annotate)
 
         self._ubuntu_torrent_name = u"ubuntu-15.04-desktop-amd64.iso.torrent"
         self._origin_torrent_path = os.path.join(TESTS_DATA_DIR, self._ubuntu_torrent_name)
@@ -22,8 +22,8 @@ class TriblerCoreTestTorrentUtils(TriblerCoreTest):
         # copy the test torrent into the dir
         shutil.copyfile(self._origin_torrent_path, self._test_torrent_path)
 
-    def tearDown(self):
-        super(TriblerCoreTestTorrentUtils, self).tearDown()
+    def tearDown(self, annotate=True):
+        super(TriblerCoreTestTorrentUtils, self).tearDown(annotate)
 
         # remove the temporary dir
         shutil.rmtree(self._temp_dir, ignore_errors=True)
