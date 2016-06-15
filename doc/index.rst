@@ -13,6 +13,7 @@ Contents:
 
    Introduction <introduction>
    contributing
+   Building Tribler <building/building>
 
 
 Indices and tables
