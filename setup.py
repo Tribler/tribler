@@ -55,9 +55,6 @@ setup(
         'Tribler.dispersy.tool',
         'Tribler.dispersy.tracker',
     ],
-    install_requires=[
-        'bintrees',
-    ],
 
     url='https://github.com/Tribler/tribler',
     license='LICENSE.txt',
