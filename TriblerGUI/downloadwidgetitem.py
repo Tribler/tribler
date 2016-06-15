@@ -40,7 +40,10 @@ class DownloadWidgetItem(QTreeWidgetItem):
         self.setText(0, self.download_info["name"])
         self.setText(1, format_size(float(self.download_info["size"])))
 
-        self.progress_slider.setValue(int(self.download_info["progress"] * 100))
+        try:
+            self.progress_slider.setValue(int(self.download_info["progress"] * 100))
+        except RuntimeError:
+            pass
 
         self.setText(3, DLSTATUS_STRINGS[eval(self.download_info["status"])])
         self.setText(4, str(self.download_info["num_seeds"]))
