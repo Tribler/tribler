@@ -11,12 +11,13 @@ class LocalTriblerRecipe(PythonRecipe):
 
     version = 'local'
 
-    depends = ['apsw', 'cherrypy', 'cryptography', 'decorator', 'feedparser',
-               'ffmpeg', 'libnacl', 'libsodium', 'libtorrent', 'm2crypto',
-               'netifaces', 'openssl', 'pyasn1', 'pil', 'pycrypto', 'pyleveldb',
-               'python2', 'requests', 'six', 'twisted']
+    depends = ['apsw', 'cryptography', 'ffmpeg', 'libsodium', 'libtorrent', 'm2crypto',
+               'netifaces', 'openssl', 'pil', 'pycrypto', 'pyleveldb', 'python2', 'twisted',
+              ]
 
-    python_depends = ['chardet']
+    python_depends = ['chardet', 'cherrypy', 'configobject', 'decorator', 'feedparser',
+                      'libnacl', 'pyasn1', 'requests', 'setuptools', 'six',
+                     ]
 
     site_packages_name = 'Tribler'
 
