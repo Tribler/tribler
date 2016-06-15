@@ -22,7 +22,7 @@ class TimestampTestSuite(unittest.TestCase):
 
     def test_now(self):
         # Test for Timestamp.now
-        self.assertEqual(time.time(), float(Timestamp.now()))
+        self.assertAlmostEqual(time.time(), float(Timestamp.now()), delta=.1)
 
     def test_conversion(self):
         # Test for conversions
