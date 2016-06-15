@@ -11,6 +11,7 @@ setup(
         'Tribler.Core',
         'Tribler.Core.APIImplementation',
         'Tribler.Core.CacheDB',
+        'Tribler.Core.Config',
         'Tribler.Core.DecentralizedTracking',
         'Tribler.Core.DecentralizedTracking.pymdht',
         'Tribler.Core.DecentralizedTracking.pymdht.core',
