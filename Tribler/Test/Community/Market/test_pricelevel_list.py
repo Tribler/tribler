@@ -31,17 +31,37 @@ class PriceLevelListTestSuite(unittest.TestCase):
         # Test for min key
         self.assertEquals(self.price, self.price_level_list.min_key())
 
+    def test_min_key_empty(self):
+        # Test for min key when empty
+        with self.assertRaises(IndexError):
+            self.price_level_list2.min_key()
+
     def test_max_key(self):
         # Test for max key
         self.assertEquals(self.price4, self.price_level_list.max_key())
+
+    def test_max_key_empty(self):
+        # Test for max key when empty
+        with self.assertRaises(IndexError):
+            self.price_level_list2.max_key()
 
     def test_succ_item(self):
         # Test for succ item
         self.assertEquals((self.price2, self.price_level2), self.price_level_list.succ_item(self.price))
 
+    def test_succ_item_tail(self):
+        # Test for succ item when at tail
+        with self.assertRaises(IndexError):
+            self.price_level_list.succ_item(self.price4)
+
     def test_prev_item(self):
         # Test for prev item
         self.assertEquals((self.price2, self.price_level2), self.price_level_list.prev_item(self.price3))
+
+    def test_prev_item_head(self):
+        # Test for prev item when at head
+        with self.assertRaises(IndexError):
+            self.price_level_list.prev_item(self.price)
 
     def test_remove(self):
         # Test for remove
