@@ -1,8 +1,7 @@
-from bintrees import FastRBTree
-
 from order import OrderId
 from price import Price
 from pricelevel import PriceLevel
+from pricelevel_list import PriceLevelList
 from quantity import Quantity
 from tick import Tick
 from tickentry import TickEntry
@@ -12,7 +11,7 @@ class Side(object):
     """Class for representing a side of the order book"""
 
     def __init__(self):
-        self._price_tree = FastRBTree()  # Red Black tree containing price levels: Price -> PriceLevel
+        self._price_level_list = PriceLevelList()  # Sorted list containing dictionary with price levels: Price -> PriceLevel
         self._price_map = {}  # Map: Price -> PriceLevel
         self._tick_map = {}  # Map: MessageId -> TickEntry
         self._volume = Quantity(0)  # Total number of quantity contained in all the price levels
@@ -56,7 +55,7 @@ class Side(object):
         self._depth += 1
 
         price_level = PriceLevel()
-        self._price_tree.insert(price, price_level)
+        self._price_level_list.insert(price, price_level)
         self._price_map[price] = price_level
 
     def _remove_price_level(self, price):
@@ -68,7 +67,7 @@ class Side(object):
 
         self._depth -= 1
 
-        self._price_tree.remove(price)
+        self._price_level_list.remove(price)
         del self._price_map[price]
 
     def _price_level_exists(self, price):
@@ -120,11 +119,11 @@ class Side(object):
         del self._tick_map[order_id]
 
     @property
-    def price_tree(self):
+    def price_level_list(self):
         """
-        :return: FastRBTree
+        :return: PriceLevelList
         """
-        return self._price_tree
+        return self._price_level_list
 
     @property
     def max_price(self):
@@ -133,7 +132,7 @@ class Side(object):
         :rtype: Price
         """
         if self._depth > 0:
-            return self._price_tree.max_key()
+            return self._price_level_list.max_key()
         else:
             return None
 
@@ -144,7 +143,7 @@ class Side(object):
         :rtype: Price
         """
         if self._depth > 0:
-            return self._price_tree.min_key()
+            return self._price_level_list.min_key()
         else:
             return None
 

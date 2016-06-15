@@ -235,7 +235,7 @@ class OrderBook(object):
         :rtype: list
         """
         profile = []
-        for key, value in self._bids._price_tree.items():
+        for key, value in self._bids._price_level_list.items():
             profile.append((key, value.depth))
         return profile
 
@@ -248,7 +248,7 @@ class OrderBook(object):
         :rtype: list
         """
         profile = []
-        for key, value in self._asks._price_tree.items():
+        for key, value in self._asks._price_level_list.items():
             profile.append((key, value.depth))
         return profile
 
@@ -308,11 +308,11 @@ class OrderBook(object):
         tempfile = StringIO()
         tempfile.write("------ Bids -------\n")
         if self._bids is not None and len(self._bids) > 0:
-            for key, value in self._bids._price_tree.items(reverse=True):
+            for key, value in self._bids._price_level_list.items(reverse=True):
                 tempfile.write('%s' % value)
         tempfile.write("\n------ Asks -------\n")
         if self._asks is not None and len(self._asks) > 0:
-            for key, value in self._asks._price_tree.items():
+            for key, value in self._asks._price_level_list.items():
                 tempfile.write('%s' % value)
         tempfile.write("\n------ Trades ------\n")
         if self._trades is not None and len(self._trades) > 0:

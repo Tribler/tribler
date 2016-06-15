@@ -137,8 +137,8 @@ class PriceTimeStrategy(MatchingStrategy):
         # Select the next price level
         try:
             # Search the next price level
-            next_price, next_price_level = self.order_book.bids.price_tree.prev_item(price)
-        except KeyError:
+            next_price, next_price_level = self.order_book.bids.price_level_list.prev_item(price)
+        except IndexError:
             return quantity_to_trade, []
 
         if order.price > next_price:  # Price is too low
@@ -156,8 +156,8 @@ class PriceTimeStrategy(MatchingStrategy):
         # Select the next price level
         try:
             # Search the next price level
-            next_price, next_price_level = self.order_book.asks.price_tree.succ_item(price)
-        except KeyError:
+            next_price, next_price_level = self.order_book.asks.price_level_list.succ_item(price)
+        except IndexError:
             return quantity_to_trade, []
 
         if order.price < next_price:  # Price is too high
