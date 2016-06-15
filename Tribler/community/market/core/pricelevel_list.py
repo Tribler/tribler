@@ -41,7 +41,7 @@ class PriceLevelList(object):
         assert isinstance(price, Price), type(price)
 
         index = self._price_list.index(price) + 1
-        if index > len(self._price_list):
+        if index >= len(self._price_list):
             raise IndexError
         succ_price = self._price_list[index]
         return succ_price, self._price_level_dictionary[succ_price]

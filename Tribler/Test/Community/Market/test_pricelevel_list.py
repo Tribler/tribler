@@ -48,6 +48,7 @@ class PriceLevelListTestSuite(unittest.TestCase):
     def test_succ_item(self):
         # Test for succ item
         self.assertEquals((self.price2, self.price_level2), self.price_level_list.succ_item(self.price))
+        self.assertEquals((self.price4, self.price_level4), self.price_level_list.succ_item(self.price3))
 
     def test_succ_item_tail(self):
         # Test for succ item when at tail
