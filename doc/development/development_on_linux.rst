@@ -1,27 +1,28 @@
-This page contains information about setting up a Tribler development environment on Linux systems.
+This section contains information about setting up a Tribler development environment on Linux systems.
 
-## Getting your development environment up and running
+Debian/Ubuntu/Mint
+------------------
 
-### Runtime dependencies
+Execute the following command in your terminal:
 
-#### Debian/Ubuntu/Mint
-```bash
-sudo apt-get install libav-tools libjs-excanvas libjs-mootools libsodium13 libx11-6 python-apsw python-cherrypy3 python-crypto python-cryptography python-feedparser python-leveldb python-libtorrent python-m2crypto python-netifaces python-pil python-pyasn1 python-requests python-twisted python-wxgtk2.8 python2.7 vlc python-pip
-pip install decorator
-```
+.. code-block:: none
 
-#### **Experimental support for Ubuntu 16.04**
+    sudo apt-get install libav-tools libjs-excanvas libjs-mootools libsodium13 libx11-6 python-apsw python-cherrypy3 python-crypto python-cryptography python-feedparser python-leveldb python-libtorrent python-m2crypto python-netifaces python-pil python-pyasn1 python-requests python-twisted python-wxgtk2.8 python2.7 vlc python-pip pip install decorator
+
+Experimental support for Ubuntu 16.04
+-------------------------------------
 
 Please try if the latest experimental build works for you.
 
-```
-bash
-sudo apt-get install libsodium-dev python-nacl python-nacl python-nacl
-https://jenkins.tribler.org/job/Build-Tribler_Ubuntu-64_devel/lastStableBuild/
-Download the latest .deb file
-```
+.. code-block:: none
 
-##### **Installing libsodium13 and python-cryptography on Ubuntu 14.04**
+    bash
+    sudo apt-get install libsodium-dev python-nacl python-nacl python-nacl
+
+Next, download the latest .deb file from `here <https://jenkins.tribler.org/job/Build-Tribler_Ubuntu-64_devel/lastStableBuild/>`_.
+
+Installing libsodium13 and python-cryptography on Ubuntu 14.04
+--------------------------------------------------------------
 
 While installing libsodium13 and python-cryptography on a clean Ubuntu 14.04 install (possibly other versions as well), the situation can occur where the Ubuntu terminal throws the following error when trying to install the dependencies mentioned earlier in the README.md:
 
@@ -32,29 +33,30 @@ This means that the required packages are not directly in the available package 
 
 To install the packages, the required files have to be downloaded from their respecive websites.
 
-For libsodium13, download libsodium13\_1.0.1-1\_<ProcessorType\>.deb from [http://packages.ubuntu.com/vivid/libsodium13](http://packages.ubuntu.com/vivid/libsodium13)
+For libsodium13, download ``libsodium13\_1.0.1-1\_<ProcessorType\>.deb`` from `<http://packages.ubuntu.com/vivid/libsodium13](http://packages.ubuntu.com/vivid/libsodium13>`_
 
-For python-cryptography, download python-cryptography\_0.8-1ubuntu2\_<ProcessorType\>.deb from [http://packages.ubuntu.com/vivid/python-cryptography](http://packages.ubuntu.com/vivid/python-cryptography)
+For python-cryptography, download ``python-cryptography\_0.8-1ubuntu2\_<ProcessorType\>.deb`` from `<http://packages.ubuntu.com/vivid/python-cryptography>`_.
 
-###### **Installing the files**
+**Installing the files**
 **Through terminal**
 
 After downloading files go to the download folder and install the files through terminal:
 
 **For amd64:**
 
-```bash
-cd ./Downloads
-dpkg -i libsodium13_1.0.1-1_amd64.deb
-dpkg -i python-cryptography_0.8-1ubuntu2_amd64.deb
-```
+.. code-block:: none
+
+    cd ./Downloads
+    dpkg -i libsodium13_1.0.1-1_amd64.deb
+    dpkg -i python-cryptography_0.8-1ubuntu2_amd64.deb
+
 **For i386:**
 
-```bash
-cd ./Downloads
-dpkg -i libsodium13_1.0.1-1_i386.deb
-dpkg -i python-cryptography_0.8-1ubuntu2_i386.deb
-```
+.. code-block:: none
+
+    cd ./Downloads
+    dpkg -i libsodium13_1.0.1-1_i386.deb
+    dpkg -i python-cryptography_0.8-1ubuntu2_i386.deb
 
 **Through file navigator:**
 
@@ -62,9 +64,13 @@ Using the file navigator to go to the download folder and by clicking on the .de
 
 Now installing the list of dependencies should no longer throw an error.
 
-If there are any problems with the guide above, please feel free to fix any errors or [create an issue](https://github.com/Tribler/tribler/issues/new) so we can look into it.
+If there are any problems with the guide above, please feel free to fix any errors or `create an issue <https://github.com/Tribler/tribler/issues/new>`_ so we can look into it.
 
-#### Arch Linux
-```bash
-sudo pacman -S libsodium libtorrent-rasterbar python2-apsw python2-cherrypy python2-cryptography python2-decorator python2-feedparser python2-gmpy2 python2-m2crypto python2-netifaces python2-pillow python2-plyvel python2-requests python2-twisted wxpython2.8
-```
+Arch Linux
+----------
+
+Execute the following command in your terminal:
+
+.. code-block:: none
+
+    sudo pacman -S libsodium libtorrent-rasterbar python2-apsw python2-cherrypy python2-cryptography python2-decorator python2-feedparser python2-gmpy2 python2-m2crypto python2-netifaces python2-pillow python2-plyvel python2-requests python2-twisted wxpython2.8

@@ -13,6 +13,7 @@ Contents:
 
    Introduction <introduction>
    contributing
+   development/development
    Building Tribler <building/building>
 
 
