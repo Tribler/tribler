@@ -1,4 +1,5 @@
 import os
+
 from Tribler.Category.FamilyFilter import XXXFilter
 from Tribler.Test.test_as_server import AbstractServer
 
@@ -26,3 +27,10 @@ class TriblerCategoryTestFamilyFilter(AbstractServer):
         self.assertFalse(family_filter.isXXXTerm("term0es"))
         self.assertTrue(family_filter.isXXXTerm("term1s"))
         self.assertFalse(family_filter.isXXXTerm("term0n"))
+
+    def test_invalid_filename_exception(self):
+        family_filter = XXXFilter(self.CATEGORY_TEST_DATA_DIR)
+        terms, searchterms = family_filter.initTerms("thisfiledoesnotexist.txt")
+        self.assertEqual(len(terms), 0)
+        self.assertEqual(len(searchterms), 0)
+
