@@ -5,10 +5,10 @@ import sys
 import time
 from binascii import hexlify
 from traceback import print_exc
-from twisted.internet.defer import Deferred
 
 import libtorrent as lt
 from twisted.internet import defer
+from twisted.internet.defer import Deferred, CancelledError
 
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface
@@ -22,7 +22,6 @@ from Tribler.Core.simpledefs import (DLSTATUS_WAITING4HASHCHECK, DLSTATUS_HASHCH
                                      DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_ALLOCATING_DISKSPACE,
                                      DLSTATUS_CIRCUITS, DLSTATUS_STOPPED, DLMODE_VOD, DLSTATUS_STOPPED_ON_ERROR,
                                      UPLOAD, DOWNLOAD, DLMODE_NORMAL, PERSISTENTSTATE_CURRENTVERSION, dlstatus_strings)
-
 
 if sys.platform == "win32":
     try:
@@ -146,6 +145,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.askmoreinfo = False
 
         self.correctedinfoname = u""
+
+        self.deferreds_resume = []
 
     def __str__(self):
         return "LibtorrentDownloadImpl <name: '%s' hops: %d>" % (self.correctedinfoname, self.get_hops())
@@ -442,12 +443,42 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             self._logger.debug("LibtorrentDownloadImpl: alert %s with message %s", alert_type, alert)
 
         alert_types = ('tracker_reply_alert', 'tracker_error_alert', 'tracker_warning_alert', 'metadata_received_alert',
-                       'file_renamed_alert', 'performance_alert', 'torrent_checked_alert', 'torrent_finished_alert')
+                       'file_renamed_alert', 'performance_alert', 'torrent_checked_alert', 'torrent_finished_alert',
+                       'save_resume_data_alert')
 
         if alert_type in alert_types:
             getattr(self, 'on_' + alert_type)(alert)
         else:
             self.update_lt_stats()
+
+    def on_save_resume_data_alert(self, alert):
+        """
+        alert to handle save_resume_data_alert
+        it will assign stored resume data in an attribute,
+            and write it to a file
+        """
+        resume_data = alert.resume_data
+
+        if not self.pstate_for_restart:
+            self.pstate_for_restart = self.network_get_persistent_state()
+
+        self.pstate_for_restart.set('state', 'engineresumedata', resume_data)
+        self._logger.debug("%s get resume data %s", hexlify(resume_data['info-hash']), resume_data)
+
+        # save it to file
+        basename = hexlify(resume_data['info-hash']) + '.state'
+        filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
+
+        self._logger.debug("tlm: network checkpointing: to file %s", filename)
+
+        self.pstate_for_restart.write_file(filename)
+
+        # fire callback for all deferreds_resume
+        for deferred_r in self.deferreds_resume:
+            deferred_r.callback(resume_data)
+
+        # empties the deferred list
+        self.deferreds_resume = []
 
     def on_tracker_reply_alert(self, alert):
         self.tracker_status[alert.url] = [alert.num_peers, 'Working']
@@ -706,6 +737,26 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         with self.dllock:
             return self.curspeeds[dir]
 
+    def _on_resume_err(self, failure):
+        failure.trap(CancelledError)
+        self._logger.error("Resume data cancelled")
+
+    @waitForHandleAndSynchronize()
+    def save_resume_data(self):
+        """
+        method to save resume data.
+        """
+        # only call libtorrent save resume in the first call
+        if not self.deferreds_resume:
+            self.handle.save_resume_data()
+
+        defer_resume = Deferred()
+        defer_resume.addErrback(self._on_resume_err)
+
+        self.deferreds_resume.append(defer_resume)
+
+        return defer_resume
+
     def set_moreinfo_stats(self, enable):
         """ Called by any thread """
 
@@ -911,15 +962,14 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             pstate = self.network_get_persistent_state()
             if self.handle is not None:
                 self._logger.debug("LibtorrentDownloadImpl: network_stop: engineresumedata from torrent handle")
+                self.pstate_for_restart = pstate
                 if removestate:
                     self.ltmgr.remove_torrent(self, removecontent)
                     self.handle = None
                 else:
                     self.set_vod_mode(False)
                     self.handle.pause()
-                    pstate.set('state', 'engineresumedata', self.handle.save_resume_data()
-                               if isinstance(self.tdef, TorrentDef) else None)
-                self.pstate_for_restart = pstate
+                    self.save_resume_data()
             else:
                 # This method is also called at Session shutdown, where one may
                 # choose to checkpoint its Download. If the Download was
@@ -1008,7 +1058,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 if self.pstate_for_restart is not None:
                     resdata = self.pstate_for_restart.get('state', 'engineresumedata')
             elif isinstance(self.tdef, TorrentDef):
-                resdata = self.handle.save_resume_data()
+                self.save_resume_data()
+
             pstate.set('state', 'engineresumedata', resdata)
             return (self.tdef.get_infohash(), pstate)
 

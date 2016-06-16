@@ -1,3 +1,4 @@
+import binascii
 import os
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
@@ -29,6 +30,21 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         self.config.set_videoplayer(False)
         self.config.set_torrent_collecting_dir(os.path.join(self.session_base_dir, 'torrent_collecting_dir'))
 
+    def create_tdef(self):
+        """
+        create and save torrent definition used in this test file
+        """
+        tdef = TorrentDef()
+        sourcefn = os.path.join(TESTS_DATA_DIR, 'video.avi')
+        tdef.add_content(sourcefn)
+        tdef.set_tracker("http://localhost/announce")
+        tdef.finalize()
+
+        torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
+        tdef.save(torrentfn)
+
+        return tdef
+
     @deferred(timeout=10)
     def test_can_create_engine_wrapper(self):
         impl = LibtorrentDownloadImpl(self.session, None)
@@ -50,28 +66,14 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         return impl.can_create_engine_wrapper()
 
     def test_get_magnet_link_none(self):
-        tdef = TorrentDef()
-        sourcefn = os.path.join(TESTS_DATA_DIR, 'video.avi')
-        tdef.add_content(sourcefn)
-        tdef.set_tracker("http://localhost/announce")
-        tdef.finalize()
-
-        torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
-        tdef.save(torrentfn)
+        tdef = self.create_tdef()
 
         impl = LibtorrentDownloadImpl(self.session, tdef)
         link = impl.get_magnet_link()
         self.assertEqual(None, link, "Magnet link was not none while it should be!")
 
     def test_get_tdef(self):
-        tdef = TorrentDef()
-        sourcefn = os.path.join(TESTS_DATA_DIR, 'video.avi')
-        tdef.add_content(sourcefn)
-        tdef.set_tracker("http://localhost/announce")
-        tdef.finalize()
-
-        torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
-        tdef.save(torrentfn)
+        tdef = self.create_tdef()
 
         impl = LibtorrentDownloadImpl(self.session, None)
         impl.set_def(tdef)
@@ -79,14 +81,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
 
     @deferred(timeout=20)
     def test_setup(self):
-        tdef = TorrentDef()
-        sourcefn = os.path.join(TESTS_DATA_DIR, 'video.avi')
-        tdef.add_content(sourcefn)
-        tdef.set_tracker("http://localhost/announce")
-        tdef.finalize()
-
-        torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
-        tdef.save(torrentfn)
+        tdef = self.create_tdef()
 
         impl = LibtorrentDownloadImpl(self.session, tdef)
         def callback((ignored, ignored2)):
@@ -97,15 +92,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         return deferred
 
     def test_restart(self):
-        tdef = TorrentDef()
-        sourcefn = os.path.join(TESTS_DATA_DIR, 'video.avi')
-        tdef.add_content(sourcefn)
-        tdef.set_tracker("http://localhost/announce")
-
-        tdef.finalize()
-
-        torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
-        tdef.save(torrentfn)
+        tdef = self.create_tdef()
 
         impl = LibtorrentDownloadImpl(self.session, tdef)
         impl.handle = None
@@ -140,3 +127,37 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         test_dict["a"] = "b"
         pstate.set("state", "engineresumedata", test_dict)
         return impl.network_create_engine_wrapper(pstate)
+
+    @deferred(timeout=10)
+    def test_save_resume(self):
+        """
+        testing call resume data alert
+        """
+        tdef = self.create_tdef()
+
+        impl = LibtorrentDownloadImpl(self.session, tdef)
+
+        def resume_ready(_):
+            """
+            check if resume data is ready
+            """
+            basename = binascii.hexlify(tdef.get_infohash()) + '.state'
+            filename = os.path.join(self.session.get_downloads_pstate_dir(), basename)
+
+            engine_data = CallbackConfigParser()
+            engine_data.read_file(filename)
+
+            self.assertEqual(tdef.get_infohash(), engine_data.get('state', 'engineresumedata').get('info-hash'))
+
+        def callback(_):
+            """
+            callback after finishing setup in LibtorrentDownloadImpl
+            """
+            defer_alert = impl.save_resume_data()
+            defer_alert.addCallback(resume_ready)
+            return defer_alert
+
+        result_deferred = impl.setup(None, None, None, 0)
+        result_deferred.addCallback(callback)
+
+        return result_deferred
