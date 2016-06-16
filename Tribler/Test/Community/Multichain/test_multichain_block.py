@@ -3,7 +3,7 @@ import random
 from hashlib import sha256
 
 from Tribler.dispersy.crypto import ECCrypto
-from Tribler.community.multichain.block import (MultiChainBlock, GENESIS_ID, EMPTY_SIG, GENESIS_SEQ, EMPTY_PK, VALID,
+from Tribler.community.multichain.block import (MultiChainBlock, GENESIS_HASH, EMPTY_SIG, GENESIS_SEQ, EMPTY_PK, VALID,
                                                 INVALID, NO_INFO, PARTIAL, PARTIAL_NEXT, PARTIAL_PREV)
 from Tribler.Test.Community.Multichain.test_multichain_utilities import MultiChainTestCase, TestBlock
 
@@ -26,7 +26,7 @@ class TestBlocks(MultiChainTestCase):
         key = ECCrypto().generate_key(u"curve25519")
         db = self.MockDatabase()
         block = MultiChainBlock.create(db, key.pub().key_to_bin(), link=None)
-        self.assertEqual(block.previous_hash, GENESIS_ID)
+        self.assertEqual(block.previous_hash, GENESIS_HASH)
         self.assertEqual(block.sequence_number, GENESIS_SEQ)
         self.assertEqual(block.public_key, key.pub().key_to_bin())
         self.assertEqual(block.signature, EMPTY_SIG)
@@ -47,7 +47,7 @@ class TestBlocks(MultiChainTestCase):
         link = TestBlock()
         db.add_block(link)
         block = MultiChainBlock.create(db, key.pub().key_to_bin(), link=link)
-        self.assertEqual(block.previous_hash, GENESIS_ID)
+        self.assertEqual(block.previous_hash, GENESIS_HASH)
         self.assertEqual(block.sequence_number, GENESIS_SEQ)
         self.assertEqual(block.public_key, key.pub().key_to_bin())
         self.assertEqual(block.link_public_key, link.public_key)
@@ -133,7 +133,7 @@ class TestBlocks(MultiChainTestCase):
         result = block4.validate(db)
         # Assert
         self.assertEqual(result, (NO_INFO, ['No blocks are known for this member before or after the queried '
-                                              'sequence number']))
+                                            'sequence number']))
 
     def test_validate_partial_prev(self):
         # Arrange
@@ -356,7 +356,7 @@ class TestBlocks(MultiChainTestCase):
         db.add_block(block1)
         db.add_block(block3)
         # Act
-        block2.previous_hash = GENESIS_ID
+        block2.previous_hash = GENESIS_HASH
         block2.sign(block2.key)
         block3.previous_hash = block2.hash
         result = block2.validate(db)
@@ -561,7 +561,7 @@ class TestBlocks(MultiChainTestCase):
         # Assert
         block1 = TestBlock()
         block1.sequence_number = GENESIS_SEQ
-        block1.previous_hash = GENESIS_ID
+        block1.previous_hash = GENESIS_HASH
         block1.total_up = block1.up
         block1.total_down = block1.down
         block1.sign(block1.key)
@@ -580,9 +580,6 @@ class TestBlocks(MultiChainTestCase):
                 self.data[block.public_key] = []
             self.data[block.public_key].append(block)
             self.data[block.public_key].sort(key=lambda b: b.sequence_number)
-
-        def contains(self, pk, seq):
-            return self.get(pk, seq) is not None
 
         def get(self, pk, seq):
             if self.data.get(pk) is None:

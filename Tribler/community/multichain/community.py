@@ -96,9 +96,7 @@ class MultiChainCommunity(Community):
         return [DefaultConversion(self), MultiChainConversion(self)]
 
     def send_block(self, candidate, block):
-        self.logger.debug("Sending block to {0} ({1})".format(
-            candidate.get_member().public_key.encode("hex")[-8:],
-            block))
+        self.logger.debug("Sending block to %s (%s)", candidate.get_member().public_key.encode("hex")[-8:], block)
         message = self.get_meta_message(HALF_BLOCK).impl(
             authentication=(self.my_member,),
             distribution=(self.claim_global_time(),),
@@ -110,62 +108,60 @@ class MultiChainCommunity(Community):
             self.logger.warn("Missing member in MultiChain community to send signature request to")
 
     def sign_block(self, candidate, bytes_up=None, bytes_down=None, linked=None):
-            """
-            Create, sign, persist and send a block signed message
-            :param candidate: The peer with whom you have interacted, as a dispersy candidate
-            :param bytes_up: The bytes you have uploaded to the peer in this interaction
-            :param bytes_down: The bytes you have downloaded from the peer in this interaction
-            :param linked: The block that the requester is asking us to sign
-            """
-            assert bytes_up is None and bytes_down is None and linked is not None or \
-                bytes_up is not None and bytes_down is not None and linked is None, \
-                "Either provide a linked block or byte counts, not both"
-            assert linked is None or linked.link_public_key == self.my_member.public_key, \
-                "Cannot counter sign block not addressed to me"
-            assert linked is None or linked.link_sequence_number == UNKNOWN_SEQ, \
-                "Cannot counter sign block that is not a request"
+        """
+        Create, sign, persist and send a block signed message
+        :param candidate: The peer with whom you have interacted, as a dispersy candidate
+        :param bytes_up: The bytes you have uploaded to the peer in this interaction
+        :param bytes_down: The bytes you have downloaded from the peer in this interaction
+        :param linked: The block that the requester is asking us to sign
+        """
+        assert bytes_up is None and bytes_down is None and linked is not None or \
+            bytes_up is not None and bytes_down is not None and linked is None, \
+            "Either provide a linked block or byte counts, not both"
+        assert linked is None or linked.link_public_key == self.my_member.public_key, \
+            "Cannot counter sign block not addressed to me"
+        assert linked is None or linked.link_sequence_number == UNKNOWN_SEQ, \
+            "Cannot counter sign block that is not a request"
 
-            if candidate.get_member():
-                # TODO: proper form requires a local lock here (up to db add) to ensure atomic db operation
-                if linked is None:
-                    block = MultiChainBlock.create(self.persistence, self.my_member.public_key)
-                    block.up = bytes_up
-                    block.down = bytes_down
-                    block.total_up += bytes_up
-                    block.total_down += bytes_down
-                    block.link_public_key = candidate.get_member().public_key
-                else:
-                    block = MultiChainBlock.create(self.persistence, self.my_member.public_key, linked)
-                block.sign(self.my_member.private_key)
-                self.logger.info("Signed block to {0} ({1})".format(
-                    candidate.get_member().public_key.encode("hex")[-8:],
-                    block))
-                self.persistence.add_block(block)
-                self.send_block(candidate, block)
+        if candidate.get_member():
+            # TODO: proper form requires a local lock here (up to db add) to ensure atomic db operation
+            if linked is None:
+                block = MultiChainBlock.create(self.persistence, self.my_member.public_key)
+                block.up = bytes_up
+                block.down = bytes_down
+                block.total_up += bytes_up
+                block.total_down += bytes_down
+                block.link_public_key = candidate.get_member().public_key
             else:
-                self.logger.warn("Candidate {0} has not associated member?! Unable to sign block.".format(candidate))
+                block = MultiChainBlock.create(self.persistence, self.my_member.public_key, linked)
+            block.sign(self.my_member.private_key)
+            self.logger.info("Signed block to %s (%s)", candidate.get_member().public_key.encode("hex")[-8:], block)
+            self.persistence.add_block(block)
+            self.send_block(candidate, block)
+        else:
+            self.logger.warn("Candidate %s has no associated member?! Unable to sign block.", candidate)
 
     def received_half_block(self, messages):
         """
         We've received a half block, either because we sent a SIGNED message to some one or we are crawling
         :param messages The half block messages
         """
-        self.logger.debug("Received {0} half block messages.".format(len(messages)))
+        self.logger.debug("Received %d half block messages.", len(messages))
         for message in messages:
             blk = message.payload.block
             validation = blk.validate(self.persistence)
-            self.logger.debug("Block validation result {0}, {1} ({2})".format(validation[0], validation[1], blk))
+            self.logger.debug("Block validation result %s, %s, (%s)", validation[0], validation[1], blk)
             if validation[0] == INVALID:
                 continue
             elif not self.persistence.contains(blk):
                 self.persistence.add_block(blk)
             else:
-                self.logger.debug("Received already known block ({0})".format(blk))
+                self.logger.debug("Received already known block (%s)", blk)
 
             # Is this a request, addressed to us, and have we not signed it already?
             if blk.link_sequence_number == UNKNOWN_SEQ and blk.link_public_key == self.my_member.public_key and \
                     self.persistence.get_linked(blk) is None:
-                self.logger.info("Received request block addressed to myself ({0})".format(blk))
+                self.logger.info("Received request block addressed to myself (%s)", blk)
                 # TODO: determine if we want to (i.e. the requesting public key has enough outstanding credit)
                 self.sign_block(message.candidate, None, None, blk)
 
@@ -174,8 +170,7 @@ class MultiChainCommunity(Community):
         if sequence_number is None:
             blk = self.persistence.get_latest(candidate.get_member().public_key)
             sq = blk.sequence_number if blk else GENESIS_SEQ
-        self.logger.info("Requesting crawl of node {0}:{1}".format(
-            candidate.get_member().public_key.encode("hex")[-8:], sq))
+        self.logger.info("Requesting crawl of node %s:%d", candidate.get_member().public_key.encode("hex")[-8:], sq)
         message = self.get_meta_message(CRAWL).impl(
             authentication=(self.my_member,),
             distribution=(self.claim_global_time(),),
@@ -184,11 +179,11 @@ class MultiChainCommunity(Community):
         self.dispersy.store_update_forward([message], False, False, True)
 
     def received_crawl_request(self, messages):
-        self.logger.debug("Received {0} crawl messages.".format(len(messages)))
+        self.logger.debug("Received %d crawl messages.", len(messages))
         for message in messages:
-            self.logger.info("Received crawl request from node {0} for sequence number {1}".format(
-                message.candidate.get_member().public_key.encode("hex")[-8:],
-                message.payload.requested_sequence_number))
+            self.logger.info("Received crawl request from node %s for sequence number %d",
+                             message.candidate.get_member().public_key.encode("hex")[-8:],
+                             message.payload.requested_sequence_number)
             blocks = self.persistence.get_blocks_since(self.my_member.public_key,
                                                        message.payload.requested_sequence_number)
             count = len(blocks)
@@ -198,7 +193,7 @@ class MultiChainCommunity(Community):
                 if linked is not None:
                     self.send_block(message.candidate, linked)
                     count += 1
-            self.logger.info("Sent {0} blocks".format(count))
+            self.logger.info("Sent %d blocks", count)
 
     @blocking_call_on_reactor_thread
     def get_statistics(self):

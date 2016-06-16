@@ -8,7 +8,7 @@ HASH_LENGTH = 32
 SIG_LENGTH = 64
 PK_LENGTH = 74
 
-GENESIS_ID = '0'*HASH_LENGTH    # ID of the first block of the chain.
+GENESIS_HASH = '0'*HASH_LENGTH    # ID of the first block of the chain.
 GENESIS_SEQ = 1
 UNKNOWN_SEQ = 0
 EMPTY_SIG = '0'*SIG_LENGTH
@@ -17,12 +17,12 @@ EMPTY_PK = '0'*PK_LENGTH
 block_pack_format = "! Q Q Q Q {0}s I {0}s I {1}s {2}s".format(PK_LENGTH, HASH_LENGTH, SIG_LENGTH)
 block_pack_size = calcsize(block_pack_format)
 
-VALID="valid"
-PARTIAL="partial"
-PARTIAL_NEXT=PARTIAL+"-next"
-PARTIAL_PREV=PARTIAL+"-prev"
-NO_INFO="no-info"
-INVALID="invalid"
+VALID = "valid"
+PARTIAL = "partial"
+PARTIAL_NEXT = PARTIAL+"-next"
+PARTIAL_PREV = PARTIAL+"-prev"
+NO_INFO = "no-info"
+INVALID = "invalid"
 
 
 class MultiChainBlock(object):
@@ -43,7 +43,7 @@ class MultiChainBlock(object):
             self.link_public_key = EMPTY_PK
             self.link_sequence_number = UNKNOWN_SEQ
             # validation
-            self.previous_hash = GENESIS_ID
+            self.previous_hash = GENESIS_HASH
             self.signature = EMPTY_SIG
             # debug stuff
             self.insert_time = None
@@ -105,7 +105,7 @@ class MultiChainBlock(object):
 
         # Step 2: determine the maximum validation level
         if not prev_blk and not next_blk:
-            if self.sequence_number != GENESIS_SEQ and self.previous_hash != GENESIS_ID:
+            if self.sequence_number != GENESIS_SEQ and self.previous_hash != GENESIS_HASH:
                 # No blocks found, there is no info to base on
                 err("No blocks are known for this member before or after the queried sequence number")
                 result[0] = NO_INFO
@@ -114,7 +114,7 @@ class MultiChainBlock(object):
                 result[0] = PARTIAL_NEXT
         elif not prev_blk and next_blk:
             # The previous block does not exist in the database, at best our result can now be partial w.r.t. prev
-            if self.sequence_number != GENESIS_SEQ and self.previous_hash != GENESIS_ID:
+            if self.sequence_number != GENESIS_SEQ and self.previous_hash != GENESIS_HASH:
                 # We are not checking the first block after genesis, so we are really missing the previous block
                 result[0] = PARTIAL_PREV
                 if next_blk.sequence_number != self.sequence_number + 1:
@@ -163,10 +163,10 @@ class MultiChainBlock(object):
             err("Linked public key is not valid")
         if self.public_key == self.link_public_key:
             err("Self signed block")
-        if self.sequence_number == GENESIS_SEQ or self.previous_hash == GENESIS_ID:
-            if self.sequence_number == GENESIS_SEQ and self.previous_hash != GENESIS_ID:
+        if self.sequence_number == GENESIS_SEQ or self.previous_hash == GENESIS_HASH:
+            if self.sequence_number == GENESIS_SEQ and self.previous_hash != GENESIS_HASH:
                 err("Sequence number implies previous hash should be Genesis ID")
-            if self.sequence_number != GENESIS_SEQ and self.previous_hash == GENESIS_ID:
+            if self.sequence_number != GENESIS_SEQ and self.previous_hash == GENESIS_HASH:
                 err("Sequence number implies previous hash should not be Genesis ID")
             if self.total_up != self.up:
                 err("Genesis block invalid total_up and/or up")
