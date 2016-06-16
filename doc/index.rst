@@ -15,6 +15,7 @@ Contents:
    contributing
    development/development
    Building Tribler <building/building>
+   architecture
 
 
 Indices and tables
