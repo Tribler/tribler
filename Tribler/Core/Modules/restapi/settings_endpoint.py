@@ -11,23 +11,6 @@ from Tribler.Core.simpledefs import STATEDIR_GUICONFIG
 class SettingsEndpoint(resource.Resource):
     """
     This endpoint is reponsible for handing all requests regarding settings and configuration.
-
-    A GET request to this endpoint returns all the session settings that can be found in Tribler.
-    Please note that a port with a value of -1 means that the port is randomly assigned at startup.
-
-    Example GET response:
-    {
-        "settings": {
-            "barter_community": {
-                "enabled": false
-            },
-            "libtorrent": {
-                "anon_listen_port": -1,
-                ...
-            },
-            ...
-        }
-    }
     """
 
     def __init__(self, session):
@@ -36,7 +19,33 @@ class SettingsEndpoint(resource.Resource):
 
     def render_GET(self, request):
         """
-        Return the settings present in Tribler in a JSON dictionary.
+        .. http:get:: /settings
+
+        A GET request to this endpoint returns all the session settings that can be found in Tribler.
+        Please note that a port with a value of -1 means that the port is randomly assigned at startup.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/settings
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "settings": {
+                        "barter_community": {
+                            "enabled": false
+                        },
+                        "libtorrent": {
+                            "anon_listen_port": -1,
+                            ...
+                        },
+                        ...
+                    }
+                }
         """
         libtribler_settings = self.session.sessconfig.get_config_as_json()
 

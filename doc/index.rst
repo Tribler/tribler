@@ -16,7 +16,7 @@ Contents:
    development/development
    Building Tribler <building/building>
    architecture
-
+   restapi/introduction
 
 Indices and tables
 ==================

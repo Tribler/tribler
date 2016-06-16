@@ -10,30 +10,8 @@ from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS, SIGNAL_TORR
 
 class SearchEndpoint(resource.Resource):
     """
-    This endpoint is responsible for searching in channels and torrents present in the local Tribler database.
-
-    A GET request to this endpoint will create a search. Results are returned over the events endpoint, one by one.
-    First, the results available in the local database will be pushed. After that, incoming Dispersy results are pushed.
-    The query to this endpoint is passed using the url, i.e. /search?q=pioneer
-
-    Example response over the events endpoint:
-    {
-        "type": "search_result_channel",
-        "event": {
-            "query": "test",
-            "result": {
-                "id": 3,
-                "dispersy_cid": "da69aaad39ccf468aba2ab9177d5f8d8160135e6",
-                "name": "My fancy channel",
-                "description": "A description of this fancy channel",
-                "subscribed": True,
-                "votes": 23,
-                "torrents": 3,
-                "spam": 5,
-                "modified": 14598395,
-            }
-        }
-    }
+    This endpoint is responsible for searching in channels and torrents present in the local Tribler database. It also
+    fires a remote search in the Dispersy communities.
     """
 
     def __init__(self, session):
@@ -46,8 +24,37 @@ class SearchEndpoint(resource.Resource):
 
     def render_GET(self, request):
         """
-        This method first fires a search query in the SearchCommunity/AllChannelCommunity to search for torrents and
-        channels. Next, the results in the local database are queried and returned over the events endpoint.
+        .. http:get:: /search?q=(string:query)
+
+        A GET request to this endpoint will create a search. Results are returned over the events endpoint, one by one.
+        First, the results available in the local database will be pushed. After that, incoming Dispersy results are
+        pushed. The query to this endpoint is passed using the url, i.e. /search?q=pioneer.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/search?q=tribler
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "type": "search_result_channel",
+                    "query": "test",
+                    "result": {
+                        "id": 3,
+                        "dispersy_cid": "da69aaad39ccf468aba2ab9177d5f8d8160135e6",
+                        "name": "My fancy channel",
+                        "description": "A description of this fancy channel",
+                        "subscribed": True,
+                        "votes": 23,
+                        "torrents": 3,
+                        "spam": 5,
+                        "modified": 14598395,
+                    }
+                }
         """
         if 'q' not in request.args:
             request.setResponseCode(http.BAD_REQUEST)

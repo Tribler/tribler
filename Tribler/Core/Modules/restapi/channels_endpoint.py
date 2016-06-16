@@ -70,22 +70,33 @@ class ChannelsSubscribedEndpoint(BaseChannelsEndpoint):
 
     def render_GET(self, request):
         """
+        .. http:get:: /channels/subscribed
+
         A GET request to this endpoint returns all the channels the user is subscribed to.
 
-        Example GET response:
-        {
-            "subscribed": [{
-                "id": 3,
-                "dispersy_cid": "da69aaad39ccf468aba2ab9177d5f8d8160135e6",
-                "name": "My fancy channel",
-                "description": "A description of this fancy channel",
-                "subscribed": True,
-                "votes": 23,
-                "torrents": 3,
-                "spam": 5,
-                "modified": 14598395,
-            }, ...]
-        }
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/channels/subscribed
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "subscribed": [{
+                        "id": 3,
+                        "dispersy_cid": "da69aaad39ccf468aba2ab9177d5f8d8160135e6",
+                        "name": "My fancy channel",
+                        "description": "A description of this fancy channel",
+                        "subscribed": True,
+                        "votes": 23,
+                        "torrents": 3,
+                        "spam": 5,
+                        "modified": 14598395,
+                    }, ...]
+                }
         """
         subscribed_channels_db = self.channel_db_handler.getMySubscribedChannels(include_dispersy=True)
         results_json = [convert_db_channel_to_json(channel) for channel in subscribed_channels_db]
@@ -103,12 +114,25 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
 
     def render_PUT(self, request):
         """
+        .. http:put:: /channels/subscribed/(string: channelid)
+
         Subscribe to a specific channel. Returns error 409 if you are already subscribed to this channel.
 
-        Example response:
-        {
-            "subscribed" : True
-        }
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X PUT http://localhost:8085/channels/subscribed/da69aaad39ccf468aba2ab9177d5f8d8160135e6
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "subscribed" : True
+                }
+
+            :statuscode 409: (conflict) if you are already subscribed to the specified channel.
         """
         channel_info = self.get_channel_from_db(self.cid)
         if channel_info is None:
@@ -123,12 +147,25 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
 
     def render_DELETE(self, request):
         """
+        .. http:delete:: /channels/subscribed/(string: channelid)
+
         Unsubscribe from a specific channel. Returns error 404 if you are not subscribed to this channel.
 
-        Example response:
-        {
-            "unsubscribed" : True
-        }
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X DELETE http://localhost:8085/channels/subscribed/da69aaad39ccf468aba2ab9177d5f8d8160135e6
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "unsubscribed" : True
+                }
+
+            :statuscode 404: if you are not subscribed to the specified channel.
         """
         channel_info = self.get_channel_from_db(self.cid)
         if channel_info is None:
@@ -144,29 +181,40 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
 
 class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
     """
-    This class is responsible for requests regarding the subscriptions to channels.
+    This class is responsible for requests regarding discovered channels.
     """
     def getChild(self, path, request):
         return ChannelsDiscoveredSpecificEndpoint(self.session, path)
 
     def render_GET(self, request):
         """
+        .. http:get:: /channels/discovered
+
         A GET request to this endpoint returns all channels discovered in Tribler.
 
-        Example GET response:
-        {
-            "channels": [{
-                "id": 3,
-                "dispersy_cid": "da69aaad39ccf468aba2ab9177d5f8d8160135e6",
-                "name": "My fancy channel",
-                "description": "A description of this fancy channel",
-                "subscribed": False,
-                "votes": 23,
-                "torrents": 3,
-                "spam": 5,
-                "modified": 14598395,
-            }, ...]
-        }
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/channels/discovered
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "channels": [{
+                        "id": 3,
+                        "dispersy_cid": "da69aaad39ccf468aba2ab9177d5f8d8160135e6",
+                        "name": "My fancy channel",
+                        "description": "A description of this fancy channel",
+                        "subscribed": False,
+                        "votes": 23,
+                        "torrents": 3,
+                        "spam": 5,
+                        "modified": 14598395,
+                    }, ...]
+                }
         """
         all_channels_db = self.channel_db_handler.getAllChannels()
         results_json = [convert_db_channel_to_json(channel) for channel in all_channels_db]
@@ -188,22 +236,7 @@ class ChannelsDiscoveredSpecificEndpoint(BaseChannelsEndpoint):
 
 class ChannelTorrentsEndpoint(BaseChannelsEndpoint):
     """
-    A GET request to this endpoint returns all discovered torrents in a specific channel. The size of the torrent is
-    in number of bytes. The last_tracker_check value will be 0 if we did not check the tracker state of the torrent yet.
-
-    Example GET response:
-    {
-        "torrents": [{
-            "id": 4,
-            "infohash": "97d2d8f5d37e56cfaeaae151d55f05b077074779",
-            "name": "Ubuntu-16.04-desktop-amd64",
-            "size": 8592385,
-            "category": "other",
-            "num_seeders": 42,
-            "num_leechers": 184,
-            "last_tracker_check": 1463176959
-        }, ...]
-    }
+    This endpoint is responsible for managing torrents in a channel.
     """
 
     def __init__(self, session, cid):
@@ -211,6 +244,38 @@ class ChannelTorrentsEndpoint(BaseChannelsEndpoint):
         self.cid = cid
 
     def render_GET(self, request):
+        """
+        .. http:get:: /channels/discovered/(string: channelid)/torrents
+
+        A GET request to this endpoint returns all discovered torrents in a specific channel. The size of the torrent is
+        in number of bytes. The last_tracker_check value will be 0 if we did not check the tracker state of the torrent
+        yet.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/channels/discovered/da69aaad39ccf468aba2ab9177d5f8d8160135e6/torrents
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "torrents": [{
+                        "id": 4,
+                        "infohash": "97d2d8f5d37e56cfaeaae151d55f05b077074779",
+                        "name": "Ubuntu-16.04-desktop-amd64",
+                        "size": 8592385,
+                        "category": "other",
+                        "num_seeders": 42,
+                        "num_leechers": 184,
+                        "last_tracker_check": 1463176959
+                    }, ...]
+                }
+
+            :statuscode 404: if the specified channel cannot be found.
+        """
         channel_info = self.get_channel_from_db(self.cid)
         if channel_info is None:
             return ChannelTorrentsEndpoint.return_404(request)
