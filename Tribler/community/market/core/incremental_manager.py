@@ -5,60 +5,48 @@ from quantity import Quantity
 class IncrementalQuantityManager(object):
     """Incremental Quantity Manager which determines an incremental quantity list for payments"""
 
-    def __init__(self):
-        super(IncrementalQuantityManager, self).__init__()
+    INITIAL_QUANTITY = 1
+    INCREMENTAL_QUANTITY = 10
 
-    def determine_incremental_quantity_list(self, total_quantity, total_price, incremental_prices):
+    @staticmethod
+    def determine_incremental_quantity_list(total_quantity):
         """
-        Determines an incremental quantity list parallel to the incremental price list
+        Determines an incremental quantity list
 
-        :param incremental_prices: Incremental price list from IncrementalPriceManager
         :type total_quantity: Quantity
-        :type total_price: Price
-        :type incremental_prices: List[Price]
         :return: Incremental quantity list
         :rtype: List[Quantity]
         """
         incremental_quantities = []
         remaining_quantity = int(total_quantity)
+        if remaining_quantity > 0:
+            initial_quantity = min(IncrementalQuantityManager.INITIAL_QUANTITY, remaining_quantity)
+            incremental_quantities.append(Quantity(initial_quantity))
+            remaining_quantity -= initial_quantity
 
-        for incremental_price in incremental_prices:
-            incremental_quantity = (int(total_quantity) * int(incremental_price)) / int(total_price)
-            incremental_quantities.append(Quantity(incremental_quantity))
-            remaining_quantity -= incremental_quantity
-
-        if len(incremental_quantities) > 1 and remaining_quantity > 0:
-            incremental_quantities[-1] = Quantity(remaining_quantity + int(incremental_quantities[-1]))
-
+            while remaining_quantity > 0:
+                incremental_quantity = min(IncrementalQuantityManager.INCREMENTAL_QUANTITY, remaining_quantity)
+                incremental_quantities.append(Quantity(incremental_quantity))
+                remaining_quantity -= incremental_quantity
         return incremental_quantities
 
 
 class IncrementalPriceManager(object):
     """Incremental Price Manager which determines an incremental price list for payments"""
 
-    INITIAL_PRICE = 1
-    INCREMENTAL_PRICE = 10
-
-    def __init__(self):
-        super(IncrementalPriceManager, self).__init__()
-
-    def determine_incremental_price_list(self, total_price):
+    @staticmethod
+    def determine_incremental_price_list(price, incremental_quantities):
         """
-        Determines an incremental price list
+        Determines an incremental price list parallel to the incremental quantity list
 
-        :type total_price: Price
+        :type price: Price
+        :type incremental_quantities: List[Quantity]
         :return: Incremental price list
         :rtype: List[Price]
         """
         incremental_prices = []
-        remaining_price = int(total_price)
-        if remaining_price > 0:
-            initial_price = min(self.INITIAL_PRICE, remaining_price)
-            incremental_prices.append(Price(initial_price))
-            remaining_price -= initial_price
 
-            while remaining_price > 0:
-                incremental_price = min(self.INCREMENTAL_PRICE, remaining_price)
-                incremental_prices.append(Price(incremental_price))
-                remaining_price -= incremental_price
+        for incremental_quantity in incremental_quantities:
+            incremental_prices.append(Price(int(price) * int(incremental_quantity)))
+
         return incremental_prices

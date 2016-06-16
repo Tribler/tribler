@@ -83,7 +83,7 @@ class PriceLevelList(object):
 
         :param reverse: When true returns the reversed sorted list of price, price_level tuples
         :type reverse: bool
-        :rtype: [(Price, PriceLevel)]
+        :rtype: List[(Price, PriceLevel)]
         """
         items = []
         for price in self._price_list:
