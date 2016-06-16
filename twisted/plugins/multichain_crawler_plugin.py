@@ -14,17 +14,13 @@ from Tribler.dispersy.crypto import ECCrypto
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import StandaloneEndpoint
 
-if os.environ.get('HOME'):
-    tribler_dir = os.path.join(unicode(os.environ.get('HOME')), u'.multichain')
-else:
-    tribler_dir = u'.multichain'
-
 
 class Options(usage.Options):
     optParameters = [
-        ["statedir", "s", tribler_dir, "Use an alternate statedir"                                    , unicode],
-        ["ip"      , "i", "0.0.0.0" ,  "Dispersy uses this ip"                                        , str],
-        ["port"    , "p", 6421      ,  "Dispersy uses this UDP port"                                  , int],
+        ["statedir", "s", os.path.join(unicode(os.environ.get('HOME')), u'.multichain')
+          if os.environ.get('HOME') else u'.multichain', "Use an alternate statedir"    , unicode],
+        ["ip"      , "i", "0.0.0.0" ,  "Dispersy uses this ip"                          , str],
+        ["port"    , "p", 6421      ,  "Dispersy uses this UDP port"                    , int],
     ]
 
 
@@ -35,19 +31,18 @@ class MultichainCrawlerServiceMaker(object):
     options = Options
 
     def makeService(self, options):
+        # setup logging if there is a logger.conf in the state dir or working dir
+        if os.path.exists(os.path.join(options["statedir"], "logger.conf")):
+            logging.config.fileConfig(os.path.join(options["statedir"], "logger.conf"))
+        elif os.path.exists("logger.conf"):
+            logging.config.fileConfig("logger.conf")
+        else:
+            logging.basicConfig(format="%(asctime)-15s [%(levelname)s] %(message)s", level=logging.DEBUG)
+        logger = logging.getLogger(__name__)
         tracker_service = MultiService()
         tracker_service.setName("Multichain Crawler")
 
         def run():
-            # setup
-            if os.path.exists(os.path.join(options["statedir"], "logger.conf")):
-                logging.config.fileConfig(os.path.join(options["statedir"], "logger.conf"))
-            elif os.path.exists("logger.conf"):
-                logging.config.fileConfig("logger.conf")
-            else:
-                logging.basicConfig(format="%(asctime)-15s [%(levelname)s] %(message)s", level=logging.DEBUG)
-            logger = logging.getLogger(__name__)
-
             crypto = ECCrypto()
             dispersy = Dispersy(StandaloneEndpoint(options["port"], options["ip"]),
                                 options["statedir"],
@@ -69,15 +64,11 @@ class MultichainCrawlerServiceMaker(object):
                 logger.info("Received signal '%s' in %s (shutting down)" % (sig, frame))
                 if not self._stopping:
                     self._stopping = True
-                    try:
-                        dispersy.stop()
-                    except Exception, e:
-                        logger.error("Got exception when stopping dispersy: %s" % e)
+                    dispersy.stop()
                     reactor.stop()
             signal.signal(signal.SIGINT, signal_handler)
             signal.signal(signal.SIGTERM, signal_handler)
 
-        # wait forever
         reactor.exitCode = 0
         reactor.callWhenRunning(run)
         return tracker_service

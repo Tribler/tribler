@@ -81,6 +81,7 @@ class MultiChainDB(Database):
             u"signature_responder, hash_responder) "
             u"VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             data)
+        self.commit()
 
     def update_block_with_responder(self, block):
         """
@@ -99,6 +100,7 @@ class MultiChainDB(Database):
             u"signature_responder = ?, hash_responder = ? "
             u"WHERE hash_requester = ?",
             data)
+        self.commit()
 
     def get_latest_hash(self, public_key):
         """
