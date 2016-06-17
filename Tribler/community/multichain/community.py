@@ -114,7 +114,7 @@ class MultiChainCommunity(Community):
                     CandidateDestination(),
                     CrawlResumePayload(),
                     self._generic_timeline_check,
-                    self.received_craw_resumption)]
+                    self.received_crawl_resumption)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), MultiChainConversion(self)]
@@ -329,7 +329,7 @@ class MultiChainCommunity(Community):
             else:
                 self.logger.debug("Crawler: Received already known block")
 
-    def received_craw_resumption(self, messages):
+    def received_crawl_resumption(self, messages):
         self.logger.info("Crawler: Valid %s crawl resumptions received.", len(messages))
         for message in messages:
             self.send_crawl_request(message.candidate)
