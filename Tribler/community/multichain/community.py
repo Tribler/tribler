@@ -24,6 +24,7 @@ from Tribler.community.multichain.payload import (SignaturePayload, CrawlRequest
                                                   CrawlResumePayload)
 from Tribler.community.multichain.database import MultiChainDB, DatabaseBlock
 from Tribler.community.multichain.conversion import MultiChainConversion, split_function, GENESIS_ID
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 SIGNATURE = u"signature"
 CRAWL_REQUEST = u"crawl_request"
@@ -333,6 +334,7 @@ class MultiChainCommunity(Community):
         for message in messages:
             self.send_crawl_request(message.candidate)
 
+    @blocking_call_on_reactor_thread
     def get_statistics(self):
         """
         Returns a dictionary with some statistics regarding the local multichain database
