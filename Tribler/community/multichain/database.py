@@ -342,7 +342,7 @@ class DatabaseBlock:
                     payload.sequence_number_requester, payload.previous_hash_requester,
                     requester[0], sha256(encode_block_requester_half(payload, requester[1].public_key,
                                                                      responder[1].public_key, requester[0])).digest(),
-                    -1, -1,
+                    0, 0,
                     -1, EMPTY_HASH,
                     "", EMPTY_HASH,
                     None))

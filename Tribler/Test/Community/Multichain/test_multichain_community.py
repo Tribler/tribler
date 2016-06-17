@@ -309,6 +309,31 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         self.assertBlocksInDatabase(crawler, 1)
         self.assertBlocksAreEqual(node, crawler)
 
+    def test_request_block_halfsigned(self):
+        """
+        Test the crawler to request a halfsigned block.
+        """
+        # Arrange
+        node, other, crawler = self.create_nodes(3)
+        other.send_identity(node)
+        other.send_identity(crawler)
+        node.send_identity(crawler)
+
+        target_other_from_node = self._create_target(node, other)
+        target_node_from_crawler = self._create_target(crawler, node)
+
+        # Create a half-signed block
+        node.call(node.community.publish_signature_request_message, target_other_from_node, 5, 5)
+        # Act
+        crawler.call(crawler.community.send_crawl_request, target_node_from_crawler)
+        _, block_request = node.receive_message(names=[CRAWL_REQUEST]).next()
+        node.give_message(block_request, crawler)
+        _, block_response = crawler.receive_message(names=[CRAWL_RESPONSE]).next()
+        crawler.give_message(block_response, node)
+        # Assert
+        self.assertBlocksInDatabase(node, 1)
+        self.assertBlocksInDatabase(crawler, 1)
+
     def test_get_next_total_no_block(self):
         # Arrange
         node, other, = self.create_nodes(2)
