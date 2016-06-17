@@ -50,11 +50,7 @@ class MultichainCrawlerServiceMaker(object):
                                 crypto)
             if not dispersy.start():
                 raise RuntimeError("Unable to start Dispersy")
-            master_member = dispersy.get_member(
-                public_key='3081a7301006072a8648ce3d020106052b810400270381920004059f45b75d63f865e3c7b350bd3ccdc99dbfbf'
-                           '76fdfb524939f0702233ea9ea5d0536721cf9afbbec5693798e289b964fefc930961dfe1a7f71c445031434aba'
-                           '637bb93b947fb81603f649d4a08e5698e677059b9d3a441986c16f8da94d4aa2afbf10fe056cd65741108fe6a8'
-                           '80606869ca81fdcb2db302ac15905d6e75f96b39ccdaf068bdbbda81a6356f53f7ce4e'.decode("HEX"))
+            master_member = MultiChainCommunityCrawler.get_master_members(dispersy)[0]
             my_member = dispersy.get_member(private_key=crypto.key_to_bin(crypto.generate_key(u"curve25519")))
             MultiChainCommunityCrawler.init_community(dispersy, master_member, my_member)
 
