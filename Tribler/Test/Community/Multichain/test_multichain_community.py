@@ -502,6 +502,15 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         # Assert
         self.assertEqual(counter[0], 1)
 
+    def test_get_statistics(self):
+        """
+        Test the get_statistics method
+        """
+        node, = self.create_nodes(1)
+        statistics = node.community.get_statistics()
+        assert isinstance(statistics, dict), type(statistics)
+        assert len(statistics) > 0
+
     @blocking_call_on_reactor_thread
     def assertBlocksInDatabase(self, node, amount):
         assert len(node.community.persistence.get_all_hash_requester()) == amount
