@@ -11,6 +11,7 @@ from TriblerGUI.defs import PAGE_EDIT_CHANNEL_OVERVIEW, BUTTON_TYPE_NORMAL, BUTT
     PAGE_EDIT_CHANNEL_CREATE_TORRENT
 
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
+from TriblerGUI.loading_list_item import LoadingListItem
 from TriblerGUI.playlist_list_item import PlaylistListItem
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
@@ -55,6 +56,7 @@ class EditChannelPage(QWidget):
         self.window().channel_settings_tab.clicked_tab_button.connect(self.clicked_tab_button)
 
         self.remove_torrent_requests = []
+        self.channel_overview = None
         self.playlists = None
         self.editing_playlist = None
         self.viewing_playlist = None
@@ -67,7 +69,6 @@ class EditChannelPage(QWidget):
     def initialize_with_channel_overview(self, overview):
         if 'error' in overview:
             self.window().edit_channel_stacked_widget.setCurrentIndex(0)
-            self.window().edit_channel_sharing_torrents.setHidden(True)
         else:
             if "mychannel" in overview:
                 self.channel_overview = overview["mychannel"]
@@ -98,6 +99,7 @@ class EditChannelPage(QWidget):
         self.window().edit_channel_torrents_remove_selected_button.setHidden(not edit_own)
 
     def load_channel_torrents(self):
+        self.window().edit_channel_torrents_list.set_data_items([(LoadingListItem, None)])
         self.editchannel_request_mgr = TriblerRequestManager()
         self.editchannel_request_mgr.perform_request("channels/discovered/%s/torrents" % self.channel_overview["identifier"], self.initialize_with_torrents)
 
@@ -110,6 +112,7 @@ class EditChannelPage(QWidget):
         self.window().edit_channel_torrents_list.set_data_items(items)
 
     def load_channel_playlists(self):
+        self.window().edit_channel_playlists_list.set_data_items([(LoadingListItem, None)])
         self.editchannel_request_mgr = TriblerRequestManager()
         self.editchannel_request_mgr.perform_request("channels/discovered/%s/playlists" % self.channel_overview["identifier"], self.initialize_with_playlists)
 

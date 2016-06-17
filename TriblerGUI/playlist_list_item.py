@@ -1,5 +1,6 @@
 from PyQt5 import uic
 from PyQt5.QtWidgets import QWidget
+from TriblerGUI.utilities import get_ui_file_path
 
 
 class PlaylistListItem(QWidget):
@@ -12,7 +13,7 @@ class PlaylistListItem(QWidget):
 
         self.playlist_info = playlist
 
-        uic.loadUi('qt_resources/playlist_list_item.ui', self)
+        uic.loadUi(get_ui_file_path('playlist_list_item.ui'), self)
 
         self.playlist_name.setText(playlist["name"])
         self.playlist_num_items.setText("%d items" % len(playlist["torrents"]))
