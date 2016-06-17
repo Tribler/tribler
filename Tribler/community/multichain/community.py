@@ -333,6 +333,33 @@ class MultiChainCommunity(Community):
         for message in messages:
             self.send_crawl_request(message.candidate)
 
+    def get_statistics(self):
+        """
+        Returns a dictionary with some statistics regarding the local multichain database
+        :returns a dictionary with statistics
+        """
+        statistics = dict()
+        statistics["self_id"] = base64.encodestring(self._public_key)
+        statistics["self_total_blocks"] = self.persistence.get_latest_sequence_number(self._public_key)
+        (statistics["self_total_up_mb"],
+         statistics["self_total_down_mb"]) = self.persistence.get_total(self._public_key)
+        latest_block = self.persistence.get_latest_block(self._public_key)
+        if latest_block:
+            statistics["latest_block_insert_time"] = str(latest_block.insert_time)
+            statistics["latest_block_id"] = base64.encodestring(latest_block.hash_requester)
+            statistics["latest_block_requester_id"] = base64.encodestring(latest_block.public_key_requester)
+            statistics["latest_block_responder_id"] = base64.encodestring(latest_block.public_key_responder)
+            statistics["latest_block_up_mb"] = str(latest_block.up)
+            statistics["latest_block_down_mb"] = str(latest_block.down)
+        else:
+            statistics["latest_block_insert_time"] = ""
+            statistics["latest_block_id"] = ""
+            statistics["latest_block_requester_id"] = ""
+            statistics["latest_block_responder_id"] = ""
+            statistics["latest_block_up_mb"] = ""
+            statistics["latest_block_down_mb"] = ""
+        return statistics
+
     def _get_next_total(self, up, down):
         """
         Returns the next total numbers of up and down incremented with the current interaction up and down metric.
