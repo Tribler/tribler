@@ -101,7 +101,7 @@ class Circuit(object):
                            self.circuit_id, destination)
 
         num_bytes = self.proxy.send_data([Candidate(self.first_hop, False)], self.circuit_id, destination, ('0.0.0.0', 0), payload)
-        self.proxy.increase_bytes_sent(self.circuit_id, num_bytes)
+        self.proxy.increase_bytes_sent(self, num_bytes)
 
         return num_bytes > 0
 
