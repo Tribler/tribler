@@ -247,6 +247,8 @@ class Order(object):
     def cancel(self):
         self._timeout = Timestamp.now()
 
-    def add_transaction(self, accepted_trade, transaction):
+    def add_trade(self, accepted_trade):
         self._accepted_trades[accepted_trade.message_id] = accepted_trade
-        self._transactions[accepted_trade.message_id] = transaction.transaction_id
+
+    def add_transaction(self, accepted_trade_message_id, transaction):
+        self._transactions[accepted_trade_message_id] = transaction.transaction_id

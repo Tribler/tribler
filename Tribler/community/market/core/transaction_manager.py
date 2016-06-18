@@ -1,11 +1,12 @@
 import logging
 
+from payment import MultiChainPayment, BitcoinPayment
 from price import Price
 from quantity import Quantity
 from timeout import Timeout
 from timestamp import Timestamp
 from trade import AcceptedTrade
-from transaction import TransactionId, Transaction
+from transaction import TransactionId, Transaction, StartTransaction
 from transaction_repository import TransactionRepository
 
 
@@ -38,27 +39,43 @@ class TransactionManager(object):
         self._logger.info("Transaction created with id: " + str(transaction.transaction_id))
         return transaction
 
-    def create_transaction(self, price, quantity, timeout):
+    def create_from_start_transaction(self, start_transaction, price, quantity, timeout):
         """
-        :param price: The price for the transaction
-        :param quantity: The quantity of the transaction
-        :param timeout: The timeout of the transaction, when does the transaction need to be timed out
+        :type start_transaction: StartTransaction
         :type price: Price
         :type quantity: Quantity
         :type timeout: Timeout
         :rtype: Transaction
         """
+        assert isinstance(start_transaction, StartTransaction), type(start_transaction)
         assert isinstance(price, Price), type(price)
         assert isinstance(quantity, Quantity), type(quantity)
         assert isinstance(timeout, Timeout), type(timeout)
 
-        transaction = Transaction(self.transaction_repository.next_identity(), price, quantity, timeout,
-                                  Timestamp.now())
+        transaction = Transaction(start_transaction.transaction_id, start_transaction.transaction_id.trader_id, price,
+                                  quantity, timeout, Timestamp.now())
         self.transaction_repository.add(transaction)
 
         self._logger.info("Transaction created with id: " + str(transaction.transaction_id))
 
         return transaction
+
+    def create_multi_chain_payment(self, message_id, transaction):
+        payment = transaction.next_payment()
+        multi_chain_payment = MultiChainPayment(message_id, transaction.transaction_id, '', payment[0], payment[1],
+                                                Timestamp.now())
+        transaction.add_payment(multi_chain_payment)
+        self.transaction_repository.update(transaction)
+
+        return multi_chain_payment
+
+    def create_bitcoin_payment(self, message_id, transaction, multi_chain_payment):
+        bitcoin_payment = BitcoinPayment(message_id, transaction.transaction_id, multi_chain_payment.bitcoin_address,
+                                         multi_chain_payment.transferee_price, Timestamp.now())
+        transaction.add_payment(bitcoin_payment)
+        self.transaction_repository.update(transaction)
+
+        return bitcoin_payment
 
     def find_by_id(self, transaction_id):
         """

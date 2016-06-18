@@ -1,5 +1,6 @@
-from order import OrderId
-from message import TraderId, Message, MessageId
+from incremental_manager import IncrementalQuantityManager, IncrementalPriceManager
+from message import TraderId, Message, MessageId, MessageNumber
+from order import OrderId, OrderNumber
 from price import Price
 from quantity import Quantity
 from timeout import Timeout
@@ -98,14 +99,16 @@ class TransactionId(object):
 class Transaction(object):
     """Class for representing a transaction between two nodes"""
 
-    def __init__(self, transaction_id, price, quantity, timeout, timestamp):
+    def __init__(self, transaction_id, trader_id_partner, price, quantity, timeout, timestamp):
         """
         :param transaction_id: An transaction id to identify the order
+        :param trader_id_partner: The trader id from the peer that is traded with
         :param price: A price to indicate for which amount to sell or buy
         :param quantity: A quantity to indicate how much to sell or buy
         :param timeout: A timeout when this transaction is going to expire
         :param timestamp: A timestamp when the transaction was created
         :type transaction_id: TransactionId
+        :type trader_id_partner: TraderId
         :type price: Price
         :type quantity: Quantity
         :type timeout: Timeout
@@ -114,17 +117,25 @@ class Transaction(object):
         super(Transaction, self).__init__()
 
         assert isinstance(transaction_id, TransactionId), type(transaction_id)
+        assert isinstance(trader_id_partner, TraderId), type(trader_id_partner)
         assert isinstance(price, Price), type(price)
         assert isinstance(quantity, Quantity), type(quantity)
         assert isinstance(timeout, Timeout), type(timeout)
         assert isinstance(timestamp, Timestamp), type(timestamp)
 
         self._transaction_id = transaction_id
+        self._trader_id_partner = trader_id_partner
         self._price = price
         self._quantity = quantity
         self._timeout = timeout
         self._timestamp = timestamp
         self._payments = {}
+
+        quantity_list = IncrementalQuantityManager.determine_incremental_quantity_list(quantity)
+        price_list = IncrementalPriceManager.determine_incremental_price_list(price, quantity_list)
+
+        self._payment_list = zip(quantity_list, price_list)
+        self._current_payment = 0
 
     @classmethod
     def from_accepted_trade(cls, accepted_trade, transaction_id):
@@ -139,8 +150,8 @@ class Transaction(object):
         assert isinstance(accepted_trade, AcceptedTrade), type(accepted_trade)
         assert isinstance(transaction_id, TransactionId), type(transaction_id)
 
-        return cls(transaction_id, accepted_trade.price, accepted_trade.quantity, Timeout(float('inf')),
-                   accepted_trade.timestamp)
+        return cls(transaction_id, accepted_trade.recipient_order_id.trader_id, accepted_trade.price,
+                   accepted_trade.quantity, Timeout(float('inf')), accepted_trade.timestamp)
 
     @property
     def transaction_id(self):
@@ -148,6 +159,13 @@ class Transaction(object):
         :rtype: TransactionId
         """
         return self._transaction_id
+
+    @property
+    def trader_id_partner(self):
+        """
+        :rtype: TraderId
+        """
+        return self._trader_id_partner
 
     @property
     def price(self):
@@ -178,19 +196,38 @@ class Transaction(object):
         """
         return self._timestamp
 
+    def add_payment(self, payment):
+        self._payments[payment.message_id] = payment
+
+    def has_payment(self, message_id):
+        return self._payments.has_key(message_id)
+
+    def next_payment(self):
+        if self._current_payment < len(self._payment_list):
+            payment = self._payment_list[self._current_payment]
+            self._current_payment += 1
+            return payment
+        else:
+            return -1, -1
+
+    def is_payment_complete(self):
+        return self._current_payment >= (len(self._payment_list) - 1)
+
 
 class StartTransaction(Message):
     """Class for representing a message to indicate the start of a payment set"""
 
-    def __init__(self, message_id, transaction_id, order_id, timestamp):
+    def __init__(self, message_id, transaction_id, order_id, trader_id_partner, accepted_trade_message_id, timestamp):
         """
         :param message_id: A message id to identify the message
         :param transaction_id: A transaction id to identify the transaction
         :param order_id: An order id to identify the order
+        :param trader_id_partner: The trader id from the peer that is traded with
         :param timestamp: A timestamp when the transaction was created
         :type message_id: MessageId
         :type transaction_id: TransactionId
         :type order_id: OrderId
+        :type trader_id_partner: TraderId
         :type timestamp: Timestamp
         """
         super(StartTransaction, self).__init__(message_id, timestamp)
@@ -200,6 +237,8 @@ class StartTransaction(Message):
 
         self._transaction_id = transaction_id
         self._order_id = order_id
+        self._trader_id_partner = trader_id_partner
+        self._accepted_trade_message_id = accepted_trade_message_id
 
     @property
     def transaction_id(self):
@@ -215,6 +254,13 @@ class StartTransaction(Message):
         """
         return self._order_id
 
+    @property
+    def accepted_trade_message_id(self):
+        """
+        :rtype: MessageId
+        """
+        return self._accepted_trade_message_id
+
     @classmethod
     def from_network(cls, data):
         """
@@ -224,16 +270,22 @@ class StartTransaction(Message):
         :return: Restored start transaction
         :rtype: StartTransaction
         """
-        assert hasattr(data, 'message_id'), isinstance(data.message_id, MessageId)
-        assert hasattr(data, 'transaction_id'), isinstance(data.transaction_id, TransactionId)
-        assert hasattr(data, 'order_id'), isinstance(data.order_id, OrderId)
+        assert hasattr(data, 'trader_id'), isinstance(data.trader_id, TraderId)
+        assert hasattr(data, 'message_number'), isinstance(data.message_message_number, MessageNumber)
+        assert hasattr(data, 'transaction_trader_id'), isinstance(data.transaction_trader_id, TraderId)
+        assert hasattr(data, 'transaction_number'), isinstance(data.transaction_number, TransactionNumber)
+        assert hasattr(data, 'order_trader_id'), isinstance(data.order_trader_id, TraderId)
+        assert hasattr(data, 'order_number'), isinstance(data.order_number, OrderNumber)
+        assert hasattr(data, 'trade_message_number'), isinstance(data.trade_message_number, MessageNumber)
         assert hasattr(data, 'timestamp'), isinstance(data.timestamp, Timestamp)
 
         return cls(
-            data.message_id,
-            data.transaction_id,
-            data.order_id,
-            data.timestamp,
+            MessageId(data.trader_id, data.message_number),
+            TransactionId(data.transaction_trader_id, data.transaction_number),
+            OrderId(data.order_trader_id, data.order_number),
+            None,
+            MessageId(data.trader_id, data.trade_message_number),
+            data.timestamp
         )
 
     def to_network(self):
@@ -243,66 +295,13 @@ class StartTransaction(Message):
         :return: tuple(<destination public identifiers>),tuple(<message_id>, <transaction_id>, <timestamp>)
         :rtype: tuple, tuple
         """
-        return tuple(), (
-            self._message_id,
-            self._transaction_id,
-            self._timestamp,
-        )
-
-
-class EndTransaction(Message):
-    """Class for representing a message to indicate the completion of a successful payment set """
-
-    def __init__(self, message_id, transaction_id, timestamp):
-        """
-        :param message_id: A message id to identify the message
-        :param transaction_id: An transaction id to identify the order
-        :param timestamp: A timestamp when the transaction was created
-        :type message_id: MessageId
-        :type transaction_id: TransactionId
-        :type timestamp: Timestamp
-        """
-        super(EndTransaction, self).__init__(message_id, timestamp)
-
-        assert isinstance(transaction_id, TransactionId), type(transaction_id)
-
-        self._transaction_id = transaction_id
-
-    @property
-    def transaction_id(self):
-        """
-        :rtype: TransactionId
-        """
-        return self._transaction_id
-
-    @classmethod
-    def from_network(cls, data):
-        """
-        Restore a end transaction message from the network
-
-        :param data: object with (message_id, transaction_id, timestamp) properties
-        :return: Restored end transaction
-        :rtype: EndTransaction
-        """
-        assert hasattr(data, 'message_id'), isinstance(data.message_id, MessageId)
-        assert hasattr(data, 'transaction_id'), isinstance(data.transaction_id, TransactionId)
-        assert hasattr(data, 'timestamp'), isinstance(data.timestamp, Timestamp)
-
-        return cls(
-            data.message_id,
-            data.transaction_id,
-            data.timestamp,
-        )
-
-    def to_network(self):
-        """
-        Return network representation of the end transaction message
-
-        :return: tuple(<destination public identifiers>),tuple(<message_id>, <transaction_id>, <timestamp>)
-        :rtype: tuple, tuple
-        """
-        return tuple(), (
-            self._message_id,
-            self._transaction_id,
+        return tuple([self._trader_id_partner]), (
+            self._message_id.trader_id,
+            self._message_id.message_number,
+            self._transaction_id.trader_id,
+            self._transaction_id.transaction_number,
+            self._order_id.trader_id,
+            self._order_id.order_number,
+            self._accepted_trade_message_id.message_number,
             self._timestamp,
         )

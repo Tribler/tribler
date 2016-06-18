@@ -53,7 +53,7 @@ class MultiChainPaymentTestSuite(unittest.TestCase):
         self.assertEquals(MessageId(TraderId("0"), MessageNumber("1")), data.message_id)
         self.assertEquals(TransactionNumber('2'), data.transaction_number)
         self.assertEquals(Quantity(3), data.transferor_quantity)
-        self.assertEquals(Quantity(2), data.transferee_quantity)
+        self.assertEquals(Quantity(2), data.transferee_price)
         self.assertEquals("0", str(data.bitcoin_address))
         self.assertEquals(Timestamp(4.0), data.timestamp)
 

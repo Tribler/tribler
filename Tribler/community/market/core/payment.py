@@ -1,83 +1,25 @@
 from bitcoin_address import BitcoinAddress
-from message import MessageId, Message
+from message import MessageId, Message, TraderId, MessageNumber
+from price import Price
 from quantity import Quantity
 from timestamp import Timestamp
-from transaction import TransactionNumber
+from transaction import TransactionNumber, TransactionId
 
 
-class Payment(Message):
-    """Abstract class for representing a payment."""
-
-    def __init__(self, message_id, transaction_number, timestamp):
-        assert isinstance(message_id, MessageId), type(message_id)
-        assert isinstance(transaction_number, TransactionNumber), type(transaction_number)
-        assert isinstance(timestamp, Timestamp), type(timestamp)
-        super(Payment, self).__init__(message_id, timestamp)
-        self._message_id = message_id
-        self._transaction_number = transaction_number
-        self._timestamp = timestamp
-
-    @property
-    def message_id(self):
-        return self._message_id
-
-    @property
-    def transaction_number(self):
-        return self._transaction_number
-
-    @property
-    def timestamp(self):
-        return self._timestamp
-
-    @classmethod
-    def from_network(cls, data):
-        """
-        Restore a payment from the network
-
-        :param data: object with (message_id, transaction_number, timestamp) properties
-        :return: Restored payment
-        :rtype: Payment
-        """
-        assert hasattr(data, 'message_id'), isinstance(data.message_id, MessageId)
-        assert hasattr(data, 'transaction_number'), isinstance(data.order_number, TransactionNumber)
-        assert hasattr(data, 'timestamp'), isinstance(data.timestamp, Timestamp)
-
-        return cls(
-            data.message_id,
-            data.transaction_number,
-            data.timestamp,
-        )
-
-    def to_network(self):
-        """
-        Return network representation of the payment
-
-        :return: tuple(<destination public identifiers>),tuple(<message_id>, <transaction_number>, <timestamp>)
-        :rtype: tuple, tuple
-        """
-        return tuple(), (
-            self._message_id,
-            self._transaction_number,
-            self._timestamp,
-        )
-
-
-class MultiChainPayment(Payment):
+class MultiChainPayment(Message):
     """Class representing a multi chain payment."""
 
-    def __init__(self, message_id, transaction_number, bitcoin_address, transferor_quantity,
-                 transferee_quantity, timestamp):
-        assert isinstance(message_id, MessageId), type(message_id)
-        assert isinstance(transaction_number, TransactionNumber), type(transaction_number)
+    def __init__(self, message_id, transaction_id, bitcoin_address, transferor_quantity,
+                 transferee_price, timestamp):
+        assert isinstance(transaction_id, TransactionId), type(transaction_id)
         assert isinstance(bitcoin_address, BitcoinAddress), type(bitcoin_address)
         assert isinstance(transferor_quantity, Quantity), type(transferor_quantity)
-        assert isinstance(transferee_quantity, Quantity), type(transferee_quantity)
-        assert isinstance(timestamp, Timestamp), type(timestamp)
-        super(MultiChainPayment, self).__init__(message_id, transaction_number, timestamp)
-        self._transaction_number = transaction_number
+        assert isinstance(transferee_price, Price), type(transferee_price)
+        super(MultiChainPayment, self).__init__(message_id, timestamp)
+        self._transaction_id = transaction_id
         self._bitcoin_address = bitcoin_address
         self._transferor_quantity = transferor_quantity
-        self._transferee_quantity = transferee_quantity
+        self._transferee_price = transferee_price
 
     @property
     def bitcoin_address(self):
@@ -88,8 +30,8 @@ class MultiChainPayment(Payment):
         return self._transferor_quantity
 
     @property
-    def transferee_quantity(self):
-        return self._transferee_quantity
+    def transferee_price(self):
+        return self._transferee_price
 
     @classmethod
     def from_network(cls, data):
@@ -100,19 +42,21 @@ class MultiChainPayment(Payment):
         :return: Restored multi chain payment
         :rtype: Multi chain payment
         """
-        assert hasattr(data, 'message_id'), isinstance(data.message_id, MessageId)
-        assert hasattr(data, 'transaction_number'), isinstance(data.order_number, TransactionNumber)
-        assert hasattr(data, 'bitcoin_address'), isinstance(data.quantity, BitcoinAddress)
-        assert hasattr(data, 'transferor_quantity'), isinstance(data.quantity, Quantity)
-        assert hasattr(data, 'transferee_quantity'), isinstance(data.quantity, Quantity)
+        assert hasattr(data, 'trader_id'), isinstance(data.trader_id, TraderId)
+        assert hasattr(data, 'message_number'), isinstance(data.message_number, MessageNumber)
+        assert hasattr(data, 'transaction_trader_id'), isinstance(data.transaction_trader_id, TraderId)
+        assert hasattr(data, 'transaction_number'), isinstance(data.transaction_number, TransactionNumber)
+        assert hasattr(data, 'bitcoin_address'), isinstance(data.bitcoin_address, BitcoinAddress)
+        assert hasattr(data, 'transferor_quantity'), isinstance(data.transferor_quantity, Quantity)
+        assert hasattr(data, 'transferee_price'), isinstance(data.transferee_price, Price)
         assert hasattr(data, 'timestamp'), isinstance(data.timestamp, Timestamp)
 
         return cls(
-            data.message_id,
-            data.transaction_number,
+            MessageId(data.trader_id, data.message_number),
+            TransactionId(data.transaction_trader_id, data.transaction_number),
             data.bitcoin_address,
             data.transferor_quantity,
-            data.transferee_quantity,
+            data.transferee_price,
             data.timestamp,
         )
 
@@ -124,30 +68,40 @@ class MultiChainPayment(Payment):
         :rtype: tuple, tuple
         """
         return tuple(), (
-            self._message_id,
-            self._transaction_number,
+            self._message_id.trader_id,
+            self._message_id.message_number,
+            self._transaction_id.trader_id,
+            self._transaction_id.transaction_number,
             self._bitcoin_address,
             self._transferor_quantity,
-            self._transferee_quantity,
+            self._transferee_price,
             self._timestamp,
         )
 
 
-class BitcoinPayment(Payment):
+class BitcoinPayment(Message):
     """Class representing a bitcoin payment."""
 
-    def __init__(self, message_id, transaction_number, quantity, timestamp):
-        assert isinstance(message_id, MessageId), type(message_id)
-        assert isinstance(transaction_number, TransactionNumber), type(transaction_number)
-        assert isinstance(quantity, Quantity), type(quantity)
-        assert isinstance(timestamp, Timestamp), type(timestamp)
-        super(BitcoinPayment, self).__init__(message_id, transaction_number, timestamp)
-        self._transaction_number = transaction_number
-        self._quantity = quantity
+    def __init__(self, message_id, transaction_id, bitcoin_address, price, timestamp):
+        assert isinstance(transaction_id, TransactionId), type(transaction_id)
+        assert isinstance(bitcoin_address, BitcoinAddress), type(bitcoin_address)
+        assert isinstance(price, Price), type(price)
+        super(BitcoinPayment, self).__init__(message_id, timestamp)
+        self._transaction_id = transaction_id
+        self._bitcoin_address = bitcoin_address
+        self._price = price
 
     @property
-    def quantity(self):
-        return self._quantity
+    def transaction_id(self):
+        return self._transaction_id
+
+    @property
+    def bitcoin_address(self):
+        return self._bitcoin_address
+
+    @property
+    def price(self):
+        return self._price
 
     @classmethod
     def from_network(cls, data):
@@ -158,15 +112,19 @@ class BitcoinPayment(Payment):
         :return: Restored bitcoin payment
         :rtype: Bitcoin payment
         """
-        assert hasattr(data, 'message_id'), isinstance(data.message_id, MessageId)
-        assert hasattr(data, 'transaction_number'), isinstance(data.order_number, TransactionNumber)
-        assert hasattr(data, 'quantity'), isinstance(data.quantity, Quantity)
+        assert hasattr(data, 'trader_id'), isinstance(data.trader_id, TraderId)
+        assert hasattr(data, 'message_number'), isinstance(data.message_number, MessageNumber)
+        assert hasattr(data, 'transaction_trader_id'), isinstance(data.transaction_trader_id, TraderId)
+        assert hasattr(data, 'transaction_number'), isinstance(data.transaction_number, TransactionNumber)
+        assert hasattr(data, 'bitcoin_address'), isinstance(data.bitcoin_address, BitcoinAddress)
+        assert hasattr(data, 'price'), isinstance(data.price, Price)
         assert hasattr(data, 'timestamp'), isinstance(data.timestamp, Timestamp)
 
         return cls(
-            data.message_id,
-            data.transaction_number,
-            data.quantity,
+            MessageId(data.trader_id, data.message_number),
+            TransactionId(data.transaction_trader_id, data.transaction_number),
+            data.price,
+            data.bitcoin_address,
             data.timestamp,
         )
 
@@ -178,8 +136,11 @@ class BitcoinPayment(Payment):
         :rtype: tuple, tuple
         """
         return tuple(), (
-            self._message_id,
-            self._transaction_number,
-            self._quantity,
+            self._message_id.trader_id,
+            self._message_id.message_number,
+            self._transaction_id.trader_id,
+            self._transaction_id.transaction_number,
+            self._bitcoin_address,
+            self._price,
             self._timestamp,
         )

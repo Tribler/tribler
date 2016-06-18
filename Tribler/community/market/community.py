@@ -15,18 +15,18 @@ from core.order_manager import OrderManager
 from core.order_repository import MemoryOrderRepository
 from core.orderbook import OrderBook
 from core.payment import BitcoinPayment, MultiChainPayment
-from core.payment_provider import BitcoinPaymentProvider, MultiChainPaymentProvider
+from core.payment_provider import BitcoinPaymentProvider, MultiChainPaymentProvider, InsufficientFunds
 from core.price import Price
 from core.quantity import Quantity
 from core.tick import Ask, Bid, Tick
 from core.timeout import Timeout
 from core.timestamp import Timestamp
 from core.trade import Trade, ProposedTrade, AcceptedTrade, DeclinedTrade, CounterTrade
-from core.transaction import StartTransaction, EndTransaction
+from core.transaction import StartTransaction, TransactionId
 from core.transaction_manager import TransactionManager
 from core.transaction_repository import MemoryTransactionRepository
 from payload import OfferPayload, TradePayload, AcceptedTradePayload, DeclinedTradePayload, StartTransactionPayload, \
-    MultiChainPaymentPayload, BitcoinPaymentPayload, EndTransactionPayload
+    MultiChainPaymentPayload, BitcoinPaymentPayload, TransactionPayload
 from ttl import Ttl
 
 
@@ -73,7 +73,8 @@ class MarketCommunity(Community):
         self.multi_chain_payment_provider = MultiChainPaymentProvider(multi_chain_community, self.pubkey)
         self.bitcoin_payment_provider = BitcoinPaymentProvider()
         transaction_repository = MemoryTransactionRepository(self.pubkey)
-        self.transaction_manager = TransactionManager(transaction_repository)
+        self.transaction_manager = TransactionManager(transaction_repository, self.multi_chain_community,
+                                                      self.bitcoin_payment_provider)
 
         self.history = {}  # List for received messages TODO: fix memory leak
 
@@ -135,6 +136,14 @@ class MarketCommunity(Community):
                     StartTransactionPayload(),
                     self.check_message,
                     self.on_start_transaction),
+            Message(self, u"continue-transaction",
+                    MemberAuthentication(),
+                    PublicResolution(),
+                    DirectDistribution(),
+                    CandidateDestination(),
+                    TransactionPayload(),
+                    self.check_message,
+                    self.on_continue_transaction),
             Message(self, u"multi-chain-payment",
                     MemberAuthentication(),
                     PublicResolution(),
@@ -156,7 +165,7 @@ class MarketCommunity(Community):
                     PublicResolution(),
                     DirectDistribution(),
                     CandidateDestination(),
-                    EndTransactionPayload(),
+                    TransactionPayload(),
                     self.check_message,
                     self.on_end_transaction)
         ]
@@ -606,19 +615,25 @@ class MarketCommunity(Community):
             if self.order_book.ask_exists(proposed_trade.order_id):
                 self.order_book.get_ask(proposed_trade.order_id).quantity -= proposed_trade.quantity
 
+        order.add_trade(accepted_trade)
+
         self.send_accepted_trade(accepted_trade)
 
-        self.create_transaction(accepted_trade)
+        self.start_transaction(accepted_trade)
 
     # Transactions
-    def create_transaction(self, accepted_trade):
-        transaction = self.transaction_manager.create_from_accepted_trade(accepted_trade)
+    def start_transaction(self, accepted_trade):
         order = self.order_manager.order_repository.find_by_id(accepted_trade.order_id)
 
         if order:
-            order.add_transaction(accepted_trade, transaction)
+            transaction = self.transaction_manager.create_from_accepted_trade(accepted_trade)
+            order.add_transaction(accepted_trade.message_id, transaction)
+
             start_transaction = StartTransaction(self.order_book.message_repository.next_identity(),
-                                                 transaction.transaction_id, order.order_id, Timestamp.now())
+                                                 transaction.transaction_id, accepted_trade.recipient_order_id,
+                                                 transaction.trader_id_partner, accepted_trade.message_id,
+                                                 Timestamp.now())
+            self.send_start_transaction(start_transaction)
 
     # Start transaction
     def send_start_transaction(self, start_transaction):
@@ -642,7 +657,52 @@ class MarketCommunity(Community):
         for message in messages:
             start_transaction = StartTransaction.from_network(message.payload)
 
-            # TODO: add on_start_transaction logic
+            order = self.order_manager.order_repository.find_by_id(start_transaction.order_id)
+
+            if order:
+                transaction = self.transaction_manager.create_from_start_transaction(start_transaction, order.price,
+                                                                                     order.quantity, order.timeout)
+                order.add_transaction(start_transaction.accepted_trade_message_id, transaction)
+
+                if order.is_ask():  # Send multi chain payment
+                    message_id = self.order_book.message_repository.next_identity()
+                    multi_chain_payment = self.transaction_manager.create_multi_chain_payment(message_id, transaction)
+                    self.send_multi_chain_payment(multi_chain_payment)
+                else:  # Send continue transaction
+                    self.send_continue_transaction(transaction)
+
+    # Continue transaction
+    def send_continue_transaction(self, transaction):
+        # Lookup the remote address of the peer with the pubkey
+        candidate = Candidate(self.lookup_ip(transaction.trader_id_partner), False)
+
+        message_id = self.order_book.message_repository.next_identity()
+
+        meta = self.get_meta_message(u"start-transaction")
+        message = meta.impl(
+            authentication=(self.my_member,),
+            distribution=(self.claim_global_time(),),
+            destination=(candidate,),
+            payload=(
+                message_id.trader_id,
+                message_id.message_number,
+                transaction.transaction_id.trader_id,
+                transaction.transaction_id.transaction_number,
+                Timestamp.now(),
+            )
+        )
+
+        self.dispersy.store_update_forward([message], True, True, True)
+
+    def on_continue_transaction(self, messages):
+        for message in messages:
+            transaction = self.transaction_manager.find_by_id(
+                TransactionId(message.payload.transaction_trader_id, message.payload.transaction_number))
+
+            if transaction:  # Send multi chain payment
+                message_id = self.order_book.message_repository.next_identity()
+                multi_chain_payment = self.transaction_manager.create_multi_chain_payment(message_id, transaction)
+                self.send_multi_chain_payment(multi_chain_payment)
 
     # Multi chain payment
     def send_multi_chain_payment(self, multi_chain_payment):
@@ -652,21 +712,34 @@ class MarketCommunity(Community):
         # Lookup the remote address of the peer with the pubkey
         candidate = Candidate(self.lookup_ip(destination[0]), False)
 
-        meta = self.get_meta_message(u"multi-chain-payment")
-        message = meta.impl(
-            authentication=(self.my_member,),
-            distribution=(self.claim_global_time(),),
-            destination=(candidate,),
-            payload=payload
-        )
+        try:
+            self.multi_chain_payment_provider.transfer_multi_chain(candidate, multi_chain_payment.transferor_quantity)
 
-        self.dispersy.store_update_forward([message], True, True, True)
+            meta = self.get_meta_message(u"multi-chain-payment")
+            message = meta.impl(
+                authentication=(self.my_member,),
+                distribution=(self.claim_global_time(),),
+                destination=(candidate,),
+                payload=payload
+            )
+
+            self.dispersy.store_update_forward([message], True, True, True)
+        except InsufficientFunds:  # Not enough funds
+            pass
 
     def on_multi_chain_payment(self, messages):
         for message in messages:
             multi_chain_payment = MultiChainPayment.from_network(message.payload)
+            transaction = self.transaction_manager.find_by_id(multi_chain_payment.transaction_id)
 
-            # TODO: add on_multi_chain_payment logic
+            if transaction:
+                transaction.add_payment(multi_chain_payment)
+                self.transaction_manager.transaction_repository.update(transaction)
+
+                message_id = self.order_book.message_repository.next_identity()
+                bitcoin_payment = self.transaction_manager.create_bitcoin_payment(message_id, transaction,
+                                                                                  multi_chain_payment)
+                self.send_bitcoin_payment(bitcoin_payment)
 
     # Bitcoin payment
     def send_bitcoin_payment(self, bitcoin_payment):
@@ -676,42 +749,60 @@ class MarketCommunity(Community):
         # Lookup the remote address of the peer with the pubkey
         candidate = Candidate(self.lookup_ip(destination[0]), False)
 
-        meta = self.get_meta_message(u"bitcoin-payment")
-        message = meta.impl(
-            authentication=(self.my_member,),
-            distribution=(self.claim_global_time(),),
-            destination=(candidate,),
-            payload=payload
-        )
+        try:
+            self.bitcoin_payment_provider.transfer_bitcoin(bitcoin_payment.bitcoin_address, bitcoin_payment.price)
 
-        self.dispersy.store_update_forward([message], True, True, True)
+            meta = self.get_meta_message(u"bitcoin-payment")
+            message = meta.impl(
+                authentication=(self.my_member,),
+                distribution=(self.claim_global_time(),),
+                destination=(candidate,),
+                payload=payload
+            )
+
+            self.dispersy.store_update_forward([message], True, True, True)
+        except InsufficientFunds:  # not enough funds
+            pass
 
     def on_bitcoin_payment(self, messages):
         for message in messages:
             bitcoin_payment = BitcoinPayment.from_network(message.payload)
+            transaction = self.transaction_manager.find_by_id(bitcoin_payment.transaction_id)
 
-            # TODO: add on_bitcoin_payment logic
+            if transaction:
+                transaction.add_payment(bitcoin_payment)
+                self.transaction_manager.transaction_repository.update(transaction)
+
+                if not transaction.is_payment_complete():
+                    message_id = self.order_book.message_repository.next_identity()
+                    multi_chain_payment = self.transaction_manager.create_multi_chain_payment(message_id, transaction)
+                    self.send_multi_chain_payment(multi_chain_payment)
+                else:
+                    self.send_end_transaction(transaction)
 
     # End transaction
-    def send_end_transaction(self, end_transaction):
-        assert isinstance(end_transaction, EndTransaction), type(end_transaction)
-        destination, payload = end_transaction.to_network()
-
+    def send_end_transaction(self, transaction):
         # Lookup the remote address of the peer with the pubkey
-        candidate = Candidate(self.lookup_ip(destination[0]), False)
+        candidate = Candidate(self.lookup_ip(transaction.trader_id_partner), False)
+
+        message_id = self.order_book.message_repository.next_identity()
 
         meta = self.get_meta_message(u"end-transaction")
         message = meta.impl(
             authentication=(self.my_member,),
             distribution=(self.claim_global_time(),),
             destination=(candidate,),
-            payload=payload
+            payload=(
+                message_id.trader_id,
+                message_id.message_number,
+                transaction.transaction_id.trader_id,
+                transaction.transaction_id.transaction_number,
+                Timestamp.now(),
+            )
         )
 
         self.dispersy.store_update_forward([message], True, True, True)
 
     def on_end_transaction(self, messages):
         for message in messages:
-            end_transaction = EndTransaction.from_network(message.payload)
-
-            # TODO: add on_end_transaction logic
+            pass

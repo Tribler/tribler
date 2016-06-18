@@ -141,7 +141,7 @@ class BitcoinPaymentPayloadTestSuite(unittest.TestCase):
         # Test for properties
         self.assertEquals(MessageNumber('1'), self.bitcoin_payment_payload.message_number)
         self.assertEquals(TransactionNumber('2'), self.bitcoin_payment_payload.transaction_number)
-        self.assertEquals(10, int(self.bitcoin_payment_payload.quantity))
+        self.assertEquals(10, int(self.bitcoin_payment_payload.price))
         self.assertEquals(Timestamp(0.0), self.bitcoin_payment_payload.timestamp)
 
 
@@ -164,7 +164,7 @@ class MultiChainPaymentPayloadTestSuite(unittest.TestCase):
         self.assertEquals(TransactionNumber('2'), self.multi_chain_payment_payload.transaction_number)
         self.assertEquals('3', str(self.multi_chain_payment_payload.bitcoin_address))
         self.assertEquals(10, int(self.multi_chain_payment_payload.transferor_quantity))
-        self.assertEquals(9, int(self.multi_chain_payment_payload.transferee_quantity))
+        self.assertEquals(9, int(self.multi_chain_payment_payload.transferee_price))
         self.assertEquals(Timestamp(0.0), self.multi_chain_payment_payload.timestamp)
 
 

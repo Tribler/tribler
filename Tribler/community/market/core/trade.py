@@ -74,8 +74,8 @@ class Trade(Message):
 
         return AcceptedTrade(
             message_id,
-            proposed_trade.order_id,
             proposed_trade.recipient_order_id,
+            proposed_trade.order_id,
             proposed_trade.price,
             proposed_trade.quantity,
             timestamp
@@ -99,15 +99,15 @@ class Trade(Message):
 
         return DeclinedTrade(
             message_id,
-            proposed_trade.order_id,
             proposed_trade.recipient_order_id,
+            proposed_trade.order_id,
             timestamp
         )
 
     @classmethod
     def counter(cls, message_id, quantity, timestamp, proposed_trade):
         """
-        Counter a trade from another ndoe
+        Counter a trade from another node
 
         :param message_id: A message id to identify the trade
         :param quantity: The quantity to use for the counter offer
@@ -235,18 +235,16 @@ class ProposedTrade(Trade):
         :return: tuple(<destination public identifiers>),tuple(<trader_id>, <message_number>, <order_number>, <recipient_trader_id>, <recipient_order_number>, <price>, <quantity>, <timestamp>)
         :rtype: tuple, tuple
         """
-        return tuple(
-            [self._recipient_order_id.trader_id]
-        ), (
-                   self._order_id.trader_id,
-                   self._message_id.message_number,
-                   self._order_id.order_number,
-                   self._recipient_order_id.trader_id,
-                   self._recipient_order_id.order_number,
-                   self._price,
-                   self._quantity,
-                   self._timestamp
-               )
+        return tuple([self._recipient_order_id.trader_id]), (
+            self._order_id.trader_id,
+            self._message_id.message_number,
+            self._order_id.order_number,
+            self._recipient_order_id.trader_id,
+            self._recipient_order_id.order_number,
+            self._price,
+            self._quantity,
+            self._timestamp
+        )
 
 
 class AcceptedTrade(Trade):
@@ -331,7 +329,7 @@ class AcceptedTrade(Trade):
         :return: tuple(<destination public identifiers>),tuple(<trader_id>, <message_number>, <order_number>, <recipient_trader_id>, <recipient_order_number>, <price>, <quantity>, <timestamp>)
         :rtype: tuple, tuple
         """
-        return tuple(), (
+        return tuple([self._recipient_order_id.trader_id]), (
             self._order_id.trader_id,
             self._message_id.message_number,
             self._order_id.order_number,
@@ -403,18 +401,16 @@ class CounterTrade(ProposedTrade):
         :return: tuple(<destination public identifiers>),tuple(<trader_id>, <message_number>, <order_number>, <recipient_trader_id>, <recipient_order_number>, <price>, <quantity>, <timestamp>)
         :rtype: tuple, tuple
         """
-        return tuple(
-            [self._recipient_order_id.trader_id]
-        ), (
-                   self._order_id.trader_id,
-                   self._message_id.message_number,
-                   self._order_id.order_number,
-                   self._recipient_order_id.trader_id,
-                   self._recipient_order_id.order_number,
-                   self._price,
-                   self._quantity,
-                   self._timestamp
-               )
+        return tuple([self._recipient_order_id.trader_id]), (
+            self._order_id.trader_id,
+            self._message_id.message_number,
+            self._order_id.order_number,
+            self._recipient_order_id.trader_id,
+            self._recipient_order_id.order_number,
+            self._price,
+            self._quantity,
+            self._timestamp
+        )
 
 
 class DeclinedTrade(Trade):
@@ -470,13 +466,11 @@ class DeclinedTrade(Trade):
         :return: tuple(<destination public identifiers>),tuple(<trader_id>, <message_number>, <order_number>, <recipient_trader_id>, <recipient_order_number>, <timestamp>)
         :rtype: tuple, tuple
         """
-        return tuple(
-            [self._recipient_order_id.trader_id]
-        ), (
-                   self._order_id.trader_id,
-                   self._message_id.message_number,
-                   self._order_id.order_number,
-                   self._recipient_order_id.trader_id,
-                   self._recipient_order_id.order_number,
-                   self._timestamp
-               )
+        return tuple([self._recipient_order_id.trader_id]), (
+            self._order_id.trader_id,
+            self._message_id.message_number,
+            self._order_id.order_number,
+            self._recipient_order_id.trader_id,
+            self._recipient_order_id.order_number,
+            self._timestamp
+        )

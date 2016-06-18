@@ -8,7 +8,7 @@ from core.price import Price
 from core.quantity import Quantity
 from core.timeout import Timeout
 from core.timestamp import Timestamp
-from core.transaction import TransactionNumber
+from core.transaction import TransactionNumber, TransactionId
 from ttl import Ttl
 
 
@@ -31,12 +31,14 @@ class MarketConversion(BinaryConversion):
                                  self._encode_proposed_trade, self._decode_proposed_trade)
         self.define_meta_message(chr(7), community.get_meta_message(u"start-transaction"),
                                  self._encode_start_transaction, self._decode_start_transaction)
-        self.define_meta_message(chr(8), community.get_meta_message(u"multi-chain-payment"),
+        self.define_meta_message(chr(8), community.get_meta_message(u"continue-transaction"),
+                                 self._encode_transaction, self._decode_transaction)
+        self.define_meta_message(chr(9), community.get_meta_message(u"multi-chain-payment"),
                                  self._encode_multi_chain_payment, self._decode_multi_chain_payment)
-        self.define_meta_message(chr(9), community.get_meta_message(u"bitcoin-payment"),
+        self.define_meta_message(chr(10), community.get_meta_message(u"bitcoin-payment"),
                                  self._encode_bitcoin_payment, self._decode_bitcoin_payment)
-        self.define_meta_message(chr(10), community.get_meta_message(u"end-transaction"),
-                                 self._encode_end_transaction, self._decode_end_transaction)
+        self.define_meta_message(chr(11), community.get_meta_message(u"end-transaction"),
+                                 self._encode_transaction, self._decode_transaction)
 
     def _decode_payload(self, placeholder, offset, data, types):
         try:
@@ -120,47 +122,52 @@ class MarketConversion(BinaryConversion):
     def _encode_start_transaction(self, message):
         payload = message.payload
         packet = encode((
-            str(payload.trader_id), str(payload.message_number), str(payload.transaction_number),
-            float(payload.timestamp)
+            str(payload.trader_id), str(payload.message_number), str(payload.transaction_trader_id),
+            str(payload.transaction_number), str(payload.order_trader_id), str(payload.order_number),
+            str(payload.trade_message_number), float(payload.timestamp)
         ))
         return packet,
 
     def _decode_start_transaction(self, placeholder, offset, data):
-        return self._decode_payload(placeholder, offset, data, [TraderId, MessageNumber, TransactionNumber, Timestamp])
+        return self._decode_payload(placeholder, offset, data,
+                                    [TraderId, MessageNumber, TransactionId, TransactionNumber, TraderId, OrderNumber,
+                                     MessageNumber, Timestamp])
+
+    def _encode_transaction(self, message):
+        payload = message.payload
+        packet = encode((
+            str(payload.trader_id), str(payload.message_number), str(payload.transaction_trader_id),
+            str(payload.transaction_number), float(payload.timestamp)
+        ))
+        return packet,
+
+    def _decode_transaction(self, placeholder, offset, data):
+        return self._decode_payload(placeholder, offset, data,
+                                    [TraderId, MessageNumber, TransactionId, TransactionNumber, Timestamp])
 
     def _encode_multi_chain_payment(self, message):
         payload = message.payload
         packet = encode((
-            str(payload.trader_id), str(payload.message_number), str(payload.transaction_number),
-            str(payload.bitcoin_address), int(payload.transferor_quantity), int(payload.transferee_quantity),
-            float(payload.timestamp)
+            str(payload.trader_id), str(payload.message_number), str(payload.transaction_trader_id),
+            str(payload.transaction_number), str(payload.bitcoin_address), int(payload.transferor_quantity),
+            int(payload.transferee_price), float(payload.timestamp)
         ))
         return packet,
 
     def _decode_multi_chain_payment(self, placeholder, offset, data):
         return self._decode_payload(placeholder, offset, data,
-                                    [TraderId, MessageNumber, TransactionNumber, BitcoinAddress, Quantity, Quantity,
-                                     Timestamp])
+                                    [TraderId, MessageNumber, TraderId, TransactionNumber, BitcoinAddress, Quantity,
+                                     Price, Timestamp])
 
     def _encode_bitcoin_payment(self, message):
         payload = message.payload
         packet = encode((
-            str(payload.trader_id), str(payload.message_number), str(payload.transaction_number), int(payload.quantity),
-            float(payload.timestamp)
+            str(payload.trader_id), str(payload.message_number), str(payload.transaction_trader_id),
+            str(payload.transaction_number), str(payload.bitcoin_address), int(payload.price), float(payload.timestamp)
         ))
         return packet,
 
     def _decode_bitcoin_payment(self, placeholder, offset, data):
         return self._decode_payload(placeholder, offset, data,
-                                    [TraderId, MessageNumber, TransactionNumber, Quantity, Timestamp])
-
-    def _encode_end_transaction(self, message):
-        payload = message.payload
-        packet = encode((
-            str(payload.trader_id), str(payload.message_number), str(payload.transaction_number),
-            float(payload.timestamp)
-        ))
-        return packet,
-
-    def _decode_end_transaction(self, placeholder, offset, data):
-        return self._decode_payload(placeholder, offset, data, [TraderId, MessageNumber, TransactionNumber, Timestamp])
+                                    [TraderId, MessageNumber, TraderId, TransactionNumber, BitcoinAddress, Price,
+                                     Timestamp])
