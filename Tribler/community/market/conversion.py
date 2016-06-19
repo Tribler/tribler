@@ -143,7 +143,7 @@ class MarketConversion(BinaryConversion):
 
     def _decode_transaction(self, placeholder, offset, data):
         return self._decode_payload(placeholder, offset, data,
-                                    [TraderId, MessageNumber, TransactionId, TransactionNumber, Timestamp])
+                                    [TraderId, MessageNumber, TraderId, TransactionNumber, Timestamp])
 
     def _encode_multi_chain_payment(self, message):
         payload = message.payload
