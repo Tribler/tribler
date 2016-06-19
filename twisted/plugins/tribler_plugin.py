@@ -115,6 +115,7 @@ class TriblerServiceMaker(object):
             })
             tribler_service.addService(manhole)
 
+        reactor.suggestThreadPoolSize(1)
         reactor.callWhenRunning(self.start_tribler, options)
 
         return tribler_service
