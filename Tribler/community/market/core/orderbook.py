@@ -8,7 +8,7 @@ from price import Price
 from side import Side
 from tick import Tick, Ask, Bid
 from timestamp import Timestamp
-from trade import Trade
+from trade import Trade, AcceptedTrade
 
 
 class OrderBook(object):
@@ -78,6 +78,21 @@ class OrderBook(object):
 
         if self._bids.tick_exists(order_id):
             self._bids.remove_tick(order_id)
+
+    def trade_tick(self, accepted_trade):
+        """
+        :type accepted_trade: AcceptedTrade
+        """
+        assert isinstance(accepted_trade, AcceptedTrade), type(accepted_trade)
+
+        if self.bid_exists(accepted_trade.order_id):
+            self.get_bid(accepted_trade.order_id).quantity -= accepted_trade.quantity
+        if self.ask_exists(accepted_trade.order_id):
+            self.get_ask(accepted_trade.order_id).quantity -= accepted_trade.quantity
+        if self.bid_exists(accepted_trade.recipient_order_id):
+            self.get_bid(accepted_trade.recipient_order_id).quantity -= accepted_trade.quantity
+        if self.ask_exists(accepted_trade.recipient_order_id):
+            self.get_ask(accepted_trade.recipient_order_id).quantity -= accepted_trade.quantity
 
     def insert_trade(self, trade):
         """

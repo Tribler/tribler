@@ -130,6 +130,7 @@ class Order(object):
         self._price = price
         self._quantity = quantity
         self._reserved_quantity = Quantity(0)
+        self._traded_quantity = Quantity(0)
         self._timeout = timeout
         self._timestamp = timestamp
         self._is_ask = is_ask
@@ -172,7 +173,7 @@ class Order(object):
         Return the quantity that is not reserved
         :rtype: Quantity
         """
-        return self._quantity - self._reserved_quantity
+        return self._quantity - self._reserved_quantity - self._traded_quantity
 
     @property
     def reserved_quantity(self):
@@ -181,6 +182,14 @@ class Order(object):
         :rtype: Quantity
         """
         return self._reserved_quantity
+
+    @property
+    def traded_quantity(self):
+        """
+        Return the traded quantity of the order
+        :rtype: Quantity
+        """
+        return self._traded_quantity
 
     @property
     def timeout(self):
@@ -249,6 +258,7 @@ class Order(object):
 
     def add_trade(self, accepted_trade):
         self._accepted_trades[accepted_trade.message_id] = accepted_trade
+        self._traded_quantity += accepted_trade.quantity
 
     def add_transaction(self, accepted_trade_message_id, transaction):
         self._transactions[accepted_trade_message_id] = transaction.transaction_id
