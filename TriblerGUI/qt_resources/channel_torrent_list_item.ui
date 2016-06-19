@@ -279,13 +279,7 @@ font-size: 15px;</string>
        <number>0</number>
       </property>
       <item>
-       <widget class="QToolButton" name="remove_torrent_button">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
+       <widget class="QPushButton" name="remove_torrent_button">
         <property name="minimumSize">
          <size>
           <width>24</width>
@@ -307,7 +301,7 @@ border: none;
 background-color: #e67300;
 border-radius: 2px;
 color: white;
-font-size: 12px;</string>
+</string>
         </property>
         <property name="text">
          <string/>
@@ -418,7 +412,7 @@ border-radius: 2px;</string>
        </spacer>
       </item>
       <item>
-       <widget class="QToolButton" name="torrent_download_button">
+       <widget class="QPushButton" name="torrent_download_button">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
           <horstretch>0</horstretch>
@@ -446,7 +440,7 @@ border: none;
 background-color: #e67300;
 border-radius: 2px;
 color: white;
-font-size: 12px;</string>
+</string>
         </property>
         <property name="text">
          <string/>

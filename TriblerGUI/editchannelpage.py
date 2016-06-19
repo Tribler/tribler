@@ -1,7 +1,7 @@
 import base64
 import urllib
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QAction, QTreeWidgetItem, QFileDialog
 from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
@@ -21,6 +21,7 @@ class EditChannelPage(QWidget):
     This class is responsible for managing lists and data on the your channel page, including torrents, playlists
     and rss feeds.
     """
+    playlists_loaded = pyqtSignal(object)
 
     def initialize_edit_channel_page(self):
         self.window().create_channel_intro_button.clicked.connect(self.on_create_channel_intro_button_clicked)
@@ -117,6 +118,7 @@ class EditChannelPage(QWidget):
         self.editchannel_request_mgr.perform_request("channels/discovered/%s/playlists" % self.channel_overview["identifier"], self.initialize_with_playlists)
 
     def initialize_with_playlists(self, playlists):
+        self.playlists_loaded.emit(playlists)
         self.playlists = playlists
         self.window().edit_channel_playlists_list.set_data_items([])
 

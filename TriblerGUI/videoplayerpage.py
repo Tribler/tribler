@@ -119,10 +119,7 @@ class VideoPlayerPage(QWidget):
             self.window().statusBar.hide()
             self.window().showFullScreen()
         else:
-            self.window().top_bar.show()
-            self.window().left_menu.show()
-            self.window().statusBar.show()
-            self.window().showNormal()
+            self.window().exit_full_screen()
         self.is_full_screen = not self.is_full_screen
 
     def set_torrent(self, torrent_info):

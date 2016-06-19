@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QWidget
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
+from TriblerGUI.loading_list_item import LoadingListItem
 from TriblerGUI.playlist_list_item import PlaylistListItem
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
@@ -7,7 +8,7 @@ from TriblerGUI.tribler_request_manager import TriblerRequestManager
 class ChannelPage(QWidget):
 
     def initialize_with_channel(self, channel_info):
-        self.window().channel_torrents_list.set_data_items([])
+        self.window().channel_torrents_list.set_data_items([(LoadingListItem, None)])
 
         self.playlists = []
         self.torrents = []

@@ -1,11 +1,13 @@
+from PyQt5 import uic
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
+
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import format_size
+from TriblerGUI.tribler_window import fc_channel_torrent_list_item
+from TriblerGUI.utilities import format_size, get_image_path
 
-from generated_channel_torrent_list_item import Ui_Form
 
-
-class ChannelTorrentListItem(QWidget):
+class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
     """
     This class is responsible for managing the item in the torrents list of a channel.
     """
@@ -15,27 +17,29 @@ class ChannelTorrentListItem(QWidget):
 
         self.torrent_info = torrent
 
-        self.ui = Ui_Form()
-        self.ui.setupUi(self)
+        self.setupUi(self)
 
-        self.ui.channel_torrent_name.setText(torrent["name"])
+        self.channel_torrent_name.setText(torrent["name"])
         if torrent["size"] is None:
-            self.ui.channel_torrent_description.setText("Size: -")
+            self.channel_torrent_description.setText("Size: -")
         else:
-            self.ui.channel_torrent_description.setText("Size: %s" % format_size(float(torrent["size"])))
+            self.channel_torrent_description.setText("Size: %s" % format_size(float(torrent["size"])))
 
-        self.ui.channel_torrent_category.setText(torrent["category"])
-        self.ui.thumbnail_widget.initialize(torrent["name"], 24)
+        self.channel_torrent_category.setText(torrent["category"])
+        self.thumbnail_widget.initialize(torrent["name"], 24)
 
-        self.ui.torrent_play_button.clicked.connect(self.on_play_button_clicked)
+        self.torrent_play_button.clicked.connect(self.on_play_button_clicked)
 
         if not show_controls:
-            self.ui.remove_control_button_container.setHidden(True)
+            self.remove_control_button_container.setHidden(True)
+            self.torrent_play_button.setIcon(QIcon(get_image_path('play.png')))
+            self.torrent_download_button.setIcon(QIcon(get_image_path('downloads.png')))
         else:
-            self.ui.control_buttons_container.setHidden(True)
+            self.control_buttons_container.setHidden(True)
+            self.remove_torrent_button.setIcon(QIcon(get_image_path('delete.png')))
 
         if on_remove_clicked is not None:
-            self.ui.remove_torrent_button.clicked.connect(lambda: on_remove_clicked(self))
+            self.remove_torrent_button.clicked.connect(lambda: on_remove_clicked(self))
 
     def on_play_button_clicked(self):
         self.request_mgr = TriblerRequestManager()

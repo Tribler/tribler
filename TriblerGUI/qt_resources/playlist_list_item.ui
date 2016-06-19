@@ -308,6 +308,9 @@ font-size: 15px;</string>
           <height>24</height>
          </size>
         </property>
+        <property name="cursor">
+         <cursorShape>PointingHandCursor</cursorShape>
+        </property>
         <property name="styleSheet">
          <string notr="true">background: none;
 border: none;

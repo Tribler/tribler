@@ -1,5 +1,5 @@
 import os
-from PyQt5.QtCore import QTimer, QUrl
+from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QCursor, QDesktopServices
 from PyQt5.QtWidgets import QWidget, QMenu, QAction, QFileDialog
 from TriblerGUI.TriblerActionMenu import TriblerActionMenu
@@ -9,7 +9,6 @@ from TriblerGUI.defs import DOWNLOADS_FILTER_ALL, DOWNLOADS_FILTER_DOWNLOADING, 
     DLSTATUS_WAITING4HASHCHECK
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.downloadwidgetitem import DownloadWidgetItem
-from TriblerGUI.loading_screen import LoadingScreen
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import format_speed
 
@@ -19,6 +18,7 @@ class DownloadsPage(QWidget):
     This class is responsible for managing all items on the downloads page.
     The downloads page shows all downloads and specific details about a download.
     """
+    received_downloads = pyqtSignal(object)
 
     def initialize_downloads_page(self):
         self.window().downloads_tab.initialize()
@@ -44,11 +44,12 @@ class DownloadsPage(QWidget):
 
     def load_downloads(self):
         self.request_mgr = TriblerRequestManager()
-        self.request_mgr.perform_request("downloads", self.received_downloads)
+        self.request_mgr.perform_request("downloads", self.on_received_downloads)
 
-    def received_downloads(self, downloads):
+    def on_received_downloads(self, downloads):
         total_download = 0
         total_upload = 0
+        self.received_downloads.emit(downloads)
         self.downloads = downloads
 
         download_infohashes = set()
