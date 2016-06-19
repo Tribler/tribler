@@ -35,26 +35,26 @@ class PriceTimeStrategyTestSuite(unittest.TestCase):
                        Price(100), Quantity(30), Timeout(float('inf')), Timestamp(float('inf')))
         self.ask2 = Ask(MessageId(TraderId('1'), MessageNumber('1')), OrderId(TraderId('1'), OrderNumber("2")),
                         Price(100), Quantity(30), Timeout(float('inf')), Timestamp(float('inf')))
-        self.ask3 = Ask(MessageId(TraderId('0'), MessageNumber('1')), OrderId(TraderId('0'), OrderNumber("3")),
+        self.ask3 = Ask(MessageId(TraderId('3'), MessageNumber('1')), OrderId(TraderId('0'), OrderNumber("3")),
                         Price(200), Quantity(200), Timeout(float('inf')), Timestamp(float('inf')))
-        self.ask4 = Ask(MessageId(TraderId('1'), MessageNumber('1')), OrderId(TraderId('1'), OrderNumber("4")),
+        self.ask4 = Ask(MessageId(TraderId('4'), MessageNumber('1')), OrderId(TraderId('1'), OrderNumber("4")),
                         Price(50), Quantity(200), Timeout(float('inf')), Timestamp(float('inf')))
-        self.bid = Bid(MessageId(TraderId('0'), MessageNumber('2')), OrderId(TraderId('0'), OrderNumber("5")),
+        self.bid = Bid(MessageId(TraderId('5'), MessageNumber('2')), OrderId(TraderId('0'), OrderNumber("5")),
                        Price(100), Quantity(30), Timeout(float('inf')), Timestamp(float('inf')))
-        self.bid2 = Bid(MessageId(TraderId('0'), MessageNumber('2')), OrderId(TraderId('0'), OrderNumber("6")),
+        self.bid2 = Bid(MessageId(TraderId('6'), MessageNumber('2')), OrderId(TraderId('0'), OrderNumber("6")),
                         Price(200), Quantity(30), Timeout(float('inf')), Timestamp(float('inf')))
-        self.bid3 = Bid(MessageId(TraderId('0'), MessageNumber('2')), OrderId(TraderId('0'), OrderNumber("7")),
+        self.bid3 = Bid(MessageId(TraderId('7'), MessageNumber('2')), OrderId(TraderId('0'), OrderNumber("7")),
                         Price(50), Quantity(200), Timeout(float('inf')), Timestamp(float('inf')))
-        self.bid4 = Bid(MessageId(TraderId('0'), MessageNumber('2')), OrderId(TraderId('0'), OrderNumber("8")),
+        self.bid4 = Bid(MessageId(TraderId('8'), MessageNumber('2')), OrderId(TraderId('0'), OrderNumber("8")),
                         Price(100), Quantity(200), Timeout(float('inf')), Timestamp(float('inf')))
 
-        self.ask_order = Order(OrderId(TraderId('0'), OrderNumber("11")), Price(100), Quantity(30),
+        self.ask_order = Order(OrderId(TraderId('9'), OrderNumber("11")), Price(100), Quantity(30),
                                Timeout(float('inf')), Timestamp(float('inf')), True)
-        self.ask_order2 = Order(OrderId(TraderId('0'), OrderNumber("12")), Price(10), Quantity(60),
+        self.ask_order2 = Order(OrderId(TraderId('9'), OrderNumber("12")), Price(10), Quantity(60),
                                 Timeout(float('inf')), Timestamp(float('inf')), True)
-        self.bid_order = Order(OrderId(TraderId('0'), OrderNumber("13")), Price(100), Quantity(30),
+        self.bid_order = Order(OrderId(TraderId('9'), OrderNumber("13")), Price(100), Quantity(30),
                                Timeout(float('inf')), Timestamp(float('inf')), False)
-        self.bid_order2 = Order(OrderId(TraderId('0'), OrderNumber("14")), Price(100), Quantity(60),
+        self.bid_order2 = Order(OrderId(TraderId('9'), OrderNumber("14")), Price(100), Quantity(60),
                                 Timeout(float('inf')), Timestamp(float('inf')), False)
         self.order_book = OrderBook(MemoryMessageRepository('0'))
         self.price_time_strategy = PriceTimeStrategy(self.order_book)
@@ -165,15 +165,15 @@ class MatchingEngineTestSuite(unittest.TestCase):
 
     def setUp(self):
         # Object creation
-        self.ask = Ask(MessageId(TraderId('0'), MessageNumber('message_number1')),
-                       OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
+        self.ask = Ask(MessageId(TraderId('1'), MessageNumber('message_number1')),
+                       OrderId(TraderId('2'), OrderNumber("order_number")), Price(100), Quantity(30),
                        Timeout(float('inf')), Timestamp(float('inf')))
-        self.bid = Bid(MessageId(TraderId('0'), MessageNumber('message_number2')),
-                       OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
+        self.bid = Bid(MessageId(TraderId('3'), MessageNumber('message_number2')),
+                       OrderId(TraderId('4'), OrderNumber("order_number")), Price(100), Quantity(30),
                        Timeout(float('inf')), Timestamp(float('inf')))
-        self.ask_order = Order(OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
+        self.ask_order = Order(OrderId(TraderId('5'), OrderNumber("order_number")), Price(100), Quantity(30),
                                Timeout(float('inf')), Timestamp(float('inf')), True)
-        self.bid_order = Order(OrderId(TraderId('0'), OrderNumber("order_number")), Price(100), Quantity(30),
+        self.bid_order = Order(OrderId(TraderId('6'), OrderNumber("order_number")), Price(100), Quantity(30),
                                Timeout(float('inf')), Timestamp(float('inf')), False)
         self.order_book = OrderBook(MemoryMessageRepository('0'))
         self.matching_engine = MatchingEngine(PriceTimeStrategy(self.order_book))

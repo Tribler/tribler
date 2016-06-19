@@ -186,6 +186,10 @@ class PriceTimeStrategy(MatchingStrategy):
         if tick_entry is None:  # Last tick
             return quantity_to_trade, []
 
+        # Check if order and tick entry have the same trader id / origin
+        if order.order_id.trader_id == tick_entry.order_id.trader_id:
+            return (0, [])
+
         assert isinstance(tick_entry, TickEntry), type(tick_entry)
         assert isinstance(quantity_to_trade, Quantity), type(quantity_to_trade)
         assert isinstance(order, Order), type(order)
