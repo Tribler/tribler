@@ -32,7 +32,7 @@ class TransactionManagerTestSuite(unittest.TestCase):
                                            Timestamp(1462224447.117), proposed_trade)
         self.start_transaction = StartTransaction(MessageId(TraderId('0'), MessageNumber('1')),
                                                   TransactionId(TraderId("0"), TransactionNumber("1")),
-                                                  OrderId(TraderId('0'), OrderNumber('1')), TraderId('2'),
+                                                  OrderId(TraderId('0'), OrderNumber('1')),
                                                   MessageId(TraderId('2'), MessageNumber('3')), Timestamp(0.0))
 
     def test_create_from_accepted_trade(self):

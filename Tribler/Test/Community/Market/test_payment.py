@@ -41,14 +41,14 @@ class MultiChainPaymentTestSuite(unittest.TestCase):
         # Test for to network
         data = self.multi_chain_payment.to_network()
 
-        self.assertEquals(data[1][0], TraderId("0"))
-        self.assertEquals(data[1][1], MessageNumber("1"))
-        self.assertEquals(data[1][2], TraderId("2"))
-        self.assertEquals(data[1][3], TransactionNumber('2'))
-        self.assertEquals(str(data[1][4]), "0")
-        self.assertEquals(data[1][5], Quantity(3))
-        self.assertEquals(data[1][6], Price(2))
-        self.assertEquals(data[1][7], Timestamp(4.0))
+        self.assertEquals(data[0], TraderId("0"))
+        self.assertEquals(data[1], MessageNumber("1"))
+        self.assertEquals(data[2], TraderId("2"))
+        self.assertEquals(data[3], TransactionNumber('2'))
+        self.assertEquals(str(data[4]), "0")
+        self.assertEquals(data[5], Quantity(3))
+        self.assertEquals(data[6], Price(2))
+        self.assertEquals(data[7], Timestamp(4.0))
 
 
 class BitcoinPaymentTestSuite(unittest.TestCase):
@@ -82,13 +82,13 @@ class BitcoinPaymentTestSuite(unittest.TestCase):
         # Test for to network
         data = self.bitcoin_payment.to_network()
 
-        self.assertEquals(data[1][0], TraderId("0"))
-        self.assertEquals(data[1][1], MessageNumber("1"))
-        self.assertEquals(data[1][2], TraderId("2"))
-        self.assertEquals(data[1][3], TransactionNumber('2'))
-        self.assertEquals(str(data[1][4]), '1')
-        self.assertEquals(data[1][5], Price(10))
-        self.assertEquals(data[1][6], Timestamp(4.0))
+        self.assertEquals(data[0], TraderId("0"))
+        self.assertEquals(data[1], MessageNumber("1"))
+        self.assertEquals(data[2], TraderId("2"))
+        self.assertEquals(data[3], TransactionNumber('2'))
+        self.assertEquals(str(data[4]), '1')
+        self.assertEquals(data[5], Price(10))
+        self.assertEquals(data[6], Timestamp(4.0))
 
 
 if __name__ == '__main__':

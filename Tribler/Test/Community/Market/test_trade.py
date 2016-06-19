@@ -43,10 +43,10 @@ class ProposedTradeTestSuite(unittest.TestCase):
 
     def test_to_network(self):
         # Test for to network
-        self.assertEquals(((TraderId('1'),), (TraderId('0'), MessageNumber('message_number'),
-                                              OrderNumber('order_number'), TraderId('1'),
-                                              OrderNumber('recipient_order_number'), Price(63400), Quantity(30),
-                                              Timestamp(1462224447.117))), self.proposed_trade.to_network())
+        self.assertEquals((TraderId('1'), (TraderId('0'), MessageNumber('message_number'),
+                                           OrderNumber('order_number'), TraderId('1'),
+                                           OrderNumber('recipient_order_number'), Price(63400), Quantity(30),
+                                           Timestamp(1462224447.117))), self.proposed_trade.to_network())
 
     def test_from_network(self):
         # Test for from network
@@ -90,7 +90,7 @@ class AcceptedTradeTestSuite(unittest.TestCase):
         # Test for to network
         data = self.accepted_trade.to_network()
 
-        self.assertEquals(data[0][0], TraderId("0"))
+        self.assertEquals(data[0], TraderId("0"))
         self.assertEquals(data[1][0], TraderId("1"))
         self.assertEquals(data[1][1], MessageNumber("message_number"))
         self.assertEquals(data[1][2], OrderNumber("recipient_order_number"))
@@ -137,7 +137,7 @@ class DeclinedTradeTestSuite(unittest.TestCase):
         # Test for to network
         data = self.declined_trade.to_network()
 
-        self.assertEquals(data[0][0], TraderId("0"))
+        self.assertEquals(data[0], TraderId("0"))
         self.assertEquals(data[1][0], TraderId("1"))
         self.assertEquals(data[1][1], MessageNumber("message_number"))
         self.assertEquals(data[1][2], OrderNumber("recipient_order_number"))
@@ -177,9 +177,9 @@ class CounterTradeTestSuite(unittest.TestCase):
     def test_to_network(self):
         # Test for to network
         self.assertEquals(
-            ((TraderId('0'),), (TraderId('1'), MessageNumber('message_number'), OrderNumber('recipient_order_number'),
-                                TraderId('0'), OrderNumber('order_number'), Price(63400), Quantity(15),
-                                Timestamp(1462224447.117))), self.counter_trade.to_network())
+            (TraderId('0'), (TraderId('1'), MessageNumber('message_number'), OrderNumber('recipient_order_number'),
+                             TraderId('0'), OrderNumber('order_number'), Price(63400), Quantity(15),
+                             Timestamp(1462224447.117))), self.counter_trade.to_network())
 
     def test_from_network(self):
         # Test for from network

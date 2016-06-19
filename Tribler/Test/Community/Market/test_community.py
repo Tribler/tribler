@@ -1,4 +1,6 @@
 import unittest
+import os
+from mock import Mock, MagicMock
 
 from twisted.python.threadable import registerAsIOThread
 
@@ -14,7 +16,7 @@ from Tribler.community.market.core.tick import Tick, Ask, Bid
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import Trade
-from Tribler.community.market.core.transaction import StartTransaction, TransactionId, TransactionNumber
+from Tribler.community.market.core.transaction import Transaction, StartTransaction, TransactionId, TransactionNumber
 from Tribler.community.market.socket_address import SocketAddress
 from Tribler.community.market.ttl import Ttl
 from Tribler.community.tunnel.Socks5.server import Socks5Server
@@ -69,9 +71,13 @@ class CommunityTestSuite(unittest.TestCase):
                                             Timestamp(1462224447.117), self.proposed_trade)
         self.counter_trade = Trade.counter(MessageId(TraderId('0'), MessageNumber('message_number')),
                                            Quantity(15), Timestamp(1462224447.117), self.proposed_trade)
+        self.transaction = Transaction(TransactionId(TraderId("1"), TransactionNumber("2")), TraderId("0"), Price(100),
+                                       Quantity(30),
+                                       Timeout(float("inf")),
+                                       Timestamp(0.0))
         self.start_transaction = StartTransaction(MessageId(TraderId("0"), MessageNumber("1")),
                                                   TransactionId(TraderId("0"), TransactionNumber("1")),
-                                                  OrderId(TraderId('0'), OrderNumber('order_number')), TraderId("1"),
+                                                  OrderId(TraderId('0'), OrderNumber('order_number')),
                                                   MessageId(TraderId("1"), MessageNumber("2")), Timestamp(0.0))
         self.multi_chain_payment = MultiChainPayment(MessageId(TraderId("0"), MessageNumber("1")),
                                                      TransactionId(TraderId("0"), TransactionNumber("1")),
@@ -107,7 +113,7 @@ class CommunityTestSuite(unittest.TestCase):
         message = meta.impl(
             authentication=(self.market_community.my_member,),
             distribution=(self.market_community.claim_global_time(),),
-            payload=self.ask.to_network()[1] + (
+            payload=self.ask.to_network() + (
                 Ttl.default(), self.dispersy.wan_address[0], self.dispersy.wan_address[1])
         )
         self.market_community.on_ask([message])
@@ -126,7 +132,7 @@ class CommunityTestSuite(unittest.TestCase):
         message = meta.impl(
             authentication=(self.market_community.my_member,),
             distribution=(self.market_community.claim_global_time(),),
-            payload=self.bid.to_network()[1] + (
+            payload=self.bid.to_network() + (
                 Ttl.default(), self.dispersy.wan_address[0], self.dispersy.wan_address[1])
         )
         self.market_community.on_bid([message])
@@ -143,7 +149,7 @@ class CommunityTestSuite(unittest.TestCase):
         self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
         self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
         destination, payload = self.proposed_trade.to_network()
-        candidate = Candidate(self.market_community.lookup_ip(destination[0]), False)
+        candidate = Candidate(self.market_community.lookup_ip(destination), False)
         meta = self.market_community.get_meta_message(u"proposed-trade")
         message = meta.impl(
             authentication=(self.market_community.my_member,),
@@ -172,7 +178,7 @@ class CommunityTestSuite(unittest.TestCase):
         self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
         self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
         destination, payload = self.declined_trade.to_network()
-        candidate = Candidate(self.market_community.lookup_ip(destination[0]), False)
+        candidate = Candidate(self.market_community.lookup_ip(destination), False)
         meta = self.market_community.get_meta_message(u"declined-trade")
         message = meta.impl(
             authentication=(self.market_community.my_member,),
@@ -187,7 +193,7 @@ class CommunityTestSuite(unittest.TestCase):
         self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
         self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
         destination, payload = self.counter_trade.to_network()
-        candidate = Candidate(self.market_community.lookup_ip(destination[0]), False)
+        candidate = Candidate(self.market_community.lookup_ip(destination), False)
         meta = self.market_community.get_meta_message(u"counter-trade")
         message = meta.impl(
             authentication=(self.market_community.my_member,),
@@ -223,19 +229,22 @@ class CommunityTestSuite(unittest.TestCase):
         # Test for send start transaction
         self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
         self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
-        self.market_community.send_start_transaction(self.start_transaction)
+        self.market_community.send_start_transaction(self.transaction, self.start_transaction)
 
     def test_send_bitcoin_payment(self):  # TODO: Add assertions to test
         # Test for send bitcoin payment
+        os.system = MagicMock(return_value='{"confirmed": "0", "unconfirmed": "0"}')
         self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
         self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
-        self.market_community.send_bitcoin_payment(self.bitcoin_payment)
+        self.market_community.send_bitcoin_payment(self.transaction, self.bitcoin_payment)
 
     def test_send_multi_chain_payment(self):  # TODO: Add assertions to test
         # Test for send multi chain payment
         self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
         self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
-        self.market_community.send_multi_chain_payment(self.multi_chain_payment)
+        self.market_community.multi_chain_payment_provider.multi_chain_community = MagicMock(
+            return_value=(-1, -1))
+        self.market_community.send_multi_chain_payment(self.transaction, self.multi_chain_payment)
 
     def tearDown(self):
         # Closing and unlocking dispersy database for other tests in test suite

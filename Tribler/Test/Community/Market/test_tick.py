@@ -38,8 +38,8 @@ class TickTestSuite(unittest.TestCase):
 
     def test_to_network(self):
         # Test for to network
-        self.assertEquals(((), (TraderId('0'), MessageNumber('message_number'), OrderNumber('order_number'),
-                                Price(63400), Quantity(30), self.tick.timeout, self.tick.timestamp)),
+        self.assertEquals((TraderId('0'), MessageNumber('message_number'), OrderNumber('order_number'),
+                                Price(63400), Quantity(30), self.tick.timeout, self.tick.timestamp),
                           self.tick.to_network())
 
     def test_quantity_setter(self):
