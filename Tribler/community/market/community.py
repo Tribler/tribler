@@ -73,7 +73,8 @@ class MarketCommunity(Community):
         self.multi_chain_payment_provider = MultiChainPaymentProvider(multi_chain_community, self.pubkey)
         self.bitcoin_payment_provider = BitcoinPaymentProvider()
         transaction_repository = MemoryTransactionRepository(self.pubkey)
-        self.transaction_manager = TransactionManager(transaction_repository)
+        self.transaction_manager = TransactionManager(transaction_repository, multi_chain_community,
+                                                      self.bitcoin_payment_provider)
 
         self.history = {}  # List for received messages TODO: fix memory leak
 
@@ -644,21 +645,18 @@ class MarketCommunity(Community):
                     multi_chain_payment = self.transaction_manager.create_multi_chain_payment(message_id, transaction)
                     self.send_multi_chain_payment(transaction, multi_chain_payment)
                 else:  # Send continue transaction
-                    self.send_continue_transaction(transaction, start_transaction)
+                    self.send_continue_transaction(transaction)
 
     # Continue transaction
-    def send_continue_transaction(self, transaction, start_transaction):
+    def send_continue_transaction(self, transaction):
         assert isinstance(transaction, Transaction), type(transaction)
-        assert isinstance(start_transaction, StartTransaction), type(start_transaction)
-
-        order = self.order_manager.order_repository.find_by_id(start_transaction.order_id)
 
         # Lookup the remote address of the peer with the pubkey
         candidate = Candidate(self.lookup_ip(transaction.partner_trader_id), False)
 
         message_id = self.order_book.message_repository.next_identity()
 
-        meta = self.get_meta_message(u"start-transaction")
+        meta = self.get_meta_message(u"continue-transaction")
         message = meta.impl(
             authentication=(self.my_member,),
             distribution=(self.claim_global_time(),),
@@ -668,9 +666,6 @@ class MarketCommunity(Community):
                 message_id.message_number,
                 transaction.transaction_id.trader_id,
                 transaction.transaction_id.transaction_number,
-                order.order_id.trader_id,
-                order.order_id.order_number,
-                start_transaction.accepted_trade_message_id.message_number,
                 Timestamp.now(),
             )
         )
