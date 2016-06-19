@@ -643,13 +643,16 @@ class MarketCommunity(Community):
                 if order.is_ask():  # Send multi chain payment
                     message_id = self.order_book.message_repository.next_identity()
                     multi_chain_payment = self.transaction_manager.create_multi_chain_payment(message_id, transaction)
-                    self.send_multi_chain_payment(multi_chain_payment)
+                    self.send_multi_chain_payment(transaction, multi_chain_payment)
                 else:  # Send continue transaction
-                    self.send_continue_transaction(transaction)
+                    self.send_continue_transaction(transaction, start_transaction)
 
     # Continue transaction
-    def send_continue_transaction(self, transaction):
+    def send_continue_transaction(self, transaction, start_transaction):
         assert isinstance(transaction, Transaction), type(transaction)
+        assert isinstance(start_transaction, StartTransaction), type(start_transaction)
+
+        order = self.order_manager.order_repository.find_by_id(start_transaction.order_id)
 
         # Lookup the remote address of the peer with the pubkey
         candidate = Candidate(self.lookup_ip(transaction.partner_trader_id), False)
@@ -666,6 +669,9 @@ class MarketCommunity(Community):
                 message_id.message_number,
                 transaction.transaction_id.trader_id,
                 transaction.transaction_id.transaction_number,
+                order.order_id.trader_id,
+                order.order_id.order_number,
+                start_transaction.accepted_trade_message_id.message_number,
                 Timestamp.now(),
             )
         )
