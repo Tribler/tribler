@@ -88,10 +88,17 @@ class AcceptedTradeTestSuite(unittest.TestCase):
 
     def test_to_network(self):
         # Test for to network
-        self.assertEquals(
-            ((), (TraderId('0'), MessageNumber('message_number'), OrderNumber('order_number'), TraderId('1'),
-                  OrderNumber('recipient_order_number'), Price(63400), Quantity(30), Timestamp(1462224447.117))),
-            self.accepted_trade.to_network())
+        data = self.accepted_trade.to_network()
+
+        self.assertEquals(data[0][0], TraderId("0"))
+        self.assertEquals(data[1][0], TraderId("1"))
+        self.assertEquals(data[1][1], MessageNumber("message_number"))
+        self.assertEquals(data[1][2], OrderNumber("recipient_order_number"))
+        self.assertEquals(data[1][3], TraderId("0"))
+        self.assertEquals(data[1][4], OrderNumber("order_number"))
+        self.assertEquals(data[1][5], Price(63400))
+        self.assertEquals(data[1][6], Quantity(30))
+        self.assertEquals(data[1][7], Timestamp(1462224447.117))
 
     def test_from_network(self):
         # Test for from network
@@ -128,10 +135,15 @@ class DeclinedTradeTestSuite(unittest.TestCase):
 
     def test_to_network(self):
         # Test for to network
-        self.assertEquals(
-            ((TraderId('1'),), (TraderId('0'), MessageNumber('message_number'), OrderNumber('order_number'),
-                                TraderId('1'), OrderNumber('recipient_order_number'), Timestamp(1462224447.117))),
-            self.declined_trade.to_network())
+        data = self.declined_trade.to_network()
+
+        self.assertEquals(data[0][0], TraderId("0"))
+        self.assertEquals(data[1][0], TraderId("1"))
+        self.assertEquals(data[1][1], MessageNumber("message_number"))
+        self.assertEquals(data[1][2], OrderNumber("recipient_order_number"))
+        self.assertEquals(data[1][3], TraderId("0"))
+        self.assertEquals(data[1][4], OrderNumber("order_number"))
+        self.assertEquals(data[1][5], Timestamp(1462224447.117))
 
     def test_from_network(self):
         # Test for from network

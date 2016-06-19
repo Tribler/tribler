@@ -9,7 +9,7 @@ from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.transaction import TransactionNumber
 from Tribler.community.market.payload import AcceptedTradePayload, DeclinedTradePayload, TradePayload, \
-    OfferPayload, StartTransactionPayload, BitcoinPaymentPayload, MultiChainPaymentPayload, EndTransactionPayload
+    OfferPayload, StartTransactionPayload, BitcoinPaymentPayload, MultiChainPaymentPayload
 from Tribler.community.market.socket_address import SocketAddress
 from Tribler.community.market.ttl import Ttl
 from Tribler.dispersy.meta import MetaObject
@@ -115,8 +115,9 @@ class StartTransactionPayloadTestSuite(unittest.TestCase):
     def setUp(self):
         # Object creation
         self.start_transaction_payload = StartTransactionPayload.Implementation(MetaObject(), TraderId('0'),
-                                                                                MessageNumber('1'),
-                                                                                TransactionNumber('2'),
+                                                                                MessageNumber('1'), TraderId('2'),
+                                                                                TransactionNumber('2'), TraderId('2'),
+                                                                                OrderNumber('3'), MessageNumber('4'),
                                                                                 Timestamp(0.0))
 
     def test_properties(self):
@@ -133,8 +134,10 @@ class BitcoinPaymentPayloadTestSuite(unittest.TestCase):
         # Object creation
         self.bitcoin_payment_payload = BitcoinPaymentPayload.Implementation(MetaObject(), TraderId('0'),
                                                                             MessageNumber('1'),
+                                                                            TraderId('2'),
                                                                             TransactionNumber('2'),
-                                                                            Quantity(10),
+                                                                            BitcoinAddress('3'),
+                                                                            Price(10),
                                                                             Timestamp(0.0))
 
     def test_properties(self):
@@ -152,10 +155,11 @@ class MultiChainPaymentPayloadTestSuite(unittest.TestCase):
         # Object creation
         self.multi_chain_payment_payload = MultiChainPaymentPayload.Implementation(MetaObject(), TraderId('0'),
                                                                                    MessageNumber('1'),
+                                                                                   TraderId('2'),
                                                                                    TransactionNumber('2'),
                                                                                    BitcoinAddress('3'),
                                                                                    Quantity(10),
-                                                                                   Quantity(9),
+                                                                                   Price(9),
                                                                                    Timestamp(0.0))
 
     def test_properties(self):
@@ -166,23 +170,6 @@ class MultiChainPaymentPayloadTestSuite(unittest.TestCase):
         self.assertEquals(10, int(self.multi_chain_payment_payload.transferor_quantity))
         self.assertEquals(9, int(self.multi_chain_payment_payload.transferee_price))
         self.assertEquals(Timestamp(0.0), self.multi_chain_payment_payload.timestamp)
-
-
-class EndTransactionPayloadTestSuite(unittest.TestCase):
-    """End transaction payload test cases."""
-
-    def setUp(self):
-        # Object creation
-        self.end_transaction_payload = EndTransactionPayload.Implementation(MetaObject(), TraderId('0'),
-                                                                            MessageNumber('1'),
-                                                                            TransactionNumber('2'),
-                                                                            Timestamp(0.0))
-
-    def test_properties(self):
-        # Test for properties
-        self.assertEquals(MessageNumber('1'), self.end_transaction_payload.message_number)
-        self.assertEquals(TransactionNumber('2'), self.end_transaction_payload.transaction_number)
-        self.assertEquals(Timestamp(0.0), self.end_transaction_payload.timestamp)
 
 
 if __name__ == '__main__':

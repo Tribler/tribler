@@ -17,7 +17,8 @@ class OrderTestSuite(unittest.TestCase):
     def setUp(self):
         # Object creation
         self.transaction_id = TransactionId(TraderId("0"), TransactionNumber("1"))
-        self.transaction = Transaction(self.transaction_id, Price(100), Quantity(30), Timeout(float("inf")),
+        self.transaction = Transaction(self.transaction_id, TraderId("1"), Price(100), Quantity(30),
+                                       Timeout(float("inf")),
                                        Timestamp(0.0))
         proposed_trade = Trade.propose(MessageId(TraderId('0'), MessageNumber('1')),
                                        OrderId(TraderId('0'), OrderNumber('2')),
@@ -37,10 +38,14 @@ class OrderTestSuite(unittest.TestCase):
         self.order2 = Order(OrderId(TraderId("0"), OrderNumber("order_number")), Price(100), Quantity(30),
                             Timeout(0.0), Timestamp(10.0), True)
 
+    def test_add_trade(self):
+        # Test for add trade
+        self.order.add_trade(self.accepted_trade)
+        self.assertEquals(self.accepted_trade, self.order._accepted_trades[self.accepted_trade.message_id])
+
     def test_add_transaction(self):
         # Test for add transaction
-        self.order.add_transaction(self.accepted_trade, self.transaction)
-        self.assertEquals(self.accepted_trade, self.order._accepted_trades[self.accepted_trade.message_id])
+        self.order.add_transaction(self.accepted_trade.message_id, self.transaction)
         self.assertEquals(self.transaction.transaction_id, self.order._transactions[self.accepted_trade.message_id])
 
     def test_is_ask(self):

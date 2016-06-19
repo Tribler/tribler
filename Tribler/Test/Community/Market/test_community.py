@@ -14,7 +14,7 @@ from Tribler.community.market.core.tick import Tick, Ask, Bid
 from Tribler.community.market.core.timeout import Timeout
 from Tribler.community.market.core.timestamp import Timestamp
 from Tribler.community.market.core.trade import Trade
-from Tribler.community.market.core.transaction import StartTransaction, EndTransaction, TransactionId, TransactionNumber
+from Tribler.community.market.core.transaction import StartTransaction, TransactionId, TransactionNumber
 from Tribler.community.market.socket_address import SocketAddress
 from Tribler.community.market.ttl import Ttl
 from Tribler.community.tunnel.Socks5.server import Socks5Server
@@ -44,6 +44,7 @@ class CommunityTestSuite(unittest.TestCase):
         # Object creation
         self.master_member = DummyMember(self.dispersy, 1, "a" * 20)
         self.member = self.dispersy.get_new_member(u"curve25519")
+        multi_chain_community = 1
         self.market_community = MarketCommunity.init_community(self.dispersy, self.master_member, self.member)
         self.market_community._request_cache = RequestCache()
         self.market_community.socks_server = Socks5Server(self, 1234)
@@ -68,16 +69,16 @@ class CommunityTestSuite(unittest.TestCase):
                                             Timestamp(1462224447.117), self.proposed_trade)
         self.counter_trade = Trade.counter(MessageId(TraderId('0'), MessageNumber('message_number')),
                                            Quantity(15), Timestamp(1462224447.117), self.proposed_trade)
-        self.start_transaction = StartTransaction(MessageId(TraderId('0'), MessageNumber('1')),
+        self.start_transaction = StartTransaction(MessageId(TraderId("0"), MessageNumber("1")),
                                                   TransactionId(TraderId("0"), TransactionNumber("1")),
-                                                  OrderId(TraderId('0'), OrderNumber('order_number')), Timestamp(0.0))
-        self.end_transaction = EndTransaction(MessageId(TraderId('0'), MessageNumber('1')),
-                                              TransactionId(TraderId("0"), TransactionNumber("1")), Timestamp(0.0))
+                                                  OrderId(TraderId('0'), OrderNumber('order_number')), TraderId("1"),
+                                                  MessageId(TraderId("1"), MessageNumber("2")), Timestamp(0.0))
         self.multi_chain_payment = MultiChainPayment(MessageId(TraderId("0"), MessageNumber("1")),
-                                                     TransactionNumber("2"),
-                                                     BitcoinAddress("0"), Quantity(3), Quantity(2), Timestamp(4.0))
-        self.bitcoin_payment = BitcoinPayment(MessageId(TraderId("0"), MessageNumber("1")), TransactionNumber("2"),
-                                              Quantity(10),
+                                                     TransactionId(TraderId("0"), TransactionNumber("1")),
+                                                     BitcoinAddress("0"), Quantity(3), Price(2), Timestamp(4.0))
+        self.bitcoin_payment = BitcoinPayment(MessageId(TraderId("0"), MessageNumber("1")),
+                                              TransactionId(TraderId("0"), TransactionNumber("1")), BitcoinAddress("1"),
+                                              Price(10),
                                               Timestamp(4.0))
 
     def test_get_master_members(self):
@@ -235,12 +236,6 @@ class CommunityTestSuite(unittest.TestCase):
         self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
         self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
         self.market_community.send_multi_chain_payment(self.multi_chain_payment)
-
-    def test_send_end_transaction(self):  # TODO: Add assertions to test
-        # Test for send end transaction
-        self.market_community.update_ip(TraderId('0'), ('2.2.2.2', 2))
-        self.market_community.update_ip(TraderId('1'), ('3.3.3.3', 3))
-        self.market_community.send_end_transaction(self.end_transaction)
 
     def tearDown(self):
         # Closing and unlocking dispersy database for other tests in test suite
