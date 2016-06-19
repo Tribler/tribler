@@ -22,7 +22,7 @@ from core.tick import Ask, Bid, Tick
 from core.timeout import Timeout
 from core.timestamp import Timestamp
 from core.trade import Trade, ProposedTrade, AcceptedTrade, DeclinedTrade, CounterTrade
-from core.transaction import StartTransaction, TransactionId
+from core.transaction import StartTransaction, TransactionId, Transaction
 from core.transaction_manager import TransactionManager
 from core.transaction_repository import MemoryTransactionRepository
 from payload import OfferPayload, TradePayload, AcceptedTradePayload, DeclinedTradePayload, StartTransactionPayload, \
@@ -279,7 +279,7 @@ class MarketCommunity(Community):
 
         self._logger.debug("Ask send with id: %s for order with id: %s", str(ask.message_id), str(ask.order_id))
 
-        destination, payload = ask.to_network()
+        payload = ask.to_network()
 
         # Add ttl and the local wan address
         payload += (Ttl.default(), self.dispersy.wan_address[0], self.dispersy.wan_address[1])
@@ -370,7 +370,7 @@ class MarketCommunity(Community):
 
         self._logger.debug("Bid send with id: %s for order with id: %s", str(bid.message_id), str(bid.order_id))
 
-        destination, payload = bid.to_network()
+        payload = bid.to_network()
 
         # Add ttl and the local wan address
         payload += (Ttl.default(), self.dispersy.wan_address[0], self.dispersy.wan_address[1])
@@ -420,7 +420,7 @@ class MarketCommunity(Community):
         destination, payload = proposed_trade.to_network()
 
         # Lookup the remote address of the peer with the pubkey
-        candidate = Candidate(self.lookup_ip(destination[0]), False)
+        candidate = Candidate(self.lookup_ip(destination), False)
 
         meta = self.get_meta_message(u"proposed-trade")
         message = meta.impl(
@@ -531,7 +531,7 @@ class MarketCommunity(Community):
         destination, payload = declined_trade.to_network()
 
         # Lookup the remote address of the peer with the pubkey
-        candidate = Candidate(self.lookup_ip(destination[0]), False)
+        candidate = Candidate(self.lookup_ip(destination), False)
 
         meta = self.get_meta_message(u"declined-trade")
         message = meta.impl(
@@ -566,7 +566,7 @@ class MarketCommunity(Community):
         destination, payload = counter_trade.to_network()
 
         # Lookup the remote address of the peer with the pubkey
-        candidate = Candidate(self.lookup_ip(destination[0]), False)
+        candidate = Candidate(self.lookup_ip(destination), False)
 
         meta = self.get_meta_message(u"counter-trade")
         message = meta.impl(
@@ -631,17 +631,16 @@ class MarketCommunity(Community):
 
             start_transaction = StartTransaction(self.order_book.message_repository.next_identity(),
                                                  transaction.transaction_id, accepted_trade.recipient_order_id,
-                                                 transaction.trader_id_partner, accepted_trade.message_id,
-                                                 Timestamp.now())
-            self.send_start_transaction(start_transaction)
+                                                 accepted_trade.message_id, Timestamp.now())
+            self.send_start_transaction(transaction, start_transaction)
 
     # Start transaction
-    def send_start_transaction(self, start_transaction):
+    def send_start_transaction(self, transaction, start_transaction):
         assert isinstance(start_transaction, StartTransaction), type(start_transaction)
-        destination, payload = start_transaction.to_network()
+        payload = start_transaction.to_network()
 
         # Lookup the remote address of the peer with the pubkey
-        candidate = Candidate(self.lookup_ip(destination[0]), False)
+        candidate = Candidate(self.lookup_ip(transaction.partner_trader_id), False)
 
         meta = self.get_meta_message(u"start-transaction")
         message = meta.impl(
@@ -674,8 +673,10 @@ class MarketCommunity(Community):
 
     # Continue transaction
     def send_continue_transaction(self, transaction):
+        assert isinstance(transaction, Transaction), type(transaction)
+
         # Lookup the remote address of the peer with the pubkey
-        candidate = Candidate(self.lookup_ip(transaction.trader_id_partner), False)
+        candidate = Candidate(self.lookup_ip(transaction.partner_trader_id), False)
 
         message_id = self.order_book.message_repository.next_identity()
 
@@ -689,9 +690,6 @@ class MarketCommunity(Community):
                 message_id.message_number,
                 transaction.transaction_id.trader_id,
                 transaction.transaction_id.transaction_number,
-                transaction.order.trader_d,
-                transaction.order.order_number,
-                transaction.trade.message_number,
                 Timestamp.now(),
             )
         )
@@ -706,15 +704,15 @@ class MarketCommunity(Community):
             if transaction:  # Send multi chain payment
                 message_id = self.order_book.message_repository.next_identity()
                 multi_chain_payment = self.transaction_manager.create_multi_chain_payment(message_id, transaction)
-                self.send_multi_chain_payment(multi_chain_payment)
+                self.send_multi_chain_payment(transaction, multi_chain_payment)
 
     # Multi chain payment
-    def send_multi_chain_payment(self, multi_chain_payment):
+    def send_multi_chain_payment(self, transaction, multi_chain_payment):
         assert isinstance(multi_chain_payment, MultiChainPayment), type(multi_chain_payment)
-        destination, payload = multi_chain_payment.to_network()
+        payload = multi_chain_payment.to_network()
 
         # Lookup the remote address of the peer with the pubkey
-        candidate = Candidate(self.lookup_ip(destination[0]), False)
+        candidate = Candidate(self.lookup_ip(transaction.partner_trader_id), False)
 
         try:
             self.multi_chain_payment_provider.transfer_multi_chain(candidate, multi_chain_payment.transferor_quantity)
@@ -743,15 +741,15 @@ class MarketCommunity(Community):
                 message_id = self.order_book.message_repository.next_identity()
                 bitcoin_payment = self.transaction_manager.create_bitcoin_payment(message_id, transaction,
                                                                                   multi_chain_payment)
-                self.send_bitcoin_payment(bitcoin_payment)
+                self.send_bitcoin_payment(transaction, bitcoin_payment)
 
     # Bitcoin payment
-    def send_bitcoin_payment(self, bitcoin_payment):
+    def send_bitcoin_payment(self, transaction, bitcoin_payment):
         assert isinstance(bitcoin_payment, BitcoinPayment), type(bitcoin_payment)
-        destination, payload = bitcoin_payment.to_network()
+        payload = bitcoin_payment.to_network()
 
         # Lookup the remote address of the peer with the pubkey
-        candidate = Candidate(self.lookup_ip(destination[0]), False)
+        candidate = Candidate(self.lookup_ip(transaction.partner_trader_id), False)
 
         try:
             self.bitcoin_payment_provider.transfer_bitcoin(bitcoin_payment.bitcoin_address, bitcoin_payment.price)
@@ -787,7 +785,7 @@ class MarketCommunity(Community):
     # End transaction
     def send_end_transaction(self, transaction):
         # Lookup the remote address of the peer with the pubkey
-        candidate = Candidate(self.lookup_ip(transaction.trader_id_partner), False)
+        candidate = Candidate(self.lookup_ip(transaction.partner_trader_id), False)
 
         message_id = self.order_book.message_repository.next_identity()
 

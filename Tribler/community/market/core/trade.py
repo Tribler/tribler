@@ -190,7 +190,7 @@ class ProposedTrade(Trade):
         """
         Restore a proposed trade from the network
 
-        :param data: object with (trader_id, message_number, order_number, recipient_trader_id, recipient_order_number, price, quantity, timestamp) properties
+        :param data: TradePayload
         :return: Restored proposed trade
         :rtype: ProposedTrade
         """
@@ -231,11 +231,8 @@ class ProposedTrade(Trade):
     def to_network(self):
         """
         Return network representation of a proposed trade
-
-        :return: tuple(<destination public identifiers>),tuple(<trader_id>, <message_number>, <order_number>, <recipient_trader_id>, <recipient_order_number>, <price>, <quantity>, <timestamp>)
-        :rtype: tuple, tuple
         """
-        return tuple([self._recipient_order_id.trader_id]), (
+        return self._recipient_order_id.trader_id, (
             self._order_id.trader_id,
             self._message_id.message_number,
             self._order_id.order_number,
@@ -284,7 +281,7 @@ class AcceptedTrade(Trade):
         """
         Restore an accepted trade from the network
 
-        :param data: object with (trader_id, message_number, order_number, recipient_trader_id, recipient_order_number, price, quantity, timestamp) properties
+        :param data: AcceptedTradePayload
         :return: Restored accepted trade
         :rtype: AcceptedTrade
         """
@@ -325,11 +322,8 @@ class AcceptedTrade(Trade):
     def to_network(self):
         """
         Return network representation of an accepted trade
-
-        :return: tuple(<destination public identifiers>),tuple(<trader_id>, <message_number>, <order_number>, <recipient_trader_id>, <recipient_order_number>, <price>, <quantity>, <timestamp>)
-        :rtype: tuple, tuple
         """
-        return tuple([self._recipient_order_id.trader_id]), (
+        return self._recipient_order_id.trader_id, (
             self._order_id.trader_id,
             self._message_id.message_number,
             self._order_id.order_number,
@@ -372,7 +366,7 @@ class CounterTrade(ProposedTrade):
         """
         Restore a counter trade from the network
 
-        :param data: object with (trader_id, message_number, order_number, recipient_trader_id, recipient_order_number, price, quantity, timestamp) properties
+        :param data: TradePayload
         :return: Restored counter trade
         :rtype: CounterTrade
         """
@@ -397,11 +391,8 @@ class CounterTrade(ProposedTrade):
     def to_network(self):
         """
         Return network representation of a counter trade
-
-        :return: tuple(<destination public identifiers>),tuple(<trader_id>, <message_number>, <order_number>, <recipient_trader_id>, <recipient_order_number>, <price>, <quantity>, <timestamp>)
-        :rtype: tuple, tuple
         """
-        return tuple([self._recipient_order_id.trader_id]), (
+        return self._recipient_order_id.trader_id, (
             self._order_id.trader_id,
             self._message_id.message_number,
             self._order_id.order_number,
@@ -441,7 +432,7 @@ class DeclinedTrade(Trade):
         """
         Restore a declined trade from the network
 
-        :param data: object with (trader_id, message_number, order_number, recipient_trader_id, recipient_order_number, timestamp) properties
+        :param data: DeclinedTradePayload
         :return: Restored declined trade
         :rtype: DeclinedTrade
         """
@@ -462,11 +453,8 @@ class DeclinedTrade(Trade):
     def to_network(self):
         """
         Return network representation of a declined trade
-
-        :return: tuple(<destination public identifiers>),tuple(<trader_id>, <message_number>, <order_number>, <recipient_trader_id>, <recipient_order_number>, <timestamp>)
-        :rtype: tuple, tuple
         """
-        return tuple([self._recipient_order_id.trader_id]), (
+        return self._recipient_order_id.trader_id, (
             self._order_id.trader_id,
             self._message_id.message_number,
             self._order_id.order_number,

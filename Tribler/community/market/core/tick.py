@@ -118,11 +118,8 @@ class Tick(Message):
     def to_network(self):
         """
         Return network representation of the tick
-
-        :return: tuple(<destination public identifiers>),tuple(<trader_id>, <message_number>, <price>, <quantity>, <timeout>, <timestamp>)
-        :rtype: tuple, tuple
         """
-        return tuple(), (
+        return (
             self._order_id.trader_id,
             self._message_id.message_number,
             self._order_id.order_number,
@@ -158,7 +155,7 @@ class Ask(Tick):
         """
         Restore an ask from the network
 
-        :param data: object with (trader_id, message_number, order_number, price, quantity, timeout, timestamp) properties
+        :param data: OfferPayload
         :return: Restored ask
         :rtype: Ask
         """
@@ -205,7 +202,7 @@ class Bid(Tick):
         """
         Restore a bid from the network
 
-        :param data: object with (trader_id, message_number, order_number, price, quantity, timeout, timestamp) properties
+        :param data: OfferPayload
         :return: Restored bid
         :rtype: Bid
         """

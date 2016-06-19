@@ -42,7 +42,7 @@ class MultiChainPayment(Message):
         """
         Restore a multi chain payment from the network
 
-        :param data: object with (message_id, transaction_number, bitcoin_address, transferor_quantity, transferee_quantity, timestamp) properties
+        :param data: MultiChainPaymentPayload
         :return: Restored multi chain payment
         :rtype: Multi chain payment
         """
@@ -67,11 +67,8 @@ class MultiChainPayment(Message):
     def to_network(self):
         """
         Return network representation of the multi chain payment
-
-        :return: tuple(<destination public identifiers>),tuple(<message_id>, <transaction_number>, <bitcoin_address>, <transferor_quantity>, <transferee_quantity>, <timestamp>)
-        :rtype: tuple, tuple
         """
-        return tuple(), (
+        return (
             self._message_id.trader_id,
             self._message_id.message_number,
             self._transaction_id.trader_id,
@@ -112,7 +109,7 @@ class BitcoinPayment(Message):
         """
         Restore a bitcoin payment from the network
 
-        :param data: object with (message_id, transaction_number, quantity, timestamp) properties
+        :param data: BitcoinPaymentPayload
         :return: Restored bitcoin payment
         :rtype: Bitcoin payment
         """
@@ -135,11 +132,8 @@ class BitcoinPayment(Message):
     def to_network(self):
         """
         Return network representation of the bitcoin payment
-
-        :return: tuple(<destination public identifiers>),tuple(<message_id>, <transaction_number>, <quantity>, <timestamp>)
-        :rtype: tuple, tuple
         """
-        return tuple(), (
+        return (
             self._message_id.trader_id,
             self._message_id.message_number,
             self._transaction_id.trader_id,

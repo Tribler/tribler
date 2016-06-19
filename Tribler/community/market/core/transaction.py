@@ -99,16 +99,16 @@ class TransactionId(object):
 class Transaction(object):
     """Class for representing a transaction between two nodes"""
 
-    def __init__(self, transaction_id, trader_id_partner, price, quantity, timeout, timestamp):
+    def __init__(self, transaction_id, partner_trader_id, price, quantity, timeout, timestamp):
         """
         :param transaction_id: An transaction id to identify the order
-        :param trader_id_partner: The trader id from the peer that is traded with
+        :param partner_trader_id: The trader id from the peer that is traded with
         :param price: A price to indicate for which amount to sell or buy
         :param quantity: A quantity to indicate how much to sell or buy
         :param timeout: A timeout when this transaction is going to expire
         :param timestamp: A timestamp when the transaction was created
         :type transaction_id: TransactionId
-        :type trader_id_partner: TraderId
+        :type partner_trader_id: TraderId
         :type price: Price
         :type quantity: Quantity
         :type timeout: Timeout
@@ -117,14 +117,14 @@ class Transaction(object):
         super(Transaction, self).__init__()
 
         assert isinstance(transaction_id, TransactionId), type(transaction_id)
-        assert isinstance(trader_id_partner, TraderId), type(trader_id_partner)
+        assert isinstance(partner_trader_id, TraderId), type(partner_trader_id)
         assert isinstance(price, Price), type(price)
         assert isinstance(quantity, Quantity), type(quantity)
         assert isinstance(timeout, Timeout), type(timeout)
         assert isinstance(timestamp, Timestamp), type(timestamp)
 
         self._transaction_id = transaction_id
-        self._trader_id_partner = trader_id_partner
+        self._partner_trader_id = partner_trader_id
         self._price = price
         self._quantity = quantity
         self._timeout = timeout
@@ -161,11 +161,11 @@ class Transaction(object):
         return self._transaction_id
 
     @property
-    def trader_id_partner(self):
+    def partner_trader_id(self):
         """
         :rtype: TraderId
         """
-        return self._trader_id_partner
+        return self._partner_trader_id
 
     @property
     def price(self):
@@ -217,17 +217,15 @@ class Transaction(object):
 class StartTransaction(Message):
     """Class for representing a message to indicate the start of a payment set"""
 
-    def __init__(self, message_id, transaction_id, order_id, trader_id_partner, accepted_trade_message_id, timestamp):
+    def __init__(self, message_id, transaction_id, order_id, accepted_trade_message_id, timestamp):
         """
         :param message_id: A message id to identify the message
         :param transaction_id: A transaction id to identify the transaction
         :param order_id: An order id to identify the order
-        :param trader_id_partner: The trader id from the peer that is traded with
         :param timestamp: A timestamp when the transaction was created
         :type message_id: MessageId
         :type transaction_id: TransactionId
         :type order_id: OrderId
-        :type trader_id_partner: TraderId
         :type timestamp: Timestamp
         """
         super(StartTransaction, self).__init__(message_id, timestamp)
@@ -237,7 +235,6 @@ class StartTransaction(Message):
 
         self._transaction_id = transaction_id
         self._order_id = order_id
-        self._trader_id_partner = trader_id_partner
         self._accepted_trade_message_id = accepted_trade_message_id
 
     @property
@@ -266,7 +263,7 @@ class StartTransaction(Message):
         """
         Restore a start transaction message from the network
 
-        :param data: object with (message_id, transaction_id, timestamp) properties
+        :param data: StartTransactionPayload
         :return: Restored start transaction
         :rtype: StartTransaction
         """
@@ -283,7 +280,6 @@ class StartTransaction(Message):
             MessageId(data.trader_id, data.message_number),
             TransactionId(data.transaction_trader_id, data.transaction_number),
             OrderId(data.order_trader_id, data.order_number),
-            None,
             MessageId(data.trader_id, data.trade_message_number),
             data.timestamp
         )
@@ -291,11 +287,8 @@ class StartTransaction(Message):
     def to_network(self):
         """
         Return network representation of the start transaction message
-
-        :return: tuple(<destination public identifiers>),tuple(<message_id>, <transaction_id>, <timestamp>)
-        :rtype: tuple, tuple
         """
-        return tuple([self._trader_id_partner]), (
+        return (
             self._message_id.trader_id,
             self._message_id.message_number,
             self._transaction_id.trader_id,
