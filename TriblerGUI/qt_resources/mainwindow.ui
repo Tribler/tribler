@@ -414,7 +414,8 @@ background-color: #e67300;
            </property>
            <property name="icon">
             <iconset>
-             <normaloff>../images/home.png</normaloff>../images/home.png</iconset>
+             <normaloff>../images/home.png</normaloff>
+             <disabledon>../images/home.png</disabledon>../images/home.png</iconset>
            </property>
            <property name="iconSize">
             <size>
@@ -476,7 +477,8 @@ background-color: #e67300;
            </property>
            <property name="icon">
             <iconset>
-             <normaloff>../images/share.png</normaloff>../images/share.png</iconset>
+             <normaloff>../images/share.png</normaloff>
+             <disabledon>../images/share.png</disabledon>../images/share.png</iconset>
            </property>
            <property name="iconSize">
             <size>
@@ -532,7 +534,8 @@ background-color: #e67300;
            </property>
            <property name="icon">
             <iconset>
-             <normaloff>../images/subscribed.png</normaloff>../images/subscribed.png</iconset>
+             <normaloff>../images/subscribed.png</normaloff>
+             <disabledon>../images/subscribed.png</disabledon>../images/subscribed.png</iconset>
            </property>
            <property name="iconSize">
             <size>
@@ -588,7 +591,8 @@ background-color: #e67300;
            </property>
            <property name="icon">
             <iconset>
-             <normaloff>../images/downloads.png</normaloff>../images/downloads.png</iconset>
+             <normaloff>../images/downloads.png</normaloff>
+             <disabledon>../images/downloads.png</disabledon>../images/downloads.png</iconset>
            </property>
            <property name="iconSize">
             <size>
@@ -644,7 +648,8 @@ background-color: #e67300;
            </property>
            <property name="icon">
             <iconset>
-             <normaloff>../images/play.png</normaloff>../images/play.png</iconset>
+             <normaloff>../images/play.png</normaloff>
+             <disabledon>../images/play.png</disabledon>../images/play.png</iconset>
            </property>
            <property name="iconSize">
             <size>
@@ -700,7 +705,8 @@ background-color: #e67300;
            </property>
            <property name="icon">
             <iconset>
-             <normaloff>../images/gear.png</normaloff>../images/gear.png</iconset>
+             <normaloff>../images/gear.png</normaloff>
+             <disabledon>../images/gear.png</disabledon>../images/gear.png</iconset>
            </property>
            <property name="iconSize">
             <size>
@@ -756,7 +762,8 @@ background-color: #e67300;
            </property>
            <property name="icon">
             <iconset>
-             <normaloff>../images/debug.png</normaloff>../images/debug.png</iconset>
+             <normaloff>../images/debug.png</normaloff>
+             <disabledon>../images/debug.png</disabledon>../images/debug.png</iconset>
            </property>
            <property name="iconSize">
             <size>
@@ -866,7 +873,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>1</number>
+         <number>7</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -1686,7 +1693,7 @@ font-size: 14px;
                  <number>1</number>
                 </property>
                 <property name="currentIndex">
-                 <number>4</number>
+                 <number>5</number>
                 </property>
                 <widget class="QWidget" name="edit_channel_details_overview_page">
                  <layout class="QVBoxLayout" name="verticalLayout">

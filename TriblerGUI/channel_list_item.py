@@ -1,12 +1,11 @@
 # coding=utf-8
-from PyQt5 import uic
 from PyQt5.QtCore import QTimer, QPropertyAnimation
 from PyQt5.QtWidgets import QWidget, QGraphicsOpacityEffect
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
-from TriblerGUI.utilities import get_ui_file_path
+from TriblerGUI.tribler_window import fc_channel_list_item
 
 
-class ChannelListItem(QWidget):
+class ChannelListItem(QWidget, fc_channel_list_item):
     """
     This class is responsible for managing the item in the list of channels.
     The list item supports a fade-in effect, which can be enabled with the should_fade parameter in the constructor.
@@ -15,7 +14,7 @@ class ChannelListItem(QWidget):
     def __init__(self, parent, channel, fade_delay=0, should_fade=False):
         super(QWidget, self).__init__(parent)
 
-        uic.loadUi(get_ui_file_path('channel_list_item.ui'), self)
+        self.setupUi(self)
 
         self.channel_info = channel
         self.channel_name.setText(channel["name"])

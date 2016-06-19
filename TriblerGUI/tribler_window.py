@@ -4,11 +4,11 @@ import sys
 import traceback
 
 from PyQt5 import uic
-from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel
+from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QSettings, QPoint, QCoreApplication, QSize
 from PyQt5.QtGui import QIcon
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QMainWindow, QListView, QLineEdit, QTreeWidget, QSystemTrayIcon, QAction, QFileDialog, \
-    QCompleter
+    QCompleter, QApplication
 
 from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 
@@ -22,9 +22,17 @@ from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import get_ui_file_path, get_image_path
 
 
+# Pre-load form UI classes
+fc_channel_torrent_list_item, _ = uic.loadUiType(get_ui_file_path('channel_torrent_list_item.ui'))
+fc_channel_list_item, _ = uic.loadUiType(get_ui_file_path('channel_list_item.ui'))
+fc_playlist_list_item, _ = uic.loadUiType(get_ui_file_path('playlist_list_item.ui'))
+fc_home_recommended_item, _ = uic.loadUiType(get_ui_file_path('home_recommended_item.ui'))
+
+
 class TriblerWindow(QMainWindow):
 
     resize_event = pyqtSignal()
+    received_search_completions = pyqtSignal(object)
 
     def on_exception(self, *exc_info):
         self.setHidden(True)
@@ -46,6 +54,11 @@ class TriblerWindow(QMainWindow):
         sys.excepthook = self.on_exception
 
         uic.loadUi(get_ui_file_path('mainwindow.ui'), self)
+
+        QCoreApplication.setOrganizationName("TUDelft")
+        QCoreApplication.setApplicationName("Tribler")
+
+        self.read_settings()
 
         # Remove the focus rect on OS X
         [widget.setAttribute(Qt.WA_MacShowFocusRect, 0) for widget in self.findChildren(QLineEdit) +
@@ -90,11 +103,21 @@ class TriblerWindow(QMainWindow):
 
         self.show()
 
+    def read_settings(self):
+        self.settings = QSettings()
+        center = QApplication.desktop().availableGeometry(self).center()
+        pos = self.settings.value("pos", QPoint(center.x() - self.width() * 0.5, center.y() - self.height() * 0.5))
+        size = self.settings.value("size", self.size())
+
+        self.move(pos)
+        self.resize(size)
+
     def on_search_text_change(self, text):
         self.search_suggestion_mgr = TriblerRequestManager()
-        self.search_suggestion_mgr.perform_request("search/completions?q=%s" % text, self.received_search_completions)
+        self.search_suggestion_mgr.perform_request("search/completions?q=%s" % text, self.on_received_search_completions)
 
-    def received_search_completions(self, completions):
+    def on_received_search_completions(self, completions):
+        self.received_search_completions.emit(completions)
         self.search_completion_model.setStringList(completions["completions"])
 
     def received_variables(self, variables):
@@ -171,7 +194,9 @@ class TriblerWindow(QMainWindow):
     def deselect_all_menu_buttons(self, except_select=None):
         for button in self.menu_buttons:
             if button == except_select:
+                button.setEnabled(False)
                 continue
+            button.setEnabled(True)
             button.setChecked(False)
 
     def clicked_menu_button_home(self):
@@ -250,3 +275,17 @@ class TriblerWindow(QMainWindow):
             self.home_page_table_view.setRowHeight(i, 200)
 
         self.resize_event.emit()
+
+    def exit_full_screen(self):
+        self.top_bar.show()
+        self.left_menu.show()
+        self.statusBar.show()
+        self.showNormal()
+
+    def closeEvent(self, close_event):
+        self.settings.setValue("pos", self.pos())
+        self.settings.setValue("size", self.size())
+
+    def keyReleaseEvent(self, event):
+        if event.key() == Qt.Key_Escape and self.isFullScreen():
+            self.exit_full_screen()

@@ -1,9 +1,12 @@
 from PyQt5 import uic
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
-from TriblerGUI.utilities import get_ui_file_path
+
+from TriblerGUI.tribler_window import fc_playlist_list_item
+from TriblerGUI.utilities import get_ui_file_path, get_image_path
 
 
-class PlaylistListItem(QWidget):
+class PlaylistListItem(QWidget, fc_playlist_list_item):
     """
     This class is responsible for managing the playlist item widget.
     """
@@ -11,9 +14,12 @@ class PlaylistListItem(QWidget):
     def __init__(self, parent, playlist, show_controls=False, on_remove_clicked=None, on_edit_clicked=None):
         super(QWidget, self).__init__(parent)
 
+        self.setupUi(self)
+
         self.playlist_info = playlist
 
-        uic.loadUi(get_ui_file_path('playlist_list_item.ui'), self)
+        self.edit_playlist_button.setIcon(QIcon(get_image_path("edit_white.png")))
+        self.remove_playlist_button.setIcon(QIcon(get_image_path("delete.png")))
 
         self.playlist_name.setText(playlist["name"])
         self.playlist_num_items.setText("%d items" % len(playlist["torrents"]))
