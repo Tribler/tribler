@@ -2,13 +2,18 @@
 import os
 
 import sys
-from PyQt5.QtWidgets import QApplication
 
+from TriblerGUI.single_application import QtSingleApplication
 from TriblerGUI.tribler_window import TriblerWindow
 
 os.environ['VLC_PLUGIN_PATH'] = '/Applications/VLC.app/Contents/MacOS/plugins'
 
-app = QApplication(sys.argv)
+app = QtSingleApplication("triblerapp2", sys.argv)
+
+if app.isRunning():
+    sys.exit(1)
+
 window = TriblerWindow()
 window.setWindowTitle("Tribler")
+app.setActivationWindow(window)
 sys.exit(app.exec_())
