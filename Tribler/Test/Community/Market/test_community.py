@@ -33,10 +33,10 @@ class CommunityTestSuite(unittest.TestCase):
         registerAsIOThread()
 
         # Object creation
-        endpoint = ManualEnpoint(0)
-        self.dispersy = Dispersy(endpoint, unicode("dispersy_temporary"))
+        self.endpoint = ManualEnpoint(0)
+        self.dispersy = Dispersy(self.endpoint, unicode("dispersy_temporary"))
         self.dispersy._database.open()
-        endpoint.open(self.dispersy)
+        self.endpoint.open(self.dispersy)
 
         # Faking wan address vote
         self.dispersy.wan_address_vote(('1.1.1.1', 1), Candidate(('1.1.1.1', 1), False))
@@ -240,6 +240,7 @@ class CommunityTestSuite(unittest.TestCase):
     def tearDown(self):
         # Closing and unlocking dispersy database for other tests in test suite
         self.dispersy._database.close()
+        self.endpoint.close()
 
 
 if __name__ == '__main__':
