@@ -22,6 +22,10 @@ class MultiChainPayment(Message):
         self._transferee_price = transferee_price
 
     @property
+    def transaction_id(self):
+        return self._transaction_id
+
+    @property
     def bitcoin_address(self):
         return self._bitcoin_address
 
@@ -123,8 +127,8 @@ class BitcoinPayment(Message):
         return cls(
             MessageId(data.trader_id, data.message_number),
             TransactionId(data.transaction_trader_id, data.transaction_number),
-            data.price,
             data.bitcoin_address,
+            data.price,
             data.timestamp,
         )
 
