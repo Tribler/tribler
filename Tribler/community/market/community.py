@@ -488,8 +488,8 @@ class MarketCommunity(Community):
                 if order:
                     try:
                         order.release_quantity_for_tick(accepted_trade.order_id)
-
-                        order.total_quantity -= accepted_trade.quantity
+                        
+                        order.reserve_quantity_for_tick(accepted_trade.order_id, accepted_trade.quantity)
 
                         if order.is_ask():
                             if self.order_book.bid_exists(accepted_trade.order_id):
@@ -606,7 +606,7 @@ class MarketCommunity(Community):
 
         self.order_book.insert_trade(accepted_trade)
 
-        order.total_quantity -= proposed_trade.quantity
+        order.reserve_quantity_for_tick(proposed_trade.order_id, proposed_trade.quantity)
 
         if order.is_ask():
             if self.order_book.bid_exists(proposed_trade.order_id):
@@ -661,7 +661,8 @@ class MarketCommunity(Community):
 
             if order:
                 transaction = self.transaction_manager.create_from_start_transaction(start_transaction, order.price,
-                                                                                     order.quantity, order.timeout)
+                                                                                     order.total_quantity,
+                                                                                     order.timeout)
                 order.add_transaction(start_transaction.accepted_trade_message_id, transaction)
 
                 if order.is_ask():  # Send multi chain payment
@@ -688,6 +689,9 @@ class MarketCommunity(Community):
                 message_id.message_number,
                 transaction.transaction_id.trader_id,
                 transaction.transaction_id.transaction_number,
+                transaction.order.trader_d,
+                transaction.order.order_number,
+                transaction.trade.message_number,
                 Timestamp.now(),
             )
         )
