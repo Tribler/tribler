@@ -14,11 +14,9 @@ from transaction_repository import TransactionRepository
 class TransactionManager(object):
     """Manager for retrieving and creating transactions"""
 
-    def __init__(self, transaction_repository, multi_chain_community, bitcoin_payment_provider):
+    def __init__(self, transaction_repository):
         """
         :type transaction_repository: TransactionRepository
-        :type multi_chain_community: MultiChainCommunity
-        :type bitcoin_payment_provider: BitcoinPaymentProvider
         """
         super(TransactionManager, self).__init__()
 
