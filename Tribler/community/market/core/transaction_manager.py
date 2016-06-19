@@ -1,6 +1,7 @@
 import logging
 
 from payment import MultiChainPayment, BitcoinPayment
+from bitcoin_address import BitcoinAddress
 from price import Price
 from quantity import Quantity
 from timeout import Timeout
@@ -64,7 +65,8 @@ class TransactionManager(object):
 
     def create_multi_chain_payment(self, message_id, transaction):
         payment = transaction.next_payment()
-        multi_chain_payment = MultiChainPayment(message_id, transaction.transaction_id, '', payment[0], payment[1],
+        multi_chain_payment = MultiChainPayment(message_id, transaction.transaction_id, BitcoinAddress(''), payment[0],
+                                                payment[1],
                                                 Timestamp.now())
         transaction.add_payment(multi_chain_payment)
         self.transaction_repository.update(transaction)
