@@ -130,7 +130,7 @@ class MarketConversion(BinaryConversion):
 
     def _decode_start_transaction(self, placeholder, offset, data):
         return self._decode_payload(placeholder, offset, data,
-                                    [TraderId, MessageNumber, TransactionId, TransactionNumber, TraderId, OrderNumber,
+                                    [TraderId, MessageNumber, TraderId, TransactionNumber, TraderId, OrderNumber,
                                      MessageNumber, Timestamp])
 
     def _encode_transaction(self, message):
