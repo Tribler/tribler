@@ -1,6 +1,6 @@
 # coding=utf-8
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QLabel, QStatusBar, QFrame
+from PyQt5.QtWidgets import QLabel, QStatusBar
 from TriblerGUI.utilities import format_speed
 
 
@@ -14,7 +14,6 @@ class TriblerStatusBar(QStatusBar):
 
         self.speed_label = QLabel(self)
         self.speed_label.setStyleSheet("color: #eee")
-        self.speed_label.setFrameShadow(QFrame.NoFrame)
         self.set_speeds(0, 0)
         self.speed_label.setAlignment(Qt.AlignRight)
         self.addWidget(self.speed_label, 1)
