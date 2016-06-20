@@ -38,7 +38,6 @@ class EventRequestManager(QNetworkAccessManager):
         self.current_event_string += data
         if self.current_event_string[-1] == '\n':
             for event in self.current_event_string.split('\n'):
-                print event
                 if len(event) == 0:
                     continue
                 json_dict = json.loads(str(event))

@@ -293,9 +293,13 @@ class TriblerWindow(QMainWindow):
         self.showNormal()
 
     def closeEvent(self, close_event):
-        self.settings.setValue("pos", self.pos())
-        self.settings.setValue("size", self.size())
-        self.core_manager.stop()
+        if not self.core_manager.shutting_down:
+            self.settings.setValue("pos", self.pos())
+            self.settings.setValue("size", self.size())
+            self.core_manager.stop()
+            self.core_manager.shutting_down = True
+            self.downloads_page.stop_loading_downloads()
+        close_event.ignore()
 
     def keyReleaseEvent(self, event):
         if event.key() == Qt.Key_Escape and self.isFullScreen():

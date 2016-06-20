@@ -10,3 +10,6 @@ class LoadingListItem(QWidget):
         super(QWidget, self).__init__(parent)
 
         uic.loadUi(get_ui_file_path('loading_list_item.ui'), self)
+
+        if label_text is not None:
+            self.textlabel.setText(label_text)

@@ -1,5 +1,6 @@
 import sys
 from PyQt5.QtCore import QProcess, QProcessEnvironment
+from PyQt5.QtWidgets import QApplication
 
 from TriblerGUI.event_request_manager import EventRequestManager
 
@@ -8,10 +9,13 @@ class CoreManager(object):
 
     def __init__(self):
         self.core_process = QProcess()
-
-    def start(self):
         self.core_process.readyReadStandardOutput.connect(self.on_ready_read_stdout)
         self.core_process.readyReadStandardError.connect(self.on_ready_read_stderr)
+        self.core_process.finished.connect(self.on_finished)
+
+        self.shutting_down = False
+
+    def start(self):
         self.core_process.start("python scripts/start_core.py -n tribler")
 
         self.events_manager = EventRequestManager()
@@ -19,7 +23,6 @@ class CoreManager(object):
 
     def stop(self):
         self.core_process.terminate()
-        self.core_process.waitForFinished()
 
     def kill(self):
         self.core_process.kill()
@@ -30,3 +33,6 @@ class CoreManager(object):
     def on_ready_read_stderr(self):
         sys.stderr.write(self.core_process.readAllStandardError())
         sys.stderr.flush()
+
+    def on_finished(self):
+        QApplication.quit()
