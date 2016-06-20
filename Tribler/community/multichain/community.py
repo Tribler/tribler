@@ -11,6 +11,7 @@ import base64
 from twisted.internet.task import LoopingCall
 from Tribler.Core.Session import Session
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
+from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
 from Tribler.dispersy.authentication import DoubleMemberAuthentication, MemberAuthentication
 from Tribler.dispersy.resolution import PublicResolution
 from Tribler.dispersy.distribution import DirectDistribution
@@ -18,8 +19,6 @@ from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.message import Message
 from Tribler.dispersy.conversion import DefaultConversion
-from Tribler.community.tunnel.routing import Circuit, RelayRoute
-from Tribler.community.tunnel.tunnel_community import TunnelExitSocket
 from Tribler.community.multichain.payload import (SignaturePayload, CrawlRequestPayload, CrawlResponsePayload,
                                                   CrawlResumePayload)
 from Tribler.community.multichain.database import MultiChainDB, DatabaseBlock
@@ -42,9 +41,8 @@ class MultiChainCommunity(Community):
     def __init__(self, *args, **kwargs):
         super(MultiChainCommunity, self).__init__(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
-
-        from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
-        Session.get_instance().add_observer(self.on_tunnel_remove, NTFY_TUNNEL, [NTFY_REMOVE])
+        self.notifier = Session.get_instance().notifier
+        self.notifier.add_observer(self.on_tunnel_remove, NTFY_TUNNEL, [NTFY_REMOVE])
 
         self._private_key = self.my_member.private_key
         self._public_key = self.my_member.public_key
@@ -116,7 +114,7 @@ class MultiChainCommunity(Community):
                     CandidateDestination(),
                     CrawlResumePayload(),
                     self._generic_timeline_check,
-                    self.received_craw_resumption)]
+                    self.received_crawl_resumption)]
 
     def initiate_conversions(self):
         return [DefaultConversion(self), MultiChainConversion(self)]
@@ -292,7 +290,7 @@ class MultiChainCommunity(Community):
     def crawl_requested(self, candidate, sequence_number):
         blocks = self.persistence.get_blocks_since(self._public_key, sequence_number)
         if len(blocks) > 0:
-            self.logger.info("Crawler: Sending %d blocks", len(blocks))
+            self.logger.debug("Crawler: Sending %d blocks", len(blocks))
             messages = [self.get_meta_message(CRAWL_RESPONSE)
                             .impl(authentication=(self.my_member,),
                                   distribution=(self.claim_global_time(),),
@@ -316,19 +314,22 @@ class MultiChainCommunity(Community):
             self.logger.info("Crawler: No blocks")
 
     def received_crawl_response(self, messages):
-        self.logger.info("Crawler: Valid %d block response(s) received.", len(messages))
+        self.logger.debug("Crawler: Valid %d block response(s) received.", len(messages))
         for message in messages:
             requester = self.dispersy.get_member(public_key=message.payload.public_key_requester)
             responder = self.dispersy.get_member(public_key=message.payload.public_key_responder)
             block = DatabaseBlock.from_block_response_message(message, requester, responder)
             # Create the hash of the message
             if not self.persistence.contains(block.hash_requester):
-                self.logger.info("Crawler: Persisting id: %s" % base64.encodestring(block.hash_requester).strip())
+                self.logger.info("Crawler: Persisting sr: %s from ip (%s:%d)",
+                                 base64.encodestring(block.hash_requester).strip(),
+                                 message.candidate.sock_addr[0],
+                                 message.candidate.sock_addr[1])
                 self.persistence.add_block(block)
             else:
-                self.logger.info("Crawler: Received already known block")
+                self.logger.debug("Crawler: Received already known block")
 
-    def received_craw_resumption(self, messages):
+    def received_crawl_resumption(self, messages):
         self.logger.info("Crawler: Valid %s crawl resumptions received.", len(messages))
         for message in messages:
             self.send_crawl_request(message.candidate)
