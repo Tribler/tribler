@@ -28,11 +28,14 @@ QScrollBar:horizontal {
 border: none;
 height: 10px;
 }
+QScrollBar::sub-line:vertical, QScrollBar::add-line:vertical, QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+      border: none;
+      background: none;
+}
 QScrollBar::handle:vertical {
 background: #bbb;
 border-radius: 5px;
 }
-
 QScrollBar::handle:horizontal {
 background: #bbb;
 border-radius: 5px;
@@ -897,7 +900,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>9</number>
+         <number>0</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">

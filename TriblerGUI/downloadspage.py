@@ -43,6 +43,9 @@ class DownloadsPage(QWidget):
         self.downloads_timer.timeout.connect(self.load_downloads)
         self.downloads_timer.start(1000)
 
+    def stop_loading_downloads(self):
+        self.downloads_timer.stop()
+
     def load_downloads(self):
         self.request_mgr = TriblerRequestManager()
         self.request_mgr.perform_request("downloads", self.on_received_downloads)
