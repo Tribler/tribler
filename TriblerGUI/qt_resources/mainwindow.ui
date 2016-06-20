@@ -39,6 +39,9 @@ border-radius: 5px;
 }
 Line {
 background-color: red;
+}
+QStatusBar::item {
+border: 0px solid black;
 }</string>
   </property>
   <widget class="QWidget" name="central_widget">
@@ -7565,8 +7568,7 @@ font-size: 16px;</string>
   </widget>
   <widget class="TriblerStatusBar" name="statusBar">
    <property name="styleSheet">
-    <string notr="true">background-color: #555;
-border: none;</string>
+    <string notr="true">background-color: #555;</string>
    </property>
   </widget>
  </widget>
