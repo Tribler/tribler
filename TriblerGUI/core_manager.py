@@ -35,4 +35,5 @@ class CoreManager(object):
         sys.stderr.flush()
 
     def on_finished(self):
-        QApplication.quit()
+        if self.shutting_down:
+            QApplication.quit()

@@ -50,6 +50,8 @@ class EventRequestManager(QNetworkAccessManager):
                     self.tribler_started.emit()
                 elif json_dict["type"] == "new_version_available":
                     self.new_version_available.emit(json_dict["event"]["version"])
+                elif json_dict["type"] == "upgrader_tick":
+                    self.window().loading_page.set_loading_text(json_dict["event"]["text"])
             self.current_event_string = ""
 
     def connect(self):

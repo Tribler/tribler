@@ -24,7 +24,8 @@ class ChannelPage(QWidget):
 
         # initialize the page about a channel
         self.window().channel_name_label.setText(channel_info['name'])
-        self.window().channel_num_subs_label.setText(str(channel_info['votes']))
+        self.window().num_subs_label.setText(str(channel_info['votes']))
+        self.window().subscription_widget.initialize_with_channel(channel_info)
 
     def update_result_list(self):
         if self.loaded_channels and self.loaded_playlists:
