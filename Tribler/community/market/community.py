@@ -753,7 +753,7 @@ class MarketCommunity(Community):
                 if not transaction.is_payment_complete():
                     message_id = self.order_book.message_repository.next_identity()
                     multi_chain_payment = self.transaction_manager.create_multi_chain_payment(message_id, transaction)
-                    self.send_multi_chain_payment(multi_chain_payment)
+                    self.send_multi_chain_payment(transaction, multi_chain_payment)
                 else:
                     self.send_end_transaction(transaction)
 
