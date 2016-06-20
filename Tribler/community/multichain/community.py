@@ -184,15 +184,10 @@ class MultiChainCommunity(Community):
             self.logger.info("Received crawl request from node %s for sequence number %d",
                              message.candidate.get_member().public_key.encode("hex")[-8:],
                              message.payload.requested_sequence_number)
-            blocks = self.persistence.get_blocks_since(self.my_member.public_key,
-                                                       message.payload.requested_sequence_number)
+            blocks = self.persistence.crawl(self.my_member.public_key, message.payload.requested_sequence_number)
             count = len(blocks)
             for blk in blocks:
                 self.send_block(message.candidate, blk)
-                linked = self.persistence.get_linked(blk)
-                if linked is not None:
-                    self.send_block(message.candidate, linked)
-                    count += 1
             self.logger.info("Sent %d blocks", count)
 
     @blocking_call_on_reactor_thread

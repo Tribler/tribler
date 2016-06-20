@@ -72,17 +72,17 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         # Since there is a tie breaker for requests, exactly one of the nodes should send a signature request
         failures = 0
         try:
+            _, signature_request = node.receive_message(names=[HALF_BLOCK]).next()
+            node.give_message(signature_request, other)
             _, signature_request = other.receive_message(names=[HALF_BLOCK]).next()
             other.give_message(signature_request, node)
-            _, signature_response = node.receive_message(names=[HALF_BLOCK]).next()
-            node.give_message(signature_response, node)
         except StopIteration:
             failures += 1
         try:
+            _, signature_request = other.receive_message(names=[HALF_BLOCK]).next()
+            other.give_message(signature_request, node)
             _, signature_request = node.receive_message(names=[HALF_BLOCK]).next()
             node.give_message(signature_request, other)
-            _, signature_response = other.receive_message(names=[HALF_BLOCK]).next()
-            other.give_message(signature_response, other)
         except StopIteration:
             failures += 1
         self.assertEquals(failures, 1)
@@ -111,17 +111,17 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         # Since there is a tie breaker for requests, exactly one of the nodes should send a signature request
         failures = 0
         try:
+            _, signature_request = node.receive_message(names=[HALF_BLOCK]).next()
+            node.give_message(signature_request, other)
             _, signature_request = other.receive_message(names=[HALF_BLOCK]).next()
             other.give_message(signature_request, node)
-            _, signature_response = node.receive_message(names=[HALF_BLOCK]).next()
-            node.give_message(signature_response, node)
         except StopIteration:
             failures += 1
         try:
+            _, signature_request = other.receive_message(names=[HALF_BLOCK]).next()
+            other.give_message(signature_request, node)
             _, signature_request = node.receive_message(names=[HALF_BLOCK]).next()
             node.give_message(signature_request, other)
-            _, signature_response = other.receive_message(names=[HALF_BLOCK]).next()
-            other.give_message(signature_response, other)
         except StopIteration:
             failures += 1
         self.assertEquals(failures, 1)
@@ -151,17 +151,17 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         # Since there is a tie breaker for requests, exactly one of the nodes should send a signature request
         failures = 0
         try:
+            _, signature_request = node.receive_message(names=[HALF_BLOCK]).next()
+            node.give_message(signature_request, other)
             _, signature_request = other.receive_message(names=[HALF_BLOCK]).next()
             other.give_message(signature_request, node)
-            _, signature_response = node.receive_message(names=[HALF_BLOCK]).next()
-            node.give_message(signature_response, node)
         except StopIteration:
             failures += 1
         try:
+            _, signature_request = other.receive_message(names=[HALF_BLOCK]).next()
+            other.give_message(signature_request, node)
             _, signature_request = node.receive_message(names=[HALF_BLOCK]).next()
             node.give_message(signature_request, other)
-            _, signature_response = other.receive_message(names=[HALF_BLOCK]).next()
-            other.give_message(signature_response, other)
         except StopIteration:
             failures += 1
         self.assertEquals(failures, 1)
@@ -560,7 +560,7 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         other.send_identity(node)
         target_other = self._create_target(node, other)
         # Create a (halfsigned) block
-        node.call(node.community.publish_signature_request_message, target_other, 10, 5)
+        node.call(node.community.sign_block, target_other, 10, 5)
         # Get statistics
         statistics = node.community.get_statistics()
         assert isinstance(statistics, dict), type(statistics)

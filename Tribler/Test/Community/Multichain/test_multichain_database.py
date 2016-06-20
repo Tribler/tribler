@@ -180,7 +180,7 @@ class TestDatabase(MultiChainTestCase):
     def set_db_version(self, version):
         self.db.executescript(u"UPDATE option SET value = '%d' WHERE key = 'database_version';" % version)
         self.db.close(commit=True)
-        self.db = MultiChainDB(None, self.getStateDir())
+        self.db = MultiChainDB(self.getStateDir())
 
     @blocking_call_on_reactor_thread
     def test_database_upgrade(self):

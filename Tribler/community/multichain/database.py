@@ -42,6 +42,10 @@ DROP TABLE IF EXISTS multi_chain;
 DROP TABLE IF EXISTS option;
 """
 
+_columns = u"up, down, total_up, total_down, public_key, sequence_number, link_public_key, link_sequence_number, " \
+           u"previous_hash, signature, insert_time"
+_header = u"SELECT " + _columns + u" FROM multi_chain "
+
 
 class MultiChainDB(Database):
     """
@@ -80,6 +84,14 @@ class MultiChainDB(Database):
         """
         return self.get(block.public_key, block.sequence_number) is not None
 
+    def _get(self, query, params):
+        db_result = self.execute(_header + query, params).fetchone()
+        return MultiChainBlock(db_result) if db_result else None
+
+    def _getall(self, query, params):
+        db_result = self.execute(_header + query, params).fetchall()
+        return [MultiChainBlock(db_item) for db_item in db_result]
+
     def get(self, public_key, sequence_number):
         """
         Get a specific block for a given public key
@@ -87,54 +99,42 @@ class MultiChainDB(Database):
         :param sequence_number: The specific block to get
         :return: the block or None if it is not known
         """
-        db_query = u"SELECT up, down, total_up, total_down, public_key, sequence_number, link_public_key," \
-                   u"link_sequence_number, previous_hash, signature, insert_time " \
-                   u"FROM multi_chain WHERE public_key = ? AND sequence_number = ?"
-        db_result = self.execute(db_query, (buffer(public_key), sequence_number)).fetchone()
-        return MultiChainBlock(db_result) if db_result else None
+        return self._get(u"WHERE public_key = ? AND sequence_number = ?", (buffer(public_key), sequence_number))
 
     def get_latest(self, public_key):
         """
         Get the latest block for a given public key
-        :param public_key: The public_key fcontainsor which the latest block has to be found.
+        :param public_key: The public_key for which the latest block has to be found.
         :return: the latest block or None if it is not known
         """
-        db_query = u"SELECT up, down, total_up, total_down, public_key, sequence_number, link_public_key," \
-                   u"link_sequence_number, previous_hash, signature, insert_time " \
-                   u"FROM multi_chain WHERE public_key = ? AND sequence_number = (SELECT MAX(sequence_number) FROM " \
-                   u"multi_chain WHERE public_key = ?)"
-        db_result = self.execute(db_query, (buffer(public_key), buffer(public_key))).fetchone()
-        return MultiChainBlock(db_result) if db_result else None
+        return self._get(u"WHERE public_key = ? AND sequence_number = (SELECT MAX(sequence_number) FROM multi_chain "
+                         u"WHERE public_key = ?)", (buffer(public_key), buffer(public_key)))
 
-    def get_blocks_since(self, public_key, sequence_number, limit=100):
+    def get_blocks_since(self, public_key, sequence_number, limit=25):
         """
         Returns database blocks with sequence number higher than or equal to sequence_number, at most 100 results
         :param public_key: The public key corresponding to the member id
         :param sequence_number: The linear block number
-        :param limit: Optional limit on the number of blocks to fetch. Defaults to 100
+        :param limit: Optional limit on the number of blocks to fetch. Defaults to 25
         :return A list of DB Blocks that match the criteria
         """
-        db_query = u"SELECT up, down, total_up, total_down, public_key, sequence_number, link_public_key," \
-                   u"link_sequence_number, previous_hash, signature, insert_time " \
-                   u"FROM multi_chain WHERE sequence_number >= ? AND public_key = ? " \
-                   u"ORDER BY sequence_number ASC LIMIT ?"
-        db_result = self.execute(db_query, (sequence_number, buffer(public_key), limit)).fetchall()
-        return [MultiChainBlock(db_item) for db_item in db_result]
+        assert limit < 100, "Don't fetch too much"
+        return self._getall(u"WHERE sequence_number >= ? AND public_key = ? ORDER BY sequence_number ASC LIMIT ?",
+                            (sequence_number, buffer(public_key), limit))
 
-    def get_blocks_until(self, public_key, sequence_number, limit=100):
+    def get_blocks_until(self, public_key, sequence_number, limit=25):
         """
         Returns database blocks with sequence number lower than or equal to sequence_number, at most 100 results
         :param public_key: The public key corresponding to the member id
         :param sequence_number: The linear block number
-        :param limit: Optional limit on the number of blocks to fetch. Defaults to 100
+        :param limit: Optional limit on the number of blocks to fetch. Defaults to 25
         :return A list of DB Blocks that match the criteria
         """
-        db_query = u"SELECT up, down, total_up, total_down, public_key, sequence_number, link_public_key," \
-                   u"link_sequence_number, previous_hash, signature, insert_time " \
-                   u"FROM multi_chain WHERE sequence_number <= ? AND public_key = ? " \
-                   u"ORDER BY sequence_number ASC LIMIT ?"
-        db_result = self.execute(db_query, (sequence_number, buffer(public_key), limit)).fetchall()
-        return [MultiChainBlock(db_item) for db_item in db_result]
+        assert limit < 100, "Don't fetch too much"
+        ret = self._getall(u"WHERE sequence_number <= ? AND public_key = ? ORDER BY sequence_number DESC LIMIT ?",
+                           (sequence_number, buffer(public_key), limit))
+        ret.reverse()
+        return ret
 
     def get_num_unique_interactors(self, public_key):
         """
@@ -154,13 +154,16 @@ class MultiChainDB(Database):
         :param block: The block for which to get the linked block
         :return: the latest block or None if it is not known
         """
-        db_query = u"SELECT up, down, total_up, total_down, public_key, sequence_number, link_public_key," \
-                   u"link_sequence_number, previous_hash, signature, insert_time " \
-                   u"FROM multi_chain WHERE public_key = ? AND sequence_number = ? OR " \
-                   u"link_public_key = ? AND link_sequence_number = ?"
-        db_result = self.execute(db_query, (buffer(block.link_public_key), block.link_sequence_number,
-                                            buffer(block.public_key), block.sequence_number)).fetchone()
-        return MultiChainBlock(db_result) if db_result else None
+        return self._get(u"WHERE public_key = ? AND sequence_number = ? OR link_public_key = ? AND "
+                         u"link_sequence_number = ?", (buffer(block.link_public_key), block.link_sequence_number,
+                                                       buffer(block.public_key), block.sequence_number))
+
+    def crawl(self, public_key, sequence_number, limit=25):
+        assert limit < 100, "Don't fetch too much"
+        return self._getall(u"WHERE insert_time >= (SELECT MAX(insert_time) FROM multi_chain WHERE public_key = ? AND "
+                            u"sequence_number <= ?) AND (public_key = ? OR link_public_key = ?) "
+                            u"ORDER BY insert_time ASC LIMIT ?",
+                            (buffer(public_key), sequence_number, buffer(public_key), buffer(public_key), limit))
 
     def open(self, initial_statements=True, prepare_visioning=True):
         return super(MultiChainDB, self).open(initial_statements, prepare_visioning)
