@@ -13,6 +13,7 @@ Contents:
 
    Introduction <introduction>
    contributing
+   development_methodology
    development/development
    Building Tribler <building/building>
    architecture
