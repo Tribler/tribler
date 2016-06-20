@@ -100,6 +100,7 @@ class TriblerWindow(QMainWindow):
 
         self.core_manager.events_manager.received_search_result_channel.connect(self.search_results_page.received_search_result_channel)
         self.core_manager.events_manager.received_search_result_torrent.connect(self.search_results_page.received_search_result_torrent)
+        self.core_manager.events_manager.new_version_available.connect(self.on_new_version_available)
         self.core_manager.events_manager.tribler_started.connect(self.on_tribler_started)
 
         self.show()
@@ -112,6 +113,24 @@ class TriblerWindow(QMainWindow):
         self.downloads_page.start_loading_downloads()
         self.home_page.load_popular_torrents()
         self.stackedWidget.setCurrentIndex(PAGE_HOME)
+
+    def on_new_version_available(self, version):
+        if version == str(self.settings.value('last_reported_version')):
+            return
+
+        self.dialog = ConfirmationDialog(self, "New version available", "Version %s of Tribler is available. Do you want to visit the website to download the newest version?" % version, [('ignore', BUTTON_TYPE_NORMAL), ('later', BUTTON_TYPE_NORMAL), ('ok', BUTTON_TYPE_NORMAL)])
+        self.dialog.button_clicked.connect(lambda action: self.on_new_version_dialog_done(version, action))
+        self.dialog.show()
+
+    def on_new_version_dialog_done(self, version, action):
+        if action == 0:  # ignore
+            self.settings.setValue("last_reported_version", version)
+        elif action == 2:  # ok
+            import webbrowser
+            webbrowser.open("https://tribler.org")
+
+        self.dialog.setParent(None)
+        self.dialog = None
 
     def read_settings(self):
         self.settings = QSettings()

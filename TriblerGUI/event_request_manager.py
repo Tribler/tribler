@@ -11,6 +11,7 @@ class EventRequestManager(QNetworkAccessManager):
     received_search_result_channel = pyqtSignal(object)
     received_search_result_torrent = pyqtSignal(object)
     tribler_started = pyqtSignal()
+    new_version_available = pyqtSignal(str)
 
     def __init__(self):
         QNetworkAccessManager.__init__(self)
@@ -36,7 +37,7 @@ class EventRequestManager(QNetworkAccessManager):
         self.connect_timer.stop()
         data = self.reply.readAll()
         self.current_event_string += data
-        if self.current_event_string[-1] == '\n':
+        if len(self.current_event_string) > 0 and self.current_event_string[-1] == '\n':
             for event in self.current_event_string.split('\n'):
                 if len(event) == 0:
                     continue
@@ -47,6 +48,8 @@ class EventRequestManager(QNetworkAccessManager):
                     self.received_search_result_torrent.emit(json_dict["event"]["result"])
                 elif json_dict["type"] == "tribler_started":
                     self.tribler_started.emit()
+                elif json_dict["type"] == "new_version_available":
+                    self.new_version_available.emit(json_dict["event"]["version"])
             self.current_event_string = ""
 
     def connect(self):
