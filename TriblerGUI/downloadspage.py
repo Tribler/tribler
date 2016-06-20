@@ -34,13 +34,14 @@ class DownloadsPage(QWidget):
 
         self.window().downloads_list.customContextMenuRequested.connect(self.on_right_click_item)
 
+        self.downloads = None
+        self.can_update_items = True
+
+    def start_loading_downloads(self):
         self.load_downloads()
         self.downloads_timer = QTimer()
         self.downloads_timer.timeout.connect(self.load_downloads)
         self.downloads_timer.start(1000)
-
-        self.downloads = None
-        self.can_update_items = True
 
     def load_downloads(self):
         self.request_mgr = TriblerRequestManager()

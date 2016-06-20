@@ -873,7 +873,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>7</number>
+         <number>9</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -893,7 +893,7 @@ background-color: #e67300;
            <number>0</number>
           </property>
           <item>
-           <widget class="QLabel" name="label_26">
+           <widget class="QLabel" name="home_recommended_label">
             <property name="styleSheet">
              <string notr="true">color: white;
 font-weight: bold;
@@ -7038,8 +7038,8 @@ color: white;
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>647</width>
-                       <height>337</height>
+                       <width>276</width>
+                       <height>136</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -7489,6 +7489,74 @@ border-top: 1px solid #555;
           </item>
          </layout>
         </widget>
+        <widget class="LoadingPage" name="loading_page">
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QGraphicsView" name="loading_svg_view">
+            <property name="styleSheet">
+             <string notr="true">border: none;</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_26">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color: white;
+font-size: 16px;</string>
+            </property>
+            <property name="text">
+             <string>Loading Tribler...</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="verticalSpacer_7">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </widget>
        </widget>
       </item>
      </layout>
@@ -7610,6 +7678,12 @@ border-top: 1px solid #555;
    <class>CreateTorrentPage</class>
    <extends>QWidget</extends>
    <header>createtorrentpage.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>LoadingPage</class>
+   <extends>QWidget</extends>
+   <header>loadingpage.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
