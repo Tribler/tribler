@@ -5,8 +5,8 @@ from quantity import Quantity
 class IncrementalQuantityManager(object):
     """Incremental Quantity Manager which determines an incremental quantity list for payments"""
 
-    INITIAL_QUANTITY = 1
-    INCREMENTAL_QUANTITY = 10
+    INITIAL_QUANTITY = 20
+    INCREMENTAL_QUANTITY = 200
 
     @staticmethod
     def determine_incremental_quantity_list(total_quantity):
