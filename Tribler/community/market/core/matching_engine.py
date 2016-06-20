@@ -186,9 +186,12 @@ class PriceTimeStrategy(MatchingStrategy):
         if tick_entry is None:  # Last tick
             return quantity_to_trade, []
 
+        if tick_entry.quantity <= Quantity(0):
+            return quantity_to_trade, []
+
         # Check if order and tick entry have the same trader id / origin
         if order.order_id.trader_id == tick_entry.order_id.trader_id:
-            return (0, [])
+            return quantity_to_trade, []
 
         assert isinstance(tick_entry, TickEntry), type(tick_entry)
         assert isinstance(quantity_to_trade, Quantity), type(quantity_to_trade)
@@ -212,6 +215,9 @@ class PriceTimeStrategy(MatchingStrategy):
         return quantity_to_trade, proposed_trades
 
     def _search_for_quantity_in_price_level_total(self, tick_entry, quantity_to_trade, order):
+        if tick_entry.quantity <= Quantity(0):
+            return quantity_to_trade, []
+
         trading_quantity = quantity_to_trade
         quantity_to_trade = Quantity(0)
 

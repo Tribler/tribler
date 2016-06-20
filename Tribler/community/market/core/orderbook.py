@@ -5,6 +5,7 @@ from message import Message
 from message_repository import MessageRepository
 from order import OrderId
 from price import Price
+from quantity import Quantity
 from side import Side
 from tick import Tick, Ask, Bid
 from timestamp import Timestamp
@@ -86,13 +87,25 @@ class OrderBook(object):
         assert isinstance(accepted_trade, AcceptedTrade), type(accepted_trade)
 
         if self.bid_exists(accepted_trade.order_id):
-            self.get_bid(accepted_trade.order_id).quantity -= accepted_trade.quantity
+            tick = self.get_bid(accepted_trade.order_id)
+            tick.quantity -= accepted_trade.quantity
+            if tick.quantity == Quantity(0):
+                self.remove_tick(tick.order_id)
         if self.ask_exists(accepted_trade.order_id):
-            self.get_ask(accepted_trade.order_id).quantity -= accepted_trade.quantity
+            tick = self.get_ask(accepted_trade.order_id)
+            tick.quantity -= accepted_trade.quantity
+            if tick.quantity == Quantity(0):
+                self.remove_tick(tick.order_id)
         if self.bid_exists(accepted_trade.recipient_order_id):
-            self.get_bid(accepted_trade.recipient_order_id).quantity -= accepted_trade.quantity
+            tick = self.get_bid(accepted_trade.recipient_order_id)
+            tick.quantity -= accepted_trade.quantity
+            if tick.quantity == Quantity(0):
+                self.remove_tick(tick.order_id)
         if self.ask_exists(accepted_trade.recipient_order_id):
-            self.get_ask(accepted_trade.recipient_order_id).quantity -= accepted_trade.quantity
+            tick = self.get_ask(accepted_trade.recipient_order_id)
+            tick.quantity -= accepted_trade.quantity
+            if tick.quantity == Quantity(0):
+                self.remove_tick(tick.order_id)
 
     def insert_trade(self, trade):
         """

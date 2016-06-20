@@ -442,17 +442,16 @@ class MarketCommunity(Community):
             if str(proposed_trade.recipient_order_id.trader_id) == str(self.pubkey):  # The message is for this node
                 order = self.order_manager.order_repository.find_by_id(proposed_trade.recipient_order_id)
 
-                if order and order.is_valid():  # Order is valid
+                if order and order.is_valid() and order.available_quantity > Quantity(0):  # Order is valid
                     self._logger.debug("Proposed trade received with id: %s for order with id: %s",
                                        str(proposed_trade.message_id), str(order.order_id))
 
                     if order.available_quantity >= proposed_trade.quantity:  # Enough quantity left
                         self.accept_trade(order, proposed_trade)
                     else:  # Not enough quantity for trade
-                        order.reserve_quantity_for_tick(proposed_trade.order_id, order.available_quantity)
-
                         counter_trade = Trade.counter(self.order_book.message_repository.next_identity(),
                                                       order.available_quantity, Timestamp.now(), proposed_trade)
+                        order.reserve_quantity_for_tick(proposed_trade.order_id, order.available_quantity)
                         self._logger.debug("Counter trade made with id: %s for proposed trade with id: %s",
                                            str(counter_trade.message_id), str(proposed_trade.message_id))
                         self.send_counter_trade(counter_trade)
