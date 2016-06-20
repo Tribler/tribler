@@ -17,7 +17,7 @@ class EventRequestManager(QNetworkAccessManager):
         url = QUrl("http://localhost:8085/events")
         self.request = QNetworkRequest(url)
         self.failed_attempts = 0
-        self.connect_timer = 0
+        self.connect_timer = QTimer()
         self.current_event_string = ""
 
     def on_error(self, error):
