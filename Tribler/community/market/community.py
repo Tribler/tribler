@@ -73,8 +73,7 @@ class MarketCommunity(Community):
         self.multi_chain_payment_provider = MultiChainPaymentProvider(multi_chain_community, self.pubkey)
         self.bitcoin_payment_provider = BitcoinPaymentProvider()
         transaction_repository = MemoryTransactionRepository(self.pubkey)
-        self.transaction_manager = TransactionManager(transaction_repository, multi_chain_community,
-                                                      self.bitcoin_payment_provider)
+        self.transaction_manager = TransactionManager(transaction_repository)
 
         self.history = {}  # List for received messages TODO: fix memory leak
 
