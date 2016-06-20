@@ -157,7 +157,7 @@ class AbstractServer(BaseTestCase):
         for reader in open_readers:
             self.assertNotIsInstance(reader, BasePort, "The test left a listening port behind: %s" % reader)
 
-    @deferred(timeout=5)
+    @deferred(timeout=10)
     def tearDown(self, annotate=True):
         self.tearDownCleanup()
         if annotate:
