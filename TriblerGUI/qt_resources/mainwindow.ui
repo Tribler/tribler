@@ -7565,7 +7565,8 @@ font-size: 16px;</string>
   </widget>
   <widget class="TriblerStatusBar" name="statusBar">
    <property name="styleSheet">
-    <string notr="true">background-color: #555;</string>
+    <string notr="true">background-color: #555;
+border: none;</string>
    </property>
   </widget>
  </widget>
