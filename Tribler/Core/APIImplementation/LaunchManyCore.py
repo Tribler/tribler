@@ -24,7 +24,7 @@ from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.exceptions import DuplicateDownloadException
-from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE
+from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_TRIBLER
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
@@ -168,6 +168,8 @@ class TriblerLaunchMany(TaskManager):
 
         if not self.initComplete:
             self.init()
+
+        self.session.notifier.notify(NTFY_TRIBLER, NTFY_STARTED, None)
 
     def init(self):
         if self.dispersy:
