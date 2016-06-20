@@ -80,6 +80,7 @@ NTFY_ONCREATED_E2E = 'oncreatedendtoend'
 NTFY_IP_CREATED = 'intropointcreated'
 NTFY_RP_CREATED = 'rendezvouspointcreated'
 NTFY_UPGRADER = 'upgraderdone'
+NTFY_UPGRADER_TICK = 'upgradertick'
 
 NTFY_STARTUP_TICK = 'startuptick'
 NTFY_CLOSE_TICK = 'closetick'

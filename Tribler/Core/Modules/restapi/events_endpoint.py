@@ -3,7 +3,7 @@ from twisted.web import server, resource
 from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json, convert_torrent_to_json
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT,
                                      NTFY_UPGRADER, NTFY_STARTED, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT,
-                                     NTFY_NEW_VERSION, NTFY_FINISHED, NTFY_TRIBLER)
+                                     NTFY_NEW_VERSION, NTFY_FINISHED, NTFY_TRIBLER, NTFY_UPGRADER_TICK)
 
 MAX_EVENTS_BUFFER_SIZE = 100
 
@@ -21,6 +21,8 @@ class EventsEndpoint(resource.Resource):
     - search_result_torrent: This event dictionary contains a search result with a torrent that has been found.
     - upgrader_started: An indication that the Tribler upgrader has started.
     - upgrader_finished: An indication that the Tribler upgrader has finished.
+    - upgrader_tick: An indication that the state of the upgrader has changed. The dictionary contains a human-readable
+      string with the new state.
     - watch_folder_corrupt_torrent: This event is emitted when a corrupt .torrent file in the watch folder is found.
       The dictionary contains the name of the corrupt torrent file.
     - new_version_available: This event is emitted when a new version of Tribler is available.
@@ -41,6 +43,7 @@ class EventsEndpoint(resource.Resource):
         self.session.add_observer(self.on_search_results_torrents, SIGNAL_TORRENT, [SIGNAL_ON_SEARCH_RESULTS])
         self.session.add_observer(self.on_upgrader_started, NTFY_UPGRADER, [NTFY_STARTED])
         self.session.add_observer(self.on_upgrader_finished, NTFY_UPGRADER, [NTFY_FINISHED])
+        self.session.add_observer(self.on_upgrader_tick, NTFY_UPGRADER_TICK, [NTFY_STARTED])
         self.session.add_observer(self.on_watch_folder_corrupt_torrent,
                                   NTFY_WATCH_FOLDER_CORRUPT_TORRENT, [NTFY_INSERT])
         self.session.add_observer(self.on_new_version_available, NTFY_NEW_VERSION, [NTFY_INSERT])
@@ -92,6 +95,9 @@ class EventsEndpoint(resource.Resource):
 
     def on_upgrader_finished(self, subject, changetype, objectID, *args):
         self.write_data(json.dumps({"type": "upgrader_finished"}))
+
+    def on_upgrader_tick(self, subject, changetype, objectID, *args):
+        self.write_data(json.dumps({"type": "upgrader_tick", "event": {"text": args[0]}}))
 
     def on_watch_folder_corrupt_torrent(self, subject, changetype, objectID, *args):
         self.write_data(json.dumps({"type": "watch_folder_corrupt_torrent", "event": {"name": args[0]}}))
