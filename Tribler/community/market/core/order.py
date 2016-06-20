@@ -229,6 +229,7 @@ class Order(object):
             if order_id not in self._reserved_ticks:
                 self._reserved_quantity += quantity
                 self._reserved_ticks[order_id] = quantity
+                assert self.available_quantity >= Quantity(0)
             return True
         else:
             return False
@@ -242,6 +243,7 @@ class Order(object):
         if order_id in self._reserved_ticks:
             if self._reserved_quantity >= self._reserved_ticks[order_id]:
                 self._reserved_quantity -= self._reserved_ticks[order_id]
+                assert self.available_quantity >= Quantity(0)
                 del self._reserved_ticks[order_id]
         else:
             raise TickWasNotReserved()
@@ -259,6 +261,7 @@ class Order(object):
     def add_trade(self, accepted_trade):
         self._accepted_trades[accepted_trade.message_id] = accepted_trade
         self._traded_quantity += accepted_trade.quantity
+        assert self.available_quantity >= Quantity(0)
 
     def add_transaction(self, accepted_trade_message_id, transaction):
         self._transactions[accepted_trade_message_id] = transaction.transaction_id
