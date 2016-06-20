@@ -261,6 +261,10 @@ class Order(object):
     def add_trade(self, accepted_trade):
         self._accepted_trades[accepted_trade.message_id] = accepted_trade
         self._traded_quantity += accepted_trade.quantity
+        try:
+            self.release_quantity_for_tick(accepted_trade.order_id)
+        except TickWasNotReserved:
+            pass
         assert self.available_quantity >= Quantity(0)
 
     def add_transaction(self, accepted_trade_message_id, transaction):
