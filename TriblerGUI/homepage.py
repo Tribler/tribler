@@ -16,6 +16,7 @@ class HomePage(QWidget):
         self.window().home_tab.initialize()
         self.window().home_tab.clicked_tab_button.connect(self.clicked_tab_button)
 
+    def load_popular_torrents(self):
         self.recommended_request_mgr = TriblerRequestManager()
         self.recommended_request_mgr.perform_request("torrents/random", self.received_popular_torrents)
 

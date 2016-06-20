@@ -11,13 +11,13 @@ from PyQt5.QtWidgets import QMainWindow, QListView, QLineEdit, QTreeWidget, QSys
     QCompleter, QApplication
 
 from TriblerGUI.TriblerActionMenu import TriblerActionMenu
+from TriblerGUI.core_manager import CoreManager
 
 from TriblerGUI.defs import PAGE_SEARCH_RESULTS, \
     PAGE_HOME, PAGE_EDIT_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
-    PAGE_CHANNEL_DETAILS, PAGE_PLAYLIST_DETAILS, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM
+    PAGE_CHANNEL_DETAILS, PAGE_PLAYLIST_DETAILS, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, PAGE_LOADING
 from TriblerGUI.dialogs.confirmationdialog import ConfirmationDialog
 from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
-from TriblerGUI.event_request_manager import EventRequestManager
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.utilities import get_ui_file_path, get_image_path
 
@@ -35,6 +35,7 @@ class TriblerWindow(QMainWindow):
     received_search_completions = pyqtSignal(object)
 
     def on_exception(self, *exc_info):
+        self.core_manager.kill()
         self.setHidden(True)
 
         exception_text = "".join(traceback.format_exception(*exc_info))
@@ -68,10 +69,6 @@ class TriblerWindow(QMainWindow):
                              self.left_menu_button_subscriptions, self.left_menu_button_video_player,
                              self.left_menu_button_settings, self.left_menu_button_downloads]
 
-        # fetch the variables, needed for the video player port
-        self.variables_request_mgr = TriblerRequestManager()
-        self.variables_request_mgr.perform_request("variables", self.received_variables)
-
         self.video_player_page.initialize_player()
         self.search_results_page.initialize_search_results_page()
         self.settings_page.initialize_settings_page()
@@ -79,12 +76,9 @@ class TriblerWindow(QMainWindow):
         self.edit_channel_page.initialize_edit_channel_page()
         self.downloads_page.initialize_downloads_page()
         self.home_page.initialize_home_page()
+        self.loading_page.initialize_loading_page()
 
-        self.event_request_manager = EventRequestManager()
-        self.event_request_manager.received_search_result_channel.connect(self.search_results_page.received_search_result_channel)
-        self.event_request_manager.received_search_result_torrent.connect(self.search_results_page.received_search_result_torrent)
-
-        self.stackedWidget.setCurrentIndex(PAGE_HOME)
+        self.stackedWidget.setCurrentIndex(PAGE_LOADING)
 
         # Create the system tray icon
         if QSystemTrayIcon.isSystemTrayAvailable():
@@ -101,7 +95,23 @@ class TriblerWindow(QMainWindow):
         completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
         self.top_search_bar.setCompleter(completer)
 
+        self.core_manager = CoreManager()
+        self.core_manager.start()
+
+        self.core_manager.events_manager.received_search_result_channel.connect(self.search_results_page.received_search_result_channel)
+        self.core_manager.events_manager.received_search_result_torrent.connect(self.search_results_page.received_search_result_torrent)
+        self.core_manager.events_manager.tribler_started.connect(self.on_tribler_started)
+
         self.show()
+
+    def on_tribler_started(self):
+        # fetch the variables, needed for the video player port
+        self.variables_request_mgr = TriblerRequestManager()
+        self.variables_request_mgr.perform_request("variables", self.received_variables)
+
+        self.downloads_page.start_loading_downloads()
+        self.home_page.load_popular_torrents()
+        self.stackedWidget.setCurrentIndex(PAGE_HOME)
 
     def read_settings(self):
         self.settings = QSettings()
@@ -285,6 +295,7 @@ class TriblerWindow(QMainWindow):
     def closeEvent(self, close_event):
         self.settings.setValue("pos", self.pos())
         self.settings.setValue("size", self.size())
+        self.core_manager.stop()
 
     def keyReleaseEvent(self, event):
         if event.key() == Qt.Key_Escape and self.isFullScreen():
