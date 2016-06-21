@@ -8,6 +8,14 @@ import org.kivy.android.PythonService;
 public class Triblerd extends PythonService {
     public static final int REST_API_PORT = 8085;
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean canDisplayNotification() {
+        return false;
+    }
+
     public static void start(Context ctx) {
         String argument = ctx.getFilesDir().getAbsolutePath();
         Intent intent = new Intent(ctx, Triblerd.class);
