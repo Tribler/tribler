@@ -17,10 +17,10 @@ class Triblerd(object):
     
     def run(self):
         '''
-        Pass through options
+        Start reactor with service argument
         '''
         options = Options()
-        Options.parseOptions(options, [ os.getenv('PYTHON_SERVICE_ARGUMENT', '') ])
+        Options.parseOptions(options, os.getenv('PYTHON_SERVICE_ARGUMENT', '').split())
         service_maker.makeService(options)
         reactor.run()
         
