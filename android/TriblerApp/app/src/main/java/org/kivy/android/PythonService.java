@@ -33,6 +33,14 @@ public class PythonService extends Service implements Runnable {
         autoRestartService = restart;
     }
 
+    public boolean canDisplayNotification() {
+        return true;
+    }
+
+    public int startType() {
+        return START_NOT_STICKY;
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -75,10 +83,31 @@ public class PythonService extends Service implements Runnable {
         Log.v(TAG, "Starting Python thread");
         pythonThread = new Thread(this);
         pythonThread.start();
-        return START_NOT_STICKY;
+
+		if (canDisplayNotification()) {
+			doStartForeground(extras);
+		}
+
+        return startType();
     }
 
-    /**
+	protected void doStartForeground(Bundle extras) {
+		String serviceTitle = extras.getString("serviceTitle");
+		String serviceDescription = extras.getString("serviceDescription");
+
+		Context context = getApplicationContext();
+		Notification notification = new Notification(
+				context.getApplicationInfo().icon, serviceTitle,
+				System.currentTimeMillis());
+		Intent contextIntent = new Intent(context, PythonActivity.class);
+		PendingIntent pIntent = PendingIntent.getActivity(context, 0,
+				contextIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+		notification.setLatestEventInfo(context, serviceTitle,
+				serviceDescription, pIntent);
+		startForeground(1, notification);
+	}
+
+	/**
      * {@inheritDoc}
      */
     @Override
