@@ -34,6 +34,10 @@ class AbstractTriblerGUITest(unittest.TestCase):
         self.screenshots_taken = 0
         window.downloads_page.can_update_items = True
 
+        if not window.tribler_started:
+            self.screenshot(window, name="tribler_loading")
+            self.wait_for_signal(window.core_manager.events_manager.tribler_started, no_args=True)
+
     def tearDown(self):
         window.downloads_page.can_update_items = False
 
@@ -89,7 +93,6 @@ class AbstractTriblerGUITest(unittest.TestCase):
         return cur_attr
 
     def wait_for_variable(self, var, timeout=10):
-
         for _ in range(0, timeout * 1000, 100):
             QTest.qWait(100)
             if self.get_attr_recursive(var) is not None:
@@ -97,12 +100,15 @@ class AbstractTriblerGUITest(unittest.TestCase):
 
         raise TimeoutException("Variable %s within 10 seconds" % var)
 
-    def wait_for_signal(self, signal, timeout=10):
+    def wait_for_signal(self, signal, timeout=10, no_args=False):
         self.signal_received = False
         def on_signal(_):
             self.signal_received = True
 
-        signal.connect(on_signal)
+        if no_args:
+            signal.connect(lambda: on_signal(None))
+        else:
+            signal.connect(on_signal)
 
         for _ in range(0, timeout * 1000, 100):
             QTest.qWait(100)
@@ -135,9 +141,11 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.screenshot(window, name="subscriptions")
 
         first_widget = window.subscribed_channels_list.itemWidget(window.subscribed_channels_list.item(0))
-        QTest.mouseClick(first_widget.channel_subscribe_button, Qt.LeftButton)
+        QTest.mouseClick(first_widget.subscribe_button, Qt.LeftButton)
+        self.wait_for_signal(first_widget.subscriptions_widget.unsubscribed_channel)
         self.screenshot(window, name="unsubscribed")
-        QTest.mouseClick(first_widget.channel_subscribe_button, Qt.LeftButton)
+        QTest.mouseClick(first_widget.subscribe_button, Qt.LeftButton)
+        self.wait_for_signal(first_widget.subscriptions_widget.subscribed_channel)
 
     def test_edit_channel_overview(self):
         QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)

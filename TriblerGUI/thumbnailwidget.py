@@ -5,9 +5,9 @@ from TriblerGUI.utilities import get_color
 class ThumbnailWidget(QLabel):
 
     def initialize(self, torrent_name, font_size):
-        torrent_name = ''.join([i for i in torrent_name if i.isalpha() or i == ' '])
+        stripped_torrent_name = ''.join([i for i in torrent_name if i.isalpha() or i == ' '])
 
-        parts = torrent_name.split(" ")
+        parts = stripped_torrent_name.split(" ")
         if len(parts) == 1:
             self.setText(parts[0][:1].upper())
         else:
