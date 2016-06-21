@@ -59,3 +59,5 @@ htmlcov/
 /android/TriblerApp/.gradle
 /android/TriblerApp/captures
 
+# Documentation
+doc/_build/

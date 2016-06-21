@@ -65,18 +65,31 @@ class MyChannelEndpoint(MyChannelBaseEndpoint):
 
     def render_GET(self, request):
         """
-            Return the name, description and identifier of your channel.
-            This endpoint returns a 404 HTTP response if you have not created a channel (yet).
+        .. http:get:: /mychannel
 
-            Example response:
-            {
-                "overview": {
-                    "name": "My Tribler channel",
-                    "description": "A great collection of open-source movies",
-                    "identifier": "4a9cfc7ca9d15617765f4151dd9fae94c8f3ba11"
+        Return the name, description and identifier of your channel.
+        This endpoint returns a 404 HTTP response if you have not created a channel (yet).
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/mychannel
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "overview": {
+                        "name": "My Tribler channel",
+                        "description": "A great collection of open-source movies",
+                        "identifier": "4a9cfc7ca9d15617765f4151dd9fae94c8f3ba11"
+                    }
                 }
-            }
-            """
+
+            :statuscode 404: if your channel has not been created (yet).
+        """
         my_channel_id = self.channel_db_handler.getMyChannelId()
         if my_channel_id is None:
             return MyChannelBaseEndpoint.return_404(request)
@@ -87,14 +100,26 @@ class MyChannelEndpoint(MyChannelBaseEndpoint):
 
     def render_PUT(self, request):
         """
-        Create your own new channel.
+        .. http:put:: /mychannel
 
-        Example request:
-        {
-            "name": "John Smit's channel",
-            "description" (optional): "Video's of my cat" (default: empty),
-            "mode" (optional): "open" or "semi-open" or "closed" (default)
-        }
+        Create your own new channel. The passed mode and descriptions are optional.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X PUT http://localhost:8085/mychannel
+                --data "name=fancy name&description=fancy description&mode=open"
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "added": 23
+                }
+
+            :statuscode 500: if a channel with the specified name already exists.
         """
         parameters = http.parse_qs(request.content.read(), 1)
 
@@ -130,17 +155,30 @@ class MyChannelTorrentsEndpoint(MyChannelBaseEndpoint):
 
     def render_GET(self, request):
         """
+        .. http:get:: /mychannel/torrents
+
         Return the torrents in your channel. For each torrent item, the infohash, name and timestamp added is included.
         This endpoint returns a 404 HTTP response if you have not created a channel (yet).
 
-        Example response:
-        {
-            "torrents": [{
-                "name": "ubuntu-15.04.iso",
-                "added": 1461840601,
-                "infohash": "e940a7a57294e4c98f62514b32611e38181b6cae"
-            }, ...]
-        }
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/mychannel/torrents
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "torrents": [{
+                        "name": "ubuntu-15.04.iso",
+                        "added": 1461840601,
+                        "infohash": "e940a7a57294e4c98f62514b32611e38181b6cae"
+                    }, ...]
+                }
+
+            :statuscode 404: if your channel does not exist.
         """
         my_channel_id = self.channel_db_handler.getMyChannelId()
         if my_channel_id is None:
@@ -156,14 +194,28 @@ class MyChannelTorrentsEndpoint(MyChannelBaseEndpoint):
 
     def render_PUT(self, request):
         """
-        Add a torrent file to your own channel. Returns error 500 if something is wrong with the torrent file
-        and DuplicateTorrentFileError if already added to your channel.
+        .. http:put:: /mychannel/torrents
 
-        Example request:
-        {
-            "torrent": "base64 encoded string of torrent file contents",
-            "description" (optional): "A video of my cat" (default: empty)
-        }
+        Add a torrent file to your own channel. Returns error 500 if something is wrong with the torrent file
+        and DuplicateTorrentFileError if already added to your channel. The torrent data is passed as base-64 encoded
+        string. The description is optional.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X PUT http://localhost:8085/mychannel/torrents --data "torrent=...&description=funny video"
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "added": True
+                }
+
+            :statuscode 404: if your channel does not exist.
+            :statuscode 500: if the passed torrent data is corrupt.
         """
         my_channel_id = self.channel_db_handler.getMyChannelId()
         if my_channel_id is None:
@@ -202,13 +254,28 @@ class MyChannelModifyTorrentsEndpoint(MyChannelBaseEndpoint):
 
     def render_PUT(self, request):
         """
+        .. http:put:: /mychannel/torrents/http%3A%2F%2Ftest.com%2Ftest.torrent
+
         Add a torrent by magnet or url to your channel. Returns error 500 if something is wrong with the torrent file
         and DuplicateTorrentFileError if already added to your channel (except with magnet links).
 
-        Example request:
-        {
-            "description" (optional): "A video of my cat" (default: empty)
-        }
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X PUT http://localhost:8085/mychannel/torrents/http%3A%2F%2Ftest.com%2Ftest.torrent
+                            --data "description=nice video"
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "added": "http://test.com/test.torrent"
+                }
+
+            :statuscode 404: if your channel does not exist.
+            :statuscode 500: if the specified torrent is already in your channel.
         """
         my_channel_id = self.channel_db_handler.getMyChannelId()
         if my_channel_id is None:
@@ -251,14 +318,23 @@ class MyChannelRssFeedsEndpoint(MyChannelBaseEndpoint):
 
     def render_GET(self, request):
         """
+        .. http:get:: /mychannel/rssfeeds
+
         Return the RSS feeds in your channel.
 
-        Example response:
-        {
-            "rssfeeds": [{
-                "url": "http://rssprovider.com/feed.xml",
-            }, ...]
-        }
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/mychannel/rssfeeds
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "rssfeeds": [{
+                        "url": "http://rssprovider.com/feed.xml",
+                    }, ...]
+                }
         """
         channel_obj = self.get_my_channel_object()
         if channel_obj is None:
@@ -277,7 +353,25 @@ class MyChannelRecheckFeedsEndpoint(MyChannelBaseEndpoint):
 
     def render_POST(self, request):
         """
+        .. http:post:: /mychannel/recheckfeeds
+
         Rechecks all rss feeds in your channel. Returns error 404 if you channel does not exist.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X POST http://localhost:8085/mychannel/recheckrssfeeds
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "rechecked": True
+                }
+
+            :statuscode 404: if you have not created a channel.
         """
         channel_obj = self.get_my_channel_object()
         if channel_obj is None:
@@ -299,8 +393,26 @@ class MyChannelModifyRssFeedsEndpoint(MyChannelBaseEndpoint):
 
     def render_PUT(self, request):
         """
+        .. http:put:: /mychannel/rssfeeds/http%3A%2F%2Ftest.com%2Frss.xml
+
         Add a RSS feed to your channel. Returns error 409 if the supplied RSS feed already exists.
         Note that the rss feed url should be URL-encoded.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X PUT http://localhost:8085/mychannel/rssfeeds/http%3A%2F%2Ftest.com%2Frss.xml
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "added": True
+                }
+
+            :statuscode 409: (conflict) if the specified RSS URL is already present in your feeds.
         """
         channel_obj = self.get_my_channel_object()
         if channel_obj is None:
@@ -315,8 +427,26 @@ class MyChannelModifyRssFeedsEndpoint(MyChannelBaseEndpoint):
 
     def render_DELETE(self, request):
         """
+        .. http:delete:: /mychannel/rssfeeds/http%3A%2F%2Ftest.com%2Frss.xml
+
         Delete a RSS feed from your channel. Returns error 404 if the RSS feed that is being removed does not exist.
         Note that the rss feed url should be URL-encoded.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X DELETE http://localhost:8085/mychannel/rssfeeds/http%3A%2F%2Ftest.com%2Frss.xml
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "removed": True
+                }
+
+            :statuscode 404: if the specified RSS URL is not in your feed list.
         """
         channel_obj = self.get_my_channel_object()
         if channel_obj is None:
@@ -336,20 +466,33 @@ class MyChannelPlaylistsEndpoint(MyChannelBaseEndpoint):
 
     def render_GET(self, request):
         """
+        .. http:get:: /mychannel/playlists
+
         Returns the playlists in your channel. Returns error 404 if you have not created a channel.
 
-        Example response:
-        {
-            "playlists": [{
-                "id": 1,
-                "name": "My first playlist",
-                "description": "Funny movies",
-                "torrents": [{
-                    "name": "movie_1",
-                    "infohash": "e940a7a57294e4c98f62514b32611e38181b6cae"
-                }, ... ]
-            }, ...]
-        }
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/mychannel/playlists
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "playlists": [{
+                        "id": 1,
+                        "name": "My first playlist",
+                        "description": "Funny movies",
+                        "torrents": [{
+                            "name": "movie_1",
+                            "infohash": "e940a7a57294e4c98f62514b32611e38181b6cae"
+                        }, ... ]
+                    }, ...]
+                }
+
+            :statuscode 404: if you have not created a channel.
         """
         my_channel_id = self.channel_db_handler.getMyChannelId()
         if my_channel_id is None:

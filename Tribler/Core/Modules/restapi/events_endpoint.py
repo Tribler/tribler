@@ -14,6 +14,7 @@ class EventsEndpoint(resource.Resource):
     indicates the type of the event.
 
     Currently, the following events are implemented:
+
     - events_start: An indication that the event socket is opened and that the server is ready to push events.
     - search_result_channel: This event dictionary contains a search result with a channel that has been found.
     - search_result_torrent: This event dictionary contains a search result with a torrent that has been found.
@@ -74,6 +75,17 @@ class EventsEndpoint(resource.Resource):
                 self.infohashes_sent.add(torrent_json['infohash'])
 
     def render_GET(self, request):
+        """
+        .. http:get:: /events
+
+        A GET request to this endpoint will open the event connection.
+
+            **Example request**:
+
+                .. sourcecode:: none
+
+                    curl -X GET http://localhost:8085/events
+        """
         self.events_request = request
 
         request.write(json.dumps({"type": "events_start"}))

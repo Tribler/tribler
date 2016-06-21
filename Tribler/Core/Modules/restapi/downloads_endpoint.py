@@ -18,42 +18,54 @@ class DownloadsEndpoint(resource.Resource):
 
     def render_GET(self, request):
         """
+        .. http:get:: /downloads
+
         A GET request to this endpoint returns all downloads in Tribler, both active and inactive. The progress is a
         number ranging from 0 to 1, indicating the progress of the specific state (downloading, checking etc). The
         download speeds have the unit bytes/sec. The size of the torrent is given in bytes. The estimated time assumed
         is given in seconds. A description of the possible download statuses can be found in the REST API documentation.
 
-        Example response:
-        {
-            "downloads": [{
-                "name": "Ubuntu-16.04-desktop-amd64",
-                "progress": 0.31459265,
-                "infohash": "4344503b7e797ebf31582327a5baae35b11bda01",
-                "speed_down": 4938.83,
-                "speed_up": 321.84,
-                "status": "DLSTATUS_DOWNLOADING",
-                "size": 89432483,
-                "eta": 38493,
-                "num_peers": 53,
-                "num_seeds": 93,
-                "files": [{
-                    "index": 0,
-                    "name": "ubuntu.iso",
-                    "size": 89432483,
-                    "included": True
-                }, ...],
-                "trackers": [{
-                    "url": "http://ipv6.torrent.ubuntu.com:6969/announce",
-                    "status": "Working",
-                    "peers": 42
-                }, ...],
-                "hops": 1,
-                "anon_download": True,
-                "safe_seeding": True,
-                "max_upload_speed": 0,
-                "max_download_speed": 0,
-            }, ...]
-        }
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X GET http://localhost:8085/downloads
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "downloads": [{
+                        "name": "Ubuntu-16.04-desktop-amd64",
+                        "progress": 0.31459265,
+                        "infohash": "4344503b7e797ebf31582327a5baae35b11bda01",
+                        "speed_down": 4938.83,
+                        "speed_up": 321.84,
+                        "status": "DLSTATUS_DOWNLOADING",
+                        "size": 89432483,
+                        "eta": 38493,
+                        "num_peers": 53,
+                        "num_seeds": 93,
+                        "files": [{
+                            "index": 0,
+                            "name": "ubuntu.iso",
+                            "size": 89432483,
+                            "included": True
+                        }, ...],
+                        "trackers": [{
+                            "url": "http://ipv6.torrent.ubuntu.com:6969/announce",
+                            "status": "Working",
+                            "peers": 42
+                        }, ...],
+                        "hops": 1,
+                        "anon_download": True,
+                        "safe_seeding": True,
+                        "max_upload_speed": 0,
+                        "max_download_speed": 0,
+                    }
+                }, ...]
+
         """
         downloads_json = []
         downloads = self.session.get_downloads()
