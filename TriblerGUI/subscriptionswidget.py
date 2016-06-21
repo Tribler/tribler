@@ -1,10 +1,14 @@
 # coding=utf-8
+from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QWidget
 
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
 
 class SubscriptionsWidget(QWidget):
+
+    unsubscribed_channel = pyqtSignal(object)
+    subscribed_channel = pyqtSignal(object)
 
     def initialize_with_channel(self, channel):
         self.channel_info = channel
@@ -32,12 +36,14 @@ class SubscriptionsWidget(QWidget):
 
     def on_channel_unsubscribed(self, json_result):
         if json_result["unsubscribed"]:
+            self.unsubscribed_channel.emit(self.channel_info)
             self.channel_info["subscribed"] = False
             self.channel_info["votes"] -= 1
             self.update_subscribe_button()
 
     def on_channel_subscribed(self, json_result):
         if json_result["subscribed"]:
+            self.subscribed_channel.emit(self.channel_info)
             self.channel_info["subscribed"] = True
             self.channel_info["votes"] += 1
             self.update_subscribe_button()

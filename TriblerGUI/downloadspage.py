@@ -36,6 +36,7 @@ class DownloadsPage(QWidget):
 
         self.downloads = None
         self.can_update_items = True
+        self.downloads_timer = QTimer()
 
     def start_loading_downloads(self):
         self.load_downloads()

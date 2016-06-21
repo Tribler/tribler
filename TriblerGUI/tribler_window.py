@@ -51,6 +51,7 @@ class TriblerWindow(QMainWindow):
 
         self.navigation_stack = []
         self.feedback_dialog_is_open = False
+        self.tribler_started = False
 
         sys.excepthook = self.on_exception
 
@@ -106,6 +107,8 @@ class TriblerWindow(QMainWindow):
         self.show()
 
     def on_tribler_started(self):
+        self.tribler_started = True
+
         # fetch the variables, needed for the video player port
         self.variables_request_mgr = TriblerRequestManager()
         self.variables_request_mgr.perform_request("variables", self.received_variables)
