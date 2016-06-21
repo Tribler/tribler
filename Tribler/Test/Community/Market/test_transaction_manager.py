@@ -18,8 +18,7 @@ class TransactionManagerTestSuite(unittest.TestCase):
     def setUp(self):
         # Object creation
         self.memory_transaction_repository = MemoryTransactionRepository("0")
-        self.transaction_manager = TransactionManager(self.memory_transaction_repository, "multi_chain_community",
-                                                      "bitcoin_payment_provider")
+        self.transaction_manager = TransactionManager(self.memory_transaction_repository)
 
         self.transaction_id = TransactionId(TraderId("0"), TransactionNumber("1"))
         self.transaction = Transaction(self.transaction_id, TraderId("2"), Price(100), Quantity(30), Timeout(0.0),

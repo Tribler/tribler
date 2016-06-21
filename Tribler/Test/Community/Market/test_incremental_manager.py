@@ -22,17 +22,17 @@ class IncrementalQuantityManagerTestSuite(unittest.TestCase):
 
     def test_determine_incremental_quantity_list_initial(self):
         # Test for determine incremental quantity list when price is equal to initial price
-        self.assertEquals([Quantity(1), Quantity(10), Quantity(9)],
+        self.assertEquals([Quantity(20)],
                           self.incremental_quantity_manager.determine_incremental_quantity_list(self.quantity3))
 
     def test_determine_incremental_quantity_list_exact(self):
         # Test for determine incremental quantity list when price is equal to initial price + multiple incremental prices
-        self.assertEquals([Quantity(1), Quantity(10), Quantity(10)],
+        self.assertEquals([Quantity(20), Quantity(1)],
                           self.incremental_quantity_manager.determine_incremental_quantity_list(self.quantity))
 
     def test_determine_incremental_quantity_list(self):
         # Test for determine incremental quantity list
-        self.assertEquals([Quantity(1), Quantity(10), Quantity(10), Quantity(9)],
+        self.assertEquals([Quantity(20), Quantity(10)],
                           self.incremental_quantity_manager.determine_incremental_quantity_list(self.quantity2))
 
 
@@ -65,13 +65,13 @@ class IncrementalPriceManagerTestSuite(unittest.TestCase):
     def test_determine_incremental_price_list_exact(self):
         # Test for determine incremental price list when price is equal to initial price + multiple incremental prices
         incremental_quantities = self.incremental_quantity_manager.determine_incremental_quantity_list(self.quantity)
-        self.assertEquals([Price(21), Price(210), Price(210)],
+        self.assertEquals([Price(420), Price(21)],
                           self.incremental_price_manager.determine_incremental_price_list(self.price2, incremental_quantities))
 
     def test_determine_incremental_price_list(self):
         # Test for determine incremental price list
         incremental_quantities = self.incremental_quantity_manager.determine_incremental_quantity_list(self.quantity2)
-        self.assertEquals([Price(30), Price(300), Price(300), Price(270)],
+        self.assertEquals([Price(600), Price(300)],
                           self.incremental_price_manager.determine_incremental_price_list(self.price, incremental_quantities))
 
 
