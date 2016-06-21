@@ -41,6 +41,10 @@ class AbstractTriblerGUITest(unittest.TestCase):
     def tearDown(self):
         window.downloads_page.can_update_items = False
 
+    @classmethod
+    def tearDownClass(cls):
+        window.core_manager.stop()
+
     def go_to_and_wait_for_downloads(self):
         QTest.mouseClick(window.left_menu_button_downloads, Qt.LeftButton)
         QTest.mouseClick(window.downloads_all_button, Qt.LeftButton)
