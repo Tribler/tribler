@@ -1,7 +1,7 @@
 import os
 from PyQt5.QtCore import QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QCursor, QDesktopServices
-from PyQt5.QtWidgets import QWidget, QMenu, QAction, QFileDialog
+from PyQt5.QtWidgets import QWidget, QMenu, QAction, QFileDialog, QSystemTrayIcon
 from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 from TriblerGUI.defs import DOWNLOADS_FILTER_ALL, DOWNLOADS_FILTER_DOWNLOADING, DOWNLOADS_FILTER_COMPLETED, \
     DOWNLOADS_FILTER_ACTIVE, DOWNLOADS_FILTER_INACTIVE, DOWNLOADS_FILTER_DEFINITION, DLSTATUS_STOPPED, \
@@ -90,7 +90,9 @@ class DownloadsPage(QWidget):
             del self.download_widgets[infohash]
 
         self.window().statusBar.set_speeds(total_download, total_upload)
-        self.window().tray_icon.setToolTip("Down: %s, Up: %s" % (format_speed(total_download), format_speed(total_upload)))
+        if QSystemTrayIcon.isSystemTrayAvailable():
+            self.window().tray_icon.setToolTip(
+                "Down: %s, Up: %s" % (format_speed(total_download), format_speed(total_upload)))
         self.update_download_visibility()
 
     def update_download_visibility(self):
