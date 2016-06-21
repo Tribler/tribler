@@ -4,12 +4,12 @@ import sys
 import os
 import datetime
 
+from Tribler.Core.Utilities.misc_utils import printDBStats
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.community.tunnel.routing import Hop
 
 import random
 import logging
-import binascii
 from time import strftime, time
 from traceback import print_exc
 
@@ -210,7 +210,7 @@ class Stats(wx.Panel):
             self._showInspectionTool()
 
         elif event.ControlDown() and (event.GetKeyCode() == 68 or event.GetKeyCode() == 100):  # ctrl + d
-            self._printDBStats()
+            printDBStats(self._logger, Session.get_instance())
         else:
             event.Skip()
 
@@ -219,7 +219,7 @@ class Stats(wx.Panel):
             self._showInspectionTool()
 
         elif all([event.LeftUp(), event.ControlDown(), event.AltDown(), event.ShiftDown()]):
-            self._printDBStats()
+            printDBStats(self._logger, Session.get_instance())
 
         else:
             event.Skip()
@@ -288,12 +288,6 @@ class Stats(wx.Panel):
         except Exception:
             import traceback
             traceback.print_exc()
-
-    def _printDBStats(self):
-        sqlite_db = self.guiutility.utility.session.sqlite_db
-        tables = sqlite_db.fetchall("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
-        for table, in tables:
-            self._logger.info("%s %s", table, sqlite_db.fetchone("SELECT COUNT(*) FROM %s" % table))
 
     def Show(self, show=True):
         if show:
