@@ -4,11 +4,9 @@ import android.util.Log;
 
 import com.facebook.stetho.okhttp3.StethoInterceptor;
 import com.google.gson.Gson;
-import com.google.gson.stream.JsonReader;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.StringReader;
 import java.lang.ref.WeakReference;
 import java.util.concurrent.TimeUnit;
 
@@ -29,7 +27,7 @@ public class RestApiClient {
     public static final MediaType TYPE_JSON = MediaType.parse("application/json; charset=utf-8");
 
     public static final OkHttpClient API = new OkHttpClient.Builder()
-            .connectionPool(new ConnectionPool(5, 5, TimeUnit.MINUTES))
+            .connectionPool(new ConnectionPool(10, 10, TimeUnit.MINUTES))
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
@@ -38,9 +36,9 @@ public class RestApiClient {
             .build();
 
     private static final OkHttpClient EVENTS = new OkHttpClient.Builder()
-            .connectionPool(new ConnectionPool(1, 30, TimeUnit.MINUTES))
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.MINUTES)
+            .connectionPool(new ConnectionPool(1, 60, TimeUnit.MINUTES))
+            .connectTimeout(1, TimeUnit.MINUTES)
+            .readTimeout(60, TimeUnit.MINUTES)
             .writeTimeout(30, TimeUnit.SECONDS)
             .addNetworkInterceptor(new StethoInterceptor()) // DEBUG
             .build();
@@ -76,12 +74,18 @@ public class RestApiClient {
 
     public static void setEventListener(EventListener listener) {
         mEventListener = new WeakReference<EventListener>(listener);
-
         // Start listening
-        RestApiClient.openEvents();
+        openEvents();
     }
 
-    private static Call mEventCall;
+    private static void openEvents() {
+        Request request = new Request.Builder()
+                .url(BASE_URL + "/events")
+                .build();
+
+        Log.d(TAG, "**************   (RE)CONNECT   ******************");
+        EVENTS.newCall(request).enqueue(mEventCallback);
+    }
 
     private static Callback mEventCallback = new Callback() {
 
@@ -92,16 +96,13 @@ public class RestApiClient {
         public void onFailure(Call call, IOException ex) {
             ex.printStackTrace();
             Log.v(TAG, "Service events stream not ready. Retrying in 1s...");
-            // Retry until service comes up
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
-                e.printStackTrace();
             }
-            // Reconnect on timeout
+            // Retry until service comes up
             openEvents();
         }
-
 
         /**
          * {@inheritDoc}
@@ -111,19 +112,28 @@ public class RestApiClient {
             if (!response.isSuccessful()) {
                 throw new IOException("Unexpected code " + response);
             }
-
+            // Read headers
             Headers responseHeaders = response.headers();
             for (int i = 0, size = responseHeaders.size(); i < size; i++) {
-                System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
+                Log.d(TAG, responseHeaders.name(i) + ": " + responseHeaders.value(i));
             }
-
+            // Read body
             try {
                 BufferedReader in = new BufferedReader(response.body().charStream());
                 String line;
+                // Blocking read
                 while ((line = in.readLine()) != null) {
-                    System.out.println(line);
-                    JsonReader reader = new JsonReader(new StringReader(line));
-                    readEvents(reader);
+                    Log.v(TAG, line);
+                    // Split line and restore delimiters
+                    String[] events = line.split("\\}\\{");
+                    for (int i = 1, j = events.length; i < j; i += 2) {
+                        events[i - 1] += "}";
+                        events[i] = "{" + events[i];
+                    }
+                    for (String eventString : events) {
+                        Log.v(TAG, eventString);
+                        parseEvent(eventString);
+                    }
                 }
                 in.close();
             } catch (Exception e) {
@@ -134,71 +144,34 @@ public class RestApiClient {
         }
     };
 
-    private static void openEvents() {
-        Request request = new Request.Builder()
-                .url(BASE_URL + "/events")
-                .build();
+    private static void parseEvent(String eventString) throws IOException {
+        EventListener listener = mEventListener.get();
+        TriblerEvent event = GSON.fromJson(eventString, TriblerEvent.class);
+        String eventJson = GSON.toJson(event.getEvent());
+        switch (event.getType()) {
+            case "events_start":
+                Log.d(TAG, "------------- START EVENTS --------------");
+                listener.onEventsStart();
+                break;
 
-        mEventCall = EVENTS.newCall(request);
+            case "search_result_channel":
+                SearchResultChannelEvent channelResult =
+                        GSON.fromJson(eventJson, SearchResultChannelEvent.class);
+                listener.onSearchResultChannel(channelResult.getQuery(),
+                        channelResult.getResult());
+                break;
 
-        System.err.println("**************   (RE)CONNECT   ******************");
-        mEventCall.enqueue(mEventCallback);
-    }
+            case "search_result_torrent":
+                SearchResultTorrentEvent torrentResult =
+                        GSON.fromJson(eventJson, SearchResultTorrentEvent.class);
+                listener.onSearchResultTorrent(torrentResult.getQuery(),
+                        torrentResult.getResult());
+                break;
 
-    private static void readEvents(JsonReader reader) throws IOException {
-        String query = null;
-        reader.beginObject();
-        if ("type".equals(reader.nextName())) {
-
-            switch (reader.nextString()) {
-                case "events_start":
-                    System.err.println("------------- START EVENTS --------------");
-                    mEventListener.get().onEventsStart();
-                    break;
-
-                case "search_result_channel":
-                    reader.nextName();
-                    reader.beginObject();
-                    if ("query".equals(reader.nextName())) {
-                        query = reader.nextString();
-                    } else {
-                        throw new IOException("Invalid query");
-                    }
-                    TriblerChannel channel;
-                    if ("result".equals(reader.nextName())) {
-                        channel = GSON.fromJson(reader, TriblerChannel.class);
-                    } else {
-                        throw new IOException("Invalid result");
-                    }
-                    reader.endObject();
-                    mEventListener.get().onSearchResultChannel(query, channel);
-                    break;
-
-                case "search_result_torrent":
-                    reader.nextName();
-                    reader.beginObject();
-                    if ("query".equals(reader.nextName())) {
-                        query = reader.nextString();
-                    } else {
-                        throw new IOException("Invalid query");
-                    }
-                    TriblerTorrent torrent;
-                    if ("result".equals(reader.nextName())) {
-                        torrent = GSON.fromJson(reader, TriblerTorrent.class);
-                    } else {
-                        throw new IOException("Invalid result");
-                    }
-                    reader.endObject();
-                    mEventListener.get().onSearchResultTorrent(query, torrent);
-                    break;
-
-                default:
-                    System.err.println("------------- UNKNOWN EVENT --------------");
-                    throw new IOException("Unknown event");
-            }
-        } else {
-            throw new IOException("Invalid type");
+            default:
+                Log.e(TAG, "------------- UNKNOWN EVENT --------------");
+                throw new IOException("Unknown event");
         }
-        reader.endObject();
     }
+
 }

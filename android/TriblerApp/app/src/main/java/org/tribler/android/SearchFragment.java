@@ -2,6 +2,7 @@ package org.tribler.android;
 
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 
 import java.io.IOException;
 
@@ -86,29 +87,29 @@ public class SearchFragment extends TriblerViewFragment implements RestApiClient
 
     @Override
     public void onSearchResultChannel(String query, final TriblerChannel result) {
-        //if (mQuery.equals(query)) {
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                mAdapter.addItem(result);
-            }
-        });
-        //} else {
-        System.err.println(query);
-        //}
+        if (mQuery.equals(query)) {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mAdapter.addItem(result);
+                }
+            });
+        } else {
+            Log.d(TAG, "Irrelevant result: " + query);
+        }
     }
 
     @Override
     public void onSearchResultTorrent(String query, final TriblerTorrent result) {
-        //if (mQuery.equals(query)) {
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                mAdapter.addItem(result);
-            }
-        });
-        //} else {
-        System.err.println(query);
-        //}
+        if (mQuery.equals(query)) {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mAdapter.addItem(result);
+                }
+            });
+        } else {
+            Log.d(TAG, "Irrelevant result: " + query);
+        }
     }
 }

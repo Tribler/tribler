@@ -94,6 +94,11 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
     public void onSwipedRight(final TriblerChannel channel) {
         mAdapter.removeItem(channel);
 
+        if (channel.isSubscribed()) {
+            Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_subscribe_already), Snackbar.LENGTH_LONG).show();
+            return;
+        }
+
         Request request = new Request.Builder()
                 .url(BASE_URL + "/channels/subscribed/" + channel.getDispersyCid())
                 .put(RequestBody.create(TYPE_JSON, ""))
@@ -133,6 +138,12 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
     @Override
     public void onSwipedLeft(final TriblerChannel channel) {
         mAdapter.removeItem(channel);
+
+        if (!channel.isSubscribed()) {
+            //TODO: idea: never see channel again?
+            Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_unsubscribe_already), Snackbar.LENGTH_LONG).show();
+            return;
+        }
 
         Request request = new Request.Builder()
                 .url(BASE_URL + "/channels/discovered")

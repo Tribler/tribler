@@ -1,7 +1,7 @@
 package org.tribler.android;
 
 /**
- * Deserialization of JSON Channel
+ * Deserialization of JSON channel
  */
 public class TriblerChannel {
 

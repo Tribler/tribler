@@ -1,7 +1,7 @@
 package org.tribler.android;
 
 /**
- * Deserialization of JSON Torrent
+ * Deserialization of JSON torrent
  */
 public class TriblerTorrent {
 
