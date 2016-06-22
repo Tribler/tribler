@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import QApplication, QListWidget, QTreeWidget
 
 import TriblerGUI
 from TriblerGUI.home_recommended_item import HomeRecommendedChannelItem, HomeRecommendedTorrentItem
+from TriblerGUI.loading_list_item import LoadingListItem
 from TriblerGUI.tribler_window import TriblerWindow
 
 os.environ['VLC_PLUGIN_PATH'] = '/Applications/VLC.app/Contents/MacOS/plugins'
@@ -64,9 +65,12 @@ class AbstractTriblerGUITest(unittest.TestCase):
     def wait_for_list_populated(self, list, num_items=1, timeout=10):
         for _ in range(0, timeout * 1000, 100):
             QTest.qWait(100)
-            if (isinstance(list, QListWidget) and list.count >= num_items) or \
-                    (isinstance(list, QTreeWidget) and list.topLevelItemCount > 0):
-                return
+            if isinstance(list, QListWidget) and list.count() >= num_items:
+                if not isinstance(list.itemWidget(list.item(0)), LoadingListItem):
+                    return
+            elif isinstance(list, QTreeWidget) and list.topLevelItemCount() > num_items:
+                if not isinstance(list.topLevelItem(0), LoadingListItem):
+                    return
 
         # List was not populated in time, fail the test
         raise TimeoutException("The list was not populated within 10 seconds")
