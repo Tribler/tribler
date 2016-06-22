@@ -1,6 +1,5 @@
 import os
 import sys
-import traceback
 import unittest
 from random import randint
 
@@ -11,6 +10,11 @@ from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication, QListWidget, QTreeWidget
 
 import TriblerGUI
+
+# We also need to add the TriblerGUI directory to the path. This should be done before the
+# window is imported, otherwise, it cannot find the UI widgets.
+sys.path.append(os.path.dirname(TriblerGUI.__file__))
+
 from TriblerGUI.home_recommended_item import HomeRecommendedChannelItem, HomeRecommendedTorrentItem
 from TriblerGUI.loading_list_item import LoadingListItem
 from TriblerGUI.tribler_window import TriblerWindow

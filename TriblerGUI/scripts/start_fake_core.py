@@ -1,9 +1,9 @@
 import logging
 import os
 import sys
-import TriblerGUI
+import Tribler
 
-os.chdir(os.path.join(os.path.dirname(TriblerGUI.__file__), "Test", "FakeApi"))
+os.chdir(os.path.join(os.path.dirname(Tribler.__file__), "Test", "GUI", "FakeApi"))
 sys.path.insert(0, os.path.abspath(os.getcwd()))
 
 from twisted.internet import reactor
