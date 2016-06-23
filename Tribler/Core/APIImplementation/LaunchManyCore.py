@@ -10,6 +10,7 @@ import time as timemod
 from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
+from twisted.internet.defer import Deferred
 
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
@@ -93,6 +94,8 @@ class TriblerLaunchMany(TaskManager):
         self.torrent_checker = None
         self.tunnel_community = None
 
+        self.startup_deferred = Deferred()
+
     def register(self, session, sesslock):
         if not self.registered:
             self.registered = True
@@ -169,7 +172,12 @@ class TriblerLaunchMany(TaskManager):
         if not self.initComplete:
             self.init()
 
+        self.session.add_observer(self.on_tribler_started, NTFY_TRIBLER, [NTFY_STARTED])
         self.session.notifier.notify(NTFY_TRIBLER, NTFY_STARTED, None)
+        return self.startup_deferred
+
+    def on_tribler_started(self, subject, changetype, objectID, *args):
+        self.startup_deferred.callback(None)
 
     def init(self):
         if self.dispersy:
