@@ -1,4 +1,5 @@
 import os
+from ConfigParser import MissingSectionHeaderError
 
 from nose.tools import raises
 
@@ -74,7 +75,7 @@ class TestConfigParser(TriblerCoreTest):
         dlcfg.save(file_path)
         dlcfg.load(file_path)
 
-    @raises(IOError)
+    @raises(MissingSectionHeaderError)
     def test_startup_download_load_corrupt(self):
         dlcfg = DownloadStartupConfig()
         dlcfg.load(os.path.join(self.CONFIG_FILES_DIR, "corrupt_download_config.conf"))
