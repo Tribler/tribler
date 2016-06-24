@@ -173,8 +173,8 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
         .. http:patch:: /download/(string: infohash)
 
         A PATCH request to this endpoint will update a download in Tribler. A state parameter can be passed to modify
-        the state of the download. Valid states are "resume" (to resume a stopped/paused download) or "stop" (to
-        stop a running download).
+        the state of the download. Valid states are "resume" (to resume a stopped/paused download), "stop" (to
+        stop a running download) and "recheck" (to force a recheck of the hashes of a download).
 
             **Example request**:
 
@@ -201,6 +201,8 @@ class DownloadSpecificEndpoint(DownloadBaseEndpoint):
                 download.restart()
             elif state == "stop":
                 download.stop()
+            elif state == "recheck":
+                download.force_recheck()
             else:
                 request.setResponseCode(http.BAD_REQUEST)
                 return json.dumps({"error": "unknown state parameter"})
