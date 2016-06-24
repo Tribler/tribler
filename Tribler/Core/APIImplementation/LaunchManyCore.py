@@ -10,14 +10,13 @@ import time as timemod
 from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
-from twisted.internet.defer import inlineCallbacks
 
 from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DefaultDownloadStartupConfig
-from Tribler.Core.Modules.restapi.rest_manager import RESTManager
 from Tribler.Core.Modules.search_manager import SearchManager
 from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
 from Tribler.Core.Modules.watch_folder import WatchFolder
@@ -29,7 +28,6 @@ from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, 
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
-
 
 try:
     import prctl
@@ -300,9 +298,8 @@ class TriblerLaunchMany(TaskManager):
         if self.rtorrent_handler:
             self.rtorrent_handler.initialize()
 
-        if self.session.get_http_api_enabled():
-            self.api_manager = RESTManager(self.session)
-            self.api_manager.start()
+        if self.api_manager:
+            self.api_manager.root_endpoint.start_endpoints()
 
         if self.session.get_watch_folder_enabled():
             self.watch_folder = WatchFolder(self.session)

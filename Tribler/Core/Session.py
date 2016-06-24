@@ -13,6 +13,7 @@ from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_FILE_RELATIVE_PATH, DB_SCRIPT_RELATIVE_PATH
 from Tribler.Core.Config.tribler_config import TriblerConfig
+from Tribler.Core.Modules.restapi.rest_manager import RESTManager
 from Tribler.Core.SessionConfig import SessionConfigInterface, SessionStartupConfig
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
 from Tribler.Core.exceptions import NotYetImplementedException, OperationNotEnabledByConfigurationException, \
@@ -181,6 +182,12 @@ class Session(SessionConfigInterface):
         self.sqlite_db = SQLiteCacheDB(db_path, db_script_path)
         self.sqlite_db.initialize()
         self.sqlite_db.initial_begin()
+
+        # Start the REST API before the upgrader since we want to send interesting upgrader events over the socket
+        if self.get_http_api_enabled():
+            self.lm.api_manager = RESTManager(self)
+            self.lm.api_manager.start()
+
         self.upgrader = TriblerUpgrader(self, self.sqlite_db)
         self.upgrader.run()
         return self.upgrader

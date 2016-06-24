@@ -16,10 +16,20 @@ class RootEndpoint(resource.Resource):
     """
 
     def __init__(self, session):
+        """
+        During the initialization of the REST API, we only start the event sockets. We enable the other endpoints
+        when Tribler has completed the starting procedure.
+        """
         resource.Resource.__init__(self)
         self.session = session
         self.events_endpoint = EventsEndpoint(self.session)
+        self.putChild("events", self.events_endpoint)
 
+    def start_endpoints(self):
+        """
+        This method is only called when Tribler has started. It enables the other endpoints that are dependent
+        on a fully started Tribler.
+        """
         child_handler_dict = {"search": SearchEndpoint, "channels": ChannelsEndpoint, "mychannel": MyChannelEndpoint,
                               "settings": SettingsEndpoint, "variables": VariablesEndpoint,
                               "downloads": DownloadsEndpoint}
@@ -27,5 +37,4 @@ class RootEndpoint(resource.Resource):
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(self.session))
 
-        self.putChild("events", self.events_endpoint)
         self.getChildWithDefault("search", None).events_endpoint = self.events_endpoint
