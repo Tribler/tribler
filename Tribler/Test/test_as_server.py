@@ -233,7 +233,7 @@ class TestAsServer(AbstractServer):
         while not upgrader.is_done:
             time.sleep(0.1)
         assert not upgrader.failed, upgrader.current_status
-        self.session.start()
+        self.tribler_started_deferred = self.session.start()
 
         self.hisport = self.session.get_listen_port()
 

@@ -10,6 +10,7 @@ import time as timemod
 from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
+from twisted.internet.defer import Deferred
 
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
@@ -24,7 +25,7 @@ from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Video.VideoPlayer import VideoPlayer
 from Tribler.Core.exceptions import DuplicateDownloadException
-from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE
+from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_TRIBLER
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blockingCallFromThread, blocking_call_on_reactor_thread
@@ -92,6 +93,8 @@ class TriblerLaunchMany(TaskManager):
         self.tracker_manager = None
         self.torrent_checker = None
         self.tunnel_community = None
+
+        self.startup_deferred = Deferred()
 
     def register(self, session, sesslock):
         if not self.registered:
@@ -168,6 +171,13 @@ class TriblerLaunchMany(TaskManager):
 
         if not self.initComplete:
             self.init()
+
+        self.session.add_observer(self.on_tribler_started, NTFY_TRIBLER, [NTFY_STARTED])
+        self.session.notifier.notify(NTFY_TRIBLER, NTFY_STARTED, None)
+        return self.startup_deferred
+
+    def on_tribler_started(self, subject, changetype, objectID, *args):
+        self.startup_deferred.callback(None)
 
     def init(self):
         if self.dispersy:

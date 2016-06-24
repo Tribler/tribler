@@ -4,9 +4,10 @@ from twisted.internet.defer import Deferred
 from twisted.internet.protocol import Protocol
 from twisted.web.client import Agent
 from twisted.web.http_headers import Headers
-from Tribler.Core.Modules.restapi import events_endpoint
+from Tribler.Core.Modules.restapi import events_endpoint as events_endpoint_file
 from Tribler.Core.Utilities.twisted_thread import deferred
-from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT
+from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT, NTFY_UPGRADER, \
+    NTFY_STARTED, NTFY_FINISHED, NTFY_UPGRADER_TICK, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, NTFY_NEW_VERSION
 from Tribler.Core.version import version_id
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 
@@ -31,14 +32,17 @@ class EventDataProtocol(Protocol):
 
 class TestEventsEndpoint(AbstractApiTest):
 
-    def __init__(self, *args, **kwargs):
-        super(TestEventsEndpoint, self).__init__(*args, **kwargs)
+    def setUp(self, autoload_discovery=True):
+        super(TestEventsEndpoint, self).setUp(autoload_discovery=autoload_discovery)
         self.events_deferred = Deferred()
+        self.socket_open_deferred = self.tribler_started_deferred.addCallback(self.open_events_socket)
+        self.messages_to_wait_for = 0
+        events_endpoint_file.MAX_EVENTS_BUFFER_SIZE = 100
 
     def on_event_socket_opened(self, response):
         response.deliverBody(EventDataProtocol(self.messages_to_wait_for, self.events_deferred, response))
 
-    def open_events_socket(self):
+    def open_events_socket(self, _):
         agent = Agent(reactor)
         return agent.request('GET', 'http://localhost:%s/events' % self.session.get_http_api_port(),
                              Headers({'User-Agent': ['Tribler ' + version_id]}), None)\
@@ -50,18 +54,16 @@ class TestEventsEndpoint(AbstractApiTest):
         Testing whether we still receive messages that are in the buffer before the event connection is opened
         """
         def verify_delayed_message(results):
-            self.assertEqual(results[0][u'type'], u'search_result_channel')
-            self.assertTrue(results[0][u'event'][u'result'])
+            self.assertEqual(len(results), 1)
 
-        events_endpoint.MAX_EVENTS_BUFFER_SIZE = 1
+        events_endpoint_file.MAX_EVENTS_BUFFER_SIZE = 1
 
+        events_endpoint = self.session.lm.api_manager.root_endpoint.events_endpoint
         self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
         results_dict = {"keywords": ["test"], "result_list": [('a',) * 9]}
-        self.session.notifier.use_pool = False
-        self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
-        self.session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
+        events_endpoint.on_search_results_channels(None, None, None, results_dict)
+        events_endpoint.on_search_results_torrents(None, None, None, results_dict)
         self.messages_to_wait_for = 1
-        self.open_events_socket()
         return self.events_deferred.addCallback(verify_delayed_message)
 
     @deferred(timeout=10)
@@ -70,19 +72,38 @@ class TestEventsEndpoint(AbstractApiTest):
         Testing whether the event endpoint returns search results when we have search results available
         """
         def verify_search_results(results):
-            self.assertEqual(results[0][u'type'], u'search_result_channel')
-            self.assertEqual(results[1][u'type'], u'search_result_torrent')
+            self.assertEqual(len(results), 3)
 
-            self.assertTrue(results[0][u'event'][u'result'])
-            self.assertTrue(results[1][u'event'][u'result'])
+        self.messages_to_wait_for = 3
 
-        def create_search_results(_):
+        def send_notifications(_):
+            self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
+
             results_dict = {"keywords": ["test"], "result_list": [('a',) * 9]}
-            self.session.notifier.use_pool = False
             self.session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
             self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
 
-        self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
-        self.messages_to_wait_for = 2
-        self.open_events_socket().addCallback(create_search_results)
+        self.socket_open_deferred.addCallback(send_notifications)
+
         return self.events_deferred.addCallback(verify_search_results)
+
+    def test_events(self):
+        """
+        Testing whether various events are coming through the events endpoints
+        """
+        self.messages_to_wait_for = 8
+
+        def send_notifications(_):
+            self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
+            results_dict = {"keywords": ["test"], "result_list": [('a',) * 9]}
+            self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
+            self.session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
+            self.session.notifier.notify(NTFY_UPGRADER, NTFY_STARTED, None, None)
+            self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, None, None)
+            self.session.notifier.notify(NTFY_UPGRADER, NTFY_FINISHED, None, None)
+            self.session.notifier.notify(NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, None, None)
+            self.session.notifier.notify(NTFY_NEW_VERSION, NTFY_INSERT, None, None)
+
+        self.socket_open_deferred.addCallback(send_notifications)
+
+        return self.events_deferred

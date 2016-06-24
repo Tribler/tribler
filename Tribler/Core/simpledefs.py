@@ -80,6 +80,7 @@ NTFY_ONCREATED_E2E = 'oncreatedendtoend'
 NTFY_IP_CREATED = 'intropointcreated'
 NTFY_RP_CREATED = 'rendezvouspointcreated'
 NTFY_UPGRADER = 'upgraderdone'
+NTFY_UPGRADER_TICK = 'upgradertick'
 
 NTFY_STARTUP_TICK = 'startuptick'
 NTFY_CLOSE_TICK = 'closetick'
@@ -87,8 +88,9 @@ NTFY_CLOSE_TICK = 'closetick'
 # non data handler subjects
 NTFY_ACTIVITIES = 'activities'  # an activity was set (peer met/dns resolved)
 NTFY_REACHABLE = 'reachable'  # the Session is reachable from the Internet
+NTFY_TRIBLER = 'tribler'  # notifications regarding Tribler in general
 NTFY_DISPERSY = 'dispersy'  # an notification regarding dispersy
-NTFY_WATCH_CORRUPT_FOLDER = 'corrupt_torrent'  # a corrupt torrent has been found in the watch folder
+NTFY_WATCH_FOLDER_CORRUPT_TORRENT = 'corrupt_torrent'  # a corrupt torrent has been found in the watch folder
 NTFY_NEW_VERSION = 'newversion' # a new version of Tribler is available
 
 # changeTypes

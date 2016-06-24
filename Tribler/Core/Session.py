@@ -460,12 +460,14 @@ class Session(SessionConfigInterface):
         """ Create the LaunchManyCore instance and start it"""
 
         # Create engine with network thread
-        self.lm.register(self, self.sesslock)
+        startup_deferred = self.lm.register(self, self.sesslock)
 
         if self.get_libtorrent():
             self.load_checkpoint()
 
         self.sessconfig.set_callback(self.lm.sessconfig_changed_callback)
+
+        return startup_deferred
 
     def shutdown(self, checkpoint=True, gracetime=2.0, hacksessconfcheckpoint=True):
         """ Checkpoints the session and closes it, stopping the download engine.

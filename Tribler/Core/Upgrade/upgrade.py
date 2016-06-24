@@ -8,7 +8,7 @@ from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION, LOWEST_SUPPORTED
 from Tribler.Core.Upgrade.db_upgrader import DBUpgrader
 from Tribler.Core.Upgrade.pickle_converter import PickleConverter
 from Tribler.Core.Upgrade.torrent_upgrade65 import TorrentMigrator65
-from Tribler.Core.simpledefs import NTFY_UPGRADER, NTFY_FINISHED, NTFY_STARTED
+from Tribler.Core.simpledefs import NTFY_UPGRADER, NTFY_FINISHED, NTFY_STARTED, NTFY_UPGRADER_TICK
 from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread
 
 
@@ -58,6 +58,7 @@ class TriblerUpgrader(object):
             self.notify_done()
 
     def update_status(self, status_text):
+        self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, status_text)
         self.current_status = status_text
 
     def notify_starting(self):
