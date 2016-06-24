@@ -134,6 +134,29 @@ class TestDownloadsEndpoint(AbstractApiTest):
         return request_deferred.addCallback(verify_resumed)
 
     @deferred(timeout=10)
+    def test_recheck_download(self):
+        """
+        Testing whether the API returns 200 if a download is being rechecked
+        """
+        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        download = self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+        infohash = video_tdef.get_infohash().encode('hex')
+
+        def mocked_recheck():
+            mocked_recheck.called = True
+
+        mocked_recheck.called = False
+        download.force_recheck = mocked_recheck
+
+        def verify_rechecked(_):
+            self.assertEqual(len(self.session.get_downloads()), 1)
+            self.assertTrue(mocked_recheck.called)
+
+        request_deferred = self.do_request('downloads/%s' % infohash, post_data={"state": "recheck"},
+                                           expected_code=200, expected_json={"modified": True}, request_type='PATCH')
+        return request_deferred.addCallback(verify_rechecked)
+
+    @deferred(timeout=10)
     def test_download_unknown_state(self):
         """
         Testing whether the API returns error 400 if an unknown state is passed when modifying a download
