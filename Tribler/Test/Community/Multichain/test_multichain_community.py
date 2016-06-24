@@ -527,6 +527,30 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         # Assert
         self.assertEqual(counter[0], 1)
 
+    def test_get_statistics_no_blocks(self):
+        """
+        Test the get_statistics method where last block is none
+        """
+        node, = self.create_nodes(1)
+        statistics = node.community.get_statistics()
+        assert isinstance(statistics, dict), type(statistics)
+        assert len(statistics) > 0
+
+    def test_get_statistics_with_previous_block(self):
+        """
+        Test the get_statistics method where a last block exists
+        """
+        # Arrange
+        node, other = self.create_nodes(2)
+        other.send_identity(node)
+        target_other = self._create_target(node, other)
+        # Create a (halfsigned) block
+        node.call(node.community.publish_signature_request_message, target_other, 10, 5)
+        # Get statistics
+        statistics = node.community.get_statistics()
+        assert isinstance(statistics, dict), type(statistics)
+        assert len(statistics) > 0
+
     @blocking_call_on_reactor_thread
     def assertBlocksInDatabase(self, node, amount):
         assert len(node.community.persistence.get_all_hash_requester()) == amount

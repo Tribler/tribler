@@ -147,6 +147,9 @@ class MultiChainDB(Database):
         :param hash: The hash of the block that needs to be retrieved.
         :return: The block that was requested or None
         """
+        if hash is None:
+            return None
+
         db_query = u"SELECT public_key_requester, public_key_responder, up, down, " \
                    u"total_up_requester, total_down_requester, sequence_number_requester, previous_hash_requester, " \
                    u"signature_requester, hash_requester, " \

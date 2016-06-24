@@ -6,6 +6,7 @@ import datetime
 
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 from Tribler.community.tunnel.routing import Hop
+from Tribler.community.multichain.community import MultiChainCommunity
 
 import random
 import logging
@@ -18,7 +19,7 @@ from Tribler.Core.simpledefs import (NTFY_TORRENTS, NTFY_CHANNELCAST, NTFY_INSER
                                      NTFY_EXTENDED, NTFY_BROKEN, NTFY_SELECT, NTFY_JOINED, NTFY_EXTENDED_FOR,
                                      NTFY_IP_REMOVED, NTFY_RP_REMOVED, NTFY_IP_RECREATE, NTFY_DHT_LOOKUP,
                                      NTFY_KEY_REQUEST, NTFY_KEY_RESPOND, NTFY_KEY_RESPONSE, NTFY_CREATE_E2E,
-                                     NTFY_ONCREATED_E2E, NTFY_IP_CREATED, NTFY_RP_CREATED)
+                                     NTFY_ONCREATED_E2E, NTFY_IP_CREATED, NTFY_RP_CREATED, NTFY_REMOVE)
 from Tribler.Core.Session import Session
 
 from Tribler.Main.vwxGUI import SEPARATOR_GREY, DEFAULT_BACKGROUND, LIST_BLUE, THUMBNAIL_FILETYPES
@@ -184,6 +185,8 @@ class Stats(wx.Panel):
         vSizer.Add(hSizer, 1, wx.EXPAND)
 
         hSizer = wx.BoxSizer(wx.HORIZONTAL)
+        if self.guiutility.utility.session.get_enable_multichain():
+            hSizer.Add(MultichainPanel(self), 1, wx.EXPAND | wx.RIGHT, 7)
         hSizer.Add(NewTorrentPanel(self), 1, wx.EXPAND | wx.RIGHT, 7)
         hSizer.Add(PopularTorrentPanel(self), 1, wx.EXPAND, 7)
         vSizer.Add(hSizer, 1, wx.EXPAND)
@@ -463,7 +466,7 @@ class NetworkPanel(HomePanel):
 class NewTorrentPanel(HomePanel):
 
     def __init__(self, parent):
-        HomePanel.__init__(self, parent, 'Newest Torrents', SEPARATOR_GREY, (0, 1))
+        HomePanel.__init__(self, parent, 'Newest Torrents', SEPARATOR_GREY, (1, 1))
         self.Layout()
 
         session = parent.guiutility.utility.session
@@ -505,6 +508,96 @@ class NewTorrentPanel(HomePanel):
         if selected != -1:
             selected_file = self.list.GetItemText(selected)
             self.guiutility.dosearch(selected_file)
+
+class MultichainPanel(HomePanel):
+
+    def __init__(self, parent):
+        HomePanel.__init__(self, parent, 'Multichain stats', SEPARATOR_GREY, (0, 1))
+
+        self.dispersy = self.utility.session.lm.dispersy
+        self.multichain_community = None
+        self.find_multichain_community()
+
+        self.timer = None
+        self.UpdateStats()
+
+    def find_multichain_community(self):
+        try:
+            self.multichain_community = next((c for c in self.dispersy.get_communities()
+                                              if isinstance(c, MultiChainCommunity)))
+        except StopIteration:
+            wx.CallLater(1000, self.find_multichain_community)
+
+    def CreatePanel(self):
+        panel = wx.Panel(self)
+        panel.SetBackgroundColour(DEFAULT_BACKGROUND)
+        vSizer = wx.BoxSizer(wx.VERTICAL)
+
+        self.self_id = StaticText(panel)
+        self.self_total_blocks = StaticText(panel)
+        self.self_total_up_mb = StaticText(panel)
+        self.self_total_down_mb = StaticText(panel)
+        self.latest_block_insert_time = StaticText(panel)
+        self.latest_block_id = StaticText(panel)
+        self.latest_block_requester_id = StaticText(panel)
+        self.latest_block_responder_id = StaticText(panel)
+        self.latest_block_up_mb = StaticText(panel)
+        self.latest_block_down_mb = StaticText(panel)
+
+        gridSizer = wx.FlexGridSizer(0, 2, 3, 10)
+        gridSizer.AddGrowableCol(1)
+
+        gridSizer.Add(StaticText(panel, -1, 'Multichain identity'))
+        gridSizer.Add(self.self_id, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Number of blocks'))
+        gridSizer.Add(self.self_total_blocks, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Total up (MB)'))
+        gridSizer.Add(self.self_total_up_mb, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Total down (MB)'))
+        gridSizer.Add(self.self_total_down_mb, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Latest block created'))
+        gridSizer.Add(self.latest_block_insert_time, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Latest block ID'))
+        gridSizer.Add(self.latest_block_id, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Latest block requester identity'))
+        gridSizer.Add(self.latest_block_requester_id, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Latest block responder identity'))
+        gridSizer.Add(self.latest_block_responder_id, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Latest block up (MB)'))
+        gridSizer.Add(self.latest_block_up_mb, 0, wx.EXPAND)
+        gridSizer.Add(StaticText(panel, -1, 'Latest block down (MB)'))
+        gridSizer.Add(self.latest_block_down_mb, 0, wx.EXPAND)
+
+        vSizer.Add(gridSizer, 0, wx.EXPAND | wx.LEFT, 7)
+        panel.SetSizer(vSizer)
+        return panel
+
+    def UpdateStats(self):
+        def db_callback():
+            if self.multichain_community:
+                multichain_statistics = self.multichain_community.get_statistics()
+                self._UpdateStats(multichain_statistics)
+
+
+        startWorker(None, db_callback, uId=u"MultichainPanel_UpdateStats", priority=GUI_PRI_DISPERSY)
+
+    @forceWxThread
+    def _UpdateStats(self, stats):
+        self.self_id.SetLabel("..." + str(stats["self_id"])[-20:])
+        self.self_total_blocks.SetLabel(str(stats["self_total_blocks"]))
+        self.self_total_up_mb.SetLabel(str(stats["self_total_up_mb"]))
+        self.self_total_down_mb.SetLabel(str(stats["self_total_down_mb"]))
+        self.latest_block_insert_time.SetLabel(str(stats["latest_block_insert_time"]))
+        self.latest_block_id.SetLabel("..." + str(stats["latest_block_id"])[-20:])
+        self.latest_block_requester_id.SetLabel("..." + str(stats["latest_block_requester_id"])[-20:])
+        self.latest_block_responder_id.SetLabel("..." + str(stats["latest_block_responder_id"])[-20:])
+        self.latest_block_up_mb.SetLabel(str(stats["latest_block_up_mb"]))
+        self.latest_block_down_mb.SetLabel(str(stats["latest_block_down_mb"]))
+
+        if self.timer:
+            self.timer.Restart(10000)
+        else:
+            self.timer = wx.CallLater(10000, self.UpdateStats)
 
 
 class PopularTorrentPanel(NewTorrentPanel):
@@ -556,6 +649,8 @@ class ActivityPanel(NewTorrentPanel):
 
     def __init__(self, parent):
         HomePanel.__init__(self, parent, 'Recent Activity', SEPARATOR_GREY, (1, 0))
+        session = self.utility.session
+        session.add_observer(self.on_tunnel_remove, NTFY_TUNNEL, [NTFY_REMOVE])
 
     @forceWxThread
     def onActivity(self, msg):
@@ -564,6 +659,11 @@ class ActivityPanel(NewTorrentPanel):
         size = self.list.GetItemCount()
         if size > 50:
             self.list.DeleteItem(size - 1)
+
+    @forceWxThread
+    def on_tunnel_remove(self, subject, change_type, tunnel, candidate):
+        self.onActivity("Request a Multichain block with: [Up = " + str(tunnel.bytes_up) +
+                        " bytes | Down = " + str(tunnel.bytes_down) + " bytes]")
 
 
 class NetworkGraphPanel(wx.Panel):
