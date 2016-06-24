@@ -47,7 +47,8 @@ from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLS
                                      NTFY_MODERATIONS, NTFY_MODIFICATIONS, NTFY_MODIFIED, NTFY_MYPREFERENCES,
                                      NTFY_PLAYLISTS, NTFY_REACHABLE, NTFY_STARTED, NTFY_STATE, NTFY_TORRENTS,
                                      NTFY_UPDATE, NTFY_VOTECAST, UPLOAD, dlstatus_strings, NTFY_STARTUP_TICK,
-                                     NTFY_CLOSE_TICK, NTFY_UPGRADER, NTFY_WATCH_CORRUPT_FOLDER, NTFY_NEW_VERSION)
+                                     NTFY_CLOSE_TICK, NTFY_UPGRADER, NTFY_WATCH_FOLDER_CORRUPT_TORRENT,
+                                     NTFY_NEW_VERSION)
 from Tribler.Core.version import commit_id, version_id
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Utility.GuiDBHandler import GUIDBProducer, startWorker
@@ -387,7 +388,7 @@ class ABCApp(object):
         s.add_observer(self.sesscb_ntfy_torrentfinished, NTFY_TORRENTS, [NTFY_FINISHED])
         s.add_observer(self.sesscb_ntfy_magnet,
                        NTFY_TORRENTS, [NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED, NTFY_MAGNET_CLOSE])
-        s.add_observer(self.sesscb_ntfy_corrupt_torrent, NTFY_WATCH_CORRUPT_FOLDER, [NTFY_INSERT])
+        s.add_observer(self.sesscb_ntfy_corrupt_torrent, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, [NTFY_INSERT])
         s.add_observer(self.sesscb_ntfy_newversion, NTFY_NEW_VERSION, [NTFY_INSERT])
 
         # Check for a new version

@@ -4,7 +4,7 @@ import os
 from twisted.internet.task import LoopingCall
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.utilities import fix_torrent
-from Tribler.Core.simpledefs import NTFY_WATCH_CORRUPT_FOLDER, NTFY_INSERT
+from Tribler.Core.simpledefs import NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT
 from Tribler.dispersy.taskmanager import TaskManager
 
 
@@ -39,7 +39,7 @@ class WatchFolder(TaskManager):
                 if not torrent_data:  # torrent appears to be corrupt
                     os.rename(os.path.join(root, name), os.path.join(root, name + ".corrupt"))
                     self._logger.warning("Watch folder - corrupt torrent file %s", name)
-                    self.session.notifier.notify(NTFY_WATCH_CORRUPT_FOLDER, NTFY_INSERT, None, name)
+                    self.session.notifier.notify(NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, None, name)
                     continue
 
                 tdef = TorrentDef.load_from_memory(torrent_data)
