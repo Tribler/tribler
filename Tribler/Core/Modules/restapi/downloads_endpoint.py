@@ -1,20 +1,37 @@
 import json
 
-from twisted.web import resource
+from twisted.web import http, resource
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentStatisticsResponse
 
 from Tribler.Core.simpledefs import DOWNLOAD, UPLOAD, dlstatus_strings
 
 
-class DownloadsEndpoint(resource.Resource):
+class DownloadBaseEndpoint(resource.Resource):
     """
-    This endpoint is responsible for all requests regarding downloads. Examples include getting all downloads,
-    starting, pausing and stopping downloads.
+    Base class for all endpoints related to fetching information about downloads or a specific download.
     """
 
     def __init__(self, session):
         resource.Resource.__init__(self)
         self.session = session
+
+    @staticmethod
+    def return_404(request, message="this download does not exist"):
+        """
+        Returns a 404 response code if your channel has not been created.
+        """
+        request.setResponseCode(http.NOT_FOUND)
+        return json.dumps({"error": message})
+
+
+class DownloadsEndpoint(DownloadBaseEndpoint):
+    """
+    This endpoint is responsible for all requests regarding downloads. Examples include getting all downloads,
+    starting, pausing and stopping downloads.
+    """
+
+    def getChild(self, path, request):
+        return DownloadSpecificEndpoint(self.session, path)
 
     def render_GET(self, request):
         """
@@ -105,3 +122,87 @@ class DownloadsEndpoint(resource.Resource):
                              "destination": download.get_dest_dir()}
             downloads_json.append(download_json)
         return json.dumps({"downloads": downloads_json})
+
+
+class DownloadSpecificEndpoint(DownloadBaseEndpoint):
+    """
+    This class is responsible for dispatching requests to perform operations in a specific discovered channel.
+    """
+
+    def __init__(self, session, infohash):
+        DownloadBaseEndpoint.__init__(self, session)
+        self.infohash = bytes(infohash.decode('hex'))
+
+    def render_DELETE(self, request):
+        """
+        .. http:delete:: /download/(string: infohash)
+
+        A DELETE request to this endpoint removes a specific download from Tribler. You can specify whether you only
+        want to remove the download or the download and the downloaded data using the remove_data parameter.
+
+            **Example request**:
+
+                .. sourcecode:: none
+
+                    curl -X DELETE http://localhost:8085/download/4344503b7e797ebf31582327a5baae35b11bda01
+                    --data "remove_data=1"
+
+            **Example response**:
+
+                .. sourcecode:: javascript
+
+                    {"removed": True}
+        """
+        parameters = http.parse_qs(request.content.read(), 1)
+
+        if 'remove_data' not in parameters or len(parameters['remove_data']) == 0:
+            request.setResponseCode(http.BAD_REQUEST)
+            return json.dumps({"error": "remove_data parameter missing"})
+
+        download = self.session.get_download(self.infohash)
+        if not download:
+            return DownloadSpecificEndpoint.return_404(request)
+
+        remove_data = parameters['remove_data'][0] is True
+        self.session.remove_download(download, removecontent=remove_data)
+
+        return json.dumps({"removed": True})
+
+    def render_PATCH(self, request):
+        """
+        .. http:patch:: /download/(string: infohash)
+
+        A PATCH request to this endpoint will update a download in Tribler. A state parameter can be passed to modify
+        the state of the download. Valid states are "resume" (to resume a stopped/paused download) or "stop" (to
+        stop a running download).
+
+            **Example request**:
+
+                .. sourcecode:: none
+
+                    curl -X PATCH http://localhost:8085/download/4344503b7e797ebf31582327a5baae35b11bda01
+                    --data "state=resume"
+
+            **Example response**:
+
+                .. sourcecode:: javascript
+
+                    {"modified": True}
+        """
+        download = self.session.get_download(self.infohash)
+        if not download:
+            return DownloadSpecificEndpoint.return_404(request)
+
+        parameters = http.parse_qs(request.content.read(), 1)
+
+        if 'state' in parameters and len(parameters['state']) > 0:
+            state = parameters['state'][0]
+            if state == "resume":
+                download.restart()
+            elif state == "stop":
+                download.stop()
+            else:
+                request.setResponseCode(http.BAD_REQUEST)
+                return json.dumps({"error": "unknown state parameter"})
+
+        return json.dumps({"modified": True})
