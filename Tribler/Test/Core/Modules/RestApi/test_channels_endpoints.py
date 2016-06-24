@@ -72,13 +72,6 @@ class TestChannelsEndpoint(AbstractTestChannelsEndpoint):
         expected_json = {u'channels': []}
         return self.do_request('channels/discovered', expected_code=200, expected_json=expected_json)
 
-    def verify_channels(self, channels):
-        channels_json = json.loads(channels)
-        self.assertEqual(len(channels_json['channels']), 10)
-        for i in range(len(channels_json['channels'])):
-            self.assertEqual(channels_json['channels'][i]['name'], 'Test channel %d' % i)
-            self.assertEqual(channels_json['channels'][i]['description'], 'Test description %d' % i)
-
     @deferred(timeout=10)
     def test_get_discovered_channels(self):
         """
@@ -88,7 +81,14 @@ class TestChannelsEndpoint(AbstractTestChannelsEndpoint):
         for i in range(0, 10):
             self.insert_channel_in_db('rand%d' % i, 42 + i, 'Test channel %d' % i, 'Test description %d' % i)
 
-        return self.do_request('channels/discovered', expected_code=200).addCallback(self.verify_channels)
+        def verify_channels(channels):
+            channels_json = json.loads(channels)['channels']
+            self.assertEqual(len(channels_json), 10)
+            channels_json = sorted(channels_json, key=lambda channel: channel['name'])
+            for ind in xrange(len(channels_json)):
+                self.assertEqual(channels_json[ind]['name'], 'Test channel %d' % ind)
+
+        return self.do_request('channels/discovered', expected_code=200).addCallback(verify_channels)
 
 
 class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
