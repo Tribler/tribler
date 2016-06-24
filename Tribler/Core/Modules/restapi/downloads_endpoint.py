@@ -73,6 +73,8 @@ class DownloadsEndpoint(resource.Resource):
             stats = download.network_create_statistics_reponse() or LibtorrentStatisticsResponse(0, 0, 0, 0, 0, 0, 0)
 
             # Create files information of the download
+            files_completion = dict((name, progress) for name, progress
+                                    in download.network_get_state(None, False).get_files_completion())
             selected_files = download.get_selected_files()
             files_array = []
             for file, size in download.get_def().get_files_as_unicode_with_length():
@@ -82,7 +84,7 @@ class DownloadsEndpoint(resource.Resource):
                     file_index = 0
 
                 files_array.append({"index": file_index, "name": file, "size": size,
-                                    "included": (file in selected_files)})
+                                    "included": (file in selected_files), "progress": files_completion.get(file, 0.0)})
 
             # Create tracker information of the download
             tracker_info = []
@@ -94,11 +96,12 @@ class DownloadsEndpoint(resource.Resource):
                              "speed_down": download.get_current_speed(DOWNLOAD),
                              "speed_up": download.get_current_speed(UPLOAD),
                              "status": dlstatus_strings[download.get_status()],
-                             "size": download.get_length(), "eta": download.network_calc_eta(),
+                             "size": download.get_def().get_length(), "eta": download.network_calc_eta(),
                              "num_peers": stats.numPeers, "num_seeds": stats.numSeeds, "files": files_array,
                              "trackers": tracker_info, "hops": download.get_hops(),
                              "anon_download": download.get_anon_mode(), "safe_seeding": download.get_safe_seeding(),
                              "max_upload_speed": download.get_max_speed(UPLOAD),
-                             "max_download_speed": download.get_max_speed(DOWNLOAD)}
+                             "max_download_speed": download.get_max_speed(DOWNLOAD),
+                             "destination": download.get_dest_dir()}
             downloads_json.append(download_json)
         return json.dumps({"downloads": downloads_json})
