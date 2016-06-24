@@ -170,8 +170,8 @@ def isValidTorrentFile(metainfo):
     try:
         validTorrentFile(metainfo)
         return True
-    except:
-        print_exc()
+    except ValueError:
+        logger.exception("Could not check torrent file: a ValueError was thrown")
         return False
 
 
