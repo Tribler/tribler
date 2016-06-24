@@ -109,3 +109,24 @@ class TestSearchEndpoint(AbstractApiTest):
         expected_json = {"queried": True}
         return self.do_request('search?q=test', expected_code=200, expected_json=expected_json)\
             .addCallback(self.verify_search_results)
+
+    @deferred(timeout=10)
+    def test_completions_no_query(self):
+        """
+        Testing whether the API returns an error 400 if no query is passed when getting search completion terms
+        """
+        expected_json = {"error": "query parameter missing"}
+        return self.do_request('search/completions', expected_code=400, expected_json=expected_json)
+
+    @deferred(timeout=10)
+    def test_completions(self):
+        """
+        Testing whether the API returns the right terms when getting search completion terms
+        """
+        torrent_db_handler = self.session.open_dbhandler(NTFY_TORRENTS)
+        torrent_db_handler.getAutoCompleteTerms = lambda keyword, max_terms: ["%s %d" % (keyword, ind)
+                                                                              for ind in xrange(max_terms)]
+
+        expected_json = {"completions": ["tribler %d" % ind for ind in xrange(5)]}
+
+        return self.do_request('search/completions?q=tribler', expected_code=200, expected_json=expected_json)
