@@ -10,44 +10,6 @@ from Tribler.Core.simpledefs import NTFY_CHANNELCAST
 from Tribler.Core.exceptions import DuplicateChannelNameError, DuplicateTorrentFileError
 
 
-class MyChannelBaseEndpoint(resource.Resource):
-    """
-    Base class for all endpoints related to fetching information about my channel.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self._logger = logging.getLogger(self.__class__.__name__)
-        self.session = session
-        self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
-
-    @staticmethod
-    def return_404(request, message="your channel has not been created"):
-        """
-        Returns a 404 response code if your channel has not been created.
-        """
-        request.setResponseCode(http.NOT_FOUND)
-        return json.dumps({"error": message})
-
-    def return_500(self, request, exception):
-        self._logger.exception(exception)
-        request.setResponseCode(http.INTERNAL_SERVER_ERROR)
-        return json.dumps({
-            u"error": {
-                u"handled": True,
-                u"code": exception.__class__.__name__,
-                u"message": exception.message
-            }
-        })
-
-    def get_my_channel_object(self):
-        """
-        Returns the Channel object associated with you channel that is used to manage rss feeds.
-        """
-        my_channel_id = self.channel_db_handler.getMyChannelId()
-        return self.session.lm.channel_manager.get_my_channel(my_channel_id)
-
-
 class MyChannelEndpoint(MyChannelBaseEndpoint):
     """
     This endpoint is responsible for handing all requests regarding your channel such as getting and updating
