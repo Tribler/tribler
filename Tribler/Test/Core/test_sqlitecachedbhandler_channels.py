@@ -1,5 +1,6 @@
 from binascii import unhexlify
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import ChannelCastDBHandler, TorrentDBHandler, VoteCastDBHandler
+from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Test.Core.test_sqlitecachedbhandler import AbstractDB
 
 
@@ -90,3 +91,8 @@ class TestChannelDBHandler(AbstractDB):
         self.assertEqual(res, [[u'test', 2, True], [u'another', 1, True]])
         res = self.cdb.getTorrentMarkings(1)
         self.assertEqual(res, [[u'test', 1, True]])
+
+    def test_on_remove_playlist_torrent(self):
+        self.assertEqual(len(self.cdb.getTorrentsFromPlaylist(1, ['Torrent.torrent_id'])), 1)
+        self.cdb.on_remove_playlist_torrent(1, 1, str2bin('AA8cTG7ZuPsyblbRE7CyxsrKUCg='), False)
+        self.assertEqual(len(self.cdb.getTorrentsFromPlaylist(1, ['Torrent.torrent_id'])), 0)
