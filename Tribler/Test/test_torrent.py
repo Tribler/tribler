@@ -34,7 +34,7 @@ class TestTorrent(AbstractServer):
         Tests the create_torrent_file() function.
         """
 
-        def on_torrent_created(result):
+        def _on_torrent_created(result):
             # start a libtorrent session to check if the file is correct
             lt_session = libtorrent.session()
             p = {'save_path': self._temp_dir,
@@ -48,5 +48,6 @@ class TestTorrent(AbstractServer):
             lt_session.remove_torrent(handle)
             del lt_session
 
-        params = {'': ''}
-        create_torrent_file([self._test_torrent_path], params, callback=on_torrent_created)
+        params = {}
+        result = create_torrent_file([self._test_torrent_path], params)
+        _on_torrent_created(result)

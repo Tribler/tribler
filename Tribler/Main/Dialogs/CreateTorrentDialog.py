@@ -245,11 +245,13 @@ class CreateTorrentDialog(wx.Dialog):
                 try:
                     if self.combineRadio.GetValue():
                         params['name'] = self.specifiedName.GetValue()
-                        create_torrent_file(self.selectedPaths, params, self._torrentCreated)
+                        result = create_torrent_file(self.selectedPaths, params)
+                        self._torrentCreated(result)
                     else:
                         for path in self.selectedPaths:
                             if os.path.isfile(path):
-                                create_torrent_file([path], params, self._torrentCreated)
+                                result = create_torrent_file([path], params)
+                                self._torrentCreated(result)
                 except:
                     print_exc()
 
