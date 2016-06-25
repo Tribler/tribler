@@ -12,55 +12,7 @@ from Tribler.dispersy.member import DummyMember
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
-class AbstractTestChannelsEndpoint(AbstractApiTest):
-
-    def setUp(self, autoload_discovery=True):
-        super(AbstractTestChannelsEndpoint, self).setUp(autoload_discovery)
-        self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
-        self.votecast_db_handler = self.session.open_dbhandler(NTFY_VOTECAST)
-        self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"
-
-        self.create_votecast_called = False
-
-    def insert_channel_in_db(self, dispersy_cid, peer_id, name, description):
-        return self.channel_db_handler.on_channel_from_dispersy(dispersy_cid, peer_id, name, description)
-
-    def vote_for_channel(self, cid, vote_time):
-        self.votecast_db_handler.on_votes_from_dispersy([[cid, None, 'random', 2, vote_time]])
-
-    def insert_torrents_into_channel(self, torrent_list):
-        self.channel_db_handler.on_torrents_from_dispersy(torrent_list)
-
-    @blocking_call_on_reactor_thread
-    def create_fake_allchannel_community(self):
-        """
-        This method creates a fake AllChannel community so we can check whether a request is made in the community
-        when doing stuff with a channel.
-        """
-        self.session.lm.dispersy._database.open()
-        fake_member = DummyMember(self.session.lm.dispersy, 1, "a" * 20)
-        member = self.session.lm.dispersy.get_new_member(u"curve25519")
-        fake_community = AllChannelCommunity.init_community(self.session.lm.dispersy, fake_member, member)
-        fake_community.disp_create_votecast = self.on_dispersy_create_votecast
-        self.session.lm.dispersy._communities = {"allchannel": fake_community}
-        return fake_community
-
-    def on_dispersy_create_votecast(self, cid, vote, _):
-        """
-        Check whether we have the expected parameters when this method is called.
-        """
-        self.create_votecast_called = True
-
-
 class TestChannelsEndpoint(AbstractTestChannelsEndpoint):
-
-    @deferred(timeout=10)
-    def test_channels_unknown_endpoint(self):
-        """
-        Testing whether the API returns an error if an unknown endpoint is queried
-        """
-        self.should_check_equality = False
-        return self.do_request('channels/thisendpointdoesnotexist123', expected_code=404)
 
     @deferred(timeout=10)
     def test_get_subscribed_channels_no_subscriptions(self):
@@ -84,33 +36,6 @@ class TestChannelsEndpoint(AbstractTestChannelsEndpoint):
                                         expected_json[u'subscribed'][0][u'description'])
         self.vote_for_channel(cid, expected_json[u'subscribed'][0][u'modified'])
         return self.do_request('channels/subscribed', expected_code=200, expected_json=expected_json)
-
-    @deferred(timeout=10)
-    def test_get_discovered_channels_no_channels(self):
-        """
-        Testing whether the API returns no channels when fetching discovered channels
-        and there are no channels in the database
-        """
-        expected_json = {u'channels': []}
-        return self.do_request('channels/discovered', expected_code=200, expected_json=expected_json)
-
-    @deferred(timeout=10)
-    def test_get_discovered_channels(self):
-        """
-        Testing whether the API returns inserted channels when fetching discovered channels
-        """
-        self.should_check_equality = False
-        for i in range(0, 10):
-            self.insert_channel_in_db('rand%d' % i, 42 + i, 'Test channel %d' % i, 'Test description %d' % i)
-
-        def verify_channels(channels):
-            channels_json = json.loads(channels)['channels']
-            self.assertEqual(len(channels_json), 10)
-            channels_json = sorted(channels_json, key=lambda channel: channel['name'])
-            for ind in xrange(len(channels_json)):
-                self.assertEqual(channels_json[ind]['name'], 'Test channel %d' % ind)
-
-        return self.do_request('channels/discovered', expected_code=200).addCallback(verify_channels)
 
 
 class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
