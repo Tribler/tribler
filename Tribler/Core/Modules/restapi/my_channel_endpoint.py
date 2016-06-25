@@ -1,28 +1,19 @@
 import json
-import base64
-import logging
-
 from twisted.web import http, resource
-
-from Tribler.Core.CacheDB.sqlitecachedb import str2bin
-from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST
-from Tribler.Core.exceptions import DuplicateChannelNameError, DuplicateTorrentFileError
 
 
-class MyChannelEndpoint(MyChannelBaseEndpoint):
+NO_CHANNEL_CREATED_RESPONSE_MSG = "your channel has not been created"
+
+
+class MyChannelEndpoint(resource.Resource):
     """
-    This endpoint is responsible for handing all requests regarding your channel such as getting and updating
-    torrents, playlists and rss-feeds.
+    This class is responsible for managing requests regarding your channel.
     """
-
     def __init__(self, session):
-        MyChannelBaseEndpoint.__init__(self, session)
-        child_handler_dict = {"torrents": MyChannelTorrentsEndpoint,
-                              "playlists": MyChannelPlaylistsEndpoint,
-                              "recheckfeeds": MyChannelRecheckFeedsEndpoint}
-        for path, child_cls in child_handler_dict.iteritems():
-            self.putChild(path, child_cls(self.session))
+        resource.Resource.__init__(self)
+        self.session = session
+        self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
 
     def render_GET(self, request):
         """
@@ -53,8 +44,10 @@ class MyChannelEndpoint(MyChannelBaseEndpoint):
         """
         my_channel_id = self.channel_db_handler.getMyChannelId()
         if my_channel_id is None:
-            return MyChannelBaseEndpoint.return_404(request)
+            request.setResponseCode(http.NOT_FOUND)
+            return json.dumps({"error": NO_CHANNEL_CREATED_RESPONSE_MSG})
 
         my_channel = self.channel_db_handler.getChannel(my_channel_id)
-        return json.dumps({'overview': {'identifier': my_channel[1].encode('hex'), 'name': my_channel[2],
-                                        'description': my_channel[3]}})
+
+        return json.dumps({'mychannel': {'identifier': my_channel[1].encode('hex'), 'name': my_channel[2],
+                                         'description': my_channel[3]}})
