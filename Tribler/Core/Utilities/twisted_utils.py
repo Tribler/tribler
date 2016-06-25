@@ -53,7 +53,8 @@ def isInThreadPool():
     """
     Check if we are currently on one of twisted threadpool threads.
     """
-    return bool(reactor.threadpool) and current_thread() in reactor.threadpool.threads
+    threadpool = reactor.getThreadPool()
+    return threadpool is not None and current_thread() in threadpool.threads
 
 
 #
