@@ -37,7 +37,7 @@ def make_torrent_file(input, userabortflag=None, userprogresscallback=lambda x: 
     metainfo = {'info': info, 'encoding': input['encoding'], 'creation date': long(time())}
     validTorrentFile(metainfo)
 
-    # http://www.bittorrent.org/DHT_protocol.html says both announce and nodes
+    # http://www.bittorrent.org/beps/bep_0005.html says both announce and nodes
     # are not allowed, but some torrents (Azureus?) apparently violate this.
     if input['nodes'] is None and input['announce'] is None:
         raise ValueError('No tracker set')
