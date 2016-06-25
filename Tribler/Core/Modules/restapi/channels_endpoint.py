@@ -9,58 +9,6 @@ from Tribler.Core.simpledefs import NTFY_CHANNELCAST
 from Tribler.community.allchannel.community import AllChannelCommunity
 
 
-class BaseChannelsEndpoint(resource.Resource):
-    """
-    This class contains some utility methods to work with raw channels from the database.
-    All endpoints that are using the database, should derive from this class.
-    """
-
-    def __init__(self, session):
-        resource.Resource.__init__(self)
-        self.session = session
-        self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
-
-    @staticmethod
-    def return_404(request, message="the channel with the provided cid is not known"):
-        """
-        Returns a 404 response code if your channel has not been created.
-        """
-        request.setResponseCode(http.NOT_FOUND)
-        return json.dumps({"error": message})
-
-    def get_channel_from_db(self, cid):
-        """
-        Returns information about the channel from the database. Returns None if the channel with given cid
-        does not exist.
-        """
-        channels_list = self.channel_db_handler.getChannelsByCID([cid])
-        if not channels_list:
-            return None
-        return channels_list[0]
-
-    def vote_for_channel(self, cid, vote):
-        """
-        Make a vote in the channel specified by the cid
-        """
-        for community in self.session.get_dispersy_instance().get_communities():
-            if isinstance(community, AllChannelCommunity):
-                community.disp_create_votecast(cid, vote, int(time.time()))
-                break
-
-
-class ChannelsEndpoint(BaseChannelsEndpoint):
-    """
-    This endpoint is responsible for handing all requests regarding channels in Tribler.
-    """
-
-    def __init__(self, session):
-        BaseChannelsEndpoint.__init__(self, session)
-
-        child_handler_dict = {"subscribed": ChannelsSubscribedEndpoint, "discovered": ChannelsDiscoveredEndpoint}
-        for path, child_cls in child_handler_dict.iteritems():
-            self.putChild(path, child_cls(self.session))
-
-
 class ChannelsSubscribedEndpoint(BaseChannelsEndpoint):
     """
     This class is responsible for requests regarding the subscriptions to channels.
@@ -177,61 +125,6 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
 
         self.vote_for_channel(self.cid, VOTE_UNSUBSCRIBE)
         return json.dumps({"unsubscribed": True})
-
-
-class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
-    """
-    This class is responsible for requests regarding discovered channels.
-    """
-    def getChild(self, path, request):
-        return ChannelsDiscoveredSpecificEndpoint(self.session, path)
-
-    def render_GET(self, request):
-        """
-        .. http:get:: /channels/discovered
-
-        A GET request to this endpoint returns all channels discovered in Tribler.
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X GET http://localhost:8085/channels/discovered
-
-            **Example response**:
-
-            .. sourcecode:: javascript
-
-                {
-                    "channels": [{
-                        "id": 3,
-                        "dispersy_cid": "da69aaad39ccf468aba2ab9177d5f8d8160135e6",
-                        "name": "My fancy channel",
-                        "description": "A description of this fancy channel",
-                        "subscribed": False,
-                        "votes": 23,
-                        "torrents": 3,
-                        "spam": 5,
-                        "modified": 14598395,
-                    }, ...]
-                }
-        """
-        all_channels_db = self.channel_db_handler.getAllChannels()
-        results_json = [convert_db_channel_to_json(channel) for channel in all_channels_db]
-        return json.dumps({"channels": results_json})
-
-
-class ChannelsDiscoveredSpecificEndpoint(BaseChannelsEndpoint):
-    """
-    This class is responsible for dispatching requests to perform operations in a specific discovered channel.
-    """
-
-    def __init__(self, session, cid):
-        BaseChannelsEndpoint.__init__(self, session)
-
-        child_handler_dict = {"torrents": ChannelTorrentsEndpoint}
-        for path, child_cls in child_handler_dict.iteritems():
-            self.putChild(path, child_cls(session, bytes(cid.decode('hex'))))
 
 
 class ChannelTorrentsEndpoint(BaseChannelsEndpoint):

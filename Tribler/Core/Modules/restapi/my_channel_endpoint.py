@@ -59,52 +59,6 @@ class MyChannelEndpoint(MyChannelBaseEndpoint):
         return json.dumps({'overview': {'identifier': my_channel[1].encode('hex'), 'name': my_channel[2],
                                         'description': my_channel[3]}})
 
-    def render_PUT(self, request):
-        """
-        .. http:put:: /mychannel
-
-        Create your own new channel. The passed mode and descriptions are optional.
-
-            **Example request**:
-
-            .. sourcecode:: none
-
-                curl -X PUT http://localhost:8085/mychannel
-                --data "name=fancy name&description=fancy description&mode=open"
-
-            **Example response**:
-
-            .. sourcecode:: javascript
-
-                {
-                    "added": 23
-                }
-
-            :statuscode 500: if a channel with the specified name already exists.
-        """
-        parameters = http.parse_qs(request.content.read(), 1)
-
-        if 'name' not in parameters or len(parameters['name']) == 0:
-            request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "name parameter missing"})
-
-        if 'description' not in parameters or len(parameters['description']) == 0:
-            description = u''
-        else:
-            description = parameters['description'][0]
-
-        if 'mode' not in parameters or len(parameters['mode']) == 0:
-            mode = u'closed'
-        else:
-            mode = parameters['mode'][0]
-
-        try:
-            channel_id = self.session.create_channel(parameters['name'][0], description, mode)
-        except DuplicateChannelNameError as ex:
-            return MyChannelBaseEndpoint.return_500(self, request, ex)
-
-        return json.dumps({"added": channel_id})
-
 
 class MyChannelTorrentsEndpoint(MyChannelBaseEndpoint):
     """
