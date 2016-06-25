@@ -167,3 +167,30 @@ class TestDownloadsEndpoint(AbstractApiTest):
         self.should_check_equality = False
         return self.do_request('downloads/%s' % video_tdef.get_infohash().encode('hex'), expected_code=400,
                                post_data={"state": "abc"}, request_type='PATCH')
+
+    @deferred(timeout=10)
+    def test_export_unknown_download(self):
+        """
+        Testing whether the API returns error 404 if a non-existent download is exported
+        """
+        self.should_check_equality = False
+        return self.do_request('downloads/abcd/torrent', expected_code=404, request_type='GET')
+
+    @deferred(timeout=10)
+    def test_export_download(self):
+        """
+        Testing whether the API returns the contents of the torrent file if a download is exported
+        """
+        video_tdef, _ = self.create_local_torrent(os.path.join(TESTS_DATA_DIR, 'video.avi'))
+        self.session.start_download_from_tdef(video_tdef, DownloadStartupConfig())
+
+        with open(os.path.join(TESTS_DATA_DIR, 'bak_single.torrent')) as torrent_file:
+            raw_data = torrent_file.read()
+        self.session.get_collected_torrent = lambda _: raw_data
+
+        def verify_exported_data(result):
+            self.assertEqual(raw_data, result)
+
+        self.should_check_equality = False
+        return self.do_request('downloads/%s/torrent' % video_tdef.get_infohash().encode('hex'),
+                               expected_code=200, request_type='GET').addCallback(verify_exported_data)
