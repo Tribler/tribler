@@ -1,8 +1,27 @@
 """
 This file contains some utility methods that are used by the API.
 """
+import json
+
+from twisted.web import http
+
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE
 
+
+def return_handled_exception(request, exception):
+    """
+    :param request: the request that encountered the exception
+    :param exception: the handled exception
+    :return: JSON dictionary describing the exception
+    """
+    request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+    return json.dumps({
+        u"error": {
+            u"handled": True,
+            u"code": exception.__class__.__name__,
+            u"message": exception.message
+        }
+    })
 
 def convert_torrent_to_json(torrent):
     """
