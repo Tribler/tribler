@@ -1,6 +1,11 @@
 import os
+
+from twisted.internet.defer import Deferred
+
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION, LOWEST_SUPPORTED_DB_VERSION
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
+from Tribler.Core.Utilities.twisted_thread import deferred
+from Tribler.Core.simpledefs import NTFY_UPGRADER_TICK, NTFY_STARTED
 from Tribler.Test.Core.Upgrade.upgrade_base import AbstractUpgrader
 from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread
 
@@ -44,6 +49,17 @@ class TestUpgrader(AbstractUpgrader):
         self.assertTrue(self.upgrader.is_done)
         self.assertFalse(self.upgrader.failed)
 
+    @deferred(timeout=10)
+    def test_update_status_text(self):
+        test_deferred = Deferred()
+
+        def on_upgrade_tick(subject, changetype, objectID, status_text):
+            self.assertEqual(status_text, "12345")
+            test_deferred.callback(None)
+
+        self.session.notifier.add_observer(on_upgrade_tick, NTFY_UPGRADER_TICK, [NTFY_STARTED])
+        self.upgrader.update_status("12345")
+        return test_deferred
 
 class TestUpgraderDisabled(AbstractUpgrader):
 
