@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>855</width>
-    <height>635</height>
+    <height>655</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -443,6 +443,67 @@ background-color: #e67300;
            </property>
            <property name="autoDefault">
             <bool>false</bool>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="left_menu_button_discovered">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="cursor">
+            <cursorShape>PointingHandCursor</cursorShape>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {
+border: none;
+background: none;
+text-align: left;
+font-size: 15px;
+color: white;
+padding-left: 8px;
+}
+
+QPushButton::hover {
+background-color: #666;
+}
+
+QPushButton::checked {
+background-color: #e67300;
+}</string>
+           </property>
+           <property name="text">
+            <string> Discovered</string>
+           </property>
+           <property name="icon">
+            <iconset>
+             <normaloff>../images/discovered.png</normaloff>
+             <disabledoff>../images/discovered.png</disabledoff>
+             <disabledon>../images/discovered.png</disabledon>../images/discovered.png</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>18</width>
+             <height>18</height>
+            </size>
+           </property>
+           <property name="checkable">
+            <bool>true</bool>
            </property>
            <property name="flat">
             <bool>true</bool>
@@ -903,7 +964,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>9</number>
+         <number>2</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -7095,8 +7156,8 @@ color: white;
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>276</width>
-                       <height>136</height>
+                       <width>647</width>
+                       <height>353</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
@@ -7614,6 +7675,243 @@ font-size: 16px;</string>
           </item>
          </layout>
         </widget>
+        <widget class="DiscoveringPage" name="discovering_page">
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QLabel" name="discovering_top_label">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color: white; font-size: 18px;</string>
+            </property>
+            <property name="text">
+             <string>Discovering your first content...</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGraphicsView" name="discovering_svg_view">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>200</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>200</height>
+             </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">border: none;</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_34">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color: white; font-size: 14px;</string>
+            </property>
+            <property name="text">
+             <string>This process might take around a minute.</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="DiscoveredPage" name="discovered_page">
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QWidget" name="widget_22" native="true">
+            <layout class="QHBoxLayout" name="horizontalLayout_35">
+             <property name="spacing">
+              <number>0</number>
+             </property>
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <spacer name="horizontalSpacer_61">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>10</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QLabel" name="discovered_channels_header_label">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>50</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>50</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">color: #eee;
+background-color: transparent;
+font-size: 20px;
+font-weight: bold;</string>
+               </property>
+               <property name="text">
+                <string>Discovered channels</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_59">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>10</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QLabel" name="num_discovered_channels_label">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">font-size: 14px;
+color: white;</string>
+               </property>
+               <property name="text">
+                <string>0 items</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_62">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>10</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="LazyLoadList" name="discovered_channels_list">
+            <property name="styleSheet">
+             <string notr="true">QListWidget::item:hover {
+background-color: #999;
+}
+QListWidget::item {
+border-bottom: 1px solid #555;
+}
+QListWidget {
+border: none;
+border-top: 1px solid #555;
+}</string>
+            </property>
+            <property name="verticalScrollMode">
+             <enum>QAbstractItemView::ScrollPerPixel</enum>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
        </widget>
       </item>
      </layout>
@@ -7747,6 +8045,18 @@ font-size: 16px;</string>
    <class>SubscriptionsWidget</class>
    <extends>QWidget</extends>
    <header>subscriptionswidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>DiscoveringPage</class>
+   <extends>QWidget</extends>
+   <header>discoveringpage.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>DiscoveredPage</class>
+   <extends>QWidget</extends>
+   <header>discoveredpage.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
@@ -8024,6 +8334,38 @@ font-size: 16px;</string>
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>left_menu_button_discovered</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clicked_menu_button_discovered()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>100</x>
+     <y>117</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>327</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>discovered_channels_list</sender>
+   <signal>itemClicked(QListWidgetItem*)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_channel_item_click(QListWidgetItem*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>527</x>
+     <y>366</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>427</x>
+     <y>327</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>on_top_search_button_click()</slot>
@@ -8040,5 +8382,6 @@ font-size: 16px;</string>
   <slot>on_page_back_clicked()</slot>
   <slot>on_playlist_item_click(QListWidgetItem*)</slot>
   <slot>on_edit_channel_clicked()</slot>
+  <slot>clicked_menu_button_discovered()</slot>
  </slots>
 </ui>

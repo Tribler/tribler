@@ -16,6 +16,7 @@ class LoadingPage(QWidget):
         svg_container.addItem(svg_item)
 
         self.window().loading_svg_view.setScene(svg_container)
+        self.window().core_manager.events_manager.upgrader_tick.connect(self.set_loading_text)
 
     def set_loading_text(self, text):
-        self.loading_text_label.setText(text)
+        self.window().loading_text_label.setText(text)
