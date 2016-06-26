@@ -8,6 +8,8 @@ from traceback import print_stack
 from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
+from Tribler.Core.simpledefs import NTFY_CHANNEL, NTFY_TORRENT
+from Tribler.Core.simpledefs import NTFY_DISCOVERED
 from Tribler.community.channel.payload import ModerationPayload
 from Tribler.dispersy.authentication import MemberAuthentication, NoAuthentication
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME
@@ -321,6 +323,11 @@ class ChannelCommunity(Community):
                                                                                  message.payload.name,
                                                                                  message.payload.description)
 
+                self.tribler_session.notifier.notify(NTFY_CHANNEL, NTFY_DISCOVERED, None,
+                                                     {"name": message.payload.name,
+                                                      "description": message.payload.description,
+                                                      "dispersy_cid": self._cid.encode("hex")})
+
                 # emit signal of channel creation if the channel is created by us
                 if authentication_member == self._my_member:
                     self._channel_name = message.payload.name
@@ -406,6 +413,11 @@ class ChannelCommunity(Community):
                      message.payload.files,
                      message.payload.trackers))
                 self._logger.debug("torrent received: %s on channel: %s", hexlify(message.payload.infohash), self._master_member)
+
+                self.tribler_session.notifier.notify(NTFY_TORRENT, NTFY_DISCOVERED, None,
+                                                     {"name": message.payload.name,
+                                                      "dispersy_cid": self._cid.encode("hex")})
+
                 if message.candidate and message.candidate.sock_addr:
                     _barter_statistics.dict_inc_bartercast(
                         BartercastStatisticTypes.TORRENTS_RECEIVED,
