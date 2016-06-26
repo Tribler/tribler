@@ -1,4 +1,3 @@
-from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget
 from TriblerGUI.defs import PAGE_CHANNEL_DETAILS
 from TriblerGUI.home_recommended_item import HomeRecommendedChannelItem, HomeRecommendedTorrentItem
@@ -33,6 +32,12 @@ class HomePage(QWidget):
 
     def received_popular_channels(self, result):
         self.show_channels = True
+
+        if len(result["channels"]) == 0:
+            self.window().home_page_table_view.clear()
+            self.window().home_page_table_view.setCellWidget(0, 1, LoadingListItem(self, label_text="No recommended channels"))
+            return
+
         cur_ind = 0
         for channel in result["channels"]:
             widget_item = HomeRecommendedChannelItem(self, channel)
@@ -41,6 +46,13 @@ class HomePage(QWidget):
 
     def received_popular_torrents(self, result):
         self.show_channels = False
+        self.window().resizeEvent(None)
+
+        if len(result["torrents"]) == 0:
+            self.window().home_page_table_view.clear()
+            self.window().home_page_table_view.setCellWidget(0, 1, LoadingListItem(self, label_text="No recommended torrents"))
+            return
+
         cur_ind = 0
         for torrent in result["torrents"]:
             widget_item = HomeRecommendedTorrentItem(self, torrent)

@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget
 from TriblerGUI.channel_list_item import ChannelListItem
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
-from TriblerGUI.utilities import split_into_keywords, interleave_lists
+from TriblerGUI.utilities import split_into_keywords
 
 
 class SearchResultsPage(QWidget):
@@ -17,8 +17,8 @@ class SearchResultsPage(QWidget):
         self.search_results = {'channels': [], 'torrents': []}
         self.window().num_search_results_label.setText("")
         self.window().search_results_header_label.setText("Search results for '%s'" % query)
-        self.last_channel_index = 4
-        self.window().search_results_list.set_data_items([]) # To clean the list
+        self.window().search_results_list.set_data_items([])  # To clean the list
+        self.window().search_results_tab.on_tab_button_click(self.window().search_results_all_button)
 
     def clicked_tab_button(self, tab_button_name):
         if tab_button_name == "search_results_all_button":
@@ -36,8 +36,7 @@ class SearchResultsPage(QWidget):
             torrents_list = [(ChannelTorrentListItem, torrent) for torrent in self.search_results['torrents']]
             channels_list = [(ChannelListItem, channel) for channel in self.search_results['channels']]
 
-            interleaved_list = interleave_lists(torrents_list, channels_list)
-            self.window().search_results_list.set_data_items(interleaved_list)
+            self.window().search_results_list.set_data_items(channels_list + torrents_list)
             return
 
         all_items = []
@@ -76,18 +75,13 @@ class SearchResultsPage(QWidget):
         if result['torrents'] <= 2 or result['votes'] == 0:
             return
 
-        if self.last_channel_index >= len(self.window().search_results_list.data_items):
-            self.window().search_results_list.append_item((ChannelListItem, result))
-        else:
-            self.window().search_results_list.insert_item(self.last_channel_index, (ChannelListItem, result))
-            self.last_channel_index += 5
-
         channel_index = self.bisect_right(result, self.search_results['channels'], is_torrent=False)
+        self.window().search_results_list.insert_item(channel_index, (ChannelListItem, result))
         self.search_results['channels'].insert(channel_index, result)
         self.update_num_search_results()
 
     def received_search_result_torrent(self, result):
         torrent_index = self.bisect_right(result, self.search_results['torrents'], is_torrent=True)
         self.search_results['torrents'].insert(torrent_index, result)
-        self.window().search_results_list.insert_item(torrent_index, (ChannelTorrentListItem, result))
+        self.window().search_results_list.insert_item(torrent_index + len(self.search_results['channels']), (ChannelTorrentListItem, result))
         self.update_num_search_results()

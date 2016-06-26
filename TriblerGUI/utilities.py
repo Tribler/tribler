@@ -109,12 +109,6 @@ def split_into_keywords(query):
     return [kw for kw in RE_KEYWORD_SPLIT.split(query.lower()) if len(kw) > 0]
 
 
-def interleave_lists(a, b):
-    fst = enumerate(a)
-    snd = izip(count(0, len(a) // len(b)), b)
-    return map(itemgetter(1), heapq.merge(fst, snd))
-
-
 def get_ui_file_path(filename):
     return os.path.join(os.path.dirname(TriblerGUI.__file__), 'qt_resources/%s' % filename)
 

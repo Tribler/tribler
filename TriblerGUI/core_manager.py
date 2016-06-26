@@ -7,7 +7,7 @@ import TriblerGUI
 from TriblerGUI.event_request_manager import EventRequestManager
 
 
-START_FAKE_API = True
+START_FAKE_API = False
 
 
 class CoreManager(object):
@@ -17,6 +17,7 @@ class CoreManager(object):
         self.core_process.readyReadStandardOutput.connect(self.on_ready_read_stdout)
         self.core_process.readyReadStandardError.connect(self.on_ready_read_stderr)
         self.core_process.finished.connect(self.on_finished)
+        self.events_manager = EventRequestManager()
 
         self.shutting_down = False
 
@@ -26,7 +27,6 @@ class CoreManager(object):
         else:
             self.core_process.start("python scripts/start_core.py -n tribler")
 
-        self.events_manager = EventRequestManager()
         self.events_manager.connect()
 
     def stop(self):
