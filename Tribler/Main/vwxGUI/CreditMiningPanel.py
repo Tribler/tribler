@@ -234,7 +234,7 @@ class CreditMiningPanel(FancyPanel):
         self.utility = self.guiutility.utility
         self.installdir = self.utility.getPath()
 
-        self.boosting_manager = BoostingManager.get_instance()
+        self.boosting_manager = BoostingManager.get_instance(self.utility.session)
 
         self.tdb = self.utility.session.open_dbhandler(NTFY_TORRENTS)
 
@@ -250,6 +250,7 @@ class CreditMiningPanel(FancyPanel):
             self.main_sizer.Add(self.header, 0, wx.EXPAND)
 
         self.main_splitter = wx.SplitterWindow(self, style=wx.SP_BORDER)
+        self.main_splitter.SetMinimumPaneSize(300)
 
         self.sourcelist = CpanelCheckListCtrl(self.main_splitter, -1,
                                 agwStyle=wx.LC_REPORT | wx.LC_NO_HEADER | wx.LC_VRULES
@@ -325,11 +326,10 @@ class CreditMiningPanel(FancyPanel):
         self.infoPanel.SetSizer(if_sizer)
 
         self.sourcelist.Hide()
-        self.loading_holder =  wx.StaticText(self.main_splitter, -1, 'Loading..')
+        self.loading_holder = wx.StaticText(self.main_splitter, -1, 'Loading..')
 
-        parent.SplitVertically(self.loading_holder, self.infoPanel)
-        parent.SetMinimumPaneSize(100)
-        parent.SetSashGravity(0.25)
+        parent.SplitVertically(self.loading_holder, self.infoPanel,1)
+        parent.SetSashGravity(0.3)
         self.main_sizer.Add(parent, 1, wx.EXPAND)
 
     def OnItemSelected(self, event):

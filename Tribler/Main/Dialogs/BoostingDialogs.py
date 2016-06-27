@@ -4,7 +4,7 @@ import wx
 
 from Tribler.Main.Utility.GuiDBHandler import startWorker, GUI_PRI_DISPERSY
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-from Tribler.Policies.BoostingManager import BoostingManager
+from Tribler.Policies.BoostingManager import BoostingManager, ChannelSource
 
 
 class AddBoostingSource(wx.Dialog):
@@ -100,7 +100,7 @@ class RemoveBoostingSource(wx.Dialog):
         self.source = ''
 
         text = wx.StaticText(self, -1, 'Please select the boosting source you wish to remove:')
-        self.source_label = wx.StaticText(self, -1, 'Source:', style=wx.RB_GROUP)
+        self.source_label = wx.StaticText(self, -1, 'Source:')
         self.source_choice = wx.Choice(self, -1)
         ok_btn = wx.Button(self, -1, "OK")
         ok_btn.Bind(wx.EVT_BUTTON, self.OnOK)
@@ -121,22 +121,9 @@ class RemoveBoostingSource(wx.Dialog):
         self.SetSizer(vSizer)
 
         channels = []
-        for source in self.boosting_manager.boosting_sources.keys():
-            if source.startswith('http://'):
-                self.sources.append(source)
-            elif len(source) == 20:
-                channels.append(source)
-
-        def do_db():
-            return self.guiutility.channelsearch_manager.getChannelsByCID(channels)
-
-        def do_gui(delayedResult):
-            _, channels = delayedResult.get()
-            channels = sorted([(channel.name, channel.dispersy_cid) for channel in channels])
-            self.sources = self.sources + [channel[1] for channel in channels]
-            self.source_choice.AppendItems([channel[0] for channel in channels])
-
-        startWorker(do_gui, do_db, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        # retrieve all source except channel source
+        self.sources = [s.getSource() for s in self.boosting_manager.boosting_sources.values()
+                        if not isinstance(s, ChannelSource)]
 
         self.source_choice.SetItems(self.sources)
 

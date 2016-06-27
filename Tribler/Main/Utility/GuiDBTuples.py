@@ -127,7 +127,7 @@ class Torrent(Helper):
 
     @cacheProperty
     def torrent_id(self):
-        self._logger.error("Torrent: fetching getTorrentID from DB %s", self)
+        self._logger.debug("Torrent: fetching getTorrentID from DB %s", self)
         return self.torrent_db.getTorrentID(self.infohash)
 
     def update_torrent_id(self, torrent_id):

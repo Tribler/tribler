@@ -28,6 +28,7 @@ import sys
 import tempfile
 import traceback
 import urllib2
+import shutil
 from collections import defaultdict
 from random import randint
 from traceback import print_exc
@@ -264,8 +265,6 @@ class ABCApp(object):
             # gracefully closes Tribler after 120 seconds.
             # wx.CallLater(120*1000, wx.GetApp().Exit)
 
-            self.boosting_manager = BoostingManager.get_instance()
-
             self.ready = True
 
         except Exception as e:
@@ -399,6 +398,8 @@ class ABCApp(object):
 
         # TODO(emilon): Use the LogObserver I already implemented
         # self.dispersy.callback.attach_exception_handler(self.frame.exceptionHandler)
+
+        startWorker(None, self.loadSessionCheckpoint, delay=5.0, workerType="ThreadPool")
 
     @forceWxThread
     def sesscb_ntfy_myprefupdates(self, subject, changeType, objectID, *args):
@@ -685,6 +686,9 @@ class ABCApp(object):
                 manager = self.frame.librarylist.GetManager()
                 manager.torrentsUpdated(infohashes)
 
+                manager = self.frame.creditminingpanel.cmlist.GetManager()
+                manager.torrentsUpdated(infohashes)
+
             from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent
 
             if self.frame.torrentdetailspanel.torrent and self.frame.torrentdetailspanel.torrent.infohash in infohashes:
@@ -698,12 +702,13 @@ class ABCApp(object):
                 torrent = t.torrent if isinstance(t, CollectedTorrent) else t
                 self.frame.librarydetailspanel.setTorrent(torrent)
 
-    def sesscb_ntfy_torrentfinished(self, subject, changeType, infohash, *args):
+    def sesscb_ntfy_torrentfinished(self, subject, changeType, objectID, *args):
         self.guiUtility.Notify(
             "Download Completed", "Torrent '%s' has finished downloading. Now seeding." %
             args[0], icon='seed')
 
         if self._frame_and_ready():
+            infohash = objectID
             torrent = self.guiUtility.torrentsearch_manager.getTorrentByInfohash(infohash)
             # Check if we got the actual torrent as the bandwith investor
             # downloads aren't going to be there.

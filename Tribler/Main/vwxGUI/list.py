@@ -2094,7 +2094,7 @@ class CreditMiningList(SizeList):
         return True
 
     @warnWxThread
-    def RefreshItems(self, dslist, magnetlist):
+    def RefreshItems(self, dslist, magnetlist, rawdata=True):
         didStateChange, _, _ = SizeList.RefreshItems(self, dslist, magnetlist, rawdata=True)
 
         newFilter = self.newfilter
@@ -2149,6 +2149,7 @@ class CreditMiningList(SizeList):
                         bytes_up = self.boosting_manager.torrents[torrent_infohash]['last_seeding_stats']['total_up']
                         bytes_down = self.boosting_manager.torrents[torrent_infohash]['last_seeding_stats']['total_down']
 
+                    # we may have different value of total. Find the maximum gathered
                     bytes_up = max(seeding_stats_i['total_up'], bytes_up)
                     bytes_down = max(seeding_stats_i['total_down'], bytes_down)
 
@@ -2192,7 +2193,6 @@ class CreditMiningList(SizeList):
             if seeding_stat_t:
                 seeding_stats.append(seeding_stat_t)
 
-        # seeding_stats = [ds.get_seeding_statistics() for ds in boosting_dslist if ds.get_seeding_statistics()]
         self.tot_bytes_up = sum([stat['total_up'] for stat in seeding_stats])
         self.tot_bytes_dwn = sum([stat['total_down'] for stat in seeding_stats])
 
@@ -2209,10 +2209,10 @@ class CreditMiningList(SizeList):
             if filter:
                 active_source = self.boosting_manager.get_source_object(filter)
 
-                list = [tr['last_seeding_stats']['total_down'] for tr in self.boosting_manager.torrents.values()
+                seed_sp_list = [tr['last_seeding_stats']['total_down'] for tr in self.boosting_manager.torrents.values()
                         if self.boosting_manager.get_source_object(tr['source']).source == active_source.source and tr['last_seeding_stats']]
 
-                total_dl_source = sum(list)
+                total_dl_source = sum(seed_sp_list)
                 up_rate_txt.SetLabel('Active upload rate : '+speed_format(active_source.av_uprate))
                 dwn_rate_txt.SetLabel('Active download rate : '+speed_format(active_source.av_dwnrate))
                 storage_used_txt.SetLabel('Storage Used : '+size_format(total_dl_source))
@@ -2522,8 +2522,6 @@ class ActivitiesList(List):
         if sys.platform != 'darwin':
             data_list.append((6, ['Videoplayer'], None, ActivityListItem))
 
-        # data_list.append((7, ['CM List beta'], None, ActivityListItem))
-
         self.list.SetData(data_list)
         self.ResizeListItems()
         self.DisableItem(2)
@@ -2532,8 +2530,6 @@ class ActivitiesList(List):
             self.DisableItem(6)
         self.DisableCollapse()
         self.selectTab('home')
-
-        # self.list.GetItem(7).num_items.Show(False)
 
         # Create expanded panels in advance
         channels_item = self.list.GetItem(3)
@@ -2624,8 +2620,6 @@ class ActivitiesList(List):
             return self.expandedPanel_videoplayer
         elif item.data[0] == 'Credit Mining':
             self.guiutility.ShowPage('creditmining')
-        elif item.data[0] == 'CM List beta':
-            self.guiutility.ShowPage('cmbeta')
         return True
 
     def OnCollapse(self, item, panel, from_expand):
@@ -2691,10 +2685,9 @@ class ActivitiesList(List):
         elif tab == 'my_files':
             itemKey = 4
         elif tab == 'videoplayer':
-            itemKey = 5
             itemKey = 6
-        # elif tab == 'cmbeta':
-        #     itemKey = 7
+        elif tab == 'creditmining':
+            itemKey = 5
         if itemKey:
             wx.CallAfter(self.Select, itemKey, True)
         return
@@ -2715,7 +2708,7 @@ class ActivitiesList(List):
         if curPage < 0:
             curPage = len(pages) - 1
 
-        pageNames = ['home', 'search_results', 'channels', 'my_files', 'creditmining', 'videoplayer']#, 'cmbeta']
+        pageNames = ['home', 'search_results', 'channels', 'my_files', 'creditmining', 'videoplayer']
         for i in self.settings.keys():
             pageNames.pop(i - 1)
         self.guiutility.ShowPage(pageNames[curPage])

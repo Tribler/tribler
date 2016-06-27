@@ -52,7 +52,7 @@ class Home(wx.Panel):
         self.guiutility = GUIUtility.getInstance()
         self.gui_image_manager = GuiImageManager.getInstance()
         self.session = self.guiutility.utility.session
-        self.boosting_manager = BoostingManager.get_instance(self.session)
+        self.boosting_manager = None
 
         #dispersy_cid:Channel
         self.channels = {None:None}
@@ -109,7 +109,7 @@ class Home(wx.Panel):
         vSizer.Add(hSizer, 0, wx.ALIGN_CENTER)
         vSizer.AddStretchSpacer()
 
-        # channel panel is popular channel
+        # channel panel is for popular channel
         self.channel_panel = ScrolledPanel(self, 1)
         self.channel_panel.SetBackgroundColour(wx.WHITE)
         self.channel_panel.SetForegroundColour(parent.GetForegroundColour())
@@ -118,6 +118,9 @@ class Home(wx.Panel):
         v_chn_Sizer.Add(
             DetailHeader(self.channel_panel, "Select popular channels to mine"),
             0, wx.EXPAND, 5)
+
+        self.loading_channel_txt = wx.StaticText(self.channel_panel, 1, 'Loading, please wait.')
+        v_chn_Sizer.Add(self.loading_channel_txt, 1, wx.TOP | wx.ALIGN_CENTER_HORIZONTAL, 10)
 
         self.chn_sizer = wx.FlexGridSizer(0,self.COLUMN_SIZE,5,5)
 
@@ -211,6 +214,9 @@ class Home(wx.Panel):
         from Tribler.Main.Utility.GuiDBTuples import Channel as ChannelObj
         assert isinstance(channel, ChannelObj), "Type channel should be ChannelObj %s" %channel
 
+        if not self.boosting_manager:
+            self.boosting_manager = BoostingManager.get_instance(self.session)
+
         STRING_LENGTH = 35
 
         vsizer = wx.BoxSizer(wx.VERTICAL)
@@ -294,6 +300,7 @@ class Home(wx.Panel):
 
             self.chn_sizer.Clear(True)
             self.chn_sizer.Layout()
+            self.loading_channel_txt.Show()
             for i in range(0,self.COLUMN_SIZE):
                 if wx.MAJOR_VERSION > 2:
                     if self.chn_sizer.IsColGrowable(i):
@@ -316,6 +323,9 @@ class Home(wx.Panel):
                 self.chn_sizer.Add(self.CreateChannelItem(self.channel_panel,dict_channels.get(d),
                                                           self.chn_torrents.get(d),max_favourite),
                                                           0, wx.ALL|wx.EXPAND)
+
+                self.loading_channel_txt.Hide()
+
                 count += 1
                 if count >= MAX_CHANNEL_SHOW:
                     break

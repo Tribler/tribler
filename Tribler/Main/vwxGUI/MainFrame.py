@@ -190,8 +190,6 @@ class MainFrame(wx.Frame):
         self.searchlist.Show(False)
         self.librarylist = LibraryList(self.splitter_top_window)
         self.librarylist.Show(False)
-        # self.creditmininglist = CreditMiningList(self)
-        # self.creditmininglist.Show(False)
         self.channellist = ChannelList(self.splitter_top_window)
         self.channellist.Show(False)
         self.selectedchannellist = SelectedChannelList(self.splitter_top_window)
@@ -245,9 +243,6 @@ class MainFrame(wx.Frame):
             event.Skip()
         self.splitter.Bind(wx.EVT_SHOW, OnShowSplitter)
 
-        # self.creditmininglist = CreditMiningList(self)
-        # self.creditmininglist.Show(False)
-
         self.stats = Stats(self)
         self.stats.Show(False)
         self.managechannel = ManageChannel(self)
@@ -271,7 +266,6 @@ class MainFrame(wx.Frame):
         hSizer.Add(self.stats, 1, wx.EXPAND)
         hSizer.Add(self.networkgraph, 1, wx.EXPAND)
         hSizer.Add(self.splitter, 1, wx.EXPAND)
-        # hSizer.Add(self.creditmininglist, 1, wx.EXPAND)
 
         hSizer.Add(self.managechannel, 1, wx.EXPAND)
 
