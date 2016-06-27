@@ -262,6 +262,7 @@ class TestAsServer(AbstractServer):
         self.config.set_upgrader_enabled(False)
         self.config.set_http_api_enabled(False)
         self.config.set_tunnel_community_enabled(False)
+        self.config.set_creditmining_enable(False)
 
     def tearDown(self):
         self.annotate(self._testMethodName, start=False)
