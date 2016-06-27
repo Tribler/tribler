@@ -368,7 +368,7 @@ class TriblerLaunchMany(TaskManager):
     def on_download_wrapper_created(self, (d, pstate)):
         """ Called by network thread """
         try:
-            if pstate is None:
+            if pstate is None and not d.get_checkpoint_disabled():
                 # Checkpoint at startup
                 (infohash, pstate) = d.network_checkpoint()
                 self.save_download_pstate(infohash, pstate)
@@ -594,9 +594,7 @@ class TriblerLaunchMany(TaskManager):
         # Download, and additions are no problem (just won't be included
         # in list of states returned via callback.
         #
-        dllist = self.downloads.values()
-        self._logger.debug("tlm: checkpointing %s stopping %s", len(dllist), stop)
-
+        dllist = [dl for dl in self.downloads.values() if not dl.checkpoint_disabled]
         network_checkpoint_callback_lambda = lambda: self.network_checkpoint_callback(dllist, stop, checkpoint,
                                                                                       gracetime)
         self.threadpool.add_task(network_checkpoint_callback_lambda, 0.0)

@@ -145,11 +145,12 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         self.askmoreinfo = False
 
         self.correctedinfoname = u""
+        self.checkpoint_disabled = False
 
         self.deferreds_resume = []
 
     def __str__(self):
-        return "LibtorrentDownloadImpl <name: '%s' hops: %d>" % (self.correctedinfoname, self.get_hops())
+        return "LibtorrentDownloadImpl <name: '%s' hops: %d checkpoint_disabled: %d>" % (self.correctedinfoname, self.get_hops(), self.checkpoint_disabled)
 
     def __repr__(self):
         return self.__str__()
@@ -157,7 +158,14 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
     def get_def(self):
         return self.tdef
 
-    def setup(self, dcfg=None, pstate=None, initialdlstatus=None, lm_network_engine_wrapper_created_callback=None, wrapperDelay=0, share_mode=False):
+    def set_checkpoint_disabled(self, val=True):
+        self.checkpoint_disabled = val
+
+    def get_checkpoint_disabled(self):
+        return self.checkpoint_disabled
+
+    def setup(self, dcfg=None, pstate=None, initialdlstatus=None, lm_network_engine_wrapper_created_callback=None,
+              wrapperDelay=0, share_mode=False, checkpoint_disabled=False):
         """
         Create a Download object. Used internally by Session.
         @param dcfg DownloadStartupConfig or None (in which case
@@ -167,6 +175,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         network_create_engine_wrapper.
         """
         # Called by any thread, assume sessionlock is held
+        self.set_checkpoint_disabled(checkpoint_disabled)
+
         try:
             # The deferred to be returned
             deferred = Deferred()
@@ -242,7 +252,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         do_check()
         return can_create_deferred
 
-    def network_create_engine_wrapper(self, pstate, initialdlstatus=None, share_mode=False):
+    def network_create_engine_wrapper(self, pstate, initialdlstatus=None, share_mode=False,checkpoint_disabled=False):
         with self.dllock:
             self._logger.debug("LibtorrentDownloadImpl: network_create_engine_wrapper()")
 
@@ -256,6 +266,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
             if share_mode:
                 atp["flags"] = lt.add_torrent_params_flags_t.flag_share_mode
+
+            self.set_checkpoint_disabled(checkpoint_disabled)
 
             resume_data = pstate.get('state', 'engineresumedata') if pstate else None
             if not isinstance(self.tdef, TorrentDefNoMetainfo):
@@ -1059,9 +1071,12 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
     def checkpoint(self):
         """ Called by any thread """
-        (infohash, pstate) = self.network_checkpoint()
-        checkpoint = lambda: self.session.lm.save_download_pstate(infohash, pstate)
-        self.session.lm.threadpool.add_task(checkpoint, 0)
+        if self.checkpoint_disabled:
+            self._logger.warning("Ignoring checkpoint() call as is checkpointing disabled for this download.")
+        else:
+            (infohash, pstate) = self.network_checkpoint()
+            checkpoint = lambda: self.session.lm.save_download_pstate(infohash, pstate)
+            self.session.lm.threadpool.add_task(checkpoint, 0)
 
     def network_checkpoint(self):
         """ Called by network thread """
