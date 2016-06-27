@@ -58,7 +58,7 @@ class TriblerUpgrader(object):
             self.notify_done()
 
     def update_status(self, status_text):
-        self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, status_text)
+        self.session.notifier.notify(NTFY_UPGRADER_TICK, NTFY_STARTED, None, status_text)
         self.current_status = status_text
 
     def notify_starting(self):
