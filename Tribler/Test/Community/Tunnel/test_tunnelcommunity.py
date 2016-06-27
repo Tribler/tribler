@@ -120,3 +120,9 @@ class TestTunnelCommunity(AbstractTestTunnelCommunity):
         data = "ffffffff".decode("HEX") + "1" * 25
         exit_tunnel.sendto(data, ("localhost", -1))
         return exit_tunnel.close()
+
+    def test_increase_bytes_sent_error_branch(self):
+        self.assertRaises(TypeError, self.tunnel_community.increase_bytes_sent, 1, 1)
+
+    def test_increase_bytes_received_error_branch(self):
+        self.assertRaises(TypeError, self.tunnel_community.increase_bytes_received, 1, 1)

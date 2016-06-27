@@ -1374,6 +1374,9 @@ class TunnelCommunity(Community):
             self.stats['bytes_exit'] += num_bytes
             _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_SENT, "%s:%s" %
                                                    (obj.sock_addr[0], obj.sock_addr[1]), num_bytes)
+        else:
+            raise TypeError("Increase_bytes_sent() was called with an object that is not a Circuit, " +
+                            "RelayRoute or TunnelExitSocket")
 
     def increase_bytes_received(self, obj, num_bytes):
         if isinstance(obj, Circuit):
@@ -1391,3 +1394,6 @@ class TunnelCommunity(Community):
             self.stats['bytes_enter'] += num_bytes
             _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TUNNELS_EXIT_BYTES_RECEIVED, "%s:%s" %
                                                    (obj.sock_addr[0], obj.sock_addr[1]), num_bytes)
+        else:
+            raise TypeError("Increase_bytes_received() was called with an object that is not a Circuit, " +
+                            "RelayRoute or TunnelExitSocket")
