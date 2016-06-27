@@ -322,12 +322,7 @@ class LibtorrentMgr(TaskManager):
                 else:
                     self._logger.debug("LibtorrentMgr: could not find torrent %s", infohash)
             else:
-                self._logger.debug("LibtorrentMgr: alert for invalid torrent")
-
-    def get_peers(self, infohash, callback, timeout=30):
-        def on_metainfo_retrieved(metainfo, infohash=infohash, callback=callback):
-            callback(infohash, metainfo.get('initial peers', []))
-        self.get_metainfo(infohash, on_metainfo_retrieved, timeout, notify=False)
+                self._logger.debug("Alert for invalid torrent")
 
     def get_metainfo(self, infohash_or_magnet, callback, timeout=30, timeout_callback=None, notify=True):
         if not self.is_dht_ready() and timeout > 5:
