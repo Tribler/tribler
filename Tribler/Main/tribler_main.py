@@ -9,6 +9,7 @@
 # see LICENSE.txt for license information
 #
 from Tribler.Core.Modules.process_checker import ProcessChecker
+from Tribler.Policies.BoostingManager import BoostingManager
 from Tribler.Main.Dialogs.NewVersionDialog import NewVersionDialog
 
 try:
@@ -262,6 +263,8 @@ class ABCApp(object):
             # doesn't allow me to press close.  The statement below
             # gracefully closes Tribler after 120 seconds.
             # wx.CallLater(120*1000, wx.GetApp().Exit)
+
+            self.boosting_manager = BoostingManager.get_instance()
 
             self.ready = True
 
@@ -814,6 +817,15 @@ class ABCApp(object):
         if self.webUI:
             self.webUI.stop()
             self.webUI.delInstance()
+
+        if self.boosting_manager:
+
+            #remove credit mining data
+            #TODO(ardhi) : not persistent mode only
+            import shutil; shutil.rmtree(self.boosting_manager.credit_mining_path, ignore_errors=True)
+
+            self.boosting_manager.shutdown()
+            self.boosting_manager.del_instance()
 
         if self.frame:
             self.frame.Destroy()

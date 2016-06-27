@@ -1003,8 +1003,8 @@ class ChannelManager(object):
         subscriptions = self.channelcast_db.getMySubscribedChannels(include_dispersy=True)
         return self._createChannels(subscriptions)
 
-    def getPopularChannels(self):
-        pchannels = self.channelcast_db.getMostPopularChannels()
+    def getPopularChannels(self, nr_top_popular=20):
+        pchannels = self.channelcast_db.getMostPopularChannels(nr_top_popular)
         return self._createChannels(pchannels)
 
     def getUpdatedChannels(self):

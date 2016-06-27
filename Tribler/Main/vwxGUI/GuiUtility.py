@@ -252,24 +252,32 @@ class GUIUtility(object):
 
             if page == 'creditmining':
                 # Show list
-                self.frame.creditmininglist.Show(True)
+                # self.frame.creditmininglist.Show(True)
+                #
+                # # Open infohash
+                # if args:
+                #     self.frame.creditmininglist.GetManager().refresh_or_expand(args[0])
+                # else:
+                #     items = self.frame.creditmininglist.GetExpandedItems()
+                #     if items:
+                #         items[0][1].expanded = False
+                #         self.frame.creditmininglist.Select(items[0][0])
+                #
+                # # Open infohash
+                # if args:
+                #     self.frame.creditmininglist.GetManager().refresh_or_expand(args[0])
 
-                # Open infohash
-                if args:
-                    self.frame.creditmininglist.GetManager().refresh_or_expand(args[0])
-                else:
-                    items = self.frame.creditmininglist.GetExpandedItems()
-                    if items:
-                        items[0][1].expanded = False
-                        self.frame.creditmininglist.Select(items[0][0])
-
-                # Open infohash
-                if args:
-                    self.frame.creditmininglist.GetManager().refresh_or_expand(args[0])
+                self.frame.creditminingpanel.Show(True)
 
             elif self.guiPage == 'creditmining':
+                self.frame.creditminingpanel.Show(False)
+
+            if page == 'cmbeta':
+                # Show list
+                self.frame.creditminingpanel.Show(True)
+            elif self.guiPage == 'cmbeta':
                 # Hide list
-                self.frame.creditmininglist.Show(False)
+                self.frame.creditminingpanel.Show(False)
 
             if page == 'home':
                 self.frame.home.ResetSearchBox()
@@ -312,7 +320,8 @@ class GUIUtility(object):
         elif page == 'my_files':
             self.frame.librarylist.Focus()
         elif page == 'creditmining':
-            self.frame.creditmininglist.Focus()
+            pass
+            # self.frame.creditmininglist.Focus()
 
     @forceWxThread
     def on_show_startup_splash(self, subject, changetype, objectID, *args):
@@ -380,7 +389,7 @@ class GUIUtility(object):
             return self.frame.librarylist
 
         if self.guiPage == 'creditmining':
-            return self.frame.creditmininglist
+            return self.frame.creditminingpanel
 
     def SetTopSplitterWindow(self, window=None, show=True):
         while self.frame.splitter_top.GetChildren():
@@ -622,7 +631,7 @@ class GUIUtility(object):
             'mychannel': self.frame.managechannel,
             'search_results': self.frame.searchlist,
             'my_files': self.frame.librarylist,
-            'creditmining': self.frame.creditmininglist}
+            'creditmining': self.frame.creditminingpanel}
         if self.guiPage in lists and lists[self.guiPage].HasFocus():
             lists[self.guiPage].ScrollToEnd(goto_end)
         elif event:
@@ -635,7 +644,7 @@ class GUIUtility(object):
             'mychannel': self.frame.managechannel,
             'search_results': self.frame.searchlist,
             'my_files': self.frame.librarylist,
-            'creditmining': self.frame.creditmininglist}
+            'creditmining': self.frame.creditminingpanel}
         if self.guiPage in lists:
             lists[self.guiPage].ScrollToId(id)
 
@@ -673,7 +682,8 @@ class GUIUtility(object):
         if setCheck:
             self.frame.SRstatusbar.ff_checkbox.SetValue(newState)
 
-        self.frame.home.aw_panel.refreshNow()
+        # we don't use this panel in credit mining
+        # self.frame.home.aw_panel.refreshNow()
 
         if newState:
             self.utility.write_config('family_filter', 1)

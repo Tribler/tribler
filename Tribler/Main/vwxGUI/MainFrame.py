@@ -34,6 +34,7 @@ from Tribler.Core.simpledefs import (NTFY_ACT_NEW_VERSION, NTFY_ACT_NONE, NTFY_A
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
+from Tribler.Main.Dialogs.SaveAs import SaveAs
 
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Main.Utility.GuiDBHandler import startWorker
@@ -41,8 +42,10 @@ from Tribler.Main.Utility.GuiDBHandler import startWorker
 from Tribler.Main.Dialogs.ConfirmationDialog import ConfirmationDialog
 from Tribler.Main.Dialogs.FeedbackWindow import FeedbackWindow
 from Tribler.Main.Dialogs.systray import ABCTaskBarIcon
-from Tribler.Main.Dialogs.SaveAs import SaveAs
-
+from Tribler.Main.Utility.GuiDBHandler import startWorker
+from Tribler.Main.globals import DefaultDownloadStartupConfig
+from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY
+from Tribler.Main.vwxGUI.CreditMiningPanel import CreditMiningPanel
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI import DEFAULT_BACKGROUND, SEPARATOR_GREY
 from Tribler.Main.vwxGUI.list import SearchList, ChannelList, LibraryList, ActivitiesList
@@ -187,12 +190,18 @@ class MainFrame(wx.Frame):
         self.searchlist.Show(False)
         self.librarylist = LibraryList(self.splitter_top_window)
         self.librarylist.Show(False)
+        # self.creditmininglist = CreditMiningList(self)
+        # self.creditmininglist.Show(False)
         self.channellist = ChannelList(self.splitter_top_window)
         self.channellist.Show(False)
         self.selectedchannellist = SelectedChannelList(self.splitter_top_window)
         self.selectedchannellist.Show(False)
         self.playlist = Playlist(self.splitter_top_window)
         self.playlist.Show(False)
+
+
+        self.creditminingpanel = CreditMiningPanel(self)
+        self.creditminingpanel.Show(False)
 
         # Populate the bottom window
         self.splitter_bottom = wx.BoxSizer(wx.HORIZONTAL)
@@ -236,6 +245,9 @@ class MainFrame(wx.Frame):
             event.Skip()
         self.splitter.Bind(wx.EVT_SHOW, OnShowSplitter)
 
+        # self.creditmininglist = CreditMiningList(self)
+        # self.creditmininglist.Show(False)
+
         self.stats = Stats(self)
         self.stats.Show(False)
         self.managechannel = ManageChannel(self)
@@ -259,11 +271,14 @@ class MainFrame(wx.Frame):
         hSizer.Add(self.stats, 1, wx.EXPAND)
         hSizer.Add(self.networkgraph, 1, wx.EXPAND)
         hSizer.Add(self.splitter, 1, wx.EXPAND)
+        # hSizer.Add(self.creditmininglist, 1, wx.EXPAND)
 
         hSizer.Add(self.managechannel, 1, wx.EXPAND)
 
         if self.videoparentpanel:
             hSizer.Add(self.videoparentpanel, 1, wx.EXPAND)
+
+        hSizer.Add(self.creditminingpanel, 1, wx.EXPAND)
 
         self.SetSizer(vSizer)
 

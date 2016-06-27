@@ -101,7 +101,7 @@ class Torrent(Helper):
         Helper.__init__(self)
 
         assert isinstance(infohash, str), type(infohash)
-        assert isinstance(name, basestring), type(name)
+        # assert isinstance(name, basestring), type(name)
 
         self.infohash = infohash
         self.name = name
@@ -127,7 +127,7 @@ class Torrent(Helper):
 
     @cacheProperty
     def torrent_id(self):
-        self._logger.debug("Torrent: fetching getTorrentID from DB %s", self)
+        self._logger.error("Torrent: fetching getTorrentID from DB %s", self)
         return self.torrent_db.getTorrentID(self.infohash)
 
     def update_torrent_id(self, torrent_id):
@@ -300,7 +300,7 @@ class RemoteTorrent(Torrent):
 
 
 class CollectedTorrent(Helper):
-    __slots__ = ('comment', 'trackers', 'creation_date', 'files', 'last_check', 'torrent')
+    __slots__ = ('comment', 'trackers', 'creation_date', 'files', 'last_check', 'torrent', 'tdef')
 
     def __init__(self, torrent, torrentdef):
         assert isinstance(torrent, Torrent)
@@ -314,6 +314,7 @@ class CollectedTorrent(Helper):
         self.creation_date = min(long(time()), torrentdef.get_creation_date())
         self.files = torrentdef.get_files_as_unicode_with_length()
         self.last_check = -1
+        self.tdef = torrentdef
 
     def __getattr__(self, name):
         return getattr(self.torrent, name)

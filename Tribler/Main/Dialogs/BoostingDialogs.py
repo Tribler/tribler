@@ -10,16 +10,16 @@ from Tribler.Policies.BoostingManager import BoostingManager
 class AddBoostingSource(wx.Dialog):
 
     def __init__(self, parent):
-        wx.Dialog.__init__(self, parent, -1, 'Add boosting source', size=(475, 475), name="AddBoostingSourceDialog")
+        wx.Dialog.__init__(self, parent, -1, 'Add boosting source', size=(275, 275), name="AddBoostingSourceDialog")
 
         self.guiutility = GUIUtility.getInstance()
         self.channels = []
         self.source = ''
 
-        text = wx.StaticText(self, -1, 'Please enter a RSS feed URL or select a channel to start boosting swarms:')
-        self.channel_radio = wx.RadioButton(self, -1, 'Subscribed Channel:', style=wx.RB_GROUP)
-        self.channel_choice = wx.Choice(self, -1)
-        self.channel_choice.Bind(wx.EVT_CHOICE, lambda evt: self.channel_radio.SetValue(True))
+        text = wx.StaticText(self, -1, 'Please enter a RSS feed URL or directory to start boosting swarms:')
+        # self.channel_radio = wx.RadioButton(self, -1, 'Subscribed Channel:', style=wx.RB_GROUP)
+        # self.channel_choice = wx.Choice(self, -1)
+        # self.channel_choice.Bind(wx.EVT_CHOICE, lambda evt: self.channel_radio.SetValue(True))
 
         self.rss_feed_radio = wx.RadioButton(self, -1, 'RSS feed:')
         self.rss_feed_edit = wx.TextCtrl(self, -1)
@@ -37,8 +37,8 @@ class AddBoostingSource(wx.Dialog):
 
         sourceGrid = wx.FlexGridSizer(2, 2, 0, 0)
         sourceGrid.AddGrowableCol(1)
-        sourceGrid.Add(self.channel_radio, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT | wx.TOP, 5)
-        sourceGrid.Add(self.channel_choice, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        # sourceGrid.Add(self.channel_radio, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT | wx.TOP, 5)
+        # sourceGrid.Add(self.channel_choice, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
         sourceGrid.Add(self.rss_feed_radio, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT | wx.TOP, 5)
         sourceGrid.Add(self.rss_feed_edit, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
         sourceGrid.Add(self.rss_dir_radio, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT | wx.TOP, 5)
@@ -55,25 +55,31 @@ class AddBoostingSource(wx.Dialog):
         vSizer.Add(btnSizer, 0, wx.EXPAND | wx.ALL, 5)
         self.SetSizer(vSizer)
 
-        def do_db():
-            return self.guiutility.channelsearch_manager.getMySubscriptions()
-
-        def do_gui(delayedResult):
-            _, channels = delayedResult.get()
-            self.channels = sorted([(channel.name, channel.dispersy_cid) for channel in channels])
-            self.channel_choice.SetItems([channel[0] for channel in self.channels])
-
-        startWorker(do_gui, do_db, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+        # def do_db():
+        #     return self.guiutility.channelsearch_manager.getAllChannels()
+        #
+        # def do_gui(delayedResult):
+        #     _, channels = delayedResult.get()
+        #     self.channels = sorted([(channel.name, channel.dispersy_cid) for channel in channels])
+        #     self.channel_choice.SetItems([channel[0] for channel in self.channels])
+        #
+        # startWorker(do_gui, do_db, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
     def OnOK(self, event):
-        if self.channel_radio.GetValue():
-            selection = self.channel_choice.GetSelection()
-            if selection < len(self.channels):
-                self.source = self.channels[selection][1]
-        elif self.rss_feed_radio.GetValue():
+        # if self.channel_radio.GetValue():
+        #     selection = self.channel_choice.GetSelection()
+        #     if selection < len(self.channels):
+        #         self.source = self.channels[selection][1]
+        # el
+
+        if self.rss_feed_radio.GetValue():
             self.source = self.rss_feed_edit.GetValue()
         else:
             self.source = self.rss_dir_edit.GetValue()
+
+        self.guiutility.Notify(
+            "Successfully add source for credit mining %s" % self.source)
+
         self.EndModal(wx.ID_OK)
 
     def OnCancel(self, event):

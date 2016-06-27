@@ -1,13 +1,18 @@
 # Written by Niels Zeilemaker
 import copy
 import logging
+import os
 import re
 import sys
+from binascii import hexlify, unhexlify
 from colorsys import hsv_to_rgb, rgb_to_hsv
 from math import log
 from time import time
 
 import wx
+from wx._core import LayoutConstraints
+from wx.lib.mixins.listctrl import CheckListCtrlMixin
+from wx.lib.scrolledpanel import ScrolledPanel
 from wx.lib.wordwrap import wordwrap
 
 from Tribler.Category.Category import Category
@@ -15,10 +20,11 @@ from Tribler.Core.exceptions import NotYetImplementedException
 from Tribler.Core.simpledefs import (DLSTATUS_HASHCHECKING, DLSTATUS_STOPPED, DLSTATUS_STOPPED_ON_ERROR,
                                      DLSTATUS_WAITING4HASHCHECK, DLSTATUS_SEEDING, DLSTATUS_DOWNLOADING)
 from Tribler.Main.Utility.GuiDBHandler import GUI_PRI_DISPERSY, cancelWorker, startWorker
-from Tribler.Main.Utility.GuiDBTuples import Channel, ChannelTorrent, CollectedTorrent, Torrent
+from Tribler.Main.Utility.GuiDBTuples import Channel, ChannelTorrent, CollectedTorrent, Torrent, LibraryTorrent
 from Tribler.Main.Utility.utility import eta_value, size_format, speed_format
 from Tribler.Main.vwxGUI import (DEFAULT_BACKGROUND, GRADIENT_DGREY, GRADIENT_LGREY, LIST_DESELECTED, LIST_GREEN,
-                                 LIST_GREY, LIST_ORANGE, SEPARATOR_GREY, TRIBLER_RED, format_time, warnWxThread)
+                                 LIST_GREY, LIST_ORANGE, SEPARATOR_GREY, TRIBLER_RED, format_time, warnWxThread,
+                                 LIST_SELECTED, LIST_EXPANDED, LIST_DARKBLUE)
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.list_body import FixedListBody, ListBody
@@ -27,10 +33,11 @@ from Tribler.Main.vwxGUI.list_details import (ChannelDetails, ChannelInfoPanel, 
 from Tribler.Main.vwxGUI.list_footer import ListFooter
 from Tribler.Main.vwxGUI.list_header import ChannelFilter, DownloadFilter, ListHeader, TorrentFilter
 from Tribler.Main.vwxGUI.list_item import (ActivityListItem, ChannelListItem, ChannelListItemAssociatedTorrents,
-                                           ColumnsManager, DragItem, LibraryListItem, TorrentListItem)
+                                           ColumnsManager, DragItem, LibraryListItem, TorrentListItem,
+                                           CreditMiningListItem)
 from Tribler.Main.vwxGUI.widgets import (BetterText, FancyPanel, HorizontalGauge, LinkStaticText, SwarmHealth, TagText,
                                          TorrentStatus, TransparentStaticBitmap, TransparentText, _set_font)
-
+from Tribler.Policies.BoostingManager import BoostingManager, BoostingSource
 
 DEBUG_RELEVANCE = False
 MAX_REFRESH_PARTIAL = 5
@@ -301,6 +308,72 @@ class LocalSearchManager(BaseManager):
         self.refresh()
 
 
+class CreditMiningSearchManager(BaseManager):
+
+    def __init__(self, list):
+        BaseManager.__init__(self, list)
+        self.boosting_manager = BoostingManager.get_instance()
+        self.library_manager = self.guiutility.library_manager
+
+    def refresh(self):
+        startWorker(self._on_data, self.getHitsInCategory, uId=u"CreditMiningSearchManager_refresh", retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+
+    def getTorrentFromInfohash(self, infohash):
+        torrent = self.boosting_manager.torrents.get(infohash, None)
+        if torrent:
+            t = LibraryTorrent('', infohash, name=torrent['name'], length=torrent['length'], category='', status='',
+                               num_seeders=torrent['num_seeders'], num_leechers=torrent['num_leechers'])
+            t.torrent_db = self.library_manager.torrent_db
+            t.channelcast_db = self.library_manager.channelcast_db
+
+            #touch channel instance
+            t.channel
+            self.library_manager.addDownloadState(t)
+            return t
+
+    def getHitsInCategory(self):
+        hits = [self.getTorrentFromInfohash(infohash) for infohash in self.boosting_manager.torrents.keys()]
+        return [len(hits), hits]
+
+    def refresh_partial(self, ids):
+        for infohash in ids:
+            startWorker(self.list.RefreshDelayedData, self.getTorrentFromInfohash, cargs=(infohash,), wargs=(infohash,), retryOnBusy=True, priority=GUI_PRI_DISPERSY)
+
+    def refresh_if_exists(self, infohashes, force=False):
+        if any([self.boosting_manager.torrents.has_key(infohash) for infohash in infohashes]):
+            print >> sys.stderr, long(time()), "Scheduling a refresh, missing some infohashes in the Credit Mining overview"
+            self.refresh()
+        else:
+            print >> sys.stderr, long(time()), "Not scheduling a refresh"
+
+    def refresh_or_expand(self, infohash):
+        if not self.list.InList(infohash):
+            def select(delayedResult):
+                delayedResult.get()
+                self.refresh_or_expand(infohash)
+
+            startWorker(select, self.refresh_partial, wargs=([infohash],), priority=GUI_PRI_DISPERSY)
+        else:
+            self.list.Select(infohash)
+
+    @forceWxThread
+    def _on_data(self, delayedResult):
+        total_items, data = delayedResult.get()
+        self.list.SetData(data)
+        self.list.Layout()
+
+    def torrentUpdated(self, infohash):
+        if self.list.InList(infohash):
+            self.do_or_schedule_partial([infohash])
+
+    def torrentsUpdated(self, infohashes):
+        infohashes = [infohash for infohash in infohashes if self.list.InList(infohash)]
+        self.do_or_schedule_partial(infohashes)
+
+    def downloadStarted(self, infohash):
+        self.refresh()
+
+
 class ChannelSearchManager(BaseManager):
 
     def __init__(self, list):
@@ -342,7 +415,6 @@ class ChannelSearchManager(BaseManager):
 
     def refresh(self, search_results=None):
         self._logger.debug("ChannelManager complete refresh")
-
         if self.category != 'searchresults':
             category = self.category
 
@@ -462,7 +534,7 @@ class ChannelSearchManager(BaseManager):
 class List(wx.BoxSizer):
 
     def __init__(self, columns, background, spacers=[0, 0], singleSelect=False,
-                 showChange=False, borders=True, parent=None):
+                 showChange=False, borders=True, parent=None, list_item_max=None):
         """
         Column alignment:
 
@@ -491,6 +563,7 @@ class List(wx.BoxSizer):
         self.singleSelect = singleSelect
         self.borders = borders
         self.showChange = showChange
+        self.list_item_max = list_item_max
         self.dirty = False
         self.hasData = False
         self.rawfilter = ''
@@ -551,7 +624,8 @@ class List(wx.BoxSizer):
     def CreateList(self, parent=None, listRateLimit=1):
         if not parent:
             parent = self
-        return ListBody(parent, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange, listRateLimit=listRateLimit)
+        return ListBody(parent, self, self.columns, self.spacers[0], self.spacers[1], self.singleSelect, self.showChange, listRateLimit=listRateLimit,
+                        list_item_max=self.list_item_max)
 
     def CreateFooter(self, parent):
         return ListFooter(parent)
@@ -854,6 +928,7 @@ class List(wx.BoxSizer):
         return re.search(self.filter, item[1][0].lower()) and ff
 
     def GetFilterMessage(self, empty=False):
+
         if self.rawfilter:
             if empty:
                 message = '0 items'
@@ -877,8 +952,8 @@ class List(wx.BoxSizer):
 class SizeList(List):
 
     def __init__(self, columns, background, spacers=[0, 0], singleSelect=False,
-                 showChange=False, borders=True, parent=None):
-        List.__init__(self, columns, background, spacers, singleSelect, showChange, borders, parent)
+                 showChange=False, borders=True, parent=None, list_item_max=None):
+        List.__init__(self, columns, background, spacers, singleSelect, showChange, borders, parent, list_item_max=None)
         self.prevStates = {}
         self.library_manager = self.guiutility.library_manager
 
@@ -1958,6 +2033,276 @@ class LibraryList(SizeList):
         return header, message
 
 
+class CreditMiningList(SizeList):
+
+    def __init__(self, parent):
+        self.boosting_manager = BoostingManager.get_instance()
+        self.guiutility = GUIUtility.getInstance()
+        self.utility = self.guiutility.utility
+
+        self.statefilter = None
+        self.newfilter = False
+        self.prevStates = {}
+        self.oldDS = {}
+
+        self.initnumitems = False
+        self.tot_bytes_up = 0
+        self.tot_bytes_dwn = 0
+        self.channels = []
+
+        self.top_info_p = parent.FindWindowByName('top_info_p') or None
+
+
+        columns = [{'name': 'Speed up/down', 'width': '32em', 'autoRefresh': False},
+                   {'name': 'Bytes up/down', 'width': '32em', 'autoRefresh': False},
+                   {'name': 'Seeders/leechers', 'width': '27em', 'autoRefresh': False},
+                   {'name': 'Duplicate', 'showColumname': False, 'width':  '2em'},
+                   {'name': 'Hash', 'width':  '27em', 'fmt': lambda ih: ih.encode('hex')[:10]},
+                   {'name': 'Source', 'width': '40em', 'type': 'method', 'method': self.CreateSource},
+                   {'name': 'Investment status', 'width': '32em', 'autoRefresh': False}]
+
+        columns = self.guiutility.SetColumnInfo(CreditMiningListItem, columns)
+        ColumnsManager.getInstance().setColumns(CreditMiningListItem, columns)
+
+        SizeList.__init__(self, None, LIST_GREY, [0, 0], False, parent=parent)
+
+    def GetManager(self):
+        if getattr(self, 'manager', None) == None:
+            self.manager = CreditMiningSearchManager(self)
+        return self.manager
+
+    @warnWxThread
+    def CreateHeader(self, parent):
+        return None
+
+    @warnWxThread
+    def CreateFooter(self, parent):
+        self.list.ShowMessage("No credit mining data available.")
+        footer = ListFooter(parent, radius=0)
+        footer.SetMinSize((-1, 0))
+        return footer
+
+    @warnWxThread
+    def CreateSource(self, parent, item):
+        torrent = self.boosting_manager.torrents.get(item.original_data.infohash, None)
+        text = torrent.get('source', '')
+        text = text[:30] + '..' if len(text) > 32 else text
+        return wx.StaticText(parent, -1, text)
+
+    def OnExpand(self, item):
+        List.OnExpand(self, item)
+        return True
+
+    @warnWxThread
+    def RefreshItems(self, dslist, magnetlist):
+        didStateChange, _, _ = SizeList.RefreshItems(self, dslist, magnetlist, rawdata=True)
+
+        newFilter = self.newfilter
+
+        new_keys = self.boosting_manager.torrents.keys()
+        old_keys = getattr(self, 'old_keys', [])
+        if len(new_keys) != len(old_keys):
+            self.GetManager().refresh_if_exists(new_keys, force=True)
+            self.old_keys = new_keys
+
+        if didStateChange:
+            if self.statefilter != None:
+                 self.list.SetData()  # basically this means execute filter again
+
+        boosting_dslist = [ds for ds in dslist if ds.get_download().get_def().get_infohash() in new_keys]
+
+        # init source statistics
+        for _, src in self.boosting_manager.boosting_sources.items():
+            src.storage_used = 0
+            src.av_uprate = 0
+            src.av_dwnrate = 0
+
+        # update torrent stats in boosting manager
+        for ds in boosting_dslist:
+            torrent_infohash = ds.get_download().get_def().get_infohash()
+
+            if ds.get_seeding_statistics():
+                self.boosting_manager.update_torrent_stats(torrent_infohash, ds.get_seeding_statistics())
+
+        for item in self.list.items.itervalues():
+            ds = item.original_data.ds
+            torrent_infohash = item.original_data.infohash
+            source_str = self.boosting_manager.torrents[torrent_infohash]['source']
+
+            source = self.boosting_manager.get_source_object(source_str)
+
+            # ds = DownloadState
+            if ds:
+                source.av_uprate += ds.get_current_speed('up')
+                source.av_dwnrate += ds.get_current_speed('down')
+
+                if not ds in boosting_dslist:
+                    continue
+
+                # look for the current active stats to update visible list
+                if ds.get_seeding_statistics():
+                    seeding_stats_i = ds.get_seeding_statistics()
+
+                    bytes_up = bytes_down = 0
+
+                    if self.boosting_manager.torrents[torrent_infohash]['last_seeding_stats']:
+                        bytes_up = self.boosting_manager.torrents[torrent_infohash]['last_seeding_stats']['total_up']
+                        bytes_down = self.boosting_manager.torrents[torrent_infohash]['last_seeding_stats']['total_down']
+
+                    bytes_up = max(seeding_stats_i['total_up'], bytes_up)
+                    bytes_down = max(seeding_stats_i['total_down'], bytes_down)
+
+                    item.RefreshColumn(1, size_format(bytes_up) + ' / ' + size_format(bytes_down))
+                    if bytes_down:
+                        item.RefreshColumn(6, '%f' %(float(bytes_up)/float(bytes_down)))
+
+                #refresh seeder/leecher
+                it_seeder = self.boosting_manager.torrents[torrent_infohash]['num_seeders']
+                it_leecher = self.boosting_manager.torrents[torrent_infohash]['num_leechers']
+                item.RefreshColumn(2, '%d / %d' %(it_seeder, it_leecher))
+
+                item.SetSelectedColour(wx.Colour(255, 175, 175))
+                item.SetDeselectedColour(wx.Colour(255, 200, 200))
+                item.SetExpandedColour(wx.Colour(255, 150, 150))
+                item.SetExpandedAndSelectedColour(wx.Colour(255, 125, 125))
+
+                speed_up = ds.get_current_speed('up') if ds else 0
+                speed_down = ds.get_current_speed('down') if ds else 0
+
+                item.RefreshColumn(0, speed_format(speed_up) + ' / ' + speed_format(speed_down))
+
+            else:
+                item.SetSelectedColour(LIST_SELECTED)
+                item.SetDeselectedColour(LIST_DESELECTED)
+                item.SetExpandedColour(LIST_EXPANDED)
+                item.SetExpandedAndSelectedColour(LIST_DARKBLUE)
+
+                item.RefreshColumn(0, '- / -')
+
+            if torrent_infohash in self.boosting_manager.torrents:
+                is_dup = self.boosting_manager.torrents[torrent_infohash].get('is_duplicate', None)
+                item.RefreshColumn(3, ('*' if is_dup else '**') if is_dup != None else '')
+
+        # compilation of all torrents seeding stats
+        seeding_stats = []
+
+        for _, torrent_dict in self.boosting_manager.torrents.items():
+            seeding_stat_t = torrent_dict['last_seeding_stats']
+
+            if seeding_stat_t:
+                seeding_stats.append(seeding_stat_t)
+
+        # seeding_stats = [ds.get_seeding_statistics() for ds in boosting_dslist if ds.get_seeding_statistics()]
+        self.tot_bytes_up = sum([stat['total_up'] for stat in seeding_stats])
+        self.tot_bytes_dwn = sum([stat['total_down'] for stat in seeding_stats])
+
+        if self.top_info_p:
+            up_rate_txt = self.top_info_p.FindWindowByName('up_rate')
+            dwn_rate_txt = self.top_info_p.FindWindowByName('dwn_rate')
+            storage_used_txt = self.top_info_p.FindWindowByName('storage_used')
+
+            try:
+                filter = self.rawfilter if self.rawfilter in self.boosting_manager.boosting_sources else unhexlify(self.rawfilter)
+            except:
+                filter = self.rawfilter
+
+            if filter:
+                active_source = self.boosting_manager.get_source_object(filter)
+
+                list = [tr['last_seeding_stats']['total_down'] for tr in self.boosting_manager.torrents.values()
+                        if self.boosting_manager.get_source_object(tr['source']).source == active_source.source and tr['last_seeding_stats']]
+
+                total_dl_source = sum(list)
+                up_rate_txt.SetLabel('Active upload rate : '+speed_format(active_source.av_uprate))
+                dwn_rate_txt.SetLabel('Active download rate : '+speed_format(active_source.av_dwnrate))
+                storage_used_txt.SetLabel('Storage Used : '+size_format(total_dl_source))
+
+
+            header = self.parent.GetGrandParent().FindWindowByName('cm_header')
+            header.FindWindowByName('b_up').SetLabel('Total bytes up: ' + size_format(self.tot_bytes_up))
+            header.FindWindowByName('b_down').SetLabel('Total bytes down: ' + size_format(self.tot_bytes_dwn))
+
+            if self.tot_bytes_dwn:
+                header.FindWindowByName('iv_sum').SetLabel(' Investment summary: %f' %(float(self.tot_bytes_up)/float(self.tot_bytes_dwn)))
+
+            header.FindWindowByName('s_up').SetLabel('Current total speed up: ' + speed_format(sum([ds.get_current_speed('up') for ds in boosting_dslist])))
+            header.FindWindowByName('s_down').SetLabel('Current total speed down: ' + speed_format(sum([ds.get_current_speed('down') for ds in boosting_dslist])))
+
+            if newFilter:
+                self.newfilter = False
+
+        self.oldDS = dict([(infohash, item.original_data.ds) for infohash, item in self.list.items.iteritems()])
+
+    @warnWxThread
+    def SetData(self, data):
+        SizeList.SetData(self, data)
+
+        if len(data) > 0:
+            data = [(file.infohash, ['- / -', '- / -', '%d / %d' %
+                                     (file.num_seeders, file.num_leechers), '', file.infohash,
+                     self.boosting_manager.torrents.get(file.infohash,None).get('source', ''), '-1'],
+                     file, CreditMiningListItem) for file in data]
+        else:
+            self.list.ShowMessage("No credit mining data available.")
+            self.SetNrResults(0)
+
+        self.list.SetData(data)
+
+    @warnWxThread
+    def RefreshData(self, key, data):
+        List.RefreshData(self, key, data)
+
+        data = (data.infohash, ['-', '-', '%d / %d' % (data.num_seeders, data.num_leechers), '', data.infohash,
+                                self.boosting_manager.torrents.get(data.infohash, None).get('source', ''),'-1'], data)
+        self.list.RefreshData(key, data)
+
+    def SetNrResults(self, nr):
+        highlight = nr > self.nr_results and self.initnumitems
+        SizeList.SetNrResults(self, nr)
+
+        actitem = self.guiutility.frame.actlist.GetItem(5)
+        num_items = getattr(actitem, 'num_items', None)
+        if num_items:
+            num_items.SetValue(str(nr))
+            actitem.hSizer.Layout()
+            if highlight:
+                actitem.Highlight()
+            self.initnumitems = True
+
+    def OnFilter(self,keyword):
+        pass
+
+    def MatchFilter(self, item):
+        if not self.rawfilter:
+            return False
+
+        source = item[1][5]
+        match = (hexlify(self.rawfilter) if len(hexlify(self.rawfilter)) == 40 else self.rawfilter) in source
+
+        if self.boosting_manager.get_source_object(self.rawfilter):
+            match = match and self.boosting_manager.get_source_object(self.rawfilter).enabled
+
+        return match
+
+    def GotFilter(self, keyword=None):
+        self.rawfilter = keyword
+        if self.rawfilter == '' and not self.guiutility.getFamilyFilter():
+            wx.CallAfter(self.list.SetFilter, None, None, keyword is None)
+        else:
+            wx.CallAfter(self.list.SetFilter, self.MatchFilter, self.GetFilterMessage, True)
+
+        self.OnFilter(self.rawfilter)
+
+    def GetFilterMessage(self, empty=False):
+        if empty:
+            return 'Empty','No credit mining torrent to show'
+        else:
+            return None,'end of list'
+
+    def MatchFFilter(self, item):
+        return True
+
+
 class ChannelList(List):
 
     def __init__(self, parent):
@@ -2172,17 +2517,23 @@ class ActivitiesList(List):
         data_list = [(1, ['Home'], None, ActivityListItem),
                      (2, ['Results'], None, ActivityListItem),
                      (3, ['Channels'], None, ActivityListItem),
-                     (4, ['Downloads'], None, ActivityListItem)]
+                     (4, ['Downloads'], None, ActivityListItem),
+                     (5, ['Credit Mining'], None, ActivityListItem)]
         if sys.platform != 'darwin':
-            data_list.append((5, ['Videoplayer'], None, ActivityListItem))
+            data_list.append((6, ['Videoplayer'], None, ActivityListItem))
+
+        # data_list.append((7, ['CM List beta'], None, ActivityListItem))
 
         self.list.SetData(data_list)
         self.ResizeListItems()
         self.DisableItem(2)
+
         if not self.guiutility.frame.videoparentpanel and sys.platform != 'darwin':
-            self.DisableItem(5)
+            self.DisableItem(6)
         self.DisableCollapse()
         self.selectTab('home')
+
+        # self.list.GetItem(7).num_items.Show(False)
 
         # Create expanded panels in advance
         channels_item = self.list.GetItem(3)
@@ -2191,7 +2542,7 @@ class ActivitiesList(List):
         self.expandedPanel_channels.Hide()
 
         if sys.platform != 'darwin':
-            videoplayer_item = self.list.GetItem(5)
+            videoplayer_item = self.list.GetItem(6)
             self.expandedPanel_videoplayer = VideoplayerExpandedPanel(videoplayer_item)
             videoplayer_item.AddEvents(self.expandedPanel_videoplayer)
             self.expandedPanel_videoplayer.Hide()
@@ -2271,6 +2622,10 @@ class ActivitiesList(List):
             if self.guiutility.guiPage not in ['videoplayer']:
                 self.guiutility.ShowPage('videoplayer')
             return self.expandedPanel_videoplayer
+        elif item.data[0] == 'Credit Mining':
+            self.guiutility.ShowPage('creditmining')
+        elif item.data[0] == 'CM List beta':
+            self.guiutility.ShowPage('cmbeta')
         return True
 
     def OnCollapse(self, item, panel, from_expand):
@@ -2337,6 +2692,9 @@ class ActivitiesList(List):
             itemKey = 4
         elif tab == 'videoplayer':
             itemKey = 5
+            itemKey = 6
+        # elif tab == 'cmbeta':
+        #     itemKey = 7
         if itemKey:
             wx.CallAfter(self.Select, itemKey, True)
         return
@@ -2357,7 +2715,7 @@ class ActivitiesList(List):
         if curPage < 0:
             curPage = len(pages) - 1
 
-        pageNames = ['home', 'search_results', 'channels', 'my_files', 'videoplayer']
+        pageNames = ['home', 'search_results', 'channels', 'my_files', 'creditmining', 'videoplayer']#, 'cmbeta']
         for i in self.settings.keys():
             pageNames.pop(i - 1)
         self.guiutility.ShowPage(pageNames[curPage])
