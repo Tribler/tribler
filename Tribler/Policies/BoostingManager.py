@@ -283,7 +283,7 @@ class BoostingManager(TaskManager):
     def add_source(self, source):
         if source not in self.boosting_sources:
             args = (self.session, self.session.lm.threadpool, source, self.source_interval, self.max_torrents_per_source, self.on_torrent_insert)
-            # pylint: disable=star-args
+                # pylint: disable=star-args
 
             try:
                 isdir = os.path.isdir(source)
@@ -455,9 +455,6 @@ class BoostingManager(TaskManager):
 
         self.session.lm.threadpool.add_task(self.scrape_trackers, self.tracker_interval)
 
-        # save the old part
-        return None
-
     def set_archive(self, source, enable):
         if source in self.boosting_sources:
             self.boosting_sources[source].archive = enable
@@ -600,7 +597,7 @@ class BoostingManager(TaskManager):
         elif isinstance(self.policy, SeederRatioPolicy):
             policy = "seederratio"
         config.set(__name__, "policy", policy)
-        with open(CONFIG_FILE, "w") as configf:
+        with open(CONFIG_FILE, "w   ") as configf:
             config.write(configf)
 
     def log_statistics(self):

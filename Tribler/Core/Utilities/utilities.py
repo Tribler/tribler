@@ -244,3 +244,56 @@ def fix_torrent(file_path):
         fixed_data = bencode(fixed_data)
 
     return fixed_data
+
+def translate_peers_into_health(peer_info_dicts, status=None):
+    # peer_info_dicts is a peer_info dictionary from LibTorrentDownloadImpl.create_peerlist_data
+    # status is libtorrent torrent status #TODO : unused for now
+    # purpose : where we want to measure a swarm's health but no tracker can be contacted
+
+    num_seeders = 0
+    num_leech = 0
+
+    num_all_peer = len(peer_info_dicts)
+
+    upload_only = 0
+    finished = 0
+    unfinished_able_dl = 0
+    interest_in_us = 0
+
+    # collecting some statistics
+    for p_info in peer_info_dicts:
+        upload_only_b = False
+        finished_b = False
+        interest_in_us_b = False
+
+        if p_info['upload_only']:
+            upload_only+=1
+            upload_only_b = True
+        if p_info['uinterested']:
+            interest_in_us+=1
+            interest_in_us_b = True
+
+        if p_info['completed'] == 1:
+            finished+=1
+            finished_b = True
+        else:
+            unfinished_able_dl += 1 if upload_only_b else 0
+
+    '''
+    seeders potentials:
+    1. it's only want uploading right now (upload only)
+    2. it's finished (we don't know whether it want to upload or not)
+
+
+    leecher potentials:
+    1. it's interested in our piece
+    2. it's unfinished but it's not 'upload only' (it can't leech for some reason)
+    3. it's unfinished (less restrictive)
+
+    make sure to change those description when change the algorithm
+    '''
+
+    num_seeders = max(upload_only, finished)
+    num_leech = max(interest_in_us, min(unfinished_able_dl, num_all_peer - finished))
+    return (num_seeders, num_leech)
+

@@ -357,7 +357,8 @@ class TorrentChecker(TaskManager):
 
         # before creating a new session, check if the tracker is alive
         if not self._session.lm.tracker_manager.should_check_tracker(tracker_url):
-            self._logger.warn(u"skipping recently failed tracker %s", tracker_url)
+            self._logger.warn(u"skipping recently failed tracker %s by %d times", tracker_url,
+                              self._session.lm.tracker_manager.get_tracker_info(tracker_url)['failures'])
             return
 
         session = create_tracker_session(tracker_url, self._on_result_from_session)
