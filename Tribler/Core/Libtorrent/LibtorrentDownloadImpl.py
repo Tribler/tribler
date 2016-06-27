@@ -909,10 +909,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         peer_dict['upload_only'] = bool(peer_info.flags & peer_info.upload_only)
 
         # add read and write state (check unchoke/choke peers)
-        peer_dict['rstate_bw_limit'] = bool(peer_info.read_state & peer_info.bw_limit)
-        peer_dict['wstate_bw_limit'] = bool(peer_info.write_state & peer_info.bw_limit)
-        peer_dict['rstate_bw_network'] = bool(peer_info.read_state & peer_info.bw_network)
-        peer_dict['wstate_bw_network'] = bool(peer_info.write_state & peer_info.bw_network)
+        # peer_dict['rstate_bw_limit'] = bool(peer_info.read_state & peer_info.bw_limit)
+        # peer_dict['wstate_bw_limit'] = bool(peer_info.write_state & peer_info.bw_limit)
+        # peer_dict['rstate_bw_network'] = bool(peer_info.read_state & peer_info.bw_network)
+        # peer_dict['wstate_bw_network'] = bool(peer_info.write_state & peer_info.bw_network)
         peer_dict['rstate'] = peer_info.read_state
         peer_dict['wstate'] = peer_info.write_state
 
