@@ -3,9 +3,11 @@
 """Manage boosting of swarms"""
 import logging
 import os
+import shutil
 from binascii import hexlify, unhexlify
 
 import libtorrent as lt
+from twisted.internet.task import LoopingCall
 
 from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
@@ -15,10 +17,11 @@ from twisted.web.http_headers import Headers
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.Utilities import utilities
+from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.exceptions import OperationNotPossibleAtRuntimeException
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING, NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
 from Tribler.Main.globals import DefaultDownloadStartupConfig
-from Tribler.Policies.BoostingPolicy import RandomPolicy, CreationDatePolicy, SeederRatioPolicy
+from Tribler.Policies.BoostingPolicy import SeederRatioPolicy
 from Tribler.Policies.BoostingSource import ChannelSource
 from Tribler.Policies.BoostingSource import DirectorySource
 from Tribler.Policies.BoostingSource import RSSFeedSource
@@ -72,7 +75,6 @@ class BoostingManager(TaskManager):
         BoostingManager.__single = self
         self.boosting_sources = {}
         self.torrents = {}
-        self.running = True
 
         self.session = session
         assert self.session.get_libtorrent()
@@ -90,19 +92,19 @@ class BoostingManager(TaskManager):
         if not os.path.exists(self.settings.credit_mining_path):
             os.makedirs(self.settings.credit_mining_path)
 
-        local_settings = {}
-        local_settings['share_mode_target'] = self.settings.share_mode_target
-        self.session.lm.ltmgr.get_session().set_settings(local_settings)
+        self.session.lm.ltmgr.get_session().set_settings(
+            {'share_mode_target': self.settings.share_mode_target})
 
         self.session.add_observer(self.on_torrent_notify, NTFY_TORRENTS, [NTFY_UPDATE])
 
-        # TODO(emilon): Refactor this to use taskmanager
-        self.session.lm.threadpool.add_task(self._select_torrent, self.settings.initial_swarm_interval,
-                                            "CreditMining_select_init")
-        self.session.lm.threadpool.add_task(self.scrape_trackers,
-                                            self.settings.initial_tracker_interval, "CreditMining_scrape")
-        self.session.lm.threadpool.add_task(self.log_statistics,
-                                            self.settings.initial_logging_interval, "CreditMining_log_init")
+        self.register_task("CreditMining_select", LoopingCall(self._select_torrent),
+                           self.settings.initial_swarm_interval, interval=self.settings.swarm_interval)
+
+        self.register_task("CreditMining_scrape", LoopingCall(self.scrape_trackers),
+                           self.settings.initial_tracker_interval, interval=self.settings.tracker_interval)
+
+        self.register_task("CreditMining_log", LoopingCall(self.log_statistics),
+                           self.settings.initial_logging_interval, interval=self.settings.logging_interval)
 
     @staticmethod
     def get_instance(*args, **kw):
@@ -130,16 +132,9 @@ class BoostingManager(TaskManager):
         for sourcekey in self.boosting_sources.keys():
             self.remove_source(sourcekey)
 
-        if self.session.lm.threadpool.is_pending_task_active("CreditMining_select_init"):
-            self.session.lm.threadpool.cancel_pending_task("CreditMining_select_init")
-        if self.session.lm.threadpool.is_pending_task_active("CreditMining_scrape"):
-            self.session.lm.threadpool.cancel_pending_task("CreditMining_scrape")
-        if self.session.lm.threadpool.is_pending_task_active("CreditMining_log_init"):
-            self.session.lm.threadpool.cancel_pending_task("CreditMining_log_init")
-
         self.cancel_all_pending_tasks()
 
-        # remove credit mining downloaded data
+        #remove credit mining data in not persistent mode
         shutil.rmtree(self.settings.credit_mining_path, ignore_errors=True)
 
     def get_source_object(self, sourcekey):
@@ -287,8 +282,6 @@ class BoostingManager(TaskManager):
             # check health(seeder/leecher)
             self.session.lm.torrent_checker.add_gui_request(infohash, True)
 
-        self.session.lm.threadpool.add_task(self.scrape_trackers, self.settings.tracker_interval, "CreditMining_scrape")
-
     def set_archive(self, source, enable):
         """
         setting archive of a particular source. Affect all the torrents in this source
@@ -303,53 +296,42 @@ class BoostingManager(TaskManager):
         """
         Start downloading a particular torrent and add it to download list in Tribler
         """
-        def do_start():
-            """
-            add the actual torrent to the manager to download it later
-            :return:
-            """
-            dscfg = DownloadStartupConfig()
-            dscfg.set_dest_dir(self.settings.credit_mining_path)
-            dscfg.set_safe_seeding(False)
+        dscfg = DownloadStartupConfig()
+        dscfg.set_dest_dir(self.settings.credit_mining_path)
+        dscfg.set_safe_seeding(False)
 
-            preload = torrent.get('preload', False)
+        preload = torrent.get('preload', False)
 
-            # not using Session.start_download because we need to specify pstate
-            if self.session.lm.download_exists(torrent["metainfo"].get_infohash()):
-                self._logger.error("Already downloading %s. Cancel start_download",
-                                   hexlify(torrent["metainfo"].get_infohash()))
-                return
+        pstate = CallbackConfigParser()
+        pstate.add_section('state')
+        pstate.set('state', 'engineresumedata', torrent.get('pstate', None))
 
-            self._logger.info("Starting %s preload %s has pstate %s",
-                              hexlify(torrent["metainfo"].get_infohash()), preload,
-                              True if torrent.get('pstate', None) else False)
+        # not using Session.start_download because we need to specify pstate
+        if self.session.lm.download_exists(torrent["metainfo"].get_infohash()):
+            self._logger.error("Already downloading %s. Cancel start_download",
+                               hexlify(torrent["metainfo"].get_infohash()))
+            return
 
-            torrent['download'] = self.session.lm.add(torrent['metainfo'], dscfg, pstate=torrent.get('pstate', None),
-                                                      hidden=True, share_mode=not preload, checkpoint_disabled=True)
-            torrent['download'].set_priority(torrent.get('prio', 1))
+        self._logger.info("Starting %s preload %s has pstate %s",
+                          hexlify(torrent["metainfo"].get_infohash()), preload,
+                          True if torrent.get('pstate', None) else False)
 
-        self.session.lm.threadpool.add_task_in_thread(do_start, 0)
+        torrent['download'] = self.session.lm.add(torrent['metainfo'], dscfg, pstate=pstate,
+                                                  hidden=True, share_mode=not preload, checkpoint_disabled=True)
+        torrent['download'].set_priority(torrent.get('prio', 1))
 
     def stop_download(self, torrent):
         """
         Stopping torrent that currently downloading
         """
-
-        def do_stop():
-            """
-            The actual function to stop torrent downloading
-            :return:
-            """
-            ihash = lt.big_number(torrent["metainfo"].get_infohash())
-            self._logger.info("Stopping %s", str(ihash))
-            download = torrent.pop('download', False)
-            lt_torrent = self.session.lm.ltmgr.get_session().find_torrent(ihash)
-            if download and lt_torrent.is_valid():
-                self._logger.debug("Writing resume data")
-                torrent['pstate'] = {'engineresumedata': download.write_resume_data()}
-                self.session.remove_download(download, hidden=True)
-
-        self.session.lm.threadpool.add_task_in_thread(do_stop, 0)
+        ihash = lt.big_number(torrent["metainfo"].get_infohash())
+        self._logger.info("Stopping %s", str(ihash))
+        download = torrent.pop('download', False)
+        lt_torrent = self.session.lm.ltmgr.get_session().find_torrent(ihash)
+        if download and lt_torrent.is_valid():
+            self._logger.info("Writing resume data for %s", str(ihash))
+            torrent['pstate'] = download.write_resume_data()
+            self.session.remove_download(download, hidden=True)
 
     def _select_torrent(self):
         """
@@ -378,8 +360,6 @@ class BoostingManager(TaskManager):
                 self.start_download(torrent)
 
             self._logger.info("Selecting from %s torrents %s start download", len(torrents), len(torrents_start))
-
-        self.session.lm.threadpool.add_task(self._select_torrent, self.settings.swarm_interval)
 
     def load_config(self):
         """
@@ -432,17 +412,11 @@ class BoostingManager(TaskManager):
             },
         }
 
-        switch_policy = {
-            "random" : RandomPolicy,
-            "creation" : CreationDatePolicy,
-            "seederratio" : SeederRatioPolicy
-        }
-
         # set policy
-        self.settings.policy = self.session.get_credit_mining_policy(True)(self.session)
+        self.settings.policy = self.session.get_cm_policy(True)(self.session)
 
         dict_to_load = {}
-        dict_to_load.update(self.session.get_credit_mining_sources())
+        dict_to_load.update(self.session.get_cm_sources())
         dict_to_load.update(dict.fromkeys(SAVED_ATTR))
 
         for k, val in dict_to_load.items():
@@ -450,7 +424,7 @@ class BoostingManager(TaskManager):
                 if k in SAVED_ATTR:
                     # see the session configuration
                     object.__setattr__(self.settings, k,
-                                       getattr(self.session, "get_credit_mining_%s" %k)())
+                                       getattr(self.session, "get_cm_%s" %k)())
                 else: #credit mining source handle
                     switch[k]["cmd"](*((switch[k]['args'][0] or val,) + switch[k]['args'][1:]))
             except KeyError:
@@ -462,8 +436,8 @@ class BoostingManager(TaskManager):
         """
         for k in SAVED_ATTR:
             try:
-                setattr(self.session, "set_credit_mining_%s" % k, getattr(self.settings, k))
-            except OperationNotPossibleAtRuntimeException, err_msg:
+                setattr(self.session, "set_cm_%s" % k, getattr(self.settings, k))
+            except OperationNotPossibleAtRuntimeException:
                 # some of the attribute can't be changed in runtime. See lm.sessconfig_changed_callback
                 self._logger.debug("Cannot set attribute %s. Not permitted in runtime", k)
 
@@ -485,10 +459,10 @@ class BoostingManager(TaskManager):
             if boosting_source.archive:
                 archive_sources.append(bsname)
 
-        self.session.set_credit_mining_sources(lboosting_sources, CONFIG_KEY_SOURCELIST)
-        self.session.set_credit_mining_sources(flag_enabled_sources, CONFIG_KEY_ENABLEDLIST)
-        self.session.set_credit_mining_sources(flag_disabled_sources, CONFIG_KEY_DISABLEDLIST)
-        self.session.set_credit_mining_sources(archive_sources, CONFIG_KEY_ARCHIVELIST)
+        self.session.set_cm_sources(lboosting_sources, CONFIG_KEY_SOURCELIST)
+        self.session.set_cm_sources(flag_enabled_sources, CONFIG_KEY_ENABLEDLIST)
+        self.session.set_cm_sources(flag_disabled_sources, CONFIG_KEY_DISABLEDLIST)
+        self.session.set_cm_sources(archive_sources, CONFIG_KEY_ARCHIVELIST)
 
         self.session.save_pstate_sessconfig()
 
@@ -505,7 +479,7 @@ class BoostingManager(TaskManager):
                                    lt_torrent.max_uploads(), lt_torrent.max_connections())
 
                 # piece_priorities will fail in libtorrent 1.0.9
-                if lt.version == '1.0.9.0':
+                if lt.__version__ == '1.0.9.0':
                     continue
                 else:
                     non_zero_values = []
@@ -514,8 +488,6 @@ class BoostingManager(TaskManager):
                             non_zero_values.append(piece_priority)
                     if non_zero_values:
                         self._logger.debug("Non zero priorities for %s : %s", status.info_hash, non_zero_values)
-
-        self.session.lm.threadpool.add_task(self.log_statistics, self.settings.logging_interval)
 
     def update_torrent_stats(self, torrent_infohash_str, seeding_stats):
         """

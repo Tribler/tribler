@@ -10,9 +10,9 @@ import time as timemod
 from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
-from twisted.internet.defer import Deferred
 
 from twisted.internet import reactor
+from twisted.internet.defer import Deferred
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
@@ -95,6 +95,8 @@ class TriblerLaunchMany(TaskManager):
         self.tunnel_community = None
 
         self.startup_deferred = Deferred()
+
+        self.boosting_manager = None
 
     def register(self, session, sesslock):
         if not self.registered:
@@ -314,6 +316,10 @@ class TriblerLaunchMany(TaskManager):
         if self.session.get_watch_folder_enabled():
             self.watch_folder = WatchFolder(self.session)
             self.watch_folder.start()
+
+        if self.session.get_creditmining_enable():
+            from Tribler.Policies.BoostingManager import BoostingManager
+            self.boosting_manager = BoostingManager(self.session)
 
         self.version_check_manager = VersionCheckManager(self.session)
 
@@ -672,6 +678,9 @@ class TriblerLaunchMany(TaskManager):
 
         # Note: sesslock not held
         self.shutdownstarttime = timemod.time()
+        if self.boosting_manager:
+            yield self.boosting_manager.shutdown()
+            self.boosting_manager = None
         if self.torrent_checker:
             yield self.torrent_checker.shutdown()
             self.torrent_checker = None

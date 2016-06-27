@@ -166,20 +166,19 @@ sessdefaults['http_api']['port'] = -1
 
 # Credit mining config
 sessdefaults['credit_mining'] = OrderedDict()
-sessdefaults['credit_mining']['max_torrents_per_source'] = 10
-sessdefaults['credit_mining']['max_torrents_active'] = 20
+sessdefaults['credit_mining']['enabled'] = False
+sessdefaults['credit_mining']['max_torrents_per_source'] = 20
+sessdefaults['credit_mining']['max_torrents_active'] = 50
 sessdefaults['credit_mining']['source_interval'] = 100
 sessdefaults['credit_mining']['swarm_interval'] = 100
 sessdefaults['credit_mining']['share_mode_target'] = 3
 sessdefaults['credit_mining']['tracker_interval'] = 200
 sessdefaults['credit_mining']['logging_interval'] = 60
-sessdefaults['credit_mining']['boosting_sources'] = ["http://bt.etree.org/rss/bt_etree_org.rdf",
-                                                "9e1a3fac737543d36c83d54818ed77620932ff80",
-                                                "028d2b5eea5277ddc3cedf78601f9be246b29bf1"]
-sessdefaults['credit_mining']['boosting_enabled'] = ["http://bt.etree.org/rss/bt_etree_org.rdf",
-                                                "9e1a3fac737543d36c83d54818ed77620932ff80"]
-sessdefaults['credit_mining']['boosting_disabled'] = ["028d2b5eea5277ddc3cedf78601f9be246b29bf1"]
-sessdefaults['credit_mining']['archive_sources'] = ["9e1a3fac737543d36c83d54818ed77620932ff80"]
+# By default we want to automatically boost legal-predetermined channel.
+sessdefaults['credit_mining']['boosting_sources'] = ["http://bt.etree.org/rss/bt_etree_org.rdf"]
+sessdefaults['credit_mining']['boosting_enabled'] = ["http://bt.etree.org/rss/bt_etree_org.rdf"]
+sessdefaults['credit_mining']['boosting_disabled'] = []
+sessdefaults['credit_mining']['archive_sources'] = []
 sessdefaults['credit_mining']['policy'] = "seederratio"
 
 #
@@ -271,5 +270,4 @@ tribler_defaults['Tribler']['i2ilistenport'] = 57891
 tribler_defaults['Tribler']['mintray'] = 2 if sys.platform == 'win32' else 0
 tribler_defaults['Tribler']['free_space_threshold'] = 100 * 1024 * 1024
 tribler_defaults['Tribler']['version_info'] = {}
-tribler_defaults['Tribler']['boosting_sources'] = ""
 tribler_defaults['Tribler']['last_reported_version'] = None
