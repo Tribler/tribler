@@ -28,6 +28,7 @@ class AddBoostingSource(wx.Dialog):
         self.rss_dir_radio = wx.RadioButton(self, -1, 'RSS dir:')
         self.rss_dir_edit = wx.TextCtrl(self, -1)
         self.rss_dir_edit.Bind(wx.EVT_TEXT, lambda evt: self.rss_dir_radio.SetValue(True))
+        self.rss_dir_edit.Bind(wx.EVT_LEFT_DOWN, self.OnDir)
 
         self.archive_check = wx.CheckBox(self, -1, "Archive mode")
         ok_btn = wx.Button(self, -1, "OK")
@@ -37,8 +38,6 @@ class AddBoostingSource(wx.Dialog):
 
         sourceGrid = wx.FlexGridSizer(2, 2, 0, 0)
         sourceGrid.AddGrowableCol(1)
-        # sourceGrid.Add(self.channel_radio, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT | wx.TOP, 5)
-        # sourceGrid.Add(self.channel_choice, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
         sourceGrid.Add(self.rss_feed_radio, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT | wx.TOP, 5)
         sourceGrid.Add(self.rss_feed_edit, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, 5)
         sourceGrid.Add(self.rss_dir_radio, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT | wx.TOP, 5)
@@ -55,23 +54,7 @@ class AddBoostingSource(wx.Dialog):
         vSizer.Add(btnSizer, 0, wx.EXPAND | wx.ALL, 5)
         self.SetSizer(vSizer)
 
-        # def do_db():
-        #     return self.guiutility.channelsearch_manager.getAllChannels()
-        #
-        # def do_gui(delayedResult):
-        #     _, channels = delayedResult.get()
-        #     self.channels = sorted([(channel.name, channel.dispersy_cid) for channel in channels])
-        #     self.channel_choice.SetItems([channel[0] for channel in self.channels])
-        #
-        # startWorker(do_gui, do_db, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
-
     def OnOK(self, event):
-        # if self.channel_radio.GetValue():
-        #     selection = self.channel_choice.GetSelection()
-        #     if selection < len(self.channels):
-        #         self.source = self.channels[selection][1]
-        # el
-
         if self.rss_feed_radio.GetValue():
             self.source = self.rss_feed_edit.GetValue()
         else:
@@ -87,6 +70,13 @@ class AddBoostingSource(wx.Dialog):
 
     def GetValue(self):
         return self.source, self.archive_check.GetValue()
+
+    def OnDir(self,event):
+        self.rss_dir_dialog = wx.DirDialog(self, "Choose a directory:",
+                                           style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
+
+        if self.rss_dir_dialog.ShowModal() == wx.ID_OK:
+            self.rss_dir_edit.SetValue(self.rss_dir_dialog.GetPath())
 
 
 class RemoveBoostingSource(wx.Dialog):

@@ -128,6 +128,8 @@ class CpanelCheckListCtrl(wx.ScrolledWindow, ULC.UltimateListCtrl):
                     self.CreateSourceItem(s)
 
             self.getting_channels = False
+            self.RefreshData()
+            self.Layout()
 
         startWorker(do_update_gui, do_query_channels, retryOnBusy=True, priority=GUI_PRI_DISPERSY)
 
@@ -437,7 +439,7 @@ class CreditMiningPanel(FancyPanel):
                 dlg = RemoveBoostingSource(None)
                 if dlg.ShowModal() == wx.ID_OK and dlg.GetValue():
                     self.boosting_manager.remove_source(dlg.GetValue())
-                    self.GetManager().refresh()
+                    self.sourcelist.RefreshData()
                 dlg.Destroy()
 
             addsource = LinkStaticText(header, 'Add', icon=None)
@@ -489,5 +491,6 @@ class CreditMiningPanel(FancyPanel):
 
         self.Bind(ULC.EVT_LIST_ITEM_SELECTED, self.OnItemSelected, self.sourcelist)
 
-        self.sourcelist.LoadMore()
-        self.sourcelist.RefreshData()
+
+        self.guiutility.utility.session.lm.threadpool.add_task(self.sourcelist.LoadMore, 2, task_name=str(self)+"load_more")
+        self.Layout()
