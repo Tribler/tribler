@@ -76,8 +76,12 @@ Endpoints
 .. toctree::
    :maxdepth: 2
 
-   channels
+   channels_discovered
+   channels_subscribed
    mychannel
+   rssfeeds
+   torrents
+   playlists
    downloads
    search
    variables

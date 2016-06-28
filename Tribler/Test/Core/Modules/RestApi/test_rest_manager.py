@@ -33,5 +33,5 @@ class RestRequestTest(AbstractApiTest):
         }
         self.session.create_channel = self.throw_unhandled_exception
         self.should_check_equality = False
-        return self.do_request('mychannel', expected_code=500, expected_json=None, request_type='PUT',
+        return self.do_request('channels/discovered', expected_code=500, expected_json=None, request_type='PUT',
                                post_data=post_data).addCallback(verify_error_message)
