@@ -29,7 +29,7 @@ class DiscoveredPage(QWidget):
         channel_info['torrents'] = 0
         channel_info['subscribed'] = False
         channel_info['votes'] = 0
-        self.window().discovered_channels_list.insert_item(0, (ChannelListItem, channel_info))
+        self.window().discovered_channels_list.append_item((ChannelListItem, channel_info))
         self.discovered_channels.append(channel_info)
         self.update_num_label()
 
