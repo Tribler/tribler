@@ -41,6 +41,8 @@ setup(
         'Tribler.community.bartercast4',
         'Tribler.community.channel',
         'Tribler.community.demers',
+        'Tribler.community.market',
+        'Tribler.community.market.core',
         'Tribler.community.multichain',
         'Tribler.community.search',
         'Tribler.community.template',
