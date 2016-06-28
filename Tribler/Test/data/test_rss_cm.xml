@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+  xmlns:atom="http://www.w3.org/2005/Atom"
+  xmlns:media="http://search.yahoo.com/mrss">
+<channel>
+  <!-- required channel elements -->
+  <title>Test RSS for Credit Mining</title>
+  <link>test_rss_cm.xml</link>
+  <description>Test RSS CM feed.</description>
+  <!-- optoinal channel elements -->
+  <language>en</language>
+  <pubDate>Tue, 12 May 2015 08:39:23 GMT</pubDate>
+  <lastBuildDate>Tue, 12 May 2015 08:39:23 GMT</lastBuildDate>
+  <atom:link href="test.xml" rel="self" type="application/rss+xml" />
+
+  <!-- items -->
+  <item>
+    <title>ubuntu-15.04-desktop-amd64.iso</title>
+    <link>http://localhost:RANDOMPORT/ubuntu.torrent</link>
+    <enclosure url="http://localhost:RANDOMPORT/http_torrent_files/ubuntu.torrent" length="44258" type="application/x-bittorrent" />
+    <guid>http://localhost:RANDOMPORT.ubuntu.torrent</guid>
+  </item>
+
+  <item>
+    <title>Pioneer.One.S01E06.720p.x264-VODO.torrent</title>
+    <link>http://localhost:RANDOMPORT/pioneer.torrent</link>
+    <enclosure url="http://localhost:RANDOMPORT/http_torrent_files/pioneer.torrent" length="62379" type="application/x-bittorrent" />
+    <guid>http://localhost:RANDOMPORT.pioneer.torrent</guid>
+  </item>
+  </channel>
+</rss>

@@ -682,6 +682,10 @@ class ABCApp(object):
                 manager = self.frame.librarylist.GetManager()
                 manager.torrentsUpdated(infohashes)
 
+                if self.utility.session.get_creditmining_enable():
+                    manager = self.frame.creditminingpanel.cmlist.GetManager()
+                    manager.torrents_updated(infohashes)
+
             from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent
 
             if self.frame.torrentdetailspanel.torrent and self.frame.torrentdetailspanel.torrent.infohash in infohashes:
@@ -703,7 +707,10 @@ class ABCApp(object):
         if self._frame_and_ready():
             infohash = objectID
             torrent = self.guiUtility.torrentsearch_manager.getTorrentByInfohash(infohash)
-            self.guiUtility.library_manager.addDownloadState(torrent)
+            # Check if we got the actual torrent as the bandwidth investor
+            # downloads aren't going to be there.
+            if torrent:
+                self.guiUtility.library_manager.addDownloadState(torrent)
 
     @forceWxThread
     def sesscb_ntfy_newversion(self, subject, changeType, objectID, *args):

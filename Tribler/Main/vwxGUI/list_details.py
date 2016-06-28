@@ -2376,7 +2376,7 @@ class VideoplayerExpandedPanel(wx.lib.scrolledpanel.ScrolledPanel):
             self.library_manager.last_vod_torrent = None
 
     def SetNrFiles(self, nr):
-        videoplayer_item = self.guiutility.frame.actlist.GetItem(5)
+        videoplayer_item = self.guiutility.frame.actlist.GetItem(6)
         num_items = getattr(videoplayer_item, 'num_items', None)
         if num_items and self.guiutility.frame.videoparentpanel:
             num_items.SetValue(str(nr))

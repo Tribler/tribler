@@ -23,6 +23,9 @@ from Tribler.Core.Utilities.network_utils import autodetect_socket_style, get_ra
 from Tribler.Core.defaults import sessdefaults
 from Tribler.Core.osutils import get_appstate_dir, is_android
 from Tribler.Core.simpledefs import STATEDIR_SESSCONFIG
+from Tribler.Policies.BoostingPolicy import CreationDatePolicy, BoostingPolicy
+from Tribler.Policies.BoostingPolicy import RandomPolicy
+from Tribler.Policies.BoostingPolicy import SeederRatioPolicy
 
 
 class SessionConfigInterface(object):
@@ -841,6 +844,161 @@ class SessionConfigInterface(object):
         :return: An integer indicating the port where the HTPT API listens on.
         """
         return self._obtain_port(u'http_api', u'port')
+
+    #
+    # Credit Mining
+    #
+
+    def set_creditmining_enable(self, value):
+        """
+        Sets to enable credit mining
+        """
+        self.sessconfig.set(u'credit_mining', u'enabled', value)
+
+    def get_creditmining_enable(self):
+        """
+        Gets if credit mining is enabled
+        :return: (bool) True or False
+        """
+        return self.sessconfig.get(u'credit_mining', u'enabled')
+
+    def set_cm_max_torrents_active(self, max_torrents_active):
+        """
+        Set credit mining max active torrents in a single session
+        """
+        return self.sessconfig.set(u'credit_mining', u'max_torrents_active', max_torrents_active)
+
+    def get_cm_max_torrents_active(self):
+        """
+        get max number of torrents active in a single session
+        """
+        return self.sessconfig.get(u'credit_mining', u'max_torrents_active')
+
+    def set_cm_max_torrents_per_source(self, max_torrents_per_source):
+        """
+        set a number of torrent that can be stored in a single source
+        """
+        return self.sessconfig.set(u'credit_mining', u'max_torrents_per_source', max_torrents_per_source)
+
+    def get_cm_max_torrents_per_source(self):
+        """
+        get max number of torrent that can be stored in a single source
+        """
+        return self.sessconfig.get(u'credit_mining', u'max_torrents_per_source')
+
+    def set_cm_source_interval(self, source_interval):
+        """
+        set interval of looking up new torrent in a swarm
+        """
+        return self.sessconfig.set(u'credit_mining', u'source_interval', source_interval)
+
+    def get_cm_source_interval(self):
+        """
+        get interval of looking up new torrent in a swarm
+        """
+        return self.sessconfig.get(u'credit_mining', u'source_interval')
+
+    def set_cm_swarm_interval(self, swarm_interval):
+        """
+        set the interval of choosing activity which swarm will be downloaded
+        """
+        return self.sessconfig.set(u'credit_mining', u'swarm_interval', swarm_interval)
+
+    def get_cm_swarm_interval(self):
+        """
+        getting the interval of choosing activity which swarm will be downloaded
+        """
+        return self.sessconfig.get(u'credit_mining', u'swarm_interval')
+
+    def set_cm_tracker_interval(self, tracker_interval):
+        """
+        set the manual (force) scraping interval.
+        """
+        return self.sessconfig.set(u'credit_mining', u'tracker_interval', tracker_interval)
+
+    def get_cm_tracker_interval(self):
+        """
+        get the manual (force) scraping interval.
+        """
+        return self.sessconfig.get(u'credit_mining', u'tracker_interval')
+
+    def set_cm_logging_interval(self, logging_interval):
+        """
+        set the credit mining logging interval (INFO,DEBUG)
+        """
+        return self.sessconfig.set(u'credit_mining', u'logging_interval', logging_interval)
+
+    def get_cm_logging_interval(self):
+        """
+        get the credit mining logging interval (INFO,DEBUG)
+        """
+        return self.sessconfig.get(u'credit_mining', u'logging_interval')
+
+    def set_cm_share_mode_target(self, share_mode_target):
+        """
+        set the share mode target in credit mining. Value can be referenced at :
+        http://www.libtorrent.org/reference-Settings.html#share_mode_target
+        """
+        return self.sessconfig.set(u'credit_mining', u'share_mode_target', share_mode_target)
+
+    def get_cm_share_mode_target(self):
+        """
+        get the current share mode target that applies in all the swarm
+        """
+        return self.sessconfig.get(u'credit_mining', u'share_mode_target')
+
+    def set_cm_policy(self, policy_str):
+        """
+        set the credit mining policy. Input can be policy name or class
+        """
+        switch_policy = {
+            RandomPolicy: "random",
+            CreationDatePolicy: "creation",
+            SeederRatioPolicy: "seederratio"
+        }
+
+        if isinstance(policy_str, BoostingPolicy):
+            policy_str = switch_policy[type(policy_str)]
+
+        return self.sessconfig.set(u'credit_mining', u'policy', policy_str)
+
+    def get_cm_policy(self, as_class=False):
+        """
+        get the credit mining policy. If as_class True, will return as class,
+        otherwise will return as policy name (str)
+        """
+        policy_str = self.sessconfig.get(u'credit_mining', u'policy')
+
+        if as_class:
+            switch_policy = {
+                "random": RandomPolicy,
+                "creation": CreationDatePolicy,
+                "seederratio": SeederRatioPolicy
+            }
+
+            ret = switch_policy[policy_str]
+        else:
+            ret = policy_str
+
+        return ret
+
+    def set_cm_sources(self, source_list, key):
+        """
+        set source list for a chosen key :
+        boosting_sources, boosting_enabled, boosting_disabled, or archive_sources
+        """
+        return self.sessconfig.set(u'credit_mining', u'%s' % key, source_list)
+
+    def get_cm_sources(self):
+        """
+        get all the lists as list of string in the configuration
+        """
+        ret = {"boosting_sources": self.sessconfig.get(u'credit_mining', u'boosting_sources'),
+               "boosting_enabled": self.sessconfig.get(u'credit_mining', u'boosting_enabled'),
+               "boosting_disabled": self.sessconfig.get(u'credit_mining', u'boosting_disabled'),
+               "archive_sources": self.sessconfig.get(u'credit_mining', u'archive_sources')}
+
+        return ret
 
     #
     # Static methods

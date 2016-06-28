@@ -371,9 +371,24 @@ class ListItem(wx.Panel):
         else:
             self.BackgroundColor(self.list_deselected)
 
+    def SetSelectedColour(self, selected):
+        if selected.Get() != self.list_selected.Get():
+            self.list_selected = selected
+            self.ShowSelected()
+
     def SetDeselectedColour(self, deselected):
         if deselected.Get() != self.list_deselected.Get():
             self.list_deselected = deselected
+            self.ShowSelected()
+
+    def SetExpandedColour(self, expanded):
+        if expanded.Get() != self.list_expanded.Get():
+            self.list_expanded = expanded
+            self.ShowSelected()
+
+    def SetExpandedAndSelectedColour(self, selected_and_expanded):
+        if selected_and_expanded.Get() != self.list_selected_and_expanded.Get():
+            self.list_selected_and_expanded = selected_and_expanded
             self.ShowSelected()
 
     @warnWxThread

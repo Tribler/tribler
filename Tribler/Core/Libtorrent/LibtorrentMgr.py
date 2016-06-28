@@ -320,9 +320,9 @@ class LibtorrentMgr(TaskManager):
                     if isinstance(alert, lt.metadata_received_alert):
                         self.got_metainfo(infohash)
                 else:
-                    self._logger.debug("could not find torrent %s", infohash)
+                    self._logger.debug("LibtorrentMgr: could not find torrent %s", infohash)
             else:
-                self._logger.debug("alert for invalid torrent")
+                self._logger.debug("Alert for invalid torrent")
 
     def get_metainfo(self, infohash_or_magnet, callback, timeout=30, timeout_callback=None, notify=True):
         if not self.is_dht_ready() and timeout > 5:

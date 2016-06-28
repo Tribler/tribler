@@ -20,6 +20,8 @@ class AbstractTestChannelsEndpoint(AbstractApiTest):
         self.votecast_db_handler = self.session.open_dbhandler(NTFY_VOTECAST)
         self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"
 
+        self.create_votecast_called = False
+
     def insert_channel_in_db(self, dispersy_cid, peer_id, name, description):
         return self.channel_db_handler.on_channel_from_dispersy(dispersy_cid, peer_id, name, description)
 
@@ -28,6 +30,26 @@ class AbstractTestChannelsEndpoint(AbstractApiTest):
 
     def insert_torrents_into_channel(self, torrent_list):
         self.channel_db_handler.on_torrents_from_dispersy(torrent_list)
+
+    @blocking_call_on_reactor_thread
+    def create_fake_allchannel_community(self):
+        """
+        This method creates a fake AllChannel community so we can check whether a request is made in the community
+        when doing stuff with a channel.
+        """
+        self.session.lm.dispersy._database.open()
+        fake_member = DummyMember(self.session.lm.dispersy, 1, "a" * 20)
+        member = self.session.lm.dispersy.get_new_member(u"curve25519")
+        fake_community = AllChannelCommunity.init_community(self.session.lm.dispersy, fake_member, member)
+        fake_community.disp_create_votecast = self.on_dispersy_create_votecast
+        self.session.lm.dispersy._communities = {"allchannel": fake_community}
+        return fake_community
+
+    def on_dispersy_create_votecast(self, cid, vote, _):
+        """
+        Check whether we have the expected parameters when this method is called.
+        """
+        self.create_votecast_called = True
 
 
 class TestChannelsEndpoint(AbstractTestChannelsEndpoint):
@@ -132,39 +154,19 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         super(TestChannelsSubscriptionEndpoint, self).setUp(autoload_discovery)
         self.expected_votecast_cid = None
         self.expected_votecast_vote = None
-        self.create_votecast_called = False
 
         self.session.get_dispersy = lambda: True
         self.session.lm.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
+
         self.create_fake_allchannel_community()
 
         for i in xrange(0, 10):
             self.insert_channel_in_db('rand%d' % i, 42 + i, 'Test channel %d' % i, 'Test description %d' % i)
 
     def on_dispersy_create_votecast(self, cid, vote, _):
-        """
-        Check whether we have the expected parameters when this method is called.
-        """
+        super(TestChannelsSubscriptionEndpoint, self).on_dispersy_create_votecast(cid, vote, _)
         self.assertEqual(cid, self.expected_votecast_cid)
         self.assertEqual(vote, self.expected_votecast_vote)
-        self.create_votecast_called = True
-
-    @blocking_call_on_reactor_thread
-    def create_fake_allchannel_community(self):
-        """
-        This method creates a fake AllChannel community so we can check whether a request is made in the community
-        when doing stuff with a channel.
-        """
-        self.session.lm.dispersy._database.open()
-        fake_member = DummyMember(self.session.lm.dispersy, 1, "a" * 20)
-        member = self.session.lm.dispersy.get_new_member(u"curve25519")
-        fake_community = AllChannelCommunity(self.session.lm.dispersy, fake_member, member)
-        fake_community.disp_create_votecast = self.on_dispersy_create_votecast
-        self.session.lm.dispersy._communities = {"allchannel": fake_community}
-
-    def tearDown(self):
-        self.session.lm.dispersy = None
-        super(TestChannelsSubscriptionEndpoint, self).tearDown()
 
     @deferred(timeout=10)
     def test_subscribe_channel_not_exist(self):
@@ -229,3 +231,8 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         self.expected_votecast_vote = VOTE_UNSUBSCRIBE
         return self.do_request('channels/subscribed/%s' % 'rand1'.encode('hex'), expected_code=200,
                                expected_json=expected_json, request_type='DELETE').addCallback(verify_votecast_made)
+
+    def tearDown(self):
+        self.session.lm.dispersy._communities['allchannel'].cancel_all_pending_tasks()
+        self.session.lm.dispersy = None
+        super(TestChannelsSubscriptionEndpoint, self).tearDown()

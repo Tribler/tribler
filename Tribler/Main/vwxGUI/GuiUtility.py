@@ -250,6 +250,12 @@ class GUIUtility(object):
                 # Hide list
                 self.frame.librarylist.Show(False)
 
+            if page == 'creditmining':
+                self.frame.creditminingpanel.Show(True)
+
+            elif self.guiPage == 'creditmining':
+                self.frame.creditminingpanel.Show(False)
+
             if page == 'home':
                 self.frame.home.ResetSearchBox()
                 self.frame.home.Show()
@@ -355,6 +361,9 @@ class GUIUtility(object):
 
         if self.guiPage == 'my_files':
             return self.frame.librarylist
+
+        if self.guiPage == 'creditmining':
+            return self.frame.creditminingpanel
 
     def SetTopSplitterWindow(self, window=None, show=True):
         while self.frame.splitter_top.GetChildren():
@@ -595,7 +604,8 @@ class GUIUtility(object):
             'selectedchannel': self.frame.selectedchannellist,
             'mychannel': self.frame.managechannel,
             'search_results': self.frame.searchlist,
-            'my_files': self.frame.librarylist}
+            'my_files': self.frame.librarylist,
+            'creditmining': self.frame.creditminingpanel}
         if self.guiPage in lists and lists[self.guiPage].HasFocus():
             lists[self.guiPage].ScrollToEnd(goto_end)
         elif event:
@@ -607,7 +617,8 @@ class GUIUtility(object):
             'selectedchannel': self.frame.selectedchannellist,
             'mychannel': self.frame.managechannel,
             'search_results': self.frame.searchlist,
-            'my_files': self.frame.librarylist}
+            'my_files': self.frame.librarylist,
+            'creditmining': self.frame.creditminingpanel}
         if self.guiPage in lists:
             lists[self.guiPage].ScrollToId(id)
 

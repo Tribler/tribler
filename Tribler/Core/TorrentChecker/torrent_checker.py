@@ -140,10 +140,11 @@ class TorrentChecker(TaskManager):
         self._logger.debug(u"Selected %d new torrents to check on tracker: %s", scheduled_torrents, tracker_url)
 
     @call_on_reactor_thread
-    def add_gui_request(self, infohash):
+    def add_gui_request(self, infohash, scrape_now=False):
         """
         Public API for adding a GUI request.
         :param infohash: Torrent infohash.
+        :param scrape_now: Flag whether we want to force scraping immediately
         """
         result = self._torrent_db.getTorrent(infohash, (u'torrent_id', u'last_tracker_check'), False)
         if result is None:
@@ -153,7 +154,7 @@ class TorrentChecker(TaskManager):
         torrent_id = result[u'torrent_id']
         last_check = result[u'last_tracker_check']
         time_diff = time.time() - last_check
-        if time_diff < self._torrent_check_interval:
+        if time_diff < self._torrent_check_interval and not scrape_now:
             self._logger.debug(u"time interval too short, skip GUI request. infohash: %s", hexlify(infohash))
             return
 
@@ -357,7 +358,8 @@ class TorrentChecker(TaskManager):
 
         # before creating a new session, check if the tracker is alive
         if not self._session.lm.tracker_manager.should_check_tracker(tracker_url):
-            self._logger.warn(u"skipping recently failed tracker %s", tracker_url)
+            self._logger.warn(u"skipping recently failed tracker %s by %d times", tracker_url,
+                              self._session.lm.tracker_manager.get_tracker_info(tracker_url)['failures'])
             return
 
         session = create_tracker_session(tracker_url, self._on_result_from_session)
@@ -371,7 +373,6 @@ class TorrentChecker(TaskManager):
         self._update_pending_response(infohash)
 
         self._logger.debug(u"Session created for infohash %s", hexlify(infohash))
-
 
     def _update_pending_response(self, infohash):
         if infohash in self._pending_response_dict:

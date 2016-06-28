@@ -10,9 +10,9 @@ import time as timemod
 from glob import iglob
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
-from twisted.internet.defer import Deferred
 
 from twisted.internet import reactor
+from twisted.internet.defer import Deferred
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
@@ -95,6 +95,8 @@ class TriblerLaunchMany(TaskManager):
         self.tunnel_community = None
 
         self.startup_deferred = Deferred()
+
+        self.boosting_manager = None
 
     def register(self, session, sesslock):
         if not self.registered:
@@ -315,11 +317,16 @@ class TriblerLaunchMany(TaskManager):
             self.watch_folder = WatchFolder(self.session)
             self.watch_folder.start()
 
+        if self.session.get_creditmining_enable():
+            from Tribler.Policies.BoostingManager import BoostingManager
+            self.boosting_manager = BoostingManager(self.session)
+
         self.version_check_manager = VersionCheckManager(self.session)
 
         self.initComplete = True
 
-    def add(self, tdef, dscfg, pstate=None, initialdlstatus=None, setupDelay=0, hidden=False):
+    def add(self, tdef, dscfg, pstate=None, initialdlstatus=None, setupDelay=0, hidden=False,
+            share_mode=False, checkpoint_disabled=False):
         """ Called by any thread """
         d = None
         with self.sesslock:
@@ -343,7 +350,8 @@ class TriblerLaunchMany(TaskManager):
 
             # Store in list of Downloads, always.
             self.downloads[infohash] = d
-            setup_deferred = d.setup(dscfg, pstate, initialdlstatus, wrapperDelay=setupDelay)
+            setup_deferred = d.setup(dscfg, pstate, initialdlstatus, wrapperDelay=setupDelay,
+                                     share_mode=share_mode, checkpoint_disabled=checkpoint_disabled)
             setup_deferred.addCallback(self.on_download_wrapper_created)
 
         if d and not hidden and self.session.get_megacache():
@@ -368,7 +376,7 @@ class TriblerLaunchMany(TaskManager):
     def on_download_wrapper_created(self, (d, pstate)):
         """ Called by network thread """
         try:
-            if pstate is None:
+            if pstate is None and not d.get_checkpoint_disabled():
                 # Checkpoint at startup
                 (infohash, pstate) = d.network_checkpoint()
                 self.save_download_pstate(infohash, pstate)
@@ -670,6 +678,9 @@ class TriblerLaunchMany(TaskManager):
 
         # Note: sesslock not held
         self.shutdownstarttime = timemod.time()
+        if self.boosting_manager:
+            yield self.boosting_manager.shutdown()
+            self.boosting_manager = None
         if self.torrent_checker:
             yield self.torrent_checker.shutdown()
             self.torrent_checker = None
@@ -800,7 +811,10 @@ class TriblerLaunchMany(TaskManager):
                                                    'anon_listen_port']) or \
              (section == 'torrent_collecting' and name in ['stop_collecting_threshold']) or \
              (section == 'watch_folder') or \
-             (section == 'tunnel_community' and name in ['socks5_listen_port']):
+             (section == 'tunnel_community' and name in ['socks5_listen_port']) or \
+             (section == 'credit_mining' and name in ['max_torrents_per_source', 'max_torrents_active',
+                                                      'source_interval', 'swarm_interval', 'boosting_sources',
+                                                      'boosting_enabled', 'boosting_disabled', 'archive_sources']):
             return True
         else:
             return False

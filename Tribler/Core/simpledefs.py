@@ -98,6 +98,7 @@ NTFY_UPDATE = 'update'  # data is updated
 NTFY_INSERT = 'insert'  # new data is inserted
 NTFY_DELETE = 'delete'  # data is deleted
 NTFY_CREATE = 'create'  # new data is created, meaning in the case of Channels your own channel is created
+NTFY_SCRAPE = 'scrape'
 NTFY_STARTED = 'started'
 NTFY_STATE = 'state'
 NTFY_MODIFIED = 'modified'
