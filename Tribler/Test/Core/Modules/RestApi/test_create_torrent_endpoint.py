@@ -1,6 +1,7 @@
 import json
 import base64
 import os
+import shutil
 
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.TorrentDef import TorrentDef
@@ -10,18 +11,34 @@ from Tribler.Test.test_as_server import TESTS_DATA_DIR
 
 class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
 
+    def setUpPreSession(self):
+        super(TestMyChannelCreateTorrentEndpoint, self).setUpPreSession()
+        # Create temporary test directory with test files
+        self.files_path = os.path.join(self.session_base_dir, 'TestMyChannelCreateTorrentEndpoint')
+        if not os.path.exists(self.files_path):
+            os.mkdir(self.files_path)
+        shutil.copyfile(os.path.join(TESTS_DATA_DIR, 'video.avi'),
+                        os.path.join(self.files_path, 'video.avi'))
+        shutil.copyfile(os.path.join(TESTS_DATA_DIR, 'video.avi.torrent'),
+                        os.path.join(self.files_path, 'video.avi.torrent'))
+
     def tearDown(self):
         super(TestMyChannelCreateTorrentEndpoint, self).tearDown()
-        torrent_path = os.path.join(TESTS_DATA_DIR, os.path.basename(TESTS_DATA_DIR) + ".torrent")
-        if os.path.exists(torrent_path):
-            os.remove(torrent_path)
+        # Remove temporary test directory with test files
+        if os.path.exists(self.files_path):
+            torrent_file = os.path.join(self.files_path, 'TestMyChannelCreateTorrentEndpoint.torrent')
+            if os.path.exists(torrent_file):
+                os.remove(torrent_file)
+            os.remove(os.path.join(self.files_path, 'video.avi'))
+            os.remove(os.path.join(self.files_path, 'video.avi.torrent'))
+            os.removedirs(self.files_path)
 
     @deferred(timeout=10)
     def test_create_torrent(self):
         """
         Testing whether the API returns a proper base64 encoded torrent
         """
-        torrent_path = os.path.join(TESTS_DATA_DIR, "video.avi.torrent")
+        torrent_path = os.path.join(self.files_path, "video.avi.torrent")
         expected_tdef = TorrentDef.load(torrent_path)
 
         def verify_torrent(body):
@@ -38,7 +55,7 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
             self.assertEqual(expected_tdef, tdef)
 
         post_data = {
-            "files": [os.path.join(TESTS_DATA_DIR, "video.avi")],
+            "files": [os.path.join(self.files_path, "video.avi")],
             "description": "Video of my cat",
             "trackers": ["http://localhost/announce"]
         }
