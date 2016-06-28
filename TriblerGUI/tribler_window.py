@@ -53,6 +53,7 @@ class TriblerWindow(QMainWindow):
         self.navigation_stack = []
         self.feedback_dialog_is_open = False
         self.tribler_started = False
+        self.tribler_settings = None
         self.core_manager = CoreManager()
 
         sys.excepthook = self.on_exception
@@ -125,14 +126,14 @@ class TriblerWindow(QMainWindow):
         self.downloads_page.start_loading_downloads()
         self.home_page.load_popular_torrents()
         self.discovered_page.load_discovered_channels()
-        if not self.settings.value("first_discover", False):
+        if not self.gui_settings.value("first_discover", False):
             self.discovering_page.is_discovering = True
             self.stackedWidget.setCurrentIndex(PAGE_DISCOVERING)
         else:
             self.stackedWidget.setCurrentIndex(PAGE_HOME)
 
     def on_new_version_available(self, version):
-        if version == str(self.settings.value('last_reported_version')):
+        if version == str(self.gui_settings.value('last_reported_version')):
             return
 
         self.dialog = ConfirmationDialog(self, "New version available", "Version %s of Tribler is available. Do you want to visit the website to download the newest version?" % version, [('ignore', BUTTON_TYPE_NORMAL), ('later', BUTTON_TYPE_NORMAL), ('ok', BUTTON_TYPE_NORMAL)])
@@ -141,7 +142,7 @@ class TriblerWindow(QMainWindow):
 
     def on_new_version_dialog_done(self, version, action):
         if action == 0:  # ignore
-            self.settings.setValue("last_reported_version", version)
+            self.gui_settings.setValue("last_reported_version", version)
         elif action == 2:  # ok
             import webbrowser
             webbrowser.open("https://tribler.org")
@@ -150,10 +151,10 @@ class TriblerWindow(QMainWindow):
         self.dialog = None
 
     def read_settings(self):
-        self.settings = QSettings()
+        self.gui_settings = QSettings()
         center = QApplication.desktop().availableGeometry(self).center()
-        pos = self.settings.value("pos", QPoint(center.x() - self.width() * 0.5, center.y() - self.height() * 0.5))
-        size = self.settings.value("size", self.size())
+        pos = self.gui_settings.value("pos", QPoint(center.x() - self.width() * 0.5, center.y() - self.height() * 0.5))
+        size = self.gui_settings.value("size", self.size())
 
         self.move(pos)
         self.resize(size)
@@ -168,6 +169,13 @@ class TriblerWindow(QMainWindow):
 
     def received_variables(self, variables):
         self.video_player_page.video_player_port = variables["variables"]["ports"]["video~port"]
+
+        # fetch the settings
+        self.settings_request_mgr = TriblerRequestManager()
+        self.settings_request_mgr.perform_request("settings", self.received_settings)
+
+    def received_settings(self, settings):
+        self.tribler_settings = settings['settings']
 
     def on_top_search_button_click(self):
         self.stackedWidget.setCurrentIndex(PAGE_SEARCH_RESULTS)
@@ -336,8 +344,8 @@ class TriblerWindow(QMainWindow):
 
     def closeEvent(self, close_event):
         if not self.core_manager.shutting_down:
-            self.settings.setValue("pos", self.pos())
-            self.settings.setValue("size", self.size())
+            self.gui_settings.setValue("pos", self.pos())
+            self.gui_settings.setValue("size", self.size())
             self.core_manager.stop()
             self.core_manager.shutting_down = True
             self.downloads_page.stop_loading_downloads()

@@ -964,7 +964,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>3</number>
+         <number>5</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -4838,53 +4838,6 @@ border-radius: 4px;
                <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
               </property>
               <item row="0" column="0">
-               <widget class="QLabel" name="tribler_profile_header_label">
-                <property name="styleSheet">
-                 <string notr="true">font-weight: bold;</string>
-                </property>
-                <property name="text">
-                 <string>Tribler profile</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0">
-               <widget class="QLabel" name="label_2">
-                <property name="styleSheet">
-                 <string notr="true"/>
-                </property>
-                <property name="text">
-                 <string>Nickname</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="1">
-               <widget class="QLineEdit" name="nickname_input">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>250</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>250</width>
-                  <height>16777215</height>
-                 </size>
-                </property>
-                <property name="styleSheet">
-                 <string notr="true">border: 1px solid #555;
-background-color: #ccc;
-border-radius: 4px;</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="0">
                <widget class="QLabel" name="label_4">
                 <property name="styleSheet">
                  <string notr="true">font-weight: bold;</string>
@@ -4894,7 +4847,7 @@ border-radius: 4px;</string>
                 </property>
                </widget>
               </item>
-              <item row="3" column="0">
+              <item row="1" column="0">
                <widget class="QLabel" name="label_5">
                 <property name="styleSheet">
                  <string notr="true"/>
@@ -4904,7 +4857,7 @@ border-radius: 4px;</string>
                 </property>
                </widget>
               </item>
-              <item row="3" column="1">
+              <item row="1" column="1">
                <widget class="QLineEdit" name="download_location_input">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -4931,7 +4884,7 @@ border-radius: 4px;</string>
                 </property>
                </widget>
               </item>
-              <item row="4" column="0">
+              <item row="2" column="0">
                <widget class="QLabel" name="label_6">
                 <property name="styleSheet">
                  <string notr="true"/>
@@ -4941,7 +4894,7 @@ border-radius: 4px;</string>
                 </property>
                </widget>
               </item>
-              <item row="4" column="1">
+              <item row="2" column="1">
                <widget class="QCheckBox" name="always_ask_location_checkbox">
                 <property name="styleSheet">
                  <string notr="true">margin-top: 2px;</string>
@@ -4951,7 +4904,7 @@ border-radius: 4px;</string>
                 </property>
                </widget>
               </item>
-              <item row="5" column="0">
+              <item row="3" column="0">
                <widget class="QLabel" name="default_download_settings_header">
                 <property name="styleSheet">
                  <string notr="true">font-weight: bold;</string>
@@ -4961,7 +4914,7 @@ border-radius: 4px;</string>
                 </property>
                </widget>
               </item>
-              <item row="6" column="0">
+              <item row="4" column="0">
                <widget class="QLabel" name="download_settings_anon_label">
                 <property name="text">
                  <string>Download anonymously
@@ -4969,7 +4922,7 @@ using proxies</string>
                 </property>
                </widget>
               </item>
-              <item row="6" column="1">
+              <item row="4" column="1">
                <widget class="QCheckBox" name="download_settings_anon_checkbox">
                 <property name="styleSheet">
                  <string notr="true">margin-top: 10px;</string>
@@ -4979,7 +4932,7 @@ using proxies</string>
                 </property>
                </widget>
               </item>
-              <item row="7" column="0">
+              <item row="5" column="0">
                <widget class="QLabel" name="download_settings_anon_seeding_label">
                 <property name="text">
                  <string>Encrypted anonymous
@@ -4987,7 +4940,7 @@ seeding using proxies</string>
                 </property>
                </widget>
               </item>
-              <item row="7" column="1">
+              <item row="5" column="1">
                <widget class="QCheckBox" name="download_settings_anon_seeding_checkbox">
                 <property name="styleSheet">
                  <string notr="true">margin-top: 10px;</string>
@@ -4997,7 +4950,7 @@ seeding using proxies</string>
                 </property>
                </widget>
               </item>
-              <item row="8" column="0">
+              <item row="6" column="0">
                <widget class="QLabel" name="label_22">
                 <property name="styleSheet">
                  <string notr="true">font-weight: bold;</string>
@@ -5007,7 +4960,7 @@ seeding using proxies</string>
                 </property>
                </widget>
               </item>
-              <item row="9" column="0">
+              <item row="7" column="0">
                <widget class="QLabel" name="label_23">
                 <property name="styleSheet">
                  <string notr="true"/>
@@ -5017,7 +4970,7 @@ seeding using proxies</string>
                 </property>
                </widget>
               </item>
-              <item row="9" column="1">
+              <item row="7" column="1">
                <widget class="QCheckBox" name="watchfolder_enabled_checkbox">
                 <property name="styleSheet">
                  <string notr="true">margin-top: 2px;</string>
@@ -5027,7 +4980,7 @@ seeding using proxies</string>
                 </property>
                </widget>
               </item>
-              <item row="10" column="0">
+              <item row="8" column="0">
                <widget class="QLabel" name="label_24">
                 <property name="styleSheet">
                  <string notr="true"/>
@@ -5037,7 +4990,7 @@ seeding using proxies</string>
                 </property>
                </widget>
               </item>
-              <item row="10" column="1">
+              <item row="8" column="1">
                <widget class="QLineEdit" name="watchfolder_location_input">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -5064,7 +5017,7 @@ border-radius: 4px;</string>
                 </property>
                </widget>
               </item>
-              <item row="11" column="0">
+              <item row="9" column="0">
                <widget class="QLabel" name="label_31">
                 <property name="styleSheet">
                  <string notr="true">font-weight: bold;</string>
@@ -5074,14 +5027,14 @@ border-radius: 4px;</string>
                 </property>
                </widget>
               </item>
-              <item row="12" column="0">
+              <item row="10" column="0">
                <widget class="QLabel" name="label_32">
                 <property name="text">
                  <string>Enable developer mode?</string>
                 </property>
                </widget>
               </item>
-              <item row="12" column="1">
+              <item row="10" column="1">
                <widget class="QCheckBox" name="developer_mode_enabled_checkbox">
                 <property name="styleSheet">
                  <string notr="true">margin-top: 2px;</string>

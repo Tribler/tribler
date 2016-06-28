@@ -6,6 +6,7 @@ from PyQt5.QtGui import QPixmap, QIcon
 from PyQt5.QtWidgets import QWidget
 from Tribler import vlc
 from TriblerGUI.defs import *
+from TriblerGUI.dialogs.dialogcontainer import DialogContainer
 from TriblerGUI.utilities import is_video_file, seconds_to_string
 
 
@@ -57,6 +58,8 @@ class VideoPlayerPage(QWidget):
         self.update_timer.timeout.connect(self.on_update_timer_tick)
         self.update_timer.start(500)
 
+        self.buffer_dialog = DialogContainer(self.window().video_player_widget)
+
         self.window().left_menu_playlist.playing_item_change.connect(self.change_playing_index)
 
     def on_update_timer_tick(self):
@@ -86,15 +89,16 @@ class VideoPlayerPage(QWidget):
             self.change_playing_index(largest_file["index"], largest_file["name"])
 
     def on_vlc_player_buffering(self, event):
-        print event
+        pass
 
     def on_vlc_player_playing(self, event):
-        print event
+        pass
 
     def on_should_change_video_time(self, position):
         self.mediaplayer.set_position(position)
 
     def on_play_pause_button_click(self):
+        print self.mediaplayer.get_state()
         if not self.mediaplayer.is_playing():
             self.window().video_player_play_pause_button.setIcon(self.pause_icon)
             self.mediaplayer.play()

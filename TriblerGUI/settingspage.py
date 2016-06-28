@@ -37,8 +37,7 @@ class SettingsPage(QWidget):
         settings = settings["settings"]
 
         # General settings
-        self.window().nickname_input.setText(settings['general']['nickname'])
-        #self.window().download_location_input.setText(settings['Tribler']['saveas'])
+        self.window().download_location_input.setText(settings['downloadconfig']['saveas'])
         self.window().always_ask_location_checkbox.setChecked(settings['Tribler']['showsaveas'])
         self.window().download_settings_anon_checkbox.setChecked(settings['Tribler']['default_anonymity_enabled'])
         self.window().download_settings_anon_seeding_checkbox.setChecked(settings['Tribler']['default_safeseeding_enabled'])
