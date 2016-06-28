@@ -15,17 +15,18 @@ from twisted.web.static import File
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.twisted_thread import deferred, reactor
-from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE
+from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
 from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent
 from Tribler.Policies.BoostingManager import BoostingManager, BoostingSettings
 from Tribler.Test.Core.CreditMining.mock_creditmining import MockLtTorrent, ResourceFailClass
-from Tribler.Test.Core.Modules.RestApi.test_channels_endpoints import AbstractTestChannelsEndpoint
 from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
 from Tribler.Test.test_libtorrent_download import TORRENT_FILE, TORRENT_FILE_INFOHASH
 from Tribler.Test.util import prepare_xml_rss
+from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.dispersy.dispersy import Dispersy
 from Tribler.dispersy.endpoint import ManualEnpoint
+from Tribler.dispersy.member import DummyMember
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
@@ -256,7 +257,7 @@ class TestBoostingManagerSysDir(TestBoostingManagerSys):
         return d
 
 
-class TestBoostingManagerSysChannel(AbstractTestChannelsEndpoint, TestBoostingManagerSys):
+class TestBoostingManagerSysChannel(TestBoostingManagerSys):
     """
     testing class for channel source
     """
@@ -265,9 +266,40 @@ class TestBoostingManagerSysChannel(AbstractTestChannelsEndpoint, TestBoostingMa
         super(TestBoostingManagerSysChannel, self).__init__(*argv, **kwargs)
         self.tdef = TorrentDef.load(TORRENT_FILE)
         self.channel_id = 0
+        self.expected_votecast_cid = None
+        self.expected_votecast_vote = None
 
     def setUp(self, autoload_discovery=True):
         super(TestBoostingManagerSysChannel, self).setUp()
+        self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
+        self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"
+
+    def insert_channel_in_db(self, dispersy_cid, peer_id, name, description):
+        return self.channel_db_handler.on_channel_from_dispersy(dispersy_cid, peer_id, name, description)
+
+    def insert_torrents_into_channel(self, torrent_list):
+        self.channel_db_handler.on_torrents_from_dispersy(torrent_list)
+
+    def on_dispersy_create_votecast(self, cid, vote, _):
+        """
+        Check whether we have the expected parameters when this method is called.
+        """
+        self.assertEqual(cid, self.expected_votecast_cid)
+        self.assertEqual(vote, self.expected_votecast_vote)
+        self.create_votecast_called = True
+
+    @blocking_call_on_reactor_thread
+    def create_fake_allchannel_community(self):
+        """
+        This method creates a fake AllChannel community so we can check whether a request is made in the community
+        when doing stuff with a channel.
+        """
+        self.session.lm.dispersy._database.open()
+        fake_member = DummyMember(self.session.lm.dispersy, 1, "a" * 20)
+        member = self.session.lm.dispersy.get_new_member(u"curve25519")
+        fake_community = AllChannelCommunity(self.session.lm.dispersy, fake_member, member)
+        fake_community.disp_create_votecast = self.on_dispersy_create_votecast
+        self.session.lm.dispersy._communities = {"allchannel": fake_community}
 
     def set_boosting_settings(self):
         super(TestBoostingManagerSysChannel, self).set_boosting_settings()
