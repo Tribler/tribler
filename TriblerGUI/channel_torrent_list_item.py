@@ -2,6 +2,7 @@ from PyQt5 import uic
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QWidget
 
+from TriblerGUI.dialogs.startdownloaddialog import StartDownloadDialog
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 from TriblerGUI.tribler_window import fc_channel_torrent_list_item
 from TriblerGUI.utilities import format_size, get_image_path
@@ -29,6 +30,7 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
         self.thumbnail_widget.initialize(torrent["name"], 24)
 
         self.torrent_play_button.clicked.connect(self.on_play_button_clicked)
+        self.torrent_download_button.clicked.connect(self.on_download_clicked)
 
         if not show_controls:
             self.remove_control_button_container.setHidden(True)
@@ -40,6 +42,19 @@ class ChannelTorrentListItem(QWidget, fc_channel_torrent_list_item):
 
         if on_remove_clicked is not None:
             self.remove_torrent_button.clicked.connect(lambda: on_remove_clicked(self))
+
+    def on_download_clicked(self):
+        self.dialog = StartDownloadDialog(self.window().stackedWidget, self.torrent_info)
+        self.dialog.button_clicked.connect(self.on_start_download_action)
+        self.dialog.show()
+
+    def on_start_download_action(self, action):
+        if action == 1:
+            pass
+            # TODO start download
+
+        self.dialog.setParent(None)
+        self.dialog = None
 
     def on_play_button_clicked(self):
         self.request_mgr = TriblerRequestManager()
