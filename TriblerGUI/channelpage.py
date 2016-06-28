@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QWidget
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
 from TriblerGUI.loading_list_item import LoadingListItem
 from TriblerGUI.playlist_list_item import PlaylistListItem
+from TriblerGUI.text_list_item import TextListItem
 from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
 
@@ -15,6 +16,8 @@ class ChannelPage(QWidget):
         self.loaded_channels = False
         self.loaded_playlists = False
         self.channel_info = channel_info
+
+        self.window().channel_preview_label.setHidden(channel_info['subscribed'])
 
         self.get_torents_in_channel_manager = TriblerRequestManager()
         self.get_torents_in_channel_manager.perform_request("channels/discovered/%s/torrents" % channel_info['dispersy_cid'], self.received_torrents_in_channel)
@@ -34,6 +37,11 @@ class ChannelPage(QWidget):
     def received_torrents_in_channel(self, results):
         for result in results['torrents']:
             self.torrents.append((ChannelTorrentListItem, result))
+
+        if not self.channel_info['subscribed']:
+            self.torrents.append((TextListItem, "You're looking at a preview of this channel.\n"
+                                                "Subscribe to this channel to see the full content."))
+
         self.loaded_channels = True
         self.update_result_list()
 
