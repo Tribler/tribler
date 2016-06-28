@@ -964,7 +964,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>2</number>
+         <number>3</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -3960,7 +3960,7 @@ border-image: url(images/page_back.png) 0 0 0 0 stretch stretch;</string>
              <item>
               <widget class="QLabel" name="channel_name_label">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
@@ -3987,6 +3987,45 @@ font-weight: bold;</string>
                 <string>Some fancy channel</string>
                </property>
               </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_63">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>8</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QLabel" name="channel_preview_label">
+               <property name="styleSheet">
+                <string notr="true">color: #eee; font-size: 15px;</string>
+               </property>
+               <property name="text">
+                <string>Preview</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_60">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
              </item>
              <item>
               <widget class="SubscriptionsWidget" name="subscription_widget" native="true">
@@ -7156,8 +7195,8 @@ color: white;
                       <rect>
                        <x>0</x>
                        <y>0</y>
-                       <width>647</width>
-                       <height>353</height>
+                       <width>276</width>
+                       <height>136</height>
                       </rect>
                      </property>
                      <layout class="QFormLayout" name="formLayout_4">
