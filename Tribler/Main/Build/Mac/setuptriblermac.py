@@ -254,7 +254,6 @@ setup(
               [LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core/bootstrap_stable"]),
              (LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core",
               [LIBRARYNAME + "/Core/DecentralizedTracking/pymdht/core/bootstrap_unstable"]),
-             LIBRARYNAME + "/readme.txt",
              LIBRARYNAME + "/Main/Build/Mac/TriblerDoc.icns",
              ]
             + ["/Users/tribler/Workspace_new/install/lib/libsodium.dylib"]
