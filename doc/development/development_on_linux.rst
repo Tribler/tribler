@@ -24,7 +24,7 @@ Next, download the latest .deb file from `here <https://jenkins.tribler.org/job/
 Installing libsodium13 and python-cryptography on Ubuntu 14.04
 --------------------------------------------------------------
 
-While installing libsodium13 and python-cryptography on a clean Ubuntu 14.04 install (possibly other versions as well), the situation can occur where the Ubuntu terminal throws the following error when trying to install the dependencies mentioned earlier in the README.md:
+While installing libsodium13 and python-cryptography on a clean Ubuntu 14.04 install (possibly other versions as well), the situation can occur where the Ubuntu terminal throws the following error when trying to install the dependencies mentioned earlier in the README.rst:
 
     E: Unable to locate package libsodium13
     E: Unable to locate package python-cryptography
