@@ -22,30 +22,34 @@ class CreateTorrentEndpoint(resource.Resource):
 
     def render_GET(self, request):
         """
-            .. http:get:: /createtorrent
+        .. http:get:: /createtorrent
 
-            Create a torrent from local files and return it in base64 encoding.
-            This endpoint returns a 500 HTTP response if a source file does not exist.
+        Create a torrent from local files and return it in base64 encoding.
+        Description and trackers list are optional.
+        This endpoint returns a 500 HTTP response if a source file does not exist.
 
-                **Example request**:
+            **Example request**:
 
-                .. sourcecode:: none
+            .. sourcecode:: none
 
-                    curl -X PUT http://localhost:8085/mychannel/createtorrent
-                            --data "files=['path/to/file.txt', 'path/to/another/file.mp4']
-                            &description (optional)='Video of my cat'
-                            &trackers (optional)=[tracker1, backup1, backup2]"
+                curl -X PUT http://localhost:8085/mychannel/createtorrent
+                        --data "files[]=path/to/file.txt
+                        &files[]=path/to/another/file.mp4
+                        &description=Video
+                        &trackers[]=url_tracker1
+                        &trackers[]=url_backup1
+                        &trackers[]=url_backup2"
 
-                **Example response**:
+            **Example response**:
 
-                .. sourcecode:: javascript
+            .. sourcecode:: javascript
 
-                    {
-                        "torrent": { base64 encoded torrent file }
-                    }
+                {
+                    "torrent": { base64 encoded torrent file }
+                }
 
-                :statuscode 500: if source files do not exist.
-            """
+            :statuscode 500: if source files do not exist.
+        """
         parameters = http.parse_qs(request.content.read(), 1)
         params = {}
 
