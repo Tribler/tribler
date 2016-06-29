@@ -16,7 +16,6 @@ from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 
 from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
-from Tribler.Core.Video.utils import videoextdefaults
 from Tribler.Core.exceptions import DuplicateDownloadException, TorrentFileException
 from Tribler.Core.simpledefs import (NTFY_INSERT, NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED,
                                      NTFY_REACHABLE, NTFY_TORRENTS)
