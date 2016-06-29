@@ -12,7 +12,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         """
         Verify that the expected sections are present.
         """
-        check_section = ['barter_community', 'libtorrent', 'mainline_dht', 'torrent_store', 'general', 'Tribler',
+        check_section = ['barter_community', 'libtorrent', 'mainline_dht', 'torrent_store', 'general',
                          'video', 'upgrader', 'torrent_checking', 'allchannel_community', 'tunnel_community',
                          'http_api', 'torrent_collecting', 'dispersy', 'multichain', 'watch_folder', 'search_community',
                          'metadata']
