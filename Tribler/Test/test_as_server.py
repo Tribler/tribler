@@ -2,12 +2,12 @@
 # Improved and Modified by Niels Zeilemaker
 # see LICENSE.txt for license information
 
-# Initialize x11 threads before doing anything X11 related.
 import threading
 
+from nose.twistedtools import reactor
 from twisted.internet import interfaces
 from twisted.internet.base import BasePort
-from twisted.internet.defer import Deferred, maybeDeferred, succeed
+from twisted.internet.defer import maybeDeferred, succeed
 from twisted.web.server import Site
 from twisted.web.static import File
 
@@ -15,11 +15,6 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING, UPLOAD
 
-# Make sure the in thread reactor is installed.
-from Tribler.Core.Utilities.twisted_thread import reactor
-
-
-# importmagic: manage
 import functools
 import inspect
 import logging
