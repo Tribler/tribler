@@ -4,7 +4,7 @@ from Tribler.Core.Utilities.twisted_thread import reactor, deferred
 from nose.tools import raises
 from twisted.internet.protocol import Factory
 
-from Tribler.Core.Utilities.network_utils import get_random_port, autodetect_socket_style, InterruptSocket
+from Tribler.Core.Utilities.network_utils import get_random_port, autodetect_socket_style
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 
@@ -34,13 +34,3 @@ class TriblerCoreTestNetworkUtils(TriblerCoreTest):
     def test_autodetect_socket_style(self):
         style = autodetect_socket_style()
         self.assertTrue(style == 0 or autodetect_socket_style() == 1)
-
-    def test_interrupt_socket(self):
-        interrupt_socket = InterruptSocket()
-        self.assertTrue(interrupt_socket.ip, u"127.0.0.1")
-        self.assertIsInstance(interrupt_socket.port, int)
-        self.assertIsInstance(interrupt_socket.socket, socket.socket)
-
-        interrupt_socket.interrupt()
-        interrupt_socket.interrupt()
-        interrupt_socket.close()
