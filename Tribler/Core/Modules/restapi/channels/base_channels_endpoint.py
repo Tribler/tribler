@@ -4,7 +4,7 @@ import time
 from twisted.web import http, resource
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST
 from Tribler.community.allchannel.community import AllChannelCommunity
-
+from Tribler.dispersy.exception import CommunityNotFoundException
 
 UNKNOWN_CHANNEL_RESPONSE_MSG = "the channel with the provided cid is not known"
 UNAUTHORIZED_RESPONSE_MSG = "you are not authorized to perform this request"
@@ -72,3 +72,14 @@ class BaseChannelsEndpoint(resource.Resource):
             if isinstance(community, AllChannelCommunity):
                 community.disp_create_votecast(cid, vote, int(time.time()))
                 break
+
+    def get_community_for_channel_id(self, channel_id):
+        """
+        Returns a Dispersy community from the given channel id. The Community object can be used to delete/add torrents
+        or modify playlists in a specific channel.
+        """
+        dispersy_cid = str(self.channel_db_handler.getDispersyCIDFromChannelId(channel_id))
+        try:
+            return self.session.get_dispersy_instance().get_community(dispersy_cid)
+        except CommunityNotFoundException:
+            return None
