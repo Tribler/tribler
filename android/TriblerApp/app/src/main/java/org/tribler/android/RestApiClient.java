@@ -124,7 +124,7 @@ public class RestApiClient {
                 // Blocking read
                 while ((line = in.readLine()) != null) {
                     Log.v(TAG, line);
-                    // Split line and restore delimiters
+                    // Split events on the same line and restore delimiters
                     String[] events = line.split("\\}\\{");
                     for (int i = 1, j = events.length; i < j; i += 2) {
                         events[i - 1] += "}";
@@ -157,20 +157,17 @@ public class RestApiClient {
             case "search_result_channel":
                 SearchResultChannelEvent channelResult =
                         GSON.fromJson(eventJson, SearchResultChannelEvent.class);
-                listener.onSearchResultChannel(channelResult.getQuery(),
-                        channelResult.getResult());
+                listener.onSearchResultChannel(channelResult.getQuery(), channelResult.getResult());
                 break;
 
             case "search_result_torrent":
                 SearchResultTorrentEvent torrentResult =
                         GSON.fromJson(eventJson, SearchResultTorrentEvent.class);
-                listener.onSearchResultTorrent(torrentResult.getQuery(),
-                        torrentResult.getResult());
+                listener.onSearchResultTorrent(torrentResult.getQuery(), torrentResult.getResult());
                 break;
 
             default:
                 Log.e(TAG, "------------- UNKNOWN EVENT --------------");
-                throw new IOException("Unknown event");
         }
     }
 
