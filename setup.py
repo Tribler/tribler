@@ -24,6 +24,7 @@ setup(
         'Tribler.Core.Modules',
         'Tribler.Core.Modules.channel',
         'Tribler.Core.Modules.restapi',
+        'Tribler.Core.Modules.restapi.channels',
         'Tribler.Core.TFTP',
         'Tribler.Core.TorrentChecker',
         'Tribler.Core.Upgrade',
