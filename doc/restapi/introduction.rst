@@ -78,6 +78,7 @@ Endpoints
 
    channels_discovered
    channels_subscribed
+   channels_popular
    mychannel
    rssfeeds
    torrents
