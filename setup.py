@@ -35,6 +35,7 @@ setup(
         'Tribler.Main.Utility',
         'Tribler.Main.vwxGUI',
         'Tribler.Main.webUI',
+        'Tribler.Policies',
         'Tribler.Utilities',
         'Tribler.community',
         'Tribler.community.allchannel',
