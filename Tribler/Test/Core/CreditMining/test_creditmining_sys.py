@@ -9,13 +9,13 @@ import os
 import shutil
 from unittest import skip
 
+from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
 from twisted.web.server import Site
 from twisted.web.static import File
 
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.twisted_thread import deferred, reactor
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
 from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent
 from Tribler.Policies.BoostingManager import BoostingManager, BoostingSettings

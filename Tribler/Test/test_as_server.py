@@ -4,7 +4,7 @@
 
 import threading
 
-from nose.twistedtools import reactor
+from nose.twistedtools import reactor, deferred
 from twisted.internet import interfaces
 from twisted.internet.base import BasePort
 from twisted.internet.defer import maybeDeferred, succeed
@@ -29,7 +29,6 @@ from traceback import print_exc
 
 from .util import process_unhandled_exceptions, process_unhandled_twisted_exceptions
 
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core import defaults
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig

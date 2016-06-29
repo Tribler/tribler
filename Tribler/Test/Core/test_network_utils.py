@@ -1,6 +1,5 @@
-import socket
+from nose.twistedtools import reactor, deferred
 
-from Tribler.Core.Utilities.twisted_thread import reactor, deferred
 from nose.tools import raises
 from twisted.internet.protocol import Factory
 

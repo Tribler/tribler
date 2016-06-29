@@ -1,12 +1,12 @@
 import binascii
 import os
+from nose.twistedtools import reactor, deferred
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.Utilities.twisted_thread import deferred, reactor
 from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
 
 
