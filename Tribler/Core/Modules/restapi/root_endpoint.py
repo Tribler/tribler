@@ -6,6 +6,7 @@ from Tribler.Core.Modules.restapi.events_endpoint import EventsEndpoint
 from Tribler.Core.Modules.restapi.my_channel_endpoint import MyChannelEndpoint
 from Tribler.Core.Modules.restapi.search_endpoint import SearchEndpoint
 from Tribler.Core.Modules.restapi.settings_endpoint import SettingsEndpoint
+from Tribler.Core.Modules.restapi.torrents_endpoint import TorrentsEndpoint
 from Tribler.Core.Modules.restapi.variables_endpoint import VariablesEndpoint
 from Tribler.Core.Modules.restapi.create_torrent_endpoint import CreateTorrentEndpoint
 
@@ -33,7 +34,8 @@ class RootEndpoint(resource.Resource):
         """
         child_handler_dict = {"search": SearchEndpoint, "channels": ChannelsEndpoint, "mychannel": MyChannelEndpoint,
                               "settings": SettingsEndpoint, "variables": VariablesEndpoint,
-                              "downloads": DownloadsEndpoint, "createtorrent": CreateTorrentEndpoint}
+                              "downloads": DownloadsEndpoint, "createtorrent": CreateTorrentEndpoint,
+                              "torrents": TorrentsEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(self.session))
