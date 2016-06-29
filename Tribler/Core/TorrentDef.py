@@ -71,6 +71,14 @@ class TorrentDef(object):
                 self.infohash == other.infohash and
                 self.metainfo == other.metainfo)
 
+    def __str__(self):
+        return str({
+            "metainfo_valid": self.metainfo_valid,
+            "input": self.input,
+            "infohash": self.infohash,
+            "metainfo": self.metainfo
+        })
+
     #
     # Class methods for creating a TorrentDef from a .torrent file
     #
@@ -243,7 +251,7 @@ class TorrentDef(object):
 
     def set_tracker_hierarchy(self, hier):
         """ Set hierarchy of trackers (announce-list) following the spec
-        at http://www.bittornado.com/docs/multitracker-spec.txt
+        at http://www.bittorrent.org/beps/bep_0012.html
         @param hier A hierarchy of trackers as a list of lists.
         """
         # TODO: check input, in particular remove / at end
@@ -262,6 +270,10 @@ class TorrentDef(object):
                 if url.endswith('/'):
                     # Some tracker code can't deal with / at end
                     url = url[:-1]
+
+                if self.get_tracker() is None:
+                    # Backwards compatibility Multitracker Metadata Extension
+                    self.set_tracker(url)
                 newtier.append(url)
             newhier.append(newtier)
 

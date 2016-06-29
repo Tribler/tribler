@@ -17,8 +17,8 @@ class TriblerCoreTestTorrentUtils(TriblerCoreTest):
                  "nodes" : [] }
 
     def test_create_torrent_one_file(self):
-        create_torrent_file([os.path.join(self.TORRENT_DATA_DIR, self.FILE1_NAME)],
-                            self.get_params(), self.created_torrent_one_file)
+        result = create_torrent_file([os.path.join(self.TORRENT_DATA_DIR, self.FILE1_NAME)], self.get_params())
+        self.created_torrent_one_file(result)
 
     def test_create_torrent_one_file_2(self):
         create_torrent_file([os.path.join(self.TORRENT_DATA_DIR, self.FILE2_NAME)], {})
@@ -26,8 +26,8 @@ class TriblerCoreTestTorrentUtils(TriblerCoreTest):
     def test_create_torrent_with_nodes(self):
         params = self.get_params()
         params["nodes"] = [("127.0.0.1", 1234)]
-        create_torrent_file([os.path.join(self.TORRENT_DATA_DIR, self.FILE1_NAME)],
-                            params, self.created_torrent_one_file)
+        result = create_torrent_file([os.path.join(self.TORRENT_DATA_DIR, self.FILE1_NAME)], params)
+        self.created_torrent_one_file(result)
 
     def created_torrent_one_file(self, result):
         self.assertIsInstance(result, dict)
@@ -38,8 +38,8 @@ class TriblerCoreTestTorrentUtils(TriblerCoreTest):
         os.remove(result["torrent_file_path"])
 
     def test_create_torrent_two_files(self):
-        create_torrent_file([os.path.join(self.TORRENT_DATA_DIR, self.FILE1_NAME),
-                             os.path.join(self.TORRENT_DATA_DIR, self.FILE2_NAME)],
-                            self.get_params())
+        file_path_list = [os.path.join(self.TORRENT_DATA_DIR, self.FILE1_NAME),
+                          os.path.join(self.TORRENT_DATA_DIR, self.FILE2_NAME)]
+        create_torrent_file(file_path_list, self.get_params())
         self.assertTrue(os.path.isfile(os.path.abspath(os.path.join(self.TORRENT_DATA_DIR, u"torrent_creation_files.torrent"))))
         os.remove(os.path.abspath(os.path.join(self.TORRENT_DATA_DIR, u"torrent_creation_files.torrent")))

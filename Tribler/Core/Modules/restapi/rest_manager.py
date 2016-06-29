@@ -48,17 +48,17 @@ class RESTRequest(server.Request):
         server.Request.__init__(self, *args, **kw)
         self._logger = logging.getLogger(self.__class__.__name__)
 
-    def processingFailed(self, reason):
-        self._logger.error(reason)
+    def processingFailed(self, failure):
+        self._logger.exception(failure)
         response = {
             u"error": {
                 u"handled": False,
-                u"code": reason.value.__class__.__name__,
-                u"message": reason.value.message
+                u"code": failure.value.__class__.__name__,
+                u"message": failure.value.message
             }
         }
         if self.site.displayTracebacks:
-            response[u"error"][u"trace"] = format_tb(reason.getTracebackObject())
+            response[u"error"][u"trace"] = format_tb(failure.getTracebackObject())
 
         body = json.dumps(response)
         self.setResponseCode(http.INTERNAL_SERVER_ERROR)
@@ -66,4 +66,4 @@ class RESTRequest(server.Request):
         self.setHeader(b'content-length', intToBytes(len(body)))
         self.write(body)
         self.finish()
-        return reason
+        return failure

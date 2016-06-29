@@ -8,6 +8,9 @@ import socket
 from binascii import hexlify
 import time
 
+from twisted.internet import threads
+
+from Tribler.Core.Utilities import torrent_utils
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
 from Tribler.Core.CacheDB.Notifier import Notifier
@@ -668,6 +671,14 @@ class Session(SessionConfigInterface):
         if not self.get_enable_channel_search():
             raise OperationNotEnabledByConfigurationException("channel_search is not enabled")
         self.lm.search_manager.search_for_channels(keywords)
+
+    def create_torrent_file(self, file_path_list, params={}):
+        """
+        :param file_path_list: files to add in torrent file
+        :param params: optional parameters for torrent file
+        :return: Deferred
+        """
+        return threads.deferToThread(torrent_utils.create_torrent_file, file_path_list, params)
 
     def create_channel(self, name, description, mode=u'closed'):
         """
