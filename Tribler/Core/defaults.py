@@ -21,8 +21,6 @@
 import sys
 from collections import OrderedDict
 
-from Tribler.Core.Video.defs import PLAYBACKMODE_INTERNAL
-
 
 DEFAULTPORT = 7760
 
@@ -148,7 +146,6 @@ sessdefaults['video'] = OrderedDict()
 sessdefaults['video']['enabled'] = True
 sessdefaults['video']['path'] = None
 sessdefaults['video']['port'] = -1
-sessdefaults['video']['preferredmode'] = PLAYBACKMODE_INTERNAL
 
 #Upgrader config
 sessdefaults['upgrader'] = OrderedDict()
