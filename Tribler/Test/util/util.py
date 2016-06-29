@@ -151,7 +151,7 @@ def prepare_xml_rss(target_path, filename):
 
     port = get_random_port()
 
-    from Tribler.Test.test_as_server import TESTS_DATA_DIR
+    from Tribler.Test.common import TESTS_DATA_DIR
     with open(os.path.join(TESTS_DATA_DIR, filename), 'r') as source_xml,\
             open(os.path.join(target_path, filename), 'w') as destination_xml:
         for line in source_xml:

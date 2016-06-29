@@ -8,7 +8,7 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.Core.base_test import MockObject
-from Tribler.Test.common import TORRENT_FILE, UBUNTU_1504_INFOHASH
+from Tribler.Test.common import UBUNTU_1504_INFOHASH, TORRENT_UBUNTU_FILE
 from Tribler.Test.test_as_server import TESTS_DATA_DIR
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -27,7 +27,7 @@ class TestTorrentInfoEndpoint(AbstractApiTest):
         """
         files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
         os.mkdir(files_path)
-        shutil.copyfile(TORRENT_FILE, os.path.join(files_path, 'ubuntu.torrent'))
+        shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(files_path, 'ubuntu.torrent'))
 
         file_server_port = get_random_port()
         self.setUpFileServer(file_server_port, files_path)

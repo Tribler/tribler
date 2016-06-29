@@ -13,7 +13,8 @@ from twisted.internet.defer import inlineCallbacks, Deferred
 import libtorrent as lt
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from libtorrent import bencode, bdecode
-from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
+from Tribler.Test.common import TESTS_DATA_DIR
+from Tribler.Test.test_as_server import TestAsServer
 from btconn import BTConnection
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig

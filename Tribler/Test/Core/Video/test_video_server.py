@@ -11,7 +11,8 @@ from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
-from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
+from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.dispersy.util import blocking_call_on_reactor_thread

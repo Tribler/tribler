@@ -21,8 +21,8 @@ from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
 from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent
 from Tribler.Policies.BoostingManager import BoostingManager, BoostingSettings
 from Tribler.Test.Core.CreditMining.mock_creditmining import MockLtTorrent, ResourceFailClass
-from Tribler.Test.common import TORRENT_FILE, TORRENT_FILE_INFOHASH
-from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
+from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.common import TORRENT_UBUNTU_FILE, TORRENT_UBUNTU_FILE_INFOHASH, TESTS_DATA_DIR
 from Tribler.Test.util.util import prepare_xml_rss
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity
@@ -157,7 +157,7 @@ class TestBoostingManagerSysRSS(TestBoostingManagerSys):
 
         files_path, self.file_server_port = prepare_xml_rss(self.session_base_dir, 'test_rss_cm.xml')
 
-        shutil.copyfile(TORRENT_FILE, os.path.join(files_path, 'ubuntu.torrent'))
+        shutil.copyfile(TORRENT_UBUNTU_FILE, os.path.join(files_path, 'ubuntu.torrent'))
         self.setUpFileServer(self.file_server_port, self.session_base_dir)
 
         self.rss_error_deferred = defer.Deferred()
@@ -281,7 +281,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
 
     def __init__(self, *argv, **kwargs):
         super(TestBoostingManagerSysChannel, self).__init__(*argv, **kwargs)
-        self.tdef = TorrentDef.load(TORRENT_FILE)
+        self.tdef = TorrentDef.load(TORRENT_UBUNTU_FILE)
         self.channel_id = 0
         self.expected_votecast_cid = None
         self.expected_votecast_vote = None
@@ -335,7 +335,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         self.channel_id = self.insert_channel_in_db(dispersy_cid_hex.decode('hex'), 42,
                                                     'Simple Channel', 'Channel description')
 
-        torrent_list = [[self.channel_id, 1, 1, TORRENT_FILE_INFOHASH, 1460000000, TORRENT_FILE,
+        torrent_list = [[self.channel_id, 1, 1, TORRENT_UBUNTU_FILE_INFOHASH, 1460000000, TORRENT_UBUNTU_FILE,
                          self.tdef.get_files_as_unicode_with_length(), self.tdef.get_trackers_as_single_tuple()]]
 
         self.insert_torrents_into_channel(torrent_list)
@@ -385,10 +385,10 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
             if not src_obj or len(src_obj.torrents) < target:
                 success = False
                 reactor.callLater(1, check_torrents_channel, src, defer_param, target=target)
-            elif not self.boosting_manager.torrents.get(TORRENT_FILE_INFOHASH, None):
+            elif not self.boosting_manager.torrents.get(TORRENT_UBUNTU_FILE_INFOHASH, None):
                 success = False
                 reactor.callLater(1, check_torrents_channel, src, defer_param, target=target)
-            elif not self.boosting_manager.torrents[TORRENT_FILE_INFOHASH].get('download', None):
+            elif not self.boosting_manager.torrents[TORRENT_UBUNTU_FILE_INFOHASH].get('download', None):
                 success = False
                 reactor.callLater(1, check_torrents_channel, src, defer_param, target=target)
 

@@ -7,7 +7,7 @@ from Tribler.Core.Modules.channel.channel_rss import ChannelRssParser, RSSFeedPa
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.Modules.Channel.base_test_channel import BaseTestChannel
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.Test.test_as_server import TESTS_DATA_DIR
+from Tribler.Test.common import TESTS_DATA_DIR
 
 
 class TestChannelRss(BaseTestChannel):

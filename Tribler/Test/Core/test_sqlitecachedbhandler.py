@@ -9,7 +9,7 @@ from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Utilities.install_dir import get_lib_path
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.Test.test_as_server import TESTS_DATA_DIR
+from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 

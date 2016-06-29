@@ -12,7 +12,8 @@ from Tribler.Core.Utilities.twisted_thread import deferred, reactor
 from Tribler.Core.exceptions import SaveResumeDataError
 from Tribler.Core.simpledefs import DLSTATUS_DOWNLOADING, DLMODE_VOD
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
-from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
+from Tribler.Test.test_as_server import TestAsServer
+from Tribler.Test.common import TESTS_DATA_DIR
 
 
 class TestLibtorrentDownloadImpl(TestAsServer):

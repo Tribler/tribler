@@ -9,7 +9,7 @@ from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.leveldbstore import LevelDbStore
 from Tribler.Test.Core.test_sqlitecachedbhandler import AbstractDB
-from Tribler.Test.test_as_server import TESTS_DATA_DIR
+from Tribler.Test.common import TESTS_DATA_DIR
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 S_TORRENT_PATH_BACKUP = os.path.join(TESTS_DATA_DIR, 'bak_single.torrent')
