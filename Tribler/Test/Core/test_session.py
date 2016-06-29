@@ -10,9 +10,9 @@ from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException,
 from Tribler.Core.leveldbstore import LevelDbStore
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, DLSTATUS_STOPPED, SIGNAL_CHANNEL, SIGNAL_ON_CREATED
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Test import TORRENT_FILE
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.test_libtorrent_download import TORRENT_FILE
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
