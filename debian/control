@@ -32,7 +32,6 @@ Depends: ${misc:Depends},
          python-pil,
          python-requests,
          python-twisted,
-         python-wxgtk3.0 | python-wxgtk2.8,
          vlc (>= 1.1.0),
 Description: Python based Bittorrent/Internet TV application
  It allows you to watch videos and download content. Tribler aims to combine
