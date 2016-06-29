@@ -6,6 +6,7 @@ from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.exceptions import DuplicateChannelNameError
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_VOTECAST
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
+from Tribler.Test.Core.base_test_channel import BaseTestChannel
 
 
 class ChannelCommunityMock(object):
@@ -30,22 +31,14 @@ class ChannelCommunityMock(object):
         return self._channel_mode
 
 
-class AbstractTestChannelsEndpoint(AbstractApiTest):
+class AbstractTestChannelsEndpoint(AbstractApiTest, BaseTestChannel):
 
     def setUp(self, autoload_discovery=True):
         super(AbstractTestChannelsEndpoint, self).setUp(autoload_discovery)
-        self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
-        self.votecast_db_handler = self.session.open_dbhandler(NTFY_VOTECAST)
         self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"
-
-    def insert_channel_in_db(self, dispersy_cid, peer_id, name, description):
-        return self.channel_db_handler.on_channel_from_dispersy(dispersy_cid, peer_id, name, description)
 
     def vote_for_channel(self, cid, vote_time):
         self.votecast_db_handler.on_votes_from_dispersy([[cid, None, 'random', 2, vote_time]])
-
-    def insert_torrents_into_channel(self, torrent_list):
-        self.channel_db_handler.on_torrents_from_dispersy(torrent_list)
 
     def create_my_channel(self, name, description):
         self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"

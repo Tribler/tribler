@@ -21,6 +21,7 @@ from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
 from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent
 from Tribler.Policies.BoostingManager import BoostingManager, BoostingSettings
 from Tribler.Test.Core.CreditMining.mock_creditmining import MockLtTorrent, ResourceFailClass
+from Tribler.Test.Core.Modules.Channel.base_test_channel import BaseTestChannel
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.Test.common import TORRENT_UBUNTU_FILE, TORRENT_UBUNTU_FILE_INFOHASH, TESTS_DATA_DIR
 from Tribler.Test.util.util import prepare_xml_rss
@@ -274,7 +275,7 @@ class TestBoostingManagerSysDir(TestBoostingManagerSys):
         return d
 
 
-class TestBoostingManagerSysChannel(TestBoostingManagerSys):
+class TestBoostingManagerSysChannel(TestBoostingManagerSys, BaseTestChannel):
     """
     testing class for channel source
     """
@@ -288,28 +289,10 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
-    def setUp(self, autoload_discovery=True):
+    def setUp(self, annotate=True, autoload_discovery=True):
         yield super(TestBoostingManagerSysChannel, self).setUp()
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"
-
-    def insert_channel_in_db(self, dispersy_cid, peer_id, name, description):
-        return self.channel_db_handler.on_channel_from_dispersy(dispersy_cid, peer_id, name, description)
-
-    def insert_torrents_into_channel(self, torrent_list):
-        self.channel_db_handler.on_torrents_from_dispersy(torrent_list)
-
-    @blocking_call_on_reactor_thread
-    def create_fake_allchannel_community(self):
-        """
-        This method creates a fake AllChannel community so we can check whether a request is made in the community
-        when doing stuff with a channel.
-        """
-        self.session.lm.dispersy._database.open()
-        fake_member = DummyMember(self.session.lm.dispersy, 1, "a" * 20)
-        member = self.session.lm.dispersy.get_new_member(u"curve25519")
-        fake_community = AllChannelCommunity(self.session.lm.dispersy, fake_member, member)
-        self.session.lm.dispersy._communities = {"allchannel": fake_community}
 
     def set_boosting_settings(self):
         super(TestBoostingManagerSysChannel, self).set_boosting_settings()
@@ -556,6 +539,4 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
     @inlineCallbacks
     def tearDown(self):
         self.session.lm.dispersy._communities['allchannel'].cancel_all_pending_tasks()
-        self.session.lm.dispersy.cancel_all_pending_tasks()
-        self.session.lm.dispersy = None
         yield super(TestBoostingManagerSysChannel, self).tearDown()

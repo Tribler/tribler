@@ -27,9 +27,8 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         self.expected_votecast_vote = None
         self.create_votecast_called = False
 
-        self.session.get_dispersy = lambda: True
-        self.session.lm.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
-        self.create_fake_allchannel_community()
+        fake_community = self.create_fake_allchannel_community()
+        fake_community.disp_create_votecast = self.on_dispersy_create_votecast
 
         for i in xrange(0, 10):
             self.insert_channel_in_db('rand%d' % i, 42 + i, 'Test channel %d' % i, 'Test description %d' % i)
@@ -43,24 +42,6 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         self.create_votecast_called = True
         return succeed(None)
 
-    @blocking_call_on_reactor_thread
-    def create_fake_allchannel_community(self):
-        """
-        This method creates a fake AllChannel community so we can check whether a request is made in the community
-        when doing stuff with a channel.
-        """
-        self.session.lm.dispersy._database.open()
-        fake_member = DummyMember(self.session.lm.dispersy, 1, "a" * 20)
-        member = self.session.lm.dispersy.get_new_member(u"curve25519")
-        fake_community = AllChannelCommunity(self.session.lm.dispersy, fake_member, member)
-        fake_community.disp_create_votecast = self.on_dispersy_create_votecast
-        self.session.lm.dispersy._communities = {"allchannel": fake_community}
-
-    @blocking_call_on_reactor_thread
-    @inlineCallbacks
-    def tearDown(self, annotate=True):
-        self.session.lm.dispersy = None
-        yield super(TestChannelsSubscriptionEndpoint, self).tearDown(annotate=annotate)
 
     @deferred(timeout=10)
     def test_subscribe_channel_already_subscribed(self):
