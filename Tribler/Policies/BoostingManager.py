@@ -134,7 +134,8 @@ class BoostingManager(TaskManager):
         """
         Dynamically enable/disable mining source.
         """
-        for ihash, tor in self.torrents.iteritems():
+        for ihash in list(self.torrents):
+            tor = self.torrents.get(ihash)
             if tor['source'] == source_to_string(source):
                 self.torrents[ihash]['enabled'] = mining_bool
 
@@ -333,7 +334,8 @@ class BoostingManager(TaskManager):
         next iteration. It depends on the source and applied policy
         """
         torrents = {}
-        for infohash, torrent in self.torrents.iteritems():
+        for infohash in list(self.torrents):
+            torrent = self.torrents.get(infohash)
             # we prioritize archive source
             if torrent.get('preload', False):
                 if 'download' not in torrent:
