@@ -18,8 +18,17 @@ public class TriblerViewAdapterTouchCallback extends ItemTouchHelper.SimpleCallb
         mHelper = new ItemTouchHelper(this);
     }
 
-    public void attachToRecyclerView(@Nullable RecyclerView view) {
-        mHelper.attachToRecyclerView(view);
+    /**
+     * Attaches the ItemTouchHelper to the provided RecyclerView. If TouchHelper is already
+     * attached to a RecyclerView, it will first detach from the previous one. You can call this
+     * method with {@code null} to detach it from the current RecyclerView.
+     *
+     * @param recyclerView The RecyclerView instance to which you want to add this helper or
+     *                     {@code null} if you want to remove ItemTouchHelper from the current
+     *                     RecyclerView.
+     */
+    public void attachToRecyclerView(@Nullable RecyclerView recyclerView) {
+        mHelper.attachToRecyclerView(recyclerView);
     }
 
     /**
