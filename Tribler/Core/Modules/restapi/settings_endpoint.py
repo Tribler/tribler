@@ -4,7 +4,6 @@ import os
 from twisted.web import resource
 
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.defaults import tribler_defaults
 from Tribler.Core.simpledefs import STATEDIR_GUICONFIG
 
 
@@ -53,18 +52,6 @@ class SettingsEndpoint(resource.Resource):
         configfilepath = os.path.join(self.session.get_state_dir(), STATEDIR_GUICONFIG)
         tribler_config = CallbackConfigParser()
         tribler_config.read_file(configfilepath, 'utf-8-sig')
-
-        def set_default_value(section, option):
-            if not tribler_config.has_option(section, option):
-                tribler_config.set(section, option, tribler_defaults.get('Tribler', {}).get(option, None))
-
-        # Make sure some default values are present in the JSON being returned
-        set_default_value('Tribler', 'showsaveas')
-        set_default_value('Tribler', 'default_number_hops')
-        set_default_value('Tribler', 'default_anonymity_enabled')
-        set_default_value('Tribler', 'default_safeseeding_enabled')
-        set_default_value('Tribler', 'maxuploadrate')
-        set_default_value('Tribler', 'maxdownloadrate')
 
         tribler_settings = tribler_config.get_config_as_json()
 
