@@ -58,7 +58,7 @@ setup(
 
     url='https://github.com/Tribler/tribler',
     license='LICENSE.txt',
-    description='AT3 package for Python for Android',
+    description='Tribler',
     package_data={
         'Tribler': [
             'schema_sdb_v28.sql',
@@ -70,5 +70,5 @@ setup(
             'bootstrap_stable',
             'bootstrap_unstable'],
     },
-    long_description='This is the core tribler functionality package which is used for the android app.',
+    long_description='Tribler core functionality package',
 )
