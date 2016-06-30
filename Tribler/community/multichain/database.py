@@ -111,16 +111,14 @@ class MultiChainDB(Database):
         :return: the relevant hash
         """
         public_key = buffer(public_key)
-        db_query = u"SELECT block_hash, MAX(sequence_number) FROM (" \
+        db_query = u"SELECT block_hash FROM (" \
                    u"SELECT hash_requester AS block_hash, sequence_number_requester AS sequence_number " \
                    u"FROM multi_chain WHERE public_key_requester = ? " \
                    u"UNION " \
                    u"SELECT hash_responder AS block_hash, sequence_number_responder AS sequence_number " \
-                   u"FROM multi_chain WHERE public_key_responder = ?)"
-
-        db_result = self.execute(db_query, (public_key, public_key)).fetchone()[0]
-
-        return str(db_result) if db_result else None
+                   u"FROM multi_chain WHERE public_key_responder = ?) ORDER BY sequence_number DESC LIMIT 1"
+        db_result = self.execute(db_query, (public_key, public_key)).fetchone()
+        return str(db_result[0]) if db_result else None
 
     def get_latest_block(self, public_key):
         return self.get_by_hash(self.get_latest_hash(public_key))
@@ -232,7 +230,7 @@ class MultiChainDB(Database):
         :param hash_requester: The hash_requester that is queried
         :return: True if the block exists, else false.
         """
-        db_query = u"SELECT hash_requester FROM multi_chain WHERE hash_requester == ? LIMIT 1"
+        db_query = u"SELECT hash_requester FROM multi_chain WHERE hash_requester = ? LIMIT 1"
         db_result = self.execute(db_query, (buffer(hash_requester),)).fetchone()
         return db_result is not None
 
@@ -246,7 +244,7 @@ class MultiChainDB(Database):
         public_key = buffer(public_key)
         db_query = u"SELECT MAX(sequence_number) FROM (" \
                    u"SELECT sequence_number_requester AS sequence_number " \
-                   u"FROM multi_chain WHERE public_key_requester == ? UNION " \
+                   u"FROM multi_chain WHERE public_key_requester = ? UNION " \
                    u"SELECT sequence_number_responder AS sequence_number " \
                    u"FROM multi_chain WHERE public_key_responder = ? )"
         db_result = self.execute(db_query, (public_key, public_key)).fetchone()[0]
@@ -260,16 +258,16 @@ class MultiChainDB(Database):
         :return: (total_up (int), total_down (int)) or (-1, -1) if no block is known.
         """
         public_key = buffer(public_key)
-        db_query = u"SELECT total_up, total_down, MAX(sequence_number) FROM (" \
+        db_query = u"SELECT total_up, total_down FROM (" \
                    u"SELECT total_up_requester AS total_up, total_down_requester AS total_down, " \
                    u"sequence_number_requester AS sequence_number FROM multi_chain " \
-                   u"WHERE public_key_requester == ? UNION " \
+                   u"WHERE public_key_requester = ? UNION " \
                    u"SELECT total_up_responder AS total_up, total_down_responder AS total_down, " \
-                   u"sequence_number_responder AS sequence_number FROM multi_chain WHERE public_key_responder = ? )" \
-                   u"LIMIT 1"
+                   u"sequence_number_responder AS sequence_number FROM multi_chain WHERE public_key_responder = ? ) " \
+                   u"ORDER BY sequence_number DESC LIMIT 1"
         db_result = self.execute(db_query, (public_key, public_key)).fetchone()
-        return (db_result[0], db_result[1]) if db_result[0] is not None and db_result[1] is not None \
-            else (-1, -1)
+        return (db_result[0], db_result[1]) if db_result is not None and db_result[0] is not None \
+                                               and db_result[1] is not None else (-1, -1)
 
     def open(self, initial_statements=True, prepare_visioning=True):
         return super(MultiChainDB, self).open(initial_statements, prepare_visioning)
