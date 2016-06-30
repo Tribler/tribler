@@ -1,3 +1,5 @@
+import json
+
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import UNKNOWN_CHANNEL_RESPONSE_MSG
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
@@ -38,12 +40,21 @@ class TestChannelsPlaylistEndpoints(AbstractTestChannelsEndpoint):
         my_channel_id = self.create_my_channel("my channel", "this is a short description")
         channel_cid = 'fakedispersyid'.encode('hex')
         self.create_playlist(my_channel_id, 1234, 42, "test playlist", "test description")
-        torrent_list = [[my_channel_id, 1, 1, 'a' * 20, 1460000000, "ubuntu-torrent.iso", [], []]]
+        torrent_list = [[my_channel_id, 1, 1, ('a' * 40).decode('hex'), 1460000000, "ubuntu-torrent.iso",
+                         [['file1.txt', 42]], []]]
         self.insert_torrents_into_channel(torrent_list)
-        self.insert_torrent_into_playlist(1234, 'a' * 20)
+        self.insert_torrent_into_playlist(1234, ('a' * 40).decode('hex'))
 
-        expected_json = {u"playlists": [{u"id": 1, u"name": u"test playlist", u"description": u"test description",
-                                         u"torrents": [{u"infohash": bytes(('a' * 20).encode('hex')),
-                                                        u"name": u"ubuntu-torrent.iso"}]}]}
+        def verify_playlists(results):
+            json_result = json.loads(results)
+            self.assertTrue('playlists' in json_result)
+            self.assertEqual(len(json_result['playlists']), 1)
+            self.assertTrue('torrents' in json_result['playlists'][0])
+            self.assertEqual(len(json_result['playlists'][0]['torrents']), 1)
+            torrent = json_result['playlists'][0]['torrents'][0]
+            self.assertEqual(torrent['infohash'], 'a' * 40)
+            self.assertEqual(torrent['name'], 'ubuntu-torrent.iso')
+
+        self.should_check_equality = False
         return self.do_request('channels/discovered/%s/playlists' % channel_cid,
-                               expected_code=200, expected_json=expected_json)
+                               expected_code=200).addCallback(verify_playlists)

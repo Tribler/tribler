@@ -1,6 +1,7 @@
 import json
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
+from Tribler.Core.Modules.restapi.util import convert_db_torrent_to_json
 
 
 class ChannelsPlaylistsEndpoint(BaseChannelsEndpoint):
@@ -33,8 +34,14 @@ class ChannelsPlaylistsEndpoint(BaseChannelsEndpoint):
                         "name": "My first playlist",
                         "description": "Funny movies",
                         "torrents": [{
-                            "name": "movie_1",
-                            "infohash": "e940a7a57294e4c98f62514b32611e38181b6cae"
+                            "id": 4,
+                            "infohash": "97d2d8f5d37e56cfaeaae151d55f05b077074779",
+                            "name": "Ubuntu-16.04-desktop-amd64",
+                            "size": 8592385,
+                            "category": "other",
+                            "num_seeders": 42,
+                            "num_leechers": 184,
+                            "last_tracker_check": 1463176959
                         }, ... ]
                     }, ...]
                 }
@@ -48,12 +55,13 @@ class ChannelsPlaylistsEndpoint(BaseChannelsEndpoint):
 
         playlists = []
         req_columns = ['Playlists.id', 'Playlists.name', 'Playlists.description']
-        req_columns_torrents = ['ChannelTorrents.name', 'Torrent.infohash']
+        req_columns_torrents = ['Torrent.torrent_id', 'infohash', 'Torrent.name', 'length', 'Torrent.category',
+                                'num_seeders', 'num_leechers', 'last_tracker_check', 'ChannelTorrents.inserted']
         for playlist in self.channel_db_handler.getPlaylistsFromChannelId(channel[0], req_columns):
             # Fetch torrents in the playlist
-            torrents = []
-            for torrent in self.channel_db_handler.getTorrentsFromPlaylist(playlist[0], req_columns_torrents):
-                torrents.append({"name": torrent[0], "infohash": str2bin(torrent[1]).encode('hex')})
+            playlist_torrents = self.channel_db_handler.getTorrentsFromPlaylist(playlist[0], req_columns_torrents)
+            torrents = [convert_db_torrent_to_json(torrent_result) for torrent_result in playlist_torrents
+                        if torrent_result[2] is not None]
 
             playlists.append({"id": playlist[0], "name": playlist[1], "description": playlist[2], "torrents": torrents})
 
