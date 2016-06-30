@@ -1872,6 +1872,16 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
 
         return self.__fixTorrents(keys, results)
 
+    def get_random_channel_torrents(self, keys, limit=10):
+        """
+        Return some random (channel) torrents from the database.
+        """
+        sql = "SELECT %s FROM ChannelTorrents, Torrent " \
+              "WHERE ChannelTorrents.torrent_id = Torrent.torrent_id AND Torrent.name IS NOT NULL " \
+              "ORDER BY RANDOM() LIMIT ?" % ", ".join(keys)
+        results = self._db.fetchall(sql, (limit,))
+        return self.__fixTorrents(keys, results)
+
     def getTorrentFromChannelTorrentId(self, channeltorrent_id, keys):
         sql = "SELECT " + ", ".join(keys) + """ FROM Torrent, ChannelTorrents
               WHERE Torrent.torrent_id = ChannelTorrents.torrent_id AND ChannelTorrents.id = ?"""
