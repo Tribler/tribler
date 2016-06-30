@@ -24,6 +24,7 @@ setup(
         'Tribler.Core.Modules',
         'Tribler.Core.Modules.channel',
         'Tribler.Core.Modules.restapi',
+        'Tribler.Core.Modules.restapi.channels',
         'Tribler.Core.TFTP',
         'Tribler.Core.TorrentChecker',
         'Tribler.Core.Upgrade',
@@ -35,6 +36,7 @@ setup(
         'Tribler.Main.Utility',
         'Tribler.Main.vwxGUI',
         'Tribler.Main.webUI',
+        'Tribler.Policies',
         'Tribler.Utilities',
         'Tribler.community',
         'Tribler.community.allchannel',
@@ -56,7 +58,7 @@ setup(
 
     url='https://github.com/Tribler/tribler',
     license='LICENSE.txt',
-    description='AT3 package for Python for Android',
+    description='Tribler',
     package_data={
         'Tribler': [
             'schema_sdb_v28.sql',
@@ -68,5 +70,5 @@ setup(
             'bootstrap_stable',
             'bootstrap_unstable'],
     },
-    long_description='This is the core tribler functionality package which is used for the android app.',
+    long_description='Tribler core functionality package',
 )

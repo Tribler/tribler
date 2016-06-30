@@ -1,5 +1,6 @@
 # Author : Choopan RATTANAPOKA, Jie Yang, Arno Bakker
 # see LICENSE.txt for license information
+import sys
 import wx
 from traceback import print_exc
 from Tribler.Main.Utility.utility import speed_format
@@ -42,7 +43,11 @@ class ABCTaskBarIcon(wx.TaskBarIcon):
     def updateIcon(self, iconifying=False):
         remove = True
 
-        mintray = self.utility.read_config('mintray')
+        if sys.platform == 'win32':
+            mintray = 2
+        else:
+            mintray = self.utility.read_config('mintray')
+
         if (mintray >= 2) or ((mintray >= 1) and iconifying):
             remove = False
 

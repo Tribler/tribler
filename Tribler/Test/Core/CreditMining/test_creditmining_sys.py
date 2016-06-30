@@ -256,8 +256,16 @@ class TestBoostingManagerSysDir(TestBoostingManagerSys):
         dir_obj = self.boosting_manager.get_source_object(TESTS_DATA_DIR)
         self.assertTrue(dir_obj.ready, "Not Ready")
 
+        def check_archive(_):
+            """
+            function to check whether two of the torrents is in archive mode (with preload)
+            """
+            for infohash in list(self.boosting_manager.torrents):
+                torrent = self.boosting_manager.torrents[infohash]
+                self.assertIsNotNone(torrent.get('preload'))
+
         d = self.check_torrents(TESTS_DATA_DIR, target=2)
-        d.addCallback(lambda _: self.boosting_manager._select_torrent())
+        d.addCallback(check_archive)
         return d
 
 
