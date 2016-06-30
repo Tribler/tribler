@@ -3,6 +3,7 @@ import json
 import os
 import urllib
 import shutil
+
 from Tribler.Core.Modules.restapi.channels.channels_torrents_endpoint import ChannelModifyTorrentEndpoint
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.network_utils import get_random_port
@@ -10,6 +11,7 @@ from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_libtorrent_download import TORRENT_FILE
+from Tribler.dispersy.exception import CommunityNotFoundException
 
 
 class TestChannelTorrentsEndpoint(AbstractTestChannelsEndpoint):
@@ -250,3 +252,67 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
         self.should_check_equality = False
         return self.do_request(url, expected_code=500, expected_json=None, request_type='PUT')\
                    .addCallback(verify_error_message)
+
+    @deferred(timeout=10)
+    def test_remove_tor_unknown_channel(self):
+        """
+        Testing whether the API returns an error 500 if a torrent is removed from an unknown channel
+        """
+        return self.do_request('channels/discovered/abcd/torrents/abcd', expected_code=404, request_type='DELETE')
+
+    @deferred(timeout=10)
+    def test_remove_tor_unknown_infohash(self):
+        """
+        Testing whether the API returns an error 500 if an unknown torrent is removed from a channel
+        """
+        self.create_fake_channel("channel", "")
+        url = 'channels/discovered/%s/torrents/abcd' % 'fakedispersyid'.encode('hex')
+        return self.do_request(url, expected_code=404, request_type='DELETE')
+
+    @deferred(timeout=10)
+    def test_remove_tor_unknown_cmty(self):
+        """
+        Testing whether the API returns an error 500 if torrent is removed from a channel without community
+        """
+        channel_id = self.create_fake_channel("channel", "")
+        torrent_list = [[channel_id, 1, 1, ('a' * 40).decode('hex'), 1460000000, "ubuntu-torrent.iso",
+                         [['file1.txt', 42]], []]]
+        self.insert_torrents_into_channel(torrent_list)
+
+        def mocked_get_community(_):
+            raise CommunityNotFoundException("abcd")
+
+        mock_dispersy = MockObject()
+        mock_dispersy.get_community = mocked_get_community
+        self.session.get_dispersy_instance = lambda: mock_dispersy
+
+        url = 'channels/discovered/%s/torrents/%s' % ('fakedispersyid'.encode('hex'), 'a' * 40)
+        return self.do_request(url, expected_code=404, request_type='DELETE')
+
+    @deferred(timeout=10)
+    def test_remove_torrent(self):
+        """
+        Testing whether the API can remove a torrent from a channel
+        """
+        mock_channel_community = MockObject()
+        mock_channel_community.called_remove = False
+
+        def verify_torrent_removed(_):
+            self.assertTrue(mock_channel_community.called_remove)
+
+        channel_id = self.create_fake_channel("channel", "")
+        torrent_list = [[channel_id, 1, 1, ('a' * 40).decode('hex'), 1460000000, "ubuntu-torrent.iso",
+                         [['file1.txt', 42]], []]]
+        self.insert_torrents_into_channel(torrent_list)
+
+        def remove_torrents_called(_):
+            mock_channel_community.called_remove = True
+
+        mock_channel_community.remove_torrents = remove_torrents_called
+        mock_dispersy = MockObject()
+        mock_dispersy.get_community = lambda _: mock_channel_community
+        self.session.get_dispersy_instance = lambda: mock_dispersy
+
+        self.should_check_equality = False
+        url = 'channels/discovered/%s/torrents/%s' % ('fakedispersyid'.encode('hex'), 'a' * 40)
+        return self.do_request(url, expected_code=200, request_type='DELETE').addCallback(verify_torrent_removed)
