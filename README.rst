@@ -55,7 +55,7 @@ or, if you haven't added your ssh key to your github account:
 
     git clone --recursive https://github.com/Tribler/tribler.git
 
-Second, install the `dependencies <doc/Tribler%20development%20on%20Linux.md>`_.
+Second, install the `dependencies <doc/development/development_on_linux.rst>`_.
 
 Done!
 Now you can run tribler by executing the ``tribler.sh`` script on the root of the repository:
