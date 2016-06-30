@@ -7,6 +7,7 @@ Written by Ardhi Putra Pratama H
 import binascii
 import os
 import shutil
+from unittest import skip
 
 from twisted.internet import defer
 from twisted.web.server import Site
@@ -30,6 +31,7 @@ from Tribler.dispersy.member import DummyMember
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
+@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerSys(TestAsServer):
     """
     base class to test base credit mining function
@@ -134,6 +136,7 @@ class TestBoostingManagerSys(TestAsServer):
         return defer_param
 
 
+@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerSysRSS(TestBoostingManagerSys):
     """
     testing class for RSS (dummy) source
@@ -217,6 +220,7 @@ class TestBoostingManagerSysRSS(TestBoostingManagerSys):
         return defer_err_rss
 
 
+@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerSysDir(TestBoostingManagerSys):
     """
     testing class for directory source
@@ -257,6 +261,7 @@ class TestBoostingManagerSysDir(TestBoostingManagerSys):
         return d
 
 
+@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerSysChannel(TestBoostingManagerSys):
     """
     testing class for channel source
