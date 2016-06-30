@@ -17,8 +17,8 @@ from twisted.web.static import File
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
-from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent
-from Tribler.Policies.BoostingManager import BoostingManager, BoostingSettings
+# from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent
+# from Tribler.Policies.BoostingManager import BoostingManager, BoostingSettings
 from Tribler.Test import TORRENT_FILE, TORRENT_FILE_INFOHASH
 from Tribler.Test.Core.CreditMining.mock_creditmining import MockLtTorrent, ResourceFailClass
 from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
