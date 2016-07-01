@@ -10,7 +10,7 @@ DATABASE_DIRECTORY = path.join(u"sqlite")
 # Path to the database location + dispersy._workingdirectory
 DATABASE_PATH = path.join(DATABASE_DIRECTORY, u"multichain.db")
 # Version to keep track if the db schema needs to be updated.
-LATEST_DB_VERSION = 1
+LATEST_DB_VERSION = 2
 # Schema for the MultiChain DB.
 schema = u"""
 CREATE TABLE IF NOT EXISTS multi_chain(
@@ -286,7 +286,11 @@ class MultiChainDB(Database):
         assert int(database_version) >= 0
         database_version = int(database_version)
 
-        if database_version < 1:
+        if database_version != LATEST_DB_VERSION:
+            # Remove all previous data, since we have only been testing so far, and previous blocks might not be
+            # reliable. In the future, we should implement an actual upgrade procedure
+            self.executescript(u"DROP TABLE IF EXISTS multi_chain")
+            self.executescript(u"DROP TABLE IF EXISTS option")
             self.executescript(schema)
             self.commit()
 
