@@ -21,8 +21,6 @@
 import sys
 from collections import OrderedDict
 
-from Tribler.Core.Video.defs import PLAYBACKMODE_INTERNAL
-
 
 DEFAULTPORT = 7760
 
@@ -148,7 +146,6 @@ sessdefaults['video'] = OrderedDict()
 sessdefaults['video']['enabled'] = True
 sessdefaults['video']['path'] = None
 sessdefaults['video']['port'] = -1
-sessdefaults['video']['preferredmode'] = PLAYBACKMODE_INTERNAL
 
 #Upgrader config
 sessdefaults['upgrader'] = OrderedDict()
@@ -234,40 +231,3 @@ tdefmetadefaults['piece length'] = 0
 TDEF_DEFAULTS = {}
 TDEF_DEFAULTS.update(tdefdictdefaults)
 TDEF_DEFAULTS.update(tdefmetadefaults)
-
-
-# Tribler defaults
-tribler_defaults = OrderedDict()
-tribler_defaults['Tribler'] = OrderedDict()
-
-tribler_defaults['Tribler']['confirmonclose'] = 1
-# RateLimitPanel
-tribler_defaults['Tribler']['maxuploadrate'] = 0
-tribler_defaults['Tribler']['maxdownloadrate'] = 0
-# Anon tunnel
-tribler_defaults['Tribler']['default_number_hops'] = 1
-tribler_defaults['Tribler']['default_anonymity_enabled'] = True
-tribler_defaults['Tribler']['default_safeseeding_enabled'] = True
-# GUI
-tribler_defaults['Tribler']['window_width'] = 1024
-tribler_defaults['Tribler']['window_height'] = 670
-tribler_defaults['Tribler']['sash_position'] = -185
-tribler_defaults['Tribler']['family_filter'] = 1
-tribler_defaults['Tribler']['window_x'] = ""
-tribler_defaults['Tribler']['window_y'] = ""
-# WebUI
-tribler_defaults['Tribler']['use_webui'] = 0
-tribler_defaults['Tribler']['webui_port'] = 8080
-# Emercoin
-tribler_defaults['Tribler']['use_emc'] = 0
-tribler_defaults['Tribler']['emc_ip'] = '127.0.0.1'
-tribler_defaults['Tribler']['emc_port'] = '8332'
-tribler_defaults['Tribler']['emc_username'] = 'tribler'
-tribler_defaults['Tribler']['emc_password'] = 'tribler'
-# Misc
-tribler_defaults['Tribler']['showsaveas'] = 1
-tribler_defaults['Tribler']['i2ilistenport'] = 57891
-tribler_defaults['Tribler']['mintray'] = 2 if sys.platform == 'win32' else 0
-tribler_defaults['Tribler']['free_space_threshold'] = 100 * 1024 * 1024
-tribler_defaults['Tribler']['version_info'] = {}
-tribler_defaults['Tribler']['last_reported_version'] = None

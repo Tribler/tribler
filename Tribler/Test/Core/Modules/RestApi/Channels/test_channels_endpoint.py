@@ -1,8 +1,8 @@
 import json
+from nose.twistedtools import deferred
 from Tribler.Core.Modules.channel.channel import ChannelObject
 from Tribler.Core.Modules.channel.channel_manager import ChannelManager
 
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.exceptions import DuplicateChannelNameError
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_VOTECAST
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest

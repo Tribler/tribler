@@ -1,4 +1,5 @@
 import struct
+from nose.twistedtools import reactor, deferred
 from libtorrent import bencode
 
 from twisted.internet.task import Clock
@@ -7,7 +8,6 @@ from twisted.internet.defer import Deferred, DeferredList
 
 
 from Tribler.Core.TorrentChecker.session import HttpTrackerSession, UDPScraper, UdpTrackerSession
-from Tribler.Core.Utilities.twisted_thread import deferred, reactor
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 

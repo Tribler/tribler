@@ -1,9 +1,9 @@
 import json
 import os
 from urllib import pathname2url
+from nose.twistedtools import deferred
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.test_as_server import TESTS_DATA_DIR
 

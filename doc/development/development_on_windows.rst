@@ -35,17 +35,6 @@ The first package to be installed is M2Crypto which can be installed using pip (
 
 If the second statement does not raise an error, M2Crypto is successfully installed.
 
-wxPython
---------
-
-The graphical interface of Tribler is built using wxPython. wxPython can be installed by using the official win64 installer for Python 2.7 from `Sourceforge <http://sourceforge.net/projects/wxpython/files/wxPython>`_. **At the time of writing, wx3 is not supported yet so you should install wx2.8** (make sure to install the unicode version). You can test whether wx can be successfully imported by running:
-
-.. code-block:: none
-
-    python -c "import wx"
-
-This statement should proceed without error.
-
 pyWin32 Tools
 -------------
 

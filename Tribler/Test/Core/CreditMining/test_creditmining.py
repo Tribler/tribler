@@ -10,15 +10,15 @@ import random
 import re
 from unittest import skip
 
-import Tribler.Policies.BoostingManager as bm
+# import Tribler.Policies.BoostingManager as bm
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.SessionConfig import SessionConfigInterface
 from Tribler.Core.Utilities import utilities
 from Tribler.Core.defaults import sessdefaults
 from Tribler.Policies.BoostingPolicy import CreationDatePolicy, SeederRatioPolicy, RandomPolicy
-from Tribler.Policies.BoostingSource import ent2chr
-from Tribler.Policies.credit_mining_util import levenshtein_dist, source_to_string
+# from Tribler.Policies.BoostingSource import ent2chr
+# from Tribler.Policies.credit_mining_util import levenshtein_dist, source_to_string
 from Tribler.Test.Core.CreditMining.mock_creditmining import MockMeta, MockLtPeer, MockLtSession, MockLtTorrent
 from Tribler.Test.test_as_server import TestAsServer
 

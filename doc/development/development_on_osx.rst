@@ -32,13 +32,6 @@ The installation of Xcode is required in order to compile some C/C++ libraries. 
 
     xcode-select --install
 
-WxPython
---------
-
-WxPython is the Graphical User Interface manager and an installer can be downloaded from `their website <http://www.wxpython.org/download.php>`_. Note that at this point, Wx 2.8 should still be used but support for 2.8 will be dropped soon and the Wx 2.8 library should be replaced by Wx 3.0. You probably need the Cocoa version of Wx.
-
-Note: there is a bug on OS X 10.11 (El Capitan) where the installer gives an error that there is no software available to install. A workaround for this is to install the required files manually. This can be done by opening the ``.pkg`` file. First, you should run the ``preflight.sh`` script as root to clean up any old installation of wx. Next, unzip the ``wxPython3.0-osx-cocoa-py2.7.pax.gz`` file. This will create a ``usr`` directory which should be copied to ``/usr`` on the system. Note that you need root permissions to write to this directory (you can open a finder window with the needed permissions by running ``sudo open /usr`` in terminal). To link wx so Python can find it, you should run the ``postflight.sh`` as root.
-
 M2Crypto
 --------
 

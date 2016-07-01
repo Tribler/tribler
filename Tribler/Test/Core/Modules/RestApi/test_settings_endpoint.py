@@ -1,8 +1,8 @@
 import json
 import os
+from nose.twistedtools import deferred
 
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 
 
@@ -12,7 +12,7 @@ class TestSettingsEndpoint(AbstractApiTest):
         """
         Verify that the expected sections are present.
         """
-        check_section = ['barter_community', 'libtorrent', 'mainline_dht', 'torrent_store', 'general', 'Tribler',
+        check_section = ['barter_community', 'libtorrent', 'mainline_dht', 'torrent_store', 'general',
                          'video', 'upgrader', 'torrent_checking', 'allchannel_community', 'tunnel_community',
                          'http_api', 'torrent_collecting', 'dispersy', 'multichain', 'watch_folder', 'search_community',
                          'metadata']

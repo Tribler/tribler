@@ -9,19 +9,19 @@ import os
 import shutil
 from unittest import skip
 
+from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
 from twisted.web.server import Site
 from twisted.web.static import File
 
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.twisted_thread import deferred, reactor
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
-from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent
-from Tribler.Policies.BoostingManager import BoostingManager, BoostingSettings
+# from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent
+# from Tribler.Policies.BoostingManager import BoostingManager, BoostingSettings
+from Tribler.Test import TORRENT_FILE, TORRENT_FILE_INFOHASH
 from Tribler.Test.Core.CreditMining.mock_creditmining import MockLtTorrent, ResourceFailClass
 from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
-from Tribler.Test.test_libtorrent_download import TORRENT_FILE, TORRENT_FILE_INFOHASH
 from Tribler.Test.util import prepare_xml_rss
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity

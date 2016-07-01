@@ -32,8 +32,6 @@
 |                                                   | [Build](/Tribler/Main/Build)                                  | Beinhaltet Build-Files für verschiedene Betriebssysteme.              |
 |                                                   | [Dialogs](/Tribler/Main/Dialogs)                              | Beinhaltet die verschiedenen Dialoge, welche innerhalb von Tribler gezeigt werden.              |
 |                                                   | [Utility](/Tribler/Main/Utility)                              | Beinhaltet verschiedene Utility-Klassen, die im Main-Package benutzt werden.              |
-|                                                   | [vwxGUI](/Tribler/Main/vwxGUI)                                | Beinhaltet den Code für die (non-browser) GUI von Tribler.               |
-|                                                   | [webUI](/Tribler/Main/webUI)                                  | Beinhaltet den Code um eine Benutzeroberfläche zu erstellen, welche in einem Browser geöffnet werden kann.              |
 | [Policies](/Tribler/Policies)                     | -                                                             | Beinhaltet den Code für Bewertungs- und Seeding-Richtlinien in Tribler.              |
 | [Test](/Tribler/Test)                             | -                                                             | Beinhaltet Testfunktionalitäten für Tribler.              |
 |                                                   | [API](/Tribler/Test/API)                                      | Beinhaltet Tests für die API.              |
