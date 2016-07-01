@@ -385,6 +385,7 @@ class MultiChainCommunity(Community):
 
     def unload_community(self):
         self.logger.debug("Unloading the MultiChain Community.")
+        self.notifier.remove_observer(self.on_tunnel_remove)
         super(MultiChainCommunity, self).unload_community()
         # Close the persistence layer
         self.persistence.close()

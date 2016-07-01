@@ -307,7 +307,7 @@ def startWorker(
                 filename, line, function, _ = extract_stack(limit=2)[0]
                 _, filename = os.path.split(filename)
                 jobID = u"%s:%s (%s)" % (filename, line, function)
-            except:
+            except IndexError:
                 pass
 
     result = ASyncDelayedResult(jobID)
