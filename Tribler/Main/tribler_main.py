@@ -60,7 +60,6 @@ from Tribler.Main.vwxGUI.MainFrame import MainFrame
 from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame
 from Tribler.Main.vwxGUI.TriblerApp import TriblerApp
 from Tribler.Main.vwxGUI.TriblerUpgradeDialog import TriblerUpgradeDialog
-from Tribler.Utilities.Instance2Instance import Instance2InstanceClient, Instance2InstanceServer
 from Tribler.dispersy.util import attach_profiler, call_on_reactor_thread
 
 
@@ -185,12 +184,6 @@ class ABCApp(object):
             # Schedule task for checkpointing Session, to avoid hash checks after
             # crashes.
             startWorker(consumer=None, workerFn=self.guiservthread_checkpoint_timer, delay=SESSION_CHECKPOINT_INTERVAL)
-
-            if not ALLOW_MULTIPLE:
-                # Put it here so an error is shown in the startup-error popup
-                # Start server for instance2instance communication
-                self.i2i_server = Instance2InstanceServer(self.utility.read_config('i2ilistenport'))
-                self.i2i_server.start(self.i2ithread_readlinecallback)
 
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'GUIUtility register')
             wx.Yield()
@@ -893,38 +886,6 @@ class ABCApp(object):
         if self.params[0] != "":
             self.guiUtility.ShowPage('my_files')
 
-    def i2ithread_readlinecallback(self, ic, cmd):
-        """ Called by Instance2Instance thread """
-
-        self._logger.info("main: Another instance called us with cmd %s", cmd)
-        ic.close()
-
-        if cmd.startswith('START '):
-            param = cmd[len('START '):].strip().decode("utf-8")
-            torrentfilename = None
-            if param.startswith('http:'):
-                # Retrieve from web
-                f = tempfile.NamedTemporaryFile()
-                n = urllib2.urlopen(param)
-                data = n.read()
-                f.write(data)
-                f.close()
-                n.close()
-                torrentfilename = f.name
-            else:
-                torrentfilename = param
-
-            # Switch to GUI thread
-            # New for 5.0: Start in VOD mode
-            def start_asked_download():
-                if torrentfilename.startswith("magnet:"):
-                    self.frame.startDownloadFromMagnet(torrentfilename)
-                else:
-                    self.frame.startDownload(torrentfilename)
-                self.guiUtility.ShowPage('my_files')
-
-            wx.CallAfter(start_asked_download)
-
 
 #
 #
@@ -950,14 +911,6 @@ def run(params=[""], autoload_discovery=True, use_torrent_search=True, use_chann
         installdir = determine_install_dir()
 
         if not ALLOW_MULTIPLE and process_checker.already_running:
-            statedir = SessionStartupConfig().get_state_dir()
-
-            # Send  torrent info to abc single instance
-            if params[0] != "":
-                torrentfilename = params[0]
-                i2i_port = Utility(installdir, statedir).read_config('i2ilistenport')
-                Instance2InstanceClient(i2i_port, 'START', torrentfilename)
-
             logger.info("Client shutting down. Detected another instance.")
         else:
             # Launch first abc single instance
