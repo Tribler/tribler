@@ -63,7 +63,6 @@ logger = logging.getLogger(__name__)
 # one of those modules imports time as a module.
 from time import time, sleep
 
-SESSION_CHECKPOINT_INTERVAL = 900.0  # 15 minutes
 FREE_SPACE_CHECK_INTERVAL = 300.0
 
 ALLOW_MULTIPLE = os.environ.get("TRIBLER_ALLOW_MULTIPLE", "False").lower() == "true"
@@ -174,10 +173,6 @@ class ABCApp(object):
             # Only allow updates to come in after we defined ratelimiter
             self.prevActiveDownloads = []
             session.set_download_states_callback(self.sesscb_states_callback)
-
-            # Schedule task for checkpointing Session, to avoid hash checks after
-            # crashes.
-            startWorker(consumer=None, workerFn=self.guiservthread_checkpoint_timer, delay=SESSION_CHECKPOINT_INTERVAL)
 
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'GUIUtility register')
             wx.Yield()
@@ -538,7 +533,7 @@ class ABCApp(object):
 
             self.prevActiveDownloads = newActiveDownloads
             if doCheckpoint:
-                self.utility.session.checkpoint()
+                self.utility.session.checkpoint_downloads()
 
             if self.utility.read_config(u'seeding_mode') == 'never':
                 for data in seeding_download_list:
@@ -586,18 +581,6 @@ class ABCApp(object):
                          "Error")
 
         self.utility.session.lm.threadpool.call_in_thread(FREE_SPACE_CHECK_INTERVAL, self.guiservthread_free_space_check)
-
-    def guiservthread_checkpoint_timer(self):
-        """ Periodically checkpoint Session """
-        if self.done:
-            return
-        try:
-            self._logger.info("main: Checkpointing Session")
-            self.utility.session.checkpoint()
-
-            self.utility.session.lm.threadpool.call_in_thread(SESSION_CHECKPOINT_INTERVAL, self.guiservthread_checkpoint_timer)
-        except:
-            print_exc()
 
     @forceWxThread
     def sesscb_ntfy_activities(self, events):
@@ -842,7 +825,7 @@ class ABCApp(object):
 
             self.utility.session.notifier.notify(NTFY_CLOSE_TICK, NTFY_INSERT, None, 'Shutdown session')
             wx.Yield()
-            self.utility.session.shutdown(hacksessconfcheckpoint=False)
+            self.utility.session.shutdown()
 
             # Arno, 2012-07-12: Shutdown should be quick
             # Niels, 2013-03-21: However, setting it too low will prevent checkpoints from being written to disk
