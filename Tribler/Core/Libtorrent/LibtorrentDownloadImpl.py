@@ -761,7 +761,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         failure.trap(CancelledError)
         self._logger.error("Resume data cancelled")
 
-    @waitForHandleAndSynchronize()
+    @checkHandleAndSynchronize(default=Deferred().callback(None))
     def save_resume_data(self):
         """
         method to save resume data.
@@ -1169,11 +1169,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             return False
         return True
 
-    @checkHandleAndSynchronize
+    @checkHandleAndSynchronize()
     def get_share_mode(self):
         return self.handle.status().share_mode
 
-    @waitForHandleAndSynchronize(True)
+    @checkHandleAndSynchronize()
     def set_share_mode(self, share_mode):
         self.handle.set_share_mode(share_mode)
 
