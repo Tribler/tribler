@@ -33,7 +33,6 @@ class TestBoostingManagerPolicies(TestAsServer):
     def setUp(self, autoload_discovery=True):
         super(TestBoostingManagerPolicies, self).setUp()
         self.session.get_download = lambda x: x % 2
-        random.seed(0)
         self.torrents = dict()
         for i in xrange(1, 11):
             mock_metainfo = MockMeta(i)
@@ -45,6 +44,7 @@ class TestBoostingManagerPolicies(TestAsServer):
         """
         testing random policy
         """
+        random.seed(0)
         policy = RandomPolicy(self.session)
         torrents_start, torrents_stop = policy.apply(self.torrents, 6, force=True)
         ids_start = [torrent["metainfo"].get_infohash() for torrent in
@@ -75,6 +75,7 @@ class TestBoostingManagerPolicies(TestAsServer):
             self.torrents[i] = {"metainfo": mock_metainfo, "num_seeders": -i,
                                 "num_leechers": -i, "creation_date": i}
 
+        random.seed(0)
         policy = SeederRatioPolicy(self.session)
         torrents_start, torrents_stop = policy.apply(self.torrents, 6)
         ids_start = [torrent["metainfo"].get_infohash() for torrent in
