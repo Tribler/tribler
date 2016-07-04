@@ -167,7 +167,7 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         other.send_identity(node)
         # Act
         try:
-            node.call(node.community.on_tunnel_remove, None, None, None, None, None)
+            node.call(node.community.on_tunnel_remove, None, None, None, None)
         except TypeError:
             error = True
         # Assert
