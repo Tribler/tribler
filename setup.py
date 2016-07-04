@@ -10,6 +10,7 @@ with open('Tribler/LICENSE.txt', 'r') as f:
 
 data_dirs = [
     'Tribler.Test.data',
+    'Tribler.Test.Category.data.Tribler.Category',
     'Tribler.Test.data.41aea20908363a80d44234e8fef07fab506cd3b4',
     'Tribler.Test.data.contentdir',
     'Tribler.Test.Core.data',
