@@ -716,7 +716,7 @@ class ChannelCommunity(Community):
                 try:
                     data = json.loads(message.payload.modification_value)
                     thumbnail_hash = data[u'thumb_hash'].decode('hex')
-                except:
+                except ValueError:
                     yield DropMessage(message, "Not compatible json format")
                     continue
                 else:
