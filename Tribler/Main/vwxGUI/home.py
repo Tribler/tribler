@@ -886,7 +886,7 @@ class ActivityPanel(NewTorrentPanel):
 
     @forceWxThread
     def on_tunnel_remove(self, subject, change_type, tunnel, candidate):
-        self.onActivity("Request a Multichain block with: [Up = " + str(tunnel.bytes_up) +
+        self.onActivity("Tunnel removed with: [Up = " + str(tunnel.bytes_up) +
                         " bytes | Down = " + str(tunnel.bytes_down) + " bytes]")
 
 
