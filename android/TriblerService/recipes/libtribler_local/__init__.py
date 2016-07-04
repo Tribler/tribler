@@ -12,7 +12,8 @@ class LocalTriblerRecipe(PythonRecipe):
     version = 'local'
 
     depends = ['apsw', 'cryptography', 'ffmpeg', 'libsodium', 'libtorrent', 'm2crypto',
-               'netifaces', 'openssl', 'pil', 'pycrypto', 'pyleveldb', 'python2', 'twisted',
+               'netifaces', 'openssl', 'pil', 'pycrypto', 'pyleveldb', 'python2',
+               'setuptools', 'twisted',
               ]
 
     python_depends = ['chardet', 'cherrypy', 'configobj', 'decorator', 'feedparser',
@@ -20,6 +21,9 @@ class LocalTriblerRecipe(PythonRecipe):
                      ]
 
     site_packages_name = 'Tribler'
+    
+    call_hostpython_via_targetpython = False
+
 
     def should_build(self, arch):
         # Overwrite old build
