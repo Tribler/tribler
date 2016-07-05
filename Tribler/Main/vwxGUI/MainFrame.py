@@ -434,24 +434,23 @@ class MainFrame(wx.Frame):
         return True
 
     def startDownloadFromUrl(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False, hops=0):
-        try:
-            tdef = TorrentDef.load_from_url(url)
-            if tdef:
-                kwargs = {'tdef': tdef,
-                          'cmdline': cmdline,
-                          'destdir': destdir,
-                          'selectedFiles': selectedFiles,
-                          'vodmode': vodmode,
-                          'hops': hops}
-                if wx.Thread_IsMain():
-                    self.startDownload(**kwargs)
-                else:
-                    wx.CallAfter(self.startDownload, *kwargs)
-                return True
-        except:
-            print_exc()
-        self.guiUtility.Notify("Download from url failed", icon=wx.ART_WARNING)
-        return False
+
+        def _on_load(tdef):
+            kwargs = {'tdef': tdef,
+                      'cmdline': cmdline,
+                      'destdir': destdir,
+                      'selectedFiles': selectedFiles,
+                      'vodmode': vodmode,
+                      'hops': hops}
+
+            if wx.Thread_IsMain():
+                self.startDownload(**kwargs)
+            else:
+                wx.CallAfter(self.startDownload, *kwargs)
+
+        deferred = TorrentDef.load_from_url(url)
+        deferred.addCallback(_on_load)
+        deferred.addErrback(self.guiUtility.Notify, "Download from url failed", icon=wx.ART_WARNING)
 
     def startDownloadFromEMC(self, url, destdir=None, cmdline=False, selectedFiles=None, vodmode=False, hops=0):
         if self.utility.read_config('use_emc'):
