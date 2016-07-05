@@ -4,12 +4,13 @@
 from base64 import b32decode
 from types import StringType, LongType, IntType, ListType, DictType
 import urlparse
+import requests
 from traceback import print_exc
 from urlparse import urlsplit, parse_qsl
 import binascii
 import logging
-
 from libtorrent import bencode, bdecode
+from twisted.internet import threads
 
 logger = logging.getLogger(__name__)
 
@@ -183,6 +184,10 @@ def isValidURL(url):
     if r[0] == '' or r[1] == '':
         return False
     return True
+
+
+def requests_get(url, params=None, **kwargs):
+    return threads.deferToThread(requests.get, url, params=params, **kwargs)
 
 
 def parse_magnetlink(url):
