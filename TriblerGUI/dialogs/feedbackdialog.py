@@ -4,6 +4,7 @@ from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtWidgets import QDialog, QTreeWidgetItem
 import sys
 import platform
+from TriblerGUI.utilities import get_ui_file_path
 
 
 class FeedbackDialog(QDialog):
@@ -11,7 +12,7 @@ class FeedbackDialog(QDialog):
     def __init__(self,  parent, exception_text):
         super(FeedbackDialog, self).__init__(parent)
 
-        uic.loadUi('qt_resources/feedback_dialog.ui', self)
+        uic.loadUi(get_ui_file_path('feedback_dialog.ui'), self)
 
         self.setWindowTitle("Unexpected error")
 

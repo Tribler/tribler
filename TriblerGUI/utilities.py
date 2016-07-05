@@ -5,6 +5,7 @@ from itertools import izip, count
 from operator import itemgetter
 import os
 import re
+import sys
 
 import TriblerGUI
 from TriblerGUI.defs import VIDEO_EXTS
@@ -109,8 +110,19 @@ def split_into_keywords(query):
     return [kw for kw in RE_KEYWORD_SPLIT.split(query.lower()) if len(kw) > 0]
 
 
+def get_base_path():
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.dirname(TriblerGUI.__file__)
+    return base_path
+
+
 def get_ui_file_path(filename):
-    return os.path.join(os.path.dirname(TriblerGUI.__file__), 'qt_resources/%s' % filename)
+    return os.path.join(get_base_path(), 'qt_resources/%s' % filename)
+
 
 def get_image_path(filename):
-    return os.path.join(os.path.dirname(TriblerGUI.__file__), 'images/%s' % filename)
+    return os.path.join(get_base_path(), 'images/%s' % filename)

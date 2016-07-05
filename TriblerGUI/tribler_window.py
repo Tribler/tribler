@@ -4,7 +4,7 @@ import sys
 import traceback
 
 from PyQt5 import uic
-from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QSettings, QPoint, QCoreApplication, QSize
+from PyQt5.QtCore import Qt, pyqtSignal, QStringListModel, QSettings, QPoint, QCoreApplication
 from PyQt5.QtGui import QIcon
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QMainWindow, QListView, QLineEdit, QTreeWidget, QSystemTrayIcon, QAction, QFileDialog, \
@@ -12,7 +12,6 @@ from PyQt5.QtWidgets import QMainWindow, QListView, QLineEdit, QTreeWidget, QSys
 
 from TriblerGUI.TriblerActionMenu import TriblerActionMenu
 from TriblerGUI.core_manager import CoreManager
-
 from TriblerGUI.defs import PAGE_SEARCH_RESULTS, \
     PAGE_HOME, PAGE_EDIT_CHANNEL, PAGE_VIDEO_PLAYER, PAGE_DOWNLOADS, PAGE_SETTINGS, PAGE_SUBSCRIBED_CHANNELS, \
     PAGE_CHANNEL_DETAILS, PAGE_PLAYLIST_DETAILS, BUTTON_TYPE_NORMAL, BUTTON_TYPE_CONFIRM, PAGE_LOADING, PAGE_DISCOVERING, \

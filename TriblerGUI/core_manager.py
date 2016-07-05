@@ -25,7 +25,7 @@ class CoreManager(object):
         if START_FAKE_API:
             self.core_process.start("python %s/scripts/start_fake_core.py" % os.path.dirname(TriblerGUI.__file__))
         else:
-            self.core_process.start("python scripts/start_core.py -n tribler")
+            self.core_process.start("python %s/scripts/start_core.py -n tribler" % os.path.dirname(TriblerGUI.__file__))
 
         self.events_manager.connect()
 
