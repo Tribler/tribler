@@ -967,14 +967,8 @@ class ManageChannelFilesManager(BaseManager):
         self.channelsearch_manager.removeAllTorrents(self.channel)
 
     def startDownloadFromUrl(self, url, *args, **kwargs):
-        try:
-            tdef = TorrentDef.load_from_url(url)
-            if tdef:
-                return self.AddTDef(tdef)
-        except:
-            print_exc()
-
-        return False
+        deferred = TorrentDef.load_from_url(url)
+        deferred.addCallback(self.AddTDef)
 
     def startDownloadFromMagnet(self, url, *args, **kwargs):
         try:
