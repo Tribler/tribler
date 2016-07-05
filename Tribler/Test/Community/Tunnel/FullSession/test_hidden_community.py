@@ -3,7 +3,7 @@ from threading import Event
 from traceback import print_exc
 
 # This needs to be imported before anything from tribler so the reactor gets initalized on the right thread
-from Tribler.Test.test_tunnel_base import TestTunnelBase
+from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase
 
 from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
 from Tribler.community.tunnel import CIRCUIT_ID_PORT

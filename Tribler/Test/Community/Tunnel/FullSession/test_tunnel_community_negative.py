@@ -3,7 +3,7 @@
 import time
 
 # This needs to be imported before anything from tribler so the reactor gets initalied on the right thread
-from Tribler.Test.test_tunnel_base import TestTunnelBase
+from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase
 
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
