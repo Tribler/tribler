@@ -1,188 +1,97 @@
-import time
-from threading import Event
-from traceback import print_exc
-
-# This needs to be imported before anything from tribler so the reactor gets initalized on the right thread
-from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase
-
-from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
-from Tribler.community.tunnel import CIRCUIT_ID_PORT
-from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
-
 from unittest.case import skip
 
-class TestHiddenCommunity(TestTunnelBase):
+from twisted.internet.defer import Deferred, inlineCallbacks
 
-    # TODO(emilon): Fix this test!
-    @skip("This test fails most of the time. Temporalily disabled it until somebody has time to fix it")
+from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
+from Tribler.Core.Utilities.twisted_thread import deferred
+from Tribler.Core.simpledefs import DLSTATUS_SEEDING
+from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase
+
+
+class FakeDHT(object):
+    """
+    We are bypassing the original DHT in Tribler because that DHT is too unreliable to use for this test.
+    """
+
+    def __init__(self, dht_dict):
+        self.dht_dict = dht_dict
+
+    def get_peers(self, lookup_id, _, callback_f, bt_port=0):
+        """
+        This mocked method simply adds a peer to the DHT dictionary and invokes the callback.
+        """
+        if bt_port != 0:
+            print "inserting %s" % (self.dht_dict.get(lookup_id, []) + [('127.0.0.1', bt_port)])
+            self.dht_dict[lookup_id] = self.dht_dict.get(lookup_id, []) + [('127.0.0.1', bt_port)]
+        callback_f(lookup_id, self.dht_dict.get(lookup_id, None), None)
+
+
+class TestHiddenTunnelCommunity(TestTunnelBase):
+    """
+    This class contains tests for the hidden tunnel community.
+
+    TODO(Martijn): currently, these tests are not working. It seems to run the whole protocol and it finally
+    adds the circuit to the hidden seeder to the download as peer but the download is not starting.
+    """
+
+    def setUp(self, autoload_discovery=True):
+        TestTunnelBase.setUp(self, autoload_discovery=autoload_discovery)
+        self.test_deferred = Deferred()
+        self.dht_deferred = Deferred()
+        self.dht_dict = {}
+
+    def configure_hidden_seeder(self):
+        """
+        Setup the hidden seeder. This includes setting the right circuit parameters, creating the download callback and
+        waiting for the creation of an introduction point for the download.
+        """
+        def download_states_callback(dslist):
+            self.tunnel_community_seeder.monitor_downloads(dslist)
+            return 1.0, []
+
+        self.tunnel_community_seeder.settings.min_circuits = 0
+        self.tunnel_community_seeder.settings.max_circuits = 0
+        self.session2.set_anon_proxy_settings(
+            2, ("127.0.0.1", self.session2.get_tunnel_community_socks5_listen_ports()))
+        self.session2.set_download_states_callback(download_states_callback, False)
+
+        # Wait for the introduction point to announce itself to the DHT
+        def dht_announce(info_hash, community):
+            def cb_dht(info_hash, peers, source):
+                self._logger.debug("announced %s to the DHT", info_hash.encode('hex'))
+                self.dht_deferred.callback(None)
+            port = community.trsession.get_dispersy_port()
+            community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb_dht, bt_port=port)
+
+        for community in self.tunnel_communities:
+            community.dht_announce = lambda ih, com=community: dht_announce(ih, com)
+
+        return self.dht_deferred
+
+    def setup_dht_bypass(self):
+        for session in self.sessions + [self.session]:
+            session.lm.mainline_dht = FakeDHT(self.dht_dict)
+
+    @skip("This test fails most of the time. Temporarily disabled, see issue #1826 on GitHub")
+    @deferred(timeout=100)
+    @inlineCallbacks
     def test_hidden_services(self):
-        def take_second_screenshot():
-            self.screenshot('Network graph after libtorrent download over hidden services')
-            self.quit()
+        """
+        Testing the hidden services
+        """
+        yield self.setup_nodes(num_relays=4, num_exitnodes=2, seed_hops=1)
+        self.setup_dht_bypass()
+        yield self.configure_hidden_seeder()
 
-        def take_screenshot(download_time):
-            self.screenshot("After libtorrent download over hidden services (took %.2f s)" % download_time)
-            self.guiUtility.ShowPage('networkgraph')
-            self.callLater(1, take_second_screenshot)
+        def download_state_callback(ds):
+            self.tunnel_community.monitor_downloads([ds])
+            download = ds.get_download()
+            if download.get_progress() == 1.0 and ds.get_status() == DLSTATUS_SEEDING:
+                self.test_deferred.callback(None)
+                return 0.0, False
+            return 2.0, False
 
-        def on_fail(expected, reason, do_assert):
-            dispersy = self.session.lm.dispersy
-            tunnel_community = next(c for c in dispersy.get_communities() if isinstance(c, HiddenTunnelCommunity))
+        download = self.start_anon_download(hops=1)
+        download.set_state_callback(download_state_callback)
 
-            self.guiUtility.ShowPage('networkgraph')
-
-            def do_asserts():
-                self.assert_(len(tunnel_community.active_data_circuits()) >= 4,
-                             "At least 4 data circuits should have been created (got %d)" %
-                             len(tunnel_community.active_data_circuits()),
-                             False)
-                self.assert_(expected, reason, do_assert)
-                self.quit()
-
-            self.callLater(1, do_asserts)
-
-        def do_progress(download, start_time):
-            self.CallConditional(40,
-                                 lambda: download.get_progress() == 1.0,
-                                 lambda: take_screenshot(time.time() - start_time),
-                                 'Hidden services download should be finished in 40 seconds (%.1f%% downloaded)' %
-                                 (download.get_progress() * 100),
-                                 on_fail)
-
-        def start_download(tf):
-            start_time = time.time()
-            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=1)
-            self.guiUtility.ShowPage('my_files')
-            do_progress(download, start_time)
-
-        def setup_seeder(tunnel_communities):
-            # Setup the first session to be the seeder
-            def download_states_callback(dslist):
-                try:
-                    tunnel_communities[0].monitor_downloads(dslist)
-                except:
-                    print_exc()
-                return (1.0, [])
-            tunnel_communities[0].settings.min_circuits = 0
-            tunnel_communities[0].settings.max_circuits = 0
-            seeder_session = self.sessions[0]
-            seeder_session.set_anon_proxy_settings(
-                2, ("127.0.0.1", seeder_session.get_tunnel_community_socks5_listen_ports()))
-            seeder_session.set_download_states_callback(download_states_callback, False)
-
-            # Start seeding
-            tf = self.setupSeeder(hops=1, session=seeder_session)
-
-            # Wait for the introduction point to announce itself to the DHT
-            dht = Event()
-
-            def dht_announce(info_hash, community):
-                def cb_dht(info_hash, peers, source):
-                    self._logger.debug("announced %s to the DHT", info_hash.encode('hex'))
-                    dht.set()
-                port = community.trsession.get_dispersy_port()
-                community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb_dht, bt_port=port)
-            for community in tunnel_communities:
-                community.dht_announce = lambda ih, com = community: dht_announce(ih, com)
-            self.CallConditional(40, dht.is_set, lambda: self.callLater(5, lambda: start_download(tf)),
-                                 'Introduction point did not get announced')
-
-        self.startTest(setup_seeder, bypass_dht=True)
-
-    # TODO(emilon): Fix this test!
-    @skip("This test fails most of the time. Temporalily disabled it until somebody has time to fix it")
-    def test_hidden_services_with_exit_nodes(self):
-        def take_second_screenshot():
-            self.screenshot('Network graph after libtorrent download with hidden services over exitnodes')
-            self.quit()
-
-        def take_screenshot(download_time):
-            self.screenshot("After libtorrent download with hidden services over exitnodes (took %.2f s)" %
-                            download_time)
-            self.guiUtility.ShowPage('networkgraph')
-            self.callLater(1, take_second_screenshot)
-
-        def on_fail(expected, reason, do_assert):
-            dispersy = self.session.lm.dispersy
-            tunnel_community = next(c for c in dispersy.get_communities() if isinstance(c, HiddenTunnelCommunity))
-
-            self.guiUtility.ShowPage('networkgraph')
-
-            def do_asserts():
-                self.assert_(len(tunnel_community.active_data_circuits()) >= 4,
-                             "At least 4 data circuits should have been created (got %d)" %
-                             len(tunnel_community.active_data_circuits()),
-                             False)
-                self.assert_(expected, reason, do_assert)
-                self.quit()
-
-            self.callLater(1, do_asserts)
-
-        def do_progress(d, start_time):
-            # Check for progress from both seeders
-            hs_progress = Event()
-            en_progress = Event()
-
-            def cb(ds):
-                for peer in ds.get_peerlist():
-                    if peer['dtotal'] > 0:
-                        if peer['ip'] == '127.0.0.1' and peer['port'] == self.sessions[1].get_listen_port():
-                            en_progress.set()
-                        elif peer['port'] == CIRCUIT_ID_PORT:
-                            hs_progress.set()
-                return 5.0, True
-
-            d.set_state_callback(cb, True)
-
-            self.CallConditional(50,
-                                 lambda: d.get_progress() == 1.0 and hs_progress.is_set() and en_progress.is_set(),
-                                 lambda: take_screenshot(time.time() - start_time),
-                                 'Hidden services download should be finished in 50s', on_fail)
-
-        def start_download(tf):
-            start_time = time.time()
-            download = self.guiUtility.frame.startDownload(torrentfilename=tf, destdir=self.getDestDir(), hops=3)
-
-            # Inject IP of the 2nd seeder so that the download starts using both hidden services & exit tunnels
-            self.callLater(15, lambda: download.add_peer(("127.0.0.1", self.sessions[1].get_listen_port())))
-
-            self.guiUtility.ShowPage('my_files')
-            do_progress(download, start_time)
-
-        def setup_seeder(tunnel_communities):
-            # Setup the first session to be the seeder
-            def download_states_callback(dslist):
-                try:
-                    tunnel_communities[0].monitor_downloads(dslist)
-                except:
-                    print_exc()
-                return (1.0, [])
-            for tc in tunnel_communities[:-1]:
-                tc.settings.min_circuits = 0
-                tc.settings.max_circuits = 0
-            seeder_session = self.sessions[0]
-            seeder_session.set_anon_proxy_settings(
-                2, ("127.0.0.1", seeder_session.get_tunnel_community_socks5_listen_ports()))
-            seeder_session.set_download_states_callback(download_states_callback, False)
-
-            # Start seeding with hidden services
-            tf = self.setupSeeder(hops=2, session=seeder_session)
-
-            # Start another seeder from which we'll download using exit nodes
-            self.setupSeeder(hops=0, session=self.sessions[1])
-
-            # Wait for the introduction point to announce itself to the DHT
-            dht = Event()
-
-            def dht_announce(info_hash, community):
-                def cb_dht(info_hash, peers, source):
-                    self._logger.debug("announced %s to the DHT", info_hash.encode('hex'))
-                    dht.set()
-                port = community.trsession.get_dispersy_port()
-                community.trsession.lm.mainline_dht.get_peers(info_hash, Id(info_hash), cb_dht, bt_port=port)
-            for community in tunnel_communities:
-                community.dht_announce = lambda ih, com = community: dht_announce(ih, com)
-            self.CallConditional(40, dht.is_set, lambda: self.callLater(5, lambda: start_download(tf)),
-                                 'Introduction point did not get announced')
-
-        self.startTest(setup_seeder, bypass_dht=True)
+        yield self.test_deferred
