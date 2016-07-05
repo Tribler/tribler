@@ -6,14 +6,12 @@ import os
 import logging
 from hashlib import sha1
 from types import StringType, ListType, IntType, LongType
-from requests.exceptions import InvalidSchema
 from libtorrent import bencode, bdecode
-import requests
 
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Core.defaults import TDEF_DEFAULTS
 from Tribler.Core.exceptions import TorrentDefNotFinalizedException, NotYetImplementedException
-import Tribler.Core.Utilities.maketorrent as maketorrent
+from Tribler.Core.Utilities import maketorrent
 
 from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL, parse_magnetlink
 from Tribler.Core.Utilities.unicode import dunno2unicode
@@ -87,15 +85,6 @@ class TorrentDef(object):
         f = open(filename, "rb")
         return TorrentDef._read(f)
 
-    @staticmethod
-    def load_from_memory(data):
-        """ Loads a torrent file that is already in memory.
-        :param data: The torrent file data.
-        :return: A TorrentDef object.
-        """
-        data = bdecode(data)
-        return TorrentDef._create(data)
-
     def _read(stream):
         """ Internal class method that reads a torrent file from stream,
         checks it for correctness and sets self.input and self.metainfo
@@ -128,28 +117,6 @@ class TorrentDef(object):
     _create = staticmethod(_create)
 
     @staticmethod
-    def load_from_url(url):
-        """
-        If the URL starts with 'http:' load a BT .torrent or Tribler .tstream
-        file from the URL and convert it into a TorrentDef. If the URL starts
-        with our URL scheme, we convert the URL to a URL-compatible TorrentDef.
-
-        If we can't download the .torrent file, this method returns None.
-
-        @param url URL
-        @return TorrentDef.
-        """
-        # Class method, no locking required
-        try:
-            # TODO Martijn: this request should be done using Twisted
-            response = requests.get(url, timeout=30, verify=False)
-            if response.ok:
-                return TorrentDef.load_from_memory(response.content)
-
-        except InvalidSchema:
-            pass
-
-    @staticmethod
     def load_from_dict(metainfo):
         """
         Load a BT .torrent or Tribler .tribe file from the metainfo dictionary
@@ -160,6 +127,15 @@ class TorrentDef(object):
         """
         # Class method, no locking required
         return TorrentDef._create(metainfo)
+
+    @staticmethod
+    def load_from_memory(data):
+        """ Loads a torrent file that is already in memory.
+        :param data: The torrent file data.
+        :return: A TorrentDef object.
+        """
+        data = bdecode(data)
+        return TorrentDef._create(data)
 
     #
     # Convenience instance methods for publishing new content
