@@ -92,7 +92,7 @@ class TestBoostingManagerSys(TestAsServer):
             defer_param = defer.Deferred()
 
         src_obj = self.boosting_manager.get_source_object(src)
-        if len(src_obj.torrents) < target:
+        if src_obj is None or len(src_obj.torrents) < target:
             reactor.callLater(1, self.check_torrents, src, defer_param, target=target)
         else:
             # notify torrent (emulate scraping)
