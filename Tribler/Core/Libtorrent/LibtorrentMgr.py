@@ -518,12 +518,12 @@ class LibtorrentMgr(TaskManager):
         return None
 
     def start_download_from_url(self, url):
-        try:
-            tdef = TorrentDef.load_from_url(url)
-            if tdef:
-                return self.start_download(tdef=tdef)
-        except:
-            return None
+
+        def _on_loaded(tdef):
+            self.start_download(torrentfilename=None, destdir=None, infohash=None, tdef=tdef)
+
+        deferred = TorrentDef.load_from_url(url)
+        deferred.addCallback(_on_loaded)
 
     def start_download_from_magnet(self, url):
         name, infohash, _ = parse_magnetlink(url)
