@@ -13,7 +13,7 @@ from Tribler.Core.simpledefs import (NTFY_TORRENTS, NTFY_PLAYLISTS, NTFY_COMMENT
                                      SIGNAL_ALLCHANNEL_COMMUNITY, SIGNAL_SEARCH_COMMUNITY, SIGNAL_TORRENT,
                                      SIGNAL_CHANNEL, SIGNAL_CHANNEL_COMMUNITY, SIGNAL_RSS_FEED,
                                      NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_NEW_VERSION, NTFY_TRIBLER,
-                                     NTFY_UPGRADER_TICK)
+                                     NTFY_UPGRADER_TICK, NTFY_TORRENT, NTFY_CHANNEL)
 
 
 class Notifier(object):
@@ -23,7 +23,7 @@ class Notifier(object):
                 NTFY_STARTUP_TICK, NTFY_TRACKERINFO, NTFY_TUNNEL, NTFY_UPGRADER, NTFY_VOTECAST,
                 SIGNAL_ALLCHANNEL_COMMUNITY, SIGNAL_CHANNEL, SIGNAL_CHANNEL_COMMUNITY, SIGNAL_RSS_FEED,
                 SIGNAL_SEARCH_COMMUNITY, SIGNAL_TORRENT, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_NEW_VERSION,
-                NTFY_TRIBLER, NTFY_UPGRADER_TICK]
+                NTFY_TRIBLER, NTFY_UPGRADER_TICK, NTFY_TORRENT, NTFY_CHANNEL]
 
     def __init__(self, use_pool):
         self._logger = logging.getLogger(self.__class__.__name__)

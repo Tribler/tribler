@@ -3,7 +3,8 @@ from twisted.web import server, resource
 from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json, convert_torrent_to_json
 from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT,
                                      NTFY_UPGRADER, NTFY_STARTED, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT,
-                                     NTFY_NEW_VERSION, NTFY_FINISHED, NTFY_TRIBLER, NTFY_UPGRADER_TICK)
+                                     NTFY_NEW_VERSION, NTFY_FINISHED, NTFY_TRIBLER, NTFY_UPGRADER_TICK, NTFY_CHANNEL,
+                                     NTFY_DISCOVERED, NTFY_TORRENT)
 
 MAX_EVENTS_BUFFER_SIZE = 100
 
@@ -27,6 +28,10 @@ class EventsEndpoint(resource.Resource):
       The dictionary contains the name of the corrupt torrent file.
     - new_version_available: This event is emitted when a new version of Tribler is available.
     - tribler_started: An indicator that Tribler has completed the startup procedure and is ready to use.
+    - channel_discovered: An indicator that Tribler has discovered a new channel. The event contains the name,
+      description and dispersy community id of the discovered channel.
+    - torrent_discovered: An indicator that Tribler has discovered a new torrent. The event contains the name and the
+      dispersy community id of the discovered torrent.
     """
 
     def __init__(self, session):
@@ -48,6 +53,8 @@ class EventsEndpoint(resource.Resource):
                                   NTFY_WATCH_FOLDER_CORRUPT_TORRENT, [NTFY_INSERT])
         self.session.add_observer(self.on_new_version_available, NTFY_NEW_VERSION, [NTFY_INSERT])
         self.session.add_observer(self.on_tribler_started, NTFY_TRIBLER, [NTFY_STARTED])
+        self.session.add_observer(self.on_channel_discovered, NTFY_CHANNEL, [NTFY_DISCOVERED])
+        self.session.add_observer(self.on_torrent_discovered, NTFY_TORRENT, [NTFY_DISCOVERED])
 
     def write_data(self, message):
         """
@@ -107,6 +114,12 @@ class EventsEndpoint(resource.Resource):
 
     def on_tribler_started(self, subject, changetype, objectID, *args):
         self.write_data(json.dumps({"type": "tribler_started"}))
+
+    def on_channel_discovered(self, subject, changetype, objectID, *args):
+        self.write_data(json.dumps({"type": "channel_discovered", "event": args[0]}))
+
+    def on_torrent_discovered(self, subject, changetype, objectID, *args):
+        self.write_data(json.dumps({"type": "torrent_discovered", "event": args[0]}))
 
     def render_GET(self, request):
         """

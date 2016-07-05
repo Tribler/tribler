@@ -55,6 +55,8 @@ STATEDIR_CONFIG = 'triblerd.conf'
 NTFY_METADATA = 'metadata'
 NTFY_PEERS = 'peers'
 NTFY_TORRENTS = 'torrents'
+NTFY_TORRENT = 'torrent'
+NTFY_CHANNEL = 'channel'
 NTFY_PLAYLISTS = 'playlists'
 NTFY_COMMENTS = 'comments'
 NTFY_MODIFICATIONS = 'modifications'
@@ -118,6 +120,7 @@ NTFY_BROKEN = 'broken'
 NTFY_SELECT = 'select'
 NTFY_JOINED = 'joined'
 NTFY_REMOVE = 'remove'
+NTFY_DISCOVERED = 'discovered'
 
 # object IDs for NTFY_ACTIVITIES subject
 NTFY_ACT_NONE = 0
