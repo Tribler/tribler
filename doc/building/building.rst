@@ -21,7 +21,7 @@ Run the following commands in your terminal:
 
 .. code-block:: none
 
-    sudo apt-get install devscripts
+    sudo apt-get install devscripts python-setuptools
     cd tribler
     Tribler/Main/Build/update_version_from_git.py
     debuild -i -us -uc -b
