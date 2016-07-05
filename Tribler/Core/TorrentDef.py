@@ -6,16 +6,14 @@ import os
 import logging
 from hashlib import sha1
 from types import StringType, ListType, IntType, LongType
-from requests.exceptions import InvalidSchema
 from libtorrent import bencode, bdecode
-import requests
 
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Core.defaults import TDEF_DEFAULTS
 from Tribler.Core.exceptions import TorrentDefNotFinalizedException, NotYetImplementedException
-import Tribler.Core.Utilities.maketorrent as maketorrent
+from Tribler.Core.Utilities import maketorrent
 
-from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL, parse_magnetlink
+from Tribler.Core.Utilities.utilities import validTorrentFile, isValidURL, parse_magnetlink, requests_get
 from Tribler.Core.Utilities.unicode import dunno2unicode
 
 
@@ -130,24 +128,19 @@ class TorrentDef(object):
     @staticmethod
     def load_from_url(url):
         """
-        If the URL starts with 'http:' load a BT .torrent or Tribler .tstream
-        file from the URL and convert it into a TorrentDef. If the URL starts
-        with our URL scheme, we convert the URL to a URL-compatible TorrentDef.
-
-        If we can't download the .torrent file, this method returns None.
+        Load a BT .torrent or Tribler .tstream file from the URL and
+        convert it into a TorrentDef.
 
         @param url URL
-        @return TorrentDef.
+        @return Deferred
         """
         # Class method, no locking required
-        try:
-            # TODO Martijn: this request should be done using Twisted
-            response = requests.get(url, timeout=30, verify=False)
-            if response.ok:
-                return TorrentDef.load_from_memory(response.content)
+        def _on_response(response):
+            return TorrentDef.load_from_memory(response.content)
 
-        except InvalidSchema:
-            pass
+        deferred = requests_get(url, timeout=10, verify=False)
+        deferred.addCallback(_on_response)
+        return deferred
 
     @staticmethod
     def load_from_dict(metainfo):
