@@ -1,6 +1,9 @@
+import os
 import sys
 
-sys.path.append("twisted")
+
+print os.environ['base_path']
+sys.path.append(os.path.join(os.environ['base_path'], "twisted"))
 
 from twisted.scripts.twistd import run
 run()
