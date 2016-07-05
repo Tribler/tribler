@@ -30,7 +30,7 @@ class Triblerd(object):
         import nose
 
         os.chdir('lib/python2.7/site-packages/Tribler/Test')
-        nose.run(argv=['--nocapture', '--nologcapture', '--verbose', '--stop'])
+        nose.run(argv=['--nocapture', '--nologcapture', '--verbose'])
 
 
 if __name__ == '__main__':
