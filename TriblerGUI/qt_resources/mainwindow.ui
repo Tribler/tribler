@@ -7921,134 +7921,134 @@ border-top: 1px solid #555;
   <customwidget>
    <class>TriblerStatusBar</class>
    <extends>QStatusBar</extends>
-   <header>triblerstatusbar.h</header>
+   <header>TriblerGUI.widgets.triblerstatusbar.h</header>
   </customwidget>
   <customwidget>
    <class>VideoPlayerPage</class>
    <extends>QWidget</extends>
-   <header>videoplayerpage.h</header>
+   <header>TriblerGUI.widgets.videoplayerpage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>VideoPlayerVolumeContainer</class>
    <extends>QWidget</extends>
-   <header>videoplayervolumecontainer.h</header>
+   <header>TriblerGUI.widgets.videoplayervolumecontainer.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>VideoPlayerPositionSlider</class>
    <extends>QSlider</extends>
-   <header>videoplayerpositionslider.h</header>
+   <header>TriblerGUI.widgets.videoplayerpositionslider.h</header>
   </customwidget>
   <customwidget>
    <class>EditChannelPage</class>
    <extends>QWidget</extends>
-   <header>editchannelpage.h</header>
+   <header>TriblerGUI.widgets.editchannelpage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>UnderlineTabButton</class>
    <extends>QToolButton</extends>
-   <header>underlinetabbutton.h</header>
+   <header>TriblerGUI.widgets.underlinetabbutton.h</header>
   </customwidget>
   <customwidget>
    <class>TabButtonPanel</class>
    <extends>QWidget</extends>
-   <header>tabbuttonpanel.h</header>
+   <header>TriblerGUI.widgets.tabbuttonpanel.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>SettingsPage</class>
    <extends>QWidget</extends>
-   <header>settingspage.h</header>
+   <header>TriblerGUI.widgets.settingspage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>SearchResultsPage</class>
    <extends>QWidget</extends>
-   <header>searchresultspage.h</header>
+   <header>TriblerGUI.widgets.searchresultspage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>DownloadsPage</class>
    <extends>QWidget</extends>
-   <header>downloadspage.h</header>
+   <header>TriblerGUI.widgets.downloadspage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>LazyLoadList</class>
    <extends>QListWidget</extends>
-   <header>lazyloadlist.h</header>
+   <header>TriblerGUI.widgets.lazyloadlist.h</header>
   </customwidget>
   <customwidget>
    <class>SubscribedChannelsPage</class>
    <extends>QWidget</extends>
-   <header>subscribedchannelspage.h</header>
+   <header>TriblerGUI.widgets.subscribedchannelspage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>ChannelPage</class>
    <extends>QWidget</extends>
-   <header>channelpage.h</header>
+   <header>TriblerGUI.widgets.channelpage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>LeftMenuPlaylist</class>
    <extends>QListWidget</extends>
-   <header>leftmenuplaylist.h</header>
+   <header>TriblerGUI.widgets.leftmenuplaylist.h</header>
   </customwidget>
   <customwidget>
    <class>HomePage</class>
    <extends>QWidget</extends>
-   <header>homepage.h</header>
+   <header>TriblerGUI.widgets.homepage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>PlaylistPage</class>
    <extends>QWidget</extends>
-   <header>playlistpage.h</header>
+   <header>TriblerGUI.widgets.playlistpage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>DownloadsDetailsTabWidget</class>
    <extends>QTabWidget</extends>
-   <header>downloadsdetailstabwidget.h</header>
+   <header>TriblerGUI.widgets.downloadsdetailstabwidget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>ManagePlaylistPage</class>
    <extends>QWidget</extends>
-   <header>manageplaylistpage.h</header>
+   <header>TriblerGUI.widgets.manageplaylistpage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>CreateTorrentPage</class>
    <extends>QWidget</extends>
-   <header>createtorrentpage.h</header>
+   <header>TriblerGUI.widgets.createtorrentpage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>LoadingPage</class>
    <extends>QWidget</extends>
-   <header>loadingpage.h</header>
+   <header>TriblerGUI.widgets.loadingpage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>SubscriptionsWidget</class>
    <extends>QWidget</extends>
-   <header>subscriptionswidget.h</header>
+   <header>TriblerGUI.widgets.subscriptionswidget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>DiscoveringPage</class>
    <extends>QWidget</extends>
-   <header>discoveringpage.h</header>
+   <header>TriblerGUI.widgets.discoveringpage.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>DiscoveredPage</class>
    <extends>QWidget</extends>
-   <header>discoveredpage.h</header>
+   <header>TriblerGUI.widgets.discoveredpage.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

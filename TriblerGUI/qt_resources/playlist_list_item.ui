@@ -415,7 +415,7 @@ font-size: 12px;</string>
   <customwidget>
    <class>ThumbnailWidget</class>
    <extends>QLabel</extends>
-   <header>thumbnailwidget.h</header>
+   <header>TriblerGUI.widgets.thumbnailwidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

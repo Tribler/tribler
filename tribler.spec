@@ -2,12 +2,18 @@
 
 block_cipher = None
 
+import os
 
-a = Analysis(['TriblerGUI/Main.py'],
+widget_files = []
+for file in os.listdir("TriblerGUI/widgets"):
+    if file.endswith(".py"):
+        widget_files.append('TriblerGUI.widgets.%s' % file[:-3])
+
+a = Analysis(['run_gui.py'],
              pathex=['/Users/martijndevos/Documents/tribler'],
              binaries=None,
-datas=[('Tribler/dispersy/libnacl/libnacl', 'libnacl')],
-             hiddenimports=['csv'],
+datas=[('Tribler/dispersy/libnacl/libnacl', 'libnacl'), ('TriblerGUI/qt_resources', 'qt_resources'), ('TriblerGUI/images', 'images')],
+             hiddenimports=['csv'] + widget_files,
              hookspath=[],
              runtime_hooks=[],
              excludes=[],
