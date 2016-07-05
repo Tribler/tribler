@@ -59,7 +59,7 @@ class AbstractApiTest(AbstractBaseApiTest):
         return body
 
     def parse_response(self, response):
-        #self.assertEqual(response.code, self.expected_response_code)
+        self.assertEqual(response.code, self.expected_response_code)
         if response.code in (200, 400, 500):
             return readBody(response)
         return succeed(None)
