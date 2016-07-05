@@ -4,7 +4,7 @@ from apsw import Connection
 from nose.tools import raises
 from Tribler.Core.Upgrade.torrent_upgrade64 import TorrentMigrator64
 from Tribler.Test.Core.base_test import TriblerCoreTest
-from Tribler.Test.test_libtorrent_download import TORRENT_FILE
+from Tribler.Test.common import TORRENT_FILE
 
 
 class AbstractTorrentUpgrade63to64(TriblerCoreTest):

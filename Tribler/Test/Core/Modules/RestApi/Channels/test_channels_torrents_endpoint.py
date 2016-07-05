@@ -9,8 +9,8 @@ from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
 from Tribler.Test.Core.base_test import MockObject
-from Tribler.Test.test_libtorrent_download import TORRENT_FILE
 from Tribler.Core.Utilities.network_utils import get_random_port
+from Tribler.Test.common import TORRENT_FILE
 from Tribler.dispersy.exception import CommunityNotFoundException
 
 

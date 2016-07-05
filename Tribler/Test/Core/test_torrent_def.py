@@ -6,6 +6,7 @@ import os
 import shutil
 from tempfile import mkdtemp
 from nose.tools import raises
+from Tribler.Test.common import TORRENT_FILE
 from libtorrent import bdecode
 from twisted.internet import reactor
 from twisted.web.server import Site
@@ -17,7 +18,6 @@ from Tribler.Core.Utilities.utilities import isValidTorrentFile
 from Tribler.Core.exceptions import TorrentDefNotFinalizedException, HttpError
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
 from Tribler.Test.test_as_server import BaseTestCase, TESTS_DATA_DIR
-from Tribler.Test.test_libtorrent_download import TORRENT_FILE
 from Tribler.Core.Utilities.network_utils import get_random_port
 
 

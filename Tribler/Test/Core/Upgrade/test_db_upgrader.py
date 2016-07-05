@@ -7,7 +7,7 @@ from Tribler.Core.Upgrade.db_upgrader import DBUpgrader, VersionNoLongerSupporte
 from Tribler.Core.Utilities.utilities import fix_torrent
 from Tribler.Core.leveldbstore import LevelDbStore
 from Tribler.Test.Core.Upgrade.upgrade_base import AbstractUpgrader, MockTorrentStore
-from Tribler.Test.test_libtorrent_download import TORRENT_FILE, TORRENT_FILE_INFOHASH
+from Tribler.Test.common import TORRENT_FILE_INFOHASH, TORRENT_FILE
 
 
 class TestDBUpgrader(AbstractUpgrader):

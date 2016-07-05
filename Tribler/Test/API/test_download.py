@@ -5,9 +5,8 @@ import shutil
 import threading
 from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_DOWNLOADING
-from Tribler.Test.common import UBUNTU_1504_INFOHASH
+from Tribler.Test.common import UBUNTU_1504_INFOHASH, TORRENT_FILE
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.test_libtorrent_download import TORRENT_FILE
 
 
 class TestDownload(TestAsServer):

@@ -1,7 +1,7 @@
 import os
 import shutil
+from Tribler.Test.common import TORRENT_FILE
 from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
-from Tribler.Test.test_libtorrent_download import TORRENT_FILE
 
 
 class TestWatchFolder(TestAsServer):
