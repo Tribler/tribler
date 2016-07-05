@@ -1,11 +1,11 @@
 import os
 import sys
-from PyQt5.QtCore import QProcess
+from PyQt5.QtCore import QProcess, QProcessEnvironment
 from PyQt5.QtWidgets import QApplication
 import TriblerGUI
 
 from TriblerGUI.event_request_manager import EventRequestManager
-
+from TriblerGUI.utilities import get_base_path
 
 START_FAKE_API = False
 
@@ -13,7 +13,10 @@ START_FAKE_API = False
 class CoreManager(object):
 
     def __init__(self):
+        environment = QProcessEnvironment.systemEnvironment()
+        environment.insert("base_path", get_base_path())
         self.core_process = QProcess()
+        self.core_process.setProcessEnvironment(environment)
         self.core_process.readyReadStandardOutput.connect(self.on_ready_read_stdout)
         self.core_process.readyReadStandardError.connect(self.on_ready_read_stderr)
         self.core_process.finished.connect(self.on_finished)
@@ -22,10 +25,11 @@ class CoreManager(object):
         self.shutting_down = False
 
     def start(self):
+        core_script_path = os.path.join(get_base_path(), 'scripts', 'start_core.py')
         if START_FAKE_API:
             self.core_process.start("python %s/scripts/start_fake_core.py" % os.path.dirname(TriblerGUI.__file__))
         else:
-            self.core_process.start("python %s/scripts/start_core.py -n tribler" % os.path.dirname(TriblerGUI.__file__))
+            self.core_process.start("python %s -n tribler" % core_script_path)
 
         self.events_manager.connect()
 
