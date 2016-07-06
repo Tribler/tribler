@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Process;
@@ -96,14 +97,16 @@ public class PythonService extends Service implements Runnable {
     }
 
     protected void doStartForeground(Bundle extras) {
-        String serviceTitle = extras.getString("serviceTitle");
-        String serviceDescription = extras.getString("serviceDescription");
+        Context appContext = getApplicationContext();
+        ApplicationInfo appInfo = appContext.getApplicationInfo();
 
-        Context context = getApplicationContext();
+        String serviceTitle = extras.getString("serviceTitle", TAG);
+        String serviceDescription = extras.getString("serviceDescription", "");
+        int serviceIconResId = extras.getInt("serviceIconId", appInfo.icon);
 
         NotificationCompat.Builder builder =
                 new NotificationCompat.Builder(this)
-                        .setSmallIcon(context.getApplicationInfo().icon)
+                        .setSmallIcon(serviceIconResId)
                         .setContentTitle(serviceTitle)
                         .setContentText(serviceDescription);
 
