@@ -3,6 +3,8 @@ import json
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import UNKNOWN_CHANNEL_RESPONSE_MSG
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
+from Tribler.Test.Core.base_test import MockObject
+from Tribler.dispersy.exception import CommunityNotFoundException
 
 
 class TestChannelsPlaylistEndpoints(AbstractTestChannelsEndpoint):
@@ -58,3 +60,82 @@ class TestChannelsPlaylistEndpoints(AbstractTestChannelsEndpoint):
         self.should_check_equality = False
         return self.do_request('channels/discovered/%s/playlists' % channel_cid,
                                expected_code=200).addCallback(verify_playlists)
+
+    @deferred(timeout=10)
+    def test_create_playlist_no_channel(self):
+        """
+        Testing whether the API returns error 404 if the channel does not exist when creating a playlist
+        """
+        self.create_my_channel("my channel", "this is a short description")
+        post_params = {"name": "test1", "description": "test2"}
+        return self.do_request('channels/discovered/abcd/playlists', expected_code=404,
+                               post_data=post_params, request_type='PUT')
+
+    @deferred(timeout=10)
+    def test_create_playlist_no_name(self):
+        """
+        Testing whether the API returns error 400 if the name is missing when creating a new playlist
+        """
+        self.create_my_channel("my channel", "this is a short description")
+        expected_json = {"error": "name parameter missing"}
+        return self.do_request('channels/discovered/%s/playlists' % 'fakedispersyid'.encode('hex'),
+                               expected_code=400, expected_json=expected_json, request_type='PUT')
+
+    @deferred(timeout=10)
+    def test_create_playlist_no_description(self):
+        """
+        Testing whether the API returns error 400 if the description is missing when creating a new playlist
+        """
+        self.create_my_channel("my channel", "this is a short description")
+        expected_json = {"error": "description parameter missing"}
+        post_params = {"name": "test"}
+        return self.do_request('channels/discovered/%s/playlists' % 'fakedispersyid'.encode('hex'), expected_code=400,
+                               expected_json=expected_json, post_data=post_params, request_type='PUT')
+
+    @deferred(timeout=10)
+    def test_create_playlist_no_cmty(self):
+        """
+        Testing whether the API returns error 404 if the the channel community is missing when creating a new playlist
+        """
+        self.create_my_channel("my channel", "this is a short description")
+        expected_json = {"error": "description parameter missing"}
+        post_params = {"name": "test1", "description": "test2"}
+
+        def mocked_get_community(_):
+            raise CommunityNotFoundException("abcd")
+
+        mock_dispersy = MockObject()
+        mock_dispersy.get_community = mocked_get_community
+        self.session.get_dispersy_instance = lambda: mock_dispersy
+
+        return self.do_request('channels/discovered/%s/playlists' % 'fakedispersyid'.encode('hex'), expected_code=404,
+                               expected_json=expected_json, post_data=post_params, request_type='PUT')
+
+    @deferred(timeout=10)
+    def test_create_playlist(self):
+        """
+        Testing whether the API can create a new playlist in a given channel
+        """
+        mock_channel_community = MockObject()
+        mock_channel_community.called_create = False
+        self.create_fake_channel("channel", "")
+
+        def verify_playlist_created(_):
+            self.assertTrue(mock_channel_community.called_create)
+
+        def create_playlist_called(name, description, _):
+            self.assertEqual(name, "test1")
+            self.assertEqual(description, "test2")
+            mock_channel_community.called_create = True
+
+        mock_channel_community.create_playlist = create_playlist_called
+        mock_dispersy = MockObject()
+        mock_dispersy.get_community = lambda _: mock_channel_community
+        self.session.get_dispersy_instance = lambda: mock_dispersy
+
+        expected_json = {"created": True}
+        post_params = {"name": "test1", "description": "test2"}
+
+        return self.do_request('channels/discovered/%s/playlists' % 'fakedispersyid'.encode('hex'), expected_code=200,
+                               expected_json=expected_json, post_data=post_params, request_type='PUT')\
+            .addCallback(verify_playlist_created)
