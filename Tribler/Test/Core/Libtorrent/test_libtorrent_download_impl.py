@@ -7,12 +7,13 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
 from Tribler.Core.Utilities.twisted_thread import deferred, reactor
+from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
 
 
 class TestLibtorrentDownloadImpl(TestAsServer):
     """
-    This class provides unit tests tha tes tthe LibtorrentDownloadImpl class.
+    This class provides unit tests that test the LibtorrentDownloadImpl class.
     """
 
     def setUpPreSession(self):
@@ -161,3 +162,24 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         result_deferred.addCallback(callback)
 
         return result_deferred
+
+
+class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
+
+    def setUp(self, annotate=True):
+        TriblerCoreTest.setUp(self, annotate=annotate)
+        self.libtorrent_download_impl = LibtorrentDownloadImpl(None, None)
+        mock_handle = MockObject()
+        mock_status = MockObject()
+        mock_handle.is_valid = lambda: True
+        mock_handle.status = lambda: mock_status
+        self.libtorrent_download_impl.handle = mock_handle
+
+    def test_get_share_mode(self):
+        """
+        Test whether we return the right share mode when requested in the LibtorrentDownloadImpl
+        """
+        self.libtorrent_download_impl.handle.status().share_mode = False
+        self.assertFalse(self.libtorrent_download_impl.get_share_mode())
+        self.libtorrent_download_impl.handle.status().share_mode = True
+        self.assertTrue(self.libtorrent_download_impl.get_share_mode())
