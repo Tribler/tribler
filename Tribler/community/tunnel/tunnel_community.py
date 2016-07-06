@@ -1121,12 +1121,11 @@ class TunnelCommunity(Community):
                                                       candidate.sock_addr, candidate_mid,
                                                       extend_candidate.sock_addr, extend_candidate_mid))
 
-
-            self.increase_bytes_sent(to_circuit_id, self.send_cell([extend_candidate],
-                                                                    u"create", (to_circuit_id,
-                                                                                message.payload.node_id,
-                                                                                message.payload.node_public_key,
-                                                                                message.payload.key)))
+            self.send_cell([extend_candidate],
+                           u"create", (to_circuit_id,
+                                       message.payload.node_id,
+                                       message.payload.node_public_key,
+                                       message.payload.key))
 
     def on_extended(self, messages):
         for message in messages:
