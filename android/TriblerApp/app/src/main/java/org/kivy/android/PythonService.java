@@ -102,11 +102,11 @@ public class PythonService extends Service implements Runnable {
 
         String serviceTitle = extras.getString("serviceTitle", TAG);
         String serviceDescription = extras.getString("serviceDescription", "");
-        int serviceIconResId = extras.getInt("serviceIconId", appInfo.icon);
+        int serviceIconId = extras.getInt("serviceIconId", appInfo.icon);
 
         NotificationCompat.Builder builder =
                 new NotificationCompat.Builder(this)
-                        .setSmallIcon(serviceIconResId)
+                        .setSmallIcon(serviceIconId)
                         .setContentTitle(serviceTitle)
                         .setContentText(serviceDescription);
 
