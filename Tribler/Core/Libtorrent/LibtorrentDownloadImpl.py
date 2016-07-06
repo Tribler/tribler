@@ -1169,7 +1169,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             return False
         return True
 
-    @checkHandleAndSynchronize
+    @checkHandleAndSynchronize()
     def get_share_mode(self):
         return self.handle.status().share_mode
 
