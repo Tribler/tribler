@@ -1,5 +1,5 @@
 from pythonforandroid.toolchain import PythonRecipe, shutil, current_directory
-from os.path import join
+from os.path import join, exists
 from sh import mkdir, cp
 
 """
@@ -11,7 +11,7 @@ class LocalTriblerRecipe(PythonRecipe):
 
     version = 'local'
 
-    depends = ['apsw', 'cryptography', 'ffmpeg', 'libsodium', 'libtorrent', 'm2crypto',
+    depends = ['apsw', 'cryptography', 'libsodium', 'libtorrent', 'm2crypto',
                'netifaces', 'openssl', 'pil', 'pycrypto', 'pyleveldb', 'python2',
                'setuptools', 'twisted',
               ]
@@ -51,9 +51,10 @@ class LocalTriblerRecipe(PythonRecipe):
 
     def postbuild_arch(self, arch):
         super(LocalTriblerRecipe, self).postbuild_arch(arch)
-        # Install ffmpeg binary
-        shutil.copyfile(self.get_recipe('ffmpeg', self.ctx).get_build_bin(arch),
-                        '/home/paul/repos/tribler-app/android/TriblerService/service/ffmpeg')
+        target ='/home/paul/repos/tribler-app/android/TriblerService/service/ffmpeg'
+        if not exists(target):
+            # Install ffmpeg binary
+            shutil.copyfile(self.get_recipe('ffmpeg', self.ctx).get_build_bin(arch), target)
 
 
 recipe = LocalTriblerRecipe()
