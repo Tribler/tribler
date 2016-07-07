@@ -48,6 +48,15 @@ class NotYetImplementedException(TriblerException):
         TriblerException.__init__(self, msg)
 
 
+class HttpError(TriblerException):
+
+    """ HTTP error code 400+ """
+
+    def __init__(self, response=None, msg=None):
+        TriblerException.__init__(self, msg)
+        self.response = response
+
+
 class DuplicateChannelNameError(TriblerException):
 
     """ The Channel name already exists in the ChannelManager channel list,
