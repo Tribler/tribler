@@ -8,8 +8,15 @@ from traceback import print_exc
 from urlparse import urlsplit, parse_qsl
 import binascii
 import logging
-
 from libtorrent import bencode, bdecode
+
+from twisted.internet import reactor
+from twisted.web import http
+from twisted.web.client import Agent, readBody
+from twisted.web.http_headers import Headers
+
+from Tribler.Core.version import version_id
+from Tribler.Core.exceptions import HttpError
 
 logger = logging.getLogger(__name__)
 
@@ -183,6 +190,23 @@ def isValidURL(url):
     if r[0] == '' or r[1] == '':
         return False
     return True
+
+
+def http_get(uri):
+
+    def _on_response(response):
+        if response.code == http.OK:
+            return readBody(response)
+        raise HttpError(response)
+
+    agent = Agent(reactor)
+    deferred = agent.request(
+        'GET',
+        uri,
+        Headers({'User-Agent': ['Tribler ' + version_id]}),
+        None)
+    deferred.addCallback(_on_response)
+    return deferred
 
 
 def parse_magnetlink(url):

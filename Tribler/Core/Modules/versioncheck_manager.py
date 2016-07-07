@@ -2,16 +2,15 @@ from distutils.version import LooseVersion
 import json
 import logging
 
-from twisted.internet import reactor
 from twisted.internet.error import ConnectError, DNSLookupError
 from twisted.internet.task import LoopingCall
-from twisted.web.client import Agent, readBody
 from twisted.web.error import SchemeNotSupported
-from twisted.web.http_headers import Headers
 
 from Tribler.Core.simpledefs import NTFY_INSERT, NTFY_NEW_VERSION
 from Tribler.Core.version import version_id
 from Tribler.dispersy.taskmanager import TaskManager
+from Tribler.Core.Utilities.utilities import http_get
+from Tribler.Core.exceptions import HttpError
 
 
 VERSION_CHECK_URL = 'https://api.github.com/repos/tribler/tribler/releases/latest'
@@ -40,16 +39,15 @@ class VersionCheckManager(TaskManager):
             if LooseVersion(version) > LooseVersion(version_id):
                 self.session.notifier.notify(NTFY_NEW_VERSION, NTFY_INSERT, None, version)
 
-        def on_request_error(error):
-            error.trap(SchemeNotSupported, ConnectError, DNSLookupError)
-            self._logger.error("Error when performing version check request: %s", error)
+        def on_request_error(failure):
+            failure.trap(SchemeNotSupported, ConnectError, DNSLookupError)
+            self._logger.error("Error when performing version check request: %s", failure)
 
-        def parse_response(response):
-            if response.code == 200:
-                return readBody(response)
-            else:
-                self._logger.warning("Got response code %s when performing version check request", response.code)
+        def on_response_error(failure):
+            failure.trap(HttpError)
+            self._logger.warning("Got response code %s when performing version check request",
+                                 failure.value.response.code)
 
-        agent = Agent(reactor)
-        return agent.request('GET', VERSION_CHECK_URL, Headers({'User-Agent': ['Tribler ' + version_id]}), None)\
-            .addCallback(parse_response).addCallback(parse_body).addErrback(on_request_error)
+        deferred = http_get(VERSION_CHECK_URL)
+        deferred.addErrback(on_response_error).addCallback(parse_body).addErrback(on_request_error)
+        return deferred
