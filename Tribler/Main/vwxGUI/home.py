@@ -874,6 +874,7 @@ class ActivityPanel(NewTorrentPanel):
     def __init__(self, parent):
         HomePanel.__init__(self, parent, 'Recent Activity', SEPARATOR_GREY, (1, 0))
         session = self.utility.session
+        # TODO(emilon): This observer should be removed when shutting down.
         session.add_observer(self.on_tunnel_remove, NTFY_TUNNEL, [NTFY_REMOVE])
 
     @forceWxThread
@@ -886,6 +887,8 @@ class ActivityPanel(NewTorrentPanel):
 
     @forceWxThread
     def on_tunnel_remove(self, subject, change_type, tunnel, candidate):
+        if not self:
+            return
         self.onActivity("Tunnel removed with: [Up = " + str(tunnel.bytes_up) +
                         " bytes | Down = " + str(tunnel.bytes_down) + " bytes]")
 
