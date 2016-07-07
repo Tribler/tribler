@@ -718,6 +718,7 @@ class ABCApp(object):
         new_version_dialog.ShowModal()
         new_version_dialog.Destroy()
 
+    @forceWxThread
     def sesscb_ntfy_magnet(self, subject, changetype, objectID, *args):
         if changetype == NTFY_MAGNET_STARTED:
             self.guiUtility.library_manager.magnet_started(objectID)
