@@ -240,7 +240,7 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
 
         torrent_db_columns = ['Torrent.torrent_id', 'infohash', 'Torrent.name', 'length', 'Torrent.category',
                               'num_seeders', 'num_leechers', 'last_tracker_check', 'ChannelTorrents.dispersy_id']
-        torrent_info = self.channel_db_handler.getTorrentFromChannelId(channel_info[0], self.infohash.decode('hex'),
+        torrent_info = self.channel_db_handler.getTorrentFromChannelId(channel_info[0], self.path.decode('hex'),
                                                                        torrent_db_columns)
 
         if torrent_info is None:
