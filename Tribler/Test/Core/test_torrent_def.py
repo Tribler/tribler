@@ -3,15 +3,22 @@
 
 import logging
 import os
+import shutil
 from nose.tools import raises
-
 from libtorrent import bdecode
+from tempfile import mkdtemp
+from twisted.internet import reactor
+from twisted.web.server import Site
+from twisted.web.static import File
 
+from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.utilities import isValidTorrentFile
-from Tribler.Core.exceptions import TorrentDefNotFinalizedException
+from Tribler.Core.exceptions import TorrentDefNotFinalizedException, HttpError
 from Tribler.Core.simpledefs import INFOHASH_LENGTH
-from Tribler.Test.test_as_server import BaseTestCase, TESTS_API_DIR, TESTS_DATA_DIR
+from Tribler.Test.test_as_server import BaseTestCase, TESTS_DATA_DIR
+from Tribler.Test.test_libtorrent_download import TORRENT_FILE
+from Tribler.Core.Utilities.network_utils import get_random_port
 
 
 TRACKER = 'http://www.tribler.org/announce'
@@ -27,6 +34,13 @@ class TestTorrentDef(BaseTestCase):
     def __init__(self, *argv, **kwargs):
         super(TestTorrentDef, self).__init__(*argv, **kwargs)
         self._logger = logging.getLogger(self.__class__.__name__)
+
+    def setUpFileServer(self, port, path):
+        # Create a local file server, can be used to serve local files. This is preferred over an external network
+        # request in order to get files.
+        resource = File(path)
+        factory = Site(resource)
+        self.file_server = reactor.listenTCP(port, factory)
 
     def test_add_content_file_and_copy(self):
         """ Add a single file to a TorrentDef """
@@ -199,13 +213,45 @@ class TestTorrentDef(BaseTestCase):
         self.assert_(t1.is_private() == True)
         self.assert_(t2.is_private() == False)
 
+    @deferred(timeout=10)
     def test_load_from_url(self):
-        # TODO martijn we should create a local HTTP server to serve this torrent
-        torrent = TorrentDef.load_from_url("http://torrent.ubuntu.com/releases/wily/release/server/ubuntu-15.10-server-ppc64el.iso.torrent")
-        self.assertTrue(isValidTorrentFile(torrent.get_metainfo()))
+        # Setup file server to serve torrent file
+        self.session_base_dir = mkdtemp(suffix="_tribler_test_load_from_url")
+        files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
+        os.mkdir(files_path)
+        shutil.copyfile(TORRENT_FILE, os.path.join(files_path, 'ubuntu.torrent'))
 
+        file_server_port = get_random_port()
+        self.setUpFileServer(file_server_port, files_path)
+
+        def _on_load(torrent_def):
+            self.assertTrue(isValidTorrentFile(torrent_def.get_metainfo()))
+            self.assertEqual(TorrentDef.load(TORRENT_FILE), torrent_def)
+
+        torrent_url = 'http://localhost:%d/ubuntu.torrent' % file_server_port
+        deferred = TorrentDef.load_from_url(torrent_url)
+        deferred.addCallback(_on_load)
+        return deferred
+
+    @deferred(timeout=10)
     def test_load_from_url_404(self):
-        self.assertFalse(TorrentDef.load_from_url("http://google.com/example34234.torrent"))
+        # Setup file server to serve torrent file
+        self.session_base_dir = mkdtemp(suffix="_tribler_test_load_from_url")
+        files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
+        os.mkdir(files_path)
+        # Do not copy the torrent file to produce 404
+
+        file_server_port = get_random_port()
+        self.setUpFileServer(file_server_port, files_path)
+
+        def _on_error(failure):
+            failure.trap(HttpError)
+            self.assertEqual(failure.value.response.code, 404)
+
+        torrent_url = 'http://localhost:%d/ubuntu.torrent' % file_server_port
+        deferred = TorrentDef.load_from_url(torrent_url)
+        deferred.addErrback(_on_error)
+        return deferred
 
     def test_torrent_encoding(self):
         t = TorrentDef()
