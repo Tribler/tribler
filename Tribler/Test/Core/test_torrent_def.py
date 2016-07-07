@@ -4,9 +4,9 @@
 import logging
 import os
 import shutil
+from tempfile import mkdtemp
 from nose.tools import raises
 from libtorrent import bdecode
-from tempfile import mkdtemp
 from twisted.internet import reactor
 from twisted.web.server import Site
 from twisted.web.static import File
