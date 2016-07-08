@@ -1,7 +1,6 @@
 # Written by ABC authors and Arno Bakker
 # see LICENSE.txt for license information
 import os
-import sys
 import logging
 from random import gauss
 
@@ -229,19 +228,3 @@ def get_download_upload_speed(dslist):
         total_down += ds.get_current_speed(DOWNLOAD)
         total_up += ds.get_current_speed(UPLOAD)
     return total_down, total_up
-
-
-def initialize_x11_threads():
-    if sys.platform == 'linux2' and os.environ.get("TRIBLER_INITTHREADS", "true").lower() == "true":
-        for module in ['wx', 'wxversion', 'Tribler.vlc', 'vlc']:
-            assert module not in sys.modules, "Called initialize_x11_threads after importing X related module: %s" % module
-        try:
-            import ctypes
-            x11 = ctypes.cdll.LoadLibrary('libX11.so.6')
-            if not x11.XInitThreads():
-                logger.error("Failed to initialize XInitThreads")
-            os.environ["TRIBLER_INITTHREADS"] = "False"
-        except OSError as e:
-            logger.error("Failed to call XInitThreads '%s'", str(e))
-        except Exception as e:
-            logger.exception("Failed to call xInitThreads: '%s'", repr(e))
