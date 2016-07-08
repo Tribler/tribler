@@ -128,10 +128,12 @@ class UnhandledTwistedExceptionCatcher(object):
         addObserver(unhandled_error_observer)
 
     def check_exceptions(self):
-        num_twisted_exceptions = len(self._twisted_exceptions)
+        exceptions = self._twisted_exceptions
+        self._twisted_exceptions = []
+        num_twisted_exceptions = len(exceptions)
         if num_twisted_exceptions > 0:
             raise Exception("Test raised %d unhandled Twisted exceptions:\n%s"
-                            % (num_twisted_exceptions, '\n-------------------\n'.join(self._twisted_exceptions)))
+                            % (num_twisted_exceptions, '\n-------------------\n'.join(exceptions)))
 
 
 def prepare_xml_rss(target_path, filename):
