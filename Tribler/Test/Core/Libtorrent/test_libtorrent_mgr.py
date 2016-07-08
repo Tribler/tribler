@@ -33,6 +33,8 @@ class FakeTriblerSession:
     def get_state_dir(self):
         return self.state_dir
 
+    def set_listen_port_runtime(self, _):
+        pass
 
 class TestLibtorrentMgr(AbstractServer):
 
