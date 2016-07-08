@@ -35,11 +35,6 @@ class TriblerCoreTestThreadpoolManager(TriblerCoreTest):
         return self.callback_deferred
 
     @deferred(timeout=1)
-    def test_call_in_thread(self):
-        self.tpm.call_in_thread(0.0, self.callback_func)
-        return self.callback_deferred
-
-    @deferred(timeout=1)
     def test_delayed_call_in_thread(self):
         self.tpm.call_in_thread(0.2, self.callback_func)
         return self.callback_deferred
