@@ -123,7 +123,7 @@ class UnhandledTwistedExceptionCatcher(object):
 
         def unhandled_error_observer(event):
             if event['isError']:
-                self._twisted_exceptions.append('\n'.join([repr(key) for key in event.keys()]))
+                self._twisted_exceptions.append('\n'.join(["%r: %r" % (key, value) for key, value in event.iteritems]))
 
         addObserver(unhandled_error_observer)
 
