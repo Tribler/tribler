@@ -45,6 +45,10 @@ from Tribler.dispersy.tool.clean_observers import clean_twisted_observers
 from Tribler.dispersy.util import blockingCallFromThread
 
 
+# Register yappi profiler
+from Tribler.dispersy.utils import twistd_yappi
+
+
 def check_socks5_port(val):
     socks5_port = int(val)
     if socks5_port <= 0:
@@ -79,11 +83,6 @@ def check_json_port(val):
     return json_port
 check_json_port.coerceDoc = "Json API port must be greater than 0."
 
-def check_yappi_args(profile):
-    if profile and profile not in ["wall", "cpu"]:
-        raise ValueError("Crawler file does not exist")
-    return profile
-check_yappi_args.coerceDoc = "Profile option should be wall or cpu."
 
 class Options(usage.Options):
     optFlags = [
@@ -99,17 +98,11 @@ class Options(usage.Options):
         ["crawl", "c", None, 'Enable crawler and use the keypair specified in the given filename', check_crawler_keypair],
         ["json", "j", 0, 'Enable JSON api, which will run on the provided port number ' +
          '(only available if the crawler is enabled)', check_json_port],
-        ["yappi", "y", None, "Profiling mode, either 'wall' or 'cpu'", check_yappi_args],
     ]
 
 
 logging.config.fileConfig("logger.conf")
 logger = logging.getLogger('TunnelMain')
-
-try:
-    import yappi
-except ImportError:
-    logger.error("Yappi not installed, profiling options won't be available")
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
 
@@ -299,38 +292,15 @@ class Tunnel(object):
 class LineHandler(LineReceiver):
     delimiter = os.linesep
 
-    def __init__(self, anon_tunnel, profile):
+    def __init__(self, anon_tunnel):
         self.anon_tunnel = anon_tunnel
-        self.profile = profile
 
     def lineReceived(self, line):
         anon_tunnel = self.anon_tunnel
-        profile = self.profile
 
         if line == 'threads':
             for thread in threading.enumerate():
                 logger.debug("%s \t %d", thread.name, thread.ident)
-        elif line == 'p':
-            if profile:
-                for func_stats in yappi.get_func_stats().sort("subtime")[:50]:
-                    logger.debug("YAPPI: %10dx  %10.3f %s", func_stats.ncall, func_stats.tsub, func_stats.name)
-            else:
-                logger.error("Profiling disabled!")
-
-        elif line == 'P':
-            if profile:
-                filename = 'callgrindc_%d.yappi' % anon_tunnel.dispersy.lan_address[1]
-                yappi.get_func_stats().save(filename, type='callgrind')
-            else:
-                logger.error("Profiling disabled!")
-
-        elif line == 't':
-            if profile:
-                yappi.get_thread_stats().sort("totaltime").print_all()
-
-            else:
-                logger.error("Profiling disabled!")
-
         elif line == 'c':
             logger.debug("========\nCircuits\n========\nid\taddress\t\t\t\t\tgoal\thops\tIN (MB)\tOUT (MB)\tinfohash\ttype")
             for circuit_id, circuit in anon_tunnel.community.circuits.items():
@@ -445,12 +415,6 @@ class TunnelHelperServiceMaker(object):
         introduce_port = options["introduce"]
         dispersy_port = options["dispersy"]
         crawl_keypair_filename = options["crawl"]
-        profile = options["yappi"]
-
-        if profile:
-            yappi.set_clock_type(profile)
-            yappi.start(builtins=True)
-            logger.error("Profiling using %s time" % yappi.get_clock_type()['type'])
 
         settings = TunnelSettings()
 
@@ -476,7 +440,7 @@ class TunnelHelperServiceMaker(object):
             logger.info("Multichain disabled")
 
         tunnel = Tunnel(settings, crawl_keypair_filename, dispersy_port)
-        StandardIO(LineHandler(tunnel, profile))
+        StandardIO(LineHandler(tunnel))
 
         def signal_handler(sig, _):
             msg("Received shut down signal %s" % sig)
