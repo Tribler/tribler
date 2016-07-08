@@ -15,6 +15,9 @@ class ChannelsPlaylistsEndpoint(BaseChannelsEndpoint):
         BaseChannelsEndpoint.__init__(self, session)
         self.cid = cid
 
+    def getChild(self, path, request):
+        return ChannelsModifyPlaylistsEndpoint(self.session, self.cid, path)
+
     def render_GET(self, request):
         """
         .. http:get:: /channels/discovered/(string: channelid)/playlists
@@ -117,3 +120,58 @@ class ChannelsPlaylistsEndpoint(BaseChannelsEndpoint):
         channel_community.create_playlist(parameters['name'][0], parameters['description'][0], [])
 
         return json.dumps({"created": True})
+
+
+class ChannelsModifyPlaylistsEndpoint(BaseChannelsEndpoint):
+    """
+    This class is responsible for requests that are modifying a specific playlist in a channel.
+    """
+
+    def __init__(self, session, cid, playlist_id):
+        BaseChannelsEndpoint.__init__(self, session)
+        self.cid = cid
+        self.playlist_id = playlist_id
+
+    def render_DELETE(self, request):
+        """
+        .. http:delete:: /channels/discovered/(string: channelid)/playlists/(int: playlistid)
+
+        Remove a playlist with a specified playlist id.
+
+            **Example request**:
+
+            .. sourcecode:: none
+
+                curl -X DELETE http://localhost:8085/channels/discovered/abcd/playlists/3
+
+            **Example response**:
+
+            .. sourcecode:: javascript
+
+                {
+                    "removed": True
+                }
+
+            :statuscode 404: if the specified channel (community) or playlist does not exist
+        """
+        channel_info = self.get_channel_from_db(self.cid)
+        if channel_info is None:
+            return ChannelsPlaylistsEndpoint.return_404(request)
+
+        playlist = self.channel_db_handler.getPlaylist(self.playlist_id, ['Playlists.dispersy_id', 'Playlists.id'])
+        if playlist is None:
+            return BaseChannelsEndpoint.return_404(request, message="this playlist cannot be found")
+
+        channel_community = self.get_community_for_channel_id(channel_info[0])
+        if channel_community is None:
+            return BaseChannelsEndpoint.return_404(request,
+                                                   message="the community for the specific channel cannot be found")
+
+        # Remove all torrents from this playlist
+        playlist_torrents = self.channel_db_handler.get_torrent_ids_from_playlist(playlist[1])
+        channel_community.remove_playlist_torrents(playlist[0], [dispersy_id for dispersy_id, in playlist_torrents])
+
+        # Remove the playlist itself
+        channel_community.remove_playlists([playlist[0]])
+
+        return json.dumps({"removed": True})
