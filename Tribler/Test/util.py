@@ -123,7 +123,12 @@ class UnhandledTwistedExceptionCatcher(object):
 
         def unhandled_error_observer(event):
             if event['isError']:
-                self._twisted_exceptions.append('\n'.join([repr(key) for key in event.keys()]))
+                if 'log_legacy' in event and 'log_text' in event:
+                    self._twisted_exceptions.append(event['log_text'])
+                elif 'log_failure' in event:
+                    self._twisted_exceptions.append(str(event['log_failure']))
+                else:
+                    self._twisted_exceptions.append('\n'.join(["%r: %r" % (key, value) for key, value in event.iteritems()]))
 
         addObserver(unhandled_error_observer)
 
