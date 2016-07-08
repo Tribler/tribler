@@ -1,16 +1,16 @@
 import base64
 import json
-import os
 import urllib
+import os
 import shutil
 
 from Tribler.Core.Modules.restapi.channels.channels_torrents_endpoint import ChannelModifyTorrentEndpoint
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
 from Tribler.Test.Core.base_test import MockObject
 from Tribler.Test.test_libtorrent_download import TORRENT_FILE
+from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.dispersy.exception import CommunityNotFoundException
 
 
@@ -158,6 +158,7 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
         self.session.lm.ltmgr = MockObject()
         self.session.lm.ltmgr.shutdown = lambda: True
 
+    @deferred(timeout=10)
     def test_add_torrent_from_url_to_channel_with_description(self):
         """
         Testing whether a torrent can be added to a channel using the API
@@ -168,43 +169,39 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
         files_path = os.path.join(self.session_base_dir, 'http_torrent_files')
         os.mkdir(files_path)
         shutil.copyfile(TORRENT_FILE, os.path.join(files_path, 'ubuntu.torrent'))
+
         file_server_port = get_random_port()
         self.setUpFileServer(file_server_port, files_path)
 
         def verify_method_invocation(channel_id, torrent_def, extra_info=None, forward=True):
             self.assertEqual(my_channel_id, channel_id)
-            self.assertEqual(TorrentDef.load(os.path.join(files_path, 'ubuntu.torrent')), torrent_def)
+            self.assertEqual(TorrentDef.load(TORRENT_FILE), torrent_def)
             self.assertEqual({"description": "test"}, extra_info or {})
             self.assertEqual(True, forward)
 
         self.session.add_torrent_def_to_channel = verify_method_invocation
 
-        # Martijn: We are directly invoking the endpoint here. This is because the requests library used by
-        # TorrentDef.load_from_url is not working well when performing a request using do_request and seems to hang.
-        torrent_url = 'http://localhost:%s/ubuntu.torrent' % file_server_port
-        endpoint = ChannelModifyTorrentEndpoint(self.session, 'fakedispersyid', torrent_url)
-        fake_request = MockObject()
-        fake_request.content = MockObject()
-        fake_request.content.read = lambda: "description=test"
-        self.assertDictEqual(json.loads(endpoint.render_PUT(fake_request)), {"added": torrent_url})
+        torrent_url = 'http://localhost:%d/ubuntu.torrent' % file_server_port
+        url = 'channels/discovered/%s/torrents/%s' % ('fakedispersyid'.encode('hex'), urllib.quote_plus(torrent_url))
+        return self.do_request(url, expected_code=200, expected_json={"added": torrent_url}, request_type='PUT',
+                               post_data={"description": "test"})
 
     @deferred(timeout=10)
-    def test_add_torrent_from_magnet_to_channel_without_description(self):
+    def test_add_torrent_from_magnet_to_channel(self):
         """
         Testing whether adding a torrent with a magnet link to a channel without description works
         """
         my_channel_id = self.create_fake_channel("channel", "")
-        torrent_path = TORRENT_FILE
 
-        def fake_load_from_dht(_, callback):
-            meta_info = TorrentDef.load(torrent_path).get_metainfo()
+        def fake_get_metainfo(_, callback, timeout=10, timeout_callback=None, notify=True):
+            meta_info = TorrentDef.load(TORRENT_FILE).get_metainfo()
             callback(meta_info)
 
-        self.session.lm.ltmgr.get_metainfo = fake_load_from_dht
+        self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
 
         def verify_method_invocation(channel_id, torrent_def, extra_info=None, forward=True):
             self.assertEqual(my_channel_id, channel_id)
-            self.assertEqual(TorrentDef.load(torrent_path), torrent_def)
+            self.assertEqual(TorrentDef.load(TORRENT_FILE), torrent_def)
             self.assertEqual({}, extra_info or {})
             self.assertEqual(True, forward)
 
@@ -217,7 +214,7 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
     @deferred(timeout=10)
     def test_add_torrent_to_channel_404(self):
         """
-        Testing whether adding a torrent to a non-existing channel does not work
+        Testing whether adding a torrent to a non-existing channel returns error code 404
         """
         self.should_check_equality = False
         return self.do_request('channels/discovered/abcd/torrents/fake_url',
@@ -230,7 +227,7 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
         """
         self.create_fake_channel("channel", "")
 
-        def fake_get_metainfo(infohash_or_magnet, callback):
+        def fake_get_metainfo(_, callback, timeout=10, timeout_callback=None, notify=True):
             raise ValueError(u"Test error")
 
         self.session.lm.ltmgr.get_metainfo = fake_get_metainfo
@@ -246,9 +243,8 @@ class TestModifyChannelTorrentEndpoint(AbstractTestChannelsEndpoint):
             }
             self.assertDictContainsSubset(expected_response[u"error"], error_response[u"error"])
 
-        torrent_url = 'magnet:testtest'
+        torrent_url = 'magnet:fake'
         url = 'channels/discovered/%s/torrents/%s' % ('fakedispersyid'.encode('hex'), urllib.quote_plus(torrent_url))
-
         self.should_check_equality = False
         return self.do_request(url, expected_code=500, expected_json=None, request_type='PUT')\
                    .addCallback(verify_error_message)

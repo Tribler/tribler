@@ -36,6 +36,8 @@
 import os.path
 import sys
 
+from Tribler.Core.osutils import is_android, get_home_dir
+
 
 # This function is used from tribler.py too, but can't be there as tribler.py
 # gets frozen into an exe on windows.
@@ -65,6 +67,7 @@ def determine_install_dir():
             return os.path.abspath(os.path.join(filedir, '..', '..', '..'))
 
         return module_path()
+
     elif sys.platform == 'darwin':
         # On a packaged app, this file will be at:
         # Tribler.app/Contents/Resources/lib/Python2.7/site-packages.zip/Tribler/Core/Utilities/install_dir.py
@@ -72,6 +75,9 @@ def determine_install_dir():
         if "site-packages.zip" in cur_file:
             return os.path.abspath(os.path.join(cur_file, '..', '..', '..', '..', '..', '..'))
         # Otherwise do the same than on Unix/Linux
+
+    elif is_android():
+        return os.path.abspath(os.path.join(get_home_dir(), u'lib/python2.7/site-packages'))
 
     this_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
     return '/usr/share/tribler' if this_dir.startswith('/usr/lib') else this_dir

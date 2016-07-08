@@ -7,6 +7,8 @@ import logging
 
 from traceback import print_exc
 
+from Tribler.Core.osutils import is_android
+
 if sys.platform == 'win32':
     from Tribler.Core.Utilities.win32regchecker import Win32RegChecker
 
@@ -111,10 +113,13 @@ def escape_path(path):
 
 
 def return_feasible_playback_modes():
-    if sys.platform == 'darwin':
-        return [PLAYBACKMODE_EXTERNAL_DEFAULT]
-
     l = []
+
+    if sys.platform == 'darwin' or is_android():
+        # TODO(paul): link or embed vlc in Android app
+        l.append(PLAYBACKMODE_EXTERNAL_DEFAULT)
+        return l
+
     try:
         # Make sure libvlc.dll will be found on windows
         if sys.platform.startswith('win'):

@@ -8,7 +8,7 @@ from Tribler.Main.Utility.utility import speed_format
 try:
     import win32gui  # , win32con
     WIN32 = True
-except:
+except ImportError:
     WIN32 = False
 
 #

@@ -1,11 +1,15 @@
 import base64
 import json
+
+from twisted.internet.defer import Deferred
 from twisted.web import http
+from twisted.web.server import NOT_DONE_YET
 
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
 from Tribler.Core.Modules.restapi.util import convert_db_torrent_to_json
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.exceptions import DuplicateTorrentFileError
+from Tribler.Core.Utilities.utilities import http_get
 
 
 UNKNOWN_TORRENT_MSG = "this torrent is not found in the specified channel"
@@ -127,10 +131,11 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
     This class is responsible for methods that modify the list of torrents (adding/removing torrents).
     """
 
-    def __init__(self, session, cid, infohash):
+    def __init__(self, session, cid, path):
         BaseChannelsEndpoint.__init__(self, session)
         self.cid = cid
-        self.infohash = infohash
+        self.path = path
+        self.deferred = Deferred()
 
     def render_PUT(self, request):
         """
@@ -168,24 +173,43 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
         else:
             extra_info = {'description': parameters['description'][0]}
 
-        try:
-            if self.infohash.startswith("http:") or self.infohash.startswith("https:"):
-                torrent_def = TorrentDef.load_from_url(self.infohash)
-                self.session.add_torrent_def_to_channel(channel[0], torrent_def, extra_info, forward=True)
-            if self.infohash.startswith("magnet:"):
+        def _on_url_fetched(data):
+            return TorrentDef.load_from_memory(data)
 
-                def on_receive_magnet_meta_info(meta_info):
-                    torrent_def = TorrentDef.load_from_dict(meta_info)
-                    self.session.add_torrent_def_to_channel(channel[0], torrent_def, extra_info, forward=True)
+        def _on_magnet_fetched(meta_info):
+            return TorrentDef.load_from_dict(meta_info)
 
-                infohash_or_magnet = self.infohash
-                callback = on_receive_magnet_meta_info
-                self.session.lm.ltmgr.get_metainfo(infohash_or_magnet, callback)
+        def _on_torrent_def_loaded(torrent_def):
+            self.session.add_torrent_def_to_channel(channel[0], torrent_def, extra_info, forward=True)
+            return self.path
 
-        except (DuplicateTorrentFileError, ValueError) as ex:
-            return BaseChannelsEndpoint.return_500(self, request, ex)
+        def _on_added(added):
+            request.write(json.dumps({"added": added}))
+            request.finish()
 
-        return json.dumps({"added": self.infohash})
+        def _on_add_failed(failure):
+            failure.trap(ValueError, DuplicateTorrentFileError)
+            self._logger.exception(failure.value)
+            request.write(BaseChannelsEndpoint.return_500(self, request, failure.value))
+            request.finish()
+
+        if self.path.startswith("http:") or self.path.startswith("https:"):
+            self.deferred = http_get(self.path)
+            self.deferred.addCallback(_on_url_fetched)
+
+        if self.path.startswith("magnet:"):
+            try:
+                self.session.lm.ltmgr.get_metainfo(self.path, callback=self.deferred.callback,
+                                                   timeout=30, timeout_callback=self.deferred.errback, notify=True)
+            except Exception as ex:
+                self.deferred.errback(ex)
+
+            self.deferred.addCallback(_on_magnet_fetched)
+
+        self.deferred.addCallback(_on_torrent_def_loaded)
+        self.deferred.addCallback(_on_added)
+        self.deferred.addErrback(_on_add_failed)
+        return NOT_DONE_YET
 
     def render_DELETE(self, request):
         """
@@ -216,7 +240,7 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
 
         torrent_db_columns = ['Torrent.torrent_id', 'infohash', 'Torrent.name', 'length', 'Torrent.category',
                               'num_seeders', 'num_leechers', 'last_tracker_check', 'ChannelTorrents.dispersy_id']
-        torrent_info = self.channel_db_handler.getTorrentFromChannelId(channel_info[0], self.infohash.decode('hex'),
+        torrent_info = self.channel_db_handler.getTorrentFromChannelId(channel_info[0], self.path.decode('hex'),
                                                                        torrent_db_columns)
 
         if torrent_info is None:

@@ -718,6 +718,7 @@ class ABCApp(object):
         new_version_dialog.ShowModal()
         new_version_dialog.Destroy()
 
+    @forceWxThread
     def sesscb_ntfy_magnet(self, subject, changetype, objectID, *args):
         if changetype == NTFY_MAGNET_STARTED:
             self.guiUtility.library_manager.magnet_started(objectID)
@@ -822,6 +823,25 @@ class ABCApp(object):
         if self.utility:
             # Niels: lets add a max waiting time for this session shutdown.
             session_shutdown_start = time()
+
+            # TODO(emilon): probably more notification callbacks should be remmoved
+            # here
+            s = self.utility.session
+            s.remove_observer(self.sesscb_ntfy_newversion)
+            s.remove_observer(self.sesscb_ntfy_corrupt_torrent)
+            s.remove_observer(self.sesscb_ntfy_magnet)
+            s.remove_observer(self.sesscb_ntfy_torrentfinished)
+            s.remove_observer(self.sesscb_ntfy_markingupdates)
+            s.remove_observer(self.sesscb_ntfy_moderationupdats)
+            s.remove_observer(self.sesscb_ntfy_modificationupdates)
+            s.remove_observer(self.sesscb_ntfy_commentupdates)
+            s.remove_observer(self.sesscb_ntfy_playlistupdates)
+            s.remove_observer(self.sesscb_ntfy_torrentupdates)
+            s.remove_observer(self.sesscb_ntfy_myprefupdates)
+            s.remove_observer(self.sesscb_ntfy_channelupdates)
+            s.remove_observer(self.sesscb_ntfy_channelupdates)
+            s.remove_observer(self.sesscb_ntfy_activities)
+            s.remove_observer(self.sesscb_ntfy_reachable)
 
             try:
                 self._logger.info("ONEXIT cleaning database")
