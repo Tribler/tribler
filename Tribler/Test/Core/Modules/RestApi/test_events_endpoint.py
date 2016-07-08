@@ -61,7 +61,7 @@ class TestEventsEndpoint(AbstractApiTest):
 
         events_endpoint = self.session.lm.api_manager.root_endpoint.events_endpoint
         self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
-        results_dict = {"keywords": ["test"], "result_list": [('a',) * 9]}
+        results_dict = {"keywords": ["test"], "result_list": [('a',) * 10]}
         events_endpoint.on_search_results_channels(None, None, None, results_dict)
         events_endpoint.on_search_results_torrents(None, None, None, results_dict)
         self.messages_to_wait_for = 1
@@ -80,7 +80,7 @@ class TestEventsEndpoint(AbstractApiTest):
         def send_notifications(_):
             self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
 
-            results_dict = {"keywords": ["test"], "result_list": [('a',) * 9]}
+            results_dict = {"keywords": ["test"], "result_list": [('a',) * 10]}
             self.session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
             self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
 
@@ -96,7 +96,7 @@ class TestEventsEndpoint(AbstractApiTest):
 
         def send_notifications(_):
             self.session.lm.api_manager.root_endpoint.events_endpoint.start_new_query()
-            results_dict = {"keywords": ["test"], "result_list": [('a',) * 9]}
+            results_dict = {"keywords": ["test"], "result_list": [('a',) * 10]}
             self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
             self.session.notifier.notify(SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, None, results_dict)
             self.session.notifier.notify(NTFY_UPGRADER, NTFY_STARTED, None, None)
