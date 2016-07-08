@@ -20,8 +20,8 @@ from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
 from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent
 from Tribler.Policies.BoostingManager import BoostingManager, BoostingSettings
 from Tribler.Test.Core.CreditMining.mock_creditmining import MockLtTorrent, ResourceFailClass
+from Tribler.Test.common import TORRENT_FILE
 from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
-from Tribler.Test.test_libtorrent_download import TORRENT_FILE, TORRENT_FILE_INFOHASH
 from Tribler.Test.util import prepare_xml_rss
 from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.community.channel.community import ChannelCommunity

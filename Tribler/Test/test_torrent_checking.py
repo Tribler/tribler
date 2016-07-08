@@ -2,8 +2,8 @@ from time import sleep
 
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_MYPREFERENCES, NTFY_TORRENTS
+from Tribler.Test.common import TORRENT_FILE
 from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Test.test_libtorrent_download import TORRENT_FILE
 
 
 class TestTorrentChecking(TestAsServer):

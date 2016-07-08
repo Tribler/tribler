@@ -6,9 +6,8 @@ import shutil
 from binascii import hexlify
 
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Test.common import UBUNTU_1504_INFOHASH
+from Tribler.Test.common import UBUNTU_1504_INFOHASH, TORRENT_FILE, TORRENT_VIDEO_FILE
 from Tribler.Test.test_as_server import TestGuiAsServer, TESTS_DATA_DIR
-from Tribler.Test.test_libtorrent_download import TORRENT_FILE, TORRENT_VIDEO_FILE
 from Tribler.Test.util import prepare_xml_rss
 
 DEBUG = True
