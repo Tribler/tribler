@@ -119,21 +119,19 @@ class UnhandledExceptionCatcher(object):
 class UnhandledTwistedExceptionCatcher(object):
 
     def __init__(self):
-        self._logger = logging.getLogger(self.__class__.__name__)
         self._twisted_exceptions = []
 
         def unhandled_error_observer(event):
             if event['isError']:
                 self._twisted_exceptions.append(event)
-                self._logger.critical(event)
 
         addObserver(unhandled_error_observer)
 
     def check_exceptions(self):
         num_twisted_exceptions = len(self._twisted_exceptions)
         if num_twisted_exceptions > 0:
-            raise Exception("Test raised %d unhandled Twisted exceptions, this was the first one:\n%s"
-                            % (num_twisted_exceptions, self._twisted_exceptions[0]['failure']))
+            raise Exception("Test raised %d unhandled Twisted exceptions:\n%s"
+                            % (num_twisted_exceptions, repr(self._twisted_exceptions)))
 
 
 def prepare_xml_rss(target_path, filename):
