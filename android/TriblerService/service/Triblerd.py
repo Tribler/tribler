@@ -11,6 +11,9 @@ class Triblerd(object):
         private_root_dir = os.path.realpath(os.path.split(os.getenv('ANDROID_PRIVATE', '/tmp/cache'))[0])
         os.environ['PYTHON_EGG_CACHE'] = os.path.join(private_root_dir, 'cache', '.egg')
 
+        # Executable ffmpeg binary
+        os.chmod("ffmpeg", 0744)
+
     def run(self):
         '''
         Start reactor with service argument
