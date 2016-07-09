@@ -28,7 +28,7 @@ class DiscoveringPage(QWidget):
 
         if self.found_channels >= 5 and self.is_discovering:
             self.is_discovering = False
-            self.window().settings.setValue("first_discover", True)
+            self.window().gui_settings.setValue("first_discover", True)
             self.window().clicked_menu_button_discovered()
             return
 
