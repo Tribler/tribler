@@ -18,13 +18,6 @@ from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING, UPLOAD
 from Tribler.Main.Utility.utility import initialize_x11_threads
 initialize_x11_threads()
 
-# set wxpython version before importing wx or anything from Tribler
-import wxversion
-if wxversion.checkInstalled("3.0-unicode"):
-    wxversion.select("3.0-unicode")
-else:
-    wxversion.select("2.8-unicode")
-
 # Make sure the in thread reactor is installed.
 from Tribler.Core.Utilities.twisted_thread import reactor
 
@@ -44,7 +37,6 @@ from tempfile import mkdtemp
 from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
-import wx
 from .util import process_unhandled_exceptions, UnhandledTwistedExceptionCatcher, process_unhandled_twisted_exceptions
 
 from Tribler.Core.Utilities.twisted_thread import deferred
@@ -361,7 +353,6 @@ class TestAsServer(AbstractServer):
             self._logger.debug(
                 "Waiting for Session to shutdown, will wait for an additional %d seconds", (waittime - diff))
 
-            wx.SafeYield()
             time.sleep(1)
 
         self._logger.debug("Session has shut down")
