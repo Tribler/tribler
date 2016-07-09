@@ -218,7 +218,7 @@ class TunnelSettings(object):
 
         self.min_circuits = 4
         self.max_circuits = 8
-        self.max_relays_or_exits = 100
+        self.max_relays_or_exits = 10
 
         self.max_time = 10 * 60
         self.max_time_inactive = 20
