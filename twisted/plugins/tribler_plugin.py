@@ -1,10 +1,8 @@
 """
 This twistd plugin enables to start Tribler headless using the twistd command.
 """
-import logging
 import os
 import signal
-from time import sleep
 
 from twisted.application.service import MultiService, IServiceMaker
 from twisted.conch import manhole_tap
@@ -17,6 +15,9 @@ from zope.interface import implements
 from Tribler.Core.Modules.process_checker import ProcessChecker
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
+
+# Register yappi profiler
+from Tribler.dispersy.utils import twistd_yappi
 
 
 class Options(usage.Options):
