@@ -187,7 +187,8 @@ class ABCApp(TaskManager):
 
             # Schedule task for checkpointing Session, to avoid hash checks after
             # crashes.
-            startWorker(consumer=None, workerFn=self.guiservthread_checkpoint_timer, delay=SESSION_CHECKPOINT_INTERVAL)
+            self.register_task("checkpoint loop", LoopingCall(self.guiservthread_checkpoint_timer)).start(
+                SESSION_CHECKPOINT_INTERVAL, now=False)
 
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'GUIUtility register')
             wx.Yield()
@@ -600,18 +601,10 @@ class ABCApp(TaskManager):
             wx.CallAfter(wx.MessageBox, "Tribler has detected low disk space. Related downloads have been stopped.",
                          "Error")
 
-
     def guiservthread_checkpoint_timer(self):
         """ Periodically checkpoint Session """
-        if self.done:
-            return
-        try:
-            self._logger.info("main: Checkpointing Session")
-            self.utility.session.checkpoint()
-
-            self.utility.session.lm.threadpool.call_in_thread(SESSION_CHECKPOINT_INTERVAL, self.guiservthread_checkpoint_timer)
-        except:
-            print_exc()
+        self._logger.info("main: Checkpointing Session")
+        return reactor.deferToThread(self.utility.session.checkpoint)
 
     @forceWxThread
     def sesscb_ntfy_activities(self, events):
