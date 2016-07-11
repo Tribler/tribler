@@ -2,3 +2,4 @@
  _lsprof.so
  _sqlite3.so
  sqlite3/*
+ unittest/*
