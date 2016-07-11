@@ -325,6 +325,8 @@ class LibtorrentMgr(TaskManager):
                 self._logger.debug("Alert for invalid torrent")
 
     def get_metainfo(self, infohash_or_magnet, callback, timeout=30, timeout_callback=None, notify=True):
+        assert isinstance(infohash_or_magnet, str), infohash_or_magnet
+
         if not self.is_dht_ready() and timeout > 5:
             self._logger.info("DHT not ready, rescheduling get_metainfo")
             reactor.callFromThread(lambda i=infohash_or_magnet, c=callback, t=timeout - 5,
