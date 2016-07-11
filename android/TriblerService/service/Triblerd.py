@@ -58,6 +58,17 @@ class Triblerd(object):
 
         nose.run(argv=NOSEARGS.split())
 
+    def experiment(self):
+        '''
+        Run performance experiment for multichain blocks
+        '''
+        from experiment_multichain_scale import TestMultiChainScale
+
+        test = TestMultiChainScale()
+        test.setUp()
+        test.runTest(blocks_in_thousands=10)
+        test.tearDown()
+
 
 if __name__ == '__main__':
     Triblerd().run()
