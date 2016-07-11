@@ -7,7 +7,8 @@ Execute the following command in your terminal:
 
 .. code-block:: none
 
-    sudo apt-get install libav-tools libjs-excanvas libjs-mootools libsodium13 libx11-6 python-apsw python-cherrypy3 python-crypto python-cryptography python-feedparser python-leveldb python-libtorrent python-m2crypto python-netifaces python-pil python-pyasn1 python-requests python-twisted python-wxgtk2.8 python2.7 vlc python-pip pip install decorator
+    sudo apt-get install libav-tools libjs-excanvas libjs-mootools libsodium13 libx11-6 python-apsw python-cherrypy3 python-crypto python-cryptography python-feedparser python-leveldb python-libtorrent python-m2crypto python-netifaces python-pil python-pyasn1 python-requests python-twisted python-wxgtk2.8 python2.7 vlc python-pip
+    sudo pip install decorator libnacl
 
 Experimental support for Ubuntu 16.04
 -------------------------------------
@@ -17,7 +18,7 @@ Please try if the latest experimental build works for you.
 .. code-block:: none
 
     bash
-    sudo apt-get install libsodium-dev python-nacl python-nacl python-nacl
+    sudo apt-get install libsodium-dev python-nacl
 
 Next, download the latest .deb file from `here <https://jenkins.tribler.org/job/Build-Tribler_Ubuntu-64_devel/lastStableBuild/>`_.
 
