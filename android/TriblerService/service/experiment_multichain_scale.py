@@ -43,15 +43,15 @@ class TestMultiChainScale(DispersyTestFunc):
             down_values.append(random_generator.randint(0, 5000))
 
         start_time = time.time()
-        with open("multichain_scale_experiment_" + str(start_time), 'w') as data_file:
-            for k in range(blocks_in_thousands):
-                for i in range(1000):
-                    index = k*1000 + i
-                    node.call(node.community.schedule_block, target_other, up_values[index] * 1024 * 1024,
-                              down_values[index] * 1024 * 1024 + 42000)
-                run_time = time.time() - start_time
-                print str(index+1) +" Blocks were created in " + str(run_time) + " seconds"
-                data_file.write(str(run_time) + " " + str(index+1) + "\n")
+        #with open("multichain_scale_experiment_" + str(start_time), 'w') as data_file:
+        for k in range(blocks_in_thousands):
+            for i in range(1000):
+                index = k*1000 + i
+                node.call(node.community.schedule_block, target_other, up_values[index] * 1024 * 1024,
+                          down_values[index] * 1024 * 1024 + 42000)
+            run_time = time.time() - start_time
+            print "\n" + str(run_time) + " " + str(index+1) + "\n"
+                #data_file.write(str(run_time) + " " + str(index+1) + "\n")
 
         # Assert
 
