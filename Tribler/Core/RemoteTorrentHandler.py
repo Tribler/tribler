@@ -228,7 +228,7 @@ class RemoteTorrentHandler(TaskManager):
             return
 
         for callback in self.torrent_callbacks[infohash]:
-            self.session.lm.threadpool.call_in_thread(0, callback, hexlify(infohash))
+            reactor.callInthread(callback, hexlify(infohash))
 
         del self.torrent_callbacks[infohash]
 
