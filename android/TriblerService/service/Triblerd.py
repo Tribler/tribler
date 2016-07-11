@@ -1,5 +1,4 @@
 import os
-from shutil import rmtree
 
 
 class Triblerd(object):
@@ -19,8 +18,7 @@ class Triblerd(object):
         Start reactor with service argument
         '''
         from twisted.internet import reactor
-
-        from tribler_plugin import service_maker, Options
+        from tribler_plugin import Options, service_maker
 
         options = Options()
         Options.parseOptions(options, os.getenv('PYTHON_SERVICE_ARGUMENT', '').split())
@@ -31,20 +29,26 @@ class Triblerd(object):
         '''
         Run all tests with nose and xcoverage
         '''
-        # Mock native _multiprocessing module
+        # The coverage module tries to monkey patch the native _multiprocessing module
+        # which is not available on Android
         class _multiprocessing(object):
             pass
         import sys
         sys.modules["_multiprocessing"] = _multiprocessing
 
+        import shutil
         import coverage
         import nose
 
         # Clean output directory
         OUTPUT_DIR = os.path.abspath('output')
         if os.path.exists(OUTPUT_DIR):
-            rmtree(OUTPUT_DIR, ignore_errors=True)
+            shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
         os.mkdir(OUTPUT_DIR)
+
+        # Switch python working directory to tests directory
+        # because --where param does not work correctly on Android
+        os.chdir('lib/python2.7/site-packages/Tribler/Test')
 
         # From https://raw.githubusercontent.com/Tribler/gumby/devel/scripts/run_nosetests_for_jenkins.sh
         NOSEARGS_COMMON = "--with-xunit --all-modules --traverse-namespace --cover-package=Tribler --cover-tests --cover-inclusive"
@@ -52,8 +56,6 @@ class Triblerd(object):
 
         os.environ['NOSE_LOGFORMAT'] = "%(levelname)-7s %(created)d %(module)15s:%(name)s:%(lineno)-4d %(message)s"
 
-        TEST_DIR = os.path.abspath('lib/python2.7/site-packages/Tribler/Test')
-        NOSEARGS = '--where=' + TEST_DIR + ' ' + NOSEARGS  # --nocapture --nologcapture
         nose.run(argv=NOSEARGS.split())
 
 
