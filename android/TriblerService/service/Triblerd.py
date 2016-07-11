@@ -12,7 +12,7 @@ class Triblerd(object):
         os.environ['PYTHON_EGG_CACHE'] = os.path.join(private_root_dir, 'cache', '.egg')
 
         # Executable ffmpeg binary
-        os.chmod("ffmpeg", 0744)
+        os.chmod('ffmpeg', 0744)
 
     def run(self):
         '''
@@ -40,22 +40,21 @@ class Triblerd(object):
         import coverage
         import nose
 
-        # Switch to Test directory
-        os.chdir('lib/python2.7/site-packages/Tribler/Test')
-        
         # Clean output directory
         OUTPUT_DIR = os.path.abspath('output')
         if os.path.exists(OUTPUT_DIR):
             rmtree(OUTPUT_DIR, ignore_errors=True)
         os.mkdir(OUTPUT_DIR)
-        
+
         # From https://raw.githubusercontent.com/Tribler/gumby/devel/scripts/run_nosetests_for_jenkins.sh
         NOSEARGS_COMMON = "--with-xunit --all-modules --traverse-namespace --cover-package=Tribler --cover-tests --cover-inclusive"
-        NOSEARGS = "--verbose --with-xcoverage --xcoverage-file=" + OUTPUT_DIR + "/coverage.xml --xunit-file=" + OUTPUT_DIR + "/nosetests.xml.part " + NOSEARGS_COMMON
+        NOSEARGS = "--verbose --with-xcoverage --xcoverage-file=" + OUTPUT_DIR + "/coverage.xml --xunit-file=" + OUTPUT_DIR + "/nosetests.xml " + NOSEARGS_COMMON
 
         os.environ['NOSE_LOGFORMAT'] = "%(levelname)-7s %(created)d %(module)15s:%(name)s:%(lineno)-4d %(message)s"
 
-        nose.run(argv=NOSEARGS.split())  # --nocapture --nologcapture
+        TEST_DIR = os.path.abspath('lib/python2.7/site-packages/Tribler/Test')
+        NOSEARGS = '--where=' + TEST_DIR + ' ' + NOSEARGS  # --nocapture --nologcapture
+        nose.run(argv=NOSEARGS.split())
 
 
 if __name__ == '__main__':
