@@ -2,6 +2,7 @@ from pythonforandroid.toolchain import PythonRecipe, shutil, current_directory
 from os.path import join, exists
 from sh import mkdir, cp
 
+
 """
 Privacy with BitTorrent and resilient to shut down
 
@@ -16,12 +17,15 @@ class LocalTriblerRecipe(PythonRecipe):
                'setuptools', 'twisted',
               ]
 
+    python_tests_depends = ['mock', 'nose', 'coverage', 'nosexcover',
+                           ]
+
     python_depends = ['chardet', 'cherrypy', 'configobj', 'decorator', 'feedparser',
                       'libnacl', 'pyasn1', 'six',
                      ]
 
     site_packages_name = 'Tribler'
-    
+
     call_hostpython_via_targetpython = False
 
 
