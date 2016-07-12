@@ -204,3 +204,23 @@ class TestDatabase(MultiChainTestCase):
         self.assertEquals(time_difference.days, 0)
         self.assertLess(time_difference.seconds, 10,
                         "Difference in stored and retrieved time is too large.")
+
+    def set_db_version(self, version):
+        self.db.executescript(u"UPDATE option SET value = '%d' WHERE key = 'database_version';" % version)
+        self.db.close(commit=True)
+        self.db = MultiChainDB(None, self.getStateDir())
+
+    def test_database_upgrade(self):
+        self.set_db_version(1)
+        version, = next(self.db.execute(u"SELECT value FROM option WHERE key = 'database_version' LIMIT 1"))
+        self.assertEqual(version, u"2")
+
+    def test_database_create(self):
+        self.set_db_version(0)
+        version, = next(self.db.execute(u"SELECT value FROM option WHERE key = 'database_version' LIMIT 1"))
+        self.assertEqual(version, u"2")
+
+    def test_database_no_downgrade(self):
+        self.set_db_version(200000)
+        version, = next(self.db.execute(u"SELECT value FROM option WHERE key = 'database_version' LIMIT 1"))
+        self.assertEqual(version, u"200000")
