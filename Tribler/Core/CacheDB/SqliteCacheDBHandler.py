@@ -2383,3 +2383,10 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
                 elif channel[5] == best_channel[5] and channel[4] > best_channel[4]:
                     best_channel = channel
             return best_channel
+
+    def get_torrent_ids_from_playlist(self, playlist_id):
+        """
+        Returns the torrent dispersy IDs from a specified playlist.
+        """
+        sql = "SELECT dispersy_id FROM PlaylistTorrents WHERE playlist_id = ?"
+        return self._db.fetchall(sql, (playlist_id,))

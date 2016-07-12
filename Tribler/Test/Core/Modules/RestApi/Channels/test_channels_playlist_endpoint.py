@@ -7,13 +7,19 @@ from Tribler.Test.Core.base_test import MockObject
 from Tribler.dispersy.exception import CommunityNotFoundException
 
 
-class TestChannelsPlaylistEndpoints(AbstractTestChannelsEndpoint):
+class AbstractTestChannelsPlaylistsEndpoint(AbstractTestChannelsEndpoint):
+    """
+    This class is the base class for all playlist-related tests.
+    """
 
     def create_playlist(self, channel_id, dispersy_id, peer_id, name, description):
         self.channel_db_handler.on_playlist_from_dispersy(channel_id, dispersy_id, peer_id, name, description)
 
     def insert_torrent_into_playlist(self, playlist_disp_id, infohash):
         self.channel_db_handler.on_playlist_torrent(42, playlist_disp_id, 42, infohash)
+
+
+class TestChannelsPlaylistEndpoints(AbstractTestChannelsPlaylistsEndpoint):
 
     @deferred(timeout=10)
     def test_get_playlists_endpoint_without_channel(self):
@@ -139,3 +145,173 @@ class TestChannelsPlaylistEndpoints(AbstractTestChannelsEndpoint):
         return self.do_request('channels/discovered/%s/playlists' % 'fakedispersyid'.encode('hex'), expected_code=200,
                                expected_json=expected_json, post_data=post_params, request_type='PUT')\
             .addCallback(verify_playlist_created)
+
+
+class TestChannelsModifyPlaylistsEndpoints(AbstractTestChannelsPlaylistsEndpoint):
+    """
+    This class contains tests to verify the modification of playlists.
+    """
+
+    @deferred(timeout=10)
+    def test_delete_playlist_no_channel(self):
+        """
+        Testing whether an error 404 is returned when a playlist is removed from a non-existent channel
+        """
+        return self.do_request('channels/discovered/abcd/playlists/1', expected_code=404, request_type='DELETE')
+
+    @deferred(timeout=10)
+    def test_delete_playlist_no_playlist(self):
+        """
+        Testing whether an error 404 is returned when a non-existent playlist is removed from a channel
+        """
+        channel_cid = 'fakedispersyid'.encode('hex')
+        self.create_my_channel("my channel", "this is a short description")
+        return self.do_request('channels/discovered/%s/playlists/1' % channel_cid,
+                               expected_code=404, request_type='DELETE')
+
+    @deferred(timeout=10)
+    def test_delete_playlist_no_community(self):
+        """
+        Testing whether an error 404 is returned when a playlist is removed from a channel without community
+        """
+        def mocked_get_community(_):
+            raise CommunityNotFoundException("abcd")
+
+        mock_dispersy = MockObject()
+        mock_dispersy.get_community = mocked_get_community
+        self.session.get_dispersy_instance = lambda: mock_dispersy
+
+        channel_cid = 'fakedispersyid'.encode('hex')
+        my_channel_id = self.create_my_channel("my channel", "this is a short description")
+        self.create_playlist(my_channel_id, 1234, 42, "test playlist", "test description")
+        return self.do_request('channels/discovered/%s/playlists/1' % channel_cid,
+                               expected_code=404, request_type='DELETE')
+
+    @deferred(timeout=10)
+    def test_delete_playlist(self):
+        """
+        Testing whether a playlist is correctly removed
+        """
+        mock_channel_community = MockObject()
+        mock_channel_community.called_remove = False
+        mock_channel_community.called_remove_torrents = False
+        my_channel_id = self.create_fake_channel("channel", "")
+
+        def verify_playlist_removed(_):
+            self.assertTrue(mock_channel_community.called_remove_torrents)
+            self.assertTrue(mock_channel_community.called_remove)
+
+        def remove_playlist_called(playlists):
+            self.assertEqual(playlists, [1234])
+            mock_channel_community.called_remove = True
+
+        def remove_torrents_called(playlist_id, torrents):
+            self.assertEqual(playlist_id, 1234)
+            self.assertEqual(torrents, [42])
+            mock_channel_community.called_remove_torrents = True
+
+        mock_channel_community.remove_playlists = remove_playlist_called
+        mock_channel_community.remove_playlist_torrents = remove_torrents_called
+        mock_dispersy = MockObject()
+        mock_dispersy.get_community = lambda _: mock_channel_community
+        self.session.get_dispersy_instance = lambda: mock_dispersy
+
+        # Create a playlist and add a torrent to it
+        self.create_playlist(my_channel_id, 1234, 42, "test playlist", "test description")
+        torrent_list = [[my_channel_id, 1, 1, ('a' * 40).decode('hex'), 1460000000, "ubuntu-torrent.iso",
+                         [['file1.txt', 42]], []]]
+        self.insert_torrents_into_channel(torrent_list)
+        self.insert_torrent_into_playlist(1234, ('a' * 40).decode('hex'))
+
+        return self.do_request('channels/discovered/%s/playlists/1' % 'fakedispersyid'.encode('hex'),
+                               expected_code=200, expected_json={"removed": True},
+                               request_type='DELETE').addCallback(verify_playlist_removed)
+
+    @deferred(timeout=10)
+    def test_edit_playlist_no_name(self):
+        """
+        Testing whether an error 400 is returned when a playlist is edit without a name parameter passed
+        """
+        post_params = {'description': 'test'}
+        expected_json = {'error': 'name parameter missing'}
+        return self.do_request('channels/discovered/abcd/playlists/1', expected_code=400,
+                               post_data=post_params, request_type='POST', expected_json=expected_json)
+
+    @deferred(timeout=10)
+    def test_edit_playlist_no_description(self):
+        """
+        Testing whether an error 400 is returned when a playlist is edit without a description parameter passed
+        """
+        post_params = {'name': 'test'}
+        expected_json = {'error': 'description parameter missing'}
+        return self.do_request('channels/discovered/abcd/playlists/1', expected_code=400,
+                               post_data=post_params, request_type='POST', expected_json=expected_json)
+
+    @deferred(timeout=10)
+    def test_edit_playlist_no_channel(self):
+        """
+        Testing whether an error 404 is returned when a playlist is edit from a non-existent channel
+        """
+        post_params = {'name': 'test', 'description': 'test'}
+        return self.do_request('channels/discovered/abcd/playlists/1', expected_code=404,
+                               post_data=post_params, request_type='POST')
+
+    @deferred(timeout=10)
+    def test_edit_playlist_no_playlist(self):
+        """
+        Testing whether an error 404 is returned when a non-existent playlist is edited
+        """
+        post_params = {'name': 'test', 'description': 'test'}
+        channel_cid = 'fakedispersyid'.encode('hex')
+        self.create_my_channel("my channel", "this is a short description")
+        return self.do_request('channels/discovered/%s/playlists/1' % channel_cid,
+                               expected_code=404, request_type='POST', post_data=post_params)
+
+    @deferred(timeout=10)
+    def test_edit_playlist_no_community(self):
+        """
+        Testing whether an error 404 is returned when a playlist is edited from a channel without community
+        """
+        def mocked_get_community(_):
+            raise CommunityNotFoundException("abcd")
+
+        mock_dispersy = MockObject()
+        mock_dispersy.get_community = mocked_get_community
+        self.session.get_dispersy_instance = lambda: mock_dispersy
+
+        post_params = {'name': 'test', 'description': 'test'}
+        channel_cid = 'fakedispersyid'.encode('hex')
+        my_channel_id = self.create_my_channel("my channel", "this is a short description")
+        self.create_playlist(my_channel_id, 1234, 42, "test playlist", "test description")
+        return self.do_request('channels/discovered/%s/playlists/1' % channel_cid,
+                               expected_code=404, request_type='POST', post_data=post_params)
+
+    @deferred(timeout=10)
+    def test_edit_playlist(self):
+        """
+        Testing whether a playlist is correctly modified
+        """
+        mock_channel_community = MockObject()
+        mock_channel_community.called_modify = False
+        my_channel_id = self.create_fake_channel("channel", "")
+
+        def verify_playlist_modified(_):
+            self.assertTrue(mock_channel_community.called_modify)
+
+        def modify_playlist_called(playlist_id, modifications):
+            self.assertEqual(playlist_id, 1)
+            self.assertEqual(modifications['name'], 'test')
+            self.assertEqual(modifications['description'], 'test')
+            mock_channel_community.called_modify = True
+
+        mock_channel_community.modifyPlaylist = modify_playlist_called
+        mock_dispersy = MockObject()
+        mock_dispersy.get_community = lambda _: mock_channel_community
+        self.session.get_dispersy_instance = lambda: mock_dispersy
+
+        self.create_playlist(my_channel_id, 1234, 42, "test playlist", "test description")
+
+        post_params = {'name': 'test', 'description': 'test'}
+        return self.do_request('channels/discovered/%s/playlists/1' % 'fakedispersyid'.encode('hex'),
+                               expected_code=200, expected_json={"modified": True}, post_data=post_params,
+                               request_type='POST').addCallback(verify_playlist_modified)
