@@ -40,6 +40,11 @@ CREATE TABLE option(key TEXT PRIMARY KEY, value BLOB);
 INSERT INTO option(key, value) VALUES('database_version', '""" + str(LATEST_DB_VERSION) + u"""');
 """
 
+upgrade_to_version_2_script = u"""
+DROP TABLE IF EXISTS multi_chain;
+DROP TABLE IF EXISTS option;
+"""
+
 
 class MultiChainDB(Database):
     """
@@ -286,11 +291,10 @@ class MultiChainDB(Database):
         assert int(database_version) >= 0
         database_version = int(database_version)
 
-        if database_version != LATEST_DB_VERSION:
+        if database_version < LATEST_DB_VERSION:
             # Remove all previous data, since we have only been testing so far, and previous blocks might not be
             # reliable. In the future, we should implement an actual upgrade procedure
-            self.executescript(u"DROP TABLE IF EXISTS multi_chain")
-            self.executescript(u"DROP TABLE IF EXISTS option")
+            self.executescript(upgrade_to_version_2_script)
             self.executescript(schema)
             self.commit()
 

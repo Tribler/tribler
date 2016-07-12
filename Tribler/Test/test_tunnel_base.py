@@ -14,7 +14,6 @@ from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.crypto import NoCrypto
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
-
 class TestTunnelBase(TestGuiAsServer):
 
     def startTest(self, callback, min_timeout=5, nr_relays=12, nr_exitnodes=4, crypto_enabled=True, bypass_dht=False):
@@ -93,8 +92,6 @@ class TestTunnelBase(TestGuiAsServer):
             dispersy = session.get_dispersy_instance()
 
             def load_community(session):
-                keypair = dispersy.crypto.generate_key(u"curve25519")
-                dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
                 settings = TunnelSettings(tribler_session=session)
                 if not crypto_enabled:
                     settings.crypto = NoCrypto()
