@@ -53,7 +53,7 @@ model {
                         library "boost_python"
                         library "ffi"
                         library "sodium"
-                        library "torrent"
+                        library "torrent_rasterbar"
                         library "leveldb"
                         library "sqlite3"
                     }
@@ -113,9 +113,9 @@ model {
                     sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libssl.so")
                 }
             }
-            torrent {
+            torrent_rasterbar {
                 binaries.withType(SharedLibraryBinary) {
-                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libtorrent.so")
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libtorrent_rasterbar.so")
                 }
             }
         }
