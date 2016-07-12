@@ -357,3 +357,35 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.assertEqual(self.libtorrent_download_impl.get_piece_progress(None), 1.0)
         self.libtorrent_download_impl.handle.status = lambda: None
         self.assertEqual(self.libtorrent_download_impl.get_piece_progress([3, 1]), 0.0)
+
+    def test_setup_exception(self):
+        """
+        Testing whether an exception in the setup method of LibtorrentDownloadImpl is handled correctly
+        """
+        self.libtorrent_download_impl.handle.set_share_mode = lambda _: None
+        self.libtorrent_download_impl.setup()
+        self.assertIsInstance(self.libtorrent_download_impl.error, Exception)
+
+    def test_tracker_reply_alert(self):
+        """
+        Testing the tracker reply alert in LibtorrentDownloadImpl
+        """
+        mock_alert = MockObject()
+        mock_alert.url = 'http://google.com'
+        mock_alert.num_peers = 42
+        self.libtorrent_download_impl.on_tracker_reply_alert(mock_alert)
+        self.assertEqual(self.libtorrent_download_impl.tracker_status['http://google.com'], [42, 'Working'])
+
+    def test_stop(self):
+        """
+        Testing whether the stop method in LibtorrentDownloadImpl invokes the correct method
+        """
+        def mocked_stop_remove(removestate, removecontent):
+            self.assertFalse(removestate)
+            self.assertFalse(removecontent)
+            mocked_stop_remove.called = True
+
+        mocked_stop_remove.called = False
+        self.libtorrent_download_impl.stop_remove = mocked_stop_remove
+        self.libtorrent_download_impl.stop()
+        self.assertTrue(mocked_stop_remove.called)
