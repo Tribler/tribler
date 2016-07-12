@@ -10,7 +10,7 @@ from binascii import hexlify
 from copy import deepcopy
 from shutil import rmtree
 
-from twisted.internet import reactor
+from twisted.internet import reactor, threads
 import libtorrent as lt
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
@@ -473,31 +473,24 @@ class LibtorrentMgr(TaskManager):
 
     @call_on_reactor_thread
     def _schedule_next_check(self, delay, retries_left):
-        self.register_task(u'check_dht', reactor.callLater(delay, self._task_check_dht, retries_left))
+        self.register_task(u'check_dht', reactor.callLater(delay, self.do_dht_check, retries_left))
 
-    def _task_check_dht(self, retries_left):
+    def do_dht_check(self, retries_left):
         # Sometimes the dht fails to start. To workaround this issue we monitor the #dht_nodes, and restart if needed.
 
-        def do_dht_check():
-            lt_session = self.get_session()
-            if lt_session:
-                dht_nodes = lt_session.status().dht_nodes
-                if dht_nodes <= 25:
-                    if dht_nodes >= 5 and retries_left > 0:
-                        self._logger.info(u"No enough DHT nodes %s, will try again", lt_session.status().dht_nodes)
-                        self._schedule_next_check(5, retries_left - 1)
-                    else:
-                        self._logger.info(u"No enough DHT nodes %s, will restart DHT", lt_session.status().dht_nodes)
-                        lt_session.start_dht()
-                        self._schedule_next_check(10, 1)
-                else:
-                    self._logger.info("dht is working enough nodes are found (%d)", self.get_session().status().dht_nodes)
-                    self.dht_ready = True
-                    return
+        lt_session = self.get_session()
+        dht_nodes = lt_session.status().dht_nodes
+        if dht_nodes <= 25:
+            if dht_nodes >= 5 and retries_left > 0:
+                self._logger.info(u"No enough DHT nodes %s, will try again", lt_session.status().dht_nodes)
+                self._schedule_next_check(5, retries_left - 1)
             else:
+                self._logger.info(u"No enough DHT nodes %s, will restart DHT", lt_session.status().dht_nodes)
+                threads.deferToThread(lt_session.start_dht)
                 self._schedule_next_check(10, 1)
-
-        self.trsession.lm.threadpool.call(0, do_dht_check)
+        else:
+            self._logger.info("dht is working enough nodes are found (%d)", self.get_session().status().dht_nodes)
+            self.dht_ready = True
 
     def _map_call_on_ltsessions(self, hops, funcname, *args, **kwargs):
         if hops is None:
