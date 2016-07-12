@@ -41,8 +41,8 @@ class EventsEndpoint(resource.Resource):
         self.events_request = None
         self.buffer = []
 
-        self.infohashes_sent = None
-        self.channel_cids_sent = None
+        self.infohashes_sent = set()
+        self.channel_cids_sent = set()
 
         self.session.add_observer(self.on_search_results_channels, SIGNAL_CHANNEL, [SIGNAL_ON_SEARCH_RESULTS])
         self.session.add_observer(self.on_search_results_torrents, SIGNAL_TORRENT, [SIGNAL_ON_SEARCH_RESULTS])

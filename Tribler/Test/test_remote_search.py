@@ -1,150 +1,110 @@
-# see LICENSE.txt for license information
+from twisted.internet.defer import Deferred
+from twisted.internet.task import LoopingCall
 
-from Tribler.Test.test_as_server import TestGuiAsServer
-from Tribler.Main.vwxGUI.list_item import ChannelListItem
-
-
-class BaseRemoteTest(TestGuiAsServer):
-
-    def startTest(self, callback, search_community=True,
-                  use_torrent_search=True, use_channel_search=True):
-        if search_community:
-            def wait_for_search():
-                self._logger.debug("Frame ready, starting to wait for search to be ready")
-                self.CallConditional(300, lambda: self.frame.SRstatusbar.GetConnections() > 0.75, callback,
-                                     'did not connect to 75% of expected peers within 300s',
-                                     assert_callback=lambda *argv, **kwarg: callback())
-            super(BaseRemoteTest, self).startTest(wait_for_search)
-
-        else:
-            def wait_for_chansearch():
-                self._logger.debug("Frame ready, starting to wait for channelsearch to be ready")
-                self.CallConditional(300, lambda: self.frame.SRstatusbar.GetChannelConnections() > 16, callback,
-                                     'did not connect to more than 16 peers within 300s',
-                                     assert_callback=lambda *argv, **kwarg: callback())
-            super(BaseRemoteTest, self).startTest(wait_for_chansearch,
-                                                  use_torrent_search=use_torrent_search,
-                                                  use_channel_search=use_channel_search)
+from Tribler.Core.Utilities.twisted_thread import deferred
+from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_SEARCH_COMMUNITY
+from Tribler.Core.simpledefs import SIGNAL_ON_SEARCH_RESULTS
+from Tribler.Test.test_as_server import TestAsServer
 
 
-class TestRemoteTorrentSearch(BaseRemoteTest):
+class BaseTestSearch(TestAsServer):
     """
-    Only searches for remote torrents (using SearchCommunity).
+    This is the base class of the search tests.
     """
-    def test_remote_torrent_search(self):
-        def do_assert():
-            self.screenshot('After doing mp3 search, got %d results' % self.frame.searchlist.GetNrResults())
-            self.assert_(self.frame.searchlist.GetNrResults() > 0, 'no results',
-                         tribler_session=self.guiUtility.utility.session, dump_statistics=True)
-            self.assert_(self.guiUtility.torrentsearch_manager.gotRemoteHits, 'no remote results',
-                         tribler_session=self.guiUtility.utility.session, dump_statistics=True)
-            self.quit()
-
-        def do_search():
-            self.guiUtility.toggleFamilyFilter(newState=False, setCheck=True)
-            self.guiUtility.dosearch(u'mp3')
-            self.callLater(10, do_assert)
-
-        self.startTest(do_search, use_torrent_search=True, use_channel_search=False)
-
-
-class TestRemoteChannelSearch(BaseRemoteTest):
-    """
-    Only searches for remote channels (using AllChannelCommunity).
-    """
-    def test_channel_search(self):
-        def do_assert():
-            self.assert_(self.guiUtility.guiPage == 'selectedchannel', 'no in selectedchannel page',
-                         tribler_session=self.guiUtility.utility.session, dump_statistics=True)
-
-            self.screenshot('After doubleclicking first channel')
-            self.quit()
-
-        def do_doubleclick():
-            self.assert_(self.frame.searchlist.GetNrChannels() > 0, 'no channels matching de',
-                         tribler_session=self.guiUtility.utility.session, dump_statistics=True)
-
-            self.screenshot('After doing de search, got %d results' % self.frame.searchlist.GetNrResults())
-            items = self.frame.searchlist.GetItems()
-            for _, item in items.iteritems():
-                if isinstance(item, ChannelListItem):
-                    item.OnDClick()
-                    break
-            else:
-                self.assert_(False, 'could not find ChannelListItem',
-                             tribler_session=self.guiUtility.utility.session, dump_statistics=True)
-
-            self.callLater(10, do_assert)
-
-        def do_search():
-            self.guiUtility.toggleFamilyFilter(newState=False, setCheck=True)
-            self.guiUtility.dosearch(u'de')
-            self.callLater(20, do_doubleclick)
-
-        self.startTest(do_search, search_community=False, use_torrent_search=False, use_channel_search=True)
-
-
-class TestMixedRemoteSearch(BaseRemoteTest):
 
     def setUpPreSession(self):
-        super(TestMixedRemoteSearch, self).setUpPreSession()
+        TestAsServer.setUpPreSession(self)
+        self.config.set_dispersy(True)
         self.config.set_torrent_store(True)
         self.config.set_enable_torrent_search(True)
         self.config.set_enable_channel_search(True)
+        self.config.set_channel_community_enabled(True)
+        self.config.set_preview_channel_community_enabled(True)
         self.config.set_torrent_collecting(True)
         self.config.set_torrent_checking(True)
+        self.config.set_megacache(True)
 
-    def test_ffsearch(self):
-        def do_assert():
-            self.screenshot('After doing xxx search, got %d results' % self.frame.searchlist.GetNrResults())
-            self.assert_(self.frame.searchlist.GetNrResults() == 0, 'got results',
-                         tribler_session=self.guiUtility.utility.session, dump_statistics=True)
-            self.quit()
+    def setUp(self, autoload_discovery=True):
+        """
+        Setup all things for the search. This methods also creates a LoopingCall that checks every three seconds
+        if we have enough connections for our search.
+        """
+        TestAsServer.setUp(self, autoload_discovery=autoload_discovery)
+        self.session.add_observer(self.on_search_results, SIGNAL_CHANNEL, [SIGNAL_ON_SEARCH_RESULTS])
+        self.session.add_observer(self.on_search_results, SIGNAL_SEARCH_COMMUNITY, [SIGNAL_ON_SEARCH_RESULTS])
 
-        def do_search():
-            self.guiUtility.toggleFamilyFilter(True)
-            self.guiUtility.dosearch(u'xxx')
-            self.callLater(10, do_assert)
+        self.channel_search = False
+        self.torrent_search = False
 
-        self.startTest(do_search)
+        self.connections_lc = LoopingCall(self.check_num_connections)
+        self.connections_lc.start(3)
 
-    def test_remotedownload(self):
-        def do_assert():
-            self.screenshot('After doing ubuntu search + desktop filter + selecting item + download')
-            self.quit()
+        self.conn_deferred = Deferred()    # Fired when we have enough connections
+        self.search_deferred = Deferred()  # Fired when we have a remote result
 
-        def do_download():
-            self.screenshot('After doing ubuntu search + desktop filter + selecting item')
+        self.min_connections = 10  # The minimum number of required connections in AllChannel/Search community
 
-            self.guiUtility.utility.write_config('showsaveas', 0)
+    def on_search_results(self, subject, changetype, objectID, results):
+        if ((subject == SIGNAL_CHANNEL and self.channel_search) or
+                (subject == SIGNAL_SEARCH_COMMUNITY and self.torrent_search)) and not self.search_deferred.called:
+            self.search_deferred.callback(None)
 
-            self.frame.top_bg.OnDownload()
-            self.CallConditional(
-                120, lambda: self.frame.librarylist.GetNrResults() > 0, do_assert, 'no download in librarylist',
-                tribler_session=self.guiUtility.utility.session, dump_statistics=True)
+    def check_num_connections(self):
+        """
+        Check the number of current connections in AllChannel/Search community
+        """
+        connections = 0
+        for community in self.session.get_dispersy_instance().get_communities():
+            from Tribler.community.allchannel.community import AllChannelCommunity
+            from Tribler.community.search.community import SearchCommunity
 
-        def do_select():
-            self.assert_(self.frame.searchlist.GetNrResults() > 0, 'no hits matching ubuntu + desktop',
-                         tribler_session=self.guiUtility.utility.session, dump_statistics=True)
-            self.screenshot('After doing ubuntu search + desktop filter, got %d results' %
-                            self.frame.searchlist.GetNrResults())
-            items = self.frame.searchlist.GetItems()
-            keys = items.keys()
+            if isinstance(community, AllChannelCommunity) and self.channel_search or \
+                isinstance(community, SearchCommunity) and self.torrent_search:
+                connections = community.get_nr_connections()
+                break
 
-            self.frame.searchlist.Select(keys[0])
-            self.callLater(5, do_download)
+        if connections >= 10:
+            self.connections_lc.stop()
+            self.conn_deferred.callback(None)
 
-        def do_filter():
-            self.assert_(self.frame.searchlist.GetNrResults() > 0, 'no hits matching ubuntu + desktop',
-                         tribler_session=self.guiUtility.utility.session, dump_statistics=True)
-            self.screenshot('After doing ubuntu search, got %d results' % self.frame.searchlist.GetNrResults())
-            self.frame.searchlist.GotFilter('desktop')
 
-            self.callLater(5, do_select)
+class TestRemoteChannelSearch(BaseTestSearch):
+    """
+    This class contains tests to test remote channel search.
+    """
 
-        def do_search():
-            self.guiUtility.toggleFamilyFilter(newState=False, setCheck=True)
-            self.guiUtility.dosearch(u'ubuntu')
-            self.callLater(10, do_filter)
+    def setUp(self, autoload_discovery=True):
+        BaseTestSearch.setUp(self, autoload_discovery=autoload_discovery)
+        self.channel_search = True
 
-        self.startTest(do_search)
+    @deferred(timeout=120)
+    def test_remote_channel_search(self):
+        """
+        Testing whether remote channels can be found when executing a search query in AllChannel community
+        """
+        def perform_search(_):
+            self.session.search_remote_channels([u'de'])
+
+        self.conn_deferred.addCallback(perform_search)
+        return self.search_deferred
+
+
+class TestRemoteTorrentSearch(BaseTestSearch):
+    """
+    This class contains tests to test remote torrent search.
+    """
+
+    def setUp(self, autoload_discovery=True):
+        BaseTestSearch.setUp(self, autoload_discovery=autoload_discovery)
+        self.torrent_search = True
+
+    @deferred(timeout=120)
+    def test_remote_torrent_search(self):
+        """
+        Testing whether remote torrents can be found when executing a search query in Search community
+        """
+        def perform_search(_):
+            self.session.search_remote_torrents([u'de'])
+
+        self.conn_deferred.addCallback(perform_search)
+        return self.search_deferred
