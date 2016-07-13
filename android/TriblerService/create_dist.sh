@@ -7,6 +7,8 @@ p4a create \
 --require-perfect-match \
 --copy-libs \
 --debug \
+--sdk_dir=/opt/android-sdk-linux \
+--ndk_dir=/opt/android-ndk-r10e \
 --android_api=21 \
 --arch=armeabi-v7a \
 --package=org.tribler.android \

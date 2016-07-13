@@ -1,8 +1,5 @@
 #!/bin/bash
 
-export ANDROIDSDK=/opt/android-sdk-linux
-export ANDROIDNDK=/opt/android-ndk-r10e
-
 export PATH="~/.local/bin/:$PATH"
 
 #echo Get the latest P4A
