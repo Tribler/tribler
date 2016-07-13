@@ -31,9 +31,10 @@ from collections import defaultdict
 from random import randint
 from traceback import print_exc
 
-import wx
 from twisted.internet.task import LoopingCall
+from twisted.internet.threads import deferToThread
 from twisted.python.threadable import isInIOThread
+import wx
 
 from Tribler.Category.Category import Category
 from Tribler.Core.DownloadConfig import get_default_dest_dir, get_default_dscfg_filename, DefaultDownloadStartupConfig
@@ -604,7 +605,7 @@ class ABCApp(TaskManager):
     def guiservthread_checkpoint_timer(self):
         """ Periodically checkpoint Session """
         self._logger.info("main: Checkpointing Session")
-        return reactor.deferToThread(self.utility.session.checkpoint)
+        return deferToThread(self.utility.session.checkpoint)
 
     @forceWxThread
     def sesscb_ntfy_activities(self, events):
