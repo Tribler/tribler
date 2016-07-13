@@ -329,9 +329,10 @@ class LibtorrentMgr(TaskManager):
 
         if not self.is_dht_ready() and timeout > 5:
             self._logger.info("DHT not ready, rescheduling get_metainfo")
-            reactor.callFromThread(lambda i=infohash_or_magnet, c=callback, t=timeout - 5,
-                                   tcb=timeout_callback, n=notify: self.get_metainfo(i, c, t, tcb, n), 5)
-            return
+            dc = reactor.callLater(5, reactor.callFromThread,
+                                   lambda i=infohash_or_magnet, c=callback, t=timeout - 5, tcb=timeout_callback, n=notify: self.get_metainfo(i, c, t, tcb, n))
+
+            return self.register_task("get_metainfo", dc)
 
         magnet = infohash_or_magnet if infohash_or_magnet.startswith('magnet') else None
         infohash_bin = infohash_or_magnet if not magnet else parse_magnetlink(magnet)[1]
