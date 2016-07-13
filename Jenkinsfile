@@ -68,9 +68,13 @@ node('bbq') {
   unstash 'tribler'
   unstash 'gumby'
 
-  sh '''
-  export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages:$PYTHONPATH
-  ulimit -c unlimited
-  gumby/run.py gumby/experiments/tribler/run_tribler.conf
-  '''
+  try {
+    sh '''
+    export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages:$PYTHONPATH
+    ulimit -c unlimited
+    gumby/run.py gumby/experiments/tribler/run_tribler.conf
+    '''
+  } finally {
+    archive 'output/**'
+  }
 }
