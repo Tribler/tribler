@@ -15,13 +15,14 @@ class M2CryptoRecipe(PythonRecipe):
         with current_directory(self.get_build_dir(arch.arch)):
             # Build M2Crypto
             hostpython = sh.Command(self.hostpython_location)
+            r = self.get_recipe('openssl', self.ctx)
+            openssl_dir = r.get_build_dir(arch.arch)
             shprint(hostpython,
                     'setup.py',
                     'build_ext',
                     '-p' + arch.arch,
                     '-c' + 'unix',
-                    '-o' + env['OPENSSL_BUILD_PATH'],
-                    '-L' + env['OPENSSL_BUILD_PATH']
+                    '--openssl=' + openssl_dir
             , _env=env)
         # Install M2Crypto
         super(M2CryptoRecipe, self).build_arch(arch)
