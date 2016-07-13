@@ -7,7 +7,7 @@ p4a create \
 --require-perfect-match \
 --copy-libs \
 --debug \
---android_api=16 \
+--android_api=21 \
 --arch=armeabi-v7a \
 --package=org.tribler.android \
 --service=Triblerd:Triblerd.py \
