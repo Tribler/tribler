@@ -32,7 +32,7 @@ def gitCheckout(url, branch, targetDir=''){
 }
 
 def checkoutGumby() {
-  gitCheckout('https://github.com/tribler/gumby.git', '*/devel')
+  gitCheckout('https://github.com/devos50/gumby.git', '*/devos50/fix_idle_run')
 }
 
 
