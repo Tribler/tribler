@@ -265,19 +265,19 @@ class LibtorrentMgr(TaskManager):
 
             if infohash in self.metainfo_requests:
                 self._logger.info("killing get_metainfo request for %s", infohash)
-                handle = self.metainfo_requests.pop(infohash)['handle']
-                if handle:
-                    ltsession.remove_torrent(handle, 0)
+                request_handle = self.metainfo_requests.pop(infohash)['handle']
+                if request_handle:
+                    ltsession.remove_torrent(request_handle, 0)
 
-            handle = ltsession.add_torrent(encode_atp(atp))
-            infohash = str(handle.info_hash())
+            torrent_handle = ltsession.add_torrent(encode_atp(atp))
+            infohash = str(torrent_handle.info_hash())
             if infohash in self.torrents:
                 raise DuplicateDownloadException()
             self.torrents[infohash] = (torrentdl, ltsession)
 
             self._logger.debug("added torrent %s", infohash)
 
-            return handle
+            return torrent_handle
 
     def remove_torrent(self, torrentdl, removecontent=False):
         handle = torrentdl.handle

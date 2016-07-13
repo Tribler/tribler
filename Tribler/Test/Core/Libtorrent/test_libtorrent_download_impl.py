@@ -97,7 +97,13 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         tdef = self.create_tdef()
 
         impl = LibtorrentDownloadImpl(self.session, tdef)
-        impl.handle = None
+        impl.handle = MockObject()
+        impl.handle.set_priority = lambda _: None
+        impl.handle.set_sequential_download = lambda _: None
+        impl.handle.resume = lambda: None
+        impl.handle.status = lambda: fake_status
+        fake_status = MockObject()
+        fake_status.share_mode = False
         # Create a dummy download config
         impl.dlconfig = DownloadStartupConfig().dlconfig.copy()
         impl.session.lm.on_download_wrapper_created = lambda _: True
@@ -105,21 +111,30 @@ class TestLibtorrentDownloadImpl(TestAsServer):
 
     @deferred(timeout=20)
     def test_multifile_torrent(self):
-        t = TorrentDef()
+        tdef = TorrentDef()
 
         dn = os.path.join(TESTS_DATA_DIR, "contentdir")
-        t.add_content(dn, "dirintorrent")
+        tdef.add_content(dn, "dirintorrent")
 
         fn = os.path.join(TESTS_DATA_DIR, "video.avi")
-        t.add_content(fn, os.path.join("dirintorrent", "video.avi"))
+        tdef.add_content(fn, os.path.join("dirintorrent", "video.avi"))
 
-        t.set_tracker("http://tribler.org/announce")
-        t.finalize()
+        tdef.set_tracker("http://tribler.org/announce")
+        tdef.finalize()
 
-        impl = LibtorrentDownloadImpl(self.session, t)
-        # Override the addtorrent because it will be called
-        impl.ltmgr = self.session.lm.ltmgr
-        impl.ltmgr.add_torrent = lambda ignored, ignored2: False
+        impl = LibtorrentDownloadImpl(self.session, tdef)
+        # Override the add_torrent because it will be called
+        impl.ltmgr = MockObject()
+        impl.ltmgr.add_torrent = lambda _, _dummy2: fake_handler
+        impl.set_selected_files = lambda: None
+        fake_handler = MockObject()
+        fake_handler.is_valid = lambda: True
+        fake_handler.status = lambda: fake_status
+        fake_handler.set_share_mode = lambda _: None
+        fake_handler.resume = lambda: None
+        fake_handler.resolve_countries = lambda _: None
+        fake_status = MockObject()
+        fake_status.share_mode = False
         # Create a dummy download config
         impl.dlconfig = DownloadStartupConfig().dlconfig.copy()
         # Create a dummy pstate
@@ -184,20 +199,6 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.assertFalse(self.libtorrent_download_impl.get_share_mode())
         self.libtorrent_download_impl.handle.status().share_mode = True
         self.assertTrue(self.libtorrent_download_impl.get_share_mode())
-
-    def test_set_share_mode(self):
-        """
-        Test whether we set the right share mode in LibtorrentDownloadImpl
-        """
-        def mocked_set_share_mode(val):
-            self.assertTrue(val)
-            mocked_set_share_mode.called = True
-
-        mocked_set_share_mode.called = False
-        self.libtorrent_download_impl.handle.set_share_mode = mocked_set_share_mode
-
-        self.libtorrent_download_impl.set_share_mode(True)
-        self.assertTrue(mocked_set_share_mode.called)
 
     def test_set_priority(self):
         """
@@ -362,7 +363,6 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         """
         Testing whether an exception in the setup method of LibtorrentDownloadImpl is handled correctly
         """
-        self.libtorrent_download_impl.handle.set_share_mode = lambda _: None
         self.libtorrent_download_impl.setup()
         self.assertIsInstance(self.libtorrent_download_impl.error, Exception)
 
