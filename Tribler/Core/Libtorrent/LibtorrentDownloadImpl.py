@@ -302,7 +302,11 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
             self.handle = self.ltmgr.add_torrent(self, atp)
 
-            if self.handle:
+            # DEBUG:
+            assert self.handle.status().share_mode == share_mode
+
+
+            if self.handle.is_valid():
 
                 self.set_selected_files()
 
@@ -319,11 +323,16 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 self.handle.resolve_countries(True)
 
             else:
-                self._logger.info("Could not add torrent to LibtorrentManager %s", self.tdef.get_name_as_unicode())
+                self._logger.error("Could not add torrent to LibtorrentManager %s", self.tdef.get_name_as_unicode())
+
+                self.cew_scheduled = False
+
+                # Return a deferred with the errback already being called
+                return defer.fail((self, pstate))
 
             self.cew_scheduled = False
 
-            # Return a deferred with the callback already being called.
+            # Return a deferred with the callback already being called
             return defer.succeed((self, pstate))
 
     def get_anon_mode(self):
@@ -1171,10 +1180,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
     @checkHandleAndSynchronize()
     def get_share_mode(self):
         return self.handle.status().share_mode
-
-    @waitForHandleAndSynchronize(True)
-    def set_share_mode(self, share_mode):
-        self.handle.set_share_mode(share_mode)
 
 
 class LibtorrentStatisticsResponse:
