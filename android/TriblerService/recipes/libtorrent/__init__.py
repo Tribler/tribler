@@ -65,9 +65,7 @@ class LibtorrentRecipe(Recipe):
         # Copy environment from boost recipe
         env.update(self.get_recipe('boost', self.ctx).get_recipe_env(arch))
         if 'openssl' in recipe.ctx.recipe_build_order:
-            r = self.get_recipe('openssl', self.ctx)
-            env['OPENSSL_BUILD_PATH'] = r.get_build_dir(arch.arch)
-            env['OPENSSL_VERSION'] = r.version
+            env['OPENSSL_BUILD_PATH'] = self.get_recipe('openssl', self.ctx).get_build_dir(arch.arch)
         return env
 
 recipe = LibtorrentRecipe()

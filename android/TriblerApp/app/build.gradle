@@ -80,7 +80,7 @@ model {
             }
             crypto {
                 binaries.withType(SharedLibraryBinary) {
-                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libcrypto1.0.2h.so")
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libcrypto.so")
                 }
             }
             ffi {
@@ -110,7 +110,7 @@ model {
             }
             ssl {
                 binaries.withType(SharedLibraryBinary) {
-                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libssl1.0.2h.so")
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libssl.so")
                 }
             }
             torrent_rasterbar {
