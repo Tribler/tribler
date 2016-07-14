@@ -18,21 +18,15 @@ class Triblerd(object):
 
     def run(self):
         '''
-        Start tribler twistd plugin with service argument
+        Start reactor with service argument
         '''
-        import logging
-        from twisted.python import log
-        from twisted.scripts.twistd import run
+        from twisted.internet import reactor
+        from tribler_plugin import Options, service_maker
 
-        # Override twisted logging
-        observer = log.PythonLoggingObserver()
-        observer.start()
-        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.ERROR)
-
-        # Pass through service arguments to tribler
-        sys.argv += ['-n', 'tribler']
-        sys.argv += os.getenv('PYTHON_SERVICE_ARGUMENT', '').split()
-        run()
+        options = Options()
+        Options.parseOptions(options, os.getenv('PYTHON_SERVICE_ARGUMENT', '').split())
+        service_maker.makeService(options)
+        reactor.run()
 
 
     def profile(self):
@@ -45,8 +39,9 @@ class Triblerd(object):
         from twisted.scripts.twistd import run
 
         # Override twisted logging
-        observer = log.PythonLoggingObserver()
-        observer.start()
+        #observer = log.PythonLoggingObserver()
+        #observer.start()
+        # Set logging format
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.CRITICAL)
 
         # Pass through service arguments to tribler
