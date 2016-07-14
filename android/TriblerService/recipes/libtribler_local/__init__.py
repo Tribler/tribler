@@ -49,7 +49,9 @@ class LocalTriblerRecipe(PythonRecipe):
             cp('-rf', self.src_root, self.name)
 
             # Install twistd plugins
-            cp('-rf', join(self.name, 'twisted'), join(self.ctx.get_python_install_dir(), 'lib/python2.7/site-packages'))
+            site_packages = join(self.ctx.get_python_install_dir(), 'lib/python2.7/site-packages')
+            mkdir('-p', site_packages)
+            cp('-rf', join(self.name, 'twisted'), site_packages)
 
         super(LocalTriblerRecipe, self).prebuild_arch(arch)
 
