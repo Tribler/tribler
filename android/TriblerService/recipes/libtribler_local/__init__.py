@@ -1,4 +1,4 @@
-from pythonforandroid.toolchain import PythonRecipe, shutil, current_directory
+from pythonforandroid.toolchain import PythonRecipe, current_directory
 from os.path import join, exists
 from sh import mkdir, cp
 
@@ -9,6 +9,8 @@ Privacy with BitTorrent and resilient to shut down
 http://www.tribler.org
 """
 class LocalTriblerRecipe(PythonRecipe):
+
+    src_root = '/home/paul/repos/tribler-app'
 
     version = 'local'
 
@@ -44,21 +46,21 @@ class LocalTriblerRecipe(PythonRecipe):
 
         with current_directory(container_dir):
             # Copy source from working copy
-            cp('-rf', '/home/paul/repos/tribler-app', self.name)
+            cp('-rf', self.src_root, self.name)
 
-            # Copy twisted plugin
-            shutil.copyfile(join(self.name, 'twisted/plugins/tribler_plugin.py'),
-                            '/home/paul/repos/tribler-app/android/TriblerService/service/tribler_plugin.py')
+            # Install twistd plugins
+            cp('-rf', join(self.name, 'twisted'), join(self.ctx.get_python_install_dir(), 'lib/python2.7/site-packages'))
 
         super(LocalTriblerRecipe, self).prebuild_arch(arch)
 
 
     def postbuild_arch(self, arch):
         super(LocalTriblerRecipe, self).postbuild_arch(arch)
-        target ='/home/paul/repos/tribler-app/android/TriblerService/service/ffmpeg'
+        # Install ffmpeg binary
+        source = self.get_recipe('ffmpeg', self.ctx).get_build_bin(arch)
+        target = join(self.src_root, 'android/TriblerService/service/ffmpeg')
         if not exists(target):
-            # Install ffmpeg binary
-            shutil.copyfile(self.get_recipe('ffmpeg', self.ctx).get_build_bin(arch), target)
+            cp('-f', source, target)
 
 
 recipe = LocalTriblerRecipe()
