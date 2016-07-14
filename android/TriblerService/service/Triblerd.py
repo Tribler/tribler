@@ -21,9 +21,12 @@ class Triblerd(object):
         Start tribler twistd plugin with service argument
         '''
         import logging
+        from twisted.python import log
         from twisted.scripts.twistd import run
 
         # Set logging format
+        observer = log.PythonLoggingObserver()
+        observer.start()
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.ERROR)
 
         # Pass through service arguments to tribler
@@ -36,15 +39,18 @@ class Triblerd(object):
         '''
         Run in profile mode, dumping results to file
         '''
+        import time
         import logging
-        from time import time
+        from twisted.python import log
         from twisted.scripts.twistd import run
 
         # Set logging format
+        observer = log.PythonLoggingObserver()
+        observer.start()
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.CRITICAL)
 
         # Pass through service arguments to tribler
-        sys.argv += ['-n', '--profile=profile_' + str(time()) + '.cprofile', 'tribler']
+        sys.argv += ['-n', '--profile=profile_' + str(time.time()) + '.cprofile', 'tribler']
         sys.argv += os.getenv('PYTHON_SERVICE_ARGUMENT', '').split()
         run()
 
