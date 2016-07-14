@@ -41,6 +41,16 @@ class Triblerd(object):
         import time
         from twisted.python import log
         from twisted.scripts.twistd import run
+        from twisted.internet import reactor
+
+        def gracefull_shutdown():
+            '''
+            Write profiler results to file and stop the reactor
+            '''
+            # TODO: dump profiler results
+            reactor.stop()
+
+        reactor.callLater(10 * 60, gracefull_shutdown)
 
         # Override twisted logging
         #observer = log.PythonLoggingObserver()
@@ -102,4 +112,4 @@ class Triblerd(object):
 
 
 if __name__ == '__main__':
-    Triblerd().run()
+    Triblerd().profile()
