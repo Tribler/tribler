@@ -178,8 +178,6 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         # Called by any thread, assume sessionlock is held
         self.set_checkpoint_disabled(checkpoint_disabled)
 
-        self.set_share_mode(share_mode)
-
         try:
             # The deferred to be returned
             deferred = Deferred()
@@ -204,7 +202,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 def schedule_create_engine():
                     self.cew_scheduled = True
                     create_engine_wrapper_deferred = self.network_create_engine_wrapper(
-                        self.pstate_for_restart, initialdlstatus)
+                        self.pstate_for_restart, initialdlstatus, share_mode=share_mode)
                     create_engine_wrapper_deferred.chainDeferred(deferred)
 
 
@@ -256,7 +254,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         do_check()
         return can_create_deferred
 
-    def network_create_engine_wrapper(self, pstate, initialdlstatus=None, checkpoint_disabled=False):
+    def network_create_engine_wrapper(self, pstate, initialdlstatus=None, checkpoint_disabled=False, share_mode=False):
         with self.dllock:
             self._logger.debug("LibtorrentDownloadImpl: network_create_engine_wrapper()")
 
@@ -268,7 +266,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             atp["duplicate_is_error"] = True
             atp["hops"] = self.get_hops()
 
-            if self.get_share_mode():
+            if share_mode:
                 atp["flags"] = lt.add_torrent_params_flags_t.flag_share_mode
 
             self.set_checkpoint_disabled(checkpoint_disabled)
@@ -303,8 +301,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 atp["name"] = self.tdef.get_name_as_unicode()
 
             self.handle = self.ltmgr.add_torrent(self, atp)
-
-            if self.handle:
+            # assert self.handle.status().share_mode == share_mode
+            if self.handle.is_valid():
 
                 self.set_selected_files()
 
@@ -321,11 +319,16 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 self.handle.resolve_countries(True)
 
             else:
-                self._logger.info("Could not add torrent to LibtorrentManager %s", self.tdef.get_name_as_unicode())
+                self._logger.error("Could not add torrent to LibtorrentManager %s", self.tdef.get_name_as_unicode())
+
+                self.cew_scheduled = False
+
+                # Return a deferred with the errback already being called
+                return defer.fail((self, pstate))
 
             self.cew_scheduled = False
 
-            # Return a deferred with the callback already being called.
+            # Return a deferred with the callback already being called
             return defer.succeed((self, pstate))
 
     def get_anon_mode(self):
@@ -1051,7 +1054,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
                 def schedule_create_engine(_):
                     self.cew_scheduled = True
-                    create_engine_wrapper_deferred = self.network_create_engine_wrapper(self.pstate_for_restart, initialdlstatus)
+                    create_engine_wrapper_deferred = self.network_create_engine_wrapper(
+                        self.pstate_for_restart, initialdlstatus, share_mode=self.get_share_mode())
                     create_engine_wrapper_deferred.addCallback(self.session.lm.on_download_wrapper_created)
 
                 can_create_engine_deferred = self.can_create_engine_wrapper()
