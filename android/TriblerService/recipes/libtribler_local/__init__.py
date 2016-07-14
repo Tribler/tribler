@@ -55,7 +55,7 @@ class LocalTriblerRecipe(PythonRecipe):
         super(LocalTriblerRecipe, self).postbuild_arch(arch)
 
         # Install twistd plugins
-        cp('-rf', join(self.name, 'twisted'),
+        cp('-rf', join(self.get_build_dir(arch.arch), 'twisted'),
            join(self.ctx.get_python_install_dir(), 'lib/python2.7/site-packages'))
 
         # Install ffmpeg binary
