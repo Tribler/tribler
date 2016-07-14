@@ -102,4 +102,4 @@ class Triblerd(object):
 
 
 if __name__ == '__main__':
-    Triblerd().profile()
+    Triblerd().run()
