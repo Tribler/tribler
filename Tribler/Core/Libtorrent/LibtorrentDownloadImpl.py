@@ -301,11 +301,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 atp["name"] = self.tdef.get_name_as_unicode()
 
             self.handle = self.ltmgr.add_torrent(self, atp)
-
-            # DEBUG:
-            assert self.handle.status().share_mode == share_mode
-
-
+            # assert self.handle.status().share_mode == share_mode
             if self.handle.is_valid():
 
                 self.set_selected_files()
@@ -1180,6 +1176,10 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
     @checkHandleAndSynchronize()
     def get_share_mode(self):
         return self.handle.status().share_mode
+
+    @waitForHandleAndSynchronize(True)
+    def set_share_mode(self, share_mode):
+        self.handle.set_share_mode(share_mode)
 
 
 class LibtorrentStatisticsResponse:

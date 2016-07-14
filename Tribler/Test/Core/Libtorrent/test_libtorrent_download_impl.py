@@ -200,6 +200,20 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.handle.status().share_mode = True
         self.assertTrue(self.libtorrent_download_impl.get_share_mode())
 
+    def test_set_share_mode(self):
+        """
+        Test whether we set the right share mode in LibtorrentDownloadImpl
+        """
+        def mocked_set_share_mode(val):
+            self.assertTrue(val)
+            mocked_set_share_mode.called = True
+
+        mocked_set_share_mode.called = False
+        self.libtorrent_download_impl.handle.set_share_mode = mocked_set_share_mode
+
+        self.libtorrent_download_impl.set_share_mode(True)
+        self.assertTrue(mocked_set_share_mode.called)
+
     def test_set_priority(self):
         """
         Test whether setting the priority calls the right methods in LibtorrentDownloadImpl
