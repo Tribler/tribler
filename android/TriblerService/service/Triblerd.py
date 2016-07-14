@@ -21,7 +21,7 @@ class Triblerd(object):
         Start reactor with service argument
         '''
         from twisted.internet import reactor
-        from tribler_plugin import Options, service_maker
+        from twisted.plugins.tribler_plugin import Options, service_maker
 
         options = Options()
         Options.parseOptions(options, os.getenv('PYTHON_SERVICE_ARGUMENT', '').split())
