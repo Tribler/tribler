@@ -1,7 +1,9 @@
 import os
+import sys
 
 
 class Triblerd(object):
+
 
     def __init__(self):
         '''
@@ -13,17 +15,40 @@ class Triblerd(object):
         # Executable ffmpeg binary
         os.chmod('ffmpeg', 0744)
 
+
     def run(self):
         '''
-        Start reactor with service argument
+        Start tribler twistd plugin with service argument
         '''
-        from twisted.internet import reactor
-        from tribler_plugin import Options, service_maker
+        import logging
+        from twisted.scripts.twistd import run
 
-        options = Options()
-        Options.parseOptions(options, os.getenv('PYTHON_SERVICE_ARGUMENT', '').split())
-        service_maker.makeService(options)
-        reactor.run()
+        # Set logging format
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.ERROR)
+
+        # Pass through service arguments to tribler
+        sys.argv += ['-n', 'tribler']
+        sys.argv += os.getenv('PYTHON_SERVICE_ARGUMENT', '').split()
+        run()
+
+
+    def profile(self):
+        '''
+        Run in profile mode, dumping results to file
+        '''
+        import time
+        import logging
+        from twisted.scripts.twistd import run
+
+        # Set logging format
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.CRITICAL)
+
+        # Pass through service arguments to tribler
+        current_time_milis = lambda: int(round(time.time() * 1000))
+        sys.argv += ['-n', '--profile=profile' + current_time_milis() + '.cprofile', 'tribler']
+        sys.argv += os.getenv('PYTHON_SERVICE_ARGUMENT', '').split()
+        run()
+
 
     def test(self):
         '''
@@ -33,7 +58,6 @@ class Triblerd(object):
         # which is not available on Android
         class _multiprocessing(object):
             pass
-        import sys
         sys.modules["_multiprocessing"] = _multiprocessing
 
         import shutil
@@ -54,9 +78,11 @@ class Triblerd(object):
         NOSEARGS_COMMON = "--with-xunit --all-modules --traverse-namespace --cover-package=Tribler --cover-tests --cover-inclusive"
         NOSEARGS = "--verbose --with-xcoverage --xcoverage-file=" + OUTPUT_DIR + "/coverage.xml --xunit-file=" + OUTPUT_DIR + "/nosetests.xml " + NOSEARGS_COMMON
 
+        # Set logging format
         os.environ['NOSE_LOGFORMAT'] = "%(levelname)-7s %(created)d %(module)15s:%(name)s:%(lineno)-4d %(message)s"
 
         nose.run(argv=NOSEARGS.split())
+
 
     def experiment(self):
         '''
