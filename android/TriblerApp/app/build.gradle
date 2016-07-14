@@ -7,7 +7,7 @@ model {
 
         defaultConfig {
             applicationId "org.tribler.android"
-            minSdkVersion.apiLevel 21
+            minSdkVersion.apiLevel 16
             targetSdkVersion.apiLevel 23
             versionCode 1
             versionName "0.1"
@@ -26,7 +26,7 @@ model {
             moduleName = "main"
             toolchain = "gcc"
             toolchainVersion = "4.9"
-            platformVersion = 21
+            platformVersion = 16
             stl = "gnustl_shared"
             renderscriptNdkMode = false
             CFlags.add("-I" + file("src/main/jni/include/python2.7"))

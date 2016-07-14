@@ -9,7 +9,7 @@ p4a create \
 --debug \
 --sdk_dir=/opt/android-sdk-linux \
 --ndk_dir=/opt/android-ndk-r10e \
---android_api=21 \
+--android_api=16 \
 --arch=armeabi-v7a \
 --package=org.tribler.android \
 --service=Triblerd:Triblerd.py \
