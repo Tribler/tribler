@@ -60,7 +60,7 @@ class Triblerd(object):
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.CRITICAL)
 
         # Pass through service arguments to tribler
-        sys.argv += ['-n', '--profile=profile_' + str(time.time()) + '.cprofile', 'tribler']
+        sys.argv += ['--savestats', '--profile=profile_' + str(time.time()) + '.cprofile', '-n', 'tribler']
         sys.argv += os.getenv('PYTHON_SERVICE_ARGUMENT', '').split()
         run()
 
