@@ -48,16 +48,16 @@ class LocalTriblerRecipe(PythonRecipe):
             # Copy source from working copy
             cp('-rf', self.src_root, self.name)
 
-            # Install twistd plugins
-            site_packages = join(self.ctx.get_python_install_dir(), 'lib/python2.7/site-packages')
-            mkdir('-p', site_packages)
-            cp('-rf', join(self.name, 'twisted'), site_packages)
-
         super(LocalTriblerRecipe, self).prebuild_arch(arch)
 
 
     def postbuild_arch(self, arch):
         super(LocalTriblerRecipe, self).postbuild_arch(arch)
+
+        # Install twistd plugins
+        cp('-rf', join(self.name, 'twisted'),
+           join(self.ctx.get_python_install_dir(), 'lib/python2.7/site-packages'))
+
         # Install ffmpeg binary
         source = self.get_recipe('ffmpeg', self.ctx).get_build_bin(arch)
         target = join(self.src_root, 'android/TriblerService/service/ffmpeg')
