@@ -8,7 +8,6 @@ Written by Mihai Capotă and Ardhi Putra Pratama H
 import binascii
 import random
 import re
-from unittest import skip
 
 import Tribler.Policies.BoostingManager as bm
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
@@ -23,7 +22,6 @@ from Tribler.Test.Core.CreditMining.mock_creditmining import MockMeta, MockLtPee
 from Tribler.Test.test_as_server import TestAsServer
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerPolicies(TestAsServer):
     """
     The class to test core function of credit mining policies
@@ -35,7 +33,6 @@ class TestBoostingManagerPolicies(TestAsServer):
     def setUp(self, autoload_discovery=True):
         super(TestBoostingManagerPolicies, self).setUp()
         self.session.get_download = lambda x: x % 2
-        random.seed(0)
         self.torrents = dict()
         for i in xrange(1, 11):
             mock_metainfo = MockMeta(i)
@@ -47,6 +44,7 @@ class TestBoostingManagerPolicies(TestAsServer):
         """
         testing random policy
         """
+        random.seed(0)
         policy = RandomPolicy(self.session)
         torrents_start, torrents_stop = policy.apply(self.torrents, 6, force=True)
         ids_start = [torrent["metainfo"].get_infohash() for torrent in
@@ -77,6 +75,7 @@ class TestBoostingManagerPolicies(TestAsServer):
             self.torrents[i] = {"metainfo": mock_metainfo, "num_seeders": -i,
                                 "num_leechers": -i, "creation_date": i}
 
+        random.seed(0)
         policy = SeederRatioPolicy(self.session)
         torrents_start, torrents_stop = policy.apply(self.torrents, 6)
         ids_start = [torrent["metainfo"].get_infohash() for torrent in
@@ -98,7 +97,6 @@ class TestBoostingManagerPolicies(TestAsServer):
         self.assertEqual(ids_stop, [5, 3, 1])
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerUtilities(TestAsServer):
     """
     Test several utilities used in credit mining
@@ -347,7 +345,6 @@ class TestBoostingManagerUtilities(TestAsServer):
         boost_man.cancel_all_pending_tasks()
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerError(TestAsServer):
     """
     Class to test a bunch of credit mining error handle
