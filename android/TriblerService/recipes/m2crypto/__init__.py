@@ -39,8 +39,8 @@ class M2CryptoRecipe(PythonRecipe):
         env['LDFLAGS'] += ' -L' + env['PYTHON_ROOT'] + '/lib' + \
                           ' -L' + openssl_dir + \
                           ' -lpython2.7' + \
-                          ' -lssl' + \
-                          ' -lcrypto'
+                          ' -lssl' + r.version + \
+                          ' -lcrypto' + r.version
         return env
 
 recipe = M2CryptoRecipe()
