@@ -24,7 +24,7 @@ class Triblerd(object):
         from twisted.python import log
         from twisted.scripts.twistd import run
 
-        # Set logging format
+        # Override twisted logging
         observer = log.PythonLoggingObserver()
         observer.start()
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.ERROR)
@@ -44,7 +44,7 @@ class Triblerd(object):
         from twisted.python import log
         from twisted.scripts.twistd import run
 
-        # Set logging format
+        # Override twisted logging
         observer = log.PythonLoggingObserver()
         observer.start()
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.CRITICAL)
