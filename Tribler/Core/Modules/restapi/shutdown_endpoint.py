@@ -48,6 +48,6 @@ class ShutdownEndpoint(resource.Resource):
 
         if not self._stopping:
             self._stopping = True
-            self.session.shutdown(gracetime=gracetime).addCallback(shutdown_process)
+            self.session.shutdown(gracetime=gracetime).addBoth(shutdown_process)
 
         return json.dumps({"shutdown": True, "gracetime": gracetime})
