@@ -73,10 +73,10 @@ public class AssetExtract {
 
         if (packaged_version.equals(disk_version)) {
             Log.v(TAG, "Disk data version equals packaged data version.");
-            //return;
+            return;
         }
 
-        //recursiveDelete(target);
+        recursiveDelete(target);
         target.mkdirs();
 
         if (!extractTar(ctx.getAssets(), assetName, target.getAbsolutePath())) {
