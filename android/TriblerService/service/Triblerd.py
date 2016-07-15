@@ -45,9 +45,8 @@ class Triblerd(object):
 
         def gracefull_shutdown():
             '''
-            Write profiler results to file and stop the reactor
+            Profiler results are written to file on reactor stop
             '''
-            # TODO: dump profiler results
             reactor.stop()
 
         reactor.callLater(10 * 60, gracefull_shutdown)
@@ -112,4 +111,4 @@ class Triblerd(object):
 
 
 if __name__ == '__main__':
-    Triblerd().profile()
+    Triblerd().run()
