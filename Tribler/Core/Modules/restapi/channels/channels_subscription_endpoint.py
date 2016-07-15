@@ -84,10 +84,8 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
         """
         request.setHeader('Content-Type', 'text/json')
         channel_info = self.get_channel_from_db(self.cid)
-        if channel_info is None:
-            return ChannelsModifySubscriptionEndpoint.return_404(request)
 
-        if channel_info[7] == VOTE_SUBSCRIBE:
+        if channel_info is not None and channel_info[7] == VOTE_SUBSCRIBE:
             request.setResponseCode(http.CONFLICT)
             return json.dumps({"error": ALREADY_SUBSCRIBED_RESPONSE_MSG})
 

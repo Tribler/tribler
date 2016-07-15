@@ -57,15 +57,6 @@ class TestChannelsSubscriptionEndpoint(AbstractTestChannelsEndpoint):
         super(TestChannelsSubscriptionEndpoint, self).tearDown()
 
     @deferred(timeout=10)
-    def test_subscribe_channel_not_exist(self):
-        """
-        Testing whether the API returns an error when subscribing if the channel with the specified CID does not exist
-        """
-        expected_json = {"error": UNKNOWN_CHANNEL_RESPONSE_MSG}
-        return self.do_request('channels/subscribed/abcdef', expected_code=404, expected_json=expected_json,
-                               request_type='PUT')
-
-    @deferred(timeout=10)
     def test_subscribe_channel_already_subscribed(self):
         """
         Testing whether the API returns error 409 when subscribing to an already subscribed channel
