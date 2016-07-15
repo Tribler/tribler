@@ -76,7 +76,7 @@ public class AssetExtract {
             //return;
         }
 
-        recursiveDelete(target);
+        //recursiveDelete(target);
         target.mkdirs();
 
         if (!extractTar(ctx.getAssets(), assetName, target.getAbsolutePath())) {
