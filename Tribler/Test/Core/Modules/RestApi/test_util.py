@@ -1,4 +1,4 @@
-from Tribler.Core.Modules.restapi.util import convert_torrent_to_json
+from Tribler.Core.Modules.restapi.util import convert_torrent_to_json, get_parameter
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 
@@ -33,3 +33,10 @@ class TestRestApiUtil(TriblerCoreTest):
         input = (1, '2', None, 4, 5, 6, 7, 8)
         output['name'] = 'Unnamed torrent'
         self.assertEqual(convert_torrent_to_json(input), output)
+
+    def test_get_parameter(self):
+        """
+        Testing the get_parameters method in REST API util class
+        """
+        self.assertEqual(42, get_parameter({'test': [42]}, 'test'))
+        self.assertEqual(None, get_parameter({}, 'test'))
