@@ -1,4 +1,4 @@
-from Tribler.Core.Modules.restapi.my_channel_endpoint import NO_CHANNEL_CREATED_RESPONSE_MSG
+from Tribler.Core.Modules.restapi.channels.my_channel_endpoint import NO_CHANNEL_CREATED_RESPONSE_MSG
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
 

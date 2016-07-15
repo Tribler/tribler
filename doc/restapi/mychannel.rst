@@ -2,5 +2,5 @@
 My channel
 ==========
 
-.. automodule:: Tribler.Core.Modules.restapi.my_channel_endpoint
+.. automodule:: Tribler.Core.Modules.restapi.channels.my_channel_endpoint
     :members:
