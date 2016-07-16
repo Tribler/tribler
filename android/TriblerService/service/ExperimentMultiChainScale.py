@@ -10,7 +10,7 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.dispersy.tests.debugcommunity.node import DebugNode
 
 
-class TestMultiChainScale(DispersyTestFunc):
+class ExperimentMultiChainScale(DispersyTestFunc):
 
     class MockSession():
         def add_observer(self, func, subject, changeTypes=[], objectID=None, cache=0):
@@ -56,7 +56,7 @@ class TestMultiChainScale(DispersyTestFunc):
         # Assert
 
     def create_nodes(self, *args, **kwargs):
-        return super(TestMultiChainScale, self).create_nodes(*args, community_class=MultiChainCommunity,
+        return super(ExperimentMultiChainScale, self).create_nodes(*args, community_class=MultiChainCommunity,
                                                                  memory_database=False, **kwargs)
 
     def _create_node(self, dispersy, community_class, c_master_member):

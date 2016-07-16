@@ -44,7 +44,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         Stetho.initializeWithDefaults(this); //DEBUG
 
-        Triblerd.start(this);
+        Triblerd.start(this); // Run normally
+        //Twistd.start(this); // Run profiler
+        //NoseTestService.start(this); // Run tests
+        //ExperimentService.start(this); // Run experiment
         initGui();
     }
 
