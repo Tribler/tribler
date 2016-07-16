@@ -1,6 +1,5 @@
 package org.kivy.android;
 
-import android.app.Activity;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
@@ -11,6 +10,8 @@ import android.os.IBinder;
 import android.os.Process;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
+
+import org.tribler.android.MainActivity;
 
 public class PythonService extends Service implements Runnable {
     private static String TAG = PythonService.class.getSimpleName();
@@ -112,7 +113,7 @@ public class PythonService extends Service implements Runnable {
 
         int NOTIFICATION_ID = 1;
 
-        Intent targetIntent = new Intent(this, Activity.class);
+        Intent targetIntent = new Intent(this, MainActivity.class);
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0, targetIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         builder.setContentIntent(contentIntent);
 
