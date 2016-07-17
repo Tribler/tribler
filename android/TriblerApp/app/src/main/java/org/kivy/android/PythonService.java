@@ -33,7 +33,7 @@ public class PythonService extends Service implements Runnable {
     private String pythonServiceArgument;
 
     protected boolean autoRestartService = false;
-    protected boolean canDisplayNotification = true;
+    protected boolean startForeground = true;
 
     public int startType() {
         return START_NOT_STICKY;
@@ -82,7 +82,7 @@ public class PythonService extends Service implements Runnable {
         pythonThread = new Thread(this);
         pythonThread.start();
 
-        if (canDisplayNotification) {
+        if (startForeground) {
             doStartForeground(extras);
         }
 
