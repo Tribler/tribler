@@ -16,7 +16,6 @@ import org.tribler.android.MainActivity;
 public class PythonService extends Service implements Runnable {
     private static String TAG = PythonService.class.getSimpleName();
 
-    public static PythonService mService = null;
     /**
      * Intent that started the service
      */
@@ -33,15 +32,8 @@ public class PythonService extends Service implements Runnable {
     private String serviceEntrypoint;
     private String pythonServiceArgument;
 
-    private boolean autoRestartService = false;
-
-    public void setAutoRestartService(boolean restart) {
-        autoRestartService = restart;
-    }
-
-    public boolean canDisplayNotification() {
-        return true;
-    }
+    protected boolean autoRestartService = false;
+    protected boolean canDisplayNotification = true;
 
     public int startType() {
         return START_NOT_STICKY;
@@ -90,7 +82,7 @@ public class PythonService extends Service implements Runnable {
         pythonThread = new Thread(this);
         pythonThread.start();
 
-        if (canDisplayNotification()) {
+        if (canDisplayNotification) {
             doStartForeground(extras);
         }
 
@@ -140,7 +132,6 @@ public class PythonService extends Service implements Runnable {
     @Override
     public void run() {
         PythonUtil.loadLibraries(getFilesDir());
-        mService = this;
         nativeStart(androidPrivate, androidArgument, serviceEntrypoint,
                 pythonName, pythonHome, pythonPath, pythonServiceArgument);
         stopSelf();
