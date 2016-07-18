@@ -30,10 +30,10 @@ rm -rf dist/TriblerApp-import
 mv -f dist/TriblerService dist/TriblerApp-import
 
 rm -rf ../TriblerApp/app/src/main/assets
-rm -rf ../TriblerApp/app/src/main/jni
+#rm -rf ../TriblerApp/app/src/main/jni
 rm -rf ../TriblerApp/app/src/main/jniLibs
 
 cp -rf dist/TriblerApp-import/assets ../TriblerApp/app/src/main
-cp -rf dist/TriblerApp-import/jni ../TriblerApp/app/src/main
+#cp -rf dist/TriblerApp-import/jni ../TriblerApp/app/src/main
 cp -rf dist/TriblerApp-import/jniLibs ../TriblerApp/app/src/main
 
