@@ -31,4 +31,4 @@ class HomeRecommendedTorrentItem(QWidget, fc_home_recommended_item):
         self.thumbnail_widget.initialize(torrent["name"], HOME_ITEM_FONT_SIZE)
 
         self.main_label.setText(torrent["name"])
-        self.detail_label.setText("Added " + pretty_date(torrent["added"]))
+        #self.detail_label.setText("Added " + pretty_date(torrent["added"]))
