@@ -1,6 +1,5 @@
 package org.kivy.android;
 
-import android.app.Activity;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
@@ -12,10 +11,11 @@ import android.os.Process;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
+import org.tribler.android.MainActivity;
+
 public class PythonService extends Service implements Runnable {
     private static String TAG = PythonService.class.getSimpleName();
 
-    public static PythonService mService = null;
     /**
      * Intent that started the service
      */
@@ -30,17 +30,11 @@ public class PythonService extends Service implements Runnable {
     private String pythonHome;
     private String pythonPath;
     private String serviceEntrypoint;
+    private String pythonEggCache;
     private String pythonServiceArgument;
 
-    private boolean autoRestartService = false;
-
-    public void setAutoRestartService(boolean restart) {
-        autoRestartService = restart;
-    }
-
-    public boolean canDisplayNotification() {
-        return true;
-    }
+    protected boolean autoRestartService = false;
+    protected boolean startForeground = true;
 
     public int startType() {
         return START_NOT_STICKY;
@@ -83,13 +77,14 @@ public class PythonService extends Service implements Runnable {
         pythonName = extras.getString("pythonName");
         pythonHome = extras.getString("pythonHome");
         pythonPath = extras.getString("pythonPath");
+        pythonEggCache = extras.getString("pythonEggCache");
         pythonServiceArgument = extras.getString("pythonServiceArgument");
 
         Log.v(TAG, "Starting Python thread");
         pythonThread = new Thread(this);
         pythonThread.start();
 
-        if (canDisplayNotification()) {
+        if (startForeground) {
             doStartForeground(extras);
         }
 
@@ -112,7 +107,7 @@ public class PythonService extends Service implements Runnable {
 
         int NOTIFICATION_ID = 1;
 
-        Intent targetIntent = new Intent(this, Activity.class);
+        Intent targetIntent = new Intent(this, MainActivity.class);
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0, targetIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         builder.setContentIntent(contentIntent);
 
@@ -139,9 +134,8 @@ public class PythonService extends Service implements Runnable {
     @Override
     public void run() {
         PythonUtil.loadLibraries(getFilesDir());
-        mService = this;
-        nativeStart(androidPrivate, androidArgument, serviceEntrypoint,
-                pythonName, pythonHome, pythonPath, pythonServiceArgument);
+        nativeStart(androidPrivate, androidArgument, serviceEntrypoint, pythonName, pythonHome,
+                pythonPath, pythonEggCache, pythonServiceArgument);
         stopSelf();
     }
 
@@ -152,10 +146,11 @@ public class PythonService extends Service implements Runnable {
      * @param pythonName            Python name
      * @param pythonHome            Python home
      * @param pythonPath            Python path
+     * @param pythonEggCache        Python .egg cache
      * @param pythonServiceArgument Argument to pass to Python code
      */
-    public static native void nativeStart(String androidPrivate,
-                                          String androidArgument, String serviceEntrypoint,
-                                          String pythonName, String pythonHome, String pythonPath,
-                                          String pythonServiceArgument);
+    public static native void nativeStart(String androidPrivate, String androidArgument,
+                                          String serviceEntrypoint, String pythonName,
+                                          String pythonHome, String pythonPath,
+                                          String pythonEggCache, String pythonServiceArgument);
 }

@@ -279,10 +279,10 @@ int main(int argc, char *argv[]) {
 }
 
 JNIEXPORT void JNICALL Java_org_kivy_android_PythonService_nativeStart(
-    JNIEnv *env, jobject thiz, jstring j_android_private,
+    JNIEnv *env, jobject j_this, jstring j_android_private,
     jstring j_android_argument, jstring j_service_entrypoint,
     jstring j_python_name, jstring j_python_home, jstring j_python_path,
-    jstring j_arg) {
+    jstring j_python_egg_cache, jstring j_arg) {
   jboolean iscopy;
   const char *android_private =
       (*env)->GetStringUTFChars(env, j_android_private, &iscopy);
@@ -296,7 +296,10 @@ JNIEXPORT void JNICALL Java_org_kivy_android_PythonService_nativeStart(
       (*env)->GetStringUTFChars(env, j_python_home, &iscopy);
   const char *python_path =
       (*env)->GetStringUTFChars(env, j_python_path, &iscopy);
-  const char *arg = (*env)->GetStringUTFChars(env, j_arg, &iscopy);
+  const char *python_egg_cache =
+      (*env)->GetStringUTFChars(env, j_python_egg_cache, &iscopy);
+  const char *arg =
+      (*env)->GetStringUTFChars(env, j_arg, &iscopy);
 
   setenv("ANDROID_PRIVATE", android_private, 1);
   setenv("ANDROID_ARGUMENT", android_argument, 1);
@@ -305,6 +308,7 @@ JNIEXPORT void JNICALL Java_org_kivy_android_PythonService_nativeStart(
   setenv("PYTHON_NAME", python_name, 1);
   setenv("PYTHONHOME", python_home, 1);
   setenv("PYTHONPATH", python_path, 1);
+  setenv("PYTHON_EGG_CACHE", python_egg_cache, 1);
   setenv("PYTHON_SERVICE_ARGUMENT", arg, 1);
 
   char *argv[] = {"."};
