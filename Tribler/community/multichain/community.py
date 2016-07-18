@@ -8,6 +8,7 @@ Full documentation will be available at http://repository.tudelft.nl/.
 
 import logging
 import base64
+
 from twisted.internet.task import LoopingCall
 from Tribler.Core.Session import Session
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
@@ -398,7 +399,6 @@ class MultiChainCommunity(Community):
         :param change_type: Type of the notifier event
         :param tunnel: The tunnel that was removed (closed)
         :param candidate: The dispersy candidate with whom this node has interacted in the tunnel
-        :return:TGliTmFDTFBLOirMUruvuMNO6fVRukZ2mut3a05I38dkdkzkohaqwZlFT24t/1xCug/pVglwArD+YEG4dx47ohoByy5lWWtQwno=
         """
         if isinstance(tunnel.bytes_up, int) and isinstance(tunnel.bytes_down, int):
             if tunnel.bytes_up > MEGA_DIVIDER or tunnel.bytes_down > MEGA_DIVIDER:
