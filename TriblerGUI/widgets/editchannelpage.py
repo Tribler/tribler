@@ -163,10 +163,10 @@ class EditChannelPage(QWidget):
         self.window().edit_channel_save_button.setEnabled(False)
 
         self.editchannel_request_mgr = TriblerRequestManager()
-        self.editchannel_request_mgr.perform_request("channels/discovered/%s" % self.channel_overview["identifier"], self.on_channel_edited, data=str('name=%s&description=%s' % (channel_name, channel_description)), method='POST')
+        self.editchannel_request_mgr.perform_request("mychannel", self.on_channel_edited, data=str('name=%s&description=%s' % (channel_name, channel_description)), method='POST')
 
     def on_channel_edited(self, result):
-        if 'edited' in result:
+        if 'modified' in result:
             self.window().edit_channel_name_label.setText(self.window().edit_channel_name_edit.text())
             self.window().edit_channel_description_label.setText(self.window().edit_channel_description_edit.toPlainText())
             self.window().edit_channel_save_button.setEnabled(True)
@@ -232,7 +232,7 @@ class EditChannelPage(QWidget):
             self.load_channel_torrents()
 
     def on_create_torrent_from_files(self):
-        self.window().edit_channel_details_create_torrent.initialize()
+        self.window().edit_channel_details_create_torrent.initialize(self.channel_overview['identifier'])
         self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_CREATE_TORRENT)
 
     def on_playlist_torrents_back_clicked(self):

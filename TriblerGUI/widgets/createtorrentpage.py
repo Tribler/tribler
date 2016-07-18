@@ -1,11 +1,15 @@
 import os
+
 from PyQt5.QtWidgets import QWidget, QFileDialog
 from TriblerGUI.defs import PAGE_EDIT_CHANNEL_TORRENTS
+from TriblerGUI.tribler_request_manager import TriblerRequestManager
 
 
 class CreateTorrentPage(QWidget):
 
-    def initialize(self):
+    def initialize(self, identifier):
+        self.channel_identifier = identifier
+
         self.window().create_torrent_name_field.setText('')
         self.window().create_torrent_description_field.setText('')
         self.window().create_torrent_files_list.clear()
@@ -42,5 +46,24 @@ class CreateTorrentPage(QWidget):
             self.window().create_torrent_files_list.addItem(file)
 
     def on_create_clicked(self):
-        # TODO
-        pass
+        paths = []
+        for ind in xrange(self.window().create_torrent_files_list.count()):
+            paths.append(str(self.window().create_torrent_files_list.item(ind).text()))
+
+        post_data = "files=%s&description=test" % str(paths)
+        self.torrent_request_mgr = TriblerRequestManager()
+        self.torrent_request_mgr.perform_request("createtorrent", self.on_torrent_created, data=post_data, method='GET')
+
+    def on_torrent_created(self, result):
+        if 'torrent' in result:
+            self.add_torrent_to_channel(result['torrent'])
+
+    def add_torrent_to_channel(self, torrent):
+        post_data = str("torrent=%s&description=test" % torrent)
+        self.request_mgr = TriblerRequestManager()
+        self.request_mgr.perform_request("channels/discovered/%s/torrents" % self.channel_identifier, self.on_torrent_to_channel_added, data=post_data, method='PUT')
+
+    def on_torrent_to_channel_added(self, result):
+        if 'added' in result:
+            self.window().edit_channel_details_stacked_widget.setCurrentIndex(PAGE_EDIT_CHANNEL_TORRENTS)
+            self.window().edit_channel_page.load_channel_torrents()
