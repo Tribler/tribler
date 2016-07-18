@@ -128,7 +128,7 @@ ignored-modules=
 # List of classes names for which member attributes should not be checked
 # (useful for classes with attributes dynamically set). This supports can work
 # with qualified names.
-ignored-classes=SQLObject,twisted.internet.reactor,ephem,libtorrent
+ignored-classes=SQLObject,twisted.internet.reactor,ephem,libtorrent,sh
 
 # List of members which are set dynamically and missed by pylint inference
 # system, and so shouldn't trigger E1101 when accessed. Python regular
