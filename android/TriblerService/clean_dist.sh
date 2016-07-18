@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 echo Clean dist
 
 p4a clean_dists

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 echo Install dist
 
 cd dist/TriblerService

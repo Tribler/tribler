@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 export PATH="~/.local/bin/:$PATH"
 
 #echo Get the latest P4A

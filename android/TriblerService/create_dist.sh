@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 echo Create dist
 
 p4a create \

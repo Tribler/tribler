@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 echo Export dist
 
 mkdir -p dist

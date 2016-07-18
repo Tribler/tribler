@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 echo Build dist
 
 cd dist/TriblerService
