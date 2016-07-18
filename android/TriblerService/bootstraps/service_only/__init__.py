@@ -1,8 +1,7 @@
-import sh
 import glob
 from os import walk
 from os.path import join, exists, curdir, abspath
-
+import sh
 from pythonforandroid.toolchain import Bootstrap, shprint, current_directory, info, warning, ArchARM, info_main
 
 
