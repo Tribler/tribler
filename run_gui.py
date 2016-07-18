@@ -6,7 +6,6 @@ import sys
 from TriblerGUI.single_application import QtSingleApplication
 from TriblerGUI.tribler_window import TriblerWindow
 
-os.environ['VLC_PLUGIN_PATH'] = '/Applications/VLC.app/Contents/MacOS/plugins'
 
 app = QtSingleApplication("triblerapp2", sys.argv)
 
