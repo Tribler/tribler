@@ -1,7 +1,7 @@
 import json
 import logging
 import mimetypes
-from PyQt5.QtCore import QUrl, pyqtSignal, QFile, QIODevice, QByteArray, QFileInfo
+from PyQt5.QtCore import QUrl, pyqtSignal, QFile, QIODevice, QByteArray, QFileInfo, QBuffer
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 
@@ -54,7 +54,12 @@ class TriblerRequestManager(QNetworkAccessManager):
         url = self.base_url + endpoint
 
         if method == 'GET':
-            self.reply = self.get(QNetworkRequest(QUrl(url)))
+            buf = QBuffer()
+            buf.setData(data)
+            buf.open(QIODevice.ReadOnly)
+            get_request = QNetworkRequest(QUrl(url))
+            self.reply = self.sendCustomRequest(get_request, "GET", buf)
+            buf.setParent(self.reply)
         elif method == 'PUT':
             request = QNetworkRequest(QUrl(url))
             request.setHeader(QNetworkRequest.ContentTypeHeader, "application/x-www-form-urlencoded")
