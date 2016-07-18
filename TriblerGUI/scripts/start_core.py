@@ -4,6 +4,7 @@ import sys
 from twisted.internet import reactor
 
 sys.path.append(os.environ['base_path'])
+sys.path.append(os.path.join(os.environ['base_path'], "tribler_source"))
 sys.path.append(os.path.join(os.environ['base_path'], "twisted", "plugins"))
 
 from tribler_plugin import TriblerServiceMaker
