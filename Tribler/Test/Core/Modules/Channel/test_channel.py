@@ -1,6 +1,6 @@
 from Tribler.Core.Modules.channel.channel import ChannelObject
 from Tribler.Core.Modules.channel.channel_rss import ChannelRssParser
-from Tribler.Test.Core.Modules.Channel.base_test_channel import BaseTestChannel
+from Tribler.Test.Core.base_test_channel import BaseTestChannel
 
 
 class TestChannel(BaseTestChannel):
