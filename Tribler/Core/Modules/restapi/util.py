@@ -62,3 +62,12 @@ def convert_remote_torrent_to_json(torrent):
     return {'id': torrent['torrent_id'], "infohash": torrent['infohash'].encode('hex'), "name": torrent_name,
             'size': torrent['length'], 'category': torrent['category'], 'num_seeders': torrent['num_seeders'],
             'num_leechers': torrent['num_leechers'], 'last_tracker_check': 0}
+
+
+def get_parameter(parameters, name):
+    """
+    Return a specific parameter with a name from a HTTP request (or None if that parameter is not available).
+    """
+    if name not in parameters or len(parameters[name]) == 0:
+        return None
+    return parameters[name][0]

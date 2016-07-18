@@ -1,9 +1,9 @@
 from twisted.web import resource
-from Tribler.Core.Modules.restapi.channels.channels_endpoint import ChannelsEndpoint
 
+from Tribler.Core.Modules.restapi.channels.channels_endpoint import ChannelsEndpoint
 from Tribler.Core.Modules.restapi.downloads_endpoint import DownloadsEndpoint
 from Tribler.Core.Modules.restapi.events_endpoint import EventsEndpoint
-from Tribler.Core.Modules.restapi.my_channel_endpoint import MyChannelEndpoint
+from Tribler.Core.Modules.restapi.channels.my_channel_endpoint import MyChannelEndpoint
 from Tribler.Core.Modules.restapi.search_endpoint import SearchEndpoint
 from Tribler.Core.Modules.restapi.settings_endpoint import SettingsEndpoint
 from Tribler.Core.Modules.restapi.torrents_endpoint import TorrentsEndpoint
