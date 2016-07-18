@@ -23,6 +23,7 @@ class VideoPlayerPage(QWidget):
         self.is_full_screen = False
 
     def initialize_player(self):
+        os.environ['VLC_PLUGIN_PATH'] = vlc.plugin_path
         self.instance = vlc.Instance()
         self.mediaplayer = self.instance.media_player_new()
         self.window().video_player_position_slider.should_change_video_position.connect(self.on_should_change_video_time)
