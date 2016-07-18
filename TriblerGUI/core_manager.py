@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QApplication
 import TriblerGUI
 
 from TriblerGUI.event_request_manager import EventRequestManager
-from TriblerGUI.utilities import get_base_path
+from TriblerGUI.utilities import get_base_path, is_frozen
 
 START_FAKE_API = False
 
@@ -14,8 +14,11 @@ class CoreManager(object):
 
     def __init__(self):
         environment = QProcessEnvironment.systemEnvironment()
-        print get_base_path()
-        environment.insert("base_path", os.path.join(get_base_path(), ".."))
+
+        environment.insert("base_path", get_base_path())
+        if not is_frozen():
+            environment.insert("base_path", os.path.join(get_base_path(), ".."))
+
         self.core_process = QProcess()
         self.core_process.setProcessEnvironment(environment)
         self.core_process.readyReadStandardOutput.connect(self.on_ready_read_stdout)
