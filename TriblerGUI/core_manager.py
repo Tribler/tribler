@@ -14,7 +14,8 @@ class CoreManager(object):
 
     def __init__(self):
         environment = QProcessEnvironment.systemEnvironment()
-        environment.insert("base_path", get_base_path())
+        print get_base_path()
+        environment.insert("base_path", os.path.join(get_base_path(), ".."))
         self.core_process = QProcess()
         self.core_process.setProcessEnvironment(environment)
         self.core_process.readyReadStandardOutput.connect(self.on_ready_read_stdout)
