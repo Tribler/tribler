@@ -15,6 +15,7 @@ public class ExperimentService extends PythonService {
         intent.putExtra("pythonName", "ExperimentMultiChainScale");
         intent.putExtra("pythonHome", argument);
         intent.putExtra("pythonPath", argument + ":" + argument + "/lib");
+        intent.putExtra("pythonEggCache", argument + "/.egg_cache");
         intent.putExtra("pythonServiceArgument", "{'blocks_in_thousands': 10}");
         intent.putExtra("serviceEntrypoint", "experiment.py");
         intent.putExtra("serviceTitle", "Tribler experiment: MultiChainScale");

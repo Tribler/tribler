@@ -17,6 +17,7 @@ public class NoseTestService extends PythonService {
         intent.putExtra("pythonName", "NoseTests");
         intent.putExtra("pythonHome", argument);
         intent.putExtra("pythonPath", argument + ":" + argument + "/lib");
+        intent.putExtra("pythonEggCache", argument + "/.egg_cache");
         // Clean output dir
         File dir = new File(argument, "../output");
         dir.mkdirs();

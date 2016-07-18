@@ -11,14 +11,11 @@ class TriblerExperiment(object):
         '''
         Setup environment
         '''
-        private_root_dir = os.path.realpath(os.path.split(os.getenv('ANDROID_PRIVATE', '/tmp/cache'))[0])
-        os.environ['PYTHON_EGG_CACHE'] = os.path.join(private_root_dir, 'cache', '.egg')
-
         # Set logging format and level
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
 
         # Executable ffmpeg binary
-        os.chmod('ffmpeg', 0744)
+        os.chmod('ffmpeg', 0755)
 
 
     def run(self):
