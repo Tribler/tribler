@@ -1,10 +1,13 @@
-from pythonforandroid.toolchain import Bootstrap, shprint, current_directory, info, warning, ArchARM, info_main
-from os.path import join, exists, curdir, abspath
-from os import walk
-import glob
 import sh
+import glob
+from os import walk
+from os.path import join, exists, curdir, abspath
+
+from pythonforandroid.toolchain import Bootstrap, shprint, current_directory, info, warning, ArchARM, info_main
+
 
 class ServiceOnlyBootstrap(Bootstrap):
+
     name = 'service_only'
 
     recipe_depends = ['genericndkbuild', ('python2', 'python3crystax')]
@@ -117,5 +120,6 @@ class ServiceOnlyBootstrap(Bootstrap):
         self.strip_libraries(arch)
         self.fry_eggs(site_packages_dir)
         super(ServiceOnlyBootstrap, self).run_distribute()
+
 
 bootstrap = ServiceOnlyBootstrap()
