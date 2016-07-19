@@ -127,17 +127,6 @@ class BoostingSource(TaskManager):
     def _on_err(self, err_msg):
         self._logger.error(err_msg)
 
-    def check_and_register_task(self, name, task, delay=None, value=None, interval=None):
-        """
-        Helper function to avoid assertion in register task.
-
-        It will register task if it has not already registered
-        """
-        task_ret = None
-        if not self.is_pending_task_active(name):
-            task_ret = self.register_task(name, task, delay, value, interval)
-
-        return task_ret
 
 class ChannelSource(BoostingSource):
     """
@@ -201,8 +190,8 @@ class ChannelSource(BoostingSource):
                 self.channel_id = self.community._channel_id
 
                 self.channel_dict = self.channelcast_db.getChannel(self.channel_id)
-                task_call = self.check_and_register_task(str(self.source) + "_update",
-                                                         LoopingCall(self._update)).start(self.interval, now=True)
+                task_call = self.register_task(str(self.source) + "_update",
+                                               LoopingCall(self._update)).start(self.interval, now=True)
                 if task_call:
                     self._logger.debug("Registering update call")
 
@@ -272,7 +261,7 @@ class ChannelSource(BoostingSource):
             # it's highly probable the checktor function is running at this time (if it's already running)
             # if not running, start the checker
 
-            task_call = self.check_and_register_task(hexlify(self.source) + "_checktor", LoopingCall(self._check_tor))
+            task_call = self.register_task(hexlify(self.source) + "_checktor", LoopingCall(self._check_tor))
             if task_call:
                 self._logger.debug("Registering check torrent function")
                 task_call.start(self.check_torrent_interval, now=True)
@@ -289,17 +278,12 @@ class ChannelSource(BoostingSource):
         with TorrentDef object as parameter.
         """
 
-        # session is quitting
-        if self.session is None or self.session.lm.torrent_store is None or self.session.get_torrent_store() is None:
-            return
-
         def add_to_loaded(infohash_str):
             """
             function to add loaded infohash to memory
             """
             self.loaded_torrent[unhexlify(infohash_str)].callback(
                 TorrentDef.load_from_memory(self.session.get_collected_torrent(unhexlify(infohash_str))))
-            self.loaded_torrent[unhexlify(infohash_str)] = None
 
         if infohash not in self.loaded_torrent:
             self.loaded_torrent[infohash] = defer.Deferred()
