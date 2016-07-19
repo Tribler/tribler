@@ -18,7 +18,6 @@ public class Triblerd extends PythonService {
         intent.putExtra("pythonName", "Triblerd");
         intent.putExtra("pythonHome", argument);
         intent.putExtra("pythonPath", argument + ":" + argument + "/lib");
-        intent.putExtra("pythonEggCache", argument + "/.egg_cache");
         intent.putExtra("pythonServiceArgument", "-p " + REST_API_PORT);
         intent.putExtra("serviceEntrypoint", "triblerd.py");
         intent.putExtra("serviceTitle", "Tribler service");

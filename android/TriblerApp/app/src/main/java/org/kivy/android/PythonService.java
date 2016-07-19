@@ -30,7 +30,6 @@ public class PythonService extends Service implements Runnable {
     private String pythonHome;
     private String pythonPath;
     private String serviceEntrypoint;
-    private String pythonEggCache;
     private String pythonServiceArgument;
 
     protected boolean autoRestartService = false;
@@ -77,7 +76,6 @@ public class PythonService extends Service implements Runnable {
         pythonName = extras.getString("pythonName");
         pythonHome = extras.getString("pythonHome");
         pythonPath = extras.getString("pythonPath");
-        pythonEggCache = extras.getString("pythonEggCache");
         pythonServiceArgument = extras.getString("pythonServiceArgument");
 
         Log.v(TAG, "Starting Python thread");
@@ -135,7 +133,7 @@ public class PythonService extends Service implements Runnable {
     public void run() {
         PythonUtil.loadLibraries(getFilesDir());
         nativeStart(androidPrivate, androidArgument, serviceEntrypoint, pythonName, pythonHome,
-                pythonPath, pythonEggCache, pythonServiceArgument);
+                pythonPath, pythonServiceArgument);
         stopSelf();
     }
 
@@ -146,11 +144,10 @@ public class PythonService extends Service implements Runnable {
      * @param pythonName            Python name
      * @param pythonHome            Python home
      * @param pythonPath            Python path
-     * @param pythonEggCache        Python .egg cache
      * @param pythonServiceArgument Argument to pass to Python code
      */
     public static native void nativeStart(String androidPrivate, String androidArgument,
                                           String serviceEntrypoint, String pythonName,
                                           String pythonHome, String pythonPath,
-                                          String pythonEggCache, String pythonServiceArgument);
+                                          String pythonServiceArgument);
 }
