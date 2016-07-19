@@ -11,6 +11,8 @@ class Twistd(object):
         '''
         Setup environment
         '''
+        environ['PYTHON_EGG_CACHE'] = os.path.realpath(os.path.join(os.getenv('ANDROID_PRIVATE'), '../cache'))
+
         # Set logging format and level
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.CRITICAL)
 

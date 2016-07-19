@@ -8,6 +8,8 @@ class TriblerTester(object):
         '''
         Setup environment
         '''
+        environ['PYTHON_EGG_CACHE'] = os.path.realpath(os.path.join(os.getenv('ANDROID_PRIVATE'), '../cache'))
+
         # Set logging format
         os.environ['NOSE_LOGFORMAT'] = "%(levelname)-7s %(created)d %(module)15s:%(name)s:%(lineno)-4d %(message)s"
 
