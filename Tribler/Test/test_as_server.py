@@ -209,15 +209,15 @@ class TestAsServer(AbstractServer):
 
         self.session = Session(self.config)
         upgrader = self.session.prestart()
-        while not upgrader.is_done:
-            time.sleep(0.1)
+
+        self.assertTrue(upgrader.is_done)
+
         assert not upgrader.failed, upgrader.current_status
         self.tribler_started_deferred = self.session.start()
 
         self.hisport = self.session.get_listen_port()
 
-        while not self.session.lm.initComplete:
-            time.sleep(1)
+        self.assertTrue(self.session.lm.initComplete)
 
         self.annotate(self._testMethodName, start=True)
 
