@@ -1,8 +1,10 @@
 """
 This twistd plugin enables to start Tribler headless using the twistd command.
 """
+from datetime import date
 import os
 import signal
+import time
 
 from twisted.application.service import MultiService, IServiceMaker
 from twisted.conch import manhole_tap
@@ -18,6 +20,7 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 
 # Register yappi profiler
 from Tribler.community.allchannel.community import AllChannelCommunity
+from Tribler.community.search.community import SearchCommunity
 from Tribler.dispersy.utils import twistd_yappi
 
 
@@ -30,7 +33,8 @@ class Options(usage.Options):
         ["libtorrent", "l", -1, "Use an alternate port for libtorrent", int],
     ]
     optFlags = [
-        ["auto-join-channel", "a", "Automatically join a channel when discovered"]
+        ["auto-join-channel", "a", "Automatically join a channel when discovered"],
+        ["log-incoming-searches", "i", "Write information about incoming remote searches to a file"]
     ]
 
 
@@ -47,6 +51,11 @@ class TriblerServiceMaker(object):
         self.session = None
         self._stopping = False
         self.process_checker = None
+
+    def log_incoming_remote_search(self, sock_addr, keywords):
+        d = date.today()
+        with open(os.path.join(self.session.get_state_dir(), 'incoming-searches-%s' % d.isoformat()), 'a') as log_file:
+            log_file.write("%s %s %s %s" % (time.time(), sock_addr[0], sock_addr[1], ";".join(keywords)))
 
     def shutdown_process(self, shutdown_message, code=1):
         msg(shutdown_message)
@@ -107,6 +116,12 @@ class TriblerServiceMaker(object):
             for community in self.session.get_dispersy_instance().get_communities():
                 if isinstance(community, AllChannelCommunity):
                     community.auto_join_channel = True
+
+        if options["log-incoming-searches"]:
+            msg("Logging incoming remote searches")
+            for community in self.session.get_dispersy_instance().get_communities():
+                if isinstance(community, SearchCommunity):
+                    community.log_incoming_searches = self.log_incoming_remote_search
 
     def makeService(self, options):
         """
