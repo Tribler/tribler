@@ -4,8 +4,7 @@ set -e
 
 export PATH="~/.local/bin/:$PATH"
 
-#echo Get the latest P4A
-#pip install --user --upgrade git+https://github.com/kivy/python-for-android.git
+#./reinstall_p4a.sh
 
 #copy bootstraps and recipes
 cp -R bootstraps ~/.local/lib/python2.7/site-packages/pythonforandroid/
