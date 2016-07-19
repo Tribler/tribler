@@ -1,3 +1,12 @@
+/* automatically increment version code by 1 each build */
+def Properties versionProps = new Properties()
+def versionPropsFile = file('version.properties')
+if(versionPropsFile.exists())
+    versionProps.load(new FileInputStream(versionPropsFile))
+def code = (versionProps['VERSION_CODE'] ?: "0").toInteger() + 1
+versionProps['VERSION_CODE'] = code.toString()
+versionProps.store(versionPropsFile.newWriter(), null)
+
 apply plugin: 'com.android.model.application'
 
 model {
@@ -9,8 +18,8 @@ model {
             applicationId "org.tribler.android"
             minSdkVersion.apiLevel 16
             targetSdkVersion.apiLevel 23
-            versionCode 1
-            versionName "0.1"
+            versionCode code
+            versionName "build " + code
             vectorDrawables.useSupportLibrary = true
 
             buildConfigFields {
