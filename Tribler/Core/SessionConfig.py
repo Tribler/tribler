@@ -80,7 +80,7 @@ class SessionConfigInterface(object):
         else:
             ffmpegname = u"ffmpeg"
 
-        ffmpegpath = find_executable(ffmpegname, path_env)
+        ffmpegpath = os.path.abspath(find_executable(ffmpegname, path_env))
 
         if ffmpegpath is None:
             if sys.platform == 'darwin':
