@@ -88,3 +88,4 @@ Endpoints
    variables
    settings
    events
+   debug
