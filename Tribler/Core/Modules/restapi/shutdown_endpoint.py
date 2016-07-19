@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 
 from twisted.web import resource
 from twisted.internet import reactor
@@ -14,8 +15,8 @@ class ShutdownEndpoint(resource.Resource):
 
     def __init__(self, session):
         resource.Resource.__init__(self)
+        self._logger = logging.getLogger(self.__class__.__name__)
         self.session = session
-        self._stopping = False
         self.process_checker = ProcessChecker()
 
     def render_PUT(self, request):
@@ -46,8 +47,10 @@ class ShutdownEndpoint(resource.Resource):
             reactor.stop()
             self.process_checker.remove_lock_file()
 
-        if not self._stopping:
-            self._stopping = True
-            self.session.shutdown(gracetime=gracetime).addBoth(shutdown_process)
+        def log_and_shutdown(failure):
+            self._logger.error(failure.value)
+            shutdown_process(failure, 0)
+
+        self.session.shutdown(gracetime=gracetime).addCallback(shutdown_process).addErrback(log_and_shutdown)
 
         return json.dumps({"shutdown": True, "gracetime": gracetime})
