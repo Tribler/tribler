@@ -487,10 +487,11 @@ class Session(SessionConfigInterface):
             """
             self.checkpoint_shutdown(stop=True, checkpoint=checkpoint,
                                  gracetime=gracetime, hacksessconfcheckpoint=hacksessconfcheckpoint)
-            self.sqlite_db.close()
+            if self.sqlite_db:
+                self.sqlite_db.close()
             self.sqlite_db = None
 
-        deferred.addCallback(on_early_shutdown_complete)
+        return deferred.addCallback(on_early_shutdown_complete)
 
     def has_shutdown(self):
         """ Whether the Session has completely shutdown, i.e., its internal

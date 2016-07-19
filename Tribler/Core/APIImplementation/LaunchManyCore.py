@@ -680,29 +680,35 @@ class TriblerLaunchMany(TaskManager):
         self.shutdownstarttime = timemod.time()
         if self.boosting_manager:
             yield self.boosting_manager.shutdown()
-            self.boosting_manager = None
+        self.boosting_manager = None
+
         if self.torrent_checker:
             yield self.torrent_checker.shutdown()
-            self.torrent_checker = None
+        self.torrent_checker = None
+
         if self.channel_manager:
             yield self.channel_manager.shutdown()
-            self.channel_manager = None
+        self.channel_manager = None
+
         if self.search_manager:
             yield self.search_manager.shutdown()
-            self.search_manager = None
+        self.search_manager = None
+
         if self.rtorrent_handler:
             yield self.rtorrent_handler.shutdown()
-            self.rtorrent_handler = None
+        self.rtorrent_handler = None
+
         if self.videoplayer:
             yield self.videoplayer.shutdown()
-            self.videoplayer = None
+        self.videoplayer = None
 
-        self.version_check_manager.stop()
+        if self.version_check_manager:
+            self.version_check_manager.stop()
         self.version_check_manager = None
 
         if self.tracker_manager:
             yield self.tracker_manager.shutdown()
-            self.tracker_manager = None
+        self.tracker_manager = None
 
         if self.dispersy:
             self._logger.info("lmc: Shutting down Dispersy...")
@@ -719,43 +725,50 @@ class TriblerLaunchMany(TaskManager):
             else:
                 self._logger.info("lmc: Dispersy failed to shutdown in %.2f seconds", diff)
 
-        if self.metadata_store is not None:
+        if self.metadata_store:
             yield self.metadata_store.close()
-            self.metadata_store = None
+        self.metadata_store = None
 
         if self.tftp_handler:
             yield self.tftp_handler.shutdown()
-            self.tftp_handler = None
+        self.tftp_handler = None
 
-        if self.session.get_megacache():
+        if self.channelcast_db:
             yield self.channelcast_db.close()
-            yield self.votecast_db.close()
-            yield self.mypref_db.close()
-            yield self.torrent_db.close()
-            yield self.peer_db.close()
+        self.channelcast_db = None
 
-            self.channelcast_db = None
-            self.votecast_db = None
-            self.mypref_db = None
-            self.torrent_db = None
-            self.peer_db = None
+        if self.votecast_db:
+            yield self.votecast_db.close()
+        self.votecast_db = None
+
+        if self.mypref_db:
+            yield self.mypref_db.close()
+        self.mypref_db = None
+
+        if self.torrent_db:
+            yield self.torrent_db.close()
+        self.torrent_db = None
+
+        if self.peer_db:
+            yield self.peer_db.close()
+        self.peer_db = None
 
         if self.mainline_dht:
             from Tribler.Core.DecentralizedTracking import mainlineDHT
             yield mainlineDHT.deinit(self.mainline_dht)
-            self.mainline_dht = None
+        self.mainline_dht = None
 
-        if self.torrent_store is not None:
+        if self.torrent_store:
             yield self.torrent_store.close()
-            self.torrent_store = None
+        self.torrent_store = None
 
-        if self.api_manager is not None:
+        if self.api_manager:
             yield self.api_manager.stop()
-            self.api_manager = None
+        self.api_manager = None
 
-        if self.watch_folder is not None:
+        if self.watch_folder:
             yield self.watch_folder.stop()
-            self.watch_folder = None
+        self.watch_folder = None
 
     def network_shutdown(self):
         try:
