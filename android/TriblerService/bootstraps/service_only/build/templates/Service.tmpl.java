@@ -37,7 +37,6 @@ public class Service{{ name|capitalize }} extends PythonService {
         intent.putExtra("pythonName", "{{ name }}");
         intent.putExtra("pythonHome", argument);
         intent.putExtra("pythonPath", argument + ":" + argument + "/lib");
-        intent.putExtra("pythonEggCache", argument + "/.egg_cache");
         intent.putExtra("pythonServiceArgument", pythonServiceArgument);
         ctx.startService(intent);
     }
