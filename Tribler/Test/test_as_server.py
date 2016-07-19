@@ -2,56 +2,37 @@
 # Improved and Modified by Niels Zeilemaker
 # see LICENSE.txt for license information
 
-# Initialize x11 threads before doing anything X11 related.
+# Make sure the in thread reactor is installed.
+from Tribler.Core.Utilities.twisted_thread import reactor, deferred
+
+# importmagic: manage
 import threading
+import functools
+import inspect
+import logging
+import os
+import re
+import shutil
+import time
+import unittest
+from tempfile import mkdtemp
+from threading import enumerate as enumerate_threads
+from traceback import print_exc
 
 from twisted.internet import interfaces
 from twisted.internet.base import BasePort
-from twisted.internet.defer import Deferred, maybeDeferred, succeed
+from twisted.internet.defer import maybeDeferred, succeed
 from twisted.web.server import Site
 from twisted.web.static import File
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import dlstatus_strings, DLSTATUS_SEEDING, UPLOAD
-
-from Tribler.Main.Utility.utility import initialize_x11_threads
-initialize_x11_threads()
-
-# set wxpython version before importing wx or anything from Tribler
-import wxversion
-if wxversion.checkInstalled("3.0-unicode"):
-    wxversion.select("3.0-unicode")
-else:
-    wxversion.select("2.8-unicode")
-
-# Make sure the in thread reactor is installed.
-from Tribler.Core.Utilities.twisted_thread import reactor
-
-
-# importmagic: manage
-import functools
-import gc
-import inspect
-import logging
-import os
-import re
-import shutil
-import sys
-import time
-import unittest
-from tempfile import mkdtemp
-from threading import Event, enumerate as enumerate_threads
-from traceback import print_exc
-
-import wx
-from .util import process_unhandled_exceptions, UnhandledTwistedExceptionCatcher, process_unhandled_twisted_exceptions
-
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core import defaults
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Utilities.instrumentation import WatchDog
+from Tribler.Test.util import process_unhandled_exceptions, process_unhandled_twisted_exceptions
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
@@ -63,10 +44,7 @@ defaults.sessdefaults['general']['minport'] = -1
 defaults.sessdefaults['general']['maxport'] = -1
 defaults.sessdefaults['dispersy']['dispersy_port'] = -1
 
-DEBUG = False
-
 OUTPUT_DIR = os.path.abspath(os.environ.get('OUTPUT_DIR', 'output'))
-
 
 
 class BaseTestCase(unittest.TestCase):
@@ -361,7 +339,6 @@ class TestAsServer(AbstractServer):
             self._logger.debug(
                 "Waiting for Session to shutdown, will wait for an additional %d seconds", (waittime - diff))
 
-            wx.SafeYield()
             time.sleep(1)
 
         self._logger.debug("Session has shut down")
@@ -443,249 +420,3 @@ class TestAsServer(AbstractServer):
 
     def quit(self):
         self.quitting = True
-
-
-class TestGuiAsServer(TestAsServer):
-
-    """
-    Parent class for testing the gui-side of Tribler
-    """
-
-    def __init__(self, *argv, **kwargs):
-        """
-
-        """
-        super(TestGuiAsServer, self).__init__(*argv, **kwargs)
-
-        self.wx_watchdog = None
-        self.twisted_watchdog = None
-
-    def setUp(self):
-        self.assertFalse(Session.has_instance(), 'A session instance is already present when setting up the test')
-        AbstractServer.setUp(self, annotate=False)
-
-        self.app = wx.GetApp()
-        if not self.app:
-            from Tribler.Main.vwxGUI.TriblerApp import TriblerApp
-            self.app = TriblerApp(redirect=False)
-
-        self.guiUtility = None
-        self.frame = None
-        self.lm = None
-        self.session = None
-        self.seeding_event = threading.Event()
-        self.seeder_session = None
-
-        self.hadSession = False
-        self.quitting = False
-
-        self.asserts = []
-        self.annotate(self._testMethodName, start=True)
-
-        self.wx_watchdog = Event()
-        self.twisted_watchdog = Event()
-
-        def wx_watchdog_keepalive():
-            if self.wx_watchdog:
-                self.wx_watchdog.set()
-                wx.CallLater(500, wx_watchdog_keepalive)
-        wx_watchdog_keepalive()
-
-        def twisted_watchdog_keepalive():
-            if self.twisted_watchdog:
-                self.twisted_watchdog.set()
-                reactor.callLater(0.5, twisted_watchdog_keepalive)
-        reactor.callLater(0.5, twisted_watchdog_keepalive)
-
-        self.watchdog.register_event(self.wx_watchdog, "wx thread")
-        self.watchdog.register_event(self.twisted_watchdog, "twisted thread")
-
-    def assert_(self, boolean, reason, do_assert=True, tribler_session=None, dump_statistics=False):
-        if not boolean:
-            # print statistics if needed
-            if tribler_session and dump_statistics:
-                self._print_statistics(tribler_session.get_statistics())
-
-            self.screenshot("ASSERT: %s" % reason)
-            self.quit()
-
-            self.asserts.append((boolean, reason))
-
-            if do_assert:
-                assert boolean, reason
-
-    def startTest(self, callback, min_callback_delay=5, autoload_discovery=True,
-                  use_torrent_search=True, use_channel_search=True, allow_multiple=True):
-        from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
-        from Tribler.Main import tribler_main
-
-        # Always start testing from the same dir (repo root)
-        os.chdir(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-
-        tribler_main.ALLOW_MULTIPLE = allow_multiple
-
-        self.hadSession = False
-        starttime = time.time()
-
-        def call_callback():
-            # If at least min_callback_delay seconds have passed, call the
-            # callback, else schedule it's call for when that happens.
-            time_elapsed = time.time() - starttime
-            if time_elapsed > min_callback_delay:
-                callback()
-            else:
-                self.callLater(min_callback_delay - time_elapsed, callback)
-
-        def wait_for_frame():
-            self._logger.debug("GUIUtility ready, starting to wait for frame to be ready")
-            self.frame = self.guiUtility.frame
-            self.frame.Maximize()
-            self.guiUtility.utility.write_config('default_safeseeding_enabled', False)
-            self.CallConditional(30, lambda: self.frame.ready, call_callback)
-
-        def wait_for_init():
-            self._logger.debug("lm initcomplete, starting to wait for GUIUtility to be ready")
-            self.guiUtility = GUIUtility.getInstance()
-            self.CallConditional(30, lambda: self.guiUtility.registered, wait_for_frame)
-
-        def wait_for_guiutility():
-            self._logger.debug("waiting for guiutility instance")
-            self.lm = self.session.lm
-            self.CallConditional(30, lambda: GUIUtility.hasInstance(), wait_for_init)
-
-        def wait_for_instance():
-            self._logger.debug("found instance, starting to wait for lm to be initcomplete")
-            self.session = Session.get_instance()
-            self.hadSession = True
-            self.CallConditional(30, lambda: self.session.lm and self.session.lm.initComplete, wait_for_guiutility)
-
-        self._logger.debug("waiting for session instance")
-        self.CallConditional(30, Session.has_instance, lambda: TestAsServer.startTest(self, wait_for_instance))
-
-        # modify argv to let tribler think its running from a different directory
-        sys.argv = [os.path.abspath('./.exe')]
-        tribler_main.run(autoload_discovery=autoload_discovery,
-                         use_torrent_search=use_torrent_search,
-                         use_channel_search=use_channel_search)
-
-        assert self.hadSession, 'Did not even create a session'
-
-    def callLater(self, seconds, callback):
-        if not self.quitting:
-            if seconds:
-                wx.CallLater(seconds * 1000, callback)
-            elif not wx.Thread_IsMain():
-                wx.CallAfter(callback)
-            else:
-                callback()
-
-    def quit(self):
-        if self.frame:
-            self.frame.OnCloseWindow()
-
-        else:
-            def close_dialogs():
-                for item in wx.GetTopLevelWindows():
-                    if isinstance(item, wx.Dialog):
-                        if item.IsModal():
-                            item.EndModal(wx.ID_CANCEL)
-                        else:
-                            item.Destroy()
-                    else:
-                        item.Close()
-
-            def do_quit():
-                self.app.ExitMainLoop()
-                wx.WakeUpMainThread()
-
-            self.callLater(1, close_dialogs)
-            self.callLater(2, do_quit)
-            self.callLater(3, self.app.Exit)
-
-        self.quitting = True
-
-    def tearDown(self):
-        self.wx_watchdog = None
-        self.twisted_watchdog = None
-        self.watchdog.unregister_event("wx thread")
-        self.watchdog.unregister_event("twisted thread")
-
-        self.annotate(self._testMethodName, start=False)
-
-        """ unittest test tear down code """
-        del self.guiUtility
-        del self.frame
-        del self.lm
-        del self.session
-
-        time.sleep(1)
-        gc.collect()
-
-        self.stop_seeder()
-
-        ts = enumerate_threads()
-        if ts:
-            self._logger.debug("Number of threads still running %s", len(ts))
-            for t in ts:
-                self._logger.debug("Thread still running %s, daemon %s, instance: %s", t.getName(), t.isDaemon(), t)
-
-        dhtlog = os.path.join(self.state_dir, 'pymdht.log')
-        if os.path.exists(dhtlog):
-            self._logger.debug("Content of pymdht.log")
-            f = open(dhtlog, 'r')
-            for line in f:
-                line = line.strip()
-                if line:
-                    self._logger.debug("> %s", line)
-            f.close()
-            self._logger.debug("Finished printing content of pymdht.log")
-
-        AbstractServer.tearDown(self, annotate=False)
-
-        for boolean, reason in self.asserts:
-            assert boolean, reason
-
-    def screenshot(self, title=None, destdir=OUTPUT_DIR, window=None):
-        try:
-            from PIL import Image
-        except ImportError:
-            self._logger.error("Could not load PIL: not making screenshots")
-            return
-
-        if window is None:
-            app = wx.GetApp()
-            window = app.GetTopWindow()
-            if not window:
-                self._logger.error("Couldn't obtain top window and no window was passed as argument, bailing out")
-                return
-
-        rect = window.GetClientRect()
-        size = window.GetSize()
-        rect = wx.Rect(rect.x, rect.y, size.x, size.y)
-
-        screen = wx.WindowDC(window)
-        bmp = wx.EmptyBitmap(rect.GetWidth(), rect.GetHeight() + 30)
-
-        mem = wx.MemoryDC(bmp)
-        mem.Blit(0, 30, rect.GetWidth(), rect.GetHeight(), screen, rect.GetX(), rect.GetY())
-
-        titlerect = wx.Rect(0, 0, rect.GetWidth(), 30)
-        mem.DrawRectangleRect(titlerect)
-        if title:
-            mem.DrawLabel(title, titlerect, wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
-        del mem
-
-        myWxImage = wx.ImageFromBitmap(bmp)
-        im = Image.new('RGB', (myWxImage.GetWidth(), myWxImage.GetHeight()))
-        im.frombytes(myWxImage.GetData())
-
-        if not os.path.exists(destdir):
-            os.makedirs(destdir)
-        index = 1
-        filename = os.path.join(destdir, 'Screenshot-%.2d.png' % index)
-        while os.path.exists(filename):
-            index += 1
-            filename = os.path.join(destdir, 'Screenshot-%.2d.png' % index)
-        im.save(filename)
-
-        del bmp
