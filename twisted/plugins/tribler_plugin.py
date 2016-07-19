@@ -17,6 +17,7 @@ from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 
 # Register yappi profiler
+from Tribler.community.allchannel.community import AllChannelCommunity
 from Tribler.dispersy.utils import twistd_yappi
 
 
@@ -27,6 +28,9 @@ class Options(usage.Options):
         ["restapi", "p", 8085, "Use an alternate port for the REST API", int],
         ["dispersy", "d", -1, "Use an alternate port for Dispersy", int],
         ["libtorrent", "l", -1, "Use an alternate port for libtorrent", int],
+    ]
+    optFlags = [
+        ["auto-join-channel", "a", "Automatically join a channel when discovered"]
     ]
 
 
@@ -97,6 +101,12 @@ class TriblerServiceMaker(object):
         else:
             self.session.start()
             msg("Tribler started")
+
+        if options["auto-join-channel"]:
+            msg("Enabling auto-joining of channels")
+            for community in self.session.get_dispersy_instance().get_communities():
+                if isinstance(community, AllChannelCommunity):
+                    community.auto_join_channel = True
 
     def makeService(self, options):
         """
