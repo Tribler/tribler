@@ -69,7 +69,7 @@ class LibtorrentMgr(TaskManager):
         self.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
 
         # register tasks
-        self.register_task(u'process_alerts', reactor.callLater(1, self._task_process_alerts))
+        self.register_task(u'process_alerts', LoopingCall(self._task_process_alerts)).start(1, now=False)
         self.register_task(u'check_reachability', reactor.callLater(1, self._task_check_reachability))
         self._schedule_next_check(5, DHT_CHECK_RETRIES)
 
@@ -470,8 +470,6 @@ class LibtorrentMgr(TaskManager):
             if ltsession:
                 for alert in ltsession.pop_alerts():
                     self.process_alert(alert)
-
-        self.register_task(u'process_alerts', reactor.callLater(1, self._task_process_alerts))
 
     def _task_check_reachability(self):
         if self.get_session() and self.get_session().status().has_incoming_connections:
