@@ -3,7 +3,9 @@ package org.tribler.android;
 import android.app.Activity;
 import android.app.FragmentManager;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.NavigationView;
@@ -19,6 +21,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import com.facebook.stetho.Stetho;
 
@@ -35,6 +38,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
     }
 
+    private NetworkReceiver networkReceiver;
+
     /**
      * {@inheritDoc}
      */
@@ -44,11 +49,25 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         Stetho.initializeWithDefaults(this); //DEBUG
 
-        Triblerd.start(this); // Run normally
-        //Twistd.start(this); // Run profiler
-        //NoseTestService.start(this); // Run tests
-        //ExperimentService.start(this); // Run experiment
         initGui();
+        initService();
+
+        // Registers BroadcastReceiver to track network connection changes
+        IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
+        networkReceiver = new NetworkReceiver();
+        this.registerReceiver(networkReceiver, filter);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Unregisters BroadcastReceiver when app is destroyed.
+        if (networkReceiver != null) {
+            this.unregisterReceiver(networkReceiver);
+        }
     }
 
     /**
@@ -94,6 +113,19 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 Log.e(TAG, "failed to capture video");
                 //TODO: advise user
             }
+        }
+    }
+
+    private void initService() {
+        if (NetworkReceiver.isNetworkConnected(this)) {
+
+            Triblerd.start(this); // Run normally
+            //Twistd.start(this); // Run profiler
+            //NoseTestService.start(this); // Run tests
+            //ExperimentService.start(this); // Run experiment
+
+        } else {
+            Toast.makeText(this, R.string.info_no_connection, Toast.LENGTH_LONG);
         }
     }
 
