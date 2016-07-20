@@ -19,8 +19,20 @@ import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScrol
 
 public class SearchActivity extends AppCompatActivity {
 
-    private SearchFragment mSearchFragment;
     private SearchView searchView;
+
+    public SearchFragment getFragment() {
+        FragmentManager fm = getFragmentManager();
+        SearchFragment fragment = (SearchFragment) fm.findFragmentByTag(SearchFragment.TAG);
+        // If not retained (or first time running), we need to create it
+        if (fragment == null) {
+            fragment = new SearchFragment();
+            // Tell the framework to try to keep this fragment around during a configuration change
+            fragment.setRetainInstance(true);
+            fm.beginTransaction().add(fragment, SearchFragment.TAG).commit();
+        }
+        return fragment;
+    }
 
     /**
      * {@inheritDoc}
@@ -29,18 +41,7 @@ public class SearchActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         initGui();
-
-        FragmentManager fm = getFragmentManager();
-        mSearchFragment = (SearchFragment) fm.findFragmentByTag(SearchFragment.TAG);
-        // If not retained (or first time running), we need to create it
-        if (mSearchFragment == null) {
-            mSearchFragment = new SearchFragment();
-            // Tell the framework to try to keep this fragment around during a configuration change
-            mSearchFragment.setRetainInstance(true);
-            fm.beginTransaction().add(mSearchFragment, SearchFragment.TAG).commit();
-
-            handleIntent(getIntent());
-        }
+        handleIntent(getIntent());
     }
 
     /**
@@ -60,7 +61,7 @@ public class SearchActivity extends AppCompatActivity {
                 searchView.setQuery(query, false);
                 searchView.clearFocus();
             }
-            mSearchFragment.startSearch(query);
+            getFragment().startSearch(query);
         }
     }
 
@@ -119,7 +120,7 @@ public class SearchActivity extends AppCompatActivity {
         inflater.inflate(R.menu.activity_search_action_bar, menu);
 
         // Search button
-        MenuItem btnSearch = (MenuItem) menu.findItem(R.id.btn_search);
+        MenuItem btnSearch = menu.findItem(R.id.btn_search);
         assert btnSearch != null;
         searchView = (SearchView) btnSearch.getActionView();
 

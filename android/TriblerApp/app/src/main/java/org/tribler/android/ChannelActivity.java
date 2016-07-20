@@ -21,24 +21,25 @@ public class ChannelActivity extends AppCompatActivity {
 
     public static final String EXTRA_DISPERSY_CID = "dispersy.CID";
 
-    private ChannelFragment mChannelFragment;
+    private ChannelFragment getFragment() {
+        FragmentManager fm = getFragmentManager();
+        ChannelFragment fragment =
+                (ChannelFragment) fm.findFragmentByTag(ChannelFragment.TAG);
+        // If not retained (or first time running), we need to create it
+        if (fragment == null) {
+            fragment = new ChannelFragment();
+            // Tell the framework to try to keep this fragment around during a configuration change
+            fragment.setRetainInstance(true);
+            fm.beginTransaction().add(fragment, ChannelFragment.TAG).commit();
+        }
+        return fragment;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         initGui();
-
-        FragmentManager fm = getFragmentManager();
-        mChannelFragment = (ChannelFragment) fm.findFragmentByTag(ChannelFragment.TAG);
-        // If not retained (or first time running), we need to create it
-        if (mChannelFragment == null) {
-            mChannelFragment = new ChannelFragment();
-            // Tell the framework to try to keep this fragment around during a configuration change
-            mChannelFragment.setRetainInstance(true);
-            fm.beginTransaction().add(mChannelFragment, ChannelFragment.TAG).commit();
-
-            handleIntent(getIntent());
-        }
+        handleIntent(getIntent());
     }
 
     /**
@@ -54,7 +55,7 @@ public class ChannelActivity extends AppCompatActivity {
     private void handleIntent(Intent intent) {
         if (Intent.ACTION_GET_CONTENT.equals(intent.getAction())) {
             String cid = intent.getStringExtra(EXTRA_DISPERSY_CID);
-            mChannelFragment.getTorrents(cid);
+            getFragment().getTorrents(cid);
 
             // Set title
             String title = intent.getStringExtra(Intent.EXTRA_TITLE);
@@ -119,7 +120,7 @@ public class ChannelActivity extends AppCompatActivity {
         inflater.inflate(R.menu.activity_channel_action_bar, menu);
 
         // Search button
-        MenuItem btnSearch = (MenuItem) menu.findItem(R.id.btn_search);
+        MenuItem btnSearch = menu.findItem(R.id.btn_search);
         assert btnSearch != null;
         final SearchView searchView = (SearchView) btnSearch.getActionView();
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
@@ -136,9 +137,10 @@ public class ChannelActivity extends AppCompatActivity {
              */
             @Override
             public boolean onQueryTextChange(String query) {
-                List<Object> filteredModelList = mChannelFragment.mAdapter.filter(query);
-                mChannelFragment.mAdapter.animateTo(filteredModelList);
-                mChannelFragment.getView().scrollToPosition(0);
+                ChannelFragment fragment = getFragment();
+                List<Object> filteredModelList = fragment.mAdapter.filter(query);
+                fragment.mAdapter.animateTo(filteredModelList);
+                fragment.getView().scrollToPosition(0);
                 return true;
             }
         });
@@ -152,7 +154,7 @@ public class ChannelActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         SearchView searchView = (SearchView) findViewById(R.id.btn_search);
-        ;
+        // Close search if open
         if (searchView != null && !searchView.isIconified()) {
             searchView.setIconified(true);
         } else {
