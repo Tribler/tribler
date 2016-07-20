@@ -32,12 +32,15 @@
     <string name="action_settings">Change settings</string>
     <string name="action_shutdown">Shutdown service</string>
 
-    <string name="msg_subscribe_already">is already a favorite!</string>
-    <string name="msg_subscribe_success">is now a favorite!</string>
-    <string name="msg_subscribe_failure">is still not a favorite…</string>
-    <string name="msg_unsubscribe_already">is already not a favorite!</string>
-    <string name="msg_unsubscribe_success">is now not a favorite anymore!</string>
-    <string name="msg_unsubscribe_failure">is still a favorite…</string>
+    <string name="warning_lost_connection">WARNING: Wi-Fi connection lost!</string>
+    <string name="info_no_connection">No Wi-Fi connection detected</string>
+
+    <string name="info_subscribe_already">is already a favorite!</string>
+    <string name="info_subscribe_success">is now a favorite!</string>
+    <string name="info_subscribe_failure">is still not a favorite…</string>
+    <string name="info_unsubscribe_already">is already not a favorite!</string>
+    <string name="info_unsubscribe_success">is now not a favorite anymore!</string>
+    <string name="info_unsubscribe_failure">is still a favorite…</string>
 
     <!-- Strings related to Settings -->
 

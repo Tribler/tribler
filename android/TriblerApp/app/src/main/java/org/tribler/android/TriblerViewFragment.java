@@ -95,7 +95,7 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
         mAdapter.removeItem(channel);
 
         if (channel.isSubscribed()) {
-            Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_subscribe_already), Snackbar.LENGTH_LONG).show();
+            Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.info_subscribe_already), Snackbar.LENGTH_LONG).show();
             return;
         }
 
@@ -120,11 +120,11 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
-                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_subscribe_success), Snackbar.LENGTH_LONG).show();
+                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.info_subscribe_success), Snackbar.LENGTH_LONG).show();
                 } else if (response.code() == 409) {
-                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_subscribe_already), Snackbar.LENGTH_LONG).show();
+                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.info_subscribe_already), Snackbar.LENGTH_LONG).show();
                 } else {
-                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_subscribe_failure), Snackbar.LENGTH_LONG).show();
+                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.info_subscribe_failure), Snackbar.LENGTH_LONG).show();
                 }
             }
         };
@@ -141,7 +141,7 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
 
         if (!channel.isSubscribed()) {
             //TODO: idea: never see channel again?
-            Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_unsubscribe_already), Snackbar.LENGTH_LONG).show();
+            Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.info_unsubscribe_already), Snackbar.LENGTH_LONG).show();
             return;
         }
 
@@ -166,12 +166,12 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
-                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_unsubscribe_success), Snackbar.LENGTH_LONG).show();
+                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.info_unsubscribe_success), Snackbar.LENGTH_LONG).show();
                 } else if (response.code() == 404) {
                     //TODO: idea: never see channel again?
-                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_unsubscribe_already), Snackbar.LENGTH_LONG).show();
+                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.info_unsubscribe_already), Snackbar.LENGTH_LONG).show();
                 } else {
-                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.msg_unsubscribe_failure), Snackbar.LENGTH_LONG).show();
+                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.info_unsubscribe_failure), Snackbar.LENGTH_LONG).show();
                 }
             }
         };
