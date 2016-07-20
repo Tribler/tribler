@@ -34,6 +34,7 @@ from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.Utilities.instrumentation import WatchDog
 from Tribler.Test.util import process_unhandled_exceptions, process_unhandled_twisted_exceptions
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from twisted.python.threadable import isInIOThread
 
 
 TESTS_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
@@ -82,6 +83,8 @@ class AbstractServer(BaseTestCase):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.session_base_dir = mkdtemp(suffix="_tribler_test_session")
+        with open("/tmp/log", "a") as f:
+            f.write("%s : %s\n" % (self.__class__.__name__, self.session_base_dir))
         self.state_dir = os.path.join(self.session_base_dir, u"dot.Tribler")
         self.dest_dir = os.path.join(self.session_base_dir, u"TriblerDownloads")
 
@@ -110,7 +113,7 @@ class AbstractServer(BaseTestCase):
         factory = Site(resource)
         self.file_server = reactor.listenTCP(port, factory)
 
-    def checkReactor(self, _):
+    def checkReactor(self, *_):
         delayed_calls = reactor.getDelayedCalls()
         if delayed_calls:
             self._logger.error("The reactor was dirty:")
@@ -135,8 +138,10 @@ class AbstractServer(BaseTestCase):
         for reader in open_readers:
             self.assertNotIsInstance(reader, BasePort, "The test left a listening port behind: %s" % reader)
 
-    @deferred(timeout=10)
+    @deferred(10)
     def tearDown(self, annotate=True):
+        self.assertTrue(isInIOThread())
+
         self.tearDownCleanup()
         if annotate:
             self.annotate(self._testMethodName, start=False)
@@ -153,7 +158,7 @@ class AbstractServer(BaseTestCase):
         if self.file_server:
             return maybeDeferred(self.file_server.stopListening).addCallback(self.checkReactor)
         else:
-            return succeed(self.checkReactor)
+            return succeed(self.checkReactor())
 
     def tearDownCleanup(self):
         self.setUpCleanup()
@@ -250,15 +255,12 @@ class TestAsServer(AbstractServer):
         if self.session is not None:
             self._shutdown_session(self.session)
             Session.del_instance()
-
         self.stop_seeder()
-
         ts = enumerate_threads()
         self._logger.debug("test_as_server: Number of threads still running %d", len(ts))
         for t in ts:
             self._logger.debug("Thread still running %s, daemon: %s, instance: %s", t.getName(), t.isDaemon(), t)
-
-        super(TestAsServer, self).tearDown(annotate=False)
+        return super(TestAsServer, self).tearDown(annotate=False)
 
     def create_local_torrent(self, source_file):
         '''
@@ -328,21 +330,9 @@ class TestAsServer(AbstractServer):
 
         return 1.0, False
 
+    @deferred(10)
     def _shutdown_session(self, session):
-        session_shutdown_start = time.time()
-        waittime = 60
-
-        session.shutdown()
-        while not session.has_shutdown():
-            diff = time.time() - session_shutdown_start
-            assert diff < waittime, "test_as_server: took too long for Session to shutdown"
-
-            self._logger.debug(
-                "Waiting for Session to shutdown, will wait for an additional %d seconds", (waittime - diff))
-
-            time.sleep(1)
-
-        self._logger.debug("Session has shut down")
+        return session.shutdown()
 
     def assert_(self, boolean, reason=None, do_assert=True, tribler_session=None, dump_statistics=False):
         if not boolean:
