@@ -107,6 +107,7 @@
         <activity
             android:name=".BeamActivity"
             android:parentActivityName=".MainActivity">
+            android:theme="@style/AppTheme.NoActionBar">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="org.tribler.android.MainActivity" />

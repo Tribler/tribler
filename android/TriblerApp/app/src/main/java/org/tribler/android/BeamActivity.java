@@ -10,8 +10,13 @@ import android.nfc.NfcEvent;
 import android.nfc.NfcManager;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.widget.ImageView;
 
 public class BeamActivity extends AppCompatActivity {
@@ -40,6 +45,14 @@ public class BeamActivity extends AppCompatActivity {
 
     private void initGui() {
         setContentView(R.layout.activity_beam);
+
+        // Set action toolbar
+        Toolbar toolbar = (Toolbar) findViewById(R.id.activity_beam_toolbar);
+        assert toolbar != null;
+        setSupportActionBar(toolbar);
+        ActionBar actionbar = getSupportActionBar();
+        assert actionbar != null;
+        actionbar.setDisplayHomeAsUpEnabled(true);
     }
 
     /**
@@ -51,6 +64,34 @@ public class BeamActivity extends AppCompatActivity {
         initNfc();
         initGui();
         handleIntent(getIntent());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        // Add items to the action bar if it is present
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.activity_beam_action_bar, menu);
+
+        // Bluetooth button
+        MenuItem btnBluetooth = menu.findItem(R.id.btn_bluetooth);
+        assert btnBluetooth != null;
+        btnBluetooth.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem menuItem) {
+                // Fetch uri of file to send
+                Uri uri = getIntent().getParcelableExtra(Intent.EXTRA_STREAM);
+                // Send via other means
+                Intent chooserIntent = MyUtils.sendChooser(uri, getText(R.string.dialog_send_chooser));
+                handleIntent(chooserIntent);
+                return true;
+            }
+        });
+
+        return true;
     }
 
     /**
@@ -77,20 +118,21 @@ public class BeamActivity extends AppCompatActivity {
 
     private void handleIntent(Intent intent) {
         String action = intent.getAction();
-        if (action == null)
+        if (action == null) {
             return;
+        }
         switch (action) {
 
             case Intent.ACTION_SEND:
                 // Fetch uri of file to send
-                Uri uri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                Uri uri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
 
                 if (mNfcAdapter != null) {
                     doMyBeam(uri);
                 } else {
-                    // Send via other means
-                    Intent chooserIntent = MyUtils.sendChooser(uri, getText(R.string.dialog_send_chooser));
-                    handleIntent(chooserIntent);
+                    // Send intent to use method preferred by user
+                    Intent sendIntent = MyUtils.sendIntent(uri);
+                    startActivity(sendIntent);
                 }
                 return;
 

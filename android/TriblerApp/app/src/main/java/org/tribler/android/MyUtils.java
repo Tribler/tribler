@@ -45,6 +45,14 @@ public class MyUtils {
         return intent;
     }
 
+    public static Intent sendIntent(Uri uri) {
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_SEND);
+        intent.putExtra(Intent.EXTRA_STREAM, uri);
+        intent.setType(getMimeType(uri));
+        return intent;
+    }
+
     public static Intent sendChooser(Uri uri, CharSequence title) {
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_SEND);
