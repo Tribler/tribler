@@ -20,6 +20,7 @@
     <string name="action_search">Search videos and channels</string>
     <string name="action_search_in_channel">Search in this channel</string>
     <string name="action_capture_video">Record a new video</string>
+    <string name="action_create_torrent">Create a new torrent</string>
 
     <string name="action_subscribtions">Favorite channels</string>
     <string name="action_my_channel">My channel</string>
@@ -43,6 +44,9 @@
     <string name="info_unsubscribe_already">is already not a favorite!</string>
     <string name="info_unsubscribe_success">is now not a favorite anymore!</string>
     <string name="info_unsubscribe_failure">is still a favorite…</string>
+
+    <string name="error_output_file">failed to obtain output file</string>
+    <string name="error_capture_video">failed to capture video</string>
 
     <!-- Strings related to Settings -->
 

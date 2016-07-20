@@ -81,7 +81,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         inflater.inflate(R.menu.activity_main_action_bar, menu);
 
         // Search button
-        MenuItem btnSearch = (MenuItem) menu.findItem(R.id.btn_search);
+        MenuItem btnSearch = menu.findItem(R.id.btn_search);
         assert btnSearch != null;
         btnSearch.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
@@ -106,12 +106,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
             if (resultCode == Activity.RESULT_OK) {
                 Log.d(TAG, "Video saved to:\n" + data.getData());
-                //TODO: advise user
+                //TODO: create torrent file and add to own channel
             } else if (resultCode == Activity.RESULT_CANCELED) {
-                Log.d(TAG, "User cancelled the video capture");
+
             } else {
-                Log.e(TAG, "failed to capture video");
-                //TODO: advise user
+                Toast.makeText(this, R.string.error_capture_video, Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -125,7 +124,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             //ExperimentService.start(this); // Run experiment
 
         } else {
-            Toast.makeText(this, R.string.info_no_connection, Toast.LENGTH_LONG);
+            Toast.makeText(this, R.string.info_no_connection, Toast.LENGTH_LONG).show();
         }
     }
 
@@ -244,8 +243,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     // Obtain output file
                     File output = MyUtils.getOutputVideoFile(this);
                     if (output == null) {
-                        Log.e(TAG, "failed to obtain output file");
-                        //TODO: advise user
+                        Toast.makeText(this, R.string.error_output_file, Toast.LENGTH_LONG).show();
                     }
                     Intent captureIntent = MyUtils.captureVideo(Uri.fromFile(output));
                     startActivityForResult(captureIntent, CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
