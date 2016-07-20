@@ -263,6 +263,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 startActivity(settingsIntent);
                 return true;
 
+            case R.id.nav_feedback:
+                Uri uri = Uri.parse(getString(R.string.app_feedback_url));
+                Intent browserIntent = MyUtils.openBrowser(uri);
+                startActivity(browserIntent);
+                return true;
+
             case R.id.nav_shutdown:
                 Triblerd.stop(this);
                 // Exit MainActivity

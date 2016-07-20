@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Tribler</string>
     <string name="app_website">www.tribler.org</string>
+    <string name="app_feedback_url">https://forum.tribler.org</string>
 
     <string name="title_app">Application</string>
     <string name="title_create_content">Create new content</string>
@@ -30,6 +31,7 @@
     <string name="dialog_enable_beam">You must first turn on NFC and Android Beam on both phones.\n\nTurn on Android Beam now?</string>
 
     <string name="action_settings">Change settings</string>
+    <string name="action_feedback">Send feedback</string>
     <string name="action_shutdown">Shutdown service</string>
 
     <string name="warning_lost_connection">WARNING: Wi-Fi connection lost!</string>

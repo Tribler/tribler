@@ -33,6 +33,10 @@ public class MyUtils {
         return type;
     }
 
+    public static Intent openBrowser(Uri uri) {
+        return new Intent(Intent.ACTION_VIEW, uri);
+    }
+
     public static Intent sendBeam(Uri uri, Context ctx) {
         Intent intent = new Intent(ctx, BeamActivity.class);
         intent.setAction(Intent.ACTION_SEND);
