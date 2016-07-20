@@ -1,14 +1,14 @@
-from pythonforandroid.toolchain import PythonRecipe, current_directory
 from os.path import join, exists
 from sh import mkdir, cp
+from pythonforandroid.toolchain import PythonRecipe, current_directory
 
 
-"""
-Privacy with BitTorrent and resilient to shut down
-
-http://www.tribler.org
-"""
 class LocalTriblerRecipe(PythonRecipe):
+    """
+    Privacy with BitTorrent and resilient to shut down
+
+    http://www.tribler.org
+    """
 
     src_root = '/home/paul/repos/tribler-app'
 

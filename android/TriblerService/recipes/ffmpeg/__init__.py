@@ -1,16 +1,19 @@
-from pythonforandroid.toolchain import Recipe, shprint, shutil, current_directory
 from os.path import join, exists
 import sh
+from pythonforandroid.toolchain import Recipe, shprint, shutil, current_directory
 
-"""
-FFmpeg for Android compiled with x264, libass, fontconfig, freetype, fribidi and lame (Supports Android 4.1+)
 
-http://writingminds.github.io/ffmpeg-android/
-"""
 class FFMpegRecipe(Recipe):
+    '''
+    FFmpeg for Android compiled with x264, libass, fontconfig, freetype, fribidi and lame (Supports Android 4.1+)
+
+    http://writingminds.github.io/ffmpeg-android/
+    '''
 
     version = 'libpng16'
+
     url = 'git+https://github.com/brussee/ffmpeg-android.git'
+
     patches = ['settings.patch']
 
 
