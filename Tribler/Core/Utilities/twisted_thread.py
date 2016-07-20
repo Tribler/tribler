@@ -6,6 +6,7 @@ from Queue import Empty, Queue
 from threading import current_thread
 
 from twisted.internet import reactor
+from twisted.python.threadable import isInIOThread
 from twisted.python import log
 
 
@@ -140,6 +141,8 @@ def deferred(timeout=None):
 
     def decorate(func):
         def wrapper(*args, **kargs):
+            assert not isInIOThread()
+
             q = Queue()
 
             def callback(value):
