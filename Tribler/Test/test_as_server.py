@@ -132,7 +132,7 @@ class AbstractServer(BaseTestCase):
         factory = Site(resource)
         self.file_server = reactor.listenTCP(port, factory)
 
-    def checkReactor(self, _):
+    def checkReactor(self, *_):
         delayed_calls = reactor.getDelayedCalls()
         if delayed_calls:
             self._logger.error("The reactor was dirty:")
