@@ -87,7 +87,7 @@ public class SearchFragment extends TriblerViewFragment implements RestApiClient
 
     @Override
     public void onSearchResultChannel(String query, final TriblerChannel result) {
-        if (mQuery.equals(query)) {
+        if (mQuery.equalsIgnoreCase(query)) {
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -101,7 +101,7 @@ public class SearchFragment extends TriblerViewFragment implements RestApiClient
 
     @Override
     public void onSearchResultTorrent(String query, final TriblerTorrent result) {
-        if (mQuery.equals(query)) {
+        if (mQuery.equalsIgnoreCase(query)) {
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
