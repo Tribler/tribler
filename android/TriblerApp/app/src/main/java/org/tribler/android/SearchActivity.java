@@ -20,6 +20,7 @@ import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScrol
 public class SearchActivity extends AppCompatActivity {
 
     private SearchFragment mSearchFragment;
+    private SearchView searchView;
 
     /**
      * {@inheritDoc}
@@ -55,6 +56,10 @@ public class SearchActivity extends AppCompatActivity {
     private void handleIntent(Intent intent) {
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
             String query = intent.getStringExtra(SearchManager.QUERY);
+            if (searchView != null) {
+                searchView.setQuery(query, false);
+                searchView.clearFocus();
+            }
             mSearchFragment.startSearch(query);
         }
     }
@@ -116,7 +121,7 @@ public class SearchActivity extends AppCompatActivity {
         // Search button
         MenuItem btnSearch = (MenuItem) menu.findItem(R.id.btn_search);
         assert btnSearch != null;
-        final SearchView searchView = (SearchView) btnSearch.getActionView();
+        searchView = (SearchView) btnSearch.getActionView();
 
         // Show search input field
         searchView.setIconified(false);
@@ -149,7 +154,9 @@ public class SearchActivity extends AppCompatActivity {
              */
             @Override
             public boolean onQueryTextSubmit(String query) {
-                searchView.clearFocus();
+                if (searchView != null) {
+                    searchView.clearFocus();
+                }
                 Intent intent = new Intent(SearchActivity.this, SearchActivity.class);
                 intent.setAction(Intent.ACTION_SEARCH);
                 intent.putExtra(SearchManager.QUERY, query);
