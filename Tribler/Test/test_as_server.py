@@ -110,7 +110,7 @@ class AbstractServer(BaseTestCase):
         factory = Site(resource)
         self.file_server = reactor.listenTCP(port, factory)
 
-    def checkReactor(self, _):
+    def checkReactor(self, *_):
         delayed_calls = reactor.getDelayedCalls()
         if delayed_calls:
             self._logger.error("The reactor was dirty:")
@@ -153,7 +153,7 @@ class AbstractServer(BaseTestCase):
         if self.file_server:
             return maybeDeferred(self.file_server.stopListening).addCallback(self.checkReactor)
         else:
-            return succeed(self.checkReactor)
+            return self.checkReactor("tearDown")
 
     def tearDownCleanup(self):
         self.setUpCleanup()
