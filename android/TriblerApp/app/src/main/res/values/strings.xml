@@ -25,7 +25,7 @@
     <string name="action_subscribtions">Favorite channels</string>
     <string name="action_my_channel">My channel</string>
     <string name="action_playlists">My playlists</string>
-    <string name="action_browse_channels">Browse popular channels</string>
+    <string name="action_browse_channels">Popular channels</string>
 
     <string name="action_send_app">Send to nearby phone</string>
     <string name="dialog_send_chooser">Send via</string>
