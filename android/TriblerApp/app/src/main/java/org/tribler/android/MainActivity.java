@@ -217,7 +217,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 subscribedFragment.getSubscriptions();
                 return true;
 
-            case R.id.nav_my_channel:
+            case R.id.nav_popular:
                 DiscoveredFragment discoveredFragment = (DiscoveredFragment) fm.findFragmentByTag(DiscoveredFragment.TAG);
                 // If not retained (or first time running), we need to create it
                 if (discoveredFragment == null) {
@@ -227,6 +227,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     fm.beginTransaction().add(discoveredFragment, DiscoveredFragment.TAG).commit();
                 }
                 discoveredFragment.getDiscoveredChannels();
+                return true;
+
+            case R.id.nav_my_channel:
+
                 return true;
 
             case R.id.nav_my_playlists:
