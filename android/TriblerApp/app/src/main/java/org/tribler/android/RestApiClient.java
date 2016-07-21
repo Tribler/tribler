@@ -2,7 +2,6 @@ package org.tribler.android;
 
 import android.util.Log;
 
-import com.facebook.stetho.okhttp3.StethoInterceptor;
 import com.google.gson.Gson;
 
 import java.io.BufferedReader;
@@ -32,7 +31,7 @@ public class RestApiClient {
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
-            .addNetworkInterceptor(new StethoInterceptor()) // DEBUG
+            //.addNetworkInterceptor(new StethoInterceptor()) // DEBUG
             .build();
 
     private static final OkHttpClient EVENTS = new OkHttpClient.Builder()
@@ -40,7 +39,7 @@ public class RestApiClient {
             .connectTimeout(1, TimeUnit.MINUTES)
             .readTimeout(60, TimeUnit.MINUTES)
             .writeTimeout(30, TimeUnit.SECONDS)
-            .addNetworkInterceptor(new StethoInterceptor()) // DEBUG
+            //.addNetworkInterceptor(new StethoInterceptor()) // DEBUG
             .build();
 
     private static final Gson GSON = new Gson();

@@ -23,8 +23,6 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.Toast;
 
-import com.facebook.stetho.Stetho;
-
 import java.io.File;
 
 import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
@@ -46,9 +44,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        Stetho.initializeWithDefaults(this); //DEBUG
-
+        //Stetho.initializeWithDefaults(this); //DEBUG
         initGui();
         initService();
 
