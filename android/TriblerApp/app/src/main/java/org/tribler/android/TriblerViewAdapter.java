@@ -114,11 +114,11 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
      * @return True if the item is successfully added, false otherwise
      */
     public boolean addItem(Object item) {
-        int adapterPosition = mFilteredDataList.indexOf(item);
-        if (adapterPosition < 0) {
+        boolean added = mDataList.add(item);
+        if (added) {
             insertItem(getItemCount(), item);
         }
-        return mDataList.add(item);
+        return added;
     }
 
     /**
@@ -126,11 +126,14 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
      * @return True if the item is successfully removed, false otherwise
      */
     public boolean removeItem(Object item) {
-        int adapterPosition = mFilteredDataList.indexOf(item);
-        if (adapterPosition >= 0) {
-            removeItem(adapterPosition);
+        boolean removed = mDataList.remove(item);
+        if (removed) {
+            int adapterPosition = mFilteredDataList.indexOf(item);
+            if (adapterPosition >= 0) {
+                removeItem(adapterPosition);
+            }
         }
-        return mDataList.remove(item);
+        return removed;
     }
 
     /**
