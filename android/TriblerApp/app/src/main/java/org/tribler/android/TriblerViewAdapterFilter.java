@@ -10,10 +10,10 @@ import java.util.List;
  */
 public class TriblerViewAdapterFilter extends Filter {
 
-    private TriblerViewAdapter mAdapter;
+    private FilterableRecyclerViewAdapter mAdapter;
     private List<Object> mDataList;
 
-    public TriblerViewAdapterFilter(TriblerViewAdapter adapter, List<Object> list) {
+    public TriblerViewAdapterFilter(FilterableRecyclerViewAdapter adapter, List<Object> list) {
         super();
         mAdapter = adapter;
         mDataList = list;
@@ -55,7 +55,9 @@ public class TriblerViewAdapterFilter extends Filter {
      * {@inheritDoc}
      */
     @Override
-    protected void publishResults(CharSequence filterPattern, FilterResults filterResults) {
-        mAdapter.setList((List<Object>) filterResults.values);
+    protected void publishResults(CharSequence query, FilterResults results) {
+        if (results.values instanceof List) {
+            mAdapter.setList((List<Object>) results.values);
+        }
     }
 }
