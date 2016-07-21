@@ -129,10 +129,10 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     /**
-     * @param adapterPosition The position in the adapter list of where to add the item
-     * @param item            The item to add to the adapter list
+     * @param adapterPosition The position in the adapter list of where to insert the item
+     * @param item            The item to insert to the adapter list
      */
-    public void addItem(int adapterPosition, Object item) {
+    public void insertItem(int adapterPosition, Object item) {
         mDataList.add(adapterPosition, item);
         notifyItemInserted(adapterPosition);
     }
@@ -152,7 +152,6 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
 
     /**
      * @param adapterPosition The position of the item in adapter list to remove
-     * @return True if the item at given position is successfully removed, false otherwise
      */
     public void removeItem(int adapterPosition) {
         mDataList.remove(adapterPosition);
@@ -168,15 +167,8 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         if (adapterPosition < 0) {
             return false;
         }
-        updateItem(adapterPosition);
-        return true;
-    }
-
-    /**
-     * @param adapterPosition The position of the item in the adapter list that is updated
-     */
-    public void updateItem(int adapterPosition) {
         notifyItemChanged(adapterPosition);
+        return true;
     }
 
     /**
@@ -208,7 +200,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         for (int i = 0, count = list.size(); i < count; i++) {
             Object item = list.get(i);
             if (!mDataList.contains(item)) {
-                addItem(i, item);
+                insertItem(i, item);
             }
         }
     }
@@ -225,7 +217,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
 
     protected List<Object> filter(String filterPattern) {
         List<Object> filteredList = new ArrayList<>();
-        String constraint = filterPattern.toString().trim().toLowerCase();
+        String constraint = filterPattern.trim().toLowerCase();
         if (constraint.isEmpty()) {
             filteredList.addAll(mDataList);
         } else {

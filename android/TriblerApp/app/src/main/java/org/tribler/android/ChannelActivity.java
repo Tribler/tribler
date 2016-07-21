@@ -138,8 +138,8 @@ public class ChannelActivity extends AppCompatActivity {
             @Override
             public boolean onQueryTextChange(String query) {
                 ChannelFragment fragment = getFragment();
-                List<Object> filteredModelList = fragment.mAdapter.filter(query);
-                fragment.mAdapter.animateTo(filteredModelList);
+                List<Object> filteredDataList = fragment.mAdapter.filter(query);
+                fragment.mAdapter.animateTo(filteredDataList);
                 fragment.getView().scrollToPosition(0);
                 return true;
             }
