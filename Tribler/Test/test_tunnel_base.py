@@ -13,6 +13,8 @@ from Tribler.dispersy.util import blockingCallFromThread
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.crypto import NoCrypto
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
+from Tribler.community.tunnel.hidden_community_multichain import HiddenTunnelCommunityMultichain
+from Tribler.community.multichain.community import MultiChainCommunity
 
 
 class TestTunnelBase(TestGuiAsServer):
@@ -22,6 +24,21 @@ class TestTunnelBase(TestGuiAsServer):
         self.getStateDir()   # getStateDir copies the bootstrap file into the statedir
 
         def setup_proxies():
+            # once the session is available, we kill the multichain stuff if it is enabled
+            htcm_cid = HiddenTunnelCommunityMultichain.get_master_members(self.lm.dispersy)[0].mid
+            if self.lm.dispersy.has_community(htcm_cid):
+                htcm = self.lm.dispersy.get_community(htcm_cid)
+                blockingCallFromThread(reactor, htcm.unload_community)
+                self.lm.tunnel_community = blockingCallFromThread(reactor,
+                                                                  self.lm.dispersy.define_auto_load,
+                                                                  HiddenTunnelCommunity,
+                                                                  htcm.my_member,
+                                                                  (htcm.trsession, htcm.settings),
+                                                                  load=True)[0]
+            for community in self.lm.dispersy.get_communities():
+                if isinstance(community, (MultiChainCommunity, HiddenTunnelCommunityMultichain)):
+                    blockingCallFromThread(reactor, community.unload_community)
+
             tunnel_communities = []
             baseindex = 3
             for i in range(baseindex, baseindex + nr_relays):  # Normal relays
