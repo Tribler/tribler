@@ -37,9 +37,9 @@ public class TriblerViewAdapterTouchCallback extends ItemTouchHelper.SimpleCallb
     @Override
     public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
         TriblerViewAdapter.OnSwipeListener listener = mAdapter.getOnSwipeListener();
-        if (listener == null)
+        if (listener == null) {
             return;
-
+        }
         int adapterPosition = viewHolder.getAdapterPosition();
         // Swipe channel
         if (viewHolder instanceof TriblerViewAdapter.ChannelViewHolder) {

@@ -40,6 +40,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     private List<Object> mDataList;
+    private List<Object> mFilteredDataList;
     private TriblerViewAdapterFilter mFilter;
     private TriblerViewAdapterTouchCallback mTouchCallback;
     private OnClickListener mClickListener;
@@ -47,7 +48,8 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
 
     public TriblerViewAdapter() {
         mDataList = new ArrayList<>();
-        //mFilter = new TriblerViewAdapterFilter(this, mDataList);
+        mFilteredDataList = new ArrayList<>();
+        mFilter = new TriblerViewAdapterFilter(this, mDataList);
         mTouchCallback = new TriblerViewAdapterTouchCallback(this);
     }
 
@@ -96,7 +98,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
      * @return The item on the given adapter position
      */
     public Object getItem(int adapterPosition) {
-        return mDataList.get(adapterPosition);
+        return mFilteredDataList.get(adapterPosition);
     }
 
     /**
@@ -104,15 +106,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
      */
     @Override
     public int getItemCount() {
-        return mDataList.size();
-    }
-
-    /**
-     * Empty data list
-     */
-    public void clear() {
-        mDataList.clear();
-        notifyDataSetChanged();
+        return mFilteredDataList.size();
     }
 
     /**
@@ -120,21 +114,11 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
      * @return True if the item is successfully added, false otherwise
      */
     public boolean addItem(Object item) {
-        int adapterPosition = getItemCount();
-        boolean added = mDataList.add(item);
-        if (added) {
-            notifyItemInserted(adapterPosition);
+        int adapterPosition = mFilteredDataList.indexOf(item);
+        if (adapterPosition < 0) {
+            insertItem(getItemCount(), item);
         }
-        return added;
-    }
-
-    /**
-     * @param adapterPosition The position in the adapter list of where to insert the item
-     * @param item            The item to insert to the adapter list
-     */
-    public void insertItem(int adapterPosition, Object item) {
-        mDataList.add(adapterPosition, item);
-        notifyItemInserted(adapterPosition);
+        return mDataList.add(item);
     }
 
     /**
@@ -142,54 +126,31 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
      * @return True if the item is successfully removed, false otherwise
      */
     public boolean removeItem(Object item) {
-        int adapterPosition = mDataList.indexOf(item);
-        if (adapterPosition < 0) {
-            return false;
+        int adapterPosition = mFilteredDataList.indexOf(item);
+        if (adapterPosition >= 0) {
+            removeItem(adapterPosition);
         }
-        removeItem(adapterPosition);
-        return true;
+        return mDataList.remove(item);
     }
 
     /**
-     * @param adapterPosition The position of the item in adapter list to remove
+     * Empty data list
      */
-    public void removeItem(int adapterPosition) {
-        mDataList.remove(adapterPosition);
-        notifyItemRemoved(adapterPosition);
+    public void clear() {
+        mDataList.clear();
+        mFilteredDataList.clear();
+        notifyDataSetChanged();
     }
 
-    /**
-     * @param item The item to refresh the view of in the adapter list
-     * @return True if the view of the item is successfully refreshed, false otherwise
-     */
-    public boolean updateItem(Object item) {
-        int adapterPosition = mDataList.indexOf(item);
-        if (adapterPosition < 0) {
-            return false;
-        }
-        notifyItemChanged(adapterPosition);
-        return true;
-    }
-
-    /**
-     * @param fromPosition The position in the adapter list of the item to move from
-     * @param toPosition   The position in the adapter list of the item to move to
-     */
-    public void moveItem(int fromPosition, int toPosition) {
-        Object model = mDataList.remove(fromPosition);
-        mDataList.add(toPosition, model);
-        notifyItemMoved(fromPosition, toPosition);
-    }
-
-    public void animateTo(List<Object> list) {
+    public void setList(List<Object> list) {
         applyAndAnimateRemovals(list);
         applyAndAnimateAdditions(list);
         applyAndAnimateMovedItems(list);
     }
 
     private void applyAndAnimateRemovals(List<Object> list) {
-        for (int i = mDataList.size() - 1; i >= 0; i--) {
-            Object item = mDataList.get(i);
+        for (int i = mFilteredDataList.size() - 1; i >= 0; i--) {
+            Object item = mFilteredDataList.get(i);
             if (!list.contains(item)) {
                 removeItem(i);
             }
@@ -199,7 +160,7 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     private void applyAndAnimateAdditions(List<Object> list) {
         for (int i = 0, count = list.size(); i < count; i++) {
             Object item = list.get(i);
-            if (!mDataList.contains(item)) {
+            if (!mFilteredDataList.contains(item)) {
                 insertItem(i, item);
             }
         }
@@ -208,36 +169,51 @@ public class TriblerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     private void applyAndAnimateMovedItems(List<Object> list) {
         for (int toPosition = list.size() - 1; toPosition >= 0; toPosition--) {
             Object item = list.get(toPosition);
-            int fromPosition = mDataList.indexOf(item);
+            int fromPosition = mFilteredDataList.indexOf(item);
             if (fromPosition >= 0 && fromPosition != toPosition) {
                 moveItem(fromPosition, toPosition);
             }
         }
     }
 
-    protected List<Object> filter(String filterPattern) {
-        List<Object> filteredList = new ArrayList<>();
-        String constraint = filterPattern.trim().toLowerCase();
-        if (constraint.isEmpty()) {
-            filteredList.addAll(mDataList);
-        } else {
-            for (Object item : mDataList) {
-                if (item instanceof TriblerChannel) {
-                    TriblerChannel channel = (TriblerChannel) item;
-                    String name = channel.getName();
-                    if ((name != null && name.toLowerCase().contains(constraint))) {
-                        filteredList.add(channel);
-                    }
-                } else if (item instanceof TriblerTorrent) {
-                    TriblerTorrent torrent = (TriblerTorrent) item;
-                    String name = torrent.getName();
-                    if ((name != null && name.toLowerCase().contains(constraint))) {
-                        filteredList.add(torrent);
-                    }
-                }
-            }
+    /**
+     * @param adapterPosition The position of the item in adapter list to remove
+     */
+    private void removeItem(int adapterPosition) {
+        mFilteredDataList.remove(adapterPosition);
+        notifyItemRemoved(adapterPosition);
+    }
+
+    /**
+     * @param adapterPosition The position in the adapter list of where to insert the item
+     * @param item            The item to insert to the adapter list
+     */
+    private void insertItem(int adapterPosition, Object item) {
+        mFilteredDataList.add(adapterPosition, item);
+        notifyItemInserted(adapterPosition);
+    }
+
+    /**
+     * @param fromPosition The position in the adapter list of the item to move from
+     * @param toPosition   The position in the adapter list of the item to move to
+     */
+    private void moveItem(int fromPosition, int toPosition) {
+        Object model = mFilteredDataList.remove(fromPosition);
+        mFilteredDataList.add(toPosition, model);
+        notifyItemMoved(fromPosition, toPosition);
+    }
+
+    /**
+     * @param item The item to refresh the view of in the adapter list
+     * @return True if the view of the item is successfully refreshed, false otherwise
+     */
+    public boolean itemChanged(Object item) {
+        int adapterPosition = mFilteredDataList.indexOf(item);
+        if (adapterPosition < 0) {
+            return false;
         }
-        return filteredList;
+        notifyItemChanged(adapterPosition);
+        return true;
     }
 
     /**

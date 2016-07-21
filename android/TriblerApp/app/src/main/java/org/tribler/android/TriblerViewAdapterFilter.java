@@ -3,7 +3,6 @@ package org.tribler.android;
 import android.widget.Filter;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -12,12 +11,12 @@ import java.util.List;
 public class TriblerViewAdapterFilter extends Filter {
 
     private TriblerViewAdapter mAdapter;
-    private List<Object> mOriginalList;
+    private List<Object> mDataList;
 
-    public TriblerViewAdapterFilter(TriblerViewAdapter adapter, List<Object> original) {
+    public TriblerViewAdapterFilter(TriblerViewAdapter adapter, List<Object> list) {
         super();
         mAdapter = adapter;
-        mOriginalList = new LinkedList<>(original);
+        mDataList = list;
     }
 
     /**
@@ -28,9 +27,9 @@ public class TriblerViewAdapterFilter extends Filter {
         List<Object> filteredList = new ArrayList<>();
         String constraint = query.toString().trim().toLowerCase();
         if (constraint.isEmpty()) {
-            filteredList.addAll(mOriginalList);
+            filteredList.addAll(mDataList);
         } else {
-            for (Object item : mOriginalList) {
+            for (Object item : mDataList) {
                 if (item instanceof TriblerChannel) {
                     TriblerChannel channel = (TriblerChannel) item;
                     if (channel.getName().toLowerCase().contains(constraint)
@@ -57,7 +56,6 @@ public class TriblerViewAdapterFilter extends Filter {
      */
     @Override
     protected void publishResults(CharSequence filterPattern, FilterResults filterResults) {
-        List<Object> filteredList = (List<Object>) filterResults.values;
-        mAdapter.animateTo(filteredList);
+        mAdapter.setList((List<Object>) filterResults.values);
     }
 }
