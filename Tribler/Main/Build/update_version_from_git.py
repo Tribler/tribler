@@ -50,7 +50,7 @@ if __name__ == '__main__':
         content = content.replace('__GIT__', version_id)
 
         # Check if we are building 64 bit, replace the install dir and bit version accordingly.
-        if len(sys.argv) > 0 and sys.argv[1] == "64":
+        if len(sys.argv) > 1 and sys.argv[1] == "64":
             content = content.replace('x86', 'x64')
             content = content.replace('$PROGRAMFILES', '$PROGRAMFILES64')
 
