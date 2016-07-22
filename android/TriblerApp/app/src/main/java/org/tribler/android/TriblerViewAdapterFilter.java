@@ -23,7 +23,7 @@ public class TriblerViewAdapterFilter extends Filter {
      * {@inheritDoc}
      */
     @Override
-    protected Filter.FilterResults performFiltering(CharSequence query) {
+    protected ObjectListFilterResults performFiltering(CharSequence query) {
         List<Object> filteredList = new ArrayList<>();
         String constraint = query.toString().trim().toLowerCase();
         if (constraint.isEmpty()) {
@@ -45,7 +45,7 @@ public class TriblerViewAdapterFilter extends Filter {
                 }
             }
         }
-        FilterResults results = new FilterResults();
+        ObjectListFilterResults results = new ObjectListFilterResults();
         results.values = filteredList;
         results.count = filteredList.size();
         return results;
@@ -56,8 +56,14 @@ public class TriblerViewAdapterFilter extends Filter {
      */
     @Override
     protected void publishResults(CharSequence query, FilterResults results) {
-        if (results.values instanceof List) {
-            mAdapter.setList((List<Object>) results.values);
+        if (results instanceof ObjectListFilterResults) {
+            mAdapter.setList(((ObjectListFilterResults) results).values);
         }
+    }
+
+    protected static class ObjectListFilterResults extends FilterResults {
+
+        public int count;
+        public List<Object> values;
     }
 }

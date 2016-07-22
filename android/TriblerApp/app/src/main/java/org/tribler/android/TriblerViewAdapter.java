@@ -36,7 +36,7 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
     }
 
     private TriblerViewAdapterTouchCallback mTouchCallback = new TriblerViewAdapterTouchCallback(this);
-    ;
+
     private OnClickListener mClickListener;
     private OnSwipeListener mSwipeListener;
 
