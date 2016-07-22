@@ -57,7 +57,11 @@ public class TriblerViewAdapterFilter extends Filter {
     @Override
     protected void publishResults(CharSequence query, FilterResults results) {
         if (results instanceof ObjectListFilterResults) {
-            mAdapter.setList(((ObjectListFilterResults) results).values);
+            List<Object> list = ((ObjectListFilterResults) results).values;
+            // Check in case of concurrent access while iterating over mDataList during filtering
+            if (list != null) {
+                mAdapter.setList(list);
+            }
         }
     }
 
