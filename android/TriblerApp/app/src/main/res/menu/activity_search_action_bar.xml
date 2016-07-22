@@ -10,4 +10,23 @@
         app:actionViewClass="android.support.v7.widget.SearchView"
         app:showAsAction="always" />
 
+
+    <group android:checkableBehavior="all">
+        <item
+            android:id="@+id/checkbox_show_channels"
+            android:checkable="true"
+            android:checked="true"
+            android:icon="@android:drawable/ic_menu_preferences"
+            android:title="@string/checkbox_show_channels"
+            app:showAsAction="never|withText" />
+        <item
+            android:id="@+id/checkbox_show_torrents"
+            android:checkable="true"
+            android:checked="true"
+            android:icon="@android:drawable/ic_menu_preferences"
+            android:title="@string/checkbox_show_torrents"
+            app:showAsAction="never|withText" />
+    </group>
+
+
 </menu>

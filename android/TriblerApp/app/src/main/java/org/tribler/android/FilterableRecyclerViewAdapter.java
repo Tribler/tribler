@@ -16,7 +16,6 @@ public abstract class FilterableRecyclerViewAdapter extends RecyclerView.Adapter
     public FilterableRecyclerViewAdapter() {
         mDataList = new ArrayList<>();
         mFilteredDataList = new ArrayList<>();
-        mFilter = new TriblerViewAdapterFilter(this, mDataList);
     }
 
     /**
@@ -24,6 +23,9 @@ public abstract class FilterableRecyclerViewAdapter extends RecyclerView.Adapter
      */
     @Override
     public Filter getFilter() {
+        if (mFilter == null) {
+            mFilter = new TriblerViewAdapterFilter(this, mDataList);
+        }
         return mFilter;
     }
 

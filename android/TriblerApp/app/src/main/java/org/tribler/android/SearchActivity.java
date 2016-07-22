@@ -174,7 +174,50 @@ public class SearchActivity extends AppCompatActivity {
             }
         });
 
+        // Filter checkboxes
+        MenuItem btnChannels = menu.findItem(R.id.checkbox_show_channels);
+        MenuItem btnTorrents = menu.findItem(R.id.checkbox_show_torrents);
+        assert btnChannels != null;
+        assert btnTorrents != null;
+        btnChannels.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public boolean onMenuItemClick(MenuItem menuItem) {
+                boolean showChannels = !btnChannels.isChecked();
+                boolean showTorrents = btnTorrents.isChecked();
+                btnChannels.setChecked(showChannels);
+                toggleFilter(showChannels, showTorrents);
+                return true;
+            }
+        });
+        btnTorrents.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public boolean onMenuItemClick(MenuItem menuItem) {
+                boolean showChannels = btnChannels.isChecked();
+                boolean showTorrents = !btnTorrents.isChecked();
+                btnTorrents.setChecked(showTorrents);
+                toggleFilter(showChannels, showTorrents);
+                return true;
+            }
+        });
+
         return true;
+    }
+
+    private void toggleFilter(boolean showChannels, boolean showTorrents) {
+        if (showChannels && !showTorrents) {
+            getFragment().mAdapter.getFilter().filter(TriblerChannel.class.getName());
+        } else if (!showChannels && showTorrents) {
+            getFragment().mAdapter.getFilter().filter(TriblerTorrent.class.getName());
+        } else {
+            // Clear filter
+            getFragment().mAdapter.getFilter().filter("");
+        }
     }
 
 }

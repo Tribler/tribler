@@ -22,6 +22,9 @@
     <string name="action_capture_video">Record a new video</string>
     <string name="action_create_torrent">Create a new torrent</string>
 
+    <string name="checkbox_show_channels">Show channels</string>
+    <string name="checkbox_show_torrents">Show videos</string>
+
     <string name="action_subscribtions">Favorite channels</string>
     <string name="action_my_channel">My channel</string>
     <string name="action_playlists">My playlists</string>
