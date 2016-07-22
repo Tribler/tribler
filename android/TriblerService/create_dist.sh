@@ -7,10 +7,10 @@ echo Create dist
 p4a create \
 --force-build \
 --require-perfect-match \
---copy-libs \
---debug \
---sdk_dir=/opt/android-sdk-linux \
---ndk_dir=/opt/android-ndk-r10e \
+--release \
+--sdk_dir=/opt/android-sdk \
+--ndk_dir=/opt/android-ndk \
+--ndk_version=12b \
 --android_api=16 \
 --arch=armeabi-v7a \
 --package=org.tribler.android \
