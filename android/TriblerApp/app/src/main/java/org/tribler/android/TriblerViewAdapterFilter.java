@@ -28,30 +28,11 @@ public class TriblerViewAdapterFilter extends Filter {
         // Copy data list to avoid concurrency issues while iterating over it
         LinkedList<Object> dataList = new LinkedList<>(mDataList);
         List<Object> filteredList = new ArrayList<>();
-
-        // Filter by class, or name and description
-        String query = constraint.toString();
-        boolean showChannels = query.equals(TriblerChannel.class.getName());
-        boolean showTorrents = query.equals(TriblerTorrent.class.getName());
-        query = query.trim().toLowerCase();
-
+        // Sanitize query
+        String query = constraint.toString().trim().toLowerCase();
         if (query.isEmpty()) {
             // Show all
             filteredList.addAll(dataList);
-        }
-        // Filter by class
-        else if (showChannels && !showTorrents) {
-            for (Object item : dataList) {
-                if (item instanceof TriblerChannel) {
-                    filteredList.add(item);
-                }
-            }
-        } else if (!showChannels && showTorrents) {
-            for (Object item : dataList) {
-                if (item instanceof TriblerTorrent) {
-                    filteredList.add(item);
-                }
-            }
         }
         // Filter by name and description
         else {
