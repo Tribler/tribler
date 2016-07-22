@@ -215,7 +215,7 @@ setup(
     options={'py2app': {
         'argv_emulation': True,
         'includes': includeModules,
-        'excludes': ["Tkinter", "Tkconstants", "tcl"],
+        'excludes': ["Tkinter", "Tkconstants", "tcl", "PyQt5"],
         'iconfile': LIBRARYNAME + '/Main/Build/Mac/tribler.icns',
         'plist': Plist.fromFile(LIBRARYNAME + '/Main/Build/Mac/Info.plist'),
         'optimize': 0 if __debug__ else 2,
