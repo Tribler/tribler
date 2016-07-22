@@ -25,7 +25,6 @@ import android.widget.Toast;
 
 import java.io.File;
 
-import rx.Observable;
 import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
@@ -113,11 +112,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private void initService() {
-        Observable.just("Hello, world!")
-                .map(s -> s + " -Dan")
-                .subscribe(s -> System.out.println(s));
-
-
         if (NetworkReceiver.isNetworkConnected(this)) {
 
             Triblerd.start(this); // Run normally
