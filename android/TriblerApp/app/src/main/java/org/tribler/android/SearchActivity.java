@@ -57,6 +57,7 @@ public class SearchActivity extends AppCompatActivity {
     private void handleIntent(Intent intent) {
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
             String query = intent.getStringExtra(SearchManager.QUERY);
+            // Show voice search query
             if (searchView != null) {
                 searchView.setQuery(query, false);
                 searchView.clearFocus();
@@ -123,10 +124,17 @@ public class SearchActivity extends AppCompatActivity {
         MenuItem btnSearch = menu.findItem(R.id.btn_search);
         assert btnSearch != null;
         searchView = (SearchView) btnSearch.getActionView();
-
+        // Set hint and enable voice search
+        SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+        searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
         // Show search input field
         searchView.setIconified(false);
-
+        // Restore last query
+        String query = getIntent().getStringExtra(SearchManager.QUERY);
+        if (query != null && !query.isEmpty()) {
+            searchView.setQuery(query, false);
+            searchView.clearFocus();
+        }
         // Never close search view
         searchView.setOnCloseListener(new SearchView.OnCloseListener() {
             /**
@@ -138,26 +146,13 @@ public class SearchActivity extends AppCompatActivity {
                 return true;
             }
         });
-
-        // Restore last query
-        String query = getIntent().getStringExtra(SearchManager.QUERY);
-        if (query != null && !query.isEmpty()) {
-            searchView.setQuery(query, false);
-            searchView.clearFocus();
-        }
-
-        SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-        searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
-
+        // Search on submit
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             /**
              * {@inheritDoc}
              */
             @Override
             public boolean onQueryTextSubmit(String query) {
-                if (searchView != null) {
-                    searchView.clearFocus();
-                }
                 Intent intent = new Intent(SearchActivity.this, SearchActivity.class);
                 intent.setAction(Intent.ACTION_SEARCH);
                 intent.putExtra(SearchManager.QUERY, query);
