@@ -1,5 +1,6 @@
 package org.tribler.android;
 
+import android.text.TextUtils;
 import android.widget.Filter;
 
 import java.util.ArrayList;
@@ -30,7 +31,7 @@ public class TriblerViewAdapterFilter extends Filter {
         List<Object> filteredList = new ArrayList<>();
         // Sanitize query
         String query = constraint.toString().trim().toLowerCase();
-        if (query.isEmpty()) {
+        if (TextUtils.isEmpty(query)) {
             // Show all
             filteredList.addAll(dataList);
         }

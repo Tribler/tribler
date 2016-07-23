@@ -11,6 +11,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -131,7 +132,7 @@ public class SearchActivity extends AppCompatActivity {
         searchView.setIconified(false);
         // Restore last query
         String query = getIntent().getStringExtra(SearchManager.QUERY);
-        if (query != null && !query.isEmpty()) {
+        if (!TextUtils.isEmpty(query)) {
             searchView.setQuery(query, false);
             searchView.clearFocus();
         }
@@ -171,16 +172,4 @@ public class SearchActivity extends AppCompatActivity {
 
         return true;
     }
-
-    private void toggleFilter(boolean showChannels, boolean showTorrents) {
-        if (showChannels && !showTorrents) {
-            getFragment().mAdapter.getFilter().filter(TriblerChannel.class.getName());
-        } else if (!showChannels && showTorrents) {
-            getFragment().mAdapter.getFilter().filter(TriblerTorrent.class.getName());
-        } else {
-            // Clear filter
-            getFragment().mAdapter.getFilter().filter("");
-        }
-    }
-
 }
