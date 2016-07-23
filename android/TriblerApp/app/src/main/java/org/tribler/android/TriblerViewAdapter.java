@@ -1,7 +1,6 @@
 package org.tribler.android;
 
 import android.net.Uri;
-import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.view.LayoutInflater;
@@ -37,21 +36,20 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
     }
 
     /**
-     * Attaches the Adapter to the provided RecyclerView. If Adapter is already
-     * attached to a RecyclerView, it will first detach from the previous one. You can call this
-     * method with {@code null} to detach it from the current RecyclerView.
-     *
-     * @param recyclerView The RecyclerView instance to which you want to add this helper or
-     *                     {@code null} if you want to remove ItemTouchHelper from the current
-     *                     RecyclerView.
+     * {@inheritDoc}
      */
-    public void attachToRecyclerView(@Nullable RecyclerView recyclerView) {
-        if (recyclerView != null) {
-            recyclerView.setAdapter(this);
-        }
+    @Override
+    public void onAttachedToRecyclerView(RecyclerView recyclerView) {
         mTouchHelper.attachToRecyclerView(recyclerView);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onDetachedFromRecyclerView(RecyclerView recyclerView) {
+        mTouchHelper.attachToRecyclerView(null);
+    }
 
     /**
      * {@inheritDoc}
