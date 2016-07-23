@@ -18,6 +18,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
+@Deprecated
 public class RestApiClient {
     public static final String TAG = SearchFragment.class.getSimpleName();
 
