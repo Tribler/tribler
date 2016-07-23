@@ -1,14 +1,9 @@
 package org.tribler.android;
 
-import android.app.Fragment;
 import android.content.Intent;
-import android.os.Bundle;
-import android.support.annotation.Nullable;
-import android.support.design.widget.Snackbar;
-import android.support.v7.widget.RecyclerView;
+import android.widget.Toast;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -20,40 +15,7 @@ import static org.tribler.android.RestApiClient.API;
 import static org.tribler.android.RestApiClient.BASE_URL;
 import static org.tribler.android.RestApiClient.TYPE_JSON;
 
-public abstract class TriblerViewFragment extends Fragment implements ListFragment.IListFragmentInteractionListener {
-
-    protected TriblerViewAdapter mAdapter;
-    private RecyclerView mRecyclerView;
-
-    /**
-     * {@inheritDoc}
-     */
-    @Nullable
-    @Override
-    public RecyclerView getView() {
-        return mRecyclerView;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        mRecyclerView = (RecyclerView) getActivity().findViewById(R.id.list_recycler_view);
-        mAdapter = new TriblerViewAdapter(new ArrayList<>(), this, this);
-        mAdapter.attachToRecyclerView(mRecyclerView);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        mRecyclerView = null;
-        mAdapter.attachToRecyclerView(null);
-    }
+public class DefaultInteractionListFragment extends ListFragment implements ListFragment.IListFragmentInteractionListener {
 
     /**
      * {@inheritDoc}
@@ -73,7 +35,7 @@ public abstract class TriblerViewFragment extends Fragment implements ListFragme
     @Override
     public void onClick(final TriblerTorrent torrent) {
         //TODO: play video
-        Snackbar.make(getView(), "play video", Snackbar.LENGTH_LONG).show();
+        Toast.makeText(getActivity(), "play video", Toast.LENGTH_LONG).show();
     }
 
     /**
@@ -84,7 +46,7 @@ public abstract class TriblerViewFragment extends Fragment implements ListFragme
         mAdapter.removeObject(channel);
 
         if (channel.isSubscribed()) {
-            Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.info_subscribe_already), Snackbar.LENGTH_LONG).show();
+            Toast.makeText(getActivity(), channel.getName() + ' ' + getText(R.string.info_subscribe_already), Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -100,7 +62,7 @@ public abstract class TriblerViewFragment extends Fragment implements ListFragme
             @Override
             public void onFailure(Call call, IOException e) {
                 e.printStackTrace();
-                Snackbar.make(getView(), e.getClass().getName(), Snackbar.LENGTH_LONG).show();
+                Toast.makeText(getActivity(), e.getClass().getName(), Toast.LENGTH_LONG).show();
             }
 
             /**
@@ -109,11 +71,11 @@ public abstract class TriblerViewFragment extends Fragment implements ListFragme
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
-                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.info_subscribe_success), Snackbar.LENGTH_LONG).show();
+                    Toast.makeText(getActivity(), channel.getName() + ' ' + getText(R.string.info_subscribe_success), Toast.LENGTH_LONG).show();
                 } else if (response.code() == 409) {
-                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.info_subscribe_already), Snackbar.LENGTH_LONG).show();
+                    Toast.makeText(getActivity(), channel.getName() + ' ' + getText(R.string.info_subscribe_already), Toast.LENGTH_LONG).show();
                 } else {
-                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.info_subscribe_failure), Snackbar.LENGTH_LONG).show();
+                    Toast.makeText(getActivity(), channel.getName() + ' ' + getText(R.string.info_subscribe_failure), Toast.LENGTH_LONG).show();
                 }
             }
         };
@@ -130,7 +92,7 @@ public abstract class TriblerViewFragment extends Fragment implements ListFragme
 
         if (!channel.isSubscribed()) {
             //TODO: idea: never see channel again?
-            Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.info_unsubscribe_already), Snackbar.LENGTH_LONG).show();
+            Toast.makeText(getActivity(), channel.getName() + ' ' + getText(R.string.info_unsubscribe_already), Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -146,7 +108,7 @@ public abstract class TriblerViewFragment extends Fragment implements ListFragme
             @Override
             public void onFailure(Call call, IOException e) {
                 e.printStackTrace();
-                Snackbar.make(getView(), e.getClass().getName(), Snackbar.LENGTH_LONG).show();
+                Toast.makeText(getActivity(), e.getClass().getName(), Toast.LENGTH_LONG).show();
             }
 
             /**
@@ -155,12 +117,12 @@ public abstract class TriblerViewFragment extends Fragment implements ListFragme
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
-                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.info_unsubscribe_success), Snackbar.LENGTH_LONG).show();
+                    Toast.makeText(getActivity(), channel.getName() + ' ' + getText(R.string.info_unsubscribe_success), Toast.LENGTH_LONG).show();
                 } else if (response.code() == 404) {
                     //TODO: idea: never see channel again?
-                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.info_unsubscribe_already), Snackbar.LENGTH_LONG).show();
+                    Toast.makeText(getActivity(), channel.getName() + ' ' + getText(R.string.info_unsubscribe_already), Toast.LENGTH_LONG).show();
                 } else {
-                    Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.info_unsubscribe_failure), Snackbar.LENGTH_LONG).show();
+                    Toast.makeText(getActivity(), channel.getName() + ' ' + getText(R.string.info_unsubscribe_failure), Toast.LENGTH_LONG).show();
                 }
             }
         };
@@ -175,7 +137,7 @@ public abstract class TriblerViewFragment extends Fragment implements ListFragme
     public void onSwipedRight(final TriblerTorrent torrent) {
         mAdapter.removeObject(torrent);
         //TODO: watch later
-        Snackbar.make(getView(), "watch later", Snackbar.LENGTH_LONG).show();
+        Toast.makeText(getActivity(), "watch later", Toast.LENGTH_LONG).show();
     }
 
     /**
@@ -186,7 +148,7 @@ public abstract class TriblerViewFragment extends Fragment implements ListFragme
         mAdapter.removeObject(torrent);
         //TODO: not interested
         //TODO: idea: never see torrent again?
-        Snackbar.make(getView(), "not interested", Snackbar.LENGTH_LONG).show();
+        Toast.makeText(getActivity(), "not interested", Toast.LENGTH_LONG).show();
 
     }
 

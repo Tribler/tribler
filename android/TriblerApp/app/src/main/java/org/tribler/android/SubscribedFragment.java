@@ -13,7 +13,7 @@ import okhttp3.Response;
 import static org.tribler.android.RestApiClient.API;
 import static org.tribler.android.RestApiClient.BASE_URL;
 
-public class SubscribedFragment extends TriblerViewFragment {
+public class SubscribedFragment extends DefaultInteractionListFragment {
     public static final String TAG = SubscribedFragment.class.getSimpleName();
 
     public void getSubscriptions() {

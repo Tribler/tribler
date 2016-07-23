@@ -15,7 +15,7 @@ import okhttp3.Response;
 import static org.tribler.android.RestApiClient.API;
 import static org.tribler.android.RestApiClient.BASE_URL;
 
-public class SearchFragment extends TriblerViewFragment implements RestApiClient.EventListener {
+public class SearchFragment extends DefaultInteractionListFragment implements RestApiClient.EventListener {
     public static final String TAG = SearchFragment.class.getSimpleName();
 
     private String mQuery;

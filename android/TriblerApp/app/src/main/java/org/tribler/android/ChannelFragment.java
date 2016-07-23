@@ -15,7 +15,7 @@ import okhttp3.Response;
 import static org.tribler.android.RestApiClient.API;
 import static org.tribler.android.RestApiClient.BASE_URL;
 
-public class ChannelFragment extends TriblerViewFragment {
+public class ChannelFragment extends DefaultInteractionListFragment {
     public static final String TAG = ChannelFragment.class.getSimpleName();
 
     public void getTorrents(String dispersyCid) {
