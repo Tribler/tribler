@@ -91,7 +91,7 @@ public class SearchFragment extends TriblerViewFragment implements RestApiClient
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    mAdapter.addItem(result);
+                    mAdapter.addObject(result);
                 }
             });
         } else {
@@ -105,7 +105,7 @@ public class SearchFragment extends TriblerViewFragment implements RestApiClient
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    mAdapter.addItem(result);
+                    mAdapter.addObject(result);
                 }
             });
         } else {

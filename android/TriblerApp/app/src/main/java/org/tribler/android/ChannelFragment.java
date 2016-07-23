@@ -53,7 +53,7 @@ public class ChannelFragment extends TriblerViewFragment {
                         getActivity().runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                mAdapter.addItem(torrent);
+                                mAdapter.addObject(torrent);
                             }
                         });
                     }

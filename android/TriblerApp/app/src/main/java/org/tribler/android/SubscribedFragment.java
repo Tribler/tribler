@@ -51,7 +51,7 @@ public class SubscribedFragment extends TriblerViewFragment {
                         getActivity().runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                mAdapter.addItem(channel);
+                                mAdapter.addObject(channel);
                             }
                         });
                     }

@@ -8,6 +8,7 @@ import android.support.design.widget.Snackbar;
 import android.support.v7.widget.RecyclerView;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -19,7 +20,7 @@ import static org.tribler.android.RestApiClient.API;
 import static org.tribler.android.RestApiClient.BASE_URL;
 import static org.tribler.android.RestApiClient.TYPE_JSON;
 
-public abstract class TriblerViewFragment extends Fragment implements TriblerViewAdapter.OnClickListener, TriblerViewAdapter.OnSwipeListener {
+public abstract class TriblerViewFragment extends Fragment implements ListFragment.IListFragmentInteractionListener {
 
     protected TriblerViewAdapter mAdapter;
     private RecyclerView mRecyclerView;
@@ -37,21 +38,11 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
      * {@inheritDoc}
      */
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        mAdapter = new TriblerViewAdapter();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         mRecyclerView = (RecyclerView) getActivity().findViewById(R.id.list_recycler_view);
+        mAdapter = new TriblerViewAdapter(new ArrayList<>(), this, this);
         mAdapter.attachToRecyclerView(mRecyclerView);
-        mAdapter.setOnClickListener(this);
-        mAdapter.setOnSwipeListener(this);
     }
 
     /**
@@ -62,8 +53,6 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
         super.onDetach();
         mRecyclerView = null;
         mAdapter.attachToRecyclerView(null);
-        mAdapter.setOnClickListener(null);
-        mAdapter.setOnSwipeListener(null);
     }
 
     /**
@@ -92,7 +81,7 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
      */
     @Override
     public void onSwipedRight(final TriblerChannel channel) {
-        mAdapter.removeItem(channel);
+        mAdapter.removeObject(channel);
 
         if (channel.isSubscribed()) {
             Snackbar.make(getView(), channel.getName() + ' ' + getText(R.string.info_subscribe_already), Snackbar.LENGTH_LONG).show();
@@ -137,7 +126,7 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
      */
     @Override
     public void onSwipedLeft(final TriblerChannel channel) {
-        mAdapter.removeItem(channel);
+        mAdapter.removeObject(channel);
 
         if (!channel.isSubscribed()) {
             //TODO: idea: never see channel again?
@@ -184,7 +173,7 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
      */
     @Override
     public void onSwipedRight(final TriblerTorrent torrent) {
-        mAdapter.removeItem(torrent);
+        mAdapter.removeObject(torrent);
         //TODO: watch later
         Snackbar.make(getView(), "watch later", Snackbar.LENGTH_LONG).show();
     }
@@ -194,7 +183,7 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
      */
     @Override
     public void onSwipedLeft(final TriblerTorrent torrent) {
-        mAdapter.removeItem(torrent);
+        mAdapter.removeObject(torrent);
         //TODO: not interested
         //TODO: idea: never see torrent again?
         Snackbar.make(getView(), "not interested", Snackbar.LENGTH_LONG).show();

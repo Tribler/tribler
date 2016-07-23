@@ -28,7 +28,7 @@ public class TriblerViewAdapterFilter extends Filter {
     protected ObjectListFilterResults performFiltering(CharSequence constraint) {
         // Copy data list to avoid concurrency issues while iterating over it
         LinkedList<Object> dataList = new LinkedList<>(mDataList);
-        List<Object> filteredList = new ArrayList<>();
+        ArrayList<Object> filteredList = new ArrayList<>();
         // Sanitize query
         String query = constraint.toString().trim().toLowerCase();
         if (TextUtils.isEmpty(query)) {
@@ -66,7 +66,7 @@ public class TriblerViewAdapterFilter extends Filter {
     protected void publishResults(CharSequence constraint, FilterResults results) {
         if (results instanceof ObjectListFilterResults) {
             ObjectListFilterResults listResults = (ObjectListFilterResults) results;
-            mAdapter.setList(listResults.values);
+            mAdapter.filterList(listResults.values, results.count < 10000);
         }
     }
 
