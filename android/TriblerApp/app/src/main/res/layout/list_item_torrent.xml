@@ -18,24 +18,24 @@
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_centerVertical="true"
-        android:background="@color/darkRed" />
+        android:background="@color/material_grey_300" />
 
     <TextView
         android:id="@+id/torrent_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_above="@+id/torrent_size"
+        android:layout_alignLeft="@+id/torrent_size"
+        android:layout_alignStart="@+id/torrent_size"
         android:layout_alignTop="@+id/torrent_thumbnail"
-        android:layout_marginLeft="16dp"
-        android:layout_marginStart="16dp"
-        android:layout_toEndOf="@+id/torrent_thumbnail"
-        android:layout_toRightOf="@+id/torrent_thumbnail"
+        android:layout_toLeftOf="@+id/torrent_seeders_count"
         android:text="Torrent name"
         android:textColor="@color/green"
         android:textSize="16sp"
         android:textStyle="bold" />
 
     <TextView
-        android:id="@+id/torrent_seeders"
+        android:id="@+id/torrent_seeders_count"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"

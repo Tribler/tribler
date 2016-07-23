@@ -13,22 +13,22 @@
 
     <ImageView
         android:id="@+id/channel_icon"
-        android:layout_width="75dp"
+        android:layout_width="50dp"
         android:layout_height="50dp"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_centerVertical="true"
-        android:background="@color/darkRed" />
+        android:background="@color/transparent" />
 
     <TextView
         android:id="@+id/channel_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignTop="@+id/channel_icon"
-        android:layout_marginLeft="16dp"
-        android:layout_marginStart="16dp"
-        android:layout_toEndOf="@+id/channel_icon"
-        android:layout_toRightOf="@+id/channel_icon"
+        android:layout_above="@+id/channel_torrents_count"
+        android:layout_alignLeft="@+id/channel_torrents_count"
+        android:layout_alignParentTop="true"
+        android:layout_alignStart="@+id/channel_torrents_count"
+        android:layout_toLeftOf="@+id/channel_votes_count"
         android:text="Channel name"
         android:textColor="@color/green"
         android:textSize="16sp"
