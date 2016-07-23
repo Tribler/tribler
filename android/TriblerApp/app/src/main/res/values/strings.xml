@@ -2,12 +2,14 @@
     <string name="app_name">Tribler</string>
     <string name="app_website">www.tribler.org</string>
     <string name="app_feedback_url">https://forum.tribler.org</string>
+    <string name="service_url">http://127.0.0.1</string>
+    <string name="service_port_number">8088</string>
+    <string name="service_auth_token"></string>
 
     <string name="title_app">Application</string>
     <string name="title_create_content">Create new content</string>
 
     <string name="title_activity_main">@string/app_name</string>
-    <string name="title_activity_search"></string>
     <string name="title_activity_settings">@string/action_settings</string>
 
     <string name="navigation_drawer_open">Open menu</string>

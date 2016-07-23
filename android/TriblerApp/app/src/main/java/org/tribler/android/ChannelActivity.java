@@ -21,8 +21,7 @@ public class ChannelActivity extends AppCompatActivity {
 
     private ChannelFragment getFragment() {
         FragmentManager fm = getFragmentManager();
-        ChannelFragment fragment =
-                (ChannelFragment) fm.findFragmentByTag(ChannelFragment.TAG);
+        ChannelFragment fragment = (ChannelFragment) fm.findFragmentByTag(ChannelFragment.TAG);
         // If not retained (or first time running), we need to create it
         if (fragment == null) {
             fragment = new ChannelFragment();

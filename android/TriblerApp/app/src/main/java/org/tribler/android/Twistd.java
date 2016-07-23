@@ -6,7 +6,6 @@ import android.content.Intent;
 import java.io.File;
 
 public class Twistd extends Triblerd {
-    public static final int REST_API_PORT = 8087;
 
     public static void start(Context ctx) {
         String argument = ctx.getFilesDir().getAbsolutePath();
@@ -22,11 +21,12 @@ public class Twistd extends Triblerd {
         dir.mkdirs();
         String OUTPUT_DIR = dir.getAbsolutePath();
         String TWISTD_ARGS = "--savestats --profile=" + OUTPUT_DIR +
-                "/cprofiler.dat -n tribler -p " + REST_API_PORT;
+                "/cprofiler.dat -n tribler -p " + ctx.getString(R.string.service_port_number);
         intent.putExtra("pythonServiceArgument", TWISTD_ARGS);
         intent.putExtra("serviceEntrypoint", "twistd.py");
         intent.putExtra("serviceTitle", "Tribler profiler");
-        intent.putExtra("serviceDescription", "127.0.0.1:" + REST_API_PORT);
+        intent.putExtra("serviceDescription", ctx.getString(R.string.service_url) + ":"
+                + ctx.getString(R.string.service_port_number));
         intent.putExtra("serviceIconId", R.mipmap.ic_service);
         ctx.startService(intent);
     }

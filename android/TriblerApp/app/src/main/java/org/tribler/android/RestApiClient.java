@@ -22,7 +22,7 @@ import okhttp3.Response;
 public class RestApiClient {
     public static final String TAG = SearchFragment.class.getSimpleName();
 
-    public static final String BASE_URL = "http://127.0.0.1:" + Triblerd.REST_API_PORT;
+    public static final String BASE_URL = "http://127.0.0.1:8088";
 
     public static final MediaType TYPE_JSON = MediaType.parse("application/json; charset=utf-8");
 

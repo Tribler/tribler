@@ -8,7 +8,6 @@ import android.os.PowerManager;
 import org.kivy.android.PythonService;
 
 public class Triblerd extends PythonService {
-    public static final int REST_API_PORT = 8088;
 
     public static void start(Context ctx) {
         String argument = ctx.getFilesDir().getAbsolutePath();
@@ -18,10 +17,11 @@ public class Triblerd extends PythonService {
         intent.putExtra("pythonName", "Triblerd");
         intent.putExtra("pythonHome", argument);
         intent.putExtra("pythonPath", argument + ":" + argument + "/lib");
-        intent.putExtra("pythonServiceArgument", "-p " + REST_API_PORT);
+        intent.putExtra("pythonServiceArgument", "-p " + ctx.getString(R.string.service_port_number));
         intent.putExtra("serviceEntrypoint", "triblerd.py");
         intent.putExtra("serviceTitle", "Tribler service");
-        intent.putExtra("serviceDescription", "127.0.0.1:" + REST_API_PORT);
+        intent.putExtra("serviceDescription", ctx.getString(R.string.service_url) + ":"
+                + ctx.getString(R.string.service_port_number));
         intent.putExtra("serviceIconId", R.mipmap.ic_service);
         ctx.startService(intent);
     }

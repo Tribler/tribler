@@ -10,19 +10,17 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class TriblerService {
 
-    public static final String BASE_URL = "http://127.0.0.1:" + Triblerd.REST_API_PORT;
-
     /**
      * Static class
      */
     private TriblerService() {
     }
 
-    public static IRestApi createService(final String authToken) {
+    public static IRestApi createService(final String baseUrl, final String authToken) {
         Retrofit.Builder builder = new Retrofit.Builder()
                 .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
                 .addConverterFactory(GsonConverterFactory.create())
-                .baseUrl(BASE_URL);
+                .baseUrl(baseUrl);
 
         if (!TextUtils.isEmpty(authToken)) {
 

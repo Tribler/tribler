@@ -90,7 +90,6 @@
         </activity>
         <activity
             android:name=".SearchActivity"
-            android:label="@string/title_activity_search"
             android:launchMode="singleTop"
             android:parentActivityName=".MainActivity"
             android:theme="@style/AppTheme.NoActionBar">
