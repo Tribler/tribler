@@ -146,7 +146,7 @@ public abstract class TriblerViewFragment extends Fragment implements TriblerVie
         }
 
         Request request = new Request.Builder()
-                .url(BASE_URL + "/channels/discovered")
+                .url(BASE_URL + "/channels/subscribed")
                 .delete()
                 .build();
 
