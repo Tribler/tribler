@@ -49,6 +49,9 @@ public class ListFragment extends RetrofitFragment {
         View view = inflater.inflate(R.layout.fragment_list_fast_scroller, container, false);
         mUnbinder = ButterKnife.bind(this, view);
 
+        // Optimize performance
+        mRecyclerView.setHasFixedSize(true);
+
         mAdapter = new TriblerViewAdapter(new ArrayList<>(), mListener, mListener);
         mRecyclerView.setAdapter(mAdapter);
 

@@ -232,7 +232,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     discoveredFragment = new DiscoveredFragment();
                     // Tell the framework to try to keep this fragment around during a configuration change
                     discoveredFragment.setRetainInstance(true);
-                    fm.beginTransaction().add(discoveredFragment, DiscoveredFragment.TAG).commit();
+                    fm.beginTransaction().addToBackStack(null).add(discoveredFragment, DiscoveredFragment.TAG).commit();
                 }
                 discoveredFragment.getDiscoveredChannels();
                 return true;

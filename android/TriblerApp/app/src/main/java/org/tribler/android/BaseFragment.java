@@ -6,6 +6,9 @@ import com.squareup.leakcanary.RefWatcher;
 
 public class BaseFragment extends Fragment {
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onDestroy() {
         super.onDestroy();

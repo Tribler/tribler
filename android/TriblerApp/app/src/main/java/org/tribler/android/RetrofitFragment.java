@@ -1,11 +1,10 @@
 package org.tribler.android;
 
-import android.app.Fragment;
 import android.os.Bundle;
 
 import rx.subscriptions.CompositeSubscription;
 
-public class RetrofitFragment extends Fragment {
+public class RetrofitFragment extends BaseFragment {
 
     protected CompositeSubscription mCompositeSubscription;
     protected IRestApi mService;
