@@ -264,8 +264,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 return true;
 
             case R.id.nav_feedback:
-                Uri uri = Uri.parse(getString(R.string.app_feedback_url));
-                Intent browserIntent = MyUtils.openBrowser(uri);
+                CharSequence title = getText(R.string.app_feedback_url);
+                Uri uri = Uri.parse(title.toString());
+                Intent browserIntent = MyUtils.viewChooser(uri, title);
                 startActivity(browserIntent);
                 return true;
 

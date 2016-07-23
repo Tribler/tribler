@@ -33,8 +33,13 @@ public class MyUtils {
         return type;
     }
 
-    public static Intent openBrowser(Uri uri) {
+    public static Intent viewIntent(Uri uri) {
         return new Intent(Intent.ACTION_VIEW, uri);
+    }
+
+    public static Intent viewChooser(Uri uri, CharSequence title) {
+        Intent intent = viewIntent(uri);
+        return Intent.createChooser(intent, title);
     }
 
     public static Intent sendBeam(Uri uri, Context ctx) {
@@ -54,10 +59,7 @@ public class MyUtils {
     }
 
     public static Intent sendChooser(Uri uri, CharSequence title) {
-        Intent intent = new Intent();
-        intent.setAction(Intent.ACTION_SEND);
-        intent.putExtra(Intent.EXTRA_STREAM, uri);
-        intent.setType(getMimeType(uri));
+        Intent intent = sendIntent(uri);
         return Intent.createChooser(intent, title);
     }
 
