@@ -8,7 +8,6 @@ import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Process;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -65,7 +64,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (networkReceiver != null) {
             this.unregisterReceiver(networkReceiver);
         }
-        Process.killProcess(Process.myPid());
     }
 
     /**
@@ -219,6 +217,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 subscribedFragment.getSubscriptions();
                 return true;
 
+            case R.id.nav_my_channel:
+
+                return true;
+
+            case R.id.nav_my_playlists:
+
+                return true;
+
             case R.id.nav_popular:
                 DiscoveredFragment discoveredFragment = (DiscoveredFragment) fm.findFragmentByTag(DiscoveredFragment.TAG);
                 // If not retained (or first time running), we need to create it
@@ -229,14 +235,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     fm.beginTransaction().add(discoveredFragment, DiscoveredFragment.TAG).commit();
                 }
                 discoveredFragment.getDiscoveredChannels();
-                return true;
-
-            case R.id.nav_my_channel:
-
-                return true;
-
-            case R.id.nav_my_playlists:
-
                 return true;
 
             case R.id.nav_capture_video:
