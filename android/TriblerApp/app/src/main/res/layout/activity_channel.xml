@@ -21,6 +21,6 @@
 
     </android.support.design.widget.AppBarLayout>
 
-    <include layout="@layout/list_view_fast_scroll" />
+    <include layout="@layout/fragment_list_fast_scroller" />
 
 </android.support.design.widget.CoordinatorLayout>

@@ -73,13 +73,13 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
         // Create new channel view
         if (viewType == VIEW_TYPE_CHANNEL) {
             View channelView = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.list_item_channel, parent, false);
+                    .inflate(R.layout.fragment_list_item_channel, parent, false);
             return new ChannelViewHolder(channelView);
         }
         // Create new torrent view
         else if (viewType == VIEW_TYPE_TORRENT) {
             View torrentView = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.list_item_torrent, parent, false);
+                    .inflate(R.layout.fragment_list_item_torrent, parent, false);
             return new TorrentViewHolder(torrentView);
         }
         // Unknown view type

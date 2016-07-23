@@ -6,14 +6,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    tools:context=".SearchFragment"
-    tools:showIn="@layout/activity_search">
+    tools:context=".ListFragment">
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/list_recycler_view"
+        android:name="org.tribler.android.ListFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:scrollbars="vertical" />
+        app:layoutManager="LinearLayoutManager"
+        tools:listitem="@layout/fragment_list_item_torrent" />
 
     <xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller
         android:id="@+id/list_fast_scroller"
