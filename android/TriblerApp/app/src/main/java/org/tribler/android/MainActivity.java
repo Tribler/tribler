@@ -15,11 +15,16 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import org.tribler.android.restapi.IRestApi;
+import org.tribler.android.restapi.TriblerService;
 import org.tribler.android.service.Triblerd;
 
 import java.io.File;
 
 import butterknife.BindView;
+import rx.Observer;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.schedulers.Schedulers;
 
 public class MainActivity extends BaseActivity {
 
@@ -151,7 +156,6 @@ public class MainActivity extends BaseActivity {
         getFragmentManager().beginTransaction().addToBackStack(tag)
                 .replace(R.id.fragment_main, fragment, tag)
                 .commit();
-        fragment.getSubscriptions();
     }
 
     public void navMyChannel(@Nullable MenuItem item) {
@@ -170,7 +174,6 @@ public class MainActivity extends BaseActivity {
         getFragmentManager().beginTransaction().addToBackStack(tag)
                 .replace(R.id.fragment_main, fragment, tag)
                 .commit();
-        fragment.getChannels();
     }
 
     public void navCaptureVideo(@Nullable MenuItem item) {
@@ -210,8 +213,27 @@ public class MainActivity extends BaseActivity {
 
     public void navShutdown(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
-        Triblerd.stop(this);
-        // Exit MainActivity
-        finish();
+        // Shutdown service
+        String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
+        String authToken = getString(R.string.service_auth_token);
+        IRestApi service = TriblerService.createService(baseUrl, authToken);
+        service.shutdown()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<Object>() {
+
+                    public void onNext(Object response) {
+                    }
+
+                    public void onCompleted() {
+                        // Service shuts down without properly closing the stream, resulting in
+                        // java.io.IOException: unexpected end of stream
+                    }
+
+                    public void onError(Throwable e) {
+                        // Stop MainActivity
+                        finish();
+                    }
+                });
     }
 }

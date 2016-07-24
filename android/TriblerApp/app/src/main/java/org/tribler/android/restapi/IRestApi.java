@@ -16,6 +16,9 @@ import rx.Observable;
 
 public interface IRestApi {
 
+    @PUT("/shutdown")
+    Observable<Object> shutdown();
+
     @GET("/events")
     Observable<TriblerEvent> getEventStream();
 
