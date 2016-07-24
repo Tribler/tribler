@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -100,6 +101,10 @@ public class MainActivity extends BaseActivity {
      */
     @Override
     protected void handleIntent(Intent intent) {
+        // Startup action
+        if (Intent.ACTION_MAIN.equals(intent.getAction())) {
+            //TODO: show loading screen until rest api connected
+        }
     }
 
     /**
@@ -132,12 +137,12 @@ public class MainActivity extends BaseActivity {
         return true;
     }
 
-    public void btnSearch(MenuItem item) {
+    public void btnSearch(@Nullable MenuItem item) {
         Intent intent = new Intent(this, SearchActivity.class);
         startActivity(intent);
     }
 
-    public void navSubscriptions(MenuItem item) {
+    public void navSubscriptions(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         SubscribedFragment fragment = new SubscribedFragment();
         String tag = fragment.getClass().toString();
@@ -147,16 +152,16 @@ public class MainActivity extends BaseActivity {
         fragment.getSubscriptions();
     }
 
-    public void navMyChannel(MenuItem item) {
+    public void navMyChannel(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         //TODO: my channel
     }
 
-    public void navMyPlaylists(MenuItem item) {
+    public void navMyPlaylists(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
     }
 
-    public void navPopular(MenuItem item) {
+    public void navPopular(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         DiscoveredFragment fragment = new DiscoveredFragment();
         String tag = fragment.getClass().toString();
@@ -166,7 +171,7 @@ public class MainActivity extends BaseActivity {
         fragment.getDiscoveredChannels();
     }
 
-    public void navCaptureVideo(MenuItem item) {
+    public void navCaptureVideo(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         // Check if device has camera
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
@@ -180,20 +185,20 @@ public class MainActivity extends BaseActivity {
         }
     }
 
-    public void navBeam(MenuItem item) {
+    public void navBeam(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         File apk = new File(this.getPackageResourcePath());
         Intent beamIntent = AppUtils.sendBeam(Uri.fromFile(apk), this);
         startActivity(beamIntent);
     }
 
-    public void navSettings(MenuItem item) {
+    public void navSettings(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         Intent settingsIntent = new Intent(this, SettingsActivity.class);
         startActivity(settingsIntent);
     }
 
-    public void navFeedback(MenuItem item) {
+    public void navFeedback(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         CharSequence title = getText(R.string.app_feedback_url);
         Uri uri = Uri.parse(title.toString());
@@ -201,7 +206,7 @@ public class MainActivity extends BaseActivity {
         startActivity(browserIntent);
     }
 
-    public void navShutdown(MenuItem item) {
+    public void navShutdown(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         Triblerd.stop(this);
         // Exit MainActivity

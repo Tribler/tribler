@@ -10,6 +10,7 @@ import android.nfc.NfcEvent;
 import android.nfc.NfcManager;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -75,7 +76,7 @@ public class BeamActivity extends BaseActivity {
         return true;
     }
 
-    public void btnBluetooth(MenuItem item) {
+    public void btnBluetooth(@Nullable MenuItem item) {
         // Fetch uri of file to send
         Uri uri = getIntent().getParcelableExtra(Intent.EXTRA_STREAM);
         // Send via other means
