@@ -15,6 +15,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import org.tribler.android.service.Triblerd;
+
 import java.io.File;
 
 import butterknife.BindView;

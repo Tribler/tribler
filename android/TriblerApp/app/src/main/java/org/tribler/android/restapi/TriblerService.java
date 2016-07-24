@@ -1,4 +1,4 @@
-package org.tribler.android;
+package org.tribler.android.restapi;
 
 import android.text.TextUtils;
 

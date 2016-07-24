@@ -1,7 +1,9 @@
-package org.tribler.android;
+package org.tribler.android.service;
 
 import android.content.Context;
 import android.content.Intent;
+
+import org.tribler.android.R;
 
 import java.io.File;
 

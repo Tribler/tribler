@@ -3,6 +3,9 @@ package org.tribler.android;
 import android.text.TextUtils;
 import android.widget.Filter;
 
+import org.tribler.android.restapi.json.TriblerChannel;
+import org.tribler.android.restapi.json.TriblerTorrent;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;

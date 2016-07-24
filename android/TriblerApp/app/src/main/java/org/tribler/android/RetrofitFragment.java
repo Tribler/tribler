@@ -2,6 +2,9 @@ package org.tribler.android;
 
 import android.os.Bundle;
 
+import org.tribler.android.restapi.IRestApi;
+import org.tribler.android.restapi.TriblerService;
+
 import rx.subscriptions.CompositeSubscription;
 
 public class RetrofitFragment extends BaseFragment {

@@ -62,19 +62,19 @@
         </receiver -->
 
         <service
-            android:name=".Triblerd"
+            android:name=".service.Triblerd"
             android:label="Tribler service"
             android:process=":service_Triblerd" />
         <service
-            android:name=".Twistd"
+            android:name=".service.Twistd"
             android:label="Tribler profiler"
             android:process=":service_Twistd" />
         <service
-            android:name=".NoseTestService"
+            android:name=".service.NoseTestService"
             android:label="Tribler testing service"
             android:process=":service_NoseTestService" />
         <service
-            android:name=".ExperimentService"
+            android:name=".service.ExperimentService"
             android:label="Tribler experiment"
             android:process=":service_ExperimentService" />
 

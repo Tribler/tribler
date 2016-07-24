@@ -1,4 +1,11 @@
-package org.tribler.android;
+package org.tribler.android.restapi;
+
+import org.tribler.android.restapi.json.QueriedAck;
+import org.tribler.android.restapi.json.SubscribedAck;
+import org.tribler.android.restapi.json.TriblerChannel;
+import org.tribler.android.restapi.json.TriblerEvent;
+import org.tribler.android.restapi.json.TriblerTorrent;
+import org.tribler.android.restapi.json.UnsubscribedAck;
 
 import java.util.List;
 

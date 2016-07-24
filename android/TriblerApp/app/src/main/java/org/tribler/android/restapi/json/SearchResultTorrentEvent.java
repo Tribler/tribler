@@ -1,4 +1,4 @@
-package org.tribler.android;
+package org.tribler.android.restapi.json;
 
 /**
  * Deserialization of JSON search result torrent event

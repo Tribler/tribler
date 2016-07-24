@@ -3,6 +3,9 @@ package org.tribler.android;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
 
+import org.tribler.android.restapi.json.TriblerChannel;
+import org.tribler.android.restapi.json.TriblerTorrent;
+
 public class SwipeCallback extends ItemTouchHelper.SimpleCallback {
 
     private final TriblerViewAdapter.OnSwipeListener _swipeListener;

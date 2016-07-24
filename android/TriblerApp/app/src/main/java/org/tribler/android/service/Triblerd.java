@@ -1,4 +1,4 @@
-package org.tribler.android;
+package org.tribler.android.service;
 
 import android.content.Context;
 import android.content.Intent;
@@ -6,6 +6,7 @@ import android.net.wifi.WifiManager;
 import android.os.PowerManager;
 
 import org.kivy.android.PythonService;
+import org.tribler.android.R;
 
 public class Triblerd extends PythonService {
 

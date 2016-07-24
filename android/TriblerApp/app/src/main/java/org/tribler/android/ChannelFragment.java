@@ -3,17 +3,16 @@ package org.tribler.android;
 import android.net.Uri;
 import android.util.Log;
 
+import org.tribler.android.restapi.json.TriblerTorrent;
+
 import java.util.List;
 
-import rx.Observable;
 import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
 public class ChannelFragment extends ListFragment {
     public static final String TAG = ChannelFragment.class.getSimpleName();
-
-    private Observable<List<TriblerTorrent>> _request;
 
     public void getTorrents(String dispersyCid) {
         adapter.clear();

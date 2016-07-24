@@ -19,16 +19,12 @@ import static org.tribler.android.restapi.RestApiClient.API;
 import static org.tribler.android.restapi.RestApiClient.BASE_URL;
 import static org.tribler.android.restapi.RestApiClient.TYPE_JSON;
 
-@Deprecated
-public class DefaultInteractionListFragment extends ListFragment implements ListFragment.IListFragmentInteractionListener {
+public class DefaultInteractionListener implements ListFragment.IListFragmentInteractionListener {
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-        interactionListener = this;
+    private Context _context;
+
+    public DefaultInteractionListener(Context context) {
+        _context = context;
     }
 
     /**
@@ -36,11 +32,11 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onClick(final TriblerChannel channel) {
-        Intent intent = new Intent(getActivity(), ChannelActivity.class);
+        Intent intent = new Intent(_context, ChannelActivity.class);
         intent.setAction(Intent.ACTION_GET_CONTENT);
         intent.putExtra(ChannelActivity.EXTRA_DISPERSY_CID, channel.getDispersyCid());
         intent.putExtra(Intent.EXTRA_TITLE, channel.getName());
-        startActivity(intent);
+        _context.startActivity(intent);
     }
 
     /**
@@ -49,7 +45,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     @Override
     public void onClick(final TriblerTorrent torrent) {
         //TODO: play video
-        Toast.makeText(getActivity(), "play video", Toast.LENGTH_LONG).show();
+        Toast.makeText(_context, "play video", Toast.LENGTH_LONG).show();
     }
 
     /**
@@ -57,10 +53,8 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onSwipedRight(final TriblerChannel channel) {
-        adapter.removeObject(channel);
-
         if (channel.isSubscribed()) {
-            Toast.makeText(getActivity(), channel.getName() + ' ' + getText(R.string.info_subscribe_already), Toast.LENGTH_LONG).show();
+            Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_subscribe_already), Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -76,7 +70,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
             @Override
             public void onFailure(Call call, IOException e) {
                 e.printStackTrace();
-                Toast.makeText(getActivity(), e.getClass().getName(), Toast.LENGTH_LONG).show();
+                Toast.makeText(_context, e.getClass().getName(), Toast.LENGTH_LONG).show();
             }
 
             /**
@@ -85,11 +79,11 @@ public class DefaultInteractionListFragment extends ListFragment implements List
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
-                    Toast.makeText(getActivity(), channel.getName() + ' ' + getText(R.string.info_subscribe_success), Toast.LENGTH_LONG).show();
+                    Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_subscribe_success), Toast.LENGTH_LONG).show();
                 } else if (response.code() == 409) {
-                    Toast.makeText(getActivity(), channel.getName() + ' ' + getText(R.string.info_subscribe_already), Toast.LENGTH_LONG).show();
+                    Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_subscribe_already), Toast.LENGTH_LONG).show();
                 } else {
-                    Toast.makeText(getActivity(), channel.getName() + ' ' + getText(R.string.info_subscribe_failure), Toast.LENGTH_LONG).show();
+                    Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_subscribe_failure), Toast.LENGTH_LONG).show();
                 }
             }
         };
@@ -102,11 +96,10 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onSwipedLeft(final TriblerChannel channel) {
-        adapter.removeObject(channel);
 
         if (!channel.isSubscribed()) {
             //TODO: idea: never see channel again?
-            Toast.makeText(getActivity(), channel.getName() + ' ' + getText(R.string.info_unsubscribe_already), Toast.LENGTH_LONG).show();
+            Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_unsubscribe_already), Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -122,7 +115,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
             @Override
             public void onFailure(Call call, IOException e) {
                 e.printStackTrace();
-                Toast.makeText(getActivity(), e.getClass().getName(), Toast.LENGTH_LONG).show();
+                Toast.makeText(_context, e.getClass().getName(), Toast.LENGTH_LONG).show();
             }
 
             /**
@@ -131,12 +124,12 @@ public class DefaultInteractionListFragment extends ListFragment implements List
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (response.isSuccessful()) {
-                    Toast.makeText(getActivity(), channel.getName() + ' ' + getText(R.string.info_unsubscribe_success), Toast.LENGTH_LONG).show();
+                    Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_unsubscribe_success), Toast.LENGTH_LONG).show();
                 } else if (response.code() == 404) {
                     //TODO: idea: never see channel again?
-                    Toast.makeText(getActivity(), channel.getName() + ' ' + getText(R.string.info_unsubscribe_already), Toast.LENGTH_LONG).show();
+                    Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_unsubscribe_already), Toast.LENGTH_LONG).show();
                 } else {
-                    Toast.makeText(getActivity(), channel.getName() + ' ' + getText(R.string.info_unsubscribe_failure), Toast.LENGTH_LONG).show();
+                    Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_unsubscribe_failure), Toast.LENGTH_LONG).show();
                 }
             }
         };
@@ -149,9 +142,8 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onSwipedRight(final TriblerTorrent torrent) {
-        adapter.removeObject(torrent);
         //TODO: watch later
-        Toast.makeText(getActivity(), "watch later", Toast.LENGTH_LONG).show();
+        Toast.makeText(_context, "watch later", Toast.LENGTH_LONG).show();
     }
 
     /**
@@ -159,10 +151,9 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onSwipedLeft(final TriblerTorrent torrent) {
-        adapter.removeObject(torrent);
         //TODO: not interested
         //TODO: idea: never see torrent again?
-        Toast.makeText(getActivity(), "not interested", Toast.LENGTH_LONG).show();
+        Toast.makeText(_context, "not interested", Toast.LENGTH_LONG).show();
 
     }
 

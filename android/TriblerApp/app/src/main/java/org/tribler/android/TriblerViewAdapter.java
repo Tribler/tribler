@@ -10,6 +10,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import org.tribler.android.ListFragment.IListFragmentInteractionListener;
+import org.tribler.android.restapi.json.TriblerChannel;
+import org.tribler.android.restapi.json.TriblerTorrent;
 
 import java.io.File;
 import java.util.Collection;

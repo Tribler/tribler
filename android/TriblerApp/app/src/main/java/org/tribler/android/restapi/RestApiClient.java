@@ -1,8 +1,15 @@
-package org.tribler.android;
+package org.tribler.android.restapi;
 
 import android.util.Log;
 
 import com.google.gson.Gson;
+
+import org.tribler.android.SearchFragment;
+import org.tribler.android.restapi.json.SearchResultChannelEvent;
+import org.tribler.android.restapi.json.SearchResultTorrentEvent;
+import org.tribler.android.restapi.json.TriblerChannel;
+import org.tribler.android.restapi.json.TriblerEvent;
+import org.tribler.android.restapi.json.TriblerTorrent;
 
 import java.io.BufferedReader;
 import java.io.IOException;
