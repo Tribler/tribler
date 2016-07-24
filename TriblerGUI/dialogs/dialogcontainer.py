@@ -21,6 +21,9 @@ class DialogContainer(QWidget):
         self.style().drawPrimitive(QStyle.PE_Widget, opt, painter, self)
 
     def on_main_window_resize(self):
+        if not self.parentWidget():
+            return
+
         self.setFixedSize(self.parentWidget().size())
         self.dialog_widget.setFixedWidth(self.width() - 100)
         self.dialog_widget.move(QPoint(self.geometry().center().x() - self.dialog_widget.geometry().width() / 2,

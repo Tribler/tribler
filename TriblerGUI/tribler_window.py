@@ -46,14 +46,15 @@ class TriblerWindow(QMainWindow):
             self.feedback_dialog_is_open = True
             result = dialog.exec_()
 
-    def __init__(self):
+    def __init__(self, api_port=8085):
         super(TriblerWindow, self).__init__()
 
+        self.api_port = api_port
         self.navigation_stack = []
         self.feedback_dialog_is_open = False
         self.tribler_started = False
         self.tribler_settings = None
-        self.core_manager = CoreManager()
+        self.core_manager = CoreManager(self.api_port)
 
         sys.excepthook = self.on_exception
 
