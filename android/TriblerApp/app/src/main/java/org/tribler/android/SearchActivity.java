@@ -24,7 +24,7 @@ public class SearchActivity extends BaseActivity {
             _fragment = new SearchFragment();
             String tag = _fragment.getClass().toString();
             getFragmentManager().beginTransaction().addToBackStack(tag)
-                    .replace(R.id.content, _fragment, tag)
+                    .replace(R.id.fragment_placeholder, _fragment, tag)
                     .commit();
         }
         return _fragment;

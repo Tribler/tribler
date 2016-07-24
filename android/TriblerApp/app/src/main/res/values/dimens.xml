@@ -7,6 +7,4 @@
 
     <dimen name="nav_header_padding">16dp</dimen>
     <dimen name="nav_logo_margin_top">16dp</dimen>
-
-    <dimen name="activity_beam_margin">16dp</dimen>
 </resources>
