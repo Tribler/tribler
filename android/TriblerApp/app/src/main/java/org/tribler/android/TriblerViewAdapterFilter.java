@@ -4,6 +4,7 @@ import android.text.TextUtils;
 import android.widget.Filter;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -13,39 +14,39 @@ import java.util.List;
 public class TriblerViewAdapterFilter extends Filter {
 
     private final FilterableRecyclerViewAdapter _adapter;
-    private final List<Object> _dataList;
+    private final Collection<Object> _objects;
 
-    public TriblerViewAdapterFilter(FilterableRecyclerViewAdapter adapter, List<Object> list) {
+    public TriblerViewAdapterFilter(FilterableRecyclerViewAdapter adapter, Collection<Object> objects) {
         super();
         _adapter = adapter;
-        _dataList = list;
+        _objects = objects;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    protected ObjectListFilterResults performFiltering(CharSequence constraint) {
+    protected FilterResults performFiltering(CharSequence constraint) {
         // Copy data list to avoid concurrency issues while iterating over it
-        LinkedList<Object> dataList = new LinkedList<>(_dataList);
-        ArrayList<Object> filteredList = new ArrayList<>();
+        ArrayList<Object> dataList = new ArrayList<>(_objects);
+        List<Object> filteredList = new LinkedList<>();
         // Sanitize query
         String query = constraint.toString().trim().toLowerCase();
         if (TextUtils.isEmpty(query)) {
             // Show all
-            filteredList.addAll(dataList);
+            filteredList = dataList;
         }
         // Filter by name and description
         else {
-            for (Object item : dataList) {
-                if (item instanceof TriblerChannel) {
-                    TriblerChannel channel = (TriblerChannel) item;
+            for (Object object : dataList) {
+                if (object instanceof TriblerChannel) {
+                    TriblerChannel channel = (TriblerChannel) object;
                     if (channel.getName().toLowerCase().contains(constraint)
                             || channel.getDescription().toLowerCase().contains(constraint)) {
                         filteredList.add(channel);
                     }
-                } else if (item instanceof TriblerTorrent) {
-                    TriblerTorrent torrent = (TriblerTorrent) item;
+                } else if (object instanceof TriblerTorrent) {
+                    TriblerTorrent torrent = (TriblerTorrent) object;
                     if (torrent.getName().toLowerCase().contains(constraint)
                             || torrent.getCategory().toLowerCase().contains(constraint)) {
                         filteredList.add(torrent);
@@ -65,8 +66,8 @@ public class TriblerViewAdapterFilter extends Filter {
     @Override
     protected void publishResults(CharSequence constraint, FilterResults results) {
         if (results instanceof ObjectListFilterResults) {
-            ObjectListFilterResults listResults = (ObjectListFilterResults) results;
-            _adapter.filterList(listResults.values, results.count < 10000);
+            ObjectListFilterResults list = (ObjectListFilterResults) results;
+            _adapter.onFilterResults(list.values, results.count);
         }
     }
 

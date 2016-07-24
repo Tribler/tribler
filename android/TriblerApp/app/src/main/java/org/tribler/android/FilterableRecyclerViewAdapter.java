@@ -6,16 +6,16 @@ import android.widget.Filterable;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
+import java.util.HashSet;
 
 public abstract class FilterableRecyclerViewAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements Filterable {
 
-    private final ArrayList<Object> _dataList;
+    private final HashSet<Object> _dataSet;
     private final ArrayList<Object> _filteredDataList;
     private TriblerViewAdapterFilter _filter;
 
     public FilterableRecyclerViewAdapter(Collection<Object> objects) {
-        _dataList = new ArrayList<>(objects);
+        _dataSet = new HashSet<>(objects);
         _filteredDataList = new ArrayList<>(objects);
     }
 
@@ -25,9 +25,21 @@ public abstract class FilterableRecyclerViewAdapter extends RecyclerView.Adapter
     @Override
     public Filter getFilter() {
         if (_filter == null) {
-            _filter = new TriblerViewAdapterFilter(this, _dataList);
+            _filter = new TriblerViewAdapterFilter(this, _dataSet);
         }
         return _filter;
+    }
+
+    /**
+     * Replace filtered data list with results
+     *
+     * @param results Collection of filtered objects
+     * @param count   Amount of filtered objects
+     */
+    public void onFilterResults(Collection<Object> results, int count) {
+        _filteredDataList.clear();
+        _filteredDataList.addAll(results);
+        notifyDataSetChanged();
     }
 
     /**
@@ -39,26 +51,35 @@ public abstract class FilterableRecyclerViewAdapter extends RecyclerView.Adapter
     }
 
     /**
-     * @param item The item to add to the adapter list
-     * @return True if the item is successfully added, false otherwise
+     * Remove all data
      */
-    public boolean addObject(Object item) {
-        boolean added = _dataList.add(item);
+    public void clear() {
+        _dataSet.clear();
+        _filteredDataList.clear();
+        notifyDataSetChanged();
+    }
+
+    /**
+     * @param object The object to add to the adapter list
+     * @return True if the object is successfully added, false otherwise
+     */
+    public boolean addObject(Object object) {
+        boolean added = _dataSet.add(object);
         if (added) {
-            insertItem(getItemCount(), item);
+            insertItem(getItemCount(), object);
         }
         return added;
     }
 
     /**
-     * @param item The item to remove from the adapter list
-     * @return True if the item is successfully removed, false otherwise
+     * @param object The object to remove from the adapter list
+     * @return True if the object is successfully removed, false otherwise
      */
-    public boolean removeObject(Object item) {
-        boolean removed = _dataList.remove(item);
+    public boolean removeObject(Object object) {
+        boolean removed = _dataSet.remove(object);
         if (removed) {
-            int adapterPosition = _filteredDataList.indexOf(item);
-            if (adapterPosition >= 0) {
+            int adapterPosition = _filteredDataList.indexOf(object);
+            if (adapterPosition != -1) {
                 removeItem(adapterPosition);
             }
         }
@@ -66,68 +87,24 @@ public abstract class FilterableRecyclerViewAdapter extends RecyclerView.Adapter
     }
 
     /**
-     * Empty data list
+     * @param object The object to refresh the view of in the adapter list
+     * @return True if the view of the item is successfully refreshed, false otherwise
      */
-    public void clear() {
-        _dataList.clear();
-        _filteredDataList.clear();
-        notifyDataSetChanged();
-    }
-
-    public void filterList(List<Object> list, boolean animate) {
-        if (animate) {
-            applyAndAnimateRemovals(list);
-            applyAndAnimateAdditions(list);
-            applyAndAnimateMovedItems(list);
-        } else {
-            _filteredDataList.clear();
-            _filteredDataList.addAll(list);
-            notifyDataSetChanged();
+    public boolean notifyObjectChanged(Object object) {
+        int adapterPosition = _filteredDataList.indexOf(object);
+        if (adapterPosition != -1) {
+            notifyItemChanged(adapterPosition);
+            return true;
         }
-    }
-
-    private void applyAndAnimateRemovals(List<Object> list) {
-        for (int i = _filteredDataList.size() - 1; i >= 0; i--) {
-            Object item = _filteredDataList.get(i);
-            if (!list.contains(item)) {
-                removeItem(i);
-            }
-        }
-    }
-
-    private void applyAndAnimateAdditions(List<Object> list) {
-        for (int i = 0, count = list.size(); i < count; i++) {
-            Object item = list.get(i);
-            if (!_filteredDataList.contains(item)) {
-                insertItem(i, item);
-            }
-        }
-    }
-
-    private void applyAndAnimateMovedItems(List<Object> list) {
-        for (int toPosition = list.size() - 1; toPosition >= 0; toPosition--) {
-            Object item = list.get(toPosition);
-            int fromPosition = _filteredDataList.indexOf(item);
-            if (fromPosition >= 0 && fromPosition != toPosition) {
-                moveItem(fromPosition, toPosition);
-            }
-        }
+        return false;
     }
 
     /**
      * @param adapterPosition The position in the adapter list
-     * @return The item on the given adapter position
+     * @return The object on the given adapter position
      */
     protected Object getObject(int adapterPosition) {
         return _filteredDataList.get(adapterPosition);
-    }
-
-    /**
-     * @param adapterPosition The position of the item in adapter list to remove
-     */
-    private void removeItem(int adapterPosition) {
-        _filteredDataList.remove(adapterPosition);
-        notifyItemRemoved(adapterPosition);
     }
 
     /**
@@ -140,6 +117,14 @@ public abstract class FilterableRecyclerViewAdapter extends RecyclerView.Adapter
     }
 
     /**
+     * @param adapterPosition The position of the item in adapter list to remove
+     */
+    private void removeItem(int adapterPosition) {
+        _filteredDataList.remove(adapterPosition);
+        notifyItemRemoved(adapterPosition);
+    }
+
+    /**
      * @param fromPosition The position in the adapter list of the item to move from
      * @param toPosition   The position in the adapter list of the item to move to
      */
@@ -148,18 +133,4 @@ public abstract class FilterableRecyclerViewAdapter extends RecyclerView.Adapter
         _filteredDataList.add(toPosition, model);
         notifyItemMoved(fromPosition, toPosition);
     }
-
-    /**
-     * @param item The item to refresh the view of in the adapter list
-     * @return True if the view of the item is successfully refreshed, false otherwise
-     */
-    public boolean notifyObjectChanged(Object item) {
-        int adapterPosition = _filteredDataList.indexOf(item);
-        if (adapterPosition < 0) {
-            return false;
-        }
-        notifyItemChanged(adapterPosition);
-        return true;
-    }
-
 }
