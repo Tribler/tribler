@@ -21,6 +21,6 @@
 
     </android.support.design.widget.AppBarLayout>
 
-    <include layout="@layout/content_fragment_placeholder" />
+    <include layout="@layout/content_channel" />
 
 </android.support.design.widget.CoordinatorLayout>

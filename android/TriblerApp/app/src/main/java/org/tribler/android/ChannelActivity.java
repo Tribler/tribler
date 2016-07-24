@@ -17,19 +17,6 @@ public class ChannelActivity extends BaseActivity {
     @BindView(R.id.toolbar)
     Toolbar toolbar;
 
-    private ChannelFragment _fragment;
-
-    private ChannelFragment getFragment() {
-        if (_fragment == null) {
-            _fragment = new ChannelFragment();
-            String tag = _fragment.getClass().toString();
-            getFragmentManager().beginTransaction().addToBackStack(tag)
-                    .replace(R.id.fragment_placeholder, _fragment, tag)
-                    .commit();
-        }
-        return _fragment;
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -49,19 +36,14 @@ public class ChannelActivity extends BaseActivity {
         handleIntent(getIntent());
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        _fragment = null;
-    }
-
     protected void handleIntent(Intent intent) {
         if (Intent.ACTION_GET_CONTENT.equals(intent.getAction())) {
             String cid = intent.getStringExtra(EXTRA_DISPERSY_CID);
-            getFragment().getTorrents(cid);
+
+            // Get torrents for channel
+            ChannelFragment channelFragment = (ChannelFragment)
+                    getFragmentManager().findFragmentById(R.id.fragment_channel);
+            channelFragment.getTorrents(cid);
 
             // Set title
             ActionBar actionBar = getSupportActionBar();
@@ -97,7 +79,9 @@ public class ChannelActivity extends BaseActivity {
              */
             @Override
             public boolean onQueryTextChange(String query) {
-                getFragment().adapter.getFilter().filter(query);
+                ChannelFragment channelFragment = (ChannelFragment)
+                        getFragmentManager().findFragmentById(R.id.fragment_channel);
+                channelFragment.adapter.getFilter().filter(query);
                 return true;
             }
         });

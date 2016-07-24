@@ -18,19 +18,6 @@ public class SearchActivity extends BaseActivity {
     @BindView(R.id.toolbar)
     Toolbar toolbar;
 
-    private SearchFragment _fragment;
-
-    private SearchFragment getFragment() {
-        if (_fragment == null) {
-            _fragment = new SearchFragment();
-            String tag = _fragment.getClass().toString();
-            getFragmentManager().beginTransaction().addToBackStack(tag)
-                    .replace(R.id.fragment_placeholder, _fragment, tag)
-                    .commit();
-        }
-        return _fragment;
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -50,25 +37,21 @@ public class SearchActivity extends BaseActivity {
         handleIntent(getIntent());
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        _fragment = null;
-    }
-
     protected void handleIntent(Intent intent) {
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
             String query = intent.getStringExtra(SearchManager.QUERY);
+
             // Show voice search query
             SearchView searchView = (SearchView) findViewById(R.id.btn_search);
             if (searchView != null) {
                 searchView.setQuery(query, false);
                 searchView.clearFocus();
             }
-            getFragment().startSearch(query);
+
+            // Start search
+            SearchFragment searchFragment = (SearchFragment)
+                    getFragmentManager().findFragmentById(R.id.fragment_search);
+            searchFragment.startSearch(query);
         }
     }
 

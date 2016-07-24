@@ -149,7 +149,7 @@ public class MainActivity extends BaseActivity {
         SubscribedFragment fragment = new SubscribedFragment();
         String tag = fragment.getClass().toString();
         getFragmentManager().beginTransaction().addToBackStack(tag)
-                .replace(R.id.fragment_placeholder, fragment, tag)
+                .replace(R.id.fragment_main, fragment, tag)
                 .commit();
         fragment.getSubscriptions();
     }
@@ -168,7 +168,7 @@ public class MainActivity extends BaseActivity {
         DiscoveredFragment fragment = new DiscoveredFragment();
         String tag = fragment.getClass().toString();
         getFragmentManager().beginTransaction().addToBackStack(tag)
-                .replace(R.id.fragment_placeholder, fragment, tag)
+                .replace(R.id.fragment_main, fragment, tag)
                 .commit();
         fragment.getDiscoveredChannels();
     }
