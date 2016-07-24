@@ -1,6 +1,5 @@
 package org.tribler.android;
 
-import android.net.Uri;
 import android.util.Log;
 
 import org.tribler.android.restapi.json.TriblerTorrent;
@@ -10,13 +9,13 @@ import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
-public class ChannelFragment extends ListFragment {
+public class ChannelFragment extends DefaultInteractionListFragment {
     public static final String TAG = ChannelFragment.class.getSimpleName();
 
-    public void getTorrents(String dispersyCid) {
+    public void loadTorrents(String dispersyCid) {
         adapter.clear();
 
-        subscriptions.add(service.getTorrents(Uri.encode(dispersyCid))
+        subscriptions.add(service.getTorrents(dispersyCid)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .flatMap(response -> Observable.from(response.getTorrents()))

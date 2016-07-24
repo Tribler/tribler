@@ -28,7 +28,7 @@ public class ChannelActivity extends BaseActivity {
             // Get torrents for channel
             ChannelFragment channelFragment = (ChannelFragment)
                     getFragmentManager().findFragmentById(R.id.fragment_channel);
-            channelFragment.getTorrents(cid);
+            channelFragment.loadTorrents(cid);
 
             // Set title
             ActionBar actionBar = getSupportActionBar();

@@ -12,6 +12,7 @@ import retrofit2.http.DELETE;
 import retrofit2.http.GET;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
+import retrofit2.http.Query;
 import rx.Observable;
 
 public interface IRestApi {
@@ -22,9 +23,9 @@ public interface IRestApi {
     @GET("/events")
     Observable<TriblerEvent> getEventStream();
 
-    @GET("/search?q={query}")
+    @GET("/search")
     Observable<QueriedAck> startSearch(
-            @Path("query") String query
+            @Query("q") String query
     );
 
     @GET("/channels/discovered")

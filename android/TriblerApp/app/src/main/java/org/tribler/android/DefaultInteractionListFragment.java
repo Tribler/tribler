@@ -2,7 +2,6 @@ package org.tribler.android;
 
 import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -28,6 +27,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     public void onAttach(Context context) {
         super.onAttach(context);
         _context = context;
+        interactionListener = this;
     }
 
     /**
@@ -65,12 +65,14 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onSwipedRight(final TriblerChannel channel) {
+        adapter.removeObject(channel);
+
         if (channel.isSubscribed()) {
             Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_subscribe_already), Toast.LENGTH_LONG).show();
             return;
         }
 
-        subscriptions.add(service.subscribe(Uri.encode(channel.getDispersyCid()))
+        subscriptions.add(service.subscribe(channel.getDispersyCid())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<SubscribedAck>() {
@@ -86,7 +88,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                         if (e instanceof HttpException && ((HttpException) e).code() == 409) {
                             Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_subscribe_already), Toast.LENGTH_LONG).show();
                         } else {
-                            Log.e(TAG, "getSubscribedChannels", e);
+                            Log.e(TAG, "subscribe", e);
                             Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_subscribe_failure), Toast.LENGTH_LONG).show();
                         }
                     }
@@ -98,12 +100,14 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onSwipedLeft(final TriblerChannel channel) {
+        adapter.removeObject(channel);
+
         if (!channel.isSubscribed()) {
             Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_unsubscribe_already), Toast.LENGTH_LONG).show();
             return;
         }
 
-        subscriptions.add(service.unsubscribe(Uri.encode(channel.getDispersyCid()))
+        subscriptions.add(service.unsubscribe(channel.getDispersyCid())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<UnsubscribedAck>() {
@@ -119,7 +123,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                         if (e instanceof HttpException && ((HttpException) e).code() == 404) {
                             Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_unsubscribe_already), Toast.LENGTH_LONG).show();
                         } else {
-                            Log.e(TAG, "getSubscribedChannels", e);
+                            Log.e(TAG, "unsubscribe", e);
                             Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_unsubscribe_failure), Toast.LENGTH_LONG).show();
                         }
                     }
@@ -131,6 +135,8 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onSwipedRight(final TriblerTorrent torrent) {
+        adapter.removeObject(torrent);
+
         //TODO: watch later
         Toast.makeText(_context, "watch later", Toast.LENGTH_LONG).show();
     }
@@ -140,10 +146,10 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onSwipedLeft(final TriblerTorrent torrent) {
-        //TODO: not interested
-        //TODO: idea: never see torrent again?
-        Toast.makeText(_context, "not interested", Toast.LENGTH_LONG).show();
+        adapter.removeObject(torrent);
 
+        //TODO: not interested
+        Toast.makeText(_context, "not interested", Toast.LENGTH_LONG).show();
     }
 
 }
