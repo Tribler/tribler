@@ -6,7 +6,6 @@
 
     <item
         android:id="@+id/btn_search"
-        android:onClick="btnSearch"
         android:title="@string/action_search_in_channel"
         app:actionViewClass="android.support.v7.widget.SearchView"
         app:showAsAction="always" />

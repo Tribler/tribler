@@ -11,17 +11,14 @@ import android.nfc.NfcManager;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ImageView;
 
 import butterknife.BindView;
-import butterknife.ButterKnife;
-import butterknife.Unbinder;
 
-public class BeamActivity extends AppCompatActivity {
+public class BeamActivity extends BaseActivity {
 
     public static final int ENABLE_NFC_BEAM_ACTIVITY_REQUEST_CODE = 400;
     public static final int ENABLE_BEAM_ACTIVITY_REQUEST_CODE = 800;
@@ -32,7 +29,6 @@ public class BeamActivity extends AppCompatActivity {
     @BindView(R.id.beam_image_view)
     ImageView imageView;
 
-    private Unbinder _unbinder;
     private NfcAdapter _nfcAdapter;
 
     private void initNfc() {
@@ -59,7 +55,6 @@ public class BeamActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_beam);
-        _unbinder = ButterKnife.bind(this);
 
         // The action bar will automatically handle clicks on the Home/Up button,
         // so long as you specify a parent activity in AndroidManifest.xml
@@ -76,11 +71,6 @@ public class BeamActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Memory leak detection
-        AppUtils.getRefWatcher(this).watch(this);
-
-        _unbinder.unbind();
-        _unbinder = null;
         _nfcAdapter = null;
     }
 
@@ -107,16 +97,6 @@ public class BeamActivity extends AppCompatActivity {
      * {@inheritDoc}
      */
     @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        setIntent(intent);
-        handleIntent(intent);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == ENABLE_NFC_BEAM_ACTIVITY_REQUEST_CODE || requestCode == ENABLE_BEAM_ACTIVITY_REQUEST_CODE) {
@@ -125,7 +105,7 @@ public class BeamActivity extends AppCompatActivity {
         }
     }
 
-    private void handleIntent(Intent intent) {
+    protected void handleIntent(Intent intent) {
         String action = intent.getAction();
         if (action == null) {
             return;
