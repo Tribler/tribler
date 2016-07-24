@@ -2,7 +2,6 @@ package org.tribler.android;
 
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 
 import java.io.IOException;
 
@@ -94,8 +93,6 @@ public class SearchFragment extends DefaultInteractionListFragment implements Re
                     adapter.addObject(result);
                 }
             });
-        } else {
-            Log.d(TAG, "Irrelevant result: " + query);
         }
     }
 
@@ -108,8 +105,6 @@ public class SearchFragment extends DefaultInteractionListFragment implements Re
                     adapter.addObject(result);
                 }
             });
-        } else {
-            Log.d(TAG, "Irrelevant result: " + query);
         }
     }
 }

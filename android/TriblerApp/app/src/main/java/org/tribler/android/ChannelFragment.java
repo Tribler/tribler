@@ -1,72 +1,42 @@
 package org.tribler.android;
 
 import android.net.Uri;
+import android.util.Log;
 
-import com.google.gson.Gson;
-import com.google.gson.stream.JsonReader;
+import java.util.List;
 
-import java.io.IOException;
+import rx.Observable;
+import rx.Observer;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.schedulers.Schedulers;
 
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.Request;
-import okhttp3.Response;
-
-import static org.tribler.android.RestApiClient.API;
-import static org.tribler.android.RestApiClient.BASE_URL;
-
-public class ChannelFragment extends DefaultInteractionListFragment {
+public class ChannelFragment extends ListFragment {
     public static final String TAG = ChannelFragment.class.getSimpleName();
 
+    private Observable<List<TriblerTorrent>> _request;
+
     public void getTorrents(String dispersyCid) {
-        Request request = new Request.Builder()
-                .url(BASE_URL + "/channels/discovered/" + Uri.encode(dispersyCid) + "/torrents")
-                .build();
+        adapter.clear();
 
-        Callback callback = new Callback() {
+        subscriptions.add(service.getTorrents(Uri.encode(dispersyCid))
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<List<TriblerTorrent>>() {
 
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public void onFailure(Call call, IOException e) {
-                e.printStackTrace();
-            }
-
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                if (!response.isSuccessful()) {
-                    throw new IOException("Unexpected code " + response);
-                }
-
-                Gson gson = new Gson();
-                JsonReader reader = new JsonReader(response.body().charStream());
-
-                reader.beginObject();
-                if ("torrents".equals(reader.nextName())) {
-                    reader.beginArray();
-                    while (reader.hasNext()) {
-                        final TriblerTorrent torrent = gson.fromJson(reader, TriblerTorrent.class);
-                        getActivity().runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                adapter.addObject(torrent);
-                            }
-                        });
+                    public void onNext(List<TriblerTorrent> torrents) {
+                        for (TriblerTorrent torrent : torrents) {
+                            adapter.addObject(torrent);
+                        }
                     }
-                    reader.endArray();
-                } else {
-                    throw new IOException("Invalid JSON");
-                }
-                reader.endObject();
-            }
 
-        };
+                    public void onCompleted() {
+                        Log.d(TAG, "Retrofit call 1 completed");
+                    }
 
-        API.newCall(request).enqueue(callback);
+                    public void onError(Throwable e) {
+                        Log.e(TAG, "Oops! We got an error while getting the list of contributors", e);
+                    }
+                }));
     }
 
 }
