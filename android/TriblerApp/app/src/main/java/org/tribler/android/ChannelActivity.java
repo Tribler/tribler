@@ -1,6 +1,5 @@
 package org.tribler.android;
 
-import android.app.FragmentManager;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
@@ -19,16 +18,12 @@ public class ChannelActivity extends AppCompatActivity {
 
     public static final String EXTRA_DISPERSY_CID = "dispersy.CID";
 
-    private ChannelFragment getFragment() {
-        FragmentManager fm = getFragmentManager();
-        ChannelFragment fragment = (ChannelFragment) fm.findFragmentByTag(ChannelFragment.TAG);
-        // If not retained (or first time running), we need to create it
-        if (fragment == null) {
-            fragment = new ChannelFragment();
-            // Tell the framework to try to keep this fragment around during a configuration change
-            fragment.setRetainInstance(true);
-            fm.beginTransaction().add(fragment, ChannelFragment.TAG).commit();
-        }
+    private ChannelFragment createFragment() {
+        ChannelFragment fragment = new ChannelFragment();
+        String tag = fragment.getClass().toString();
+        getFragmentManager().beginTransaction().addToBackStack(tag)
+                .replace(R.id.content, fragment, tag)
+                .commit();
         return fragment;
     }
 
@@ -52,7 +47,7 @@ public class ChannelActivity extends AppCompatActivity {
     private void handleIntent(Intent intent) {
         if (Intent.ACTION_GET_CONTENT.equals(intent.getAction())) {
             String cid = intent.getStringExtra(EXTRA_DISPERSY_CID);
-            getFragment().getTorrents(cid);
+            createFragment().getTorrents(cid);
 
             // Set title
             String title = intent.getStringExtra(Intent.EXTRA_TITLE);
@@ -134,7 +129,7 @@ public class ChannelActivity extends AppCompatActivity {
              */
             @Override
             public boolean onQueryTextChange(String query) {
-                getFragment().adapter.getFilter().filter(query);
+                createFragment().adapter.getFilter().filter(query);
                 return true;
             }
         });

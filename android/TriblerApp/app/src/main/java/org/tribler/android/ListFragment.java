@@ -30,7 +30,7 @@ public class ListFragment extends RetrofitFragment {
     VerticalRecyclerViewFastScroller fastScroller;
 
     private Unbinder _unbinder;
-    private IListFragmentInteractionListener _interactionListener;
+    protected IListFragmentInteractionListener interactionListener;
     protected FilterableRecyclerViewAdapter adapter;
 
     /**
@@ -40,9 +40,9 @@ public class ListFragment extends RetrofitFragment {
     public void onAttach(Context context) {
         super.onAttach(context);
         if (context instanceof IListFragmentInteractionListener) {
-            _interactionListener = (IListFragmentInteractionListener) context;
+            interactionListener = (IListFragmentInteractionListener) context;
         } else {
-            _interactionListener = null;
+            interactionListener = null;
         }
     }
 
@@ -52,7 +52,7 @@ public class ListFragment extends RetrofitFragment {
     @Override
     public void onDetach() {
         super.onDetach();
-        _interactionListener = null;
+        interactionListener = null;
     }
 
     /**
@@ -67,7 +67,7 @@ public class ListFragment extends RetrofitFragment {
         recyclerView.setHasFixedSize(true);
 
         // Let the recycler view show the adapter list
-        adapter = new TriblerViewAdapter(new ArrayList<>(), _interactionListener, _interactionListener);
+        adapter = new TriblerViewAdapter(new ArrayList<>(), interactionListener, interactionListener);
         recyclerView.setAdapter(adapter);
 
         // Let the fast scroller scroll the recycler view

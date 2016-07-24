@@ -149,7 +149,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
      */
     @Override
     public boolean onIsMultiPane() {
-        return MyUtils.isXLargeTablet(this);
+        return AppUtils.isXLargeTablet(this);
     }
 
     /**

@@ -1,5 +1,6 @@
 package org.tribler.android;
 
+import android.content.Context;
 import android.content.Intent;
 import android.widget.Toast;
 
@@ -15,7 +16,17 @@ import static org.tribler.android.RestApiClient.API;
 import static org.tribler.android.RestApiClient.BASE_URL;
 import static org.tribler.android.RestApiClient.TYPE_JSON;
 
+@Deprecated
 public class DefaultInteractionListFragment extends ListFragment implements ListFragment.IListFragmentInteractionListener {
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        interactionListener = this;
+    }
 
     /**
      * {@inheritDoc}

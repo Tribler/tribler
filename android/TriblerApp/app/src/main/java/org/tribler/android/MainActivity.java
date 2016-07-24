@@ -1,7 +1,6 @@
 package org.tribler.android;
 
 import android.app.Activity;
-import android.app.FragmentManager;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
@@ -76,14 +75,6 @@ public class MainActivity extends AppCompatActivity {
         drawer.addDrawerListener(_navToggle);
         _navToggle.syncState();
 
-        // Close navigation on item selected
-        navigationView.setNavigationItemSelectedListener(menuItem -> {
-            menuItem.getItemId();
-
-            drawer.closeDrawer(GravityCompat.START);
-            return true;
-        });
-
         // Registers BroadcastReceiver to track network connection changes
         _networkReceiver = new NetworkReceiver();
         IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
@@ -99,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         // Memory leak detection
-        TriblerApp.getRefWatcher(this).watch(this);
+        AppUtils.getRefWatcher(this).watch(this);
 
         drawer.removeDrawerListener(_navToggle);
         _navToggle = null;
@@ -138,67 +129,71 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void navSubscriptions(MenuItem item) {
-        FragmentManager fm = getFragmentManager();
-        SubscribedFragment subscribedFragment = (SubscribedFragment) fm.findFragmentByTag(SubscribedFragment.TAG);
-        // If not retained (or first time running), we need to create it
-        if (subscribedFragment == null) {
-            subscribedFragment = new SubscribedFragment();
-            // Tell the framework to try to keep this fragment around during a configuration change
-            subscribedFragment.setRetainInstance(true);
-            fm.beginTransaction().addToBackStack(null).add(subscribedFragment, SubscribedFragment.TAG).commit();
-        }
-        subscribedFragment.getSubscriptions();
+        drawer.closeDrawer(GravityCompat.START);
+        SubscribedFragment fragment = new SubscribedFragment();
+        String tag = fragment.getClass().toString();
+        getFragmentManager().beginTransaction().addToBackStack(tag)
+                .replace(R.id.content, fragment, tag)
+                .commit();
+        fragment.getSubscriptions();
     }
 
     public void navMyChannel(MenuItem item) {
+        drawer.closeDrawer(GravityCompat.START);
         //TODO: my channel
     }
 
     public void navMyPlaylists(MenuItem item) {
+        drawer.closeDrawer(GravityCompat.START);
     }
 
     public void navPopular(MenuItem item) {
-        FragmentManager fm = getFragmentManager();
-        DiscoveredFragment discoveredFragment = new DiscoveredFragment();
-        final String tag = discoveredFragment.getClass().toString();
-        fm.beginTransaction().addToBackStack(tag)
-                .replace(android.R.id.content, discoveredFragment, tag)
+        drawer.closeDrawer(GravityCompat.START);
+        DiscoveredFragment fragment = new DiscoveredFragment();
+        String tag = fragment.getClass().toString();
+        getFragmentManager().beginTransaction().addToBackStack(tag)
+                .replace(R.id.content, fragment, tag)
                 .commit();
-        discoveredFragment.getDiscoveredChannels();
+        fragment.getDiscoveredChannels();
     }
 
     public void navCaptureVideo(MenuItem item) {
+        drawer.closeDrawer(GravityCompat.START);
         // Check if device has camera
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             // Obtain output file
-            File output = MyUtils.getOutputVideoFile(this);
+            File output = AppUtils.getOutputVideoFile(this);
             if (output == null) {
                 Toast.makeText(this, R.string.error_output_file, Toast.LENGTH_LONG).show();
             }
-            Intent captureIntent = MyUtils.captureVideo(Uri.fromFile(output));
+            Intent captureIntent = AppUtils.captureVideo(Uri.fromFile(output));
             startActivityForResult(captureIntent, CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
         }
     }
 
     public void navBeam(MenuItem item) {
+        drawer.closeDrawer(GravityCompat.START);
         File apk = new File(this.getPackageResourcePath());
-        Intent beamIntent = MyUtils.sendBeam(Uri.fromFile(apk), this);
+        Intent beamIntent = AppUtils.sendBeam(Uri.fromFile(apk), this);
         startActivity(beamIntent);
     }
 
     public void navSettings(MenuItem item) {
+        drawer.closeDrawer(GravityCompat.START);
         Intent settingsIntent = new Intent(this, SettingsActivity.class);
         startActivity(settingsIntent);
     }
 
     public void navFeedback(MenuItem item) {
+        drawer.closeDrawer(GravityCompat.START);
         CharSequence title = getText(R.string.app_feedback_url);
         Uri uri = Uri.parse(title.toString());
-        Intent browserIntent = MyUtils.viewChooser(uri, title);
+        Intent browserIntent = AppUtils.viewChooser(uri, title);
         startActivity(browserIntent);
     }
 
     public void navShutdown(MenuItem item) {
+        drawer.closeDrawer(GravityCompat.START);
         Triblerd.stop(this);
         // Exit MainActivity
         finish();

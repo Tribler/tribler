@@ -11,6 +11,6 @@ public class BaseFragment extends Fragment {
     public void onDestroy() {
         super.onDestroy();
         // Memory leak detection
-        TriblerApp.getRefWatcher(getActivity()).watch(this);
+        AppUtils.getRefWatcher(getActivity()).watch(this);
     }
 }

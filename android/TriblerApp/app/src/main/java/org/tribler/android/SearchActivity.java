@@ -1,6 +1,5 @@
 package org.tribler.android;
 
-import android.app.FragmentManager;
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
@@ -22,16 +21,12 @@ public class SearchActivity extends AppCompatActivity {
 
     SearchView searchView;
 
-    public SearchFragment getFragment() {
-        FragmentManager fm = getFragmentManager();
-        SearchFragment fragment = (SearchFragment) fm.findFragmentByTag(SearchFragment.TAG);
-        // If not retained (or first time running), we need to create it
-        if (fragment == null) {
-            fragment = new SearchFragment();
-            // Tell the framework to try to keep this fragment around during a configuration change
-            fragment.setRetainInstance(true);
-            fm.beginTransaction().add(fragment, SearchFragment.TAG).commit();
-        }
+    public SearchFragment createFragment() {
+        SearchFragment fragment = new SearchFragment();
+        String tag = fragment.getClass().toString();
+        getFragmentManager().beginTransaction().addToBackStack(tag)
+                .replace(R.id.content, fragment, tag)
+                .commit();
         return fragment;
     }
 
@@ -63,7 +58,7 @@ public class SearchActivity extends AppCompatActivity {
                 searchView.setQuery(query, false);
                 searchView.clearFocus();
             }
-            getFragment().startSearch(query);
+            createFragment().startSearch(query);
         }
     }
 

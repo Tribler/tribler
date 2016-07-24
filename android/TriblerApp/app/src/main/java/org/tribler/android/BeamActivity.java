@@ -77,7 +77,7 @@ public class BeamActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         // Memory leak detection
-        TriblerApp.getRefWatcher(this).watch(this);
+        AppUtils.getRefWatcher(this).watch(this);
 
         _unbinder.unbind();
         _unbinder = null;
@@ -99,7 +99,7 @@ public class BeamActivity extends AppCompatActivity {
         // Fetch uri of file to send
         Uri uri = getIntent().getParcelableExtra(Intent.EXTRA_STREAM);
         // Send via other means
-        Intent chooserIntent = MyUtils.sendChooser(uri, getText(R.string.dialog_send_chooser));
+        Intent chooserIntent = AppUtils.sendChooser(uri, getText(R.string.dialog_send_chooser));
         handleIntent(chooserIntent);
     }
 
@@ -140,7 +140,7 @@ public class BeamActivity extends AppCompatActivity {
                     doMyBeam(uri);
                 } else {
                     // Send intent to use method preferred by user
-                    Intent sendIntent = MyUtils.sendIntent(uri);
+                    Intent sendIntent = AppUtils.sendIntent(uri);
                     startActivity(sendIntent);
                 }
                 return;

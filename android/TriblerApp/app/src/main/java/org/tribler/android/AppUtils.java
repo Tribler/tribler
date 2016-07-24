@@ -1,5 +1,6 @@
 package org.tribler.android;
 
+import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
@@ -9,11 +10,30 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
+import com.squareup.leakcanary.LeakCanary;
+import com.squareup.leakcanary.RefWatcher;
+
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class MyUtils {
+public class AppUtils {
+
+    /**
+     * Static class
+     */
+    private AppUtils() {
+    }
+
+    private static RefWatcher _refWatcher;
+
+    public static RefWatcher getRefWatcher(Context ctx) {
+        if (_refWatcher == null) {
+            Application app = (Application) ctx.getApplicationContext();
+            _refWatcher = LeakCanary.install(app);
+        }
+        return _refWatcher;
+    }
 
     /**
      * Helper method to determine if the device has an extra-large screen. For
