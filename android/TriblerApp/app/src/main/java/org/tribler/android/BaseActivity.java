@@ -29,7 +29,7 @@ public abstract class BaseActivity extends AppCompatActivity {
         // so long as you specify a parent activity in AndroidManifest.xml
         setSupportActionBar(toolbar);
         ActionBar actionbar = getSupportActionBar();
-        if (actionbar != null) {
+        if (actionbar != null && layoutResID != R.layout.activity_main) {
             actionbar.setDisplayHomeAsUpEnabled(true);
         }
     }
