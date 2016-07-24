@@ -15,9 +15,6 @@ import butterknife.BindView;
 
 public class SearchActivity extends BaseActivity {
 
-    @BindView(R.id.toolbar)
-    Toolbar toolbar;
-
     /**
      * {@inheritDoc}
      */
@@ -25,15 +22,6 @@ public class SearchActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_search);
-
-        // The action bar will automatically handle clicks on the Home/Up button,
-        // so long as you specify a parent activity in AndroidManifest.xml
-        setSupportActionBar(toolbar);
-        ActionBar actionbar = getSupportActionBar();
-        if (actionbar != null) {
-            actionbar.setDisplayHomeAsUpEnabled(true);
-        }
-
         handleIntent(getIntent());
     }
 
