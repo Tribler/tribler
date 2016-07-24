@@ -9,20 +9,24 @@ from PyQt5.QtTest import QTest
 
 from PyQt5.QtWidgets import QApplication, QListWidget, QTreeWidget
 
-import TriblerGUI
+from Tribler.Core.Utilities.network_utils import get_random_port
 
-# We also need to add the TriblerGUI directory to the path. This should be done before the
-# window is imported, otherwise, it cannot find the UI widgets.
-sys.path.append(os.path.dirname(TriblerGUI.__file__))
+import TriblerGUI.core_manager as core_manager
+rand_port = get_random_port()
+core_manager.START_FAKE_API = True
+core_manager.FAKE_API_PORT = rand_port
+
+import TriblerGUI.tribler_request_manager as request_mgr
+request_mgr.API_PORT = rand_port
+
+import TriblerGUI
 
 from TriblerGUI.home_recommended_item import HomeRecommendedChannelItem, HomeRecommendedTorrentItem
 from TriblerGUI.loading_list_item import LoadingListItem
 from TriblerGUI.tribler_window import TriblerWindow
 
-os.environ['VLC_PLUGIN_PATH'] = '/Applications/VLC.app/Contents/MacOS/plugins'
-
 app = QApplication(sys.argv)
-window = TriblerWindow()
+window = TriblerWindow(api_port=rand_port)
 QTest.qWaitForWindowExposed(window)
 
 sys.excepthook = sys.__excepthook__
@@ -64,7 +68,11 @@ class AbstractTriblerGUITest(unittest.TestCase):
         if name is not None:
             img_name = 'screenshot_%s.jpg' % name
 
-        pixmap.save(os.path.join(os.path.dirname(TriblerGUI.__file__), 'screenshots', img_name))
+        screenshots_dir = os.path.join(os.path.dirname(TriblerGUI.__file__), 'screenshots')
+        if not os.path.exists(screenshots_dir):
+            os.mkdir(screenshots_dir)
+
+        pixmap.save(os.path.join(screenshots_dir, img_name))
 
     def wait_for_list_populated(self, list, num_items=1, timeout=10):
         for _ in range(0, timeout * 1000, 100):

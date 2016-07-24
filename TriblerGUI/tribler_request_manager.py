@@ -5,15 +5,19 @@ from PyQt5.QtCore import QUrl, pyqtSignal, QFile, QIODevice, QByteArray, QFileIn
 from PyQt5.QtNetwork import QNetworkAccessManager, QNetworkRequest
 
 
+API_PORT = 8085
+
+
 class TriblerRequestManager(QNetworkAccessManager):
     """
     This class is responsible for all the requests made to the Tribler REST API.
     """
-
-    base_url = "http://localhost:8085/"
-
     received_json = pyqtSignal(object, int)
     received_file = pyqtSignal(str, object)
+
+    def __init__(self):
+        QNetworkAccessManager.__init__(self)
+        self.base_url = "http://localhost:%d/" % API_PORT
 
     def send_file(self, endpoint, read_callback, file):
         """

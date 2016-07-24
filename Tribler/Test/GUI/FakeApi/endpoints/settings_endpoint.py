@@ -42,6 +42,7 @@ class SettingsEndpoint(resource.Resource):
                 "seeding_mode": "ratio",
                 "seeding_time": 60,
                 "seeding_ratio": 2.0,
+                "saveas": "bla",
             },
             "multichain": {
                 "enabled": True,

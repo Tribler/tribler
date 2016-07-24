@@ -1,9 +1,11 @@
 import logging
 import os
 import sys
-import Tribler
 
-os.chdir(os.path.join(os.path.dirname(Tribler.__file__), "Test", "GUI", "FakeApi"))
+if len(sys.argv) < 2:
+    exit()
+
+os.chdir(os.path.join(os.path.dirname(__file__), "..", "..", "Tribler", "Test", "GUI", "FakeApi"))
 sys.path.insert(0, os.path.abspath(os.getcwd()))
 
 from twisted.internet import reactor
@@ -26,6 +28,7 @@ logger.info("Generating random Tribler data")
 generate_tribler_data()
 
 site = Site(RootEndpoint())
-logger.info("Starting fake Tribler API on port 8085")
-reactor.listenTCP(8085, site)
+port = int(sys.argv[1])
+logger.info("Starting fake Tribler API on port %d" % port)
+reactor.listenTCP(port, site)
 reactor.run()

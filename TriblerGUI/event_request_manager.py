@@ -16,9 +16,9 @@ class EventRequestManager(QNetworkAccessManager):
     discovered_channel = pyqtSignal(object)
     discovered_torrent = pyqtSignal(object)
 
-    def __init__(self):
+    def __init__(self, api_port):
         QNetworkAccessManager.__init__(self)
-        url = QUrl("http://localhost:8085/events")
+        url = QUrl("http://localhost:%d/events" % api_port)
         self.request = QNetworkRequest(url)
         self.failed_attempts = 0
         self.connect_timer = QTimer()
