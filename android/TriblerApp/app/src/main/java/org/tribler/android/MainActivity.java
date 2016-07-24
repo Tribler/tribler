@@ -2,16 +2,13 @@ package org.tribler.android;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.AppCompatDelegate;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
@@ -21,10 +18,8 @@ import android.widget.Toast;
 import java.io.File;
 
 import butterknife.BindView;
-import butterknife.ButterKnife;
-import butterknife.Unbinder;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends BaseActivity {
 
     public static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 200;
 
@@ -34,14 +29,16 @@ public class MainActivity extends AppCompatActivity {
 
     private void initService() {
         // Check network connection before starting service
-        if (NetworkReceiver.isNetworkConnected(this)) {
-            Triblerd.start(this); // Run normally
-            //Twistd.start(this); // Run profiler
-            //NoseTestService.start(this); // Run tests
-            //ExperimentService.start(this); // Run experiment
-        } else {
-            Toast.makeText(this, R.string.info_no_connection, Toast.LENGTH_LONG).show();
-        }
+        //if (NetworkReceiver.isNetworkConnected(this)) {
+
+        Triblerd.start(this); // Run normally
+        //Twistd.start(this); // Run profiler
+        //NoseTestService.start(this); // Run tests
+        //ExperimentService.start(this); // Run experiment
+
+        //} else {
+        //    Toast.makeText(this, R.string.info_no_connection, Toast.LENGTH_LONG).show();
+        //}
     }
 
     @BindView(R.id.toolbar)
@@ -53,9 +50,8 @@ public class MainActivity extends AppCompatActivity {
     @BindView(R.id.nav_view)
     NavigationView navigationView;
 
-    private Unbinder _unbinder;
     private ActionBarDrawerToggle _navToggle;
-    private NetworkReceiver _networkReceiver;
+    //private NetworkReceiver _networkReceiver;
 
     /**
      * {@inheritDoc}
@@ -64,7 +60,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        _unbinder = ButterKnife.bind(this);
 
         // The action bar will automatically handle clicks on the Home/Up button,
         // so long as you specify a parent activity in AndroidManifest.xml
@@ -76,9 +71,9 @@ public class MainActivity extends AppCompatActivity {
         _navToggle.syncState();
 
         // Registers BroadcastReceiver to track network connection changes
-        _networkReceiver = new NetworkReceiver();
-        IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
-        registerReceiver(_networkReceiver, filter);
+        //_networkReceiver = new NetworkReceiver();
+        //IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
+        //registerReceiver(_networkReceiver, filter);
 
         initService();
     }
@@ -88,16 +83,11 @@ public class MainActivity extends AppCompatActivity {
      */
     @Override
     protected void onDestroy() {
-        super.onDestroy();
-        // Memory leak detection
-        AppUtils.getRefWatcher(this).watch(this);
-
         drawer.removeDrawerListener(_navToggle);
+        super.onDestroy();
         _navToggle = null;
-        unregisterReceiver(_networkReceiver);
-        _networkReceiver = null;
-        _unbinder.unbind();
-        _unbinder = null;
+        //unregisterReceiver(_networkReceiver);
+        //_networkReceiver = null;
     }
 
     /**
@@ -109,6 +99,32 @@ public class MainActivity extends AppCompatActivity {
             drawer.closeDrawer(GravityCompat.START);
         } else {
             super.onBackPressed();
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void handleIntent(Intent intent) {
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        // Result of capture video
+        if (requestCode == CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE) {
+            if (resultCode == Activity.RESULT_OK) {
+                Toast.makeText(this, "Video saved to:\n" + data.getData(), Toast.LENGTH_LONG).show();
+                //TODO: create torrent file and add to own channel
+            } else if (resultCode == Activity.RESULT_CANCELED) {
+
+            } else {
+                Toast.makeText(this, R.string.error_capture_video, Toast.LENGTH_LONG).show();
+            }
         }
     }
 
@@ -197,24 +213,5 @@ public class MainActivity extends AppCompatActivity {
         Triblerd.stop(this);
         // Exit MainActivity
         finish();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        // Result of capture video
-        if (requestCode == CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE) {
-            if (resultCode == Activity.RESULT_OK) {
-                Toast.makeText(this, "Video saved to:\n" + data.getData(), Toast.LENGTH_LONG).show();
-                //TODO: create torrent file and add to own channel
-            } else if (resultCode == Activity.RESULT_CANCELED) {
-
-            } else {
-                Toast.makeText(this, R.string.error_capture_video, Toast.LENGTH_LONG).show();
-            }
-        }
     }
 }
