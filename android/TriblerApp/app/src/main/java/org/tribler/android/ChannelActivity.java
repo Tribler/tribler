@@ -114,7 +114,7 @@ public class ChannelActivity extends AppCompatActivity {
         super.onCreateOptionsMenu(menu);
         // Add items to the action bar if it is present
         MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.activity_channel_action_bar, menu);
+        inflater.inflate(R.menu.menu_channel, menu);
 
         // Search button
         MenuItem btnSearch = menu.findItem(R.id.btn_search);
@@ -134,7 +134,7 @@ public class ChannelActivity extends AppCompatActivity {
              */
             @Override
             public boolean onQueryTextChange(String query) {
-                getFragment().mAdapter.getFilter().filter(query);
+                getFragment().adapter.getFilter().filter(query);
                 return true;
             }
         });

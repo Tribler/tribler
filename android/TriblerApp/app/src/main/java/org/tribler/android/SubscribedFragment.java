@@ -51,7 +51,7 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
                         getActivity().runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                mAdapter.addObject(channel);
+                                adapter.addObject(channel);
                             }
                         });
                     }

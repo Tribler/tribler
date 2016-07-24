@@ -53,7 +53,7 @@ public class ChannelFragment extends DefaultInteractionListFragment {
                         getActivity().runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                mAdapter.addObject(torrent);
+                                adapter.addObject(torrent);
                             }
                         });
                     }

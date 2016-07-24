@@ -10,30 +10,39 @@ import android.nfc.NfcEvent;
 import android.nfc.NfcManager;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.ImageView;
+
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.Unbinder;
 
 public class BeamActivity extends AppCompatActivity {
 
     public static final int ENABLE_NFC_BEAM_ACTIVITY_REQUEST_CODE = 400;
     public static final int ENABLE_BEAM_ACTIVITY_REQUEST_CODE = 800;
 
-    private NfcAdapter mNfcAdapter;
+    @BindView(R.id.toolbar)
+    Toolbar toolbar;
+
+    @BindView(R.id.beam_image_view)
+    ImageView imageView;
+
+    private Unbinder _unbinder;
+    private NfcAdapter _nfcAdapter;
 
     private void initNfc() {
         // Check if device has NFC
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC)) {
 
             NfcManager nfcManager = (NfcManager) getSystemService(Context.NFC_SERVICE);
-            mNfcAdapter = nfcManager.getDefaultAdapter();
+            _nfcAdapter = nfcManager.getDefaultAdapter();
 
-            mNfcAdapter.setOnNdefPushCompleteCallback(new NfcAdapter.OnNdefPushCompleteCallback() {
+            _nfcAdapter.setOnNdefPushCompleteCallback(new NfcAdapter.OnNdefPushCompleteCallback() {
                 @Override
                 public void onNdefPushComplete(NfcEvent nfcEvent) {
                     // Exit BeamActivity
@@ -43,27 +52,36 @@ public class BeamActivity extends AppCompatActivity {
         }
     }
 
-    private void initGui() {
-        setContentView(R.layout.activity_beam);
-
-        // Set action toolbar
-        Toolbar toolbar = (Toolbar) findViewById(R.id.activity_beam_toolbar);
-        assert toolbar != null;
-        setSupportActionBar(toolbar);
-        ActionBar actionbar = getSupportActionBar();
-        assert actionbar != null;
-        actionbar.setDisplayHomeAsUpEnabled(true);
-    }
-
     /**
      * {@inheritDoc}
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_beam);
+        _unbinder = ButterKnife.bind(this);
+
+        // The action bar will automatically handle clicks on the Home/Up button,
+        // so long as you specify a parent activity in AndroidManifest.xml
+        setSupportActionBar(toolbar);
+
         initNfc();
-        initGui();
+
         handleIntent(getIntent());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Memory leak detection
+        TriblerApp.getRefWatcher(this).watch(this);
+
+        _unbinder.unbind();
+        _unbinder = null;
+        _nfcAdapter = null;
     }
 
     /**
@@ -72,26 +90,17 @@ public class BeamActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
-        // Add items to the action bar if it is present
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.activity_beam_action_bar, menu);
-
-        // Bluetooth button
-        MenuItem btnBluetooth = menu.findItem(R.id.btn_bluetooth);
-        assert btnBluetooth != null;
-        btnBluetooth.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(MenuItem menuItem) {
-                // Fetch uri of file to send
-                Uri uri = getIntent().getParcelableExtra(Intent.EXTRA_STREAM);
-                // Send via other means
-                Intent chooserIntent = MyUtils.sendChooser(uri, getText(R.string.dialog_send_chooser));
-                handleIntent(chooserIntent);
-                return true;
-            }
-        });
-
+        // Add items to the action bar (if it is present)
+        getMenuInflater().inflate(R.menu.menu_beam, menu);
         return true;
+    }
+
+    public void btnBluetooth(MenuItem item) {
+        // Fetch uri of file to send
+        Uri uri = getIntent().getParcelableExtra(Intent.EXTRA_STREAM);
+        // Send via other means
+        Intent chooserIntent = MyUtils.sendChooser(uri, getText(R.string.dialog_send_chooser));
+        handleIntent(chooserIntent);
     }
 
     /**
@@ -127,7 +136,7 @@ public class BeamActivity extends AppCompatActivity {
                 // Fetch uri of file to send
                 Uri uri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
 
-                if (mNfcAdapter != null) {
+                if (_nfcAdapter != null) {
                     doMyBeam(uri);
                 } else {
                     // Send intent to use method preferred by user
@@ -157,21 +166,19 @@ public class BeamActivity extends AppCompatActivity {
 
     private void doMyBeam(Uri uri) {
         // Check if NFC is enabled
-        if (!mNfcAdapter.isEnabled()) {
+        if (!_nfcAdapter.isEnabled()) {
             askUser(R.string.dialog_enable_nfc_beam, Settings.ACTION_NFC_SETTINGS);
         }
         // Check if Android Beam is enabled
-        else if (!mNfcAdapter.isNdefPushEnabled()) {
+        else if (!_nfcAdapter.isNdefPushEnabled()) {
             askUser(R.string.dialog_enable_beam, Settings.ACTION_NFCSHARING_SETTINGS);
         }
         // NFC and Android Beam are enabled
         else {
-            mNfcAdapter.setBeamPushUris(new Uri[]{uri}, this);
+            _nfcAdapter.setBeamPushUris(new Uri[]{uri}, this);
 
             // Show instructions
-            ImageView image = (ImageView) findViewById(R.id.beam_image_view);
-            assert image != null;
-            image.setImageResource(R.drawable.beam);
+            imageView.setImageResource(R.drawable.beam);
         }
     }
 
@@ -189,7 +196,7 @@ public class BeamActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 // Pretend NFC is not available
-                mNfcAdapter = null;
+                _nfcAdapter = null;
                 // Proceed with original intent
                 handleIntent(getIntent());
             }

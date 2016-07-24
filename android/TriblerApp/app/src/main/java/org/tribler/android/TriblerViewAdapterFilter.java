@@ -12,13 +12,13 @@ import java.util.List;
  */
 public class TriblerViewAdapterFilter extends Filter {
 
-    private FilterableRecyclerViewAdapter mAdapter;
-    private List<Object> mDataList;
+    private final FilterableRecyclerViewAdapter _adapter;
+    private final List<Object> _dataList;
 
     public TriblerViewAdapterFilter(FilterableRecyclerViewAdapter adapter, List<Object> list) {
         super();
-        mAdapter = adapter;
-        mDataList = list;
+        _adapter = adapter;
+        _dataList = list;
     }
 
     /**
@@ -27,7 +27,7 @@ public class TriblerViewAdapterFilter extends Filter {
     @Override
     protected ObjectListFilterResults performFiltering(CharSequence constraint) {
         // Copy data list to avoid concurrency issues while iterating over it
-        LinkedList<Object> dataList = new LinkedList<>(mDataList);
+        LinkedList<Object> dataList = new LinkedList<>(_dataList);
         ArrayList<Object> filteredList = new ArrayList<>();
         // Sanitize query
         String query = constraint.toString().trim().toLowerCase();
@@ -66,7 +66,7 @@ public class TriblerViewAdapterFilter extends Filter {
     protected void publishResults(CharSequence constraint, FilterResults results) {
         if (results instanceof ObjectListFilterResults) {
             ObjectListFilterResults listResults = (ObjectListFilterResults) results;
-            mAdapter.filterList(listResults.values, results.count < 10000);
+            _adapter.filterList(listResults.values, results.count < 10000);
         }
     }
 

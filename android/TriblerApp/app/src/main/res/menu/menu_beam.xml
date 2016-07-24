@@ -5,9 +5,10 @@
     android:layout_height="wrap_content">
 
     <item
-        android:id="@+id/btn_search"
-        android:title="@string/action_search_in_channel"
-        app:actionViewClass="android.support.v7.widget.SearchView"
+        android:id="@+id/btn_bluetooth"
+        android:icon="@drawable/ic_action_bluetooth"
+        android:onClick="btnBluetooth"
+        android:title="@string/action_send_app"
         app:showAsAction="always" />
 
 </menu>

@@ -20,7 +20,7 @@ import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScrol
 
 public class SearchActivity extends AppCompatActivity {
 
-    private SearchView searchView;
+    SearchView searchView;
 
     public SearchFragment getFragment() {
         FragmentManager fm = getFragmentManager();
@@ -119,7 +119,7 @@ public class SearchActivity extends AppCompatActivity {
         super.onCreateOptionsMenu(menu);
         // Add items to the action bar if it is present
         MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.activity_search_action_bar, menu);
+        inflater.inflate(R.menu.menu_search, menu);
 
         // Search button
         MenuItem btnSearch = menu.findItem(R.id.btn_search);

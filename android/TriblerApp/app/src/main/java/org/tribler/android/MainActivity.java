@@ -14,21 +14,18 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.AppCompatDelegate;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.Toast;
 
 import java.io.File;
 
-import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.Unbinder;
 
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
-    private static final String TAG = MainActivity.class.getSimpleName();
+public class MainActivity extends AppCompatActivity {
 
     public static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 200;
 
@@ -36,7 +33,30 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
     }
 
-    private NetworkReceiver networkReceiver;
+    private void initService() {
+        // Check network connection before starting service
+        if (NetworkReceiver.isNetworkConnected(this)) {
+            Triblerd.start(this); // Run normally
+            //Twistd.start(this); // Run profiler
+            //NoseTestService.start(this); // Run tests
+            //ExperimentService.start(this); // Run experiment
+        } else {
+            Toast.makeText(this, R.string.info_no_connection, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @BindView(R.id.toolbar)
+    Toolbar toolbar;
+
+    @BindView(R.id.drawer_layout)
+    DrawerLayout drawer;
+
+    @BindView(R.id.nav_view)
+    NavigationView navigationView;
+
+    private Unbinder _unbinder;
+    private ActionBarDrawerToggle _navToggle;
+    private NetworkReceiver _networkReceiver;
 
     /**
      * {@inheritDoc}
@@ -44,14 +64,32 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //Stetho.initializeWithDefaults(this); //DEBUG
-        initGui();
-        initService();
+        setContentView(R.layout.activity_main);
+        _unbinder = ButterKnife.bind(this);
+
+        // The action bar will automatically handle clicks on the Home/Up button,
+        // so long as you specify a parent activity in AndroidManifest.xml
+        setSupportActionBar(toolbar);
+
+        // Hamburger icon
+        _navToggle = new ActionBarDrawerToggle(this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        drawer.addDrawerListener(_navToggle);
+        _navToggle.syncState();
+
+        // Close navigation on item selected
+        navigationView.setNavigationItemSelectedListener(menuItem -> {
+            menuItem.getItemId();
+
+            drawer.closeDrawer(GravityCompat.START);
+            return true;
+        });
 
         // Registers BroadcastReceiver to track network connection changes
+        _networkReceiver = new NetworkReceiver();
         IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
-        networkReceiver = new NetworkReceiver();
-        this.registerReceiver(networkReceiver, filter);
+        registerReceiver(_networkReceiver, filter);
+
+        initService();
     }
 
     /**
@@ -60,122 +98,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Unregisters BroadcastReceiver when app is destroyed.
-        if (networkReceiver != null) {
-            this.unregisterReceiver(networkReceiver);
-        }
-    }
+        // Memory leak detection
+        TriblerApp.getRefWatcher(this).watch(this);
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        super.onCreateOptionsMenu(menu);
-        // Add items to the action bar if it is present
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.activity_main_action_bar, menu);
-
-        // Search button
-        MenuItem btnSearch = menu.findItem(R.id.btn_search);
-        assert btnSearch != null;
-        btnSearch.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(MenuItem menuItem) {
-                Intent intent = new Intent(MainActivity.this, SearchActivity.class);
-                startActivity(intent);
-                return true;
-            }
-        });
-
-        return true;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (requestCode == CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE) {
-
-            if (resultCode == Activity.RESULT_OK) {
-                Log.d(TAG, "Video saved to:\n" + data.getData());
-                //TODO: create torrent file and add to own channel
-            } else if (resultCode == Activity.RESULT_CANCELED) {
-
-            } else {
-                Toast.makeText(this, R.string.error_capture_video, Toast.LENGTH_LONG).show();
-            }
-        }
-    }
-
-    private void initService() {
-        if (NetworkReceiver.isNetworkConnected(this)) {
-
-            Triblerd.start(this); // Run normally
-            //Twistd.start(this); // Run profiler
-            //NoseTestService.start(this); // Run tests
-            //ExperimentService.start(this); // Run experiment
-
-        } else {
-            Toast.makeText(this, R.string.info_no_connection, Toast.LENGTH_LONG).show();
-        }
-    }
-
-    private void initGui() {
-        setContentView(R.layout.activity_main);
-
-        // Set action toolbar
-        Toolbar toolbar = (Toolbar) findViewById(R.id.activity_main_toolbar);
-        assert toolbar != null;
-        setSupportActionBar(toolbar);
-
-        // Set collapsible menu
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        assert drawer != null;
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.addDrawerListener(toggle);
-        toggle.syncState();
-
-        // Set main menu
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        assert navigationView != null;
-        navigationView.setNavigationItemSelectedListener(this);
-
-        // Set list view
-        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.list_recycler_view);
-        assert recyclerView != null;
-        // Improve performance
-        recyclerView.setHasFixedSize(true);
-
-        // Set fast scroller
-        VerticalRecyclerViewFastScroller fastScroller = (VerticalRecyclerViewFastScroller) findViewById(R.id.list_fast_scroller);
-        assert fastScroller != null;
-        // Connect the recycler to the scroller (to let the scroller scroll the list)
-        fastScroller.setRecyclerView(recyclerView);
-        // Connect the scroller to the recycler (to let the recycler scroll the scroller's handle)
-        recyclerView.addOnScrollListener(fastScroller.getOnScrollListener());
-        // Scroll to the current position of the layout manager
-        setRecyclerViewLayoutManager(recyclerView);
-    }
-
-    /**
-     * @param recyclerView Set the LayoutManager of this RecycleView
-     */
-    private void setRecyclerViewLayoutManager(RecyclerView recyclerView) {
-        int scrollPosition = 0;
-        LinearLayoutManager linearLayoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
-        // If a layout manager has already been set, get current scroll position.
-        if (linearLayoutManager != null) {
-            scrollPosition = linearLayoutManager.findFirstCompletelyVisibleItemPosition();
-        } else {
-            linearLayoutManager = new LinearLayoutManager(this);
-            recyclerView.setLayoutManager(linearLayoutManager);
-        }
-        recyclerView.scrollToPosition(scrollPosition);
+        drawer.removeDrawerListener(_navToggle);
+        _navToggle = null;
+        unregisterReceiver(_networkReceiver);
+        _networkReceiver = null;
+        _unbinder.unbind();
+        _unbinder = null;
     }
 
     /**
@@ -183,8 +114,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      */
     @Override
     public void onBackPressed() {
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        if (drawer != null && drawer.isDrawerOpen(GravityCompat.START)) {
+        if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
             super.onBackPressed();
@@ -195,86 +125,101 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
      * {@inheritDoc}
      */
     @Override
-    public boolean onNavigationItemSelected(MenuItem item) {
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        assert drawer != null;
-        drawer.closeDrawer(GravityCompat.START);
-
-        FragmentManager fm = getFragmentManager();
-
-        // Handle navigation view item clicks here
-        switch (item.getItemId()) {
-
-            case R.id.nav_subscribtions:
-                SubscribedFragment subscribedFragment = (SubscribedFragment) fm.findFragmentByTag(SubscribedFragment.TAG);
-                // If not retained (or first time running), we need to create it
-                if (subscribedFragment == null) {
-                    subscribedFragment = new SubscribedFragment();
-                    // Tell the framework to try to keep this fragment around during a configuration change
-                    subscribedFragment.setRetainInstance(true);
-                    fm.beginTransaction().addToBackStack(null).add(subscribedFragment, SubscribedFragment.TAG).commit();
-                }
-                subscribedFragment.getSubscriptions();
-                return true;
-
-            case R.id.nav_my_channel:
-
-                return true;
-
-            case R.id.nav_my_playlists:
-
-                return true;
-
-            case R.id.nav_popular:
-                DiscoveredFragment discoveredFragment = (DiscoveredFragment) fm.findFragmentByTag(DiscoveredFragment.TAG);
-                // If not retained (or first time running), we need to create it
-                if (discoveredFragment == null) {
-                    discoveredFragment = new DiscoveredFragment();
-                    // Tell the framework to try to keep this fragment around during a configuration change
-                    discoveredFragment.setRetainInstance(true);
-                    fm.beginTransaction().addToBackStack(null).add(discoveredFragment, DiscoveredFragment.TAG).commit();
-                }
-                discoveredFragment.getDiscoveredChannels();
-                return true;
-
-            case R.id.nav_capture_video:
-                // Check if device has camera
-                if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
-                    // Obtain output file
-                    File output = MyUtils.getOutputVideoFile(this);
-                    if (output == null) {
-                        Toast.makeText(this, R.string.error_output_file, Toast.LENGTH_LONG).show();
-                    }
-                    Intent captureIntent = MyUtils.captureVideo(Uri.fromFile(output));
-                    startActivityForResult(captureIntent, CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
-                }
-                return true;
-
-            case R.id.nav_beam:
-                File apk = new File(this.getPackageResourcePath());
-                Intent beamIntent = MyUtils.sendBeam(Uri.fromFile(apk), this);
-                startActivity(beamIntent);
-                return true;
-
-            case R.id.nav_settings:
-                Intent settingsIntent = new Intent(this, SettingsActivity.class);
-                startActivity(settingsIntent);
-                return true;
-
-            case R.id.nav_feedback:
-                CharSequence title = getText(R.string.app_feedback_url);
-                Uri uri = Uri.parse(title.toString());
-                Intent browserIntent = MyUtils.viewChooser(uri, title);
-                startActivity(browserIntent);
-                return true;
-
-            case R.id.nav_shutdown:
-                Triblerd.stop(this);
-                // Exit MainActivity
-                finish();
-                return true;
-        }
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        // Add items to the action bar (if it is present)
+        getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
 
+    public void btnSearch(MenuItem item) {
+        Intent intent = new Intent(this, SearchActivity.class);
+        startActivity(intent);
+    }
+
+    public void navSubscriptions(MenuItem item) {
+        FragmentManager fm = getFragmentManager();
+        SubscribedFragment subscribedFragment = (SubscribedFragment) fm.findFragmentByTag(SubscribedFragment.TAG);
+        // If not retained (or first time running), we need to create it
+        if (subscribedFragment == null) {
+            subscribedFragment = new SubscribedFragment();
+            // Tell the framework to try to keep this fragment around during a configuration change
+            subscribedFragment.setRetainInstance(true);
+            fm.beginTransaction().addToBackStack(null).add(subscribedFragment, SubscribedFragment.TAG).commit();
+        }
+        subscribedFragment.getSubscriptions();
+    }
+
+    public void navMyChannel(MenuItem item) {
+        //TODO: my channel
+    }
+
+    public void navMyPlaylists(MenuItem item) {
+    }
+
+    public void navPopular(MenuItem item) {
+        FragmentManager fm = getFragmentManager();
+        DiscoveredFragment discoveredFragment = new DiscoveredFragment();
+        final String tag = discoveredFragment.getClass().toString();
+        fm.beginTransaction().addToBackStack(tag)
+                .replace(android.R.id.content, discoveredFragment, tag)
+                .commit();
+        discoveredFragment.getDiscoveredChannels();
+    }
+
+    public void navCaptureVideo(MenuItem item) {
+        // Check if device has camera
+        if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
+            // Obtain output file
+            File output = MyUtils.getOutputVideoFile(this);
+            if (output == null) {
+                Toast.makeText(this, R.string.error_output_file, Toast.LENGTH_LONG).show();
+            }
+            Intent captureIntent = MyUtils.captureVideo(Uri.fromFile(output));
+            startActivityForResult(captureIntent, CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
+        }
+    }
+
+    public void navBeam(MenuItem item) {
+        File apk = new File(this.getPackageResourcePath());
+        Intent beamIntent = MyUtils.sendBeam(Uri.fromFile(apk), this);
+        startActivity(beamIntent);
+    }
+
+    public void navSettings(MenuItem item) {
+        Intent settingsIntent = new Intent(this, SettingsActivity.class);
+        startActivity(settingsIntent);
+    }
+
+    public void navFeedback(MenuItem item) {
+        CharSequence title = getText(R.string.app_feedback_url);
+        Uri uri = Uri.parse(title.toString());
+        Intent browserIntent = MyUtils.viewChooser(uri, title);
+        startActivity(browserIntent);
+    }
+
+    public void navShutdown(MenuItem item) {
+        Triblerd.stop(this);
+        // Exit MainActivity
+        finish();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        // Result of capture video
+        if (requestCode == CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE) {
+            if (resultCode == Activity.RESULT_OK) {
+                Toast.makeText(this, "Video saved to:\n" + data.getData(), Toast.LENGTH_LONG).show();
+                //TODO: create torrent file and add to own channel
+            } else if (resultCode == Activity.RESULT_CANCELED) {
+
+            } else {
+                Toast.makeText(this, R.string.error_capture_video, Toast.LENGTH_LONG).show();
+            }
+        }
+    }
 }

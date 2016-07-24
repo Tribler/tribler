@@ -6,8 +6,8 @@ import rx.subscriptions.CompositeSubscription;
 
 public class RetrofitFragment extends BaseFragment {
 
-    protected CompositeSubscription mCompositeSubscription;
-    protected IRestApi mService;
+    protected CompositeSubscription compositeSubscription;
+    protected IRestApi service;
 
     /**
      * {@inheritDoc}
@@ -15,11 +15,11 @@ public class RetrofitFragment extends BaseFragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mCompositeSubscription = new CompositeSubscription();
+        compositeSubscription = new CompositeSubscription();
 
         String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
         String authToken = getString(R.string.service_auth_token);
-        mService = TriblerService.createService(baseUrl, authToken);
+        service = TriblerService.createService(baseUrl, authToken);
     }
 
     /**
@@ -28,8 +28,8 @@ public class RetrofitFragment extends BaseFragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        mCompositeSubscription.unsubscribe();
-        mCompositeSubscription = null;
-        mService = null;
+        compositeSubscription.unsubscribe();
+        compositeSubscription = null;
+        service = null;
     }
 }

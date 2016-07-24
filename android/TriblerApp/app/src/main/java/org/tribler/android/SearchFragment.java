@@ -18,11 +18,11 @@ import static org.tribler.android.RestApiClient.BASE_URL;
 public class SearchFragment extends DefaultInteractionListFragment implements RestApiClient.EventListener {
     public static final String TAG = SearchFragment.class.getSimpleName();
 
-    private String mQuery;
+    private String _query;
 
-    private Call mSearchCall;
+    private Call _searchCall;
 
-    private Callback mSearchCallback = new Callback() {
+    private Callback _searchCallback = new Callback() {
 
         /**
          * {@inheritDoc}
@@ -51,24 +51,24 @@ public class SearchFragment extends DefaultInteractionListFragment implements Re
     };
 
     public void startSearch(String query) {
-        if (mSearchCall != null) {
-            mSearchCall.cancel();
+        if (_searchCall != null) {
+            _searchCall.cancel();
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    mAdapter.clear();
+                    adapter.clear();
                 }
             });
         }
-        mQuery = query;
+        _query = query;
 
         Request request = new Request.Builder()
                 .url(BASE_URL + "/search?q=" + Uri.encode(query))
                 .build();
 
-        mSearchCall = API.newCall(request);
+        _searchCall = API.newCall(request);
 
-        mSearchCall.enqueue(mSearchCallback);
+        _searchCall.enqueue(_searchCallback);
     }
 
     /**
@@ -87,11 +87,11 @@ public class SearchFragment extends DefaultInteractionListFragment implements Re
 
     @Override
     public void onSearchResultChannel(String query, final TriblerChannel result) {
-        if (mQuery.equalsIgnoreCase(query)) {
+        if (_query.equalsIgnoreCase(query)) {
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    mAdapter.addObject(result);
+                    adapter.addObject(result);
                 }
             });
         } else {
@@ -101,11 +101,11 @@ public class SearchFragment extends DefaultInteractionListFragment implements Re
 
     @Override
     public void onSearchResultTorrent(String query, final TriblerTorrent result) {
-        if (mQuery.equalsIgnoreCase(query)) {
+        if (_query.equalsIgnoreCase(query)) {
             getActivity().runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    mAdapter.addObject(result);
+                    adapter.addObject(result);
                 }
             });
         } else {

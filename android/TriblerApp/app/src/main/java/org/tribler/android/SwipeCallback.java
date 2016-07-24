@@ -5,14 +5,14 @@ import android.support.v7.widget.helper.ItemTouchHelper;
 
 public class SwipeCallback extends ItemTouchHelper.SimpleCallback {
 
-    private final TriblerViewAdapter.OnSwipeListener mListener;
+    private final TriblerViewAdapter.OnSwipeListener _swipeListener;
 
     /**
      * Swipe left and right
      */
     public SwipeCallback(final TriblerViewAdapter.OnSwipeListener listener) {
         super(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT);
-        mListener = listener;
+        _swipeListener = listener;
     }
 
     /**
@@ -20,25 +20,25 @@ public class SwipeCallback extends ItemTouchHelper.SimpleCallback {
      */
     @Override
     public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
-        if (mListener == null) {
+        if (_swipeListener == null) {
             return;
         }
         // Swipe channel
         if (viewHolder instanceof TriblerViewAdapter.ChannelViewHolder) {
             TriblerChannel channel = ((TriblerViewAdapter.ChannelViewHolder) viewHolder).channel;
             if (swipeDir == ItemTouchHelper.LEFT) {
-                mListener.onSwipedLeft(channel);
+                _swipeListener.onSwipedLeft(channel);
             } else if (swipeDir == ItemTouchHelper.RIGHT) {
-                mListener.onSwipedRight(channel);
+                _swipeListener.onSwipedRight(channel);
             }
         }
         // Swipe torrent
         else if (viewHolder instanceof TriblerViewAdapter.TorrentViewHolder) {
             TriblerTorrent torrent = ((TriblerViewAdapter.TorrentViewHolder) viewHolder).torrent;
             if (swipeDir == ItemTouchHelper.LEFT) {
-                mListener.onSwipedLeft(torrent);
+                _swipeListener.onSwipedLeft(torrent);
             } else if (swipeDir == ItemTouchHelper.RIGHT) {
-                mListener.onSwipedRight(torrent);
+                _swipeListener.onSwipedRight(torrent);
             }
         }
     }

@@ -1,28 +1,26 @@
 package org.tribler.android;
 
-
 import android.app.Application;
+import android.content.Context;
 
 import com.squareup.leakcanary.LeakCanary;
 import com.squareup.leakcanary.RefWatcher;
 
 public class TriblerApp extends Application {
 
-    private static TriblerApp instance;
-    private RefWatcher mRefWatcher;
-
-    public static TriblerApp getInstance() {
-        return instance;
+    public static RefWatcher getRefWatcher(Context context) {
+        TriblerApp application = (TriblerApp) context.getApplicationContext();
+        return application._refWatcher;
     }
 
-    public RefWatcher getRefWatcher() {
-        return mRefWatcher;
-    }
+    private RefWatcher _refWatcher;
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onCreate() {
         super.onCreate();
-        instance = (TriblerApp) getApplicationContext();
-        mRefWatcher = LeakCanary.install(this);
+        _refWatcher = LeakCanary.install(this);
     }
 }

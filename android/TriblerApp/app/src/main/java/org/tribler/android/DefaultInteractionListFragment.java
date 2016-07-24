@@ -43,7 +43,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onSwipedRight(final TriblerChannel channel) {
-        mAdapter.removeObject(channel);
+        adapter.removeObject(channel);
 
         if (channel.isSubscribed()) {
             Toast.makeText(getActivity(), channel.getName() + ' ' + getText(R.string.info_subscribe_already), Toast.LENGTH_LONG).show();
@@ -88,7 +88,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onSwipedLeft(final TriblerChannel channel) {
-        mAdapter.removeObject(channel);
+        adapter.removeObject(channel);
 
         if (!channel.isSubscribed()) {
             //TODO: idea: never see channel again?
@@ -135,7 +135,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onSwipedRight(final TriblerTorrent torrent) {
-        mAdapter.removeObject(torrent);
+        adapter.removeObject(torrent);
         //TODO: watch later
         Toast.makeText(getActivity(), "watch later", Toast.LENGTH_LONG).show();
     }
@@ -145,7 +145,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onSwipedLeft(final TriblerTorrent torrent) {
-        mAdapter.removeObject(torrent);
+        adapter.removeObject(torrent);
         //TODO: not interested
         //TODO: idea: never see torrent again?
         Toast.makeText(getActivity(), "not interested", Toast.LENGTH_LONG).show();
