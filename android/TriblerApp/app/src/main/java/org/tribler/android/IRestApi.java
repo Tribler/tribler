@@ -13,9 +13,9 @@ public interface IRestApi {
     @GET("/events")
     Observable<List<TriblerEvent>> getEventStream();
 
-    @GET("/search?q={url_encoded_query}")
+    @GET("/search?q={query}")
     Observable<QueriedAck> startSearch(
-            @Path("url_encoded_query") String url_encoded_query
+            @Path("query") String query
     );
 
     @GET("/channels/discovered")
@@ -23,7 +23,7 @@ public interface IRestApi {
 
     @GET("/channels/discovered/{dispersy_cid}/torrents")
     Observable<List<TriblerTorrent>> getTorrents(
-            @Path("dispersy_cid") String dispersy_cid
+            @Path("dispersy_cid") String dispersyCid
     );
 
     @GET("/channels/subscribed")
@@ -31,11 +31,11 @@ public interface IRestApi {
 
     @PUT("/channels/subscribed/{dispersy_cid}")
     Observable<SubscribedAck> subscribe(
-            @Path("dispersy_cid") String dispersy_cid
+            @Path("dispersy_cid") String dispersyCid
     );
 
     @DELETE("/channels/subscribed/{dispersy_cid}")
     Observable<UnsubscribedAck> unsubscribe(
-            @Path("dispersy_cid") String dispersy_cid
+            @Path("dispersy_cid") String dispersyCid
     );
 }

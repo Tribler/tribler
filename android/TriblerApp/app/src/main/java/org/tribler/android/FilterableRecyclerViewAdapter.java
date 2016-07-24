@@ -60,7 +60,7 @@ public abstract class FilterableRecyclerViewAdapter extends RecyclerView.Adapter
     }
 
     /**
-     * @param object The object to add to the adapter list
+     * @param object The object to add to the data set and filtered list
      * @return True if the object is successfully added, false otherwise
      */
     public boolean addObject(Object object) {
@@ -72,7 +72,7 @@ public abstract class FilterableRecyclerViewAdapter extends RecyclerView.Adapter
     }
 
     /**
-     * @param object The object to remove from the adapter list
+     * @param object The object to remove from the data set and filtered list
      * @return True if the object is successfully removed, false otherwise
      */
     public boolean removeObject(Object object) {
@@ -87,7 +87,7 @@ public abstract class FilterableRecyclerViewAdapter extends RecyclerView.Adapter
     }
 
     /**
-     * @param object The object to refresh the view of in the adapter list
+     * @param object The object to refresh the view of in the filtered list
      * @return True if the view of the item is successfully refreshed, false otherwise
      */
     public boolean notifyObjectChanged(Object object) {
@@ -100,7 +100,7 @@ public abstract class FilterableRecyclerViewAdapter extends RecyclerView.Adapter
     }
 
     /**
-     * @param adapterPosition The position in the adapter list
+     * @param adapterPosition The position in the filtered list
      * @return The object on the given adapter position
      */
     protected Object getObject(int adapterPosition) {
@@ -108,8 +108,8 @@ public abstract class FilterableRecyclerViewAdapter extends RecyclerView.Adapter
     }
 
     /**
-     * @param adapterPosition The position in the adapter list of where to insert the item
-     * @param item            The item to insert to the adapter list
+     * @param adapterPosition The position in the filtered list of where to insert the item
+     * @param item            The item to insert to the filtered list
      */
     private void insertItem(int adapterPosition, Object item) {
         _filteredDataList.add(adapterPosition, item);
@@ -117,7 +117,7 @@ public abstract class FilterableRecyclerViewAdapter extends RecyclerView.Adapter
     }
 
     /**
-     * @param adapterPosition The position of the item in adapter list to remove
+     * @param adapterPosition The position of the item in filtered list to remove
      */
     private void removeItem(int adapterPosition) {
         _filteredDataList.remove(adapterPosition);
@@ -125,12 +125,12 @@ public abstract class FilterableRecyclerViewAdapter extends RecyclerView.Adapter
     }
 
     /**
-     * @param fromPosition The position in the adapter list of the item to move from
-     * @param toPosition   The position in the adapter list of the item to move to
+     * @param fromPosition The position in the filtered list of the item to move from
+     * @param toPosition   The position in the filtered list of the item to move to
      */
     private void moveItem(int fromPosition, int toPosition) {
-        Object model = _filteredDataList.remove(fromPosition);
-        _filteredDataList.add(toPosition, model);
+        Object item = _filteredDataList.remove(fromPosition);
+        _filteredDataList.add(toPosition, item);
         notifyItemMoved(fromPosition, toPosition);
     }
 }

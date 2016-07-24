@@ -9,7 +9,7 @@ import android.view.MenuItem;
 
 public class ChannelActivity extends BaseActivity {
 
-    public static final String EXTRA_DISPERSY_CID = "dispersy.CID";
+    public static final String EXTRA_DISPERSY_CID = "org.tribler.android.dispersy.CID";
 
     /**
      * {@inheritDoc}
