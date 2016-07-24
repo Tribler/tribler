@@ -170,7 +170,7 @@ public class MainActivity extends BaseActivity {
         getFragmentManager().beginTransaction().addToBackStack(tag)
                 .replace(R.id.fragment_main, fragment, tag)
                 .commit();
-        fragment.getDiscoveredChannels();
+        fragment.getChannels();
     }
 
     public void navCaptureVideo(@Nullable MenuItem item) {

@@ -5,8 +5,7 @@ import android.util.Log;
 
 import org.tribler.android.restapi.json.TriblerTorrent;
 
-import java.util.List;
-
+import rx.Observable;
 import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
@@ -20,22 +19,19 @@ public class ChannelFragment extends ListFragment {
         subscriptions.add(service.getTorrents(Uri.encode(dispersyCid))
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<List<TriblerTorrent>>() {
+                .flatMap(response -> Observable.from(response.getTorrents()))
+                .subscribe(new Observer<TriblerTorrent>() {
 
-                    public void onNext(List<TriblerTorrent> torrents) {
-                        for (TriblerTorrent torrent : torrents) {
-                            adapter.addObject(torrent);
-                        }
+                    public void onNext(TriblerTorrent torrent) {
+                        adapter.addObject(torrent);
                     }
 
                     public void onCompleted() {
-                        Log.d(TAG, "Retrofit call 1 completed");
                     }
 
                     public void onError(Throwable e) {
-                        Log.e(TAG, "Oops! We got an error while getting the list of contributors", e);
+                        Log.e(TAG, "getTorrents", e);
                     }
                 }));
     }
-
 }

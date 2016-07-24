@@ -2,8 +2,10 @@ package org.tribler.android;
 
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 
 import org.tribler.android.restapi.RestApiClient;
+import org.tribler.android.restapi.json.QueriedAck;
 import org.tribler.android.restapi.json.TriblerChannel;
 import org.tribler.android.restapi.json.TriblerTorrent;
 
@@ -12,14 +14,33 @@ import java.io.IOException;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Headers;
-import okhttp3.Request;
 import okhttp3.Response;
+import rx.Observer;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.schedulers.Schedulers;
 
-import static org.tribler.android.restapi.RestApiClient.API;
-import static org.tribler.android.restapi.RestApiClient.BASE_URL;
+public class SearchFragment extends ListFragment implements RestApiClient.EventListener {
+    public static final String TAG = DiscoveredFragment.class.getSimpleName();
 
-public class SearchFragment extends DefaultInteractionListFragment implements RestApiClient.EventListener {
-    public static final String TAG = SearchFragment.class.getSimpleName();
+    public void startSearch(String query) {
+        adapter.clear();
+
+        subscriptions.add(service.startSearch(Uri.encode(query))
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<QueriedAck>() {
+
+                    public void onNext(QueriedAck response) {
+                    }
+
+                    public void onCompleted() {
+                    }
+
+                    public void onError(Throwable e) {
+                        Log.e(TAG, "getSubscribedChannels", e);
+                    }
+                }));
+    }
 
     private String _query;
 
@@ -52,27 +73,6 @@ public class SearchFragment extends DefaultInteractionListFragment implements Re
             System.out.println(response.body().string());
         }
     };
-
-    public void startSearch(String query) {
-        if (_searchCall != null) {
-            _searchCall.cancel();
-            getActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    adapter.clear();
-                }
-            });
-        }
-        _query = query;
-
-        Request request = new Request.Builder()
-                .url(BASE_URL + "/search?q=" + Uri.encode(query))
-                .build();
-
-        _searchCall = API.newCall(request);
-
-        _searchCall.enqueue(_searchCallback);
-    }
 
     /**
      * {@inheritDoc}
