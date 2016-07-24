@@ -2,6 +2,7 @@ package org.tribler.android;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v7.app.ActionBar;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
@@ -40,6 +41,10 @@ public class ChannelActivity extends BaseActivity {
         // The action bar will automatically handle clicks on the Home/Up button,
         // so long as you specify a parent activity in AndroidManifest.xml
         setSupportActionBar(toolbar);
+        ActionBar actionbar = getSupportActionBar();
+        if (actionbar != null) {
+            actionbar.setDisplayHomeAsUpEnabled(true);
+        }
 
         handleIntent(getIntent());
     }
@@ -58,7 +63,11 @@ public class ChannelActivity extends BaseActivity {
             String cid = intent.getStringExtra(EXTRA_DISPERSY_CID);
             getFragment().getTorrents(cid);
 
-            toolbar.setTitle(intent.getStringExtra(Intent.EXTRA_TITLE));
+            // Set title
+            ActionBar actionBar = getSupportActionBar();
+            if (actionBar != null) {
+                actionBar.setTitle(intent.getStringExtra(Intent.EXTRA_TITLE));
+            }
         }
     }
 

@@ -4,6 +4,7 @@ import android.app.SearchManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v7.app.ActionBar;
 import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
@@ -41,6 +42,10 @@ public class SearchActivity extends BaseActivity {
         // The action bar will automatically handle clicks on the Home/Up button,
         // so long as you specify a parent activity in AndroidManifest.xml
         setSupportActionBar(toolbar);
+        ActionBar actionbar = getSupportActionBar();
+        if (actionbar != null) {
+            actionbar.setDisplayHomeAsUpEnabled(true);
+        }
 
         handleIntent(getIntent());
     }
