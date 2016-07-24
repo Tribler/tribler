@@ -6,10 +6,7 @@
     android:columnCount="2"
     android:fitsSystemWindows="true"
     android:orientation="vertical"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
+    android:padding="@dimen/nav_header_padding"
     android:rowCount="2"
     android:theme="@style/AppTheme.AppBarOverlay">
 
@@ -19,7 +16,7 @@
         android:layout_height="wrap_content"
         android:layout_column="1"
         android:layout_gravity="end"
-        android:layout_marginTop="@dimen/text_margin"
+        android:layout_marginTop="@dimen/nav_logo_margin_top"
         android:layout_row="0"
         android:layout_rowSpan="2"
         android:src="@mipmap/ic_launcher" />

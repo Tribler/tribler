@@ -15,7 +15,7 @@
 
     <xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller
         android:id="@+id/list_fast_scroller"
-        android:layout_width="@dimen/scrollbar_width"
+        android:layout_width="@dimen/fast_scrollbar_width"
         android:layout_height="match_parent"
         android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
