@@ -42,9 +42,8 @@ htmlcov/
 # Android
 *.apk
 
-/android/TriblerService/service/typescript
-/android/TriblerService/service/ffmpeg
 /android/TriblerService/dist
+/android/TriblerService/typescript
 
 /android/TriblerApp/app/src/main/jniLibs
 /android/TriblerApp/app/src/main/jni/include/python2.7
