@@ -4,6 +4,8 @@ import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -17,12 +19,12 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class AppUtils {
+public class MyUtils {
 
     /**
      * Static class
      */
-    private AppUtils() {
+    private MyUtils() {
     }
 
     private static RefWatcher _refWatcher;
@@ -114,4 +116,26 @@ public class AppUtils {
         return new File(videoDir, "VID_" + timeStamp + ".mp4");
     }
 
+    public static boolean isNetworkConnected(Context ctx) {
+        ConnectivityManager connectivityManager =
+                (ConnectivityManager) ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+        if (networkInfo == null) {
+            // No connection
+            return false;
+        }
+        switch (networkInfo.getType()) {
+            case ConnectivityManager.TYPE_ETHERNET:
+            case ConnectivityManager.TYPE_WIFI:
+                return true;
+            case ConnectivityManager.TYPE_BLUETOOTH:
+            case ConnectivityManager.TYPE_DUMMY:
+            case ConnectivityManager.TYPE_MOBILE:
+            case ConnectivityManager.TYPE_MOBILE_DUN:
+            case ConnectivityManager.TYPE_VPN:
+            case ConnectivityManager.TYPE_WIMAX:
+            default:
+                return false;
+        }
+    }
 }

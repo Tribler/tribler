@@ -2,7 +2,9 @@ package org.tribler.android;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -38,16 +40,16 @@ public class MainActivity extends BaseActivity {
 
     private void initService() {
         // Check network connection before starting service
-        //if (NetworkReceiver.isNetworkConnected(this)) {
+        if (MyUtils.isNetworkConnected(this)) {
 
-        Triblerd.start(this); // Run normally
-        //Twistd.start(this); // Run profiler
-        //NoseTestService.start(this); // Run tests
-        //ExperimentService.start(this); // Run experiment
+            Triblerd.start(this); // Run normally
+            //Twistd.start(this); // Run profiler
+            //NoseTestService.start(this); // Run tests
+            //ExperimentService.start(this); // Run experiment
 
-        //} else {
-        //    Toast.makeText(this, R.string.info_no_connection, Toast.LENGTH_LONG).show();
-        //}
+        } else {
+            Toast.makeText(this, R.string.info_no_connection, Toast.LENGTH_LONG).show();
+        }
     }
 
     @BindView(R.id.drawer_layout)
@@ -57,7 +59,7 @@ public class MainActivity extends BaseActivity {
     NavigationView navigationView;
 
     private ActionBarDrawerToggle _navToggle;
-    //private NetworkReceiver _networkReceiver;
+    private ConnectivityReceiver _connectivityReceiver;
 
     /**
      * {@inheritDoc}
@@ -74,12 +76,13 @@ public class MainActivity extends BaseActivity {
 
         //Stetho.initializeWithDefaults(this); //DEBUG
 
-        // Registers BroadcastReceiver to track network connection changes
-        //_networkReceiver = new NetworkReceiver();
-        //IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
-        //registerReceiver(_networkReceiver, filter);
+        // Listen for connectivity changes
+        _connectivityReceiver = new ConnectivityReceiver();
+        IntentFilter intentFilter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
+        registerReceiver(_connectivityReceiver, intentFilter);
 
         initService();
+
         handleIntent(getIntent());
     }
 
@@ -91,8 +94,8 @@ public class MainActivity extends BaseActivity {
         drawer.removeDrawerListener(_navToggle);
         super.onDestroy();
         _navToggle = null;
-        //unregisterReceiver(_networkReceiver);
-        //_networkReceiver = null;
+        unregisterReceiver(_connectivityReceiver);
+        _connectivityReceiver = null;
     }
 
     /**
@@ -199,11 +202,11 @@ public class MainActivity extends BaseActivity {
         // Check if device has camera
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             // Obtain output file
-            File output = AppUtils.getOutputVideoFile(this);
+            File output = MyUtils.getOutputVideoFile(this);
             if (output == null) {
                 Toast.makeText(this, R.string.error_output_file, Toast.LENGTH_LONG).show();
             }
-            Intent captureIntent = AppUtils.captureVideo(Uri.fromFile(output));
+            Intent captureIntent = MyUtils.captureVideo(Uri.fromFile(output));
             startActivityForResult(captureIntent, CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
         }
     }
@@ -211,7 +214,7 @@ public class MainActivity extends BaseActivity {
     public void navBeamClicked(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         File apk = new File(this.getPackageResourcePath());
-        Intent beamIntent = AppUtils.sendBeam(Uri.fromFile(apk), this);
+        Intent beamIntent = MyUtils.sendBeam(Uri.fromFile(apk), this);
         startActivity(beamIntent);
     }
 
@@ -223,7 +226,7 @@ public class MainActivity extends BaseActivity {
         drawer.closeDrawer(GravityCompat.START);
         CharSequence title = getText(R.string.app_feedback_url);
         Uri uri = Uri.parse(title.toString());
-        Intent browserIntent = AppUtils.viewChooser(uri, title);
+        Intent browserIntent = MyUtils.viewChooser(uri, title);
         startActivity(browserIntent);
     }
 

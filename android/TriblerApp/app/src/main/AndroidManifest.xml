@@ -52,14 +52,14 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <!-- receiver
-            android:name=".NetworkReceiver"
+        <receiver
+            android:name=".ConnectivityReceiver"
             android:label="Network connection">
             <intent-filter>
                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
                 <action android:name="android.net.wifi.WIFI_STATE_CHANGED" />
             </intent-filter>
-        </receiver -->
+        </receiver>
 
         <service
             android:name=".service.Triblerd"
