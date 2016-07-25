@@ -12,6 +12,9 @@ import rx.schedulers.Schedulers;
 
 public class DiscoveredFragment extends DefaultInteractionListFragment {
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

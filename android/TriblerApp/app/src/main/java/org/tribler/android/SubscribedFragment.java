@@ -1,11 +1,7 @@
 package org.tribler.android;
 
 import android.os.Bundle;
-import android.support.annotation.Nullable;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 
 import org.tribler.android.restapi.json.TriblerChannel;
 
@@ -20,12 +16,9 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
      * {@inheritDoc}
      */
     @Override
-    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = super.onCreateView(inflater, container, savedInstanceState);
-
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
         loadSubscriptions();
-
-        return view;
     }
 
     public void loadSubscriptions() {
