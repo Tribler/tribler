@@ -153,7 +153,7 @@ public class MainActivity extends BaseActivity {
         drawer.closeDrawer(GravityCompat.START);
         SubscribedFragment fragment = new SubscribedFragment();
         String tag = fragment.getClass().toString();
-        getFragmentManager().beginTransaction().addToBackStack(tag)
+        getSupportFragmentManager().beginTransaction().addToBackStack(tag)
                 .replace(R.id.fragment_main, fragment, tag)
                 .commit();
     }
@@ -171,7 +171,7 @@ public class MainActivity extends BaseActivity {
         drawer.closeDrawer(GravityCompat.START);
         DiscoveredFragment fragment = new DiscoveredFragment();
         String tag = fragment.getClass().toString();
-        getFragmentManager().beginTransaction().addToBackStack(tag)
+        getSupportFragmentManager().beginTransaction().addToBackStack(tag)
                 .replace(R.id.fragment_main, fragment, tag)
                 .commit();
     }

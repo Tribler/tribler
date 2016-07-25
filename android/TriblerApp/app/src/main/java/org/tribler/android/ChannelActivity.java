@@ -27,7 +27,7 @@ public class ChannelActivity extends BaseActivity {
 
             // Get torrents for channel
             ChannelFragment channelFragment = (ChannelFragment)
-                    getFragmentManager().findFragmentById(R.id.fragment_channel);
+                    getSupportFragmentManager().findFragmentById(R.id.fragment_channel);
             channelFragment.loadTorrents(cid);
 
             // Set title
@@ -65,7 +65,7 @@ public class ChannelActivity extends BaseActivity {
             @Override
             public boolean onQueryTextChange(String query) {
                 ChannelFragment channelFragment = (ChannelFragment)
-                        getFragmentManager().findFragmentById(R.id.fragment_channel);
+                        getSupportFragmentManager().findFragmentById(R.id.fragment_channel);
                 channelFragment.adapter.getFilter().filter(query);
                 return true;
             }
