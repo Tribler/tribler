@@ -76,7 +76,7 @@ public class BeamActivity extends BaseActivity {
         return true;
     }
 
-    public void btnBluetooth(@Nullable MenuItem item) {
+    public void btnBluetoothClicked(@Nullable MenuItem item) {
         // Fetch uri of file to send
         Uri uri = getIntent().getParcelableExtra(Intent.EXTRA_STREAM);
         // Send via other means

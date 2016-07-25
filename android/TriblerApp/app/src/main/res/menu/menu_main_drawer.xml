@@ -5,23 +5,23 @@
         <item
             android:id="@+id/nav_subscriptions"
             android:icon="@drawable/ic_menu_star"
-            android:onClick="navSubscriptions"
+            android:onClick="navSubscriptionsClicked"
             android:title="@string/action_subscribtions" />
         <item
             android:id="@+id/nav_my_channel"
             android:icon="@drawable/ic_menu_me"
-            android:onClick="navMyChannel"
+            android:onClick="navMyChannelClicked"
             android:title="@string/action_my_channel" />
         <item
             android:id="@+id/nav_my_playlists"
             android:icon="@drawable/ic_menu_playlists"
-            android:onClick="navMyPlaylists"
+            android:onClick="navMyPlaylistsClicked"
             android:title="@string/action_playlists"
             android:visible="false" />
         <item
             android:id="@+id/nav_popular"
             android:icon="@drawable/ic_menu_flame"
-            android:onClick="navPopular"
+            android:onClick="navPopularClicked"
             android:title="@string/action_browse_channels" />
     </group>
 
@@ -30,7 +30,7 @@
             <item
                 android:id="@+id/nav_capture_video"
                 android:icon="@drawable/ic_menu_video_camera"
-                android:onClick="navCaptureVideo"
+                android:onClick="navCaptureVideoClicked"
                 android:title="@string/action_capture_video" />
         </menu>
     </item>
@@ -40,23 +40,23 @@
             <item
                 android:id="@+id/nav_beam"
                 android:icon="@drawable/ic_menu_beam"
-                android:onClick="navBeam"
+                android:onClick="navBeamClicked"
                 android:title="@string/action_send_app" />
             <item
                 android:id="@+id/nav_settings"
                 android:icon="@drawable/ic_menu_settings"
-                android:onClick="navSettings"
+                android:onClick="navSettingsClicked"
                 android:title="@string/action_settings"
                 android:visible="false" />
             <item
                 android:id="@+id/nav_feedback"
                 android:icon="@drawable/ic_menu_send"
-                android:onClick="navFeedback"
+                android:onClick="navFeedbackClicked"
                 android:title="@string/action_feedback" />
             <item
                 android:id="@+id/nav_shutdown"
                 android:icon="@drawable/ic_menu_shutdown"
-                android:onClick="navShutdown"
+                android:onClick="navShutdownClicked"
                 android:title="@string/action_shutdown" />
         </menu>
     </item>

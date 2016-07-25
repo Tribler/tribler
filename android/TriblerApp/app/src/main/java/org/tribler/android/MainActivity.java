@@ -148,7 +148,7 @@ public class MainActivity extends BaseActivity {
         return true;
     }
 
-    public void btnSearch(@Nullable MenuItem item) {
+    public void btnSearchClicked(@Nullable MenuItem item) {
         Intent intent = new Intent(this, SearchActivity.class);
         startActivity(intent);
     }
@@ -175,26 +175,26 @@ public class MainActivity extends BaseActivity {
         }
     }
 
-    public void navSubscriptions(@Nullable MenuItem item) throws InstantiationException, IllegalAccessException {
+    public void navSubscriptionsClicked(@Nullable MenuItem item) throws InstantiationException, IllegalAccessException {
         drawer.closeDrawer(GravityCompat.START);
         switchFragment(SubscribedFragment.class);
     }
 
-    public void navMyChannel(@Nullable MenuItem item) {
+    public void navMyChannelClicked(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         //TODO: my channel
     }
 
-    public void navMyPlaylists(@Nullable MenuItem item) {
+    public void navMyPlaylistsClicked(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
     }
 
-    public void navPopular(@Nullable MenuItem item) throws InstantiationException, IllegalAccessException {
+    public void navPopularClicked(@Nullable MenuItem item) throws InstantiationException, IllegalAccessException {
         drawer.closeDrawer(GravityCompat.START);
         switchFragment(DiscoveredFragment.class);
     }
 
-    public void navCaptureVideo(@Nullable MenuItem item) {
+    public void navCaptureVideoClicked(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         // Check if device has camera
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
@@ -208,20 +208,20 @@ public class MainActivity extends BaseActivity {
         }
     }
 
-    public void navBeam(@Nullable MenuItem item) {
+    public void navBeamClicked(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         File apk = new File(this.getPackageResourcePath());
         Intent beamIntent = AppUtils.sendBeam(Uri.fromFile(apk), this);
         startActivity(beamIntent);
     }
 
-    public void navSettings(@Nullable MenuItem item) {
+    public void navSettingsClicked(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         Intent settingsIntent = new Intent(this, SettingsActivity.class);
         startActivity(settingsIntent);
     }
 
-    public void navFeedback(@Nullable MenuItem item) {
+    public void navFeedbackClicked(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         CharSequence title = getText(R.string.app_feedback_url);
         Uri uri = Uri.parse(title.toString());
@@ -229,7 +229,7 @@ public class MainActivity extends BaseActivity {
         startActivity(browserIntent);
     }
 
-    public void navShutdown(@Nullable MenuItem item) {
+    public void navShutdownClicked(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         // Shutdown service
         String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
