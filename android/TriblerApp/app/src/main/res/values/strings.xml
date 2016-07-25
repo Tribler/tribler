@@ -10,6 +10,7 @@
     <string name="title_create_content">Create new content</string>
 
     <string name="title_activity_main">@string/app_name</string>
+    <string name="title_activity_beam">@string/action_send_app</string>
     <string name="title_activity_settings">@string/action_settings</string>
 
     <string name="navigation_drawer_open">Open menu</string>
