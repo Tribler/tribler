@@ -3,7 +3,6 @@ package org.tribler.android;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,7 +33,40 @@ public class ListFragment extends RetrofitFragment {
 
     private Unbinder _unbinder;
     protected IListFragmentInteractionListener interactionListener;
-    protected FilterableRecyclerViewAdapter adapter;
+    protected TriblerViewAdapter adapter;
+
+    public IListFragmentInteractionListener getInteractionListener() {
+        return interactionListener;
+    }
+
+    public void setInteractionListener(IListFragmentInteractionListener listener) {
+        interactionListener = listener;
+        // onAttach is called before onCreate
+        if (adapter != null) {
+            adapter.setClickListener(interactionListener);
+            adapter.setSwipeListener(interactionListener);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        adapter = new TriblerViewAdapter(new ArrayList<>());
+        adapter.setClickListener(interactionListener);
+        adapter.setSwipeListener(interactionListener);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        adapter = null;
+    }
 
     /**
      * {@inheritDoc}
@@ -43,9 +75,7 @@ public class ListFragment extends RetrofitFragment {
     public void onAttach(Context context) {
         super.onAttach(context);
         if (context instanceof IListFragmentInteractionListener) {
-            interactionListener = (IListFragmentInteractionListener) context;
-        } else {
-            interactionListener = null;
+            setInteractionListener((IListFragmentInteractionListener) context);
         }
     }
 
@@ -55,7 +85,7 @@ public class ListFragment extends RetrofitFragment {
     @Override
     public void onDetach() {
         super.onDetach();
-        interactionListener = null;
+        setInteractionListener(null);
     }
 
     /**
@@ -68,17 +98,12 @@ public class ListFragment extends RetrofitFragment {
 
         // Optimize performance
         recyclerView.setHasFixedSize(true);
-
         // Let the recycler view show the adapter list
-        adapter = new TriblerViewAdapter(new ArrayList<>(), interactionListener, interactionListener);
         recyclerView.setAdapter(adapter);
-
         // Let the fast scroller scroll the recycler view
         fastScroller.setRecyclerView(recyclerView);
         // Let the recycler view scroll the scroller's handle
         recyclerView.addOnScrollListener(fastScroller.getOnScrollListener());
-        // Scroll to the current position of the layout manager
-        //setRecyclerViewLayoutManager(recyclerView);
 
         return view;
     }
@@ -90,25 +115,8 @@ public class ListFragment extends RetrofitFragment {
     public void onDestroyView() {
         super.onDestroyView();
         recyclerView.setAdapter(null);
-        adapter = null;
         _unbinder.unbind();
         _unbinder = null;
-    }
-
-    /**
-     * @param recyclerView Set the LayoutManager of this RecycleView
-     */
-    private void setRecyclerViewLayoutManager(RecyclerView recyclerView) {
-        int scrollPosition = 0;
-        LinearLayoutManager linearLayoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
-        // If a layout manager has already been set, get current scroll position
-        if (linearLayoutManager != null) {
-            scrollPosition = linearLayoutManager.findFirstCompletelyVisibleItemPosition();
-        } else {
-            linearLayoutManager = new LinearLayoutManager(getActivity());
-            recyclerView.setLayoutManager(linearLayoutManager);
-        }
-        recyclerView.scrollToPosition(scrollPosition);
     }
 
     /**

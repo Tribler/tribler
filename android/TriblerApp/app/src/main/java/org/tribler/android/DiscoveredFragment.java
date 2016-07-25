@@ -17,16 +17,10 @@ import rx.schedulers.Schedulers;
 public class DiscoveredFragment extends DefaultInteractionListFragment {
     public static final String TAG = DiscoveredFragment.class.getSimpleName();
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = super.onCreateView(inflater, container, savedInstanceState);
-
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
         loadDiscoveredChannels();
-
-        return view;
     }
 
     public void loadDiscoveredChannels() {

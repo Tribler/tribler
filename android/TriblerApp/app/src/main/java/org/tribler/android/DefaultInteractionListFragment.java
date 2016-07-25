@@ -27,7 +27,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     public void onAttach(Context context) {
         super.onAttach(context);
         _context = context;
-        interactionListener = this;
+        setInteractionListener(this);
     }
 
     /**

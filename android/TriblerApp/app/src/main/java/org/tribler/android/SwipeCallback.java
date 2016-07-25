@@ -8,14 +8,21 @@ import org.tribler.android.restapi.json.TriblerTorrent;
 
 public class SwipeCallback extends ItemTouchHelper.SimpleCallback {
 
-    private final TriblerViewAdapter.OnSwipeListener _swipeListener;
+    protected TriblerViewAdapter.OnSwipeListener swipeListener;
 
     /**
      * Swipe left and right
      */
-    public SwipeCallback(final TriblerViewAdapter.OnSwipeListener listener) {
+    public SwipeCallback() {
         super(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT);
-        _swipeListener = listener;
+    }
+
+    public TriblerViewAdapter.OnSwipeListener getSwipeListener() {
+        return swipeListener;
+    }
+
+    public void setSwipeListener(TriblerViewAdapter.OnSwipeListener listener) {
+        swipeListener = listener;
     }
 
     /**
@@ -23,25 +30,25 @@ public class SwipeCallback extends ItemTouchHelper.SimpleCallback {
      */
     @Override
     public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
-        if (_swipeListener == null) {
+        if (swipeListener == null) {
             return;
         }
         // Swipe channel
         if (viewHolder instanceof TriblerViewAdapter.ChannelViewHolder) {
             TriblerChannel channel = ((TriblerViewAdapter.ChannelViewHolder) viewHolder).channel;
             if (swipeDir == ItemTouchHelper.LEFT) {
-                _swipeListener.onSwipedLeft(channel);
+                swipeListener.onSwipedLeft(channel);
             } else if (swipeDir == ItemTouchHelper.RIGHT) {
-                _swipeListener.onSwipedRight(channel);
+                swipeListener.onSwipedRight(channel);
             }
         }
         // Swipe torrent
         else if (viewHolder instanceof TriblerViewAdapter.TorrentViewHolder) {
             TriblerTorrent torrent = ((TriblerViewAdapter.TorrentViewHolder) viewHolder).torrent;
             if (swipeDir == ItemTouchHelper.LEFT) {
-                _swipeListener.onSwipedLeft(torrent);
+                swipeListener.onSwipedLeft(torrent);
             } else if (swipeDir == ItemTouchHelper.RIGHT) {
-                _swipeListener.onSwipedRight(torrent);
+                swipeListener.onSwipedRight(torrent);
             }
         }
     }
