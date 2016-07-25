@@ -2,9 +2,12 @@ package org.tribler.android;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
+import org.tribler.android.restapi.IRestApi;
+import org.tribler.android.restapi.TriblerService;
 import org.tribler.android.restapi.json.SubscribedAck;
 import org.tribler.android.restapi.json.TriblerChannel;
 import org.tribler.android.restapi.json.TriblerTorrent;
@@ -18,6 +21,28 @@ import rx.schedulers.Schedulers;
 public class DefaultInteractionListFragment extends ListFragment implements ListFragment.IListFragmentInteractionListener {
 
     private Context _context;
+    protected IRestApi service;
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
+        String authToken = getString(R.string.service_auth_token);
+        service = TriblerService.createService(baseUrl, authToken);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        service = null;
+    }
 
     /**
      * {@inheritDoc}
@@ -71,7 +96,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
             return;
         }
 
-        subscriptions.add(service.subscribe(channel.getDispersyCid())
+        rxSubs.add(service.subscribe(channel.getDispersyCid())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<SubscribedAck>() {
@@ -106,7 +131,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
             return;
         }
 
-        subscriptions.add(service.unsubscribe(channel.getDispersyCid())
+        rxSubs.add(service.unsubscribe(channel.getDispersyCid())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<UnsubscribedAck>() {

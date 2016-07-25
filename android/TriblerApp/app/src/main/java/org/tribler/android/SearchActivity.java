@@ -9,6 +9,14 @@ import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.jakewharton.rxbinding.support.v7.widget.RxSearchView;
+import com.jakewharton.rxbinding.support.v7.widget.SearchViewQueryTextEvent;
+
+import java.util.concurrent.TimeUnit;
+
+import rx.Observer;
+import rx.android.schedulers.AndroidSchedulers;
+
 public class SearchActivity extends BaseActivity {
 
     /**
@@ -26,7 +34,7 @@ public class SearchActivity extends BaseActivity {
             String query = intent.getStringExtra(SearchManager.QUERY);
 
             // Show voice search query
-            SearchView searchView = (SearchView) findViewById(R.id.btn_search);
+            SearchView searchView = (SearchView) findViewById(R.id.search_view);
             if (searchView != null) {
                 searchView.setQuery(query, false);
                 searchView.clearFocus();
@@ -35,7 +43,7 @@ public class SearchActivity extends BaseActivity {
             // Start search
             SearchFragment searchFragment = (SearchFragment)
                     getSupportFragmentManager().findFragmentById(R.id.fragment_search);
-            searchFragment.startSearch(query);
+            searchFragment.service.startSearch(query);
         }
     }
 
@@ -49,46 +57,49 @@ public class SearchActivity extends BaseActivity {
         getMenuInflater().inflate(R.menu.menu_search, menu);
 
         // Search button
-        MenuItem btnSearch = menu.findItem(R.id.btn_search);
+        MenuItem btnSearch = menu.findItem(R.id.search_view);
         SearchView searchView = (SearchView) btnSearch.getActionView();
         // Set hint and enable voice search
         SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
         // Show search input field
         searchView.setIconified(false);
+        // Never close search view
+        searchView.setOnCloseListener(() -> {
+            // Override default behaviour with return true
+            return true;
+        });
         // Restore last query
         String query = getIntent().getStringExtra(SearchManager.QUERY);
         if (!TextUtils.isEmpty(query)) {
             searchView.setQuery(query, false);
             searchView.clearFocus();
         }
-        // Never close search view
-        searchView.setOnCloseListener(() -> {
-            // Override default behaviour with return true
-            return true;
-        });
-        // Search on submit
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public boolean onQueryTextSubmit(String query) {
-                Intent intent = new Intent(SearchActivity.this, SearchActivity.class);
-                intent.setAction(Intent.ACTION_SEARCH);
-                intent.putExtra(SearchManager.QUERY, query);
-                onNewIntent(intent);
-                return true;
-            }
 
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public boolean onQueryTextChange(String newText) {
-                return false;
-            }
-        });
+        // Start search on query text change with debounce
+        rxSubs.add(RxSearchView.queryTextChangeEvents(searchView)
+                .debounce(400, TimeUnit.MILLISECONDS)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<SearchViewQueryTextEvent>() {
+
+                    public void onNext(SearchViewQueryTextEvent event) {
+                        String query = event.queryText().toString();
+
+                        if (!TextUtils.isEmpty(query)) {
+                            // Replace current intent
+                            Intent intent = new Intent(SearchActivity.this, SearchActivity.class);
+                            intent.setAction(Intent.ACTION_SEARCH);
+                            intent.putExtra(SearchManager.QUERY, query);
+                            onNewIntent(intent);
+                        }
+                    }
+
+                    public void onCompleted() {
+                    }
+
+                    public void onError(Throwable e) {
+                    }
+                }));
 
         return true;
     }

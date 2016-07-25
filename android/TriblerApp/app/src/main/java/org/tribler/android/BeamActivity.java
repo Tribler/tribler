@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.nfc.NfcAdapter;
-import android.nfc.NfcEvent;
 import android.nfc.NfcManager;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -35,12 +34,9 @@ public class BeamActivity extends BaseActivity {
             NfcManager nfcManager = (NfcManager) getSystemService(Context.NFC_SERVICE);
             _nfcAdapter = nfcManager.getDefaultAdapter();
 
-            _nfcAdapter.setOnNdefPushCompleteCallback(new NfcAdapter.OnNdefPushCompleteCallback() {
-                @Override
-                public void onNdefPushComplete(NfcEvent nfcEvent) {
-                    // Exit BeamActivity
-                    finish();
-                }
+            _nfcAdapter.setOnNdefPushCompleteCallback(nfcEvent -> {
+                // Exit BeamActivity
+                finish();
             }, this);
         }
     }
@@ -80,7 +76,7 @@ public class BeamActivity extends BaseActivity {
         // Fetch uri of file to send
         Uri uri = getIntent().getParcelableExtra(Intent.EXTRA_STREAM);
         // Send via other means
-        Intent chooserIntent = AppUtils.sendChooser(uri, getText(R.string.dialog_send_chooser));
+        Intent chooserIntent = MyUtils.sendChooser(uri, getText(R.string.dialog_send_chooser));
         handleIntent(chooserIntent);
     }
 
@@ -111,7 +107,7 @@ public class BeamActivity extends BaseActivity {
                     doMyBeam(uri);
                 } else {
                     // Send intent to use method preferred by user
-                    Intent sendIntent = AppUtils.sendIntent(uri);
+                    Intent sendIntent = MyUtils.sendIntent(uri);
                     startActivity(sendIntent);
                 }
                 return;

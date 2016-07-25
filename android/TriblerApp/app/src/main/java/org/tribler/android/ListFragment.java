@@ -14,8 +14,6 @@ import org.tribler.android.restapi.json.TriblerTorrent;
 import java.util.ArrayList;
 
 import butterknife.BindView;
-import butterknife.ButterKnife;
-import butterknife.Unbinder;
 import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
 
 /**
@@ -23,7 +21,7 @@ import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScrol
  * Activities containing this fragment MUST implement the {@link IListFragmentInteractionListener}
  * interface.
  */
-public class ListFragment extends RetrofitFragment {
+public class ListFragment extends ViewFragment {
 
     @BindView(R.id.list_recycler_view)
     RecyclerView recyclerView;
@@ -31,7 +29,6 @@ public class ListFragment extends RetrofitFragment {
     @BindView(R.id.list_fast_scroller)
     VerticalRecyclerViewFastScroller fastScroller;
 
-    private Unbinder _unbinder;
     protected IListFragmentInteractionListener interactionListener;
     protected TriblerViewAdapter adapter;
 
@@ -40,6 +37,9 @@ public class ListFragment extends RetrofitFragment {
         return interactionListener;
     }
 
+    /**
+     * @param listener IListFragmentInteractionListener that will listen to the adapter events
+     */
     public void setInteractionListener(@Nullable IListFragmentInteractionListener listener) {
         interactionListener = listener;
         // onAttach is called before onCreate
@@ -94,8 +94,15 @@ public class ListFragment extends RetrofitFragment {
      */
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_list_fast_scroller, container, false);
-        _unbinder = ButterKnife.bind(this, view);
+        return inflater.inflate(R.layout.fragment_list_fast_scroller, container, false);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
         // Optimize performance
         recyclerView.setHasFixedSize(true);
@@ -105,8 +112,6 @@ public class ListFragment extends RetrofitFragment {
         fastScroller.setRecyclerView(recyclerView);
         // Let the recycler view scroll the scroller's handle
         recyclerView.addOnScrollListener(fastScroller.getOnScrollListener());
-
-        return view;
     }
 
     /**
@@ -114,10 +119,8 @@ public class ListFragment extends RetrofitFragment {
      */
     @Override
     public void onDestroyView() {
-        super.onDestroyView();
         recyclerView.setAdapter(null);
-        _unbinder.unbind();
-        _unbinder = null;
+        super.onDestroyView();
     }
 
     /**

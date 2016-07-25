@@ -24,10 +24,10 @@ public class DiscoveredFragment extends DefaultInteractionListFragment {
     public void loadDiscoveredChannels() {
         adapter.clear();
 
-        subscriptions.add(service.getDiscoveredChannels()
+        rxSubs.add(service.getDiscoveredChannels()
                 .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
                 .flatMap(response -> Observable.from(response.getChannels()))
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<TriblerChannel>() {
 
                     public void onNext(TriblerChannel channel) {

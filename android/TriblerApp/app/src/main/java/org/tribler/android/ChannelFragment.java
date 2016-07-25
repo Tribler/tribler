@@ -14,10 +14,10 @@ public class ChannelFragment extends DefaultInteractionListFragment {
     public void loadTorrents(String dispersyCid) {
         adapter.clear();
 
-        subscriptions.add(service.getTorrents(dispersyCid)
+        rxSubs.add(service.getTorrents(dispersyCid)
                 .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
                 .flatMap(response -> Observable.from(response.getTorrents()))
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<TriblerTorrent>() {
 
                     public void onNext(TriblerTorrent torrent) {

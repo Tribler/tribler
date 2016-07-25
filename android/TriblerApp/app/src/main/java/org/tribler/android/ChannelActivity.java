@@ -48,8 +48,8 @@ public class ChannelActivity extends BaseActivity {
         getMenuInflater().inflate(R.menu.menu_channel, menu);
 
         // Search button
-        MenuItem btnSearch = menu.findItem(R.id.btn_search);
-        SearchView searchView = (SearchView) btnSearch.getActionView();
+        MenuItem btnFilter = menu.findItem(R.id.btn_filter);
+        SearchView searchView = (SearchView) btnFilter.getActionView();
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             /**
              * {@inheritDoc}
@@ -80,7 +80,7 @@ public class ChannelActivity extends BaseActivity {
     @Override
     public void onBackPressed() {
         // Close search if open
-        SearchView searchView = (SearchView) findViewById(R.id.btn_search);
+        SearchView searchView = (SearchView) findViewById(R.id.btn_filter);
         if (!searchView.isIconified()) {
             searchView.setIconified(true);
         } else {

@@ -1,6 +1,7 @@
 package org.tribler.android;
 
 import android.content.Intent;
+import android.os.Bundle;
 import android.support.annotation.LayoutRes;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
@@ -8,30 +9,27 @@ import android.support.v7.widget.Toolbar;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import butterknife.Unbinder;
+import rx.subscriptions.CompositeSubscription;
 
+/**
+ * Use ButterKnife to automatically bind fields.
+ * <p>
+ * Use RxJava CompositeSubscription to automatically un-subscribe onDestroy.
+ */
 public abstract class BaseActivity extends AppCompatActivity {
 
     @BindView(R.id.toolbar)
     Toolbar toolbar;
 
-    private Unbinder _unbinder;
+    protected CompositeSubscription rxSubs;
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void setContentView(@LayoutRes int layoutResID) {
-        super.setContentView(layoutResID);
-        _unbinder = ButterKnife.bind(this);
-
-        // The action bar will automatically handle clicks on the Home/Up button,
-        // so long as you specify a parent activity in AndroidManifest.xml
-        setSupportActionBar(toolbar);
-        ActionBar actionbar = getSupportActionBar();
-        if (actionbar != null && layoutResID != R.layout.activity_main) {
-            actionbar.setDisplayHomeAsUpEnabled(true);
-        }
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        rxSubs = new CompositeSubscription();
     }
 
     /**
@@ -41,10 +39,27 @@ public abstract class BaseActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         // Memory leak detection
-        AppUtils.getRefWatcher(this).watch(this);
+        MyUtils.getRefWatcher(this).watch(this);
 
-        _unbinder.unbind();
-        _unbinder = null;
+        rxSubs.unsubscribe();
+        rxSubs = null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setContentView(@LayoutRes int layoutResID) {
+        super.setContentView(layoutResID);
+        ButterKnife.bind(this);
+
+        // The action bar will automatically handle clicks on the Home/Up button,
+        // so long as you specify a parent activity in AndroidManifest.xml
+        setSupportActionBar(toolbar);
+        ActionBar actionbar = getSupportActionBar();
+        if (actionbar != null && layoutResID != R.layout.activity_main) {
+            actionbar.setDisplayHomeAsUpEnabled(true);
+        }
     }
 
     /**

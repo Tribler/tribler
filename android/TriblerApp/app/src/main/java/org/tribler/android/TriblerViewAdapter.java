@@ -49,10 +49,16 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
         return _swipeCallback.getSwipeListener();
     }
 
+    /**
+     * @param listener OnClickListener that will listen to the view items being clicked
+     */
     public void setClickListener(@Nullable OnClickListener listener) {
         _clickListener = listener;
     }
 
+    /**
+     * @param listener OnSwipeListener that will listen to the view items being swiped
+     */
     public void setSwipeListener(@Nullable OnSwipeListener listener) {
         _swipeCallback.setSwipeListener(listener);
     }

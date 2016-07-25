@@ -26,7 +26,7 @@ import okhttp3.Response;
 
 @Deprecated
 public class RestApiClient {
-    public static final String TAG = SearchFragment.class.getSimpleName();
+    private static final String TAG = SearchFragment.class.getSimpleName();
 
     private static final Gson GSON = new Gson();
 
