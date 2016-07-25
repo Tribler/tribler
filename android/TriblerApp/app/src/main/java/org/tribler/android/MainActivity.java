@@ -217,8 +217,6 @@ public class MainActivity extends BaseActivity {
 
     public void navSettingsClicked(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
-        Intent settingsIntent = new Intent(this, SettingsActivity.class);
-        startActivity(settingsIntent);
     }
 
     public void navFeedbackClicked(@Nullable MenuItem item) {

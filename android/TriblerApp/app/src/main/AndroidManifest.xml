@@ -103,10 +103,6 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".SettingsActivity"
-            android:label="@string/title_activity_settings"
-            android:parentActivityName=".MainActivity" />
-        <activity
             android:name=".BeamActivity"
             android:label="@string/title_activity_beam"
             android:parentActivityName=".MainActivity"
