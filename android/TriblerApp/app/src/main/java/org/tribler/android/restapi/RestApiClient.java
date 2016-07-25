@@ -2,6 +2,7 @@ package org.tribler.android.restapi;
 
 import android.util.Log;
 
+import com.facebook.stetho.okhttp3.StethoInterceptor;
 import com.google.gson.Gson;
 
 import org.tribler.android.SearchFragment;
@@ -20,7 +21,6 @@ import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.ConnectionPool;
 import okhttp3.Headers;
-import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -29,63 +29,33 @@ import okhttp3.Response;
 public class RestApiClient {
     public static final String TAG = SearchFragment.class.getSimpleName();
 
-    public static final String BASE_URL = "http://127.0.0.1:8088";
-
-    public static final MediaType TYPE_JSON = MediaType.parse("application/json; charset=utf-8");
-
-    public static final OkHttpClient API = new OkHttpClient.Builder()
-            .connectionPool(new ConnectionPool(10, 10, TimeUnit.MINUTES))
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
-            .retryOnConnectionFailure(true)
-            .build();
+    private static final Gson GSON = new Gson();
 
     private static final OkHttpClient EVENTS = new OkHttpClient.Builder()
             .connectionPool(new ConnectionPool(1, 60, TimeUnit.MINUTES))
             .connectTimeout(1, TimeUnit.MINUTES)
             .readTimeout(60, TimeUnit.MINUTES)
             .writeTimeout(30, TimeUnit.SECONDS)
+            .addNetworkInterceptor(new StethoInterceptor()) //DEBUG
             .build();
 
-    private static final Gson GSON = new Gson();
-
     /**
-     * Don't instantiate; all members and methods are static.
+     * Static class
      */
     private RestApiClient() {
-    }
-
-    public interface EventListener {
-
-        /**
-         * An indication that the event socket is opened and that the server is ready to push events
-         */
-        void onEventsStart();
-
-        /**
-         * This event dictionary contains a search result with a channel that has been found
-         */
-        void onSearchResultChannel(String query, TriblerChannel result);
-
-        /**
-         * This event dictionary contains a search result with a torrent that has been found
-         */
-        void onSearchResultTorrent(String query, TriblerTorrent result);
-
     }
 
     private static WeakReference<EventListener> mEventListener;
 
     public static void setEventListener(EventListener listener) {
-        mEventListener = new WeakReference<EventListener>(listener);
+        mEventListener = new WeakReference<>(listener);
         // Start listening
         openEvents();
     }
 
     private static void openEvents() {
         Request request = new Request.Builder()
-                .url(BASE_URL + "/events")
+                .url("http://127.0.0.1:8088/events")
                 .build();
 
         Log.d(TAG, "**************   (RE)CONNECT   ******************");
@@ -176,4 +146,22 @@ public class RestApiClient {
         }
     }
 
+    public interface EventListener {
+
+        /**
+         * An indication that the event socket is opened and that the server is ready to push events
+         */
+        void onEventsStart();
+
+        /**
+         * This event dictionary contains a search result with a channel that has been found
+         */
+        void onSearchResultChannel(String query, TriblerChannel result);
+
+        /**
+         * This event dictionary contains a search result with a torrent that has been found
+         */
+        void onSearchResultTorrent(String query, TriblerTorrent result);
+
+    }
 }

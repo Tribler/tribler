@@ -17,6 +17,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import com.facebook.stetho.Stetho;
+
 import org.tribler.android.restapi.IRestApi;
 import org.tribler.android.restapi.TriblerService;
 import org.tribler.android.service.Triblerd;
@@ -71,6 +73,8 @@ public class MainActivity extends BaseActivity {
         _navToggle = new ActionBarDrawerToggle(this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(_navToggle);
         _navToggle.syncState();
+
+        Stetho.initializeWithDefaults(this); //DEBUG
 
         // Registers BroadcastReceiver to track network connection changes
         //_networkReceiver = new NetworkReceiver();
