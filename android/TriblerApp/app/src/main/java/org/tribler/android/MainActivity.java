@@ -123,7 +123,7 @@ public class MainActivity extends BaseActivity {
         // Result of capture video
         if (requestCode == CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE) {
             if (resultCode == Activity.RESULT_OK) {
-                Toast.makeText(this, "Video saved to:\n" + data.getData(), Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Video saved to: " + data.getData(), Toast.LENGTH_LONG).show();
                 //TODO: create torrent file and add to own channel
             } else if (resultCode == Activity.RESULT_CANCELED) {
 
