@@ -1,19 +1,28 @@
 package org.tribler.android;
 
 import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v7.widget.SearchView;
+import android.text.TextUtils;
 import android.util.Log;
+import android.view.View;
 
-import org.tribler.android.restapi.RestApiClient;
+import com.jakewharton.rxbinding.support.v7.widget.RxSearchView;
+
 import org.tribler.android.restapi.json.QueriedAck;
-import org.tribler.android.restapi.json.TriblerChannel;
-import org.tribler.android.restapi.json.TriblerTorrent;
 
+import java.util.concurrent.TimeUnit;
+
+import butterknife.BindView;
 import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
-public class SearchFragment extends DefaultInteractionListFragment implements RestApiClient.EventListener {
+public class SearchFragment extends DefaultInteractionListFragment {
     public static final String TAG = DiscoveredFragment.class.getSimpleName();
+
+    @BindView(R.id.btn_search)
+    SearchView searchView;
 
     public void startSearch(String query) {
         adapter.clear();
@@ -35,34 +44,19 @@ public class SearchFragment extends DefaultInteractionListFragment implements Re
                 }));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        RestApiClient.setEventListener(this);
-    }
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
-    @Override
-    public void onEventsStart() {
-
-    }
-
-    @Override
-    public void onSearchResultChannel(String query, final TriblerChannel result) {
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                adapter.addObject(result);
-            }
-        });
-    }
-
-    @Override
-    public void onSearchResultTorrent(String query, final TriblerTorrent result) {
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                adapter.addObject(result);
-            }
-        });
+        RxSearchView.queryTextChangeEvents(searchView)
+                .subscribeOn(Schedulers.computation())
+                .observeOn(AndroidSchedulers.mainThread())
+                .debounce(400, TimeUnit.MILLISECONDS)
+                .map(event -> searchView.getQuery())
+                .filter(TextUtils::isEmpty)
+                .doOnNext(query -> startSearch(query.toString()));
     }
 }
