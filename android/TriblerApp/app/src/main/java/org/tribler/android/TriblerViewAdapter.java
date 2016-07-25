@@ -1,6 +1,7 @@
 package org.tribler.android;
 
 import android.net.Uri;
+import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.view.LayoutInflater;
@@ -38,19 +39,21 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
         _touchHelper = new ItemTouchHelper(_swipeCallback);
     }
 
+    @Nullable
     public OnClickListener getClickListener() {
         return _clickListener;
     }
 
+    @Nullable
     public OnSwipeListener getSwipeListener() {
         return _swipeCallback.getSwipeListener();
     }
 
-    public void setClickListener(OnClickListener listener) {
+    public void setClickListener(@Nullable OnClickListener listener) {
         _clickListener = listener;
     }
 
-    public void setSwipeListener(OnSwipeListener listener) {
+    public void setSwipeListener(@Nullable OnSwipeListener listener) {
         _swipeCallback.setSwipeListener(listener);
     }
 

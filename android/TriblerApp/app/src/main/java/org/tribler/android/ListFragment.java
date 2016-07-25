@@ -35,11 +35,12 @@ public class ListFragment extends RetrofitFragment {
     protected IListFragmentInteractionListener interactionListener;
     protected TriblerViewAdapter adapter;
 
+    @Nullable
     public IListFragmentInteractionListener getInteractionListener() {
         return interactionListener;
     }
 
-    public void setInteractionListener(IListFragmentInteractionListener listener) {
+    public void setInteractionListener(@Nullable IListFragmentInteractionListener listener) {
         interactionListener = listener;
         // onAttach is called before onCreate
         if (adapter != null) {
@@ -55,8 +56,8 @@ public class ListFragment extends RetrofitFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         adapter = new TriblerViewAdapter(new ArrayList<>());
-        adapter.setClickListener(interactionListener);
-        adapter.setSwipeListener(interactionListener);
+        // Side effects
+        setInteractionListener(interactionListener);
     }
 
     /**

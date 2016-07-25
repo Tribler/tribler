@@ -1,5 +1,6 @@
 package org.tribler.android;
 
+import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
 
@@ -17,11 +18,12 @@ public class SwipeCallback extends ItemTouchHelper.SimpleCallback {
         super(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT);
     }
 
+    @Nullable
     public TriblerViewAdapter.OnSwipeListener getSwipeListener() {
         return swipeListener;
     }
 
-    public void setSwipeListener(TriblerViewAdapter.OnSwipeListener listener) {
+    public void setSwipeListener(@Nullable TriblerViewAdapter.OnSwipeListener listener) {
         swipeListener = listener;
     }
 
