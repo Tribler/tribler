@@ -166,10 +166,10 @@ public class MainActivity extends BaseActivity {
             Fragment fragment = fragmentManager.findFragmentByTag(tag);
             if (fragment == null) {
                 fragment = (Fragment) newFragmentClass.newInstance();
+                fragment.setRetainInstance(true);
             }
             fragmentManager
                     .beginTransaction()
-                    .addToBackStack(tag)
                     .replace(R.id.fragment_main, fragment, tag)
                     .commit();
         }
@@ -244,11 +244,14 @@ public class MainActivity extends BaseActivity {
                     }
 
                     public void onCompleted() {
-                        // Service shuts down without properly closing the stream, resulting in
-                        // java.io.IOException: unexpected end of stream
+                        // Stop MainActivity
+                        finish();
                     }
 
                     public void onError(Throwable e) {
+                        // Kill process
+                        Triblerd.stop(MainActivity.this);
+
                         // Stop MainActivity
                         finish();
                     }
