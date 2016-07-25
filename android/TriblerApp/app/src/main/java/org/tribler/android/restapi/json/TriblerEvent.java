@@ -1,9 +1,8 @@
 package org.tribler.android.restapi.json;
 
-/**
- * Deserialization of JSON event
- */
-public class TriblerEvent {
+import java.io.Serializable;
+
+public class TriblerEvent implements Serializable {
 
     private String type;
     private Object event;

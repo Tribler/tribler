@@ -1,9 +1,8 @@
 package org.tribler.android.restapi.json;
 
-/**
- * Deserialization of JSON channels response
- */
-public class ChannelsResponse {
+import java.io.Serializable;
+
+public class ChannelsResponse implements Serializable {
 
     private TriblerChannel[] channels;
 

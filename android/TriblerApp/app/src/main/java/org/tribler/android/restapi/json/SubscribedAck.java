@@ -1,9 +1,8 @@
 package org.tribler.android.restapi.json;
 
-/**
- * Deserialization of JSON channel subscribe acknowledgement
- */
-public class SubscribedAck {
+import java.io.Serializable;
+
+public class SubscribedAck implements Serializable {
 
     private boolean subscribed;
 

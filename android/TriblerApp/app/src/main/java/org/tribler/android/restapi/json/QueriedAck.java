@@ -1,9 +1,8 @@
 package org.tribler.android.restapi.json;
 
-/**
- * Deserialization of JSON search queried acknowledgement
- */
-public class QueriedAck {
+import java.io.Serializable;
+
+public class QueriedAck implements Serializable {
 
     private boolean queried;
 

@@ -1,9 +1,8 @@
 package org.tribler.android.restapi.json;
 
-/**
- * Deserialization of JSON search result channel event
- */
-public class SearchResultChannelEvent {
+import java.io.Serializable;
+
+public class SearchResultChannelEvent implements Serializable {
 
     private String query;
     private TriblerChannel result;

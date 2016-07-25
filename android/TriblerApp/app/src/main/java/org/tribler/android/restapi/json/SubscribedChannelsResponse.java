@@ -1,9 +1,8 @@
 package org.tribler.android.restapi.json;
 
-/**
- * Deserialization of JSON subscribed channels response
- */
-public class SubscribedChannelsResponse {
+import java.io.Serializable;
+
+public class SubscribedChannelsResponse implements Serializable {
 
     private TriblerChannel[] subscribed;
 
