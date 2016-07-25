@@ -2,7 +2,6 @@ package org.tribler.android.restapi;
 
 import android.util.Log;
 
-import com.facebook.stetho.okhttp3.StethoInterceptor;
 import com.google.gson.Gson;
 
 import org.tribler.android.SearchFragment;
@@ -36,7 +35,7 @@ public class RestApiClient {
             .connectTimeout(1, TimeUnit.MINUTES)
             .readTimeout(60, TimeUnit.MINUTES)
             .writeTimeout(30, TimeUnit.SECONDS)
-            .addNetworkInterceptor(new StethoInterceptor()) //DEBUG
+            //.addNetworkInterceptor(new StethoInterceptor()) //DEBUG
             .build();
 
     /**
