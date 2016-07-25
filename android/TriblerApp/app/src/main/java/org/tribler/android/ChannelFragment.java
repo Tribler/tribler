@@ -10,7 +10,6 @@ import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
 public class ChannelFragment extends DefaultInteractionListFragment {
-    public static final String TAG = ChannelFragment.class.getSimpleName();
 
     public void loadTorrents(String dispersyCid) {
         adapter.clear();
@@ -29,7 +28,7 @@ public class ChannelFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e(TAG, "getTorrents", e);
+                        Log.e("ChannelFragment", "loadTorrents", e);
                     }
                 }));
     }

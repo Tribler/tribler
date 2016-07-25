@@ -1,11 +1,7 @@
 package org.tribler.android;
 
 import android.os.Bundle;
-import android.support.annotation.Nullable;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 
 import org.tribler.android.restapi.json.TriblerChannel;
 
@@ -15,7 +11,6 @@ import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
 public class DiscoveredFragment extends DefaultInteractionListFragment {
-    public static final String TAG = DiscoveredFragment.class.getSimpleName();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -40,7 +35,7 @@ public class DiscoveredFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e(TAG, "loadDiscoveredChannels", e);
+                        Log.e("DiscoveredFragment", "loadDiscoveredChannels", e);
                     }
                 }));
     }

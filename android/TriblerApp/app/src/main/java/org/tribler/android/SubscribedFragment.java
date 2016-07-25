@@ -15,7 +15,6 @@ import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
 public class SubscribedFragment extends DefaultInteractionListFragment {
-    public static final String TAG = DiscoveredFragment.class.getSimpleName();
 
     /**
      * {@inheritDoc}
@@ -46,7 +45,7 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e(TAG, "getSubscribedChannels", e);
+                        Log.e("SubscribedFragment", "loadSubscriptions", e);
                     }
                 }));
     }

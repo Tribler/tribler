@@ -16,7 +16,6 @@ import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
 public class DefaultInteractionListFragment extends ListFragment implements ListFragment.IListFragmentInteractionListener {
-    public static final String TAG = DefaultInteractionListFragment.class.getSimpleName();
 
     private Context _context;
 
@@ -88,7 +87,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                         if (e instanceof HttpException && ((HttpException) e).code() == 409) {
                             Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_subscribe_already), Toast.LENGTH_SHORT).show();
                         } else {
-                            Log.e(TAG, "subscribe", e);
+                            Log.e("onSwipedRight", "subscribe", e);
                             Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_subscribe_failure), Toast.LENGTH_LONG).show();
                         }
                     }
@@ -123,7 +122,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                         if (e instanceof HttpException && ((HttpException) e).code() == 404) {
                             Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_unsubscribe_already), Toast.LENGTH_SHORT).show();
                         } else {
-                            Log.e(TAG, "unsubscribe", e);
+                            Log.e("onSwipedLeft", "unsubscribe", e);
                             Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_unsubscribe_failure), Toast.LENGTH_LONG).show();
                         }
                     }

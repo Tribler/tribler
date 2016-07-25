@@ -155,21 +155,31 @@ public class MainActivity extends BaseActivity {
         startActivity(intent);
     }
 
-    public void navSubscriptions(@Nullable MenuItem item) {
-        drawer.closeDrawer(GravityCompat.START);
+    /**
+     * @param newFragmentClass The desired fragment class
+     */
+    private void switchFragment(Class newFragmentClass) throws IllegalAccessException, InstantiationException {
         FragmentManager fragmentManager = getSupportFragmentManager();
-        Fragment fragment = fragmentManager.findFragmentById(R.id.fragment_main);
-        if (!(fragment instanceof SubscribedFragment)) {
-            fragment = fragmentManager.findFragmentByTag(SubscribedFragment.TAG);
+        // Check if current fragment is desired fragment
+        Fragment current = fragmentManager.findFragmentById(R.id.fragment_main);
+        if (!newFragmentClass.isInstance(current)) {
+            String tag = newFragmentClass.getSimpleName();
+            // Check if desired fragment is already instantiated
+            Fragment fragment = fragmentManager.findFragmentByTag(tag);
             if (fragment == null) {
-                fragment = new SubscribedFragment();
+                fragment = (Fragment) newFragmentClass.newInstance();
             }
             fragmentManager
                     .beginTransaction()
-                    .addToBackStack(SubscribedFragment.TAG)
-                    .replace(R.id.fragment_main, fragment, SubscribedFragment.TAG)
+                    .addToBackStack(tag)
+                    .replace(R.id.fragment_main, fragment, tag)
                     .commit();
         }
+    }
+
+    public void navSubscriptions(@Nullable MenuItem item) throws InstantiationException, IllegalAccessException {
+        drawer.closeDrawer(GravityCompat.START);
+        switchFragment(SubscribedFragment.class);
     }
 
     public void navMyChannel(@Nullable MenuItem item) {
@@ -181,21 +191,9 @@ public class MainActivity extends BaseActivity {
         drawer.closeDrawer(GravityCompat.START);
     }
 
-    public void navPopular(@Nullable MenuItem item) {
+    public void navPopular(@Nullable MenuItem item) throws InstantiationException, IllegalAccessException {
         drawer.closeDrawer(GravityCompat.START);
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        Fragment fragment = fragmentManager.findFragmentById(R.id.fragment_main);
-        if (!(fragment instanceof DiscoveredFragment)) {
-            fragment = fragmentManager.findFragmentByTag(DiscoveredFragment.TAG);
-            if (fragment == null) {
-                fragment = new DiscoveredFragment();
-            }
-            fragmentManager
-                    .beginTransaction()
-                    .addToBackStack(DiscoveredFragment.TAG)
-                    .replace(R.id.fragment_main, fragment, DiscoveredFragment.TAG)
-                    .commit();
-        }
+        switchFragment(DiscoveredFragment.class);
     }
 
     public void navCaptureVideo(@Nullable MenuItem item) {
