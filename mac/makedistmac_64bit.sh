@@ -14,21 +14,11 @@ fi
 
 export LIBRARYNAME=Tribler
 
-PYTHON_VERSION=2.7
-PYTHON="/System/Library/Frameworks/Python.framework/Versions/$PYTHON_VERSION/bin/python$PYTHON_VERSION"
-
-# ----- Set python paths TODO dynamic checkout
-
-PYTHONPATH="$PWD:$PYTHONPATH"
-PYTHONPATH="$HOME/Workspace_new/install/lib/python2.7/site-packages:$PYTHONPATH"
-PYTHONPATH="/Users/tribler/Library/Python/2.7/lib/python/site-packages/:$PYTHONPATH" # user-defined libraries
-export PYTHONPATH
-
 # ----- Clean up
 /bin/rm -rf dist build
 
 # ----- Build
-${PYTHON} -OO - < ${LIBRARYNAME}/Main/Build/Mac/setuptriblermac_64bit.py py2app
+pyinstaller tribler.spec
 
 mkdir -p dist/installdir
 mv dist/$APPNAME.app dist/installdir
@@ -45,13 +35,6 @@ cp $LIBRARYNAME/Main/Build/Mac/VolumeIcon.icns dist/installdir/.VolumeIcon.icns
 ln -s /Applications dist/installdir/Applications
 
 touch dist/installdir
-
-#Copy logger.conf
-cp logger.conf dist/installdir/Tribler.app/Contents/Resources/
-
-# Copy family filter
-cp Tribler/Core/Category/category.conf dist/installdir/Tribler.app/Contents/Resources/Tribler/Core/Category/
-cp Tribler/Core/Category/filter_terms.filter dist/installdir/Tribler.app/Contents/Resources/Tribler/Core/Category/
 
 mkdir -p dist/temp
 
