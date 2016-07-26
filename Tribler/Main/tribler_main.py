@@ -38,7 +38,6 @@ from Tribler.Category.Category import Category
 from Tribler.Core.DownloadConfig import get_default_dest_dir, get_default_dscfg_filename, DefaultDownloadStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
-from Tribler.Core.Video.VideoPlayer import PLAYBACKMODE_INTERNAL, return_feasible_playback_modes
 from Tribler.Core.osutils import get_free_space, get_home_dir
 from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
                                      DLSTATUS_STOPPED_ON_ERROR, DOWNLOAD, NTFY_ACTIVITIES, NTFY_CHANNELCAST,
@@ -189,9 +188,7 @@ class ABCApp(object):
             wx.Yield()
             self.guiUtility.register()
 
-            self.frame = MainFrame(self,
-                                   None,
-                                   PLAYBACKMODE_INTERNAL in return_feasible_playback_modes())
+            self.frame = MainFrame(self, None, False)
             self.frame.SetIcon(wx.Icon(os.path.join(self.installdir, 'Tribler',
                                                     'Main', 'vwxGUI', 'images',
                                                     'tribler.ico'),
@@ -199,10 +196,6 @@ class ABCApp(object):
 
             # Arno, 2011-06-15: VLC 1.1.10 pops up separate win, don't have two.
             self.frame.videoframe = None
-            if PLAYBACKMODE_INTERNAL in return_feasible_playback_modes():
-                vlcwrap = session.lm.videoplayer.get_vlcwrap()
-                wx.CallLater(3000, vlcwrap._init_vlc)
-                self.frame.videoframe = VideoDummyFrame(self.frame.videoparentpanel, self.utility, vlcwrap)
 
             if sys.platform == 'win32':
                 wx.CallAfter(self.frame.top_bg.Refresh)

@@ -29,7 +29,7 @@ class TestLibtorrentDownloadImpl(TestAsServer):
         self.config.set_torrent_collecting(True)
         self.config.set_libtorrent(True)
         self.config.set_dht_torrent_collecting(False)
-        self.config.set_videoplayer(False)
+        self.config.set_videoserver_enabled(False)
         self.config.set_torrent_collecting_dir(os.path.join(self.session_base_dir, 'torrent_collecting_dir'))
 
     def create_tdef(self):

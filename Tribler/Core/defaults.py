@@ -21,8 +21,7 @@
 import sys
 from collections import OrderedDict
 
-from Tribler.Core.Video.defs import PLAYBACKMODE_INTERNAL
-
+from Tribler.Core.Video.defs import PLAYBACKMODE_EXTERNAL_DEFAULT
 
 DEFAULTPORT = 7760
 
@@ -40,8 +39,9 @@ DEFAULTPORT = 7760
 #  Version 13: Added HTTP API options.
 #  Version 14: Added option to enable/disable channel, previewchannel and tunnel community.
 #  Version 15: Added credit mining options
+#  Version 16: Changed default VLC video player to external (due to the removal of the wx player).
 
-SESSDEFAULTS_VERSION = 15
+SESSDEFAULTS_VERSION = 16
 sessdefaults = OrderedDict()
 
 # General Tribler settings
@@ -148,7 +148,7 @@ sessdefaults['video'] = OrderedDict()
 sessdefaults['video']['enabled'] = True
 sessdefaults['video']['path'] = None
 sessdefaults['video']['port'] = -1
-sessdefaults['video']['preferredmode'] = PLAYBACKMODE_INTERNAL
+sessdefaults['video']['preferredmode'] = PLAYBACKMODE_EXTERNAL_DEFAULT
 
 #Upgrader config
 sessdefaults['upgrader'] = OrderedDict()

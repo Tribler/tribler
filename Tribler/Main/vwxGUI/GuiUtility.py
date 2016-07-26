@@ -120,8 +120,6 @@ class GUIUtility(object):
             self.torrentsearch_manager.connect(self.utility.session, self.library_manager, self.channelsearch_manager)
             self.channelsearch_manager.connect(self.utility.session, self.library_manager, self.torrentsearch_manager)
             self.library_manager.connect(self.utility.session, self.torrentsearch_manager, self.channelsearch_manager)
-
-            self.videoplayer = self.utility.session.lm.videoplayer
         else:
             raise RuntimeError('GuiUtility is already registered')
 

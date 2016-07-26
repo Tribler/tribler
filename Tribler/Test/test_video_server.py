@@ -24,7 +24,7 @@ class TestVideoHTTPServer(TestAsServer):
     def setUp(self):
         """ unittest test setup code """
         TestAsServer.setUp(self)
-        self.port = self.session.get_videoplayer_port()
+        self.port = self.session.get_videoserver_port()
         self.sourcefn = os.path.join(TESTS_DATA_DIR, "video.avi")
         self.sourcesize = os.path.getsize(self.sourcefn)
 
@@ -34,7 +34,7 @@ class TestVideoHTTPServer(TestAsServer):
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
         self.config.set_libtorrent(True)
-        self.config.set_videoplayer(True)
+        self.config.set_videoserver_enabled(True)
 
     def tearDown(self):
         """ unittest test tear down code """
