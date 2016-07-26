@@ -87,8 +87,9 @@ public class SearchActivity extends BaseActivity {
 
                     public void onNext(SearchViewQueryTextEvent event) {
                         String query = event.queryText().toString();
+                        String current = getIntent().getStringExtra(SearchManager.QUERY);
 
-                        if (!TextUtils.isEmpty(query)) {
+                        if (!query.equals(current) && !TextUtils.isEmpty(query)) {
                             // Replace current intent
                             Intent intent = new Intent(SearchActivity.this, SearchActivity.class);
                             intent.setAction(Intent.ACTION_SEARCH);
