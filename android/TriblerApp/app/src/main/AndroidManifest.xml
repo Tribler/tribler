@@ -23,7 +23,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" / -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <!-- uses-permission android:name="android.permission.CHANGE_WIFI_STATE" / -->
     <!-- uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" / -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- uses-permission android:name="android.permission.TRANSMIT_IR" / -->
@@ -52,15 +52,6 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <receiver
-            android:name=".ConnectivityReceiver"
-            android:label="Network connection">
-            <intent-filter>
-                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
-                <action android:name="android.net.wifi.WIFI_STATE_CHANGED" />
-            </intent-filter>
-        </receiver>
-
         <service
             android:name=".service.Triblerd"
             android:label="Tribler service"
@@ -87,6 +78,11 @@
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
+                <action android:name="android.net.wifi.NETWORK_STATE_CHANGED_ACTION" />
+                <action android:name="android.net.wifi.WIFI_STATE_CHANGED" />
             </intent-filter>
         </activity>
         <activity

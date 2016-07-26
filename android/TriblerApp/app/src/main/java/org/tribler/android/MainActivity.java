@@ -3,9 +3,11 @@ package org.tribler.android;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.Uri;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.NavigationView;
@@ -15,10 +17,12 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatDelegate;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import com.cantrowitz.rxbroadcast.RxBroadcast;
 import com.facebook.stetho.Stetho;
 
 import org.tribler.android.restapi.IRestApi;
@@ -84,6 +88,32 @@ public class MainActivity extends BaseActivity {
         _navToggle.syncState();
 
         Stetho.initializeWithDefaults(getApplicationContext()); //DEBUG
+
+        Observer observer = new Observer<Intent>() {
+
+            public void onNext(Intent intent) {
+
+                Log.d("onNext", intent.toString());
+            }
+
+            public void onCompleted() {
+            }
+
+            public void onError(Throwable e) {
+            }
+        };
+
+        // Listen for connectivity changes
+        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION))
+                .subscribe(observer));
+
+        // Listen for network state changes
+        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(WifiManager.NETWORK_STATE_CHANGED_ACTION))
+                .subscribe(observer));
+
+        // Listen for Wi-Fi state changes
+        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION))
+                .subscribe(observer));
 
         initService();
 
