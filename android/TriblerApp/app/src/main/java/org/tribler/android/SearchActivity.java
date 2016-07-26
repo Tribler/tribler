@@ -33,17 +33,20 @@ public class SearchActivity extends BaseActivity {
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
             String query = intent.getStringExtra(SearchManager.QUERY);
 
-            // Show voice search query
-            SearchView searchView = (SearchView) findViewById(R.id.search_view);
-            if (searchView != null) {
-                searchView.setQuery(query, false);
-                searchView.clearFocus();
-            }
+            if (!TextUtils.isEmpty(query)) {
 
-            // Start search
-            SearchFragment searchFragment = (SearchFragment)
-                    getSupportFragmentManager().findFragmentById(R.id.fragment_search);
-            searchFragment.service.startSearch(query);
+                // Show voice search query
+                SearchView searchView = (SearchView) findViewById(R.id.search_view);
+                if (searchView != null && searchView.getQuery() != query) {
+                    searchView.setQuery(query, false);
+                    searchView.clearFocus();
+                }
+
+                // Start search
+                SearchFragment searchFragment = (SearchFragment)
+                        getSupportFragmentManager().findFragmentById(R.id.fragment_search);
+                searchFragment.service.startSearch(query);
+            }
         }
     }
 
@@ -71,7 +74,7 @@ public class SearchActivity extends BaseActivity {
         });
         // Restore last query
         String query = getIntent().getStringExtra(SearchManager.QUERY);
-        if (!TextUtils.isEmpty(query)) {
+        if (searchView.getQuery() != query && !TextUtils.isEmpty(query)) {
             searchView.setQuery(query, false);
             searchView.clearFocus();
         }
