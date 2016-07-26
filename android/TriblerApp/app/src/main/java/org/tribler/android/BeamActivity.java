@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ImageView;
@@ -94,7 +95,7 @@ public class BeamActivity extends BaseActivity {
 
     protected void handleIntent(Intent intent) {
         String action = intent.getAction();
-        if (action == null) {
+        if (TextUtils.isEmpty(action)) {
             return;
         }
         switch (action) {

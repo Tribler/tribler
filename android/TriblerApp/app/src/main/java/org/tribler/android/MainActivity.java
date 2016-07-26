@@ -17,6 +17,7 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatDelegate;
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -120,9 +121,25 @@ public class MainActivity extends BaseActivity {
      */
     @Override
     protected void handleIntent(Intent intent) {
-        // Startup action
-        if (Intent.ACTION_MAIN.equals(intent.getAction())) {
-            //TODO: show loading screen until rest api connected
+        String action = intent.getAction();
+        if (TextUtils.isEmpty(action)) {
+            return;
+        }
+        switch (action) {
+            case Intent.ACTION_MAIN:
+                // Startup action
+                //TODO: show loading screen until rest api connected
+                return;
+
+            case ConnectivityManager.CONNECTIVITY_ACTION:
+            case WifiManager.NETWORK_STATE_CHANGED_ACTION:
+            case WifiManager.WIFI_STATE_CHANGED_ACTION:
+
+                // Warn user if connection is lost
+                if (!MyUtils.isNetworkConnected(_connectivityManager)) {
+                    Toast.makeText(MainActivity.this, R.string.warning_lost_connection, Toast.LENGTH_LONG).show();
+                }
+                return;
         }
     }
 
@@ -267,11 +284,7 @@ public class MainActivity extends BaseActivity {
         Observer observer = new Observer<Intent>() {
 
             public void onNext(Intent intent) {
-
-                // Warn user if connection is lost
-                if (!MyUtils.isNetworkConnected(_connectivityManager)) {
-                    Toast.makeText(MainActivity.this, R.string.warning_lost_connection, Toast.LENGTH_LONG).show();
-                }
+                onNewIntent(intent);
             }
 
             public void onCompleted() {
