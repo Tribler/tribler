@@ -17,7 +17,6 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatDelegate;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -49,11 +48,8 @@ public class MainActivity extends BaseActivity {
         String authToken = getString(R.string.service_auth_token);
         _service = TriblerService.createService(baseUrl, authToken);
 
-        ConnectivityManager connectivityManager =
-                (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
-
         // Check network connection before starting service
-        if (MyUtils.isNetworkConnected(connectivityManager)) {
+        if (MyUtils.isNetworkConnected(_connectivityManager)) {
 
             Triblerd.start(this); // Run normally
             //Twistd.start(this); // Run profiler
@@ -72,6 +68,7 @@ public class MainActivity extends BaseActivity {
     NavigationView navigationView;
 
     private ActionBarDrawerToggle _navToggle;
+    private ConnectivityManager _connectivityManager;
     private IRestApi _service;
 
     /**
@@ -89,32 +86,7 @@ public class MainActivity extends BaseActivity {
 
         Stetho.initializeWithDefaults(getApplicationContext()); //DEBUG
 
-        Observer observer = new Observer<Intent>() {
-
-            public void onNext(Intent intent) {
-
-                Log.d("onNext", intent.toString());
-            }
-
-            public void onCompleted() {
-            }
-
-            public void onError(Throwable e) {
-            }
-        };
-
-        // Listen for connectivity changes
-        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION))
-                .subscribe(observer));
-
-        // Listen for network state changes
-        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(WifiManager.NETWORK_STATE_CHANGED_ACTION))
-                .subscribe(observer));
-
-        // Listen for Wi-Fi state changes
-        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION))
-                .subscribe(observer));
-
+        initConnectionManager();
         initService();
 
         handleIntent(getIntent());
@@ -128,6 +100,7 @@ public class MainActivity extends BaseActivity {
         drawer.removeDrawerListener(_navToggle);
         super.onDestroy();
         _navToggle = null;
+        _connectivityManager = null;
     }
 
     /**
@@ -285,5 +258,39 @@ public class MainActivity extends BaseActivity {
                         finish();
                     }
                 }));
+    }
+
+    private void initConnectionManager() {
+        _connectivityManager =
+                (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        Observer observer = new Observer<Intent>() {
+
+            public void onNext(Intent intent) {
+
+                // Warn user if connection is lost
+                if (!MyUtils.isNetworkConnected(_connectivityManager)) {
+                    Toast.makeText(MainActivity.this, R.string.warning_lost_connection, Toast.LENGTH_LONG).show();
+                }
+            }
+
+            public void onCompleted() {
+            }
+
+            public void onError(Throwable e) {
+            }
+        };
+
+        // Listen for connectivity changes
+        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION))
+                .subscribe(observer));
+
+        // Listen for network state changes
+        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(WifiManager.NETWORK_STATE_CHANGED_ACTION))
+                .subscribe(observer));
+
+        // Listen for Wi-Fi state changes
+        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION))
+                .subscribe(observer));
     }
 }
