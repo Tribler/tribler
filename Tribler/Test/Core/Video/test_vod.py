@@ -1,20 +1,18 @@
 # Written by Arno Bakker
 # see LICENSE.txt for license information
 #
-# TODO: we download from Tribler
-#
 
 import os
-import sys
 from tempfile import mkstemp
-from M2Crypto import Rand
 from threading import Event
 
-from Tribler.Test.test_as_server import TestAsServer
-from Tribler.Core.simpledefs import dlstatus_strings, UPLOAD, DOWNLOAD, DLMODE_VOD
-from Tribler.Core.TorrentDef import TorrentDef
+from M2Crypto import Rand
+
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
+from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.simpledefs import dlstatus_strings, UPLOAD, DOWNLOAD, DLMODE_VOD
+from Tribler.Test.test_as_server import TestAsServer
 
 
 class TestVideoOnDemand(TestAsServer):
@@ -27,31 +25,35 @@ class TestVideoOnDemand(TestAsServer):
     See BitTornado/BT1/Connecter.py
     """
 
-    def setUp(self):
-        """ override TestAsServer """
-        TestAsServer.setUp(self)
+    def setUp(self, autoload_discovery=True):
+        TestAsServer.setUp(self, autoload_discovery=autoload_discovery)
+        self.content = None
+        self.tdef = None
+        self.event = None
+        self.contentlen = None
+        self.piecelen = 0
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
         self.config.set_libtorrent(True)
 
     def create_torrent(self):
-        [srchandle, self.sourcefn] = mkstemp()
+        [srchandle, sourcefn] = mkstemp()
         self.content = Rand.rand_bytes(self.contentlen)
         os.write(srchandle, self.content)
         os.close(srchandle)
 
         self.tdef = TorrentDef()
-        self.tdef.add_content(self.sourcefn)
+        self.tdef.add_content(sourcefn)
         self.tdef.set_piece_length(self.piecelen)
         self.tdef.set_tracker("http://127.0.0.1:12/announce")
         self.tdef.finalize()
 
-        self.torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
-        self.tdef.save(self.torrentfn)
+        torrentfn = os.path.join(self.session.get_state_dir(), "gen.torrent")
+        self.tdef.save(torrentfn)
 
         dscfg = DownloadStartupConfig()
-        destdir = os.path.dirname(self.sourcefn)
+        destdir = os.path.dirname(sourcefn)
         dscfg.set_dest_dir(destdir)
         dscfg.set_mode(DLMODE_VOD)
 

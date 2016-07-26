@@ -6,6 +6,9 @@ import socket
 import binascii
 from traceback import print_exc
 
+from Tribler.Core.Utilities.network_utils import get_random_port
+from Tribler.Core.Video.VideoServer import VideoServer
+from Tribler.Test.Core.base_test import MockObject, TriblerCoreTest
 from Tribler.Test.test_as_server import TESTS_DATA_DIR, TestAsServer
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
@@ -13,33 +16,54 @@ from Tribler.Core.DownloadConfig import DownloadStartupConfig
 DEBUG = True
 
 
-class TestVideoHTTPServer(TestAsServer):
+class TestVideoServer(TriblerCoreTest):
+
+    def setUp(self, annotate=True):
+        TriblerCoreTest.setUp(self, annotate=annotate)
+        self.mock_session = MockObject()
+        self.video_server = VideoServer(get_random_port(), self.mock_session)
+
+    def test_get_vod_dest_dir(self):
+        """
+        Testing whether the right destination of a VOD download is returned
+        """
+        mock_download = MockObject()
+        mock_download.get_content_dest = lambda: "abc"
+        mock_download.get_selected_files = lambda: ["def"]
+        mock_def = MockObject()
+        mock_def.is_multifile_torrent = lambda: True
+        mock_download.get_def = lambda: mock_def
+
+        self.assertEqual(self.video_server.get_vod_destination(mock_download), os.path.join("abc", "def"))
+
+    def test_get_vod_stream(self):
+        """
+        Testing whether the right VOD stream is returned
+        """
+        self.mock_session.get_download = lambda _: None
+        self.assertEqual(self.video_server.get_vod_stream("abcd"), (None, None))
+
+
+class TestVideoServerSession(TestAsServer):
 
     """
-    Class for testing HTTP-based video server.
+    Class for testing HTTP-based video server in a session.
 
     Mainly HTTP range queries.
     """
 
-    def setUp(self):
+    def setUp(self, autoload_discovery=True):
         """ unittest test setup code """
-        TestAsServer.setUp(self)
+        TestAsServer.setUp(self, autoload_discovery=autoload_discovery)
         self.port = self.session.get_videoserver_port()
         self.sourcefn = os.path.join(TESTS_DATA_DIR, "video.avi")
         self.sourcesize = os.path.getsize(self.sourcefn)
-
-        # wait 5s to allow server to start
-        time.sleep(5)
+        self.tdef = None
 
     def setUpPreSession(self):
         TestAsServer.setUpPreSession(self)
         self.config.set_libtorrent(True)
         self.config.set_videoserver_enabled(True)
-
-    def tearDown(self):
-        """ unittest test tear down code """
-        TestAsServer.tearDown(self)
-        time.sleep(2)
 
     #
     # Tests
@@ -59,7 +83,7 @@ class TestVideoHTTPServer(TestAsServer):
     #
     # Internal
     #
-    def register_file_stream(self):
+    def start_vod_download(self):
         self.tdef = TorrentDef()
         self.tdef.add_content(self.sourcefn)
         self.tdef.set_tracker("http://127.0.0.1:12/announce")
@@ -77,7 +101,8 @@ class TestVideoHTTPServer(TestAsServer):
         msg += "Host: 127.0.0.1:" + str(self.port) + "\r\n"
         return msg
 
-    def create_range_str(self, firstbyte, lastbyte):
+    @staticmethod
+    def create_range_str(firstbyte, lastbyte):
         head = ""
         if firstbyte is not None:
             head += str(firstbyte)
@@ -89,7 +114,7 @@ class TestVideoHTTPServer(TestAsServer):
 
     def range_check(self, firstbyte, lastbyte, sourcesize, setset=False):
         self._logger.debug("range_test: %s %s %s setset %s", firstbyte, lastbyte, sourcesize, setset)
-        self.register_file_stream()
+        self.start_vod_download()
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect(('127.0.0.1', self.port))
@@ -128,7 +153,7 @@ class TestVideoHTTPServer(TestAsServer):
         # Parse header
         s.settimeout(10.0)
         while True:
-            line = self.readline(s)
+            line = self.read_line(s)
             if DEBUG:
                 self._logger.debug("Got line: %s", repr(line))
 
@@ -154,7 +179,8 @@ class TestVideoHTTPServer(TestAsServer):
                 self.assertEqual(expline, line)
 
             elif line.startswith("Content-Type:"):
-                self.assertEqual(line, "Content-Type: video/x-msvideo\r\n")
+                # We do not check for an exact content-type since that might differ between platforms.
+                self.assertTrue(line.startswith("Content-Type: video"))
 
             elif line.startswith("Content-Length:"):
                 self.assertEqual(line, "Content-Length: " + str(expsize) + "\r\n")
@@ -188,10 +214,12 @@ class TestVideoHTTPServer(TestAsServer):
             except socket.timeout:
                 if DEBUG:
                     self._logger.debug(
-                        "Timeout, video server didn't respond with requested bytes, possibly bug in Python impl of HTTP")
+                        "Timeout, video server didn't respond with requested bytes, "
+                        "possibly bug in Python impl of HTTP")
                     print_exc()
 
-    def readline(self, s):
+    @staticmethod
+    def read_line(s):
         line = ''
         while True:
             data = s.recv(1)
