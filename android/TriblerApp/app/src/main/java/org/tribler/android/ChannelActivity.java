@@ -6,6 +6,13 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.widget.SearchView;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Filter;
+
+import com.jakewharton.rxbinding.support.v7.widget.RxSearchView;
+import com.jakewharton.rxbinding.support.v7.widget.SearchViewQueryTextEvent;
+
+import rx.Observer;
+import rx.android.schedulers.AndroidSchedulers;
 
 public class ChannelActivity extends BaseActivity {
 
@@ -23,12 +30,12 @@ public class ChannelActivity extends BaseActivity {
 
     protected void handleIntent(Intent intent) {
         if (Intent.ACTION_GET_CONTENT.equals(intent.getAction())) {
-            String cid = intent.getStringExtra(EXTRA_DISPERSY_CID);
+            String dispersyCid = intent.getStringExtra(EXTRA_DISPERSY_CID);
 
             // Get torrents for channel
-            ChannelFragment channelFragment = (ChannelFragment)
-                    getSupportFragmentManager().findFragmentById(R.id.fragment_channel);
-            channelFragment.loadTorrents(cid);
+            ChannelFragment fragment =
+                    (ChannelFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_channel);
+            fragment.loadTorrents(dispersyCid);
 
             // Set title
             ActionBar actionBar = getSupportActionBar();
@@ -47,29 +54,30 @@ public class ChannelActivity extends BaseActivity {
         // Add items to the action bar (if it is present)
         getMenuInflater().inflate(R.menu.menu_channel, menu);
 
+        // Get list adapter
+        ListFragment fragment =
+                (ListFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_channel);
+        final Filter filter = fragment.getAdapter().getFilter();
+
         // Search button
         MenuItem btnFilter = menu.findItem(R.id.btn_filter);
         SearchView searchView = (SearchView) btnFilter.getActionView();
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public boolean onQueryTextSubmit(String query) {
-                return false;
-            }
 
-            /**
-             * {@inheritDoc}
-             */
-            @Override
-            public boolean onQueryTextChange(String query) {
-                ChannelFragment channelFragment = (ChannelFragment)
-                        getSupportFragmentManager().findFragmentById(R.id.fragment_channel);
-                channelFragment.adapter.getFilter().filter(query);
-                return true;
-            }
-        });
+        // Filter on query text change
+        rxSubs.add(RxSearchView.queryTextChangeEvents(searchView)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<SearchViewQueryTextEvent>() {
+
+                    public void onNext(SearchViewQueryTextEvent event) {
+                        filter.filter(event.queryText().toString());
+                    }
+
+                    public void onCompleted() {
+                    }
+
+                    public void onError(Throwable e) {
+                    }
+                }));
 
         return true;
     }

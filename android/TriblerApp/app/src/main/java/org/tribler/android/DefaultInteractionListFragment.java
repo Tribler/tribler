@@ -20,8 +20,8 @@ import rx.schedulers.Schedulers;
 
 public class DefaultInteractionListFragment extends ListFragment implements ListFragment.IListFragmentInteractionListener {
 
-    private Context _context;
     protected IRestApi service;
+    private Context _context;
 
     /**
      * {@inheritDoc}

@@ -29,8 +29,12 @@ public class ListFragment extends ViewFragment {
     @BindView(R.id.list_fast_scroller)
     VerticalRecyclerViewFastScroller fastScroller;
 
-    protected IListFragmentInteractionListener interactionListener;
     protected TriblerViewAdapter adapter;
+    protected IListFragmentInteractionListener interactionListener;
+
+    public TriblerViewAdapter getAdapter() {
+        return adapter;
+    }
 
     @Nullable
     public IListFragmentInteractionListener getInteractionListener() {

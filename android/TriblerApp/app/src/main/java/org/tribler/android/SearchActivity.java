@@ -43,9 +43,9 @@ public class SearchActivity extends BaseActivity {
                 }
 
                 // Start search
-                SearchFragment searchFragment = (SearchFragment)
-                        getSupportFragmentManager().findFragmentById(R.id.fragment_search);
-                searchFragment.service.startSearch(query);
+                SearchFragment searchFragment =
+                        (SearchFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_search);
+                searchFragment.startSearch(query);
             }
         }
     }

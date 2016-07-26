@@ -33,6 +33,11 @@ public class TriblerService {
                 .followRedirects(false)
                 .addNetworkInterceptor(new StethoInterceptor()); //DEBUG
 
+        return createService(baseUrl, authToken, okHttp);
+    }
+
+    public static IRestApi createService(final String baseUrl, final String authToken, OkHttpClient.Builder okHttp) {
+
         Retrofit.Builder retrofit = new Retrofit.Builder()
                 .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
                 .addConverterFactory(GsonConverterFactory.create())
