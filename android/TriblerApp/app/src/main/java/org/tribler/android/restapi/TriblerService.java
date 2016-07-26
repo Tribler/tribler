@@ -23,7 +23,7 @@ public class TriblerService {
 
     public static IRestApi createService(final String baseUrl, final String authToken) {
 
-        OkHttpClient client = new OkHttpClient.Builder()
+        OkHttpClient.Builder okHttp = new OkHttpClient.Builder()
                 .connectionPool(new ConnectionPool(10, 10, TimeUnit.MINUTES))
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
@@ -31,31 +31,25 @@ public class TriblerService {
                 .retryOnConnectionFailure(true)
                 .followSslRedirects(false)
                 .followRedirects(false)
-                .addNetworkInterceptor(new StethoInterceptor()) //DEBUG
-                .build();
+                .addNetworkInterceptor(new StethoInterceptor()); //DEBUG
 
-        Retrofit.Builder builder = new Retrofit.Builder()
+        Retrofit.Builder retrofit = new Retrofit.Builder()
                 .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
                 .addConverterFactory(GsonConverterFactory.create())
-                .baseUrl(baseUrl)
-                .client(client);
+                .baseUrl(baseUrl);
 
         if (!TextUtils.isEmpty(authToken)) {
 
-            client = new OkHttpClient.Builder()
-                    .addInterceptor(chain -> {
-                        Request request = chain.request();
-                        Request newReq = request.newBuilder()
-                                .addHeader("Authorization", String.format("token %s", authToken))
-                                .build();
-                        return chain.proceed(newReq);
-                    })
-                    .addNetworkInterceptor(new StethoInterceptor()) //DEBUG
-                    .build();
-
-            builder.client(client);
+            okHttp.addInterceptor(chain -> {
+                Request request = chain.request();
+                Request newReq = request.newBuilder()
+                        .addHeader("Authorization", String.format("token %s", authToken))
+                        .build();
+                return chain.proceed(newReq);
+            });
         }
+        retrofit.client(okHttp.build());
 
-        return builder.build().create(IRestApi.class);
+        return retrofit.build().create(IRestApi.class);
     }
 }
