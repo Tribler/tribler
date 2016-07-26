@@ -116,9 +116,7 @@ public class MyUtils {
         return new File(videoDir, "VID_" + timeStamp + ".mp4");
     }
 
-    public static boolean isNetworkConnected(Context ctx) {
-        ConnectivityManager connectivityManager =
-                (ConnectivityManager) ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
+    public static boolean isNetworkConnected(ConnectivityManager connectivityManager) {
         NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
         if (networkInfo == null) {
             // No connection

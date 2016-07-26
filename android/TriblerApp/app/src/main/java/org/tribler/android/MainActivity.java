@@ -1,8 +1,8 @@
 package org.tribler.android;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.Uri;
@@ -18,6 +18,8 @@ import android.support.v7.app.AppCompatDelegate;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
+
+import com.facebook.stetho.Stetho;
 
 import org.tribler.android.restapi.IRestApi;
 import org.tribler.android.restapi.TriblerService;
@@ -39,8 +41,15 @@ public class MainActivity extends BaseActivity {
     }
 
     private void initService() {
+        String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
+        String authToken = getString(R.string.service_auth_token);
+        _service = TriblerService.createService(baseUrl, authToken);
+
+        ConnectivityManager connectivityManager =
+                (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+
         // Check network connection before starting service
-        if (MyUtils.isNetworkConnected(this)) {
+        if (MyUtils.isNetworkConnected(connectivityManager)) {
 
             Triblerd.start(this); // Run normally
             //Twistd.start(this); // Run profiler
@@ -59,7 +68,7 @@ public class MainActivity extends BaseActivity {
     NavigationView navigationView;
 
     private ActionBarDrawerToggle _navToggle;
-    private ConnectivityReceiver _connectivityReceiver;
+    private IRestApi _service;
 
     /**
      * {@inheritDoc}
@@ -74,12 +83,7 @@ public class MainActivity extends BaseActivity {
         drawer.addDrawerListener(_navToggle);
         _navToggle.syncState();
 
-        //Stetho.initializeWithDefaults(this); //DEBUG
-
-        // Listen for connectivity changes
-        _connectivityReceiver = new ConnectivityReceiver();
-        IntentFilter intentFilter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
-        registerReceiver(_connectivityReceiver, intentFilter);
+        Stetho.initializeWithDefaults(getApplicationContext()); //DEBUG
 
         initService();
 
@@ -94,8 +98,6 @@ public class MainActivity extends BaseActivity {
         drawer.removeDrawerListener(_navToggle);
         super.onDestroy();
         _navToggle = null;
-        unregisterReceiver(_connectivityReceiver);
-        _connectivityReceiver = null;
     }
 
     /**
@@ -232,11 +234,7 @@ public class MainActivity extends BaseActivity {
 
     public void navShutdownClicked(@Nullable MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
-        // Shutdown service
-        String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
-        String authToken = getString(R.string.service_auth_token);
-        IRestApi service = TriblerService.createService(baseUrl, authToken);
-        service.shutdown()
+        rxSubs.add(_service.shutdown()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<Object>() {
@@ -256,6 +254,6 @@ public class MainActivity extends BaseActivity {
                         // Stop MainActivity
                         finish();
                     }
-                });
+                }));
     }
 }

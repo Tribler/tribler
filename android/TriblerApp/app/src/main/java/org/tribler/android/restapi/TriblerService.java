@@ -2,6 +2,8 @@ package org.tribler.android.restapi;
 
 import android.text.TextUtils;
 
+import com.facebook.stetho.okhttp3.StethoInterceptor;
+
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.ConnectionPool;
@@ -29,7 +31,7 @@ public class TriblerService {
                 .retryOnConnectionFailure(true)
                 .followSslRedirects(false)
                 .followRedirects(false)
-                //.addNetworkInterceptor(new StethoInterceptor()) //DEBUG
+                .addNetworkInterceptor(new StethoInterceptor()) //DEBUG
                 .build();
 
         Retrofit.Builder builder = new Retrofit.Builder()
@@ -48,7 +50,7 @@ public class TriblerService {
                                 .build();
                         return chain.proceed(newReq);
                     })
-                    //.addNetworkInterceptor(new StethoInterceptor()) //DEBUG
+                    .addNetworkInterceptor(new StethoInterceptor()) //DEBUG
                     .build();
 
             builder.client(client);
