@@ -71,6 +71,9 @@ public class ChannelActivity extends BaseActivity {
         MenuItem btnFilter = menu.findItem(R.id.btn_filter);
         SearchView searchView = (SearchView) btnFilter.getActionView();
 
+        // Set search hint
+        searchView.setQueryHint(getText(R.string.action_search_in_channel));
+
         // Get list filter
         final Filter filter = _fragment.getAdapter().getFilter();
 
@@ -91,19 +94,5 @@ public class ChannelActivity extends BaseActivity {
                 }));
 
         return true;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onBackPressed() {
-        // Close search if open
-        SearchView searchView = (SearchView) findViewById(R.id.btn_filter);
-        if (!searchView.isIconified()) {
-            searchView.setIconified(true);
-        } else {
-            super.onBackPressed();
-        }
     }
 }
