@@ -43,11 +43,17 @@ public class MainActivity extends BaseActivity {
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
     }
 
-    private void initService() {
-        String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
-        String authToken = getString(R.string.service_auth_token);
-        _service = TriblerService.createService(baseUrl, authToken);
+    @BindView(R.id.drawer_layout)
+    DrawerLayout drawer;
 
+    @BindView(R.id.nav_view)
+    NavigationView navigationView;
+
+    private ActionBarDrawerToggle _navToggle;
+    private ConnectivityManager _connectivityManager;
+    private IRestApi _service;
+
+    private void initService() {
         // Check network connection before starting service
         if (MyUtils.isNetworkConnected(_connectivityManager)) {
 
@@ -58,7 +64,6 @@ public class MainActivity extends BaseActivity {
 
         } else {
             Toast.makeText(this, R.string.info_no_connection, Toast.LENGTH_LONG).show();
-            stopService(new Intent(authToken));
         }
     }
 
@@ -68,16 +73,6 @@ public class MainActivity extends BaseActivity {
         //NoseTestService.stop(this);
         //ExperimentService.stop(this);
     }
-
-    @BindView(R.id.drawer_layout)
-    DrawerLayout drawer;
-
-    @BindView(R.id.nav_view)
-    NavigationView navigationView;
-
-    private ActionBarDrawerToggle _navToggle;
-    private ConnectivityManager _connectivityManager;
-    private IRestApi _service;
 
     /**
      * {@inheritDoc}
@@ -97,6 +92,10 @@ public class MainActivity extends BaseActivity {
         initConnectionManager();
         initService();
 
+        String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
+        String authToken = getString(R.string.service_auth_token);
+        _service = TriblerService.createService(baseUrl, authToken);
+
         handleIntent(getIntent());
     }
 
@@ -109,6 +108,7 @@ public class MainActivity extends BaseActivity {
         super.onDestroy();
         _navToggle = null;
         _connectivityManager = null;
+        _service = null;
     }
 
     /**
