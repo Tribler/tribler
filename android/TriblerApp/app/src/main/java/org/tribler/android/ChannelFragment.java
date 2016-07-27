@@ -11,7 +11,15 @@ import rx.schedulers.Schedulers;
 
 public class ChannelFragment extends DefaultInteractionListFragment {
 
+    private String _dispersyCid;
+
     public void loadTorrents(String dispersyCid) {
+        // Do not reload
+        if (dispersyCid == _dispersyCid) {
+            return;
+        }
+        _dispersyCid = dispersyCid;
+
         adapter.clear();
 
         rxSubs.add(service.getTorrents(dispersyCid)
@@ -31,5 +39,7 @@ public class ChannelFragment extends DefaultInteractionListFragment {
                         Log.e("ChannelFragment", "loadTorrents", e);
                     }
                 }));
+
+        //TODO: subscribe to event stream and listen for torrents discovered in this channel
     }
 }

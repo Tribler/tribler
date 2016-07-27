@@ -62,17 +62,21 @@ public class SearchActivity extends BaseActivity {
         // Search button
         MenuItem btnSearch = menu.findItem(R.id.search_view);
         SearchView searchView = (SearchView) btnSearch.getActionView();
+
         // Set hint and enable voice search
         SearchManager searchManager =
                 (SearchManager) getApplicationContext().getSystemService(Context.SEARCH_SERVICE);
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
+
         // Show search input field
         searchView.setIconified(false);
+
         // Never close search view
         searchView.setOnCloseListener(() -> {
             // Override default behaviour with return true
             return true;
         });
+
         // Restore last query
         String query = getIntent().getStringExtra(SearchManager.QUERY);
         if (searchView.getQuery() != query && !TextUtils.isEmpty(query)) {
@@ -91,11 +95,13 @@ public class SearchActivity extends BaseActivity {
                         String current = getIntent().getStringExtra(SearchManager.QUERY);
 
                         if (!query.equals(current) && !TextUtils.isEmpty(query)) {
-                            // Replace current intent
-                            Intent intent = new Intent(SearchActivity.this, SearchActivity.class);
-                            intent.setAction(Intent.ACTION_SEARCH);
-                            intent.putExtra(SearchManager.QUERY, query);
-                            onNewIntent(intent);
+                            // Replace current query
+                            getIntent().putExtra(SearchManager.QUERY, query);
+
+                            // Start search
+                            SearchFragment searchFragment =
+                                    (SearchFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_search);
+                            searchFragment.startSearch(query);
                         }
                     }
 

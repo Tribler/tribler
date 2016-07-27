@@ -33,9 +33,9 @@ public class ChannelActivity extends BaseActivity {
             String dispersyCid = intent.getStringExtra(EXTRA_DISPERSY_CID);
 
             // Get torrents for channel
-            ChannelFragment fragment =
+            ChannelFragment channelFragment =
                     (ChannelFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_channel);
-            fragment.loadTorrents(dispersyCid);
+            channelFragment.loadTorrents(dispersyCid);
 
             // Set title
             ActionBar actionBar = getSupportActionBar();
@@ -54,14 +54,14 @@ public class ChannelActivity extends BaseActivity {
         // Add items to the action bar (if it is present)
         getMenuInflater().inflate(R.menu.menu_channel, menu);
 
-        // Get list adapter
-        ListFragment fragment =
-                (ListFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_channel);
-        final Filter filter = fragment.getAdapter().getFilter();
-
         // Search button
         MenuItem btnFilter = menu.findItem(R.id.btn_filter);
         SearchView searchView = (SearchView) btnFilter.getActionView();
+
+        // Get list filter
+        ChannelFragment channelFragment =
+                (ChannelFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_channel);
+        final Filter filter = channelFragment.getAdapter().getFilter();
 
         // Filter on query text change
         rxSubs.add(RxSearchView.queryTextChangeEvents(searchView)

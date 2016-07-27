@@ -59,7 +59,15 @@ public class MainActivity extends BaseActivity {
 
         } else {
             Toast.makeText(this, R.string.info_no_connection, Toast.LENGTH_LONG).show();
+            stopService(new Intent(authToken));
         }
+    }
+
+    private void killService() {
+        Triblerd.stop(this);
+        //Twistd.stop(this);
+        //NoseTestService.stop(this);
+        //ExperimentService.stop(this);
     }
 
     @BindView(R.id.drawer_layout)
@@ -269,7 +277,7 @@ public class MainActivity extends BaseActivity {
 
                     public void onError(Throwable e) {
                         // Kill process
-                        Triblerd.stop(MainActivity.this);
+                        killService();
 
                         // Stop MainActivity
                         finish();
