@@ -1,8 +1,11 @@
+import os
+
 from Tribler.Core.Modules.channel.channel_manager import ChannelManager
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import UNKNOWN_CHANNEL_RESPONSE_MSG, \
     UNAUTHORIZED_RESPONSE_MSG
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
+from Tribler.Test.test_as_server import TESTS_DATA_DIR
 
 
 class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
@@ -124,7 +127,7 @@ class TestChannelsRssEndpoints(AbstractTestChannelsEndpoint):
         my_channel_id = self.create_fake_channel("my channel", "this is a short description")
         channel_obj = self.session.lm.channel_manager.get_my_channel(my_channel_id)
         channel_obj._is_created = True
-        channel_obj.create_rss_feed("http://rssfeed.com/rss.xml")
+        channel_obj.create_rss_feed(os.path.join(TESTS_DATA_DIR, 'test_rss_empty.xml'))
 
         return self.do_request('channels/discovered/%s/recheckfeeds' % 'fakedispersyid'.encode('hex'),
                                expected_code=200, expected_json=expected_json, request_type='POST')
