@@ -260,6 +260,12 @@ border-bottom-right-radius: 2px;</string>
          <property name="text">
           <string/>
          </property>
+         <property name="iconSize">
+          <size>
+           <width>26</width>
+           <height>26</height>
+          </size>
+         </property>
         </widget>
        </item>
        <item>
@@ -964,7 +970,7 @@ background-color: #e67300;
       <item>
        <widget class="QStackedWidget" name="stackedWidget">
         <property name="currentIndex">
-         <number>5</number>
+         <number>1</number>
         </property>
         <widget class="HomePage" name="home_page">
          <layout class="QVBoxLayout" name="verticalLayout">
