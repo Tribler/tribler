@@ -1,7 +1,8 @@
 from binascii import hexlify
+from Tribler.Core.Utilities.network_utils import get_random_port
 from Tribler.Test.common import UBUNTU_1504_INFOHASH
 from Tribler.Test.test_as_server import TestGuiAsServer
-from Tribler.Utilities.Instance2Instance import Instance2InstanceClient
+from Tribler.Utilities.Instance2Instance import Instance2InstanceClient, Instance2InstanceServer
 
 
 class TestI2IDownload(TestGuiAsServer):
@@ -22,8 +23,11 @@ class TestI2IDownload(TestGuiAsServer):
                 UBUNTU_1504_INFOHASH), item_shown_in_list, 'no download in librarylist')
 
         def do_test_i2i():
+            random_port = get_random_port()
+            self.app._abcapp.i2i_server = Instance2InstanceServer(random_port)
+            self.app._abcapp.i2i_server.start(self.app._abcapp.i2ithread_readlinecallback)
             self.guiUtility.utility.write_config('showsaveas', 0)
-            i2i_port = self.app._abcapp.utility.read_config('i2ilistenport')
+            i2i_port = random_port
             magnet_link = r'magnet:?xt=urn:btih:%s&dn=ubuntu-14.04.2-desktop-amd64.iso' \
                           % hexlify(UBUNTU_1504_INFOHASH)
             self.assertTrue(Instance2InstanceClient(i2i_port, 'START', magnet_link))
@@ -31,4 +35,4 @@ class TestI2IDownload(TestGuiAsServer):
             self.CallConditional(30, lambda: self.session.get_download(UBUNTU_1504_INFOHASH), download_object_ready,
                                  'Adding torrent from I2I failed')
 
-        self.startTest(do_test_i2i, allow_multiple=False)
+        self.startTest(do_test_i2i)
