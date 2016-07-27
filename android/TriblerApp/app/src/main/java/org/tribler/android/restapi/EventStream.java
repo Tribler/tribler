@@ -2,8 +2,6 @@ package org.tribler.android.restapi;
 
 import android.content.Context;
 
-import com.facebook.stetho.okhttp3.StethoInterceptor;
-
 import org.tribler.android.R;
 import org.tribler.android.restapi.json.TriblerEvent;
 
@@ -36,8 +34,8 @@ public class EventStream {
                     .writeTimeout(30, TimeUnit.SECONDS)
                     .retryOnConnectionFailure(true)
                     .followSslRedirects(false)
-                    .followRedirects(false)
-                    .addNetworkInterceptor(new StethoInterceptor()); //DEBUG
+                    .followRedirects(false);
+            //.addNetworkInterceptor(new StethoInterceptor()); //DEBUG
 
             IRestApi api = TriblerService.createService(baseUrl, authToken, okHttp);
 
