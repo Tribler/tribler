@@ -66,7 +66,7 @@ class SessionConfigInterface(object):
             from Tribler.Main.hacks import get_environment_variable
             path_env = get_environment_variable(u"PATH")
         elif is_android():
-            path_env = os.environ["PYTHONPATH"]
+            path_env = unicode(os.environ["PYTHONPATH"])
         else:
             path_env = os.environ["PATH"]
 
