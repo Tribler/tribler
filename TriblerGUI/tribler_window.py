@@ -98,6 +98,10 @@ class TriblerWindow(QMainWindow):
         self.top_menu_button.setHidden(True)
         self.left_menu.setHidden(True)
 
+        # Set various icons
+        self.top_search_button.setIcon(QIcon(get_image_path('search.png')))
+        self.top_menu_button.setIcon(QIcon(get_image_path('menu.png')))
+
         self.search_completion_model = QStringListModel()
         completer = QCompleter()
         completer.setModel(self.search_completion_model)
