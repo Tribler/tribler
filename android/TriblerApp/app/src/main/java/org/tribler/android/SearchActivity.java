@@ -19,6 +19,8 @@ import rx.android.schedulers.AndroidSchedulers;
 
 public class SearchActivity extends BaseActivity {
 
+    private SearchFragment _fragment;
+
     /**
      * {@inheritDoc}
      */
@@ -26,7 +28,20 @@ public class SearchActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_search);
+
+        _fragment = (SearchFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_search);
+        _fragment.setRetainInstance(true);
+
         handleIntent(getIntent());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        _fragment = null;
     }
 
     protected void handleIntent(Intent intent) {
@@ -43,9 +58,7 @@ public class SearchActivity extends BaseActivity {
                 }
 
                 // Start search
-                SearchFragment searchFragment =
-                        (SearchFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_search);
-                searchFragment.startSearch(query);
+                _fragment.startSearch(query);
             }
         }
     }
@@ -99,9 +112,7 @@ public class SearchActivity extends BaseActivity {
                             getIntent().putExtra(SearchManager.QUERY, query);
 
                             // Start search
-                            SearchFragment searchFragment =
-                                    (SearchFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_search);
-                            searchFragment.startSearch(query);
+                            _fragment.startSearch(query);
                         }
                     }
 

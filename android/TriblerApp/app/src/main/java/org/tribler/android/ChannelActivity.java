@@ -18,6 +18,8 @@ public class ChannelActivity extends BaseActivity {
 
     public static final String EXTRA_DISPERSY_CID = "org.tribler.android.dispersy.CID";
 
+    private ChannelFragment _fragment;
+
     /**
      * {@inheritDoc}
      */
@@ -25,7 +27,20 @@ public class ChannelActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_channel);
+
+        _fragment = (ChannelFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_channel);
+        _fragment.setRetainInstance(true);
+
         handleIntent(getIntent());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        _fragment = null;
     }
 
     protected void handleIntent(Intent intent) {
@@ -33,9 +48,7 @@ public class ChannelActivity extends BaseActivity {
             String dispersyCid = intent.getStringExtra(EXTRA_DISPERSY_CID);
 
             // Get torrents for channel
-            ChannelFragment channelFragment =
-                    (ChannelFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_channel);
-            channelFragment.loadTorrents(dispersyCid);
+            _fragment.loadTorrents(dispersyCid);
 
             // Set title
             ActionBar actionBar = getSupportActionBar();
@@ -59,9 +72,7 @@ public class ChannelActivity extends BaseActivity {
         SearchView searchView = (SearchView) btnFilter.getActionView();
 
         // Get list filter
-        ChannelFragment channelFragment =
-                (ChannelFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_channel);
-        final Filter filter = channelFragment.getAdapter().getFilter();
+        final Filter filter = _fragment.getAdapter().getFilter();
 
         // Filter on query text change
         rxSubs.add(RxSearchView.queryTextChangeEvents(searchView)
