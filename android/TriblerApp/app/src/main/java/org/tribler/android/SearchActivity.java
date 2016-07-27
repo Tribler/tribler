@@ -63,7 +63,8 @@ public class SearchActivity extends BaseActivity {
         MenuItem btnSearch = menu.findItem(R.id.search_view);
         SearchView searchView = (SearchView) btnSearch.getActionView();
         // Set hint and enable voice search
-        SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+        SearchManager searchManager =
+                (SearchManager) getApplicationContext().getSystemService(Context.SEARCH_SERVICE);
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
         // Show search input field
         searchView.setIconified(false);

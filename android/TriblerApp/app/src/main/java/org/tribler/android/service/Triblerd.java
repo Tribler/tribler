@@ -38,12 +38,14 @@ public class Triblerd extends PythonService {
     @Override
     public void onCreate() {
         // Keep the CPU on
-        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        PowerManager powerManager =
+                (PowerManager) getApplicationContext().getSystemService(POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Tribler");
         wakeLock.acquire();
 
         // Keep the Wi-Fi on
-        WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        WifiManager wifiManager =
+                (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL, "Tribler");
         wifiLock.acquire();
 

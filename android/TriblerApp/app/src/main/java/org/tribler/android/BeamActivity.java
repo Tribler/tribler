@@ -31,10 +31,10 @@ public class BeamActivity extends BaseActivity {
     private void initNfc() {
         // Check if device has NFC
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_NFC)) {
+            NfcManager nfcManager =
+                    (NfcManager) getApplicationContext().getSystemService(Context.NFC_SERVICE);
 
-            NfcManager nfcManager = (NfcManager) getSystemService(Context.NFC_SERVICE);
             _nfcAdapter = nfcManager.getDefaultAdapter();
-
             _nfcAdapter.setOnNdefPushCompleteCallback(nfcEvent -> {
                 // Exit BeamActivity
                 finish();
