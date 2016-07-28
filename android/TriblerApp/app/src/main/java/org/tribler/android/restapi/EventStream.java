@@ -7,7 +7,6 @@ import org.tribler.android.restapi.json.TriblerEvent;
 
 import java.util.concurrent.TimeUnit;
 
-import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
 import rx.Observable;
 
@@ -28,14 +27,12 @@ public class EventStream {
             String authToken = ctx.getString(R.string.service_auth_token);
 
             OkHttpClient.Builder okHttp = new OkHttpClient.Builder()
-                    .connectionPool(new ConnectionPool(1, 60, TimeUnit.MINUTES))
-                    .connectTimeout(1, TimeUnit.MINUTES)
                     .readTimeout(60, TimeUnit.MINUTES)
                     .writeTimeout(30, TimeUnit.SECONDS)
+                    //.addNetworkInterceptor(new StethoInterceptor()) //DEBUG
                     .retryOnConnectionFailure(true)
                     .followSslRedirects(false)
                     .followRedirects(false);
-            //.addNetworkInterceptor(new StethoInterceptor()); //DEBUG
 
             IRestApi api = TriblerService.createService(baseUrl, authToken, okHttp);
 

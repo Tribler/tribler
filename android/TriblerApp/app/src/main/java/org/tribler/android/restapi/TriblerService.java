@@ -4,7 +4,6 @@ import android.text.TextUtils;
 
 import java.util.concurrent.TimeUnit;
 
-import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import retrofit2.Retrofit;
@@ -22,14 +21,12 @@ public class TriblerService {
     public static IRestApi createService(final String baseUrl, final String authToken) {
 
         OkHttpClient.Builder okHttp = new OkHttpClient.Builder()
-                .connectionPool(new ConnectionPool(10, 10, TimeUnit.MINUTES))
-                .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)
+                //.addNetworkInterceptor(new StethoInterceptor()) //DEBUG
                 .retryOnConnectionFailure(true)
                 .followSslRedirects(false)
                 .followRedirects(false);
-        //.addNetworkInterceptor(new StethoInterceptor()); //DEBUG
 
         return createService(baseUrl, authToken, okHttp);
     }
