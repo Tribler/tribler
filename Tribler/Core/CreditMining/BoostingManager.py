@@ -7,6 +7,9 @@ import logging
 import os
 import shutil
 from binascii import hexlify, unhexlify
+
+import libtorrent as lt
+import time
 from twisted.internet.task import LoopingCall
 
 import libtorrent as lt
@@ -58,6 +61,9 @@ class BoostingSettings(object):
         self.check_dependencies = True
         self.auto_start_source = True
 
+        # in seconds
+        self.time_check_interval = 2
+        self.timeout_torrent_activity = 240
 
 class BoostingManager(TaskManager):
     """
@@ -108,6 +114,9 @@ class BoostingManager(TaskManager):
 
         self.register_task("CreditMining_log", LoopingCall(self.log_statistics),
                            self.settings.initial_logging_interval, interval=self.settings.logging_interval)
+
+        self.register_task("CreditMining_checktime", LoopingCall(self.check_time),
+                           self.settings.time_check_interval, interval=self.settings.time_check_interval)
 
     def shutdown(self):
         """
@@ -228,6 +237,14 @@ class BoostingManager(TaskManager):
                 if is_duplicate and duplicate.get('download', None):
                     self.stop_download(duplicate)
 
+        torrent['time'] = {}
+        torrent['time']['all_download'] = 0
+        torrent['time']['all_upload'] = 0
+        torrent['time']['last_started'] = 0.0
+        torrent['time']['last_stopped'] = 0.0
+        torrent['time']['last_activity'] = 0.0
+        torrent['time']['timeout'] = self.settings.timeout_torrent_activity
+
         self.torrents[infohash] = torrent
 
     def on_torrent_notify(self, subject, change_type, infohash):
@@ -315,6 +332,8 @@ class BoostingManager(TaskManager):
                                                   share_mode=not preload, checkpoint_disabled=True)
         torrent['download'].set_priority(torrent.get('prio', 1))
 
+        torrent['time']['last_started'] = time.time()
+
     def stop_download(self, torrent):
         """
         Stopping torrent that currently downloading
@@ -335,6 +354,7 @@ class BoostingManager(TaskManager):
 
             download.save_resume_data()
             self.session.remove_download(download, hidden=True)
+            torrent['time']['last_stopped'] = time.time()
 
     def _select_torrent(self):
         """
@@ -471,6 +491,32 @@ class BoostingManager(TaskManager):
                             non_zero_values.append(piece_priority)
                     if non_zero_values:
                         self._logger.debug("Non zero priorities for %s : %s", status.info_hash, non_zero_values)
+
+    def check_time(self):
+        """
+        Function to check activity of a torrent
+        :return:
+        """
+        for ihash in list(self.torrents):
+            tor = self.torrents.get(ihash)
+
+            # only consider active torrents
+            if 'download' not in tor:
+                continue
+
+            if tor['download'].handle is None:
+                return
+
+            status = tor['download'].handle.status()
+
+            if status.all_time_download != tor['time']['all_download']\
+                    or status.all_time_upload != tor['time']['all_upload']:
+                self._logger.debug("Update last activity for %s : %s", hexlify(ihash), time.time())
+                tor['time']['last_activity'] = time.time()
+
+                tor['time']['all_download'] = status.all_time_download
+                tor['time']['all_upload'] = status.all_time_upload
+
 
     def update_torrent_stats(self, torrent_infohash_str, seeding_stats):
         """

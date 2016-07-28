@@ -6,6 +6,9 @@ Author(s): Egbert Bouman, Mihai Capota, Elric Milon, Ardhi Putra
 import logging
 import random
 
+import time
+from binascii import hexlify
+
 
 class BoostingPolicy(object):
     """
