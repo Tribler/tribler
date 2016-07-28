@@ -66,7 +66,7 @@ class SessionConfigInterface(object):
             from Tribler.Main.hacks import get_environment_variable
             path_env = get_environment_variable(u"PATH")
         elif is_android():
-            path_env = os.environ["PYTHONPATH"]
+            path_env = unicode(os.environ["PYTHONPATH"])
         else:
             path_env = os.environ["PATH"]
 
@@ -80,15 +80,15 @@ class SessionConfigInterface(object):
         else:
             ffmpegname = u"ffmpeg"
 
-        ffmpegpath = os.path.abspath(find_executable(ffmpegname, path_env))
+        ffmpegpath = find_executable(ffmpegname, path_env)
 
         if ffmpegpath is None:
             if sys.platform == 'darwin':
                 self.sessconfig.set(u'general', u'videoanalyserpath', u"vlc/ffmpeg")
             else:
-                self.sessconfig.set(u'general', u'videoanalyserpath', ffmpegname)
+                self.sessconfig.set(u'general', u'videoanalyserpath', os.path.abspath(ffmpegname))
         else:
-            self.sessconfig.set(u'general', u'videoanalyserpath', ffmpegpath)
+            self.sessconfig.set(u'general', u'videoanalyserpath', os.path.abspath(ffmpegpath))
 
         # Set videoplayer path
         if sys.platform == 'win32':
