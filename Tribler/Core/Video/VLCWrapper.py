@@ -16,9 +16,8 @@ logger = logging.getLogger(__name__)
 
 def check_threading(func):
     def invoke_func(*args, **kwargs):
-        if currentThread().getName() != "MainThread":
-            raise Exception("VLCWrapper: Thread violation!")
-
+        # if currentThread().getName() != "MainThread":
+        #     raise Exception("VLCWrapper: Thread violation!")
         return func(*args, **kwargs)
 
     invoke_func.__name__ = func.__name__

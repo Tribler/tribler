@@ -25,6 +25,9 @@ class TestVideoHTTPServer(TestAsServer):
         """ unittest test setup code """
         TestAsServer.setUp(self)
         self.port = self.session.get_videoplayer_port()
+
+        self.assertIsInstance(self.port, int)
+
         self.sourcefn = os.path.join(TESTS_DATA_DIR, "video.avi")
         self.sourcesize = os.path.getsize(self.sourcefn)
 

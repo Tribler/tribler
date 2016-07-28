@@ -36,6 +36,7 @@ class TestMultichainStartup(TestAsServer):
         else:
             dispersy.define_auto_load(MultiChainCommunity, dispersy_member, load=True)
 
+    @blocking_call_on_reactor_thread
     def setUp(self):
         super(TestMultichainStartup, self).setUp()
         self.dispersy = self.session.get_dispersy_instance()

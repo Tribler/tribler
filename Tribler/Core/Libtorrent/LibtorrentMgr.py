@@ -11,8 +11,12 @@ from copy import deepcopy
 from shutil import rmtree
 
 from twisted.internet import reactor, threads
+from twisted.internet.defer import Deferred
+
 import libtorrent as lt
 from Tribler.Core.Utilities.torrent_utils import get_info_from_handle
+from Tribler.Core.Utilities.twisted_utils import callInThreadPool
+
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 
 from Tribler.Core.Utilities.utilities import parse_magnetlink, fix_torrent
@@ -65,7 +69,7 @@ class LibtorrentMgr(TaskManager):
         self.metadata_tmpdir = tempfile.mkdtemp(suffix=u'tribler_metainfo_tmpdir')
 
         # register tasks
-        self.register_task(u'process_alerts', reactor.callLater(1, self._task_process_alerts))
+        self.register_task(u'process_alerts', LoopingCall(self._task_process_alerts)).start(1, now=False)
         self.register_task(u'check_reachability', reactor.callLater(1, self._task_check_reachability))
         self._schedule_next_check(5, DHT_CHECK_RETRIES)
 
@@ -325,61 +329,66 @@ class LibtorrentMgr(TaskManager):
                 self._logger.debug("Alert for invalid torrent")
 
     def get_metainfo(self, infohash_or_magnet, callback, timeout=30, timeout_callback=None, notify=True):
-        if not self.is_dht_ready() and timeout > 5:
-            self._logger.info("DHT not ready, rescheduling get_metainfo")
-            self.trsession.lm.threadpool.add_task(lambda i=infohash_or_magnet, c=callback, t=timeout - 5,
-                                                  tcb=timeout_callback, n=notify: self.get_metainfo(i, c, t, tcb, n), 5)
-            return
+        assert isinstance(infohash_or_magnet, str), infohash_or_magnet
 
-        magnet = infohash_or_magnet if infohash_or_magnet.startswith('magnet') else None
-        infohash_bin = infohash_or_magnet if not magnet else parse_magnetlink(magnet)[1]
-        infohash = binascii.hexlify(infohash_bin)
+        def do_get_metainfo():
+            magnet = infohash_or_magnet if infohash_or_magnet.startswith('magnet') else None
+            infohash_bin = infohash_or_magnet if not magnet else parse_magnetlink(magnet)[1]
+            infohash = binascii.hexlify(infohash_bin)
 
-        if infohash in self.torrents:
-            return
+            if infohash in self.torrents:
+                return
 
-        with self.metainfo_lock:
-            self._logger.debug('get_metainfo %s %s %s', infohash_or_magnet, callback, timeout)
+            with self.metainfo_lock:
+                self._logger.debug('get_metainfo %s %s %s', infohash_or_magnet, callback, timeout)
 
-            cache_result = self._get_cached_metainfo(infohash)
-            if cache_result:
-                self.trsession.lm.threadpool.call_in_thread(0, callback, deepcopy(cache_result))
+                cache_result = self._get_cached_metainfo(infohash)
+                if cache_result:
+                    reactor.callInThread(callback, deepcopy(cache_result))
 
-            elif infohash not in self.metainfo_requests:
-                # Flags = 4 (upload mode), should prevent libtorrent from creating files
-                atp = {'save_path': self.metadata_tmpdir,
-                       'flags': (lt.add_torrent_params_flags_t.flag_duplicate_is_error |
-                                 lt.add_torrent_params_flags_t.flag_upload_mode)}
-                if magnet:
-                    atp['url'] = magnet
+                elif infohash not in self.metainfo_requests:
+                    # Flags = 4 (upload mode), should prevent libtorrent from creating files
+                    atp = {'save_path': self.metadata_tmpdir,
+                           'flags': (lt.add_torrent_params_flags_t.flag_duplicate_is_error |
+                                     lt.add_torrent_params_flags_t.flag_upload_mode)}
+                    if magnet:
+                        atp['url'] = magnet
+                    else:
+                        atp['info_hash'] = lt.big_number(infohash_bin)
+                    try:
+                        handle = self.get_session().add_torrent(encode_atp(atp))
+                    except TypeError as e:
+                        self._logger.warning("Failed to add torrent with infohash %s, "
+                                             "attempting to use it as it is and hoping for the best",
+                                             hexlify(infohash_bin))
+                        self._logger.warning("Error was: %s", e)
+                        atp['info_hash'] = infohash_bin
+                        handle = self.get_session().add_torrent(encode_atp(atp))
+
+                    if notify:
+                        self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_STARTED, infohash_bin)
+
+                    self.metainfo_requests[infohash] = {'handle': handle,
+                                                        'callbacks': [callback],
+                                                        'timeout_callbacks': [timeout_callback] if timeout_callback else [],
+                                                        'notify': notify}
+                    self.trsession.lm.threadpool.add_task(lambda: self.got_metainfo(infohash, timeout=True), timeout)
+
                 else:
-                    atp['info_hash'] = lt.big_number(infohash_bin)
-                try:
-                    handle = self.get_session().add_torrent(encode_atp(atp))
-                except TypeError as e:
-                    self._logger.warning("Failed to add torrent with infohash %s, "
-                                         "attempting to use it as it is and hoping for the best",
-                                         hexlify(infohash_bin))
-                    self._logger.warning("Error was: %s", e)
-                    atp['info_hash'] = infohash_bin
-                    handle = self.get_session().add_torrent(encode_atp(atp))
+                    self.metainfo_requests[infohash]['notify'] = self.metainfo_requests[infohash]['notify'] and notify
+                    callbacks = self.metainfo_requests[infohash]['callbacks']
+                    if callback not in callbacks:
+                        callbacks.append(callback)
+                    else:
+                        self._logger.debug('get_metainfo duplicate detected, ignoring')
 
-                if notify:
-                    self.notifier.notify(NTFY_TORRENTS, NTFY_MAGNET_STARTED, infohash_bin)
+        if not (self.is_dht_ready() or self.is_pending_task_active("get_metainfo_lc")):
+            def on_get_metainfo_timeout(*a, **kw):
+                self.cancel_pending_task("get_metainfo")
 
-                self.metainfo_requests[infohash] = {'handle': handle,
-                                                    'callbacks': [callback],
-                                                    'timeout_callbacks': [timeout_callback] if timeout_callback else [],
-                                                    'notify': notify}
-                self.trsession.lm.threadpool.add_task(lambda: self.got_metainfo(infohash, timeout=True), timeout)
+            self.register_task("get_metainfo_dc", reactor.callLater(timeout, on_get_metainfo_timeout))
+            self.register_task("get_metainfo_lc", LoopingCall(callInThreadPool, do_get_metainfo)).start(5)
 
-            else:
-                self.metainfo_requests[infohash]['notify'] = self.metainfo_requests[infohash]['notify'] and notify
-                callbacks = self.metainfo_requests[infohash]['callbacks']
-                if callback not in callbacks:
-                    callbacks.append(callback)
-                else:
-                    self._logger.debug('get_metainfo duplicate detected, ignoring')
 
     def got_metainfo(self, infohash, timeout=False):
         with self.metainfo_lock:
@@ -424,7 +433,7 @@ class LibtorrentMgr(TaskManager):
                         self._add_cached_metainfo(infohash, metainfo)
 
                         for callback in callbacks:
-                            self.trsession.lm.threadpool.call_in_thread(0, callback, deepcopy(metainfo))
+                            reactor.callInThread(callback, deepcopy(metainfo))
 
                         # let's not print the hashes of the pieces
                         debuginfo = deepcopy(metainfo)
@@ -433,7 +442,7 @@ class LibtorrentMgr(TaskManager):
 
                     elif timeout_callbacks and timeout:
                         for callback in timeout_callbacks:
-                            self.trsession.lm.threadpool.call_in_thread(0, callback, infohash_bin)
+                            reactor.callInThread(callback, infohash_bin)
 
                 if handle:
                     self.get_session().remove_torrent(handle, 1)
@@ -461,8 +470,6 @@ class LibtorrentMgr(TaskManager):
             if ltsession:
                 for alert in ltsession.pop_alerts():
                     self.process_alert(alert)
-
-        self.register_task(u'process_alerts', reactor.callLater(1, self._task_process_alerts))
 
     def _task_check_reachability(self):
         if self.get_session() and self.get_session().status().has_incoming_connections:

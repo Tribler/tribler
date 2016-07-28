@@ -50,7 +50,7 @@ class ThreadPoolManager(TaskManager):
             fun(*args, **kwargs)
         self.add_task(caller, delay=delay, task_name=task_name)
 
-    def call_in_thread(self, delay, fun, *args, **kwargs):
+    def _call_in_thread(self, delay, fun, *args, **kwargs):
         task_name = kwargs.pop("task_name", None)
         def caller():
             fun(*args, **kwargs)

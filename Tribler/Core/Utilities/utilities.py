@@ -127,7 +127,7 @@ def validTorrentFile(metainfo):
 
             l = file['length']
             if not isinstance(l, IntType) and not isinstance(l, LongType):
-                raise ValueError('info files length is not int, but ' + repr(type(l)))
+                raise ValueError('info files length is not int, but %r with value: %r' % (type(l), l))
 
     # common additional fields
     if 'announce-list' in metainfo:
@@ -307,4 +307,3 @@ def translate_peers_into_health(peer_info_dicts):
     num_seeders = max(upload_only, finished)
     num_leech = max(interest_in_us, min(unfinished_able_dl, len(peer_info_dicts) - finished))
     return num_seeders, num_leech
-

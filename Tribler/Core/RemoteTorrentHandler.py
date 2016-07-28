@@ -16,10 +16,10 @@ from twisted.internet.task import LoopingCall
 
 from Tribler.Core.TFTP.handler import METADATA_PREFIX
 from Tribler.Core.TorrentDef import TorrentDef
+from Tribler.Core.Utilities.twisted_utils import callInThreadPool
 from Tribler.Core.simpledefs import INFOHASH_LENGTH, NTFY_TORRENTS
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import call_on_reactor_thread
-
 
 TORRENT_OVERFLOW_CHECKING_INTERVAL = 30 * 60
 LOW_PRIO_COLLECTING = 0
@@ -219,7 +219,7 @@ class RemoteTorrentHandler(TaskManager):
         # notify about the new metadata
         if thumb_hash in self.metadata_callbacks:
             for callback in self.metadata_callbacks[thumb_hash]:
-                self.session.lm.threadpool.call_in_thread(0, callback, hexlify(thumb_hash))
+                reactor.callInThread(callback, hexlify(thumb_hash))
 
             del self.metadata_callbacks[thumb_hash]
 
@@ -228,7 +228,7 @@ class RemoteTorrentHandler(TaskManager):
             return
 
         for callback in self.torrent_callbacks[infohash]:
-            self.session.lm.threadpool.call_in_thread(0, callback, hexlify(infohash))
+            callInThreadPool(callback, hexlify(infohash))
 
         del self.torrent_callbacks[infohash]
 

@@ -273,7 +273,7 @@ class CreateTorrentDialog(wx.Dialog):
                 self.progressDlg.Pulse()
                 self.progressDlg.cur = 0
 
-                GUIUtility.getInstance().utility.session.lm.threadpool.call_in_thread(0, create_torrents)
+                reactor.callInthread(create_torrents)
 
             if params['piece length']:
                 total_size = 0

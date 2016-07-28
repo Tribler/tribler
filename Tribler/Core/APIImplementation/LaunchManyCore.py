@@ -14,6 +14,7 @@ from traceback import print_exc
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred
 from twisted.internet.defer import inlineCallbacks
+from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
@@ -673,6 +674,8 @@ class TriblerLaunchMany(TaskManager):
         :returns a Deferred that will fire once all dependencies acknowledge they have shutdown.
         """
         self._logger.info("tlm: early_shutdown")
+
+        assert isInIOThread()
 
         self.cancel_all_pending_tasks()
 
