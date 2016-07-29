@@ -3,7 +3,9 @@ package org.tribler.android.service;
 import android.content.Context;
 import android.content.Intent;
 import android.net.wifi.WifiManager;
+import android.os.IBinder;
 import android.os.PowerManager;
+import android.support.annotation.Nullable;
 
 import org.kivy.android.PythonService;
 import org.tribler.android.R;
@@ -71,5 +73,14 @@ public class Triblerd extends PythonService {
         wakeLock.release();
         wifiLock.release();
         super.onDestroy();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
     }
 }

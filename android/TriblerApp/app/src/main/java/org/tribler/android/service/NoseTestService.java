@@ -2,6 +2,8 @@ package org.tribler.android.service;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.IBinder;
+import android.support.annotation.Nullable;
 
 import org.kivy.android.PythonService;
 import org.tribler.android.R;
@@ -40,4 +42,12 @@ public class NoseTestService extends PythonService {
         ctx.stopService(intent);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
 }
