@@ -16,7 +16,7 @@ from twisted.internet.task import LoopingCall
 
 from Tribler.Core.TFTP.handler import METADATA_PREFIX
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.simpledefs import INFOHASH_LENGTH, NTFY_TORRENTS
+from Tribler.Core.simpledefs import INFOHASH_LENGTH, NTFY_TORRENTS, NTFY_METAINFO, NTFY_INSERT, NTFY_TIMEOUT
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import call_on_reactor_thread
 
@@ -417,6 +417,7 @@ class MagnetRequester(Requester):
 
     def __init__(self, session, remote_torrent_handler, priority):
         super(MagnetRequester, self).__init__(u"magnet_requester", session, remote_torrent_handler, priority)
+        self.tribler_session = session
         if sys.platform == "darwin":
             # Mac has just 256 fds per process, be less aggressive
             self.REQUEST_INTERVAL = 15.0
@@ -475,6 +476,9 @@ class MagnetRequester(Requester):
         infohash = tdef.get_infohash()
         self._logger.debug(u"received torrent %s through magnet", hexlify(infohash))
 
+        self.tribler_session.notifier.notify(NTFY_METAINFO, NTFY_INSERT, None, {"infohash": infohash.encode('hex'),
+                                                                                "metainfo": meta_info})
+
         self._remote_torrent_handler.save_torrent(tdef)
         self._running_requests.remove(infohash)
 
@@ -494,6 +498,9 @@ class MagnetRequester(Requester):
                 self._logger.debug(u"++ INFOHASH in running_requests: %s", hexlify(ih))
 
         self._logger.debug(u"failed to retrieve torrent %s through magnet", hexlify(infohash))
+        
+        self.tribler_session.notifier.notify(NTFY_METAINFO, NTFY_TIMEOUT, None, {"infohash": infohash.encode('hex')})
+
         self._running_requests.remove(infohash)
 
         self._requests_failed += 1

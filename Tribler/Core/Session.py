@@ -219,7 +219,7 @@ class Session(SessionConfigInterface):
     #
     # Public methods
     #
-    def start_download_from_uri(self, uri):
+    def start_download_from_uri(self, uri, hops=0):
         """
         Start a download from an argument. This argument can be of the following type:
         -http: Start a download from a torrent file at the given url.
@@ -230,7 +230,7 @@ class Session(SessionConfigInterface):
         if an error occurred during the start of the download.
         """
         if self.get_libtorrent():
-            return self.lm.ltmgr.start_download_from_uri(uri)
+            return self.lm.ltmgr.start_download_from_uri(uri, hops)
         raise OperationNotEnabledByConfigurationException()
 
     def start_download_from_tdef(self, tdef, dcfg=None, initialdlstatus=None, hidden=False):

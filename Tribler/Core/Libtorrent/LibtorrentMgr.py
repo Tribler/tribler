@@ -499,37 +499,37 @@ class LibtorrentMgr(TaskManager):
         else:
             getattr(self.get_session(hops), funcname)(*args, **kwargs)
 
-    def start_download_from_uri(self, uri):
+    def start_download_from_uri(self, uri, hops):
         if uri.startswith("http"):
-            return self.start_download_from_url(uri)
+            return self.start_download_from_url(uri, hops)
         if uri.startswith("magnet:"):
-            return self.start_download_from_magnet(uri)
+            return self.start_download_from_magnet(uri, hops)
         if uri.startswith("file:"):
             argument = url2pathname(uri[5:])
-            return self.start_download(torrentfilename=argument)
+            return self.start_download(torrentfilename=argument, hops=hops)
 
         return None
 
     @blocking_call_on_reactor_thread
-    def start_download_from_url(self, url):
+    def start_download_from_url(self, url, hops):
 
         def _on_loaded(tdef):
-            return self.start_download(torrentfilename=None, destdir=None, infohash=None, tdef=tdef)
+            return self.start_download(torrentfilename=None, destdir=None, infohash=None, tdef=tdef, hops=hops)
 
         deferred = TorrentDef.load_from_url(url)
         deferred.addCallback(_on_loaded)
         return deferred
 
-    def start_download_from_magnet(self, url):
+    def start_download_from_magnet(self, url, hops):
         name, infohash, _ = parse_magnetlink(url)
         if name is None:
             name = ""
         if infohash is None:
             raise RuntimeError("Missing infohash")
         tdef = TorrentDefNoMetainfo(infohash, name, url=url)
-        return self.start_download(tdef=tdef)
+        return self.start_download(tdef=tdef, hops=hops)
 
-    def start_download(self, torrentfilename=None, destdir=None, infohash=None, tdef=None):
+    def start_download(self, torrentfilename=None, destdir=None, infohash=None, tdef=None, hops=0):
         self._logger.debug(u"starting download: filename: %s, dest dir: %s, torrent def: %s",
                            torrentfilename, destdir, tdef)
 
@@ -574,8 +574,8 @@ class LibtorrentMgr(TaskManager):
 
         # TODO martijn: for now, we are always using the default settings, which means that we bypass
         # the screen to select torrent files/adjust the anonymity level.
-        dscfg.set_hops(0) # TODO martijn: hard-coded for now
-        dscfg.set_safe_seeding(False) # TODO martijn: hard-coded for now
+        dscfg.set_hops(hops)
+        dscfg.set_safe_seeding(True) # TODO martijn: hard-coded for now
 
         if destdir is not None:
             dscfg.set_dest_dir(destdir)
