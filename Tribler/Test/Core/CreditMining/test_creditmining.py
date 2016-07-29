@@ -8,7 +8,6 @@ Written by Mihai Capotă and Ardhi Putra Pratama H
 import binascii
 import random
 import re
-from unittest import skip
 
 import Tribler.Policies.BoostingManager as bm
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
@@ -23,7 +22,6 @@ from Tribler.Test.Core.CreditMining.mock_creditmining import MockMeta, MockLtPee
 from Tribler.Test.test_as_server import TestAsServer
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerPolicies(TestAsServer):
     """
     The class to test core function of credit mining policies
@@ -99,7 +97,6 @@ class TestBoostingManagerPolicies(TestAsServer):
         self.assertEqual(ids_stop, [5, 3, 1])
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerUtilities(TestAsServer):
     """
     Test several utilities used in credit mining
@@ -348,7 +345,6 @@ class TestBoostingManagerUtilities(TestAsServer):
         boost_man.cancel_all_pending_tasks()
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerError(TestAsServer):
     """
     Class to test a bunch of credit mining error handle
