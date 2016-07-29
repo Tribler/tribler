@@ -18,6 +18,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatDelegate;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -29,6 +30,7 @@ import org.tribler.android.restapi.TriblerService;
 import org.tribler.android.service.Triblerd;
 
 import java.io.File;
+import java.io.IOException;
 
 import butterknife.BindView;
 import rx.Observer;
@@ -231,12 +233,14 @@ public class MainActivity extends BaseActivity {
         // Check if device has camera
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             // Obtain output file
-            File output = MyUtils.getOutputVideoFile(this);
-            if (output == null) {
+            try {
+                File output = MyUtils.getOutputVideoFile(this);
+                Intent captureIntent = MyUtils.captureVideo(Uri.fromFile(output));
+                startActivityForResult(captureIntent, CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
+            } catch (IOException ex) {
+                Log.e("getOutputVideoFile", getString(R.string.error_output_file), ex);
                 Toast.makeText(this, R.string.error_output_file, Toast.LENGTH_LONG).show();
             }
-            Intent captureIntent = MyUtils.captureVideo(Uri.fromFile(output));
-            startActivityForResult(captureIntent, CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
         }
     }
 
@@ -267,6 +271,7 @@ public class MainActivity extends BaseActivity {
                 .subscribe(new Observer<Object>() {
 
                     public void onNext(Object response) {
+                        Log.d("navShutdownClicked", response.toString());
                     }
 
                     public void onCompleted() {

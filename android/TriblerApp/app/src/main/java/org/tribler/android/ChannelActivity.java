@@ -4,15 +4,14 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.SearchView;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Filter;
 
 import com.jakewharton.rxbinding.support.v7.widget.RxSearchView;
 import com.jakewharton.rxbinding.support.v7.widget.SearchViewQueryTextEvent;
 
 import rx.Observer;
-import rx.android.schedulers.AndroidSchedulers;
 
 public class ChannelActivity extends BaseActivity {
 
@@ -74,22 +73,19 @@ public class ChannelActivity extends BaseActivity {
         // Set search hint
         searchView.setQueryHint(getText(R.string.action_search_in_channel));
 
-        // Get list filter
-        final Filter filter = _fragment.getAdapter().getFilter();
-
         // Filter on query text change
         rxSubs.add(RxSearchView.queryTextChangeEvents(searchView)
-                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<SearchViewQueryTextEvent>() {
 
                     public void onNext(SearchViewQueryTextEvent event) {
-                        filter.filter(event.queryText().toString());
+                        _fragment.getAdapter().getFilter().filter(event.queryText());
                     }
 
                     public void onCompleted() {
                     }
 
                     public void onError(Throwable e) {
+                        Log.e("onCreateOptionsMenu", "SearchViewQueryTextEvent", e);
                     }
                 }));
 

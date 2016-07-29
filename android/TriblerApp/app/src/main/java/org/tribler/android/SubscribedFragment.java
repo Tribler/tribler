@@ -38,7 +38,7 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("SubscribedFragment", "loadSubscriptions", e);
+                        Log.e("loadSubscriptions", "getSubscribedChannels", e);
                     }
                 }));
     }

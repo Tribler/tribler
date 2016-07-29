@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.widget.SearchView;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -46,14 +47,17 @@ public class SearchActivity extends BaseActivity {
 
     protected void handleIntent(Intent intent) {
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+            SearchView searchView = (SearchView) findViewById(R.id.search_view);
+
             String query = intent.getStringExtra(SearchManager.QUERY);
+            String current = searchView.getQuery().toString();
 
-            if (!TextUtils.isEmpty(query)) {
-
+            if (!TextUtils.isEmpty(query) && !query.equals(current)) {
                 // Show voice search query
-                SearchView searchView = (SearchView) findViewById(R.id.search_view);
-                if (searchView != null && searchView.getQuery() != query) {
-                    searchView.setQuery(query, false);
+                searchView.setQuery(query, false);
+
+                if (TextUtils.isEmpty(current)) {
+                    // Close keyboard on voice search submit
                     searchView.clearFocus();
                 }
 
@@ -90,9 +94,11 @@ public class SearchActivity extends BaseActivity {
             return true;
         });
 
-        // Restore last query
         String query = getIntent().getStringExtra(SearchManager.QUERY);
-        if (searchView.getQuery() != query && !TextUtils.isEmpty(query)) {
+        String current = searchView.getQuery().toString();
+
+        if (!TextUtils.isEmpty(query) && !query.equals(current)) {
+            // Restore last query
             searchView.setQuery(query, false);
             searchView.clearFocus();
         }
@@ -107,12 +113,12 @@ public class SearchActivity extends BaseActivity {
                         String query = event.queryText().toString();
                         String current = getIntent().getStringExtra(SearchManager.QUERY);
 
-                        if (!query.equals(current) && !TextUtils.isEmpty(query)) {
-                            // Replace current query
-                            getIntent().putExtra(SearchManager.QUERY, query);
-
-                            // Start search
-                            _fragment.startSearch(query);
+                        if (!TextUtils.isEmpty(query) && !query.equals(current)) {
+                            // Fire new search intent
+                            Intent searchIntent = new Intent(SearchActivity.this, SearchActivity.class);
+                            searchIntent.setAction(Intent.ACTION_SEARCH);
+                            searchIntent.putExtra(SearchManager.QUERY, query);
+                            onNewIntent(searchIntent);
                         }
                     }
 
@@ -120,6 +126,7 @@ public class SearchActivity extends BaseActivity {
                     }
 
                     public void onError(Throwable e) {
+                        Log.e("onCreateOptionsMenu", "SearchViewQueryTextEvent", e);
                     }
                 }));
 

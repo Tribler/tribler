@@ -36,10 +36,10 @@ public class ChannelFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("ChannelFragment", "loadTorrents", e);
+                        Log.e("loadTorrents", "getTorrents", e);
                     }
                 }));
 
-        //TODO: subscribe to event stream and listen for torrents discovered in this channel
+        //TODO: subscribe to event stream and listen for newly torrents discovered in this channel
     }
 }

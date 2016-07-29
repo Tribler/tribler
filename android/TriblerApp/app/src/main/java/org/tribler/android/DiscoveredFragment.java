@@ -38,8 +38,10 @@ public class DiscoveredFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("DiscoveredFragment", "loadDiscoveredChannels", e);
+                        Log.e("loadDiscoveredChannels", "getChannels", e);
                     }
                 }));
+
+        //TODO: subscribe to event stream and listen for newly discovered channels and torrents
     }
 }

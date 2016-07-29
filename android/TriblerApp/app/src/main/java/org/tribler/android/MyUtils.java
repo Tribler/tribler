@@ -9,13 +9,13 @@ import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import com.squareup.leakcanary.LeakCanary;
 import com.squareup.leakcanary.RefWatcher;
 
 import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -95,7 +95,7 @@ public class MyUtils {
     /**
      * @return The file created for saving a video
      */
-    public static File getOutputVideoFile(Context ctx) {
+    public static File getOutputVideoFile(Context ctx) throws IOException {
         File videoDir;
         if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
             videoDir = new File(Environment.getExternalStoragePublicDirectory(
@@ -105,11 +105,9 @@ public class MyUtils {
         }
         // Create the storage directory if it does not exist
         if (!videoDir.exists() && !videoDir.mkdirs()) {
-            Log.e(ctx.getClass().getName(), "Failed to create directory");
-            return null;
+            throw new IOException(String.format("Failed to create directory: %s", videoDir));
         } else if (!videoDir.isDirectory()) {
-            Log.e(ctx.getClass().getName(), "Not a directory");
-            return null;
+            throw new IOException(String.format("Not a directory: %s", videoDir));
         }
         // Create a media file name
         String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH_mm_ss").format(new Date());
