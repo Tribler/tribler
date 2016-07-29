@@ -882,7 +882,7 @@ class TriblerLaunchMany(TaskManager):
 
         self.downloads[infohash].pstate_for_restart = pstate
 
-        self.register_task("save_pstate %f" % timemod.clock(),
+        self.register_task("save_pstate %s %f" %(binascii.hexlify(infohash), timemod.clock()),
                            self.downloads[infohash].save_resume_data())
 
     def load_download_pstate(self, filename):
