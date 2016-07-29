@@ -6,14 +6,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.os.Process;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import org.tribler.android.MainActivity;
 
-public class PythonService extends Service implements Runnable {
+public abstract class PythonService extends Service implements Runnable {
     private static String TAG = PythonService.class.getSimpleName();
 
     /**
@@ -32,19 +31,16 @@ public class PythonService extends Service implements Runnable {
     private String serviceEntrypoint;
     private String pythonServiceArgument;
 
-    protected boolean autoRestartService = false;
-    protected boolean startForeground = true;
-
-    public int startType() {
+    public int getStartType() {
         return START_NOT_STICKY;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public IBinder onBind(Intent intent) {
-        return null;
+    public boolean getStartForeground() {
+        return false;
+    }
+
+    public boolean getAutoRestart() {
+        return false;
     }
 
     /**
@@ -82,11 +78,11 @@ public class PythonService extends Service implements Runnable {
         pythonThread = new Thread(this);
         pythonThread.start();
 
-        if (startForeground) {
+        if (getStartForeground()) {
             doStartForeground(extras);
         }
 
-        return startType();
+        return getStartType();
     }
 
     protected void doStartForeground(Bundle extras) {
@@ -119,7 +115,7 @@ public class PythonService extends Service implements Runnable {
     public void onDestroy() {
         super.onDestroy();
         pythonThread = null;
-        if (autoRestartService && startIntent != null) {
+        if (getAutoRestart() && startIntent != null) {
             Log.v(TAG, "Service restart requested");
             startService(startIntent);
         }

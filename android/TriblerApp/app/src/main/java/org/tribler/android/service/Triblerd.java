@@ -35,6 +35,17 @@ public class Triblerd extends PythonService {
     private PowerManager.WakeLock wakeLock;
     private WifiManager.WifiLock wifiLock;
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean getStartForeground() {
+        return true;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onCreate() {
         // Keep the CPU on
@@ -52,6 +63,9 @@ public class Triblerd extends PythonService {
         super.onCreate();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onDestroy() {
         wakeLock.release();
