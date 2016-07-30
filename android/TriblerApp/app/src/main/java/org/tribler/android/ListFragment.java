@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -79,6 +80,8 @@ public class ListFragment extends ViewFragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
+        Log.v(this.getClass().getSimpleName(), "onAttach");
+
         if (context instanceof IListFragmentInteractionListener) {
             setInteractionListener((IListFragmentInteractionListener) context);
         }
@@ -90,6 +93,8 @@ public class ListFragment extends ViewFragment {
     @Override
     public void onDetach() {
         super.onDetach();
+        Log.v(this.getClass().getSimpleName(), "onDetach");
+
         setInteractionListener(null);
     }
 

@@ -2,6 +2,7 @@ package org.tribler.android;
 
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.view.View;
 
 import butterknife.ButterKnife;
@@ -20,6 +21,8 @@ public class ViewFragment extends BaseFragment {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        Log.v(this.getClass().getSimpleName(), "onViewCreated");
+
         _unbinder = ButterKnife.bind(this, view);
     }
 
@@ -29,6 +32,8 @@ public class ViewFragment extends BaseFragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        Log.v(this.getClass().getSimpleName(), "onDestroyView");
+
         _unbinder.unbind();
         _unbinder = null;
     }

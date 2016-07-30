@@ -6,6 +6,7 @@ import android.support.annotation.LayoutRes;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -29,6 +30,8 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.v(this.getClass().getSimpleName(), "onCreate");
+
         rxSubs = new CompositeSubscription();
     }
 
@@ -38,6 +41,8 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        Log.v(this.getClass().getSimpleName(), "onDestroy");
+
         // Memory leak detection
         MyUtils.getRefWatcher(this).watch(this);
 
@@ -68,6 +73,8 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        Log.v(this.getClass().getSimpleName(), "onNewIntent");
+
         setIntent(intent);
         handleIntent(intent);
     }
