@@ -4,7 +4,6 @@ import urllib
 import os
 import shutil
 
-from Tribler.Core.Modules.restapi.channels.channels_torrents_endpoint import ChannelModifyTorrentEndpoint
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.Modules.RestApi.Channels.test_channels_endpoint import AbstractTestChannelsEndpoint
