@@ -109,7 +109,7 @@ class EditChannelPage(QWidget):
 
         items = []
         for result in torrents['torrents']:
-            items.append((ChannelTorrentListItem, result))
+            items.append((ChannelTorrentListItem, result, {"show_controls": True}))
         self.window().edit_channel_torrents_list.set_data_items(items)
 
     def load_channel_playlists(self):
@@ -356,7 +356,6 @@ class EditChannelPage(QWidget):
         self.dialog = None
 
     def on_playlist_removed(self, json_result):
-        print json_result
         if 'removed' in json_result and json_result['removed']:
             self.load_channel_playlists()
 
@@ -448,7 +447,6 @@ class EditChannelPage(QWidget):
         self.dialog = None
 
     def on_rss_feed_removed(self, json_result):
-        print json_result
         if json_result['removed']:
             self.load_channel_rss_feeds()
 
