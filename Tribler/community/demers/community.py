@@ -1,4 +1,6 @@
 # Written by Niels Zeilemaker
+from twisted.internet.defer import inlineCallbacks
+
 from conversion import DemersConversion
 from payload import TextPayload
 
@@ -40,12 +42,14 @@ class DemersTest(Community):
     def dispersy_sync_cache_enable(self):
         return False
 
+    @inlineCallbacks
     def create_text(self, text, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"text")
-        message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.claim_global_time(),),
+        global_time = yield self.claim_global_time()
+        message = yield meta.impl(authentication=(self._my_member,),
+                            distribution=(global_time,),
                             payload=(text,))
-        self._dispersy.store_update_forward([message], store, update, forward)
+        yield self._dispersy.store_update_forward([message], store, update, forward)
 
     def check_text(self, messages):
         for message in messages:
