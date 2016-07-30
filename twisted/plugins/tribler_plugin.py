@@ -7,6 +7,7 @@ import signal
 from twisted.application.service import MultiService, IServiceMaker
 from twisted.conch import manhole_tap
 from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks
 from twisted.plugin import IPlugin
 from twisted.python import usage
 from twisted.python.log import msg
@@ -49,6 +50,7 @@ class TriblerServiceMaker(object):
         reactor.addSystemEventTrigger('after', 'shutdown', os._exit, code)
         reactor.stop()
 
+    @inlineCallbacks
     def start_tribler(self, options):
         """
         Main method to startup Tribler.
@@ -95,7 +97,7 @@ class TriblerServiceMaker(object):
         if upgrader.failed:
             self.shutdown_process("The upgrader failed: .Tribler directory backed up, aborting")
         else:
-            self.session.start()
+            yield self.session.start()
             msg("Tribler started")
 
     def makeService(self, options):
