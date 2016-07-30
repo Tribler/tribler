@@ -9,6 +9,7 @@ Full documentation will be available at http://repository.tudelft.nl/.
 import logging
 import base64
 
+from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.task import LoopingCall
 from Tribler.Core.Session import Session
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
@@ -55,6 +56,7 @@ class MultiChainCommunity(Community):
         self.expected_response = None
 
     @classmethod
+    @inlineCallbacks
     def get_master_members(cls, dispersy):
         # generated: Fri Jul 1 15:22:20 2016
         # curve: None
@@ -74,8 +76,8 @@ class MultiChainCommunity(Community):
                      "930b4c35cbfce63a49805030dabbe9b5302a966b80eefd7003a0567c65ccec5ecde46520cfe1875b1187d469823d" + \
                      "221417684093f63c33a8ff656331898e4bc853bcfaac49bc0b2a99028195b7c7dca0aea65"
         master_key_hex = master_key.decode("HEX")
-        master = dispersy.get_member(public_key=master_key_hex)
-        return [master]
+        master = yield dispersy.get_member(public_key=master_key_hex)
+        returnValue([master])
 
     def initiate_meta_messages(self):
         """
@@ -120,6 +122,7 @@ class MultiChainCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), MultiChainConversion(self)]
 
+    @inlineCallbacks
     def schedule_block(self, candidate, bytes_up, bytes_down):
         """
         Schedule a block for the current outstanding amounts
@@ -136,11 +139,12 @@ class MultiChainCommunity(Community):
             total_amount_received_mb = bytes_down / MEGA_DIVIDER
 
             # Try to send the request
-            self.publish_signature_request_message(candidate, total_amount_sent_mb, total_amount_received_mb)
+            yield self.publish_signature_request_message(candidate, total_amount_sent_mb, total_amount_received_mb)
         else:
             self.logger.warn(
                 "No valid candidate found for: %s to request block from.", candidate)
 
+    @inlineCallbacks
     def publish_signature_request_message(self, candidate, up, down):
         """
         Creates and sends out a signed signature_request message
@@ -150,11 +154,12 @@ class MultiChainCommunity(Community):
         :param (int) down: The amount of Megabytes that have been received from the candidate that need to signed.
         return (bool) if request is sent.
         """
-        message = self.create_signature_request_message(candidate, up, down)
+        message = yield self.create_signature_request_message(candidate, up, down)
         self.create_signature_request(candidate, message, self.allow_signature_response)
         self.persist_signature_request(message)
-        return True
+        returnValue(True)
 
+    @inlineCallbacks
     def create_signature_request_message(self, candidate, up, down):
         """
         Create a signature request message using the current time stamp.
@@ -173,11 +178,13 @@ class MultiChainCommunity(Community):
                    sequence_number_requester, previous_hash_requester)
         meta = self.get_meta_message(SIGNATURE)
 
-        message = meta.impl(authentication=([self.my_member, candidate.get_member()],),
-                            distribution=(self.claim_global_time(),),
+        claimed_global_time = yield self.claim_global_time()
+        message = yield meta.impl(authentication=([self.my_member, candidate.get_member()],),
+                            distribution=(claimed_global_time,),
                             payload=payload)
-        return message
+        returnValue(message)
 
+    @inlineCallbacks
     def allow_signature_request(self, message):
         """
         We've received a signature request message, we must either:
@@ -203,12 +210,12 @@ class MultiChainCommunity(Community):
 
         meta = self.get_meta_message(SIGNATURE)
 
-        message = meta.impl(authentication=(message.authentication.members, message.authentication.signatures),
+        message = yield meta.impl(authentication=(message.authentication.members, message.authentication.signatures),
                             distribution=(message.distribution.global_time,),
                             payload=payload)
         self.persist_signature_response(message)
         self.logger.info("Sending signature response.")
-        return message
+        returnValue(message)
 
     def allow_signature_response(self, request, response, modified):
         """
@@ -269,56 +276,66 @@ class MultiChainCommunity(Community):
         self.logger.info("Persisting sr: %s", base64.encodestring(block.hash_requester).strip())
         self.persistence.add_block(block)
 
+    @inlineCallbacks
     def send_crawl_request(self, candidate, sequence_number=None):
         if sequence_number is None:
             sequence_number = self.persistence.get_latest_sequence_number(candidate.get_member().public_key)
         self.logger.info("Crawler: Requesting crawl from node %s, from sequence number %d",
                          base64.encodestring(candidate.get_member().mid).strip(), sequence_number)
         meta = self.get_meta_message(CRAWL_REQUEST)
-        message = meta.impl(authentication=(self.my_member,),
-                            distribution=(self.claim_global_time(),),
+        claimed_global_time = yield self.claim_global_time()
+        message = yield meta.impl(authentication=(self.my_member,),
+                            distribution=(claimed_global_time,),
                             destination=(candidate,),
                             payload=(sequence_number,))
-        self.dispersy.store_update_forward([message], False, False, True)
+        yield self.dispersy.store_update_forward([message], False, False, True)
 
+    @inlineCallbacks
     def received_crawl_request(self, messages):
         for message in messages:
             self.logger.info("Crawler: Received crawl request from node %s, from sequence number %d",
                              base64.encodestring(message.candidate.get_member().mid).strip(),
                               message.payload.requested_sequence_number)
-            self.crawl_requested(message.candidate, message.payload.requested_sequence_number)
+            yield self.crawl_requested(message.candidate, message.payload.requested_sequence_number)
 
+    @inlineCallbacks
     def crawl_requested(self, candidate, sequence_number):
         blocks = self.persistence.get_blocks_since(self._public_key, sequence_number)
         if len(blocks) > 0:
             self.logger.debug("Crawler: Sending %d blocks", len(blocks))
-            messages = [self.get_meta_message(CRAWL_RESPONSE)
-                            .impl(authentication=(self.my_member,),
-                                  distribution=(self.claim_global_time(),),
+            messages = []
+            meta = self.get_meta_message(CRAWL_RESPONSE)
+            for block in blocks:
+                claimed_global_time = yield self.claim_global_time()
+                message = yield meta.impl(authentication=(self.my_member,),
+                                  distribution=(claimed_global_time,),
                                   destination=(candidate,),
-                                  payload=block.to_payload()) for block in blocks]
-            self.dispersy.store_update_forward(messages, False, False, True)
+                                  payload=block.to_payload())
+                messages.append(message)
+            yield self.dispersy.store_update_forward(messages, False, False, True)
             if len(blocks) > 1:
                 # we sent more than 1 block. Send a resumption token so the other side knows it should continue crawling
                 # last_block = blocks[-1]
                 # resumption_number = last_block.sequence_number_requster if
                 # last_block.mid_requester == self._mid else last_block.sequence_number_responder
-                message = self.get_meta_message(CRAWL_RESUME).impl(authentication=(self.my_member,),
-                                                                   distribution=(self.claim_global_time(),),
+                claimed_global_time = yield self.claim_global_time()
+                message = yield self.get_meta_message(CRAWL_RESUME).impl(authentication=(self.my_member,),
+                                                                   distribution=(claimed_global_time,),
                                                                    destination=(candidate,),
                                                                    # payload=(resumption_number))
                                                                    payload=())
-                self.dispersy.store_update_forward([message], False, False, True)
+                yield self.dispersy.store_update_forward([message], False, False, True)
         else:
             # This is slightly worrying since the last block should always be returned.
             # Or rather, the other side is requesting blocks starting from a point in the future.
             self.logger.info("Crawler: No blocks")
 
+    @inlineCallbacks
     def received_crawl_response(self, messages):
         self.logger.debug("Crawler: Valid %d block response(s) received.", len(messages))
         for message in messages:
-            requester = self.dispersy.get_member(public_key=message.payload.public_key_requester)
-            responder = self.dispersy.get_member(public_key=message.payload.public_key_responder)
+            requester = yield self.dispersy.get_member(public_key=message.payload.public_key_requester)
+            responder = yield self.dispersy.get_member(public_key=message.payload.public_key_responder)
             block = DatabaseBlock.from_block_response_message(message, requester, responder)
             # Create the hash of the message
             if not self.persistence.contains(block.hash_requester):
@@ -330,10 +347,11 @@ class MultiChainCommunity(Community):
             else:
                 self.logger.debug("Crawler: Received already known block")
 
+    @inlineCallbacks
     def received_crawl_resumption(self, messages):
         self.logger.info("Crawler: Valid %s crawl resumptions received.", len(messages))
         for message in messages:
-            self.send_crawl_request(message.candidate)
+            yield self.send_crawl_request(message.candidate)
 
     @blocking_call_on_reactor_thread
     def get_statistics(self):
@@ -390,7 +408,8 @@ class MultiChainCommunity(Community):
         # Close the persistence layer
         self.persistence.close()
 
-    @forceDBThread
+    @forceDBThread # This is just a call on reactor thread, so safe in combination with inlinecallbacks
+    @inlineCallbacks
     def on_tunnel_remove(self, subject, change_type, tunnel, candidate):
         """
         Handler for the remove event of a tunnel. This function will attempt to create a block for the amounts that
@@ -404,7 +423,7 @@ class MultiChainCommunity(Community):
             if tunnel.bytes_up > MEGA_DIVIDER or tunnel.bytes_down > MEGA_DIVIDER:
                 # Tie breaker to prevent both parties from requesting
                 if self._public_key > candidate.get_member().public_key:
-                    self.schedule_block(candidate, tunnel.bytes_up, tunnel.bytes_down)
+                    yield self.schedule_block(candidate, tunnel.bytes_up, tunnel.bytes_down)
                 # else:
                     # TODO Note that you still expect a signature request for these bytes:
                     # pending[peer] = (up, down)
@@ -419,10 +438,11 @@ class MultiChainCommunityCrawler(MultiChainCommunity):
     # Time the crawler waits between crawling a new candidate.
     CrawlerDelay = 5.0
 
+    @inlineCallbacks
     def on_introduction_response(self, messages):
         super(MultiChainCommunityCrawler, self).on_introduction_response(messages)
         for message in messages:
-            self.send_crawl_request(message.candidate)
+            yield self.send_crawl_request(message.candidate)
 
     def start_walking(self):
         self.register_task("take step", LoopingCall(self.take_step)).start(self.CrawlerDelay, now=False)
