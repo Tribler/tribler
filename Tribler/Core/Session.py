@@ -9,6 +9,7 @@ from binascii import hexlify
 import time
 
 from twisted.internet import threads
+from twisted.internet.defer import inlineCallbacks, returnValue
 
 from Tribler.Core.Utilities import torrent_utils
 from Tribler.Core import NoDispersyRLock
@@ -459,18 +460,20 @@ class Session(SessionConfigInterface):
         # Called by any thread
         self.checkpoint_shutdown(stop=False, checkpoint=True, gracetime=None, hacksessconfcheckpoint=False)
 
+    @inlineCallbacks
     def start(self):
         """ Create the LaunchManyCore instance and start it"""
 
         # Create engine with network thread
-        startup_deferred = self.lm.register(self, self.sesslock)
+        startup_deferred = yield self.lm.register(self, self.sesslock)
 
         if self.get_libtorrent():
             self.load_checkpoint()
 
         self.sessconfig.set_callback(self.lm.sessconfig_changed_callback)
 
-        return startup_deferred
+        startup_deferred = yield startup_deferred
+        returnValue(startup_deferred)
 
     def shutdown(self, checkpoint=True, gracetime=2.0, hacksessconfcheckpoint=True):
         """ Checkpoints the session and closes it, stopping the download engine.
@@ -654,6 +657,7 @@ class Session(SessionConfigInterface):
 
         del self.lm.torrent_store[hexlify(infohash)]
 
+    @inlineCallbacks
     def search_remote_torrents(self, keywords):
         """
         Searches for remote torrents through SearchCommunity with the given keywords.
@@ -662,8 +666,10 @@ class Session(SessionConfigInterface):
         """
         if not self.get_enable_torrent_search():
             raise OperationNotEnabledByConfigurationException("torrent_search is not enabled")
-        return self.lm.search_manager.search_for_torrents(keywords)
+        res = yield self.lm.search_manager.search_for_torrents(keywords)
+        returnValue(res)
 
+    @inlineCallbacks
     def search_remote_channels(self, keywords):
         """
         Searches for remote channels through AllChannelCommunity with the given keywords.
@@ -671,7 +677,7 @@ class Session(SessionConfigInterface):
         """
         if not self.get_enable_channel_search():
             raise OperationNotEnabledByConfigurationException("channel_search is not enabled")
-        self.lm.search_manager.search_for_channels(keywords)
+        yield self.lm.search_manager.search_for_channels(keywords)
 
     def create_torrent_file(self, file_path_list, params={}):
         """
@@ -681,6 +687,7 @@ class Session(SessionConfigInterface):
         """
         return threads.deferToThread(torrent_utils.create_torrent_file, file_path_list, params)
 
+    @inlineCallbacks
     def create_channel(self, name, description, mode=u'closed'):
         """
         Creates a new Channel.
@@ -690,8 +697,11 @@ class Session(SessionConfigInterface):
         :return: Channel ID
         :raises DuplicateChannelNameError if name already exists
         """
-        return self.lm.channel_manager.create_channel(name, description, mode)
+        print self.lm.channel_manager.create_channel
+        res = yield self.lm.channel_manager.create_channel(name, description, mode)
+        returnValue(res)
 
+    @inlineCallbacks
     def add_torrent_def_to_channel(self, channel_id, torrent_def, extra_info={}, forward=True):
         """
         Adds a TorrentDef to a Channel.
@@ -710,9 +720,10 @@ class Session(SessionConfigInterface):
             raise DuplicateTorrentFileError()
 
         dispersy_cid = str(channelcast_db.getDispersyCIDFromChannelId(channel_id))
-        community = self.get_dispersy_instance().get_community(dispersy_cid)
+        dispersy = self.get_dispersy_instance()
+        community = yield dispersy.get_community(dispersy_cid)
 
-        community._disp_create_torrent(
+        yield community._disp_create_torrent(
             torrent_def.infohash,
             long(time.time()),
             torrent_def.get_name_as_unicode(),
@@ -723,8 +734,8 @@ class Session(SessionConfigInterface):
         if 'description' in extra_info:
             desc = extra_info['description'].strip()
             if desc != '':
-                data = channelcast_db.getTorrentFromChannelId(channel_id, torrent_def.infohash, ['ChannelTorrents.id'])
-                community.modifyTorrent(data, {'description': desc}, forward=forward)
+                data = yield channelcast_db.getTorrentFromChannelId(channel_id, torrent_def.infohash, ['ChannelTorrents.id'])
+                yield community.modifyTorrent(data, {'description': desc}, forward=forward)
 
     def check_torrent_health(self, infohash):
         """
