@@ -7,6 +7,7 @@ import android.support.v7.widget.helper.ItemTouchHelper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Filter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -32,11 +33,13 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
     private OnClickListener _clickListener;
     private final SwipeCallback _swipeCallback;
     private final ItemTouchHelper _touchHelper;
+    private final TriblerViewAdapterFilter _filter;
 
     public TriblerViewAdapter(Collection<Object> objects) {
         super(objects);
         _swipeCallback = new SwipeCallback();
         _touchHelper = new ItemTouchHelper(_swipeCallback);
+        _filter = new TriblerViewAdapterFilter(this);
     }
 
     @Nullable
@@ -61,6 +64,14 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
      */
     public void setSwipeListener(@Nullable OnSwipeListener listener) {
         _swipeCallback.setSwipeListener(listener);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Filter getFilter() {
+        return _filter;
     }
 
     /**

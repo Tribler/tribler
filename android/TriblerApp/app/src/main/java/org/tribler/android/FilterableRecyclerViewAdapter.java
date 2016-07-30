@@ -1,7 +1,6 @@
 package org.tribler.android;
 
 import android.support.v7.widget.RecyclerView;
-import android.widget.Filter;
 import android.widget.Filterable;
 
 import java.util.ArrayList;
@@ -12,34 +11,15 @@ public abstract class FilterableRecyclerViewAdapter extends RecyclerView.Adapter
 
     private final HashSet<Object> _dataSet;
     private final ArrayList<Object> _filteredDataList;
-    private TriblerViewAdapterFilter _filter;
 
     public FilterableRecyclerViewAdapter(Collection<Object> objects) {
         _dataSet = new HashSet<>(objects);
         _filteredDataList = new ArrayList<>(objects);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Filter getFilter() {
-        if (_filter == null) {
-            _filter = new TriblerViewAdapterFilter(this, _dataSet);
-        }
-        return _filter;
-    }
-
-    /**
-     * Replace filtered data list with results
-     *
-     * @param results Collection of filtered objects
-     * @param count   Amount of filtered objects
-     */
-    public void onFilterResults(Collection<Object> results, int count) {
-        _filteredDataList.clear();
-        _filteredDataList.addAll(results);
-        notifyDataSetChanged();
+    @SuppressWarnings("unchecked")
+    protected HashSet<Object> getData() {
+        return (HashSet<Object>) _dataSet.clone();
     }
 
     /**
@@ -48,6 +28,17 @@ public abstract class FilterableRecyclerViewAdapter extends RecyclerView.Adapter
     @Override
     public int getItemCount() {
         return _filteredDataList.size();
+    }
+
+    /**
+     * Replace filtered data list with results
+     *
+     * @param results Collection of filtered objects
+     */
+    public void onFilterResults(Collection<Object> results) {
+        _filteredDataList.clear();
+        _filteredDataList.addAll(results);
+        notifyDataSetChanged();
     }
 
     /**
