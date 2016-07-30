@@ -9,6 +9,7 @@ import urllib
 from abc import ABCMeta, abstractmethod
 from binascii import hexlify, unhexlify
 from collections import deque
+from twisted.internet.defer import inlineCallbacks
 
 from decorator import decorator
 from twisted.internet import reactor
@@ -386,6 +387,7 @@ class TorrentMessageRequester(Requester):
             self._start_pending_requests()
 
     @pass_when_stopped
+    @inlineCallbacks
     def _do_request(self):
         # find search community
         if not self._search_community:
@@ -405,7 +407,7 @@ class TorrentMessageRequester(Requester):
             for candidate in self._source_dict[infohash]:
                 self._logger.debug(u"requesting torrent message %s from %s:%s",
                                    hexlify(infohash), candidate.sock_addr[0], candidate.sock_addr[1])
-                self._search_community.create_torrent_request(infohash, candidate)
+                yield self._search_community.create_torrent_request(infohash, candidate)
 
             del self._source_dict[infohash]
 
@@ -544,6 +546,7 @@ class TftpRequester(Requester):
             self._start_pending_requests()
 
     @pass_when_stopped
+    @inlineCallbacks
     def _do_request(self):
         assert not self._active_request_list, "active_request_list is not empty = %s" % repr(self._active_request_list)
 
@@ -571,7 +574,7 @@ class TftpRequester(Requester):
         # do not download if TFTP has been shutdown
         if self._session.lm.tftp_handler is None:
             return
-        self._session.lm.tftp_handler.download_file(file_name, ip, port, extra_info=extra_info,
+        yield self._session.lm.tftp_handler.download_file(file_name, ip, port, extra_info=extra_info,
                                                     success_callback=self._on_download_successful,
                                                     failure_callback=self._on_download_failed)
         self._active_request_list.append(key)
