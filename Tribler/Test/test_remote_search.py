@@ -1,7 +1,8 @@
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 from twisted.internet.task import LoopingCall
 
-from Tribler.Core.Utilities.twisted_thread import deferred
+from nose.twistedtools import deferred
+
 from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_SEARCH_COMMUNITY
 from Tribler.Core.simpledefs import SIGNAL_ON_SEARCH_RESULTS
 from Tribler.Test.test_as_server import TestAsServer
@@ -82,8 +83,10 @@ class TestRemoteChannelSearch(BaseTestSearch):
         """
         Testing whether remote channels can be found when executing a search query in AllChannel community
         """
+
+        @inlineCallbacks
         def perform_search(_):
-            self.session.search_remote_channels([u'de'])
+            yield self.session.search_remote_channels([u'de'])
 
         self.conn_deferred.addCallback(perform_search)
         return self.search_deferred
@@ -103,8 +106,9 @@ class TestRemoteTorrentSearch(BaseTestSearch):
         """
         Testing whether remote torrents can be found when executing a search query in Search community
         """
+        @inlineCallbacks
         def perform_search(_):
-            self.session.search_remote_torrents([u'de'])
+            yield self.session.search_remote_torrents([u'de'])
 
         self.conn_deferred.addCallback(perform_search)
         return self.search_deferred
