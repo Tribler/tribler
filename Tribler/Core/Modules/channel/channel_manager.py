@@ -1,5 +1,6 @@
 from binascii import hexlify
 import logging
+from twisted.internet.defer import returnValue, inlineCallbacks
 
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
@@ -55,6 +56,7 @@ class ChannelManager(TaskManager):
         self.session = None
 
     @call_on_reactor_thread
+    @inlineCallbacks
     def create_channel(self, name, description, mode, rss_url=None):
         """
         Creates a new Channel.
@@ -76,14 +78,14 @@ class ChannelManager(TaskManager):
                 raise DuplicateChannelNameError(u"Channel name already exists: %s" % name)
 
         channel_mode = self._channel_mode_map[mode]
-        community = ChannelCommunity.create_community(self.dispersy, self.session.dispersy_member,
+        community = yield ChannelCommunity.create_community(self.dispersy, self.session.dispersy_member,
                                                       tribler_session=self.session)
 
         channel_obj = ChannelObject(self.session, community)
         channel_obj.initialize()
 
-        community.set_channel_mode(channel_mode)
-        community.create_channel(name, description)
+        yield community.set_channel_mode(channel_mode)
+        yield community.create_channel(name, description)
 
         # create channel object
         self._channel_list.append(channel_obj)
@@ -92,7 +94,7 @@ class ChannelManager(TaskManager):
             channel_obj.create_rss_feed(rss_url)
 
         self._logger.debug(u"creating channel '%s', %s", channel_obj.name, hexlify(community.cid))
-        return channel_obj.channel_id
+        returnValue(channel_obj.channel_id)
 
     def get_my_channel(self, channel_id):
         """
