@@ -45,9 +45,15 @@ public class SearchActivity extends BaseActivity {
         _fragment = null;
     }
 
-    protected void handleIntent(Intent intent) {
-        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
-            SearchView searchView = (SearchView) findViewById(R.id.search_view);
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+
+        SearchView searchView = (SearchView) findViewById(R.id.search_view);
+        if (searchView != null) {
 
             String query = intent.getStringExtra(SearchManager.QUERY);
             CharSequence current = searchView.getQuery();
@@ -60,7 +66,15 @@ public class SearchActivity extends BaseActivity {
                     // Close keyboard on voice search submit
                     searchView.clearFocus();
                 }
+            }
+        }
+    }
 
+    protected void handleIntent(Intent intent) {
+        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
+            String query = intent.getStringExtra(SearchManager.QUERY);
+
+            if (!TextUtils.isEmpty(query)) {
                 // Start search
                 _fragment.startSearch(query);
             }
