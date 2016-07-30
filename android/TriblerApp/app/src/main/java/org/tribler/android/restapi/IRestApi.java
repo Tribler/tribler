@@ -2,6 +2,7 @@ package org.tribler.android.restapi;
 
 import org.tribler.android.restapi.json.ChannelsResponse;
 import org.tribler.android.restapi.json.QueriedAck;
+import org.tribler.android.restapi.json.ShutdownAck;
 import org.tribler.android.restapi.json.SubscribedAck;
 import org.tribler.android.restapi.json.SubscribedChannelsResponse;
 import org.tribler.android.restapi.json.TorrentsResponse;
@@ -18,7 +19,7 @@ import rx.Observable;
 public interface IRestApi {
 
     @PUT("/shutdown")
-    Observable<Object> shutdown();
+    Observable<ShutdownAck> shutdown();
 
     @GET("/events")
     Observable<TriblerEvent> getEventStream();

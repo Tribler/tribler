@@ -27,6 +27,7 @@ import com.cantrowitz.rxbroadcast.RxBroadcast;
 
 import org.tribler.android.restapi.IRestApi;
 import org.tribler.android.restapi.TriblerService;
+import org.tribler.android.restapi.json.ShutdownAck;
 import org.tribler.android.service.Triblerd;
 
 import java.io.File;
@@ -268,10 +269,10 @@ public class MainActivity extends BaseActivity {
         rxSubs.add(_service.shutdown()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<Object>() {
+                .subscribe(new Observer<ShutdownAck>() {
 
-                    public void onNext(Object response) {
-                        Log.d("navShutdownClicked", response.toString());
+                    public void onNext(ShutdownAck response) {
+                        Log.v("navShutdownClicked", response.toString());
                     }
 
                     public void onCompleted() {
