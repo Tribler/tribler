@@ -24,7 +24,7 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
     public void loadSubscriptions() {
         adapter.clear();
 
-        rxSubs.add(service.getSubscribedChannels()
+        rxSubs.add(service.subscribedChannels()
                 .subscribeOn(Schedulers.io())
                 .flatMap(response -> Observable.from(response.getSubscribed()))
                 .observeOn(AndroidSchedulers.mainThread())
@@ -38,7 +38,7 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("loadSubscriptions", "getSubscribedChannels", e);
+                        Log.e("loadSubscriptions", "subscribedChannels", e);
                     }
                 }));
     }

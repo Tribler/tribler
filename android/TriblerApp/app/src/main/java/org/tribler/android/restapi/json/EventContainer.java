@@ -1,13 +1,11 @@
 package org.tribler.android.restapi.json;
 
-import java.io.Serializable;
-
-public class TriblerEvent implements Serializable {
+public class EventContainer {
 
     private String type;
     private Object event;
 
-    public TriblerEvent() {
+    public EventContainer() {
     }
 
     public String getType() {

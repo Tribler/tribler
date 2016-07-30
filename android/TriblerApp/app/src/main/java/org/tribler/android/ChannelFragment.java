@@ -14,7 +14,7 @@ public class ChannelFragment extends DefaultInteractionListFragment {
     private String _dispersyCid;
 
     public void loadTorrents(String dispersyCid) {
-        if (dispersyCid == _dispersyCid) {
+        if (dispersyCid.equals(_dispersyCid)) {
             // Do not reload
             return;
         }

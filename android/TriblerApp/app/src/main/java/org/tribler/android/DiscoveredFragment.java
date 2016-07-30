@@ -24,7 +24,7 @@ public class DiscoveredFragment extends DefaultInteractionListFragment {
     public void loadDiscoveredChannels() {
         adapter.clear();
 
-        rxSubs.add(service.getDiscoveredChannels()
+        rxSubs.add(service.discoveredChannels()
                 .subscribeOn(Schedulers.io())
                 .flatMap(response -> Observable.from(response.getChannels()))
                 .observeOn(AndroidSchedulers.mainThread())

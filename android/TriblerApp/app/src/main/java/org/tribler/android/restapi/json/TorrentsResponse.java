@@ -1,8 +1,6 @@
 package org.tribler.android.restapi.json;
 
-import java.io.Serializable;
-
-public class TorrentsResponse implements Serializable {
+public class TorrentsResponse {
 
     private TriblerTorrent[] torrents;
 

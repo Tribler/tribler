@@ -1,8 +1,8 @@
 package org.tribler.android.restapi.json;
 
-import java.io.Serializable;
+public class SearchResultTorrentEvent {
 
-public class SearchResultTorrentEvent implements Serializable {
+    public static final String TYPE = "search_result_torrent";
 
     private String query;
     private TriblerTorrent result;

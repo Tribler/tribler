@@ -1,8 +1,6 @@
 package org.tribler.android.restapi.json;
 
-import java.io.Serializable;
-
-public class ShutdownAck implements Serializable {
+public class ShutdownAck {
 
     private boolean shutdown;
     private float gracetime;

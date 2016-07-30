@@ -25,9 +25,12 @@ import android.widget.Toast;
 
 import com.cantrowitz.rxbroadcast.RxBroadcast;
 
+import org.tribler.android.restapi.EventStream;
+import org.tribler.android.restapi.IEventListener;
 import org.tribler.android.restapi.IRestApi;
 import org.tribler.android.restapi.TriblerService;
 import org.tribler.android.restapi.json.ShutdownAck;
+import org.tribler.android.restapi.json.TriblerStartedEvent;
 import org.tribler.android.service.Triblerd;
 
 import java.io.File;
@@ -38,7 +41,7 @@ import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
-public class MainActivity extends BaseActivity {
+public class MainActivity extends BaseActivity implements IEventListener {
 
     public static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 200;
 
@@ -94,6 +97,8 @@ public class MainActivity extends BaseActivity {
 
         initConnectionManager();
         initService();
+        EventStream.openEventStream();
+        EventStream.addListener(this);
 
         String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
         String authToken = getString(R.string.service_auth_token);
@@ -112,6 +117,12 @@ public class MainActivity extends BaseActivity {
         _navToggle = null;
         _connectivityManager = null;
         _service = null;
+    }
+
+    public void onEvent(Object event) {
+        if (event instanceof TriblerStartedEvent) {
+            //TODO: remove loading screen
+        }
     }
 
     /**

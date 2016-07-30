@@ -1,8 +1,8 @@
 package org.tribler.android.restapi.json;
 
-import java.io.Serializable;
+public class SearchResultChannelEvent {
 
-public class SearchResultChannelEvent implements Serializable {
+    public static final String TYPE = "search_result_channel";
 
     private String query;
     private TriblerChannel result;

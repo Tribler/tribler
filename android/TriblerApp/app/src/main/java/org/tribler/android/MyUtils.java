@@ -19,6 +19,10 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import okio.BufferedSource;
+import rx.Observable;
+import rx.Subscriber;
+
 public class MyUtils {
 
     /**
@@ -133,5 +137,21 @@ public class MyUtils {
             default:
                 return false;
         }
+    }
+
+    public static Observable<String> readByUtf8Line(BufferedSource source) {
+        return Observable.create(new Observable.OnSubscribe<String>() {
+
+            public void call(Subscriber<? super String> subscriber) {
+                try {
+                    while (!source.exhausted()) {
+                        subscriber.onNext(source.readUtf8Line());
+                    }
+                } catch (IOException ex) {
+                    subscriber.onError(ex);
+                }
+                subscriber.onCompleted();
+            }
+        });
     }
 }

@@ -1,8 +1,6 @@
 package org.tribler.android.restapi.json;
 
-import java.io.Serializable;
-
-public class UnsubscribedAck implements Serializable {
+public class UnsubscribedAck {
 
     private boolean unsubscribed;
 
