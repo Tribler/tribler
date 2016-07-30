@@ -3,7 +3,7 @@ import sys
 import unittest
 from random import randint
 
-from PyQt5.QtCore import QPoint, Qt
+from PyQt5.QtCore import QPoint, Qt, QTimer
 from PyQt5.QtGui import QPixmap, QRegion
 from PyQt5.QtTest import QTest
 
@@ -12,6 +12,8 @@ from PyQt5.QtWidgets import QApplication, QListWidget, QTreeWidget
 from Tribler.Core.Utilities.network_utils import get_random_port
 
 import TriblerGUI.core_manager as core_manager
+from TriblerGUI.dialogs.feedbackdialog import FeedbackDialog
+
 rand_port = get_random_port()
 core_manager.START_FAKE_API = True
 core_manager.FAKE_API_PORT = rand_port
@@ -188,6 +190,17 @@ class TriblerGUITest(AbstractTriblerGUITest):
         self.wait_for_list_populated(window.edit_channel_torrents_list)
         self.screenshot(window, name="edit_channel_torrents")
 
+        first_widget = window.edit_channel_torrents_list.itemWidget(window.edit_channel_torrents_list.item(0))
+        QTest.mouseClick(first_widget, Qt.LeftButton)
+        self.screenshot(window, name="edit_channel_torrents_selected")
+        QTest.mouseClick(window.edit_channel_torrents_remove_selected_button, Qt.LeftButton)
+        self.screenshot(window, name="remove_channel_torrent_dialog")
+        QTest.mouseClick(window.edit_channel_page.dialog.buttons[1], Qt.LeftButton)
+
+        QTest.mouseClick(window.edit_channel_torrents_remove_all_button, Qt.LeftButton)
+        self.screenshot(window, name="remove_all_channel_torrent_dialog")
+        QTest.mouseClick(window.edit_channel_page.dialog.buttons[1], Qt.LeftButton)
+
     def test_edit_channel_playlists(self):
         QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)
         self.wait_for_variable("edit_channel_page.channel_overview")
@@ -300,6 +313,18 @@ class TriblerGUITest(AbstractTriblerGUITest):
         QTest.mouseClick(first_widget, Qt.LeftButton)
         self.screenshot(window, name="channel_playlist")
 
+    def test_start_download(self):
+        QTest.mouseClick(window.left_menu_button_subscriptions, Qt.LeftButton)
+        self.wait_for_list_populated(window.subscribed_channels_list)
+        first_widget = window.subscribed_channels_list.itemWidget(window.subscribed_channels_list.item(0))
+        QTest.mouseClick(first_widget, Qt.LeftButton)
+        self.wait_for_list_populated(window.channel_torrents_list)
+
+        widget = window.channel_torrents_list.itemWidget(window.channel_torrents_list.item(5))
+        QTest.mouseClick(widget.torrent_download_button, Qt.LeftButton)
+        self.screenshot(window, name="start_download_dialog")
+        QTest.mouseClick(widget.dialog.dialog_widget.cancel_button, Qt.LeftButton)
+
     def test_create_remove_playlist(self):
         QTest.mouseClick(window.left_menu_button_my_channel, Qt.LeftButton)
         self.wait_for_variable("edit_channel_page.channel_overview")
@@ -358,6 +383,32 @@ class TriblerGUITest(AbstractTriblerGUITest):
     def test_video_player_page(self):
         QTest.mouseClick(window.left_menu_button_video_player, Qt.LeftButton)
         self.screenshot(window, name="video_player_page")
+
+        # Some actions for the left menu playlist
+        window.left_menu_playlist.set_loading()
+        self.screenshot(window, name="video_player_page_playlist_loading")
+        window.left_menu_playlist.set_files([{'name': 'video.avi', 'index': 0},
+                                             {'name': 'test.txt', 'index': 1}])
+        self.screenshot(window, name="video_player_page_playlist_items")
+        window.left_menu_playlist.set_active_index(0)
+        self.screenshot(window, name="video_player_page_playlist_focus")
+
+    def test_feedback_dialog(self):
+        def screenshot_dialog():
+            self.screenshot(dialog, name="feedback_dialog")
+            dialog.close()
+
+        dialog = FeedbackDialog(window, "test")
+        QTimer.singleShot(1000, screenshot_dialog)
+        dialog.exec_()
+
+    def test_discovered_page(self):
+        QTest.mouseClick(window.left_menu_button_discovered, Qt.LeftButton)
+        self.screenshot(window, name="discovered_page")
+
+        # Click on the first item
+        first_widget = window.discovered_channels_list.itemWidget(window.discovered_channels_list.item(0))
+        QTest.mouseClick(first_widget, Qt.LeftButton)
 
 if __name__ == "__main__":
     unittest.main()
