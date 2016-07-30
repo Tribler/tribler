@@ -6,6 +6,9 @@ from hashlib import sha1
 from shutil import rmtree
 from time import sleep
 from threading import Event
+from twisted.internet.defer import inlineCallbacks, Deferred
+
+from nose.twistedtools import deferred
 
 from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
 from Tribler.dispersy.candidate import Candidate
@@ -36,8 +39,12 @@ class TestRemoteTorrentHandler(TestAsServer):
         rmtree(self.session2_state_dir)
         super(TestRemoteTorrentHandler, self).tearDown()
 
+    @deferred(timeout=10)
+    @inlineCallbacks
     def test_torrentdownload(self):
         self._logger.info(u"Start torrent download test...")
+
+        download_deferred = Deferred()
 
         def do_check_download(torrent_file=None):
 
@@ -48,11 +55,12 @@ class TestRemoteTorrentHandler(TestAsServer):
                                     u"Failed to download torrent file 1.")
 
             self._logger.info(u"Torrent files 1 and 2 downloaded successfully.")
-            self.download_event.set()
+            download_deferred.callback(None)
             self.quit()
 
+        @inlineCallbacks
         def do_start_download():
-            self.setup_torrentdownloader()
+            yield self.setup_torrentdownloader()
 
             @call_on_reactor_thread
             def _start_download():
@@ -63,14 +71,13 @@ class TestRemoteTorrentHandler(TestAsServer):
 
             _start_download()
 
-            timeout = 10
-            self.CallConditional(timeout, self.download_event.is_set,
-                                 do_check_download, u"Failed to download torrent within %s seconds" % timeout)
+            # Wait for the download deferred_to fire by the user_callback
+            yield download_deferred
 
-        self.startTest(do_start_download)
+        yield self.startTest(do_start_download)
 
+    @inlineCallbacks
     def setup_torrentdownloader(self):
-        self.download_event = Event()
         self.session1_port = self.session.get_dispersy_port()
 
         self.infohash_strs = ["41aea20908363a80d44234e8fef07fab506cd3b4",
@@ -100,11 +107,14 @@ class TestRemoteTorrentHandler(TestAsServer):
         while not upgrader.is_done:
             sleep(0.1)
         assert not upgrader.failed, upgrader.current_status
-        self.session2.start()
-        sleep(1)
+        yield self.session2.start()
 
+    @deferred(timeout=10)
+    @inlineCallbacks
     def test_metadata_download(self):
         self._logger.info(u"Start metadata download test...")
+
+        download_deferred = Deferred()
 
         def do_check_download(torrent_file=None):
             self.assertTrue(self.session2.lm.rtorrent_handler.has_metadata(self.thumb_hash))
@@ -112,24 +122,24 @@ class TestRemoteTorrentHandler(TestAsServer):
             assert retrieved_data == self.thumb_data, "metadata doesn't match"
 
             self._logger.info(u"metadata downloaded successfully.")
+            download_deferred.callback(None)
             self.quit()
-            self.download_event.set()
 
+        @inlineCallbacks
         def do_start_download():
-            self.setup_metadata_downloader()
-
-            timeout = 10
+            yield self.setup_metadata_downloader()
 
             candidate = Candidate(("127.0.0.1", self.session1_port), False)
             self.session2.lm.rtorrent_handler.download_metadata(candidate, self.thumb_hash,
                                                                 usercallback=do_check_download)
-            self.CallConditional(timeout, self.download_event.is_set, do_check_download,
-                                 u"Failed to download metadata within %s seconds" % timeout)
 
-        self.startTest(do_start_download)
+            # Wait for the rtorrent_handler to fire the deferred using the usercallback.
+            yield download_deferred
 
+        yield self.startTest(do_start_download)
+
+    @inlineCallbacks
     def setup_metadata_downloader(self):
-        self.download_event = Event()
         self.session1_port = self.session.get_dispersy_port()
 
         # load thumbnail, calculate hash, and save into the metadata_store
@@ -159,7 +169,7 @@ class TestRemoteTorrentHandler(TestAsServer):
         while not upgrader.is_done:
             sleep(0.1)
         assert not upgrader.failed, upgrader.current_status
-        self.session2.start()
+        yield self.session2.start()
         sleep(1)
 
         # save thumbnail into metadata_store
