@@ -1,7 +1,10 @@
 import json
 import logging
+from twisted.internet.defer import inlineCallbacks
 
 from twisted.web import http, resource
+from twisted.web.server import NOT_DONE_YET
+
 from Tribler.Core.Utilities.search_utils import split_into_keywords
 from Tribler.Core.exceptions import OperationNotEnabledByConfigurationException
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS, SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, \
@@ -58,9 +61,16 @@ class SearchEndpoint(resource.Resource):
                     }
                 }
         """
+        self.render_GET_delayed(request).addErrback(request.processingFailed)
+        return NOT_DONE_YET
+
+    @inlineCallbacks
+    def render_GET_delayed(self, request):
         if 'q' not in request.args:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "query parameter missing"})
+            request.write(json.dumps({"error": "query parameter missing"}))
+            request.finish()
+            return
 
         # Notify the events endpoint that we are starting a new search query
         self.events_endpoint.start_new_query()
@@ -79,12 +89,13 @@ class SearchEndpoint(resource.Resource):
 
         # Create remote searches
         try:
-            self.session.search_remote_torrents(keywords)
+            yield self.session.search_remote_torrents(keywords)
             self.session.search_remote_channels(keywords)
         except OperationNotEnabledByConfigurationException as exc:
             self._logger.error(exc)
 
-        return json.dumps({"queried": True})
+        request.write(json.dumps({"queried": True}))
+        request.finish()
 
 
 class SearchCompletionsEndpoint(resource.Resource):
