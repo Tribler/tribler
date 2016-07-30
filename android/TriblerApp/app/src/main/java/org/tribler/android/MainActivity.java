@@ -120,6 +120,7 @@ public class MainActivity extends BaseActivity implements IEventListener {
     protected void onDestroy() {
         drawer.removeDrawerListener(_navToggle);
         super.onDestroy();
+        EventStream.removeListener(this);
         _navToggle = null;
         _connectivityManager = null;
         _service = null;

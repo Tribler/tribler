@@ -99,6 +99,8 @@ public class EventStreamCallback implements Callback {
 
     @Nullable
     private static Object parseEvent(String eventString) {
+        Log.v("parseEvent", eventString);
+
         EventContainer container = GSON.fromJson(eventString, EventContainer.class);
         Object event = container.getEvent();
         if (event == null) {
