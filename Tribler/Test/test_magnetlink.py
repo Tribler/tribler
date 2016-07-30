@@ -5,8 +5,13 @@ from binascii import hexlify
 import socket
 import os
 import threading
+from twisted.internet.defer import inlineCallbacks
+from twisted.internet.task import deferLater
+
 import libtorrent as lt
 from libtorrent import bencode, bdecode
+
+from nose.twistedtools import deferred, reactor
 
 from Tribler.Test.common import UBUNTU_1504_INFOHASH
 from Tribler.Test.test_as_server import TestAsServer, TESTS_API_DIR, TESTS_DATA_DIR
@@ -144,6 +149,8 @@ class TestMagnet(TestAsServer):
         TestAsServer.setUpPreSession(self)
         self.config.set_libtorrent(True)
 
+    @deferred(timeout=10)
+    @inlineCallbacks
     def test_good_transfer(self):
         def do_transfer():
             def torrentdef_retrieved(tdef):
@@ -152,9 +159,10 @@ class TestMagnet(TestAsServer):
             event = threading.Event()
             magnet_link = 'magnet:?xt=urn:btih:%s' % hexlify(UBUNTU_1504_INFOHASH)
             self.session.lm.ltmgr.get_metainfo(magnet_link, torrentdef_retrieved, timeout=120)
-            assert event.wait(120)
+            yield deferLater(reactor, 120, lambda: None)
+            assert event.isSet()
 
-        self.startTest(do_transfer)
+        yield self.startTest(do_transfer)
 
 
 class TestMagnetFakePeer(TestAsServer, MagnetHelpers):
@@ -252,6 +260,7 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
     obtain the info part of the metadata from us.
     """
 
+    @inlineCallbacks
     def setUp(self):
         TestAsServer.setUp(self)
 
@@ -262,7 +271,7 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
         # we use a small piece length to obtain multiple pieces
         self.tdef.set_piece_length(1)
         self.tdef.finalize()
-        self.setup_seeder()
+        yield self.setup_seeder()
 
         MagnetHelpers.__init__(self, self.tdef)
 
