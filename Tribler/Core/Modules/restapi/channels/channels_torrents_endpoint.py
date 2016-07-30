@@ -1,7 +1,7 @@
 import base64
 import json
 
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.web import http
 from twisted.web.server import NOT_DONE_YET
 
@@ -9,7 +9,6 @@ from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseCha
 from Tribler.Core.Modules.restapi.util import convert_db_torrent_to_json
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.exceptions import DuplicateTorrentFileError
-from Tribler.Core.Utilities.utilities import http_get
 
 
 UNKNOWN_TORRENT_MSG = "this torrent is not found in the specified channel"
@@ -100,15 +99,24 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
             :statuscode 404: if your channel does not exist.
             :statuscode 500: if the passed torrent data is corrupt.
         """
+        self._delayed_render(request).addErrback(request.processingFailed)
+        return NOT_DONE_YET
+
+    @inlineCallbacks
+    def _delayed_render(self, request):
         channel = self.get_channel_from_db(self.cid)
         if channel is None:
-            return ChannelsTorrentsEndpoint.return_404(request)
+            request.write(ChannelsTorrentsEndpoint.return_404(request))
+            request.finish()
+            return
 
         parameters = http.parse_qs(request.content.read(), 1)
 
         if 'torrent' not in parameters or len(parameters['torrent']) == 0:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "torrent parameter missing"})
+            request.write(json.dumps({"error": "torrent parameter missing"}))
+            request.finish()
+            return
 
         if 'description' not in parameters or len(parameters['description']) == 0:
             extra_info = {}
@@ -118,12 +126,15 @@ class ChannelsTorrentsEndpoint(BaseChannelsEndpoint):
         try:
             torrent = base64.b64decode(parameters['torrent'][0])
             torrent_def = TorrentDef.load_from_memory(torrent)
-            self.session.add_torrent_def_to_channel(channel[0], torrent_def, extra_info, forward=True)
+            yield self.session.add_torrent_def_to_channel(channel[0], torrent_def, extra_info, forward=True)
 
         except (DuplicateTorrentFileError, ValueError) as ex:
-            return BaseChannelsEndpoint.return_500(self, request, ex)
+            request.write(BaseChannelsEndpoint.return_500(self, request, ex))
+            request.finish()
+            return
 
-        return json.dumps({"added": True})
+        request.write(json.dumps({"added": True}))
+        request.finish()
 
 
 class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
@@ -131,11 +142,10 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
     This class is responsible for methods that modify the list of torrents (adding/removing torrents).
     """
 
-    def __init__(self, session, cid, path):
+    def __init__(self, session, cid, infohash):
         BaseChannelsEndpoint.__init__(self, session)
         self.cid = cid
-        self.path = path
-        self.deferred = Deferred()
+        self.infohash = infohash
 
     def render_PUT(self, request):
         """
@@ -162,9 +172,16 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
             :statuscode 404: if your channel does not exist.
             :statuscode 500: if the specified torrent is already in your channel.
         """
+        self._delayed_PUT_render(request).addErrback(request.processingFailed)
+        return NOT_DONE_YET
+
+    @inlineCallbacks
+    def _delayed_PUT_render(self, request):
         channel = self.get_channel_from_db(self.cid)
         if channel is None:
-            return BaseChannelsEndpoint.return_404(request)
+            request.write(BaseChannelsEndpoint.return_404(request))
+            request.finish()
+            return
 
         parameters = http.parse_qs(request.content.read(), 1)
 
@@ -173,43 +190,28 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
         else:
             extra_info = {'description': parameters['description'][0]}
 
-        def _on_url_fetched(data):
-            return TorrentDef.load_from_memory(data)
+        try:
+            if self.infohash.startswith("http:") or self.infohash.startswith("https:"):
+                torrent_def = yield TorrentDef.load_from_url(self.infohash)
+                yield self.session.add_torrent_def_to_channel(channel[0], torrent_def, extra_info, forward=True)
+            if self.infohash.startswith("magnet:"):
 
-        def _on_magnet_fetched(meta_info):
-            return TorrentDef.load_from_dict(meta_info)
+                @inlineCallbacks
+                def on_receive_magnet_meta_info(meta_info):
+                    torrent_def = TorrentDef.load_from_dict(meta_info)
+                    yield self.session.add_torrent_def_to_channel(channel[0], torrent_def, extra_info, forward=True)
 
-        def _on_torrent_def_loaded(torrent_def):
-            self.session.add_torrent_def_to_channel(channel[0], torrent_def, extra_info, forward=True)
-            return self.path
+                infohash_or_magnet = self.infohash
+                callback = on_receive_magnet_meta_info
+                self.session.lm.ltmgr.get_metainfo(infohash_or_magnet, callback)
 
-        def _on_added(added):
-            request.write(json.dumps({"added": added}))
+        except (DuplicateTorrentFileError, ValueError) as ex:
+            request.write(BaseChannelsEndpoint.return_500(self, request, ex))
             request.finish()
+            return
 
-        def _on_add_failed(failure):
-            failure.trap(ValueError, DuplicateTorrentFileError)
-            self._logger.exception(failure.value)
-            request.write(BaseChannelsEndpoint.return_500(self, request, failure.value))
-            request.finish()
-
-        if self.path.startswith("http:") or self.path.startswith("https:"):
-            self.deferred = http_get(self.path)
-            self.deferred.addCallback(_on_url_fetched)
-
-        if self.path.startswith("magnet:"):
-            try:
-                self.session.lm.ltmgr.get_metainfo(self.path, callback=self.deferred.callback,
-                                                   timeout=30, timeout_callback=self.deferred.errback, notify=True)
-            except Exception as ex:
-                self.deferred.errback(ex)
-
-            self.deferred.addCallback(_on_magnet_fetched)
-
-        self.deferred.addCallback(_on_torrent_def_loaded)
-        self.deferred.addCallback(_on_added)
-        self.deferred.addErrback(_on_add_failed)
-        return NOT_DONE_YET
+        request.write(json.dumps({"added": self.infohash}))
+        request.finish()
 
     def render_DELETE(self, request):
         """
@@ -234,22 +236,35 @@ class ChannelModifyTorrentEndpoint(BaseChannelsEndpoint):
 
             :statuscode 404: if the channel is not found or if the torrent is not found in the specified channel
         """
+        self._delayed_DELETE_render(request).addErrback(request.processingFailed)
+        return NOT_DONE_YET
+
+    @inlineCallbacks
+    def _delayed_DELETE_render(self, request):
         channel_info = self.get_channel_from_db(self.cid)
         if channel_info is None:
-            return ChannelsTorrentsEndpoint.return_404(request)
+            request.write(ChannelsTorrentsEndpoint.return_404(request))
+            request.finish()
+            return
 
         torrent_db_columns = ['Torrent.torrent_id', 'infohash', 'Torrent.name', 'length', 'Torrent.category',
                               'num_seeders', 'num_leechers', 'last_tracker_check', 'ChannelTorrents.dispersy_id']
-        torrent_info = self.channel_db_handler.getTorrentFromChannelId(channel_info[0], self.path.decode('hex'),
-                                                                       torrent_db_columns)
+        torrent_info = yield self.channel_db_handler.getTorrentFromChannelId(channel_info[0],
+                                                                             self.infohash.decode('hex'),
+                                                                             torrent_db_columns)
 
         if torrent_info is None:
-            return BaseChannelsEndpoint.return_404(request, message=UNKNOWN_TORRENT_MSG)
+            request.write(BaseChannelsEndpoint.return_404(request, message=UNKNOWN_TORRENT_MSG))
+            request.finish()
+            return
 
         channel_community = self.get_community_for_channel_id(channel_info[0])
         if channel_community is None:
-            return BaseChannelsEndpoint.return_404(request, message=UNKNOWN_COMMUNITY_MSG)
+            request.write(BaseChannelsEndpoint.return_404(request, message=UNKNOWN_COMMUNITY_MSG))
+            request.finish()
+            return
 
-        channel_community.remove_torrents([torrent_info[8]])  # the 8th index is the dispersy id of the channel torrent
+        yield channel_community.remove_torrents([torrent_info[8]])  # the 8th index is the dispersy id of the channel torrent
 
-        return json.dumps({"removed": True})
+        request.write(json.dumps({"removed": True}))
+        request.finish()
