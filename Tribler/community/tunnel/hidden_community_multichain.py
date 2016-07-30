@@ -1,9 +1,12 @@
+from twisted.internet.defer import inlineCallbacks, returnValue
+
 from Tribler.community.tunnel.hidden_community import HiddenTunnelCommunity
 
 
 class HiddenTunnelCommunityMultichain(HiddenTunnelCommunity):
 
     @classmethod
+    @inlineCallbacks
     def get_master_members(cls, dispersy):
         # generated: Fri Jul 1 15:13:14 2016
         # curve: None
@@ -23,5 +26,5 @@ class HiddenTunnelCommunityMultichain(HiddenTunnelCommunity):
                      "96cd2528c411c8f71340584c5290b4e9d67a98c8030ae6cb8b97c69ca3f3b63c0b548493b51df9f38b4f3302760ca" + \
                      "d2c89162ea42abcccf52af49029873565406ddab99f2aa71c6a5a1c9a653a27bc114a9"
         master_key_hex = master_key.decode("HEX")
-        master = dispersy.get_member(public_key=master_key_hex)
-        return [master]
+        master = yield dispersy.get_member(public_key=master_key_hex)
+        returnValue([master])
