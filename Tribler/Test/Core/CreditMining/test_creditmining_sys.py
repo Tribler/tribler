@@ -7,15 +7,17 @@ Written by Ardhi Putra Pratama H
 import binascii
 import os
 import shutil
+from twisted.internet.defer import inlineCallbacks
 from unittest import skip
 
 from twisted.internet import defer
 from twisted.web.server import Site
 from twisted.web.static import File
 
+from nose.twistedtools import reactor, deferred
+
 from Tribler.Core.DownloadConfig import DefaultDownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.Core.Utilities.twisted_thread import deferred, reactor
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_UPDATE, NTFY_CHANNELCAST
 from Tribler.Main.Utility.GuiDBTuples import CollectedTorrent
 from Tribler.Policies.BoostingManager import BoostingManager, BoostingSettings
@@ -302,6 +304,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         self.create_votecast_called = True
 
     @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def create_fake_allchannel_community(self):
         """
         This method creates a fake AllChannel community so we can check whether a request is made in the community
@@ -309,7 +312,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         """
         self.session.lm.dispersy._database.open()
         fake_member = DummyMember(self.session.lm.dispersy, 1, "a" * 20)
-        member = self.session.lm.dispersy.get_new_member(u"curve25519")
+        member = yield self.session.lm.dispersy.get_new_member(u"curve25519")
         fake_community = AllChannelCommunity(self.session.lm.dispersy, fake_member, member)
         fake_community.disp_create_votecast = self.on_dispersy_create_votecast
         self.session.lm.dispersy._communities = {"allchannel": fake_community}
@@ -344,6 +347,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         self.insert_torrents_into_channel(torrent_list)
 
     @deferred(timeout=20)
+    @inlineCallbacks
     def test_chn_lookup(self):
         """
         testing channel source.
@@ -356,7 +360,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         dispersy_cid = binascii.unhexlify(dispersy_cid_hex)
 
         # create channel and insert torrent
-        self.create_fake_allchannel_community()
+        yield self.create_fake_allchannel_community()
         self.create_torrents_in_channel(dispersy_cid_hex)
 
         self.boosting_manager.add_source(dispersy_cid)
@@ -408,7 +412,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
 
         d = self.check_source(dispersy_cid)
         d.addCallback(check_torrents_channel, target=1)
-        return d
+        yield d
 
     @deferred(timeout=20)
     def test_chn_exist_lookup(self):
@@ -479,6 +483,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         return d
 
     @deferred(timeout=20)
+    @inlineCallbacks
     def test_chn_max_torrents(self):
         """
         Test the restriction of max_torrents in a source.
@@ -489,7 +494,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         dispersy_cid = binascii.unhexlify(dispersy_cid_hex)
 
         # create channel and insert torrent
-        self.create_fake_allchannel_community()
+        yield self.create_fake_allchannel_community()
         self.create_torrents_in_channel(dispersy_cid_hex)
 
         pioneer_file = os.path.join(TESTS_DATA_DIR, "Pioneer.One.S01E06.720p.x264-VODO.torrent")
@@ -553,7 +558,7 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
 
         d = self.check_source(dispersy_cid)
         d.addCallback(check_torrents_channel)
-        return d
+        yield d
 
     def tearDown(self):
         self.session.lm.dispersy._communities['allchannel'].cancel_all_pending_tasks()
