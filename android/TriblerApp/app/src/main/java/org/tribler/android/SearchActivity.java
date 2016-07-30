@@ -50,7 +50,7 @@ public class SearchActivity extends BaseActivity {
             SearchView searchView = (SearchView) findViewById(R.id.search_view);
 
             String query = intent.getStringExtra(SearchManager.QUERY);
-            String current = searchView.getQuery().toString();
+            CharSequence current = searchView.getQuery();
 
             if (!TextUtils.isEmpty(query) && !query.equals(current)) {
                 // Show voice search query
@@ -95,7 +95,7 @@ public class SearchActivity extends BaseActivity {
         });
 
         String query = getIntent().getStringExtra(SearchManager.QUERY);
-        String current = searchView.getQuery().toString();
+        CharSequence current = searchView.getQuery();
 
         if (!TextUtils.isEmpty(query) && !query.equals(current)) {
             // Restore last query
@@ -110,14 +110,14 @@ public class SearchActivity extends BaseActivity {
                 .subscribe(new Observer<SearchViewQueryTextEvent>() {
 
                     public void onNext(SearchViewQueryTextEvent event) {
-                        String query = event.queryText().toString();
+                        CharSequence query = event.queryText();
                         String current = getIntent().getStringExtra(SearchManager.QUERY);
 
                         if (!TextUtils.isEmpty(query) && !query.equals(current)) {
                             // Fire new search intent
                             Intent searchIntent = new Intent(SearchActivity.this, SearchActivity.class);
                             searchIntent.setAction(Intent.ACTION_SEARCH);
-                            searchIntent.putExtra(SearchManager.QUERY, query);
+                            searchIntent.putExtra(SearchManager.QUERY, query.toString());
                             onNewIntent(searchIntent);
                         }
                     }
