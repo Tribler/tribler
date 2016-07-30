@@ -8,7 +8,7 @@ from traceback import print_exc
 
 import libtorrent as lt
 from twisted.internet import defer
-from twisted.internet.defer import Deferred, CancelledError
+from twisted.internet.defer import Deferred, CancelledError, inlineCallbacks, returnValue
 
 from Tribler.Core import NoDispersyRLock
 from Tribler.Core.DownloadConfig import DownloadStartupConfig, DownloadConfigInterface
@@ -226,6 +226,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
         :return: A deferred that will be called when you can create the engine wrapper.
         """
         can_create_deferred = Deferred()
+
         def do_check():
             with self.dllock:
                 if not self.cew_scheduled:
@@ -239,6 +240,8 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
                         if tunnels_ready < 1:
                             self.dlstate = DLSTATUS_CIRCUITS
+                            # Laurens(25-7-2016): build_tunnels now returns a deferred, but this does NOT matter
+                            # as we run the check tunnels_ready in 5 seconds.
                             tunnel_community.build_tunnels(self.get_hops())
                         else:
                             self.dlstate = DLSTATUS_METADATA
@@ -523,6 +526,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
 
         self.tracker_status[alert.url] = [peers, status]
 
+    @inlineCallbacks
     def on_metadata_received_alert(self, alert):
         self.metadata = {'info': lt.bdecode(get_info_from_handle(self.handle).metadata())}
 
@@ -533,7 +537,7 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
             else:
                 self.metadata["announce"] = trackers[0]
 
-        self.tdef = TorrentDef.load_from_dict(self.metadata)
+        self.tdef = yield TorrentDef.load_from_dict(self.metadata)
         self.orig_files = [torrent_file.path.decode('utf-8') for torrent_file in lt.torrent_info(self.metadata).files()]
         self.set_corrected_infoname()
         self.set_filepieceranges()
@@ -972,8 +976,9 @@ class LibtorrentDownloadImpl(DownloadConfigInterface):
                 # returncallback for post-callback processing.
                 if not self.done and self.session.lm.threadpool:
                     # runs on the reactor
+                    @inlineCallbacks
                     def session_getstate_usercallback_target():
-                        when, getpeerlist = usercallback(ds)
+                        when, getpeerlist = yield usercallback(ds)
                         if when > 0.0 and self.session.lm.threadpool:
                             # Schedule next invocation, either on general or DL specific
                             self.session.lm.threadpool.add_task(lambda: self.network_get_state(usercallback, getpeerlist), when)
