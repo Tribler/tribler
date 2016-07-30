@@ -18,6 +18,7 @@ import logging.config
 from traceback import print_exc
 import binascii
 from ConfigParser import ConfigParser
+from twisted.internet.defer import inlineCallbacks
 
 from Tribler.community.channel.community import ChannelCommunity
 from Tribler.community.channel.preview import PreviewChannelCommunity
@@ -70,6 +71,7 @@ class MetadataInjector(TaskManager):
 
         self.channel_list = None
 
+    @inlineCallbacks
     def initialize(self):
         sscfg = SessionStartupConfig()
         if self._opt.statedir:
@@ -96,7 +98,7 @@ class MetadataInjector(TaskManager):
 
         # add dispersy start callbacks
         self.session.add_observer(self.dispersy_started, NTFY_DISPERSY, [NTFY_STARTED])
-        self.session.start()
+        yield self.session.start()
 
     def shutdown(self):
         self.cancel_all_pending_tasks()
@@ -118,6 +120,7 @@ class MetadataInjector(TaskManager):
 
         self.register_task(u'prepare_channels', reactor.callLater(10, self._prepare_channels))
 
+    @inlineCallbacks
     def _prepare_channels(self):
         self._logger.info(u"Dispersy started, creating channels...")
 
@@ -152,12 +155,12 @@ class MetadataInjector(TaskManager):
         # create new channels
         for channel_dict in channels_to_create:
             self._logger.info(u"Creating new Channel '%s'", channel_dict[u'channel_name'])
-            self.session.lm.channel_manager.create_channel(channel_dict[u'channel_name'],
+            yield self.session.lm.channel_manager.create_channel(channel_dict[u'channel_name'],
                                                            channel_dict[u'channel_description'],
                                                            u"closed",
                                                            rss_url=channel_dict[u'rss_url'])
 
-
+@inlineCallbacks
 def main():
     command_line_parser = optparse.OptionParser()
     command_line_parser.add_option("--statedir", action="store", type="string",
@@ -178,7 +181,7 @@ def main():
         sys.exit()
 
     metadata_injector = MetadataInjector(opt)
-    metadata_injector.initialize()
+    yield metadata_injector.initialize()
 
     print >> sys.stderr, u"Type Q followed by <ENTER> to stop the metadata-injector"
     # condition variable would be prettier, but that don't listen to
