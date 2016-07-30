@@ -1,4 +1,6 @@
 # Written by Cor-Paul Bezemer
+from twisted.internet.defer import inlineCallbacks, returnValue
+
 from conversion import StatisticsConversion
 from payload import StatisticsRequestPayload, StatisticsResponsePayload
 
@@ -17,7 +19,9 @@ BARTERCAST_PERSIST_INTERVAL = 120.0
 
 
 class BarterCommunity(Community):
+
     @classmethod
+    @inlineCallbacks
     def get_master_members(cls, dispersy):
 # generated: Thu Oct 30 12:59:19 2014
 # curve: NID_sect571r1
@@ -31,8 +35,8 @@ class BarterCommunity(Community):
 # KiQgRMgmPgxrncELaPnDBUDPvYprtczseG4=
 #-----END PUBLIC KEY-----
         master_key = "3081a7301006072a8648ce3d020106052b81040027038192000405ef988346197abe009065e6f9f517263063495554e4d278074feb1be3e81586b44f90b8a11f170f0a059d8f26c259118e6afc775f3d1e7c46462c9de0ec2bb94e480390622056b002c1f121acc52c18a0857ce59e79cf73642a4787fcdc5398d332000fbd44b16f14b005c0910d81cb85392fd036f32a242044c8263e0c6b9dc10b68f9c30540cfbd8a6bb5ccec786e".decode("HEX")
-        master = dispersy.get_member(public_key=master_key)
-        return [master]
+        master = yield dispersy.get_member(public_key=master_key)
+        returnValue([master])
 
     def __init__(self, dispersy, master, my_member):
         super(BarterCommunity, self).__init__(dispersy, master, my_member)
@@ -75,14 +79,16 @@ class BarterCommunity(Community):
     def initiate_conversions(self):
         return [DefaultConversion(self), StatisticsConversion(self)]
 
+    @inlineCallbacks
     def create_stats_request(self, candidate, stats_type):
         log.msg("Creating stats-request for type %d to member: %s" % (stats_type, candidate._association.mid.encode("hex")))
         meta = self.get_meta_message(u"stats-request")
-        message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.claim_global_time(),),
+        claimed_global_time = yield self.claim_global_time()
+        message = yield meta.impl(authentication=(self._my_member,),
+                            distribution=(claimed_global_time,),
                             destination=(candidate,),
                             payload=(stats_type,))
-        self._dispersy._forward([message])
+        yield self._dispersy._forward([message])
 
     def check_stats_request(self, messages):
         for message in messages:
@@ -92,24 +98,27 @@ class BarterCommunity(Community):
             else:
                 yield DelayMessageByProof(message)
 
+    @inlineCallbacks
     def on_stats_request(self, messages):
         log.msg("IN: stats-request")
         for message in messages:
             log.msg("stats-request: %s %s" % (message._distribution.global_time, message.payload.stats_type))
             # send back stats-response
-            self.create_stats_response(message.payload.stats_type, message.candidate)
+            yield self.create_stats_response(message.payload.stats_type, message.candidate)
 
+    @inlineCallbacks
     def create_stats_response(self, stats_type, candidate):
         log.msg("OUT: stats-response")
         meta = self.get_meta_message(u"stats-response")
         records = _barter_statistics.get_top_n_bartercast_statistics(stats_type, 5)
         log.msg("sending stats for type %d: %s" % (stats_type, records))
 
-        message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.claim_global_time(),),
+        claimed_global_time = yield self.claim_global_time()
+        message = yield meta.impl(authentication=(self._my_member,),
+                            distribution=(claimed_global_time,),
                             destination=(candidate,),
                             payload=(stats_type, records))
-        self._dispersy._forward([message])
+        yield self._dispersy._forward([message])
 
     def check_stats_response(self, messages):
         for message in messages:
@@ -152,12 +161,13 @@ class BarterCommunityCrawler(BarterCommunity):
     def __init__(self, *args, **kargs):
         super(BarterCommunityCrawler, self).__init__(*args, **kargs)
 
+    @inlineCallbacks
     def on_introduction_response(self, messages):
         super(BarterCommunity, self).on_introduction_response(messages)
         for message in messages:
             log.msg("in on_introduction_response: Requesting stats from %s" % message.candidate)
             for t in BartercastStatisticTypes.reverse_mapping:
-                self.create_stats_request(message.candidate, t)
+                yield self.create_stats_request(message.candidate, t)
 
     def start_walking(self):
         self.register_task("take step", LoopingCall(self.take_step)).start(1.0, now=True)
