@@ -1,5 +1,9 @@
 import json
+
+from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.web import http
+from twisted.web.server import NOT_DONE_YET
+
 from Tribler.Core.Modules.restapi import VOTE_SUBSCRIBE, VOTE_UNSUBSCRIBE
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
 from Tribler.Core.Modules.restapi.util import convert_db_channel_to_json
@@ -82,15 +86,27 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
 
             :statuscode 409: (conflict) if you are already subscribed to the specified channel.
         """
+        self._render_delayed_put(request).addErrback(request.processingFailed)
+        return NOT_DONE_YET
+
+    @inlineCallbacks
+    def _render_delayed_put(self, request):
         request.setHeader('Content-Type', 'text/json')
         channel_info = self.get_channel_from_db(self.cid)
+        if channel_info is None:
+            request.write(ChannelsModifySubscriptionEndpoint.return_404(request))
+            request.finish()
+            returnValue(None)
 
         if channel_info is not None and channel_info[7] == VOTE_SUBSCRIBE:
             request.setResponseCode(http.CONFLICT)
-            return json.dumps({"error": ALREADY_SUBSCRIBED_RESPONSE_MSG})
+            request.write(json.dumps({"error": ALREADY_SUBSCRIBED_RESPONSE_MSG}))
+            request.finish()
+            returnValue(None)
 
-        self.vote_for_channel(self.cid, VOTE_SUBSCRIBE)
-        return json.dumps({"subscribed": True})
+        yield self.vote_for_channel(self.cid, VOTE_SUBSCRIBE)
+        request.write(json.dumps({"subscribed": True}))
+        request.finish()
 
     def render_DELETE(self, request):
         """
@@ -114,13 +130,23 @@ class ChannelsModifySubscriptionEndpoint(BaseChannelsEndpoint):
 
             :statuscode 404: if you are not subscribed to the specified channel.
         """
+        self._render_delayed_delete(request).addErrback(request.processingFailed)
+        return NOT_DONE_YET
+
+    @inlineCallbacks
+    def _render_delayed_delete(self, request):
         request.setHeader('Content-Type', 'text/json')
         channel_info = self.get_channel_from_db(self.cid)
         if channel_info is None:
-            return ChannelsModifySubscriptionEndpoint.return_404(request)
+            request.write(ChannelsModifySubscriptionEndpoint.return_404(request))
+            request.finish()
+            returnValue(None)
 
         if channel_info[7] != VOTE_SUBSCRIBE:
-            return ChannelsModifySubscriptionEndpoint.return_404(request, message=NOT_SUBSCRIBED_RESPONSE_MSG)
+            request.write(ChannelsModifySubscriptionEndpoint.return_404(request, message=NOT_SUBSCRIBED_RESPONSE_MSG))
+            request.finish()
+            returnValue(None)
 
-        self.vote_for_channel(self.cid, VOTE_UNSUBSCRIBE)
-        return json.dumps({"unsubscribed": True})
+        yield self.vote_for_channel(self.cid, VOTE_UNSUBSCRIBE)
+        request.write(json.dumps({"unsubscribed": True}))
+        request.finish()
