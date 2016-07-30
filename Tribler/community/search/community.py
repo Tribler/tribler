@@ -4,6 +4,7 @@ from time import time
 from binascii import hexlify
 from traceback import print_exc
 
+from twisted.internet.defer import returnValue, inlineCallbacks
 from twisted.internet.task import LoopingCall
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
@@ -39,6 +40,7 @@ class SearchCommunity(Community):
     A single community that all Tribler members join and use to disseminate .torrent files.
     """
     @classmethod
+    @inlineCallbacks
     def get_master_members(cls, dispersy):
 # generated: Mon Nov 24 10:37:11 2014
 # curve: NID_sect571r1
@@ -52,8 +54,8 @@ class SearchCommunity(Community):
 # SVFfxY2H4MhhyltGelxFC/V/FFdD15QFfnU=
 # -----END PUBLIC KEY-----
         master_key = "3081a7301006072a8648ce3d020106052b810400270381920004034a9031d07ed6d5d98b0a98cacd4bef2e19125ea7635927708babefa8e66deeb6cb4e78cc0efda39a581a679032a95ebc4a0fbdf913aa08af31f14753839b620cb5547c6e6cf42f03629b1b3dc199a3b1a262401c7ae615e87a1cf13109c7fb532f45c492ba927787257bf994e989a15fb16f20751649515fc58d87e0c861ca5b467a5c450bf57f145743d794057e75".decode("HEX")
-        master = dispersy.get_member(public_key=master_key)
-        return [master]
+        master = yield dispersy.get_member(public_key=master_key)
+        returnValue([master])
 
     def __init__(self, *args, **kwargs):
         super(SearchCommunity, self).__init__(*args, **kwargs)
@@ -181,6 +183,7 @@ class SearchCommunity(Community):
         # 2. accept messages in any global time range
         return False
 
+    @inlineCallbacks
     def add_taste_buddies(self, new_taste_buddies):
         for new_tb_tuple in new_taste_buddies[:]:
             for tb_tuple in self.taste_buddies:
@@ -198,7 +201,7 @@ class SearchCommunity(Community):
 
         # Send ping to all new candidates
         if len(new_taste_buddies) > 0:
-            self.create_torrent_collect_requests([tb_tuple[-1] for tb_tuple in new_taste_buddies])
+            yield self.create_torrent_collect_requests([tb_tuple[-1] for tb_tuple in new_taste_buddies])
 
     def get_nr_connections(self):
         return len(self.get_connections())
@@ -225,6 +228,7 @@ class SearchCommunity(Community):
 
         return [0, time(), candidate]
 
+    @inlineCallbacks
     def create_introduction_request(self, destination, allow_sync, is_fast_walker=False):
         assert isinstance(destination, WalkCandidate), [type(destination), destination]
 
@@ -259,18 +263,19 @@ class SearchCommunity(Community):
         self.add_candidate(destination)
 
         meta_request = self.get_meta_message(u"dispersy-introduction-request")
-        request = meta_request.impl(authentication=(self.my_member,),
+        request = yield meta_request.impl(authentication=(self.my_member,),
                                     distribution=(self.global_time,),
                                     destination=(destination,),
                                     payload=payload)
 
         self._logger.debug(u"%s %s sending introduction request to %s", self.cid.encode("HEX"), type(self), destination)
 
-        self._dispersy._forward([request])
-        return request
+        yield self._dispersy._forward([request])
+        returnValue(request)
 
+    @inlineCallbacks
     def on_introduction_request(self, messages):
-        super(SearchCommunity, self).on_introduction_request(messages)
+        yield super(SearchCommunity, self).on_introduction_request(messages)
 
         if any(message.payload.taste_bloom_filter for message in messages):
             my_preferences = self._mypref_db.getMyPrefListInfohash(limit=500)
@@ -289,7 +294,7 @@ class SearchCommunity(Community):
             new_taste_buddies.append(self.__calc_similarity(message.candidate, len(my_preferences), num_preferences, overlap))
 
         if len(new_taste_buddies) > 0:
-            self.add_taste_buddies(new_taste_buddies)
+            yield self.add_taste_buddies(new_taste_buddies)
 
         if self._notifier:
             from Tribler.Core.simpledefs import NTFY_ACT_MEET, NTFY_ACTIVITIES, NTFY_INSERT
@@ -310,6 +315,7 @@ class SearchCommunity(Community):
         def on_timeout(self):
             pass
 
+    @inlineCallbacks
     def create_search(self, keywords):
         candidates = self.get_connections()
         if len(candidates) > 0:
@@ -321,13 +327,14 @@ class SearchCommunity(Community):
 
             # create search request message
             meta = self.get_meta_message(u"search-request")
-            message = meta.impl(authentication=(self._my_member,),
+            message = yield meta.impl(authentication=(self._my_member,),
                                 distribution=(self.global_time,), payload=(cache.number, keywords))
 
-            self._dispersy._send(candidates, [message])
+            yield self._dispersy._send(candidates, [message])
 
-        return len(candidates)
+        returnValue(len(candidates))
 
+    @inlineCallbacks
     def on_search(self, messages):
         for message in messages:
             keywords = message.payload.keywords
@@ -361,18 +368,20 @@ class SearchCommunity(Community):
             elif DEBUG:
                 self._logger.debug(u"no results")
 
-            self._create_search_response(message.payload.identifier, results, message.candidate)
+            yield self._create_search_response(message.payload.identifier, results, message.candidate)
 
+    @inlineCallbacks
     def _create_search_response(self, identifier, results, candidate):
         # create search-response message
         meta = self.get_meta_message(u"search-response")
-        message = meta.impl(authentication=(self._my_member,),
+        message = yield meta.impl(authentication=(self._my_member,),
                             distribution=(self.global_time,), destination=(candidate,), payload=(identifier, results))
-        self._dispersy._forward([message])
+        yield self._dispersy._forward([message])
 
         if DEBUG:
             self._logger.debug(u"returning %s results to %s", len(results), candidate)
 
+    @inlineCallbacks
     def on_search_response(self, messages):
         # _get_channel_community could cause multiple commits, using this with clause this is reduced to only one.
         with self._dispersy.database:
@@ -405,8 +414,8 @@ class SearchCommunity(Community):
                             self._logger.debug(u"SearchCommunity: joining %d preview communities", len(channels))
 
                         for cid in channels:
-                            community = self._get_channel_community(cid)
-                            community.disp_create_missing_channel(message.candidate, includeSnapshot=False)
+                            community = yield self._get_channel_community(cid)
+                            yield community.disp_create_missing_channel(message.candidate, includeSnapshot=False)
                 else:
                     if DEBUG:
                         self._logger.debug(u"SearchCommunity: got search response identifier not found %s",
@@ -415,28 +424,31 @@ class SearchCommunity(Community):
             # ensure that no commits occur
             raise IgnoreCommits()
 
+    @inlineCallbacks
     def create_torrent_request(self, infohash, candidate):
         torrentdict = {}
         torrentdict[self._master_member.mid] = set([infohash, ])
 
         # create torrent-request message
         meta = self.get_meta_message(u"torrent-request")
-        message = meta.impl(authentication=(self._my_member,),
+        message = yield meta.impl(authentication=(self._my_member,),
                             distribution=(self.global_time,), destination=(candidate,), payload=(torrentdict,))
-        self._dispersy._forward([message])
+        yield self._dispersy._forward([message])
 
         if DEBUG:
             nr_requests = sum([len(cid_torrents) for cid_torrents in torrentdict.values()])
             self._logger.debug(u"requesting %s TorrentMessages from %s", nr_requests, candidate)
 
+    @inlineCallbacks
     def on_torrent_request(self, messages):
         for message in messages:
             requested_packets = []
             for cid, torrents in message.payload.torrents.iteritems():
-                requested_packets.extend(self._get_packets_from_infohashes(cid, torrents))
+                packets_from_infohashes = yield self._get_packets_from_infohashes(cid, torrents)
+                requested_packets.extend(packets_from_infohashes)
 
             if requested_packets:
-                self._dispersy._send_packets([message.candidate], requested_packets,
+                yield self._dispersy._send_packets([message.candidate], requested_packets,
                                              self, u"-caused by on-torrent-request-")
 
             if DEBUG:
@@ -466,6 +478,7 @@ class SearchCommunity(Community):
             if remove:
                 self.community.taste_buddies.remove(remove)
 
+    @inlineCallbacks
     def create_torrent_collect_requests(self, candidates=None):
         if candidates is None:
             refresh_if = time() - CANDIDATE_WALK_LIFETIME
@@ -473,13 +486,14 @@ class SearchCommunity(Community):
             candidates = [candidate for _, prev, candidate in self.taste_buddies if prev < refresh_if]
 
         if len(candidates) > 0:
-            self._create_pingpong(u"torrent-collect-request", candidates)
+            yield self._create_pingpong(u"torrent-collect-request", candidates)
 
+    @inlineCallbacks
     def on_torrent_collect_request(self, messages):
         candidates = [message.candidate for message in messages]
         identifiers = [message.payload.identifier for message in messages]
 
-        self._create_pingpong(u"torrent-collect-response", candidates, identifiers)
+        yield self._create_pingpong(u"torrent-collect-response", candidates, identifiers)
         self._process_collect_request_response(messages)
 
     def on_torrent_collect_response(self, messages):
@@ -529,6 +543,7 @@ class SearchCommunity(Community):
             if taste_buddy[2].sock_addr in sock_addrs:
                 taste_buddy[1] = time()
 
+    @inlineCallbacks
     def _create_pingpong(self, meta_name, candidates, identifiers=None):
         max_len = self.dispersy_sync_bloom_filter_bits / 8
         torrents = self.__get_torrents(int(max_len / 44))
@@ -541,11 +556,11 @@ class SearchCommunity(Community):
 
             # create torrent-collect-request/response message
             meta = self.get_meta_message(meta_name)
-            message = meta.impl(authentication=(self._my_member,),
+            message = yield meta.impl(authentication=(self._my_member,),
                                 distribution=(self.global_time,), destination=(candidate,),
                                 payload=(identifier, SWIFT_INFOHASHES, torrents))
 
-            self._dispersy._forward([message])
+            yield self._dispersy._forward([message])
             self._logger.debug(u"send %s to %s", meta_name, candidate)
 
     def __get_torrents(self, limit):
@@ -587,6 +602,7 @@ class SearchCommunity(Community):
         self.torrent_cache = (time(), torrents)
         return torrents
 
+    @inlineCallbacks
     def create_torrent(self, infohash, store=True, update=True, forward=True):
         torrent_data = self.tribler_session.get_collected_torrent(infohash)
         if torrent_data is not None:
@@ -595,20 +611,20 @@ class SearchCommunity(Community):
                 files = torrentdef.get_files_as_unicode_with_length()
 
                 meta = self.get_meta_message(u"torrent")
-                message = meta.impl(authentication=(self._my_member,),
+                message = yield meta.impl(authentication=(self._my_member,),
                                     distribution=(self.claim_global_time(),),
                                     payload=(torrentdef.get_infohash(), long(time()), torrentdef.get_name_as_unicode(),
                                              tuple(files), torrentdef.get_trackers_as_single_tuple()))
 
-                self._dispersy.store_update_forward([message], store, update, forward)
+                yield self._dispersy.store_update_forward([message], store, update, forward)
                 self._torrent_db.updateTorrent(torrentdef.get_infohash(), notify=False, dispersy_id=message.packet_id)
 
-                return message
+                returnValue(message)
             except ValueError:
                 pass
-            except:
+            except Exception:
                 print_exc()
-        return False
+        returnValue(False)
 
     def on_torrent(self, messages):
         for message in messages:
@@ -629,24 +645,29 @@ class SearchCommunity(Community):
         known_cids = map(str, known_cids)
         return [cid for cid in cids if cid not in known_cids]
 
+    @inlineCallbacks
     def _get_channel_community(self, cid):
         assert isinstance(cid, str)
         assert len(cid) == 20
 
         try:
-            return self._dispersy.get_community(cid, True)
+            community = yield self._dispersy.get_community(cid, True)
+            returnValue(community)
         except CommunityNotFoundException:
             self._logger.debug(u"join preview community %s", cid.encode("HEX"))
-            return PreviewChannelCommunity.init_community(self._dispersy, self._dispersy.get_member(mid=cid),
+            member = yield self._dispersy.get_member(mid=cid)
+            community = yield PreviewChannelCommunity.init_community(self._dispersy, member,
                                                           self._my_member, tribler_session=self.tribler_session)
+            returnValue(community)
 
+    @inlineCallbacks
     def _get_packets_from_infohashes(self, cid, infohashes):
         packets = []
 
         def add_packet(dispersy_id):
             if dispersy_id and dispersy_id > 0:
                 try:
-                    packet = self._get_packet_from_dispersy_id(dispersy_id, "torrent")
+                    packet = yield self._get_packet_from_dispersy_id(dispersy_id, "torrent")
                     if packet:
                         packets.append(packet)
                 except RuntimeError:
@@ -662,7 +683,7 @@ class SearchCommunity(Community):
 
             # 1. try to find the torrentmessage for this cid, infohash combination
             if channel_id:
-                dispersy_id = self._channelcast_db.getTorrentFromChannelId(channel_id, infohash, ['ChannelTorrents.dispersy_id'])
+                dispersy_id = yield self._channelcast_db.getTorrentFromChannelId(channel_id, infohash, ['ChannelTorrents.dispersy_id'])
             else:
                 torrent = self._torrent_db.getTorrent(infohash, ['dispersy_id'], include_mypref=False)
                 if torrent:
@@ -670,20 +691,21 @@ class SearchCommunity(Community):
 
                     # 2. if still not found, create a new torrentmessage and return this one
                     if not dispersy_id:
-                        message = self.create_torrent(infohash, store=True, update=False, forward=False)
+                        message = yield self.create_torrent(infohash, store=True, update=False, forward=False)
                         if message:
                             packets.append(message.packet)
             add_packet(dispersy_id)
-        return packets
+        returnValue(packets)
 
+    @inlineCallbacks
     def _get_packet_from_dispersy_id(self, dispersy_id, messagename):
         # 1. get the packet
         try:
-            packet, _ = self._dispersy.database.execute(u"SELECT sync.packet, sync.id FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,)).next()
-        except StopIteration:
+            packet, _ = yield self._dispersy.database.stormdb.fetchone(u"SELECT sync.packet, sync.id FROM community JOIN sync ON sync.community = community.id WHERE sync.id = ?", (dispersy_id,))
+        except TypeError:
             raise RuntimeError(u"Unknown dispersy_id")
 
-        return str(packet)
+        returnValue(str(packet))
 
 
 class ChannelCastDBStub(object):
@@ -693,44 +715,55 @@ class ChannelCastDBStub(object):
 
         self.cachedTorrents = None
 
+    @inlineCallbacks
     def convert_to_messages(self, results):
-        messages = self._dispersy.convert_packets_to_messages(str(packet) for packet, _ in results)
+        messages = yield self._dispersy.convert_packets_to_messages(str(packet) for packet, _ in results)
+        return_iterator = []
         for packet_id, message in zip((packet_id for _, packet_id in results), messages):
             if message:
                 message.packet_id = packet_id
-                yield message.community.cid, message
+                return_iterator.append((message.community.cid, message))
+        returnValue(iter(return_iterator))
 
+    @inlineCallbacks
     def newTorrent(self, message):
-        self._cachedTorrents[message.payload.infohash] = message
+        cached_torrents = yield self.get_cached_torrents()
+        cached_torrents[message.payload.infohash] = message
 
+    @inlineCallbacks
     def hasTorrents(self, channel_id, infohashes):
         returnAr = []
         for infohash in infohashes:
-            if infohash in self._cachedTorrents:
+            cached_torrents = yield self.get_cached_torrents()
+            if infohash in cached_torrents:
                 returnAr.append(True)
             else:
                 returnAr.append(False)
-        return returnAr
+        returnValue(returnAr)
 
+    @inlineCallbacks
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
-        if infohash in self._cachedTorrents:
-            return self._cachedTorrents[infohash].packet_id
+        cached_torrents = yield self.get_cached_torrents()
+        if infohash in cached_torrents:
+            returnValue(cached_torrents[infohash].packet_id)
 
     def on_dynamic_settings(self, channel_id):
         pass
 
-    @property
-    def _cachedTorrents(self):
+    @inlineCallbacks
+    def get_cached_torrents(self):
         if self.cachedTorrents is None:
             self.cachedTorrents = {}
-            self._cacheTorrents()
+            yield self._cacheTorrents()
 
-        return self.cachedTorrents
+        returnValue(self.cachedTorrents)
 
+    @inlineCallbacks
     def _cacheTorrents(self):
         sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE meta_message.name = 'torrent'"
-        results = list(self._dispersy.database.execute(sql))
-        messages = self.convert_to_messages(results)
+        results = yield self._dispersy.database.stormdb.fetchall(sql)
+        messages = yield self.convert_to_messages(results)
 
+        cached_torrents = yield self.get_cached_torrents()
         for _, message in messages:
-            self._cachedTorrents[message.payload.infohash] = message
+            cached_torrents[message.payload.infohash] = message
