@@ -160,8 +160,6 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
 
             holder.torrent = (TriblerTorrent) getObject(adapterPosition);
             holder.name.setText(holder.torrent.getName());
-            holder.seedersCount.setText(String.valueOf(holder.torrent.getNumSeeders()));
-            holder.size.setText(String.valueOf(holder.torrent.getSize()));
             File thumbnail = new File(holder.torrent.getThumbnailUrl());
             if (thumbnail.exists()) {
                 holder.thumbnail.setImageURI(Uri.fromFile(thumbnail));
@@ -206,10 +204,6 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
 
         @BindView(R.id.torrent_name)
         TextView name;
-        @BindView(R.id.torrent_seeders_count)
-        TextView seedersCount;
-        @BindView(R.id.torrent_size)
-        TextView size;
         @BindView(R.id.torrent_thumbnail)
         ImageView thumbnail;
 

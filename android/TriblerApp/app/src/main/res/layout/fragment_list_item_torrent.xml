@@ -24,35 +24,15 @@
         android:id="@+id/torrent_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/torrent_size"
-        android:layout_alignLeft="@+id/torrent_size"
-        android:layout_alignStart="@+id/torrent_size"
-        android:layout_alignTop="@+id/torrent_thumbnail"
-        android:layout_toLeftOf="@+id/torrent_seeders_count"
+        android:layout_alignParentTop="true"
+        android:layout_toEndOf="@+id/torrent_thumbnail"
+        android:layout_toRightOf="@+id/torrent_thumbnail"
+        android:paddingEnd="16dp"
+        android:paddingLeft="16dp"
+        android:paddingStart="16dp"
         android:text="Torrent name"
         android:textColor="@color/green"
         android:textSize="16sp"
         android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/torrent_seeders_count"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentRight="true"
-        android:layout_alignTop="@+id/torrent_name"
-        android:text="Seeders"
-        android:textColor="@color/blue" />
-
-    <TextView
-        android:id="@+id/torrent_size"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignBottom="@+id/torrent_thumbnail"
-        android:layout_marginLeft="16dp"
-        android:layout_marginStart="16dp"
-        android:layout_toEndOf="@+id/torrent_thumbnail"
-        android:layout_toRightOf="@+id/torrent_thumbnail"
-        android:text="Size" />
 
 </RelativeLayout>

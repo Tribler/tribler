@@ -103,6 +103,8 @@ public class EventStreamCallback implements Callback {
         Object event = container.getEvent();
         if (event == null) {
             eventString = "{}";
+        } else {
+            eventString = GSON.toJson(event);
         }
         switch (container.getType()) {
 

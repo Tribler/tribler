@@ -126,8 +126,6 @@ public class MainActivity extends BaseActivity implements IEventListener {
     }
 
     public void onEvent(Object event) {
-        Log.w("onEvent", " " + event);
-
         if (event instanceof EventsStartEvent) {
             runOnUiThread(() -> {
                 // Hide loading bar
