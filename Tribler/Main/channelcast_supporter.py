@@ -9,6 +9,7 @@ import os
 import sys
 import time
 import logging
+from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.simpledefs import NTFY_TORRENTS, NTFY_INSERT
 from Tribler.Core.Session import Session
@@ -36,6 +37,7 @@ def define_allchannel(session):
     session.add_observer(on_incoming_torrent, NTFY_TORRENTS, [NTFY_INSERT])
 
 
+@inlineCallbacks
 def main(define_communities):
     command_line_parser = optparse.OptionParser()
     command_line_parser.add_option("--statedir", action="store", type="string", help="Use an alternate statedir")
@@ -60,7 +62,7 @@ def main(define_communities):
     sscfg.set_torrent_collecting(True)
 
     session = Session(sscfg)
-    session.start()
+    yield session.start()
 
     dispersy = session.get_dispersy_instance()
     define_communities(session)
