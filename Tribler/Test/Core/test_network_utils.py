@@ -1,8 +1,9 @@
 import socket
 
-from Tribler.Core.Utilities.twisted_thread import reactor, deferred
 from nose.tools import raises
 from twisted.internet.protocol import Factory
+
+from nose.twistedtools import deferred, reactor
 
 from Tribler.Core.Utilities.network_utils import get_random_port, autodetect_socket_style, InterruptSocket
 from Tribler.Test.Core.base_test import TriblerCoreTest
