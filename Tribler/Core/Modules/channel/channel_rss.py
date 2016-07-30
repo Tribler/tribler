@@ -8,7 +8,7 @@ import re
 import feedparser
 
 from twisted.internet import reactor
-from twisted.internet.defer import DeferredList
+from twisted.internet.defer import DeferredList, inlineCallbacks
 from twisted.web.client import getPage
 
 from Tribler.dispersy.taskmanager import TaskManager
@@ -102,6 +102,7 @@ class ChannelRssParser(TaskManager):
             self.register_task(u'rss_scrape',
                                reactor.callLater(self.check_interval, self._task_scrape))
 
+    @inlineCallbacks
     def on_got_torrent(self, torrent_data, rss_item=None):
         if self._to_stop:
             return
@@ -119,7 +120,7 @@ class ChannelRssParser(TaskManager):
                 self._pending_metadata_requests[info_hash] = rss_item
 
         # create channel torrent
-        self.channel_community._disp_create_torrent_from_torrentdef(tdef, long(time.time()))
+        yield self.channel_community._disp_create_torrent_from_torrentdef(tdef, long(time.time()))
 
         # update URL cache
         self._url_cache.add(rss_item[u'torrent_url'])
@@ -140,6 +141,7 @@ class ChannelRssParser(TaskManager):
                 metadata_deferred = getPage(rss_item[u'thumbnail_url'].encode('utf-8'))
                 metadata_deferred.addCallback(lambda md, r=rss_item: self.on_got_metadata(md, rss_item=r))
 
+    @inlineCallbacks
     def on_got_metadata(self, metadata_data, rss_item=None):
         # save metadata
         thumb_hash = hashlib.sha1(metadata_data).digest()
@@ -150,7 +152,7 @@ class ChannelRssParser(TaskManager):
                                                        u'description': rss_item['description'][:768],
                                                        u'thumb_hash': thumb_hash.encode('hex')},
                                                       separators=(',', ':'))}
-        self.channel_community.modifyTorrent(rss_item[u'channel_torrent_id'], modifications)
+        yield self.channel_community.modifyTorrent(rss_item[u'channel_torrent_id'], modifications)
 
 
 class RSSFeedParser(object):
