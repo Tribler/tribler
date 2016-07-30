@@ -1,5 +1,8 @@
 import json
+from twisted.internet.defer import inlineCallbacks
 from twisted.web import http
+from twisted.web.server import NOT_DONE_YET
+
 from Tribler.Core.Modules.restapi.channels.base_channels_endpoint import BaseChannelsEndpoint
 from Tribler.Core.Modules.restapi.channels.channels_playlists_endpoint import ChannelsPlaylistsEndpoint
 from Tribler.Core.Modules.restapi.channels.channels_rss_endpoint import ChannelsRssFeedsEndpoint, \
@@ -74,11 +77,18 @@ class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
 
             :statuscode 500: if a channel with the specified name already exists.
         """
+        self._delayed_put_render(request).addErrback(request.processingFailed)
+        return NOT_DONE_YET
+
+    @inlineCallbacks
+    def _delayed_put_render(self, request):
         parameters = http.parse_qs(request.content.read(), 1)
 
         if 'name' not in parameters or len(parameters['name']) == 0:
             request.setResponseCode(http.BAD_REQUEST)
-            return json.dumps({"error": "name parameter missing"})
+            request.write(json.dumps({"error": "name parameter missing"}))
+            request.finish()
+            return
 
         if 'description' not in parameters or len(parameters['description']) == 0:
             description = u''
@@ -92,11 +102,14 @@ class ChannelsDiscoveredEndpoint(BaseChannelsEndpoint):
             mode = parameters['mode'][0]
 
         try:
-            channel_id = self.session.create_channel(parameters['name'][0], description, mode)
+            channel_id = yield self.session.create_channel(parameters['name'][0], description, mode)
         except DuplicateChannelNameError as ex:
-            return BaseChannelsEndpoint.return_500(self, request, ex)
+            request.write(BaseChannelsEndpoint.return_500(self, request, ex))
+            request.finish()
+            return
 
-        return json.dumps({"added": channel_id})
+        request.write(json.dumps({"added": channel_id}))
+        request.finish()
 
 
 class ChannelsDiscoveredSpecificEndpoint(BaseChannelsEndpoint):
