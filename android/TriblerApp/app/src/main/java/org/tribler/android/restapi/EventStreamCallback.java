@@ -100,19 +100,11 @@ public class EventStreamCallback implements Callback {
     @Nullable
     private static Object parseEvent(String eventString) {
         EventContainer container = GSON.fromJson(eventString, EventContainer.class);
-        try {
-            eventString = GSON.toJson(container.getEvent());
-        } catch (NullPointerException ex) {
-            Log.e("parseEvent", "container.getEvent()", ex);
-            return null;
+        Object event = container.getEvent();
+        if (event == null) {
+            eventString = "{}";
         }
         switch (container.getType()) {
-
-            case SearchResultChannelEvent.TYPE:
-                return GSON.fromJson(eventString, SearchResultChannelEvent.class);
-
-            case SearchResultTorrentEvent.TYPE:
-                return GSON.fromJson(eventString, SearchResultTorrentEvent.class);
 
             case EventsStartEvent.TYPE:
                 return GSON.fromJson(eventString, EventsStartEvent.class);
@@ -122,6 +114,12 @@ public class EventStreamCallback implements Callback {
 
             case TriblerStartedEvent.TYPE:
                 return GSON.fromJson(eventString, TriblerStartedEvent.class);
+
+            case SearchResultChannelEvent.TYPE:
+                return GSON.fromJson(eventString, SearchResultChannelEvent.class);
+
+            case SearchResultTorrentEvent.TYPE:
+                return GSON.fromJson(eventString, SearchResultTorrentEvent.class);
 
             case ChannelDiscoveredEvent.TYPE:
                 return GSON.fromJson(eventString, ChannelDiscoveredEvent.class);
