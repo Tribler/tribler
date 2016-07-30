@@ -41,13 +41,23 @@ public class SearchFragment extends DefaultInteractionListFragment implements IE
             SearchResultChannelEvent result = (SearchResultChannelEvent) event;
 
             if (_query.equalsIgnoreCase(result.getQuery())) {
-                adapter.addObject(result.getResult());
+                if (isDetached()) {
+                    adapter.addObject(result.getResult());
+                } else {
+                    getActivity().runOnUiThread(() -> {
+                        adapter.addObject(result.getResult());
+                    });
+                }
             }
         } else if (event instanceof SearchResultTorrentEvent) {
             SearchResultTorrentEvent result = (SearchResultTorrentEvent) event;
 
-            if (_query.equalsIgnoreCase(result.getQuery())) {
+            if (isDetached()) {
                 adapter.addObject(result.getResult());
+            } else {
+                getActivity().runOnUiThread(() -> {
+                    adapter.addObject(result.getResult());
+                });
             }
         }
     }
