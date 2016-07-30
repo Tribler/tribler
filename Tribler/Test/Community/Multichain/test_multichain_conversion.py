@@ -1,7 +1,9 @@
 import logging
 from hashlib import sha1
 from struct import unpack
+from twisted.internet.defer import inlineCallbacks
 
+from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock, MultiChainTestCase
 from Tribler.community.multichain.conversion import (MultiChainConversion, split_function, signature_format,
                                                      append_format)
@@ -29,6 +31,8 @@ class TestConversion(MultiChainTestCase):
         self.converter = MultiChainConversion(self.community)
         self.block = TestBlock()
 
+    @deferred(timeout=10)
+    @inlineCallbacks
     def test_encoding_decoding_signature(self):
         """
         Test if a responder can send a signature message.
@@ -36,7 +40,8 @@ class TestConversion(MultiChainTestCase):
         """
         # Arrange
         meta = self.community.get_meta_message(SIGNATURE)
-        message = meta.impl(distribution=(self.community.claim_global_time(),),
+        claimed_global_time = yield self.community.claim_global_time()
+        message = yield meta.impl(distribution=(claimed_global_time,),
                             payload=tuple(self.block.generate_signature_payload()))
         # Act
         encoded_message = self.converter._encode_signature(message)[0]
@@ -44,6 +49,8 @@ class TestConversion(MultiChainTestCase):
         # Assert
         self.assertEqual_signature_payload(self.block, result)
 
+    @deferred(timeout=10)
+    @inlineCallbacks
     def test_encoding_decoding_signature_big_number(self):
         """
         Test if a responder can send a signature message with big total_up and down.
@@ -54,7 +61,8 @@ class TestConversion(MultiChainTestCase):
         self.block.total_down_requester = pow(2, 62)
         self.block.total_up_responder = pow(2, 61)
         self.block.total_down_responder = pow(2, 60)
-        message = meta.impl(distribution=(self.community.claim_global_time(),),
+        claimed_global_time = yield self.community.claim_global_time()
+        message = yield meta.impl(distribution=(claimed_global_time,),
                             payload=tuple(self.block.generate_signature_payload()))
         # Act
         encoded_message = self.converter._encode_signature(message)[0]
@@ -62,6 +70,8 @@ class TestConversion(MultiChainTestCase):
         # Assert
         self.assertEqual_signature_payload(self.block, result)
 
+    @deferred(timeout=10)
+    @inlineCallbacks
     def test_encoding_decoding_signature_requester(self):
         """
         Test if a requester can send a signature message.
@@ -69,7 +79,8 @@ class TestConversion(MultiChainTestCase):
         """
         # Arrange
         meta = self.community.get_meta_message(SIGNATURE)
-        message = meta.impl(distribution=(self.community.claim_global_time(),),
+        claimed_global_time = yield self.community.claim_global_time()
+        message = yield meta.impl(distribution=(claimed_global_time,),
                             payload=tuple(self.block.generate_requester()))
         # Act
         encoded_message = self.converter._encode_signature(message)[0]
@@ -81,13 +92,16 @@ class TestConversion(MultiChainTestCase):
         self.assertEqual(-1, result.sequence_number_responder)
         self.assertEqual(EMPTY_HASH, result.previous_hash_responder)
 
+    @deferred(timeout=10)
+    @inlineCallbacks
     def test_decoding_signature_wrong_size(self):
         """
         Test decoding a signature message with wrong size
         """
         # Arrange
         meta = self.community.get_meta_message(SIGNATURE)
-        message = meta.impl(distribution=(self.community.claim_global_time(),),
+        claimed_global_time = yield self.community.claim_global_time()
+        message = yield meta.impl(distribution=(claimed_global_time,),
                             payload=tuple(self.block.generate_signature_payload()))
         # Act
         encoded_message = self.converter._encode_signature(message)[0]
@@ -96,6 +110,8 @@ class TestConversion(MultiChainTestCase):
             # Remove a bit of message.
             self.converter._decode_signature(TestPlaceholder(meta), 0, encoded_message[:-10])[1]
 
+    @deferred(timeout=10)
+    @inlineCallbacks
     def test_encoding_decoding_crawl_request(self):
         """
         Test if a requester can send a crawl request message.
@@ -103,8 +119,8 @@ class TestConversion(MultiChainTestCase):
         # Arrange
         meta = self.community.get_meta_message(CRAWL_REQUEST)
         requested_sequence_number = 500
-
-        message = meta.impl(distribution=(self.community.claim_global_time(),),
+        claimed_global_time = yield self.community.claim_global_time()
+        message = yield meta.impl(distribution=(claimed_global_time,),
                             payload=(requested_sequence_number,))
         # Act
         encoded_message = self.converter._encode_crawl_request(message)[0]
@@ -113,6 +129,8 @@ class TestConversion(MultiChainTestCase):
         # Assert
         self.assertEqual(requested_sequence_number, result.requested_sequence_number)
 
+    @deferred(timeout=10)
+    @inlineCallbacks
     def test_decoding_crawl_request_wrong_size(self):
         """
         Test if a DropPacket is raised when the crawl request size is wrong.
@@ -120,7 +138,8 @@ class TestConversion(MultiChainTestCase):
         # Arrange
         meta = self.community.get_meta_message(CRAWL_REQUEST)
         requested_sequence_number = 500
-        message = meta.impl(distribution=(self.community.claim_global_time(),),
+        claimed_global_time = yield self.community.claim_global_time()
+        message = yield meta.impl(distribution=(claimed_global_time,),
                             payload=(requested_sequence_number,))
         encoded_message = self.converter._encode_crawl_request(message)[0]
 
@@ -129,14 +148,16 @@ class TestConversion(MultiChainTestCase):
             # Remove a bit of message.
             result = self.converter._decode_crawl_request(TestPlaceholder(meta), 0, encoded_message[:-10])[1]
 
+    @deferred(timeout=10)
+    @inlineCallbacks
     def test_encoding_decoding_crawl_request_empty(self):
         """
         Test if a requester can send a crawl request message without specifying the sequence number.
         """
         # Arrange
         meta = self.community.get_meta_message(CRAWL_REQUEST)
-        message = meta.impl(distribution=(self.community.claim_global_time(),),
-                            payload=())
+        claimed_global_time = yield self.community.claim_global_time()
+        message = yield meta.impl(distribution=(claimed_global_time,), payload=())
         # Act
         encoded_message = self.converter._encode_crawl_request(message)[0]
 
@@ -144,6 +165,8 @@ class TestConversion(MultiChainTestCase):
         # Assert
         self.assertEqual(-1, result.requested_sequence_number)
 
+    @deferred(timeout=10)
+    @inlineCallbacks
     def test_encoding_decoding_crawl_response(self):
         """
         Test if a responder can send a crawl_response message.
@@ -151,7 +174,8 @@ class TestConversion(MultiChainTestCase):
         """
         # Arrange
         meta = self.community.get_meta_message(CRAWL_RESPONSE)
-        message = meta.impl(distribution=(self.community.claim_global_time(),),
+        claimed_global_time = yield self.community.claim_global_time()
+        message = yield meta.impl(distribution=(claimed_global_time,),
                             payload=tuple(self.block.generate_block_payload()))
         # Act
         encoded_message = self.converter._encode_crawl_response(message)[0]
@@ -163,13 +187,16 @@ class TestConversion(MultiChainTestCase):
 
         self.assertEqual_block(self.block, result)
 
+    @deferred(timeout=10)
+    @inlineCallbacks
     def test_decoding_crawl_response_wrong_size(self):
         """
         Test if a DropPacket is raised when the crawl response size is wrong.
         """
         # Arrange
         meta = self.community.get_meta_message(CRAWL_RESPONSE)
-        message = meta.impl(distribution=(self.community.claim_global_time(),),
+        claimed_global_time = yield self.community.claim_global_time()
+        message = yield meta.impl(distribution=(claimed_global_time,),
                             payload=tuple(self.block.generate_block_payload()))
         # Act
         encoded_message = self.converter._encode_crawl_response(message)[0]
@@ -177,13 +204,16 @@ class TestConversion(MultiChainTestCase):
             # Remove a bit of message.
             self.converter._decode_crawl_response(TestPlaceholder(meta), 0, encoded_message[:-10])[1]
 
+    @deferred(timeout=10)
+    @inlineCallbacks
     def test_split_function(self):
         """
         Test the MultiChain split function.
         """
         # Arrange
         meta = self.community.get_meta_message(SIGNATURE)
-        message = meta.impl(distribution=(self.community.claim_global_time(),),
+        claimed_global_time = yield self.community.claim_global_time()
+        message = yield meta.impl(distribution=(claimed_global_time,),
                             payload=tuple(self.block.generate_signature_payload()))
         # Act
         encoded_message = self.converter._encode_signature(message)[0]
