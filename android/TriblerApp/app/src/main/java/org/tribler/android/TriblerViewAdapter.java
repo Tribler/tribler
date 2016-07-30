@@ -145,6 +145,12 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
             File icon = new File(holder.channel.getIconUrl());
             if (icon.exists()) {
                 holder.icon.setImageURI(Uri.fromFile(icon));
+            } else {
+                try {
+                    int color = MyUtils.getColor(holder.channel.getName());
+                    holder.icon.setBackgroundColor(color);
+                } catch (Exception ex) {
+                }
             }
             holder.view.setOnClickListener(view -> {
                 if (null != _clickListener) {
