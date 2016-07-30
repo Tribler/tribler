@@ -8,6 +8,8 @@
 #
 # see LICENSE.txt for license information
 #
+from twisted.internet.defer import inlineCallbacks, returnValue
+
 from Tribler.Core.Modules.process_checker import ProcessChecker
 from Tribler.Main.Dialogs.NewVersionDialog import NewVersionDialog
 
@@ -108,9 +110,13 @@ class ABCApp(object):
 
         self.webUI = None
         self.utility = None
+        self.start(autoload_discovery, use_torrent_search, use_channel_search)
+
+    @inlineCallbacks
+    def start(self, autoload_discovery=True, use_torrent_search=True, use_channel_search=True):
 
         # Stage 1 start
-        session = self.InitStage1(installdir, autoload_discovery=autoload_discovery,
+        session = self.InitStage1(self.installdir, autoload_discovery=autoload_discovery,
                                   use_torrent_search=use_torrent_search, use_channel_search=use_channel_search)
 
         try:
@@ -147,7 +153,7 @@ class ABCApp(object):
             session.notifier.notify(NTFY_STARTUP_TICK, NTFY_INSERT, None, 'Starting session and upgrading database (it may take a while)')
             wx.Yield()
 
-            session.start()
+            yield session.start()
             self.dispersy = session.lm.dispersy
             self.dispersy.attach_progress_handler(self.progressHandler)
 
@@ -459,9 +465,10 @@ class ABCApp(object):
             startWorker(do_wx, do_db, uId=u"tribler.set_reputation")
         startWorker(None, self.set_reputation, delay=5.0, workerType="ThreadPool")
 
+    @inlineCallbacks
     def sesscb_states_callback(self, dslist):
         if not self.ready:
-            return 5.0, []
+            returnValue((5.0, []))
 
         # update tray icon
         total_download, total_upload = get_download_upload_speed(dslist)
@@ -563,12 +570,12 @@ class ABCApp(object):
                 adjustspeeds = True
 
             if adjustspeeds and self.tunnel_community:
-                self.tunnel_community.monitor_downloads(dslist)
+                yield self.tunnel_community.monitor_downloads(dslist)
 
         except:
             print_exc()
 
-        return 1.0, wantpeers
+        returnValue((1.0, wantpeers))
 
     def guiservthread_free_space_check(self):
         if not (self and self.frame and self.frame.SRstatusbar):
