@@ -3,7 +3,7 @@
 # see LICENSE.txt for license information
 
 # Make sure the in thread reactor is installed.
-from Tribler.Core.Utilities.twisted_thread import reactor, deferred
+from nose.twistedtools import reactor, deferred
 
 # importmagic: manage
 import threading
@@ -19,9 +19,10 @@ from tempfile import mkdtemp
 from threading import enumerate as enumerate_threads
 from traceback import print_exc
 
+from twisted.internet.task import deferLater
 from twisted.internet import interfaces
 from twisted.internet.base import BasePort
-from twisted.internet.defer import maybeDeferred, succeed
+from twisted.internet.defer import maybeDeferred, succeed, inlineCallbacks, Deferred
 from twisted.web.server import Site
 from twisted.web.static import File
 
@@ -211,7 +212,7 @@ class TestAsServer(AbstractServer):
         while not upgrader.is_done:
             time.sleep(0.1)
         assert not upgrader.failed, upgrader.current_status
-        self.tribler_started_deferred = self.session.start()
+        self.tribler_started_deferred =  maybeDeferred(self.session.start)
 
         self.hisport = self.session.get_listen_port()
 
@@ -242,6 +243,7 @@ class TestAsServer(AbstractServer):
         self.config.set_tunnel_community_enabled(False)
         self.config.set_creditmining_enable(False)
         self.config.set_enable_multichain(False)
+
 
     def tearDown(self):
         self.annotate(self._testMethodName, start=False)
@@ -277,6 +279,8 @@ class TestAsServer(AbstractServer):
 
         return tdef, torrent_path
 
+    @inlineCallbacks
+    # Laurens(25-7-2016): this method is never called?
     def setup_seeder(self, tdef, seed_dir):
         self.seed_config = SessionStartupConfig()
         self.seed_config.set_torrent_checking(False)
@@ -298,12 +302,13 @@ class TestAsServer(AbstractServer):
 
         self.dscfg_seed = DownloadStartupConfig()
         self.dscfg_seed.set_dest_dir(self.getDestDir(2))
+        self.seeding_deferred = Deferred()
 
         self.seeder_session = Session(self.seed_config, ignore_singleton=True)
         self.seeder_session.prestart()
-        self.seeder_session.start()
+        yield self.seeder_session.start()
 
-        time.sleep(2)
+        yield deferLater(reactor, 2, lambda:None)
 
         self.dscfg = DownloadStartupConfig()
         self.dscfg.set_dest_dir(seed_dir)
@@ -312,7 +317,7 @@ class TestAsServer(AbstractServer):
         d.set_state_callback(self.seeder_state_callback)
 
         self._logger.debug("starting to wait for download to reach seeding state")
-        assert self.seeding_event.wait(60)
+        yield self.seeding_deferred
 
     def stop_seeder(self):
         if self.seeder_session is not None:
@@ -324,7 +329,8 @@ class TestAsServer(AbstractServer):
                            ds.get_progress())
 
         if ds.get_status() == DLSTATUS_SEEDING:
-            self.seeding_event.set()
+            if not self.seeding_deferred.called:
+                self.seeding_deferred.callback(None)
 
         return 1.0, False
 
@@ -343,6 +349,7 @@ class TestAsServer(AbstractServer):
             time.sleep(1)
 
         self._logger.debug("Session has shut down")
+
 
     def assert_(self, boolean, reason=None, do_assert=True, tribler_session=None, dump_statistics=False):
         if not boolean:
@@ -371,9 +378,10 @@ class TestAsServer(AbstractServer):
         _print_data_dict(statistics_dict, 0)
         self._logger.debug(u"========== Tribler Statistics END ==========")
 
+    @inlineCallbacks
     def startTest(self, callback):
         self.quitting = False
-        callback()
+        yield callback()
 
     def callLater(self, seconds, callback):
         if not self.quitting:
@@ -400,7 +408,7 @@ class TestAsServer(AbstractServer):
                         else:
                             self.callLater(0.5, DoCheck)
 
-                    except:
+                    except Exception:
                         print_exc()
                         self.assert_(False, '%s - Condition or callback raised an exception, quitting (%s)' %
                                      (test_id, assert_message or "no-assert-msg"), do_assert=False)
