@@ -1,5 +1,7 @@
 package org.tribler.android.restapi;
 
+import android.os.Handler;
+
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
@@ -18,18 +20,24 @@ public class EventStream {
 
     private static Call CALL;
 
+    private static boolean closing = false;
+
     /**
      * Static class
      */
     private EventStream() {
     }
 
-    public static boolean addListener(IEventListener listener) {
-        return CALLBACK.addEventListener(listener);
+    public static boolean isClosing() {
+        return closing;
     }
 
-    public static boolean removeListener(IEventListener listener) {
-        return CALLBACK.removeEventListener(listener);
+    public static boolean addHandler(Handler handler) {
+        return CALLBACK.addEventHandler(handler);
+    }
+
+    public static boolean removeHandler(Handler handler) {
+        return CALLBACK.removeEventHandler(handler);
     }
 
     public static boolean openEventStream() {
@@ -49,6 +57,13 @@ public class EventStream {
             CALL.enqueue(callback);
         }
         return CALLBACK.isReady();
+    }
+
+    public static void closeEventStream() {
+        closing = true;
+        if (CALL != null) {
+            CALL.cancel();
+        }
     }
 
     private static OkHttpClient buildClient() {

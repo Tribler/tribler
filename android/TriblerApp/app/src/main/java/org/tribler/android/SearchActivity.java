@@ -119,7 +119,7 @@ public class SearchActivity extends BaseActivity {
 
         // Start search on query text change with debounce
         rxSubs.add(RxSearchView.queryTextChangeEvents(searchView)
-                .debounce(400, TimeUnit.MILLISECONDS)
+                .debounce(600, TimeUnit.MILLISECONDS)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<SearchViewQueryTextEvent>() {
 

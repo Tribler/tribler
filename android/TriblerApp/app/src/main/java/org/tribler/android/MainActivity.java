@@ -9,7 +9,9 @@ import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -28,7 +30,6 @@ import android.widget.Toast;
 import com.cantrowitz.rxbroadcast.RxBroadcast;
 
 import org.tribler.android.restapi.EventStream;
-import org.tribler.android.restapi.IEventListener;
 import org.tribler.android.restapi.IRestApi;
 import org.tribler.android.restapi.TriblerService;
 import org.tribler.android.restapi.json.EventsStartEvent;
@@ -43,7 +44,7 @@ import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
-public class MainActivity extends BaseActivity implements IEventListener {
+public class MainActivity extends BaseActivity implements Handler.Callback {
 
     public static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 200;
 
@@ -62,6 +63,7 @@ public class MainActivity extends BaseActivity implements IEventListener {
 
     private ActionBarDrawerToggle _navToggle;
     private ConnectivityManager _connectivityManager;
+    private Handler _eventHandler;
     private IRestApi _service;
 
     private void initService() {
@@ -103,11 +105,15 @@ public class MainActivity extends BaseActivity implements IEventListener {
         initConnectionManager();
         initService();
 
-        EventStream.addListener(this);
+        // Start listening to events on the main thread so the gui can be updated
+        _eventHandler = new Handler(Looper.getMainLooper(), this);
+        EventStream.addHandler(_eventHandler);
+
         boolean ready = EventStream.openEventStream();
         if (!ready) {
             // Show loading indicator
             progressBar.setVisibility(View.VISIBLE);
+            // TODO: Disable some navigation
         }
 
         String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
@@ -123,34 +129,25 @@ public class MainActivity extends BaseActivity implements IEventListener {
     @Override
     protected void onDestroy() {
         drawer.removeDrawerListener(_navToggle);
+        EventStream.removeHandler(_eventHandler);
         super.onDestroy();
-        EventStream.removeListener(this);
         _navToggle = null;
         _connectivityManager = null;
+        _eventHandler = null;
         _service = null;
-    }
-
-    public void onEvent(Object event) {
-        if (event instanceof EventsStartEvent) {
-            runOnUiThread(this::onEventStreamReady);
-        }
-    }
-
-    private void onEventStreamReady() {
-        // Hide loading indicator
-        progressBar.setVisibility(View.GONE);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void onBackPressed() {
-        if (drawer.isDrawerOpen(GravityCompat.START)) {
-            drawer.closeDrawer(GravityCompat.START);
-        } else {
-            super.onBackPressed();
+    public boolean handleMessage(Message message) {
+        if (message.obj instanceof EventsStartEvent) {
+            // Hide loading indicator
+            progressBar.setVisibility(View.GONE);
+            // TODO: Enable some navigation
         }
+        return true;
     }
 
     /**
@@ -210,9 +207,16 @@ public class MainActivity extends BaseActivity implements IEventListener {
         return true;
     }
 
-    public void btnSearchClicked(@Nullable MenuItem item) {
-        Intent intent = new Intent(this, SearchActivity.class);
-        startActivity(intent);
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onBackPressed() {
+        if (drawer.isDrawerOpen(GravityCompat.START)) {
+            drawer.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
     }
 
     /**
@@ -237,26 +241,31 @@ public class MainActivity extends BaseActivity implements IEventListener {
         }
     }
 
-    public void navSubscriptionsClicked(@Nullable MenuItem item) throws InstantiationException, IllegalAccessException {
+    public void btnSearchClicked(MenuItem item) {
+        Intent intent = new Intent(this, SearchActivity.class);
+        startActivity(intent);
+    }
+
+    public void navSubscriptionsClicked(MenuItem item) throws InstantiationException, IllegalAccessException {
         drawer.closeDrawer(GravityCompat.START);
         switchFragment(SubscribedFragment.class);
     }
 
-    public void navMyChannelClicked(@Nullable MenuItem item) {
+    public void navMyChannelClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         //TODO: my channel
     }
 
-    public void navMyPlaylistsClicked(@Nullable MenuItem item) {
+    public void navMyPlaylistsClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
     }
 
-    public void navPopularClicked(@Nullable MenuItem item) throws InstantiationException, IllegalAccessException {
+    public void navPopularClicked(MenuItem item) throws InstantiationException, IllegalAccessException {
         drawer.closeDrawer(GravityCompat.START);
         switchFragment(DiscoveredFragment.class);
     }
 
-    public void navCaptureVideoClicked(@Nullable MenuItem item) {
+    public void navCaptureVideoClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         // Check if device has camera
         if (getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
@@ -272,18 +281,18 @@ public class MainActivity extends BaseActivity implements IEventListener {
         }
     }
 
-    public void navBeamClicked(@Nullable MenuItem item) {
+    public void navBeamClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         File apk = new File(this.getPackageResourcePath());
         Intent beamIntent = MyUtils.sendBeam(Uri.fromFile(apk), this);
         startActivity(beamIntent);
     }
 
-    public void navSettingsClicked(@Nullable MenuItem item) {
+    public void navSettingsClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
     }
 
-    public void navFeedbackClicked(@Nullable MenuItem item) {
+    public void navFeedbackClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         CharSequence title = getText(R.string.app_feedback_url);
         Uri uri = Uri.parse(title.toString());
@@ -291,8 +300,9 @@ public class MainActivity extends BaseActivity implements IEventListener {
         startActivity(browserIntent);
     }
 
-    public void navShutdownClicked(@Nullable MenuItem item) {
+    public void navShutdownClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
+        EventStream.closeEventStream();
         rxSubs.add(_service.shutdown()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())

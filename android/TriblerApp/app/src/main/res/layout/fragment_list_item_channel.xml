@@ -83,6 +83,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/channel_name"
+        android:layout_marginTop="1dp"
         android:layout_toEndOf="@+id/channel_icon_wrapper"
         android:layout_toRightOf="@+id/channel_icon_wrapper" />
 

@@ -1,5 +1,6 @@
 package org.tribler.android.restapi;
 
+import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
@@ -31,14 +32,14 @@ public class EventStreamCallback implements Callback {
 
     private static final Gson GSON = new Gson();
 
-    private final ArrayList<IEventListener> _eventListeners = new ArrayList<>();
+    private final ArrayList<Handler> _eventHandlers = new ArrayList<>();
 
-    public boolean addEventListener(IEventListener listener) {
-        return _eventListeners.add(listener);
+    public boolean addEventHandler(Handler handler) {
+        return _eventHandlers.add(handler);
     }
 
-    public boolean removeEventListener(IEventListener listener) {
-        return _eventListeners.remove(listener);
+    public boolean removeEventHandler(Handler handler) {
+        return _eventHandlers.remove(handler);
     }
 
     public boolean isReady() {
@@ -52,6 +53,9 @@ public class EventStreamCallback implements Callback {
     public void onFailure(Call call, IOException ex) {
         ready = false;
         Log.v("onFailure", "Service events stream not ready. Retrying in 1s...", ex);
+        if (EventStream.isClosing()) {
+            return;
+        }
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -97,8 +101,8 @@ public class EventStreamCallback implements Callback {
                         Log.v("onEvent", event.getClass().getSimpleName());
 
                         // Notify observers
-                        for (IEventListener listener : _eventListeners) {
-                            listener.onEvent(event);
+                        for (int i = 0, j = _eventHandlers.size(); i < j; i++) {
+                            _eventHandlers.get(i).obtainMessage(0, i, j, event).sendToTarget();
                         }
                     }
                 } catch (JsonSyntaxException | NullPointerException e) {

@@ -61,6 +61,7 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onCompleted() {
+                        // Hide loading indicator
                         progressBar.setVisibility(View.GONE);
                     }
 
