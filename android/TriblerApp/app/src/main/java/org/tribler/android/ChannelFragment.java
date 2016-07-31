@@ -33,12 +33,13 @@ public class ChannelFragment extends DefaultInteractionListFragment {
                 .subscribe(new Observer<TriblerTorrent>() {
 
                     public void onNext(TriblerTorrent torrent) {
+                        // Hide loading indicator
+                        progressBar.setVisibility(View.GONE);
+
                         adapter.addObject(torrent);
                     }
 
                     public void onCompleted() {
-                        // Hide loading indicator
-                        progressBar.setVisibility(View.GONE);
                     }
 
                     public void onError(Throwable e) {

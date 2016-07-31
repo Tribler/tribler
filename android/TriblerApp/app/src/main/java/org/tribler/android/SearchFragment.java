@@ -32,6 +32,10 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
         // Start listening to events on the main thread so the gui can be updated
         _eventHandler = new Handler(Looper.getMainLooper(), this);
         EventStream.addHandler(_eventHandler);
+
+        if (!EventStream.isReady()) {
+            EventStream.openEventStream();
+        }
     }
 
     /**

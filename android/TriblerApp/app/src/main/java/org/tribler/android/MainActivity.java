@@ -12,6 +12,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.os.Process;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -316,6 +317,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                     public void onCompleted() {
                         // Stop MainActivity
                         finish();
+                        Process.killProcess(Process.myPid());
                     }
 
                     public void onError(Throwable e) {
@@ -324,6 +326,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
                         // Stop MainActivity
                         finish();
+                        Process.killProcess(Process.myPid());
                     }
                 }));
     }
