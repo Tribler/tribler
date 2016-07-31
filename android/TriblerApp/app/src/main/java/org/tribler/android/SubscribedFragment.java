@@ -2,6 +2,7 @@ package org.tribler.android;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 
 import org.tribler.android.restapi.json.TriblerChannel;
 
@@ -35,6 +36,7 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onCompleted() {
+                        progressBar.setVisibility(View.GONE);
                     }
 
                     public void onError(Throwable e) {

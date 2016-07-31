@@ -2,6 +2,7 @@ package org.tribler.android;
 
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 
 import org.tribler.android.restapi.EventStream;
 import org.tribler.android.restapi.IEventListener;
@@ -92,10 +93,11 @@ public class SearchFragment extends DefaultInteractionListFragment implements IE
                 .subscribe(new Observer<QueriedAck>() {
 
                     public void onNext(QueriedAck response) {
+                        Log.v("startSearch", query);
                     }
 
                     public void onCompleted() {
-                        Log.v("startSearch", query);
+                        progressBar.setVisibility(View.GONE);
                     }
 
                     public void onError(Throwable e) {

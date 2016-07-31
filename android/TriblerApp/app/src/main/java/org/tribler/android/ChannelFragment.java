@@ -1,6 +1,7 @@
 package org.tribler.android;
 
 import android.util.Log;
+import android.view.View;
 
 import org.tribler.android.restapi.json.TriblerTorrent;
 
@@ -33,6 +34,7 @@ public class ChannelFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onCompleted() {
+                        progressBar.setVisibility(View.GONE);
                     }
 
                     public void onError(Throwable e) {

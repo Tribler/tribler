@@ -8,6 +8,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ProgressBar;
 
 import org.tribler.android.restapi.json.TriblerChannel;
 import org.tribler.android.restapi.json.TriblerTorrent;
@@ -29,6 +30,9 @@ public class ListFragment extends ViewFragment {
 
     @BindView(R.id.list_fast_scroller)
     VerticalRecyclerViewFastScroller fastScroller;
+
+    @BindView(R.id.progress_bar)
+    ProgressBar progressBar;
 
     protected TriblerViewAdapter adapter;
     protected IListFragmentInteractionListener interactionListener;
