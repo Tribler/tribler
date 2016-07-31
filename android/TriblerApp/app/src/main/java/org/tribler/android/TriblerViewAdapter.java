@@ -146,7 +146,10 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
             holder.votesCount.setText(String.valueOf(holder.channel.getVotesCount()));
             if (holder.channel.isSubscribed()) {
                 holder.votesIcon.setImageResource(R.drawable.ic_list_star);
+            } else {
+                holder.votesIcon.setImageResource(R.drawable.ic_list_star_outline);
             }
+            holder.torrentsIcon.setImageResource(R.drawable.ic_list_play);
             holder.torrentsCount.setText(String.valueOf(holder.channel.getTorrentsCount()));
             File icon = new File(holder.channel.getIconUrl());
             if (icon.exists()) {
@@ -195,18 +198,20 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
 
         public final View view;
 
-        @BindView(R.id.channel_name)
-        TextView name;
-        @BindView(R.id.channel_capital)
-        TextView nameCapital;
-        @BindView(R.id.channel_votes_count)
-        TextView votesCount;
-        @BindView(R.id.channel_votes_icon)
-        ImageView votesIcon;
-        @BindView(R.id.channel_torrents_count)
-        TextView torrentsCount;
         @BindView(R.id.channel_icon)
         ImageView icon;
+        @BindView(R.id.channel_capital)
+        TextView nameCapital;
+        @BindView(R.id.channel_name)
+        TextView name;
+        @BindView(R.id.channel_torrents_icon)
+        ImageView torrentsIcon;
+        @BindView(R.id.channel_torrents_count)
+        TextView torrentsCount;
+        @BindView(R.id.channel_votes_icon)
+        ImageView votesIcon;
+        @BindView(R.id.channel_votes_count)
+        TextView votesCount;
 
         public ChannelViewHolder(View view) {
             super(view);
@@ -221,10 +226,10 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
 
         public final View view;
 
-        @BindView(R.id.torrent_name)
-        TextView name;
         @BindView(R.id.torrent_thumbnail)
         ImageView thumbnail;
+        @BindView(R.id.torrent_name)
+        TextView name;
 
         public TorrentViewHolder(View view) {
             super(view);

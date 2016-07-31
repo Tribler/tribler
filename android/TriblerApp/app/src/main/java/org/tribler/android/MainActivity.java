@@ -104,10 +104,9 @@ public class MainActivity extends BaseActivity implements IEventListener {
         initService();
 
         EventStream.addListener(this);
-        boolean opening = EventStream.openEventStream();
-        if (!opening) {
-            // Already open
-            progressBar.setVisibility(View.GONE);
+        boolean ready = EventStream.openEventStream();
+        if (ready) {
+            onServiceReady();
         }
 
         String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
@@ -130,12 +129,14 @@ public class MainActivity extends BaseActivity implements IEventListener {
         _service = null;
     }
 
+    private void onServiceReady() {
+        // Hide loading bar
+        progressBar.setVisibility(View.GONE);
+    }
+
     public void onEvent(Object event) {
         if (event instanceof EventsStartEvent) {
-            runOnUiThread(() -> {
-                // Hide loading bar
-                progressBar.setVisibility(View.GONE);
-            });
+            runOnUiThread(this::onServiceReady);
         }
     }
 
@@ -163,7 +164,7 @@ public class MainActivity extends BaseActivity implements IEventListener {
         switch (action) {
             case Intent.ACTION_MAIN:
                 // Startup action
-                //TODO: show loading screen until rest api connected
+                Log.d("handleIntent", action);
                 return;
 
             case ConnectivityManager.CONNECTIVITY_ACTION:

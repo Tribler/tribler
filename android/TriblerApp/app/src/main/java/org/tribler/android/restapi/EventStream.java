@@ -42,11 +42,13 @@ public class EventStream {
 
     private static boolean openEventStream(boolean force, OkHttpClient client, Request request, Callback callback) {
         if (force || CALL == null) {
+            if (CALL != null) {
+                CALL.cancel();
+            }
             CALL = client.newCall(request);
             CALL.enqueue(callback);
-            return true;
         }
-        return false;
+        return CALLBACK.isReady();
     }
 
     private static OkHttpClient buildClient() {

@@ -11,6 +11,28 @@
     android:paddingRight="16dp"
     android:paddingTop="10dp">
 
+    <TextView
+        android:id="@+id/channel_votes_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:text="Votes count"
+        android:textColor="@color/blue" />
+
+    <ImageView
+        android:id="@+id/channel_votes_icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@id/channel_votes_count"
+        android:layout_marginBottom="1dp"
+        android:layout_marginEnd="3dp"
+        android:layout_marginLeft="3dp"
+        android:layout_marginRight="3dp"
+        android:layout_marginStart="3dp"
+        android:layout_toLeftOf="@id/channel_votes_count"
+        android:layout_toStartOf="@id/channel_votes_count" />
+
     <RelativeLayout
         android:id="@+id/channel_icon_wrapper"
         android:layout_width="50dp"
@@ -18,9 +40,9 @@
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
-        android:layout_marginEnd="25dp"
+        android:layout_marginEnd="10dp"
         android:layout_marginLeft="15dp"
-        android:layout_marginRight="25dp"
+        android:layout_marginRight="10dp"
         android:layout_marginStart="15dp">
 
         <ImageView
@@ -44,11 +66,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="6dp"
-        android:layout_marginEnd="25dp"
-        android:layout_marginRight="25dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginRight="10dp"
         android:layout_marginTop="3dp"
         android:layout_toEndOf="@+id/channel_icon_wrapper"
+        android:layout_toLeftOf="@id/channel_votes_icon"
         android:layout_toRightOf="@+id/channel_icon_wrapper"
+        android:layout_toStartOf="@id/channel_votes_icon"
         android:text="Channel name"
         android:textColor="@color/green"
         android:textSize="16sp"
@@ -60,8 +84,7 @@
         android:layout_height="wrap_content"
         android:layout_below="@+id/channel_name"
         android:layout_toEndOf="@+id/channel_icon_wrapper"
-        android:layout_toRightOf="@+id/channel_icon_wrapper"
-        android:src="@drawable/ic_list_play" />
+        android:layout_toRightOf="@+id/channel_icon_wrapper" />
 
     <TextView
         android:id="@+id/channel_torrents_count"
@@ -72,28 +95,5 @@
         android:layout_toRightOf="@+id/channel_torrents_icon"
         android:text="Torrents count"
         android:textColor="@color/grey" />
-
-    <TextView
-        android:id="@+id/channel_votes_count"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentRight="true"
-        android:text="Votes count"
-        android:textColor="@color/blue" />
-
-    <ImageView
-        android:id="@+id/channel_votes_icon"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignBottom="@id/channel_votes_count"
-        android:layout_marginBottom="1dp"
-        android:layout_marginEnd="3dp"
-        android:layout_marginLeft="3dp"
-        android:layout_marginRight="3dp"
-        android:layout_marginStart="3dp"
-        android:layout_toLeftOf="@id/channel_votes_count"
-        android:layout_toStartOf="@id/channel_votes_count"
-        android:src="@drawable/ic_list_star_outline" />
 
 </RelativeLayout>

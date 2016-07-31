@@ -19,6 +19,7 @@ import org.tribler.android.restapi.json.UpgraderFinishedEvent;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -26,6 +27,8 @@ import okhttp3.Headers;
 import okhttp3.Response;
 
 public class EventStreamCallback implements Callback {
+
+    private static AtomicBoolean ready = new AtomicBoolean(false);
 
     private static final Gson GSON = new Gson();
 
@@ -39,11 +42,16 @@ public class EventStreamCallback implements Callback {
         return _eventListeners.remove(listener);
     }
 
+    public boolean isReady() {
+        return ready.get();
+    }
+
     /**
      * {@inheritDoc}
      */
     @Override
     public void onFailure(Call call, IOException ex) {
+        ready.set(false);
         Log.v("onFailure", "Service events stream not ready. Retrying in 1s...", ex);
         try {
             Thread.sleep(1000);
@@ -59,6 +67,7 @@ public class EventStreamCallback implements Callback {
     @Override
     public void onResponse(Call call, Response response) throws IOException {
         if (!response.isSuccessful()) {
+            ready.set(false);
             throw new IOException(String.format("Response not successful: %s", response.toString()));
         }
         try {
@@ -72,6 +81,7 @@ public class EventStreamCallback implements Callback {
             BufferedReader in = new BufferedReader(response.body().charStream());
             String line;
             Object event;
+            ready.set(true);
 
             // Blocking read
             while ((line = in.readLine()) != null) {
@@ -98,6 +108,7 @@ public class EventStreamCallback implements Callback {
             }
             in.close();
         } catch (Exception ex) {
+            ready.set(false);
             Log.e("onResponse", "catch", ex);
 
             // Reconnect on timeout
