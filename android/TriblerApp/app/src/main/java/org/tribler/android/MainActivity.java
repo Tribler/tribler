@@ -109,12 +109,10 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         EventStream.addHandler(_eventHandler);
 
         if (!EventStream.isReady()) {
-            EventStream.openEventStream();
-
             // Show loading indicator
             progressBar.setVisibility(View.VISIBLE);
 
-            // TODO: Disable some navigation
+            EventStream.openEventStream();
         }
 
         handleIntent(getIntent());
@@ -141,8 +139,6 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         if (message.obj instanceof EventsStartEvent) {
             // Hide loading indicator
             progressBar.setVisibility(View.GONE);
-
-            // TODO: Enable some navigation
         }
         return true;
     }
