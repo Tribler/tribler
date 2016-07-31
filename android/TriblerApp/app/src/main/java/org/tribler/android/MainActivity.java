@@ -57,7 +57,7 @@ public class MainActivity extends BaseActivity implements IEventListener {
     @BindView(R.id.nav_view)
     NavigationView navigationView;
 
-    @BindView(R.id.progress_bar)
+    @BindView(R.id.progress_bar_main)
     ProgressBar progressBar;
 
     private ActionBarDrawerToggle _navToggle;

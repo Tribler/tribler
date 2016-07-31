@@ -1,6 +1,7 @@
 package org.tribler.android;
 
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.View;
 
@@ -38,6 +39,15 @@ public class SearchFragment extends DefaultInteractionListFragment implements IE
         super.onDestroy();
         _search = null;
         EventStream.removeListener(this);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        progressBar.setVisibility(View.GONE);
     }
 
     public void onEvent(Object event) {
@@ -97,7 +107,6 @@ public class SearchFragment extends DefaultInteractionListFragment implements IE
                     }
 
                     public void onCompleted() {
-                        progressBar.setVisibility(View.GONE);
                     }
 
                     public void onError(Throwable e) {

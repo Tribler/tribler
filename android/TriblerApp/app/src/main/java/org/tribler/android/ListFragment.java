@@ -31,7 +31,7 @@ public class ListFragment extends ViewFragment {
     @BindView(R.id.list_fast_scroller)
     VerticalRecyclerViewFastScroller fastScroller;
 
-    @BindView(R.id.progress_bar)
+    @BindView(R.id.list_progress_bar)
     ProgressBar progressBar;
 
     protected TriblerViewAdapter adapter;

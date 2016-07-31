@@ -23,12 +23,18 @@
         recyclerviewfastscroller:rfs_barColor="@color/transparent"
         recyclerviewfastscroller:rfs_handleColor="@color/transparent" />
 
-    <ProgressBar
-        android:id="@+id/progress_bar"
-        style="?android:attr/progressBarStyle"
-        android:layout_width="75dp"
-        android:layout_height="75dp"
-        android:layout_gravity="center_vertical|center_horizontal"
-        android:indeterminate="true" />
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ProgressBar
+            android:id="@+id/list_progress_bar"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="75dp"
+            android:layout_height="75dp"
+            android:layout_gravity="center_vertical|center_horizontal"
+            android:indeterminate="true" />
+
+    </FrameLayout>
 
 </RelativeLayout>
