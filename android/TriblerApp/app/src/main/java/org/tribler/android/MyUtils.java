@@ -140,29 +140,26 @@ public class MyUtils {
         }
     }
 
-    public static String toHexString(byte[] bytes) {
-        StringBuilder hexString = new StringBuilder();
-
-        for (int i = 0; i < bytes.length; i++) {
-            String hex = Integer.toHexString(bytes[i]);
-            if (hex.length() == 1) {
-                hexString.append('0');
-            }
-            hexString.append(hex);
-        }
-
-        return hexString.toString();
-    }
-
-    public static int getColor(String name) throws Exception {
-        int hash = name.hashCode();
+    public static int getColor(String string) throws Exception {
+        int hash = string.hashCode();
         int r = (hash & 0xFF0000) >> 16;
         int g = (hash & 0x00FF00) >> 8;
         int b = hash & 0x0000FF;
         return Color.rgb(r, g, b);
     }
 
-    public static Observable<String> readByUtf8Line(BufferedSource source) {
+    public static String getCapitals(CharSequence sequence, int amount) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0, l = sequence.length(); i < l && builder.length() < amount; i++) {
+            char c = sequence.charAt(i);
+            if (Character.isUpperCase(c)) {
+                builder.append(c);
+            }
+        }
+        return builder.toString();
+    }
+
+    public static Observable<String> readUtf8LineByLine(BufferedSource source) {
         return Observable.create(new Observable.OnSubscribe<String>() {
 
             public void call(Subscriber<? super String> subscriber) {

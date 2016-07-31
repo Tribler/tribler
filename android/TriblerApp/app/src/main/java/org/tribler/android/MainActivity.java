@@ -104,7 +104,11 @@ public class MainActivity extends BaseActivity implements IEventListener {
         initService();
 
         EventStream.addListener(this);
-        EventStream.openEventStream();
+        boolean opening = EventStream.openEventStream();
+        if (!opening) {
+            // Already open
+            progressBar.setVisibility(View.GONE);
+        }
 
         String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
         String authToken = getString(R.string.service_auth_token);

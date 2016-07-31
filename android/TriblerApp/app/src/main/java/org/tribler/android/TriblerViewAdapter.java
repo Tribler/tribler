@@ -1,5 +1,7 @@
 package org.tribler.android;
 
+import android.graphics.drawable.ShapeDrawable;
+import android.graphics.drawable.shapes.OvalShape;
 import android.net.Uri;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
@@ -140,7 +142,11 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
 
             holder.channel = (TriblerChannel) getObject(adapterPosition);
             holder.name.setText(holder.channel.getName());
+            holder.nameCapital.setText(MyUtils.getCapitals(holder.channel.getName(), 2));
             holder.votesCount.setText(String.valueOf(holder.channel.getVotesCount()));
+            if (holder.channel.isSubscribed()) {
+                holder.votesIcon.setImageResource(R.drawable.ic_list_star);
+            }
             holder.torrentsCount.setText(String.valueOf(holder.channel.getTorrentsCount()));
             File icon = new File(holder.channel.getIconUrl());
             if (icon.exists()) {
@@ -148,7 +154,10 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
             } else {
                 try {
                     int color = MyUtils.getColor(holder.channel.getName());
-                    holder.icon.setBackgroundColor(color);
+                    ShapeDrawable circle = new ShapeDrawable(new OvalShape());
+                    circle.getPaint().setColor(color);
+                    circle.setBounds(0, 0, holder.icon.getWidth(), holder.icon.getHeight());
+                    holder.icon.setBackground(circle);
                 } catch (Exception ex) {
                 }
             }
@@ -188,8 +197,12 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
 
         @BindView(R.id.channel_name)
         TextView name;
+        @BindView(R.id.channel_capital)
+        TextView nameCapital;
         @BindView(R.id.channel_votes_count)
         TextView votesCount;
+        @BindView(R.id.channel_votes_icon)
+        ImageView votesIcon;
         @BindView(R.id.channel_torrents_count)
         TextView torrentsCount;
         @BindView(R.id.channel_icon)

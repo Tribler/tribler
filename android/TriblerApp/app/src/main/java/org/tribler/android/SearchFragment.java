@@ -10,11 +10,13 @@ import org.tribler.android.restapi.json.SearchResultChannelEvent;
 import org.tribler.android.restapi.json.SearchResultTorrentEvent;
 
 import rx.Observer;
+import rx.Subscription;
 import rx.schedulers.Schedulers;
 
 public class SearchFragment extends DefaultInteractionListFragment implements IEventListener {
 
     private String _query;
+    private Subscription _search;
 
     /**
      * {@inheritDoc}
@@ -39,19 +41,25 @@ public class SearchFragment extends DefaultInteractionListFragment implements IE
     public void onEvent(Object event) {
         if (event instanceof SearchResultChannelEvent) {
             SearchResultChannelEvent result = (SearchResultChannelEvent) event;
-
-            if (_query.equalsIgnoreCase(result.getQuery())) {
-                if (isDetached()) {
+            // Check query is current
+            if (!_query.equalsIgnoreCase(result.getQuery())) {
+                Log.w("ChannelSearchResult", _query + " != " + result.getQuery());
+                return;
+            }
+            if (isDetached()) {
+                adapter.addObject(result.getResult());
+            } else {
+                getActivity().runOnUiThread(() -> {
                     adapter.addObject(result.getResult());
-                } else {
-                    getActivity().runOnUiThread(() -> {
-                        adapter.addObject(result.getResult());
-                    });
-                }
+                });
             }
         } else if (event instanceof SearchResultTorrentEvent) {
             SearchResultTorrentEvent result = (SearchResultTorrentEvent) event;
-
+            // Check query is current
+            if (!_query.equalsIgnoreCase(result.getQuery())) {
+                Log.w("TorrentSearchResult", _query + " != " + result.getQuery());
+                return;
+            }
             if (isDetached()) {
                 adapter.addObject(result.getResult());
             } else {
@@ -69,10 +77,16 @@ public class SearchFragment extends DefaultInteractionListFragment implements IE
         }
         _query = query;
 
+        // Cancel previous search
+        if (_search != null && !_search.isUnsubscribed()) {
+            _search.unsubscribe();
+            rxSubs.remove(_search);
+        }
+
         adapter.clear();
 
         // Start search
-        rxSubs.add(service.search(query)
+        _search = service.search(query)
                 .subscribeOn(Schedulers.io())
                 .subscribe(new Observer<QueriedAck>() {
 
@@ -86,6 +100,7 @@ public class SearchFragment extends DefaultInteractionListFragment implements IE
                     public void onError(Throwable e) {
                         Log.e("startSearch", "search", e);
                     }
-                }));
+                });
+        rxSubs.add(_search);
     }
 }

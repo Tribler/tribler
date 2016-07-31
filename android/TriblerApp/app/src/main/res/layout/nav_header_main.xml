@@ -2,7 +2,7 @@
 <GridLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_menu_top"
+    android:background="@drawable/bg_nav_header_main"
     android:columnCount="2"
     android:fitsSystemWindows="true"
     android:orientation="vertical"

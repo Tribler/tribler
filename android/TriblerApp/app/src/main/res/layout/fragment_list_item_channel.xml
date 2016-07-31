@@ -11,29 +11,67 @@
     android:paddingRight="16dp"
     android:paddingTop="10dp">
 
-    <ImageView
-        android:id="@+id/channel_icon"
+    <RelativeLayout
+        android:id="@+id/channel_icon_wrapper"
         android:layout_width="50dp"
         android:layout_height="50dp"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
-        android:layout_centerVertical="true"
-        android:background="@color/transparent" />
+        android:layout_alignParentTop="true"
+        android:layout_marginEnd="25dp"
+        android:layout_marginLeft="12dp"
+        android:layout_marginRight="25dp"
+        android:layout_marginStart="12dp">
+
+        <ImageView
+            android:id="@+id/channel_icon"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/transparent" />
+
+        <TextView
+            android:id="@+id/channel_capital"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:textColor="@color/white"
+            android:textSize="20sp" />
+
+    </RelativeLayout>
 
     <TextView
         android:id="@+id/channel_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_toEndOf="@+id/channel_icon"
-        android:layout_toRightOf="@+id/channel_icon"
-        android:paddingEnd="16dp"
-        android:paddingLeft="16dp"
-        android:paddingStart="16dp"
-        android:text="Torrent name"
+        android:layout_marginBottom="6dp"
+        android:layout_marginEnd="25dp"
+        android:layout_marginRight="25dp"
+        android:layout_marginTop="3dp"
+        android:layout_toEndOf="@+id/channel_icon_wrapper"
+        android:layout_toRightOf="@+id/channel_icon_wrapper"
+        android:text="Channel name"
         android:textColor="@color/green"
         android:textSize="16sp"
         android:textStyle="bold" />
+
+    <ImageView
+        android:id="@+id/channel_torrents_icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/channel_name"
+        android:layout_toEndOf="@+id/channel_icon_wrapper"
+        android:layout_toRightOf="@+id/channel_icon_wrapper"
+        android:src="@drawable/ic_list_play" />
+
+    <TextView
+        android:id="@+id/channel_torrents_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/channel_name"
+        android:layout_toEndOf="@+id/channel_torrents_icon"
+        android:layout_toRightOf="@+id/channel_torrents_icon"
+        android:text="Torrents count"
+        android:textColor="@color/grey" />
 
     <TextView
         android:id="@+id/channel_votes_count"
@@ -41,17 +79,21 @@
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
-        android:layout_alignTop="@+id/channel_name"
         android:text="Votes count"
         android:textColor="@color/blue" />
 
-    <TextView
-        android:id="@+id/channel_torrents_count"
+    <ImageView
+        android:id="@+id/channel_votes_icon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignBottom="@+id/channel_icon"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentRight="true"
-        android:text="Torrents count" />
+        android:layout_alignBottom="@id/channel_votes_count"
+        android:layout_marginBottom="1dp"
+        android:layout_marginEnd="3dp"
+        android:layout_marginLeft="3dp"
+        android:layout_marginRight="3dp"
+        android:layout_marginStart="3dp"
+        android:layout_toLeftOf="@id/channel_votes_count"
+        android:layout_toStartOf="@id/channel_votes_count"
+        android:src="@drawable/ic_list_star_outline" />
 
 </RelativeLayout>

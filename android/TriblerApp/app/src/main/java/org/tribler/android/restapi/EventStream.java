@@ -2,6 +2,7 @@ package org.tribler.android.restapi;
 
 import java.util.concurrent.TimeUnit;
 
+import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
@@ -15,26 +16,37 @@ public class EventStream {
 
     private static final EventStreamCallback CALLBACK = new EventStreamCallback();
 
+    private static Call CALL;
+
     /**
      * Static class
      */
     private EventStream() {
     }
 
-    public static void addListener(IEventListener listener) {
-        CALLBACK.addEventListener(listener);
+    public static boolean addListener(IEventListener listener) {
+        return CALLBACK.addEventListener(listener);
     }
 
-    public static void removeListener(IEventListener listener) {
-        CALLBACK.removeEventListener(listener);
+    public static boolean removeListener(IEventListener listener) {
+        return CALLBACK.removeEventListener(listener);
     }
 
-    public static void openEventStream() {
-        openEventStream(CLIENT, REQUEST, CALLBACK);
+    public static boolean openEventStream() {
+        return openEventStream(false);
     }
 
-    private static void openEventStream(OkHttpClient client, Request request, Callback callback) {
-        client.newCall(request).enqueue(callback);
+    public static boolean openEventStream(boolean force) {
+        return openEventStream(force, CLIENT, REQUEST, CALLBACK);
+    }
+
+    private static boolean openEventStream(boolean force, OkHttpClient client, Request request, Callback callback) {
+        if (force || CALL == null) {
+            CALL = client.newCall(request);
+            CALL.enqueue(callback);
+            return true;
+        }
+        return false;
     }
 
     private static OkHttpClient buildClient() {

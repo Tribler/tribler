@@ -1,9 +1,11 @@
 package org.tribler.android.restapi;
 
 import android.support.annotation.Nullable;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 
 import org.tribler.android.restapi.json.ChannelDiscoveredEvent;
 import org.tribler.android.restapi.json.EventContainer;
@@ -48,7 +50,7 @@ public class EventStreamCallback implements Callback {
         } catch (InterruptedException e) {
         }
         // Retry until service comes up
-        EventStream.openEventStream();
+        EventStream.openEventStream(true);
     }
 
     /**
@@ -59,33 +61,39 @@ public class EventStreamCallback implements Callback {
         if (!response.isSuccessful()) {
             throw new IOException(String.format("Response not successful: %s", response.toString()));
         }
-        // Read headers
-        Headers responseHeaders = response.headers();
-        for (int i = 0, size = responseHeaders.size(); i < size; i++) {
-            Log.v("responseHeaders", responseHeaders.name(i) + ": " + responseHeaders.value(i));
-        }
-        // Read body
         try {
+            // Read headers
+            Headers responseHeaders = response.headers();
+            for (int i = 0, size = responseHeaders.size(); i < size; i++) {
+                Log.v("responseHeaders", responseHeaders.name(i) + ": " + responseHeaders.value(i));
+            }
+
+            // Read body
             BufferedReader in = new BufferedReader(response.body().charStream());
             String line;
+            Object event;
+
             // Blocking read
             while ((line = in.readLine()) != null) {
+                line = line.trim();
+                if (TextUtils.isEmpty(line)) {
+                    continue;
+                }
                 Log.v("readLine", line);
 
-                // Split events on the same line and restore delimiters
-                String[] events = line.split("\\}\\{");
-                for (int i = 1, j = events.length; i < j; i += 2) {
-                    events[i - 1] += "}";
-                    events[i] = "{" + events[i];
-                }
-                for (String eventString : events) {
-                    Object event = parseEvent(eventString);
+                try {
+                    // TODO: do not assume 1 event per 1 line and 1 line per 1 event
+                    event = parseEvent(line);
                     if (event != null) {
+                        Log.v("onEvent", event.getClass().getSimpleName());
+
                         // Notify observers
                         for (IEventListener listener : _eventListeners) {
                             listener.onEvent(event);
                         }
                     }
+                } catch (JsonSyntaxException | NullPointerException e) {
+                    Log.e("parseEvent", line, e);
                 }
             }
             in.close();
@@ -93,19 +101,20 @@ public class EventStreamCallback implements Callback {
             Log.e("onResponse", "catch", ex);
 
             // Reconnect on timeout
-            EventStream.openEventStream();
+            EventStream.openEventStream(true);
         }
     }
 
     @Nullable
-    private static Object parseEvent(String eventString) {
-        Log.v("parseEvent", eventString);
-
+    private static Object parseEvent(String eventString) throws JsonSyntaxException {
+        // Parse container to determine event type
         EventContainer container = GSON.fromJson(eventString, EventContainer.class);
         Object event = container.getEvent();
         if (event == null) {
+            // Some event types have empty event body
             eventString = "{}";
         } else {
+            // Turn body object back into json
             eventString = GSON.toJson(event);
         }
         switch (container.getType()) {
