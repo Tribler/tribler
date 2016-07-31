@@ -5,6 +5,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
+import android.view.View;
 
 import org.tribler.android.restapi.EventStream;
 import org.tribler.android.restapi.json.QueriedAck;
@@ -54,6 +55,11 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
 
             // Check if query is current
             if (_query.equalsIgnoreCase(result.getQuery())) {
+
+                // Hide loading indicator
+                progressBar.setVisibility(View.GONE);
+
+                // Show search result
                 adapter.addObject(result.getResult());
             } else {
                 Log.w("ChannelSearchResult", _query + " != " + result.getQuery());
@@ -63,6 +69,11 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
 
             // Check if query is current
             if (_query.equalsIgnoreCase(result.getQuery())) {
+
+                // Hide loading indicator
+                progressBar.setVisibility(View.GONE);
+
+                // Show search result
                 adapter.addObject(result.getResult());
             } else {
                 Log.w("TorrentSearchResult", _query + " != " + result.getQuery());
@@ -84,6 +95,9 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
             rxSubs.remove(_search);
         }
         adapter.clear();
+
+        // Show loading indicator
+        progressBar.setVisibility(View.VISIBLE);
 
         // Start search
         _search = service.search(query)
