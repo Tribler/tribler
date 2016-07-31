@@ -35,6 +35,7 @@ public class SearchFragment extends DefaultInteractionListFragment implements IE
     @Override
     public void onDestroy() {
         super.onDestroy();
+        _search = null;
         EventStream.removeListener(this);
     }
 
