@@ -105,8 +105,9 @@ public class MainActivity extends BaseActivity implements IEventListener {
 
         EventStream.addListener(this);
         boolean ready = EventStream.openEventStream();
-        if (ready) {
-            onServiceReady();
+        if (!ready) {
+            // Show loading indicator
+            progressBar.setVisibility(View.VISIBLE);
         }
 
         String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
@@ -129,15 +130,15 @@ public class MainActivity extends BaseActivity implements IEventListener {
         _service = null;
     }
 
-    private void onServiceReady() {
-        // Hide loading bar
-        progressBar.setVisibility(View.GONE);
-    }
-
     public void onEvent(Object event) {
         if (event instanceof EventsStartEvent) {
-            runOnUiThread(this::onServiceReady);
+            runOnUiThread(this::onEventStreamReady);
         }
+    }
+
+    private void onEventStreamReady() {
+        // Hide loading indicator
+        progressBar.setVisibility(View.GONE);
     }
 
     /**

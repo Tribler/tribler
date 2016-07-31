@@ -1,9 +1,7 @@
 package org.tribler.android;
 
 import android.os.Bundle;
-import android.support.annotation.Nullable;
 import android.util.Log;
-import android.view.View;
 
 import org.tribler.android.restapi.EventStream;
 import org.tribler.android.restapi.IEventListener;
@@ -41,43 +39,33 @@ public class SearchFragment extends DefaultInteractionListFragment implements IE
         EventStream.removeListener(this);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        progressBar.setVisibility(View.GONE);
-    }
-
     public void onEvent(Object event) {
         if (event instanceof SearchResultChannelEvent) {
             SearchResultChannelEvent result = (SearchResultChannelEvent) event;
-            // Check query is current
+
+            // Check if query is current
             if (!_query.equalsIgnoreCase(result.getQuery())) {
                 Log.w("ChannelSearchResult", _query + " != " + result.getQuery());
                 return;
             }
+            // No gui if detached
             if (isDetached()) {
                 adapter.addObject(result.getResult());
             } else {
-                getActivity().runOnUiThread(() -> {
-                    adapter.addObject(result.getResult());
-                });
+                getActivity().runOnUiThread(() -> adapter.addObject(result.getResult()));
             }
         } else if (event instanceof SearchResultTorrentEvent) {
             SearchResultTorrentEvent result = (SearchResultTorrentEvent) event;
-            // Check query is current
+            // Check if query is current
             if (!_query.equalsIgnoreCase(result.getQuery())) {
                 Log.w("TorrentSearchResult", _query + " != " + result.getQuery());
                 return;
             }
+            // No gui if detached
             if (isDetached()) {
                 adapter.addObject(result.getResult());
             } else {
-                getActivity().runOnUiThread(() -> {
-                    adapter.addObject(result.getResult());
-                });
+                getActivity().runOnUiThread(() -> adapter.addObject(result.getResult()));
             }
         }
     }
@@ -94,7 +82,6 @@ public class SearchFragment extends DefaultInteractionListFragment implements IE
             _search.unsubscribe();
             rxSubs.remove(_search);
         }
-
         adapter.clear();
 
         // Start search
