@@ -32,8 +32,8 @@ import com.cantrowitz.rxbroadcast.RxBroadcast;
 import org.tribler.android.restapi.EventStream;
 import org.tribler.android.restapi.IRestApi;
 import org.tribler.android.restapi.TriblerService;
+import org.tribler.android.restapi.json.EventsStartEvent;
 import org.tribler.android.restapi.json.ShutdownAck;
-import org.tribler.android.restapi.json.TriblerStartedEvent;
 import org.tribler.android.service.Triblerd;
 
 import java.io.File;
@@ -137,7 +137,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
      */
     @Override
     public boolean handleMessage(Message message) {
-        if (message.obj instanceof TriblerStartedEvent) {
+        if (message.obj instanceof EventsStartEvent) {
             // Hide loading indicator
             progressBar.setVisibility(View.GONE);
 
