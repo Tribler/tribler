@@ -28,11 +28,13 @@ import okhttp3.Response;
 
 public class EventStreamCallback implements Callback {
 
-    private static boolean ready = false;
-
-    private static final Gson GSON = new Gson();
-
+    private boolean _ready = false;
+    private final Gson _gson = new Gson();
     private final ArrayList<Handler> _eventHandlers = new ArrayList<>();
+
+    public boolean isReady() {
+        return _ready;
+    }
 
     public boolean addEventHandler(Handler handler) {
         return _eventHandlers.add(handler);
@@ -42,26 +44,19 @@ public class EventStreamCallback implements Callback {
         return _eventHandlers.remove(handler);
     }
 
-    public boolean isReady() {
-        return ready;
-    }
-
     /**
      * {@inheritDoc}
      */
     @Override
     public void onFailure(Call call, IOException ex) {
-        ready = false;
+        _ready = false;
         Log.v("onFailure", "Service events stream not ready. Retrying in 1s...", ex);
-        if (EventStream.isClosing()) {
-            return;
-        }
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
         }
         // Retry until service comes up
-        EventStream.openEventStream(true);
+        EventStream.openEventStream();
     }
 
     /**
@@ -70,7 +65,7 @@ public class EventStreamCallback implements Callback {
     @Override
     public void onResponse(Call call, Response response) throws IOException {
         if (!response.isSuccessful()) {
-            ready = false;
+            _ready = false;
             throw new IOException(String.format("Response not successful: %s", response.toString()));
         }
         try {
@@ -84,7 +79,7 @@ public class EventStreamCallback implements Callback {
             BufferedReader in = new BufferedReader(response.body().charStream());
             String line;
             Object event;
-            ready = true;
+            _ready = true;
 
             // Blocking read
             while ((line = in.readLine()) != null) {
@@ -98,7 +93,7 @@ public class EventStreamCallback implements Callback {
                     // TODO: do not assume 1 event per 1 line and 1 line per 1 event
                     event = parseEvent(line);
                     if (event != null) {
-                        Log.v("onEvent", event.getClass().getSimpleName());
+                        Log.v("onEvent", event.getClass().getSimpleName() + "; handlers: " + _eventHandlers.size());
 
                         // Notify observers
                         for (int i = 0, j = _eventHandlers.size(); i < j; i++) {
@@ -111,48 +106,48 @@ public class EventStreamCallback implements Callback {
             }
             in.close();
         } catch (Exception ex) {
-            ready = false;
+            _ready = false;
             Log.e("onResponse", "catch", ex);
 
             // Reconnect on timeout
-            EventStream.openEventStream(true);
+            EventStream.openEventStream();
         }
     }
 
     @Nullable
-    private static Object parseEvent(String eventString) throws JsonSyntaxException {
+    private Object parseEvent(String eventString) throws JsonSyntaxException {
         // Parse container to determine event type
-        EventContainer container = GSON.fromJson(eventString, EventContainer.class);
+        EventContainer container = _gson.fromJson(eventString, EventContainer.class);
         Object event = container.getEvent();
         if (event == null) {
             // Some event types have empty event body
             eventString = "{}";
         } else {
             // Turn body object back into json
-            eventString = GSON.toJson(event);
+            eventString = _gson.toJson(event);
         }
         switch (container.getType()) {
 
             case EventsStartEvent.TYPE:
-                return GSON.fromJson(eventString, EventsStartEvent.class);
+                return _gson.fromJson(eventString, EventsStartEvent.class);
 
             case UpgraderFinishedEvent.TYPE:
-                return GSON.fromJson(eventString, UpgraderFinishedEvent.class);
+                return _gson.fromJson(eventString, UpgraderFinishedEvent.class);
 
             case TriblerStartedEvent.TYPE:
-                return GSON.fromJson(eventString, TriblerStartedEvent.class);
+                return _gson.fromJson(eventString, TriblerStartedEvent.class);
 
             case SearchResultChannelEvent.TYPE:
-                return GSON.fromJson(eventString, SearchResultChannelEvent.class);
+                return _gson.fromJson(eventString, SearchResultChannelEvent.class);
 
             case SearchResultTorrentEvent.TYPE:
-                return GSON.fromJson(eventString, SearchResultTorrentEvent.class);
+                return _gson.fromJson(eventString, SearchResultTorrentEvent.class);
 
             case ChannelDiscoveredEvent.TYPE:
-                return GSON.fromJson(eventString, ChannelDiscoveredEvent.class);
+                return _gson.fromJson(eventString, ChannelDiscoveredEvent.class);
 
             case TorrentDiscoveredEvent.TYPE:
-                return GSON.fromJson(eventString, TorrentDiscoveredEvent.class);
+                return _gson.fromJson(eventString, TorrentDiscoveredEvent.class);
 
             default:
                 Log.e("parseEvent", String.format("Unknown event type: %s", container.getType()));

@@ -5,7 +5,6 @@ import android.os.Handler;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
-import okhttp3.Callback;
 import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -18,18 +17,12 @@ public class EventStream {
 
     private static final EventStreamCallback CALLBACK = new EventStreamCallback();
 
-    private static Call CALL;
-
-    private static boolean closing = false;
+    private static Call _call;
 
     /**
      * Static class
      */
     private EventStream() {
-    }
-
-    public static boolean isClosing() {
-        return closing;
     }
 
     public static boolean addHandler(Handler handler) {
@@ -40,29 +33,28 @@ public class EventStream {
         return CALLBACK.removeEventHandler(handler);
     }
 
-    public static boolean openEventStream() {
-        return openEventStream(false);
-    }
-
-    public static boolean openEventStream(boolean force) {
-        return openEventStream(force, CLIENT, REQUEST, CALLBACK);
-    }
-
-    private static boolean openEventStream(boolean force, OkHttpClient client, Request request, Callback callback) {
-        if (force || CALL == null) {
-            if (CALL != null) {
-                CALL.cancel();
-            }
-            CALL = client.newCall(request);
-            CALL.enqueue(callback);
-        }
+    public static boolean isReady() {
         return CALLBACK.isReady();
     }
 
+    public static void openEventStream() {
+        newCall();
+    }
+
     public static void closeEventStream() {
-        closing = true;
-        if (CALL != null) {
-            CALL.cancel();
+        close();
+    }
+
+    private static void newCall() {
+        if (_call == null || !_call.isCanceled()) {
+            _call = CLIENT.newCall(REQUEST);
+            _call.enqueue(CALLBACK);
+        }
+    }
+
+    private static void close() {
+        if (_call != null) {
+            _call.cancel();
         }
     }
 

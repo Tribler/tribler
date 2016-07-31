@@ -48,10 +48,10 @@ public abstract class PythonService extends Service implements Runnable {
      */
     @Override
     public void onCreate() {
+        super.onCreate();
         Log.v(TAG, "Device: " + android.os.Build.DEVICE);
         Log.v(TAG, "Model: " + android.os.Build.MODEL);
         AssetExtract.extractAsset(getApplicationContext(), "private.mp3", getFilesDir());
-        super.onCreate();
     }
 
     /**

@@ -32,8 +32,8 @@ import com.cantrowitz.rxbroadcast.RxBroadcast;
 import org.tribler.android.restapi.EventStream;
 import org.tribler.android.restapi.IRestApi;
 import org.tribler.android.restapi.TriblerService;
-import org.tribler.android.restapi.json.EventsStartEvent;
 import org.tribler.android.restapi.json.ShutdownAck;
+import org.tribler.android.restapi.json.TriblerStartedEvent;
 import org.tribler.android.service.Triblerd;
 
 import java.io.File;
@@ -64,7 +64,6 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     private ActionBarDrawerToggle _navToggle;
     private ConnectivityManager _connectivityManager;
     private Handler _eventHandler;
-    private IRestApi _service;
 
     private void initService() {
         // Check network connection before starting service
@@ -101,7 +100,6 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         _navToggle.syncState();
 
         //Stetho.initializeWithDefaults(getApplicationContext()); //DEBUG
-
         initConnectionManager();
         initService();
 
@@ -109,16 +107,14 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         _eventHandler = new Handler(Looper.getMainLooper(), this);
         EventStream.addHandler(_eventHandler);
 
-        boolean ready = EventStream.openEventStream();
-        if (!ready) {
+        if (!EventStream.isReady()) {
+            EventStream.openEventStream();
+
             // Show loading indicator
             progressBar.setVisibility(View.VISIBLE);
+
             // TODO: Disable some navigation
         }
-
-        String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
-        String authToken = getString(R.string.service_auth_token);
-        _service = TriblerService.createService(baseUrl, authToken);
 
         handleIntent(getIntent());
     }
@@ -134,7 +130,6 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         _navToggle = null;
         _connectivityManager = null;
         _eventHandler = null;
-        _service = null;
     }
 
     /**
@@ -142,9 +137,10 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
      */
     @Override
     public boolean handleMessage(Message message) {
-        if (message.obj instanceof EventsStartEvent) {
+        if (message.obj instanceof TriblerStartedEvent) {
             // Hide loading indicator
             progressBar.setVisibility(View.GONE);
+
             // TODO: Enable some navigation
         }
         return true;
@@ -303,7 +299,12 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     public void navShutdownClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         EventStream.closeEventStream();
-        rxSubs.add(_service.shutdown()
+
+        String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
+        String authToken = getString(R.string.service_auth_token);
+        IRestApi service = TriblerService.createService(baseUrl, authToken);
+
+        rxSubs.add(service.shutdown()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<ShutdownAck>() {
