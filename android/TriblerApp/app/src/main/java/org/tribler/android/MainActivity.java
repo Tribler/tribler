@@ -162,7 +162,10 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         }
         switch (action) {
             case Intent.ACTION_MAIN:
-                //TODO: startup action
+                // Startup action
+                if (!drawer.isDrawerOpen(GravityCompat.START)) {
+                    drawer.openDrawer(GravityCompat.START);
+                }
                 return;
 
             case ConnectivityManager.CONNECTIVITY_ACTION:
@@ -186,7 +189,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         // Result of capture video
         if (requestCode == CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE) {
             if (resultCode == Activity.RESULT_OK) {
-                Toast.makeText(this, "Video saved to: " + data.getData(), Toast.LENGTH_LONG).show();
+                Toast.makeText(this, String.format("Video saved to: %s", data.getData()), Toast.LENGTH_LONG).show();
                 //TODO: create torrent file and add to own channel
             } else if (resultCode == Activity.RESULT_CANCELED) {
 

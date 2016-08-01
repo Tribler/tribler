@@ -130,6 +130,7 @@ public class ChannelActivity extends BaseActivity {
                     _fragment.subscribe(dispersyCid, subscribed, title);
                 }
                 intent.putExtra(ChannelActivity.EXTRA_SUBSCRIBED, !subscribed);
+                invalidateOptionsMenu();
                 break;
         }
     }
