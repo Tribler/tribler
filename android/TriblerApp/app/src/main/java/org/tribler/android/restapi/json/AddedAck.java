@@ -7,7 +7,7 @@ public class AddedAck {
     AddedAck() {
     }
 
-    public boolean getAdded() {
+    public boolean isAdded() {
         return added;
     }
 

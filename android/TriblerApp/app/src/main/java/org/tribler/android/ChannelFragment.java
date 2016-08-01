@@ -1,5 +1,6 @@
 package org.tribler.android;
 
+import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 
@@ -12,39 +13,40 @@ import rx.schedulers.Schedulers;
 
 public class ChannelFragment extends DefaultInteractionListFragment {
 
-    private String _dispersyCid;
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        String dispersyCid = getActivity().getIntent().getStringExtra(ChannelActivity.EXTRA_DISPERSY_CID);
+        loadTorrents(dispersyCid);
+    }
 
-    public void loadTorrents(String dispersyCid) {
-        if (dispersyCid.equals(_dispersyCid)) {
-            // Do not reload
-            return;
-        }
-        _dispersyCid = dispersyCid;
-
+    private void loadTorrents(final String dispersyCid) {
         adapter.clear();
 
-        // Show loading indicator
-        progressBar.setVisibility(View.VISIBLE);
-
-        rxSubs.add(service.getTorrents(dispersyCid)
+        loading = service.getTorrents(dispersyCid)
                 .subscribeOn(Schedulers.io())
                 .flatMap(response -> Observable.from(response.getTorrents()))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<TriblerTorrent>() {
 
                     public void onNext(TriblerTorrent torrent) {
-                        // Hide loading indicator
-                        progressBar.setVisibility(View.GONE);
-
                         adapter.addObject(torrent);
                     }
 
                     public void onCompleted() {
+                        // Hide loading indicator
+                        progressBar.setVisibility(View.GONE);
                     }
 
                     public void onError(Throwable e) {
                         Log.e("loadTorrents", "getTorrents", e);
+                        // Retry
+                        loadTorrents(dispersyCid);
                     }
-                }));
+                });
+        rxSubs.add(loading);
     }
 }

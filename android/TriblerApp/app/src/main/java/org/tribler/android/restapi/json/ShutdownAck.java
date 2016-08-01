@@ -8,7 +8,7 @@ public class ShutdownAck {
     ShutdownAck() {
     }
 
-    public boolean getShutdown() {
+    public boolean isShutdown() {
         return shutdown;
     }
 

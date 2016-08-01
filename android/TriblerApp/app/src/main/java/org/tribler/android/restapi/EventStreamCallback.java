@@ -90,7 +90,7 @@ public class EventStreamCallback implements Callback {
                 Log.v("readLine", line);
 
                 try {
-                    // TODO: do not assume 1 event per 1 line and 1 line per 1 event
+                    //TODO: do not assume 1 event per 1 line and 1 line per 1 event
                     event = parseEvent(line);
                     if (event != null) {
                         Log.v("onEvent", event.getClass().getSimpleName() + "; handlers: " + _eventHandlers.size());

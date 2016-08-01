@@ -72,6 +72,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
         intent.setAction(Intent.ACTION_GET_CONTENT);
         intent.putExtra(ChannelActivity.EXTRA_DISPERSY_CID, channel.getDispersyCid());
         intent.putExtra(Intent.EXTRA_TITLE, channel.getName());
+        intent.putExtra(ChannelActivity.EXTRA_SUBSCRIBED, channel.isSubscribed());
         _context.startActivity(intent);
     }
 

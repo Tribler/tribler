@@ -7,7 +7,7 @@ public class ModifiedAck {
     ModifiedAck() {
     }
 
-    public boolean getModified() {
+    public boolean isModified() {
         return modified;
     }
 

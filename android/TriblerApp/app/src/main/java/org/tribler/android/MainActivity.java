@@ -154,8 +154,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         }
         switch (action) {
             case Intent.ACTION_MAIN:
-                // Startup action
-                Log.d("handleIntent", action);
+                //TODO: startup action
                 return;
 
             case ConnectivityManager.CONNECTIVITY_ACTION:

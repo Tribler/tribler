@@ -16,6 +16,7 @@ import org.tribler.android.restapi.json.TriblerTorrent;
 import java.util.ArrayList;
 
 import butterknife.BindView;
+import rx.Subscription;
 import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
 
 /**
@@ -34,6 +35,7 @@ public class ListFragment extends ViewFragment {
     @BindView(R.id.list_progress_bar)
     ProgressBar progressBar;
 
+    protected Subscription loading;
     protected TriblerViewAdapter adapter;
     protected IListFragmentInteractionListener interactionListener;
 
@@ -75,6 +77,7 @@ public class ListFragment extends ViewFragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        loading = null;
         adapter = null;
     }
 
@@ -125,6 +128,11 @@ public class ListFragment extends ViewFragment {
         fastScroller.setRecyclerView(recyclerView);
         // Let the recycler view scroll the scroller's handle
         recyclerView.addOnScrollListener(fastScroller.getOnScrollListener());
+
+        if (loading != null && !loading.isUnsubscribed()) {
+            // Show loading indicator
+            progressBar.setVisibility(View.VISIBLE);
+        }
     }
 
     /**

@@ -7,7 +7,7 @@ public class SubscribedAck {
     SubscribedAck() {
     }
 
-    public boolean getSubscribed() {
+    public boolean isSubscribed() {
         return subscribed;
     }
 

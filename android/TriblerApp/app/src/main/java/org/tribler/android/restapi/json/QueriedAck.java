@@ -7,7 +7,7 @@ public class QueriedAck {
     QueriedAck() {
     }
 
-    public boolean getQueried() {
+    public boolean isQueried() {
         return queried;
     }
 

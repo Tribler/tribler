@@ -7,7 +7,7 @@ public class UnsubscribedAck {
     UnsubscribedAck() {
     }
 
-    public boolean getUnsubscribed() {
+    public boolean isUnsubscribed() {
         return unsubscribed;
     }
 

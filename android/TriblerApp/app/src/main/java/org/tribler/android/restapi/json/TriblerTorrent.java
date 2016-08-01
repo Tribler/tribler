@@ -42,9 +42,6 @@ public class TriblerTorrent {
     }
 
     public String getThumbnailUrl() {
-        if (thumbnail_url == null) {
-            thumbnail_url = ""; //TODO: default image
-        }
         return thumbnail_url;
     }
 

@@ -13,13 +13,11 @@ import org.tribler.android.restapi.json.SearchResultChannelEvent;
 import org.tribler.android.restapi.json.SearchResultTorrentEvent;
 
 import rx.Observer;
-import rx.Subscription;
 import rx.schedulers.Schedulers;
 
 public class SearchFragment extends DefaultInteractionListFragment implements Handler.Callback {
 
     private String _query;
-    private Subscription _search;
     private Handler _eventHandler;
 
     /**
@@ -45,7 +43,6 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
     public void onDestroy() {
         EventStream.removeHandler(_eventHandler);
         super.onDestroy();
-        _search = null;
         _eventHandler = null;
     }
 
@@ -86,7 +83,7 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
         return true;
     }
 
-    public void startSearch(String query) {
+    public void startSearch(final String query) {
         if (query.equals(_query)) {
             // Do not restart search
             return;
@@ -94,9 +91,9 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
         _query = query;
 
         // Cancel previous search
-        if (_search != null && !_search.isUnsubscribed()) {
-            _search.unsubscribe();
-            rxSubs.remove(_search);
+        if (loading != null && !loading.isUnsubscribed()) {
+            loading.unsubscribe();
+            rxSubs.remove(loading);
         }
         adapter.clear();
 
@@ -104,7 +101,7 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
         progressBar.setVisibility(View.VISIBLE);
 
         // Start search
-        _search = service.search(query)
+        loading = service.search(query)
                 .subscribeOn(Schedulers.io())
                 .subscribe(new Observer<QueriedAck>() {
 
@@ -117,8 +114,10 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
 
                     public void onError(Throwable e) {
                         Log.e("startSearch", "search", e);
+                        // Retry
+                        startSearch(query);
                     }
                 });
-        rxSubs.add(_search);
+        rxSubs.add(loading);
     }
 }

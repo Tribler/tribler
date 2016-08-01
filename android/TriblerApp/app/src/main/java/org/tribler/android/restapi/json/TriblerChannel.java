@@ -46,9 +46,6 @@ public class TriblerChannel {
     }
 
     public String getIconUrl() {
-        if (icon_url == null) {
-            icon_url = ""; //TODO: default image
-        }
         return icon_url;
     }
 

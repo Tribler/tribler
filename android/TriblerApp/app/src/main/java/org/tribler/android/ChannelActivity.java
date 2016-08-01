@@ -16,6 +16,7 @@ import rx.Observer;
 public class ChannelActivity extends BaseActivity {
 
     public static final String EXTRA_DISPERSY_CID = "org.tribler.android.dispersy.CID";
+    public static final String EXTRA_SUBSCRIBED = "org.tribler.android.SUBSCRIBED";
 
     private ChannelFragment _fragment;
 
@@ -44,15 +45,15 @@ public class ChannelActivity extends BaseActivity {
 
     protected void handleIntent(Intent intent) {
         if (Intent.ACTION_GET_CONTENT.equals(intent.getAction())) {
-            String dispersyCid = intent.getStringExtra(EXTRA_DISPERSY_CID);
-
-            // Get torrents for channel
-            _fragment.loadTorrents(dispersyCid);
-
             // Set title
             ActionBar actionBar = getSupportActionBar();
             if (actionBar != null) {
-                actionBar.setTitle(intent.getStringExtra(Intent.EXTRA_TITLE));
+                String title = intent.getStringExtra(Intent.EXTRA_TITLE);
+                boolean subscribed = intent.getBooleanExtra(EXTRA_SUBSCRIBED, false);
+                if (!subscribed) {
+                    title = getString(R.string.title_channel_preview) + " " + title;
+                }
+                actionBar.setTitle(title);
             }
         }
     }
