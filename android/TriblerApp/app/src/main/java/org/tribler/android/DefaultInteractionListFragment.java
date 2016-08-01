@@ -21,7 +21,7 @@ import rx.schedulers.Schedulers;
 public class DefaultInteractionListFragment extends ListFragment implements ListFragment.IListFragmentInteractionListener {
 
     protected IRestApi service;
-    private Context _context;
+    protected Context context;
 
     /**
      * {@inheritDoc}
@@ -50,7 +50,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        _context = context;
+        this.context = context;
         setInteractionListener(this);
     }
 
@@ -60,7 +60,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     @Override
     public void onDetach() {
         super.onDetach();
-        _context = null;
+        context = null;
     }
 
     /**
@@ -68,12 +68,12 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onClick(final TriblerChannel channel) {
-        Intent intent = new Intent(_context, ChannelActivity.class);
+        Intent intent = new Intent(context, ChannelActivity.class);
         intent.setAction(Intent.ACTION_GET_CONTENT);
         intent.putExtra(ChannelActivity.EXTRA_DISPERSY_CID, channel.getDispersyCid());
         intent.putExtra(Intent.EXTRA_TITLE, channel.getName());
         intent.putExtra(ChannelActivity.EXTRA_SUBSCRIBED, channel.isSubscribed());
-        _context.startActivity(intent);
+        context.startActivity(intent);
     }
 
     /**
@@ -82,7 +82,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     @Override
     public void onClick(final TriblerTorrent torrent) {
         //TODO: play video
-        Toast.makeText(_context, "play video", Toast.LENGTH_SHORT).show();
+        Toast.makeText(context, "play video", Toast.LENGTH_SHORT).show();
     }
 
     /**
@@ -93,7 +93,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
         adapter.removeObject(channel);
 
         if (channel.isSubscribed()) {
-            Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_subscribe_already), Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, channel.getName() + ' ' + context.getText(R.string.info_subscribe_already), Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -103,7 +103,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                 .subscribe(new Observer<SubscribedAck>() {
 
                     public void onNext(SubscribedAck response) {
-                        Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_subscribe_success), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(context, channel.getName() + ' ' + context.getText(R.string.info_subscribe_success), Toast.LENGTH_SHORT).show();
                     }
 
                     public void onCompleted() {
@@ -111,10 +111,11 @@ public class DefaultInteractionListFragment extends ListFragment implements List
 
                     public void onError(Throwable e) {
                         if (e instanceof HttpException && ((HttpException) e).code() == 409) {
-                            Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_subscribe_already), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(context, channel.getName() + ' ' + context.getText(R.string.info_subscribe_already), Toast.LENGTH_SHORT).show();
                         } else {
                             Log.e("onSwipedRight", "subscribe", e);
-                            Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_subscribe_failure), Toast.LENGTH_LONG).show();
+                            // Retry
+                            onSwipedRight(channel);
                         }
                     }
                 }));
@@ -128,7 +129,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
         adapter.removeObject(channel);
 
         if (!channel.isSubscribed()) {
-            Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_unsubscribe_already), Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, channel.getName() + ' ' + context.getText(R.string.info_unsubscribe_already), Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -138,7 +139,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                 .subscribe(new Observer<UnsubscribedAck>() {
 
                     public void onNext(UnsubscribedAck response) {
-                        Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_unsubscribe_success), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(context, channel.getName() + ' ' + context.getText(R.string.info_unsubscribe_success), Toast.LENGTH_SHORT).show();
                     }
 
                     public void onCompleted() {
@@ -146,10 +147,11 @@ public class DefaultInteractionListFragment extends ListFragment implements List
 
                     public void onError(Throwable e) {
                         if (e instanceof HttpException && ((HttpException) e).code() == 404) {
-                            Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_unsubscribe_already), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(context, channel.getName() + ' ' + context.getText(R.string.info_unsubscribe_already), Toast.LENGTH_SHORT).show();
                         } else {
                             Log.e("onSwipedLeft", "unsubscribe", e);
-                            Toast.makeText(_context, channel.getName() + ' ' + _context.getText(R.string.info_unsubscribe_failure), Toast.LENGTH_LONG).show();
+                            // Retry
+                            onSwipedLeft(channel);
                         }
                     }
                 }));
@@ -162,8 +164,29 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     public void onSwipedRight(final TriblerTorrent torrent) {
         adapter.removeObject(torrent);
 
-        //TODO: watch later
-        Toast.makeText(_context, "watch later", Toast.LENGTH_SHORT).show();
+        switch (torrent.getCategory()) {
+            case "Video":
+                //TODO: watch later
+                Toast.makeText(context, "watch later", Toast.LENGTH_SHORT).show();
+                break;
+
+            case "Audio":
+                //TODO: listen later
+                Toast.makeText(context, "listen later", Toast.LENGTH_SHORT).show();
+                break;
+
+            case "Document":
+                //TODO: read later
+                Toast.makeText(context, "listen later", Toast.LENGTH_SHORT).show();
+                break;
+
+            case "Compressed":
+            case "xxx":
+            case "other":
+                //TODO: download
+                Toast.makeText(context, "download", Toast.LENGTH_SHORT).show();
+                break;
+        }
     }
 
     /**
@@ -173,8 +196,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     public void onSwipedLeft(final TriblerTorrent torrent) {
         adapter.removeObject(torrent);
 
-        //TODO: not interested
-        Toast.makeText(_context, "not interested", Toast.LENGTH_SHORT).show();
+        //TODO: not interested never see again
     }
 
 }
