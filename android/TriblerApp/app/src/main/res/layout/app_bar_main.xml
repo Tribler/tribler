@@ -22,37 +22,11 @@
 
     </android.support.design.widget.AppBarLayout>
 
-    <include layout="@layout/content_main" />
-
-    <FrameLayout
-        android:id="@+id/progress_main"
+    <fragment
+        android:id="@+id/fragment_main"
+        android:name="org.tribler.android.ListFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="gone">
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical|center_horizontal"
-            android:orientation="vertical">
-
-            <ProgressBar
-                android:id="@+id/progress_bar_main"
-                style="?android:attr/progressBarStyle"
-                android:layout_width="75dp"
-                android:layout_height="75dp"
-                android:layout_gravity="center"
-                android:indeterminate="true" />
-
-            <TextView
-                android:id="@+id/progress_status_main"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:layout_marginTop="5dp" />
-
-        </LinearLayout>
-
-    </FrameLayout>
+        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
 </android.support.design.widget.CoordinatorLayout>

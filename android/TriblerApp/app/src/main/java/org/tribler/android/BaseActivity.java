@@ -58,6 +58,7 @@ public abstract class BaseActivity extends AppCompatActivity {
         ButterKnife.bind(this);
 
         setSupportActionBar(toolbar);
+        Log.d("base", " " + getSupportActionBar());
     }
 
     /**

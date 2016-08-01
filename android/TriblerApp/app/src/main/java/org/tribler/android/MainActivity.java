@@ -59,10 +59,10 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     @BindView(R.id.nav_view)
     NavigationView navigationView;
 
-    @BindView(R.id.progress_main)
+    @BindView(R.id.list_progress)
     View progressView;
 
-    @BindView(R.id.progress_status_main)
+    @BindView(R.id.list_progress_status)
     TextView statusBar;
 
     private ActionBarDrawerToggle _navToggle;
@@ -100,8 +100,8 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
         // Hamburger icon
         _navToggle = new ActionBarDrawerToggle(this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        drawer.openDrawer(GravityCompat.START);
         drawer.addDrawerListener(_navToggle);
-        drawer.openDrawer(GravityCompat.START, false);
         _navToggle.syncState();
 
         //Stetho.initializeWithDefaults(getApplicationContext()); //DEBUG
