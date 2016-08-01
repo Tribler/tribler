@@ -52,7 +52,6 @@ class TestBarterCommunity(TestAsServer):
 
         def do_stats_messages():
             # check if the crawler receives messages
-            print "here"
             if len(_barter_statistics.get_interactions(self.dispersy)):
                 # Some bartercast statistic was crawled.
                 self._test_condition_lc.stop()
@@ -126,9 +125,9 @@ class TestBarterCommunity(TestAsServer):
         yield self.load_communities(self.session, self.dispersy, True)
         yield self.setupPeer()
 
+    @inlineCallbacks
     def tearDown(self):
         if self.session2:
-            self._shutdown_session(self.session2)
-            sleep(10)
+            yield self._shutdown_session(self.session2)
 
         super(TestBarterCommunity, self).tearDown()

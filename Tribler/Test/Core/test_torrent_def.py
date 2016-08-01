@@ -6,13 +6,13 @@ import os
 import shutil
 from tempfile import mkdtemp
 from nose.tools import raises
+from nose.twistedtools import deferred
 from Tribler.Test.common import TORRENT_FILE
 from libtorrent import bdecode
 from twisted.internet import reactor
 from twisted.web.server import Site
 from twisted.web.static import File
 
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.utilities import isValidTorrentFile
 from Tribler.Core.exceptions import TorrentDefNotFinalizedException, HttpError

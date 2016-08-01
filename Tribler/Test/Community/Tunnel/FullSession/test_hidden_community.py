@@ -2,8 +2,9 @@ from unittest.case import skip
 
 from twisted.internet.defer import Deferred, inlineCallbacks, returnValue
 
+from nose.twistedtools import deferred
+
 from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING
 from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase
 

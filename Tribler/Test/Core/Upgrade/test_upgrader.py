@@ -2,9 +2,10 @@ import os
 
 from twisted.internet.defer import Deferred
 
+from nose.twistedtools import deferred
+
 from Tribler.Core.CacheDB.db_versions import LATEST_DB_VERSION, LOWEST_SUPPORTED_DB_VERSION
 from Tribler.Core.Upgrade.upgrade import TriblerUpgrader
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.simpledefs import NTFY_UPGRADER_TICK, NTFY_STARTED
 from Tribler.Test.Core.Upgrade.upgrade_base import AbstractUpgrader
 from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread

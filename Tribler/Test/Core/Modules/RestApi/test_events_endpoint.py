@@ -4,8 +4,10 @@ from twisted.internet.defer import Deferred
 from twisted.internet.protocol import Protocol
 from twisted.web.client import Agent
 from twisted.web.http_headers import Headers
+
+from nose.twistedtools import deferred
+
 from Tribler.Core.Modules.restapi import events_endpoint as events_endpoint_file
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.simpledefs import SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, SIGNAL_TORRENT, NTFY_UPGRADER, \
     NTFY_STARTED, NTFY_FINISHED, NTFY_UPGRADER_TICK, NTFY_WATCH_FOLDER_CORRUPT_TORRENT, NTFY_INSERT, NTFY_NEW_VERSION, \
     NTFY_CHANNEL, NTFY_DISCOVERED, NTFY_TORRENT

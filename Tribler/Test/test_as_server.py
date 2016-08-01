@@ -136,7 +136,6 @@ class AbstractServer(BaseTestCase):
         for reader in open_readers:
             self.assertNotIsInstance(reader, BasePort, "The test left a listening port behind: %s" % reader)
 
-    @deferred(timeout=10)
     def tearDown(self, annotate=True):
         self.tearDownCleanup()
         if annotate:
@@ -199,6 +198,8 @@ class TestAsServer(AbstractServer):
     Parent class for testing the server-side of Tribler
     """
 
+    @deferred(timeout=10)
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
         super(TestAsServer, self).setUp(annotate=False)
         self.setUpPreSession()
@@ -213,6 +214,7 @@ class TestAsServer(AbstractServer):
             time.sleep(0.1)
         assert not upgrader.failed, upgrader.current_status
         self.tribler_started_deferred =  maybeDeferred(self.session.start)
+        yield self.tribler_started_deferred
 
         self.hisport = self.session.get_listen_port()
 
@@ -244,13 +246,13 @@ class TestAsServer(AbstractServer):
         self.config.set_creditmining_enable(False)
         self.config.set_enable_multichain(False)
 
-
+    @inlineCallbacks
     def tearDown(self):
         self.annotate(self._testMethodName, start=False)
 
         """ unittest test tear down code """
         if self.session is not None:
-            self._shutdown_session(self.session)
+            yield self._shutdown_session(self.session)
             Session.del_instance()
 
         self.stop_seeder()
@@ -260,7 +262,7 @@ class TestAsServer(AbstractServer):
         for t in ts:
             self._logger.debug("Thread still running %s, daemon: %s, instance: %s", t.getName(), t.isDaemon(), t)
 
-        super(TestAsServer, self).tearDown(annotate=False)
+        yield super(TestAsServer, self).tearDown(annotate=False)
 
     def create_local_torrent(self, source_file):
         '''
@@ -334,19 +336,9 @@ class TestAsServer(AbstractServer):
 
         return 1.0, False
 
+    @inlineCallbacks
     def _shutdown_session(self, session):
-        session_shutdown_start = time.time()
-        waittime = 60
-
-        session.shutdown()
-        while not session.has_shutdown():
-            diff = time.time() - session_shutdown_start
-            assert diff < waittime, "test_as_server: took too long for Session to shutdown"
-
-            self._logger.debug(
-                "Waiting for Session to shutdown, will wait for an additional %d seconds", (waittime - diff))
-
-            time.sleep(1)
+        yield session.shutdown()
 
         self._logger.debug("Session has shut down")
 

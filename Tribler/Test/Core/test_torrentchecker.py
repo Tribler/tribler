@@ -1,9 +1,10 @@
 import time
 
+from nose.twistedtools import deferred
+
 from Tribler.Core.Modules.tracker_manager import TrackerManager
 from Tribler.Core.TorrentChecker.session import UdpTrackerSession, HttpTrackerSession
 from Tribler.Core.TorrentChecker.torrent_checker import TorrentChecker
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.test_as_server import TestAsServer
 
 

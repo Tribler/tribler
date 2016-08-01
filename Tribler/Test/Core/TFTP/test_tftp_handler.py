@@ -1,10 +1,11 @@
 from twisted.internet.defer import inlineCallbacks
 
 from nose.tools import raises
+from nose.twistedtools import deferred
+
 from Tribler.Core.TFTP.exception import FileNotFound
 from Tribler.Core.TFTP.handler import TftpHandler
 from Tribler.Core.TFTP.packet import OPCODE_OACK, OPCODE_ERROR
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
@@ -18,11 +19,12 @@ class TestTFTPHandler(TriblerCoreTest):
         TriblerCoreTest.setUp(self, annotate=annotate)
         self.handler = TftpHandler(None, None, None)
 
+    @inlineCallbacks
     def tearDown(self, annotate=True):
-        TriblerCoreTest.tearDown(self, annotate=annotate)
+        yield TriblerCoreTest.tearDown(self, annotate=annotate)
         self.handler.cancel_all_pending_tasks()
 
-    # @deferred(timeout=10) -- ?
+    @deferred(timeout=10)
     @blocking_call_on_reactor_thread
     @inlineCallbacks
     def test_download_file_not_running(self):

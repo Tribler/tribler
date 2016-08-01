@@ -3,13 +3,13 @@ import os
 from twisted.internet.defer import inlineCallbacks
 
 import libtorrent as lt
+from nose.twistedtools import deferred, reactor
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.Utilities.twisted_thread import deferred, reactor
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
 

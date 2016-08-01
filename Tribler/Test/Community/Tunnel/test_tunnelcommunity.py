@@ -1,7 +1,8 @@
 import time
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Utilities.twisted_thread import deferred
+from nose.twistedtools import deferred
+
 from Tribler.Test.Community.Tunnel.test_tunnel_base import AbstractTestTunnelCommunity
 from Tribler.community.tunnel.routing import Circuit, RelayRoute
 from Tribler.community.tunnel.tunnel_community import TunnelExitSocket, CircuitRequestCache, PingRequestCache

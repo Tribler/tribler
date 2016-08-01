@@ -3,7 +3,8 @@ from hashlib import sha1
 from struct import unpack
 from twisted.internet.defer import inlineCallbacks
 
-from Tribler.Core.Utilities.twisted_thread import deferred
+from nose.twistedtools import deferred
+
 from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock, MultiChainTestCase
 from Tribler.community.multichain.conversion import (MultiChainConversion, split_function, signature_format,
                                                      append_format)
