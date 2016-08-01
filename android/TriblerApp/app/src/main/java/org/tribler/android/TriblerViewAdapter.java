@@ -151,8 +151,9 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
             // Set src in xml only api 21+
             holder.torrentsIcon.setImageResource(R.drawable.ic_list_play);
             holder.torrentsCount.setText(String.valueOf(holder.channel.getTorrentsCount()));
-            File icon = new File(holder.channel.getIconUrl());
-            if (icon.exists()) {
+            String url = holder.channel.getIconUrl();
+            File icon;
+            if (url != null && (icon = new File(url)).exists()) {
                 holder.icon.setImageURI(Uri.fromFile(icon));
             } else {
                 holder.nameCapital.setText(MyUtils.getCapitals(holder.channel.getName(), 2));
@@ -166,7 +167,7 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
                 }
             }
             holder.view.setOnClickListener(view -> {
-                if (null != _clickListener) {
+                if (_clickListener != null) {
                     // Notify the active callbacks interface (the activity, if the
                     // fragment is attached to one) that an item has been selected.
                     _clickListener.onClick(holder.channel);
@@ -182,8 +183,9 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
             holder.size.setText(MyUtils.humanReadableByteCount(holder.torrent.getSize(), true));
             holder.category.setText(holder.torrent.getCategory());
             holder.category.setVisibility(View.INVISIBLE);
-            File thumbnail = new File(holder.torrent.getThumbnailUrl());
-            if (thumbnail.exists()) {
+            String url = holder.torrent.getThumbnailUrl();
+            File thumbnail;
+            if (url != null && (thumbnail = new File(url)).exists()) {
                 holder.thumbnail.setImageURI(Uri.fromFile(thumbnail));
             } else {
                 switch (holder.torrent.getCategory()) {
@@ -213,7 +215,7 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
                 }
             }
             holder.view.setOnClickListener(view -> {
-                if (null != _clickListener) {
+                if (_clickListener != null) {
                     // Notify the active callbacks interface (the activity, if the
                     // fragment is attached to one) that an item has been selected.
                     _clickListener.onClick(holder.torrent);
