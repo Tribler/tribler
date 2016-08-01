@@ -179,8 +179,9 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
 
             holder.torrent = (TriblerTorrent) getObject(adapterPosition);
             holder.name.setText(holder.torrent.getName());
-            holder.size.setText(MyUtils.formatFileSize(holder.torrent.getSize()));
+            holder.size.setText(MyUtils.humanReadableByteCount(holder.torrent.getSize(), true));
             holder.category.setText(holder.torrent.getCategory());
+            holder.category.setVisibility(View.INVISIBLE);
             File thumbnail = new File(holder.torrent.getThumbnailUrl());
             if (thumbnail.exists()) {
                 holder.thumbnail.setImageURI(Uri.fromFile(thumbnail));
@@ -194,16 +195,20 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
                         holder.thumbnail.setBackgroundResource(R.drawable.ic_list_music_note);
                         break;
 
-                    case "xxx":
-                        holder.thumbnail.setBackgroundResource(R.drawable.ic_list_stop_warning);
+                    case "Document":
+                        holder.thumbnail.setBackgroundResource(R.drawable.ic_list_document);
                         break;
 
                     case "Compressed":
                         holder.thumbnail.setBackgroundResource(R.drawable.ic_list_compressed);
                         break;
 
-                    case "Document":
-                        holder.thumbnail.setBackgroundResource(R.drawable.ic_list_document);
+                    case "xxx":
+                        holder.thumbnail.setBackgroundResource(R.drawable.ic_list_xxx);
+                        break;
+
+                    case "other":
+                        holder.thumbnail.setBackgroundResource(R.drawable.ic_list_minus);
                         break;
                 }
             }

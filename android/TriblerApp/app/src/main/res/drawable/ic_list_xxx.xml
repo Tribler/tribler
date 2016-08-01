@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="400.000000dp"
+    android:height="117.000000dp"
+    android:viewportWidth="400.000000"
+    android:viewportHeight="117.000000">
+
+    <group
+            android:translateY="117.000000"
+            android:scaleX="0.100000"
+            android:scaleY="-0.100000">
+        <path
+            android:fillColor="#000000"
+            android:strokeWidth="1"
+            android:pathData="M117 1052 l-117 -117 175 -175 175 -175 -175 -175 -175 -175 120 -120 120 -120 175
+175 175 175 175 -175 175 -175 120 120 120 120 -175 175 -175 175 175 175 175 175
+-120 120 -120 120 -175 -175 -175 -175 -173 173 c-95 94 -174 172 -177 172 -3 0
+-58 -53 -123 -118z" />
+        <path
+            android:fillColor="#000000"
+            android:strokeWidth="1"
+            android:pathData="M1527 1052 l-117 -117 175 -175 175 -175 -175 -175 -175 -175 120 -120 120 -120
+175 175 175 175 175 -175 175 -175 120 120 120 120 -175 175 -175 175 175 175 175
+175 -120 120 -120 120 -175 -175 -175 -175 -173 173 c-95 94 -174 172 -177 172 -3
+0 -58 -53 -123 -118z" />
+        <path
+            android:fillColor="#000000"
+            android:strokeWidth="1"
+            android:pathData="M2937 1052 l-117 -117 175 -175 175 -175 -175 -175 -175 -175 120 -120 120 -120
+175 175 175 175 175 -175 175 -175 120 120 120 120 -175 175 -175 175 175 175 175
+175 -120 120 -120 120 -175 -175 -175 -175 -173 173 c-95 94 -174 172 -177 172 -3
+0 -58 -53 -123 -118z" />
+    </group>
+</vector>
