@@ -155,7 +155,7 @@ class Session(SessionConfigInterface):
         self.get_listen_port()
         self.get_dispersy_port()
         self.get_mainline_dht_listen_port()
-        self.get_videoplayer_port()
+        self.get_videoserver_port()
 
         self.get_anon_listen_port()
         self.get_tunnel_community_socks5_listen_ports()

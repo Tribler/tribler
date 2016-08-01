@@ -40,7 +40,7 @@ class AbstractDB(TriblerCoreTest):
         self.config.set_torrent_collecting(False)
         self.config.set_libtorrent(False)
         self.config.set_dht_torrent_collecting(False)
-        self.config.set_videoplayer(False)
+        self.config.set_videoserver_enabled(False)
         self.config.set_torrent_store(False)
 
     def setUp(self):

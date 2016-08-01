@@ -612,13 +612,13 @@ class SessionConfigInterface(object):
     #
     # Config for swift tunneling e.g. dispersy traffic
     #
-    def get_videoplayer(self):
+    def get_videoserver_enabled(self):
         """ Enable or disable VOD functionality (default = True).
         @param value Boolean.
         """
         return self.sessconfig.get(u'video', u'enabled')
 
-    def set_videoplayer(self, value):
+    def set_videoserver_enabled(self, value):
         """ Returns whether VOD functionality is enabled.
         @return Boolean.
         """
@@ -636,13 +636,13 @@ class SessionConfigInterface(object):
         """
         self.sessconfig.set(u'video', u'path', path)
 
-    def get_videoplayer_port(self):
+    def get_videoserver_port(self):
         """ Get the port number that the video http server should use.
         @return integer.
         """
         return self._obtain_port(u'video', u'port')
 
-    def set_videoplayer_port(self, port):
+    def set_videoserver_port(self, port):
         """ Set the port number that the video http server should use.
         @param port integer (-1 indicates a random port).
         """

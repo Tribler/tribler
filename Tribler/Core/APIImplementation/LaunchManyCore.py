@@ -23,7 +23,7 @@ from Tribler.Core.Modules.versioncheck_manager import VersionCheckManager
 from Tribler.Core.Modules.watch_folder import WatchFolder
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.Video.VideoPlayer import VideoPlayer
+from Tribler.Core.Video.VideoServer import VideoServer
 from Tribler.Core.exceptions import DuplicateDownloadException
 from Tribler.Core.simpledefs import NTFY_DISPERSY, NTFY_STARTED, NTFY_TORRENTS, NTFY_UPDATE, NTFY_TRIBLER
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
@@ -86,7 +86,7 @@ class TriblerLaunchMany(TaskManager):
         self.search_manager = None
         self.channel_manager = None
 
-        self.videoplayer = None
+        self.video_server = None
 
         self.mainline_dht = None
         self.ltmgr = None
@@ -147,8 +147,9 @@ class TriblerLaunchMany(TaskManager):
                 self.tracker_manager = TrackerManager(self.session)
                 self.tracker_manager.initialize()
 
-            if self.session.get_videoplayer():
-                self.videoplayer = VideoPlayer(self.session)
+            if self.session.get_videoserver_enabled():
+                self.video_server = VideoServer(self.session.get_videoserver_port(), self.session)
+                self.video_server.start()
 
             # Dispersy
             self.tftp_handler = None
@@ -698,9 +699,9 @@ class TriblerLaunchMany(TaskManager):
             yield self.rtorrent_handler.shutdown()
         self.rtorrent_handler = None
 
-        if self.videoplayer:
-            yield self.videoplayer.shutdown()
-        self.videoplayer = None
+        if self.video_server:
+            yield self.video_server.shutdown_server()
+        self.video_server = None
 
         if self.version_check_manager:
             self.version_check_manager.stop()

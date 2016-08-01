@@ -2,29 +2,35 @@
 # Based on SimpleServer written by Jan David Mol, Arno Bakker
 # see LICENSE.txt for license information
 #
+import os
 import socket
 import logging
 import mimetypes
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from SocketServer import ThreadingMixIn
-from threading import Event, Thread
+from collections import defaultdict
+from threading import Event, Thread, RLock
 from traceback import print_exc
 from binascii import unhexlify
+
+import time
 from cherrypy.lib.httputil import get_ranges
 
-from Tribler.Core.simpledefs import DLMODE_VOD
+from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import VODFile
+from Tribler.Core.simpledefs import DLMODE_VOD, DLMODE_NORMAL
 
 
 class VideoServer(ThreadingMixIn, HTTPServer):
 
-    def __init__(self, port, session, video_player):
+    def __init__(self, port, session):
         self._logger = logging.getLogger(self.__class__.__name__)
 
         self.port = port
         self.session = session
-
-        self.videoplayer = video_player
+        self.vod_fileindex = None
+        self.vod_download = None
+        self.vod_info = defaultdict(dict)  # A dictionary containing info about the requested VOD streams.
 
         HTTPServer.__init__(self, ("127.0.0.1", self.port), VideoRequestHandler)
 
@@ -32,6 +38,47 @@ class VideoServer(ThreadingMixIn, HTTPServer):
 
         self.daemon_threads = True
         self.allow_reuse_address = True
+
+    def get_vod_download(self):
+        """
+        Return the current Video-On-Demand download that is being requested.
+        """
+        return self.vod_download
+
+    def set_vod_download(self, new_download):
+        """
+        Set a new Video-On-Demand download. Set the mode of old download to normal and close the file stream of
+        the old download.
+        """
+        if self.vod_download:
+            self.vod_download.set_mode(DLMODE_NORMAL)
+            vi_dict = self.vod_info.pop(self.vod_download.get_def().get_infohash(), None)
+            if vi_dict and 'stream' in vi_dict:
+                vi_dict['stream'][0].close()
+
+        self.vod_download = new_download
+
+    def get_vod_stream(self, dl_hash, wait=False):
+        if 'stream' not in self.vod_info[dl_hash] and self.session.get_download(dl_hash):
+            download = self.session.get_download(dl_hash)
+            vod_filename = self.get_vod_destination(download)
+            while wait and not os.path.exists(vod_filename):
+                time.sleep(1)
+            self.vod_info[dl_hash]['stream'] = (VODFile(open(vod_filename, 'rb'), download), RLock())
+
+        if self.vod_info[dl_hash].has_key('stream'):
+            return self.vod_info[dl_hash]['stream']
+        return None, None
+
+    @staticmethod
+    def get_vod_destination(download):
+        """
+        Get the destination directory of the VOD download.
+        """
+        if download.get_def().is_multifile_torrent():
+            return os.path.join(download.get_content_dest(), download.get_selected_files()[0])
+        else:
+            return download.get_content_dest()
 
     def start(self):
         self.server_thread = Thread(target=self.serve_forever, name="VideoHTTPServerThread-1")
@@ -47,14 +94,22 @@ class VideoServer(ThreadingMixIn, HTTPServer):
         except Exception:
             print_exc()
 
+    def shutdown_server(self):
+        """
+        Shutdown the video HTTP server.
+        """
+        self.shutdown()
+        self.server_close()
+        self.set_vod_download(None)
+
 
 class VideoRequestHandler(BaseHTTPRequestHandler):
 
-    def __init__(self, request, client_address, server):
-        self._logger = server._logger
-        self.videoplayer = server.videoplayer
+    def __init__(self, request, client_address, video_server):
+        self._logger = logging.getLogger(self.__class__.__name__)
         self.event = None
-        BaseHTTPRequestHandler.__init__(self, request, client_address, server)
+        self.video_server = video_server
+        BaseHTTPRequestHandler.__init__(self, request, client_address, video_server)
 
     def log_message(self, f, *args):
         pass
@@ -80,12 +135,11 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
             self.send_error(416, "Requested Range Not Satisfiable")
             return
 
-        has_changed = self.videoplayer.get_vod_fileindex() != fileindex or\
-            self.videoplayer.get_vod_download() != download
+        has_changed = self.video_server.vod_fileindex != fileindex or\
+            self.video_server.get_vod_download() != download
         if has_changed:
-            # Notify the videoplayer (which will put the old VOD download back in normal mode).
-            self.videoplayer.set_vod_fileindex(fileindex)
-            self.videoplayer.set_vod_download(download)
+            self.video_server.vod_fileindex = fileindex
+            self.video_server.set_vod_download(download)
 
             # Put download in sequential mode + trigger initial buffering.
             if download.get_def().is_multifile_torrent():
@@ -127,7 +181,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
         if has_changed:
             self.wait_for_buffer(download)
 
-        stream, lock = self.videoplayer.get_vod_stream(downloadhash, wait=True)
+        stream, lock = self.video_server.get_vod_stream(downloadhash, wait=True)
 
         with lock:
             if stream.closed:
@@ -160,7 +214,7 @@ class VideoRequestHandler(BaseHTTPRequestHandler):
         self.event = Event()
 
         def wait_for_buffer(ds):
-            if download.vod_seekpos is None or download != self.videoplayer.get_vod_download()\
+            if download.vod_seekpos is None or download != self.video_server.get_vod_download()\
                     or ds.get_vod_prebuffering_progress() == 1.0:
                 self.event.set()
                 return 0, False

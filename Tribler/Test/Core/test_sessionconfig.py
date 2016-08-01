@@ -108,14 +108,14 @@ class TestSessionConfig(TriblerCoreTest):
         self.assertIsInstance(sci.get_dispersy_port(), int)
         self.assertEqual(sci.sessconfig.get('dispersy', 'dispersy_port'), 1337)
 
-        sci.set_videoplayer(False)
-        self.assertFalse(sci.get_videoplayer())
+        sci.set_videoserver_enabled(False)
+        self.assertFalse(sci.get_videoserver_enabled())
 
         sci.set_videoplayer_path(self.session_base_dir)
         self.assertEqual(sci.get_videoplayer_path(), self.session_base_dir)
 
-        sci.set_videoplayer_port(1337)
-        self.assertIsInstance(sci.get_videoplayer_port(), int)
+        sci.set_videoserver_port(1337)
+        self.assertIsInstance(sci.get_videoserver_port(), int)
         self.assertEqual(sci.sessconfig.get('video', 'port'), 1337)
 
         sci.set_preferred_playback_mode(5)
