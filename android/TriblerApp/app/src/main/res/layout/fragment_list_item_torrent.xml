@@ -13,12 +13,14 @@
 
     <ImageView
         android:id="@+id/torrent_thumbnail"
-        android:layout_width="75dp"
+        android:layout_width="50dp"
         android:layout_height="50dp"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true"
         android:layout_centerVertical="true"
-        android:background="@color/light_grey" />
+        android:layout_marginEnd="16dp"
+        android:layout_marginRight="16dp"
+        android:background="@color/transparent" />
 
     <TextView
         android:id="@+id/torrent_name"
@@ -27,12 +29,29 @@
         android:layout_alignParentTop="true"
         android:layout_toEndOf="@+id/torrent_thumbnail"
         android:layout_toRightOf="@+id/torrent_thumbnail"
-        android:paddingEnd="16dp"
-        android:paddingLeft="16dp"
-        android:paddingStart="16dp"
         android:text="Torrent name"
         android:textColor="@color/green"
         android:textSize="16sp"
         android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/torrent_size"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/torrent_name"
+        android:layout_alignStart="@+id/torrent_name"
+        android:layout_alignTop="@+id/torrent_category"
+        android:layout_marginTop="6dp"
+        android:text="Torrent size" />
+
+    <TextView
+        android:id="@+id/torrent_category"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/torrent_name"
+        android:text="Torrent category"
+        android:textColor="@color/blue" />
 
 </RelativeLayout>

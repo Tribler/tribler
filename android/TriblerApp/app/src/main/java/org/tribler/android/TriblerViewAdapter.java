@@ -142,21 +142,22 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
 
             holder.channel = (TriblerChannel) getObject(adapterPosition);
             holder.name.setText(holder.channel.getName());
-            holder.nameCapital.setText(MyUtils.getCapitals(holder.channel.getName(), 2));
             holder.votesCount.setText(String.valueOf(holder.channel.getVotesCount()));
             if (holder.channel.isSubscribed()) {
                 holder.votesIcon.setImageResource(R.drawable.ic_list_star);
             } else {
                 holder.votesIcon.setImageResource(R.drawable.ic_list_star_outline);
             }
+            // Set src in xml only api 21+
             holder.torrentsIcon.setImageResource(R.drawable.ic_list_play);
             holder.torrentsCount.setText(String.valueOf(holder.channel.getTorrentsCount()));
             File icon = new File(holder.channel.getIconUrl());
             if (icon.exists()) {
                 holder.icon.setImageURI(Uri.fromFile(icon));
             } else {
+                holder.nameCapital.setText(MyUtils.getCapitals(holder.channel.getName(), 2));
                 try {
-                    int color = MyUtils.getColor(holder.channel.getName());
+                    int color = MyUtils.getColor(holder.channel.hashCode());
                     ShapeDrawable circle = new ShapeDrawable(new OvalShape());
                     circle.getPaint().setColor(color);
                     circle.setBounds(0, 0, holder.icon.getWidth(), holder.icon.getHeight());
@@ -178,9 +179,33 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
 
             holder.torrent = (TriblerTorrent) getObject(adapterPosition);
             holder.name.setText(holder.torrent.getName());
+            holder.size.setText(MyUtils.formatFileSize(holder.torrent.getSize()));
+            holder.category.setText(holder.torrent.getCategory());
             File thumbnail = new File(holder.torrent.getThumbnailUrl());
             if (thumbnail.exists()) {
                 holder.thumbnail.setImageURI(Uri.fromFile(thumbnail));
+            } else {
+                switch (holder.torrent.getCategory()) {
+                    case "Video":
+                        holder.thumbnail.setBackgroundResource(R.drawable.ic_list_movie);
+                        break;
+
+                    case "Audio":
+                        holder.thumbnail.setBackgroundResource(R.drawable.ic_list_music_note);
+                        break;
+
+                    case "xxx":
+                        holder.thumbnail.setBackgroundResource(R.drawable.ic_list_stop_warning);
+                        break;
+
+                    case "Compressed":
+                        holder.thumbnail.setBackgroundResource(R.drawable.ic_list_compressed);
+                        break;
+
+                    case "Document":
+                        holder.thumbnail.setBackgroundResource(R.drawable.ic_list_document);
+                        break;
+                }
             }
             holder.view.setOnClickListener(view -> {
                 if (null != _clickListener) {
@@ -230,6 +255,10 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
         ImageView thumbnail;
         @BindView(R.id.torrent_name)
         TextView name;
+        @BindView(R.id.torrent_size)
+        TextView size;
+        @BindView(R.id.torrent_category)
+        TextView category;
 
         public TorrentViewHolder(View view) {
             super(view);

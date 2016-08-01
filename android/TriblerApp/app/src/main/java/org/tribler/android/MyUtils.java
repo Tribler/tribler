@@ -17,6 +17,7 @@ import com.squareup.leakcanary.RefWatcher;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -140,11 +141,19 @@ public class MyUtils {
         }
     }
 
-    public static int getColor(String string) throws Exception {
-        int hash = string.hashCode();
-        int r = (hash & 0xFF0000) >> 16;
-        int g = (hash & 0x00FF00) >> 8;
-        int b = hash & 0x0000FF;
+    public static String formatFileSize(long size) {
+        if (size <= 0) {
+            return "";
+        }
+        final String[] units = new String[]{"B", "kB", "MB", "GB", "TB"};
+        int digitGroups = (int) (Math.log10(size) / Math.log10(1024));
+        return new DecimalFormat("#,##0.#").format(size / Math.pow(1024, digitGroups)) + " " + units[digitGroups];
+    }
+
+    public static int getColor(int hashCode) throws Exception {
+        int r = (hashCode & 0xFF0000) >> 16;
+        int g = (hashCode & 0x00FF00) >> 8;
+        int b = hashCode & 0x0000FF;
         return Color.rgb(r, g, b);
     }
 
