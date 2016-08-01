@@ -4,7 +4,7 @@ public class SubscribedChannelsResponse {
 
     private TriblerChannel[] subscribed;
 
-    public SubscribedChannelsResponse() {
+    SubscribedChannelsResponse() {
     }
 
     public TriblerChannel[] getSubscribed() {

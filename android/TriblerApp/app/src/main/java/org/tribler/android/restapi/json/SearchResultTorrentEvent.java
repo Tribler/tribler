@@ -7,7 +7,7 @@ public class SearchResultTorrentEvent {
     private String query;
     private TriblerTorrent result;
 
-    public SearchResultTorrentEvent() {
+    SearchResultTorrentEvent() {
     }
 
     public String getQuery() {

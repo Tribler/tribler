@@ -1,12 +1,10 @@
 package org.tribler.android.restapi.json;
 
-import java.io.Serializable;
-
-public class QueriedAck implements Serializable {
+public class QueriedAck {
 
     private boolean queried;
 
-    public QueriedAck() {
+    QueriedAck() {
     }
 
     public boolean getQueried() {

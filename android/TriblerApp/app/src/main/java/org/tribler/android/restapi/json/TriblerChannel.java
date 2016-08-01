@@ -6,7 +6,7 @@ public class TriblerChannel {
     private int id, votes, torrents, spam, modified;
     private String dispersy_cid, name, description, icon_url;
 
-    public TriblerChannel() {
+    TriblerChannel() {
     }
 
     public boolean isSubscribed() {
@@ -83,4 +83,5 @@ public class TriblerChannel {
     public int hashCode() {
         return dispersy_cid.hashCode();
     }
+
 }

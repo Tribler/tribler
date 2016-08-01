@@ -4,9 +4,7 @@ public class ChannelDiscoveredEvent {
 
     public static final String TYPE = "channel_discovered";
 
-    private String name;
-    private String dispersy_cid;
-    private String description;
+    private String name, description, dispersy_cid;
 
     ChannelDiscoveredEvent() {
     }
@@ -15,11 +13,12 @@ public class ChannelDiscoveredEvent {
         return name;
     }
 
+    public String getDescription() {
+        return description;
+    }
+
     public String getDispersyCid() {
         return dispersy_cid;
     }
 
-    public String getDescription() {
-        return description;
-    }
 }

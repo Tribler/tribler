@@ -4,7 +4,7 @@ public class SubscribedAck {
 
     private boolean subscribed;
 
-    public SubscribedAck() {
+    SubscribedAck() {
     }
 
     public boolean getSubscribed() {

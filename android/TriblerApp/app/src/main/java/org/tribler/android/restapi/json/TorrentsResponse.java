@@ -4,7 +4,7 @@ public class TorrentsResponse {
 
     private TriblerTorrent[] torrents;
 
-    public TorrentsResponse() {
+    TorrentsResponse() {
     }
 
     public TriblerTorrent[] getTorrents() {

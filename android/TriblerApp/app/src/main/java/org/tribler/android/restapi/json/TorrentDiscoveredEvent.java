@@ -4,8 +4,7 @@ public class TorrentDiscoveredEvent {
 
     public static final String TYPE = "torrent_discovered";
 
-    private String name;
-    private String dispersy_cid;
+    private String name, dispersy_cid;
 
     TorrentDiscoveredEvent() {
     }
@@ -17,4 +16,5 @@ public class TorrentDiscoveredEvent {
     public String getDispersyCid() {
         return dispersy_cid;
     }
+
 }

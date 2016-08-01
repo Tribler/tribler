@@ -13,7 +13,7 @@ import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
-public class DiscoveredFragment extends DefaultInteractionListFragment {
+public class PopularFragment extends DefaultInteractionListFragment {
 
     private Subscription _loading;
 
@@ -23,7 +23,7 @@ public class DiscoveredFragment extends DefaultInteractionListFragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        loadDiscoveredChannels();
+        loadPopularChannels(50000);
     }
 
     /**
@@ -47,10 +47,10 @@ public class DiscoveredFragment extends DefaultInteractionListFragment {
         }
     }
 
-    private void loadDiscoveredChannels() {
+    private void loadPopularChannels(int limit) {
         adapter.clear();
 
-        _loading = service.discoveredChannels()
+        _loading = service.getPopularChannels(limit)
                 .subscribeOn(Schedulers.io())
                 .flatMap(response -> Observable.from(response.getChannels()))
                 .observeOn(AndroidSchedulers.mainThread())
@@ -66,7 +66,7 @@ public class DiscoveredFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("loadDiscoveredChannels", "getChannels", e);
+                        Log.e("loadPopularChannels", "getChannels", e);
                     }
                 });
         rxSubs.add(_loading);

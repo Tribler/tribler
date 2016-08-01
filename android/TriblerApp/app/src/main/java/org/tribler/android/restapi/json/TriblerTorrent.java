@@ -3,10 +3,10 @@ package org.tribler.android.restapi.json;
 public class TriblerTorrent {
 
     private int id, num_seeders, num_leechers, last_tracker_check;
-    long size;
+    private long size;
     private String infohash, name, category, thumbnail_url;
 
-    public TriblerTorrent() {
+    TriblerTorrent() {
     }
 
     public int getId() {
@@ -78,4 +78,5 @@ public class TriblerTorrent {
     public int hashCode() {
         return infohash.hashCode();
     }
+
 }

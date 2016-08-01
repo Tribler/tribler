@@ -5,7 +5,7 @@ public class EventContainer {
     private String type;
     private Object event;
 
-    public EventContainer() {
+    EventContainer() {
     }
 
     public String getType() {

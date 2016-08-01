@@ -1,6 +1,10 @@
 package org.tribler.android.restapi;
 
+import org.tribler.android.restapi.json.AddedAck;
+import org.tribler.android.restapi.json.AddedChannelAck;
 import org.tribler.android.restapi.json.ChannelsResponse;
+import org.tribler.android.restapi.json.ModifiedAck;
+import org.tribler.android.restapi.json.MyChannelResponse;
 import org.tribler.android.restapi.json.QueriedAck;
 import org.tribler.android.restapi.json.ShutdownAck;
 import org.tribler.android.restapi.json.SubscribedAck;
@@ -12,6 +16,7 @@ import java.io.Serializable;
 
 import retrofit2.http.DELETE;
 import retrofit2.http.GET;
+import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
@@ -32,16 +37,32 @@ public interface IRestApi {
             @Query("q") String query
     );
 
-    @GET("/channels/discovered")
-    Observable<ChannelsResponse> discoveredChannels();
+    @GET("/mychannel")
+    Observable<MyChannelResponse> getMyChannel();
+
+    @POST("/mychannel")
+    Observable<ModifiedAck> editMyChannel();
+
+    @PUT("/channels/discovered")
+    Observable<AddedChannelAck> createChannel();
+
+    @GET("/channels/popular")
+    Observable<ChannelsResponse> getPopularChannels(
+            @Query("limit") int limit
+    );
 
     @GET("/channels/discovered/{dispersy_cid}/torrents")
     Observable<TorrentsResponse> getTorrents(
             @Path("dispersy_cid") String dispersyCid
     );
 
+    @PUT("/channels/discovered/{dispersy_cid}/torrents")
+    Observable<AddedAck> addTorrent(
+            @Path("dispersy_cid") String dispersyCid
+    );
+
     @GET("/channels/subscribed")
-    Observable<SubscribedChannelsResponse> subscribedChannels();
+    Observable<SubscribedChannelsResponse> getSubscribedChannels();
 
     @PUT("/channels/subscribed/{dispersy_cid}")
     Observable<SubscribedAck> subscribe(

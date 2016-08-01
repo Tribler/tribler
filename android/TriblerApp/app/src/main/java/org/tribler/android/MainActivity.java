@@ -244,9 +244,9 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         switchFragment(SubscribedFragment.class);
     }
 
-    public void navMyChannelClicked(MenuItem item) {
+    public void navMyChannelClicked(MenuItem item) throws InstantiationException, IllegalAccessException {
         drawer.closeDrawer(GravityCompat.START);
-        //TODO: my channel
+        switchFragment(MyChannelFragment.class);
     }
 
     public void navMyPlaylistsClicked(MenuItem item) {
@@ -255,7 +255,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
     public void navPopularClicked(MenuItem item) throws InstantiationException, IllegalAccessException {
         drawer.closeDrawer(GravityCompat.START);
-        switchFragment(DiscoveredFragment.class);
+        switchFragment(PopularFragment.class);
     }
 
     public void navCaptureVideoClicked(MenuItem item) {

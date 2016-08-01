@@ -38,6 +38,9 @@
     <string name="dialog_enable_nfc_beam">You must first turn on NFC and Android Beam on both phones.\n\nTurn on NFC and Android Beam now?</string>
     <string name="dialog_enable_beam">You must first turn on NFC and Android Beam on both phones.\n\nTurn on Android Beam now?</string>
 
+    <string name="action_mychannel_add">Add to my channel</string>
+    <string name="action_mychannel_remove">Remove from my channel</string>
+
     <string name="action_settings">Change settings</string>
     <string name="action_feedback">Send feedback</string>
     <string name="action_shutdown">Shutdown service</string>

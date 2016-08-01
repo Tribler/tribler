@@ -4,7 +4,7 @@ public class ChannelsResponse {
 
     private TriblerChannel[] channels;
 
-    public ChannelsResponse() {
+    ChannelsResponse() {
     }
 
     public TriblerChannel[] getChannels() {

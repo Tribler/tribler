@@ -5,7 +5,7 @@ public class ShutdownAck {
     private boolean shutdown;
     private float gracetime;
 
-    public ShutdownAck() {
+    ShutdownAck() {
     }
 
     public boolean getShutdown() {

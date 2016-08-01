@@ -7,7 +7,7 @@ public class SearchResultChannelEvent {
     private String query;
     private TriblerChannel result;
 
-    public SearchResultChannelEvent() {
+    SearchResultChannelEvent() {
     }
 
     public String getQuery() {
