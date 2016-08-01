@@ -88,7 +88,7 @@ public class SearchActivity extends BaseActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
         // Add items to the action bar (if it is present)
-        getMenuInflater().inflate(R.menu.menu_search, menu);
+        getMenuInflater().inflate(R.menu.activity_search_menu, menu);
 
         // Search button
         MenuItem btnSearch = menu.findItem(R.id.search_view);

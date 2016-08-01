@@ -69,7 +69,7 @@ public class BeamActivity extends BaseActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
         // Add items to the action bar (if it is present)
-        getMenuInflater().inflate(R.menu.menu_beam, menu);
+        getMenuInflater().inflate(R.menu.activity_beam_menu, menu);
         return true;
     }
 

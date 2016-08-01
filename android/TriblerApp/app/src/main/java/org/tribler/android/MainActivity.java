@@ -197,7 +197,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
         // Add items to the action bar (if it is present)
-        getMenuInflater().inflate(R.menu.menu_main, menu);
+        getMenuInflater().inflate(R.menu.activity_main_menu, menu);
         return true;
     }
 

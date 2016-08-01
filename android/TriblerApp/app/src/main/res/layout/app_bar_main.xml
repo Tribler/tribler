@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    tools:context=".MainActivity">
+    tools:context=".MainActivity"
+    tools:showIn="@layout/activity_main">
 
     <android.support.design.widget.AppBarLayout
         android:layout_width="match_parent"
@@ -21,18 +22,19 @@
 
     </android.support.design.widget.AppBarLayout>
 
+    <include layout="@layout/content_main" />
+
     <FrameLayout
-        android:id="@+id/fragment_main"
+        android:id="@+id/progress_main"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:visibility="gone">
 
         <LinearLayout
-            android:id="@+id/progress_main"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical|center_horizontal"
-            android:orientation="vertical"
-            android:visibility="gone">
+            android:orientation="vertical">
 
             <ProgressBar
                 android:id="@+id/progress_bar_main"
@@ -48,8 +50,9 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_marginTop="5dp" />
+
         </LinearLayout>
 
     </FrameLayout>
 
-</RelativeLayout>
+</android.support.design.widget.CoordinatorLayout>

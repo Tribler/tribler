@@ -52,7 +52,7 @@ public class ChannelActivity extends BaseActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
         // Add items to the action bar (if it is present)
-        getMenuInflater().inflate(R.menu.menu_channel, menu);
+        getMenuInflater().inflate(R.menu.activity_channel_menu, menu);
 
         // Search button
         MenuItem btnFilter = menu.findItem(R.id.btn_filter_channel);

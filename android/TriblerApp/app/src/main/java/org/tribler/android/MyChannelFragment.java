@@ -37,7 +37,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
-        inflater.inflate(R.menu.menu_my_channel_fragment, menu);
+        inflater.inflate(R.menu.fragment_my_channel_menu, menu);
 
         // Search button
         MenuItem btnFilter = menu.findItem(R.id.btn_filter_my_channel);
