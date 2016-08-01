@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.SearchView;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -15,8 +16,9 @@ import rx.Observer;
 
 public class ChannelActivity extends BaseActivity {
 
-    public static final String EXTRA_DISPERSY_CID = "org.tribler.android.dispersy.CID";
+    public static final String ACTION_TOGGLE_SUBSCRIBED = "org.tribler.android.TOGGLE_SUBSCRIBED";
     public static final String EXTRA_SUBSCRIBED = "org.tribler.android.SUBSCRIBED";
+    public static final String EXTRA_DISPERSY_CID = "org.tribler.android.dispersy.CID";
 
     private ChannelFragment _fragment;
 
@@ -85,46 +87,57 @@ public class ChannelActivity extends BaseActivity {
     public boolean onPrepareOptionsMenu(Menu menu) {
         super.onPrepareOptionsMenu(menu);
 
-        // Toggle channel favorite
         boolean subscribed = getIntent().getBooleanExtra(ChannelActivity.EXTRA_SUBSCRIBED, false);
+        MenuItem item = menu.findItem(R.id.btn_channel_favorite);
+        // Toggle subscribed
         if (subscribed) {
-            menu.findItem(R.id.btn_channel_unsubscribe).setVisible(true);
+            item.setIcon(R.drawable.ic_action_star);
+            item.setTitle(R.string.action_unsubscribe);
         } else {
-            menu.findItem(R.id.btn_channel_subscribe).setVisible(true);
+            item.setIcon(R.drawable.ic_action_star_outline);
+            item.setTitle(R.string.action_subscribe);
         }
 
         return true;
     }
 
     protected void handleIntent(Intent intent) {
-        if (Intent.ACTION_GET_CONTENT.equals(intent.getAction())) {
-            // Set title
-            ActionBar actionBar = getSupportActionBar();
-            if (actionBar != null) {
-                String title = intent.getStringExtra(Intent.EXTRA_TITLE);
-                boolean subscribed = intent.getBooleanExtra(EXTRA_SUBSCRIBED, false);
-                if (!subscribed) {
-                    title = getString(R.string.title_channel_preview) + ": " + title;
+        String action = intent.getAction();
+        if (TextUtils.isEmpty(action)) {
+            return;
+        }
+        String dispersyCid = intent.getStringExtra(ChannelActivity.EXTRA_DISPERSY_CID);
+        boolean subscribed = intent.getBooleanExtra(ChannelActivity.EXTRA_SUBSCRIBED, false);
+        String title = intent.getStringExtra(Intent.EXTRA_TITLE);
+
+        switch (action) {
+
+            case Intent.ACTION_GET_CONTENT:
+                // Set title
+                ActionBar actionBar = getSupportActionBar();
+                if (actionBar != null) {
+                    if (!subscribed) {
+                        title = getString(R.string.title_channel_preview) + ": " + title;
+                    }
+                    actionBar.setTitle(title);
                 }
-                actionBar.setTitle(title);
-            }
+                break;
+
+            case ACTION_TOGGLE_SUBSCRIBED:
+                if (subscribed) {
+                    _fragment.unsubscribe(dispersyCid, subscribed, title);
+                } else {
+                    _fragment.subscribe(dispersyCid, subscribed, title);
+                }
+                intent.putExtra(ChannelActivity.EXTRA_SUBSCRIBED, !subscribed);
+                break;
         }
     }
 
-    public void btnSubscribeClicked(MenuItem item) {
-        String dispersyCid = getIntent().getStringExtra(ChannelActivity.EXTRA_DISPERSY_CID);
-        boolean subscribed = getIntent().getBooleanExtra(ChannelActivity.EXTRA_SUBSCRIBED, false);
-        String name = getIntent().getStringExtra(Intent.EXTRA_TITLE);
-
-        _fragment.subscribe(dispersyCid, subscribed, name);
-    }
-
-    public void btnUnsubscribeClicked(MenuItem item) {
-        String dispersyCid = getIntent().getStringExtra(ChannelActivity.EXTRA_DISPERSY_CID);
-        boolean subscribed = getIntent().getBooleanExtra(ChannelActivity.EXTRA_SUBSCRIBED, false);
-        String name = getIntent().getStringExtra(Intent.EXTRA_TITLE);
-
-        _fragment.unsubscribe(dispersyCid, subscribed, name);
+    public void btnFavoriteClicked(MenuItem item) {
+        Intent intent = getIntent();
+        intent.setAction(ACTION_TOGGLE_SUBSCRIBED);
+        handleIntent(intent);
     }
 
 }

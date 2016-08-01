@@ -1,5 +1,6 @@
 package org.tribler.android;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -101,6 +102,10 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                     }
 
                     public void onCompleted() {
+                        // Refresh toolbar
+                        if (context instanceof Activity) {
+                            ((Activity) context).invalidateOptionsMenu();
+                        }
                     }
 
                     public void onError(Throwable e) {
@@ -140,6 +145,10 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                     }
 
                     public void onCompleted() {
+                        // Refresh toolbar
+                        if (context instanceof Activity) {
+                            ((Activity) context).invalidateOptionsMenu();
+                        }
                     }
 
                     public void onError(Throwable e) {

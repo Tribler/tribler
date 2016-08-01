@@ -5,19 +5,9 @@
     android:layout_height="wrap_content">
 
     <item
-        android:id="@+id/btn_channel_subscribe"
-        android:icon="@drawable/ic_action_star"
-        android:onClick="btnSubscribeClicked"
-        android:title="@string/action_subscribe"
-        android:visible="false"
-        app:showAsAction="ifRoom|withText" />
-
-    <item
-        android:id="@+id/btn_channel_unsubscribe"
-        android:icon="@drawable/ic_action_star_outline"
-        android:onClick="btnUnsubscribeClicked"
-        android:title="@string/action_unsubscribe"
-        android:visible="false"
+        android:id="@+id/btn_channel_favorite"
+        android:onClick="btnFavoriteClicked"
+        android:title=""
         app:showAsAction="ifRoom|withText" />
 
     <item
