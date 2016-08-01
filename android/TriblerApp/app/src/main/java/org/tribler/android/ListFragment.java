@@ -8,7 +8,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import org.tribler.android.restapi.json.TriblerChannel;
@@ -33,8 +32,8 @@ public class ListFragment extends ViewFragment {
     @BindView(R.id.list_fast_scroller)
     VerticalRecyclerViewFastScroller fastScroller;
 
-    @BindView(R.id.list_progress_bar)
-    ProgressBar progressBar;
+    @BindView(R.id.list_progress)
+    View progressView;
 
     @BindView(R.id.list_progress_status)
     TextView statusBar;
@@ -135,7 +134,7 @@ public class ListFragment extends ViewFragment {
 
         if (loading != null && !loading.isUnsubscribed()) {
             // Show loading indicator
-            progressBar.setVisibility(View.VISIBLE);
+            progressView.setVisibility(View.VISIBLE);
         }
     }
 

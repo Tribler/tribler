@@ -64,5 +64,6 @@
 
     <string name="status_opening_eventstream">Starting service…</string>
     <string name="status_searching">Searching…</string>
+    <string name="status_shutting_down">Shutting down…</string>
 
 </resources>

@@ -107,7 +107,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
                     public void onCompleted() {
                         // Hide loading indicator
-                        progressBar.setVisibility(View.GONE);
+                        progressView.setVisibility(View.GONE);
                     }
 
                     public void onError(Throwable e) {

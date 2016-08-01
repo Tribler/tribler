@@ -121,7 +121,7 @@ public class ChannelActivity extends BaseActivity {
                     }
                     actionBar.setTitle(title);
                 }
-                break;
+                return;
 
             case ACTION_TOGGLE_SUBSCRIBED:
                 if (subscribed) {
@@ -131,7 +131,7 @@ public class ChannelActivity extends BaseActivity {
                 }
                 intent.putExtra(ChannelActivity.EXTRA_SUBSCRIBED, !subscribed);
                 invalidateOptionsMenu();
-                break;
+                return;
         }
     }
 

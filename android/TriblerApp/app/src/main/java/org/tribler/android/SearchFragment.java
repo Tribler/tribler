@@ -58,7 +58,7 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
             if (_query.equalsIgnoreCase(result.getQuery())) {
 
                 // Hide loading indicator
-                progressBar.setVisibility(View.GONE);
+                progressView.setVisibility(View.GONE);
 
                 // Show search result
                 adapter.addObject(result.getResult());
@@ -72,8 +72,7 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
             if (_query.equalsIgnoreCase(result.getQuery())) {
 
                 // Hide loading indicator
-                progressBar.setVisibility(View.GONE);
-                statusBar.setVisibility(View.GONE);
+                progressView.setVisibility(View.GONE);
                 statusBar.setText("");
 
                 // Show search result
@@ -100,8 +99,7 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
         adapter.clear();
 
         // Show loading indicator
-        progressBar.setVisibility(View.VISIBLE);
-        statusBar.setVisibility(View.VISIBLE);
+        progressView.setVisibility(View.VISIBLE);
         statusBar.setText(getText(R.string.status_searching));
 
         // Start search

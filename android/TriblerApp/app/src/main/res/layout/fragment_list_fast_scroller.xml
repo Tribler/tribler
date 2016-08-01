@@ -24,25 +24,32 @@
         recyclerviewfastscroller:rfs_handleColor="@color/transparent" />
 
     <FrameLayout
+        android:id="@+id/list_progress"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:visibility="gone">
 
-        <ProgressBar
-            android:id="@+id/list_progress_bar"
-            style="?android:attr/progressBarStyle"
-            android:layout_width="75dp"
-            android:layout_height="75dp"
-            android:layout_gravity="center_vertical|center_horizontal"
-            android:indeterminate="true"
-            android:visibility="gone" />
-
-        <TextView
-            android:id="@+id/list_progress_status"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="55dp"
-            android:visibility="gone" />
+            android:layout_gravity="center_vertical|center_horizontal"
+            android:orientation="vertical">
+
+            <ProgressBar
+                android:id="@+id/list_progress_bar"
+                style="?android:attr/progressBarStyle"
+                android:layout_width="75dp"
+                android:layout_height="75dp"
+                android:layout_gravity="center"
+                android:indeterminate="true" />
+
+            <TextView
+                android:id="@+id/list_progress_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="5dp" />
+        </LinearLayout>
 
     </FrameLayout>
 

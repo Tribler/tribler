@@ -25,7 +25,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -60,8 +59,8 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     @BindView(R.id.nav_view)
     NavigationView navigationView;
 
-    @BindView(R.id.progress_bar_main)
-    ProgressBar progressBar;
+    @BindView(R.id.progress_main)
+    View progressView;
 
     @BindView(R.id.progress_status_main)
     TextView statusBar;
@@ -102,6 +101,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         // Hamburger icon
         _navToggle = new ActionBarDrawerToggle(this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(_navToggle);
+        drawer.openDrawer(GravityCompat.START, false);
         _navToggle.syncState();
 
         //Stetho.initializeWithDefaults(getApplicationContext()); //DEBUG
@@ -114,8 +114,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
         if (!EventStream.isReady()) {
             // Show loading indicator
-            progressBar.setVisibility(View.VISIBLE);
-            statusBar.setVisibility(View.VISIBLE);
+            progressView.setVisibility(View.VISIBLE);
             statusBar.setText(getText(R.string.status_opening_eventstream));
 
             EventStream.openEventStream();
@@ -144,8 +143,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     public boolean handleMessage(Message message) {
         if (message.obj instanceof EventsStartEvent) {
             // Hide loading indicator
-            progressBar.setVisibility(View.GONE);
-            statusBar.setVisibility(View.GONE);
+            progressView.setVisibility(View.GONE);
             statusBar.setText("");
         }
         return true;
@@ -161,13 +159,6 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
             return;
         }
         switch (action) {
-            case Intent.ACTION_MAIN:
-                // Startup action
-                if (!drawer.isDrawerOpen(GravityCompat.START)) {
-                    drawer.openDrawer(GravityCompat.START);
-                }
-                return;
-
             case ConnectivityManager.CONNECTIVITY_ACTION:
             case WifiManager.NETWORK_STATE_CHANGED_ACTION:
             case WifiManager.WIFI_STATE_CHANGED_ACTION:
@@ -336,6 +327,10 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     public void navShutdownClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         EventStream.closeEventStream();
+
+        // Show loading indicator
+        progressView.setVisibility(View.VISIBLE);
+        statusBar.setText(getText(R.string.status_shutting_down));
 
         String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
         String authToken = getString(R.string.service_auth_token);
