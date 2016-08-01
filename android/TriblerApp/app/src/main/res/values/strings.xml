@@ -23,13 +23,14 @@
 
     <string name="action_search">Search videos and channels</string>
     <string name="action_search_in_channel">Search in this channel</string>
+
     <string name="action_capture_video">Record a new video</string>
     <string name="action_create_torrent">Create a new torrent</string>
 
     <string name="checkbox_show_channels">Show channels</string>
     <string name="checkbox_show_torrents">Show videos</string>
 
-    <string name="action_subscribtions">Favorite channels</string>
+    <string name="action_subscriptions">Favorite channels</string>
     <string name="action_my_channel">My channel</string>
     <string name="action_playlists">My playlists</string>
     <string name="action_browse_channels">Popular channels</string>
@@ -39,6 +40,8 @@
     <string name="dialog_enable_nfc_beam">You must first turn on NFC and Android Beam on both phones.\n\nTurn on NFC and Android Beam now?</string>
     <string name="dialog_enable_beam">You must first turn on NFC and Android Beam on both phones.\n\nTurn on Android Beam now?</string>
 
+    <string name="action_subscribe">Add to favorites</string>
+    <string name="action_unsubscribe">Remove from favorites</string>
     <string name="action_mychannel_add">Add to my channel</string>
     <string name="action_mychannel_remove">Remove from my channel</string>
 
@@ -58,5 +61,8 @@
 
     <string name="error_output_file">failed to obtain output file</string>
     <string name="error_capture_video">failed to capture video</string>
+
+    <string name="status_opening_eventstream">Starting service…</string>
+    <string name="status_searching">Searching…</string>
 
 </resources>

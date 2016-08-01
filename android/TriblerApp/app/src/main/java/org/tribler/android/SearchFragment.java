@@ -73,6 +73,8 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
 
                 // Hide loading indicator
                 progressBar.setVisibility(View.GONE);
+                statusBar.setVisibility(View.GONE);
+                statusBar.setText("");
 
                 // Show search result
                 adapter.addObject(result.getResult());
@@ -99,6 +101,8 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
 
         // Show loading indicator
         progressBar.setVisibility(View.VISIBLE);
+        statusBar.setVisibility(View.VISIBLE);
+        statusBar.setText(getText(R.string.status_searching));
 
         // Start search
         loading = service.search(query)

@@ -43,21 +43,6 @@ public class ChannelActivity extends BaseActivity {
         _fragment = null;
     }
 
-    protected void handleIntent(Intent intent) {
-        if (Intent.ACTION_GET_CONTENT.equals(intent.getAction())) {
-            // Set title
-            ActionBar actionBar = getSupportActionBar();
-            if (actionBar != null) {
-                String title = intent.getStringExtra(Intent.EXTRA_TITLE);
-                boolean subscribed = intent.getBooleanExtra(EXTRA_SUBSCRIBED, false);
-                if (!subscribed) {
-                    title = getString(R.string.title_channel_preview) + " " + title;
-                }
-                actionBar.setTitle(title);
-            }
-        }
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -68,7 +53,7 @@ public class ChannelActivity extends BaseActivity {
         getMenuInflater().inflate(R.menu.menu_channel, menu);
 
         // Search button
-        MenuItem btnFilter = menu.findItem(R.id.btn_filter);
+        MenuItem btnFilter = menu.findItem(R.id.btn_filter_channel);
         SearchView searchView = (SearchView) btnFilter.getActionView();
 
         // Set search hint
@@ -92,4 +77,54 @@ public class ChannelActivity extends BaseActivity {
 
         return true;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+
+        // Toggle channel favorite
+        boolean subscribed = getIntent().getBooleanExtra(ChannelActivity.EXTRA_SUBSCRIBED, false);
+        if (subscribed) {
+            menu.findItem(R.id.btn_channel_unsubscribe).setVisible(true);
+        } else {
+            menu.findItem(R.id.btn_channel_subscribe).setVisible(true);
+        }
+
+        return true;
+    }
+
+    protected void handleIntent(Intent intent) {
+        if (Intent.ACTION_GET_CONTENT.equals(intent.getAction())) {
+            // Set title
+            ActionBar actionBar = getSupportActionBar();
+            if (actionBar != null) {
+                String title = intent.getStringExtra(Intent.EXTRA_TITLE);
+                boolean subscribed = intent.getBooleanExtra(EXTRA_SUBSCRIBED, false);
+                if (!subscribed) {
+                    title = getString(R.string.title_channel_preview) + ": " + title;
+                }
+                actionBar.setTitle(title);
+            }
+        }
+    }
+
+    public void btnSubscribeClicked(MenuItem item) {
+        String dispersyCid = getIntent().getStringExtra(ChannelActivity.EXTRA_DISPERSY_CID);
+        boolean subscribed = getIntent().getBooleanExtra(ChannelActivity.EXTRA_SUBSCRIBED, false);
+        String name = getIntent().getStringExtra(Intent.EXTRA_TITLE);
+
+        _fragment.subscribe(dispersyCid, subscribed, name);
+    }
+
+    public void btnUnsubscribeClicked(MenuItem item) {
+        String dispersyCid = getIntent().getStringExtra(ChannelActivity.EXTRA_DISPERSY_CID);
+        boolean subscribed = getIntent().getBooleanExtra(ChannelActivity.EXTRA_SUBSCRIBED, false);
+        String name = getIntent().getStringExtra(Intent.EXTRA_TITLE);
+
+        _fragment.unsubscribe(dispersyCid, subscribed, name);
+    }
+
 }

@@ -6,7 +6,7 @@
             android:id="@+id/nav_subscriptions"
             android:icon="@drawable/ic_menu_star"
             android:onClick="navSubscriptionsClicked"
-            android:title="@string/action_subscribtions" />
+            android:title="@string/action_subscriptions" />
         <item
             android:id="@+id/nav_my_channel"
             android:icon="@drawable/ic_menu_me"

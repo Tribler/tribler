@@ -26,6 +26,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.cantrowitz.rxbroadcast.RxBroadcast;
@@ -61,6 +62,9 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
     @BindView(R.id.progress_bar_main)
     ProgressBar progressBar;
+
+    @BindView(R.id.progress_status_main)
+    TextView statusBar;
 
     private ActionBarDrawerToggle _navToggle;
     private ConnectivityManager _connectivityManager;
@@ -111,6 +115,8 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         if (!EventStream.isReady()) {
             // Show loading indicator
             progressBar.setVisibility(View.VISIBLE);
+            statusBar.setVisibility(View.VISIBLE);
+            statusBar.setText(getText(R.string.status_opening_eventstream));
 
             EventStream.openEventStream();
         }
@@ -139,6 +145,8 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         if (message.obj instanceof EventsStartEvent) {
             // Hide loading indicator
             progressBar.setVisibility(View.GONE);
+            statusBar.setVisibility(View.GONE);
+            statusBar.setText("");
         }
         return true;
     }
@@ -209,6 +217,36 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         } else {
             super.onBackPressed();
         }
+    }
+
+    private void initConnectionManager() {
+        _connectivityManager =
+                (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        Observer observer = new Observer<Intent>() {
+
+            public void onNext(Intent intent) {
+                onNewIntent(intent);
+            }
+
+            public void onCompleted() {
+            }
+
+            public void onError(Throwable e) {
+            }
+        };
+
+        // Listen for connectivity changes
+        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION))
+                .subscribe(observer));
+
+        // Listen for network state changes
+        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(WifiManager.NETWORK_STATE_CHANGED_ACTION))
+                .subscribe(observer));
+
+        // Listen for Wi-Fi state changes
+        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION))
+                .subscribe(observer));
     }
 
     /**
@@ -326,33 +364,12 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                 }));
     }
 
-    private void initConnectionManager() {
-        _connectivityManager =
-                (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+    public void btnMyChannelAddClicked(MenuItem item) {
+        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_main);
+        if (fragment instanceof MyChannelFragment) {
+            MyChannelFragment mychannel = (MyChannelFragment) fragment;
 
-        Observer observer = new Observer<Intent>() {
-
-            public void onNext(Intent intent) {
-                onNewIntent(intent);
-            }
-
-            public void onCompleted() {
-            }
-
-            public void onError(Throwable e) {
-            }
-        };
-
-        // Listen for connectivity changes
-        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION))
-                .subscribe(observer));
-
-        // Listen for network state changes
-        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(WifiManager.NETWORK_STATE_CHANGED_ACTION))
-                .subscribe(observer));
-
-        // Listen for Wi-Fi state changes
-        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION))
-                .subscribe(observer));
+        }
     }
+
 }

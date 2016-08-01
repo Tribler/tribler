@@ -9,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import org.tribler.android.restapi.json.TriblerChannel;
 import org.tribler.android.restapi.json.TriblerTorrent;
@@ -34,6 +35,9 @@ public class ListFragment extends ViewFragment {
 
     @BindView(R.id.list_progress_bar)
     ProgressBar progressBar;
+
+    @BindView(R.id.list_progress_status)
+    TextView statusBar;
 
     protected Subscription loading;
     protected TriblerViewAdapter adapter;
