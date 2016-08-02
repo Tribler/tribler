@@ -22,46 +22,41 @@
 
     </android.support.design.widget.AppBarLayout>
 
-    <RelativeLayout
+    <FrameLayout
+        android:id="@+id/fragment_main"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
-        <FrameLayout
-            android:id="@+id/fragment_main"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+    <FrameLayout
+        android:id="@+id/main_progress"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingTop="?attr/actionBarSize"
+        android:visibility="gone">
 
-        <FrameLayout
-            android:id="@+id/main_progress"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:visibility="gone">
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical|center_horizontal"
+            android:orientation="vertical">
 
-            <LinearLayout
+            <ProgressBar
+                android:id="@+id/main_progress_bar"
+                style="?android:attr/progressBarStyle"
+                android:layout_width="75dp"
+                android:layout_height="75dp"
+                android:layout_gravity="center"
+                android:indeterminate="true" />
+
+            <TextView
+                android:id="@+id/main_progress_status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_vertical|center_horizontal"
-                android:orientation="vertical">
+                android:layout_gravity="center"
+                android:layout_marginTop="5dp" />
+        </LinearLayout>
 
-                <ProgressBar
-                    android:id="@+id/main_progress_bar"
-                    style="?android:attr/progressBarStyle"
-                    android:layout_width="75dp"
-                    android:layout_height="75dp"
-                    android:layout_gravity="center"
-                    android:indeterminate="true" />
-
-                <TextView
-                    android:id="@+id/main_progress_status"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:layout_marginTop="5dp" />
-            </LinearLayout>
-
-        </FrameLayout>
-
-    </RelativeLayout>
+    </FrameLayout>
 
 </android.support.design.widget.CoordinatorLayout>
