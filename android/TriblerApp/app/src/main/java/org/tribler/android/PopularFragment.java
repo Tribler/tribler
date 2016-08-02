@@ -1,5 +1,7 @@
 package org.tribler.android;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -13,13 +15,15 @@ import rx.schedulers.Schedulers;
 
 public class PopularFragment extends DefaultInteractionListFragment {
 
+    private int _limit = 50000;
+
     /**
      * {@inheritDoc}
      */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        loadPopularChannels(50000);
+        loadPopularChannels(_limit);
     }
 
     private void loadPopularChannels(final int limit) {

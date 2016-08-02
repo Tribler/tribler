@@ -9,6 +9,10 @@ public class TriblerChannel {
     TriblerChannel() {
     }
 
+    public void setSubscribed(boolean subscribed) {
+        this.subscribed = subscribed;
+    }
+
     public boolean isSubscribed() {
         return subscribed;
     }

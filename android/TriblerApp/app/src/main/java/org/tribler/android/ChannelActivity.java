@@ -106,9 +106,9 @@ public class ChannelActivity extends BaseActivity {
         if (TextUtils.isEmpty(action)) {
             return;
         }
+        String title = intent.getStringExtra(Intent.EXTRA_TITLE);
         String dispersyCid = intent.getStringExtra(ChannelActivity.EXTRA_DISPERSY_CID);
         boolean subscribed = intent.getBooleanExtra(ChannelActivity.EXTRA_SUBSCRIBED, false);
-        String title = intent.getStringExtra(Intent.EXTRA_TITLE);
 
         switch (action) {
 
@@ -132,8 +132,9 @@ public class ChannelActivity extends BaseActivity {
                 // Update view
                 intent.putExtra(ChannelActivity.EXTRA_SUBSCRIBED, !subscribed);
                 invalidateOptionsMenu();
+
                 // Flag modification
-                setResult(RESULT_FIRST_USER);
+                setResult(RESULT_FIRST_USER, intent);
                 return;
         }
     }

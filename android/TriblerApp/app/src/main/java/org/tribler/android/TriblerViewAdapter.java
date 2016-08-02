@@ -77,6 +77,32 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
         return _filter;
     }
 
+    @Nullable
+    public TriblerChannel findByDispersyCid(String dispersyCid) {
+        for (Object object : getData()) {
+            if (object instanceof TriblerChannel) {
+                TriblerChannel channel = (TriblerChannel) object;
+                if (dispersyCid.equals(channel.getDispersyCid())) {
+                    return channel;
+                }
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    public TriblerTorrent findByInfohash(String infohash) {
+        for (Object object : getData()) {
+            if (object instanceof TriblerTorrent) {
+                TriblerTorrent torrent = (TriblerTorrent) object;
+                if (infohash.equals(torrent.getInfohash())) {
+                    return torrent;
+                }
+            }
+        }
+        return null;
+    }
+
     /**
      * {@inheritDoc}
      */

@@ -24,23 +24,6 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
         loadSubscriptions();
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == CHANNEL_ACTIVITY_REQUEST_CODE) {
-            if (resultCode == Activity.RESULT_FIRST_USER) {
-
-                // Show loading indicator
-                progressView.setVisibility(View.VISIBLE);
-
-                // Update view
-                loadSubscriptions();
-            }
-        }
-    }
-
     private void loadSubscriptions() {
         adapter.clear();
 
