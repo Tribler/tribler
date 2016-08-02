@@ -17,7 +17,7 @@ import rx.schedulers.Schedulers;
 
 public class SearchFragment extends DefaultInteractionListFragment implements Handler.Callback {
 
-    private String _query;
+    private String _query = "";
     private Handler _eventHandler;
 
     /**
