@@ -29,6 +29,7 @@ public class ChannelFragment extends DefaultInteractionListFragment {
         loading = service.getTorrents(dispersyCid)
                 .subscribeOn(Schedulers.io())
                 .flatMap(response -> Observable.from(response.getTorrents()))
+                .retry(3)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<TriblerTorrent>() {
 
@@ -43,8 +44,6 @@ public class ChannelFragment extends DefaultInteractionListFragment {
 
                     public void onError(Throwable e) {
                         Log.e("loadTorrents", "getTorrents", e);
-                        // Retry
-                        loadTorrents(dispersyCid);
                     }
                 });
         rxSubs.add(loading);

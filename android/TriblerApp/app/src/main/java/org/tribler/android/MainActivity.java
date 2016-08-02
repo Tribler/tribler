@@ -251,7 +251,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         // Check if current fragment is desired fragment
         Fragment current = fragmentManager.findFragmentById(R.id.fragment_main);
         if (!newFragmentClass.isInstance(current)) {
-            String tag = newFragmentClass.getSimpleName();
+            String tag = newFragmentClass.getName();
             // Check if desired fragment is already instantiated
             Fragment fragment = fragmentManager.findFragmentByTag(tag);
             if (fragment == null) {
