@@ -22,9 +22,17 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
         loadSubscribedChannels();
     }
 
-    private void loadSubscribedChannels() {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void reload() {
+        super.reload();
         adapter.clear();
+        loadSubscribedChannels();
+    }
 
+    private void loadSubscribedChannels() {
         loading = service.getSubscribedChannels()
                 .subscribeOn(Schedulers.io())
                 .flatMap(response -> Observable.from(response.getSubscribed()))

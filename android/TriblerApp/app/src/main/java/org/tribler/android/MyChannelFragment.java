@@ -92,9 +92,17 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         //TODO: remove from my channel
     }
 
-    private void loadMyChannel() {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void reload() {
+        super.reload();
         adapter.clear();
+        loadMyChannel();
+    }
 
+    private void loadMyChannel() {
         loading = service.getPopularChannels(5)
                 .subscribeOn(Schedulers.io())
                 .flatMap(response -> Observable.from(response.getChannels()))
@@ -113,7 +121,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     public void onError(Throwable e) {
                         Log.e("loadMyChannel", "getChannels", e);
                         // Retry
-                        loadMyChannel();
+                        reload();
                     }
                 });
         rxSubs.add(loading);

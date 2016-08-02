@@ -13,20 +13,30 @@ import rx.schedulers.Schedulers;
 
 public class ChannelFragment extends DefaultInteractionListFragment {
 
+    private String _dispersyCid;
+
     /**
      * {@inheritDoc}
      */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        String dispersyCid = getActivity().getIntent().getStringExtra(ChannelActivity.EXTRA_DISPERSY_CID);
-        loadTorrents(dispersyCid);
+        _dispersyCid = getActivity().getIntent().getStringExtra(ChannelActivity.EXTRA_DISPERSY_CID);
+        loadTorrents();
     }
 
-    private void loadTorrents(final String dispersyCid) {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void reload() {
+        super.reload();
         adapter.clear();
+        loadTorrents();
+    }
 
-        loading = service.getTorrents(dispersyCid)
+    private void loadTorrents() {
+        loading = service.getTorrents(_dispersyCid)
                 .subscribeOn(Schedulers.io())
                 .flatMap(response -> Observable.from(response.getTorrents()))
                 .observeOn(AndroidSchedulers.mainThread())
@@ -44,7 +54,7 @@ public class ChannelFragment extends DefaultInteractionListFragment {
                     public void onError(Throwable e) {
                         Log.e("loadTorrents", "getTorrents", e);
                         // Retry
-                        loadTorrents(dispersyCid);
+                        reload();
                     }
                 });
         rxSubs.add(loading);

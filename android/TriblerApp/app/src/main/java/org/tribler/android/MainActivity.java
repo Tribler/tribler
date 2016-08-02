@@ -13,6 +13,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Process;
+import android.support.annotation.Nullable;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -201,7 +202,12 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                 }
 
             case SEARCH_ACTIVITY_REQUEST_CODE:
-                //TODO
+                // Update view
+                Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_main);
+                if (fragment instanceof ListFragment) {
+                    ((ListFragment) fragment).reload();
+                }
+                return;
         }
     }
 
@@ -261,7 +267,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     /**
      * @param newFragmentClass The desired fragment class
      */
-    private void switchFragment(Class newFragmentClass) throws IllegalAccessException, InstantiationException {
+    private void switchFragment(Class newFragmentClass) {
         FragmentManager fragmentManager = getSupportFragmentManager();
         // Check if current fragment is desired fragment
         Fragment current = fragmentManager.findFragmentById(R.id.fragment_main);
@@ -270,8 +276,14 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
             // Check if desired fragment is already instantiated
             Fragment fragment = fragmentManager.findFragmentByTag(tag);
             if (fragment == null) {
-                fragment = (Fragment) newFragmentClass.newInstance();
-                fragment.setRetainInstance(true);
+                try {
+                    fragment = (Fragment) newFragmentClass.newInstance();
+                    fragment.setRetainInstance(true);
+                } catch (InstantiationException ex) {
+                    Log.e("switchFragment", newFragmentClass.getName(), ex);
+                } catch (IllegalAccessException ex) {
+                    Log.e("switchFragment", newFragmentClass.getName(), ex);
+                }
             }
             fragmentManager
                     .beginTransaction()
@@ -280,13 +292,20 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         }
     }
 
-    private void removeFragment() {
+    /**
+     * @return Fragment that was removed, if any
+     */
+    @Nullable
+    private Fragment removeFragment() {
         FragmentManager fragmentManager = getSupportFragmentManager();
         Fragment fragment = fragmentManager.findFragmentById(R.id.fragment_main);
-        fragmentManager
-                .beginTransaction()
-                .remove(fragment)
-                .commit();
+        if (fragment != null) {
+            fragmentManager
+                    .beginTransaction()
+                    .remove(fragment)
+                    .commit();
+        }
+        return fragment;
     }
 
     public void btnSearchClicked(MenuItem item) {
@@ -294,12 +313,12 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         startActivityForResult(intent, SEARCH_ACTIVITY_REQUEST_CODE);
     }
 
-    public void navSubscriptionsClicked(MenuItem item) throws InstantiationException, IllegalAccessException {
+    public void navSubscriptionsClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         switchFragment(SubscribedFragment.class);
     }
 
-    public void navMyChannelClicked(MenuItem item) throws InstantiationException, IllegalAccessException {
+    public void navMyChannelClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         switchFragment(MyChannelFragment.class);
     }
@@ -308,7 +327,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         drawer.closeDrawer(GravityCompat.START);
     }
 
-    public void navPopularClicked(MenuItem item) throws InstantiationException, IllegalAccessException {
+    public void navPopularClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         switchFragment(PopularFragment.class);
     }

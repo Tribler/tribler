@@ -84,6 +84,14 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
         return true;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void reload() {
+        startSearch(_query);
+    }
+
     public void startSearch(final String query) {
         if (query.equals(_query)) {
             // Do not restart search
@@ -117,7 +125,7 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
                     public void onError(Throwable e) {
                         Log.e("startSearch", "search", e);
                         // Retry
-                        startSearch(query);
+                        reload();
                     }
                 });
         rxSubs.add(loading);

@@ -21,13 +21,21 @@ public class PopularFragment extends DefaultInteractionListFragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        loadPopularChannels(_limit);
+        loadPopularChannels();
     }
 
-    private void loadPopularChannels(final int limit) {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void reload() {
+        super.reload();
         adapter.clear();
+        loadPopularChannels();
+    }
 
-        loading = service.getPopularChannels(limit)
+    private void loadPopularChannels() {
+        loading = service.getPopularChannels(_limit)
                 .subscribeOn(Schedulers.io())
                 .flatMap(response -> Observable.from(response.getChannels()))
                 .observeOn(AndroidSchedulers.mainThread())
@@ -45,7 +53,7 @@ public class PopularFragment extends DefaultInteractionListFragment {
                     public void onError(Throwable e) {
                         Log.e("loadPopularChannels", "getChannels", e);
                         // Retry
-                        loadPopularChannels(limit);
+                        reload();
                     }
                 });
         rxSubs.add(loading);
