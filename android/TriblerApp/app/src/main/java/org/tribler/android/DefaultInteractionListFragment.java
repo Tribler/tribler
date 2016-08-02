@@ -116,7 +116,6 @@ public class DefaultInteractionListFragment extends ListFragment implements List
 
         rxSubs.add(service.subscribe(dispersyCid)
                 .subscribeOn(Schedulers.io())
-                .retry(3)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<SubscribedAck>() {
 
@@ -132,6 +131,8 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                             Toast.makeText(_context, name + ' ' + _context.getText(R.string.info_subscribe_already), Toast.LENGTH_SHORT).show();
                         } else {
                             Log.e("onSwipedRight", "subscribe", e);
+                            // Retry
+                            subscribe(dispersyCid, subscribed, name);
                         }
                     }
                 }));
@@ -154,7 +155,6 @@ public class DefaultInteractionListFragment extends ListFragment implements List
 
         rxSubs.add(service.unsubscribe(dispersyCid)
                 .subscribeOn(Schedulers.io())
-                .retry(3)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<UnsubscribedAck>() {
 
@@ -170,6 +170,8 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                             Toast.makeText(_context, name + ' ' + _context.getText(R.string.info_unsubscribe_already), Toast.LENGTH_SHORT).show();
                         } else {
                             Log.e("onSwipedLeft", "unsubscribe", e);
+                            // Retry
+                            unsubscribe(dispersyCid, subscribed, name);
                         }
                     }
                 }));

@@ -1,7 +1,5 @@
 package org.tribler.android;
 
-import android.app.Activity;
-import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -31,7 +29,6 @@ public class PopularFragment extends DefaultInteractionListFragment {
 
         loading = service.getPopularChannels(limit)
                 .subscribeOn(Schedulers.io())
-                .retry(3)
                 .flatMap(response -> Observable.from(response.getChannels()))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<TriblerChannel>() {
@@ -47,6 +44,8 @@ public class PopularFragment extends DefaultInteractionListFragment {
 
                     public void onError(Throwable e) {
                         Log.e("loadPopularChannels", "getChannels", e);
+                        // Retry
+                        loadPopularChannels(limit);
                     }
                 });
         rxSubs.add(loading);

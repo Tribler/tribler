@@ -9,7 +9,7 @@
     tools:context=".MainActivity"
     tools:openDrawer="start">
 
-    <include layout="@layout/app_bar_main" />
+    <include layout="@layout/activity_main_toolbar" />
 
     <android.support.design.widget.NavigationView
         android:id="@+id/nav_view"

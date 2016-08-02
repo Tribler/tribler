@@ -60,10 +60,10 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     @BindView(R.id.nav_view)
     NavigationView navigationView;
 
-    @BindView(R.id.list_progress)
+    @BindView(R.id.main_progress)
     View progressView;
 
-    @BindView(R.id.list_progress_status)
+    @BindView(R.id.main_progress_status)
     TextView statusBar;
 
     private ActionBarDrawerToggle _navToggle;
@@ -101,7 +101,6 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
         // Hamburger icon
         _navToggle = new ActionBarDrawerToggle(this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.openDrawer(GravityCompat.START);
         drawer.addDrawerListener(_navToggle);
         _navToggle.syncState();
 
@@ -160,6 +159,11 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
             return;
         }
         switch (action) {
+
+            case Intent.ACTION_MAIN:
+                drawer.openDrawer(GravityCompat.START);
+                return;
+
             case ConnectivityManager.CONNECTIVITY_ACTION:
             case WifiManager.NETWORK_STATE_CHANGED_ACTION:
             case WifiManager.WIFI_STATE_CHANGED_ACTION:
@@ -276,6 +280,15 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         }
     }
 
+    private void removeFragment() {
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        Fragment fragment = fragmentManager.findFragmentById(R.id.fragment_main);
+        fragmentManager
+                .beginTransaction()
+                .remove(fragment)
+                .commit();
+    }
+
     public void btnSearchClicked(MenuItem item) {
         Intent intent = new Intent(this, SearchActivity.class);
         startActivityForResult(intent, SEARCH_ACTIVITY_REQUEST_CODE);
@@ -337,12 +350,10 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
     public void navShutdownClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
-        try {
-            // Clear view
-            switchFragment(ListFragment.class);
-        } catch (IllegalAccessException e) {
-        } catch (InstantiationException e) {
-        }
+
+        // Clear view
+        removeFragment();
+
         // Show loading indicator
         progressView.setVisibility(View.VISIBLE);
         statusBar.setText(getText(R.string.status_shutting_down));

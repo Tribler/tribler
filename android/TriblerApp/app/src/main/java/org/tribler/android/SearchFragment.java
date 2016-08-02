@@ -105,7 +105,6 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
         // Start search
         loading = service.search(query)
                 .subscribeOn(Schedulers.io())
-                .retry(3)
                 .subscribe(new Observer<QueriedAck>() {
 
                     public void onNext(QueriedAck response) {
@@ -117,6 +116,8 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
 
                     public void onError(Throwable e) {
                         Log.e("startSearch", "search", e);
+                        // Retry
+                        startSearch(query);
                     }
                 });
         rxSubs.add(loading);

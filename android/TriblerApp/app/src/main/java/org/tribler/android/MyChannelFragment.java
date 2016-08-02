@@ -97,7 +97,6 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
         loading = service.getPopularChannels(5)
                 .subscribeOn(Schedulers.io())
-                .retry(3)
                 .flatMap(response -> Observable.from(response.getChannels()))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<TriblerChannel>() {
@@ -113,6 +112,8 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
                     public void onError(Throwable e) {
                         Log.e("loadMyChannel", "getChannels", e);
+                        // Retry
+                        loadMyChannel();
                     }
                 });
         rxSubs.add(loading);
