@@ -3,6 +3,7 @@ package org.tribler.android;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.LayoutRes;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -57,8 +58,13 @@ public abstract class BaseActivity extends AppCompatActivity {
         super.setContentView(layoutResID);
         ButterKnife.bind(this);
 
+        // The action bar will automatically handle clicks on the Home/Up button,
+        // so long as you specify a parent activity in AndroidManifest.xml
         setSupportActionBar(toolbar);
-        Log.d("base", " " + getSupportActionBar());
+        ActionBar actionbar = getSupportActionBar();
+        if (actionbar != null && layoutResID != R.layout.activity_main) {
+            actionbar.setDisplayHomeAsUpEnabled(true);
+        }
     }
 
     /**

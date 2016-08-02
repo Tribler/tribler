@@ -20,8 +20,8 @@ import butterknife.BindView;
 
 public class BeamActivity extends BaseActivity {
 
-    public static final int ENABLE_NFC_BEAM_ACTIVITY_REQUEST_CODE = 400;
-    public static final int ENABLE_BEAM_ACTIVITY_REQUEST_CODE = 600;
+    public static final int ENABLE_NFC_BEAM_ACTIVITY_REQUEST_CODE = 201;
+    public static final int ENABLE_BEAM_ACTIVITY_REQUEST_CODE = 202;
 
     @BindView(R.id.img_beam_instructions)
     ImageView imageView;

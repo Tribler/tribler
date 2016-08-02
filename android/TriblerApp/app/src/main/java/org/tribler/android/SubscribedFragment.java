@@ -1,7 +1,5 @@
 package org.tribler.android;
 
-import android.app.Activity;
-import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -21,10 +19,10 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        loadSubscriptions();
+        loadSubscribedChannels();
     }
 
-    private void loadSubscriptions() {
+    private void loadSubscribedChannels() {
         adapter.clear();
 
         loading = service.getSubscribedChannels()
@@ -44,7 +42,7 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("loadSubscriptions", "getSubscribedChannels", e);
+                        Log.e("loadSubscribedChannels", "getSubscribed", e);
                     }
                 });
         rxSubs.add(loading);

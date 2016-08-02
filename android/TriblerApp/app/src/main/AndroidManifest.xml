@@ -89,7 +89,6 @@
             android:name=".SearchActivity"
             android:label="@string/action_search"
             android:launchMode="singleTop"
-            android:parentActivityName=".MainActivity"
             android:theme="@style/AppTheme.NoActionBar">
             <meta-data
                 android:name="android.app.searchable"
@@ -102,11 +101,9 @@
         <activity
             android:name=".BeamActivity"
             android:launchMode="singleTop"
-            android:parentActivityName=".MainActivity"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".ChannelActivity"
-            android:parentActivityName=".MainActivity"
             android:theme="@style/AppTheme.NoActionBar" />
     </application>
 

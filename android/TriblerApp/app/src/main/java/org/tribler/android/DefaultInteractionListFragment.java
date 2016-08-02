@@ -21,7 +21,7 @@ import rx.schedulers.Schedulers;
 
 public class DefaultInteractionListFragment extends ListFragment implements ListFragment.IListFragmentInteractionListener {
 
-    public static final int CHANNEL_ACTIVITY_REQUEST_CODE = 800;
+    public static final int CHANNEL_ACTIVITY_REQUEST_CODE = 301;
 
     protected IRestApi service;
     private Context _context;

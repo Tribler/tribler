@@ -47,7 +47,8 @@ import rx.schedulers.Schedulers;
 
 public class MainActivity extends BaseActivity implements Handler.Callback {
 
-    public static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 200;
+    public static final int CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE = 101;
+    public static final int SEARCH_ACTIVITY_REQUEST_CODE = 102;
 
     static {
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
@@ -177,16 +178,26 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        // Result of capture video
-        if (requestCode == CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE) {
-            if (resultCode == Activity.RESULT_OK) {
-                Toast.makeText(this, String.format("Video saved to: %s", data.getData()), Toast.LENGTH_LONG).show();
-                //TODO: create torrent file and add to own channel
-            } else if (resultCode == Activity.RESULT_CANCELED) {
+        switch (requestCode) {
 
-            } else {
-                Toast.makeText(this, R.string.error_capture_video, Toast.LENGTH_LONG).show();
-            }
+            case CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE:
+                switch (resultCode) {
+
+                    case Activity.RESULT_OK:
+                        Toast.makeText(this, String.format("Video saved to: %s", data.getData()), Toast.LENGTH_LONG).show();
+                        //TODO: create torrent file and add to own channel
+                        return;
+
+                    case Activity.RESULT_CANCELED:
+                        return;
+
+                    default:
+                        Toast.makeText(this, R.string.error_capture_video, Toast.LENGTH_LONG).show();
+                        return;
+                }
+
+            case SEARCH_ACTIVITY_REQUEST_CODE:
+                //TODO
         }
     }
 
@@ -267,7 +278,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
     public void btnSearchClicked(MenuItem item) {
         Intent intent = new Intent(this, SearchActivity.class);
-        startActivity(intent);
+        startActivityForResult(intent, SEARCH_ACTIVITY_REQUEST_CODE);
     }
 
     public void navSubscriptionsClicked(MenuItem item) throws InstantiationException, IllegalAccessException {
@@ -326,11 +337,17 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
     public void navShutdownClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
-        EventStream.closeEventStream();
-
+        try {
+            // Clear view
+            switchFragment(ListFragment.class);
+        } catch (IllegalAccessException e) {
+        } catch (InstantiationException e) {
+        }
         // Show loading indicator
         progressView.setVisibility(View.VISIBLE);
         statusBar.setText(getText(R.string.status_shutting_down));
+
+        EventStream.closeEventStream();
 
         String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
         String authToken = getString(R.string.service_auth_token);
@@ -366,7 +383,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_main);
         if (fragment instanceof MyChannelFragment) {
             MyChannelFragment mychannel = (MyChannelFragment) fragment;
-
+            //TODO
         }
     }
 
