@@ -1,5 +1,7 @@
 package org.tribler.android;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -20,6 +22,23 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         loadSubscriptions();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == CHANNEL_ACTIVITY_REQUEST_CODE) {
+            if (resultCode == Activity.RESULT_FIRST_USER) {
+
+                // Show loading indicator
+                progressView.setVisibility(View.VISIBLE);
+
+                // Update view
+                loadSubscriptions();
+            }
+        }
     }
 
     private void loadSubscriptions() {

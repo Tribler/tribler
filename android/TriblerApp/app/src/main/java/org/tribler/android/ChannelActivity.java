@@ -129,8 +129,11 @@ public class ChannelActivity extends BaseActivity {
                 } else {
                     _fragment.subscribe(dispersyCid, subscribed, title);
                 }
+                // Update view
                 intent.putExtra(ChannelActivity.EXTRA_SUBSCRIBED, !subscribed);
                 invalidateOptionsMenu();
+                // Flag modification
+                setResult(RESULT_FIRST_USER);
                 return;
         }
     }

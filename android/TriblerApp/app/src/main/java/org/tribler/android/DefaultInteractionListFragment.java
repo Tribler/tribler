@@ -1,5 +1,6 @@
 package org.tribler.android;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -14,11 +15,14 @@ import org.tribler.android.restapi.json.TriblerTorrent;
 import org.tribler.android.restapi.json.UnsubscribedAck;
 
 import retrofit2.adapter.rxjava.HttpException;
+import rx.Observable;
 import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
 public class DefaultInteractionListFragment extends ListFragment implements ListFragment.IListFragmentInteractionListener {
+
+    public static final int CHANNEL_ACTIVITY_REQUEST_CODE = 800;
 
     protected IRestApi service;
     private Context _context;
@@ -73,7 +77,41 @@ public class DefaultInteractionListFragment extends ListFragment implements List
         intent.putExtra(ChannelActivity.EXTRA_DISPERSY_CID, channel.getDispersyCid());
         intent.putExtra(Intent.EXTRA_TITLE, channel.getName());
         intent.putExtra(ChannelActivity.EXTRA_SUBSCRIBED, channel.isSubscribed());
-        _context.startActivity(intent);
+        startActivityForResult(intent, CHANNEL_ACTIVITY_REQUEST_CODE);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == CHANNEL_ACTIVITY_REQUEST_CODE) {
+            Log.v("onActivityResult", "channel activity");
+
+            if (resultCode == Activity.RESULT_FIRST_USER) {
+                Log.v("onActivityResult", "first user");
+
+                // Update view
+                rxSubs.add(service.getSubscribedChannels()
+                        .subscribeOn(Schedulers.io())
+                        .retry(3)
+                        .flatMap(response -> Observable.from(response.getSubscribed()))
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(new Observer<TriblerChannel>() {
+
+                            public void onNext(TriblerChannel channel) {
+                                adapter.notifyObjectChanged(channel);
+                            }
+
+                            public void onCompleted() {
+                            }
+
+                            public void onError(Throwable e) {
+                                Log.e("onActivityResult", "getSubscribedChannels", e);
+                            }
+                        }));
+            }
+        }
     }
 
     /**
