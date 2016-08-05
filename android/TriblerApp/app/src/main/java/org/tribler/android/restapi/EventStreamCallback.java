@@ -6,6 +6,8 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 
 import org.tribler.android.restapi.json.ChannelDiscoveredEvent;
@@ -118,36 +120,36 @@ public class EventStreamCallback implements Callback {
     private Object parseEvent(String eventString) throws JsonSyntaxException {
         // Parse container to determine event type
         EventContainer container = _gson.fromJson(eventString, EventContainer.class);
-        Object event = container.getEvent();
+        JsonElement event = container.getEvent();
         if (event == null) {
+            Log.d("parseEvent", String.format("empty event body: %s", eventString));
             // Some event types have empty event body
-            eventString = "{}";
-        } else {
-            // Turn body object back into json
-            eventString = _gson.toJson(event);
+            event = new JsonObject();
         }
         switch (container.getType()) {
 
             case EventsStartEvent.TYPE:
-                return _gson.fromJson(eventString, EventsStartEvent.class);
+                return _gson.fromJson(event, EventsStartEvent.class);
 
             case UpgraderFinishedEvent.TYPE:
-                return _gson.fromJson(eventString, UpgraderFinishedEvent.class);
+                return _gson.fromJson(event, UpgraderFinishedEvent.class);
 
             case TriblerStartedEvent.TYPE:
-                return _gson.fromJson(eventString, TriblerStartedEvent.class);
+                return _gson.fromJson(event, TriblerStartedEvent.class);
 
             case SearchResultChannelEvent.TYPE:
-                return _gson.fromJson(eventString, SearchResultChannelEvent.class);
+                return _gson.fromJson(event, SearchResultChannelEvent.class);
 
             case SearchResultTorrentEvent.TYPE:
-                return _gson.fromJson(eventString, SearchResultTorrentEvent.class);
+                return _gson.fromJson(event, SearchResultTorrentEvent.class);
 
             case ChannelDiscoveredEvent.TYPE:
-                return _gson.fromJson(eventString, ChannelDiscoveredEvent.class);
+                //return _gson.fromJson(event, ChannelDiscoveredEvent.class);
+                return null;
 
             case TorrentDiscoveredEvent.TYPE:
-                return _gson.fromJson(eventString, TorrentDiscoveredEvent.class);
+                //return _gson.fromJson(event, TorrentDiscoveredEvent.class);
+                return null;
 
             default:
                 Log.e("parseEvent", String.format("Unknown event type: %s", container.getType()));

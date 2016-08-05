@@ -1,9 +1,11 @@
 package org.tribler.android.restapi.json;
 
+import com.google.gson.JsonElement;
+
 public class EventContainer {
 
     private String type;
-    private Object event;
+    private JsonElement event;
 
     EventContainer() {
     }
@@ -12,7 +14,7 @@ public class EventContainer {
         return type;
     }
 
-    public Object getEvent() {
+    public JsonElement getEvent() {
         return event;
     }
 
