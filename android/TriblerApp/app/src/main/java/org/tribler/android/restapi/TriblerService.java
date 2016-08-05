@@ -21,7 +21,7 @@ public class TriblerService {
     public static IRestApi createService(final String baseUrl, final String authToken) {
 
         OkHttpClient.Builder okHttp = new OkHttpClient.Builder()
-                .readTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(90, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)
                 //.addNetworkInterceptor(new StethoInterceptor()) //DEBUG
                 .retryOnConnectionFailure(true)
