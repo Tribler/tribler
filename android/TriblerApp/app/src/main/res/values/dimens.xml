@@ -3,7 +3,7 @@
     <dimen name="activity_horizontal_margin">16dp</dimen>
     <dimen name="activity_vertical_margin">16dp</dimen>
 
-    <dimen name="fast_scrollbar_width">16dp</dimen>
+    <dimen name="fast_scrollbar_width">25dp</dimen>
 
     <dimen name="nav_header_padding">16dp</dimen>
     <dimen name="nav_logo_margin_top">16dp</dimen>
