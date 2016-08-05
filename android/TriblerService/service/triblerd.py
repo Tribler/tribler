@@ -12,7 +12,7 @@ class Triblerd(object):
         os.environ['PYTHON_EGG_CACHE'] = os.path.realpath(os.path.join(os.getenv('ANDROID_PRIVATE'), '../cache'))
 
         # Set logging format and level
-        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.ERROR)
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.WARNING)
 
         # Executable ffmpeg binary
         os.chmod('ffmpeg', 0755)
