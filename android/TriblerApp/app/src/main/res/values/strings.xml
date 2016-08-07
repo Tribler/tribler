@@ -49,6 +49,8 @@
     <string name="action_settings">Change settings</string>
     <string name="action_feedback">Send feedback</string>
     <string name="action_shutdown">Shutdown service</string>
+    <string name="action_shutdown_short">Shutdown</string>
+    <string name="dialog_shutdown">Tribler will exit and stop all running tasks if you shutdown the service.\n\nShutdown Tribler service now?</string>
 
     <string name="warning_lost_connection">WARNING: Wi-Fi connection lost!</string>
     <string name="info_no_connection">No Wi-Fi connection detected</string>

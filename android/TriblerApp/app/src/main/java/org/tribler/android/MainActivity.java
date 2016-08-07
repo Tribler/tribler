@@ -177,6 +177,10 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                     Toast.makeText(MainActivity.this, R.string.warning_lost_connection, Toast.LENGTH_LONG).show();
                 }
                 return;
+
+            case Intent.ACTION_SHUTDOWN:
+                shutdown();
+                return;
         }
     }
 
@@ -378,12 +382,12 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     public void navFeedbackClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         String url = getString(R.string.app_feedback_url);
-        Intent browserIntent = MyUtils.viewIntent(Uri.parse(url));
+        Intent browse = MyUtils.viewIntent(Uri.parse(url));
         // Ask user to open url
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage(url);
         builder.setPositiveButton(getText(R.string.action_go), (dialog, which) -> {
-            startActivity(browserIntent);
+            startActivity(browse);
         });
         builder.setNegativeButton(getText(R.string.action_cancel), (dialog, which) -> {
             // Do nothing
@@ -394,7 +398,29 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
     public void navShutdownClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
+        Intent shutdown = new Intent(Intent.ACTION_SHUTDOWN);
+        // Ask user to open url
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(getString(R.string.dialog_shutdown));
+        builder.setPositiveButton(getText(R.string.action_shutdown_short), (dialog, which) -> {
+            onNewIntent(shutdown);
+        });
+        builder.setNegativeButton(getText(R.string.action_cancel), (dialog, which) -> {
+            // Do nothing
+        });
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
 
+    public void btnMyChannelAddClicked(MenuItem item) {
+        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_main);
+        if (fragment instanceof MyChannelFragment) {
+            MyChannelFragment mychannel = (MyChannelFragment) fragment;
+            //TODO
+        }
+    }
+
+    private void shutdown() {
         // Clear view
         removeFragment();
 
@@ -414,7 +440,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                 .subscribe(new Observer<ShutdownAck>() {
 
                     public void onNext(ShutdownAck response) {
-                        Log.v("navShutdownClicked", response.toString());
+                        Log.v("shutdown", response.toString());
                     }
 
                     public void onCompleted() {
@@ -432,14 +458,6 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                         Process.killProcess(Process.myPid());
                     }
                 }));
-    }
-
-    public void btnMyChannelAddClicked(MenuItem item) {
-        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_main);
-        if (fragment instanceof MyChannelFragment) {
-            MyChannelFragment mychannel = (MyChannelFragment) fragment;
-            //TODO
-        }
     }
 
 }
