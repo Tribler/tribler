@@ -3,10 +3,12 @@ package org.tribler.android;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.LayoutRes;
+import android.support.v4.app.NavUtils;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.MenuItem;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -65,6 +67,20 @@ public abstract class BaseActivity extends AppCompatActivity {
         if (actionbar != null && layoutResID != R.layout.activity_main) {
             actionbar.setDisplayHomeAsUpEnabled(true);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Respond to the action bar's Up/Home button
+        if (android.R.id.home == item.getItemId() && NavUtils.getParentActivityName(this) == null) {
+            // Redirect SupportActionBar back button to regular back button
+            onBackPressed();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     /**
