@@ -16,13 +16,13 @@
             android:id="@+id/nav_my_playlists"
             android:icon="@drawable/ic_menu_playlists"
             android:onClick="navMyPlaylistsClicked"
-            android:title="@string/action_playlists"
+            android:title="@string/action_my_playlists"
             android:visible="false" />
         <item
             android:id="@+id/nav_popular"
             android:icon="@drawable/ic_menu_flame"
             android:onClick="navPopularClicked"
-            android:title="@string/action_browse_channels" />
+            android:title="@string/action_popular_channels" />
     </group>
 
     <item android:title="@string/title_create_content">

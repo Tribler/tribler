@@ -4,7 +4,7 @@
     android:layout_height="wrap_content">
 
     <item
-        android:id="@+id/action_mychannel_add"
+        android:id="@+id/btn_add_my_channel"
         android:icon="@drawable/ic_action_plus"
         android:onClick="btnMyChannelAddClicked"
         android:title="@string/action_mychannel_add"

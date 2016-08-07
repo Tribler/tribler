@@ -1,7 +1,6 @@
 package org.tribler.android;
 
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -154,20 +153,14 @@ public class BeamActivity extends BaseActivity {
         // Ask user to turn on NFC and/or Android Beam
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage(getText(stringId));
-        builder.setPositiveButton(getText(R.string.action_turn_on), new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                handleIntent(new Intent(action));
-            }
+        builder.setPositiveButton(getText(R.string.action_turn_on), (dialog, which) -> {
+            handleIntent(new Intent(action));
         });
-        builder.setNegativeButton(getText(R.string.action_cancel), new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                // Pretend NFC is not available
-                _nfcAdapter = null;
-                // Proceed with original intent
-                handleIntent(getIntent());
-            }
+        builder.setNegativeButton(getText(R.string.action_cancel), (dialog, which) -> {
+            // Pretend NFC is not available
+            _nfcAdapter = null;
+            // Proceed with original intent
+            handleIntent(getIntent());
         });
         AlertDialog dialog = builder.create();
         dialog.show();

@@ -42,12 +42,16 @@ public class MyUtils {
         return _refWatcher;
     }
 
+    public static String getPackageName() {
+        return MyUtils.class.getPackage().getName();
+    }
+
     /**
      * Helper method to determine if the device has an extra-large screen. For
      * example, 10" tablets are extra-large.
      */
-    public static boolean isXLargeTablet(Context context) {
-        return (context.getResources().getConfiguration().screenLayout
+    public static boolean isXLargeTablet(Context ctx) {
+        return (ctx.getResources().getConfiguration().screenLayout
                 & Configuration.SCREENLAYOUT_SIZE_MASK) >= Configuration.SCREENLAYOUT_SIZE_XLARGE;
     }
 
@@ -64,22 +68,31 @@ public class MyUtils {
         return new Intent(Intent.ACTION_VIEW, uri);
     }
 
-    public static Intent viewChooser(Uri uri, CharSequence title) {
-        Intent intent = viewIntent(uri);
-        return Intent.createChooser(intent, title);
+    public static Intent editChannel(String dispersyCid, String name, String description) {
+        Intent intent = new Intent(Intent.ACTION_EDIT);
+        intent.setClassName(getPackageName(), EditChannelActivity.class.getName());
+        intent.putExtra(ChannelActivity.EXTRA_DISPERSY_CID, dispersyCid);
+        intent.putExtra(ChannelActivity.EXTRA_NAME, name);
+        intent.putExtra(ChannelActivity.EXTRA_DESCRIPTION, description);
+        return intent;
     }
 
-    public static Intent sendBeam(Uri uri, Context ctx) {
-        Intent intent = new Intent(ctx, BeamActivity.class);
-        intent.setAction(Intent.ACTION_SEND);
+    public static Intent createChannel() {
+        Intent intent = new Intent(MyChannelFragment.ACTION_CREATE_CHANNEL);
+        intent.setClassName(getPackageName(), EditChannelActivity.class.getName());
+        return intent;
+    }
+
+    public static Intent sendBeam(Uri uri) {
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setClassName(getPackageName(), BeamActivity.class.getName());
         intent.putExtra(Intent.EXTRA_STREAM, uri);
         intent.setType(getMimeType(uri));
         return intent;
     }
 
     public static Intent sendIntent(Uri uri) {
-        Intent intent = new Intent();
-        intent.setAction(Intent.ACTION_SEND);
+        Intent intent = new Intent(Intent.ACTION_SEND);
         intent.putExtra(Intent.EXTRA_STREAM, uri);
         intent.setType(getMimeType(uri));
         return intent;

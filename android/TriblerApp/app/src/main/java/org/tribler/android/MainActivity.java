@@ -19,7 +19,9 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatDelegate;
 import android.text.TextUtils;
 import android.util.Log;
@@ -52,6 +54,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     public static final int SEARCH_ACTIVITY_REQUEST_CODE = 102;
 
     static {
+        // Backwards compatibility for vector graphics
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
     }
 
@@ -241,7 +244,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         Observer observer = new Observer<Intent>() {
 
             public void onNext(Intent intent) {
-                onNewIntent(intent);
+                handleIntent(intent);
             }
 
             public void onCompleted() {
@@ -316,20 +319,34 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     public void navSubscriptionsClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         switchFragment(SubscribedFragment.class);
+        // Set title
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setTitle(getText(R.string.action_subscriptions));
+        }
     }
 
     public void navMyChannelClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         switchFragment(MyChannelFragment.class);
+        // Set title
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setTitle(getText(R.string.action_my_channel));
+        }
     }
 
     public void navMyPlaylistsClicked(MenuItem item) {
-        drawer.closeDrawer(GravityCompat.START);
     }
 
     public void navPopularClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         switchFragment(PopularFragment.class);
+        // Set title
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setTitle(getText(R.string.action_popular_channels));
+        }
     }
 
     public void navCaptureVideoClicked(MenuItem item) {
@@ -351,20 +368,28 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     public void navBeamClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         File apk = new File(this.getPackageResourcePath());
-        Intent beamIntent = MyUtils.sendBeam(Uri.fromFile(apk), this);
+        Intent beamIntent = MyUtils.sendBeam(Uri.fromFile(apk));
         startActivity(beamIntent);
     }
 
     public void navSettingsClicked(MenuItem item) {
-        drawer.closeDrawer(GravityCompat.START);
     }
 
     public void navFeedbackClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
-        CharSequence title = getText(R.string.app_feedback_url);
-        Uri uri = Uri.parse(title.toString());
-        Intent browserIntent = MyUtils.viewChooser(uri, title);
-        startActivity(browserIntent);
+        String url = getString(R.string.app_feedback_url);
+        Intent browserIntent = MyUtils.viewIntent(Uri.parse(url));
+        // Ask user to open url
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(url);
+        builder.setPositiveButton(getText(R.string.action_go), (dialog, which) -> {
+            startActivity(browserIntent);
+        });
+        builder.setNegativeButton(getText(R.string.action_cancel), (dialog, which) -> {
+            // Do nothing
+        });
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     public void navShutdownClicked(MenuItem item) {
