@@ -20,6 +20,8 @@
     <string name="action_ok">OK</string>
     <string name="action_go">Go</string>
     <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_create">Create</string>
     <string name="action_turn_on">Turn On</string>
 
     <string name="action_search">Search videos and channels</string>
@@ -68,5 +70,10 @@
     <string name="status_opening_eventstream">Starting service…</string>
     <string name="status_searching">Searching…</string>
     <string name="status_shutting_down">Shutting down…</string>
+
+    <string name="channel_name_label">Channel name</string>
+    <string name="channel_description_label">Description</string>
+    <string name="status_creating_channel">Creating channel…</string>
+    <string name="my_channel_explanation">Create your own channel to publish your content!\n\nOthers can add your channel to their favorites to keep up to date and boost your channel\'s popularity!</string>
 
 </resources>

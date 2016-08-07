@@ -73,8 +73,8 @@ public class DefaultInteractionListFragment extends ListFragment implements List
     public void onClick(final TriblerChannel channel) {
         Intent intent = new Intent(_context, ChannelActivity.class);
         intent.setAction(Intent.ACTION_GET_CONTENT);
-        intent.putExtra(Intent.EXTRA_TITLE, channel.getName());
         intent.putExtra(ChannelActivity.EXTRA_DISPERSY_CID, channel.getDispersyCid());
+        intent.putExtra(ChannelActivity.EXTRA_NAME, channel.getName());
         intent.putExtra(ChannelActivity.EXTRA_SUBSCRIBED, channel.isSubscribed());
         startActivityForResult(intent, CHANNEL_ACTIVITY_REQUEST_CODE);
     }
@@ -84,18 +84,25 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == CHANNEL_ACTIVITY_REQUEST_CODE) {
-            if (resultCode == Activity.RESULT_FIRST_USER) {
-                // Update the subscription status of the channel identified by dispersy_cid
-                String dispersyCid = data.getStringExtra(ChannelActivity.EXTRA_DISPERSY_CID);
-                boolean subscribed = data.getBooleanExtra(ChannelActivity.EXTRA_SUBSCRIBED, false);
-                TriblerChannel channel = adapter.findByDispersyCid(dispersyCid);
-                if (channel != null) {
-                    channel.setSubscribed(subscribed);
-                    // Update view
-                    adapter.notifyObjectChanged(channel);
+        switch (requestCode) {
+
+            case CHANNEL_ACTIVITY_REQUEST_CODE:
+                switch (resultCode) {
+
+                    case Activity.RESULT_FIRST_USER:
+                        // Update the subscription status of the channel identified by dispersy_cid
+                        String dispersyCid = data.getStringExtra(ChannelActivity.EXTRA_DISPERSY_CID);
+                        boolean subscribed = data.getBooleanExtra(ChannelActivity.EXTRA_SUBSCRIBED, false);
+
+                        TriblerChannel channel = adapter.findByDispersyCid(dispersyCid);
+                        if (channel != null) {
+                            channel.setSubscribed(subscribed);
+                            // Update view
+                            adapter.notifyObjectChanged(channel);
+                        }
+                        break;
                 }
-            }
+                break;
         }
     }
 

@@ -1,7 +1,5 @@
 package org.tribler.android;
 
-import android.graphics.drawable.ShapeDrawable;
-import android.graphics.drawable.shapes.OvalShape;
 import android.net.Uri;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
@@ -183,14 +181,7 @@ public class TriblerViewAdapter extends FilterableRecyclerViewAdapter {
                 holder.icon.setImageURI(Uri.fromFile(icon));
             } else {
                 holder.nameCapital.setText(MyUtils.getCapitals(holder.channel.getName(), 2));
-                try {
-                    int color = MyUtils.getColor(holder.channel.hashCode());
-                    ShapeDrawable circle = new ShapeDrawable(new OvalShape());
-                    circle.getPaint().setColor(color);
-                    circle.setBounds(0, 0, holder.icon.getWidth(), holder.icon.getHeight());
-                    holder.icon.setBackground(circle);
-                } catch (Exception ex) {
-                }
+                MyUtils.setCicleBackground(holder.icon, MyUtils.getColor(holder.channel.hashCode()));
             }
             holder.view.setOnClickListener(view -> {
                 if (_clickListener != null) {

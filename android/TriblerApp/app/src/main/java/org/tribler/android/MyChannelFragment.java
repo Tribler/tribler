@@ -1,6 +1,10 @@
 package org.tribler.android;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v7.app.ActionBar;
 import android.support.v7.widget.SearchView;
 import android.util.Log;
 import android.view.Menu;
@@ -11,15 +15,24 @@ import android.view.View;
 import com.jakewharton.rxbinding.support.v7.widget.RxSearchView;
 import com.jakewharton.rxbinding.support.v7.widget.SearchViewQueryTextEvent;
 
-import org.tribler.android.restapi.json.TriblerChannel;
+import org.tribler.android.restapi.json.ChannelOverviewPart;
+import org.tribler.android.restapi.json.MyChannelResponse;
 import org.tribler.android.restapi.json.TriblerTorrent;
 
+import retrofit2.adapter.rxjava.HttpException;
 import rx.Observable;
 import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
 public class MyChannelFragment extends DefaultInteractionListFragment {
+
+    public static final String ACTION_CREATE_CHANNEL = "org.tribler.android.channel.CREATE";
+
+    public static final int CREATE_CHANNEL_ACTIVITY_REQUEST_CODE = 401;
+    public static final int EDIT_CHANNEL_ACTIVITY_REQUEST_CODE = 402;
+
+    private ChannelOverviewPart _overview;
 
     /**
      * {@inheritDoc}
@@ -29,6 +42,18 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
         loadMyChannel();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        // Is my channel created?
+        boolean created = _overview != null;
+
+        //TODO show error state
     }
 
     /**
@@ -71,6 +96,19 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         super.onPrepareOptionsMenu(menu);
         // Hide main search button
         menu.findItem(R.id.btn_search).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
+
+        // Is my channel created?
+        boolean created = _overview != null;
+        menu.findItem(R.id.btn_add_my_channel).setEnabled(created);
+        menu.findItem(R.id.btn_filter_my_channel).setEnabled(created);
+
+        // Set title
+        if (created) {
+            ActionBar actionBar = ((BaseActivity) getActivity()).getSupportActionBar();
+            if (actionBar != null) {
+                actionBar.setTitle(_overview.getName());
+            }
+        }
     }
 
     /**
@@ -103,14 +141,23 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     }
 
     private void loadMyChannel() {
-        loading = service.getPopularChannels(5)
+        loading = service.getMyChannel()
                 .subscribeOn(Schedulers.io())
-                .flatMap(response -> Observable.from(response.getChannels()))
+                .map(MyChannelResponse::getOverview)
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<TriblerChannel>() {
+                .doOnNext(overview -> {
+                    // Side effects:
+                    _overview = overview;
+                    if (isAdded()) {
+                        getActivity().invalidateOptionsMenu();
+                    }
+                })
+                .switchMap(overview -> service.getTorrents(_overview.getIdentifier()))
+                .flatMap(response -> Observable.from(response.getTorrents()))
+                .subscribe(new Observer<TriblerTorrent>() {
 
-                    public void onNext(TriblerChannel channel) {
-                        adapter.addObject(channel);
+                    public void onNext(TriblerTorrent torrent) {
+                        adapter.addObject(torrent);
                     }
 
                     public void onCompleted() {
@@ -119,11 +166,43 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("loadMyChannel", "getChannels", e);
-                        // Retry
-                        reload();
+                        if (e instanceof HttpException && ((HttpException) e).code() == 404) {
+                            // My channel has not been created yet
+                            Intent createIntent = MyUtils.createChannel();
+                            startActivityForResult(createIntent, CREATE_CHANNEL_ACTIVITY_REQUEST_CODE);
+                        } else {
+                            Log.e("loadMyChannel", "getOverview", e);
+                            // Retry
+                            reload();
+                        }
                     }
                 });
         rxSubs.add(loading);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+
+            case CREATE_CHANNEL_ACTIVITY_REQUEST_CODE:
+                switch (resultCode) {
+
+                    case Activity.RESULT_OK:
+                        loadMyChannel();
+                        break;
+
+                    case Activity.RESULT_CANCELED:
+                        // Hide loading indicator
+                        progressView.setVisibility(View.GONE);
+
+                        //TODO: show error message
+                        break;
+                }
+                break;
+        }
+    }
+
 }

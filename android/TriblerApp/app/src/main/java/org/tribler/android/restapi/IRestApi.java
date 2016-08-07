@@ -15,6 +15,7 @@ import org.tribler.android.restapi.json.UnsubscribedAck;
 import java.io.Serializable;
 
 import retrofit2.http.DELETE;
+import retrofit2.http.Field;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
@@ -41,10 +42,18 @@ public interface IRestApi {
     Observable<MyChannelResponse> getMyChannel();
 
     @POST("/mychannel")
-    Observable<ModifiedAck> editMyChannel();
+    Observable<ModifiedAck> editMyChannel(
+            @Field("name") String name,
+            @Field("description") String description
+    );
 
     @PUT("/channels/discovered")
-    Observable<AddedChannelAck> createChannel();
+        //@FormUrlEncoded
+    Observable<AddedChannelAck> createChannel(
+            @Field("name") String name,
+            @Field("description") String description
+            //@Field("mode") String mode
+    );
 
     @GET("/channels/popular")
     Observable<ChannelsResponse> getPopularChannels(

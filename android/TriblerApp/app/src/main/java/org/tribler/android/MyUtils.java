@@ -5,12 +5,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.graphics.drawable.ShapeDrawable;
+import android.graphics.drawable.shapes.OvalShape;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.webkit.MimeTypeMap;
+import android.widget.ImageView;
 
 import com.squareup.leakcanary.LeakCanary;
 import com.squareup.leakcanary.RefWatcher;
@@ -19,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Random;
 
 import okio.BufferedSource;
 import rx.Observable;
@@ -31,6 +35,8 @@ public class MyUtils {
      */
     private MyUtils() {
     }
+
+    private static Random rand = new Random();
 
     private static RefWatcher _refWatcher;
 
@@ -161,11 +167,38 @@ public class MyUtils {
         return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 
-    public static int getColor(int hashCode) throws Exception {
+    public static int getColor(int hashCode) {
         int r = (hashCode & 0xFF0000) >> 16;
         int g = (hashCode & 0x00FF00) >> 8;
         int b = hashCode & 0x0000FF;
         return Color.rgb(r, g, b);
+    }
+
+    public static void setCicleBackground(ImageView view, int color) {
+        ShapeDrawable circle = new ShapeDrawable(new OvalShape());
+        circle.getPaint().setColor(color);
+        circle.setBounds(0, 0, view.getWidth(), view.getHeight());
+        view.setBackground(circle);
+    }
+
+    public static int randInt() {
+        return randInt(0, Integer.MAX_VALUE);
+    }
+
+    /**
+     * Returns a pseudo-random number between min and max, inclusive.
+     * The difference between min and max can be at most
+     * <code>Integer.MAX_VALUE - 1</code>.
+     *
+     * @param min Minimum value
+     * @param max Maximum value.  Must be greater than min.
+     * @return Integer between min and max, inclusive.
+     * @see java.util.Random#nextInt(int)
+     */
+    public static int randInt(int min, int max) {
+        // nextInt is normally exclusive of the top value,
+        // so add 1 to make it inclusive
+        return rand.nextInt((max - min) + 1) + min;
     }
 
     public static String getCapitals(CharSequence sequence, int amount) {

@@ -16,9 +16,12 @@ import rx.Observer;
 
 public class ChannelActivity extends BaseActivity {
 
-    public static final String ACTION_TOGGLE_SUBSCRIBED = "org.tribler.android.TOGGLE_SUBSCRIBED";
-    public static final String EXTRA_SUBSCRIBED = "org.tribler.android.SUBSCRIBED";
-    public static final String EXTRA_DISPERSY_CID = "org.tribler.android.dispersy.CID";
+    public static final String ACTION_TOGGLE_SUBSCRIBED = "org.tribler.android.channel.TOGGLE_SUBSCRIBED";
+
+    public static final String EXTRA_DISPERSY_CID = "org.tribler.android.channel.dispersy.CID";
+    public static final String EXTRA_NAME = "org.tribler.android.channel.NAME";
+    public static final String EXTRA_DESCRIPTION = "org.tribler.android.channel.DESCRIPTION";
+    public static final String EXTRA_SUBSCRIBED = "org.tribler.android.channel.SUBSCRIBED";
 
     private ChannelFragment _fragment;
 
@@ -106,9 +109,9 @@ public class ChannelActivity extends BaseActivity {
         if (TextUtils.isEmpty(action)) {
             return;
         }
-        String title = intent.getStringExtra(Intent.EXTRA_TITLE);
-        String dispersyCid = intent.getStringExtra(ChannelActivity.EXTRA_DISPERSY_CID);
-        boolean subscribed = intent.getBooleanExtra(ChannelActivity.EXTRA_SUBSCRIBED, false);
+        String dispersyCid = intent.getStringExtra(EXTRA_DISPERSY_CID);
+        String name = intent.getStringExtra(EXTRA_NAME);
+        boolean subscribed = intent.getBooleanExtra(EXTRA_SUBSCRIBED, false);
 
         switch (action) {
 
@@ -117,20 +120,20 @@ public class ChannelActivity extends BaseActivity {
                 ActionBar actionBar = getSupportActionBar();
                 if (actionBar != null) {
                     if (!subscribed) {
-                        title = getString(R.string.title_channel_preview) + ": " + title;
+                        name = getString(R.string.title_channel_preview) + ": " + name;
                     }
-                    actionBar.setTitle(title);
+                    actionBar.setTitle(name);
                 }
                 return;
 
             case ACTION_TOGGLE_SUBSCRIBED:
                 if (subscribed) {
-                    _fragment.unsubscribe(dispersyCid, subscribed, title);
+                    _fragment.unsubscribe(dispersyCid, subscribed, name);
                 } else {
-                    _fragment.subscribe(dispersyCid, subscribed, title);
+                    _fragment.subscribe(dispersyCid, subscribed, name);
                 }
                 // Update view
-                intent.putExtra(ChannelActivity.EXTRA_SUBSCRIBED, !subscribed);
+                intent.putExtra(EXTRA_SUBSCRIBED, !subscribed);
                 invalidateOptionsMenu();
 
                 // Flag modification

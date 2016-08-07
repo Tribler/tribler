@@ -100,10 +100,15 @@
         </activity>
         <activity
             android:name=".BeamActivity"
+            android:label="@string/action_send_app"
             android:launchMode="singleTop"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".ChannelActivity"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".EditChannelActivity"
+            android:label="@string/action_my_channel"
             android:theme="@style/AppTheme.NoActionBar" />
     </application>
 
