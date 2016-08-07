@@ -1,4 +1,4 @@
-/* automatically increment version code by 1 each build */
+// Automatically increment version code by 1 each build
 def Properties versionProps = new Properties()
 def versionPropsFile = file('version.properties')
 if (versionPropsFile.exists())
@@ -7,23 +7,32 @@ def code = (versionProps['VERSION_CODE'] ?: "0").toInteger() + 1
 versionProps['VERSION_CODE'] = code.toString()
 versionProps.store(versionPropsFile.newWriter(), null)
 
+// Gradle experimental format
 apply plugin: 'com.android.model.application'
 
 model {
     android {
+        // Use latest and greatest version
         compileSdkVersion 24
         buildToolsVersion "24.0.1"
 
         defaultConfig {
             applicationId "org.tribler.android"
+            // Android Beam supports large payload transfers
+            // over Bluetooth since api level 16
             minSdkVersion.apiLevel 16
             targetSdkVersion.apiLevel 24
+            // Auto increment, see above
             versionCode code
+            // Used for python files versioning
             versionName "build " + code
+            // Backwards compatibility for vector graphics
             vectorDrawables.useSupportLibrary = true
+            // Java 8 features
             jackOptions {
                 enabled = true
             }
+            // Gradle experimental create build
             buildConfigFields {
                 create() {
                     type "int"
@@ -32,6 +41,7 @@ model {
                 }
             }
         }
+        // NDK config mirrors python-for-android toolchain config
         ndk {
             abiFilters.add("armeabi-v7a")
             moduleName = "main"
@@ -47,6 +57,8 @@ model {
         // Configures source set directory.
         sources {
             main {
+                // All native code, but start.c and pyjniusjni.c,
+                // is already compiled in jniLibs, exclude src
                 jni {
                     source {
                         exclude "**/winsock_pointers.c"
@@ -54,6 +66,7 @@ model {
                         exclude "**/portmap.c"
                     }
                 }
+                // References prebuilt libraries defined below
                 jniLibs {
                     dependencies {
                         library "gnustl_shared"
@@ -73,6 +86,7 @@ model {
         }
     }
     repositories {
+        // Prebuilt with python-for-android toolchain
         libs(PrebuiltLibraries) {
             boost_date_time {
                 binaries.withType(SharedLibraryBinary) {
@@ -121,11 +135,17 @@ model {
             }
             ssl {
                 binaries.withType(SharedLibraryBinary) {
+                    // Android does not have regular versioning of .so files, but does have an
+                    // old version of openssl build in which prevents the loading libssl.so
+                    // included with the app, therefore a custom name with version was introduced
                     sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libssl1.0.2h.so")
                 }
             }
             torrent_rasterbar {
                 binaries.withType(SharedLibraryBinary) {
+                    // When the python bindings shared library and the native one have the same name
+                    // it causes a cyclic dependency reference on runtime, therefore the native
+                    // .so file was renamed to include _rasterbar
                     sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libtorrent_rasterbar.so")
                 }
             }
