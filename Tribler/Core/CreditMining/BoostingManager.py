@@ -325,6 +325,14 @@ class BoostingManager(TaskManager):
         lt_torrent = self.session.lm.ltmgr.get_session().find_torrent(ihash)
         if download and lt_torrent.is_valid():
             self._logger.info("Writing resume data for %s", str(ihash))
+
+            handle = download.handle
+            if not handle.is_valid():
+                self._logger.error("Handle %s is not valid", str(ihash))
+            if not handle.has_metadata():
+                self._logger.error("Metadata %s is not valid", str(ihash))
+            handle.pause()
+
             download.save_resume_data()
             self.session.remove_download(download, hidden=True)
 
