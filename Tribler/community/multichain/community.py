@@ -10,7 +10,6 @@ import logging
 import base64
 
 from twisted.internet.task import LoopingCall
-from Tribler.Core.Session import Session
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
 from Tribler.dispersy.authentication import DoubleMemberAuthentication, MemberAuthentication
@@ -43,9 +42,8 @@ class MultiChainCommunity(Community):
     def __init__(self, *args, **kwargs):
         super(MultiChainCommunity, self).__init__(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.notifier = Session.get_instance().notifier
-        self.notifier.add_observer(self.on_tunnel_remove, NTFY_TUNNEL, [NTFY_REMOVE])
 
+        self.notifier = None
         self._private_key = self.my_member.private_key
         self._public_key = self.my_member.public_key
         self.persistence = MultiChainDB(self.dispersy, self.dispersy.working_directory)
@@ -53,6 +51,12 @@ class MultiChainCommunity(Community):
 
         # No response is expected yet.
         self.expected_response = None
+
+    def initialize(self, tribler_session=None):
+        super(MultiChainCommunity, self).initialize()
+        if tribler_session:
+            self.notifier = tribler_session.notifier
+            self.notifier.add_observer(self.on_tunnel_remove, NTFY_TUNNEL, [NTFY_REMOVE])
 
     @classmethod
     def get_master_members(cls, dispersy):
@@ -382,7 +386,8 @@ class MultiChainCommunity(Community):
 
     def unload_community(self):
         self.logger.debug("Unloading the MultiChain Community.")
-        self.notifier.remove_observer(self.on_tunnel_remove)
+        if self.notifier:
+            self.notifier.remove_observer(self.on_tunnel_remove)
         super(MultiChainCommunity, self).unload_community()
         # Close the persistence layer
         self.persistence.close()
