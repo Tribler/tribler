@@ -32,7 +32,7 @@ class TestMultichainStatsEndpoint(AbstractApiTest):
         Testing whether the API returns error 404 if no multichain community is loaded
         """
         self.dispersy.get_communities = lambda: []
-        return self.do_request('multichain/stats', expected_code=404)
+        return self.do_request('multichain/statistics', expected_code=404)
 
     @deferred(timeout=10)
     def test_get_statistics(self):
@@ -60,8 +60,8 @@ class TestMultichainStatsEndpoint(AbstractApiTest):
 
         def verify_response(response):
             response_json = json.loads(response)
-            self.assertTrue("stats" in response_json)
-            stats = response_json["stats"]
+            self.assertTrue("statistics" in response_json)
+            stats = response_json["statistics"]
             self.assertEqual(stats["self_id"], base64.encodestring(self.member.public_key).strip())
             self.assertEqual(stats["self_total_blocks"], 3)
             self.assertEqual(stats["self_total_up_mb"], 1024)
@@ -74,7 +74,7 @@ class TestMultichainStatsEndpoint(AbstractApiTest):
             self.assertEqual(stats["latest_block_down_mb"], "8")
 
         self.should_check_equality = False
-        return self.do_request('multichain/stats', expected_code=200).addCallback(verify_response)
+        return self.do_request('multichain/statistics', expected_code=200).addCallback(verify_response)
 
     @deferred(timeout=10)
     def test_get_statistics_no_data(self):
@@ -84,8 +84,8 @@ class TestMultichainStatsEndpoint(AbstractApiTest):
 
         def verify_response(response):
             response_json = json.loads(response)
-            self.assertTrue("stats" in response_json)
-            stats = response_json["stats"]
+            self.assertTrue("statistics" in response_json)
+            stats = response_json["statistics"]
             self.assertEqual(stats["self_id"], base64.encodestring(self.member.public_key).strip())
             self.assertEqual(stats["self_total_blocks"], -1)
             self.assertEqual(stats["self_total_up_mb"], 0)
@@ -98,4 +98,4 @@ class TestMultichainStatsEndpoint(AbstractApiTest):
             self.assertEqual(stats["latest_block_down_mb"], "")
 
         self.should_check_equality = False
-        return self.do_request('multichain/stats', expected_code=200).addCallback(verify_response)
+        return self.do_request('multichain/statistics', expected_code=200).addCallback(verify_response)

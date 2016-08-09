@@ -13,7 +13,7 @@ class MultichainEndpoint(resource.Resource):
     def __init__(self, session):
         resource.Resource.__init__(self)
 
-        child_handler_dict = {"stats": MultichainStatsEndpoint}
+        child_handler_dict = {"statistics": MultichainStatsEndpoint}
 
         for path, child_cls in child_handler_dict.iteritems():
             self.putChild(path, child_cls(session))
@@ -21,7 +21,7 @@ class MultichainEndpoint(resource.Resource):
 
 class MultichainStatsEndpoint(resource.Resource):
     """
-    This class handles requests regarding the tunnel community debug information.
+    This class handles requests regarding the multichain community information.
     """
 
     def __init__(self, session):
@@ -39,7 +39,7 @@ class MultichainStatsEndpoint(resource.Resource):
 
     def render_GET(self, request):
         """
-        .. http:get:: /multichain/stats
+        .. http:get:: /multichain/statistics
 
         A GET request to this endpoint returns statistics about the multichain community
 
@@ -47,26 +47,26 @@ class MultichainStatsEndpoint(resource.Resource):
 
             .. sourcecode:: none
 
-                curl -X GET http://localhost:8085/multichain/stats
+                curl -X GET http://localhost:8085/multichain/statistics
 
             **Example response**:
 
             .. sourcecode:: javascript
 
                 {
-                  "stats":
-                  {
-                    "self_id": "Xf/gH2J7+BBAg=",
-                    "self_total_blocks": 42,
-                    "self_total_up_mb": 42,
-                    "self_total_down_mb": 42,
-                    "latest_block_insert_time": "2016-08-04 12:29:00",
-                    "latest_block_id": "KYbEe/gH2J7+BBTtg=",
-                    "latest_block_requester_id": "Xf/gH2J7+BBAg=",
-                    "latest_block_responder_id": "some+base64+string==",
-                    "latest_block_up_mb": "42",
-                    "latest_block_down_mb": "42"
-                  }
+                    "statistics":
+                    {
+                        "self_id": "TGliTmFDTFBLO...VGbxS406vrI=",
+                        "latest_block_insert_time": "2016-08-04 12:01:53",
+                        "self_total_blocks": 8537,
+                        "latest_block_id": "Sv03SmkiuL+F4NWxHYdeB6PQeQa/p74EEVQoOVuSz+k=",
+                        "latest_block_requester_id": "TGliTmFDTFBLO...nDwlVIk69tc=",
+                        "latest_block_up_mb": "19",
+                        "self_total_down_mb": 108904,
+                        "latest_block_down_mb": "0",
+                        "self_total_up_mb": 95138,
+                        "latest_block_responder_id": "TGliTmFDTFBLO...VGbxS406vrI="
+                    }
                 }
         """
         mc_community = self.get_multichain_community()
@@ -74,4 +74,4 @@ class MultichainStatsEndpoint(resource.Resource):
             request.setResponseCode(http.NOT_FOUND)
             return json.dumps({"error": "multichain community not found"})
 
-        return json.dumps({'stats': mc_community.get_statistics()})
+        return json.dumps({'statistics': mc_community.get_statistics()})
