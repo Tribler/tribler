@@ -7,8 +7,8 @@ import logging
 from ConfigParser import MissingSectionHeaderError, ParsingError
 
 from Tribler import LIBRARYNAME
-from Tribler.Category.init_category import getCategoryInfo
-from Tribler.Category.FamilyFilter import XXXFilter
+from Tribler.Core.Category.init_category import getCategoryInfo
+from Tribler.Core.Category.FamilyFilter import XXXFilter
 from Tribler.Core.Utilities.install_dir import determine_install_dir
 
 CATEGORY_CONFIG_FILE = "category.conf"
@@ -27,7 +27,7 @@ class Category(object):
 
         if Category.__single:
             raise RuntimeError("Category is singleton")
-        filename = os.path.join(self.install_dir, LIBRARYNAME, u'Category', CATEGORY_CONFIG_FILE)
+        filename = os.path.join(self.install_dir, LIBRARYNAME, u'Core', u'Category', CATEGORY_CONFIG_FILE)
         Category.__single = self
         try:
             self.category_info = getCategoryInfo(filename)

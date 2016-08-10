@@ -12,7 +12,7 @@ from traceback import print_exc
 # pylint complaining if wx imported before those three
 import wx
 
-from Tribler.Category.Category import Category
+from Tribler.Core.Category.Category import Category
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.Session import Session
 from Tribler.Core.Video.VideoUtility import considered_xxx

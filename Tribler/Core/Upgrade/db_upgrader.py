@@ -13,7 +13,7 @@ from binascii import hexlify
 from shutil import rmtree
 from sqlite3 import Connection
 
-from Tribler.Category.Category import Category
+from Tribler.Core.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler
 from Tribler.Core.CacheDB.db_versions import LOWEST_SUPPORTED_DB_VERSION, LATEST_DB_VERSION
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin

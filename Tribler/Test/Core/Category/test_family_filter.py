@@ -1,6 +1,6 @@
 import os
 
-from Tribler.Category.FamilyFilter import XXXFilter
+from Tribler.Core.Category.FamilyFilter import XXXFilter
 from Tribler.Test.test_as_server import AbstractServer
 
 

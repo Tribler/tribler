@@ -1,12 +1,11 @@
 # Written by Niels Zeilemaker, Egbert Bouman
-import wx
 import sys
 import logging
 
-from Tribler.Category.Category import Category
+import wx
 
+from Tribler.Core.Category.Category import Category
 from Tribler.community.channel.community import ChannelCommunity
-
 from Tribler.Main.Utility.GuiDBTuples import Channel, Playlist
 from Tribler.Main.vwxGUI import SEPARATOR_GREY, FILTER_GREY, warnWxThread
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility
@@ -16,7 +15,6 @@ from Tribler.Main.vwxGUI.list_item import (ColumnsManager, TorrentListItem, Chan
 from Tribler.Main.vwxGUI.list_body import FixedListBody
 from Tribler.Main.vwxGUI.widgets import MinMaxSlider, LinkStaticText, LinkText, BetterText as StaticText, _set_font, \
     ActionButton
-
 from Tribler.Main.Utility.utility import size_format
 
 

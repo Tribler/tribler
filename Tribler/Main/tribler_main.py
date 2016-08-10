@@ -24,9 +24,7 @@ from Tribler.Core.Utilities.twisted_thread import reactor
 import logging
 import os
 import sys
-import tempfile
 import traceback
-import urllib2
 from collections import defaultdict
 from random import randint
 from traceback import print_exc
@@ -34,14 +32,13 @@ from traceback import print_exc
 import wx
 from twisted.python.threadable import isInIOThread
 
-from Tribler.Category.Category import Category
+from Tribler.Core.Category.Category import Category
 from Tribler.Core.DownloadConfig import get_default_dest_dir, get_default_dscfg_filename, DefaultDownloadStartupConfig
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.osutils import get_free_space, get_home_dir
-from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED,
-                                     DLSTATUS_STOPPED_ON_ERROR, DOWNLOAD, NTFY_ACTIVITIES, NTFY_CHANNELCAST,
-                                     NTFY_COMMENTS, NTFY_CREATE, NTFY_DELETE, NTFY_DISPERSY, NTFY_FINISHED, NTFY_INSERT,
+from Tribler.Core.simpledefs import (DLSTATUS_DOWNLOADING, DLSTATUS_SEEDING, DLSTATUS_STOPPED_ON_ERROR, DOWNLOAD, NTFY_ACTIVITIES, NTFY_CHANNELCAST,
+                                     NTFY_COMMENTS, NTFY_CREATE, NTFY_DELETE, NTFY_FINISHED, NTFY_INSERT,
                                      NTFY_MAGNET_CLOSE, NTFY_MAGNET_GOT_PEERS, NTFY_MAGNET_STARTED, NTFY_MARKINGS,
                                      NTFY_MODERATIONS, NTFY_MODIFICATIONS, NTFY_MODIFIED, NTFY_MYPREFERENCES,
                                      NTFY_PLAYLISTS, NTFY_REACHABLE, NTFY_STARTED, NTFY_STATE, NTFY_TORRENTS,
@@ -56,11 +53,9 @@ from Tribler.Main.Utility.utility import Utility, get_download_upload_speed
 from Tribler.Main.vwxGUI.GuiImageManager import GuiImageManager
 from Tribler.Main.vwxGUI.GuiUtility import GUIUtility, forceWxThread
 from Tribler.Main.vwxGUI.MainFrame import MainFrame
-from Tribler.Main.vwxGUI.MainVideoFrame import VideoDummyFrame
 from Tribler.Main.vwxGUI.TriblerApp import TriblerApp
 from Tribler.Main.vwxGUI.TriblerUpgradeDialog import TriblerUpgradeDialog
-from Tribler.dispersy.util import attach_profiler, call_on_reactor_thread
-
+from Tribler.dispersy.util import attach_profiler
 
 logger = logging.getLogger(__name__)
 
