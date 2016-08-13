@@ -101,6 +101,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                             Toast.makeText(context, name + ' ' + context.getText(R.string.info_subscribe_already), Toast.LENGTH_SHORT).show();
                         } else {
                             Log.e("onSwipedRight", "subscribe", e);
+                            MyUtils.onError(e, context);
                             try {
                                 Thread.sleep(1000);
                             } catch (InterruptedException ex) {
@@ -144,6 +145,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                             Toast.makeText(context, name + ' ' + context.getText(R.string.info_unsubscribe_already), Toast.LENGTH_SHORT).show();
                         } else {
                             Log.e("onSwipedLeft", "unsubscribe", e);
+                            MyUtils.onError(e, context);
                             try {
                                 Thread.sleep(1000);
                             } catch (InterruptedException ex) {

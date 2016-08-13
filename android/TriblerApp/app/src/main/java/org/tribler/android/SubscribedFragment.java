@@ -50,6 +50,7 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
 
                     public void onError(Throwable e) {
                         Log.e("loadSubscribedChannels", "getSubscribed", e);
+                        MyUtils.onError(e, context);
                         try {
                             Thread.sleep(1000);
                         } catch (InterruptedException ex) {

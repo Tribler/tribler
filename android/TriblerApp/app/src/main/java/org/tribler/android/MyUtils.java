@@ -14,6 +14,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.squareup.leakcanary.LeakCanary;
 import com.squareup.leakcanary.RefWatcher;
@@ -25,6 +26,7 @@ import java.util.Date;
 import java.util.Random;
 
 import okio.BufferedSource;
+import retrofit2.adapter.rxjava.HttpException;
 import rx.Observable;
 import rx.Subscriber;
 
@@ -40,9 +42,9 @@ public class MyUtils {
 
     private static RefWatcher _refWatcher;
 
-    public static RefWatcher getRefWatcher(Context ctx) {
+    public static RefWatcher getRefWatcher(Context context) {
         if (_refWatcher == null) {
-            Application app = (Application) ctx.getApplicationContext();
+            Application app = (Application) context.getApplicationContext();
             _refWatcher = LeakCanary.install(app);
         }
         return _refWatcher;
@@ -56,8 +58,8 @@ public class MyUtils {
      * Helper method to determine if the device has an extra-large screen. For
      * example, 10" tablets are extra-large.
      */
-    public static boolean isXLargeTablet(Context ctx) {
-        return (ctx.getResources().getConfiguration().screenLayout
+    public static boolean isXLargeTablet(Context context) {
+        return (context.getResources().getConfiguration().screenLayout
                 & Configuration.SCREENLAYOUT_SIZE_MASK) >= Configuration.SCREENLAYOUT_SIZE_XLARGE;
     }
 
@@ -119,13 +121,13 @@ public class MyUtils {
     /**
      * @return The file created for saving a video
      */
-    public static File getOutputVideoFile(Context ctx) throws IOException {
+    public static File getOutputVideoFile(Context context) throws IOException {
         File videoDir;
         if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
             videoDir = new File(Environment.getExternalStoragePublicDirectory(
                     Environment.DIRECTORY_MOVIES).getAbsolutePath());
         } else {
-            videoDir = new File(ctx.getFilesDir(), Environment.DIRECTORY_MOVIES);
+            videoDir = new File(context.getFilesDir(), Environment.DIRECTORY_MOVIES);
         }
         // Create the storage directory if it does not exist
         if (!videoDir.exists() && !videoDir.mkdirs()) {
@@ -227,4 +229,11 @@ public class MyUtils {
             }
         });
     }
+
+    public static void onError(Throwable e, Context context) {
+        if (e instanceof HttpException && ((HttpException) e).code() == 500) {
+            Toast.makeText(context, context.getText(R.string.exception_http_500), Toast.LENGTH_SHORT).show();
+        }
+    }
+
 }

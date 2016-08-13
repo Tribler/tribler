@@ -16,6 +16,7 @@ import java.io.Serializable;
 
 import retrofit2.http.DELETE;
 import retrofit2.http.Field;
+import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.GET;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
@@ -48,7 +49,7 @@ public interface IRestApi {
     );
 
     @PUT("/channels/discovered")
-        //@FormUrlEncoded
+    @FormUrlEncoded
     Observable<AddedChannelAck> createChannel(
             @Field("name") String name,
             @Field("description") String description

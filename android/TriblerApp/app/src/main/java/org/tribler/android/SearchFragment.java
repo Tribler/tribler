@@ -124,6 +124,7 @@ public class SearchFragment extends DefaultInteractionListFragment implements Ha
 
                     public void onError(Throwable e) {
                         Log.e("startSearch", "search", e);
+                        MyUtils.onError(e, context);
                         try {
                             Thread.sleep(1000);
                         } catch (InterruptedException ex) {

@@ -5,6 +5,12 @@
 
     <dimen name="fast_scrollbar_width">25dp</dimen>
 
+    <dimen name="fancy_button_horizontal_padding">25dp</dimen>
+    <dimen name="fancy_button_vertical_padding">16dp</dimen>
+    <dimen name="fancy_button_margin_top">50dp</dimen>
+
+    <dimen name="label_padding">16dp</dimen>
+
     <dimen name="nav_header_padding">16dp</dimen>
     <dimen name="nav_logo_margin_top">16dp</dimen>
 </resources>

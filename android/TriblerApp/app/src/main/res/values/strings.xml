@@ -17,11 +17,12 @@
     <string name="navigation_drawer_open">Open menu</string>
     <string name="navigation_drawer_close">Close menu</string>
 
-    <string name="action_ok">OK</string>
+    <string name="action_OK">OK</string>
     <string name="action_go">Go</string>
+    <string name="action_GO">GO</string>
     <string name="action_cancel">Cancel</string>
-    <string name="action_save">Save</string>
-    <string name="action_create">Create</string>
+    <string name="action_SAVE">SAVE</string>
+    <string name="action_CREATE">CREATE</string>
     <string name="action_turn_on">Turn On</string>
 
     <string name="action_search">Search videos and channels</string>
@@ -56,6 +57,7 @@
 
     <string name="warning_lost_connection">WARNING: Wi-Fi connection lost!</string>
     <string name="info_no_connection">No Wi-Fi connection detected</string>
+    <string name="exception_http_500">Tribler encountered an exception. Trying to recover now…</string>
 
     <string name="info_subscribe_already">is already a favorite!</string>
     <string name="info_subscribe_success">is now a favorite!</string>

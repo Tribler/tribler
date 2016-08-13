@@ -1,11 +1,14 @@
 package org.tribler.android;
 
+import android.app.Application;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Toast;
 
 import org.tribler.android.restapi.json.TriblerTorrent;
 
+import retrofit2.adapter.rxjava.HttpException;
 import rx.Observable;
 import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
@@ -53,6 +56,7 @@ public class ChannelFragment extends DefaultInteractionListFragment {
 
                     public void onError(Throwable e) {
                         Log.e("loadTorrents", "getTorrents", e);
+                        MyUtils.onError(e, context);
                         try {
                             Thread.sleep(1000);
                         } catch (InterruptedException ex) {
