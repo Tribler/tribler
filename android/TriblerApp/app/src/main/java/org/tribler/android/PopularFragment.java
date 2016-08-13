@@ -52,6 +52,10 @@ public class PopularFragment extends DefaultInteractionListFragment {
 
                     public void onError(Throwable e) {
                         Log.e("loadPopularChannels", "getChannels", e);
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException ex) {
+                        }
                         // Retry
                         reload();
                     }

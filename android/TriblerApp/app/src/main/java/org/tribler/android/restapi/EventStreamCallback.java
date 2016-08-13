@@ -50,14 +50,14 @@ public class EventStreamCallback implements Callback {
      * {@inheritDoc}
      */
     @Override
-    public void onFailure(Call call, IOException ex) {
+    public void onFailure(Call call, IOException e) {
         _ready = false;
-        Log.v("onFailure", "Service events stream not ready. Retrying in 1s...", ex);
+        Log.v("onFailure", "Service events stream not ready. Retrying in 1s...", e);
         try {
             Thread.sleep(1000);
-        } catch (InterruptedException e) {
+        } catch (InterruptedException ex) {
         }
-        // Retry until service comes up
+        // Retry
         EventStream.openEventStream();
     }
 

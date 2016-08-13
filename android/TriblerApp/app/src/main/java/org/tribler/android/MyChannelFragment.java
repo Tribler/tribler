@@ -172,6 +172,10 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                             startActivityForResult(createIntent, CREATE_CHANNEL_ACTIVITY_REQUEST_CODE);
                         } else {
                             Log.e("loadMyChannel", "getOverview", e);
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException ex) {
+                            }
                             // Retry
                             reload();
                         }

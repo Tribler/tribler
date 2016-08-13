@@ -53,6 +53,10 @@ public class ChannelFragment extends DefaultInteractionListFragment {
 
                     public void onError(Throwable e) {
                         Log.e("loadTorrents", "getTorrents", e);
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException ex) {
+                        }
                         // Retry
                         reload();
                     }
