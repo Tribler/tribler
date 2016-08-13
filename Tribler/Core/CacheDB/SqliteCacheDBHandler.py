@@ -2329,7 +2329,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
     def getChannel(self, channel_id):
         sql = "Select id, name, description, dispersy_cid, modified, nr_torrents, nr_favorite, nr_spam " + \
               "FROM Channels WHERE id = ?"
-        channels = self._getChannels(sql, (channel_id,))
+        channels = self._getChannels(sql, (channel_id,), includeNoName=True)
         if len(channels) > 0:
             return channels[0]
 
@@ -2398,7 +2398,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
 
         return self._getChannels(sql)
 
-    def _getChannels(self, sql, args=None, cmpF=None, includeSpam=True):
+    def _getChannels(self, sql, args=None, cmpF=None, includeSpam=True, includeNoName=False):
         """Returns the channels based on the input sql, if the number of positive votes
         is less than maxvotes and the number of torrent > 0"""
         if self.votecast_db is None:
@@ -2412,7 +2412,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
             my_vote = my_votes.get(id, 0)
             if not includeSpam and my_vote < 0:
                 continue
-            if name.strip() == '':
+            if not includeNoName and name.strip() == '':
                 continue
 
             channels.append((id, str(dispersy_cid), name, description, nr_torrents,
