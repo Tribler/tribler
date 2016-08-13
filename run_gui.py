@@ -9,10 +9,10 @@ from TriblerGUI.tribler_window import TriblerWindow
 
 app = QtSingleApplication("triblerapp2", sys.argv)
 
-if app.isRunning():
+if app.is_running():
     sys.exit(1)
 
 window = TriblerWindow()
 window.setWindowTitle("Tribler")
-app.setActivationWindow(window)
+app.set_activation_window(window)
 sys.exit(app.exec_())

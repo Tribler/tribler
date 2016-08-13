@@ -20,8 +20,8 @@ class QtSingleApplication(QApplication):
 
         super(QtSingleApplication, self).__init__(*argv)
         self._id = id
-        self._activationWindow = None
-        self._activateOnMessage = False
+        self._activation_window = None
+        self._activate_on_message = False
 
         # Is there another instance running?
         self._outSocket = QLocalSocket()
@@ -50,7 +50,7 @@ class QtSingleApplication(QApplication):
             self._outSocket = None
             self._server = QLocalServer()
             self._server.listen(self._id)
-            self._server.newConnection.connect(self._onNewConnection)
+            self._server.newConnection.connect(self._on_new_connection)
 
         logfunc(sys._getframe().f_code.co_name + '(): returning')
 
@@ -65,48 +65,49 @@ class QtSingleApplication(QApplication):
             self._server.close()
         logfunc(sys._getframe().f_code.co_name + '(): returning')
 
-    def isRunning(self):
+    def is_running(self):
         return self._isRunning
 
-    def id(self):
+    def get_id(self):
         return self._id
 
-    def activationWindow(self):
-        return self._activationWindow
+    def activation_window(self):
+        return self._activation_window
 
-    def setActivationWindow(self, activationWindow, activateOnMessage = True):
-        self._activationWindow = activationWindow
-        self._activateOnMessage = activateOnMessage
+    def set_activation_window(self, activation_window, activate_on_message=True):
+        self._activation_window = activation_window
+        self._activate_on_message = activate_on_message
 
-    def activateWindow(self):
-        if not self._activationWindow:
+    def activate_window(self):
+        if not self._activation_window:
             return
-        self._activationWindow.setWindowState(
-            self._activationWindow.windowState() & ~Qt.WindowMinimized)
-        self._activationWindow.raise_()
-        self._activationWindow.activateWindow()
+        self._activation_window.setWindowState(
+            self._activation_window.windowState() & ~Qt.WindowMinimized)
+        self._activation_window.raise_()
+        self._activation_window.activate_window()
 
-    def sendMessage(self, msg):
+    def send_message(self, msg):
         if not self._outStream:
             return False
         self._outStream << msg << '\n'
         self._outStream.flush()
         return self._outSocket.waitForBytesWritten()
 
-    def _onNewConnection(self):
+    def _on_new_connection(self):
         if self._inSocket:
-            self._inSocket.readyRead.disconnect(self._onReadyRead)
+            self._inSocket.readyRead.disconnect(self._on_ready_read)
         self._inSocket = self._server.nextPendingConnection()
         if not self._inSocket:
             return
         self._inStream = QTextStream(self._inSocket)
         self._inStream.setCodec('UTF-8')
-        self._inSocket.readyRead.connect(self._onReadyRead)
-        if self._activateOnMessage:
-            self.activateWindow()
+        self._inSocket.readyRead.connect(self._on_ready_read)
+        if self._activate_on_message:
+            self.activate_window()
 
-    def _onReadyRead(self):
+    def _on_ready_read(self):
         while True:
             msg = self._inStream.readLine()
-            if not msg: break
+            if not msg:
+                break
             self.messageReceived.emit(msg)

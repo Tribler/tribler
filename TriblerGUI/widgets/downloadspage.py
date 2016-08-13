@@ -66,7 +66,7 @@ class DownloadsPage(QWidget):
                 self.download_widgets[download["infohash"]] = item
 
             if self.can_update_items:
-                item.updateWithDownload(download)
+                item.update_with_download(download)
 
             # Update video player with download info
             video_infohash = self.window().video_player_page.active_infohash
@@ -98,7 +98,7 @@ class DownloadsPage(QWidget):
     def update_download_visibility(self):
         for i in range(self.window().downloads_list.topLevelItemCount()):
             item = self.window().downloads_list.topLevelItem(i)
-            item.setHidden(not item.getRawDownloadStatus() in DOWNLOADS_FILTER_DEFINITION[self.filter])
+            item.setHidden(not item.get_raw_download_status() in DOWNLOADS_FILTER_DEFINITION[self.filter])
 
     def on_downloads_tab_button_clicked(self, button_name):
         if button_name == "downloads_all_button":
@@ -114,22 +114,25 @@ class DownloadsPage(QWidget):
 
         self.update_download_visibility()
 
-    def start_download_enabled(self, download_widget):
-        return download_widget.getRawDownloadStatus() == DLSTATUS_STOPPED
+    @staticmethod
+    def start_download_enabled(download_widget):
+        return download_widget.get_raw_download_status() == DLSTATUS_STOPPED
 
-    def stop_download_enabled(self, download_widget):
-        status = download_widget.getRawDownloadStatus()
+    @staticmethod
+    def stop_download_enabled(download_widget):
+        status = download_widget.get_raw_download_status()
         return status != DLSTATUS_STOPPED and status != DLSTATUS_STOPPED_ON_ERROR
 
-    def force_recheck_download_enabled(self, download_widget):
-        status = download_widget.getRawDownloadStatus()
+    @staticmethod
+    def force_recheck_download_enabled(download_widget):
+        status = download_widget.get_raw_download_status()
         return status != DLSTATUS_METADATA and status != DLSTATUS_HASHCHECKING and status != DLSTATUS_WAITING4HASHCHECK
 
     def on_download_item_clicked(self):
         self.selected_item = self.window().downloads_list.selectedItems()[0]
         self.window().remove_download_button.setEnabled(True)
-        self.window().start_download_button.setEnabled(self.start_download_enabled(self.selected_item))
-        self.window().stop_download_button.setEnabled(self.stop_download_enabled(self.selected_item))
+        self.window().start_download_button.setEnabled(DownloadsPage.start_download_enabled(self.selected_item))
+        self.window().stop_download_button.setEnabled(DownloadsPage.stop_download_enabled(self.selected_item))
 
         self.window().download_details_widget.update_with_download(self.selected_item.download_info)
 
@@ -141,7 +144,7 @@ class DownloadsPage(QWidget):
     def on_download_resumed(self, json_result):
         if json_result["resumed"]:
             self.selected_item.download_info['status'] = "DLSTATUS_DOWNLOADING"
-            self.selected_item.updateItem()
+            self.selected_item.update_item()
             self.on_download_item_clicked()
 
     def on_stop_download_clicked(self):
@@ -152,7 +155,7 @@ class DownloadsPage(QWidget):
     def on_download_stopped(self, json_result):
         if json_result["stopped"]:
             self.selected_item.download_info['status'] = "DLSTATUS_STOPPED"
-            self.selected_item.updateItem()
+            self.selected_item.update_item()
             self.on_download_item_clicked()
 
     def on_remove_download_clicked(self):
@@ -184,7 +187,7 @@ class DownloadsPage(QWidget):
     def on_forced_recheck(self, result):
         if result['forced_recheck']:
             self.selected_item.download_info['status'] = "DLSTATUS_HASHCHECKING"
-            self.selected_item.updateItem()
+            self.selected_item.update_item()
             self.on_download_item_clicked()
 
     def on_explore_files(self):
@@ -210,35 +213,35 @@ class DownloadsPage(QWidget):
 
         menu = TriblerActionMenu(self)
 
-        startAction = QAction('Start', self)
-        stopAction = QAction('Stop', self)
-        removeDownloadAction = QAction('Remove download', self)
-        removeDownloadDataAction = QAction('Remove download + data', self)
-        forceRecheckAction = QAction('Force recheck', self)
-        exportDownloadAction = QAction('Export .torrent file', self)
-        exploreFilesAction = QAction('Explore files', self)
+        start_action = QAction('Start', self)
+        stop_action = QAction('Stop', self)
+        remove_download_action = QAction('Remove download', self)
+        remove_download_data_action = QAction('Remove download + data', self)
+        force_recheck_action = QAction('Force recheck', self)
+        export_download_action = QAction('Export .torrent file', self)
+        explore_files_action = QAction('Explore files', self)
 
-        startAction.triggered.connect(self.on_start_download_clicked)
-        startAction.setEnabled(self.start_download_enabled(self.selected_item))
-        stopAction.triggered.connect(self.on_stop_download_clicked)
-        stopAction.setEnabled(self.stop_download_enabled(self.selected_item))
-        removeDownloadAction.triggered.connect(lambda: self.on_remove_download_dialog(0))
-        removeDownloadDataAction.triggered.connect(lambda: self.on_remove_download_dialog(1))
-        forceRecheckAction.triggered.connect(self.on_force_recheck_download)
-        forceRecheckAction.setEnabled(self.force_recheck_download_enabled(self.selected_item))
-        exportDownloadAction.triggered.connect(self.on_export_download)
-        exploreFilesAction.triggered.connect(self.on_explore_files)
+        start_action.triggered.connect(self.on_start_download_clicked)
+        start_action.setEnabled(DownloadsPage.start_download_enabled(self.selected_item))
+        stop_action.triggered.connect(self.on_stop_download_clicked)
+        stop_action.setEnabled(DownloadsPage.stop_download_enabled(self.selected_item))
+        remove_download_action.triggered.connect(lambda: self.on_remove_download_dialog(0))
+        remove_download_data_action.triggered.connect(lambda: self.on_remove_download_dialog(1))
+        force_recheck_action.triggered.connect(self.on_force_recheck_download)
+        force_recheck_action.setEnabled(DownloadsPage.force_recheck_download_enabled(self.selected_item))
+        export_download_action.triggered.connect(self.on_export_download)
+        explore_files_action.triggered.connect(self.on_explore_files)
 
-        menu.addAction(startAction)
-        menu.addAction(stopAction)
+        menu.addAction(start_action)
+        menu.addAction(stop_action)
         menu.addSeparator()
-        menu.addAction(removeDownloadAction)
-        menu.addAction(removeDownloadDataAction)
+        menu.addAction(remove_download_action)
+        menu.addAction(remove_download_data_action)
         menu.addSeparator()
-        menu.addAction(forceRecheckAction)
+        menu.addAction(force_recheck_action)
         menu.addSeparator()
-        menu.addAction(exportDownloadAction)
+        menu.addAction(export_download_action)
         menu.addSeparator()
-        menu.addAction(exploreFilesAction)
+        menu.addAction(explore_files_action)
 
         menu.exec_(self.window().downloads_list.mapToGlobal(pos))

@@ -29,14 +29,14 @@ class DownloadWidgetItem(QTreeWidgetItem):
         parent.setItemWidget(self, 2, self.progress_slider)
         self.setSizeHint(0, QSize(-1, 24))
 
-    def updateWithDownload(self, download):
+    def update_with_download(self, download):
         self.download_info = download
-        self.updateItem()
+        self.update_item()
 
-    def getRawDownloadStatus(self):
+    def get_raw_download_status(self):
         return eval(self.download_info["status"])
 
-    def updateItem(self):
+    def update_item(self):
         self.setText(0, self.download_info["name"])
         self.setText(1, format_size(float(self.download_info["size"])))
 
@@ -54,6 +54,6 @@ class DownloadWidgetItem(QTreeWidgetItem):
         self.setText(9, str(self.download_info["hops"]) if self.download_info["anon_download"] else "-")
 
         eta_text = "-"
-        if self.getRawDownloadStatus() == DLSTATUS_DOWNLOADING:
+        if self.get_raw_download_status() == DLSTATUS_DOWNLOADING:
             eta_text = str(self.download_info["eta"])
         self.setText(10, eta_text)

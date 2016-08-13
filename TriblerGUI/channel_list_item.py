@@ -28,10 +28,10 @@ class ChannelListItem(QWidget, fc_channel_list_item):
 
             self.timer = QTimer()
             self.timer.setInterval(fade_delay)
-            self.timer.timeout.connect(self.fadeIn)
+            self.timer.timeout.connect(self.fade_in)
             self.timer.start()
 
-    def fadeIn(self):
+    def fade_in(self):
         self.anim = QPropertyAnimation(self.opacity_effect, 'opacity')
         self.anim.setDuration(800)
         self.anim.setStartValue(0)

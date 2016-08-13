@@ -23,7 +23,7 @@ class FeedbackDialog(QDialog):
 
         self.error_text_edit.setPlainText(exception_text)
 
-        self.cancel_button.clicked.connect(self.on_cancel_clicked)
+        self.cancel_button.clicked.connect(FeedbackDialog.on_cancel_clicked)
 
         # Add machine information to the tree widget
         add_item_to_info_widget('os.getcwd', '%s' % os.getcwd())
@@ -45,5 +45,6 @@ class FeedbackDialog(QDialog):
         for key in os.environ.keys():
             add_item_to_info_widget('os.environ', '%s: %s' % (key, os.environ[key]))
 
-    def on_cancel_clicked(self):
+    @staticmethod
+    def on_cancel_clicked():
         QCoreApplication.instance().quit()
