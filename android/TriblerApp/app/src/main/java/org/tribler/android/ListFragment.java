@@ -4,7 +4,6 @@ import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -47,14 +46,14 @@ public class ListFragment extends ViewFragment {
     }
 
     @Nullable
-    public IListFragmentInteractionListener getInteractionListener() {
+    public IListFragmentInteractionListener getListInteractionListener() {
         return interactionListener;
     }
 
     /**
      * @param listener IListFragmentInteractionListener that will listen to the adapter events
      */
-    public void setInteractionListener(@Nullable IListFragmentInteractionListener listener) {
+    public void setListInteractionListener(@Nullable IListFragmentInteractionListener listener) {
         interactionListener = listener;
         // onAttach is called before onCreate
         if (adapter != null) {
@@ -70,8 +69,8 @@ public class ListFragment extends ViewFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         adapter = new TriblerViewAdapter(new ArrayList<>());
-        // Side effects
-        setInteractionListener(interactionListener);
+        // Side effects:
+        setListInteractionListener(getListInteractionListener());
     }
 
     /**
@@ -80,6 +79,9 @@ public class ListFragment extends ViewFragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+
+        setListInteractionListener(null);
+
         loading = null;
         adapter = null;
     }
@@ -90,10 +92,9 @@ public class ListFragment extends ViewFragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        Log.v(this.getClass().getSimpleName(), "onAttach");
 
         if (context instanceof IListFragmentInteractionListener) {
-            setInteractionListener((IListFragmentInteractionListener) context);
+            setListInteractionListener((IListFragmentInteractionListener) context);
         }
     }
 
@@ -103,9 +104,8 @@ public class ListFragment extends ViewFragment {
     @Override
     public void onDetach() {
         super.onDetach();
-        Log.v(this.getClass().getSimpleName(), "onDetach");
 
-        setInteractionListener(null);
+        setListInteractionListener(null);
     }
 
     /**
@@ -160,4 +160,5 @@ public class ListFragment extends ViewFragment {
      */
     public interface IListFragmentInteractionListener extends TriblerViewAdapter.OnClickListener, TriblerViewAdapter.OnSwipeListener {
     }
+
 }

@@ -3,7 +3,9 @@ package org.tribler.android;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
@@ -11,9 +13,15 @@ import butterknife.Unbinder;
 /**
  * Use ButterKnife to automatically bind and unbind fields.
  */
-public class ViewFragment extends BaseFragment {
+public abstract class ViewFragment extends BaseFragment {
 
     private Unbinder _unbinder;
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public abstract View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState);
 
     /**
      * {@inheritDoc}
