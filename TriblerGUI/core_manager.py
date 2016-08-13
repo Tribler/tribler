@@ -47,7 +47,7 @@ class CoreManager(object):
         self.core_process.kill()
 
     def on_ready_read_stdout(self):
-        print "Tribler core: %s" % str(self.core_process.readAllStandardOutput()).rstrip()
+        print("Tribler core: %s" % str(self.core_process.readAllStandardOutput()).rstrip())
 
     def on_ready_read_stderr(self):
         sys.stderr.write(self.core_process.readAllStandardError())

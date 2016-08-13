@@ -101,7 +101,7 @@ class VideoPlayerPage(QWidget):
         self.mediaplayer.set_position(position)
 
     def on_play_pause_button_click(self):
-        print self.mediaplayer.get_state()
+        print(self.mediaplayer.get_state())
         if not self.mediaplayer.is_playing():
             self.window().video_player_play_pause_button.setIcon(self.pause_icon)
             self.mediaplayer.play()
@@ -142,7 +142,7 @@ class VideoPlayerPage(QWidget):
         self.window().video_player_position_slider.setValue(0)
 
         media_filename = u"http://127.0.0.1:" + unicode(self.video_player_port) + "/" + self.active_infohash + "/" + unicode(index)
-        print media_filename
+        print(media_filename)
         self.media = self.instance.media_new(media_filename)
         self.mediaplayer.set_media(self.media)
         self.media.parse()

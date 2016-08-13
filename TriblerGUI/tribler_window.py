@@ -190,17 +190,17 @@ class TriblerWindow(QMainWindow):
     def on_add_torrent_button_click(self, pos):
         menu = TriblerActionMenu(self)
 
-        browseFilesAction = QAction('Import torrent from file', self)
-        browseDirectoryAction = QAction('Import torrents from directory', self)
-        addUrlAction = QAction('Import torrent from URL', self)
+        browse_files_action = QAction('Import torrent from file', self)
+        browse_directory_action = QAction('Import torrents from directory', self)
+        add_url_action = QAction('Import torrent from URL', self)
 
-        browseFilesAction.triggered.connect(self.on_add_torrent_browse_file)
-        browseDirectoryAction.triggered.connect(self.on_add_torrent_browse_dir)
-        addUrlAction.triggered.connect(self.on_add_torrent_from_url)
+        browse_files_action.triggered.connect(self.on_add_torrent_browse_file)
+        browse_directory_action.triggered.connect(self.on_add_torrent_browse_dir)
+        add_url_action.triggered.connect(self.on_add_torrent_from_url)
 
-        menu.addAction(browseFilesAction)
-        menu.addAction(browseDirectoryAction)
-        menu.addAction(addUrlAction)
+        menu.addAction(browse_files_action)
+        menu.addAction(browse_directory_action)
+        menu.addAction(add_url_action)
 
         menu.exec_(self.mapToGlobal(self.add_torrent_button.pos()))
 

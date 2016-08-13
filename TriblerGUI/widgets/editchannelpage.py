@@ -190,17 +190,17 @@ class EditChannelPage(QWidget):
     def on_torrents_add_clicked(self):
         menu = TriblerActionMenu(self)
 
-        browseFilesAction = QAction('Import torrent from file', self)
-        addUrlAction = QAction('Add URL', self)
-        createTorrentAction = QAction('Create torrent from file(s)', self)
+        browse_files_action = QAction('Import torrent from file', self)
+        add_url_action = QAction('Add URL', self)
+        create_torrent_action = QAction('Create torrent from file(s)', self)
 
-        browseFilesAction.triggered.connect(self.on_add_torrent_browse_file)
-        addUrlAction.triggered.connect(self.on_add_torrent_from_url)
-        createTorrentAction.triggered.connect(self.on_create_torrent_from_files)
+        browse_files_action.triggered.connect(self.on_add_torrent_browse_file)
+        add_url_action.triggered.connect(self.on_add_torrent_from_url)
+        create_torrent_action.triggered.connect(self.on_create_torrent_from_files)
 
-        menu.addAction(browseFilesAction)
-        menu.addAction(addUrlAction)
-        menu.addAction(createTorrentAction)
+        menu.addAction(browse_files_action)
+        menu.addAction(add_url_action)
+        menu.addAction(create_torrent_action)
 
         menu.exec_(self.window().mapToGlobal(self.window().edit_channel_torrents_add_button.pos()))
 

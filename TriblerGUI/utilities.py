@@ -138,3 +138,24 @@ def get_ui_file_path(filename):
 
 def get_image_path(filename):
     return os.path.join(get_base_path(), 'images/%s' % filename)
+
+
+def bisect_right(item, item_list, is_torrent):
+    """
+    This method inserts a channel/torrent in a sorted list. The sorting is based on relevance score.
+    The implementation is based on bisect_right.
+    """
+    lo = 0
+    hi = len(item_list)
+    while lo < hi:
+        mid = (lo+hi) // 2
+        if item['relevance_score'] == item_list[mid]['relevance_score'] and is_torrent:
+            if len(split_into_keywords(item['name'])) < len(split_into_keywords(item_list[mid]['name'])):
+                hi = mid
+            else:
+                lo = mid + 1
+        elif item['relevance_score'] > item_list[mid]['relevance_score']:
+            hi = mid
+        else:
+            lo = mid + 1
+    return lo

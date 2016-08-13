@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget
 from TriblerGUI.channel_list_item import ChannelListItem
 from TriblerGUI.channel_torrent_list_item import ChannelTorrentListItem
-from TriblerGUI.utilities import split_into_keywords
+from TriblerGUI.utilities import split_into_keywords, bisect_right
 
 
 class SearchResultsPage(QWidget):
@@ -50,38 +50,19 @@ class SearchResultsPage(QWidget):
 
         self.window().search_results_list.set_data_items(all_items)
 
-    def bisect_right(self, item, list, is_torrent):
-        """
-        This method inserts a channel/torrent in a sorted list. The sorting is based on relevance score.
-        The implementation is based on bisect_right.
-        """
-        lo = 0
-        hi = len(list)
-        while lo < hi:
-            mid = (lo+hi) // 2
-            if item['relevance_score'] == list[mid]['relevance_score'] and is_torrent:
-                if len(split_into_keywords(item['name'])) < len(split_into_keywords(list[mid]['name'])):
-                    hi = mid
-                else:
-                    lo = mid + 1
-            elif item['relevance_score'] > list[mid]['relevance_score']:
-                hi = mid
-            else:
-                lo = mid + 1
-        return lo
-
     def received_search_result_channel(self, result):
         # Ignore channels that have a small amount of torrents or have no votes
         if result['torrents'] <= 2 or result['votes'] == 0:
             return
 
-        channel_index = self.bisect_right(result, self.search_results['channels'], is_torrent=False)
+        channel_index = bisect_right(result, self.search_results['channels'], is_torrent=False)
         self.window().search_results_list.insert_item(channel_index, (ChannelListItem, result))
         self.search_results['channels'].insert(channel_index, result)
         self.update_num_search_results()
 
     def received_search_result_torrent(self, result):
-        torrent_index = self.bisect_right(result, self.search_results['torrents'], is_torrent=True)
+        torrent_index = bisect_right(result, self.search_results['torrents'], is_torrent=True)
         self.search_results['torrents'].insert(torrent_index, result)
-        self.window().search_results_list.insert_item(torrent_index + len(self.search_results['channels']), (ChannelTorrentListItem, result))
+        self.window().search_results_list.insert_item(
+            torrent_index + len(self.search_results['channels']), (ChannelTorrentListItem, result))
         self.update_num_search_results()

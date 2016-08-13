@@ -47,8 +47,8 @@ class TriblerRequestManager(QNetworkAccessManager):
         bytes.append("\r\n")
         bytes.append("--AaB03x--")
 
-        contentLength = bytes.length()
-        self.request.setRawHeader("Content-Length", "%s" % contentLength)
+        content_length = bytes.length()
+        self.request.setRawHeader("Content-Length", "%s" % content_length)
 
         self.reply = self.put(self.request, bytes)
         self.received_json.connect(read_callback)
@@ -80,10 +80,6 @@ class TriblerRequestManager(QNetworkAccessManager):
 
         self.finished.connect(self.on_finished)
 
-    def on_error(self, error):
-        # TODO Martijn: do something useful here
-        print "GOT ERROR"
-
     def on_finished(self, reply):
         data = reply.readAll()
         try:
@@ -92,7 +88,6 @@ class TriblerRequestManager(QNetworkAccessManager):
         except ValueError as ex:
             self.received_json.emit(None, reply.error())
             logging.exception(ex)
-            pass
 
     def download_file(self, endpoint, read_callback):
         url = self.base_url + endpoint
