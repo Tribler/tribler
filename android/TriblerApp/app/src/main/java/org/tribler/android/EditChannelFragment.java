@@ -98,27 +98,31 @@ public class EditChannelFragment extends ViewFragment {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        rxSubs.add(RxTextView.textChangeEvents(nameInput)
-                .subscribe(new Observer<TextViewTextChangeEvent>() {
+        if (_result != null) {
+            setInputEnabled(false);
+        } else {
+            rxSubs.add(RxTextView.textChangeEvents(nameInput)
+                    .subscribe(new Observer<TextViewTextChangeEvent>() {
 
-                    public void onNext(TextViewTextChangeEvent event) {
-                        CharSequence name = event.text();
-                        // Prevent submitting empty channel name
-                        boolean enabled = !TextUtils.isEmpty(name);
-                        btnCreate.setEnabled(enabled);
-                        btnSave.setEnabled(enabled);
+                        public void onNext(TextViewTextChangeEvent event) {
+                            CharSequence name = event.text();
+                            // Prevent submitting empty channel name
+                            boolean enabled = !TextUtils.isEmpty(name);
+                            btnCreate.setEnabled(enabled);
+                            btnSave.setEnabled(enabled);
 
-                        // Update icon view
-                        nameCapital.setText(MyUtils.getCapitals(name, 2));
-                    }
+                            // Update icon view
+                            nameCapital.setText(MyUtils.getCapitals(name, 2));
+                        }
 
-                    public void onCompleted() {
-                    }
+                        public void onCompleted() {
+                        }
 
-                    public void onError(Throwable e) {
-                        Log.e("onViewCreated", "textChangeEvents", e);
-                    }
-                }));
+                        public void onError(Throwable e) {
+                            Log.e("onViewCreated", "textChangeEvents", e);
+                        }
+                    }));
+        }
     }
 
     void createChannel() {

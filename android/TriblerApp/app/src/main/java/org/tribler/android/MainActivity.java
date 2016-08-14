@@ -110,6 +110,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         _navToggle.syncState();
 
         Stetho.initializeWithDefaults(getApplicationContext()); //DEBUG
+
         initConnectionManager();
         initService();
 
