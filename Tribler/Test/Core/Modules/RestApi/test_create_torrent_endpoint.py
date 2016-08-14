@@ -60,7 +60,7 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
             "trackers": ["http://localhost/announce"]
         }
         self.should_check_equality = False
-        return self.do_request('createtorrent', 200, None, 'GET', post_data).addCallback(verify_torrent)
+        return self.do_request('createtorrent', 200, None, 'POST', post_data).addCallback(verify_torrent)
 
     @deferred(timeout=10)
     def test_create_torrent_io_error(self):
@@ -83,9 +83,9 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
             "files": ["non_existing_file.avi"]
         }
         self.should_check_equality = False
-        return self.do_request('createtorrent', 500, None, 'GET', post_data).addCallback(verify_error_message)
+        return self.do_request('createtorrent', 500, None, 'POST', post_data).addCallback(verify_error_message)
 
     @deferred(timeout=10)
     def test_create_torrent_missing_files_parameter(self):
         expected_json = {"error": "files parameter missing"}
-        return self.do_request('createtorrent', 400, expected_json, 'GET')
+        return self.do_request('createtorrent', 400, expected_json, 'POST')
