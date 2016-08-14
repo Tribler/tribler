@@ -29,7 +29,9 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     public static final int CREATE_CHANNEL_ACTIVITY_REQUEST_CODE = 401;
     public static final int EDIT_CHANNEL_ACTIVITY_REQUEST_CODE = 402;
 
-    private ChannelOverview _myChannel;
+    private String _dispersyCid;
+    private String _name;
+    private String _description;
 
     /**
      * {@inheritDoc}
@@ -68,7 +70,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("onCreateOptionsMenu", "SearchViewQueryTextEvent", e);
+                        Log.e("onCreateOptionsMenu", "queryTextChangeEvents", e);
                     }
                 }));
     }
@@ -83,15 +85,16 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         menu.findItem(R.id.btn_search).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
 
         // Is my channel created?
-        boolean created = _myChannel != null;
-        menu.findItem(R.id.btn_add_my_channel).setEnabled(created);
-        menu.findItem(R.id.btn_filter_my_channel).setEnabled(created);
+        boolean created = _dispersyCid != null;
+        menu.findItem(R.id.btn_add_my_channel).setVisible(created);
+        menu.findItem(R.id.btn_edit_my_channel).setVisible(created);
+        menu.findItem(R.id.btn_filter_my_channel).setVisible(created);
 
         // Set title
         if (created) {
             ActionBar actionBar = ((BaseActivity) getActivity()).getSupportActionBar();
             if (actionBar != null) {
-                actionBar.setTitle(_myChannel.getName());
+                actionBar.setTitle(_name);
             }
         }
     }
@@ -120,7 +123,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     }
 
     public void editChannel() {
-        Intent createIntent = MyUtils.editChannelIntent(_myChannel.getIdentifier(), _myChannel.getName(), _myChannel.getDescription());
+        Intent createIntent = MyUtils.editChannelIntent(_dispersyCid, _name, _description);
         startActivityForResult(createIntent, EDIT_CHANNEL_ACTIVITY_REQUEST_CODE);
     }
 
@@ -142,7 +145,10 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                 .subscribe(new Observer<ChannelOverview>() {
 
                     public void onNext(ChannelOverview overview) {
-                        _myChannel = overview;
+                        _dispersyCid = overview.getIdentifier();
+                        _name = overview.getName();
+                        _description = overview.getDescription();
+                        // Update view
                         if (isAdded()) {
                             getActivity().invalidateOptionsMenu();
                         }
@@ -173,7 +179,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     }
 
     private void loadMyChannelTorrents() {
-        loading = service.getTorrents(_myChannel.getIdentifier())
+        loading = service.getTorrents(_dispersyCid)
                 .subscribeOn(Schedulers.io())
                 .flatMap(response -> Observable.from(response.getTorrents()))
                 .observeOn(AndroidSchedulers.mainThread())
@@ -229,12 +235,11 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                 switch (resultCode) {
 
                     case Activity.RESULT_FIRST_USER:
-                        String name = data.getStringExtra(ChannelActivity.EXTRA_NAME);
-
-                        // Update title
-                        ActionBar actionBar = ((BaseActivity) getActivity()).getSupportActionBar();
-                        if (actionBar != null) {
-                            actionBar.setTitle(name);
+                        _name = data.getStringExtra(ChannelActivity.EXTRA_NAME);
+                        _description = data.getStringExtra(ChannelActivity.EXTRA_DESCRIPTION);
+                        // Update view
+                        if (isAdded()) {
+                            getActivity().invalidateOptionsMenu();
                         }
                         return;
                 }

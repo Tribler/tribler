@@ -140,7 +140,7 @@ public class SearchActivity extends BaseActivity {
                     }
 
                     public void onError(Throwable e) {
-                        Log.e("onCreateOptionsMenu", "SearchViewQueryTextEvent", e);
+                        Log.e("onCreateOptionsMenu", "queryTextChangeEvents", e);
                     }
                 }));
 

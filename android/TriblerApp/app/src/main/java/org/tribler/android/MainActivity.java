@@ -274,8 +274,9 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
     /**
      * @param newFragmentClass The desired fragment class
+     * @return True if fragment is switched, false otherwise
      */
-    private void switchFragment(Class newFragmentClass) {
+    private boolean switchFragment(Class newFragmentClass) {
         FragmentManager fragmentManager = getSupportFragmentManager();
         // Check if current fragment is desired fragment
         Fragment current = fragmentManager.findFragmentById(R.id.fragment_main);
@@ -297,7 +298,9 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                     .beginTransaction()
                     .replace(R.id.fragment_main, fragment, tag)
                     .commit();
+            return true;
         }
+        return false;
     }
 
     /**
@@ -323,21 +326,23 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
     public void navSubscriptionsClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
-        switchFragment(SubscribedFragment.class);
-        // Set title
-        ActionBar actionBar = getSupportActionBar();
-        if (actionBar != null) {
-            actionBar.setTitle(getText(R.string.action_subscriptions));
+        if (switchFragment(SubscribedFragment.class)) {
+            // Set title
+            ActionBar actionBar = getSupportActionBar();
+            if (actionBar != null) {
+                actionBar.setTitle(getText(R.string.action_subscriptions));
+            }
         }
     }
 
     public void navMyChannelClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
-        switchFragment(MyChannelFragment.class);
-        // Set title
-        ActionBar actionBar = getSupportActionBar();
-        if (actionBar != null) {
-            actionBar.setTitle(getText(R.string.action_my_channel));
+        if (switchFragment(MyChannelFragment.class)) {
+            // Set title
+            ActionBar actionBar = getSupportActionBar();
+            if (actionBar != null) {
+                actionBar.setTitle(getText(R.string.action_my_channel));
+            }
         }
     }
 
@@ -346,11 +351,12 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
     public void navPopularClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
-        switchFragment(PopularFragment.class);
-        // Set title
-        ActionBar actionBar = getSupportActionBar();
-        if (actionBar != null) {
-            actionBar.setTitle(getText(R.string.action_popular_channels));
+        if (switchFragment(PopularFragment.class)) {
+            // Set title
+            ActionBar actionBar = getSupportActionBar();
+            if (actionBar != null) {
+                actionBar.setTitle(getText(R.string.action_popular_channels));
+            }
         }
     }
 

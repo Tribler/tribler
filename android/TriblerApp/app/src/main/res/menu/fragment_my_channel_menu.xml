@@ -8,6 +8,7 @@
         android:icon="@drawable/ic_action_plus"
         android:onClick="btnMyChannelAddClicked"
         android:title="@string/action_mychannel_add"
+        android:visible="false"
         app:showAsAction="ifRoom|withText" />
 
     <item
@@ -15,12 +16,14 @@
         android:icon="@drawable/ic_action_build"
         android:onClick="btnMyChannelEditClicked"
         android:title="@string/action_mychannel_edit"
+        android:visible="false"
         app:showAsAction="never|withText" />
 
     <item
         android:id="@+id/btn_filter_my_channel"
         android:icon="@drawable/ic_action_search"
         android:title="@string/action_search_in_channel"
+        android:visible="false"
         app:actionViewClass="android.support.v7.widget.SearchView"
         app:showAsAction="always|collapseActionView" />
 
