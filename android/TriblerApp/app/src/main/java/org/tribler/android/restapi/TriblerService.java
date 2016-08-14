@@ -2,6 +2,8 @@ package org.tribler.android.restapi;
 
 import android.text.TextUtils;
 
+import com.facebook.stetho.okhttp3.StethoInterceptor;
+
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.OkHttpClient;
@@ -23,7 +25,7 @@ public class TriblerService {
         OkHttpClient.Builder okHttp = new OkHttpClient.Builder()
                 .readTimeout(90, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)
-                //.addNetworkInterceptor(new StethoInterceptor()) //DEBUG
+                .addNetworkInterceptor(new StethoInterceptor()) //DEBUG
                 .retryOnConnectionFailure(true)
                 .followSslRedirects(false)
                 .followRedirects(false);

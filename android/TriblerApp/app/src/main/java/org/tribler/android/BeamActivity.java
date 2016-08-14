@@ -78,7 +78,8 @@ public class BeamActivity extends BaseActivity {
         // Fetch uri of file to send
         Uri uri = getIntent().getParcelableExtra(Intent.EXTRA_STREAM);
         // Send via other means
-        Intent chooserIntent = MyUtils.sendChooser(uri, getText(R.string.dialog_send_chooser));
+        Intent sendIntent = MyUtils.sendIntent(uri);
+        Intent chooserIntent = Intent.createChooser(sendIntent, getText(R.string.dialog_send_chooser));
         handleIntent(chooserIntent);
     }
 

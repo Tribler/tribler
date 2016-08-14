@@ -48,6 +48,7 @@
     <string name="action_unsubscribe">Remove from favorites</string>
     <string name="action_mychannel_add">Add to my channel</string>
     <string name="action_mychannel_remove">Remove from my channel</string>
+    <string name="action_mychannel_edit">Edit my channel</string>
 
     <string name="action_settings">Change settings</string>
     <string name="action_feedback">Send feedback</string>
@@ -57,7 +58,7 @@
 
     <string name="warning_lost_connection">WARNING: Wi-Fi connection lost!</string>
     <string name="info_no_connection">No Wi-Fi connection detected</string>
-    <string name="exception_http_500">Tribler encountered an exception. Trying to recover now…</string>
+    <string name="exception_http_500">Tribler encountered an internal exception</string>
 
     <string name="info_subscribe_already">is already a favorite!</string>
     <string name="info_subscribe_success">is now a favorite!</string>

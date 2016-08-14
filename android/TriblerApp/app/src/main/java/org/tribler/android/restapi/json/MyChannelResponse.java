@@ -2,13 +2,13 @@ package org.tribler.android.restapi.json;
 
 public class MyChannelResponse {
 
-    private ChannelOverviewPart overview;
+    private ChannelOverview mychannel;
 
     MyChannelResponse() {
     }
 
-    public ChannelOverviewPart getOverview() {
-        return overview;
+    public ChannelOverview getMyChannel() {
+        return mychannel;
     }
 
 }

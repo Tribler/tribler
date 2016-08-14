@@ -1,10 +1,10 @@
 package org.tribler.android.restapi.json;
 
-public class ChannelOverviewPart {
+public class ChannelOverview {
 
     private String name, description, identifier;
 
-    ChannelOverviewPart() {
+    ChannelOverview() {
     }
 
     public String getName() {
@@ -18,4 +18,5 @@ public class ChannelOverviewPart {
     public String getIdentifier() {
         return identifier;
     }
+
 }

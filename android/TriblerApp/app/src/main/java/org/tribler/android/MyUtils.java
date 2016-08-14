@@ -76,7 +76,7 @@ public class MyUtils {
         return new Intent(Intent.ACTION_VIEW, uri);
     }
 
-    public static Intent editChannel(String dispersyCid, String name, String description) {
+    public static Intent editChannelIntent(String dispersyCid, String name, String description) {
         Intent intent = new Intent(Intent.ACTION_EDIT);
         intent.setClassName(getPackageName(), EditChannelActivity.class.getName());
         intent.putExtra(ChannelActivity.EXTRA_DISPERSY_CID, dispersyCid);
@@ -85,13 +85,13 @@ public class MyUtils {
         return intent;
     }
 
-    public static Intent createChannel() {
+    public static Intent createChannelIntent() {
         Intent intent = new Intent(MyChannelFragment.ACTION_CREATE_CHANNEL);
         intent.setClassName(getPackageName(), EditChannelActivity.class.getName());
         return intent;
     }
 
-    public static Intent sendBeam(Uri uri) {
+    public static Intent beamIntent(Uri uri) {
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setClassName(getPackageName(), BeamActivity.class.getName());
         intent.putExtra(Intent.EXTRA_STREAM, uri);
@@ -106,12 +106,7 @@ public class MyUtils {
         return intent;
     }
 
-    public static Intent sendChooser(Uri uri, CharSequence title) {
-        Intent intent = sendIntent(uri);
-        return Intent.createChooser(intent, title);
-    }
-
-    public static Intent captureVideo(Uri output) {
+    public static Intent videoCaptureIntent(Uri output) {
         Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
         intent.putExtra(MediaStore.EXTRA_OUTPUT, output);
         intent.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 1); // 0: low 1: high

@@ -32,6 +32,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.cantrowitz.rxbroadcast.RxBroadcast;
+import com.facebook.stetho.Stetho;
 
 import org.tribler.android.restapi.EventStream;
 import org.tribler.android.restapi.IRestApi;
@@ -108,7 +109,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         drawer.addDrawerListener(_navToggle);
         _navToggle.syncState();
 
-        //Stetho.initializeWithDefaults(getApplicationContext()); //DEBUG
+        Stetho.initializeWithDefaults(getApplicationContext()); //DEBUG
         initConnectionManager();
         initService();
 
@@ -360,7 +361,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
             // Obtain output file
             try {
                 File output = MyUtils.getOutputVideoFile(this);
-                Intent captureIntent = MyUtils.captureVideo(Uri.fromFile(output));
+                Intent captureIntent = MyUtils.videoCaptureIntent(Uri.fromFile(output));
                 startActivityForResult(captureIntent, CAPTURE_VIDEO_ACTIVITY_REQUEST_CODE);
             } catch (IOException ex) {
                 Log.e("getOutputVideoFile", getString(R.string.error_output_file), ex);
@@ -372,7 +373,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     public void navBeamClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         File apk = new File(this.getPackageResourcePath());
-        Intent beamIntent = MyUtils.sendBeam(Uri.fromFile(apk));
+        Intent beamIntent = MyUtils.beamIntent(Uri.fromFile(apk));
         startActivity(beamIntent);
     }
 
@@ -416,7 +417,15 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_main);
         if (fragment instanceof MyChannelFragment) {
             MyChannelFragment mychannel = (MyChannelFragment) fragment;
-            //TODO
+            mychannel.addToChannel();
+        }
+    }
+
+    public void btnMyChannelEditClicked(MenuItem item) {
+        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_main);
+        if (fragment instanceof MyChannelFragment) {
+            MyChannelFragment mychannel = (MyChannelFragment) fragment;
+            mychannel.editChannel();
         }
     }
 

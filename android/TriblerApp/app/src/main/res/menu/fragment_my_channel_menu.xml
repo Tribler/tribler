@@ -11,6 +11,13 @@
         app:showAsAction="ifRoom|withText" />
 
     <item
+        android:id="@+id/btn_edit_my_channel"
+        android:icon="@drawable/ic_action_build"
+        android:onClick="btnMyChannelEditClicked"
+        android:title="@string/action_mychannel_edit"
+        app:showAsAction="never|withText" />
+
+    <item
         android:id="@+id/btn_filter_my_channel"
         android:icon="@drawable/ic_action_search"
         android:title="@string/action_search_in_channel"

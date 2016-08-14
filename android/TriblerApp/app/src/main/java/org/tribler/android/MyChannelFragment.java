@@ -15,7 +15,7 @@ import android.view.View;
 import com.jakewharton.rxbinding.support.v7.widget.RxSearchView;
 import com.jakewharton.rxbinding.support.v7.widget.SearchViewQueryTextEvent;
 
-import org.tribler.android.restapi.json.ChannelOverviewPart;
+import org.tribler.android.restapi.json.ChannelOverview;
 import org.tribler.android.restapi.json.MyChannelResponse;
 import org.tribler.android.restapi.json.TriblerTorrent;
 
@@ -32,7 +32,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     public static final int CREATE_CHANNEL_ACTIVITY_REQUEST_CODE = 401;
     public static final int EDIT_CHANNEL_ACTIVITY_REQUEST_CODE = 402;
 
-    private ChannelOverviewPart _overview;
+    private ChannelOverview _myChannel;
 
     /**
      * {@inheritDoc}
@@ -51,7 +51,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         // Is my channel created?
-        boolean created = _overview != null;
+        boolean created = _myChannel != null;
 
         //TODO show error state
     }
@@ -98,7 +98,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         menu.findItem(R.id.btn_search).setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_NEVER);
 
         // Is my channel created?
-        boolean created = _overview != null;
+        boolean created = _myChannel != null;
         menu.findItem(R.id.btn_add_my_channel).setEnabled(created);
         menu.findItem(R.id.btn_filter_my_channel).setEnabled(created);
 
@@ -106,7 +106,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         if (created) {
             ActionBar actionBar = ((BaseActivity) getActivity()).getSupportActionBar();
             if (actionBar != null) {
-                actionBar.setTitle(_overview.getName());
+                actionBar.setTitle(_myChannel.getName());
             }
         }
     }
@@ -143,17 +143,17 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     private void loadMyChannel() {
         loading = service.getMyChannel()
                 .subscribeOn(Schedulers.io())
-                .map(MyChannelResponse::getOverview)
-                .observeOn(AndroidSchedulers.mainThread())
+                .map(MyChannelResponse::getMyChannel)
                 .doOnNext(overview -> {
                     // Side effects:
-                    _overview = overview;
+                    _myChannel = overview;
                     if (isAdded()) {
                         getActivity().invalidateOptionsMenu();
                     }
                 })
-                .switchMap(overview -> service.getTorrents(_overview.getIdentifier()))
+                .switchMap(overview -> service.getTorrents(_myChannel.getIdentifier()))
                 .flatMap(response -> Observable.from(response.getTorrents()))
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<TriblerTorrent>() {
 
                     public void onNext(TriblerTorrent torrent) {
@@ -168,10 +168,10 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     public void onError(Throwable e) {
                         if (e instanceof HttpException && ((HttpException) e).code() == 404) {
                             // My channel has not been created yet
-                            Intent createIntent = MyUtils.createChannel();
+                            Intent createIntent = MyUtils.createChannelIntent();
                             startActivityForResult(createIntent, CREATE_CHANNEL_ACTIVITY_REQUEST_CODE);
                         } else {
-                            Log.e("loadMyChannel", "getOverview", e);
+                            Log.e("loadMyChannel", "getMyChannel", e);
                             MyUtils.onError(e, context);
                             try {
                                 Thread.sleep(1000);
@@ -183,6 +183,11 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     }
                 });
         rxSubs.add(loading);
+    }
+
+    public void editChannel() {
+        Intent createIntent = MyUtils.editChannelIntent(_myChannel.getIdentifier(), _myChannel.getName(), _myChannel.getDescription());
+        startActivityForResult(createIntent, EDIT_CHANNEL_ACTIVITY_REQUEST_CODE);
     }
 
     /**
@@ -197,17 +202,30 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
                     case Activity.RESULT_OK:
                         loadMyChannel();
-                        break;
+                        return;
 
                     case Activity.RESULT_CANCELED:
                         // Hide loading indicator
                         progressView.setVisibility(View.GONE);
 
                         //TODO: show error message
-                        break;
+                        return;
                 }
-                break;
+                return;
+
+            case EDIT_CHANNEL_ACTIVITY_REQUEST_CODE:
+                switch (resultCode) {
+
+                    case Activity.RESULT_OK:
+                        reload();
+                        return;
+                }
+                return;
         }
+    }
+
+    public void addToChannel() {
+        //TODO
     }
 
 }

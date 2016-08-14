@@ -134,6 +134,7 @@ public class EditChannelFragment extends ViewFragment {
                 .subscribe(new Observer<AddedChannelAck>() {
 
                     public void onNext(AddedChannelAck ack) {
+                        Log.d("createChannel", "channel_id = " + ack.getAdded());
                     }
 
                     public void onCompleted() {

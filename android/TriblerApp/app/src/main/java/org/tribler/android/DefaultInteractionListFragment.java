@@ -63,9 +63,9 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                             // Update view
                             adapter.notifyObjectChanged(channel);
                         }
-                        break;
+                        return;
                 }
-                break;
+                return;
         }
     }
 
