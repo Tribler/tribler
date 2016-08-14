@@ -43,6 +43,7 @@ public interface IRestApi {
     Observable<MyChannelResponse> getMyChannel();
 
     @POST("/mychannel")
+    @FormUrlEncoded
     Observable<ModifiedAck> editMyChannel(
             @Field("name") String name,
             @Field("description") String description

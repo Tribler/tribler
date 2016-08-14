@@ -77,7 +77,7 @@ public class MyUtils {
     }
 
     public static Intent editChannelIntent(String dispersyCid, String name, String description) {
-        Intent intent = new Intent(Intent.ACTION_EDIT);
+        Intent intent = new Intent(EditChannelActivity.ACTION_EDIT_CHANNEL);
         intent.setClassName(getPackageName(), EditChannelActivity.class.getName());
         intent.putExtra(ChannelActivity.EXTRA_DISPERSY_CID, dispersyCid);
         intent.putExtra(ChannelActivity.EXTRA_NAME, name);
@@ -86,7 +86,7 @@ public class MyUtils {
     }
 
     public static Intent createChannelIntent() {
-        Intent intent = new Intent(MyChannelFragment.ACTION_CREATE_CHANNEL);
+        Intent intent = new Intent(EditChannelActivity.ACTION_CREATE_CHANNEL);
         intent.setClassName(getPackageName(), EditChannelActivity.class.getName());
         return intent;
     }

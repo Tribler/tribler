@@ -92,7 +92,6 @@ public class EditChannelFragment extends ViewFragment {
     void createChannel() {
         explanation.setVisibility(View.VISIBLE);
         btnCreate.setVisibility(View.VISIBLE);
-        btnCreate.requestFocus();
     }
 
     void editChannel(String dispersyCid, String name, String description) {
@@ -103,7 +102,6 @@ public class EditChannelFragment extends ViewFragment {
         MyUtils.setCicleBackground(icon, color);
         iconWrapper.setVisibility(View.VISIBLE);
         btnSave.setVisibility(View.VISIBLE);
-        btnSave.requestFocus();
     }
 
     private void setInputEnabled(boolean enabled) {

@@ -3,7 +3,6 @@ package org.tribler.android;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.SearchView;
 import android.util.Log;
@@ -27,8 +26,6 @@ import rx.schedulers.Schedulers;
 
 public class MyChannelFragment extends DefaultInteractionListFragment {
 
-    public static final String ACTION_CREATE_CHANNEL = "org.tribler.android.channel.CREATE";
-
     public static final int CREATE_CHANNEL_ACTIVITY_REQUEST_CODE = 401;
     public static final int EDIT_CHANNEL_ACTIVITY_REQUEST_CODE = 402;
 
@@ -42,18 +39,6 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
         loadMyChannel();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        // Is my channel created?
-        boolean created = _myChannel != null;
-
-        //TODO show error state
     }
 
     /**
@@ -130,6 +115,15 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         //TODO: remove from my channel
     }
 
+    public void addToChannel() {
+        //TODO: add to my channel
+    }
+
+    public void editChannel() {
+        Intent createIntent = MyUtils.editChannelIntent(_myChannel.getIdentifier(), _myChannel.getName(), _myChannel.getDescription());
+        startActivityForResult(createIntent, EDIT_CHANNEL_ACTIVITY_REQUEST_CODE);
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -144,25 +138,18 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         loading = service.getMyChannel()
                 .subscribeOn(Schedulers.io())
                 .map(MyChannelResponse::getMyChannel)
-                .doOnNext(overview -> {
-                    // Side effects:
-                    _myChannel = overview;
-                    if (isAdded()) {
-                        getActivity().invalidateOptionsMenu();
-                    }
-                })
-                .switchMap(overview -> service.getTorrents(_myChannel.getIdentifier()))
-                .flatMap(response -> Observable.from(response.getTorrents()))
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<TriblerTorrent>() {
+                .subscribe(new Observer<ChannelOverview>() {
 
-                    public void onNext(TriblerTorrent torrent) {
-                        adapter.addObject(torrent);
+                    public void onNext(ChannelOverview overview) {
+                        _myChannel = overview;
+                        if (isAdded()) {
+                            getActivity().invalidateOptionsMenu();
+                        }
                     }
 
                     public void onCompleted() {
-                        // Hide loading indicator
-                        progressView.setVisibility(View.GONE);
+                        loadMyChannelTorrents();
                     }
 
                     public void onError(Throwable e) {
@@ -185,9 +172,34 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         rxSubs.add(loading);
     }
 
-    public void editChannel() {
-        Intent createIntent = MyUtils.editChannelIntent(_myChannel.getIdentifier(), _myChannel.getName(), _myChannel.getDescription());
-        startActivityForResult(createIntent, EDIT_CHANNEL_ACTIVITY_REQUEST_CODE);
+    private void loadMyChannelTorrents() {
+        loading = service.getTorrents(_myChannel.getIdentifier())
+                .subscribeOn(Schedulers.io())
+                .flatMap(response -> Observable.from(response.getTorrents()))
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<TriblerTorrent>() {
+
+                    public void onNext(TriblerTorrent torrent) {
+                        adapter.addObject(torrent);
+                    }
+
+                    public void onCompleted() {
+                        // Hide loading indicator
+                        progressView.setVisibility(View.GONE);
+                    }
+
+                    public void onError(Throwable e) {
+                        Log.e("loadMyChannelTorrents", "getTorrents", e);
+                        MyUtils.onError(e, context);
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException ex) {
+                        }
+                        // Retry
+                        loadMyChannelTorrents();
+                    }
+                });
+        rxSubs.add(loading);
     }
 
     /**
@@ -222,10 +234,6 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                 }
                 return;
         }
-    }
-
-    public void addToChannel() {
-        //TODO
     }
 
 }
