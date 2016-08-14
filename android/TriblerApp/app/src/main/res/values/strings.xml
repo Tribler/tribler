@@ -73,6 +73,7 @@
     <string name="status_opening_eventstream">Starting service…</string>
     <string name="status_searching">Searching…</string>
     <string name="status_shutting_down">Shutting down…</string>
+    <string name="status_saving_changes">Saving changes…</string>
 
     <string name="channel_name_label">Channel name</string>
     <string name="channel_description_label">Description</string>

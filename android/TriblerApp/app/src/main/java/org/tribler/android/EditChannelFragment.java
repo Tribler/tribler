@@ -120,11 +120,10 @@ public class EditChannelFragment extends ViewFragment {
 
     void btnChannelCreateClicked() {
         setInputEnabled(false);
+        statusBar.setText(getText(R.string.status_creating_channel));
 
         String name = nameInput.getText().toString();
         String description = descriptionInput.getText().toString();
-
-        statusBar.setText(getText(R.string.status_creating_channel));
 
         rxSubs.add(service.createChannel(name, description)
                 .subscribeOn(Schedulers.io())
@@ -154,6 +153,7 @@ public class EditChannelFragment extends ViewFragment {
 
     void btnChannelSaveClicked() {
         setInputEnabled(false);
+        statusBar.setText(getText(R.string.status_saving_changes));
 
         String name = nameInput.getText().toString();
         String description = descriptionInput.getText().toString();
