@@ -2,6 +2,7 @@ package org.tribler.android;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -53,19 +54,19 @@ public class EditChannelFragment extends ViewFragment {
     @BindView(R.id.channel_progress_status)
     TextView statusBar;
 
-    private int _result = Activity.RESULT_FIRST_USER;
+    private Intent _result;
 
-    private int getResult() {
+    private Intent getResult() {
         return _result;
     }
 
-    private void setResult(int result) {
+    private void setResult(Intent result) {
         _result = result;
         // result can be set while activity is not attached
         if (isAdded()) {
             Activity activity = getActivity();
-            activity.setResult(result);
-            if (result != Activity.RESULT_FIRST_USER) {
+            activity.setResult(Activity.RESULT_FIRST_USER, result);
+            if (result != null) {
                 activity.finish();
             }
         }
@@ -122,8 +123,8 @@ public class EditChannelFragment extends ViewFragment {
         setInputEnabled(false);
         statusBar.setText(getText(R.string.status_creating_channel));
 
-        String name = nameInput.getText().toString();
-        String description = descriptionInput.getText().toString();
+        final String name = nameInput.getText().toString();
+        final String description = descriptionInput.getText().toString();
 
         rxSubs.add(service.createChannel(name, description)
                 .subscribeOn(Schedulers.io())
@@ -135,7 +136,10 @@ public class EditChannelFragment extends ViewFragment {
                     }
 
                     public void onCompleted() {
-                        setResult(Activity.RESULT_OK);
+                        Intent intent = new Intent();
+                        intent.putExtra(ChannelActivity.EXTRA_NAME, name);
+                        intent.putExtra(ChannelActivity.EXTRA_DESCRIPTION, description);
+                        setResult(intent);
                     }
 
                     public void onError(Throwable e) {
@@ -155,8 +159,8 @@ public class EditChannelFragment extends ViewFragment {
         setInputEnabled(false);
         statusBar.setText(getText(R.string.status_saving_changes));
 
-        String name = nameInput.getText().toString();
-        String description = descriptionInput.getText().toString();
+        final String name = nameInput.getText().toString();
+        final String description = descriptionInput.getText().toString();
 
         rxSubs.add(service.editMyChannel(name, description)
                 .subscribeOn(Schedulers.io())
@@ -164,10 +168,15 @@ public class EditChannelFragment extends ViewFragment {
                 .subscribe(new Observer<ModifiedAck>() {
 
                     public void onNext(ModifiedAck ack) {
+                        if (ack.isModified()) {
+                            Intent intent = new Intent();
+                            intent.putExtra(ChannelActivity.EXTRA_NAME, name);
+                            intent.putExtra(ChannelActivity.EXTRA_DESCRIPTION, description);
+                            setResult(intent);
+                        }
                     }
 
                     public void onCompleted() {
-                        setResult(Activity.RESULT_OK);
                     }
 
                     public void onError(Throwable e) {

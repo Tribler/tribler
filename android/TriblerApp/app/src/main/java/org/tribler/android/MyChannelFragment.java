@@ -228,8 +228,14 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
             case EDIT_CHANNEL_ACTIVITY_REQUEST_CODE:
                 switch (resultCode) {
 
-                    case Activity.RESULT_OK:
-                        reload();
+                    case Activity.RESULT_FIRST_USER:
+                        String name = data.getStringExtra(ChannelActivity.EXTRA_NAME);
+
+                        // Update title
+                        ActionBar actionBar = ((BaseActivity) getActivity()).getSupportActionBar();
+                        if (actionBar != null) {
+                            actionBar.setTitle(name);
+                        }
                         return;
                 }
                 return;

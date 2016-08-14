@@ -34,11 +34,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
      */
     @Override
     public void onClick(final TriblerChannel channel) {
-        Intent intent = new Intent(context, ChannelActivity.class);
-        intent.setAction(Intent.ACTION_GET_CONTENT);
-        intent.putExtra(ChannelActivity.EXTRA_DISPERSY_CID, channel.getDispersyCid());
-        intent.putExtra(ChannelActivity.EXTRA_NAME, channel.getName());
-        intent.putExtra(ChannelActivity.EXTRA_SUBSCRIBED, channel.isSubscribed());
+        Intent intent = MyUtils.viewChannelIntent(channel.getDispersyCid(), channel.getName(), channel.isSubscribed());
         startActivityForResult(intent, CHANNEL_ACTIVITY_REQUEST_CODE);
     }
 

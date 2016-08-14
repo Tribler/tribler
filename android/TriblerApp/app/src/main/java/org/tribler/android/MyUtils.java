@@ -76,6 +76,15 @@ public class MyUtils {
         return new Intent(Intent.ACTION_VIEW, uri);
     }
 
+    public static Intent viewChannelIntent(String dispersyCid, String name, boolean subscribed) {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setClassName(getPackageName(), ChannelActivity.class.getName());
+        intent.putExtra(ChannelActivity.EXTRA_DISPERSY_CID, dispersyCid);
+        intent.putExtra(ChannelActivity.EXTRA_NAME, name);
+        intent.putExtra(ChannelActivity.EXTRA_SUBSCRIBED, subscribed);
+        return intent;
+    }
+
     public static Intent editChannelIntent(String dispersyCid, String name, String description) {
         Intent intent = new Intent(EditChannelActivity.ACTION_EDIT_CHANNEL);
         intent.setClassName(getPackageName(), EditChannelActivity.class.getName());
