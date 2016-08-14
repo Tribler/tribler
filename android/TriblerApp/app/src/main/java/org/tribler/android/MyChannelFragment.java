@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.SearchView;
 import android.util.Log;
 import android.view.Menu;
@@ -59,7 +60,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         searchView.setQueryHint(getText(R.string.action_search_in_channel));
 
         // Filter on query text change
-        rxSubs.add(RxSearchView.queryTextChangeEvents(searchView)
+        rxMenuSubs.add(RxSearchView.queryTextChangeEvents(searchView)
                 .subscribe(new Observer<SearchViewQueryTextEvent>() {
 
                     public void onNext(SearchViewQueryTextEvent event) {
@@ -91,8 +92,8 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         menu.findItem(R.id.btn_filter_my_channel).setVisible(created);
 
         // Set title
-        if (created) {
-            ActionBar actionBar = ((BaseActivity) getActivity()).getSupportActionBar();
+        if (created && context instanceof AppCompatActivity) {
+            ActionBar actionBar = ((AppCompatActivity) context).getSupportActionBar();
             if (actionBar != null) {
                 actionBar.setTitle(_name);
             }
@@ -149,9 +150,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         _name = overview.getName();
                         _description = overview.getDescription();
                         // Update view
-                        if (isAdded()) {
-                            getActivity().invalidateOptionsMenu();
-                        }
+                        invalidateOptionsMenu();
                     }
 
                     public void onCompleted() {

@@ -98,7 +98,7 @@ public class EditChannelFragment extends ViewFragment {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        RxTextView.textChangeEvents(nameInput)
+        rxSubs.add(RxTextView.textChangeEvents(nameInput)
                 .subscribe(new Observer<TextViewTextChangeEvent>() {
 
                     public void onNext(TextViewTextChangeEvent event) {
@@ -118,7 +118,7 @@ public class EditChannelFragment extends ViewFragment {
                     public void onError(Throwable e) {
                         Log.e("onViewCreated", "textChangeEvents", e);
                     }
-                });
+                }));
     }
 
     void createChannel() {

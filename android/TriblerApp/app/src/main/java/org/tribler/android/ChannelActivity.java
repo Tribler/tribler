@@ -65,7 +65,7 @@ public class ChannelActivity extends BaseActivity {
         searchView.setQueryHint(getText(R.string.action_search_in_channel));
 
         // Filter on query text change
-        rxSubs.add(RxSearchView.queryTextChangeEvents(searchView)
+        rxMenuSubs.add(RxSearchView.queryTextChangeEvents(searchView)
                 .subscribe(new Observer<SearchViewQueryTextEvent>() {
 
                     public void onNext(SearchViewQueryTextEvent event) {

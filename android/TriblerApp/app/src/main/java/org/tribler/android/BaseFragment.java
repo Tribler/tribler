@@ -17,6 +17,7 @@ public class BaseFragment extends Fragment {
 
     protected Context context;
     protected CompositeSubscription rxSubs;
+    protected CompositeSubscription rxMenuSubs;
     protected IRestApi service;
 
     /**
@@ -32,6 +33,7 @@ public class BaseFragment extends Fragment {
         service = TriblerService.createService(baseUrl, authToken);
 
         rxSubs = new CompositeSubscription();
+        rxMenuSubs = new CompositeSubscription();
     }
 
     /**
@@ -45,6 +47,8 @@ public class BaseFragment extends Fragment {
         // Memory leak detection
         MyUtils.getRefWatcher(getActivity()).watch(this);
 
+        rxMenuSubs.unsubscribe();
+        rxMenuSubs = null;
         rxSubs.unsubscribe();
         rxSubs = null;
 
@@ -71,6 +75,14 @@ public class BaseFragment extends Fragment {
         Log.v(this.getClass().getSimpleName(), "onDetach");
 
         context = null;
+    }
+
+    public void invalidateOptionsMenu() {
+        rxMenuSubs.unsubscribe();
+        rxMenuSubs.clear();
+        if (isAdded()) {
+            getActivity().invalidateOptionsMenu();
+        }
     }
 
 }

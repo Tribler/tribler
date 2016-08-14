@@ -25,6 +25,7 @@ public abstract class BaseActivity extends AppCompatActivity {
     Toolbar toolbar;
 
     protected CompositeSubscription rxSubs;
+    protected CompositeSubscription rxMenuSubs;
 
     /**
      * {@inheritDoc}
@@ -35,6 +36,7 @@ public abstract class BaseActivity extends AppCompatActivity {
         Log.v(this.getClass().getSimpleName(), "onCreate");
 
         rxSubs = new CompositeSubscription();
+        rxMenuSubs = new CompositeSubscription();
     }
 
     /**
@@ -48,6 +50,8 @@ public abstract class BaseActivity extends AppCompatActivity {
         // Memory leak detection
         MyUtils.getRefWatcher(this).watch(this);
 
+        rxMenuSubs.unsubscribe();
+        rxMenuSubs = null;
         rxSubs.unsubscribe();
         rxSubs = null;
     }
@@ -67,6 +71,16 @@ public abstract class BaseActivity extends AppCompatActivity {
         if (actionbar != null && layoutResID != R.layout.activity_main) {
             actionbar.setDisplayHomeAsUpEnabled(true);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void invalidateOptionsMenu() {
+        super.invalidateOptionsMenu();
+        rxMenuSubs.unsubscribe();
+        rxMenuSubs.clear();
     }
 
     /**
