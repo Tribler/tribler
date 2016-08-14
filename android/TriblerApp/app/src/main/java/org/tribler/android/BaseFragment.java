@@ -11,7 +11,7 @@ import org.tribler.android.restapi.TriblerService;
 import rx.subscriptions.CompositeSubscription;
 
 /**
- * Use RxJava CompositeSubscription to automatically un-subscribe onDestroy.
+ * Use RxJava CompositeSubscription to automatically un-subscribe onDestroy and invalidateOptionsMenu.
  */
 public class BaseFragment extends Fragment {
 

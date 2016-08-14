@@ -17,7 +17,7 @@ import rx.subscriptions.CompositeSubscription;
 /**
  * Use ButterKnife to automatically bind fields.
  * <p>
- * Use RxJava CompositeSubscription to automatically un-subscribe onDestroy.
+ * Use RxJava CompositeSubscription to automatically un-subscribe onDestroy and invalidateOptionsMenu.
  */
 public abstract class BaseActivity extends AppCompatActivity {
 

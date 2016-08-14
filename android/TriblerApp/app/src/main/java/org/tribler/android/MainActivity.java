@@ -168,6 +168,8 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
             case Intent.ACTION_MAIN:
                 drawer.openDrawer(GravityCompat.START);
+                // Open drawer only once
+                intent.setAction(null);
                 return;
 
             case ConnectivityManager.CONNECTIVITY_ACTION:
