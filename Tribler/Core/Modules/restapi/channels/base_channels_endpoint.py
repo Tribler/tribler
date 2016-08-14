@@ -54,7 +54,7 @@ class BaseChannelsEndpoint(resource.Resource):
         Returns information about the channel from the database. Returns None if the channel with given cid
         does not exist.
         """
-        channels_list = self.channel_db_handler.getChannelsByCID([cid])
+        channels_list = self.channel_db_handler.getChannelsByCID([cid], includeNoName=True)
         return channels_list[0] if len(channels_list) > 0 else None
 
     def get_my_channel_object(self):

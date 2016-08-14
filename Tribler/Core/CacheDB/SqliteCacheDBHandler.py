@@ -2342,7 +2342,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
             "')"
         return self._getChannels(sql)
 
-    def getChannelsByCID(self, channel_cids):
+    def getChannelsByCID(self, channel_cids, includeNoName=False):
         parameters = '?,' * len(channel_cids)
         parameters = parameters[:-1]
 
@@ -2351,7 +2351,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
               "FROM Channels WHERE dispersy_cid IN (" + \
             parameters + \
             ")"
-        return self._getChannels(sql, channel_cids)
+        return self._getChannels(sql, channel_cids, includeNoName=includeNoName)
 
     def getAllChannels(self):
         """ Returns all the channels """
