@@ -203,6 +203,8 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                         String dispersyCid = new String(records[0].getPayload());
 
                         askUserToSubscribe(dispersyCid);
+                        // Ask user only once
+                        onNewIntent(new Intent());
                     }
                 }
                 return;
@@ -228,6 +230,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
     private void subscribeToChannel(String dispersyCid) {
         final String name = getString(R.string.info_received_channel);
+        Toast.makeText(this, String.format(getString(R.string.status_subscribing), name), Toast.LENGTH_LONG).show();
 
         rxSubs.add(_service.subscribe(dispersyCid)
                 .subscribeOn(Schedulers.io())

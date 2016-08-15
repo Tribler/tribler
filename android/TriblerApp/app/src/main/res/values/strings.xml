@@ -71,6 +71,7 @@
     <string name="info_received_channel">Received channel</string>
     <string name="dialog_received_channel">Do you want to add the received channel to your favorites now?</string>
 
+    <string name="status_subscribing">Adding %s to favorites now…</string>
     <string name="info_subscribe_already">%s is already a favorite!</string>
     <string name="info_subscribe_success">%s is now a favorite!</string>
     <string name="info_subscribe_failure">%s is still not a favorite…</string>
