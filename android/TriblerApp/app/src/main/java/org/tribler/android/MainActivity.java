@@ -17,6 +17,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.Parcelable;
 import android.os.Process;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
@@ -286,6 +287,22 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                     ((ListFragment) fragment).reload();
                 }
                 return;
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        for (String permission : permissions) {
+            Log.v(this.getClass().getSimpleName(), "onRequestPermissionsResult " + permission); //DEBUG
+        }
+        // Propagate results
+        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_main);
+        if (fragment != null) {
+            fragment.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
 

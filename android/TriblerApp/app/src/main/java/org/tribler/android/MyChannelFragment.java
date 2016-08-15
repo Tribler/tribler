@@ -1,13 +1,18 @@
 package org.tribler.android;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.nfc.NdefRecord;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -51,6 +56,8 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     public static final int CREATE_CHANNEL_ACTIVITY_REQUEST_CODE = 401;
     public static final int EDIT_CHANNEL_ACTIVITY_REQUEST_CODE = 402;
     public static final int BROWSE_FILE_ACTIVITY_REQUEST_CODE = 411;
+
+    public static final int READ_STORAGE_PERMISSION_REQUEST_CODE = 410;
 
     private String _dispersyCid;
     private String _name;
@@ -434,9 +441,13 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     }
 
     private void askUserToSelectFile() {
-        Intent browseIntent = MyUtils.browseFileIntent();
-        Intent chooserIntent = Intent.createChooser(browseIntent, getText(R.string.dialog_create_torrent));
-        startActivityForResult(chooserIntent, BROWSE_FILE_ACTIVITY_REQUEST_CODE);
+        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(getActivity(), new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, READ_STORAGE_PERMISSION_REQUEST_CODE);
+        } else {
+            Intent browseIntent = MyUtils.browseFileIntent();
+            Intent chooserIntent = Intent.createChooser(browseIntent, getText(R.string.dialog_create_torrent));
+            startActivityForResult(chooserIntent, BROWSE_FILE_ACTIVITY_REQUEST_CODE);
+        }
     }
 
     private void createChannel() {
@@ -447,6 +458,23 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
     void editChannel() {
         Intent createIntent = MyUtils.editChannelIntent(_dispersyCid, _name, _description);
         startActivityForResult(createIntent, EDIT_CHANNEL_ACTIVITY_REQUEST_CODE);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+
+            case READ_STORAGE_PERMISSION_REQUEST_CODE:
+                // If request is cancelled, the result arrays are empty
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    askUserToSelectFile();
+                }
+                return;
+        }
     }
 
     /**
