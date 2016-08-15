@@ -166,8 +166,8 @@ class TestDatabase(MultiChainTestCase):
         # Act
         (result_up, result_down) = self.db.get_total(self.block2.public_key_requester)
         # Assert
-        self.assertEqual(-1, result_up)
-        self.assertEqual(-1, result_down)
+        self.assertEqual(0, result_up)
+        self.assertEqual(0, result_down)
 
     def test_save_large_upload_download_block(self):
         """

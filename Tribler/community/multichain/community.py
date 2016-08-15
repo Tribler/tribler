@@ -10,7 +10,6 @@ import logging
 import base64
 
 from twisted.internet.task import LoopingCall
-from Tribler.Core.Session import Session
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
 from Tribler.dispersy.authentication import DoubleMemberAuthentication, MemberAuthentication
@@ -43,9 +42,8 @@ class MultiChainCommunity(Community):
     def __init__(self, *args, **kwargs):
         super(MultiChainCommunity, self).__init__(*args, **kwargs)
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.notifier = Session.get_instance().notifier
-        self.notifier.add_observer(self.on_tunnel_remove, NTFY_TUNNEL, [NTFY_REMOVE])
 
+        self.notifier = None
         self._private_key = self.my_member.private_key
         self._public_key = self.my_member.public_key
         self.persistence = MultiChainDB(self.dispersy, self.dispersy.working_directory)
@@ -53,6 +51,12 @@ class MultiChainCommunity(Community):
 
         # No response is expected yet.
         self.expected_response = None
+
+    def initialize(self, tribler_session=None):
+        super(MultiChainCommunity, self).initialize()
+        if tribler_session:
+            self.notifier = tribler_session.notifier
+            self.notifier.add_observer(self.on_tunnel_remove, NTFY_TUNNEL, [NTFY_REMOVE])
 
     @classmethod
     def get_master_members(cls, dispersy):
@@ -342,16 +346,16 @@ class MultiChainCommunity(Community):
         :returns a dictionary with statistics
         """
         statistics = dict()
-        statistics["self_id"] = base64.encodestring(self._public_key)
+        statistics["self_id"] = base64.encodestring(self._public_key).strip()
         statistics["self_total_blocks"] = self.persistence.get_latest_sequence_number(self._public_key)
         (statistics["self_total_up_mb"],
          statistics["self_total_down_mb"]) = self.persistence.get_total(self._public_key)
         latest_block = self.persistence.get_latest_block(self._public_key)
         if latest_block:
             statistics["latest_block_insert_time"] = str(latest_block.insert_time)
-            statistics["latest_block_id"] = base64.encodestring(latest_block.hash_requester)
-            statistics["latest_block_requester_id"] = base64.encodestring(latest_block.public_key_requester)
-            statistics["latest_block_responder_id"] = base64.encodestring(latest_block.public_key_responder)
+            statistics["latest_block_id"] = base64.encodestring(latest_block.hash_requester).strip()
+            statistics["latest_block_requester_id"] = base64.encodestring(latest_block.public_key_requester).strip()
+            statistics["latest_block_responder_id"] = base64.encodestring(latest_block.public_key_responder).strip()
             statistics["latest_block_up_mb"] = str(latest_block.up)
             statistics["latest_block_down_mb"] = str(latest_block.down)
         else:
@@ -371,10 +375,7 @@ class MultiChainCommunity(Community):
         :return: (total_up (int), total_down (int)
         """
         total_up, total_down = self.persistence.get_total(self._public_key)
-        if total_up == total_down == -1:
-            return up, down
-        else:
-            return total_up + up, total_down + down
+        return total_up + up, total_down + down
 
     def _get_next_sequence_number(self):
         return self.persistence.get_latest_sequence_number(self._public_key) + 1
@@ -385,7 +386,8 @@ class MultiChainCommunity(Community):
 
     def unload_community(self):
         self.logger.debug("Unloading the MultiChain Community.")
-        self.notifier.remove_observer(self.on_tunnel_remove)
+        if self.notifier:
+            self.notifier.remove_observer(self.on_tunnel_remove)
         super(MultiChainCommunity, self).unload_community()
         # Close the persistence layer
         self.persistence.close()
