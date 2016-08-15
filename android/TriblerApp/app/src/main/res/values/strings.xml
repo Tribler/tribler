@@ -3,7 +3,7 @@
     <string name="app_website">www.tribler.org</string>
     <string name="app_feedback_url">https://forum.tribler.org</string>
     <string name="service_url">http://127.0.0.1</string>
-    <string name="service_port_number">8088</string>
+    <string name="service_port_number">8085</string>
     <string name="service_auth_token"></string>
 
     <string name="title_app">Application</string>

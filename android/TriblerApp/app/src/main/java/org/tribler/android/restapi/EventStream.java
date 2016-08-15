@@ -13,7 +13,7 @@ public class EventStream {
 
     private static final OkHttpClient CLIENT = buildClient();
 
-    private static final Request REQUEST = buildRequest("http://127.0.0.1:8088");
+    private static final Request REQUEST = buildRequest("http://127.0.0.1:8085");
 
     private static final EventStreamCallback CALLBACK = new EventStreamCallback();
 
