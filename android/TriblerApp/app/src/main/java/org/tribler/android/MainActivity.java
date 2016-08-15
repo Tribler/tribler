@@ -409,7 +409,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     public void navShutdownClicked(MenuItem item) {
         drawer.closeDrawer(GravityCompat.START);
         Intent shutdown = new Intent(Intent.ACTION_SHUTDOWN);
-        // Ask user to open url
+        // Ask user to confirm shutdown
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage(getString(R.string.dialog_shutdown));
         builder.setPositiveButton(getText(R.string.action_shutdown_short), (dialog, which) -> {

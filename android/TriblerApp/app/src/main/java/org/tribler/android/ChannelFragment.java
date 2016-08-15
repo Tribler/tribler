@@ -49,6 +49,7 @@ public class ChannelFragment extends DefaultInteractionListFragment {
                     public void onCompleted() {
                         // Hide loading indicator
                         progressView.setVisibility(View.GONE);
+                        statusBar.setText("");
                     }
 
                     public void onError(Throwable e) {
