@@ -144,12 +144,10 @@ public class EventStreamCallback implements Callback {
                 return _gson.fromJson(event, SearchResultTorrentEvent.class);
 
             case ChannelDiscoveredEvent.TYPE:
-                //return _gson.fromJson(event, ChannelDiscoveredEvent.class);
-                return null;
+                return _gson.fromJson(event, ChannelDiscoveredEvent.class);
 
             case TorrentDiscoveredEvent.TYPE:
-                //return _gson.fromJson(event, TorrentDiscoveredEvent.class);
-                return null;
+                return _gson.fromJson(event, TorrentDiscoveredEvent.class);
 
             default:
                 Log.e("parseEvent", String.format("Unknown event type: %s", container.getType()));

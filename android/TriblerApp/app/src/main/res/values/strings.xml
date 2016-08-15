@@ -28,6 +28,8 @@
     <string name="action_browse">Browse</string>
     <string name="action_add">Add</string>
     <string name="action_delete">Delete</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="action_REFRESH">REFRESH</string>
 
     <string name="action_search">Search videos and channels</string>
     <string name="action_search_in_channel">Search in this channel</string>
@@ -63,6 +65,7 @@
     <string name="warning_lost_connection">WARNING: Wi-Fi connection lost!</string>
     <string name="info_no_connection">No Wi-Fi connection detected</string>
     <string name="exception_http_500">Tribler encountered an internal exception</string>
+    <string name="info_content_discovered">New content discovered!\n\"%s\"</string>
 
     <string name="info_subscribe_already">is already a favorite!</string>
     <string name="info_subscribe_success">is now a favorite!</string>

@@ -5,7 +5,7 @@
     android:layout_height="wrap_content">
 
     <item
-        android:id="@+id/btn_channel_favorite"
+        android:id="@+id/btn_channel_toggle_subscribed"
         android:onClick="btnFavoriteClicked"
         android:title=""
         app:showAsAction="ifRoom|withText" />

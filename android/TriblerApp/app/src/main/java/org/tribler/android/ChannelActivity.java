@@ -90,15 +90,27 @@ public class ChannelActivity extends BaseActivity {
     public boolean onPrepareOptionsMenu(Menu menu) {
         super.onPrepareOptionsMenu(menu);
 
-        boolean subscribed = getIntent().getBooleanExtra(ChannelActivity.EXTRA_SUBSCRIBED, false);
-        MenuItem item = menu.findItem(R.id.btn_channel_favorite);
-        // Toggle subscribed
+        Intent intent = getIntent();
+        String name = intent.getStringExtra(EXTRA_NAME);
+        boolean subscribed = intent.getBooleanExtra(ChannelActivity.EXTRA_SUBSCRIBED, false);
+
+        // Toggle subscribed icon
+        MenuItem item = menu.findItem(R.id.btn_channel_toggle_subscribed);
         if (subscribed) {
             item.setIcon(R.drawable.ic_action_star);
             item.setTitle(R.string.action_unsubscribe);
         } else {
             item.setIcon(R.drawable.ic_action_star_outline);
             item.setTitle(R.string.action_subscribe);
+        }
+
+        // Set title
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            if (!subscribed) {
+                name = getString(R.string.title_channel_preview) + ": " + name;
+            }
+            actionBar.setTitle(name);
         }
 
         return true;
@@ -116,14 +128,7 @@ public class ChannelActivity extends BaseActivity {
         switch (action) {
 
             case Intent.ACTION_GET_CONTENT:
-                // Set title
-                ActionBar actionBar = getSupportActionBar();
-                if (actionBar != null) {
-                    if (!subscribed) {
-                        name = getString(R.string.title_channel_preview) + ": " + name;
-                    }
-                    actionBar.setTitle(name);
-                }
+                // ChannelFragment loads onCreate
                 return;
 
             case ACTION_TOGGLE_SUBSCRIBED:
