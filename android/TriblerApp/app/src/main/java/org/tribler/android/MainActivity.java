@@ -296,9 +296,6 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        for (String permission : permissions) {
-            Log.v(this.getClass().getSimpleName(), "onRequestPermissionsResult " + permission); //DEBUG
-        }
         // Propagate results
         Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_main);
         if (fragment != null) {
