@@ -150,7 +150,7 @@ public interface IRestApi {
     );
 
     @DELETE("/channels/discovered/{dispersy_cid}/torrents/{infohash}")
-    Observable<RemovedAck> removeTorrent(
+    Observable<RemovedAck> deleteTorrent(
             @Path("dispersy_cid") String dispersyCid,
             @Path("infohash") String infohash
     );

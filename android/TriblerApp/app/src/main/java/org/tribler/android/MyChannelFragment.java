@@ -145,7 +145,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
      */
     @Override
     public void onSwipedLeft(final TriblerTorrent torrent) {
-        askUserToRemoveTorrent(torrent);
+        askUserToDeleteTorrent(torrent);
     }
 
     private void loadMyChannel() {
@@ -340,8 +340,8 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         rxSubs.add(loading);
     }
 
-    private void removeTorrent(final String infohash, final String name) {
-        rxSubs.add(service.removeTorrent(_dispersyCid, infohash)
+    private void deleteTorrent(final String infohash, final String name) {
+        rxSubs.add(service.deleteTorrent(_dispersyCid, infohash)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<RemovedAck>() {
@@ -357,14 +357,14 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                         if (e instanceof HttpException && ((HttpException) e).code() == 404) {
                             Toast.makeText(context, name + ' ' + context.getText(R.string.info_removed_already), Toast.LENGTH_SHORT).show();
                         } else {
-                            Log.e("onSwipedLeft", "removeTorrent", e);
+                            Log.e("onSwipedLeft", "deleteTorrent", e);
                             MyUtils.onError(e, context);
                             try {
                                 Thread.sleep(1000);
                             } catch (InterruptedException ex) {
                             }
                             // Retry
-                            removeTorrent(infohash, name);
+                            deleteTorrent(infohash, name);
                         }
                     }
                 }));
@@ -390,7 +390,6 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         EditText input = new EditText(context);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         input.setHint(getText(R.string.hint_add_torrent));
-        input.setPadding(16, 0, 16, 0);
         builder.setView(input);
 
         builder.setPositiveButton(getText(R.string.action_add), (dialog, which) -> {
@@ -411,12 +410,12 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         dialog.show();
     }
 
-    private void askUserToRemoveTorrent(TriblerTorrent torrent) {
+    private void askUserToDeleteTorrent(TriblerTorrent torrent) {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setMessage(String.format(getString(R.string.dialog_remove_torrent), torrent.getName()));
-        builder.setPositiveButton(getText(R.string.action_remove), (dialog, which) -> {
+        builder.setMessage(String.format(getString(R.string.dialog_delete_torrent), torrent.getName()));
+        builder.setPositiveButton(getText(R.string.action_delete), (dialog, which) -> {
             adapter.removeObject(torrent);
-            removeTorrent(torrent.getInfohash(), torrent.getName());
+            deleteTorrent(torrent.getInfohash(), torrent.getName());
         });
         builder.setNegativeButton(getText(R.string.action_cancel), (dialog, which) -> {
             // Revert swipe
