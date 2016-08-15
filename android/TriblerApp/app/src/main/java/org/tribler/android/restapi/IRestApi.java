@@ -1,14 +1,19 @@
 package org.tribler.android.restapi;
 
+import android.net.Uri;
+
 import org.tribler.android.restapi.json.AddedAck;
 import org.tribler.android.restapi.json.AddedChannelAck;
+import org.tribler.android.restapi.json.AddedUrlAck;
 import org.tribler.android.restapi.json.ChannelsResponse;
 import org.tribler.android.restapi.json.ModifiedAck;
 import org.tribler.android.restapi.json.MyChannelResponse;
 import org.tribler.android.restapi.json.QueriedAck;
+import org.tribler.android.restapi.json.RemovedAck;
 import org.tribler.android.restapi.json.ShutdownAck;
 import org.tribler.android.restapi.json.SubscribedAck;
 import org.tribler.android.restapi.json.SubscribedChannelsResponse;
+import org.tribler.android.restapi.json.TorrentCreatedResponse;
 import org.tribler.android.restapi.json.TorrentsResponse;
 import org.tribler.android.restapi.json.UnsubscribedAck;
 
@@ -39,6 +44,24 @@ public interface IRestApi {
             @Query("q") String query
     );
 
+    @GET("/channels/popular")
+    Observable<ChannelsResponse> getPopularChannels(
+            @Query("limit") int limit
+    );
+
+    @GET("/channels/subscribed")
+    Observable<SubscribedChannelsResponse> getSubscribedChannels();
+
+    @PUT("/channels/subscribed/{dispersy_cid}")
+    Observable<SubscribedAck> subscribe(
+            @Path("dispersy_cid") String dispersyCid
+    );
+
+    @DELETE("/channels/subscribed/{dispersy_cid}")
+    Observable<UnsubscribedAck> unsubscribe(
+            @Path("dispersy_cid") String dispersyCid
+    );
+
     @GET("/mychannel")
     Observable<MyChannelResponse> getMyChannel();
 
@@ -54,12 +77,42 @@ public interface IRestApi {
     Observable<AddedChannelAck> createChannel(
             @Field("name") String name,
             @Field("description") String description
-            //@Field("mode") String mode
     );
 
-    @GET("/channels/popular")
-    Observable<ChannelsResponse> getPopularChannels(
-            @Query("limit") int limit
+    @PUT("/channels/discovered")
+    @FormUrlEncoded
+    Observable<AddedChannelAck> createChannel(
+            @Field("name") String name,
+            @Field("description") String description,
+            @Field("mode") String mode
+    );
+
+    @POST("/createtorrent")
+    @FormUrlEncoded
+    Observable<TorrentCreatedResponse> createTorrent(
+            @Field("files") String[] files
+    );
+
+    @POST("/createtorrent")
+    @FormUrlEncoded
+    Observable<TorrentCreatedResponse> createTorrent(
+            @Field("files") String[] files,
+            @Field("description") String description
+    );
+
+    @POST("/createtorrent")
+    @FormUrlEncoded
+    Observable<TorrentCreatedResponse> createTorrent(
+            @Field("files") String[] files,
+            @Field("trackers") String[] trackers
+    );
+
+    @POST("/createtorrent")
+    @FormUrlEncoded
+    Observable<TorrentCreatedResponse> createTorrent(
+            @Field("files") String[] files,
+            @Field("description") String description,
+            @Field("trackers") String[] trackers
     );
 
     @GET("/channels/discovered/{dispersy_cid}/torrents")
@@ -68,20 +121,38 @@ public interface IRestApi {
     );
 
     @PUT("/channels/discovered/{dispersy_cid}/torrents")
+    @FormUrlEncoded
     Observable<AddedAck> addTorrent(
-            @Path("dispersy_cid") String dispersyCid
+            @Path("dispersy_cid") String dispersyCid,
+            @Field("torrent") String torrent_b64
     );
 
-    @GET("/channels/subscribed")
-    Observable<SubscribedChannelsResponse> getSubscribedChannels();
-
-    @PUT("/channels/subscribed/{dispersy_cid}")
-    Observable<SubscribedAck> subscribe(
-            @Path("dispersy_cid") String dispersyCid
+    @PUT("/channels/discovered/{dispersy_cid}/torrents")
+    @FormUrlEncoded
+    Observable<AddedAck> addTorrent(
+            @Path("dispersy_cid") String dispersyCid,
+            @Field("torrent") String torrent_b64,
+            @Field("description") String description
     );
 
-    @DELETE("/channels/subscribed/{dispersy_cid}")
-    Observable<UnsubscribedAck> unsubscribe(
-            @Path("dispersy_cid") String dispersyCid
+    @PUT("/channels/discovered/{dispersy_cid}/torrents/{url}")
+    Observable<AddedUrlAck> addTorrent(
+            @Path("dispersy_cid") String dispersyCid,
+            @Path("url") Uri url
     );
+
+    @PUT("/channels/discovered/{dispersy_cid}/torrents/{url}")
+    @FormUrlEncoded
+    Observable<AddedUrlAck> addTorrent(
+            @Path("dispersy_cid") String dispersyCid,
+            @Path("url") Uri url,
+            @Field("description") String description
+    );
+
+    @DELETE("/channels/discovered/{dispersy_cid}/torrents/{infohash}")
+    Observable<RemovedAck> removeTorrent(
+            @Path("dispersy_cid") String dispersyCid,
+            @Path("infohash") String infohash
+    );
+
 }

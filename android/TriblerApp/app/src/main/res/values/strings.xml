@@ -22,8 +22,11 @@
     <string name="action_GO">GO</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_SAVE">SAVE</string>
+    <string name="action_create">Create</string>
     <string name="action_CREATE">CREATE</string>
     <string name="action_turn_on">Turn On</string>
+    <string name="action_browse">Browse</string>
+    <string name="action_add">Add</string>
 
     <string name="action_search">Search videos and channels</string>
     <string name="action_search_in_channel">Search in this channel</string>
@@ -67,6 +70,15 @@
     <string name="info_unsubscribe_success">is now not a favorite anymore!</string>
     <string name="info_unsubscribe_failure">is still a favorite…</string>
 
+    <string name="info_added_already">is already added!</string>
+    <string name="info_added_success">is now added!</string>
+    <string name="info_added_failure">is still not added…</string>
+    <string name="info_removed_already">is already removed!</string>
+    <string name="info_removed_success">is now removed!</string>
+    <string name="info_removed_failure">is still not removed…</string>
+    <string name="info_created_success">is now created!</string>
+    <string name="info_created_failure">failed to be created…</string>
+
     <string name="error_output_file">failed to obtain output file</string>
     <string name="error_capture_video">failed to capture video</string>
 
@@ -75,9 +87,16 @@
     <string name="status_shutting_down">Shutting down…</string>
     <string name="status_saving_changes">Saving changes…</string>
 
+    <string name="dialog_create_my_channel">Your own channel is not created yet.\n\nCreate your own channel now?</string>
     <string name="channel_name_label">Channel name</string>
     <string name="channel_description_label">Description</string>
     <string name="status_creating_channel">Creating channel…</string>
     <string name="my_channel_explanation">Create your own channel to publish your content!\n\nOthers can add your channel to their favorites to keep up to date and boost your channel\'s popularity!</string>
+
+    <string name="dialog_add_torrent">Add torrent to channel now?</string>
+    <string name="dialog_create_torrent">Create torrent from file</string>
+    <string name="status_creating_torrent">Creating torrent…</string>
+    <string name="status_adding_torrent">Adding torrent…</string>
+    <string name="hint_add_torrent">http:// or magnet:link</string>
 
 </resources>

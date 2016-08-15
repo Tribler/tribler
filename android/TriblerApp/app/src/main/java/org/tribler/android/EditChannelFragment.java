@@ -23,6 +23,7 @@ import org.tribler.android.restapi.json.ModifiedAck;
 import butterknife.BindView;
 import mehdi.sakout.fancybuttons.FancyButton;
 import rx.Observer;
+import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
 
@@ -58,6 +59,8 @@ public class EditChannelFragment extends ViewFragment {
     @BindView(R.id.channel_progress_status)
     TextView statusBar;
 
+    private Subscription _loading;
+    private int _status;
     private Intent _result;
 
     private Intent getResult() {
@@ -69,9 +72,18 @@ public class EditChannelFragment extends ViewFragment {
         // result can be set while activity is not attached
         if (result != null && isAdded()) {
             Activity activity = getActivity();
-            activity.setResult(Activity.RESULT_FIRST_USER, result);
+            activity.setResult(Activity.RESULT_OK, result);
             activity.finish();
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        _loading = null;
     }
 
     /**
@@ -98,9 +110,7 @@ public class EditChannelFragment extends ViewFragment {
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        if (_result != null) {
-            setInputEnabled(false);
-        } else {
+        if (_loading == null) {
             rxSubs.add(RxTextView.textChangeEvents(nameInput)
                     .subscribe(new Observer<TextViewTextChangeEvent>() {
 
@@ -125,56 +135,73 @@ public class EditChannelFragment extends ViewFragment {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
+        super.onViewStateRestored(savedInstanceState);
+        if (_loading != null) {
+            setInputEnabled(false);
+        }
+    }
+
     void createChannel() {
         explanation.setVisibility(View.VISIBLE);
         btnCreate.setVisibility(View.VISIBLE);
     }
 
     void editChannel(String dispersyCid, String name, String description) {
-        int color = MyUtils.getColor(dispersyCid.hashCode());
         nameCapital.setText(MyUtils.getCapitals(name, 2));
         nameInput.setText(name);
         descriptionInput.setText(description);
+        int color = MyUtils.getColor(dispersyCid.hashCode());
         MyUtils.setCicleBackground(icon, color);
         iconWrapper.setVisibility(View.VISIBLE);
         btnSave.setVisibility(View.VISIBLE);
     }
 
     private void setInputEnabled(boolean enabled) {
+        // Lock input fields
+        nameInput.setEnabled(enabled);
+        descriptionInput.setEnabled(enabled);
+
+        // Lock buttons
+        btnCreate.setEnabled(enabled);
+        btnSave.setEnabled(enabled);
+
         // Hide buttons
         btnCreate.setVisibility(enabled ? View.VISIBLE : View.GONE);
         btnSave.setVisibility(enabled ? View.VISIBLE : View.GONE);
 
-        // Lock input fields
-        btnSave.setEnabled(enabled);
-        nameInput.setEnabled(enabled);
-        descriptionInput.setEnabled(enabled);
-
         // Show loading indicator
         progressView.setVisibility(enabled ? View.GONE : View.VISIBLE);
+        statusBar.setText(getText(_status));
     }
 
     void btnChannelCreateClicked() {
+        _status = R.string.status_creating_channel;
         setInputEnabled(false);
-        statusBar.setText(getText(R.string.status_creating_channel));
 
         final String name = nameInput.getText().toString();
         final String description = descriptionInput.getText().toString();
 
-        rxSubs.add(service.createChannel(name, description)
+        _loading = service.createChannel(name, description)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<AddedChannelAck>() {
 
-                    public void onNext(AddedChannelAck ack) {
-                        Log.d("createChannel", "channel_id = " + ack.getAdded());
+                    public void onNext(AddedChannelAck response) {
+                        Log.d("createChannel", "channel_id = " + response.getAdded());
+                        if (response.getAdded() > 0) {
+                            Intent intent = new Intent();
+                            intent.putExtra(ChannelActivity.EXTRA_NAME, name);
+                            intent.putExtra(ChannelActivity.EXTRA_DESCRIPTION, description);
+                            setResult(intent);
+                        }
                     }
 
                     public void onCompleted() {
-                        Intent intent = new Intent();
-                        intent.putExtra(ChannelActivity.EXTRA_NAME, name);
-                        intent.putExtra(ChannelActivity.EXTRA_DESCRIPTION, description);
-                        setResult(intent);
                     }
 
                     public void onError(Throwable e) {
@@ -187,23 +214,24 @@ public class EditChannelFragment extends ViewFragment {
                         // Retry
                         btnChannelCreateClicked();
                     }
-                }));
+                });
+        rxSubs.add(_loading);
     }
 
     void btnChannelSaveClicked() {
+        _status = R.string.status_saving_changes;
         setInputEnabled(false);
-        statusBar.setText(getText(R.string.status_saving_changes));
 
         final String name = nameInput.getText().toString();
         final String description = descriptionInput.getText().toString();
 
-        rxSubs.add(service.editMyChannel(name, description)
+        _loading = service.editMyChannel(name, description)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<ModifiedAck>() {
 
-                    public void onNext(ModifiedAck ack) {
-                        if (ack.isModified()) {
+                    public void onNext(ModifiedAck response) {
+                        if (response.isModified()) {
                             Intent intent = new Intent();
                             intent.putExtra(ChannelActivity.EXTRA_NAME, name);
                             intent.putExtra(ChannelActivity.EXTRA_DESCRIPTION, description);
@@ -224,6 +252,7 @@ public class EditChannelFragment extends ViewFragment {
                         // Retry
                         btnChannelSaveClicked();
                     }
-                }));
+                });
+        rxSubs.add(_loading);
     }
 }

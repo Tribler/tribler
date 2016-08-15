@@ -426,7 +426,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_main);
         if (fragment instanceof MyChannelFragment) {
             MyChannelFragment mychannel = (MyChannelFragment) fragment;
-            mychannel.addToChannel();
+            mychannel.askUserToAddTorrent();
         }
     }
 
