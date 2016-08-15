@@ -1,6 +1,7 @@
 import json
 
-from Tribler.Core.Utilities.twisted_thread import deferred
+from nose.twistedtools import deferred
+
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 

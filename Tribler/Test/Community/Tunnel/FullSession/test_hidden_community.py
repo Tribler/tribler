@@ -1,9 +1,10 @@
 from unittest.case import skip
 
-from twisted.internet.defer import Deferred, inlineCallbacks
+from twisted.internet.defer import Deferred, inlineCallbacks, returnValue
+
+from nose.twistedtools import deferred
 
 from Tribler.Core.DecentralizedTracking.pymdht.core.identifier import Id
-from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING
 from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase
 
@@ -40,14 +41,15 @@ class TestHiddenTunnelCommunity(TestTunnelBase):
         self.dht_deferred = Deferred()
         self.dht_dict = {}
 
+    @inlineCallbacks
     def configure_hidden_seeder(self):
         """
         Setup the hidden seeder. This includes setting the right circuit parameters, creating the download callback and
         waiting for the creation of an introduction point for the download.
         """
         def download_states_callback(dslist):
-            self.tunnel_community_seeder.monitor_downloads(dslist)
-            return 1.0, []
+            yield self.tunnel_community_seeder.monitor_downloads(dslist)
+            returnValue((1.0, []))
 
         self.tunnel_community_seeder.settings.min_circuits = 0
         self.tunnel_community_seeder.settings.max_circuits = 0
@@ -83,13 +85,14 @@ class TestHiddenTunnelCommunity(TestTunnelBase):
         self.setup_dht_bypass()
         yield self.configure_hidden_seeder()
 
+        @inlineCallbacks
         def download_state_callback(ds):
-            self.tunnel_community.monitor_downloads([ds])
+            yield self.tunnel_community.monitor_downloads([ds])
             download = ds.get_download()
             if download.get_progress() == 1.0 and ds.get_status() == DLSTATUS_SEEDING:
                 self.test_deferred.callback(None)
-                return 0.0, False
-            return 2.0, False
+                returnValue((0.0, False))
+            returnValue((2.0, False))
 
         download = self.start_anon_download(hops=1)
         download.set_state_callback(download_state_callback)

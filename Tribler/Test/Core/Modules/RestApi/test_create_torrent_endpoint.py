@@ -3,7 +3,8 @@ import base64
 import os
 import shutil
 
-from Tribler.Core.Utilities.twisted_thread import deferred
+from nose.twistedtools import deferred
+
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.test_as_server import TESTS_DATA_DIR

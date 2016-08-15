@@ -1,6 +1,7 @@
 [submodule "Tribler/dispersy"]
 	path = Tribler/dispersy
-	url = https://github.com/Tribler/dispersy.git
+	url = https://github.com/lfdversluis/dispersy.git
+	branch = storm-db-manager
 [submodule "Tribler/Core/DecentralizedTracking/pymdht"]
 	path = Tribler/Core/DecentralizedTracking/pymdht
 	url = https://github.com/LipuFei/pymdht.git

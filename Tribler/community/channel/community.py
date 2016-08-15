@@ -5,6 +5,7 @@ from struct import pack
 from time import time
 from traceback import print_stack
 
+from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
@@ -64,11 +65,12 @@ class ChannelCommunity(Community):
         self._peer_db = None
         self._channelcast_db = None
 
+    @inlineCallbacks
     def initialize(self, tribler_session=None):
         self.tribler_session = tribler_session
         self.integrate_with_tribler = tribler_session is not None
 
-        super(ChannelCommunity, self).initialize()
+        yield super(ChannelCommunity, self).initialize()
 
         if self.integrate_with_tribler:
             from Tribler.Core.simpledefs import NTFY_PEERS, NTFY_CHANNELCAST
@@ -87,7 +89,7 @@ class ChannelCommunity(Community):
 
         else:
             try:
-                message = self._get_latest_channel_message()
+                message = yield self._get_latest_channel_message()
                 if message:
                     self._channel_id = self.cid
             except (MetaNotFoundException, RuntimeError):
@@ -268,6 +270,7 @@ class ChannelCommunity(Community):
 
         return ChannelCommunity.CHANNEL_CLOSED, isModerator
 
+    @inlineCallbacks
     def set_channel_mode(self, mode):
         curmode, isModerator = self.get_channel_mode()
         if isModerator and mode != curmode:
@@ -281,22 +284,25 @@ class ChannelCommunity(Community):
                     else:
                         new_policies.append((meta, meta.resolution.policies[0]))
 
-            self.create_dynamic_settings(new_policies)
+            yield self.create_dynamic_settings(new_policies)
 
+    @inlineCallbacks
     def create_channel(self, name, description, store=True, update=True, forward=True):
-        self._disp_create_channel(name, description, store, update, forward)
+        yield self._disp_create_channel(name, description, store, update, forward)
 
     @call_on_reactor_thread
+    @inlineCallbacks
     def _disp_create_channel(self, name, description, store=True, update=True, forward=True):
         name = unicode(name[:255])
         description = unicode(description[:1023])
 
         meta = self.get_meta_message(u"channel")
-        message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.claim_global_time(),),
+        claimed_global_time = yield self.claim_global_time()
+        message = yield meta.impl(authentication=(self._my_member,),
+                            distribution=(claimed_global_time,),
                             payload=(name, description))
-        self._dispersy.store_update_forward([message], store, update, forward)
-        return message
+        yield self._dispersy.store_update_forward([message], store, update, forward)
+        returnValue(message)
 
     def _disp_check_channel(self, messages):
         for message in messages:
@@ -345,39 +351,44 @@ class ChannelCommunity(Community):
 
                 self._channelcast_db.setChannelId(self._channel_id, authentication_member == self._my_member)
 
+    @inlineCallbacks
     def _disp_create_torrent_from_torrentdef(self, torrentdef, timestamp, store=True, update=True, forward=True):
         files = torrentdef.get_files_as_unicode_with_length()
-        return (self._disp_create_torrent(torrentdef.get_infohash(), timestamp,
+        torrent = yield self._disp_create_torrent(torrentdef.get_infohash(), timestamp,
                                           torrentdef.get_name_as_unicode(), tuple(files),
-                                          torrentdef.get_trackers_as_single_tuple(), store, update, forward))
+                                          torrentdef.get_trackers_as_single_tuple(), store, update, forward)
+        returnValue(torrent)
 
+    @inlineCallbacks
     def _disp_create_torrent(self, infohash, timestamp, name, files, trackers, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"torrent")
 
-        global_time = self.claim_global_time()
+        global_time = yield self.claim_global_time()
         current_policy, _ = self._timeline.get_resolution_policy(meta, global_time)
-        message = meta.impl(authentication=(self._my_member,),
+        message = yield meta.impl(authentication=(self._my_member,),
                             resolution=(current_policy.implement(),),
                             distribution=(global_time,),
                             payload=(infohash, timestamp, name, files, trackers))
-        self._dispersy.store_update_forward([message], store, update, forward)
-        return message
+        yield self._dispersy.store_update_forward([message], store, update, forward)
+        returnValue(message)
 
+    @inlineCallbacks
     def _disp_create_torrents(self, torrentlist, store=True, update=True, forward=True):
         messages = []
 
         meta = self.get_meta_message(u"torrent")
         current_policy, _ = self._timeline.get_resolution_policy(meta, self.global_time + 1)
         for infohash, timestamp, name, files, trackers in torrentlist:
-            message = meta.impl(authentication=(self._my_member,),
+            claimed_global_time = yield self.claim_global_time()
+            message = yield meta.impl(authentication=(self._my_member,),
                                 resolution=(current_policy.implement(),),
-                                distribution=(self.claim_global_time(),),
+                                distribution=(claimed_global_time,),
                                 payload=(infohash, timestamp, name, files, trackers))
 
             messages.append(message)
 
-        self._dispersy.store_update_forward(messages, store, update, forward)
-        return messages
+        yield self._dispersy.store_update_forward(messages, store, update, forward)
+        returnValue(messages)
 
     def _disp_check_torrent(self, messages):
         for message in messages:
@@ -391,6 +402,7 @@ class ChannelCommunity(Community):
                 continue
             yield message
 
+    @inlineCallbacks
     def _disp_on_torrent(self, messages):
         if self.integrate_with_tribler:
             torrentlist = []
@@ -426,7 +438,7 @@ class ChannelCommunity(Community):
             self._channelcast_db.on_torrents_from_dispersy(torrentlist)
         else:
             for message in messages:
-                self._channelcast_db.newTorrent(message)
+                yield self._channelcast_db.newTorrent(message)
                 self._logger.debug("torrent received: %s on channel: %s", message.payload.infohash, self._master_member)
                 if message.candidate and message.candidate.sock_addr:
                     _barter_statistics.dict_inc_bartercast(BartercastStatisticTypes.TORRENTS_RECEIVED,
@@ -437,44 +449,49 @@ class ChannelCommunity(Community):
             dispersy_id = packet.packet_id
             self._channelcast_db.on_remove_torrent_from_dispersy(self._channel_id, dispersy_id, redo)
 
+    @inlineCallbacks
     def remove_torrents(self, dispersy_ids):
         for dispersy_id in dispersy_ids:
-            message = self._dispersy.load_message_by_packetid(self, dispersy_id)
+            message = yield self._dispersy.load_message_by_packetid(self, dispersy_id)
             if message:
                 if not message.undone:
-                    self.create_undo(message)
+                    yield self.create_undo(message)
 
                 else:  # hmm signal gui that this message has been removed already
                     self._disp_undo_torrent([(None, None, message)])
 
+    @inlineCallbacks
     def remove_playlists(self, dispersy_ids):
         for dispersy_id in dispersy_ids:
-            message = self._dispersy.load_message_by_packetid(self, dispersy_id)
+            message = yield self._dispersy.load_message_by_packetid(self, dispersy_id)
             if message:
                 if not message.undone:
-                    self.create_undo(message)
+                    yield self.create_undo(message)
 
                 else:  # hmm signal gui that this message has been removed already
                     self._disp_undo_playlist([(None, None, message)])
 
     # create, check or receive playlists
     @call_on_reactor_thread
+    @inlineCallbacks
     def create_playlist(self, name, description, infohashes=[], store=True, update=True, forward=True):
-        message = self._disp_create_playlist(name, description)
+        message = yield self._disp_create_playlist(name, description)
         if len(infohashes) > 0:
-            self._disp_create_playlist_torrents(message, infohashes, store, update, forward)
+            yield self._disp_create_playlist_torrents(message, infohashes, store, update, forward)
 
     @call_on_reactor_thread
+    @inlineCallbacks
     def _disp_create_playlist(self, name, description, store=True, update=True, forward=True):
         name = unicode(name[:255])
         description = unicode(description[:1023])
 
         meta = self.get_meta_message(u"playlist")
-        message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.claim_global_time(),),
+        claimed_global_time = yield self.claim_global_time()
+        message = yield meta.impl(authentication=(self._my_member,),
+                            distribution=(claimed_global_time,),
                             payload=(name, description))
-        self._dispersy.store_update_forward([message], store, update, forward)
-        return message
+        yield self._dispersy.store_update_forward([message], store, update, forward)
+        returnValue(message)
 
     def _disp_check_playlist(self, messages):
         for message in messages:
@@ -512,6 +529,7 @@ class ChannelCommunity(Community):
 
     # create, check or receive comments
     @call_on_reactor_thread
+    @inlineCallbacks
     def create_comment(self, text, timestamp, reply_to, reply_after, playlist_id, infohash, store=True, update=True,
                        forward=True):
         reply_to_message = reply_to
@@ -519,16 +537,17 @@ class ChannelCommunity(Community):
         playlist_message = playlist_id
 
         if reply_to:
-            reply_to_message = self._dispersy.load_message_by_packetid(self, reply_to)
+            reply_to_message = yield self._dispersy.load_message_by_packetid(self, reply_to)
         if reply_after:
-            reply_after_message = self._dispersy.load_message_by_packetid(self, reply_after)
+            reply_after_message = yield self._dispersy.load_message_by_packetid(self, reply_after)
         if playlist_id:
-            playlist_message = self._get_message_from_playlist_id(playlist_id)
-        self._disp_create_comment(text, timestamp, reply_to_message,
+            playlist_message = yield self._get_message_from_playlist_id(playlist_id)
+        yield self._disp_create_comment(text, timestamp, reply_to_message,
                                    reply_after_message, playlist_message,
                                    infohash, store, update, forward)
 
     @call_on_reactor_thread
+    @inlineCallbacks
     def _disp_create_comment(self, text, timestamp, reply_to_message, reply_after_message, playlist_message, infohash,
                              store=True, update=True, forward=True):
         reply_to_mid = None
@@ -548,16 +567,16 @@ class ChannelCommunity(Community):
         text = unicode(text[:1023])
 
         meta = self.get_meta_message(u"comment")
-        global_time = self.claim_global_time()
+        global_time = yield self.claim_global_time()
         current_policy, _ = self._timeline.get_resolution_policy(meta, global_time)
-        message = meta.impl(authentication=(self._my_member,),
+        message = yield meta.impl(authentication=(self._my_member,),
                             resolution=(current_policy.implement(),),
                             distribution=(global_time,), payload=(text,
                                                                   timestamp, reply_to_mid, reply_to_global_time,
                                                                   reply_after_mid, reply_after_global_time,
                                                                   playlist_message, infohash))
-        self._dispersy.store_update_forward([message], store, update, forward)
-        return message
+        yield self._dispersy.store_update_forward([message], store, update, forward)
+        returnValue(message)
 
     def _disp_check_comment(self, messages):
         for message in messages:
@@ -571,6 +590,7 @@ class ChannelCommunity(Community):
                 continue
             yield message
 
+    @inlineCallbacks
     def _disp_on_comment(self, messages):
         if self.integrate_with_tribler:
 
@@ -588,19 +608,19 @@ class ChannelCommunity(Community):
                 reply_to_id = None
                 if message.payload.reply_to_mid:
                     try:
-                        reply_to_id = self._get_packet_id(
+                        reply_to_id = yield self._get_packet_id(
                             message.payload.reply_to_global_time,
                             message.payload.reply_to_mid)
-                    except:
+                    except TypeError:
                         reply_to_id = pack('!20sQ', message.payload.reply_to_mid, message.payload.reply_to_global_time)
 
                 reply_after_id = None
                 if message.payload.reply_after_mid:
                     try:
-                        reply_after_id = self._get_packet_id(
+                        reply_after_id = yield self._get_packet_id(
                             message.payload.reply_after_global_time,
                             message.payload.reply_after_mid)
-                    except:
+                    except TypeError:
                         reply_after_id = pack(
                             '!20sQ',
                             message.payload.reply_after_mid,
@@ -630,62 +650,68 @@ class ChannelCommunity(Community):
                 infohash = message.payload.infohash
                 self._channelcast_db.on_remove_comment_from_dispersy(self._channel_id, dispersy_id, infohash, redo)
 
+    @inlineCallbacks
     def remove_comment(self, dispersy_id):
-        message = self._dispersy.load_message_by_packetid(self, dispersy_id)
+        message = yield self._dispersy.load_message_by_packetid(self, dispersy_id)
         if message:
-            self.create_undo(message)
+            yield self.create_undo(message)
 
     # modify channel, playlist or torrent
     @call_on_reactor_thread
+    @inlineCallbacks
     def modifyChannel(self, modifications, store=True, update=True, forward=True):
         latest_modifications = {}
         for type, value in modifications.iteritems():
             type = unicode(type)
-            latest_modifications[type] = self._get_latest_modification_from_channel_id(type)
-        modification_on_message = self._get_latest_channel_message()
+            latest_modifications[type] = yield self._get_latest_modification_from_channel_id(type)
+        modification_on_message = yield self._get_latest_channel_message()
 
         for type, value in modifications.iteritems():
             type = unicode(type)
             timestamp = long(time())
-            self._disp_create_modification(type, value, timestamp,
+            yield self._disp_create_modification(type, value, timestamp,
                                            modification_on_message,
                                            latest_modifications[type], store,
                                            update, forward)
 
     @call_on_reactor_thread
+    @inlineCallbacks
+    # TODO: user in startWorker, I don think it can hurt that this returns a deferred now?
     def modifyPlaylist(self, playlist_id, modifications, store=True, update=True, forward=True):
         latest_modifications = {}
         for type, value in modifications.iteritems():
             type = unicode(type)
-            latest_modifications[type] = self._get_latest_modification_from_playlist_id(playlist_id, type)
+            latest_modifications[type] = yield self._get_latest_modification_from_playlist_id(playlist_id, type)
 
-        modification_on_message = self._get_message_from_playlist_id(playlist_id)
+        modification_on_message = yield self._get_message_from_playlist_id(playlist_id)
         for type, value in modifications.iteritems():
             type = unicode(type)
             timestamp = long(time())
-            self._disp_create_modification(type, value, timestamp,
+            yield self._disp_create_modification(type, value, timestamp,
                                            modification_on_message,
                                            latest_modifications[type], store,
                                            update, forward)
 
     @call_on_reactor_thread
+    @inlineCallbacks
     def modifyTorrent(self, channeltorrent_id, modifications, store=True, update=True, forward=True):
         latest_modifications = {}
         for type, value in modifications.iteritems():
             type = unicode(type)
             try:
-                latest_modifications[type] = self._get_latest_modification_from_torrent_id(channeltorrent_id, type)
+                latest_modifications[type] = yield self._get_latest_modification_from_torrent_id(channeltorrent_id, type)
             except:
                 logger.error(exc_info=True)
 
-        modification_on_message = self._get_message_from_torrent_id(channeltorrent_id)
+        modification_on_message = yield self._get_message_from_torrent_id(channeltorrent_id)
         for type, value in modifications.iteritems():
             timestamp = long(time())
-            self._disp_create_modification(type, value, timestamp,
+            yield self._disp_create_modification(type, value, timestamp,
                                            modification_on_message,
                                            latest_modifications[type], store,
                                            update, forward)
 
+    @inlineCallbacks
     def _disp_create_modification(self, modification_type, modifcation_value, timestamp, modification_on,
                                   latest_modification, store=True, update=True, forward=True):
         modification_type = unicode(modification_type)
@@ -699,17 +725,17 @@ class ChannelCommunity(Community):
             latest_modification_global_time = message.distribution.global_time
 
         meta = self.get_meta_message(u"modification")
-        global_time = self.claim_global_time()
+        global_time = yield self.claim_global_time()
         current_policy, _ = self._timeline.get_resolution_policy(meta, global_time)
-        message = meta.impl(authentication=(self._my_member,),
+        message = yield meta.impl(authentication=(self._my_member,),
                             resolution=(current_policy.implement(),),
                             distribution=(global_time,),
                             payload=(modification_type, modifcation_value,
                                      timestamp, modification_on, latest_modification,
                                      latest_modification_mid,
                                      latest_modification_global_time))
-        self._dispersy.store_update_forward([message], store, update, forward)
-        return message
+        yield self._dispersy.store_update_forward([message], store, update, forward)
+        returnValue(message)
 
     def _disp_check_modification(self, messages):
         th_handler = self.tribler_session.lm.rtorrent_handler
@@ -759,6 +785,7 @@ class ChannelCommunity(Community):
 
             yield message
 
+    @inlineCallbacks
     def _disp_on_modification(self, messages):
         if self.integrate_with_tribler:
             channeltorrentDict = {}
@@ -824,7 +851,7 @@ class ChannelCommunity(Community):
                     channeltorrent_id = channeltorrentDict[modifying_dispersy_id]
 
                     if channeltorrent_id:
-                        latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type)
+                        latest = yield self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type)
                         if not latest or latest.packet_id == dispersy_id:
                             self._channelcast_db.on_torrent_modification_from_dispersy(
                                 channeltorrent_id, modification_type, modification_value)
@@ -832,17 +859,18 @@ class ChannelCommunity(Community):
                 elif message_name == u"playlist":
                     playlist_id = playlistDict[modifying_dispersy_id]
 
-                    latest = self._get_latest_modification_from_playlist_id(playlist_id, modification_type)
+                    latest = yield self._get_latest_modification_from_playlist_id(playlist_id, modification_type)
                     if not latest or latest.packet_id == dispersy_id:
                         self._channelcast_db.on_playlist_modification_from_dispersy(
                             playlist_id, modification_type, modification_value)
 
                 elif message_name == u"channel":
-                    latest = self._get_latest_modification_from_channel_id(modification_type)
+                    latest = yield self._get_latest_modification_from_channel_id(modification_type)
                     if not latest or latest.packet_id == dispersy_id:
                         self._channelcast_db.on_channel_modification_from_dispersy(
                             self._channel_id, modification_type, modification_value)
 
+    @inlineCallbacks
     def _disp_undo_modification(self, descriptors, redo=False):
         if self.integrate_with_tribler:
             for _, _, packet in descriptors:
@@ -863,7 +891,7 @@ class ChannelCommunity(Community):
                 self._channelcast_db.on_remove_metadata_from_dispersy(self._channel_id, dispersy_id, redo)
 
                 if message_name == u"torrent":
-                    latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type)
+                    latest = yield self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type)
 
                     if not latest or latest.packet_id == dispersy_id:
                         modification_value = latest.payload.modification_value if latest else ''
@@ -871,7 +899,7 @@ class ChannelCommunity(Community):
                             channeltorrent_id, modification_type, modification_value)
 
                 elif message_name == u"playlist":
-                    latest = self._get_latest_modification_from_playlist_id(playlist_id, modification_type)
+                    latest = yield self._get_latest_modification_from_playlist_id(playlist_id, modification_type)
 
                     if not latest or latest.packet_id == dispersy_id:
                         modification_value = latest.payload.modification_value if latest else ''
@@ -879,7 +907,7 @@ class ChannelCommunity(Community):
                             playlist_id, modification_type, modification_value)
 
                 elif message_name == u"channel":
-                    latest = self._get_latest_modification_from_channel_id(modification_type)
+                    latest = yield self._get_latest_modification_from_channel_id(modification_type)
 
                     if not latest or latest.packet_id == dispersy_id:
                         modification_value = latest.payload.modification_value if latest else ''
@@ -888,34 +916,38 @@ class ChannelCommunity(Community):
 
     # create, check or receive playlist_torrent messages
     @call_on_reactor_thread
+    @inlineCallbacks
     def create_playlist_torrents(self, playlist_id, infohashes, store=True, update=True, forward=True):
-        playlist_packet = self._get_message_from_playlist_id(playlist_id)
-        self._disp_create_playlist_torrents(playlist_packet, infohashes, store, update, forward)
+        playlist_packet = yield self._get_message_from_playlist_id(playlist_id)
+        yield self._disp_create_playlist_torrents(playlist_packet, infohashes, store, update, forward)
 
+    @inlineCallbacks
     def remove_playlist_torrents(self, playlist_id, dispersy_ids):
         for dispersy_id in dispersy_ids:
-            message = self._dispersy.load_message_by_packetid(self, dispersy_id)
+            message = yield self._dispersy.load_message_by_packetid(self, dispersy_id)
             if message:
                 if not message.undone:
-                    self.create_undo(message)
+                    yield self.create_undo(message)
                 else:
                     self._disp_undo_playlist_torrent([(None, None, message)])
 
     @call_on_reactor_thread
+    @inlineCallbacks
     def _disp_create_playlist_torrents(self, playlist_packet, infohashes, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"playlist_torrent")
         current_policy, _ = self._timeline.get_resolution_policy(meta, self.global_time + 1)
 
         messages = []
         for infohash in infohashes:
-            message = meta.impl(authentication=(self._my_member,),
+            claimed_global_time = yield self.claim_global_time()
+            message = yield meta.impl(authentication=(self._my_member,),
                                 resolution=(current_policy.implement(),),
-                                distribution=(self.claim_global_time(),),
+                                distribution=(claimed_global_time,),
                                 payload=(infohash, playlist_packet))
             messages.append(message)
 
-        self._dispersy.store_update_forward(messages, store, update, forward)
-        return message
+        yield self._dispersy.store_update_forward(messages, store, update, forward)
+        returnValue(message)
 
     def _disp_check_playlist_torrent(self, messages):
         for message in messages:
@@ -956,21 +988,22 @@ class ChannelCommunity(Community):
 
     # check or receive moderation messages
     @call_on_reactor_thread
+    @inlineCallbacks
     def _disp_create_moderation(self, text, timestamp, severity, cause, store=True, update=True, forward=True):
         causemessage = self._dispersy.load_message_by_packetid(self, cause)
         if causemessage:
             text = unicode(text[:1023])
 
             meta = self.get_meta_message(u"moderation")
-            global_time = self.claim_global_time()
+            global_time = yield self.claim_global_time()
             current_policy, _ = self._timeline.get_resolution_policy(meta, global_time)
 
-            message = meta.impl(authentication=(self._my_member,),
+            message = yield meta.impl(authentication=(self._my_member,),
                                 resolution=(current_policy.implement(),),
                                 distribution=(global_time,),
                                 payload=(text, timestamp, severity, causemessage))
-            self._dispersy.store_update_forward([message], store, update, forward)
-            return message
+            yield self._dispersy.store_update_forward([message], store, update, forward)
+            returnValue(message)
 
     def _disp_check_moderation(self, messages):
         for message in messages:
@@ -984,6 +1017,7 @@ class ChannelCommunity(Community):
 
             yield message
 
+    @inlineCallbacks
     def _disp_on_moderation(self, messages):
         if self.integrate_with_tribler:
             for message in messages:
@@ -1012,7 +1046,7 @@ class ChannelCommunity(Community):
                 if channeltorrent_id:
                     modification_type = unicode(cause_message.payload.modification_type)
 
-                    latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type)
+                    latest = yield self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type)
                     if not latest or latest.packet_id == cause_message.packet_id:
                         updateTorrent = True
 
@@ -1024,7 +1058,7 @@ class ChannelCommunity(Community):
                                                     message.payload.severity)
 
                 if updateTorrent:
-                    latest = self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type)
+                    latest = yield self._get_latest_modification_from_torrent_id(channeltorrent_id, modification_type)
 
                     modification_value = latest.payload.modification_value if latest else ''
                     self._channelcast_db.on_torrent_modification_from_dispersy(
@@ -1038,17 +1072,18 @@ class ChannelCommunity(Community):
 
     # check or receive torrent_mark messages
     @call_on_reactor_thread
+    @inlineCallbacks
     def _disp_create_mark_torrent(self, infohash, type, timestamp, store=True, update=True, forward=True):
         meta = self.get_meta_message(u"mark_torrent")
-        global_time = self.claim_global_time()
+        global_time = yield self.claim_global_time()
         current_policy, _ = self._timeline.get_resolution_policy(meta, global_time)
 
-        message = meta.impl(authentication=(self._my_member,),
+        message = yield meta.impl(authentication=(self._my_member,),
                             resolution=(current_policy.implement(),),
                             distribution=(global_time,),
                             payload=(infohash, type, timestamp))
-        self._dispersy.store_update_forward([message], store, update, forward)
-        return message
+        yield self._dispersy.store_update_forward([message], store, update, forward)
+        returnValue(message)
 
     def _disp_check_mark_torrent(self, messages):
         for message in messages:
@@ -1087,18 +1122,20 @@ class ChannelCommunity(Community):
                 dispersy_id = packet.packet_id
                 self._channelcast_db.on_remove_mark_torrent(self._channel_id, dispersy_id, redo)
 
+    @inlineCallbacks
     def disp_create_missing_channel(self, candidate, includeSnapshot):
         logger.debug("%s sending missing-channel %s %s", candidate, self._cid.encode("HEX"), includeSnapshot)
         meta = self._meta_messages[u"missing-channel"]
-        request = meta.impl(distribution=(self.global_time,), destination=(candidate,), payload=(includeSnapshot,))
-        self._dispersy._forward([request])
+        request = yield meta.impl(distribution=(self.global_time,), destination=(candidate,), payload=(includeSnapshot,))
+        yield self._dispersy._forward([request])
 
     # check or receive missing channel messages
     def _disp_check_missing_channel(self, messages):
         return messages
 
+    @inlineCallbacks
     def _disp_on_missing_channel(self, messages):
-        channelmessage = self._get_latest_channel_message()
+        channelmessage = yield self._get_latest_channel_message()
         packets = None
 
         for message in messages:
@@ -1107,38 +1144,40 @@ class ChannelCommunity(Community):
                     packets = []
                     packets.append(channelmessage.packet)
 
-                    torrents = self._channelcast_db.getRandomTorrents(self._channel_id)
+                    torrents = yield self._channelcast_db.getRandomTorrents(self._channel_id)
                     for infohash in torrents:
-                        tormessage = self._get_message_from_torrent_infohash(infohash)
+                        tormessage = yield self._get_message_from_torrent_infohash(infohash)
                         if tormessage:
                             packets.append(tormessage.packet)
 
-                self._dispersy._send_packets([message.candidate], packets,
+                yield self._dispersy._send_packets([message.candidate], packets,
                                              self, "-caused by missing-channel-response-snapshot-")
 
             else:
-                self._dispersy._send_packets([message.candidate], [channelmessage.packet],
+                yield self._dispersy._send_packets([message.candidate], [channelmessage.packet],
                                              self, "-caused by missing-channel-response-")
 
+    @inlineCallbacks
     def on_dynamic_settings(self, *args, **kwargs):
-        Community.on_dynamic_settings(self, *args, **kwargs)
+        yield Community.on_dynamic_settings(self, *args, **kwargs)
         if self._channel_id and self.integrate_with_tribler:
             self._channelcast_db.on_dynamic_settings(self._channel_id)
 
     # helper functions
-    @warnIfNotDispersyThread
+    # @warnIfNotDispersyThread
+    @inlineCallbacks
     def _get_latest_channel_message(self):
         channel_meta = self.get_meta_message(u"channel")
 
         # 1. get the packet
         try:
-            packet, packet_id = self._dispersy.database.execute(
+            packet, packet_id = yield self._dispersy.database.stormdb.fetchone(
                 u"SELECT packet, id FROM sync WHERE meta_message = ? ORDER BY global_time DESC LIMIT 1",
-                                                                (channel_meta.database_id,)).next()
-        except StopIteration:
+                                                                (channel_meta.database_id,))
+        except TypeError:
             raise RuntimeError("Could not find requested packet")
 
-        message = self._dispersy.convert_packet_to_message(str(packet))
+        message = yield self._dispersy.convert_packet_to_message(str(packet))
         if message:
             assert message.name == u"channel", "Expecting a 'channel' message"
             message.packet_id = packet_id
@@ -1146,8 +1185,9 @@ class ChannelCommunity(Community):
             raise RuntimeError("Unable to convert packet, could not find channel-message for channel %d" %
                                channel_meta.database_id)
 
-        return message
+        returnValue(message)
 
+    @inlineCallbacks
     def _get_message_from_playlist_id(self, playlist_id):
         assert isinstance(playlist_id, (int, long))
 
@@ -1156,12 +1196,14 @@ class ChannelCommunity(Community):
 
         # 2. get the message
         if dispersy_id and dispersy_id > 0:
-            return self._dispersy.load_message_by_packetid(self, dispersy_id)
+            message = yield self._dispersy.load_message_by_packetid(self, dispersy_id)
+            returnValue(message)
 
     def _get_playlist_id_from_message(self, dispersy_id):
         assert isinstance(dispersy_id, (int, long))
         return self._channelcast_db._db.fetchone(u"SELECT id FROM _Playlists WHERE dispersy_id = ?", (dispersy_id,))
 
+    @inlineCallbacks
     def _get_message_from_torrent_id(self, torrent_id):
         assert isinstance(torrent_id, (int, long))
 
@@ -1170,26 +1212,30 @@ class ChannelCommunity(Community):
 
         # 2. get the message
         if dispersy_id and dispersy_id > 0:
-            return self._dispersy.load_message_by_packetid(self, dispersy_id)
+            message = yield self._dispersy.load_message_by_packetid(self, dispersy_id)
+            returnValue(message)
 
+    @inlineCallbacks
     def _get_message_from_torrent_infohash(self, torrent_infohash):
         assert isinstance(torrent_infohash, str), 'infohash is a %s' % type(torrent_infohash)
         assert len(torrent_infohash) == 20, 'infohash has length %d' % len(torrent_infohash)
 
         # 1. get the dispersy identifier from the channel_id
-        dispersy_id = self._channelcast_db.getTorrentFromChannelId(self._channel_id,
+        dispersy_id = yield self._channelcast_db.getTorrentFromChannelId(self._channel_id,
                                                                    torrent_infohash,
                                                                    ['ChannelTorrents.dispersy_id'])
 
         if dispersy_id and dispersy_id > 0:
             # 2. get the message
-            return self._dispersy.load_message_by_packetid(self, dispersy_id)
+            message = yield self._dispersy.load_message_by_packetid(self, dispersy_id)
+            returnValue(message)
 
     def _get_torrent_id_from_message(self, dispersy_id):
         assert isinstance(dispersy_id, (int, long)), "dispersy_id type is '%s'" % type(dispersy_id)
 
         return self._channelcast_db._db.fetchone(u"SELECT id FROM _ChannelTorrents WHERE dispersy_id = ?", (dispersy_id,))
 
+    @inlineCallbacks
     def _get_latest_modification_from_channel_id(self, type_name):
         assert isinstance(type_name, basestring), "type_name is not a basestring: %s" % repr(type_name)
 
@@ -1203,8 +1249,10 @@ class ChannelCommunity(Community):
             u"AND dispersy_id not in (SELECT cause FROM Moderations " + \
             u"WHERE channel_id = ?) ORDER BY prev_global_time DESC",
             (type_name, self._channel_id, self._channel_id))
-        return self._determine_latest_modification(dispersy_ids)
+        latest_modification = yield self._determine_latest_modification(dispersy_ids)
+        returnValue(latest_modification)
 
+    @inlineCallbacks
     def _get_latest_modification_from_torrent_id(self, channeltorrent_id, type_name):
         assert isinstance(channeltorrent_id, (int, long)), "channeltorrent_id type is '%s'" % type(channeltorrent_id)
         assert isinstance(type_name, basestring), "type_name is not a basestring: %s" % repr(type_name)
@@ -1218,8 +1266,10 @@ class ChannelCommunity(Community):
                                                          u"(SELECT cause FROM Moderations WHERE channel_id = ?) " + \
                                                          u"ORDER BY prev_global_time DESC",
             (type_name, channeltorrent_id, self._channel_id))
-        return self._determine_latest_modification(dispersy_ids)
+        latest_modification = yield self._determine_latest_modification(dispersy_ids)
+        returnValue(latest_modification)
 
+    @inlineCallbacks
     def _get_latest_modification_from_playlist_id(self, playlist_id, type_name):
         assert isinstance(playlist_id, (int, long)), "playlist_id type is '%s'" % type(playlist_id)
         assert isinstance(type_name, basestring), "type_name is not a basestring: %s" % repr(type_name)
@@ -1233,9 +1283,11 @@ class ChannelCommunity(Community):
                                                          u"(SELECT cause FROM Moderations WHERE channel_id = ?) " + \
                                                          u"ORDER BY prev_global_time DESC",
             (type_name, playlist_id, self._channel_id))
-        return self._determine_latest_modification(dispersy_ids)
+        latest_modification = yield self._determine_latest_modification(dispersy_ids)
+        returnValue(latest_modification)
 
-    @warnIfNotDispersyThread
+    # @warnIfNotDispersyThread
+    @inlineCallbacks
     def _determine_latest_modification(self, list):
 
         if len(list) > 0:
@@ -1245,9 +1297,9 @@ class ChannelCommunity(Community):
             for dispersy_id, prev_global_time in list:
                 if prev_global_time >= max_global_time:
                     try:
-                        message = self._dispersy.load_message_by_packetid(self, dispersy_id)
+                        message = yield self._dispersy.load_message_by_packetid(self, dispersy_id)
                         if message:
-                            message = message.load_message()
+                            message = yield message.load_message()
                             conflicting_messages.append(message)
 
                             max_global_time = prev_global_time
@@ -1273,19 +1325,19 @@ class ChannelCommunity(Community):
 
             if len(conflicting_messages) > 0:
                 # 4. return first message
-                return conflicting_messages[0]
+                returnValue(conflicting_messages[0])
 
-    @warnIfNotDispersyThread
+    @inlineCallbacks
     def _get_packet_id(self, global_time, mid):
         if global_time and mid:
             try:
-                packet_id, = self._dispersy.database.execute(u"""
+                packet_id, = self._dispersy.database.stormdb.fetchone(u"""
                     SELECT sync.id
                     FROM sync
                     JOIN member ON (member.id = sync.member)
                     JOIN meta_message ON (meta_message.id = sync.meta_message)
                     WHERE sync.community = ? AND sync.global_time = ? AND member.mid = ?""",
-                                                             (self.database_id, global_time, buffer(mid))).next()
-            except StopIteration:
-                pass
+                                                             (self.database_id, global_time, buffer(mid)))
+            except TypeError:
+                raise
             return packet_id

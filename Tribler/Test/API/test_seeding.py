@@ -4,9 +4,13 @@
 import logging
 import os
 import socket
-import sys
 import threading
 import time
+
+from twisted.internet.defer import inlineCallbacks, Deferred
+from twisted.internet.task import deferLater
+
+from nose.twistedtools import deferred, reactor
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Session import Session
@@ -34,8 +38,8 @@ class TestSeeding(TestAsServer):
         super(TestSeeding, self).setUp()
 
         self.session2 = None
-        self.seeding_event = threading.Event()
-        self.downloading_event = threading.Event()
+        self.downloading_deferred = Deferred()
+        self.seeding_deferred = Deferred()
 
     def setUpPreSession(self):
         """ override TestAsServer """
@@ -59,6 +63,7 @@ class TestSeeding(TestAsServer):
 
         super(TestSeeding, self).tearDown()
 
+    @inlineCallbacks
     def setup_seeder(self, filename='video.avi'):
         self.tdef = TorrentDef()
         self.sourcefn = os.path.join(TESTS_DATA_DIR, filename)
@@ -77,7 +82,7 @@ class TestSeeding(TestAsServer):
         d.set_state_callback(self.seeder_state_callback)
 
         self._logger.debug("starting to wait for download to reach seeding state")
-        assert self.seeding_event.wait(60)
+        yield self.seeding_deferred
 
     def seeder_state_callback(self, ds):
         d = ds.get_download()
@@ -87,14 +92,17 @@ class TestSeeding(TestAsServer):
                            ds.get_progress())
 
         if ds.get_status() == DLSTATUS_SEEDING:
-            self.seeding_event.set()
+            if not self.seeding_deferred.called:
+                self.seeding_deferred.callback(None)
 
         return 1.0, False
 
+    @deferred(timeout=30)
+    @inlineCallbacks
     def test_normal_torrent(self):
-        self.setup_seeder()
+        yield self.setup_seeder()
         self.subtest_is_seeding()
-        self.subtest_download()
+        yield self.subtest_download()
 
     def subtest_is_seeding(self):
         infohash = self.tdef.get_infohash()
@@ -112,26 +120,27 @@ class TestSeeding(TestAsServer):
             self.assert_(False)
         s.close()
 
+    @inlineCallbacks
     def subtest_download(self):
         """ Now download the file via another Session """
         self.session2 = Session(self.config2, ignore_singleton=True)
         upgrader = self.session2.prestart()
         while not upgrader.is_done:
-            time.sleep(0.1)
-        self.session2.start()
-        time.sleep(1)
+            yield deferLater(reactor, 0.1, lambda: None)
+        yield self.session2.start()
+        yield deferLater(reactor, 1, lambda: None)
 
-        time.sleep(5)
+        yield deferLater(reactor, 5, lambda: None)
 
         tdef2 = TorrentDef.load(self.torrentfn)
 
         d = self.session2.start_download_from_tdef(tdef2, self.dscfg2)
         d.set_state_callback(self.downloader_state_callback)
 
-        time.sleep(5)
+        yield deferLater(reactor, 5, lambda: None)
 
         d.add_peer(("127.0.0.1", self.session.get_listen_port()))
-        assert self.downloading_event.wait(60)
+        yield self.downloading_deferred
 
     def downloader_state_callback(self, ds):
         d = ds.get_download()
@@ -151,6 +160,7 @@ class TestSeeding(TestAsServer):
             f.close()
 
             self.assert_(realdata == expdata)
-            self.downloading_event.set()
+            if not self.downloading_deferred.called:
+                self.downloading_deferred.callback(None)
             return 1.0, True
         return 1.0, False

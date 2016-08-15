@@ -1,3 +1,5 @@
+from twisted.internet.defer import inlineCallbacks
+
 from Tribler.dispersy.message import DelayMessage
 from Tribler.community.channel.community import ChannelCommunity
 
@@ -23,6 +25,7 @@ class DelayMessageReqChannelMessage(DelayMessage):
         # we return the channel_community cid here, to register the delay at that community
         return (self._channel_community.cid, u"channel", None, None, []),
 
+    @inlineCallbacks
     def send_request(self, community, candidate):
         # the request is sent from within the channel_community
-        self._channel_community.disp_create_missing_channel(candidate, self._includeSnapshot)
+        yield self._channel_community.disp_create_missing_channel(candidate, self._includeSnapshot)

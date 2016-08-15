@@ -60,3 +60,6 @@ htmlcov/
 
 # Documentation
 doc/_build/
+
+# twistd plugins cache
+twisted/plugins/dropin.cache

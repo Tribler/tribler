@@ -1,6 +1,7 @@
 # Written by Egbert Bouman
 import binascii
 import logging
+from twisted.internet.defer import inlineCallbacks
 from urllib import url2pathname
 import tempfile
 import threading
@@ -308,6 +309,7 @@ class LibtorrentMgr(TaskManager):
         else:
             self._logger.warning("port mapping method not exposed in libtorrent")
 
+    @inlineCallbacks
     def process_alert(self, alert):
         alert_type = str(type(alert)).split("'")[1].split(".")[-1]
         handle = getattr(alert, 'handle', None)
@@ -315,7 +317,7 @@ class LibtorrentMgr(TaskManager):
             if handle.is_valid():
                 infohash = str(handle.info_hash())
                 if infohash in self.torrents:
-                    self.torrents[infohash][0].process_alert(alert, alert_type)
+                    yield self.torrents[infohash][0].process_alert(alert, alert_type)
                 elif infohash in self.metainfo_requests:
                     if isinstance(alert, lt.metadata_received_alert):
                         self.got_metainfo(infohash)
@@ -456,11 +458,12 @@ class LibtorrentMgr(TaskManager):
             if last_time < oldest_time:
                 del self.metainfo_cache[info_hash]
 
+    @inlineCallbacks
     def _task_process_alerts(self):
         for ltsession in self.ltsessions.itervalues():
             if ltsession:
                 for alert in ltsession.pop_alerts():
-                    self.process_alert(alert)
+                    yield self.process_alert(alert)
 
         self.register_task(u'process_alerts', reactor.callLater(1, self._task_process_alerts))
 

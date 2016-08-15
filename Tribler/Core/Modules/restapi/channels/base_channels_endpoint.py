@@ -1,6 +1,8 @@
 import json
 import logging
 import time
+
+from twisted.internet.defer import inlineCallbacks
 from twisted.web import http, resource
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST
 from Tribler.community.allchannel.community import AllChannelCommunity
@@ -64,13 +66,14 @@ class BaseChannelsEndpoint(resource.Resource):
         my_channel_id = self.channel_db_handler.getMyChannelId()
         return self.session.lm.channel_manager.get_my_channel(my_channel_id)
 
+    @inlineCallbacks
     def vote_for_channel(self, cid, vote):
         """
         Make a vote in the channel specified by the cid
         """
         for community in self.session.get_dispersy_instance().get_communities():
             if isinstance(community, AllChannelCommunity):
-                community.disp_create_votecast(cid, vote, int(time.time()))
+                yield community.disp_create_votecast(cid, vote, int(time.time()))
                 break
 
     def get_community_for_channel_id(self, channel_id):

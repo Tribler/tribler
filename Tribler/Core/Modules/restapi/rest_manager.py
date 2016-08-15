@@ -66,4 +66,3 @@ class RESTRequest(server.Request):
         self.setHeader(b'content-length', intToBytes(len(body)))
         self.write(body)
         self.finish()
-        return failure

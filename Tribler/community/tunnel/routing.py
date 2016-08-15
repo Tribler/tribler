@@ -1,4 +1,5 @@
 import time
+from twisted.internet.defer import inlineCallbacks, returnValue
 
 from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_STATE_BROKEN, CIRCUIT_STATE_EXTENDING, \
     CIRCUIT_TYPE_DATA
@@ -88,6 +89,7 @@ class Circuit(object):
         """
         self.last_incoming = time.time()
 
+    @inlineCallbacks
     def tunnel_data(self, destination, payload):
         """
         Convenience method to tunnel data over this circuit
@@ -100,10 +102,10 @@ class Circuit(object):
         self._logger.info("Tunnel data (len %d) to end for circuit %s with ultimate destination %s", len(payload),
                            self.circuit_id, destination)
 
-        num_bytes = self.proxy.send_data([Candidate(self.first_hop, False)], self.circuit_id, destination, ('0.0.0.0', 0), payload)
+        num_bytes = yield self.proxy.send_data([Candidate(self.first_hop, False)], self.circuit_id, destination, ('0.0.0.0', 0), payload)
         self.proxy.increase_bytes_sent(self, num_bytes)
 
-        return num_bytes > 0
+        returnValue(num_bytes > 0)
 
     def destroy(self, reason='unknown'):
         """

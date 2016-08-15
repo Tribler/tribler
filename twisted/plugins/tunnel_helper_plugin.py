@@ -16,6 +16,7 @@ from collections import defaultdict, deque
 from twisted.application.service import MultiService, IServiceMaker
 from twisted.conch import manhole_tap
 from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks, returnValue
 from twisted.internet.stdio import StandardIO
 from twisted.internet.task import LoopingCall
 
@@ -108,11 +109,12 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file_
 
 
 class TunnelCommunityCrawler(HiddenTunnelCommunity):
+    @inlineCallbacks
     def on_introduction_response(self, messages):
         super(TunnelCommunityCrawler, self).on_introduction_response(messages)
         handler = Tunnel.get_instance().stats_handler
         for message in messages:
-            self.do_stats(message.candidate, lambda c, s, m=message: handler(c, s, m))
+            yield self.do_stats(message.candidate, lambda c, s, m=message: handler(c, s, m))
 
     def start_walking(self):
         self.register_task("take step", LoopingCall(self.take_step)).start(1.0, now=True)
@@ -134,7 +136,11 @@ class Tunnel(object):
         self.crawl_message = {}
         self.current_stats = [0, 0, 0]
         self.history_stats = deque(maxlen=180)
-        self.start_tribler()
+        self.initialize()
+
+    @inlineCallbacks
+    def initialize(self):
+        yield self.start_tribler()
         self.dispersy = self.session.lm.dispersy
         self.community = None
         self.clean_messages_lc = LoopingCall(self.clean_messages)
@@ -179,6 +185,7 @@ class Tunnel(object):
                 self.current_stats[index] = self.current_stats[index] * 0.875 + \
                                             (((stats[key] - stats_old[key]) / time_dif) / 1024) * 0.125
 
+    @inlineCallbacks
     def start_tribler(self):
         config = SessionStartupConfig()
         config.set_state_dir(os.path.join(config.get_state_dir(), "tunnel-%d") % self.settings.socks_listen_ports[0])
@@ -207,7 +214,7 @@ class Tunnel(object):
             reactor.addSystemEventTrigger('after', 'shutdown', os._exit, 1)
             self.session.shutdown()
             reactor.stop()
-        self.session.start()
+        yield self.session.start()
         logger.info("Using port %d" % self.session.get_dispersy_port())
 
     def start(self, introduce_port):
@@ -238,13 +245,14 @@ class Tunnel(object):
 
         self.session.set_download_states_callback(self.download_states_callback, False)
 
+    @inlineCallbacks
     def download_states_callback(self, dslist):
         try:
-            self.community.monitor_downloads(dslist)
+            yield self.community.monitor_downloads(dslist)
         except:
             logger.error("Monitoring downloads failed")
 
-        return (4.0, [])
+        returnValue((4.0, []))
 
     def stop(self):
         if self.clean_messages_lc:

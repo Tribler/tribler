@@ -7,6 +7,7 @@ from time import time
 from hashlib import sha1
 from base64 import b64encode
 from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks, returnValue
 
 from Tribler.dispersy.taskmanager import TaskManager, LoopingCall
 from Tribler.dispersy.candidate import Candidate
@@ -87,6 +88,7 @@ class TftpHandler(TaskManager):
         self._is_running = False
 
     @call_on_reactor_thread
+    @inlineCallbacks
     def download_file(self, file_name, ip, port, extra_info=None, success_callback=None, failure_callback=None):
         """ Downloads a file from a remote host.
         :param file_name: The file name of the file to be downloaded.
@@ -129,11 +131,12 @@ class TftpHandler(TaskManager):
                           success_callback=success_callback, failure_callback=failure_callback)
 
         self._add_new_session(session)
-        self._send_request_packet(session)
+        yield self._send_request_packet(session)
 
         self._logger.info(u"%s started", session)
 
-    @attach_runtime_statistics(u"{0.__class__.__name__}.{function_name}")
+    #@attach_runtime_statistics(u"{0.__class__.__name__}.{function_name}")
+    @inlineCallbacks
     def _task_check_timeout(self):
         """ A scheduled task that checks for timeout.
         """
@@ -142,7 +145,8 @@ class TftpHandler(TaskManager):
 
         need_session_cleanup = False
         for key, session in self._session_dict.items():
-            if self._check_session_timeout(session):
+            timeout = yield self._check_session_timeout(session)
+            if timeout:
                 need_session_cleanup = True
 
                 # fail as timeout
@@ -157,6 +161,7 @@ class TftpHandler(TaskManager):
         if need_session_cleanup:
             self._schedule_callback_processing()
 
+    @inlineCallbacks
     def _check_session_timeout(self, session):
         """
         Checks if a session has timed out and tries to retransmit packet if allowed.
@@ -168,11 +173,11 @@ class TftpHandler(TaskManager):
         if session.last_contact_time + timeout < time():
             # we do NOT resend packets that are not data-related
             if session.retries < self._max_retries and session.last_sent_packet['opcode'] in (OPCODE_ACK, OPCODE_DATA):
-                self._send_packet(session, session.last_sent_packet)
+                yield self._send_packet(session, session.last_sent_packet)
                 session.retries += 1
             else:
                 has_failed = True
-        return has_failed
+        returnValue(has_failed)
 
     def _schedule_callback_processing(self):
         """
@@ -203,8 +208,9 @@ class TftpHandler(TaskManager):
             del self._session_id_dict[session_id]
         del self._session_dict[key]
 
-    @attach_runtime_statistics(u"{0.__class__.__name__}.{function_name}")
+    # @attach_runtime_statistics(u"{0.__class__.__name__}.{function_name}")
     @call_on_reactor_thread
+    @inlineCallbacks
     def data_came_in(self, addr, data):
         """ The callback function that the thread pool will call when there is incoming data.
         :param addr: The (IP, port) address tuple of the sender.
@@ -230,7 +236,7 @@ class TftpHandler(TaskManager):
         # a new request
         if packet['opcode'] == OPCODE_RRQ:
             self._logger.debug(u"start handling new request: %s", packet)
-            self._handle_new_request(ip, port, packet)
+            yield self._handle_new_request(ip, port, packet)
             return
 
         if (ip, port, packet['session_id']) not in self._session_dict:
@@ -239,7 +245,7 @@ class TftpHandler(TaskManager):
 
         # handle the response
         session = self._session_dict[(ip, port, packet['session_id'])]
-        self._process_packet(session, packet)
+        yield self._process_packet(session, packet)
 
         if not session.is_done and not session.is_failed:
             return
@@ -262,6 +268,7 @@ class TftpHandler(TaskManager):
 
         self._schedule_callback_processing()
 
+    @inlineCallbacks
     def _handle_new_request(self, ip, port, packet):
         """ Handles a new request.
         :param ip:      The IP of the client.
@@ -290,7 +297,7 @@ class TftpHandler(TaskManager):
             self._logger.warn(u"Existing session_id %s from %s:%s", packet['session_id'], ip, port)
             dummy_session = Session(False, packet['session_id'], (ip, port), packet['opcode'],
                                     file_name, None, None, None, block_size=block_size, timeout=timeout)
-            self._handle_error(dummy_session, 50)
+            yield self._handle_error(dummy_session, 50)
             return
 
         # read the file/directory into memory
@@ -304,13 +311,13 @@ class TftpHandler(TaskManager):
             self._logger.warn(u"[READ %s:%s] file not found: %s", ip, port, e)
             dummy_session = Session(False, packet['session_id'], (ip, port), packet['opcode'],
                                     file_name, None, None, None, block_size=block_size, timeout=timeout)
-            self._handle_error(dummy_session, 1)
+            yield self._handle_error(dummy_session, 1)
             return
         except Exception as e:
             self._logger.error(u"[READ %s:%s] failed to load file: %s", ip, port, e)
             dummy_session = Session(False, packet['session_id'], (ip, port), packet['opcode'],
                                     file_name, None, None, None, block_size=block_size, timeout=timeout)
-            self._handle_error(dummy_session, 2)
+            yield self._handle_error(dummy_session, 2)
             raise
 
         # create a session object
@@ -322,7 +329,7 @@ class TftpHandler(TaskManager):
         self._logger.debug(u"got new request: %s", session)
 
         # send back OACK now
-        self._send_oack_packet(session)
+        yield self._send_oack_packet(session)
 
     def _load_metadata(self, thumb_hash):
         """ Loads a thumbnail into memory.
@@ -365,6 +372,7 @@ class TftpHandler(TaskManager):
 
         return data
 
+    @inlineCallbacks
     def _process_packet(self, session, packet):
         """ processes an incoming packet.
         :param packet: The incoming packet dictionary.
@@ -379,10 +387,11 @@ class TftpHandler(TaskManager):
 
         # client is the receiver, server is the sender
         if session.is_client:
-            self._handle_packet_as_receiver(session, packet)
+            yield self._handle_packet_as_receiver(session, packet)
         else:
-            self._handle_packet_as_sender(session, packet)
+            yield self._handle_packet_as_sender(session, packet)
 
+    @inlineCallbacks
     def _handle_packet_as_receiver(self, session, packet):
         """ Processes an incoming packet as a receiver.
         :param packet: The incoming packet dictionary.
@@ -395,14 +404,14 @@ class TftpHandler(TaskManager):
                     msg = "%s OACK blksize mismatch: %s != %s (expected)" %\
                           (session, session.block_size, packet['options']['blksize'])
                     self._logger.error(msg)
-                    self._handle_error(session, 0, error_msg=msg)  # Error: blksize mismatch
+                    yield self._handle_error(session, 0, error_msg=msg)  # Error: blksize mismatch
                     return
 
                 if session.timeout != packet['options']['timeout']:
                     msg = "%s OACK timeout mismatch: %s != %s (expected)" %\
                           (session, session.timeout, packet['options']['timeout'])
                     self._logger.error(msg)
-                    self._handle_error(session, 0, error_msg=msg)  # Error: timeout mismatch
+                    yield self._handle_error(session, 0, error_msg=msg)  # Error: timeout mismatch
                     return
 
                 session.file_size = packet['options']['tsize']
@@ -410,19 +419,19 @@ class TftpHandler(TaskManager):
 
                 if session.request == OPCODE_RRQ:
                     # send ACK
-                    self._send_ack_packet(session, session.block_number)
+                    yield self._send_ack_packet(session, session.block_number)
                     session.block_number += 1
                     session.file_data = ""
 
             else:
                 self._logger.error(u"%s Got OPCODE %s which is not expected", session, packet['opcode'])
-                self._handle_error(session, 4)  # illegal TFTP operation
+                yield self._handle_error(session, 4)  # illegal TFTP operation
             return
 
         # expect a DATA
         if packet['opcode'] != OPCODE_DATA:
             self._logger.error(u"%s Got OPCODE %s while expecting %s", session, packet['opcode'], OPCODE_DATA)
-            self._handle_error(session, 4)  # illegal TFTP operation
+            yield self._handle_error(session, 4)  # illegal TFTP operation
             return
 
         self._logger.debug(u"%s Got data, #block = %s size = %s", session, packet['block_number'], len(packet['data']))
@@ -438,12 +447,12 @@ class TftpHandler(TaskManager):
             msg = "%s Got ACK with block# %s while expecting %s" %\
                   (session, packet['block_number'], session.block_number)
             self._logger.error(msg)
-            self._handle_error(session, 0, error_msg=msg)  # Error: block_number mismatch
+            yield self._handle_error(session, 0, error_msg=msg)  # Error: block_number mismatch
             return
 
         # save data
         session.file_data += packet['data']
-        self._send_ack_packet(session, session.block_number)
+        yield self._send_ack_packet(session, session.block_number)
         session.block_number += 1
 
         # check if it is the end
@@ -466,6 +475,7 @@ class TftpHandler(TaskManager):
 
             session.is_done = True
 
+    @inlineCallbacks
     def _handle_packet_as_sender(self, session, packet):
         """ Processes an incoming packet as a sender.
         :param packet: The incoming packet dictionary.
@@ -473,7 +483,7 @@ class TftpHandler(TaskManager):
         # expect an ACK packet
         if packet['opcode'] != OPCODE_ACK:
             self._logger.error(u"%s got OPCODE(%s) while expecting %s", session, packet['opcode'], OPCODE_ACK)
-            self._handle_error(session, 4)  # illegal TFTP operation
+            yield self._handle_error(session, 4)  # illegal TFTP operation
             return
 
         # check block number
@@ -487,7 +497,7 @@ class TftpHandler(TaskManager):
             msg = "%s got ACK with block# %s while expecting %s" %\
                   (session, packet['block_number'], session.block_number)
             self._logger.error(msg)
-            self._handle_error(session, 0, error_msg=msg)  # Error: block_number mismatch
+            yield self._handle_error(session, 0, error_msg=msg)  # Error: block_number mismatch
             return
 
         if session.is_waiting_for_last_ack:
@@ -496,16 +506,18 @@ class TftpHandler(TaskManager):
 
         data = self._get_next_data(session)
         # send DATA
-        self._send_data_packet(session, session.block_number, data)
+        yield self._send_data_packet(session, session.block_number, data)
 
+    @inlineCallbacks
     def _handle_error(self, session, error_code, error_msg=""):
         """ Handles an error during packet processing.
         :param error_code: The error code.
         """
         session.is_failed = True
         msg = error_msg if error_msg else ERROR_DICT.get(error_code, error_msg)
-        self._send_error_packet(session, error_code, msg)
+        yield self._send_error_packet(session, error_code, msg)
 
+    @inlineCallbacks
     def _send_packet(self, session, packet):
         packet_buff = encode_packet(packet)
         extra_msg = u" block_number = %s" % packet['block_number'] if packet.get('block_number') is not None else ""
@@ -513,12 +525,13 @@ class TftpHandler(TaskManager):
 
         self._logger.debug(u"SEND OP[%s] -> %s:%s %s",
                            packet['opcode'], session.address[0], session.address[1], extra_msg)
-        self._endpoint.send_packet(Candidate(session.address, False), packet_buff, prefix=self._prefix)
+        yield self._endpoint.send_packet(Candidate(session.address, False), packet_buff, prefix=self._prefix)
 
         # update information
         session.last_contact_time = time()
         session.last_sent_packet = packet
 
+    @inlineCallbacks
     def _send_request_packet(self, session):
         assert session.request == OPCODE_RRQ, u"Invalid request_opcode %s" % repr(session.request)
 
@@ -528,29 +541,33 @@ class TftpHandler(TaskManager):
                   'options': {'blksize': session.block_size,
                               'timeout': session.timeout,
                               }}
-        self._send_packet(session, packet)
+        yield self._send_packet(session, packet)
 
+    @inlineCallbacks
     def _send_data_packet(self, session, block_number, data):
         packet = {'opcode': OPCODE_DATA,
                   'session_id': session.session_id,
                   'block_number': block_number,
                   'data': data}
-        self._send_packet(session, packet)
+        yield self._send_packet(session, packet)
 
+    @inlineCallbacks
     def _send_ack_packet(self, session, block_number):
         packet = {'opcode': OPCODE_ACK,
                   'session_id': session.session_id,
                   'block_number': block_number}
-        self._send_packet(session, packet)
+        yield self._send_packet(session, packet)
 
+    @inlineCallbacks
     def _send_error_packet(self, session, error_code, error_msg):
         packet = {'opcode': OPCODE_ERROR,
                   'session_id': session.session_id,
                   'error_code': error_code,
                   'error_msg': error_msg
                   }
-        self._send_packet(session, packet)
+        yield self._send_packet(session, packet)
 
+    @inlineCallbacks
     def _send_oack_packet(self, session):
         packet = {'opcode': OPCODE_OACK,
                   'session_id': session.session_id,
@@ -560,4 +577,4 @@ class TftpHandler(TaskManager):
                               'tsize': session.file_size,
                               'checksum': session.checksum,
                               }}
-        self._send_packet(session, packet)
+        yield self._send_packet(session, packet)

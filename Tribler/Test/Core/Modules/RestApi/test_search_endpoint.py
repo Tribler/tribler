@@ -1,4 +1,5 @@
-from Tribler.Core.Utilities.twisted_thread import deferred
+from nose.twistedtools import deferred
+
 from Tribler.Core.simpledefs import NTFY_CHANNELCAST, NTFY_TORRENTS, SIGNAL_CHANNEL, SIGNAL_ON_SEARCH_RESULTS, \
     SIGNAL_TORRENT
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest

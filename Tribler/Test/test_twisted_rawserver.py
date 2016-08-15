@@ -7,8 +7,9 @@ from threading import RLock, enumerate as enumerate_threads
 from twisted.internet.defer import Deferred
 from twisted.internet.task import Clock
 
+from nose.twistedtools import deferred, reactor
+
 from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
-from Tribler.Core.Utilities.twisted_thread import deferred, reactor
 from Tribler.Test.test_as_server import AbstractServer
 
 

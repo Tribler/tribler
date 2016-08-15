@@ -1,0 +1,1 @@
+# WAN address	LAN address	Tunnel last_seen	last_checked	num_fails

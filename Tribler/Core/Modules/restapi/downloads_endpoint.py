@@ -1,7 +1,10 @@
 import json
 import os
+from twisted.internet.defer import inlineCallbacks
 
 from twisted.web import http, resource
+from twisted.web.server import NOT_DONE_YET
+
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentStatisticsResponse
 from Tribler.Core.TorrentDef import TorrentDef, TorrentDefNoMetainfo
@@ -93,8 +96,8 @@ class DownloadsEndpoint(DownloadBaseEndpoint):
             stats = download.network_create_statistics_reponse() or LibtorrentStatisticsResponse(0, 0, 0, 0, 0, 0, 0)
 
             # Create files information of the download
-            files_completion = dict((name, progress) for name, progress
-                                    in download.network_get_state(None, False).get_files_completion())
+            network_state = download.network_get_state(None, False).get_files_completion()
+            files_completion = dict((name, progress) for name, progress in network_state)
             selected_files = download.get_selected_files()
             files_array = []
             for file, size in download.get_def().get_files_as_unicode_with_length():

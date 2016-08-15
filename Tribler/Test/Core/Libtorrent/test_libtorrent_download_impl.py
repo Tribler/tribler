@@ -1,13 +1,15 @@
 import binascii
 import os
+from twisted.internet.defer import inlineCallbacks
+
 import libtorrent as lt
+from nose.twistedtools import deferred, reactor
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.Libtorrent.LibtorrentDownloadImpl import LibtorrentDownloadImpl
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.Utilities.configparser import CallbackConfigParser
-from Tribler.Core.Utilities.twisted_thread import deferred, reactor
 from Tribler.Test.Core.base_test import TriblerCoreTest, MockObject
 from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
 
@@ -267,6 +269,8 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         self.libtorrent_download_impl.add_trackers(['http://google.com'])
         self.assertTrue(mocked_add_trackers.called)
 
+    @deferred(timeout=10)
+    @inlineCallbacks
     def test_process_error_alert(self):
         """
         Testing whether error alerts are processed correctly
@@ -277,13 +281,15 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         mock_alert.category = lambda: lt.alert.category_t.error_notification
         mock_alert.status_code = 123
         mock_alert.url = url
-        self.libtorrent_download_impl.process_alert(mock_alert, 'tracker_error_alert')
+        yield self.libtorrent_download_impl.process_alert(mock_alert, 'tracker_error_alert')
         self.assertEqual(self.libtorrent_download_impl.tracker_status[url][1], 'HTTP status code 123')
 
         mock_alert.status_code = 0
-        self.libtorrent_download_impl.process_alert(mock_alert, 'tracker_error_alert')
+        yield self.libtorrent_download_impl.process_alert(mock_alert, 'tracker_error_alert')
         self.assertEqual(self.libtorrent_download_impl.tracker_status[url][1], 'Timeout')
 
+    @deferred(timeout=10)
+    @inlineCallbacks
     def test_tracker_warning_alert(self):
         """
         Test whether a tracking warning alert is processed correctly
@@ -293,9 +299,11 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         mock_alert.category = lambda: lt.alert.category_t.error_notification
         mock_alert.url = url
         mock_alert.message = lambda: 'test'
-        self.libtorrent_download_impl.process_alert(mock_alert, 'tracker_warning_alert')
+        yield self.libtorrent_download_impl.process_alert(mock_alert, 'tracker_warning_alert')
         self.assertEqual(self.libtorrent_download_impl.tracker_status[url][1], 'Warning: test')
 
+    @deferred(timeout=10)
+    @inlineCallbacks
     def test_torrent_checked_alert(self):
         """
         Testing whether the right operations happen after a torrent checked alert is received
@@ -310,13 +318,13 @@ class TestLibtorrentDownloadImplNoSession(TriblerCoreTest):
         mock_alert = MockObject()
         mock_alert.category = lambda: lt.alert.category_t.error_notification
         self.libtorrent_download_impl.pause_after_next_hashcheck = True
-        self.libtorrent_download_impl.process_alert(mock_alert, 'torrent_checked_alert')
+        yield self.libtorrent_download_impl.process_alert(mock_alert, 'torrent_checked_alert')
         self.assertFalse(self.libtorrent_download_impl.pause_after_next_hashcheck)
         self.assertTrue(mocked_pause_checkpoint.called)
 
         mocked_pause_checkpoint.called = False
         self.libtorrent_download_impl.checkpoint_after_next_hashcheck = True
-        self.libtorrent_download_impl.process_alert(mock_alert, 'torrent_checked_alert')
+        yield self.libtorrent_download_impl.process_alert(mock_alert, 'torrent_checked_alert')
         self.assertFalse(self.libtorrent_download_impl.checkpoint_after_next_hashcheck)
         self.assertTrue(mocked_pause_checkpoint.called)
 

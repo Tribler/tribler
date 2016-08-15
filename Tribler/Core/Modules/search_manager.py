@@ -1,6 +1,8 @@
 import os
 import logging
 
+from twisted.internet.defer import inlineCallbacks, returnValue
+
 from Tribler.dispersy.taskmanager import TaskManager
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
 
@@ -40,6 +42,7 @@ class SearchManager(TaskManager):
         self.session = None
 
     @call_on_reactor_thread
+    @inlineCallbacks
     def search_for_torrents(self, keywords):
         """
         Searches for torrents using SearchCommunity with the given keywords.
@@ -47,17 +50,17 @@ class SearchManager(TaskManager):
         """
         nr_requests_made = 0
         if self.dispersy is None:
-            return nr_requests_made
+            returnValue(nr_requests_made)
 
         for community in self.dispersy.get_communities():
             if isinstance(community, SearchCommunity):
                 self._current_keywords = keywords
-                nr_requests_made = community.create_search(keywords)
+                nr_requests_made = yield community.create_search(keywords)
                 if not nr_requests_made:
                     self._logger.warn("Could not send search in SearchCommunity, no verified candidates found")
                 break
 
-        return nr_requests_made
+        returnValue(nr_requests_made)
 
     @call_on_reactor_thread
     def _on_torrent_search_results(self, subject, change_type, object_id, search_results):
@@ -171,6 +174,7 @@ class SearchManager(TaskManager):
         self.session.notifier.notify(SIGNAL_TORRENT, SIGNAL_ON_SEARCH_RESULTS, None, results_data)
 
     @call_on_reactor_thread
+    @inlineCallbacks
     def search_for_channels(self, keywords):
         """
         Searches for channels using AllChannelCommunity with the given keywords.
@@ -182,7 +186,7 @@ class SearchManager(TaskManager):
         for community in self.dispersy.get_communities():
             if isinstance(community, AllChannelCommunity):
                 self._current_keywords = keywords
-                community.create_channelsearch(keywords)
+                yield community.create_channelsearch(keywords)
                 break
 
     @call_on_reactor_thread

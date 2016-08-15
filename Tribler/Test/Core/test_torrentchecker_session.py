@@ -3,11 +3,11 @@ from libtorrent import bencode
 
 from twisted.internet.task import Clock
 
-from twisted.internet.defer import Deferred, DeferredList
+from twisted.internet.defer import Deferred, DeferredList, inlineCallbacks
 
+from nose.twistedtools import deferred, reactor
 
 from Tribler.Core.TorrentChecker.session import HttpTrackerSession, UDPScraper, UdpTrackerSession
-from Tribler.Core.Utilities.twisted_thread import deferred, reactor
 from Tribler.Test.Core.base_test import TriblerCoreTest
 
 
@@ -225,6 +225,7 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         return session.result_deferred
 
     @deferred(timeout=5)
+    @inlineCallbacks
     def test_big_correct_run(self):
         session = UdpTrackerSession("localhost", ("192.168.1.1", 1234), "/announce", None)
         session.create_connection()
@@ -232,12 +233,12 @@ class TestTorrentCheckerSession(TriblerCoreTest):
         session.result_deferred = Deferred()
         self.assertFalse(session.is_failed)
         packet = struct.pack("!iiq", session._action, session._transaction_id, 126)
-        session.scraper.datagramReceived(packet, (None, None))
+        yield session.scraper.datagramReceived(packet, (None, None))
         session._infohash_list = ["test"]
         packet = struct.pack("!iiiii", session._action, session._transaction_id, 0, 1, 2)
-        session.scraper.datagramReceived(packet, (None, None))
+        yield session.scraper.datagramReceived(packet, (None, None))
 
-        return session.result_deferred
+        yield session.result_deferred
 
     def test_http_unprocessed_infohashes(self):
         session = HttpTrackerSession("localhost", ("localhost", 8475), "/announce", None)

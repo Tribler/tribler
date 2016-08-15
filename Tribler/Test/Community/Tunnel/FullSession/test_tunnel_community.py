@@ -1,7 +1,8 @@
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred, inlineCallbacks
 
-from Tribler.Core.Utilities.twisted_thread import deferred
+from nose.twistedtools import deferred
+
 from Tribler.Core.simpledefs import DLSTATUS_SEEDING
 from Tribler.Test.Community.Tunnel.FullSession.test_tunnel_base import TestTunnelBase
 

@@ -1,5 +1,4 @@
 import os
-import time
 from twisted.internet.defer import returnValue, inlineCallbacks
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
@@ -19,18 +18,20 @@ class HiddenTunnelCommunityTests(HiddenTunnelCommunity):
     """
 
     @classmethod
+    @inlineCallbacks
     def get_master_members(cls, dispersy):
         master_key = "3081a7301006072a8648ce3d020106052b81040027038192000400f4771c58e65f2cc0385a14027a937a0eb54df0e" \
                      "4ae2f72acd8f8286066a48a5e8dcff81c7dfa369fbc33bfe9823587057557cf168b41586dc9ff7615a7e5213f3ec6" \
                      "c9b4f9f57f00dbc0dd8ca8b9f6d76fd63a432a56d5938ce9dd7bd291daa92bec52ffcd58d9718836163868f493063" \
                      "77c3b8bf36d43ea99122c3276e1a89fb5b9b2ff3f7f6f1702d057dca3e8c0"
         master_key_hex = master_key.decode("HEX")
-        master = dispersy.get_member(public_key=master_key_hex)
-        return [master]
+        master = yield dispersy.get_member(public_key=master_key_hex)
+        returnValue([master])
 
 
 class TestTunnelBase(TestAsServer):
 
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
         """
         Setup various variables and load the tunnel community in the main downloader session.
@@ -44,7 +45,7 @@ class TestTunnelBase(TestAsServer):
         self.seed_config = None
         self.tunnel_community_seeder = None
 
-        self.tunnel_community = self.load_tunnel_community_in_session(self.session, exitnode=True)
+        self.tunnel_community = yield self.load_tunnel_community_in_session(self.session, exitnode=True)
         self.tunnel_communities = []
 
     def setUpPreSession(self):
@@ -77,7 +78,7 @@ class TestTunnelBase(TestAsServer):
             self.tunnel_communities.append(proxy)
 
         # Setup the seeder session
-        self.setup_tunnel_seeder(seed_hops)
+        yield self.setup_tunnel_seeder(seed_hops)
 
         # Add the tunnel community of the downloader session
         self.tunnel_communities.append(self.tunnel_community)
@@ -99,6 +100,7 @@ class TestTunnelBase(TestAsServer):
                 community.add_discovered_candidate(candidate)
 
     @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def load_tunnel_community_in_session(self, session, exitnode=False):
         """
         Load the tunnel community in a given session. We are using our own tunnel community here instead of the one
@@ -106,13 +108,14 @@ class TestTunnelBase(TestAsServer):
         """
         dispersy = session.get_dispersy_instance()
         keypair = dispersy.crypto.generate_key(u"curve25519")
-        dispersy_member = dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
+        dispersy_member = yield dispersy.get_member(private_key=dispersy.crypto.key_to_bin(keypair))
         settings = TunnelSettings(tribler_session=session)
         if not self.crypto_enabled:
             settings.crypto = NoCrypto()
         settings.become_exitnode = exitnode
 
-        return dispersy.define_auto_load(HiddenTunnelCommunityTests, dispersy_member, (session, settings), load=True)[0]
+        res, = yield dispersy.define_auto_load(HiddenTunnelCommunityTests, dispersy_member, (session, settings), load=True)
+        returnValue(res)
 
     @inlineCallbacks
     def create_proxy(self, index, exitnode=False):
@@ -134,6 +137,7 @@ class TestTunnelBase(TestAsServer):
 
         returnValue(self.load_tunnel_community_in_session(session, exitnode=exitnode))
 
+    @inlineCallbacks
     def setup_tunnel_seeder(self, hops):
         """
         Setup the seeder.
@@ -146,7 +150,7 @@ class TestTunnelBase(TestAsServer):
         if self.session2 is None:
             self.session2 = Session(self.seed_config, ignore_singleton=True, autoload_discovery=False)
             self.session2.prestart()
-            self.session2.start()
+            yield self.session2.start()
 
         tdef = TorrentDef()
         tdef.add_content(os.path.join(TESTS_DATA_DIR, "video.avi"))

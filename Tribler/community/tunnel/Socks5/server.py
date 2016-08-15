@@ -1,6 +1,7 @@
 import logging
 
 from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks
 from twisted.internet.protocol import Protocol, DatagramProtocol, connectionDone, Factory
 
 from Tribler.community.tunnel import CIRCUIT_STATE_READY, CIRCUIT_TYPE_RENDEZVOUS, CIRCUIT_TYPE_RP, CIRCUIT_ID_PORT
@@ -43,6 +44,7 @@ class SocksUDPConnection(DatagramProtocol):
         else:
             self._logger.error("cannot send data, no clue where to send it to")
 
+    @inlineCallbacks
     def datagramReceived(self, data, source):
         # if remote_address was not set before, use first one
         if self.remote_udp_address is None:
@@ -66,7 +68,7 @@ class SocksUDPConnection(DatagramProtocol):
                         "Circuit is not ready, dropping %d bytes to %s", len(request.payload), request.destination)
                 else:
                     self._logger.debug("Sending data over circuit destined for %r:%r", *request.destination)
-                    circuit.tunnel_data(request.destination, request.payload)
+                    yield circuit.tunnel_data(request.destination, request.payload)
             else:
                 self._logger.debug("No support for fragmented data, dropping")
         else:
