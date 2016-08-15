@@ -411,7 +411,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         Intent shutdown = new Intent(Intent.ACTION_SHUTDOWN);
         // Ask user to confirm shutdown
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage(getString(R.string.dialog_shutdown));
+        builder.setMessage(getText(R.string.dialog_shutdown));
         builder.setPositiveButton(getText(R.string.action_shutdown_short), (dialog, which) -> {
             onNewIntent(shutdown);
         });

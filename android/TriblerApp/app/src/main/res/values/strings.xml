@@ -27,6 +27,7 @@
     <string name="action_turn_on">Turn On</string>
     <string name="action_browse">Browse</string>
     <string name="action_add">Add</string>
+    <string name="action_remove">Remove</string>
 
     <string name="action_search">Search videos and channels</string>
     <string name="action_search_in_channel">Search in this channel</string>
@@ -93,10 +94,12 @@
     <string name="status_creating_channel">Creating channel…</string>
     <string name="my_channel_explanation">Create your own channel to publish your content!\n\nOthers can add your channel to their favorites to keep up to date and boost your channel\'s popularity!</string>
 
-    <string name="dialog_add_torrent">Add torrent to channel now?</string>
+    <string name="dialog_add_torrent">Add a torrent to your channel by url or browse:</string>
     <string name="dialog_create_torrent">Create torrent from file</string>
     <string name="status_creating_torrent">Creating torrent…</string>
     <string name="status_adding_torrent">Adding torrent…</string>
     <string name="hint_add_torrent">http:// or magnet:link</string>
+
+    <string name="dialog_remove_torrent">Are you sure you want to remove \"%s\" from your channel?</string>
 
 </resources>

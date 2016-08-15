@@ -121,6 +121,33 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void reload() {
+        super.reload();
+        adapter.clear();
+        loadMyChannelTorrents();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onSwipedRight(final TriblerTorrent torrent) {
+        // Revert swipe
+        adapter.notifyObjectChanged(torrent);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onSwipedLeft(final TriblerTorrent torrent) {
+        askUserToRemoveTorrent(torrent);
+    }
+
     private void loadMyChannel() {
         loading = service.getMyChannel()
                 .subscribeOn(Schedulers.io())
@@ -143,8 +170,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     public void onError(Throwable e) {
                         if (e instanceof HttpException && ((HttpException) e).code() == 404) {
                             // My channel has not been created yet
-                            Intent createIntent = MyUtils.createChannelIntent();
-                            startActivityForResult(createIntent, CREATE_CHANNEL_ACTIVITY_REQUEST_CODE);
+                            createChannel();
 
                             // Hide loading indicator
                             progressView.setVisibility(View.GONE);
@@ -162,16 +188,6 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     }
                 });
         rxSubs.add(loading);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void reload() {
-        super.reload();
-        adapter.clear();
-        loadMyChannelTorrents();
     }
 
     private void loadMyChannelTorrents() {
@@ -203,54 +219,6 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                     }
                 });
         rxSubs.add(loading);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onSwipedRight(final TriblerTorrent torrent) {
-        // Revert swipe
-        adapter.notifyObjectChanged(torrent);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onSwipedLeft(final TriblerTorrent torrent) {
-        adapter.removeObject(torrent);
-        removeTorrent(torrent.getInfohash(), torrent.getName());
-    }
-
-    private void removeTorrent(final String infohash, final String name) {
-        rxSubs.add(service.removeTorrent(_dispersyCid, infohash)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Observer<RemovedAck>() {
-
-                    public void onNext(RemovedAck response) {
-                        Toast.makeText(context, name + ' ' + context.getText(R.string.info_removed_success), Toast.LENGTH_SHORT).show();
-                    }
-
-                    public void onCompleted() {
-                    }
-
-                    public void onError(Throwable e) {
-                        if (e instanceof HttpException && ((HttpException) e).code() == 404) {
-                            Toast.makeText(context, name + ' ' + context.getText(R.string.info_removed_already), Toast.LENGTH_SHORT).show();
-                        } else {
-                            Log.e("onSwipedLeft", "removeTorrent", e);
-                            MyUtils.onError(e, context);
-                            try {
-                                Thread.sleep(1000);
-                            } catch (InterruptedException ex) {
-                            }
-                            // Retry
-                            removeTorrent(infohash, name);
-                        }
-                    }
-                }));
     }
 
     private void createTorrent(final File file, final boolean delete) {
@@ -372,12 +340,41 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         rxSubs.add(loading);
     }
 
+    private void removeTorrent(final String infohash, final String name) {
+        rxSubs.add(service.removeTorrent(_dispersyCid, infohash)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<RemovedAck>() {
+
+                    public void onNext(RemovedAck response) {
+                        Toast.makeText(context, name + ' ' + context.getText(R.string.info_removed_success), Toast.LENGTH_SHORT).show();
+                    }
+
+                    public void onCompleted() {
+                    }
+
+                    public void onError(Throwable e) {
+                        if (e instanceof HttpException && ((HttpException) e).code() == 404) {
+                            Toast.makeText(context, name + ' ' + context.getText(R.string.info_removed_already), Toast.LENGTH_SHORT).show();
+                        } else {
+                            Log.e("onSwipedLeft", "removeTorrent", e);
+                            MyUtils.onError(e, context);
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException ex) {
+                            }
+                            // Retry
+                            removeTorrent(infohash, name);
+                        }
+                    }
+                }));
+    }
+
     private void askUserToCreateMyChannel() {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setMessage(getString(R.string.dialog_create_my_channel));
+        builder.setMessage(getText(R.string.dialog_create_my_channel));
         builder.setPositiveButton(getText(R.string.action_create), (dialog, which) -> {
-            Intent createIntent = MyUtils.createChannelIntent();
-            startActivityForResult(createIntent, CREATE_CHANNEL_ACTIVITY_REQUEST_CODE);
+            createChannel();
         });
         builder.setNegativeButton(getText(R.string.action_cancel), (dialog, which) -> {
             // Do nothing
@@ -388,11 +385,12 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
     void askUserToAddTorrent() {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setMessage(getString(R.string.dialog_add_torrent));
+        builder.setMessage(getText(R.string.dialog_add_torrent));
 
         EditText input = new EditText(context);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         input.setHint(getText(R.string.hint_add_torrent));
+        input.setPadding(16, 0, 16, 0);
         builder.setView(input);
 
         builder.setPositiveButton(getText(R.string.action_add), (dialog, which) -> {
@@ -413,10 +411,30 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         dialog.show();
     }
 
+    private void askUserToRemoveTorrent(TriblerTorrent torrent) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setMessage(String.format(getString(R.string.dialog_remove_torrent), torrent.getName()));
+        builder.setPositiveButton(getText(R.string.action_remove), (dialog, which) -> {
+            adapter.removeObject(torrent);
+            removeTorrent(torrent.getInfohash(), torrent.getName());
+        });
+        builder.setNegativeButton(getText(R.string.action_cancel), (dialog, which) -> {
+            // Revert swipe
+            adapter.notifyObjectChanged(torrent);
+        });
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
     private void askUserToSelectFile() {
         Intent browseIntent = MyUtils.browseFileIntent();
         Intent chooserIntent = Intent.createChooser(browseIntent, getText(R.string.dialog_create_torrent));
         startActivityForResult(chooserIntent, BROWSE_FILE_ACTIVITY_REQUEST_CODE);
+    }
+
+    private void createChannel() {
+        Intent createIntent = MyUtils.createChannelIntent();
+        startActivityForResult(createIntent, CREATE_CHANNEL_ACTIVITY_REQUEST_CODE);
     }
 
     void editChannel() {
