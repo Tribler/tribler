@@ -21,6 +21,8 @@ import com.squareup.leakcanary.RefWatcher;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
@@ -115,6 +117,17 @@ public class MyUtils {
         return intent;
     }
 
+    public static Intent browseFileIntent() {
+        return browseFileIntent("*/*");
+    }
+
+    public static Intent browseFileIntent(String mimeType) {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType(mimeType);
+        return intent;
+    }
+
     public static Intent videoCaptureIntent(Uri output) {
         Intent intent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
         intent.putExtra(MediaStore.EXTRA_OUTPUT, output);
@@ -144,24 +157,19 @@ public class MyUtils {
         return new File(videoDir, "VID_" + timeStamp + ".mp4");
     }
 
-    public static boolean isNetworkConnected(ConnectivityManager connectivityManager) {
-        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
-        if (networkInfo == null) {
-            // No connection
-            return false;
-        }
-        switch (networkInfo.getType()) {
-            case ConnectivityManager.TYPE_ETHERNET:
-            case ConnectivityManager.TYPE_WIFI:
-                return true;
-            case ConnectivityManager.TYPE_BLUETOOTH:
-            case ConnectivityManager.TYPE_DUMMY:
-            case ConnectivityManager.TYPE_MOBILE:
-            case ConnectivityManager.TYPE_MOBILE_DUN:
-            case ConnectivityManager.TYPE_VPN:
-            case ConnectivityManager.TYPE_WIMAX:
-            default:
-                return false;
+    public static void copy(InputStream input, OutputStream output) throws IOException {
+        try {
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = input.read(buffer)) > 0) {
+                output.write(buffer, 0, length);
+            }
+        } finally {
+            try {
+                input.close();
+            } catch (IOException ex) {
+            }
+            output.close();
         }
     }
 
@@ -232,6 +240,27 @@ public class MyUtils {
                 subscriber.onCompleted();
             }
         });
+    }
+
+    public static boolean isNetworkConnected(ConnectivityManager connectivityManager) {
+        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+        if (networkInfo == null) {
+            // No connection
+            return false;
+        }
+        switch (networkInfo.getType()) {
+            case ConnectivityManager.TYPE_ETHERNET:
+            case ConnectivityManager.TYPE_WIFI:
+                return true;
+            case ConnectivityManager.TYPE_BLUETOOTH:
+            case ConnectivityManager.TYPE_DUMMY:
+            case ConnectivityManager.TYPE_MOBILE:
+            case ConnectivityManager.TYPE_MOBILE_DUN:
+            case ConnectivityManager.TYPE_VPN:
+            case ConnectivityManager.TYPE_WIMAX:
+            default:
+                return false;
+        }
     }
 
     public static void onError(Throwable e, Context context) {
