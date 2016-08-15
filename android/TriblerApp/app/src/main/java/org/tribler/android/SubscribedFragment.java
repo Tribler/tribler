@@ -62,4 +62,5 @@ public class SubscribedFragment extends DefaultInteractionListFragment {
                 });
         rxSubs.add(loading);
     }
+
 }

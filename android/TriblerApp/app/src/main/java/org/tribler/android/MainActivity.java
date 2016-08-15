@@ -8,10 +8,14 @@ import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
+import android.nfc.NdefMessage;
+import android.nfc.NdefRecord;
+import android.nfc.NfcAdapter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.os.Parcelable;
 import android.os.Process;
 import android.support.annotation.Nullable;
 import android.support.design.widget.NavigationView;
@@ -39,12 +43,14 @@ import org.tribler.android.restapi.IRestApi;
 import org.tribler.android.restapi.TriblerService;
 import org.tribler.android.restapi.json.EventsStartEvent;
 import org.tribler.android.restapi.json.ShutdownAck;
+import org.tribler.android.restapi.json.SubscribedAck;
 import org.tribler.android.service.Triblerd;
 
 import java.io.File;
 import java.io.IOException;
 
 import butterknife.BindView;
+import retrofit2.adapter.rxjava.HttpException;
 import rx.Observer;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
@@ -74,6 +80,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     private ActionBarDrawerToggle _navToggle;
     private ConnectivityManager _connectivityManager;
     private Handler _eventHandler;
+    private IRestApi _service;
 
     private void initService() {
         // Check network connection before starting service
@@ -126,6 +133,10 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
             EventStream.openEventStream();
         }
 
+        String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
+        String authToken = getString(R.string.service_auth_token);
+        _service = TriblerService.createService(baseUrl, authToken);
+
         handleIntent(getIntent());
     }
 
@@ -140,6 +151,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         _navToggle = null;
         _connectivityManager = null;
         _eventHandler = null;
+        _service = null;
     }
 
     /**
@@ -182,10 +194,62 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                 }
                 return;
 
+            case NfcAdapter.ACTION_NDEF_DISCOVERED:
+                Parcelable[] rawMsgs = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
+                if (rawMsgs != null && rawMsgs.length > 0) {
+                    for (Parcelable rawMsg : rawMsgs) {
+                        // Decode message
+                        NdefRecord[] records = ((NdefMessage) rawMsg).getRecords();
+                        String dispersyCid = new String(records[0].getPayload());
+
+                        askUserToSubscribe(dispersyCid);
+                    }
+                }
+                return;
+
             case Intent.ACTION_SHUTDOWN:
                 shutdown();
                 return;
         }
+    }
+
+    private void askUserToSubscribe(String dispersyCid) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(getText(R.string.dialog_received_channel));
+        builder.setPositiveButton(getText(R.string.action_subscribe), (dialog, which) -> {
+            subscribeToChannel(dispersyCid);
+        });
+        builder.setNegativeButton(getText(R.string.action_cancel), (dialog, which) -> {
+            // Do nothing
+        });
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private void subscribeToChannel(String dispersyCid) {
+        final String name = getString(R.string.info_received_channel);
+
+        rxSubs.add(_service.subscribe(dispersyCid)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Observer<SubscribedAck>() {
+
+                    public void onNext(SubscribedAck response) {
+                        Toast.makeText(MainActivity.this, String.format(getString(R.string.info_subscribe_success), name), Toast.LENGTH_SHORT).show();
+                    }
+
+                    public void onCompleted() {
+                    }
+
+                    public void onError(Throwable e) {
+                        if (e instanceof HttpException && ((HttpException) e).code() == 409) {
+                            Toast.makeText(MainActivity.this, String.format(getString(R.string.info_subscribe_already), name), Toast.LENGTH_SHORT).show();
+                        } else {
+                            Log.e("askUserToSubscribe", "subscribe", e);
+                            Toast.makeText(MainActivity.this, String.format(getString(R.string.info_subscribe_failure), name), Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }));
     }
 
     /**
@@ -430,6 +494,14 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         }
     }
 
+    public void btnMyChannelBeamClicked(MenuItem item) {
+        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_main);
+        if (fragment instanceof MyChannelFragment) {
+            MyChannelFragment mychannel = (MyChannelFragment) fragment;
+            mychannel.askUserToBeamChannelId();
+        }
+    }
+
     public void btnMyChannelEditClicked(MenuItem item) {
         Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.fragment_main);
         if (fragment instanceof MyChannelFragment) {
@@ -448,11 +520,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
         EventStream.closeEventStream();
 
-        String baseUrl = getString(R.string.service_url) + ":" + getString(R.string.service_port_number);
-        String authToken = getString(R.string.service_auth_token);
-        IRestApi service = TriblerService.createService(baseUrl, authToken);
-
-        rxSubs.add(service.shutdown()
+        rxSubs.add(_service.shutdown()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Observer<ShutdownAck>() {

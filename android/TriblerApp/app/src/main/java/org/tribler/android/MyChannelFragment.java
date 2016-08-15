@@ -5,6 +5,7 @@ import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.nfc.NdefRecord;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.v7.app.ActionBar;
@@ -109,6 +110,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         // Is my channel created?
         boolean created = _dispersyCid != null;
         menu.findItem(R.id.btn_add_my_channel).setVisible(created);
+        menu.findItem(R.id.btn_beam_my_channel).setVisible(created);
         menu.findItem(R.id.btn_edit_my_channel).setVisible(created);
         menu.findItem(R.id.btn_filter_my_channel).setVisible(created);
 
@@ -230,7 +232,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                 .subscribe(new Observer<TorrentCreatedResponse>() {
 
                     public void onNext(TorrentCreatedResponse response) {
-                        Toast.makeText(context, "Torrent " + context.getText(R.string.info_created_success), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(context, String.format(context.getString(R.string.info_created_success), "Torrent"), Toast.LENGTH_SHORT).show();
                         // Add to my channel immediately
                         addTorrent(response.getTorrent());
                     }
@@ -246,7 +248,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                             if (delete) {
                                 AssetExtract.recursiveDelete(new File(file.getParent()));
                             }
-                            Toast.makeText(context, "Torrent " + context.getText(R.string.info_created_failure), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(context, String.format(context.getString(R.string.info_created_failure), "Torrent"), Toast.LENGTH_SHORT).show();
                             // Update view
                             reload();
                         } else {
@@ -276,7 +278,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                 .subscribe(new Observer<AddedAck>() {
 
                     public void onNext(AddedAck response) {
-                        Toast.makeText(context, "Torrent " + context.getText(R.string.info_added_success), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(context, String.format(context.getString(R.string.info_added_success), "Torrent"), Toast.LENGTH_SHORT).show();
                     }
 
                     public void onCompleted() {
@@ -286,7 +288,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
                     public void onError(Throwable e) {
                         if (e instanceof HttpException && ((HttpException) e).code() == 500) {
-                            Toast.makeText(context, "Torrent " + context.getText(R.string.info_added_failure), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(context, String.format(context.getString(R.string.info_added_failure), "Torrent"), Toast.LENGTH_SHORT).show();
                         } else {
                             Log.e("addTorrent", "base64", e);
                             MyUtils.onError(e, context);
@@ -314,7 +316,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                 .subscribe(new Observer<AddedUrlAck>() {
 
                     public void onNext(AddedUrlAck response) {
-                        Toast.makeText(context, "Torrent " + context.getText(R.string.info_added_success), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(context, String.format(context.getString(R.string.info_added_success), "Torrent"), Toast.LENGTH_SHORT).show();
                     }
 
                     public void onCompleted() {
@@ -324,7 +326,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
                     public void onError(Throwable e) {
                         if (e instanceof HttpException && ((HttpException) e).code() == 500) {
-                            Toast.makeText(context, "Torrent " + context.getText(R.string.info_added_already), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(context, String.format(context.getString(R.string.info_added_already), "Torrent"), Toast.LENGTH_SHORT).show();
                         } else {
                             Log.e("addTorrent", "url", e);
                             MyUtils.onError(e, context);
@@ -347,7 +349,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
                 .subscribe(new Observer<RemovedAck>() {
 
                     public void onNext(RemovedAck response) {
-                        Toast.makeText(context, name + ' ' + context.getText(R.string.info_removed_success), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(context, String.format(context.getString(R.string.info_removed_success), name), Toast.LENGTH_SHORT).show();
                     }
 
                     public void onCompleted() {
@@ -355,7 +357,7 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
 
                     public void onError(Throwable e) {
                         if (e instanceof HttpException && ((HttpException) e).code() == 404) {
-                            Toast.makeText(context, name + ' ' + context.getText(R.string.info_removed_already), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(context, String.format(context.getString(R.string.info_removed_already), name), Toast.LENGTH_SHORT).show();
                         } else {
                             Log.e("onSwipedLeft", "deleteTorrent", e);
                             MyUtils.onError(e, context);
@@ -423,6 +425,12 @@ public class MyChannelFragment extends DefaultInteractionListFragment {
         });
         AlertDialog dialog = builder.create();
         dialog.show();
+    }
+
+    void askUserToBeamChannelId() {
+        NdefRecord record = NdefRecord.createMime("text/plain", _dispersyCid.getBytes());
+        Intent beamIntent = MyUtils.beamIntent(record);
+        startActivity(beamIntent);
     }
 
     private void askUserToSelectFile() {

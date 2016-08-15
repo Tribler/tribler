@@ -10,6 +10,8 @@ import android.graphics.drawable.shapes.OvalShape;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.nfc.NdefMessage;
+import android.nfc.NdefRecord;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.webkit.MimeTypeMap;
@@ -107,6 +109,14 @@ public class MyUtils {
         intent.setClassName(getPackageName(), BeamActivity.class.getName());
         intent.putExtra(Intent.EXTRA_STREAM, uri);
         intent.setType(getMimeType(uri));
+        return intent;
+    }
+
+    public static Intent beamIntent(NdefRecord record) {
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setClassName(getPackageName(), BeamActivity.class.getName());
+        intent.putExtra(Intent.EXTRA_STREAM, new NdefMessage(record));
+        intent.setType(record.toMimeType());
         return intent;
     }
 

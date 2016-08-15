@@ -76,7 +76,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
 
     void subscribe(final String dispersyCid, final boolean subscribed, final String name) {
         if (subscribed) {
-            Toast.makeText(context, name + ' ' + context.getText(R.string.info_subscribe_already), Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, String.format(context.getString(R.string.info_subscribe_already), name), Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -86,7 +86,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                 .subscribe(new Observer<SubscribedAck>() {
 
                     public void onNext(SubscribedAck response) {
-                        Toast.makeText(context, name + ' ' + context.getText(R.string.info_subscribe_success), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(context, String.format(context.getString(R.string.info_subscribe_success), name), Toast.LENGTH_SHORT).show();
                     }
 
                     public void onCompleted() {
@@ -94,7 +94,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
 
                     public void onError(Throwable e) {
                         if (e instanceof HttpException && ((HttpException) e).code() == 409) {
-                            Toast.makeText(context, name + ' ' + context.getText(R.string.info_subscribe_already), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(context, String.format(context.getString(R.string.info_subscribe_already), name), Toast.LENGTH_SHORT).show();
                         } else {
                             Log.e("onSwipedRight", "subscribe", e);
                             MyUtils.onError(e, context);
@@ -120,7 +120,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
 
     void unsubscribe(final String dispersyCid, final boolean subscribed, final String name) {
         if (!subscribed) {
-            Toast.makeText(context, name + ' ' + context.getText(R.string.info_unsubscribe_already), Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, String.format(context.getString(R.string.info_unsubscribe_already), name), Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -130,7 +130,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
                 .subscribe(new Observer<UnsubscribedAck>() {
 
                     public void onNext(UnsubscribedAck response) {
-                        Toast.makeText(context, name + ' ' + context.getText(R.string.info_unsubscribe_success), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(context, String.format(context.getString(R.string.info_unsubscribe_success), name), Toast.LENGTH_SHORT).show();
                     }
 
                     public void onCompleted() {
@@ -138,7 +138,7 @@ public class DefaultInteractionListFragment extends ListFragment implements List
 
                     public void onError(Throwable e) {
                         if (e instanceof HttpException && ((HttpException) e).code() == 404) {
-                            Toast.makeText(context, name + ' ' + context.getText(R.string.info_unsubscribe_already), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(context, String.format(context.getString(R.string.info_unsubscribe_already), name), Toast.LENGTH_SHORT).show();
                         } else {
                             Log.e("onSwipedLeft", "unsubscribe", e);
                             MyUtils.onError(e, context);

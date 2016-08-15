@@ -4,11 +4,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.nfc.NdefMessage;
 import android.nfc.NfcAdapter;
 import android.nfc.NfcManager;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.provider.Settings;
-import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.text.TextUtils;
 import android.view.Menu;
@@ -71,10 +72,15 @@ public class BeamActivity extends BaseActivity {
         super.onCreateOptionsMenu(menu);
         // Add items to the action bar (if it is present)
         getMenuInflater().inflate(R.menu.activity_beam_menu, menu);
+
+        // Enable btn_bluetooth only for uri
+        Parcelable item = getIntent().getParcelableExtra(Intent.EXTRA_STREAM);
+        menu.findItem(R.id.btn_bluetooth).setVisible(item instanceof Uri);
+
         return true;
     }
 
-    public void btnBluetoothClicked(@Nullable MenuItem item) {
+    public void btnBluetoothClicked(MenuItem item) {
         // Fetch uri of file to send
         Uri uri = getIntent().getParcelableExtra(Intent.EXTRA_STREAM);
         // Send via other means
@@ -103,15 +109,15 @@ public class BeamActivity extends BaseActivity {
         switch (action) {
 
             case Intent.ACTION_SEND:
-                // Fetch uri of file to send
-                Uri uri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
-
-                if (_nfcAdapter != null) {
-                    doMyBeam(uri);
-                } else {
-                    // Send intent to use method preferred by user
-                    Intent sendIntent = MyUtils.sendIntent(uri);
-                    startActivity(sendIntent);
+                Parcelable item = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                if (item instanceof Uri || item instanceof NdefMessage) {
+                    if (_nfcAdapter != null) {
+                        doMyBeam(item);
+                    } else if (item instanceof Uri) {
+                        // Send intent to use method preferred by user
+                        Intent sendIntent = MyUtils.sendIntent((Uri) item);
+                        startActivity(sendIntent);
+                    }
                 }
                 return;
 
@@ -134,7 +140,7 @@ public class BeamActivity extends BaseActivity {
         }
     }
 
-    private void doMyBeam(Uri uri) {
+    private void doMyBeam(Parcelable item) {
         // Check if NFC is enabled
         if (!_nfcAdapter.isEnabled()) {
             askUser(R.string.dialog_enable_nfc_beam, Settings.ACTION_NFC_SETTINGS);
@@ -145,7 +151,11 @@ public class BeamActivity extends BaseActivity {
         }
         // NFC and Android Beam are enabled
         else {
-            _nfcAdapter.setBeamPushUris(new Uri[]{uri}, this);
+            if (item instanceof Uri) {
+                _nfcAdapter.setBeamPushUris(new Uri[]{(Uri) item}, this);
+            } else if (item instanceof NdefMessage) {
+                _nfcAdapter.setNdefPushMessage((NdefMessage) item, this);
+            }
 
             // Show instructions
             imageView.setImageResource(R.drawable.beam);
