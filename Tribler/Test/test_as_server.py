@@ -88,6 +88,8 @@ class AbstractServer(BaseTestCase):
         defaults.sessdefaults['general']['state_dir'] = self.state_dir
         defaults.dldefaults["downloadconfig"]["saveas"] = self.dest_dir
 
+        self.checkReactor(phase="setUp")
+
         self.setUpCleanup()
         os.makedirs(self.session_base_dir)
         self.annotate_dict = {}
@@ -110,10 +112,10 @@ class AbstractServer(BaseTestCase):
         factory = Site(resource)
         self.file_server = reactor.listenTCP(port, factory)
 
-    def checkReactor(self, *_):
+    def checkReactor(self, phase="tearDown", *_):
         delayed_calls = reactor.getDelayedCalls()
         if delayed_calls:
-            self._logger.error("The reactor was dirty:")
+            self._logger.error("The reactor was dirty during %s:", phase)
             for dc in delayed_calls:
                 self._logger.error(">     %s" % dc)
                 dc.cancel()
@@ -126,14 +128,15 @@ class AbstractServer(BaseTestCase):
                 sel.signalProcess('KILL')
             selectable_strings.append(repr(sel))
 
-        self.assertFalse(delayed_calls, "The reactor was dirty when tearing down the test")
-        self.assertFalse(Session.has_instance(), 'A session instance is still present when tearing down the test')
-        self.assertFalse(selectable_strings, "The reactor had readers/writers left")
+        self.assertFalse(delayed_calls, "The reactor was dirty during %s" % phase)
+        self.assertFalse(Session.has_instance(), 'Found a leftover session instance during %s' % phase)
+        self.assertFalse(selectable_strings, "The reactor has leftover readers/writers during %s: %r" % (phase, selectable_strings))
 
         # Check whether we have closed all the sockets
         open_readers = reactor.getReaders()
         for reader in open_readers:
-            self.assertNotIsInstance(reader, BasePort, "The test left a listening port behind: %s" % reader)
+            self.assertNotIsInstance(reader, BasePort,
+                                     "Listening ports left on the reactor during %s: %s" % (phase, reader))
 
     @deferred(timeout=10)
     def tearDown(self, annotate=True):
