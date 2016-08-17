@@ -86,6 +86,7 @@ class TestDatabase(MultiChainTestCase):
         # Act & Assert
         assert not self.db.contains(self.block1)
 
+    @blocking_call_on_reactor_thread
     def test_get_linked_forward(self):
         # Arrange
         self.block2 = TestBlock.create(self.db, self.block2.public_key, link=self.block1)
@@ -96,6 +97,7 @@ class TestDatabase(MultiChainTestCase):
         # Assert
         self.assertEqual_block(self.block2, result)
 
+    @blocking_call_on_reactor_thread
     def test_get_linked_backwards(self):
         # Arrange
         self.block2 = TestBlock.create(self.db, self.block2.public_key, link=self.block1)
@@ -106,7 +108,8 @@ class TestDatabase(MultiChainTestCase):
         # Assert
         self.assertEqual_block(self.block1, result)
 
-    def test_get_blocks_since(self):
+    @blocking_call_on_reactor_thread
+    def test_get_block_after(self):
         # Arrange
         self.block2.public_key = self.block1.public_key
         self.block2.sequence_number = self.block1.sequence_number + 1
@@ -117,14 +120,12 @@ class TestDatabase(MultiChainTestCase):
         self.db.add_block(self.block2)
         self.db.add_block(block3)
         # Act
-        result = self.db.get_blocks_since(self.block2.public_key, self.block2.sequence_number)
+        result = self.db.get_block_after(self.block2)
         # Assert
-        self.assertEqual(len(result), 2)
-        self.assertEqual_block(self.block2, result[0])
-        self.assertEqual_block(block3, result[1])
+        self.assertEqual_block(block3, result)
 
     @blocking_call_on_reactor_thread
-    def test_get_blocks_until(self):
+    def test_get_block_before(self):
         # Arrange
         self.block2.public_key = self.block1.public_key
         self.block2.sequence_number = self.block1.sequence_number + 1
@@ -135,11 +136,9 @@ class TestDatabase(MultiChainTestCase):
         self.db.add_block(self.block2)
         self.db.add_block(block3)
         # Act
-        result = self.db.get_blocks_until(self.block2.public_key, self.block2.sequence_number)
+        result = self.db.get_block_before(self.block2)
         # Assert
-        self.assertEqual(len(result), 2)
-        self.assertEqual_block(self.block1, result[0])
-        self.assertEqual_block(self.block2, result[1])
+        self.assertEqual_block(self.block1, result)
 
     @blocking_call_on_reactor_thread
     def test_save_large_upload_download_block(self):

@@ -115,6 +115,8 @@ class MultiChainCommunity(Community):
         :param bytes_down: The bytes you have downloaded from the peer in this interaction
         :param linked: The block that the requester is asking us to sign
         """
+        # NOTE to the future: This method reads from the database, increments and then writes back. If in some future
+        # this method is allowed to execute in parallel, be sure to lock from before .create upto after .add_block
         assert bytes_up is None and bytes_down is None and linked is not None or \
             bytes_up is not None and bytes_down is not None and linked is None, \
             "Either provide a linked block or byte counts, not both"
@@ -124,7 +126,6 @@ class MultiChainCommunity(Community):
             "Cannot counter sign block that is not a request"
 
         if candidate.get_member():
-            # TODO: proper form requires a local lock here (up to db add) to ensure atomic db operation
             if linked is None:
                 block = MultiChainBlock.create(self.persistence, self.my_member.public_key)
                 block.up = bytes_up
@@ -203,24 +204,24 @@ class MultiChainCommunity(Community):
          statistics["self_peers_helped_you"]) = self.persistence.get_num_unique_interactors(self.my_member.public_key)
         if latest_block:
             statistics["self_total_blocks"] = latest_block.sequence_number
-            statistics["self_total_up_mb"] = latest_block.total_up
-            statistics["self_total_down_mb"] = latest_block.total_down
+            statistics["self_total_up"] = latest_block.total_up
+            statistics["self_total_down"] = latest_block.total_down
             statistics["latest_block_insert_time"] = str(latest_block.insert_time)
             statistics["latest_block_id"] = latest_block.hash.encode("hex")
             statistics["latest_block_link_public_key"] = latest_block.link_public_key.encode("hex")
             statistics["latest_block_link_sequence_number"] = latest_block.link_sequence_number
-            statistics["latest_block_up_mb"] = str(latest_block.up)
-            statistics["latest_block_down_mb"] = str(latest_block.down)
+            statistics["latest_block_up"] = latest_block.up
+            statistics["latest_block_down"] = latest_block.down
         else:
             statistics["self_total_blocks"] = 0
-            statistics["self_total_up_mb"] = 0
-            statistics["self_total_down_mb"] = 0
+            statistics["self_total_up"] = 0
+            statistics["self_total_down"] = 0
             statistics["latest_block_insert_time"] = ""
             statistics["latest_block_id"] = ""
             statistics["latest_block_link_public_key"] = ""
             statistics["latest_block_link_sequence_number"] = 0
-            statistics["latest_block_up_mb"] = ""
-            statistics["latest_block_down_mb"] = ""
+            statistics["latest_block_up"] = 0
+            statistics["latest_block_down"] = 0
         return statistics
 
     def unload_community(self):

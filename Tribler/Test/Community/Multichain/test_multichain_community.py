@@ -271,9 +271,9 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         self.assertBlocksInDatabase(node, 1)
 
         # Assert
-        with self.assertRaises(ValueError):
+        with self.assertRaises(StopIteration):
             # No signature responses should have been sent
-            _, _ = node.receive_message(names=[HALF_BLOCK])
+            node.receive_message(names=[HALF_BLOCK]).next()
 
     def test_block_values(self):
         """
@@ -422,9 +422,9 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         _, block_request = node.receive_message(names=[CRAWL]).next()
         node.give_message(block_request, crawler)
 
-        with self.assertRaises(ValueError):
-            "No signature responses should have been sent"
-            _, block_responses = crawler.receive_message(names=[HALF_BLOCK])
+        with self.assertRaises(StopIteration):
+            # No signature responses should have been sent
+            crawler.receive_message(names=[HALF_BLOCK]).next()
 
     def test_crawl_block_known(self):
         """
@@ -500,7 +500,6 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         node.give_message(block_request, crawler)
         for _, block_response in crawler.receive_message(names=[HALF_BLOCK]):
             crawler.give_message(block_response, node)
-            print "Got another block, %s" % block_response
 
         # Assert
         self.assertBlocksInDatabase(node, 4)
@@ -574,11 +573,11 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
     @blocking_call_on_reactor_thread
     def assertBlocksAreEqual(self, node, other):
         map(self.assertEqual_block,
-            node.community.persistence.get_blocks_since(node.community.my_member.public_key, 0),
-            other.community.persistence.get_blocks_since(node.community.my_member.public_key, 0))
+            node.community.persistence.crawl(node.community.my_member.public_key, 0),
+            other.community.persistence.crawl(node.community.my_member.public_key, 0))
         map(self.assertEqual_block,
-            node.community.persistence.get_blocks_since(other.community.my_member.public_key, 0),
-            other.community.persistence.get_blocks_since(other.community.my_member.public_key, 0))
+            node.community.persistence.crawl(other.community.my_member.public_key, 0),
+            other.community.persistence.crawl(other.community.my_member.public_key, 0))
 
     def create_nodes(self, *args, **kwargs):
         return super(TestMultiChainCommunity, self).create_nodes(*args, community_class=MultiChainCommunity,

@@ -69,20 +69,11 @@ class MultiChainDB(Database):
         Persist a block
         :param block: The data that will be saved.
         """
-        # TODO: make sure it is not outright invalid...
         self.execute(
             u"INSERT INTO multi_chain (up, down, total_up, total_down, public_key, sequence_number, link_public_key,"
             u"link_sequence_number, previous_hash, signature, block_hash) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
             block.pack_db_insert())
         self.commit()
-
-    def contains(self, block):
-        """
-        Check if a block is existent in the persistence layer.
-        :param block: the block to check
-        :return: True if the block exists, else false.
-        """
-        return self.get(block.public_key, block.sequence_number) is not None
 
     def _get(self, query, params):
         db_result = self.execute(_header + query, params).fetchone()
@@ -101,6 +92,14 @@ class MultiChainDB(Database):
         """
         return self._get(u"WHERE public_key = ? AND sequence_number = ?", (buffer(public_key), sequence_number))
 
+    def contains(self, block):
+        """
+        Check if a block is existent in the persistence layer.
+        :param block: the block to check
+        :return: True if the block exists, else false.
+        """
+        return self.get(block.public_key, block.sequence_number) is not None
+
     def get_latest(self, public_key):
         """
         Get the latest block for a given public key
@@ -110,31 +109,23 @@ class MultiChainDB(Database):
         return self._get(u"WHERE public_key = ? AND sequence_number = (SELECT MAX(sequence_number) FROM multi_chain "
                          u"WHERE public_key = ?)", (buffer(public_key), buffer(public_key)))
 
-    def get_blocks_since(self, public_key, sequence_number, limit=25):
+    def get_block_after(self, block):
         """
-        Returns database blocks with sequence number higher than or equal to sequence_number, at most 100 results
-        :param public_key: The public key corresponding to the member id
-        :param sequence_number: The linear block number
-        :param limit: Optional limit on the number of blocks to fetch. Defaults to 25
-        :return A list of DB Blocks that match the criteria
+        Returns database block with the lowest sequence number higher than the block's sequence_number
+        :param block: The block who's successor we want to find
+        :return A block
         """
-        assert limit < 100, "Don't fetch too much"
-        return self._getall(u"WHERE sequence_number >= ? AND public_key = ? ORDER BY sequence_number ASC LIMIT ?",
-                            (sequence_number, buffer(public_key), limit))
+        return self._get(u"WHERE sequence_number > ? AND public_key = ? ORDER BY sequence_number ASC",
+                         (block.sequence_number, buffer(block.public_key)))
 
-    def get_blocks_until(self, public_key, sequence_number, limit=25):
+    def get_block_before(self, block):
         """
-        Returns database blocks with sequence number lower than or equal to sequence_number, at most 100 results
-        :param public_key: The public key corresponding to the member id
-        :param sequence_number: The linear block number
-        :param limit: Optional limit on the number of blocks to fetch. Defaults to 25
-        :return A list of DB Blocks that match the criteria
+        Returns database block with the highest sequence number lower than the block's sequence_number
+        :param block: The block who's predecessor we want to find
+        :return A block
         """
-        assert limit < 100, "Don't fetch too much"
-        ret = self._getall(u"WHERE sequence_number <= ? AND public_key = ? ORDER BY sequence_number DESC LIMIT ?",
-                           (sequence_number, buffer(public_key), limit))
-        ret.reverse()
-        return ret
+        return self._get(u"WHERE sequence_number < ? AND public_key = ? ORDER BY sequence_number DESC",
+                         (block.sequence_number, buffer(block.public_key)))
 
     def get_num_unique_interactors(self, public_key):
         """

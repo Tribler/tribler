@@ -337,6 +337,21 @@ class TestBlocks(MultiChainTestCase):
         self.assertEqual(result[0], INVALID)
         self.assertIn('Previous hash is not equal to the hash id of the previous block', result[1])
 
+    def test_validate_existing_fraud(self):
+        # Arrange
+        db = self.MockDatabase()
+        (block1, block2, _, _) = self.setup_validate()
+        db.add_block(block1)
+        db.add_block(block2)
+        # Act
+        block3 = MultiChainBlock(block2.pack_db_insert())
+        block3.previous_hash = sha256(str(random.randint(0, 100000))).digest()
+        block3.sign(block2.key)
+        result = block3.validate(db)
+        # Assert
+        self.assertEqual(result[0], INVALID)
+        self.assertIn("Double sign fraud", result[1])
+
     def test_validate_seq_not_genesis(self):
         # Arrange
         db = self.MockDatabase()
@@ -468,6 +483,16 @@ class TestBlocks(MultiChainTestCase):
         self.assertIn("Total up field is negative", result[1])
         self.assertIn("Total down field is negative", result[1])
 
+    def test_validate_not_sane_zeroes(self):
+        db = self.MockDatabase()
+        block1 = MultiChainBlock()
+        # Act
+        block1.up = 0
+        block1.down = 0
+        result = block1.validate(db)
+        self.assertEqual(result[0], INVALID)
+        self.assertIn("Up and down are zero", result[1])
+
     def test_validate_not_sane_sequence_number(self):
         db = self.MockDatabase()
         (block1, _, _, _) = self.setup_validate()
@@ -557,6 +582,28 @@ class TestBlocks(MultiChainTestCase):
         self.assertEqual(result[0], INVALID)
         self.assertIn("Down/up mismatch on linked block", result[1])
 
+    def test_validate_linked_mismatch(self):
+        db = self.MockDatabase()
+        (block1, block2, _, _) = self.setup_validate()
+        # Act
+        # db.add_block(MultiChainBlock.create(db, block1.link_public_key, block1))
+        db.add_block(block1)
+        block3 = MultiChainBlock.create(db, block2.link_public_key, block1)
+        result = block3.validate(db)
+        self.assertEqual(result[0], INVALID)
+        self.assertIn("Public key mismatch on linked block", result[1])
+
+    def test_validate_linked_double_pay_fraud(self):
+        db = self.MockDatabase()
+        (block1, _, _, _) = self.setup_validate()
+        # Act
+        db.add_block(block1)
+        db.add_block(MultiChainBlock.create(db, block1.link_public_key, block1))
+        block2 = MultiChainBlock.create(db, block1.link_public_key, block1)
+        result = block2.validate(db)
+        self.assertEqual(result[0], INVALID)
+        self.assertIn("Double countersign fraud", result[1])
+
     def setup_validate(self):
         # Assert
         block1 = TestBlock()
@@ -597,12 +644,14 @@ class TestBlocks(MultiChainTestCase):
         def get_latest(self, pk):
             return self.data[pk][-1] if self.data.get(pk) else None
 
-        def get_blocks_since(self, pk, seq, limit=100):
-            if self.data.get(pk) is None:
-                return []
-            return [i for i in self.data[pk] if i.sequence_number >= seq][:limit]
+        def get_block_after(self, blk):
+            if self.data.get(blk.public_key) is None:
+                return None
+            item = [i for i in self.data[blk.public_key] if i.sequence_number > blk.sequence_number]
+            return item[0] if item else None
 
-        def get_blocks_until(self, pk, seq, limit=100):
-            if self.data.get(pk) is None:
-                return []
-            return [i for i in self.data[pk] if i.sequence_number <= seq][::-1][:limit]   # TODO: possible in one slice?
+        def get_block_before(self, blk):
+            if self.data.get(blk.public_key) is None:
+                return None
+            item = [i for i in self.data[blk.public_key] if i.sequence_number < blk.sequence_number]
+            return item[-1] if item else None

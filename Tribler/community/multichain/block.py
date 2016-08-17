@@ -3,7 +3,6 @@ from struct import pack_into, unpack_from, calcsize
 
 from Tribler.dispersy.crypto import ECCrypto
 
-# TODO: derive these at run time?
 HASH_LENGTH = 32
 SIG_LENGTH = 64
 PK_LENGTH = 74
@@ -96,12 +95,11 @@ class MultiChainBlock(object):
             errors.append(reason)
 
         # Step 1: get all related blocks from the database, assume that the database speaks the truth and that all
-        # retrieved blocks are not invalid themselves. Thus the database should reject adding blocks that have "invalid"
-        # as validation result.
+        # retrieved blocks are not invalid themselves.
         blk = database.get(self.public_key, self.sequence_number)
         link = database.get_linked(self)
-        prev_blk = (database.get_blocks_until(self.public_key, self.sequence_number - 1, limit=1) or [None])[0]
-        next_blk = (database.get_blocks_since(self.public_key, self.sequence_number + 1, limit=1) or [None])[0]
+        prev_blk = database.get_block_before(self)
+        next_blk = database.get_block_after(self)
 
         # Step 2: determine the maximum validation level
         if not prev_blk and not next_blk:
@@ -141,6 +139,8 @@ class MultiChainBlock(object):
             err("Up field is negative")
         if self.down < 0:
             err("Down field is negative")
+        if self.down == 0 and self.up == 0:
+            err("Up and down are zero")
         if self.total_up < 0:
             err("Total up field is negative")
         if self.total_down < 0:
@@ -173,10 +173,10 @@ class MultiChainBlock(object):
             if self.total_down != self.down:
                 err("Genesis block invalid total_down and/or down")
 
-        # Step 3: does the database already know about this block? If so, is it equal?
+        # Step 4: does the database already know about this block? If so, is it equal?
         if blk:
-            # TODO: if the block is valid upto this point (specifically the signature is valid), and an error is
-            # detected here, it is in fact fraud, since a PK/seq pair is double signed.
+            assert blk.public_key == self.public_key and blk.sequence_number == self.sequence_number, \
+                "Database returned unexpected block"
             if blk.up != self.up:
                 err("Up does not match known block")
             if blk.down != self.down:
@@ -193,16 +193,33 @@ class MultiChainBlock(object):
                 err("Previous hash does not match known block")
             if blk.signature != self.signature:
                 err("Signature does not match known block")
+            # if the known block is not equal, and the signature is valid, we have a double signed PK/seq. Fraud!
+            if self.hash != blk.hash and "Invalid signature" not in errors and "Public key is not valid" not in errors:
+                err("Double sign fraud")
 
-        # Step 4: does the database have the linked block? If so do the values match up?
+        # Step 5: does the database have the linked block? If so do the values match up?
         if link:
+            assert link.public_key == self.link_public_key and \
+                   (link.link_sequence_number == self.sequence_number or
+                    link.sequence_number == self.link_sequence_number), \
+                   "Database returned unexpected block"
+            if self.public_key != link.link_public_key:
+                err("Public key mismatch on linked block")
+            elif self.link_sequence_number != UNKNOWN_SEQ:
+                # self counter signs another block (link). If link has a linked block that is not equal to self,
+                # then self is fraudulent, since it tries to countersign a block that is already countersigned
+                linklinked = database.get_linked(link)
+                if linklinked is not None and linklinked.hash != self.hash:
+                    err("Double countersign fraud")
             if self.up != link.down:
                 err("Up/down mismatch on linked block")
             if self.down != link.up:
                 err("Down/up mismatch on linked block")
 
-        # Step 5: does the database have adjacent blocks?
+        # Step 6: does the database have adjacent blocks?
         if prev_blk:
+            assert prev_blk.public_key == self.public_key and prev_blk.sequence_number < self.sequence_number,\
+                "Database returned unexpected block"
             if prev_blk.total_up + self.up > self.total_up:
                 err("Total up is lower than expected compared to the preceding block")
             if prev_blk.total_down + self.down > self.total_down:
@@ -211,18 +228,14 @@ class MultiChainBlock(object):
                 err("Previous hash is not equal to the hash id of the previous block")
 
         if next_blk:
+            assert next_blk.public_key == self.public_key and next_blk.sequence_number > self.sequence_number,\
+                "Database returned unexpected block"
             if self.total_up + next_blk.up > next_blk.total_up:
                 err("Total up is higher than expected compared to the next block")
             if self.total_down + next_blk.down > next_blk.total_down:
                 err("Total down is higher than expected compared to the next block")
             if next_blk.sequence_number == self.sequence_number + 1 and next_blk.previous_hash != self.hash:
                 err("Next hash is not equal to the hash id of the block")
-
-        # TODO: Detect fraud? But should it go here?
-        # Fraud detection might be easier if you inspect the database for all public key's in one go. (Or rather it
-        # might lead to a lot of double work if you do the fraud detection for each PK individually)
-        # Also if this method returns "invalid" for fraud cases, then those blocks cannot be kept in the database for
-        # future reference or as fraud proofs.
 
         return result[0], errors
 
