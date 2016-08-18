@@ -156,7 +156,7 @@ class AbstractServer(BaseTestCase):
         if self.file_server:
             return maybeDeferred(self.file_server.stopListening).addCallback(self.checkReactor)
         else:
-            return succeed(self.checkReactor)
+            return self.checkReactor("tearDown")
 
     def tearDownCleanup(self):
         self.setUpCleanup()
