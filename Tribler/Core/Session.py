@@ -9,6 +9,8 @@ from binascii import hexlify
 import time
 
 from twisted.internet import threads
+from twisted.internet.defer import inlineCallbacks
+from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.Utilities import torrent_utils
 from Tribler.Core import NoDispersyRLock
@@ -477,21 +479,23 @@ class Session(SessionConfigInterface):
         @param checkpoint Whether to checkpoint the Session state on shutdown.
         @param gracetime Time to allow for graceful shutdown + signoff (seconds).
         """
-        # Called by any thread
-        deferred = self.lm.early_shutdown()
+        # Has to be called from the reactor thread
+        assert isInIOThread()
+
+        @inlineCallbacks
         def on_early_shutdown_complete(_):
             """
             Callback that gets called when the early shutdown has been compelted.
             Continues the shutdown procedure that is dependant on the early shutdown.
             :param _: ignored parameter of the Deferred
             """
-            self.checkpoint_shutdown(stop=True, checkpoint=checkpoint,
+            yield self.checkpoint_shutdown(stop=True, checkpoint=checkpoint,
                                  gracetime=gracetime, hacksessconfcheckpoint=hacksessconfcheckpoint)
             if self.sqlite_db:
                 self.sqlite_db.close()
             self.sqlite_db = None
 
-        return deferred.addCallback(on_early_shutdown_complete)
+        return self.lm.early_shutdown().addCallback(on_early_shutdown_complete)
 
     def has_shutdown(self):
         """ Whether the Session has completely shutdown, i.e., its internal
@@ -597,7 +601,7 @@ class Session(SessionConfigInterface):
             # Checkpoint all Downloads and stop NetworkThread
             if stop:
                 self._logger.debug("Session: checkpoint_shutdown")
-            self.lm.checkpoint(stop=stop, checkpoint=checkpoint, gracetime=gracetime)
+            return self.lm.checkpoint(stop=stop, checkpoint=checkpoint, gracetime=gracetime)
 
     def save_pstate_sessconfig(self):
         """ Save the runtime SessionConfig to disk """
