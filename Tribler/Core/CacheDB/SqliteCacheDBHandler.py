@@ -1503,6 +1503,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
     def hasTorrent(self, channel_id, infohash):
         return True if self.get_channel_torrent_id(channel_id, infohash) else False
 
+    # TODO(Laurens) Make async
     def hasTorrents(self, channel_id, infohashes):
         returnAr = []
         torrent_id_results = self.torrent_db.getTorrentIDS(infohashes)
@@ -1774,6 +1775,7 @@ ORDER BY CMD.time_stamp DESC LIMIT ?;
         sql = "select count(DISTINCT id) from Channels LIMIT 1"
         return self._db.fetchone(sql)
 
+    # TODO(laurens) make asynchronous
     def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10,
                                    NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10,
                                    NUM_OTHERS_DOWNLOADED=5):

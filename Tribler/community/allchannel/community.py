@@ -1,5 +1,8 @@
 from random import sample
 from time import time
+from twisted.internet.threads import deferToThread
+
+from twisted.internet.defer import inlineCallbacks, returnValue, maybeDeferred
 
 from twisted.internet.task import LoopingCall
 from twisted.python.threadable import isInIOThread
@@ -162,6 +165,7 @@ class AllChannelCommunity(Community):
     def dispersy_sync_response_limit(self):
         return 25 * 1024
 
+    @inlineCallbacks
     def create_channelcast(self):
         assert isInIOThread()
         now = time()
@@ -199,11 +203,11 @@ class AllChannelCommunity(Community):
             # Modify type of message depending on if all peers have marked my channels as their favorite
             if didFavorite:
                 if not favoriteTorrents:
-                    favoriteTorrents = self._channelcast_db.getRecentAndRandomTorrents(0, 0, 25, 25, 5)
+                    favoriteTorrents = yield maybeDeferred(self._channelcast_db.getRecentAndRandomTorrents, 0, 0, 25, 25, 5)
                 torrents = favoriteTorrents
             else:
                 if not normalTorrents:
-                    normalTorrents = self._channelcast_db.getRecentAndRandomTorrents()
+                    normalTorrents = yield maybeDeferred(self._channelcast_db.getRecentAndRandomTorrents)
                 torrents = normalTorrents
 
             # torrents is a dictionary of channel_id (key) and infohashes (value)
@@ -244,11 +248,13 @@ class AllChannelCommunity(Community):
             # ensure that no commits occur
             raise IgnoreCommits()
 
+    @inlineCallbacks
     def on_channelcast(self, messages):
         for message in messages:
             toCollect = {}
             for cid, infohashes in message.payload.torrents.iteritems():
-                for infohash in self._selectTorrentsToCollect(cid, infohashes):
+                torrents_to_collect = yield self._selectTorrentsToCollect(cid, infohashes)
+                for infohash in torrents_to_collect:
                     toCollect.setdefault(cid, set()).add(infohash)
 
             nr_requests = sum([len(infohashes) for infohashes in toCollect.values()])
@@ -269,11 +275,13 @@ class AllChannelCommunity(Community):
         # no timeline check because PublicResolution policy is used
         return messages
 
+    @inlineCallbacks
     def on_channelcast_request(self, messages):
         for message in messages:
             requested_packets = []
             for cid, infohashes in message.payload.torrents.iteritems():
-                requested_packets.extend(self._get_packets_from_infohashes(cid, infohashes))
+                packets = yield self._get_packets_from_infohashes(cid, infohashes)
+                requested_packets.extend(packets)
 
             if requested_packets:
                 self._dispersy._send_packets([message.candidate], requested_packets,
@@ -345,9 +353,10 @@ class AllChannelCommunity(Community):
             # ensure that no commits occur
             raise IgnoreCommits()
 
+    @inlineCallbacks
     def on_channelsearch_response(self, messages):
         # request missing torrents
-        self.on_channelcast(messages)
+        yield self.on_channelcast(messages)
 
         for message in messages:
             # show results in gui
@@ -507,6 +516,8 @@ class AllChannelCommunity(Community):
 
         return self._channelcast_db.getChannelIdFromDispersyCID(buffer(cid))
 
+
+    @inlineCallbacks
     def _selectTorrentsToCollect(self, cid, infohashes):
         channel_id = self._get_channel_id(cid)
 
@@ -525,7 +536,7 @@ class AllChannelCommunity(Community):
         # only request updates if nrT < 100 or we have not received an update in the last half hour
         if nrTorrrents < 100 or latestUpdate < (time() - 1800):
             infohashes = list(infohashes)
-            haveTorrents = self._channelcast_db.hasTorrents(channel_id, infohashes)
+            haveTorrents = yield maybeDeferred(self._channelcast_db.hasTorrents, channel_id, infohashes)
             for i in range(len(infohashes)):
                 if not haveTorrents[i]:
                     collect.append(infohashes[i])
@@ -533,8 +544,9 @@ class AllChannelCommunity(Community):
         self._recentlyRequested.extend(collect)
         self._recentlyRequested = self._recentlyRequested[:100]
 
-        return collect
+        returnValue(collect)
 
+    @inlineCallbacks
     def _get_packets_from_infohashes(self, cid, infohashes):
         assert all(isinstance(infohash, str) for infohash in infohashes)
         assert all(len(infohash) == 20 for infohash in infohashes)
@@ -543,7 +555,7 @@ class AllChannelCommunity(Community):
 
         packets = []
         for infohash in infohashes:
-            dispersy_id = self._channelcast_db.getTorrentFromChannelId(
+            dispersy_id = yield self._channelcast_db.getTorrentFromChannelId(
                 channel_id, infohash, ['ChannelTorrents.dispersy_id'])
 
             if dispersy_id and dispersy_id > 0:
@@ -553,7 +565,7 @@ class AllChannelCommunity(Community):
                 except RuntimeError:
                     pass
 
-        return packets
+        returnValue(packets)
 
     def _get_packet_from_dispersy_id(self, dispersy_id, messagename):
         try:
@@ -589,6 +601,7 @@ class ChannelCastDBStub():
         if self.cachedTorrents:
             return len(self.cachedTorrents), self.latest_result
 
+    @inlineCallbacks
     def getRecentAndRandomTorrents(self, NUM_OWN_RECENT_TORRENTS=15, NUM_OWN_RANDOM_TORRENTS=10, NUM_OTHERS_RECENT_TORRENTS=15, NUM_OTHERS_RANDOM_TORRENTS=10, NUM_OTHERS_DOWNLOADED=5):
         torrent_dict = {}
 
@@ -596,25 +609,29 @@ class ChannelCastDBStub():
             torrent_dict.setdefault(self.channel_id, set()).add(payload.infohash)
 
         if len(self.recentTorrents) >= NUM_OWN_RECENT_TORRENTS:
-            for infohash in self.getRandomTorrents(self.channel_id, max(NUM_OWN_RANDOM_TORRENTS, NUM_OTHERS_RANDOM_TORRENTS)):
+            random_torrents = yield self.getRandomTorrents(self.channel_id, max(NUM_OWN_RANDOM_TORRENTS, NUM_OTHERS_RANDOM_TORRENTS))
+            for infohash in random_torrents:
                 torrent_dict.setdefault(self.channel_id, set()).add(infohash)
 
-        return torrent_dict
+        returnValue(torrent_dict)
 
+    @inlineCallbacks
     def getRandomTorrents(self, channel_id, limit=15):
-        torrents = self._cachedTorrents.keys()
+        cached_torrents = yield self._addMessageToCachedTorrents(None, None)
+        torrents = cached_torrents.keys()
         if len(torrents) > limit:
-            return sample(torrents, limit)
-        return torrents
+            returnValue(sample(torrents, limit))
+        returnValue(torrents)
 
     def newTorrent(self, message):
-        self._cachedTorrents[message.payload.infohash] = message
+        def on_inserted(self):
+            self.recentTorrents.append((message.distribution.global_time, message.payload))
+            self.recentTorrents.sort(reverse=True)
+            # self.recentTorrents[:50]
+            self.latest_result = time()
 
-        self.recentTorrents.append((message.distribution.global_time, message.payload))
-        self.recentTorrents.sort(reverse=True)
-        self.recentTorrents[:50]
-
-        self.latest_result = time()
+        deferred = self._addMessageToCachedTorrents(message.payload.infohash, message)
+        deferred.addCallback(on_inserted, self)
 
     def setChannelId(self, channel_id, mychannel):
         self.channel_id = channel_id
@@ -624,41 +641,60 @@ class ChannelCastDBStub():
         if self.mychannel:
             return self.channel_id
 
+    @inlineCallbacks
     def hasTorrents(self, channel_id, infohashes):
         returnAr = []
         for infohash in infohashes:
-            if infohash in self._cachedTorrents:
+            cached_torrents = yield self._addMessageToCachedTorrents(None, None)
+            if infohash in cached_torrents:
                 returnAr.append(True)
             else:
                 returnAr.append(False)
-        return returnAr
+        returnValue(returnAr)
 
+    @inlineCallbacks
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
-        if infohash in self._cachedTorrents:
-            return self._cachedTorrents[infohash].packet_id
+        cached_torrents = yield self._addMessageToCachedTorrents(None, None)
+        if infohash in cached_torrents:
+            returnValue(self._addMessageToCachedTorrents(None, None)[infohash])
 
     def on_dynamic_settings(self, channel_id):
         pass
 
-    @property
-    def _cachedTorrents(self):
+    @inlineCallbacks
+    def _addMessageToCachedTorrents(self, infohash, message):
+        """
+        Adds a infohash, message to the cachedTorrents dictionary.
+        If not dictionary exists yet, it will create one.
+        If infohash or message is None then only the current cachedTorrents
+        dictionary will be returned and nothing will be inserted.
+        :param infohash: The infohash of the message you want to store
+        :param message: The message that belongs to the infohash
+        :return: Returns the (updated) cachedTorrents dictionary after inserting, if any.
+        """
         if self.cachedTorrents is None:
             self.cachedTorrents = {}
-            self._cacheTorrents()
+            yield deferToThread(self._cacheTorrents)
 
-        return self.cachedTorrents
+        if infohash is not None and message is not None:
+            self.cachedTorrents[infohash] = message
 
+        returnValue(self.cachedTorrents)
+
+    @inlineCallbacks
     def _cacheTorrents(self):
         sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE meta_message.name = 'torrent'"
-        results = list(self._dispersy.database.execute(sql))
+        query_result = yield deferToThread(self._dispersy.database.execute, sql)
+        results = list(query_result)
+
         messages = self.convert_to_messages(results)
 
         for _, message in messages:
-            self._cachedTorrents[message.payload.infohash] = message
+            yield self._addMessageToCachedTorrents(message.payload.infohash, message)
             self.recentTorrents.append((message.distribution.global_time, message.payload))
 
         self.recentTorrents.sort(reverse=True)
-        self.recentTorrents[:50]
+        # self.recentTorrents[:50]
 
 
 class VoteCastDBStub():
