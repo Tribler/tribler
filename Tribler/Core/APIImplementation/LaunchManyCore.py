@@ -728,48 +728,48 @@ class TriblerLaunchMany(TaskManager):
             else:
                 self._logger.info("lmc: Dispersy failed to shutdown in %.2f seconds", diff)
 
-        if self.metadata_store:
+        if self.metadata_store is not None:
             yield self.metadata_store.close()
         self.metadata_store = None
 
-        if self.tftp_handler:
+        if self.tftp_handler is not None:
             yield self.tftp_handler.shutdown()
         self.tftp_handler = None
 
-        if self.channelcast_db:
+        if self.channelcast_db is not None:
             yield self.channelcast_db.close()
         self.channelcast_db = None
 
-        if self.votecast_db:
+        if self.votecast_db is not None:
             yield self.votecast_db.close()
         self.votecast_db = None
 
-        if self.mypref_db:
+        if self.mypref_db is not None:
             yield self.mypref_db.close()
         self.mypref_db = None
 
-        if self.torrent_db:
+        if self.torrent_db is not None:
             yield self.torrent_db.close()
         self.torrent_db = None
 
-        if self.peer_db:
+        if self.peer_db is not None:
             yield self.peer_db.close()
         self.peer_db = None
 
-        if self.mainline_dht:
+        if self.mainline_dht is not None:
             from Tribler.Core.DecentralizedTracking import mainlineDHT
             yield mainlineDHT.deinit(self.mainline_dht)
         self.mainline_dht = None
 
-        if self.torrent_store:
+        if self.torrent_store is not None:
             yield self.torrent_store.close()
         self.torrent_store = None
 
-        if self.api_manager:
+        if self.api_manager is not None:
             yield self.api_manager.stop()
         self.api_manager = None
 
-        if self.watch_folder:
+        if self.watch_folder is not None:
             yield self.watch_folder.stop()
         self.watch_folder = None
 
@@ -788,11 +788,11 @@ class TriblerLaunchMany(TaskManager):
         self.sessdoneflag.set()
 
         # Shutdown libtorrent session after checkpoints have been made
-        if self.ltmgr:
+        if self.ltmgr is not None:
             self.ltmgr.shutdown()
             self.ltmgr = None
 
-        if self.threadpool:
+        if self.threadpool is not None:
             self.threadpool.cancel_all_pending_tasks()
             self.threadpool = None
 
