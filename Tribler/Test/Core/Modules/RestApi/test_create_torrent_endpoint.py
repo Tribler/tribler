@@ -3,10 +3,13 @@ import base64
 import os
 import shutil
 
+from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Test.Core.Modules.RestApi.base_api_test import AbstractApiTest
 from Tribler.Test.test_as_server import TESTS_DATA_DIR
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
@@ -22,8 +25,10 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
         shutil.copyfile(os.path.join(TESTS_DATA_DIR, 'video.avi.torrent'),
                         os.path.join(self.files_path, 'video.avi.torrent'))
 
-    def tearDown(self):
-        super(TestMyChannelCreateTorrentEndpoint, self).tearDown()
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def tearDown(self, annotate=True):
+        yield super(TestMyChannelCreateTorrentEndpoint, self).tearDown(annotate=annotate)
         # Remove temporary test directory with test files
         if os.path.exists(self.files_path):
             torrent_file = os.path.join(self.files_path, 'TestMyChannelCreateTorrentEndpoint.torrent')

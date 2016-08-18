@@ -21,10 +21,12 @@ class TestSqlitePeerDBHandler(AbstractDB):
 
         self.assertFalse(self.pdb.hasPeer(FAKE_PERMID_X))
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def tearDown(self):
         self.pdb.close()
         self.pdb = None
-        super(TestSqlitePeerDBHandler, self).tearDown()
+        yield super(TestSqlitePeerDBHandler, self).tearDown()
 
     @blocking_call_on_reactor_thread
     def test_getList(self):

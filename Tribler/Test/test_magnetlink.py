@@ -5,7 +5,11 @@ from binascii import hexlify
 import socket
 import os
 import threading
+
+from twisted.internet.defer import inlineCallbacks
+
 import libtorrent as lt
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from libtorrent import bencode, bdecode
 
 from Tribler.Test.common import UBUNTU_1504_INFOHASH
@@ -273,9 +277,11 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
         self.config2 = self.config.copy()
         self.config2.set_state_dir(self.getStateDir(2))
 
-    def tearDown(self):
-        self.teardown_seeder()
-        TestAsServer.tearDown(self)
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def tearDown(self, annotate=True):
+        self.session.remove_download(self.download)
+        yield super(TestMetadataFakePeer, self).tearDown(annotate=annotate)
 
     def setup_seeder(self):
         self.seeder_setup_complete = threading.Event()
@@ -286,9 +292,6 @@ class TestMetadataFakePeer(TestAsServer, MagnetHelpers):
         self.download.set_state_callback(self.seeder_state_callback)
 
         assert self.seeder_setup_complete.wait(30)
-
-    def teardown_seeder(self):
-        self.session.remove_download(self.download)
 
     def seeder_state_callback(self, ds):
         if ds.get_status() == DLSTATUS_SEEDING:

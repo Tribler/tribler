@@ -52,14 +52,16 @@ class TestTunnelBase(TestAsServer):
         self.config.set_dispersy(True)
         self.config.set_libtorrent(True)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def tearDown(self):
         if self.session2:
-            self._shutdown_session(self.session2)
+            yield self.session2.shutdown()
 
         for session in self.sessions:
-            self._shutdown_session(session)
+            yield session.shutdown()
 
-        TestAsServer.tearDown(self)
+        yield TestAsServer.tearDown(self)
 
     @inlineCallbacks
     def setup_nodes(self, num_relays=1, num_exitnodes=1, seed_hops=0):

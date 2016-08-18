@@ -21,7 +21,8 @@ from traceback import print_exc
 
 from twisted.internet import interfaces
 from twisted.internet.base import BasePort
-from twisted.internet.defer import maybeDeferred, succeed
+from twisted.internet.defer import maybeDeferred, inlineCallbacks
+from twisted.python.threadable import isInIOThread
 from twisted.web.server import Site
 from twisted.web.static import File
 
@@ -138,7 +139,7 @@ class AbstractServer(BaseTestCase):
             self.assertNotIsInstance(reader, BasePort,
                                      "Listening ports left on the reactor during %s: %s" % (phase, reader))
 
-    @deferred(timeout=10)
+    @blocking_call_on_reactor_thread
     def tearDown(self, annotate=True):
         self.tearDownCleanup()
         if annotate:
@@ -201,6 +202,8 @@ class TestAsServer(AbstractServer):
     Parent class for testing the server-side of Tribler
     """
 
+    @deferred(10)
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
         super(TestAsServer, self).setUp(annotate=False)
         self.setUpPreSession()
@@ -211,15 +214,16 @@ class TestAsServer(AbstractServer):
 
         self.session = Session(self.config)
         upgrader = self.session.prestart()
-        while not upgrader.is_done:
-            time.sleep(0.1)
+        assert upgrader.is_done
+
         assert not upgrader.failed, upgrader.current_status
         self.tribler_started_deferred = self.session.start()
 
+        yield self.tribler_started_deferred
+
         self.hisport = self.session.get_listen_port()
 
-        while not self.session.lm.initComplete:
-            time.sleep(1)
+        assert self.session.lm.initComplete
 
         self.annotate(self._testMethodName, start=True)
 
@@ -246,22 +250,24 @@ class TestAsServer(AbstractServer):
         self.config.set_creditmining_enable(False)
         self.config.set_enable_multichain(False)
 
-    def tearDown(self):
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def tearDown(self, annotate=True):
         self.annotate(self._testMethodName, start=False)
 
         """ unittest test tear down code """
         if self.session is not None:
-            self._shutdown_session(self.session)
+            yield self.session.shutdown()
             Session.del_instance()
 
-        self.stop_seeder()
+        yield self.stop_seeder()
 
         ts = enumerate_threads()
         self._logger.debug("test_as_server: Number of threads still running %d", len(ts))
         for t in ts:
             self._logger.debug("Thread still running %s, daemon: %s, instance: %s", t.getName(), t.isDaemon(), t)
 
-        super(TestAsServer, self).tearDown(annotate=False)
+        yield super(TestAsServer, self).tearDown(annotate=False)
 
     def create_local_torrent(self, source_file):
         '''
@@ -319,7 +325,7 @@ class TestAsServer(AbstractServer):
 
     def stop_seeder(self):
         if self.seeder_session is not None:
-            self._shutdown_session(self.seeder_session)
+            return self.seeder_session.shutdown()
 
     def seeder_state_callback(self, ds):
         d = ds.get_download()
@@ -330,22 +336,6 @@ class TestAsServer(AbstractServer):
             self.seeding_event.set()
 
         return 1.0, False
-
-    def _shutdown_session(self, session):
-        session_shutdown_start = time.time()
-        waittime = 60
-
-        session.shutdown()
-        while not session.has_shutdown():
-            diff = time.time() - session_shutdown_start
-            assert diff < waittime, "test_as_server: took too long for Session to shutdown"
-
-            self._logger.debug(
-                "Waiting for Session to shutdown, will wait for an additional %d seconds", (waittime - diff))
-
-            time.sleep(1)
-
-        self._logger.debug("Session has shut down")
 
     def assert_(self, boolean, reason=None, do_assert=True, tribler_session=None, dump_statistics=False):
         if not boolean:

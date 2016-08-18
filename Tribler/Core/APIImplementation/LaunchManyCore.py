@@ -12,8 +12,9 @@ from threading import Event, enumerate as enumerate_threads
 from traceback import print_exc
 
 from twisted.internet import reactor
-from twisted.internet.defer import Deferred
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import Deferred, inlineCallbacks
+from twisted.internet.task import deferLater
+from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
@@ -99,6 +100,7 @@ class TriblerLaunchMany(TaskManager):
         self.boosting_manager = None
 
     def register(self, session, sesslock):
+        assert isInIOThread()
         if not self.registered:
             self.registered = True
 
@@ -611,9 +613,7 @@ class TriblerLaunchMany(TaskManager):
         dllist = self.downloads.values()
         self._logger.debug("tlm: checkpointing %s stopping %s", len(dllist), stop)
 
-        network_checkpoint_callback_lambda = lambda: self.network_checkpoint_callback(dllist, stop, checkpoint,
-                                                                                      gracetime)
-        self.threadpool.add_task(network_checkpoint_callback_lambda, 0.0)
+        return deferLater(reactor, 0, self.network_checkpoint_callback, dllist, stop, checkpoint, gracetime)
 
     def network_checkpoint_callback(self, dllist, stop, checkpoint, gracetime):
         """ Called by network thread """
@@ -637,6 +637,7 @@ class TriblerLaunchMany(TaskManager):
                     self._logger.exception("Exception while checkpointing: %s", d.get_def().get_name())
 
         if stop:
+            delay = 0
             # Some grace time for early shutdown tasks
             if self.shutdownstarttime is not None:
                 now = timemod.time()
@@ -644,11 +645,7 @@ class TriblerLaunchMany(TaskManager):
                 if diff < gracetime:
                     self._logger.info("tlm: shutdown: delaying for early shutdown tasks %s", gracetime - diff)
                     delay = gracetime - diff
-                    network_shutdown_callback_lambda = lambda: self.network_shutdown()
-                    self.threadpool.add_task(network_shutdown_callback_lambda, delay)
-                    return
-
-            self.network_shutdown()
+            return deferLater(reactor, delay, self.network_shutdown)
 
     def remove_pstate(self, infohash):
         def do_remove():

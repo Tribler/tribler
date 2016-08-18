@@ -53,13 +53,15 @@ class TestTorrentDBHandler(AbstractDB):
         self.tdb.category = Category()
         self.tdb.mypref_db = MyPreferenceDBHandler(self.session)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def tearDown(self):
         self.tdb.mypref_db.close()
         self.tdb.mypref_db = None
         self.tdb.close()
         self.tdb = None
 
-        super(TestTorrentDBHandler, self).tearDown()
+        yield super(TestTorrentDBHandler, self).tearDown()
 
     @blocking_call_on_reactor_thread
     def test_hasTorrent(self):

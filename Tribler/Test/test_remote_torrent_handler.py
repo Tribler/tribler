@@ -6,10 +6,11 @@ from hashlib import sha1
 from shutil import rmtree
 from time import sleep
 from threading import Event
+from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
 from Tribler.dispersy.candidate import Candidate
-from Tribler.dispersy.util import call_on_reactor_thread
+from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread
 
 
 class TestRemoteTorrentHandler(TestAsServer):
@@ -30,11 +31,13 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.config.set_torrent_store(True)
         self.config.set_enable_metadata(True)
 
-    def tearDown(self):
-        self._shutdown_session(self.session2)
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def tearDown(self, annotate=True):
+        yield self.session2.shutdown()
         self.session2 = None
         rmtree(self.session2_state_dir)
-        super(TestRemoteTorrentHandler, self).tearDown()
+        yield super(TestRemoteTorrentHandler, self).tearDown(annotate=annotate)
 
     def test_torrentdownload(self):
         self._logger.info(u"Start torrent download test...")

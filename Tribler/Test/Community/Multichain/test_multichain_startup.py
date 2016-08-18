@@ -40,6 +40,3 @@ class TestMultichainStartup(TestAsServer):
     def setUp(self):
         super(TestMultichainStartup, self).setUp()
         self.dispersy = self.session.get_dispersy_instance()
-
-    def tearDown(self):
-        super(TestMultichainStartup, self).tearDown()

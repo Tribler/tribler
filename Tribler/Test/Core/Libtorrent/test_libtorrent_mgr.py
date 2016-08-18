@@ -1,10 +1,12 @@
 import os
 
 import shutil
+from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.CacheDB.Notifier import Notifier
 from Tribler.Core.Libtorrent.LibtorrentMgr import LibtorrentMgr
 from Tribler.Test.test_as_server import AbstractServer
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class FakeTriblerSession:
@@ -42,10 +44,12 @@ class TestLibtorrentMgr(AbstractServer):
         self.tribler_session = FakeTriblerSession(self.session_base_dir)
         self.ltmgr = LibtorrentMgr(self.tribler_session)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def tearDown(self, annotate=True):
         self.ltmgr.shutdown()
         self.assertTrue(os.path.exists(os.path.join(self.session_base_dir, 'lt.state')))
-        super(TestLibtorrentMgr, self).tearDown(annotate)
+        yield super(TestLibtorrentMgr, self).tearDown(annotate)
 
     def test_get_session_zero_hops(self):
         self.ltmgr.initialize()
