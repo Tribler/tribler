@@ -8,6 +8,7 @@ import json
 import sys
 
 import wx
+from twisted.internet.defer import maybeDeferred, returnValue, inlineCallbacks
 
 from Tribler.Category.Category import Category
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str, str2bin, forceAndReturnDBThread
@@ -1030,9 +1031,10 @@ class ChannelManager(object):
     def getTorrentMarkings(self, channeltorrent_id):
         return self.channelcast_db.getTorrentMarkings(channeltorrent_id)
 
+    @inlineCallbacks
     def getTorrentFromChannel(self, channel, infohash, collectedOnly=True):
-        data = self.channelcast_db.getTorrentFromChannelId(channel.id, infohash, CHANNEL_REQ_COLUMNS)
-        return self._createTorrent(data, channel, collectedOnly=collectedOnly)
+        data = yield maybeDeferred(self.channelcast_db.getTorrentFromChannelId(channel.id, infohash, CHANNEL_REQ_COLUMNS))
+        returnValue(self._createTorrent(data, channel, collectedOnly=collectedOnly))
 
     def getTorrentFromChannelTorrentId(self, channel, channeltorrent_id, collectedOnly=True):
         data = self.channelcast_db.getTorrentFromChannelTorrentId(channeltorrent_id, CHANNEL_REQ_COLUMNS)
@@ -1376,6 +1378,7 @@ class ChannelManager(object):
         return False
 
     @call_on_reactor_thread
+    @inlineCallbacks
     def createTorrentFromDef(self, channel_id, tdef, extraInfo={}, forward=True):
         # Make sure that this new tdef is also in collected torrents
         self.remote_th.save_torrent(tdef)
@@ -1393,7 +1396,7 @@ class ChannelManager(object):
                     tdef.get_name_as_unicode(),
                     files,
                     tdef.get_trackers_as_single_tuple())
-                return False
+                returnValue(False)
 
             community._disp_create_torrent(
                 tdef.infohash,
@@ -1408,19 +1411,24 @@ class ChannelManager(object):
                 desc = desc.strip()
 
                 if desc != '':
-                    data = self.channelcast_db.getTorrentFromChannelId(channel_id, tdef.infohash, CHANNEL_REQ_COLUMNS)
+                    data = yield maybeDeferred(self.channelcast_db.getTorrentFromChannelId(channel_id, tdef.infohash, CHANNEL_REQ_COLUMNS))
                     torrent = self._createTorrent(data, False)
 
                     self.modifyTorrent(channel_id, torrent.channeltorrent_id, {'description': desc}, forward=forward)
-            return True
-        return False
+            returnValue(True)
+        returnValue(False)
 
     @call_on_reactor_thread
     def removeTorrent(self, channel, infohash):
-        torrent = self.getTorrentFromChannel(channel, infohash, collectedOnly=False)
-        if torrent:
-            community = self._disp_get_community_from_channel_id(channel.id)
-            community.remove_torrents([torrent.dispersy_id])
+
+        def on_torrent_received(torrent):
+            if torrent:
+                community = self._disp_get_community_from_channel_id(channel.id)
+                community.remove_torrents([torrent.dispersy_id])
+
+        deferred = self.getTorrentFromChannel(channel, infohash, collectedOnly=False)
+        deferred.addCallback(on_torrent_received)
+
 
     @call_on_reactor_thread
     def removeAllTorrents(self, channel):

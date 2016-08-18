@@ -3,6 +3,9 @@ from random import shuffle
 from time import time
 from binascii import hexlify
 from traceback import print_exc
+from twisted.internet.threads import deferToThread
+
+from twisted.internet.defer import inlineCallbacks, returnValue, maybeDeferred, DeferredList
 
 from twisted.internet.task import LoopingCall
 
@@ -432,15 +435,25 @@ class SearchCommunity(Community):
     def on_torrent_request(self, messages):
         for message in messages:
             requested_packets = []
-            for cid, torrents in message.payload.torrents.iteritems():
-                requested_packets.extend(self._get_packets_from_infohashes(cid, torrents))
+            deferList = []
 
-            if requested_packets:
-                self._dispersy._send_packets([message.candidate], requested_packets,
+            def on_packets(packets):
+                requested_packets.extend(packets)
+
+            def on_all_packets_received(ignored):
+                if requested_packets:
+                    self._dispersy._send_packets([message.candidate], requested_packets,
                                              self, u"-caused by on-torrent-request-")
 
-            if DEBUG:
-                self._logger.debug(u"got request for %s torrents from %s", len(requested_packets), message.candidate)
+                if DEBUG:
+                    self._logger.debug(u"got request for %s torrents from %s", len(requested_packets), message.candidate)
+
+            for cid, torrents in message.payload.torrents.iteritems():
+                deferred = self._get_packets_from_infohashes(cid, torrents)
+                deferred.addCallback(on_packets)
+                deferList.append(deferred)
+
+            DeferredList(deferList).addCallback(on_all_packets_received)
 
     class PingRequestCache(RandomNumberCache):
 
@@ -640,6 +653,7 @@ class SearchCommunity(Community):
             return PreviewChannelCommunity.init_community(self._dispersy, self._dispersy.get_member(mid=cid),
                                                           self._my_member, tribler_session=self.tribler_session)
 
+    @inlineCallbacks
     def _get_packets_from_infohashes(self, cid, infohashes):
         packets = []
 
@@ -662,7 +676,7 @@ class SearchCommunity(Community):
 
             # 1. try to find the torrentmessage for this cid, infohash combination
             if channel_id:
-                dispersy_id = self._channelcast_db.getTorrentFromChannelId(channel_id, infohash, ['ChannelTorrents.dispersy_id'])
+                dispersy_id = yield maybeDeferred(self._channelcast_db.getTorrentFromChannelId(channel_id, infohash, ['ChannelTorrents.dispersy_id']))
             else:
                 torrent = self._torrent_db.getTorrent(infohash, ['dispersy_id'], include_mypref=False)
                 if torrent:
@@ -674,7 +688,7 @@ class SearchCommunity(Community):
                         if message:
                             packets.append(message.packet)
             add_packet(dispersy_id)
-        return packets
+        returnValue(packets)
 
     def _get_packet_from_dispersy_id(self, dispersy_id, messagename):
         # 1. get the packet
@@ -701,36 +715,48 @@ class ChannelCastDBStub(object):
                 yield message.community.cid, message
 
     def newTorrent(self, message):
-        self._cachedTorrents[message.payload.infohash] = message
+        # TODO(Laurens): Since this method has no return and doesn't use the result of the call,
+        # I think we do not want to yield this statement as it just can be inserted asynchronously
+        self._cachedTorrents(message.payload.infohash, message)
 
+    @inlineCallbacks
     def hasTorrents(self, channel_id, infohashes):
         returnAr = []
+        cached_torrents = yield self._cachedTorrents(None, None)
         for infohash in infohashes:
-            if infohash in self._cachedTorrents:
+            if infohash in cached_torrents:
                 returnAr.append(True)
             else:
                 returnAr.append(False)
-        return returnAr
+        returnValue(returnAr)
 
+
+    @inlineCallbacks
     def getTorrentFromChannelId(self, channel_id, infohash, keys):
-        if infohash in self._cachedTorrents:
-            return self._cachedTorrents[infohash].packet_id
+        cached_torrents = yield self._cachedTorrents(None, None)
+        if infohash in cached_torrents:
+            returnValue(self._cachedTorrents(None, None)[infohash].packet_id)
 
     def on_dynamic_settings(self, channel_id):
         pass
 
-    @property
-    def _cachedTorrents(self):
+    @inlineCallbacks
+    def _cachedTorrents(self, infohash, message):
         if self.cachedTorrents is None:
             self.cachedTorrents = {}
-            self._cacheTorrents()
+            yield self._cacheTorrents()
 
-        return self.cachedTorrents
+        if infohash is not None and message is not None:
+            self.cachedTorrents[infohash] = message
 
+        returnValue(self.cachedTorrents)
+
+    @inlineCallbacks
     def _cacheTorrents(self):
         sql = u"SELECT sync.packet, sync.id FROM sync JOIN meta_message ON sync.meta_message = meta_message.id JOIN community ON community.id = sync.community WHERE meta_message.name = 'torrent'"
-        results = list(self._dispersy.database.execute(sql))
+        sql_result = yield deferToThread(self._dispersy.database.execute, sql)
+        results = list(sql_result)
         messages = self.convert_to_messages(results)
 
         for _, message in messages:
-            self._cachedTorrents[message.payload.infohash] = message
+            self._cachedTorrents(message.payload.infohash, message)

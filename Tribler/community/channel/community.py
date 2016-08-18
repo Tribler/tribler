@@ -4,6 +4,7 @@ from binascii import hexlify
 from struct import pack
 from time import time
 from traceback import print_stack
+from twisted.internet.defer import inlineCallbacks, returnValue, maybeDeferred
 
 from twisted.python.threadable import isInIOThread
 
@@ -1097,6 +1098,7 @@ class ChannelCommunity(Community):
     def _disp_check_missing_channel(self, messages):
         return messages
 
+    @inlineCallbacks
     def _disp_on_missing_channel(self, messages):
         channelmessage = self._get_latest_channel_message()
         packets = None
@@ -1109,7 +1111,7 @@ class ChannelCommunity(Community):
 
                     torrents = self._channelcast_db.getRandomTorrents(self._channel_id)
                     for infohash in torrents:
-                        tormessage = self._get_message_from_torrent_infohash(infohash)
+                        tormessage = yield self._get_message_from_torrent_infohash(infohash)
                         if tormessage:
                             packets.append(tormessage.packet)
 
@@ -1172,18 +1174,19 @@ class ChannelCommunity(Community):
         if dispersy_id and dispersy_id > 0:
             return self._dispersy.load_message_by_packetid(self, dispersy_id)
 
+    @inlineCallbacks
     def _get_message_from_torrent_infohash(self, torrent_infohash):
         assert isinstance(torrent_infohash, str), 'infohash is a %s' % type(torrent_infohash)
         assert len(torrent_infohash) == 20, 'infohash has length %d' % len(torrent_infohash)
 
         # 1. get the dispersy identifier from the channel_id
-        dispersy_id = self._channelcast_db.getTorrentFromChannelId(self._channel_id,
+        dispersy_id = yield maybeDeferred(self._channelcast_db.getTorrentFromChannelId(self._channel_id,
                                                                    torrent_infohash,
-                                                                   ['ChannelTorrents.dispersy_id'])
+                                                                   ['ChannelTorrents.dispersy_id']))
 
         if dispersy_id and dispersy_id > 0:
             # 2. get the message
-            return self._dispersy.load_message_by_packetid(self, dispersy_id)
+            returnValue(self._dispersy.load_message_by_packetid(self, dispersy_id))
 
     def _get_torrent_id_from_message(self, dispersy_id):
         assert isinstance(dispersy_id, (int, long)), "dispersy_id type is '%s'" % type(dispersy_id)

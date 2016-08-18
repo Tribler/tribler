@@ -1,5 +1,6 @@
 from random import sample
 from time import time
+from twisted.internet.defer import returnValue, inlineCallbacks, maybeDeferred
 
 from twisted.internet.task import LoopingCall
 from twisted.python.threadable import isInIOThread
@@ -244,11 +245,13 @@ class AllChannelCommunity(Community):
             # ensure that no commits occur
             raise IgnoreCommits()
 
+    @inlineCallbacks
     def on_channelcast(self, messages):
         for message in messages:
             toCollect = {}
             for cid, infohashes in message.payload.torrents.iteritems():
-                for infohash in self._selectTorrentsToCollect(cid, infohashes):
+                torrents_to_collect = yield self._selectTorrentsToCollect(cid, infohashes)
+                for infohash in torrents_to_collect:
                     toCollect.setdefault(cid, set()).add(infohash)
 
             nr_requests = sum([len(infohashes) for infohashes in toCollect.values()])
@@ -273,7 +276,8 @@ class AllChannelCommunity(Community):
         for message in messages:
             requested_packets = []
             for cid, infohashes in message.payload.torrents.iteritems():
-                requested_packets.extend(self._get_packets_from_infohashes(cid, infohashes))
+                packets = yield self._get_packets_from_infohashes(cid, infohashes)
+                requested_packets.extend(packets)
 
             if requested_packets:
                 self._dispersy._send_packets([message.candidate], requested_packets,
@@ -507,6 +511,7 @@ class AllChannelCommunity(Community):
 
         return self._channelcast_db.getChannelIdFromDispersyCID(buffer(cid))
 
+    @inlineCallbacks
     def _selectTorrentsToCollect(self, cid, infohashes):
         channel_id = self._get_channel_id(cid)
 
@@ -525,7 +530,7 @@ class AllChannelCommunity(Community):
         # only request updates if nrT < 100 or we have not received an update in the last half hour
         if nrTorrrents < 100 or latestUpdate < (time() - 1800):
             infohashes = list(infohashes)
-            haveTorrents = self._channelcast_db.hasTorrents(channel_id, infohashes)
+            haveTorrents = yield maybeDeferred(self._channelcast_db.hasTorrents(channel_id, infohashes))
             for i in range(len(infohashes)):
                 if not haveTorrents[i]:
                     collect.append(infohashes[i])
@@ -533,8 +538,9 @@ class AllChannelCommunity(Community):
         self._recentlyRequested.extend(collect)
         self._recentlyRequested = self._recentlyRequested[:100]
 
-        return collect
+        returnValue(collect)
 
+    @inlineCallbacks
     def _get_packets_from_infohashes(self, cid, infohashes):
         assert all(isinstance(infohash, str) for infohash in infohashes)
         assert all(len(infohash) == 20 for infohash in infohashes)
@@ -543,8 +549,8 @@ class AllChannelCommunity(Community):
 
         packets = []
         for infohash in infohashes:
-            dispersy_id = self._channelcast_db.getTorrentFromChannelId(
-                channel_id, infohash, ['ChannelTorrents.dispersy_id'])
+            dispersy_id = yield maybeDeferred(self._channelcast_db.getTorrentFromChannelId(
+                channel_id, infohash, ['ChannelTorrents.dispersy_id']))
 
             if dispersy_id and dispersy_id > 0:
                 try:
@@ -553,7 +559,7 @@ class AllChannelCommunity(Community):
                 except RuntimeError:
                     pass
 
-        return packets
+        returnValue(packets)
 
     def _get_packet_from_dispersy_id(self, dispersy_id, messagename):
         try:
