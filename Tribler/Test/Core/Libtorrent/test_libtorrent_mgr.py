@@ -41,8 +41,10 @@ class TestLibtorrentMgr(AbstractServer):
     FILE_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
     LIBTORRENT_FILES_DIR = os.path.abspath(os.path.join(FILE_DIR, u"../data/libtorrent/"))
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, annotate=True):
-        super(TestLibtorrentMgr, self).setUp(annotate)
+        yield super(TestLibtorrentMgr, self).setUp(annotate)
         self.tribler_session = FakeTriblerSession(self.session_base_dir)
         self.ltmgr = LibtorrentMgr(self.tribler_session)
 

@@ -1,11 +1,11 @@
 import os
+import sys
+import shutil
 
 from apsw import SQLError, CantOpenError
-
-import shutil
 from unittest import skipIf
 from nose.tools import raises
-import sys
+from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_SCRIPT_NAME, CorruptedDatabaseError
@@ -17,8 +17,10 @@ class TestSqliteCacheDB(TriblerCoreTest):
     FILE_DIR = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
     SQLITE_SCRIPTS_DIR = os.path.abspath(os.path.join(FILE_DIR, u"data/sqlite_scripts/"))
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TestSqliteCacheDB, self).setUp()
+        yield super(TestSqliteCacheDB, self).setUp()
 
         db_path = u":memory:"
 

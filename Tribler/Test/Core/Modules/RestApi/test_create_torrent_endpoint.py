@@ -57,7 +57,7 @@ class TestMyChannelCreateTorrentEndpoint(AbstractApiTest):
             created_by = tdef.get_created_by()
             expected_tdef.metainfo["created by"] = created_by
 
-            self.assertEqual(expected_tdef, tdef)
+            self.assertEqual(dir(expected_tdef), dir(tdef))
 
         post_data = {
             "files": [os.path.join(self.files_path, "video.avi")],

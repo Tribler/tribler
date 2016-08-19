@@ -4,6 +4,7 @@
 from time import sleep
 
 from twisted.internet.task import LoopingCall
+from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Test.test_as_server import TestAsServer
@@ -110,8 +111,10 @@ class TestBarterCommunity(TestAsServer):
         else:
             dispersy.define_auto_load(BarterCommunity, dispersy_member, (session, settings), load=True)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TestBarterCommunity, self).setUp()
+        yield super(TestBarterCommunity, self).setUp()
         self.dispersy = self.session.get_dispersy_instance()
         self.load_communities(self.session, self.dispersy, True)
         yield self.setupPeer()

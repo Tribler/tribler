@@ -9,9 +9,11 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread
 class AbstractTestCommunity(AbstractServer):
 
     # We have to initialize Dispersy and the tunnel community on the reactor thread
+
     @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(AbstractTestCommunity, self).setUp()
+        yield super(AbstractTestCommunity, self).setUp()
         self.dispersy = Dispersy(ManualEnpoint(0), self.getStateDir())
         self.dispersy._database.open()
         self.master_member = DummyMember(self.dispersy, 1, "a" * 20)

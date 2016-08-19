@@ -1,10 +1,12 @@
 import datetime
 import os
 from math import pow
+from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock, MultiChainTestCase
 from Tribler.community.multichain.database import MultiChainDB
 from Tribler.community.multichain.database import DATABASE_DIRECTORY
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestDatabase(MultiChainTestCase):
@@ -18,8 +20,10 @@ class TestDatabase(MultiChainTestCase):
     def __init__(self, *args, **kwargs):
         super(TestDatabase, self).__init__(*args, **kwargs)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, **kwargs):
-        super(TestDatabase, self).setUp()
+        yield super(TestDatabase, self).setUp()
         path = os.path.join(self.getStateDir(), DATABASE_DIRECTORY)
         if not os.path.exists(path):
             os.makedirs(path)

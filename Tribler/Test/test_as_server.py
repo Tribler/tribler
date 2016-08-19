@@ -202,10 +202,10 @@ class TestAsServer(AbstractServer):
     Parent class for testing the server-side of Tribler
     """
 
-    @deferred(10)
+    @blocking_call_on_reactor_thread
     @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestAsServer, self).setUp(annotate=False)
+        yield super(TestAsServer, self).setUp(annotate=False)
         self.setUpPreSession()
 
         self.quitting = False

@@ -1,6 +1,8 @@
 import os
 import time
+
 from twisted.internet.defer import returnValue, inlineCallbacks
+from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
@@ -31,11 +33,13 @@ class HiddenTunnelCommunityTests(HiddenTunnelCommunity):
 
 class TestTunnelBase(TestAsServer):
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
         """
         Setup various variables and load the tunnel community in the main downloader session.
         """
-        TestAsServer.setUp(self, autoload_discovery=autoload_discovery)
+        yield TestAsServer.setUp(self, autoload_discovery=autoload_discovery)
         self.seed_tdef = None
         self.sessions = []
         self.session2 = None
@@ -68,6 +72,7 @@ class TestTunnelBase(TestAsServer):
         """
         Setup all required nodes, including the relays, exit nodes and seeder.
         """
+        assert isInIOThread()
         baseindex = 3
         for i in xrange(baseindex, baseindex + num_relays):  # Normal relays
             proxy = yield self.create_proxy(i)
@@ -136,6 +141,7 @@ class TestTunnelBase(TestAsServer):
 
         returnValue(self.load_tunnel_community_in_session(session, exitnode=exitnode))
 
+    @blocking_call_on_reactor_thread
     def setup_tunnel_seeder(self, hops):
         """
         Setup the seeder.

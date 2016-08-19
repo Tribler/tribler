@@ -1,10 +1,14 @@
 import os
 import shutil
+
+from twisted.internet.defer import inlineCallbacks
+
 import Tribler
 from Tribler.Core.CacheDB.sqlitecachedb import SQLiteCacheDB, DB_SCRIPT_NAME
 from Tribler.Core.Session import Session
 from Tribler.Core.SessionConfig import SessionStartupConfig
 from Tribler.Test.Core.base_test import TriblerCoreTest
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class MockTorrentStore(object):
@@ -21,8 +25,10 @@ class AbstractUpgrader(TriblerCoreTest):
             file.write("lorem ipsum")
             file.close()
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(AbstractUpgrader, self).setUp()
+        yield super(AbstractUpgrader, self).setUp()
         self.config = SessionStartupConfig()
         self.config.set_torrent_collecting_dir(os.path.join(self.session_base_dir, 'torrent_collecting_dir'))
         self.session = Session(self.config, ignore_singleton=True)

@@ -1,6 +1,7 @@
 from binascii import unhexlify
 import os
 from shutil import copy as copyfile
+from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Core.Category.Category import Category
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler, ChannelCastDBHandler
@@ -21,8 +22,10 @@ class TestTorrentFullSessionDBHandler(AbstractDB):
         super(TestTorrentFullSessionDBHandler, self).setUpPreSession()
         self.config.set_megacache(True)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TestTorrentFullSessionDBHandler, self).setUp()
+        yield super(TestTorrentFullSessionDBHandler, self).setUp()
         self.tdb = TorrentDBHandler(self.session)
 
     @blocking_call_on_reactor_thread
@@ -40,8 +43,10 @@ class TestTorrentDBHandler(AbstractDB):
         self.config.set_megacache(True)
         self.config.set_torrent_store(True)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TestTorrentDBHandler, self).setUp()
+        yield super(TestTorrentDBHandler, self).setUp()
 
         from Tribler.Core.APIImplementation.LaunchManyCore import TriblerLaunchMany
         from Tribler.Core.Modules.tracker_manager import TrackerManager

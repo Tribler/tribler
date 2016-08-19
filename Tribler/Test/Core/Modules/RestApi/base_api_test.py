@@ -1,13 +1,18 @@
 import json
 import urllib
+
+from zope.interface import implements
+
 from twisted.internet.defer import succeed
+from twisted.python.threadable import isInIOThread
 from twisted.web.client import Agent, readBody
 from twisted.web.http_headers import Headers
 from twisted.web.iweb import IBodyProducer
-from zope.interface import implements
+
 from Tribler.Core.Utilities.twisted_thread import reactor
 from Tribler.Core.version import version_id
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class POSTDataProducer(object):
@@ -35,6 +40,7 @@ class AbstractBaseApiTest(TestAsServer):
         terms.add("badterm")
         self.session.lm.category.xxx_filter.xxx_terms = terms
 
+    @blocking_call_on_reactor_thread
     def setUpPreSession(self):
         super(AbstractBaseApiTest, self).setUpPreSession()
         self.config.set_http_api_enabled(True)
@@ -70,6 +76,7 @@ class AbstractApiTest(AbstractBaseApiTest):
         return succeed(None)
 
     def do_request(self, endpoint, expected_code=200, expected_json=None, request_type='GET', post_data=''):
+        assert isInIOThread()
         self.expected_response_code = expected_code
         self.expected_response_json = expected_json
 
