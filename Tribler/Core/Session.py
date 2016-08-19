@@ -27,6 +27,7 @@ from Tribler.Core.simpledefs import (NTFY_CHANNELCAST, NTFY_DELETE, NTFY_INSERT,
                                      NTFY_PEERS, NTFY_TORRENTS, NTFY_UPDATE, NTFY_VOTECAST, STATEDIR_DLPSTATE_DIR,
                                      STATEDIR_METADATA_STORE_DIR, STATEDIR_PEERICON_DIR, STATEDIR_TORRENT_STORE_DIR,
                                      DLSTATUS_STOPPED)
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 GOTM2CRYPTO = False
@@ -176,11 +177,13 @@ class Session(SessionConfigInterface):
 
         self.tribler_config = TriblerConfig(self)
 
+    @blocking_call_on_reactor_thread
     def prestart(self):
         """
         Pre-starts the session. We check the current version and upgrade if needed
 -        before we start everything else.
         """
+        assert isInIOThread()
         db_path = os.path.join(self.get_state_dir(), DB_FILE_RELATIVE_PATH)
         db_script_path = os.path.join(self.get_install_dir(), DB_SCRIPT_RELATIVE_PATH)
 
@@ -461,6 +464,7 @@ class Session(SessionConfigInterface):
         # Called by any thread
         self.checkpoint_shutdown(stop=False, checkpoint=True, gracetime=None, hacksessconfcheckpoint=False)
 
+    @blocking_call_on_reactor_thread
     def start(self):
         """ Create the LaunchManyCore instance and start it"""
 
@@ -474,6 +478,7 @@ class Session(SessionConfigInterface):
 
         return startup_deferred
 
+    @blocking_call_on_reactor_thread
     def shutdown(self, checkpoint=True, gracetime=2.0, hacksessconfcheckpoint=True):
         """ Checkpoints the session and closes it, stopping the download engine.
         @param checkpoint Whether to checkpoint the Session state on shutdown.
