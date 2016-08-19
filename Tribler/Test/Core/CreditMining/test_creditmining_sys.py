@@ -9,6 +9,7 @@ import os
 import shutil
 
 from twisted.internet import defer
+from twisted.internet.defer import inlineCallbacks
 from twisted.web.server import Site
 from twisted.web.static import File
 
@@ -35,8 +36,10 @@ class TestBoostingManagerSys(TestAsServer):
     base class to test base credit mining function
     """
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestBoostingManagerSys, self).setUp()
+        yield super(TestBoostingManagerSys, self).setUp()
 
         self.set_boosting_settings()
 
@@ -139,8 +142,10 @@ class TestBoostingManagerSysRSS(TestBoostingManagerSys):
     testing class for RSS (dummy) source
     """
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestBoostingManagerSysRSS, self).setUp()
+        yield super(TestBoostingManagerSysRSS, self).setUp()
 
         files_path, self.file_server_port = prepare_xml_rss(self.session_base_dir, 'test_rss_cm.xml')
 
@@ -277,8 +282,10 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         self.expected_votecast_cid = None
         self.expected_votecast_vote = None
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestBoostingManagerSysChannel, self).setUp()
+        yield super(TestBoostingManagerSysChannel, self).setUp()
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"
 

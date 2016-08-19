@@ -9,7 +9,7 @@ from threading import Event
 
 from Tribler.Test.test_as_server import TestAsServer, TESTS_DATA_DIR
 from Tribler.dispersy.candidate import Candidate
-from Tribler.dispersy.util import call_on_reactor_thread
+from Tribler.dispersy.util import call_on_reactor_thread, blocking_call_on_reactor_thread
 
 
 class TestRemoteTorrentHandler(TestAsServer):
@@ -30,11 +30,12 @@ class TestRemoteTorrentHandler(TestAsServer):
         self.config.set_torrent_store(True)
         self.config.set_enable_metadata(True)
 
+    @blocking_call_on_reactor_thread
     def tearDown(self):
         self._shutdown_session(self.session2)
         self.session2 = None
         rmtree(self.session2_state_dir)
-        super(TestRemoteTorrentHandler, self).tearDown()
+        return super(TestRemoteTorrentHandler, self).tearDown()
 
     def test_torrentdownload(self):
         self._logger.info(u"Start torrent download test...")

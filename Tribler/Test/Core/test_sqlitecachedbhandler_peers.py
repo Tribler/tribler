@@ -1,3 +1,5 @@
+from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import PeerDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Test.Core.test_sqlitecachedbhandler import AbstractDB
@@ -9,8 +11,10 @@ FAKE_PERMID_X = 'fake_permid_x' + '0R0\x10\x00\x07*\x86H\xce=\x02\x01\x06\x05+\x
 
 class TestSqlitePeerDBHandler(AbstractDB):
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TestSqlitePeerDBHandler, self).setUp()
+        yield super(TestSqlitePeerDBHandler, self).setUp()
 
         self.p1 = str2bin(
             'MFIwEAYHKoZIzj0CAQYFK4EEABoDPgAEAAA6SYI4NHxwQ8P7P8QXgWAP+v8SaMVzF5+fSUHdAMrs6NvL5Epe1nCNSdlBHIjNjEiC5iiwSFZhRLsr')

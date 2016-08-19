@@ -5,6 +5,8 @@ import sys
 import threading
 from Tribler.Test.API.test_seeding import TestSeeding
 from Tribler.Core.simpledefs import dlstatus_strings, DLMODE_VOD
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from twisted.internet.defer import Deferred, inlineCallbacks
 
 
 class TestVODSeeding(TestSeeding):
@@ -13,8 +15,11 @@ class TestVODSeeding(TestSeeding):
     Testing seeding via new tribler API:
     """
 
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TestVODSeeding, self).setUp()
+        yield super(TestVODSeeding, self).setUp()
         self.vod_event = threading.Event()
 
     def setup_seeder(self, filename='video.avi'):

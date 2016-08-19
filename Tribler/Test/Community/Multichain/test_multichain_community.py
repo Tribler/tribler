@@ -17,6 +17,8 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread
 from Tribler.dispersy.tests.debugcommunity.node import DebugNode
 from Tribler.dispersy.candidate import Candidate
 from Tribler.dispersy.requestcache import IntroductionRequestCache
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from twisted.internet.defer import Deferred, inlineCallbacks
 
 class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
     """
@@ -27,10 +29,12 @@ class TestMultiChainCommunity(AbstractServer, DispersyTestFunc):
         def add_observer(self, func, subject, changeTypes=[], objectID=None, cache=0):
             pass
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
         Session.__single = self.MockSession()
         AbstractServer.setUp(self)
-        DispersyTestFunc.setUp(self)
+        yield DispersyTestFunc.setUp(self)
 
     def tearDown(self):
         Session.del_instance()

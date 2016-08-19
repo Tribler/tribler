@@ -1,14 +1,20 @@
 from time import sleep
 
+from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Core.TorrentDef import TorrentDef
 from Tribler.Core.simpledefs import NTFY_MYPREFERENCES, NTFY_TORRENTS
 from Tribler.Test.common import TORRENT_FILE
 from Tribler.Test.test_as_server import TestAsServer
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestTorrentChecking(TestAsServer):
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TestTorrentChecking, self).setUp()
+        yield super(TestTorrentChecking, self).setUp()
 
         self.tdb = self.session.open_dbhandler(NTFY_TORRENTS)
         self.tdb.mypref_db = self.session.open_dbhandler(NTFY_MYPREFERENCES)

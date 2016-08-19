@@ -1,14 +1,17 @@
-from twisted.internet.defer import Deferred
+from twisted.internet.defer import Deferred, inlineCallbacks
 
 from Tribler.Core.APIImplementation.threadpoolmanager import ThreadPoolManager
 from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.base_test import TriblerCoreTest
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TriblerCoreTestThreadpoolManager(TriblerCoreTest):
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TriblerCoreTestThreadpoolManager, self).setUp()
+        yield super(TriblerCoreTestThreadpoolManager, self).setUp()
         self.tpm = ThreadPoolManager()
         self.callback_deferred = Deferred()
 

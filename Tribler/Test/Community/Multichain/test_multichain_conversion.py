@@ -17,6 +17,8 @@ from Tribler.dispersy.destination import CandidateDestination
 from Tribler.dispersy.message import Message, DropPacket
 from Tribler.dispersy.conversion import DefaultConversion
 from Tribler.dispersy.crypto import ECCrypto
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from twisted.internet.defer import Deferred, inlineCallbacks
 
 
 class TestConversion(MultiChainTestCase):
@@ -24,8 +26,10 @@ class TestConversion(MultiChainTestCase):
         super(TestConversion, self).__init__(*args, **kwargs)
         self.community = TestCommunity()
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TestConversion, self).setUp()
+        yield super(TestConversion, self).setUp()
         self.converter = MultiChainConversion(self.community)
         self.block = TestBlock()
 
