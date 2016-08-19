@@ -56,12 +56,13 @@ class TestSeeding(TestAsServer):
     def setUpPostSession(self):
         pass
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def tearDown(self):
         if self.session2:
-            self._shutdown_session(self.session2)
-            time.sleep(10)
+            yield self.session2.shutdown()
 
-        super(TestSeeding, self).tearDown()
+        yield super(TestSeeding, self).tearDown()
 
     def setup_seeder(self, filename='video.avi'):
         self.tdef = TorrentDef()
