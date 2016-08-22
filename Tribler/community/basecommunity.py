@@ -268,14 +268,18 @@ class BaseCommunity(Community):
             processed = 0
             self.delayed_messages.extend(messages)
             self.delayed_messages.sort(key=lambda msg: msg.distribution.global_time)
-            while len(self.delayed_messages) > 0:
+            remaining = len(self.delayed_messages)
+            while remaining > 0:
                 message = self.delayed_messages.pop(0)
+                delayed_count = -len(self._delayed_key)
                 try:
                     processed += super(
                         BaseCommunity, self).on_messages([message])
                 except:
-                    self.delayed_messages.insert(0, message)
-                    break
+                    delayed_count += len(self._delayed_key)
+                    if not delayed_count:
+                        self.delayed_messages.append(message)
+                remaining -= 1
             return processed
         else:
             return super(BaseCommunity, self).on_messages(messages)
