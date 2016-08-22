@@ -177,11 +177,13 @@ class Session(SessionConfigInterface):
 
         self.tribler_config = TriblerConfig(self)
 
+    @blocking_call_on_reactor_thread
     def prestart(self):
         """
         Pre-starts the session. We check the current version and upgrade if needed
 -        before we start everything else.
         """
+        assert isInIOThread()
         db_path = os.path.join(self.get_state_dir(), DB_FILE_RELATIVE_PATH)
         db_script_path = os.path.join(self.get_install_dir(), DB_SCRIPT_RELATIVE_PATH)
 
