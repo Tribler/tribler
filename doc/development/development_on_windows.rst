@@ -110,6 +110,73 @@ VLC
 
 To install VLC, you can download the official installer from the `VideoLAN website <http://www.videolan.org/vlc/download-windows.html>`_. Make sure to install the 64-bit version of VLC.
 
+Protocol Buffers
+----------------
+To build the Protocol Buffers library for Windows you will first need to download and install Microsoft Visual C++ Compiler for Python 2.7. You can get it at http://aka.ms/vcpython27 .
+
+You then need to download the Protocol Buffers 2.6.1 full source from https://developers.google.com/protocol-buffers/docs/downloads . Extract the contents to some folder. The rest of this section will refer to this folder as :code:`%FULLSOURCELOCATION%`.
+
+From https://developers.google.com/protocol-buffers/docs/downloads again, now download the Protocol Compiler 2.6.1 binary for windows. Place its contents (a single file :code:`protoc.exe`) in :code:`%FULLSOURCELOCATION%\src` .
+
+Now create a new file :code:`CoreWin.vsprops` in :code:`%FULLSOURCELOCATION%\vsprojects`, with the following contents:
+
+.. code-block:: none
+
+    <?xml version="1.0"?>
+    <VisualStudioPropertySheet 
+    	ProjectType="Visual C++" 
+    	Version="8.00" 
+    	Name="Core Windows Libraries">
+    	<Tool 
+    		Name="VCLinkerTool" 
+    		AdditionalDependencies="kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+    </VisualStudioPropertySheet>
+
+Now open a Command Prompt (:code:`cmd`) set the Current Directory (:code:`cd`) to :code:`%FULLSOURCELOCATION%\vsprojects`.
+Then execute the following commands in order (for either a **64** or **32** bit build):
+
+------------
+
+**FOR A 64 BIT BUILD**
+
+------------
+
+.. code-block:: none
+
+    SETLOCAL
+    SET PATH=%PATH%;%LOCALAPPDATA%\Programs\Common\Microsoft\Visual C++ for Python\9.0\VC\bin\amd64
+    "%LOCALAPPDATA%\Programs\Common\Microsoft\Visual C++ for Python\9.0\vcvarsall.bat" amd64
+    "%LOCALAPPDATA%\Programs\Common\Microsoft\Visual C++ for Python\9.0\VC\bin\amd64\vcbuild.exe" /upgrade libprotobuf.vcproj
+    "%LOCALAPPDATA%\Programs\Common\Microsoft\Visual C++ for Python\9.0\VC\bin\amd64\vcbuild.exe" /useenv libprotobuf.vcproj "Release|Win32"
+    
+------------
+
+------------
+
+**FOR A 32 BIT BUILD**
+
+------------
+
+.. code-block:: none
+
+    SETLOCAL
+    SET PATH=%PATH%;%LOCALAPPDATA%\Programs\Common\Microsoft\Visual C++ for Python\9.0\VC\bin\x86
+    "%LOCALAPPDATA%\Programs\Common\Microsoft\Visual C++ for Python\9.0\vcvarsall.bat" x86
+    "%LOCALAPPDATA%\Programs\Common\Microsoft\Visual C++ for Python\9.0\VC\bin\amd64\vcbuild.exe" /upgrade libprotobuf.vcproj
+    "%LOCALAPPDATA%\Programs\Common\Microsoft\Visual C++ for Python\9.0\VC\bin\amd64\vcbuild.exe" /useenv libprotobuf.vcproj "Release|Win32"
+------------
+
+For all other builds (cross compile, ARM, etc.) see https://msdn.microsoft.com/en-us/library/f2ccy3wt.aspx#Anchor_1.
+
+If everything completed correctly this should have created the file:
+:code:`%FULLSOURCELOCATION%\vsprojects\Release\libprotobuf.lib`
+Copy **and rename** this file to:
+:code:`%FULLSOURCELOCATION%\python\protobuf.lib`
+
+Now create the directory :code:`%FULLSOURCELOCATION%\python\google\protobuf\compiler`.
+
+Finally run :code:`python %FULLSOURCELOCATION%\python\setup.py install --cpp_implementation`.
+
 Additional Packages
 -------------------
 

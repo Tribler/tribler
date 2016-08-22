@@ -1,7 +1,6 @@
 # Written by Cor-Paul Bezemer
-from conversion import StatisticsConversion
-from payload import StatisticsRequestPayload, StatisticsResponsePayload
 
+from Tribler.community.basecommunity import BaseCommunity
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.community import Community
 from Tribler.dispersy.conversion import DefaultConversion
@@ -13,10 +12,13 @@ from .statistics import BartercastStatisticTypes, _barter_statistics
 from twisted.internet.task import LoopingCall
 from twisted.python import log
 
+# TODO REMOVE BACKWARD COMPATIBILITY: Delete this import
+from Tribler.community.bartercast4.compatibility import Bartercast4Compatibility, StatisticsConversion
+
 BARTERCAST_PERSIST_INTERVAL = 120.0
 
 
-class BarterCommunity(Community):
+class BarterCommunity(BaseCommunity):
     @classmethod
     def get_master_members(cls, dispersy):
 # generated: Thu Oct 30 12:59:19 2014
@@ -40,6 +42,10 @@ class BarterCommunity(Community):
         log.msg("joined BC community")
         self.init_database()
 
+        # TODO REMOVE BACKWARD COMPATIBILITY: Delete the following 2 assignments
+        self.compatibility = Bartercast4Compatibility(self)
+        self.compatibility_mode = True
+
         # add task for persisting bartercast statistics every BARTERCAST_PERSIST_INTERVAL seconds
         self._logger.debug("bartercast persist task started")
         self.register_task("bartercast persist",
@@ -50,85 +56,105 @@ class BarterCommunity(Community):
         _barter_statistics.load_statistics(self._dispersy)
 
     def initiate_meta_messages(self):
-        return super(BarterCommunity, self).initiate_meta_messages() + [
-            Message(self, u"stats-request",
-                    MemberAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    StatisticsRequestPayload(),
-                    self.check_stats_request,
-                    self.on_stats_request),
-            Message(self, u"stats-response",
-                    MemberAuthentication(),
-                    PublicResolution(),
-                    DirectDistribution(),
-                    CandidateDestination(),
-                    StatisticsResponsePayload(),
-                    self.check_stats_response,
-                    self.on_stats_response)
-        ]
+        self.register_traversal("StatsRequest",
+                                MemberAuthentication(),
+                                PublicResolution(),
+                                DirectDistribution(),
+                                CandidateDestination())
+        self.register_traversal("StatsResponse",
+                                MemberAuthentication(),
+                                PublicResolution(),
+                                DirectDistribution(),
+                                CandidateDestination())
+
+        # TODO REMOVE BACKWARD COMPATIBILITY: Delete deprecated call
+        return (super(BarterCommunity, self).initiate_meta_messages() +
+                self.compatibility.deprecated_meta_messages())
 
     def initialize(self, integrate_with_tribler=False, auto_join_channel=False):
         super(BarterCommunity, self).initialize()
 
     def initiate_conversions(self):
+        # TODO REMOVE BACKWARD COMPATIBILITY: Delete this method
         return [DefaultConversion(self), StatisticsConversion(self)]
 
+    def on_basemsg(self, messages):
+        # TODO REMOVE BACKWARD COMPATIBILITY: Delete this method
+
+        # Apparently the big switch is happening,
+        # start talking newspeak:
+        self.compatibility_mode = False
+        super(BarterCommunity, self).on_basemsg(messages)
+
     def create_stats_request(self, candidate, stats_type):
-        log.msg("Creating stats-request for type %d to member: %s" % (stats_type, candidate._association.mid.encode("hex")))
-        meta = self.get_meta_message(u"stats-request")
-        message = meta.impl(authentication=(self._my_member,),
-                            distribution=(self.claim_global_time(),),
-                            destination=(candidate,),
-                            payload=(stats_type,))
-        self._dispersy._forward([message])
+        log.msg("Creating stats-request for type %d to member: %s" % (stats_type,
+                                                                      candidate._association.mid.encode("hex")))
+        # TODO REMOVE BACKWARD COMPATIBILITY: Delete if statement and positive case
+        if self.compatibility_mode:
+            meta = self.get_meta_message(u"stats-request")
+            message = meta.impl(authentication=(self._my_member,),
+                                distribution=(self.claim_global_time(),),
+                                destination=(candidate,),
+                                payload=(stats_type,))
+            self._dispersy._forward([message])
+        else:
+            options = self.get_traversal("StatsRequest",
+                                         auth=(self._my_member,),
+                                         dist=(self.claim_global_time(),),
+                                         dest=(candidate,))
+            self.forward(options, "bartercast4.StatsRequest", stats_type)
 
-    def check_stats_request(self, messages):
-        for message in messages:
-            allowed, _ = self._timeline.check(message)
-            if allowed:
-                yield message
-            else:
-                yield DelayMessageByProof(message)
+    def check_statsrequest(self, header, message):
+        allowed, _ = self._timeline.check(header)
+        if allowed:
+            yield header
+        else:
+            yield DelayMessageByProof(header)
 
-    def on_stats_request(self, messages):
+    def on_statsrequest(self, header, message):
         log.msg("IN: stats-request")
-        for message in messages:
-            log.msg("stats-request: %s %s" % (message._distribution.global_time, message.payload.stats_type))
-            # send back stats-response
-            self.create_stats_response(message.payload.stats_type, message.candidate)
+        log.msg("stats-request: %s %s" % (header._distribution.global_time, message.statstype))
+        # send back stats-response
+        self.create_stats_response(message.statstype, header.candidate)
 
     def create_stats_response(self, stats_type, candidate):
         log.msg("OUT: stats-response")
-        meta = self.get_meta_message(u"stats-response")
         records = _barter_statistics.get_top_n_bartercast_statistics(stats_type, 5)
         log.msg("sending stats for type %d: %s" % (stats_type, records))
 
-        message = meta.impl(authentication=(self._my_member,),
+        # TODO REMOVE BACKWARD COMPATIBILITY: Delete if statement and positive case
+        if self.compatibility_mode:
+            meta = self.get_meta_message(u"stats-response")
+            message = meta.impl(authentication=(self._my_member,),
                             distribution=(self.claim_global_time(),),
                             destination=(candidate,),
                             payload=(stats_type, records))
-        self._dispersy._forward([message])
+            self._dispersy._forward([message])
+        else:
+            options = self.get_traversal("StatsResponse",
+                                         auth=(self._my_member,),
+                                         dist=(self.claim_global_time(),),
+                                         dest=(candidate,))
+            self.forward(options, "bartercast4.StatsResponse", stats_type, records)
 
-    def check_stats_response(self, messages):
-        for message in messages:
-            allowed, _ = self._timeline.check(message)
-            if allowed:
-                yield message
-            else:
-                yield DelayMessageByProof(message)
+    def check_statsresponse(self, header, message):
+        allowed, _ = self._timeline.check(header)
+        if allowed:
+            yield header
+        else:
+            yield DelayMessageByProof(header)
 
-    def on_stats_response(self, messages):
+    def on_statsresponse(self, header, message):
         log.msg("IN: stats-response")
-        for message in messages:
-            log.msg("stats-response: %s %s %s"
-                               % (message._distribution.global_time, message.payload.stats_type, message.payload.records))
-            for r in message.payload.records:
-                _barter_statistics.log_interaction(self._dispersy,
-                                                           message.payload.stats_type,
-                                                           "%s:%s" % (message.candidate.sock_addr[0], message.candidate.sock_addr[1]),
-                                                           r[0], int(r[1].encode('hex'), 16))
+        log.msg("stats-response: %s %s %s"
+                % (header._distribution.global_time, message.statstype, message.records))
+        for r in message.records:
+            _barter_statistics.log_interaction(self._dispersy,
+                                               message.statstype,
+                                               "%s:%s" % (header.candidate.sock_addr[0],
+                                                          header.candidate.sock_addr[1]),
+                                               r.peerid,
+                                               int(str(r.value).encode('hex'), 16))
 
     # bartercast accounting stuff
     def backup_bartercast_statistics(self):

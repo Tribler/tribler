@@ -8,12 +8,11 @@ from twisted.internet.task import LoopingCall
 
 from Tribler.Core.CacheDB.sqlitecachedb import bin2str
 from Tribler.Core.TorrentDef import TorrentDef
-from Tribler.community.channel.payload import TorrentPayload
 from Tribler.community.channel.preview import PreviewChannelCommunity
 from Tribler.community.search.conversion import SearchConversion
 from Tribler.community.search.payload import (SearchRequestPayload, SearchResponsePayload, TorrentRequestPayload,
                                               TorrentCollectRequestPayload, TorrentCollectResponsePayload,
-                                              TasteIntroPayload)
+                                              TasteIntroPayload, TorrentPayload)
 from Tribler.dispersy.authentication import MemberAuthentication
 from Tribler.dispersy.bloomfilter import BloomFilter
 from Tribler.dispersy.candidate import CANDIDATE_WALK_LIFETIME, WalkCandidate
@@ -31,6 +30,7 @@ from Tribler.dispersy.resolution import PublicResolution
 DEBUG = False
 SWIFT_INFOHASHES = 0
 CREATE_TORRENT_COLLECT_INTERVAL = 5
+
 
 
 class SearchCommunity(Community):

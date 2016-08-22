@@ -120,7 +120,7 @@ There are a bunch of other packages that can easily be installed using pip and b
 
 .. code-block:: none
 
-    brew install homebrew/python/pillow gmp mpfr libmpc libsodium
+    brew install homebrew/python/pillow gmp mpfr libmpc libsodium protobuf
     pip install --user cherrypy pillow cffi cryptography decorator feedparser gmpy2 idna leveldb netifaces numpy pyasn1 pycparser requests twisted service_identity
 
 If you encounter any error during the installation of Pillow, make sure that libjpeg and zlib are installed. They can be installed using:
