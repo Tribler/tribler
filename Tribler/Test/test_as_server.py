@@ -113,7 +113,9 @@ class AbstractServer(BaseTestCase):
         factory = Site(resource)
         self.file_server = reactor.listenTCP(port, factory)
 
-    def checkReactor(self, phase="tearDown", *_):
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def checkReactor(self, phase, *_):
         delayed_calls = reactor.getDelayedCalls()
         if delayed_calls:
             self._logger.error("The reactor was dirty during %s:" % phase)
@@ -130,7 +132,20 @@ class AbstractServer(BaseTestCase):
             selectable_strings.append(repr(sel))
 
         self.assertFalse(delayed_calls, "The reactor was dirty during %s" % phase)
-        self.assertFalse(Session.has_instance(), 'Found a leftover session instance during %s' % phase)
+        if Session.has_instance():
+            try:
+                yield Session.get_instance().shutdown()
+            except:
+                pass
+            Session.del_instance()
+
+            class DirtyReactorError(RuntimeError):
+                def __init__(self, phase):
+                    super(AbstractServer.checkReactor.DirtyReactorError,
+                          self).__init__("Found a leftover session instance during %s" % phase)
+
+            raise DirtyReactorError(phase)
+
         self.assertFalse(selectable_strings, "The reactor has leftover readers/writers during %s: %r" % (phase, selectable_strings))
 
         # Check whether we have closed all the sockets
