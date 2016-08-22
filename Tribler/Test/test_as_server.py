@@ -268,7 +268,9 @@ class TestAsServer(AbstractServer):
 
         """ unittest test tear down code """
         if self.session is not None:
+            assert self.session is Session.get_instance()
             yield self.session.shutdown()
+            assert self.session.has_shutdown()
             Session.del_instance()
 
         yield self.stop_seeder()
