@@ -104,8 +104,8 @@ class TestTunnelCommunity(AbstractTestTunnelCommunity):
         exit_tunnel.sendto(data, ("127.0.0.1", 8080))
         return exit_tunnel.close()
 
-
     @deferred(timeout=5)
+    @inlineCallbacks
     def test_send_to_ip_deferred(self):
         """
         This test checks if the ip address can be resolved when a destination object
@@ -118,8 +118,9 @@ class TestTunnelCommunity(AbstractTestTunnelCommunity):
         self.tunnel_community.exit_sockets[circuit_id] = exit_tunnel
         exit_tunnel.ips[("localhost", -1)] = -1
         data = "ffffffff".decode("HEX") + "1" * 25
-        exit_tunnel.sendto(data, ("localhost", -1))
-        return exit_tunnel.close()
+        yield exit_tunnel.sendto(data, ("localhost", -1))
+        value = yield exit_tunnel.close()
+        returnValue(value)
 
     def test_increase_bytes_sent_error_branch(self):
         self.assertRaises(TypeError, self.tunnel_community.increase_bytes_sent, 1, 1)
