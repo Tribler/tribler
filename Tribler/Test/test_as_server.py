@@ -276,7 +276,7 @@ class TestAsServer(AbstractServer):
             assert self.session.has_shutdown()
             Session.del_instance()
 
-        self.stop_seeder()
+        yield self.stop_seeder()
 
         ts = enumerate_threads()
         self._logger.debug("test_as_server: Number of threads still running %d", len(ts))
