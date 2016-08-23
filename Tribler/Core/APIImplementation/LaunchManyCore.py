@@ -487,7 +487,9 @@ class TriblerLaunchMany(TaskManager):
             d.set_moreinfo_stats(True in getpeerlist or d.get_def().get_infohash() in getpeerlist)
 
         network_set_download_states_callback_lambda = lambda: self.network_set_download_states_callback(usercallback)
-        self.threadpool.add_task(network_set_download_states_callback_lambda, when)
+
+        if self.threadpool:
+            self.threadpool.add_task(network_set_download_states_callback_lambda, when)
 
     def network_set_download_states_callback(self, usercallback):
         """ Called by network thread """
@@ -505,7 +507,8 @@ class TriblerLaunchMany(TaskManager):
                 # reschedule
                 self.set_download_states_callback(usercallback, newgetpeerlist, when=when)
 
-        self.threadpool.add_task(session_getstate_usercallback_target)
+        if self.threadpool:
+            self.threadpool.add_task(session_getstate_usercallback_target)
 
     #
     # Persistence methods
