@@ -9,6 +9,7 @@ from twisted.internet import reactor, defer
 from twisted.internet.defer import Deferred, maybeDeferred, DeferredList
 from twisted.internet.protocol import DatagramProtocol
 from twisted.web.client import Agent, readBody, RedirectAgent
+from twisted.internet.defer import Deferred, inlineCallbacks, returnValue
 
 from Tribler.Core.Utilities.encoding import add_url_params
 from Tribler.Core.Utilities.tracker_utils import parse_tracker_url
@@ -85,14 +86,16 @@ class TrackerSession(TaskManager):
     def __unicode__(self):
         return u"Tracker[%s, %s]" % (self._tracker_type, self._tracker_url)
 
+    @inlineCallbacks
     def cleanup(self):
         """
         Sets the _infohash_list to None and returns a deferred that has succeeded.
         :return: A deferred that succeeds immediately.
         """
+        yield self.wait_for_deferred_tasks()
+
         self.cancel_all_pending_tasks()
         self._infohash_list = None
-        return defer.succeed(None)
 
     def can_add_request(self):
         """
@@ -328,16 +331,16 @@ class HttpTrackerSession(TrackerSession):
         self._is_finished = True
         self.result_deferred.callback(seed_leech_dict)
 
+    @inlineCallbacks
     def cleanup(self):
         """
         Cleans the session by cancelling all deferreds and closing sockets.
         :return: A deferred that fires once the cleanup is done.
         """
-        super(HttpTrackerSession, self).cleanup()
+        yield super(HttpTrackerSession, self).cleanup()
         self.request = None
 
         self.result_deferred = None
-        return defer.succeed(None)
 
 
 class UDPScraper(DatagramProtocol):
@@ -509,12 +512,13 @@ class UdpTrackerSession(TrackerSession):
         if session in UdpTrackerSession._active_session_dict:
             del UdpTrackerSession._active_session_dict[session]
 
+    @inlineCallbacks
     def cleanup(self):
         """
         Cleans the session by cancelling all deferreds and closing sockets.
         :return: A deferred that fires once the cleanup is done.
         """
-        super(UdpTrackerSession, self).cleanup()
+        yield super(UdpTrackerSession, self).cleanup()
         UdpTrackerSession.remove_transaction_id(self)
         # Cleanup deferred that fires when everything has been cleaned
         # Cancel the resolving ip deferred.
@@ -527,7 +531,8 @@ class UdpTrackerSession(TrackerSession):
             del self.scraper
 
         # Return a deferredlist with all clean deferreds we have to wait on
-        return DeferredList(self.clean_defer_list)
+        res = yield DeferredList(self.clean_defer_list)
+        returnValue(res)
 
     def max_retries(self):
         """
