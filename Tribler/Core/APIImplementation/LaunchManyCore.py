@@ -493,13 +493,8 @@ class TriblerLaunchMany(TaskManager):
         """ Called by network thread """
         dslist = []
         for d in self.downloads.values():
-            try:
-                ds = d.network_get_state(None, False)
-                dslist.append(ds)
-            except:
-                # Niels, 2012-10-18: If Swift connection is crashing, it will raise an exception
-                # We're catching it here to continue building the downloadstates
-                print_exc()
+            ds = d.network_get_state(None, False)
+            dslist.append(ds)
 
         # Invoke the usercallback function on a separate thread.
         # After the callback is invoked, the return values will be passed to the
