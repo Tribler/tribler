@@ -170,6 +170,7 @@ class BoostingSource(TaskManager):
         # recover blacklisted torrent
         for infohash in list(self.blacklist_torrent):
             if time.time() - self.blacklist_torrent[infohash] > self.recovery_blacklist_torrent:
+                self._logger.debug("Recover blacklisted torrent %s", hexlify(infohash))
                 self.blacklist_torrent.pop(infohash)
 
 
@@ -373,11 +374,19 @@ class RSSFeedSource(BoostingSource):
         """
         function called when RSS successfully read
         """
-        self.register_task(str(self.source) + "_update", LoopingCall(self._update),
-                           10, interval=self.interval)
+        task = self.check_and_register_task(str(self.source) + "_update_load", LoopingCall(self._load, rss_feed),
+                                            self.interval, interval=self.interval)
+
+        if task is not None: #log it for the first time
+            self._logger.info("Got RSS feed %s", rss_feed)
+        else:
+            self._logger.debug("Updating RSS feed")
+
+        self.parsed_rss = None
         self.parsed_rss = feedparser.parse(body_rss)
-        self._logger.info("Got RSS feed %s", rss_feed)
+
         self.ready = True
+        self._update()
 
     def _on_error_rss(self, failure, rss_feed):
         """
@@ -440,7 +449,7 @@ class RSSFeedSource(BoostingSource):
 
                 # store the real infohash to generated infohash
                 self.torrents[real_infohash] = dict(zip(torrent_keys, torrent_values))
-                self.fake_infohash_id[sha1(item_torrent_entry['id']).digest()] = real_infohash
+                self.fake_infohash_id[sha1(item_torrent_entry['link']).digest()] = real_infohash
 
                 # manually generate an ID and put this into DB
                 self.torrent_db.addOrGetTorrentID(real_infohash)
@@ -473,6 +482,20 @@ class RSSFeedSource(BoostingSource):
                             Headers({'User-Agent': ['Tribler ' + version_id]}),
                             None)
                         ses_agent.addCallback(__success_cb, item).addErrback(self._on_err)
+                    else: # torrent already downloaded before. But we deleted it.
+                        infohash = self.fake_infohash_id[fake_infohash]
+                        self._logger.debug("Readd torrent %s", hexlify(infohash))
+
+                        if infohash in self.blacklist_torrent:
+                            self._logger.debug("Torrents blacklisted. Not adding %s", hexlify(infohash))
+                            continue
+
+                        tdef = TorrentDef.load_from_memory(self.session.get_collected_torrent(infohash))
+
+                        if tdef and len(self.torrents) < self.max_torrents and self.torrent_insert_callback:
+                            self.torrent_insert_callback(self.source, infohash, self.torrents[infohash])
+                        else:
+                            self._logger.debug("Max torrents in source reached. Not adding %s", hexlify(infohash))
 
 
 class DirectorySource(BoostingSource):
