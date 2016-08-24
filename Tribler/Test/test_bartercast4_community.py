@@ -12,6 +12,7 @@ from Tribler.community.bartercast4.community import BarterCommunity, BarterCommu
 from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
 from Tribler.community.tunnel.tunnel_community import TunnelSettings
 from Tribler.dispersy.util import blocking_call_on_reactor_thread, call_on_reactor_thread
+from twisted.python.threadable import isInIOThread
 
 
 DEBUG = True
@@ -74,6 +75,8 @@ class TestBarterCommunity(TestAsServer):
         self.CallConditional(300.0, has_finished, noop, u"Failed to crawl", assert_callback=cleanup_and_fail)
 
     # for future stuff; you can use this if you need another peer for some reason
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setupPeer(self):
         from Tribler.Core.Session import Session
 
@@ -84,10 +87,10 @@ class TestBarterCommunity(TestAsServer):
 
         self.session2 = Session(self.config2, ignore_singleton=True)
 
-        upgrader = self.session2.prestart()
-        while not upgrader.is_done:
-            sleep(0.1)
+        upgrader = yield self.session2.prestart()
+        assert upgrader.is_done, "Upgrader is not done"
         assert not upgrader.failed, upgrader.current_status
+
         self.session2.start()
         self.dispersy2 = self.session2.get_dispersy_instance()
         self.load_communities(self.session2, self.session2.get_dispersy_instance())
@@ -115,11 +118,12 @@ class TestBarterCommunity(TestAsServer):
         yield super(TestBarterCommunity, self).setUp()
         self.dispersy = self.session.get_dispersy_instance()
         self.load_communities(self.session, self.dispersy, True)
-        self.setupPeer()
+        yield self.setupPeer()
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def tearDown(self):
         if self.session2:
-            self._shutdown_session(self.session2)
-            sleep(10)
+            yield self.session2.shutdown()
 
-        super(TestBarterCommunity, self).tearDown()
+        yield super(TestBarterCommunity, self).tearDown()
