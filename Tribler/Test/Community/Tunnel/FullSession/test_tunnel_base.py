@@ -39,7 +39,7 @@ class TestTunnelBase(TestAsServer):
         """
         Setup various variables and load the tunnel community in the main downloader session.
         """
-        yield TestAsServer.setUp(self, autoload_discovery=autoload_discovery)
+        yield super(TestTunnelBase, self).setUp(autoload_discovery=autoload_discovery)
         self.seed_tdef = None
         self.sessions = []
         self.session2 = None
@@ -52,7 +52,7 @@ class TestTunnelBase(TestAsServer):
         self.tunnel_communities = []
 
     def setUpPreSession(self):
-        TestAsServer.setUpPreSession(self)
+        super(TestTunnelBase, self).setUpPreSession()
         self.config.set_dispersy(True)
         self.config.set_libtorrent(True)
 
@@ -65,7 +65,7 @@ class TestTunnelBase(TestAsServer):
         for session in self.sessions:
             yield session.shutdown()
 
-        yield TestAsServer.tearDown(self)
+        yield super(TestTunnelBase, self).tearDown()
 
     @inlineCallbacks
     def setup_nodes(self, num_relays=1, num_exitnodes=1, seed_hops=0):
@@ -121,12 +121,14 @@ class TestTunnelBase(TestAsServer):
 
         return dispersy.define_auto_load(HiddenTunnelCommunityTests, dispersy_member, (session, settings), load=True)[0]
 
-    @inlineCallbacks
+    @blocking_call_on_reactor_thread
     def create_proxy(self, index, exitnode=False):
         """
         Create a single proxy and load the tunnel community in the session of that proxy.
         """
         from Tribler.Core.Session import Session
+
+        assert isInIOThread()
 
         self.setUpPreSession()
         config = self.config.copy()
@@ -136,9 +138,9 @@ class TestTunnelBase(TestAsServer):
 
         session = Session(config, ignore_singleton=True, autoload_discovery=False)
         session.prestart()
-        yield session.start()
         self.sessions.append(session)
 
+        session.start()
         returnValue(self.load_tunnel_community_in_session(session, exitnode=exitnode))
 
     @blocking_call_on_reactor_thread
