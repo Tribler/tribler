@@ -10,6 +10,7 @@ import shutil
 
 from twisted.internet import defer
 from twisted.internet.defer import inlineCallbacks
+from twisted.internet.task import LoopingCall
 from twisted.web.server import Site
 from twisted.web.static import File
 
@@ -35,6 +36,10 @@ class TestBoostingManagerSys(TestAsServer):
     """
     base class to test base credit mining function
     """
+
+    def __init__(self, *argv, **kwargs):
+        super(TestBoostingManagerSys, self).__init__(*argv, **kwargs)
+        self._check_source_lc = None
 
     @blocking_call_on_reactor_thread
     @inlineCallbacks
@@ -79,11 +84,16 @@ class TestBoostingManagerSys(TestAsServer):
         self.config.set_enable_channel_search(True)
         self.config.set_libtorrent(True)
 
+    @blocking_call_on_reactor_thread
     def tearDown(self):
+        if self._check_source_lc:
+            self._check_source_lc.stop()
+            self._check_source_lc = None
+
         DefaultDownloadStartupConfig.delInstance()
         self.boosting_manager.shutdown()
 
-        super(TestBoostingManagerSys, self).tearDown()
+        return super(TestBoostingManagerSys, self).tearDown()
 
     def check_torrents(self, src, defer_param=None, target=1):
         """
@@ -125,14 +135,18 @@ class TestBoostingManagerSys(TestAsServer):
         if defer_param is None:
             defer_param = defer.Deferred()
 
-        src_obj = self.boosting_manager.get_source_object(src)
+        def do_check():
+            src_obj = self.boosting_manager.get_source_object(src)
 
-        if not ready:
-            defer_param.callback(src)
-        elif not src_obj or not src_obj.ready:
-            reactor.callLater(1, self.check_source, src, defer_param)
-        else:
-            defer_param.callback(src)
+            if not ready:
+                defer_param.callback(src)
+            elif src_obj and  src_obj.ready:
+                self._check_source_lc.stop()
+                self._check_source_lc = None
+                defer_param.callback(src)
+
+        self._check_source_lc = LoopingCall(do_check)
+        self._check_source_lc.start(1, now=True)
 
         return defer_param
 
