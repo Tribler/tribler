@@ -466,6 +466,10 @@ class BoostingManager(TaskManager):
         dscfg.set_dest_dir(self.settings.credit_mining_path)
         dscfg.set_safe_seeding(False)
 
+        if not infohash:
+            self._logger.error("None Infohash %s", infohash)
+            return
+
         torrent = self.torrents[infohash]
 
         preload = torrent.get('preload', False)
@@ -524,9 +528,18 @@ class BoostingManager(TaskManager):
             handle.pause()
 
             self._logger.info("Writing resume data for %s", str(infohash))
-            download.save_resume_data()
-            self.session.remove_download(download, hidden=True)
-            torrent['time']['last_stopped'] = time.time()
+            deferred_resume = download.save_resume_data()
+
+            def _remove_download(resume_data):
+                infohash_bin = resume_data['info-hash']
+                self._logger.info("[CALLBACK] Stopping download %s", hexlify(infohash_bin))
+                _torrent = self.torrents[infohash_bin]
+                _download = _torrent.pop('download', False)
+                if _download:
+                    self.session.remove_download(_download, hidden=True)
+                    torrent['time']['last_stopped'] = time.time()
+
+            deferred_resume.addCallback(_remove_download)
 
     def _select_torrent(self):
         """
