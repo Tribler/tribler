@@ -160,15 +160,15 @@ class BoostingSource(TaskManager):
 
                 if infohash in self.session.lm.boosting_manager.torrents \
                         and 'download' in self.session.lm.boosting_manager.torrents[infohash]:
-                    self.session.lm.boosting_manager.stop_download(infohash)
+                    self.session.lm.boosting_manager.stop_download(infohash, remove_torrent=True)
+                else:
+                    # also remove from boostingmanager
+                    self.session.lm.boosting_manager.torrents.pop(infohash)
 
                 self._logger.debug("Removed torrent %s from %s because of timeout", hexlify(infohash), self.source)
 
                 # remove from this source so it can make space
                 self.torrents.pop(infohash)
-
-                # also remove from boostingmanager
-                self.session.lm.boosting_manager.torrents.pop(infohash)
 
                 # blacklist this torrent for a while
                 self.blacklist_torrent[infohash] = time.time()

@@ -135,10 +135,10 @@ class BoostingManager(TaskManager):
         self.save_config()
         self._logger.info("Shutting down boostingmanager")
 
+        self.cancel_all_pending_tasks()
+
         for sourcekey in self.boosting_sources.keys():
             self.remove_source(sourcekey)
-
-        self.cancel_all_pending_tasks()
 
         # remove credit mining downloaded data
         shutil.rmtree(self.settings.credit_mining_path, ignore_errors=True)
@@ -216,8 +216,7 @@ class BoostingManager(TaskManager):
                            if torrent['source'] == source_to_string(source_key)]
 
             for torrent in rm_torrents:
-                self.stop_download(torrent["metainfo"].get_infohash())
-                self.torrents.pop(torrent["metainfo"].get_infohash(), None)
+                self.stop_download(torrent["metainfo"].get_infohash(), remove_torrent=True)
 
             self._logger.info("Torrents download stopped and removed")
 
@@ -510,7 +509,7 @@ class BoostingManager(TaskManager):
         # assume last activity when start downloading
         torrent['time']['last_activity'] = time.time()
 
-    def stop_download(self, infohash):
+    def stop_download(self, infohash, remove_torrent=False):
         """
         Stopping torrent that currently downloading
         """
@@ -530,16 +529,25 @@ class BoostingManager(TaskManager):
             self._logger.info("Writing resume data for %s", str(infohash))
             deferred_resume = download.save_resume_data()
 
-            def _remove_download(resume_data):
+            def _remove_download(resume_data, remove_torrent_par):
                 infohash_bin = resume_data['info-hash']
                 self._logger.info("[CALLBACK] Stopping download %s", hexlify(infohash_bin))
-                _torrent = self.torrents[infohash_bin]
-                _download = _torrent.pop('download', False)
+
+                if infohash_bin in self.torrents:
+                    _torrent = self.torrents[infohash_bin]
+                    _download = _torrent.pop('download', False)
+                else:
+                    self._logger.error("Can't find torrents in callback %s:%s", hexlify(infohash_bin),
+                                       [hexlify(a) for a in self.torrents.keys()])
+                    _download = None
+
                 if _download:
                     self.session.remove_download(_download, hidden=True)
                     torrent['time']['last_stopped'] = time.time()
+                if remove_torrent_par:
+                    self.torrents.pop(infohash_bin)
 
-            deferred_resume.addCallback(_remove_download)
+            deferred_resume.addCallback(_remove_download, remove_torrent)
 
     def _select_torrent(self):
         """
