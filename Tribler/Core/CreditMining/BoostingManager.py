@@ -164,7 +164,7 @@ class BoostingManager(TaskManager):
 
                 # pause torrent download from disabled source
                 if not mining_bool:
-                    self.stop_download(tor)
+                    self.stop_download(ihash)
 
         self.boosting_sources[string_to_source(source)].enabled = mining_bool
 
@@ -216,7 +216,7 @@ class BoostingManager(TaskManager):
                            if torrent['source'] == source_to_string(source_key)]
 
             for torrent in rm_torrents:
-                self.stop_download(torrent)
+                self.stop_download(torrent["metainfo"].get_infohash())
                 self.torrents.pop(torrent["metainfo"].get_infohash(), None)
 
             self._logger.info("Torrents download stopped and removed")
@@ -361,7 +361,7 @@ class BoostingManager(TaskManager):
                 is_duplicate = healthiest_torrent != duplicate
                 duplicate['is_duplicate'] = is_duplicate
                 if is_duplicate and duplicate.get('download', None):
-                    self.stop_download(duplicate)
+                    self.stop_download(duplicate["metainfo"].get_infohash())
 
         torrent['time'] = {}
         torrent['time']['all_download'] = 0
@@ -466,6 +466,8 @@ class BoostingManager(TaskManager):
         dscfg.set_dest_dir(self.settings.credit_mining_path)
         dscfg.set_safe_seeding(False)
 
+        torrent = self.torrents[infohash]
+
         preload = torrent.get('preload', False)
 
         if self.session.lm.download_exists(torrent["metainfo"].get_infohash()):
@@ -475,8 +477,10 @@ class BoostingManager(TaskManager):
 
         pstate = None
         if type(torrent['predownload']) is not str:
-            self._logger.error("Still predownload %s. Cancel start_download",
-                               hexlify(torrent["metainfo"].get_infohash()))
+            self._logger.error("Still predownload %s. Pending start_download %s",
+                               hexlify(torrent["metainfo"].get_infohash()), torrent['predownload'])
+            torrent['predownload'].addCallback(self.start_download)
+
             return
         elif os.path.isfile(os.path.join(self.session.get_downloads_pstate_dir(), torrent['predownload'])):
             with open(os.path.join(self.session.get_downloads_pstate_dir(), torrent['predownload']), 'r') as _predl_file:
@@ -499,24 +503,27 @@ class BoostingManager(TaskManager):
 
         torrent['time']['last_started'] = time.time()
 
-    def stop_download(self, torrent):
+        # assume last activity when start downloading
+        torrent['time']['last_activity'] = time.time()
+
+    def stop_download(self, infohash):
         """
         Stopping torrent that currently downloading
         """
-        ihash = lt.big_number(torrent["metainfo"].get_infohash())
-        self._logger.info("Stopping %s", str(ihash))
-        download = torrent.pop('download', False)
-        lt_torrent = self.session.lm.ltmgr.get_session().find_torrent(ihash)
-        if download and lt_torrent.is_valid():
-            self._logger.info("Writing resume data for %s", str(ihash))
+        torrent = self.torrents[infohash]
+        infohash = hexlify(infohash)
 
+        self._logger.info("Stopping %s", str(infohash))
+        download = torrent.pop('download', False)
+        if download:
             handle = download.handle
             if not handle.is_valid():
-                self._logger.error("Handle %s is not valid", str(ihash))
+                self._logger.error("Handle %s is not valid", str(infohash))
             if not handle.has_metadata():
-                self._logger.error("Metadata %s is not valid", str(ihash))
+                self._logger.error("Metadata %s is not valid", str(infohash))
             handle.pause()
 
+            self._logger.info("Writing resume data for %s", str(infohash))
             download.save_resume_data()
             self.session.remove_download(download, hidden=True)
             torrent['time']['last_stopped'] = time.time()
@@ -532,9 +539,9 @@ class BoostingManager(TaskManager):
             # we prioritize archive source
             if torrent.get('preload', False):
                 if 'download' not in torrent:
-                    self.start_download(torrent)
+                    self.start_download(infohash)
                 elif torrent['download'].get_status() == DLSTATUS_SEEDING:
-                    self.stop_download(torrent)
+                    self.stop_download(infohash)
             elif not torrent.get('is_duplicate', False):
                 if torrent.get('enabled', True):
                     torrents[infohash] = torrent
@@ -543,9 +550,9 @@ class BoostingManager(TaskManager):
             # Determine which torrent to start and which to stop.
             torrents_start, torrents_stop = self.settings.policy.apply(torrents, self.settings.max_torrents_active)
             for torrent in torrents_stop:
-                self.stop_download(torrent)
+                self.stop_download(torrent["metainfo"].get_infohash())
             for torrent in torrents_start:
-                self.start_download(torrent)
+                self.start_download(torrent["metainfo"].get_infohash())
 
             self._logger.info("Selecting from %s torrents %s start download", len(torrents), len(torrents_start))
 

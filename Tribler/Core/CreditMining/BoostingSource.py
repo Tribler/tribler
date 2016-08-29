@@ -147,6 +147,9 @@ class BoostingSource(TaskManager):
             # check if torrent already inserted or not
             if infohash not in self.session.lm.boosting_manager.torrents:
                 continue
+            elif 'download' not in self.torrents[infohash]:
+                # or if it's stopped
+                continue
 
             boosting_torrent = self.session.lm.boosting_manager.torrents[infohash]
             timediff = time.time() - boosting_torrent['time']['last_activity'] if boosting_torrent['time']['last_activity'] else 0
@@ -154,7 +157,10 @@ class BoostingSource(TaskManager):
             # kill the torrent
             if timediff > self.delete_idle_torrent_timeout:
                 # if currently running, stop it (this might not happen as the statistics will prevent this)
-                self.session.lm.boosting_manager.stop_download(boosting_torrent)
+
+                if infohash in self.session.lm.boosting_manager.torrents \
+                        and 'download' in self.session.lm.boosting_manager.torrents[infohash]:
+                    self.session.lm.boosting_manager.stop_download(infohash)
 
                 self._logger.debug("Removed torrent %s from %s because of timeout", hexlify(infohash), self.source)
 
@@ -482,7 +488,8 @@ class RSSFeedSource(BoostingSource):
                             Headers({'User-Agent': ['Tribler ' + version_id]}),
                             None)
                         ses_agent.addCallback(__success_cb, item).addErrback(self._on_err)
-                    else: # torrent already downloaded before. But we deleted it.
+                    elif self.fake_infohash_id[fake_infohash] not in self.torrents:
+                        # torrent already downloaded before. But we deleted it.
                         infohash = self.fake_infohash_id[fake_infohash]
                         self._logger.debug("Readd torrent %s", hexlify(infohash))
 
@@ -492,10 +499,16 @@ class RSSFeedSource(BoostingSource):
 
                         tdef = TorrentDef.load_from_memory(self.session.get_collected_torrent(infohash))
 
+                        torrent_values = [item['title'], tdef, tdef.get_creation_date(), tdef.get_length(),
+                                          len(tdef.get_files()), -1, -1, self.enabled, {}]
+
+                        # store the real infohash to generated infohash
+                        self.torrents[infohash] = dict(zip(torrent_keys, torrent_values))
+
                         if tdef and len(self.torrents) < self.max_torrents and self.torrent_insert_callback:
                             self.torrent_insert_callback(self.source, infohash, self.torrents[infohash])
                         else:
-                            self._logger.debug("Max torrents in source reached. Not adding %s", hexlify(infohash))
+                            self._logger.debug("Can't callback torrent. Not adding %s", hexlify(infohash))
 
 
 class DirectorySource(BoostingSource):
