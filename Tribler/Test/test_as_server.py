@@ -50,7 +50,6 @@ defaults.dldefaults['downloadconfig']['safe_seeding'] = False
 OUTPUT_DIR = os.path.abspath(os.environ.get('OUTPUT_DIR', 'output'))
 
 
-
 class BaseTestCase(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):

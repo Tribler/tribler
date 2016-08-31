@@ -7,6 +7,7 @@ import logging
 import base64
 from twisted.internet.defer import inlineCallbacks
 
+from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 from Tribler.Core.CacheDB.sqlitecachedb import forceDBThread
 from Tribler.Core.simpledefs import NTFY_TUNNEL, NTFY_REMOVE
@@ -19,13 +20,31 @@ from Tribler.dispersy.message import Message, DelayPacketByMissingMember
 from Tribler.dispersy.conversion import DefaultConversion
 
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
-from Tribler.community.multichain.block import MultiChainBlock, INVALID, GENESIS_SEQ, UNKNOWN_SEQ
+from Tribler.community.multichain.block import MultiChainBlock, ValidationResult, GENESIS_SEQ, UNKNOWN_SEQ
 from Tribler.community.multichain.payload import HalfBlockPayload, CrawlRequestPayload
 from Tribler.community.multichain.database import MultiChainDB
 from Tribler.community.multichain.conversion import MultiChainConversion
 
 HALF_BLOCK = u"half_block"
 CRAWL = u"crawl"
+
+
+class PendingBytes(object):
+    def __init__(self, up, down, clean=None):
+        super(PendingBytes, self).__init__()
+        self.up = up
+        self.down = down
+        self.clean = clean
+
+    def add(self, up, down):
+        if self.up + up >= 0 and self.down + down >= 0:
+            self.up = max(0, self.up + up)
+            self.down = max(0, self.down + down)
+            if self.clean is not None:
+                self.clean.reset(2 * 60)
+            return True
+        else:
+            return False
 
 
 class MultiChainCommunity(Community):
@@ -39,6 +58,12 @@ class MultiChainCommunity(Community):
 
         self.notifier = None
         self.persistence = MultiChainDB(self.dispersy.working_directory)
+
+        # We store the bytes send and received in the tunnel community in a dictionary.
+        # The key is the public key of the peer being interacted with, the value a tuple of the up and down bytes
+        # This data is not used to create outgoing requests, but to verify incoming requests
+        self.pending_bytes = dict()
+
         self.logger.debug("The multichain community started with Public Key: %s",
                           self.my_member.public_key.encode("hex"))
 
@@ -152,7 +177,7 @@ class MultiChainCommunity(Community):
             blk = message.payload.block
             validation = blk.validate(self.persistence)
             self.logger.debug("Block validation result %s, %s, (%s)", validation[0], validation[1], blk)
-            if validation[0] == INVALID:
+            if validation[0] == ValidationResult.invalid:
                 continue
             elif not self.persistence.contains(blk):
                 self.persistence.add_block(blk)
@@ -160,17 +185,39 @@ class MultiChainCommunity(Community):
                 self.logger.debug("Received already known block (%s)", blk)
 
             # Is this a request, addressed to us, and have we not signed it already?
-            if blk.link_sequence_number == UNKNOWN_SEQ and blk.link_public_key == self.my_member.public_key and \
+            if blk.link_sequence_number == UNKNOWN_SEQ and \
+                    blk.link_public_key == self.my_member.public_key and \
                     self.persistence.get_linked(blk) is None:
-                self.logger.info("Received request block addressed to myself (%s)", blk)
-                # TODO: determine if we want to (i.e. the requesting public key has enough outstanding credit)
-                self.sign_block(message.candidate, None, None, blk)
+
+                self.logger.info("Received request block addressed to us (%s)", blk)
+
+                # determine if we want to (i.e. the requesting public key has enough pending bytes)
+                pend = self.pending_bytes.get(message.candidate.get_member().public_key)
+                if pend and pend.add(-blk.down, -blk.up):
+                    # It is important that the request matches up with its previous block, gaps cannot be tolerated at
+                    # this point. We already dropped invalids, so here we delay this message if the result is partial,
+                    # partial_previous or no-info. We send a crawl request to the requester to (hopefully) close the gap
+                    if validation[0] == ValidationResult.partial_previous or \
+                                    validation[0] == ValidationResult.partial or \
+                                    validation[0] == ValidationResult.no_info:
+                        # Note that this code does not cover the scenario where we obtain this block indirectly.
+
+                        self.send_crawl_request(message.candidate, max(GENESIS_SEQ, blk.sequence_number - 5))
+                        # Correct pending bytes since we did not sign the block yet
+                        pend.add(blk.down, blk.up)
+                        # Make sure we get called again after a while. Note that the cleanup task on pend will prevent
+                        # us from waiting on the peer forever
+                        self.register_task("crawl_%s" % blk.hash, reactor.callLater(5.0, self.received_half_block,
+                                                                                    [message]))
+                    else:
+                        self.sign_block(message.candidate, None, None, blk)
 
     def send_crawl_request(self, candidate, sequence_number=None):
         sq = sequence_number
         if sequence_number is None:
             blk = self.persistence.get_latest(candidate.get_member().public_key)
             sq = blk.sequence_number if blk else GENESIS_SEQ
+        sq = max(GENESIS_SEQ, sq)
         self.logger.info("Requesting crawl of node %s:%d", candidate.get_member().public_key.encode("hex")[-8:], sq)
         message = self.get_meta_message(CRAWL).impl(
             authentication=(self.my_member,),
@@ -224,10 +271,14 @@ class MultiChainCommunity(Community):
             statistics["latest_block_down"] = 0
         return statistics
 
+    @inlineCallbacks
     def unload_community(self):
         self.logger.debug("Unloading the MultiChain Community.")
         if self.notifier:
             self.notifier.remove_observer(self.on_tunnel_remove)
+        for pk in self.pending_bytes:
+            if self.pending_bytes[pk].clean is not None:
+                self.pending_bytes[pk].clean.reset(0)
         yield super(MultiChainCommunity, self).unload_community()
         # Close the persistence layer
         self.persistence.close()
@@ -236,7 +287,7 @@ class MultiChainCommunity(Community):
     def on_tunnel_remove(self, subject, change_type, tunnel, candidate):
         """
         Handler for the remove event of a tunnel. This function will attempt to create a block for the amounts that
-        were transferred using the tunnel.
+        where transferred using the tunnel.
         :param subject: Category of the notifier event
         :param change_type: Type of the notifier event
         :param tunnel: The tunnel that was removed (closed)
@@ -248,12 +299,24 @@ class MultiChainCommunity(Community):
         assert isinstance(tunnel.bytes_up, int) and isinstance(tunnel.bytes_down, int),\
             "tunnel instance must provide byte counts in int"
 
+        up = tunnel.bytes_up
+        down = tunnel.bytes_down
+        pk = candidate.get_member().public_key
         # Tie breaker to prevent both parties from requesting
-        if self.my_member.public_key > candidate.get_member().public_key:
-            self.sign_block(candidate, tunnel.bytes_up, tunnel.bytes_down)
-        # else:
-            # TODO Note that you still expect a signature request for these bytes:
-            # pending[peer] = (up, down)
+        if up > down or up == down and self.my_member.public_key > pk:
+            self.register_task("sign_%s" % tunnel.circuit_id,
+                               reactor.callLater(5, self.sign_block, candidate, tunnel.bytes_up, tunnel.bytes_down))
+        else:
+            pend = self.pending_bytes.get(pk)
+            if not pend:
+                self.pending_bytes[pk] = PendingBytes(up,
+                                                      down,
+                                                      reactor.callLater(2 * 60, self.cleanup_pending, pk))
+            else:
+                pend.add(up, down)
+
+    def cleanup_pending(self, public_key):
+        self.pending_bytes.pop(public_key, None)
 
 
 class MultiChainCommunityCrawler(MultiChainCommunity):

@@ -16,13 +16,6 @@ EMPTY_PK = '0'*PK_LENGTH
 block_pack_format = "! Q Q Q Q {0}s I {0}s I {1}s {2}s".format(PK_LENGTH, HASH_LENGTH, SIG_LENGTH)
 block_pack_size = calcsize(block_pack_format)
 
-VALID = "valid"
-PARTIAL = "partial"
-PARTIAL_NEXT = PARTIAL+"-next"
-PARTIAL_PREV = PARTIAL+"-prev"
-NO_INFO = "no-info"
-INVALID = "invalid"
-
 
 class MultiChainBlock(object):
     """
@@ -78,68 +71,83 @@ class MultiChainBlock(object):
         """
         Validates this block against what is known in the database
         :param database: the database to check against
-        :return: VALID if the block does not violate any rules,
-                 PARTIAL_NEXT if the block does not violate any rules, but there is a gap or no block in the future
-                 PARTIAL_PREV if the block does not violate any rules, but there is a gap or no block in the past
-                 PARTIAL if the block does not violate any rules, but there are gaps or no blocks on either side
-                 NO_INFO if there is not enough information known about the block to validate
-                 INVALID if the block violates any of the rules
+        :return: A tuple consisting of a ValidationResult and a list of user string errors
         """
 
-        result = [VALID]
+        # we start off thinking everything is hunky dory
+        result = [ValidationResult.valid]
         errors = []
         crypto = ECCrypto()
 
+        # short cut for invalidating so we don't have repeating similar code for every error.
+        # this is also the reason result is a list, we need a mutable container. Assignments in err are limited to its
+        # scope. So setting result directly is not possible.
         def err(reason):
-            result[0] = INVALID
+            result[0] = ValidationResult.invalid
             errors.append(reason)
 
-        # Step 1: get all related blocks from the database, assume that the database speaks the truth and that all
-        # retrieved blocks are not invalid themselves.
+        # Step 1: get all related blocks from the database.
+        # The validity of blocks is immutable. Once they are accepted they cannot change validation result. In such
+        # cases subsequent blocks can get validation errors and will not get inserted into the database. Thus we can
+        # assume that all retrieved blocks are not invalid themselves. Blocks can get inserted into the database in any
+        # order, so we need to find successors, predecessors as well as the block itself and its linked block.
         blk = database.get(self.public_key, self.sequence_number)
         link = database.get_linked(self)
         prev_blk = database.get_block_before(self)
         next_blk = database.get_block_after(self)
 
         # Step 2: determine the maximum validation level
+        # Depending on the blocks we get from the database, we can decide to reduce the validation level. We must do
+        # this prior to flagging any errors. This way we are only ever reducing the validation level without having to
+        # resort to min()/max() every time we set it. We first determine some booleans to make everything readable.
+        is_genesis = self.sequence_number == GENESIS_SEQ or self.previous_hash == GENESIS_HASH
+        is_prev_gap = prev_blk.sequence_number != self.sequence_number - 1 if prev_blk else True
+        is_next_gap = next_blk.sequence_number != self.sequence_number + 1 if next_blk else True
         if not prev_blk and not next_blk:
-            if self.sequence_number != GENESIS_SEQ and self.previous_hash != GENESIS_HASH:
-                # No blocks found, there is no info to base on
-                err("No blocks are known for this member before or after the queried sequence number")
-                result[0] = NO_INFO
+            # Is this block a non genesis block? If so, we know nothing about this public key, else pretend the
+            # prev_blk exists
+            if not is_genesis:
+                result[0] = ValidationResult.no_info
             else:
-                # If it is a starting block, we can at least conclude that the start is right if the totals add up
-                result[0] = PARTIAL_NEXT
+                # We pretend prev_blk exists. This leaves us with next missing, which means partial-next at best.
+                result[0] = ValidationResult.partial_next
         elif not prev_blk and next_blk:
-            # The previous block does not exist in the database, at best our result can now be partial w.r.t. prev
-            if self.sequence_number != GENESIS_SEQ and self.previous_hash != GENESIS_HASH:
-                # We are not checking the first block after genesis, so we are really missing the previous block
-                result[0] = PARTIAL_PREV
-                if next_blk.sequence_number != self.sequence_number + 1:
-                    # If both sides are unknown or non-contiguous return a full partial result.
-                    result[0] = PARTIAL
+            # Is this block a non genesis block?
+            if not is_genesis:
+                # We are really missing prev_blk. So now partial-prev at best.
+                result[0] = ValidationResult.partial_previous
+                if is_next_gap:
+                    # Both sides are unknown or non-contiguous return a full partial result.
+                    result[0] = ValidationResult.partial
+            elif is_next_gap:
+                # This is a genesis block, so the missing previous is expected. If there is a gap to the next block
+                # this reduces the validation result to partial-next
+                result[0] = ValidationResult.partial_next
         elif prev_blk and not next_blk:
-            # The next block does not exist in the database, at best our result can now be partial w.r.t. next
-            result[0] = PARTIAL_NEXT
-            if prev_blk.sequence_number != self.sequence_number - 1:
-                # If both sides are unknown or non-contiguous return a full partial result.
-                result[0] = PARTIAL
+            # We are missing next_blk, so now partial-next at best.
+            result[0] = ValidationResult.partial_next
+            if is_prev_gap:
+                # Both sides are unknown or non-contiguous return a full partial result.
+                result[0] = ValidationResult.partial
         else:
             # both sides have known blocks, see if there are gaps
-            if (prev_blk.sequence_number != self.sequence_number - 1) and \
-                    (next_blk.sequence_number != self.sequence_number + 1):
-                result[0] = PARTIAL
-            elif prev_blk.sequence_number != self.sequence_number - 1:
-                result[0] = PARTIAL_PREV
-            elif next_blk.sequence_number != self.sequence_number + 1:
-                result[0] = PARTIAL_NEXT
+            if is_prev_gap and is_next_gap:
+                result[0] = ValidationResult.partial
+            elif is_prev_gap:
+                result[0] = ValidationResult.partial_previous
+            elif is_next_gap:
+                result[0] = ValidationResult.partial_next
 
         # Step 3: validate that the block is sane
+        # Some basic self tests. It is possible to violate these when constructing a block in code or getting a block
+        # from the database. The wire format is such that it impossible to hit many of these for blocks that went over
+        # the network.
         if self.up < 0:
             err("Up field is negative")
         if self.down < 0:
             err("Down field is negative")
         if self.down == 0 and self.up == 0:
+            # In this case the block doesn't modify any counters, these block are without purpose and are thus invalid.
             err("Up and down are zero")
         if self.total_up < 0:
             err("Total up field is negative")
@@ -152,6 +160,8 @@ class MultiChainBlock(object):
         if not crypto.is_valid_public_bin(self.public_key):
             err("Public key is not valid")
         else:
+            # If the public key is valid, we can use it to check the signature. We want just a yes/no answer here, and
+            # we want to keep checking for more errors, so just catch all packing exceptions and err() if any happen.
             try:
                 pck = self.pack(signature=False)
             except:
@@ -162,8 +172,9 @@ class MultiChainBlock(object):
         if not crypto.is_valid_public_bin(self.link_public_key):
             err("Linked public key is not valid")
         if self.public_key == self.link_public_key:
+            # Blocks to self serve no purpose and are thus invalid.
             err("Self signed block")
-        if self.sequence_number == GENESIS_SEQ or self.previous_hash == GENESIS_HASH:
+        if is_genesis:
             if self.sequence_number == GENESIS_SEQ and self.previous_hash != GENESIS_HASH:
                 err("Sequence number implies previous hash should be Genesis ID")
             if self.sequence_number != GENESIS_SEQ and self.previous_hash == GENESIS_HASH:
@@ -173,8 +184,11 @@ class MultiChainBlock(object):
             if self.total_down != self.down:
                 err("Genesis block invalid total_down and/or down")
 
-        # Step 4: does the database already know about this block? If so, is it equal?
+        # Step 4: does the database already know about this block? If so it should be equal or else we caught a
+        # branch in someones multichain.
         if blk:
+            # Sanity check to see if the database returned the expected block, we want to cover all our bases before
+            # crying wolf and making a fraud claim.
             assert blk.public_key == self.public_key and blk.sequence_number == self.sequence_number, \
                 "Database returned unexpected block"
             if blk.up != self.up:
@@ -193,12 +207,16 @@ class MultiChainBlock(object):
                 err("Previous hash does not match known block")
             if blk.signature != self.signature:
                 err("Signature does not match known block")
-            # if the known block is not equal, and the signature is valid, we have a double signed PK/seq. Fraud!
+            # if the known block is not equal, and the signatures are valid, we have a double signed PK/seq. Fraud!
             if self.hash != blk.hash and "Invalid signature" not in errors and "Public key is not valid" not in errors:
                 err("Double sign fraud")
 
-        # Step 5: does the database have the linked block? If so do the values match up?
+        # Step 5: does the database have the linked block? If so do the values match up? If the values do not match up
+        # someone comitted fraud, but it is impossible to decide who. So we just invalidate the block that is the latter
+        # to get validated. We can also detect double counter sign fraud at this point.
         if link:
+            # Sanity check to see if the database returned the expected block, we want to cover all our bases before
+            # crying wolf and making a fraud claim.
             assert link.public_key == self.link_public_key and \
                    (link.link_sequence_number == self.sequence_number or
                     link.sequence_number == self.link_sequence_number), \
@@ -216,26 +234,36 @@ class MultiChainBlock(object):
             if self.down != link.up:
                 err("Down/up mismatch on linked block")
 
-        # Step 6: does the database have adjacent blocks?
+        # Step 6: Did we get blocks from the database before or after self? They should be checked for violations too.
         if prev_blk:
+            # Sanity check of the block the database gave us.
             assert prev_blk.public_key == self.public_key and prev_blk.sequence_number < self.sequence_number,\
                 "Database returned unexpected block"
             if prev_blk.total_up + self.up > self.total_up:
                 err("Total up is lower than expected compared to the preceding block")
             if prev_blk.total_down + self.down > self.total_down:
                 err("Total down is lower than expected compared to the preceding block")
-            if prev_blk.sequence_number == self.sequence_number - 1 and prev_blk.hash != self.previous_hash:
+            if not is_prev_gap and prev_blk.hash != self.previous_hash:
                 err("Previous hash is not equal to the hash id of the previous block")
+                # Is this fraud? It is certainly an error, but fixing it would require a different signature on the same
+                # sequence number which is fraud.
 
         if next_blk:
+            # Sanity check of the block the database gave us.
             assert next_blk.public_key == self.public_key and next_blk.sequence_number > self.sequence_number,\
                 "Database returned unexpected block"
             if self.total_up + next_blk.up > next_blk.total_up:
                 err("Total up is higher than expected compared to the next block")
+                # In this case we could say there is fraud too, since the counters are too high. Also anyone that
+                # counter signed any such counters should be suspected since they apparently failed to validate or put
+                # their signature on it regardless of validation status. But it is not immediately clear where this
+                # error occurred, it might be lower on the chain than self. So it is hard to create a fraud proof here
             if self.total_down + next_blk.down > next_blk.total_down:
                 err("Total down is higher than expected compared to the next block")
-            if next_blk.sequence_number == self.sequence_number + 1 and next_blk.previous_hash != self.hash:
+                # See previous comment
+            if not is_next_gap and next_blk.previous_hash != self.hash:
                 err("Next hash is not equal to the hash id of the block")
+                # Again, this might not be fraud, but fixing it can only result in fraud.
 
         return result[0], errors
 
@@ -311,3 +339,51 @@ class MultiChainBlock(object):
         return (self.up, self.down, self.total_up, self.total_down, buffer(self.public_key), self.sequence_number,
                 buffer(self.link_public_key), self.link_sequence_number, buffer(self.previous_hash),
                 buffer(self.signature), buffer(self.hash))
+
+
+class ValidationResult(object):
+    """
+    Contains the various results that the validator can return.
+    """
+
+    @staticmethod
+    def valid():
+        """
+        The block does not violate any rules
+        """
+        pass
+
+    @staticmethod
+    def partial():
+        """
+        The block does not violate any rules, but there are gaps or no blocks on the previous or next block
+        """
+        pass
+
+    @staticmethod
+    def partial_next():
+        """
+        The block does not violate any rules, but there is a gap or no block on the next block
+        """
+        pass
+
+    @staticmethod
+    def partial_previous():
+        """
+        The block does not violate any rules, but there is a gap or no block on the previous block
+        """
+        pass
+
+    @staticmethod
+    def no_info():
+        """
+        There are no blocks (previous or next) to validate against
+        """
+        pass
+
+    @staticmethod
+    def invalid():
+        """
+        The block violates at least one validation rule
+        """
+        pass

@@ -4,10 +4,9 @@ from math import pow
 from twisted.internet.defer import inlineCallbacks
 
 from Tribler.Test.Community.Multichain.test_multichain_utilities import TestBlock, MultiChainTestCase
-from Tribler.community.multichain.database import MultiChainDB
-from Tribler.community.multichain.database import DATABASE_DIRECTORY
 from Tribler.dispersy.crypto import ECCrypto
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.community.multichain.database import MultiChainDB, DATABASE_DIRECTORY
 
 
 class TestDatabase(MultiChainTestCase):
