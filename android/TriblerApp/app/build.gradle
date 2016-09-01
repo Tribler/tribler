@@ -70,16 +70,29 @@ model {
                 jniLibs {
                     dependencies {
                         library "gnustl_shared"
-                        library "crypto"
-                        library "ssl"
                         library "boost_system"
                         library "boost_date_time"
                         library "boost_python"
+                        library "crypto"
+                        library "ssl"
                         library "ffi"
                         library "sodium"
                         library "torrent_rasterbar"
                         library "leveldb"
                         library "sqlite3"
+                        // VLC
+                        library "cpp_shared"
+                        library "anw10"
+                        library "anw13"
+                        library "anw14"
+                        library "anw18"
+                        library "anw21"
+                        library "compat7"
+                        library "iomx10"
+                        library "iomx13"
+                        library "iomx14"
+                        library "vlc"
+                        library "vlc_jni"
                     }
                 }
             }
@@ -88,6 +101,11 @@ model {
     repositories {
         // Prebuilt with python-for-android toolchain
         libs(PrebuiltLibraries) {
+            gnustl_shared {
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libgnustl_shared.so")
+                }
+            }
             boost_date_time {
                 binaries.withType(SharedLibraryBinary) {
                     sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libboost_date_time.so")
@@ -108,37 +126,22 @@ model {
                     sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libcrypto1.0.2h.so")
                 }
             }
-            ffi {
-                binaries.withType(SharedLibraryBinary) {
-                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libffi.so")
-                }
-            }
-            gnustl_shared {
-                binaries.withType(SharedLibraryBinary) {
-                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libgnustl_shared.so")
-                }
-            }
-            leveldb {
-                binaries.withType(SharedLibraryBinary) {
-                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libleveldb.so")
-                }
-            }
-            sodium {
-                binaries.withType(SharedLibraryBinary) {
-                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libsodium.so")
-                }
-            }
-            sqlite3 {
-                binaries.withType(SharedLibraryBinary) {
-                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libsqlite3.so")
-                }
-            }
             ssl {
                 binaries.withType(SharedLibraryBinary) {
                     // Android does not have regular versioning of .so files, but does have an
                     // old version of openssl build in which prevents the loading libssl.so
                     // included with the app, therefore a custom name with version was introduced
                     sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libssl1.0.2h.so")
+                }
+            }
+            ffi {
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libffi.so")
+                }
+            }
+            sodium {
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libsodium.so")
                 }
             }
             torrent_rasterbar {
@@ -149,18 +152,91 @@ model {
                     sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libtorrent_rasterbar.so")
                 }
             }
+            leveldb {
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libleveldb.so")
+                }
+            }
+            sqlite3 {
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libsqlite3.so")
+                }
+            }
+            // VLC binaries
+            cpp_shared {
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libc++_shared.so")
+                }
+            }
+            anw10 {
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libanw.10.so")
+                }
+            }
+            anw13 {
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libanw.13.so")
+                }
+            }
+            anw14 {
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libanw.14.so")
+                }
+            }
+            anw18 {
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libanw.18.so")
+                }
+            }
+            anw21 {
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libanw.21.so")
+                }
+            }
+            compat7 {
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libcompat.7.so")
+                }
+            }
+            iomx10 {
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libiomx.10.so")
+                }
+            }
+            iomx13 {
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libiomx.13.so")
+                }
+            }
+            iomx14 {
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libiomx.14.so")
+                }
+            }
+            vlc {
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libvlc.so")
+                }
+            }
+            vlc_jni {
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("src/main/jniLibs/armeabi-v7a/libvlcjni.so")
+                }
+            }
         }
     }
 }
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile fileTree(include: ['*.jar'], dir: 'libs')
     testCompile 'junit:junit:4.12'
     testCompile 'com.squareup.okhttp3:mockwebserver:3.4.1'
     testCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2'
-    compile 'com.squareup.leakcanary:leakcanary-android:1.4-beta2' //DEBUG
+    //DEBUG
+    compile 'com.facebook.stetho:stetho:1.3.1'
+    compile 'com.facebook.stetho:stetho-okhttp3:1.3.1'
+    compile 'com.squareup.leakcanary:leakcanary-android:1.4-beta2'
+
     //compile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2'
-    compile 'com.facebook.stetho:stetho:1.3.1' //DEBUG
-    compile 'com.facebook.stetho:stetho-okhttp3:1.3.1' //DEBUG
     compile 'io.reactivex:rxandroid:1.2.1'
     compile 'io.reactivex:rxjava:1.1.9'
     compile 'com.cantrowitz:rxbroadcast:1.0.0'
@@ -183,4 +259,5 @@ dependencies {
     compile 'com.github.medyo:fancybuttons:1.8.1'
     compile 'com.jakewharton:butterknife:8.4.0'
     annotationProcessor 'com.jakewharton:butterknife-compiler:8.4.0'
+    compile files('src/main/jniLibs/libvlc-3.0.0-2.1.0.jar')
 }
