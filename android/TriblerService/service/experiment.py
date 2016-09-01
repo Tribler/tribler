@@ -1,6 +1,6 @@
 import os
-import ast
 import logging
+import json
 import importlib
 
 
@@ -28,7 +28,7 @@ class TriblerExperiment(object):
         c = getattr(m, os.getenv('PYTHON_NAME'))
 
         # Get the keyword arguments to run the test with
-        kwargs = ast.literal_eval(os.getenv('PYTHON_SERVICE_ARGUMENT', '{}'))
+        kwargs = json.loads(os.getenv('PYTHON_SERVICE_ARGUMENT', '{}'))
 
         test = c()
         test.setUp()

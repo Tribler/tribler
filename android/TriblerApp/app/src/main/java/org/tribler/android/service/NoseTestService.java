@@ -10,7 +10,7 @@ import org.tribler.android.R;
 
 import java.io.File;
 
-public class NoseTestService extends PythonService {
+public class NoseTestService extends Triblerd {
 
     public static void start(Context ctx) {
         String argument = ctx.getFilesDir().getAbsolutePath();
@@ -31,8 +31,8 @@ public class NoseTestService extends PythonService {
                 "/coverage.xml --xunit-file=" + OUTPUT_DIR + "/nosetests.xml " + NOSE_ARGS_COMMON;
         intent.putExtra("pythonServiceArgument", NOSE_ARGS);
         intent.putExtra("serviceEntrypoint", "nosetests.py");
-        intent.putExtra("serviceTitle", "Tribler testing service");
-        intent.putExtra("serviceDescription", "Running all tests");
+        intent.putExtra("serviceTitle", ctx.getString(R.string.status_nosetests));
+        intent.putExtra("serviceDescription", NOSE_ARGS);
         intent.putExtra("serviceIconId", R.mipmap.ic_service);
         ctx.startService(intent);
     }
@@ -42,12 +42,4 @@ public class NoseTestService extends PythonService {
         ctx.stopService(intent);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Nullable
-    @Override
-    public IBinder onBind(Intent intent) {
-        return null;
-    }
 }

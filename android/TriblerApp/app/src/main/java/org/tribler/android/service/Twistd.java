@@ -26,7 +26,7 @@ public class Twistd extends Triblerd {
                 "/cprofiler.dat -n tribler -p " + ctx.getString(R.string.service_port_number);
         intent.putExtra("pythonServiceArgument", TWISTD_ARGS);
         intent.putExtra("serviceEntrypoint", "twistd.py");
-        intent.putExtra("serviceTitle", "Tribler profiler");
+        intent.putExtra("serviceTitle", "Profiling Tribler with twistd plugin");
         intent.putExtra("serviceDescription", ctx.getString(R.string.service_url) + ":"
                 + ctx.getString(R.string.service_port_number));
         intent.putExtra("serviceIconId", R.mipmap.ic_service);

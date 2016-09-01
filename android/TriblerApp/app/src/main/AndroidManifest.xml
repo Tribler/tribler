@@ -88,6 +88,7 @@
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
 
                 <category android:name="android.intent.category.DEFAULT" />
+
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
@@ -115,6 +116,18 @@
         <activity
             android:name=".EditChannelActivity"
             android:label="@string/action_my_channel"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".ExperimentActivity"
+            android:exported="true"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".NoseTestActivity"
+            android:exported="true"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".TwistdActivity"
+            android:exported="true"
             android:theme="@style/AppTheme.NoActionBar" />
     </application>
 

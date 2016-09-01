@@ -95,6 +95,8 @@
     <string name="status_searching">Searching…</string>
     <string name="status_shutting_down">Shutting down…</string>
     <string name="status_saving_changes">Saving changes…</string>
+    <string name="status_nosetests">Running all tests…</string>
+    <string name="status_experiment">Running experiment: %s</string>
 
     <string name="dialog_create_my_channel">Your own channel is not created yet.\n\nCreate your own channel now?</string>
     <string name="channel_name_label">Channel name</string>

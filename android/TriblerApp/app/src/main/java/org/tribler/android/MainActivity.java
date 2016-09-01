@@ -83,27 +83,6 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
     private Handler _eventHandler;
     private IRestApi _service;
 
-    private void initService() {
-        // Check network connection before starting service
-        if (MyUtils.isNetworkConnected(_connectivityManager)) {
-
-            Triblerd.start(this); // Run normally
-            //Twistd.start(this); // Run profiler
-            //NoseTestService.start(this); // Run tests
-            //ExperimentService.start(this); // Run experiment
-
-        } else {
-            Toast.makeText(this, R.string.info_no_connection, Toast.LENGTH_LONG).show();
-        }
-    }
-
-    private void killService() {
-        Triblerd.stop(this);
-        //Twistd.stop(this);
-        //NoseTestService.stop(this);
-        //ExperimentService.stop(this);
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -120,7 +99,13 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         Stetho.initializeWithDefaults(getApplicationContext()); //DEBUG
 
         initConnectionManager();
-        initService();
+
+        // Check network connection before starting service
+        if (MyUtils.isNetworkConnected(_connectivityManager)) {
+            initService();
+        } else {
+            Toast.makeText(this, R.string.info_no_connection, Toast.LENGTH_LONG).show();
+        }
 
         // Start listening to events on the main thread so the gui can be updated
         _eventHandler = new Handler(Looper.getMainLooper(), this);
@@ -214,6 +199,14 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
                 shutdown();
                 return;
         }
+    }
+
+    protected void initService() {
+        Triblerd.start(this); // Run normally
+    }
+
+    protected void killService() {
+        Triblerd.stop(this);
     }
 
     private void askUserToSubscribe(String dispersyCid) {
