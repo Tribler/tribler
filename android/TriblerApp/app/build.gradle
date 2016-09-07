@@ -40,6 +40,7 @@ model {
                     value "1"
                 }
             }
+            testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         }
         // NDK config mirrors python-for-android toolchain config
         ndk {
@@ -228,15 +229,19 @@ model {
 }
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
-    testCompile 'junit:junit:4.12'
-    testCompile 'com.squareup.okhttp3:mockwebserver:3.4.1'
-    testCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2'
-    //DEBUG
-    compile 'com.facebook.stetho:stetho:1.3.1'
-    compile 'com.facebook.stetho:stetho-okhttp3:1.3.1'
-    compile 'com.squareup.leakcanary:leakcanary-android:1.4-beta2'
+    compile fileTree(include: ['*.jar'], dir: 'jniLibs')
 
-    //compile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2'
+    compile 'com.android.support:support-v4:24.2.0'
+    compile 'com.android.support:appcompat-v7:24.2.0'
+    compile 'com.android.support:design:24.2.0'
+    compile 'com.android.support:recyclerview-v7:24.2.0'
+    compile 'com.android.support:cardview-v7:24.2.0'
+
+    compile 'com.google.code.gson:gson:2.7'
+    compile 'xyz.danoz:recyclerviewfastscroller:0.1.3'
+    compile 'com.github.medyo:fancybuttons:1.8.1'
+    compile 'com.jakewharton:butterknife:8.4.0'
+
     compile 'io.reactivex:rxandroid:1.2.1'
     compile 'io.reactivex:rxjava:1.1.9'
     compile 'com.cantrowitz:rxbroadcast:1.0.0'
@@ -245,19 +250,27 @@ dependencies {
     compile 'com.jakewharton.rxbinding:rxbinding-appcompat-v7:0.4.0'
     compile 'com.jakewharton.rxbinding:rxbinding-design:0.4.0'
     compile 'com.jakewharton.rxbinding:rxbinding-recyclerview-v7:0.4.0'
+
     compile 'com.squareup.okhttp3:okhttp:3.4.1'
     compile 'com.squareup.retrofit2:retrofit:2.1.0'
     compile 'com.squareup.retrofit2:adapter-rxjava:2.1.0'
     compile 'com.squareup.retrofit2:converter-gson:2.1.0'
-    compile 'com.google.code.gson:gson:2.7'
-    compile 'com.android.support:support-v4:24.2.0'
-    compile 'com.android.support:appcompat-v7:24.2.0'
-    compile 'com.android.support:design:24.2.0'
-    compile 'com.android.support:recyclerview-v7:24.2.0'
-    compile 'com.android.support:cardview-v7:24.2.0'
-    compile 'xyz.danoz:recyclerviewfastscroller:0.1.3'
-    compile 'com.github.medyo:fancybuttons:1.8.1'
-    compile 'com.jakewharton:butterknife:8.4.0'
+
+    //DEBUG
+    compile 'com.facebook.stetho:stetho:1.3.1'
+    compile 'com.facebook.stetho:stetho-okhttp3:1.3.1'
+    compile 'com.squareup.leakcanary:leakcanary-android:1.4-beta2'
+    //compile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2'
+
     annotationProcessor 'com.jakewharton:butterknife-compiler:8.4.0'
-    compile files('src/main/jniLibs/libvlc-3.0.0-2.1.0.jar')
+
+    androidTestCompile 'com.android.support:support-annotations:24.2.0'
+    androidTestCompile 'com.android.support.test:runner:0.4'
+    androidTestCompile 'com.android.support.test:rules:0.4'
+    androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.1'
+    androidTestCompile 'com.android.support.test.uiautomator:uiautomator-v18:2.1.2'
+
+    testCompile 'junit:junit:4.12'
+    testCompile 'com.squareup.okhttp3:mockwebserver:3.4.1'
+    testCompile 'com.squareup.leakcanary:leakcanary-android-no-op:1.4-beta2'
 }
