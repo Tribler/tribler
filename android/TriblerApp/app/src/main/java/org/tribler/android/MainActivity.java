@@ -8,6 +8,7 @@ import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
+import android.net.wifi.p2p.WifiP2pManager;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
@@ -98,7 +99,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
         Stetho.initializeWithDefaults(getApplicationContext()); //DEBUG
 
-        initConnectionManager();
+        initConnectivityManager();
 
         // Check network connection before starting service
         if (MyUtils.isNetworkConnected(_connectivityManager)) {
@@ -173,6 +174,11 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
             case ConnectivityManager.CONNECTIVITY_ACTION:
             case WifiManager.NETWORK_STATE_CHANGED_ACTION:
             case WifiManager.WIFI_STATE_CHANGED_ACTION:
+            case WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION:
+            case WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION:
+            case WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION:
+            case WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION:
+            case WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION:
 
                 // Warn user if connection is lost
                 if (!MyUtils.isNetworkConnected(_connectivityManager)) {
@@ -319,7 +325,7 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
         }
     }
 
-    private void initConnectionManager() {
+    private void initConnectivityManager() {
         _connectivityManager =
                 (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
 
@@ -346,6 +352,26 @@ public class MainActivity extends BaseActivity implements Handler.Callback {
 
         // Listen for Wi-Fi state changes
         rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION))
+                .subscribe(observer));
+
+        // Listen for Wi-Fi direct state changes
+        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION))
+                .subscribe(observer));
+
+        // Listen for Wi-Fi direct discovery changes
+        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION))
+                .subscribe(observer));
+
+        // Listen for Wi-Fi direct peer changes
+        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION))
+                .subscribe(observer));
+
+        // Listen for Wi-Fi direct connection changes
+        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION))
+                .subscribe(observer));
+
+        // Listen for Wi-Fi direct device changes
+        rxSubs.add(RxBroadcast.fromBroadcast(this, new IntentFilter(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION))
                 .subscribe(observer));
     }
 

@@ -3,10 +3,16 @@
     package="org.tribler.android">
 
     <uses-feature
-        android:name="android.hardware.camera"
+        android:name="android.hardware.wifi"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.wifi.direct"
         android:required="false" />
     <uses-feature
         android:name="android.hardware.nfc"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera.any"
         android:required="false" />
 
     <!-- uses-permission android:name="android.permission.CAMERA" / -->
@@ -21,9 +27,9 @@
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <!-- uses-permission android:name="android.permission.BLUETOOTH_ADMIN" / -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" / -->
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <!-- uses-permission android:name="android.permission.CHANGE_WIFI_STATE" / -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <!-- uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" / -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- uses-permission android:name="android.permission.TRANSMIT_IR" / -->
@@ -81,8 +87,13 @@
             </intent-filter>
             <intent-filter>
                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
-                <action android:name="android.net.wifi.NETWORK_STATE_CHANGED_ACTION" />
+                <action android:name="android.net.wifi.STATE_CHANGE" />
                 <action android:name="android.net.wifi.WIFI_STATE_CHANGED" />
+                <action android:name="android.net.wifi.p2p.STATE_CHANGED" />
+                <action android:name="android.net.wifi.p2p.DISCOVERY_STATE_CHANGE" />
+                <action android:name="android.net.wifi.p2p.PEERS_CHANGED" />
+                <action android:name="android.net.wifi.p2p.CONNECTION_STATE_CHANGE" />
+                <action android:name="android.net.wifi.p2p.THIS_DEVICE_CHANGED" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
@@ -107,6 +118,11 @@
         </activity>
         <activity
             android:name=".BeamActivity"
+            android:label="@string/action_send_app"
+            android:launchMode="singleTop"
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".WifiActivity"
             android:label="@string/action_send_app"
             android:launchMode="singleTop"
             android:theme="@style/AppTheme.NoActionBar" />
