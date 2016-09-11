@@ -21,7 +21,8 @@ from traceback import print_exc
 
 from twisted.internet import interfaces
 from twisted.internet.base import BasePort
-from twisted.internet.defer import maybeDeferred, succeed
+from twisted.internet.defer import maybeDeferred, succeed, inlineCallbacks, returnValue
+from twisted.python.threadable import isInIOThread
 from twisted.web.server import Site
 from twisted.web.static import File
 
@@ -88,6 +89,8 @@ class AbstractServer(BaseTestCase):
         defaults.sessdefaults['general']['state_dir'] = self.state_dir
         defaults.dldefaults["downloadconfig"]["saveas"] = self.dest_dir
 
+        self.checkReactor(phase="setUp")
+
         self.setUpCleanup()
         os.makedirs(self.session_base_dir)
         self.annotate_dict = {}
@@ -110,10 +113,12 @@ class AbstractServer(BaseTestCase):
         factory = Site(resource)
         self.file_server = reactor.listenTCP(port, factory)
 
-    def checkReactor(self, _):
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
+    def checkReactor(self, phase, *_):
         delayed_calls = reactor.getDelayedCalls()
         if delayed_calls:
-            self._logger.error("The reactor was dirty:")
+            self._logger.error("The reactor was dirty during %s:" % phase)
             for dc in delayed_calls:
                 self._logger.error(">     %s" % dc)
                 dc.cancel()
@@ -126,16 +131,29 @@ class AbstractServer(BaseTestCase):
                 sel.signalProcess('KILL')
             selectable_strings.append(repr(sel))
 
-        self.assertFalse(delayed_calls, "The reactor was dirty when tearing down the test")
-        self.assertFalse(Session.has_instance(), 'A session instance is still present when tearing down the test')
-        self.assertFalse(selectable_strings, "The reactor had readers/writers left")
+        self.assertFalse(delayed_calls, "The reactor was dirty during %s" % phase)
+        if Session.has_instance():
+            try:
+                yield Session.get_instance().shutdown()
+            except:
+                pass
+            Session.del_instance()
+
+            class DirtyReactorError(RuntimeError):
+                def __init__(self, phase):
+                    super(AbstractServer.checkReactor.DirtyReactorError,
+                          self).__init__("Found a leftover session instance during %s" % phase)
+
+            raise DirtyReactorError(phase)
+
+        self.assertFalse(selectable_strings, "The reactor has leftover readers/writers during %s: %r" % (phase, selectable_strings))
 
         # Check whether we have closed all the sockets
         open_readers = reactor.getReaders()
         for reader in open_readers:
-            self.assertNotIsInstance(reader, BasePort, "The test left a listening port behind: %s" % reader)
+            self.assertNotIsInstance(reader, BasePort, "Listening ports left on the reactor during %s: %s" % (phase, reader))
 
-    @deferred(timeout=10)
+    @blocking_call_on_reactor_thread
     def tearDown(self, annotate=True):
         self.tearDownCleanup()
         if annotate:
@@ -153,7 +171,7 @@ class AbstractServer(BaseTestCase):
         if self.file_server:
             return maybeDeferred(self.file_server.stopListening).addCallback(self.checkReactor)
         else:
-            return succeed(self.checkReactor)
+            return self.checkReactor("tearDown")
 
     def tearDownCleanup(self):
         self.setUpCleanup()
@@ -198,8 +216,10 @@ class TestAsServer(AbstractServer):
     Parent class for testing the server-side of Tribler
     """
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestAsServer, self).setUp(annotate=False)
+        yield super(TestAsServer, self).setUp(annotate=False)
         self.setUpPreSession()
 
         self.quitting = False
@@ -208,15 +228,16 @@ class TestAsServer(AbstractServer):
 
         self.session = Session(self.config)
         upgrader = self.session.prestart()
-        while not upgrader.is_done:
-            time.sleep(0.1)
+        assert upgrader.is_done
+
         assert not upgrader.failed, upgrader.current_status
         self.tribler_started_deferred = self.session.start()
 
+        yield self.tribler_started_deferred
+
         self.hisport = self.session.get_listen_port()
 
-        while not self.session.lm.initComplete:
-            time.sleep(1)
+        assert self.session.lm.initComplete
 
         self.annotate(self._testMethodName, start=True)
 
@@ -243,22 +264,26 @@ class TestAsServer(AbstractServer):
         self.config.set_creditmining_enable(False)
         self.config.set_enable_multichain(False)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def tearDown(self):
         self.annotate(self._testMethodName, start=False)
 
         """ unittest test tear down code """
         if self.session is not None:
-            self._shutdown_session(self.session)
+            assert self.session is Session.get_instance()
+            yield self.session.shutdown()
+            assert self.session.has_shutdown()
             Session.del_instance()
 
-        self.stop_seeder()
+        yield self.stop_seeder()
 
         ts = enumerate_threads()
         self._logger.debug("test_as_server: Number of threads still running %d", len(ts))
         for t in ts:
             self._logger.debug("Thread still running %s, daemon: %s, instance: %s", t.getName(), t.isDaemon(), t)
 
-        super(TestAsServer, self).tearDown(annotate=False)
+        yield super(TestAsServer, self).tearDown(annotate=False)
 
     def create_local_torrent(self, source_file):
         '''
@@ -316,7 +341,7 @@ class TestAsServer(AbstractServer):
 
     def stop_seeder(self):
         if self.seeder_session is not None:
-            self._shutdown_session(self.seeder_session)
+            return self.seeder_session.shutdown()
 
     def seeder_state_callback(self, ds):
         d = ds.get_download()
@@ -329,20 +354,10 @@ class TestAsServer(AbstractServer):
         return 1.0, False
 
     def _shutdown_session(self, session):
-        session_shutdown_start = time.time()
-        waittime = 60
-
-        session.shutdown()
-        while not session.has_shutdown():
-            diff = time.time() - session_shutdown_start
-            assert diff < waittime, "test_as_server: took too long for Session to shutdown"
-
-            self._logger.debug(
-                "Waiting for Session to shutdown, will wait for an additional %d seconds", (waittime - diff))
-
-            time.sleep(1)
-
-        self._logger.debug("Session has shut down")
+        # TODO(emilon): refactor this method away
+        assert isInIOThread()
+        self._logger.debug("Shutting down session")
+        return session.shutdown()
 
     def assert_(self, boolean, reason=None, do_assert=True, tribler_session=None, dump_statistics=False):
         if not boolean:

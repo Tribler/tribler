@@ -4,13 +4,13 @@ import random
 import time
 from collections import defaultdict
 from cryptography.exceptions import InvalidTag
-from twisted.internet.error import MessageLengthError
-
-from twisted.internet.defer import maybeDeferred, succeed
 
 from twisted.internet import reactor
+from twisted.internet.defer import maybeDeferred, succeed, inlineCallbacks, returnValue
+from twisted.internet.error import MessageLengthError
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet.task import LoopingCall
+from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.Utilities.encoding import decode, encode
 from Tribler.community.bartercast4.statistics import BartercastStatisticTypes, _barter_statistics
@@ -114,7 +114,7 @@ class StatsRequestCache(RandomNumberCache):
 class TunnelExitSocket(DatagramProtocol, TaskManager):
 
     def __init__(self, circuit_id, community, sock_addr, mid=None):
-        self.tunnel_logger = logging.getLogger('TunnelLogger')
+        self.tunnel_logger = logging.getLogger(self.__class__.__name__)
         super(TunnelExitSocket, self).__init__()
 
         self.port = None
@@ -171,19 +171,23 @@ class TunnelExitSocket(DatagramProtocol, TaskManager):
         self.tunnel_logger.debug("Tunnel data to origin %s for circuit %s", ('0.0.0.0', 0), self.circuit_id)
         self.community.send_data([Candidate(self.sock_addr, False)], self.circuit_id, ('0.0.0.0', 0), source, data)
 
+    @inlineCallbacks
     def close(self):
         """
         Closes the UDP socket if enabled and cancels all pending deferreds.
         :return: A deferred that fires once the UDP socket has closed.
         """
+        assert isInIOThread()
+        # The resolution deferreds can't be cancelled, so we need to wait for
+        # them to finish.
+        yield self.wait_for_deferred_tasks()
         self.cancel_all_pending_tasks()
-
         done_closing_deferred = succeed(None)
         if self.enabled:
             done_closing_deferred = maybeDeferred(self.port.stopListening)
             self.port = None
-
-        return done_closing_deferred
+        res = yield done_closing_deferred
+        returnValue(res)
 
     def check_num_packets(self, ip, incoming):
         if self.ips[ip] < 0:

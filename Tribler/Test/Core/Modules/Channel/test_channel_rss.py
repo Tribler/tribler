@@ -1,7 +1,10 @@
 import os
-from twisted.internet.defer import DeferredList
+
+from twisted.internet.defer import DeferredList, inlineCallbacks
+
 from Tribler.Core.Modules.channel.cache import SimpleCache
 from Tribler.Core.Modules.channel.channel_rss import ChannelRssParser, RSSFeedParser
+from Tribler.Core.Utilities.twisted_thread import deferred
 from Tribler.Test.Core.Modules.Channel.base_test_channel import BaseTestChannel
 from Tribler.Test.Core.base_test import TriblerCoreTest
 from Tribler.Test.test_as_server import TESTS_DATA_DIR
@@ -16,13 +19,12 @@ class TestChannelRss(BaseTestChannel):
         super(TestChannelRss, self).setUp(annotate=annotate)
         self.channel_rss = ChannelRssParser(self.fake_session, self.fake_channel_community, 'a')
         self.channel_rss.initialize()
-        self.should_shutdown_after_test = True
 
     def tearDown(self, annotate=True):
-        super(TestChannelRss, self).tearDown(annotate=annotate)
-
-        if self.should_shutdown_after_test:
+        if self.channel_rss.running:
             self.channel_rss.shutdown()
+
+        super(TestChannelRss, self).tearDown(annotate=annotate)
 
     def test_task_scrape_no_stop(self):
         self.channel_rss.cancel_all_pending_tasks()
@@ -39,17 +41,20 @@ class TestChannelRss(BaseTestChannel):
         self.assertTrue(self.channel_rss.is_pending_task_active("rss_scrape"))
 
     def test_shutdown(self):
-        self.should_shutdown_after_test = False
         cache_path = self.channel_rss._url_cache._file_path
         self.channel_rss._url_cache.add('a')
         self.channel_rss.shutdown()
         self.assertTrue(os.path.exists(cache_path))
         self.assertFalse(self.channel_rss.is_pending_task_active("rss_scrape"))
 
+    @deferred(10)
+    @inlineCallbacks
     def test_parse_rss_feed(self):
         self.channel_rss.rss_url = os.path.join(TESTS_DATA_DIR, 'test_rss.xml')
         self.channel_rss._url_cache = SimpleCache(os.path.join(self.session_base_dir, 'cache.txt'))
-        self.assertIsInstance(self.channel_rss.parse_feed(), DeferredList)
+        dl = self.channel_rss.parse_feed()
+        self.assertIsInstance(dl, DeferredList)
+        yield dl
 
     def test_parse_feed_stopped(self):
         self.channel_rss.rss_url = os.path.join(TESTS_DATA_DIR, 'test_rss.xml')

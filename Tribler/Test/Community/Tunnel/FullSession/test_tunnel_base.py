@@ -1,6 +1,8 @@
 import os
 import time
+
 from twisted.internet.defer import returnValue, inlineCallbacks
+from twisted.python.threadable import isInIOThread
 
 from Tribler.Core.DownloadConfig import DownloadStartupConfig
 from Tribler.Core.TorrentDef import TorrentDef
@@ -31,11 +33,13 @@ class HiddenTunnelCommunityTests(HiddenTunnelCommunity):
 
 class TestTunnelBase(TestAsServer):
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
         """
         Setup various variables and load the tunnel community in the main downloader session.
         """
-        TestAsServer.setUp(self, autoload_discovery=autoload_discovery)
+        yield TestAsServer.setUp(self, autoload_discovery=autoload_discovery)
         self.seed_tdef = None
         self.sessions = []
         self.session2 = None
@@ -52,20 +56,23 @@ class TestTunnelBase(TestAsServer):
         self.config.set_dispersy(True)
         self.config.set_libtorrent(True)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def tearDown(self):
         if self.session2:
-            self._shutdown_session(self.session2)
+            yield self.session2.shutdown()
 
         for session in self.sessions:
-            self._shutdown_session(session)
+            yield session.shutdown()
 
-        TestAsServer.tearDown(self)
+        yield TestAsServer.tearDown(self)
 
     @inlineCallbacks
     def setup_nodes(self, num_relays=1, num_exitnodes=1, seed_hops=0):
         """
         Setup all required nodes, including the relays, exit nodes and seeder.
         """
+        assert isInIOThread()
         baseindex = 3
         for i in xrange(baseindex, baseindex + num_relays):  # Normal relays
             proxy = yield self.create_proxy(i)
@@ -134,6 +141,7 @@ class TestTunnelBase(TestAsServer):
 
         returnValue(self.load_tunnel_community_in_session(session, exitnode=exitnode))
 
+    @blocking_call_on_reactor_thread
     def setup_tunnel_seeder(self, hops):
         """
         Setup the seeder.

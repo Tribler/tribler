@@ -5,6 +5,8 @@ Based on test_bartercast4_community.py
 from Tribler.Test.test_as_server import TestAsServer
 from Tribler.community.multichain.community import MultiChainCommunity, MultiChainCommunityCrawler
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
+from twisted.internet.defer import Deferred, inlineCallbacks
 
 
 class TestMultichainStartup(TestAsServer):
@@ -37,8 +39,10 @@ class TestMultichainStartup(TestAsServer):
         else:
             dispersy.define_auto_load(MultiChainCommunity, dispersy_member, load=True, kargs=kwargs)
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TestMultichainStartup, self).setUp()
+        yield super(TestMultichainStartup, self).setUp()
         self.dispersy = self.session.get_dispersy_instance()
 
     def tearDown(self):

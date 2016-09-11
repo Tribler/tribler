@@ -7,9 +7,10 @@ Written by Ardhi Putra Pratama H
 import binascii
 import os
 import shutil
-from unittest import skip
 
 from twisted.internet import defer
+from twisted.internet.defer import inlineCallbacks
+from twisted.internet.task import LoopingCall
 from twisted.web.server import Site
 from twisted.web.static import File
 
@@ -31,14 +32,19 @@ from Tribler.dispersy.member import DummyMember
 from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerSys(TestAsServer):
     """
     base class to test base credit mining function
     """
 
+    def __init__(self, *argv, **kwargs):
+        super(TestBoostingManagerSys, self).__init__(*argv, **kwargs)
+        self._check_source_lc = None
+
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestBoostingManagerSys, self).setUp()
+        yield super(TestBoostingManagerSys, self).setUp()
 
         self.set_boosting_settings()
 
@@ -78,11 +84,16 @@ class TestBoostingManagerSys(TestAsServer):
         self.config.set_enable_channel_search(True)
         self.config.set_libtorrent(True)
 
+    @blocking_call_on_reactor_thread
     def tearDown(self):
+        if self._check_source_lc:
+            self._check_source_lc.stop()
+            self._check_source_lc = None
+
         DefaultDownloadStartupConfig.delInstance()
         self.boosting_manager.shutdown()
 
-        super(TestBoostingManagerSys, self).tearDown()
+        return super(TestBoostingManagerSys, self).tearDown()
 
     def check_torrents(self, src, defer_param=None, target=1):
         """
@@ -124,26 +135,31 @@ class TestBoostingManagerSys(TestAsServer):
         if defer_param is None:
             defer_param = defer.Deferred()
 
-        src_obj = self.boosting_manager.get_source_object(src)
+        def do_check():
+            src_obj = self.boosting_manager.get_source_object(src)
 
-        if not ready:
-            defer_param.callback(src)
-        elif not src_obj or not src_obj.ready:
-            reactor.callLater(1, self.check_source, src, defer_param)
-        else:
-            defer_param.callback(src)
+            if not ready:
+                defer_param.callback(src)
+            elif src_obj and  src_obj.ready:
+                self._check_source_lc.stop()
+                self._check_source_lc = None
+                defer_param.callback(src)
+
+        self._check_source_lc = LoopingCall(do_check)
+        self._check_source_lc.start(1, now=True)
 
         return defer_param
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerSysRSS(TestBoostingManagerSys):
     """
     testing class for RSS (dummy) source
     """
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestBoostingManagerSysRSS, self).setUp()
+        yield super(TestBoostingManagerSysRSS, self).setUp()
 
         files_path, self.file_server_port = prepare_xml_rss(self.session_base_dir, 'test_rss_cm.xml')
 
@@ -220,7 +236,6 @@ class TestBoostingManagerSysRSS(TestBoostingManagerSys):
         return defer_err_rss
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerSysDir(TestBoostingManagerSys):
     """
     testing class for directory source
@@ -269,7 +284,6 @@ class TestBoostingManagerSysDir(TestBoostingManagerSys):
         return d
 
 
-@skip("Disabled credit mining tests until they are stable again")
 class TestBoostingManagerSysChannel(TestBoostingManagerSys):
     """
     testing class for channel source
@@ -282,8 +296,10 @@ class TestBoostingManagerSysChannel(TestBoostingManagerSys):
         self.expected_votecast_cid = None
         self.expected_votecast_vote = None
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self, autoload_discovery=True):
-        super(TestBoostingManagerSysChannel, self).setUp()
+        yield super(TestBoostingManagerSysChannel, self).setUp()
         self.channel_db_handler = self.session.open_dbhandler(NTFY_CHANNELCAST)
         self.channel_db_handler._get_my_dispersy_cid = lambda: "myfakedispersyid"
 

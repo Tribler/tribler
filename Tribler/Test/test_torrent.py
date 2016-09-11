@@ -4,15 +4,19 @@ import shutil
 import time
 import libtorrent
 
-from Tribler.Test.test_as_server import AbstractServer, TESTS_DATA_DIR
+from twisted.internet.defer import inlineCallbacks
 
+from Tribler.Test.test_as_server import AbstractServer, TESTS_DATA_DIR
 from Tribler.Core.Utilities.torrent_utils import create_torrent_file
+from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 
 class TestTorrent(AbstractServer):
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TestTorrent, self).setUp()
+        yield super(TestTorrent, self).setUp()
 
         self._ubuntu_torrent_name = u"ubuntu-15.04-desktop-amd64.iso.torrent"
         self._origin_torrent_path = os.path.join(TESTS_DATA_DIR, self._ubuntu_torrent_name)

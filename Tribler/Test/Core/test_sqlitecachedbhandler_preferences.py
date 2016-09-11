@@ -1,3 +1,5 @@
+from twisted.internet.defer import inlineCallbacks
+
 from Tribler.Core.CacheDB.SqliteCacheDBHandler import TorrentDBHandler, MyPreferenceDBHandler
 from Tribler.Core.CacheDB.sqlitecachedb import str2bin
 from Tribler.Test.Core.test_sqlitecachedbhandler import AbstractDB
@@ -6,8 +8,10 @@ from Tribler.dispersy.util import blocking_call_on_reactor_thread
 
 class TestMyPreferenceDBHandler(AbstractDB):
 
+    @blocking_call_on_reactor_thread
+    @inlineCallbacks
     def setUp(self):
-        super(TestMyPreferenceDBHandler, self).setUp()
+        yield super(TestMyPreferenceDBHandler, self).setUp()
 
         self.tdb = TorrentDBHandler(self.session)
         self.mdb = MyPreferenceDBHandler(self.session)
