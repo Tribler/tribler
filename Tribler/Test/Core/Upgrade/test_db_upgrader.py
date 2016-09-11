@@ -34,6 +34,15 @@ class TestDBUpgrader(AbstractUpgrader):
         db_migrator.start_migrate()
         self.assertEqual(self.sqlitedb.version, LATEST_DB_VERSION)
 
+        # Check whether the torrents in the database are reindexed
+        results = self.sqlitedb.fetchall("SELECT * FROM FullTextIndex")
+        self.assertEqual(len(results), 1)
+        self.assertTrue('test' in results[0][0])
+        self.assertTrue('random' in results[0][1])
+        self.assertTrue('tribler' in results[0][1])
+        self.assertTrue('txt' in results[0][2])
+        self.assertTrue('txt' in results[0][2])
+
     def test_upgrade_wrong_version(self):
         self.copy_and_initialize_upgrade_database('tribler_v17.sdb')
         db_migrator = DBUpgrader(self.session, self.sqlitedb, torrent_store=MockTorrentStore())
@@ -53,4 +62,4 @@ class TestDBUpgrader(AbstractUpgrader):
         db_migrator.reimport_torrents()
 
         torrent_db_handler = TorrentDBHandler(self.session)
-        self.assertEqual(torrent_db_handler.getTorrentID(TORRENT_FILE_INFOHASH), 1)
+        self.assertEqual(torrent_db_handler.getTorrentID(TORRENT_FILE_INFOHASH), 3)

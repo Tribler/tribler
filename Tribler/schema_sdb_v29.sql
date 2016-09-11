@@ -267,7 +267,7 @@ CREATE TABLE IF NOT EXISTS _TorrentMarkings (
 CREATE VIEW TorrentMarkings AS SELECT * FROM _TorrentMarkings WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS TorMarkIndex ON _TorrentMarkings(channeltorrent_id);
 
-CREATE VIRTUAL TABLE FullTextIndex USING fts3(swarmname, filenames, fileextensions);
+CREATE VIRTUAL TABLE FullTextIndex USING fts4(swarmname, filenames, fileextensions);
 
 -------------------------------------
 
